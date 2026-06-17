@@ -1,6 +1,13 @@
 /* ═══════════════════════════════════════════════════════════════
-   MYVAGON — product-master.css
+   MYVAGON — product-master.css  |  Product Master page styles only
+   Sidebar + topbar + design tokens live in styles/globals.css
    ═══════════════════════════════════════════════════════════════ */
+
+/* Full-bleed layout inside app shell */
+.page-body:has(.pm-container) {
+  padding: 0;
+  overflow: hidden;
+}
 
 /* ─── CSS Variables ─── */
 :root {
@@ -57,6 +64,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
+  height: calc(100vh - var(--topbar-h, 64px));
 }
 
 /* ─── Buttons ─── */
