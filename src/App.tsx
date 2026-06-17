@@ -3,7 +3,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { Dashboard } from './pages/Dashboard';
 import { ManageShipments } from './pages/ManageShipments';
 import { ShipmentDetail } from './pages/ShipmentDetail';
-import { CreateShipmentWizard } from './pages/CreateShipmentWizard';
+import { CreateShipmentWizard } from './pages/CreateShipmentWizard/CreateShipmentWizard';
 import { AddressBook } from './pages/AddressBook';
 import { ProductMaster } from './pages/ProductMaster';
 import { MarketingHome } from './pages/MarketingHome';
