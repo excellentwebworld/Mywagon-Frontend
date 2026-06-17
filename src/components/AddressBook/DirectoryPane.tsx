@@ -60,21 +60,23 @@ export const DirectoryPane: React.FC<Props> = ({
           >
             {DIR_ICONS[d.icon] || DIR_ICONS.folder}
             <span className="dir-node-label">{d.name}</span>
-            {warnings > 0 && <span className="dir-warn" title={`${warnings} locations need data`} />}
-            <span className="dir-count">{count}</span>
-            {!d.system && (
-              <button
-                type="button"
-                className="dir-del"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteDirectory(d.id, d.name);
-                }}
-                title="Delete"
-              >
-                ✕
-              </button>
-            )}
+            <div className="dir-trailing">
+              {warnings > 0 && <span className="dir-warn" title={`${warnings} locations need data`} />}
+              <span className="dir-count">{count}</span>
+              {!d.system && (
+                <button
+                  type="button"
+                  className="dir-del"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteDirectory(d.id, d.name);
+                  }}
+                  title="Delete"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
           {d.id === 'all' && <div className="dir-sep" />}
         </React.Fragment>
