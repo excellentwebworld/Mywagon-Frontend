@@ -14,8 +14,10 @@ export const CreateShipmentWizard: React.FC = () => {
   const [step, setStep] = useState(1);
 
   // Step 1: Vehicle and Stops State
-  const [selectedVehicle, setSelectedVehicle] = useState('semi');
-  const [nestedSpecs, setNestedSpecs] = useState<string[]>(['curtainside']);
+  const [vehicleSpecs, setVehicleSpecs] = useState<Record<string, string[]>>({
+    semi: ['curtainside', 'box', 'platform', 'flatbed'],
+    curtain: ['standard'],
+  });
   const [stops, setStops] = useState<ShipmentStop[]>([
     {
       id: 1,
@@ -210,10 +212,8 @@ export const CreateShipmentWizard: React.FC = () => {
       <div className="content" style={{ paddingBottom: '120px' }}>
         {step === 1 && (
           <Step1Details
-            selectedVehicle={selectedVehicle}
-            setSelectedVehicle={setSelectedVehicle}
-            nestedSpecs={nestedSpecs}
-            setNestedSpecs={setNestedSpecs}
+            vehicleSpecs={vehicleSpecs}
+            setVehicleSpecs={setVehicleSpecs}
             stops={stops}
             setStops={setStops}
           />

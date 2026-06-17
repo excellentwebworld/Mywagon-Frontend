@@ -260,7 +260,7 @@
   color: var(--text-tertiary);
 }
 
-/* ── Nest Specs ── */
+/* ── Nest Specs (scoped under .vnest to avoid sidebar .ns/.ni conflicts) ── */
 .vnest {
   max-height: 0;
   overflow: hidden;
@@ -278,55 +278,69 @@
   padding: 4px 0;
 }
 
-.nc {
+.vnest .nc {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 6px 12px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   color: var(--text-primary);
+  line-height: 1.2;
 }
 
-.nc:hover {
+.vnest .nc:hover {
   background: var(--surface-hover);
 }
 
-.nc .chev {
+.vnest .nc .chev {
   font-size: 9px;
   color: var(--text-tertiary);
   transition: transform 0.2s;
   width: 12px;
   text-align: center;
+  flex-shrink: 0;
 }
 
-.nc .chev.open {
+.vnest .nc .chev.open {
   transform: rotate(90deg);
 }
 
-.ns {
+.vnest .ns {
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.25s ease;
+  padding: 0;
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  color: inherit;
 }
 
-.ns.open {
+.vnest .ns.open {
   max-height: 300px;
 }
 
-.ni {
+.vnest .ni {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 5px 12px 5px 34px;
   font-size: 12px;
+  font-weight: 400;
   cursor: pointer;
   color: var(--text-secondary);
+  border-radius: 0;
+  margin-bottom: 0;
+  text-decoration: none;
 }
 
-.ni:hover {
+.vnest .ni:hover {
   background: var(--surface-hover);
+  color: var(--text-secondary);
 }
 
 /* ── Checkboxes ── */
@@ -376,6 +390,22 @@
   font-weight: 600;
   color: var(--text-primary);
   text-align: right;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  max-width: 65%;
+}
+
+.btn-p {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+}
+
+.btn-p:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
 }
 
 .vt {

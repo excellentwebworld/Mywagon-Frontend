@@ -7,19 +7,15 @@ import { CreateLocationModal } from './CreateLocationModal';
 import { CreateProductModal } from './CreateProductModal';
 
 interface Step1DetailsProps {
-  selectedVehicle: string;
-  setSelectedVehicle: (v: string) => void;
-  nestedSpecs: string[];
-  setNestedSpecs: React.Dispatch<React.SetStateAction<string[]>>;
+  vehicleSpecs: Record<string, string[]>;
+  setVehicleSpecs: React.Dispatch<React.SetStateAction<Record<string, string[]>>>;
   stops: ShipmentStop[];
   setStops: React.Dispatch<React.SetStateAction<ShipmentStop[]>>;
 }
 
 export const Step1Details: React.FC<Step1DetailsProps> = ({
-  selectedVehicle,
-  setSelectedVehicle,
-  nestedSpecs,
-  setNestedSpecs,
+  vehicleSpecs,
+  setVehicleSpecs,
   stops,
   setStops,
 }) => {
@@ -41,46 +37,178 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const [activeLocDD, setActiveLocDD] = useState<number | null>(null);
 
   const [vehicleCardExpanded, setVehicleCardExpanded] = useState(true);
+  const [openNests, setOpenNests] = useState<string[]>(['semi', 'curtain']);
+  const [expandedCats, setExpandedCats] = useState<Record<string, boolean>>({
+    'semi-dry': true,
+  });
 
-  // Vehicle data definition matching step1.js
-  const vehData = {
+  type VehicleCat = { items: string[] };
+  type VehicleEntry = {
+    name: { en: string; el: string };
+    desc: string;
+    cats: Record<string, VehicleCat>;
+  };
+
+  const vehData: Record<string, VehicleEntry> = {
     semi: {
       name: { en: 'Semi-Trailer', el: 'Επικαθήμενο' },
       desc: 'Tilt trailer',
-      specs: ['curtainside', 'box', 'platform', 'flatbed', 'temp', 'multitemp', 'tanker', 'silo'],
+      cats: {
+        dry: { items: ['curtainside', 'box', 'platform', 'flatbed'] },
+        reefer: { items: ['temp', 'multitemp'] },
+        other: { items: ['tanker', 'silo'] },
+      },
     },
     curtain: {
       name: { en: 'Truck with Trailer', el: 'Συρρόμενο' },
       desc: 'Curtainsider',
-      specs: ['standard', 'mega', 'refr'],
+      cats: {
+        dry: { items: ['standard', 'mega'] },
+        reefer: { items: ['refr'] },
+      },
     },
     rigid: {
       name: { en: 'Rigid Truck (7-12t)', el: 'Τριαξονικό' },
       desc: '7.5T – 12.0T',
-      specs: ['box', 'flatbed', 'refr'],
+      cats: {
+        dry: { items: ['box', 'flatbed'] },
+        reefer: { items: ['refr'] },
+      },
     },
     van: {
       name: { en: 'Van', el: 'Βαν' },
       desc: 'Van / LCV',
-      specs: ['small', 'large', 'refr'],
+      cats: {
+        dry: { items: ['small', 'large'] },
+        reefer: { items: ['refr'] },
+      },
     },
   };
 
-  const handleToggleVehicle = (vid: string) => {
-    setSelectedVehicle(vid);
-    // Auto-select standard specifications if none selected for this vehicle type
-    const possibleSpecs = vehData[vid as keyof typeof vehData]?.specs || [];
-    const hasAny = nestedSpecs.some((s) => possibleSpecs.includes(s));
-    if (!hasAny && possibleSpecs.length > 0) {
-      setNestedSpecs([possibleSpecs[0]]);
-    }
+  const catLabels: Record<string, { en: string; el: string }> = {
+    dry: { en: 'Dry', el: 'Ξηρό' },
+    reefer: { en: 'Reefer', el: 'Ψυγείο' },
+    other: { en: 'Other', el: 'Άλλο' },
   };
 
-  const handleToggleSpec = (spec: string) => {
-    setNestedSpecs((prev) =>
-      prev.includes(spec) ? prev.filter((s) => s !== spec) : [...prev, spec]
-    );
+  const specLabels: Record<string, string> = {
+    curtainside: 'Curtainside',
+    box: 'Box',
+    platform: 'Platform',
+    flatbed: 'Flatbed',
+    temp: 'Temperature-controlled',
+    multitemp: 'Multi-temp',
+    tanker: 'Tanker',
+    silo: 'Silo',
+    standard: 'Standard',
+    mega: 'Mega (3m+)',
+    refr: 'Refrigerated',
+    small: 'Small Van',
+    large: 'Large Van (Sprinter)',
   };
+
+  const getSpecLabel = (vid: string, spec: string) => {
+    if (spec === 'refr' && vid === 'van') return lang === 'el' ? 'Ψυγείο Van' : 'Refrigerated Van';
+    if (spec === 'mega') return 'Mega (3m+)';
+    return specLabels[spec] || spec.charAt(0).toUpperCase() + spec.slice(1);
+  };
+
+  const isVehicleSelected = (vid: string) => (vehicleSpecs[vid]?.length ?? 0) > 0;
+
+  const getAllSpecsForVehicle = (vid: string) =>
+    Object.values(vehData[vid].cats).flatMap((cat) => cat.items);
+
+  const getCatState = (vid: string, cat: string): 'on' | 'ind' | 'off' => {
+    const items = vehData[vid].cats[cat].items;
+    const selected = vehicleSpecs[vid] || [];
+    const count = items.filter((it) => selected.includes(it)).length;
+    if (count === items.length) return 'on';
+    if (count > 0) return 'ind';
+    return 'off';
+  };
+
+  const syncVehicleSpecs = (vid: string, specs: string[]) => {
+    setVehicleSpecs((prev) => {
+      const next = { ...prev };
+      if (specs.length === 0) {
+        delete next[vid];
+      } else {
+        next[vid] = specs;
+      }
+      return next;
+    });
+  };
+
+  const handleToggleVehicle = (vid: string) => {
+    if (openNests.includes(vid)) {
+      setOpenNests((prev) => prev.filter((v) => v !== vid));
+      return;
+    }
+
+    const currentSpecs = vehicleSpecs[vid] || [];
+    if (currentSpecs.length === 0) {
+      syncVehicleSpecs(vid, getAllSpecsForVehicle(vid));
+    }
+    setOpenNests((prev) => [...prev, vid]);
+  };
+
+  const handleDeselectVehicle = (vid: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    syncVehicleSpecs(vid, []);
+    setOpenNests((prev) => prev.filter((v) => v !== vid));
+  };
+
+  const handleToggleCat = (vid: string, cat: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const catKey = `${vid}-${cat}`;
+    setExpandedCats((prev) => ({ ...prev, [catKey]: !prev[catKey] }));
+
+    const items = vehData[vid].cats[cat].items;
+    const catState = getCatState(vid, cat);
+    const isOn = catState === 'on' || catState === 'ind';
+    const currentSpecs = vehicleSpecs[vid] || [];
+
+    let newSpecs: string[];
+    if (isOn) {
+      newSpecs = currentSpecs.filter((s) => !items.includes(s));
+    } else {
+      newSpecs = [...currentSpecs];
+      items.forEach((it) => {
+        if (!newSpecs.includes(it)) newSpecs.push(it);
+      });
+    }
+    syncVehicleSpecs(vid, newSpecs);
+  };
+
+  const handleToggleSpec = (vid: string, _cat: string, spec: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentSpecs = vehicleSpecs[vid] || [];
+    const hasSpec = currentSpecs.includes(spec);
+    const newSpecs = hasSpec
+      ? currentSpecs.filter((s) => s !== spec)
+      : [...currentSpecs, spec];
+    syncVehicleSpecs(vid, newSpecs);
+  };
+
+  const selectedTypes = Object.keys(vehData)
+    .filter((vid) => isVehicleSelected(vid))
+    .map((vid) => vehData[vid].name[lang as 'en' | 'el']);
+
+  const selectedSpecLabels = Object.keys(vehData).flatMap((vid) => {
+    if (!isVehicleSelected(vid)) return [];
+    return (vehicleSpecs[vid] || []).map((spec) => getSpecLabel(vid, spec));
+  });
+
+  const vehicleBrief =
+    selectedTypes.length > 0
+      ? `${selectedTypes.join(', ')}${
+          selectedSpecLabels.length > 0
+            ? ` — ${selectedSpecLabels.slice(0, 4).join(', ')}${
+                selectedSpecLabels.length > 4 ? ` +${selectedSpecLabels.length - 4} more` : ''
+              }`
+            : ''
+        }`
+      : '';
 
   const handleConfirmVehicle = () => {
     setVehicleCardExpanded(false);
@@ -317,13 +445,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
             <circle cx="18.5" cy="18.5" r="2.5" />
           </svg>
           <span>{lang === 'el' ? 'Τύπος Οχήματος' : 'Vehicle Type'}</span>
-          {!vehicleCardExpanded && (
-            <span className="ch-brief">
-              {vehData[selectedVehicle as keyof typeof vehData]?.name[lang] || selectedVehicle}
-              {nestedSpecs.length > 0 && ` — ${nestedSpecs.slice(0, 3).join(', ')}`}
-            </span>
+          {!vehicleCardExpanded && vehicleBrief && (
+            <span className="ch-brief">{vehicleBrief}</span>
           )}
-          <span className="ch-r">
+          <span className="ch-r" style={{ display: vehicleCardExpanded ? '' : 'none' }}>
             {lang === 'el' ? 'Επιλέξτε 1 ή περισσότερους τύπους' : 'Select 1 or more types'}
           </span>
           <div className={`ch-chev ${vehicleCardExpanded ? 'open' : ''}`}>▼</div>
@@ -333,22 +458,24 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           <div className="cb">
             <div className="vg" role="group">
               {Object.entries(vehData).map(([key, data]) => {
-                const isSelected = selectedVehicle === key;
+                const isSelected = isVehicleSelected(key);
+                const isNestOpen = openNests.includes(key);
                 return (
                   <div key={key} className="vc-wrap">
                     <div className={`vc ${isSelected ? 'sel' : ''}`} onClick={() => handleToggleVehicle(key)}>
-                      <div className="ck" title="Deselect" onClick={(e) => { e.stopPropagation(); setSelectedVehicle(''); }}>✓</div>
+                      <div className="ck" title="Deselect" onClick={(e) => handleDeselectVehicle(key, e)}>✓</div>
                       <div className="vi">
                         {key === 'semi' && (
-                          <svg width="40" height="40" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.8">
+                          <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.8">
                             <rect x="2" y="20" width="42" height="22" rx="3" />
                             <path d="M44 28h10l6 8v6H44V28z" />
                             <circle cx="14" cy="46" r="5" />
                             <circle cx="52" cy="46" r="5" />
+                            <path d="M6 20V16a2 2 0 0 1 2-2h32a2 2 0 0 1 2 2v4" opacity=".5" />
                           </svg>
                         )}
                         {key === 'curtain' && (
-                          <svg width="40" height="40" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.8">
+                          <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.8">
                             <rect x="2" y="20" width="42" height="22" rx="3" />
                             <path d="M44 28h10l6 8v6H44V28z" />
                             <circle cx="14" cy="46" r="5" />
@@ -357,7 +484,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           </svg>
                         )}
                         {key === 'rigid' && (
-                          <svg width="40" height="40" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.8">
+                          <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.8">
                             <rect x="2" y="22" width="38" height="18" rx="3" />
                             <path d="M40 28h10l6 6v6H40V28z" />
                             <circle cx="12" cy="44" r="5" />
@@ -366,11 +493,12 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           </svg>
                         )}
                         {key === 'van' && (
-                          <svg width="40" height="40" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.8">
+                          <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.8">
                             <rect x="6" y="22" width="48" height="20" rx="4" />
                             <path d="M42 22V18a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v4" />
                             <circle cx="16" cy="46" r="5" />
                             <circle cx="46" cy="46" r="5" />
+                            <rect x="42" y="24" width="12" height="10" rx="2" opacity=".3" />
                           </svg>
                         )}
                       </div>
@@ -378,16 +506,31 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                       <div className="vs">{data.desc}</div>
                     </div>
 
-                    {/* Collapsible Specs Checklist Inside Vehicle wrapper */}
-                    <div className={`vnest ${isSelected ? 'open' : ''}`}>
-                      <div className="vnest-label">{lang === 'el' ? 'ΠΡΟΔΙΑΓΡΑΦΕΣ' : 'SPECIFICATIONS'}</div>
-                      {data.specs.map((spec) => {
-                        const hasSpec = nestedSpecs.includes(spec);
+                    <div className={`vnest ${isNestOpen ? 'open' : ''}`}>
+                      {Object.entries(data.cats).map(([catKey, catData]) => {
+                        const catState = getCatState(key, catKey);
+                        const catExpanded = expandedCats[`${key}-${catKey}`] ?? false;
                         return (
-                          <div key={spec} className="ni" onClick={() => handleToggleSpec(spec)}>
-                            <div className={`cbx ${hasSpec ? 'on' : ''}`}>{hasSpec && '✓'}</div>
-                            <span style={{ textTransform: 'capitalize' }}>{spec}</span>
-                          </div>
+                          <React.Fragment key={catKey}>
+                            <div className="nc" onClick={(e) => handleToggleCat(key, catKey, e)}>
+                              <span className={`chev ${catExpanded ? 'open' : ''}`}>▶</span>
+                              <div className={`cbx ${catState === 'on' ? 'on' : ''} ${catState === 'ind' ? 'ind' : ''}`}>
+                                {catState === 'on' ? '✓' : catState === 'ind' ? '–' : ''}
+                              </div>
+                              <span>{catLabels[catKey]?.[lang as 'en' | 'el'] || catKey}</span>
+                            </div>
+                            <div className={`ns ${catExpanded ? 'open' : ''}`}>
+                              {catData.items.map((spec) => {
+                                const hasSpec = (vehicleSpecs[key] || []).includes(spec);
+                                return (
+                                  <div key={spec} className="ni" onClick={(e) => handleToggleSpec(key, catKey, spec, e)}>
+                                    <div className={`cbx ${hasSpec ? 'on' : ''}`}>{hasSpec && '✓'}</div>
+                                    <span>{getSpecLabel(key, spec)}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </React.Fragment>
                         );
                       })}
                     </div>
@@ -396,9 +539,35 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
               })}
             </div>
 
+            <div className="vreqs">
+              <div className="vr">
+                <span>
+                  🚛 {lang === 'el' ? 'Τύπος οχήματος' : 'Vehicle type'}
+                </span>
+                <span className="vr-v">{selectedTypes.length ? selectedTypes.join(' | ') : '—'}</span>
+              </div>
+              <div className="vr">
+                <span>
+                  📦 {lang === 'el' ? 'Προδιαγραφές φορτίου' : 'Cargo specs'}
+                </span>
+                <span className="vr-v">
+                  {selectedSpecLabels.length
+                    ? selectedSpecLabels.map((s, i) => (
+                        <span key={`${s}-${i}`} className="vt">
+                          {s}
+                        </span>
+                      ))
+                    : '—'}
+                </span>
+              </div>
+            </div>
+
             <div className="veh-confirm">
               <button className="btn btn-p btn-sm" onClick={handleConfirmVehicle}>
-                ✓ <span>{lang === 'el' ? 'Επιβεβαίωση Επιλογής' : 'Confirm Selection'}</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <span>{lang === 'el' ? 'Επιβεβαίωση Επιλογής' : 'Confirm Selection'}</span>
               </button>
             </div>
           </div>
