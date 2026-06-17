@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useApp } from '../../../context/AppContext';
-import type { LocationItem, ShipmentStop, ShipmentCustomer, ShipmentCustomerOrder } from '../../../context/AppContext';
+import { useApp } from '../../context/AppContext';
+import type { LocationItem, ShipmentStop, ShipmentCustomer, ShipmentCustomerOrder } from '../../context/AppContext';
 import { CreateCustomerModal } from './CreateCustomerModal';
 import { CreateOrderModal } from './CreateOrderModal';
 import { CreateLocationModal } from './CreateLocationModal';

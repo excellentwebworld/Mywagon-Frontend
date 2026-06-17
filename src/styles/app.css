@@ -408,13 +408,14 @@ button { cursor: pointer; }
   font-size: 14px;
   font-weight: 600;
 }
-.btn:hover { background: #f8fafc; color: var(--text); border-color: var(--border-strong); }
+.btn:hover:not(.btn-primary):not(.btn-danger) { background: #f8fafc; color: var(--text); border-color: var(--border-strong); }
 .btn-primary {
   border-color: var(--brand);
   background: var(--brand);
+  background-color: var(--brand);
   color: white;
 }
-.btn-primary:hover { background: var(--brand-dark); color: white; }
+.btn-primary:hover { background: var(--brand-dark); background-color: var(--brand-dark); color: white; }
 .sidebar-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 55;
 }

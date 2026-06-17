@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useApp } from '../../../context/AppContext';
-import type { ShipmentStop } from '../../../context/AppContext';
+import { useApp } from '../../context/AppContext';
+import type { ShipmentStop } from '../../context/AppContext';
 
 interface Step2ItineraryProps {
   stops: ShipmentStop[];

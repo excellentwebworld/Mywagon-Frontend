@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import type { Shipment, ShipmentStop } from '../../context/AppContext';
-import { Step1Details } from './components/Step1Details';
-import { Step2Itinerary } from './components/Step2Itinerary';
-import { Step3Pricing } from './components/Step3Pricing';
+import { Step1Details, Step2Itinerary, Step3Pricing } from '../../components/CreateShipmentWizard';
 import './CreateShipmentWizard.css';
 
 export const CreateShipmentWizard: React.FC = () => {

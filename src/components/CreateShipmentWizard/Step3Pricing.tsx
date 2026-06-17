@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../../../context/AppContext';
-import type { ShipmentStop } from '../../../context/AppContext';
+import { useApp } from '../../context/AppContext';
+import type { ShipmentStop } from '../../context/AppContext';
 
 interface Step3PricingProps {
   stops: ShipmentStop[];
