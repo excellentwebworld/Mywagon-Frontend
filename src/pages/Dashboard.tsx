@@ -5,10 +5,12 @@ import { KpiStrip } from '../components/dashboard/KpiStrip';
 import { Schedule } from '../components/dashboard/Schedule';
 import { LiveMap } from '../components/dashboard/LiveMap';
 import { ShipmentBoard } from '../components/dashboard/ShipmentBoard';
+import { Notifications } from '../components/dashboard/Notifications';
+import { RightPanel } from '../components/dashboard/RightPanel';
 
 export const Dashboard: React.FC = () => {
   const { lang } = useApp();
-  
+
   // Coordinate active board tab state between KpiStrip and ShipmentBoard
   // Index 1 represents "Upcoming" which is the default active tab in the design
   const [activeBoardTab, setActiveBoardTab] = useState<number>(1);
@@ -39,6 +41,12 @@ export const Dashboard: React.FC = () => {
 
       {/* Dynamic Tabbed Shipment Board */}
       <ShipmentBoard activeTab={activeBoardTab} setActiveTab={setActiveBoardTab} />
+
+      {/* Notifications & Right Panel Layout */}
+      <div className="row-2col-r4">
+        <Notifications />
+        <RightPanel />
+      </div>
     </div>
   );
 };
