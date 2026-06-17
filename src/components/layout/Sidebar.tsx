@@ -3,15 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 
 interface SidebarProps {
-  collapsed: boolean;
-  onToggleCollapse: () => void;
   mobileOpen: boolean;
   onCloseMobile: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
-  collapsed,
-  onToggleCollapse,
   mobileOpen,
   onCloseMobile,
 }) => {
@@ -43,7 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar aside panel */}
       <aside
-        className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}
+        className={`sidebar  ${mobileOpen ? 'mobile-open' : ''}`}
         id="sidebar"
         aria-label="Main navigation"
       >
@@ -70,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             MY<span className="hl">VAGON</span>
           </span>
 
-          <button
+          {/* <button
             id="sidebarCollapseBtn"
             aria-label="Toggle sidebar"
             onClick={onToggleCollapse}
@@ -100,13 +96,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <path d="M3 12h18M3 6h18M3 18h18" />
             </svg>
-          </button>
+          </button> */}
         </div>
 
         {/* Navigation list */}
         <nav className="sb-nav">
-          <div className="sb-section sb-label">{lang === 'el' ? 'Κύρια' : 'Main'}</div>
-
           <Link
             to="/dashboard"
             onClick={onCloseMobile}
@@ -417,7 +411,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </a>
 
           {/* User info */}
-          <div className="nav-item" style={{ marginTop: '4px', cursor: 'default' }} title="Acme Logistics">
+          {/* <div className="nav-item" style={{ marginTop: '4px', cursor: 'default' }} title="Acme Logistics">
             <div className="avatar avatar-sm" style={{ background: '#4B4B5A' }} aria-hidden="true">
               AL
             </div>
@@ -438,7 +432,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {lang === 'el' ? 'Φορτωτής' : 'Shipper'}
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </aside>
     </>

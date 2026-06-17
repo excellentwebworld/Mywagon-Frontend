@@ -5,7 +5,6 @@ import { Header } from './Header';
 import { useApp } from '../../context/AppContext';
 
 export const AppLayout: React.FC = () => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { toast } = useApp();
 
@@ -13,16 +12,15 @@ export const AppLayout: React.FC = () => {
     <div className="app-layout" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Sidebar Navigation */}
       <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        // onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         mobileOpen={mobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
       />
 
       {/* Main Content Area */}
-      <div className={`main-content ${sidebarCollapsed ? 'expanded' : ''}`}>
+      <div className={`main-content`}>
         <Header onToggleMobileMenu={() => setMobileMenuOpen(true)} />
-        
+
         <main className="page-body">
           <Outlet />
         </main>
