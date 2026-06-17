@@ -68,9 +68,9 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div 
-          className="qa-card" 
-          onClick={() => showToast(lang === 'el' ? 'Έναρξη εισαγωγής από ERP...' : 'Triggering ERP import...', 'info')} 
+        <div
+          className="qa-card"
+          onClick={() => showToast(lang === 'el' ? 'Έναρξη εισαγωγής από ERP...' : 'Triggering ERP import...', 'info')}
           style={{ flex: 1, cursor: 'pointer' }}
         >
           <div className="qa-icon" style={{ background: 'var(--success-bg)' }}>📋</div>
@@ -86,10 +86,10 @@ export const Dashboard: React.FC = () => {
         {/* Operational Section */}
         <div className="kpi-section-label">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="7" height="7" rx="1.5"/>
-            <rect x="14" y="3" width="7" height="7" rx="1.5"/>
-            <rect x="3" y="14" width="7" height="7" rx="1.5"/>
-            <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+            <rect x="3" y="3" width="7" height="7" rx="1.5" />
+            <rect x="14" y="3" width="7" height="7" rx="1.5" />
+            <rect x="3" y="14" width="7" height="7" rx="1.5" />
+            <rect x="14" y="14" width="7" height="7" rx="1.5" />
           </svg>
           <span>{t('kpiOpLabel')}</span>
         </div>
@@ -100,7 +100,7 @@ export const Dashboard: React.FC = () => {
               <div className="kpi-val">{activeLoads}</div>
               <div className="kpi-spark">
                 <svg viewBox="0 0 56 24" fill="none">
-                  <polyline points="0,18 8,14 16,16 24,10 32,12 40,8 48,6 56,9" stroke="#6C3AED" strokeWidth="1.8" fill="none"/>
+                  <polyline points="0,18 8,14 16,16 24,10 32,12 40,8 48,6 56,9" stroke="#6C3AED" strokeWidth="1.8" fill="none" />
                 </svg>
               </div>
             </div>
@@ -116,7 +116,7 @@ export const Dashboard: React.FC = () => {
               <div className="kpi-val">{pendingBids}</div>
               <div className="kpi-spark">
                 <svg viewBox="0 0 56 24" fill="none">
-                  <polyline points="0,12 8,14 16,10 24,16 32,18 40,14 48,20 56,16" stroke="#F59E0B" strokeWidth="1.8" fill="none"/>
+                  <polyline points="0,12 8,14 16,10 24,16 32,18 40,14 48,20 56,16" stroke="#F59E0B" strokeWidth="1.8" fill="none" />
                 </svg>
               </div>
             </div>
@@ -132,7 +132,7 @@ export const Dashboard: React.FC = () => {
               <div className="kpi-val">{inTransit}</div>
               <div className="kpi-spark">
                 <svg viewBox="0 0 56 24" fill="none">
-                  <polyline points="0,16 8,12 16,14 24,8 32,10 40,6 48,8 56,4" stroke="#0EA5E9" strokeWidth="1.8" fill="none"/>
+                  <polyline points="0,16 8,12 16,14 24,8 32,10 40,6 48,8 56,4" stroke="#0EA5E9" strokeWidth="1.8" fill="none" />
                 </svg>
               </div>
             </div>
@@ -148,7 +148,7 @@ export const Dashboard: React.FC = () => {
               <div className="kpi-val">{upcomingCount}</div>
               <div className="kpi-spark">
                 <svg viewBox="0 0 56 24" fill="none">
-                  <polyline points="0,20 8,18 16,16 24,12 32,14 40,10 48,8 56,6" stroke="#8E8E9A" strokeWidth="1.8" fill="none"/>
+                  <polyline points="0,20 8,18 16,16 24,12 32,14 40,10 48,8 56,6" stroke="#8E8E9A" strokeWidth="1.8" fill="none" />
                 </svg>
               </div>
             </div>
@@ -164,7 +164,7 @@ export const Dashboard: React.FC = () => {
               <div className="kpi-val">{deliveredCount}</div>
               <div className="kpi-spark">
                 <svg viewBox="0 0 56 24" fill="none">
-                  <polyline points="0,20 8,18 16,16 24,14 32,12 40,10 48,8 56,6" stroke="#10B981" strokeWidth="1.8" fill="none"/>
+                  <polyline points="0,20 8,18 16,16 24,14 32,12 40,10 48,8 56,6" stroke="#10B981" strokeWidth="1.8" fill="none" />
                 </svg>
               </div>
             </div>
@@ -178,8 +178,8 @@ export const Dashboard: React.FC = () => {
         {/* Financial Section */}
         <div className="kpi-section-label" style={{ marginTop: '4px' }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="12" y1="1" x2="12" y2="23"/>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            <line x1="12" y1="1" x2="12" y2="23" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
           </svg>
           <span>{t('kpiFinLabel')}</span>
         </div>
@@ -190,7 +190,7 @@ export const Dashboard: React.FC = () => {
               <div className="kpi-val" style={{ fontSize: '24px' }}>€48.2K</div>
               <div className="kpi-spark">
                 <svg viewBox="0 0 56 24" fill="none">
-                  <polyline points="0,20 8,18 16,17 24,15 32,14 40,11 48,10 56,8" stroke="#7C3AED" strokeWidth="1.8" fill="none"/>
+                  <polyline points="0,20 8,18 16,17 24,15 32,14 40,11 48,10 56,8" stroke="#7C3AED" strokeWidth="1.8" fill="none" />
                 </svg>
               </div>
             </div>
@@ -213,7 +213,7 @@ export const Dashboard: React.FC = () => {
               <div className="kpi-val" style={{ fontSize: '24px' }}>€1.61</div>
               <div className="kpi-spark">
                 <svg viewBox="0 0 56 24" fill="none">
-                  <polyline points="0,8 8,10 16,9 24,12 32,11 40,10 48,9 56,8" stroke="#0D9488" strokeWidth="1.8" fill="none"/>
+                  <polyline points="0,8 8,10 16,9 24,12 32,11 40,10 48,9 56,8" stroke="#0D9488" strokeWidth="1.8" fill="none" />
                 </svg>
               </div>
             </div>
@@ -236,7 +236,7 @@ export const Dashboard: React.FC = () => {
               <div className="kpi-val" style={{ fontSize: '24px' }}>€255</div>
               <div className="kpi-spark">
                 <svg viewBox="0 0 56 24" fill="none">
-                  <polyline points="0,12 8,14 16,11 24,13 32,10 40,12 48,9 56,10" stroke="#EA580C" strokeWidth="1.8" fill="none"/>
+                  <polyline points="0,12 8,14 16,11 24,13 32,10 40,12 48,9 56,10" stroke="#EA580C" strokeWidth="1.8" fill="none" />
                 </svg>
               </div>
             </div>
@@ -252,7 +252,7 @@ export const Dashboard: React.FC = () => {
               <div className="kpi-val" style={{ fontSize: '24px' }}>€3.2K</div>
               <div className="kpi-spark">
                 <svg viewBox="0 0 56 24" fill="none">
-                  <polyline points="0,14 8,12 16,16 24,10 32,14 40,8 48,12 56,6" stroke="#E11D48" strokeWidth="1.8" fill="none"/>
+                  <polyline points="0,14 8,12 16,16 24,10 32,14 40,8 48,12 56,6" stroke="#E11D48" strokeWidth="1.8" fill="none" />
                 </svg>
               </div>
             </div>
@@ -268,7 +268,7 @@ export const Dashboard: React.FC = () => {
               <div className="kpi-val" style={{ fontSize: '24px' }}>12.4%</div>
               <div className="kpi-spark">
                 <svg viewBox="0 0 56 24" fill="none">
-                  <polyline points="0,14 8,13 16,12 24,11 32,12 40,11 48,10 56,9" stroke="#8B5CF6" strokeWidth="1.8" fill="none"/>
+                  <polyline points="0,14 8,13 16,12 24,11 32,12 40,11 48,10 56,9" stroke="#8B5CF6" strokeWidth="1.8" fill="none" />
                 </svg>
               </div>
             </div>
@@ -288,8 +288,8 @@ export const Dashboard: React.FC = () => {
           <div className="card-hd">
             <h3>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
               </svg>
               <span>{lang === 'el' ? 'Πρόγραμμα σήμερα' : "Today's Schedule"}</span>
               <span className="cnt">8</span>
@@ -527,9 +527,9 @@ export const Dashboard: React.FC = () => {
           <div className="map-hd">
             <h3>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
-                <line x1="8" y1="2" x2="8" y2="18"/>
-                <line x1="16" y1="6" x2="16" y2="22"/>
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                <line x1="8" y1="2" x2="8" y2="18" />
+                <line x1="16" y1="6" x2="16" y2="22" />
               </svg>
               <span>{lang === 'el' ? 'Ζωντανός Χάρτης' : 'Live Map'}</span>
             </h3>
@@ -707,17 +707,16 @@ export const Dashboard: React.FC = () => {
                   </td>
                   <td>
                     <span
-                      className={`badge ${
-                        shp.status === 'in_progress'
-                          ? 'badge-info'
-                          : shp.status === 'upcoming'
+                      className={`badge ${shp.status === 'in_progress'
+                        ? 'badge-info'
+                        : shp.status === 'upcoming'
                           ? 'badge-gray'
                           : shp.status === 'pending'
-                          ? 'badge-warning'
-                          : shp.status === 'delivered'
-                          ? 'badge-success'
-                          : 'badge-danger'
-                      }`}
+                            ? 'badge-warning'
+                            : shp.status === 'delivered'
+                              ? 'badge-success'
+                              : 'badge-danger'
+                        }`}
                     >
                       <span className="bdot"></span>
                       {t(shp.status)}
