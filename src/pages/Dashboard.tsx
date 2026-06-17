@@ -541,7 +541,7 @@ export const Dashboard: React.FC = () => {
           </div>
           <div className="map-body" style={{ minHeight: '340px' }}>
             {/* Map Svg lines */}
-            <div style={{ position: 'absolute', inset: 0 }}>
+            {/* <div style={{ position: 'absolute', inset: 0 }}>
               <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} viewBox="0 0 360 280" fill="none" aria-hidden="true">
                 <path d="M 80 80 Q 180 140 290 100" stroke="#6C3AED" strokeWidth="2" strokeDasharray="6 4" opacity=".4" />
                 <path d="M 60 200 Q 160 160 260 190" stroke="#0EA5E9" strokeWidth="2" strokeDasharray="6 4" opacity=".35" />
@@ -549,13 +549,12 @@ export const Dashboard: React.FC = () => {
                 <circle cx="290" cy="100" r="6" fill="#10B981" opacity=".7" />
                 <circle cx="60" cy="200" r="6" fill="#0EA5E9" opacity=".7" />
                 <circle cx="260" cy="190" r="6" fill="#10B981" opacity=".7" />
-                {/* Moving truck marker */}
                 <circle cx="185" cy="138" r="10" fill="#6C3AED" opacity=".9" />
                 <text x="185" y="143" textAnchor="middle" fill="#fff" fontSize="9">
                   🚛
                 </text>
               </svg>
-            </div>
+            </div> */}
 
             <svg
               width="36"
