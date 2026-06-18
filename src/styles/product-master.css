@@ -95,16 +95,36 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .lang-tog button { padding: 4px 10px; border: none; background: var(--sf); color: var(--t3); cursor: pointer; font-family: inherit; font-weight: 600; transition: all .1s; }
 .lang-tog button.act { background: var(--ac); color: #fff; }
 
-/* ─── KPI Strip ─── */
-.kpi-strip { display: flex; gap: 1px; padding: 16px 24px 0; flex-shrink: 0; }
-.kpi { flex: 1; padding: 12px 14px; background: var(--sf); border: 1px solid var(--bd); cursor: pointer; transition: all .12s; position: relative; }
-.kpi:first-child { border-radius: var(--rs) 0 0 var(--rs); }
-.kpi:last-child  { border-radius: 0 var(--rs) var(--rs) 0; }
-.kpi:hover { background: var(--se); border-color: var(--bf); }
-.kpi.act { border-color: var(--ac); background: var(--ap); z-index: 1; }
-.kpi-v { font-size: 22px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; }
-.kpi-l { font-size: 10px; color: var(--t3); margin-top: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: .3px; }
-.kpi .dot { position: absolute; top: 8px; right: 8px; width: 6px; height: 6px; border-radius: 50%; }
+/* ─── KPI Strip (scoped — overrides dashboard globals.css .kpi / .kpi-strip) ─── */
+.pm-container .kpi-strip {
+  display: flex;
+  gap: 1px;
+  padding: 16px 24px 0;
+  flex-shrink: 0;
+  grid-template-columns: unset;
+  margin-bottom: 0;
+}
+.pm-container .kpi {
+  flex: 1;
+  padding: 12px 14px;
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  cursor: pointer;
+  transition: all .12s;
+  position: relative;
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
+  transform: none;
+}
+.pm-container .kpi::after { display: none; content: none; }
+.pm-container .kpi:first-child { border-radius: var(--rs) 0 0 var(--rs); }
+.pm-container .kpi:last-child  { border-radius: 0 var(--rs) var(--rs) 0; }
+.pm-container .kpi:hover { background: var(--se); border-color: var(--bf); box-shadow: none; transform: none; }
+.pm-container .kpi.act { border-color: var(--ac); background: var(--ap); z-index: 1; box-shadow: none; }
+.pm-container .kpi-v { font-size: 22px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; letter-spacing: 0; }
+.pm-container .kpi-l { font-size: 10px; color: var(--t3); margin-top: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: .3px; }
+.pm-container .kpi .dot { position: absolute; top: 8px; right: 8px; width: 6px; height: 6px; border-radius: 50%; }
 
 /* ─── Filter Bar ─── */
 .fbar { padding: 12px 24px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--bd); flex-shrink: 0; position: relative; z-index: 5; }
@@ -342,13 +362,13 @@ input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--ac); cur
   .facet-pane { display: none; }
   .detail-pane.open { width: 100%; position: fixed; top: var(--th); bottom: 0; right: 0; z-index: 40; box-shadow: -8px 0 40px rgba(0,0,0,.12); }
   .dp-inner { width: 100%; min-width: 0; }
-  .kpi-strip { overflow-x: auto; }
+  .pm-container .kpi-strip { overflow-x: auto; }
   .types-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 768px) {
   .main-content { margin-left: 0; }
-  .kpi-strip { padding: 12px 12px 0; }
-  .kpi { padding: 10px 12px; }
-  .kpi-v { font-size: 18px; }
+  .pm-container .kpi-strip { padding: 12px 12px 0; }
+  .pm-container .kpi { padding: 10px 12px; }
+  .pm-container .kpi-v { font-size: 18px; }
   .types-grid { grid-template-columns: 1fr; }
 }
