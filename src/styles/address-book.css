@@ -18,14 +18,13 @@
 }
 
 .ab-head {
-  padding: 20px 28px 16px;
+  padding: 20px 28px 2px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--bg);
 }
 .ab-head-l .ab-title { font-size: 20px; font-weight: 700; letter-spacing: -.3px; }
 .ab-head-l .ab-sub   { font-size: 13px; color: var(--text-tertiary); margin-top: 2px; }
@@ -40,7 +39,7 @@
   flex-wrap: wrap;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  background: var(--surface);
+  background: var(--bg);
 }
 .ab-search {
   position: relative;
@@ -62,7 +61,6 @@
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-family: inherit;
-  background: var(--surface-alt);
   color: var(--text-primary);
   outline: none;
   transition: border-color .15s, box-shadow .15s;

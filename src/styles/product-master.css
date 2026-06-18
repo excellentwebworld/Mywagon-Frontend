@@ -51,7 +51,7 @@
 body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t1); min-height: 100vh; }
 
 /* ─── Layout: full-height panes ─── */
-.main-content {
+.main-content{
   margin-left: var(--sw);
   height: 100vh;
   display: flex;

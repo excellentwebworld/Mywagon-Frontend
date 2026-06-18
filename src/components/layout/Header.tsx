@@ -16,6 +16,14 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
   const [userOpen, setUserOpen] = useState(false);
   const [activePeriod, setActivePeriod] = useState<'today' | '7d' | '30d' | 'quarter' | 'ytd'>('today');
 
+  const isDashboard = location.pathname.startsWith('/dashboard');
+  const isMaster = ['/address-book', '/products', '/partners'].includes(location.pathname);
+
+  const showFilters = isDashboard;
+  const showSearch = isDashboard;
+  const showNotifications = isDashboard;
+  const showCta = !isMaster && location.pathname !== '/shipments/create';
+
   // Breadcrumbs title mapping
   const getPageTitle = () => {
     const path = location.pathname;
@@ -52,64 +60,83 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
       </button>
 
       {/* Page Title */}
-      <span className="tb-title">{getPageTitle()}</span>
+      {
+        isDashboard ?
+          <span className="tb-title">{getPageTitle()}</span>
+          :
+          <div className='breadcrumb'>
+            <span>
+              {lang === 'el' ? 'Διαχείριση Φορτίων' : 'Master Data'}
+            </span>{" "}
+            › <strong>
+              {getPageTitle()}
+            </strong>
+          </div>
+      }
 
       {/* Quick period filter chips */}
-      <div className="tb-filters" role="group" aria-label="Quick filters">
-        <button
-          className={`tb-chip ${activePeriod === 'today' ? 'active' : ''}`}
-          onClick={() => setActivePeriod('today')}
-        >
-          {lang === 'el' ? 'Σήμερα' : 'Today'}
-        </button>
-        <button
-          className={`tb-chip ${activePeriod === '7d' ? 'active' : ''}`}
-          onClick={() => setActivePeriod('7d')}
-        >
-          {lang === 'el' ? '7 ημέρες' : '7 days'}
-        </button>
-        <button
-          className={`tb-chip ${activePeriod === '30d' ? 'active' : ''}`}
-          onClick={() => setActivePeriod('30d')}
-        >
-          {lang === 'el' ? '30 ημέρες' : '30 days'}
-        </button>
-        <button
-          className={`tb-chip ${activePeriod === 'quarter' ? 'active' : ''}`}
-          onClick={() => setActivePeriod('quarter')}
-        >
-          {lang === 'el' ? 'Τρίμηνο' : 'Quarter'}
-        </button>
-        <button
-          className={`tb-chip ${activePeriod === 'ytd' ? 'active' : ''}`}
-          onClick={() => setActivePeriod('ytd')}
-        >
-          {lang === 'el' ? 'ΑΧ' : 'YTD'}
-        </button>
-      </div>
+      {showFilters && (
+        <div className="tb-filters" role="group" aria-label="Quick filters">
+          <button
+            className={`tb-chip ${activePeriod === 'today' ? 'active' : ''}`}
+            onClick={() => setActivePeriod('today')}
+          >
+            {lang === 'el' ? 'Σήμερα' : 'Today'}
+          </button>
+          <button
+            className={`tb-chip ${activePeriod === '7d' ? 'active' : ''}`}
+            onClick={() => setActivePeriod('7d')}
+          >
+            {lang === 'el' ? '7 ημέρες' : '7 days'}
+          </button>
+          <button
+            className={`tb-chip ${activePeriod === '30d' ? 'active' : ''}`}
+            onClick={() => setActivePeriod('30d')}
+          >
+            {lang === 'el' ? '30 ημέρες' : '30 days'}
+          </button>
+          <button
+            className={`tb-chip ${activePeriod === 'quarter' ? 'active' : ''}`}
+            onClick={() => setActivePeriod('quarter')}
+          >
+            {lang === 'el' ? 'Τρίμηνο' : 'Quarter'}
+          </button>
+          <button
+            className={`tb-chip ${activePeriod === 'ytd' ? 'active' : ''}`}
+            onClick={() => setActivePeriod('ytd')}
+          >
+            {lang === 'el' ? 'ΑΧ' : 'YTD'}
+          </button>
+        </div>
+      )}
+
+      {/* Spacer to push right content to the edge when search is hidden */}
+      {!showSearch && <span className="sp" style={{ flex: 1 }} />}
 
       {/* Search Bar */}
-      <div className="tb-search">
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <path d="M21 21l-4.35-4.35" />
-        </svg>
-        <input
-          type="text"
-          id="searchInput"
-          placeholder={lang === 'el' ? 'Αναζήτηση SID, παραγγελία, πελάτη...' : 'Search SID, order, customer...'}
-          aria-label="Search shipments"
-        />
-      </div>
+      {showSearch && (
+        <div className="tb-search">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+          <input
+            type="text"
+            id="searchInput"
+            placeholder={lang === 'el' ? 'Αναζήτηση SID, παραγγελία, πελάτη...' : 'Search SID, order, customer...'}
+            aria-label="Search shipments"
+          />
+        </div>
+      )}
 
       {/* Right controls */}
       <div className="tb-right">
@@ -130,117 +157,119 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
         </div>
 
         {/* Notifications Dropdown */}
-        <div className="dropdown" style={{ position: 'relative' }}>
-          <button
-            className="tb-btn tb-notif"
-            onClick={() => {
-              setNotifOpen(!notifOpen);
-              setUserOpen(false);
-            }}
-            aria-label="Notifications"
-            aria-haspopup="true"
-            title="Notifications"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 01-3.46 0" />
-            </svg>
-            <span className="tb-notif-dot" aria-label="3 unread notifications"></span>
-          </button>
-
-          {notifOpen && (
-            <div
-              className="dropdown-menu open"
-              id="notifMenu"
-              style={{ width: '320px', right: 0, display: 'block' }}
-              role="menu"
+        {showNotifications && (
+          <div className="dropdown" style={{ position: 'relative' }}>
+            <button
+              className="tb-btn tb-notif"
+              onClick={() => {
+                setNotifOpen(!notifOpen);
+                setUserOpen(false);
+              }}
               aria-label="Notifications"
+              aria-haspopup="true"
+              title="Notifications"
             >
-              <div
-                style={{
-                  padding: '12px 14px',
-                  borderBottom: '1px solid var(--border)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <span style={{ fontSize: '13px', fontWeight: 600 }}>
-                  {lang === 'el' ? 'Ειδοποιήσεις' : 'Notifications'}
-                </span>
-                <span
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 01-3.46 0" />
+              </svg>
+              <span className="tb-notif-dot" aria-label="3 unread notifications"></span>
+            </button>
+
+            {notifOpen && (
+              <div
+                className="dropdown-menu open"
+                id="notifMenu"
+                style={{ width: '320px', right: 0, display: 'block' }}
+                role="menu"
+                aria-label="Notifications"
+              >
+                <div
                   style={{
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    background: 'var(--danger-bg)',
-                    color: '#991B1B',
-                    padding: '2px 8px',
-                    borderRadius: '99px',
+                    padding: '12px 14px',
+                    borderBottom: '1px solid var(--border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                   }}
                 >
-                  {lang === 'el' ? '3 νέες' : '3 new'}
-                </span>
+                  <span style={{ fontSize: '13px', fontWeight: 600 }}>
+                    {lang === 'el' ? 'Ειδοποιήσεις' : 'Notifications'}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      background: 'var(--danger-bg)',
+                      color: '#991B1B',
+                      padding: '2px 8px',
+                      borderRadius: '99px',
+                    }}
+                  >
+                    {lang === 'el' ? '3 νέες' : '3 new'}
+                  </span>
+                </div>
+                <div
+                  className="dropdown-item"
+                  style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}
+                  role="menuitem"
+                >
+                  <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                    {lang === 'el' ? 'Νέα προσφορά για το SHP-5012' : 'New bid received on SHP-5012'}
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                    {lang === 'el' ? 'Πριν από 2 λεπτά' : '2 minutes ago'}
+                  </span>
+                </div>
+                <div
+                  className="dropdown-item"
+                  style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}
+                  role="menuitem"
+                >
+                  <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                    {lang === 'el' ? 'Το SHP-5008 παραδόθηκε' : 'SHP-5008 delivered successfully'}
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                    {lang === 'el' ? 'Πριν από 38 λεπτά' : '38 minutes ago'}
+                  </span>
+                </div>
+                <div
+                  className="dropdown-item"
+                  style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}
+                  role="menuitem"
+                >
+                  <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                    {lang === 'el' ? 'Επιβεβαίωση πληρωμής για το SHP-5006' : 'Payment confirmed for SHP-5006'}
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                    {lang === 'el' ? 'Πριν από 1 ώρα' : '1 hour ago'}
+                  </span>
+                </div>
+                <div className="dropdown-divider"></div>
+                <div
+                  className="dropdown-item"
+                  style={{ justifyContent: 'center', color: 'var(--accent)', fontWeight: 600 }}
+                  role="menuitem"
+                  onClick={() => {
+                    setNotifOpen(false);
+                    showToast(lang === 'el' ? 'Προβολή όλων των ειδοποιήσεων' : 'Opening notifications...', 'info');
+                  }}
+                >
+                  {lang === 'el' ? 'Προβολή όλων' : 'View all notifications'}
+                </div>
               </div>
-              <div
-                className="dropdown-item"
-                style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}
-                role="menuitem"
-              >
-                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                  {lang === 'el' ? 'Νέα προσφορά για το SHP-5012' : 'New bid received on SHP-5012'}
-                </span>
-                <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                  {lang === 'el' ? 'Πριν από 2 λεπτά' : '2 minutes ago'}
-                </span>
-              </div>
-              <div
-                className="dropdown-item"
-                style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}
-                role="menuitem"
-              >
-                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                  {lang === 'el' ? 'Το SHP-5008 παραδόθηκε' : 'SHP-5008 delivered successfully'}
-                </span>
-                <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                  {lang === 'el' ? 'Πριν από 38 λεπτά' : '38 minutes ago'}
-                </span>
-              </div>
-              <div
-                className="dropdown-item"
-                style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}
-                role="menuitem"
-              >
-                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                  {lang === 'el' ? 'Επιβεβαίωση πληρωμής για το SHP-5006' : 'Payment confirmed for SHP-5006'}
-                </span>
-                <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                  {lang === 'el' ? 'Πριν από 1 ώρα' : '1 hour ago'}
-                </span>
-              </div>
-              <div className="dropdown-divider"></div>
-              <div
-                className="dropdown-item"
-                style={{ justifyContent: 'center', color: 'var(--accent)', fontWeight: 600 }}
-                role="menuitem"
-                onClick={() => {
-                  setNotifOpen(false);
-                  showToast(lang === 'el' ? 'Προβολή όλων των ειδοποιήσεων' : 'Opening notifications...', 'info');
-                }}
-              >
-                {lang === 'el' ? 'Προβολή όλων' : 'View all notifications'}
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* User profile avatar / dropdown */}
         <div className="dropdown" style={{ position: 'relative' }}>
@@ -349,23 +378,25 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
         </div>
 
         {/* New Shipment CTA Button */}
-        <button
-          className="btn-cta"
-          onClick={() => navigate('/shipments/create')}
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
+        {showCta && (
+          <button
+            className="btn-cta"
+            onClick={() => navigate('/shipments/create')}
           >
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          {t('createShipment')}
-        </button>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            {t('createShipment')}
+          </button>
+        )}
       </div>
     </header>
   );

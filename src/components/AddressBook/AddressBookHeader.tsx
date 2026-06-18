@@ -16,7 +16,7 @@ export const AddressBookHeader: React.FC<Props> = ({ lang, t, showToast, openCre
     <div className="ab-head-r">
       <button
         type="button"
-        className="btn btn-secondary btn-sm"
+        className="btn btn-secondary btn-md"
         onClick={() => showToast(lang === 'el' ? 'Εξαγωγή CSV…' : 'Exporting CSV…')}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -26,7 +26,7 @@ export const AddressBookHeader: React.FC<Props> = ({ lang, t, showToast, openCre
         </svg>
         {t('export')}
       </button>
-      <button type="button" className="btn btn-primary btn-sm" onClick={openCreateModal}>
+      <button type="button" className="btn btn-primary btn-md" onClick={openCreateModal}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />

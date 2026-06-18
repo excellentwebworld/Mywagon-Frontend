@@ -345,7 +345,7 @@ const TRANSLATIONS: Record<string, { en: string; el: string }> = {
   routeLabel: { en: 'Route', el: 'Διαδρομή' },
   laneAnalysis: { en: 'Lane Analysis', el: 'Ανάλυση Διαδρόμου' },
   perKm: { en: '/ km', el: '/ km' },
-  perPallet: { en: '/ pallet', el: '/ παλέτα' },
+  perPalletSlash: { en: '/ pallet', el: '/ παλέτα' },
   negotiablePrice: { en: 'Negotiable price', el: 'Διαπραγματεύσιμη τιμή' },
   counteroffers: { en: 'Carriers can submit counteroffers', el: 'Οι μεταφορείς μπορούν να κάνουν αντιπροσφορά' },
   singleLoad: { en: 'Single Load', el: 'Μονό Φορτίο' },

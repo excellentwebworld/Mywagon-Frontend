@@ -16,12 +16,12 @@ export const DOCK_TYPES = ['Dock-level', 'Ramp', 'Ground'] as const;
 export const CONTACT_ROLES = ['Receiving', 'Gate/Security', 'After-hours', 'Billing', 'Reception'] as const;
 
 export const FILTER_PILLS: { key: 'role' | 'type' | 'city' | 'appt' | 'hours' | 'active'; label: string }[] = [
-  { key: 'role', label: 'Role' },
-  { key: 'type', label: 'Type' },
-  { key: 'city', label: 'City' },
-  { key: 'appt', label: 'Appointment' },
-  { key: 'hours', label: 'Hours' },
-  { key: 'active', label: 'Active' },
+  { key: 'role', label: '📍 Role' },
+  { key: 'type', label: '🏭 Type' },
+  { key: 'city', label: '🏙️ City' },
+  { key: 'appt', label: '📅 Appointment' },
+  { key: 'hours', label: '🕐 Hours' },
+  { key: 'active', label: '✅ Active' },
 ];
 
 export const SORT_OPTIONS = ['Name A–Z', 'City', 'Last used', 'Created'] as const;
