@@ -187,9 +187,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>{lang === 'el' ? 'Μητρώο προϊόντων' : 'Product Master'}</span>
           </Link>
 
-          <a
-            href="#partners"
-            className="ni"
+          <Link
+            to="/partners"
+            onClick={onCloseMobile}
+            className={`ni ${isLinkActive('/partners') ? 'active' : ''}`}
             title={lang === 'el' ? 'Συνεργαζόμενοι' : 'Partners'}
           >
             <svg
@@ -206,7 +207,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
             <span>{lang === 'el' ? 'Συνεργαζόμενοι' : 'Partners'}</span>
-          </a>
+          </Link>
 
           <div className="ns">{lang === 'el' ? 'ΑΝΑΛΥΤΙΚΑ' : 'ANALYTICS'}</div>
 

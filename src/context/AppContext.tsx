@@ -169,6 +169,69 @@ export interface Carrier {
   } | null;
 }
 
+export interface ContractLane {
+  lane: string;
+  unit: 'PER_LOAD' | 'PER_PALLET';
+  price: number;
+  status: 'ACTIVE' | 'EXPIRED';
+  volume: number;
+  ot: number;
+}
+
+export interface PartnerTrip {
+  id: string;
+  lane: string;
+  pickupDate: string;
+  deliveryDate: string;
+  status: 'Delivered' | 'In Transit' | 'Cancelled';
+  price: string;
+}
+
+export interface PartnerContact {
+  name: string;
+  role: string;
+  phone: string;
+  email: string;
+}
+
+export interface Partner {
+  id: string;
+  name: string;
+  /** carrier_company | freelancer_driver | customer */
+  type: 'carrier_company' | 'freelancer_driver' | 'customer';
+  status: 'active' | 'invited' | 'pending' | 'suspended';
+  legalName: string;
+  vat: string;
+  email: string;
+  phone: string;
+  /** Index into REGION_KEYS array */
+  regionIdx: number;
+  trucks: string[];
+  fleetSize: number;
+  lifetimeLoads: number;
+  loads30d: number;
+  otPickup: number;
+  otDelivery: number;
+  cancelRate: number;
+  acceptRate: number;
+  avgResponse: string;
+  lastActivity: string;
+  rating: string;
+  paymentTerms: string;
+  iban: string;
+  beneficiary: string;
+  bankVerified: boolean;
+  openInvoices: number;
+  disputes: number;
+  tags: string[];
+  missingDocs: boolean;
+  profileCompletion: number;
+  contractLanes: ContractLane[];
+  trips: PartnerTrip[];
+  contacts: PartnerContact[];
+  notes: string;
+}
+
 export interface VehicleOption {
   id: string;
   label: string;
@@ -216,6 +279,12 @@ interface AppContextType {
   
   vehicleOptions: VehicleOption[];
   toggleVehicleSelection: (id: string) => void;
+
+  // Partners
+  partners: Partner[];
+  addPartner: (p: Omit<Partner, 'id'>) => void;
+  updatePartner: (p: Partner) => void;
+  removePartner: (id: string) => void;
   
   toast: ToastState;
   showToast: (msg: string, type?: 'success' | 'error' | 'warning' | 'info') => void;
@@ -461,7 +530,164 @@ const TRANSLATIONS: Record<string, { en: string; el: string }> = {
   renamed: { en: 'Renamed to', el: 'Μετονομάστηκε σε' },
   toggled: { en: 'Toggled', el: 'Αλλαγή' },
   yes: { en: 'Yes', el: 'Ναι' },
-  no: { en: 'No', el: 'Όχι' }
+  no: { en: 'No', el: 'Όχι' },
+
+  // ── Partners page ──
+  partnersTitle: { en: 'Partners', el: 'Συνεργάτες' },
+  partnersSubtitle: { en: 'Manage your carrier, freelancer & customer partner network', el: 'Διαχείριση δικτύου μεταφορέων, ελεύθερων οδηγών & πελατών' },
+  invitePartner: { en: 'Invite Partner', el: 'Πρόσκληση Συνεργάτη' },
+  addCustomerBtn: { en: '+ Add Customer', el: '+ Προσθήκη Πελάτη' },
+  syncErp: { en: 'Sync ERP', el: 'Sync ERP' },
+  partnerExport: { en: 'Export', el: 'Εξαγωγή' },
+  totalPartners: { en: 'Total', el: 'Σύνολο' },
+  activePartners: { en: 'Active', el: 'Ενεργοί' },
+  carrierPartners: { en: 'Carrier Companies', el: 'Μεταφορικές' },
+  freelancerPartners: { en: 'Freelancers', el: 'Ελεύθεροι Οδηγοί' },
+  invitedPartners: { en: 'Invited', el: 'Προσκεκλημένοι' },
+  missingBankPartners: { en: 'Missing Bank', el: 'Χωρίς Τράπεζα' },
+  suspendedPartners: { en: 'Suspended', el: 'Σε Αναστολή' },
+  allPartners: { en: 'All Partners', el: 'Όλοι' },
+  carriersType: { en: 'Carrier Companies', el: 'Μεταφορικές' },
+  freelancersType: { en: 'Freelancer Drivers', el: 'Ελεύθεροι Οδηγοί' },
+  customersType: { en: 'Customers', el: 'Πελάτες' },
+  byType: { en: 'By Type', el: 'Ανά Τύπο' },
+  byStatus: { en: 'By Status', el: 'Ανά Κατάσταση' },
+  byRegion: { en: 'By Region', el: 'Ανά Περιοχή' },
+  partnersNetwork: { en: 'Partners Network', el: 'Δίκτυο Συνεργατών' },
+  partnerSearchPlaceholder: { en: 'Search name, VAT, email, truck type, region…', el: 'Αναζήτηση ονόματος, ΑΦΜ, email, τύπου, περιοχής…' },
+  statusFilter: { en: 'Status', el: 'Κατάσταση' },
+  capabilityFilter: { en: 'Capability', el: 'Δυνατότητα' },
+  performanceFilter: { en: 'Performance', el: 'Απόδοση' },
+  regionFilter: { en: 'Region', el: 'Περιοχή' },
+  partnerCol: { en: 'Partner', el: 'Συνεργάτης' },
+  typeCol: { en: 'Type', el: 'Τύπος' },
+  capabilitiesCol: { en: 'Capabilities', el: 'Δυνατότητες' },
+  loads30dCol: { en: 'Loads 30d', el: 'Φορτία 30ημ' },
+  ontimeCol: { en: 'On-time', el: 'Εγκαιρ.' },
+  cancelPctCol: { en: 'Cancel %', el: 'Ακύρωση %' },
+  lastActCol: { en: 'Last Activity', el: 'Τελ. Δραστηριότητα' },
+  sortNameAz: { en: 'Name A–Z', el: 'Όνομα Α–Ω' },
+  sortLastAct: { en: 'Last Activity', el: 'Τελ. Δραστηριότητα' },
+  sortOntime: { en: 'On-time %', el: 'Εγκαιρότητα %' },
+  sortLoads: { en: 'Loads 30d', el: 'Φορτία 30ημ' },
+  partnerMessage: { en: 'Message', el: 'Μήνυμα' },
+  partnerSuspend: { en: 'Suspend', el: 'Αναστολή' },
+  partnerReactivate: { en: 'Reactivate', el: 'Επανενεργοποίηση' },
+  partnerRemove: { en: 'Remove Permanently', el: 'Οριστική Αφαίρεση' },
+  performanceKpis: { en: 'Performance KPIs', el: 'Δείκτες Απόδοσης' },
+  infoSection: { en: 'Information', el: 'Πληροφορίες' },
+  fleetSection: { en: 'Fleet & Capabilities', el: 'Στόλος & Δυνατότητες' },
+  tripsSection: { en: 'Trips History', el: 'Ιστορικό Μεταφορών' },
+  billingSection: { en: 'Billing & Finance', el: 'Τιμολόγηση & Οικονομικά' },
+  contractsSection: { en: 'Contract Lanes', el: 'Συμβ. Δρομολόγια' },
+  docsSection: { en: 'Documents', el: 'Έγγραφα' },
+  notesSection: { en: 'Notes & Tags', el: 'Σημειώσεις & Ετικέτες' },
+  addCapability: { en: '+ Add Capability', el: '+ Προσθήκη Δυνατότητας' },
+  addContractLane: { en: '+ Add Lane', el: '+ Προσθήκη Δρομολογίου' },
+  saveNote: { en: 'Save Note', el: 'Αποθήκευση Σημείωσης' },
+  editBankDetails: { en: 'Edit Bank Details', el: 'Επεξεργασία Τραπεζικών' },
+  bankNotVerified: { en: 'Not Verified', el: 'Μη Επαληθευμένο' },
+  bankVerified: { en: 'Verified', el: 'Επαληθευμένο' },
+  notProvided: { en: 'Not provided', el: 'Δεν δόθηκε' },
+  legalName: { en: 'Legal Name', el: 'Επωνυμία' },
+  paymentTerms: { en: 'Payment Terms', el: 'Όροι Πληρωμής' },
+  fleetSize: { en: 'Fleet Size', el: 'Μέγεθος Στόλου' },
+  partnerContacts: { en: 'Contacts', el: 'Επαφές' },
+  lifetimeLoads: { en: 'Lifetime Loads', el: 'Φορτία Σύνολο' },
+  otPickup: { en: 'On-time Pickup', el: 'Έγκαιρη Παραλαβή' },
+  otDelivery: { en: 'On-time Delivery', el: 'Έγκαιρη Παράδοση' },
+  cancelRate: { en: 'Cancel Rate', el: 'Ποσοστό Ακύρωσης' },
+  acceptRate: { en: 'Accept Rate', el: 'Ποσοστό Αποδοχής' },
+  avgResponse: { en: 'Avg Response', el: 'Μ.Ο. Απόκρισης' },
+  partnerRating: { en: 'Rating', el: 'Βαθμολογία' },
+  openInvoices: { en: 'Open Invoices', el: 'Ανοικτά Τιμολόγια' },
+  partnerDisputes: { en: 'Disputes', el: 'Διαφορές' },
+  beneficiary: { en: 'Beneficiary', el: 'Δικαιούχος' },
+  perLoad: { en: 'Per Load', el: 'Ανά Φορτίο' },
+  perPallet: { en: 'Per Pallet', el: 'Ανά Παλέτα' },
+  contractOverride: { en: 'Contract prices override Spot Price List for private/assigned shipments.', el: 'Οι τιμές σύμβασης υπερισχύουν του Spot Price List.' },
+  noContractLanes: { en: 'No contract lanes', el: 'Χωρίς δρομολόγια σύμβασης' },
+  docValid: { en: 'Valid', el: 'Έγκυρο' },
+  docExpiring: { en: 'Expiring', el: 'Λήγει' },
+  docMissing: { en: 'Missing', el: 'Λείπει' },
+  insuranceCert: { en: 'Insurance Certificate', el: 'Ασφαλιστήριο' },
+  operatingLicense: { en: 'Operating License', el: 'Άδεια Λειτουργίας' },
+  adrCert: { en: 'ADR Certificate', el: 'Πιστοποιητικό ADR' },
+  cmrInsurance: { en: 'CMR Insurance', el: 'Ασφάλιση CMR' },
+  notesPrivate: { en: 'Notes are private to your organization.', el: 'Οι σημειώσεις είναι ιδιωτικές για τον οργανισμό σας.' },
+  preferred: { en: 'Preferred', el: 'Προτιμώμενος' },
+  inviteTitle: { en: 'Invite Partner', el: 'Πρόσκληση Συνεργάτη' },
+  partnerType: { en: 'Partner type', el: 'Τύπος συνεργάτη' },
+  relTags: { en: 'Relationship tags', el: 'Ετικέτες σχέσης' },
+  prefTag: { en: '★ Preferred', el: '★ Προτιμώμενος' },
+  privLoadsTag: { en: '🔒 Private Loads', el: '🔒 Ιδιωτικά Φορτία' },
+  stdTag: { en: 'Standard', el: 'Κανονικός' },
+  carrierCoType: { en: '🏢 Carrier Company', el: '🏢 Μεταφορική Εταιρεία' },
+  freelancerDrType: { en: '🧑‍✈️ Freelancer Driver', el: '🧑‍✈️ Ελεύθερος Οδηγός' },
+  customerType: { en: '🏪 Customer', el: '🏪 Πελάτης' },
+  sendInvitation: { en: 'Send Invitation', el: 'Αποστολή Πρόσκλησης' },
+  invAnother: { en: 'Invite Another', el: 'Νέα Πρόσκληση' },
+  invSentTitle: { en: 'Invitation Sent!', el: 'Η Πρόσκληση Εστάλη!' },
+  invSentDesc: { en: 'Your partner will receive the invitation shortly.', el: 'Ο συνεργάτης θα λάβει την πρόσκληση σύντομα.' },
+  addCapTitle: { en: 'Add Truck Capability', el: 'Προσθήκη Δυνατότητας' },
+  truckType: { en: 'Truck Type', el: 'Τύπος Φορτηγού' },
+  capacity: { en: 'Capacity (t)', el: 'Χωρητικότητα (τ)' },
+  countField: { en: 'Count', el: 'Πλήθος' },
+  addLaneTitle: { en: 'Add Contract Lane', el: 'Προσθήκη Δρομολογίου' },
+  originCity: { en: 'Origin City', el: 'Πόλη Αφετηρίας' },
+  destCity: { en: 'Destination City', el: 'Πόλη Προορισμού' },
+  pricingMode: { en: 'Pricing', el: 'Τιμολόγηση' },
+  priceEur: { en: 'Price (€)', el: 'Τιμή (€)' },
+  editBankTitle: { en: 'Edit Bank Details', el: 'Επεξεργασία Τραπεζικών' },
+  bankWarn: { en: 'Manually entered bank details will be labeled as "Not Verified" until confirmed from the carrier profile.', el: 'Τα χειροκίνητα στοιχεία θα εμφανίζονται ως "Μη Επαληθευμένο" μέχρι να επιβεβαιωθούν από το προφίλ.' },
+  addCustomerTitle: { en: 'Add Customer Manually', el: 'Χειροκίνητη Προσθήκη Πελάτη' },
+  customerName: { en: 'Customer Name', el: 'Όνομα Πελάτη' },
+  customerCompanyField: { en: 'Company Name', el: 'Επωνυμία Εταιρείας' },
+  customerVat: { en: 'VAT Number', el: 'ΑΦΜ' },
+  customerAdded: { en: '✅ Customer added', el: '✅ Ο πελάτης προστέθηκε' },
+  comingSoon: { en: 'Coming Soon', el: 'Σύντομα Διαθέσιμο' },
+  customerInviteNote: { en: 'Customer invitations are not yet available. You can add customers manually or sync from your ERP.', el: 'Οι προσκλήσεις πελατών δεν είναι ακόμα διαθέσιμες.' },
+  confirmSuspendPartner: { en: 'Are you sure you want to suspend this partner?', el: 'Θέλετε σίγουρα να αναστείλετε αυτόν τον συνεργάτη;' },
+  confirmReactivatePartner: { en: 'Reactivate this partner?', el: 'Επανενεργοποίηση αυτού του συνεργάτη;' },
+  confirmRemovePartner: { en: 'PERMANENTLY remove this partner? This cannot be undone.', el: 'ΟΡΙΣΤΙΚΗ αφαίρεση αυτού του συνεργάτη; Αυτή η ενέργεια δεν αναιρείται.' },
+  confirmRemoveLane: { en: 'Remove this contract lane?', el: 'Αφαίρεση αυτού του δρομολογίου;' },
+  partnerSuspended: { en: '🚫 Partner suspended', el: '🚫 Συνεργάτης σε αναστολή' },
+  partnerReactivated: { en: '✅ Partner reactivated', el: '✅ Επανενεργοποιήθηκε' },
+  partnerRemoved: { en: '🗑️ Partner permanently removed', el: '🗑️ Ο συνεργάτης αφαιρέθηκε οριστικά' },
+  capabilityAdded: { en: '✅ Capability added', el: '✅ Δυνατότητα προστέθηκε' },
+  laneAdded: { en: '✅ Contract lane added', el: '✅ Δρομολόγιο προστέθηκε' },
+  laneDeleted: { en: '🗑️ Contract lane removed', el: '🗑️ Δρομολόγιο αφαιρέθηκε' },
+  bankSaved: { en: '✅ Bank details saved', el: '✅ Τραπεζικά αποθηκεύτηκαν' },
+  partnerNoteSaved: { en: '✅ Note saved', el: '✅ Σημείωση αποθηκεύτηκε' },
+  partnerExported: { en: '✅ CSV exported', el: '✅ Εξαγωγή CSV' },
+  inviteSent: { en: '✅ Invitation sent', el: '✅ Πρόσκληση εστάλη' },
+  noPartners: { en: 'No partners found', el: 'Δεν βρέθηκαν συνεργάτες' },
+  noPartnersSub: { en: 'Try adjusting filters or invite new partners.', el: 'Δοκιμάστε διαφορετικά φίλτρα ή προσκαλέστε νέους.' },
+  recentTrips: { en: 'Recent Trips', el: 'Πρόσφατες Μεταφορές' },
+  viewProfile: { en: 'View Profile', el: 'Προφίλ' },
+  carrierShort: { en: 'Carrier', el: 'Μεταφορέας' },
+  freelancerShort: { en: 'Freelancer', el: 'Ελεύθερος' },
+  customerShort: { en: 'Customer', el: 'Πελάτης' },
+  expLabel: { en: 'Exp', el: 'Λήξη' },
+  fillRequired: { en: '⚠ Fill required fields', el: '⚠ Συμπληρώστε τα υποχρεωτικά πεδία' },
+  partnerFiltersCleared: { en: 'Filters cleared', el: 'Φίλτρα καθαρίστηκαν' },
+  partnerProfileLabel: { en: 'Profile', el: 'Προφίλ' },
+  showingLabel: { en: 'Showing', el: 'Εμφάνιση' },
+  ofLabel: { en: 'of', el: 'από' },
+  partnersLabel: { en: 'partners', el: 'συνεργάτες' },
+  lanePriceCol: { en: 'Price', el: 'Τιμή' },
+  laneUnitCol: { en: 'Unit', el: 'Μονάδα' },
+  laneCol: { en: 'Lane', el: 'Δρομολόγιο' },
+  tripDateCol: { en: 'Date', el: 'Ημερομηνία' },
+  tripIdCol: { en: 'ID', el: 'ID' },
+  attica: { en: 'Attica', el: 'Αττική' },
+  thessaloniki: { en: 'Thessaloniki', el: 'Θεσσαλονίκη' },
+  cMacedonia: { en: 'C. Macedonia', el: 'Κ. Μακεδονία' },
+  peloponnese: { en: 'Peloponnese', el: 'Πελοπόννησος' },
+  crete: { en: 'Crete', el: 'Κρήτη' },
+  wGreece: { en: 'W. Greece', el: 'Δ. Ελλάδα' },
+  thessaly: { en: 'Thessaly', el: 'Θεσσαλία' },
+  epirus: { en: 'Epirus', el: 'Ήπειρος' }
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -907,6 +1133,109 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  // ── Partners State ──────────────────────────────────────
+  const [partners, setPartners] = useState<Partner[]>(() => {
+    // Deterministic seed (avoids random re-renders)
+    const carrierNames = ['TransMed Logistics','Aegean Freight','Hellas Cargo','Olympic Transport','Balkan Express','Euro Haul GmbH','Adriatic Lines','Continental Carriers','NorthStar Haulage','Danube Logistics','Atlas Freight','PanEuropean Transport','Ionian Carriers','Rhodope Logistics','Thessaly Express','Maritsa Transport'];
+    const freelancerNames = ['Nikos Papadopoulos','Giorgos Konstantinou','Dimitris Alexandrou','Maria Ioannidou','Kostas Nikolaou','Yannis Stavrou','Elena Dimitriou','Petros Georgiou','Sofia Andreou','Thanasis Vasileiou','Antonis Karagiannis','Vassilis Papas'];
+    const customerNames = ['FreshCo Foods','BuildRight Materials','PharmaPlus GR','AutoParts Hellas','TechDist Europe','AgroExport SA','ChemStar Industries','RetailBox Athens'];
+    const truckTypes = ['Curtainsider','Box Truck','Flatbed','Refrigerated','Tanker','Lowbed','Mega Trailer','Container Chassis'];
+    const lanes = ['Athens → Thessaloniki','Thessaloniki → Sofia','Athens → Patras','Patras → Igoumenitsa','Athens → Heraklion','Volos → Larissa'];
+    const statuses: Array<'active'|'invited'|'pending'|'suspended'> = ['active','invited','pending','suspended'];
+    const types: Array<'carrier_company'|'freelancer_driver'|'customer'> = ['carrier_company','carrier_company','carrier_company','freelancer_driver','freelancer_driver','customer'];
+    const payTerms = ['Net 15','Net 30','Net 45','Net 60'];
+
+    const seed: Partner[] = [];
+    for (let i = 0; i < 42; i++) {
+      const type = types[i % types.length];
+      const status: 'active'|'invited'|'pending'|'suspended' = i < 6 ? 'active' : statuses[i % statuses.length];
+      const isCarrier = type === 'carrier_company';
+      const isFreelancer = type === 'freelancer_driver';
+      const name = isCarrier ? carrierNames[i % carrierNames.length] : isFreelancer ? freelancerNames[i % freelancerNames.length] : customerNames[i % customerNames.length];
+      const truckCount = isCarrier ? 3 + (i % 4) : isFreelancer ? 1 : 0;
+      const trucks = truckTypes.slice(i % truckTypes.length, i % truckTypes.length + truckCount).concat(truckTypes.slice(0, Math.max(0, truckCount - (truckTypes.length - i % truckTypes.length))));
+      const loads30d = 5 + (i * 11) % 43;
+      const daysAgo = (i * 7) % 30;
+      const lastDate = new Date(Date.now() - daysAgo * 86400000).toISOString().slice(0, 10);
+      const contractLanes: ContractLane[] = isCarrier ? lanes.slice(0, i % 4).map((lane, li) => ({
+        lane,
+        unit: li % 2 === 0 ? 'PER_LOAD' : 'PER_PALLET',
+        price: 200 + (i + li) * 80,
+        status: 'ACTIVE',
+        volume: 5 + li * 8,
+        ot: 75 + li * 5,
+      })) : [];
+      const trips: PartnerTrip[] = Array.from({ length: 3 + i % 5 }, (_, ti) => {
+        const tripStatuses: Array<'Delivered'|'In Transit'|'Cancelled'> = ['Delivered','Delivered','Delivered','In Transit','Cancelled'];
+        return {
+          id: `SH-${10000 + i * 7 + ti}`,
+          lane: lanes[(i + ti) % lanes.length],
+          pickupDate: new Date(Date.now() - (ti + 2) * 86400000 * 5).toISOString().slice(0, 10),
+          deliveryDate: new Date(Date.now() - ti * 86400000 * 4).toISOString().slice(0, 10),
+          status: tripStatuses[(i + ti) % tripStatuses.length],
+          price: `€${200 + (i + ti) * 120}`,
+        };
+      });
+      const contacts: PartnerContact[] = isFreelancer
+        ? [{ name, role: 'Driver', phone: `+30 69${String(10000000 + i * 1234567).slice(0, 8)}`, email: `${name.toLowerCase().replace(/\s+/g, '.')}@example.com` }]
+        : [
+            { name: 'Operations Dept', role: 'Ops', phone: `+30 69${String(10000000 + i * 987654).slice(0, 8)}`, email: `ops@${name.toLowerCase().replace(/\s+/g, '')}.com` },
+            { name: 'Finance Dept', role: 'Finance', phone: `+30 21${String(1000000 + i * 456789).slice(0, 7)}`, email: `fin@${name.toLowerCase().replace(/\s+/g, '')}.com` },
+          ];
+      const hasIban = i % 5 !== 0;
+      const ibanStr = hasIban ? `GR${16 + i} ${1000 + i} ${2000 + i} ${3000 + i}` : '';
+      seed.push({
+        id: `P-${String(i + 1).padStart(4, '0')}`,
+        name,
+        type,
+        status,
+        legalName: isCarrier ? `${name} S.A.` : isFreelancer ? name : `${name} Ltd`,
+        vat: `EL${String(100000000 + i * 7654321).slice(0, 9)}`,
+        email: `${name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+        phone: `+30 69${String(10000000 + i * 1111111).slice(0, 8)}`,
+        regionIdx: i % 8,
+        trucks: trucks.slice(0, truckCount),
+        fleetSize: isCarrier ? 5 + i * 2 : isFreelancer ? 1 : 0,
+        lifetimeLoads: 50 + i * 12,
+        loads30d,
+        otPickup: 72 + (i * 3) % 28,
+        otDelivery: 68 + (i * 4) % 30,
+        cancelRate: i % 13,
+        acceptRate: 55 + (i * 5) % 45,
+        avgResponse: `${5 + (i * 17) % 180}m`,
+        lastActivity: lastDate,
+        rating: ((30 + (i * 7) % 20) / 10).toFixed(1),
+        paymentTerms: payTerms[i % payTerms.length],
+        iban: ibanStr,
+        beneficiary: name,
+        bankVerified: hasIban && i % 3 !== 0,
+        openInvoices: i % 9,
+        disputes: i % 4,
+        tags: i < 3 ? ['preferred'] : i === 6 ? ['do-not-use'] : i % 4 === 0 ? ['preferred'] : [],
+        missingDocs: i % 5 === 4,
+        profileCompletion: 55 + (i * 9) % 45,
+        contractLanes,
+        trips,
+        contacts,
+        notes: '',
+      });
+    }
+    return seed;
+  });
+
+  const addPartner = (p: Omit<Partner, 'id'>) => {
+    const nextId = `P-${String(partners.length + 1).padStart(4, '0')}`;
+    setPartners((prev) => [{ ...p, id: nextId }, ...prev]);
+  };
+
+  const updatePartner = (updated: Partner) => {
+    setPartners((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+  };
+
+  const removePartner = (id: string) => {
+    setPartners((prev) => prev.filter((p) => p.id !== id));
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -935,6 +1264,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleCarrierSelection,
         vehicleOptions,
         toggleVehicleSelection,
+        partners,
+        addPartner,
+        updatePartner,
+        removePartner,
         toast,
         showToast,
         hideToast,

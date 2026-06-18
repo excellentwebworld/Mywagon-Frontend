@@ -24,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
     if (path.startsWith('/shipments')) return lang === 'el' ? 'Διαχείριση Φορτίων' : 'Manage Shipments';
     if (path.startsWith('/address-book')) return lang === 'el' ? 'Βιβλίο Διευθύνσεων' : 'Address Book';
     if (path.startsWith('/products')) return lang === 'el' ? 'Μητρώο Προϊόντων' : 'Product Registry';
+    if (path.startsWith('/partners')) return lang === 'el' ? 'Συνεργάτες' : 'Partners';
     return 'Portal';
   };
 

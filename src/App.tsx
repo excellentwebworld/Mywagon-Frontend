@@ -8,6 +8,7 @@ import { AddressBook } from './pages/AddressBook';
 import { ProductMaster } from './pages/ProductMaster';
 import { MarketingHome } from './pages/MarketingHome';
 import { MarketingAbout } from './pages/MarketingAbout';
+import Partners from './pages/Partners';
 
 import './App.css';
 
@@ -26,6 +27,7 @@ function App() {
         <Route path="/shipments/create" element={<CreateShipmentWizard />} />
         <Route path="/address-book" element={<AddressBook />} />
         <Route path="/products" element={<ProductMaster />} />
+        <Route path="/partners" element={<Partners />} />
       </Route>
 
       {/* Redirect fallback */}
