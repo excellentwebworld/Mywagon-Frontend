@@ -33,13 +33,13 @@ export const ProductMasterHeader: React.FC<Props> = ({
       <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 3 }}>{t('subtitle')}</div>
     </div>
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <button type="button" className="btn btn-sm" onClick={() => showToast(t('syncSettings'))}>
+      <button type="button" className="btn btn-md" onClick={() => showToast(t('syncSettings'))}>
         🔄 ERP Sync
       </button>
-      <button type="button" className="btn btn-sm" onClick={() => setIsSyncLogOpen(true)}>
+      <button type="button" className="btn btn-md" onClick={() => setIsSyncLogOpen(true)}>
         📋 Sync Log
       </button>
-      <button type="button" className="btn btn-sm" onClick={() => showToast(lang === 'el' ? 'Εξαγωγή CSV…' : 'CSV exported')}>
+      <button type="button" className="btn btn-md" onClick={() => showToast(lang === 'el' ? 'Εξαγωγή CSV…' : 'CSV exported')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
           <polyline points="7 10 12 15 17 10" />
@@ -50,7 +50,7 @@ export const ProductMasterHeader: React.FC<Props> = ({
       <div className="add-wrap">
         <button
           type="button"
-          className="btn btn-p btn-sm"
+          className="btn btn-p btn-md"
           onClick={(e) => {
             e.stopPropagation();
             setAddDropdownOpen(!addDropdownOpen);
