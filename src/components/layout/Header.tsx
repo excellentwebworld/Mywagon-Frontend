@@ -59,8 +59,8 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
         id="mobileMenuBtn"
         aria-label="Open navigation"
         onClick={onToggleMobileMenu}
-        className="btn btn-ghost btn-icon"
-        style={{ display: 'none', color: 'var(--text-secondary)' }}
+        className="btn btn-ghost btn-icon mobile-menu-toggle"
+        style={{ color: 'var(--text-secondary)' }}
       >
         <svg
           width="20"
