@@ -1,12 +1,13 @@
 import React from 'react';
 import type { LocationItem } from '../../context/AppContext';
-import { SORT_OPTIONS } from '../../pages/AddressBook/constants';
+import { FACILITY_TYPE_LABELS, PAGE_SIZE_OPTIONS, SORT_OPTIONS } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { LocationRowActions } from './LocationRowActions';
 
 type Props = Pick<
   AddressBookState,
-  | 'activeDirectory'
+  | 'activeDirectoryName'
+  | 'activeNode'
   | 'sortBy'
   | 'setSortBy'
   | 'filteredLocations'
@@ -17,12 +18,13 @@ type Props = Pick<
   | 'listMeta'
   | 'currentPage'
   | 'setCurrentPage'
+  | 'perPage'
+  | 'setPerPage'
   | 'pageStart'
   | 'pageEnd'
   | 'openEditModal'
-  | 'handleDuplicate'
   | 'handleArchive'
-  | 'handleCopy'
+  | 'handleRestore'
   | 't'
   | 'showToast'
   | 'lang'
@@ -40,8 +42,14 @@ function getRoleLabel(role: LocationItem['role'], t: AddressBookState['t']) {
   return 'Both';
 }
 
+function getLocationTypeLabel(group: LocationItem['group'], lang: 'en' | 'el') {
+  if (group === 'customer') return lang === 'el' ? 'Τοποθεσία Πελάτη' : 'Customer Location';
+  return lang === 'el' ? 'Η Τοποθεσία μου' : 'My Location';
+}
+
 export const LocationList: React.FC<Props> = ({
-  activeDirectory,
+  activeDirectoryName,
+  activeNode,
   sortBy,
   setSortBy,
   filteredLocations,
@@ -52,12 +60,13 @@ export const LocationList: React.FC<Props> = ({
   listMeta,
   currentPage,
   setCurrentPage,
+  perPage,
+  setPerPage,
   pageStart,
   pageEnd,
   openEditModal,
-  handleDuplicate,
   handleArchive,
-  handleCopy,
+  handleRestore,
   t,
   showToast,
   lang,
@@ -75,7 +84,7 @@ export const LocationList: React.FC<Props> = ({
   return (
     <div className="list-pane">
       <div className="list-toolbar">
-        <span className="list-toolbar-title">{activeDirectory?.name || 'All Locations'}</span>
+        <span className="list-toolbar-title">{activeDirectoryName}</span>
         <select
           className="sort-sel"
           value={sortBy}
@@ -97,29 +106,32 @@ export const LocationList: React.FC<Props> = ({
             <tr>
               <th>Location</th>
               <th>City / Region</th>
+              <th>Location Type</th>
               <th>Role</th>
               <th>Operational</th>
               <th>Contact</th>
-              <th>Last used</th>
+              <th>Usage history</th>
               <th />
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="ab-empty-row">
+                <td colSpan={8} className="ab-empty-row">
                   {lang === 'el' ? 'Φόρτωση…' : 'Loading locations…'}
                 </td>
               </tr>
             ) : count === 0 ? (
               <tr>
-                <td colSpan={7} className="ab-empty-row">
+                <td colSpan={8} className="ab-empty-row">
                   {lang === 'el' ? 'Δεν βρέθηκαν τοποθεσίες' : t('noItems')}
                 </td>
               </tr>
             ) : (
               filteredLocations.map((l) => {
                 const isSel = selectedLoc?.id === l.id;
+                const facilityLabel = FACILITY_TYPE_LABELS[l.type] ?? l.type;
+                const usageCount = l.usageHistoryCount ?? 0;
                 return (
                   <tr key={l.id} className={isSel ? 'selected' : ''} onClick={() => setSelectedLoc(l)}>
                     <td>
@@ -131,16 +143,19 @@ export const LocationList: React.FC<Props> = ({
                       <div className="loc-meta">{l.region || '—'}</div>
                     </td>
                     <td>
+                      <span className={`location-type-badge ${l.group === 'customer' ? 'type-customer' : 'type-my'}`}>
+                        {getLocationTypeLabel(l.group, lang)}
+                      </span>
+                      {facilityLabel && <div className="loc-meta">{facilityLabel}</div>}
+                    </td>
+                    <td>
                       <span className={`role-badge ${getRoleClass(l.role)}`}>{getRoleLabel(l.role, t)}</span>
                     </td>
                     <td>
                       <div className="ops-chips">
-                        {l.appt && <span className="op-chip">📅 Appt</span>}
-                        {l.hours && <span className="op-chip">🕐 Hours</span>}
+                        {l.appt && <span className="op-chip">Appt</span>}
+                        {l.hours && <span className="op-chip">Hours</span>}
                         {l.dock && <span className="op-chip">{l.dock}</span>}
-                        {l.maxTruck && parseFloat(l.maxTruck) < 13 && (
-                          <span className="op-chip warn">⚠ {l.maxTruck}</span>
-                        )}
                       </div>
                     </td>
                     <td>
@@ -154,15 +169,17 @@ export const LocationList: React.FC<Props> = ({
                       )}
                     </td>
                     <td>
-                      <span className="ts-cell">{l.lastUsed}</span>
+                      <span className="usage-history-cell">
+                        {usageCount} {lang === 'el' ? 'Φορτώσεις' : 'Loads'}
+                      </span>
                     </td>
                     <td onClick={(e) => e.stopPropagation()}>
                       <LocationRowActions
                         location={l}
+                        isArchivedView={activeNode === 'archived'}
                         onEdit={openEditModal}
-                        onDuplicate={handleDuplicate}
                         onArchive={handleArchive}
-                        onCopy={handleCopy}
+                        onRestore={handleRestore}
                         disabled={saving}
                       />
                     </td>
@@ -178,34 +195,49 @@ export const LocationList: React.FC<Props> = ({
         <div className="pag-info">
           {total === 0 ? 'Showing 0 of 0' : `Showing ${pageStart}–${pageEnd} of ${total}`}
         </div>
-        <div className="pag-btns">
-          <button
-            type="button"
-            className="pg-btn"
-            disabled={currentPage <= 1 || loading}
-            onClick={() => setCurrentPage(currentPage - 1)}
+        <div className="pag-controls">
+          <select
+            className="pag-length-sel"
+            value={perPage}
+            onChange={(e) => setPerPage(Number(e.target.value))}
+            disabled={loading}
+            aria-label="Rows per page"
           >
-            ‹
-          </button>
-          {pages.map((p) => (
+            {PAGE_SIZE_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n} / page
+              </option>
+            ))}
+          </select>
+          <div className="pag-btns">
             <button
-              key={p}
               type="button"
-              className={`pg-btn ${p === currentPage ? 'active' : ''}`}
-              onClick={() => setCurrentPage(p)}
-              disabled={loading}
+              className="pg-btn"
+              disabled={currentPage <= 1 || loading}
+              onClick={() => setCurrentPage(currentPage - 1)}
             >
-              {p}
+              ‹
             </button>
-          ))}
-          <button
-            type="button"
-            className="pg-btn"
-            disabled={currentPage >= lastPage || loading}
-            onClick={() => setCurrentPage(currentPage + 1)}
-          >
-            ›
-          </button>
+            {pages.map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={`pg-btn ${p === currentPage ? 'active' : ''}`}
+                onClick={() => setCurrentPage(p)}
+                disabled={loading}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="pg-btn"
+              disabled={currentPage >= lastPage || loading}
+              onClick={() => setCurrentPage(currentPage + 1)}
+            >
+              ›
+            </button>
+          </div>
         </div>
       </div>
     </div>

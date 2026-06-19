@@ -1,13 +1,13 @@
 import React, { useEffect } from 'react';
 import type { LocationItem } from '../../context/AppContext';
 import type { ApiAmenity } from '../../api';
-import { DOCK_TYPES, LOCATION_TYPES } from '../../pages/AddressBook/constants';
+import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { ContactFormList } from './ContactFormList';
 import { EquipmentSelector } from './EquipmentSelector';
+import { GoogleMapAddressField } from './GoogleMapAddressField';
 import { TimeRangeFormList } from './TimeRangeFormList';
 import { ToggleField } from './ToggleField';
-import { geocodeAddress } from '../../pages/AddressBook/utils/geocode';
 
 type Props = Pick<
   AddressBookState,
@@ -56,21 +56,33 @@ export const EditLocationModal: React.FC<Props> = ({
               <label>
                 Company <span className="req">*</span>
               </label>
-              <input type="text" value={editData.company} onChange={(e) => update({ company: e.target.value })} />
+              <input
+                type="text"
+                value={editData.company}
+                readOnly={editData.group === 'customer'}
+                onChange={(e) => update({ company: e.target.value })}
+              />
             </div>
             <div className="mf">
               <label>
                 Company VAT <span className="req">*</span>
               </label>
-              <input type="text" value={editData.companyVat} onChange={(e) => update({ companyVat: e.target.value })} />
+              <input
+                type="text"
+                value={editData.companyVat}
+                readOnly={editData.group === 'customer'}
+                onChange={(e) => update({ companyVat: e.target.value })}
+              />
             </div>
           </div>
-          <div className="mf">
-            <label>
-              Address <span className="req">*</span>
-            </label>
-            <input type="text" value={editData.address} onChange={(e) => update({ address: e.target.value })} />
-          </div>
+          <GoogleMapAddressField
+            address={editData.address}
+            lat={String(editData.lat)}
+            lng={String(editData.lng)}
+            onAddressChange={(address) => update({ address })}
+            onLatLngChange={(lat, lng) => update({ lat: parseFloat(lat) || 0, lng: parseFloat(lng) || 0 })}
+            onCityPostalChange={(city, postal) => update({ city, postalCode: postal })}
+          />
           <div className="mf-row">
             <div className="mf">
               <label>
@@ -99,38 +111,6 @@ export const EditLocationModal: React.FC<Props> = ({
           </div>
           <div className="mf-row">
             <div className="mf">
-              <label>Latitude</label>
-              <input
-                type="text"
-                value={String(editData.lat)}
-                onChange={(e) => update({ lat: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-            <div className="mf">
-              <label>Longitude</label>
-              <input
-                type="text"
-                value={String(editData.lng)}
-                onChange={(e) => update({ lng: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-          </div>
-          <div className="mf">
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={async () => {
-                const result = await geocodeAddress(editData.address, editData.city, editData.postalCode ?? '');
-                if (result) {
-                  update({ lat: parseFloat(result.lat), lng: parseFloat(result.lng) });
-                }
-              }}
-            >
-              📍 Lookup coordinates
-            </button>
-          </div>
-          <div className="mf-row">
-            <div className="mf">
               <label>Phone</label>
               <input type="text" value={editData.phone ?? ''} onChange={(e) => update({ phone: e.target.value })} />
             </div>
@@ -151,12 +131,11 @@ export const EditLocationModal: React.FC<Props> = ({
               </select>
             </div>
             <div className="mf">
-              <label>Type</label>
+              <label>Facility Type</label>
               <select value={editData.type} onChange={(e) => update({ type: e.target.value })}>
-                <option value="">— None —</option>
-                {LOCATION_TYPES.map((type) => (
+                {FACILITY_TYPES.map((type) => (
                   <option key={type} value={type}>
-                    {type}
+                    {FACILITY_TYPE_LABELS[type] ?? type}
                   </option>
                 ))}
               </select>

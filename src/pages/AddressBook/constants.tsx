@@ -9,7 +9,31 @@ export const TYPE_COLORS: Record<string, string> = {
   Port: '#0891B2',
 };
 
-export const LOCATION_TYPES = ['Warehouse', 'Plant', 'Store', 'Office', 'Cross-dock', 'Port'] as const;
+export const FACILITY_TYPES = ['dc', 'warehouse', 'plant', 'store', 'port', 'other'] as const;
+
+export const FACILITY_TYPE_LABELS: Record<string, string> = {
+  dc: 'DC',
+  warehouse: 'Warehouse',
+  plant: 'Plant',
+  store: 'Store',
+  port: 'Port',
+  other: 'Other',
+};
+
+export const LOCATION_TYPES = FACILITY_TYPES;
+
+export const PAGE_SIZE_OPTIONS = [10, 12, 25, 50, 100] as const;
+
+export const DEFAULT_PAGE_SIZE = 12;
+
+export function getSystemDirectories(lang: 'en' | 'el'): { id: string; name: string; icon: string }[] {
+  return [
+    { id: 'all', name: lang === 'el' ? 'Όλες οι Τοποθεσίες' : 'All Locations', icon: 'home' },
+    { id: 'my', name: lang === 'el' ? 'Οι Τοποθεσίες μου' : 'My Locations', icon: 'briefcase' },
+    { id: 'customer', name: lang === 'el' ? 'Τοποθεσίες Πελατών' : 'Customer Locations', icon: 'users' },
+    { id: 'archived', name: lang === 'el' ? 'Αρχειοθετημένα' : 'Archived', icon: 'archive' },
+  ];
+}
 
 export const DOCK_TYPES = ['Dock-level', 'Ramp', 'Ground'] as const;
 

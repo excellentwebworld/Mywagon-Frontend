@@ -1,15 +1,19 @@
-import { apiDelete, apiGet, apiPost, apiPut } from '../client';
+import { apiDelete, apiGet, apiPost, apiPut, AUTH_TOKEN_KEY } from '../client';
 import {
+  directoryToListParams,
+  listParamsToExportQuery,
   mapDetailToLocation,
   mapListItemToLocation,
   mapLocationItemToPayload,
   mapLocationToPayload,
 } from '../mappers/addressBookMapper';
 import type { LocationItem } from '../../context/AppContext';
-import type { CreateLocationData } from '../../pages/AddressBook/types';
+import type { CompanyFormData, CreateLocationData } from '../../pages/AddressBook/types';
 import type {
   ApiAddressBookSummary,
   ApiAmenity,
+  ApiCompanyEntity,
+  ApiCompanyEntityPayload,
   ApiCompanyLookup,
   ApiDuplicateCheckResult,
   ApiListMeta,
@@ -18,6 +22,8 @@ import type {
   ApiLocationStats,
   ListLocationsParams,
 } from '../types/addressBook';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
 export interface PaginatedLocationsResult {
   items: LocationItem[];
@@ -36,7 +42,7 @@ export const addressBookService = {
       items: (res.data ?? []).map(mapListItemToLocation),
       meta: res.meta ?? {
         current_page: 1,
-        per_page: params.per_page ?? 25,
+        per_page: params.per_page ?? 12,
         total: res.data?.length ?? 0,
         last_page: 1,
       },
@@ -105,4 +111,31 @@ export const addressBookService = {
     const res = await apiGet<ApiAmenity[]>('/address-book/amenities');
     return res.data ?? [];
   },
+
+  async listCompanyEntities(search?: string): Promise<ApiCompanyEntity[]> {
+    const res = await apiGet<ApiCompanyEntity[]>('/address-book/company-entities', search ? { search } : undefined);
+    return res.data ?? [];
+  },
+
+  async createCompanyEntity(payload: ApiCompanyEntityPayload): Promise<ApiCompanyEntity> {
+    const res = await apiPost<ApiCompanyEntity>('/address-book/company-entities', payload);
+    return res.data;
+  },
+
+  async exportExcel(params: ListLocationsParams): Promise<Blob> {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const query = new URLSearchParams(listParamsToExportQuery(params));
+    const response = await fetch(`${API_BASE}/address-book/export?${query.toString()}`, {
+      headers: {
+        Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!response.ok) {
+      throw new Error('Export failed');
+    }
+    return response.blob();
+  },
 };
+
+export { directoryToListParams };

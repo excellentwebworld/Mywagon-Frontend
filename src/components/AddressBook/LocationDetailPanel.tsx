@@ -55,8 +55,13 @@ export const LocationDetailPanel: React.FC<Props> = ({
   }
 
   const l = selectedLoc;
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${l.lng - 0.008}%2C${l.lat - 0.005}%2C${l.lng + 0.008}%2C${l.lat + 0.005}&layer=mapnik&marker=${l.lat}%2C${l.lng}`;
-  const mapLink = `https://www.openstreetmap.org/?mlat=${l.lat}&mlon=${l.lng}#map=16/${l.lat}/${l.lng}`;
+  const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
+  const mapUrl = mapsKey
+    ? `https://www.google.com/maps/embed/v1/place?key=${mapsKey}&q=${l.lat},${l.lng}&zoom=15`
+    : `https://www.openstreetmap.org/export/embed.html?bbox=${l.lng - 0.008}%2C${l.lat - 0.005}%2C${l.lng + 0.008}%2C${l.lat + 0.005}&layer=mapnik&marker=${l.lat}%2C${l.lng}`;
+  const mapLink = mapsKey
+    ? `https://www.google.com/maps?q=${l.lat},${l.lng}`
+    : `https://www.openstreetmap.org/?mlat=${l.lat}&mlon=${l.lng}#map=16/${l.lat}/${l.lng}`;
 
   return (
     <div className={`detail-pane open`}>
@@ -140,6 +145,10 @@ export const LocationDetailPanel: React.FC<Props> = ({
         <DetailSection title="📊 Quick Stats">
           <div className="stat-grid">
             <div className="stat-card">
+              <div className="stat-val">{l.usageHistoryCount ?? 0}</div>
+              <div className="stat-label">Usage history (loads)</div>
+            </div>
+            <div className="stat-card">
               <div className="stat-val">{l.shipments30}</div>
               <div className="stat-label">Shipments (30d)</div>
             </div>
@@ -150,10 +159,6 @@ export const LocationDetailPanel: React.FC<Props> = ({
             <div className="stat-card">
               <div className="stat-val">{l.otd ? `${l.otd}%` : '—'}</div>
               <div className="stat-label">On-time rate</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-val">{l.loadTime ? `${l.loadTime}m` : '—'}</div>
-              <div className="stat-label">Avg dwell</div>
             </div>
           </div>
         </DetailSection>
