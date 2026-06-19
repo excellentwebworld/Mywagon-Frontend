@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost, apiPut, AUTH_TOKEN_KEY } from '../client';
+import { apiDelete, apiGet, apiPost, apiPut, AUTH_TOKEN_KEY, ApiError } from '../client';
 import {
   directoryToListParams,
   listParamsToExportQuery,
@@ -99,7 +99,13 @@ export const addressBookService = {
       company_name: companyName,
       address_id: addressId ? parseInt(addressId, 10) : undefined,
     });
-    return res.data;
+
+    const failed = res.success === false || (res as { status?: boolean }).status === false;
+    if (failed) {
+      throw new ApiError(res.message || 'Duplicate check failed', 422);
+    }
+
+    return res.data ?? { duplicate: false, existing_id: null };
   },
 
   async listCompanies(search?: string): Promise<ApiCompanyLookup[]> {
