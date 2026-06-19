@@ -20,6 +20,7 @@
   "signOutConfirmQuestion": "Are you sure you want to sign out?",
   "signOutConfirmWarning": "You will need to sign in again to access the portal and manage shipments.",
   "products": "Product Registry",
+  "loadingProducts": "Loading products...",
   "bulkArchiveConfirm": "Archive selected SKUs?",
   "bulkArchiveWarning": "This action will archive all selected products. They will no longer be visible in the active product catalog.",
   "deactivateSkuTitle": "Deactivate SKU",
