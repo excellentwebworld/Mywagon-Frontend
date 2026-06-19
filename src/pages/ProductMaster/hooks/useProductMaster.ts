@@ -51,6 +51,8 @@ export function useProductMaster() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [typeMappedSkus, setTypeMappedSkus] = useState<SKU[]>([]);
   const [typeSkusLoading, setTypeSkusLoading] = useState(false);
+  const [deactivateConfirmSku, setDeactivateConfirmSku] = useState<SKU | null>(null);
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -255,9 +257,14 @@ export function useProductMaster() {
 
   const handleBulkArchive = useCallback(() => {
     if (selectedIds.size === 0) return;
-    if (!window.confirm(t('bulkArchiveConfirm'))) return;
-    bulkArchiveMutation.mutate([...selectedIds]);
-  }, [selectedIds, bulkArchiveMutation, t]);
+    setArchiveConfirmOpen(true);
+  }, [selectedIds]);
+
+  const confirmBulkArchive = useCallback(async () => {
+    if (selectedIds.size === 0) return;
+    await bulkArchiveMutation.mutateAsync([...selectedIds]);
+    setArchiveConfirmOpen(false);
+  }, [selectedIds, bulkArchiveMutation]);
 
   const handleBulkToggleActive = useCallback(() => {
     showToast(t('comingSoon'), 'info');
@@ -345,10 +352,20 @@ export function useProductMaster() {
 
   const handleToggleActive = useCallback(
     (sku: SKU) => {
-      toggleMutation.mutate(sku.id);
+      if (sku.active) {
+        setDeactivateConfirmSku(sku);
+      } else {
+        toggleMutation.mutate(sku.id);
+      }
     },
     [toggleMutation]
   );
+
+  const confirmDeactivate = useCallback(async () => {
+    if (!deactivateConfirmSku) return;
+    await toggleMutation.mutateAsync(deactivateConfirmSku.id);
+    setDeactivateConfirmSku(null);
+  }, [deactivateConfirmSku, toggleMutation]);
 
   const handleExport = useCallback(async () => {
     setExporting(true);
@@ -484,6 +501,12 @@ export function useProductMaster() {
     handleToggleRowSelection,
     handleBulkToggleActive,
     handleBulkArchive,
+    deactivateConfirmSku,
+    setDeactivateConfirmSku,
+    confirmDeactivate,
+    archiveConfirmOpen,
+    setArchiveConfirmOpen,
+    confirmBulkArchive,
     handleSaveSku,
     handleCSVUpload,
     triggerCSVImport,

@@ -8,6 +8,7 @@ import {
   ProductMasterHeader,
   ProductMasterModals,
 } from '../../components/ProductMaster';
+import { ConfirmationModal } from '../../components/ui/ConfirmationModal';
 import { useProductMaster } from './hooks/useProductMaster';
 import '../../styles/product-master.css';
 
@@ -124,6 +125,50 @@ export const ProductMaster: React.FC = () => {
       </div>
 
       <ProductMasterModals {...pm} />
+
+      {/* Deactivate SKU Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!pm.deactivateConfirmSku}
+        onClose={() => pm.setDeactivateConfirmSku(null)}
+        onConfirm={pm.confirmDeactivate}
+        title={pm.t('deactivateSkuTitle')}
+        type="danger"
+        confirmText={pm.t('deactivate')}
+        cancelText={pm.t('cancel')}
+        confirmLoading={pm.saving}
+        message={
+          <>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
+              {pm.t('deactivateSkuQuestion', { name: pm.deactivateConfirmSku?.name || '' })}
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.7 }}>
+              {pm.t('deactivateSkuWarning')}
+            </p>
+          </>
+        }
+      />
+
+      {/* Bulk Archive Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={pm.archiveConfirmOpen}
+        onClose={() => pm.setArchiveConfirmOpen(false)}
+        onConfirm={pm.confirmBulkArchive}
+        title={pm.t('archive') || 'Archive'}
+        type="danger"
+        confirmText={pm.t('archive') || 'Archive'}
+        cancelText={pm.t('cancel')}
+        confirmLoading={pm.saving}
+        message={
+          <>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
+              {pm.t('bulkArchiveConfirm')}
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.7 }}>
+              {pm.t('bulkArchiveWarning')}
+            </p>
+          </>
+        }
+      />
     </div>
   );
 };
