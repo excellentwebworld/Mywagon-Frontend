@@ -1,6 +1,6 @@
 import { useApp } from '../context/AppContext';
-import en from '../../locale/en.json';
-import el from '../../locale/el.json';
+import en from '../locale/en.json';
+import el from '../locale/el.json';
 
 const translations: Record<string, Record<string, string>> = {
   en,
