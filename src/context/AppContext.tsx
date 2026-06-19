@@ -718,14 +718,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Toast State
-  const [toast, setToast] = useState<ToastState>({
+  const [toast, setToast] = useState<ToastState & { key: number }>({
     message: '',
     type: 'success',
     show: false,
+    key: 0,
   });
 
+  const TOAST_DURATION_MS: Record<ToastState['type'], number> = {
+    success: 5000,
+    error: 8000,
+    warning: 7000,
+    info: 6000,
+  };
+
   const showToast = (msg: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
-    setToast({ message: msg, type, show: true });
+    setToast((prev) => ({ message: msg, type, show: true, key: prev.key + 1 }));
   };
 
   const hideToast = () => {
@@ -733,13 +741,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   useEffect(() => {
-    if (toast.show) {
-      const timer = setTimeout(() => {
-        hideToast();
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [toast.show]);
+    if (!toast.show) return;
+    const duration = TOAST_DURATION_MS[toast.type] ?? 6000;
+    const timer = setTimeout(() => {
+      hideToast();
+    }, duration);
+    return () => clearTimeout(timer);
+  }, [toast.show, toast.key, toast.type]);
 
   // Locations State
   const [locations, setLocations] = useState<LocationItem[]>([]);

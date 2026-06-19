@@ -16,8 +16,8 @@ import {
 import { DEFAULT_PAGE_SIZE } from '../constants';
 import {
   applyTemplate,
-  findPotentialDuplicates,
 } from '../utils/locationUtils';
+import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from '../validation/locationDuplicateValidation';
 import type { ApiCompanyEntity } from '../../../api/types/addressBook';
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -309,7 +309,7 @@ export function useAddressBook() {
         if (!cancelled) setPotentialDuplicates([existing]);
       })
       .catch(() => {
-        if (!cancelled) setPotentialDuplicates(findPotentialDuplicates(locations, createData));
+        if (!cancelled) setPotentialDuplicates([]);
       });
 
     return () => {
@@ -423,8 +423,20 @@ export function useAddressBook() {
       return;
     }
 
+    try {
+      const isDuplicate = await checkLocationDuplicate(createData.name, createData.company);
+      if (isDuplicate) {
+        showToast(DUPLICATE_LOCATION_MESSAGE, 'error');
+        setCreateStep(4);
+        return;
+      }
+    } catch (err) {
+      handleApiError(err, 'Could not verify location name');
+      return;
+    }
+
     createLocationMutation.mutate(createData);
-  }, [createData, createLocationMutation, showToast]);
+  }, [createData, createLocationMutation, showToast, handleApiError]);
 
   const saveEditedLocation = useCallback(
     async (loc: LocationItem) => {

@@ -1,11 +1,13 @@
-import React, { useEffect } from 'react';
-import { Form, Formik, type FormikHelpers } from 'formik';
+import React, { useEffect, useRef } from 'react';
+import { Form, Formik, type FormikErrors, type FormikHelpers, type FormikTouched } from 'formik';
 import type { LocationItem } from '../../context/AppContext';
 import type { ApiAmenity } from '../../api';
 import { ApiError } from '../../api';
 import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
+import { scrollToFirstFormError, touchAllLocationFields } from '../../pages/AddressBook/validation/formScrollUtils';
 import {
+  DUPLICATE_LOCATION_MESSAGE,
   locationEditValidationSchema,
   type LocationFormValues,
 } from '../../pages/AddressBook/validation/locationFormSchema';
@@ -41,6 +43,32 @@ function mapServerErrors(fieldErrors: Record<string, string[]>): Partial<Record<
   return mapped;
 }
 
+function FormScrollToError({
+  submitCount,
+  errors,
+  values,
+  setTouched,
+}: {
+  submitCount: number;
+  errors: FormikErrors<LocationFormValues>;
+  values: LocationFormValues;
+  setTouched: (touched: FormikTouched<LocationFormValues>, shouldValidate?: boolean) => void;
+}) {
+  const lastSubmitCount = useRef(0);
+
+  useEffect(() => {
+    if (submitCount <= lastSubmitCount.current) return;
+    lastSubmitCount.current = submitCount;
+
+    if (Object.keys(errors).length === 0) return;
+
+    setTouched(touchAllLocationFields(values), false);
+    scrollToFirstFormError(errors);
+  }, [submitCount, errors, setTouched, values]);
+
+  return null;
+}
+
 export const EditLocationModal: React.FC<Props> = ({
   editData,
   isEditOpen,
@@ -72,6 +100,8 @@ export const EditLocationModal: React.FC<Props> = ({
         helpers.setStatus(err.message);
         if (err.fieldErrors) {
           helpers.setErrors(mapServerErrors(err.fieldErrors));
+        } else if (/already exist/i.test(err.message)) {
+          helpers.setFieldError('name', DUPLICATE_LOCATION_MESSAGE);
         }
       } else {
         helpers.setStatus('Failed to save location. Please check the form and try again.');
@@ -87,7 +117,8 @@ export const EditLocationModal: React.FC<Props> = ({
       validationSchema={locationEditValidationSchema}
       enableReinitialize
       validateOnBlur
-      validateOnChange={false}
+      validateOnChange
+      context={{ excludeLocationId: editData.id }}
       onSubmit={handleSubmit}
     >
       {({
@@ -98,15 +129,22 @@ export const EditLocationModal: React.FC<Props> = ({
         handleBlur,
         setFieldValue,
         setFieldTouched,
+        setTouched,
         isSubmitting,
         status,
+        submitCount,
       }) => {
-        const showError = (field: keyof LocationFormValues) =>
-          Boolean(touched[field] && errors[field]);
+        const showError = (field: keyof LocationFormValues) => Boolean(errors[field]);
 
         return (
           <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && closeEditModal()}>
             <Form className="modal ab-modal ab-modal-scroll" noValidate>
+              <FormScrollToError
+                submitCount={submitCount}
+                errors={errors}
+                values={values}
+                setTouched={setTouched}
+              />
               <div className="modal-header ab-modal-header-sticky">
                 <h2>Edit — {editData.name}</h2>
                 <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeEditModal}>
