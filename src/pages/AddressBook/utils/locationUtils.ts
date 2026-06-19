@@ -1,5 +1,20 @@
+import type { ApiAddressBookSummary } from '../../../api/types/addressBook';
 import type { LocationItem } from '../../../context/AppContext';
 import type { CreateLocationData, DirectoryItem, FilterKey, SortOption } from '../types';
+
+export function getNodeCountFromSummary(
+  dir: DirectoryItem,
+  summary: ApiAddressBookSummary | null,
+  locations: LocationItem[]
+): number {
+  if (summary) {
+    if (dir.id === 'all') return summary.all;
+    if (dir.id === 'my') return summary.my_locations;
+    if (dir.id === 'customer') return summary.customers;
+    if (dir.id === 'archived') return summary.archived;
+  }
+  return getNodeCount(dir, locations);
+}
 
 export function getNodeCount(dir: DirectoryItem, locations: LocationItem[]): number {
   if (dir.id === 'all') return locations.filter((l) => l.status === 'active').length;
@@ -73,6 +88,21 @@ export function filterLocations(
       if (activeFilters.role && l.role === 'both') return true;
       return true;
     });
+}
+
+export function applyClientFilters(
+  locations: LocationItem[],
+  activeFilters: Record<FilterKey, boolean>
+): LocationItem[] {
+  return locations.filter((l) => {
+    if (activeFilters.appt && !l.appt) return false;
+    if (activeFilters.active && l.status !== 'active') return false;
+    if (activeFilters.hours && !l.hours) return false;
+    if (activeFilters.type && !l.type) return false;
+    if (activeFilters.city && !l.city) return false;
+    if (activeFilters.role && l.role === 'both') return true;
+    return true;
+  });
 }
 
 export function sortLocations(items: LocationItem[], sortBy: SortOption): LocationItem[] {

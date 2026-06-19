@@ -1,13 +1,17 @@
 import React, { useEffect } from 'react';
 import type { LocationItem } from '../../context/AppContext';
+import type { ApiAmenity } from '../../api';
 import { DOCK_TYPES, LOCATION_TYPES } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { ContactFormList } from './ContactFormList';
+import { EquipmentSelector } from './EquipmentSelector';
+import { TimeRangeFormList } from './TimeRangeFormList';
 import { ToggleField } from './ToggleField';
+import { geocodeAddress } from '../../pages/AddressBook/utils/geocode';
 
 type Props = Pick<
   AddressBookState,
-  'editData' | 'setEditData' | 'isEditOpen' | 'closeEditModal' | 'saveEditedLocation'
+  'editData' | 'setEditData' | 'isEditOpen' | 'closeEditModal' | 'saveEditedLocation' | 'saving' | 'amenities'
 >;
 
 export const EditLocationModal: React.FC<Props> = ({
@@ -16,6 +20,8 @@ export const EditLocationModal: React.FC<Props> = ({
   isEditOpen,
   closeEditModal,
   saveEditedLocation,
+  saving,
+  amenities,
 }) => {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -45,6 +51,20 @@ export const EditLocationModal: React.FC<Props> = ({
             </label>
             <input type="text" value={editData.name} onChange={(e) => update({ name: e.target.value })} />
           </div>
+          <div className="mf-row">
+            <div className="mf">
+              <label>
+                Company <span className="req">*</span>
+              </label>
+              <input type="text" value={editData.company} onChange={(e) => update({ company: e.target.value })} />
+            </div>
+            <div className="mf">
+              <label>
+                Company VAT <span className="req">*</span>
+              </label>
+              <input type="text" value={editData.companyVat} onChange={(e) => update({ companyVat: e.target.value })} />
+            </div>
+          </div>
           <div className="mf">
             <label>
               Address <span className="req">*</span>
@@ -59,8 +79,64 @@ export const EditLocationModal: React.FC<Props> = ({
               <input type="text" value={editData.city} onChange={(e) => update({ city: e.target.value })} />
             </div>
             <div className="mf">
+              <label>Postal Code</label>
+              <input
+                type="text"
+                value={editData.postalCode ?? ''}
+                onChange={(e) => update({ postalCode: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="mf-row">
+            <div className="mf">
               <label>Region</label>
               <input type="text" value={editData.region} onChange={(e) => update({ region: e.target.value })} />
+            </div>
+            <div className="mf">
+              <label>Customer Code</label>
+              <input type="text" value={editData.custCode || ''} onChange={(e) => update({ custCode: e.target.value })} />
+            </div>
+          </div>
+          <div className="mf-row">
+            <div className="mf">
+              <label>Latitude</label>
+              <input
+                type="text"
+                value={String(editData.lat)}
+                onChange={(e) => update({ lat: parseFloat(e.target.value) || 0 })}
+              />
+            </div>
+            <div className="mf">
+              <label>Longitude</label>
+              <input
+                type="text"
+                value={String(editData.lng)}
+                onChange={(e) => update({ lng: parseFloat(e.target.value) || 0 })}
+              />
+            </div>
+          </div>
+          <div className="mf">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={async () => {
+                const result = await geocodeAddress(editData.address, editData.city, editData.postalCode ?? '');
+                if (result) {
+                  update({ lat: parseFloat(result.lat), lng: parseFloat(result.lng) });
+                }
+              }}
+            >
+              📍 Lookup coordinates
+            </button>
+          </div>
+          <div className="mf-row">
+            <div className="mf">
+              <label>Phone</label>
+              <input type="text" value={editData.phone ?? ''} onChange={(e) => update({ phone: e.target.value })} />
+            </div>
+            <div className="mf">
+              <label>Email</label>
+              <input type="email" value={editData.email ?? ''} onChange={(e) => update({ email: e.target.value })} />
             </div>
           </div>
           <div className="mf-row">
@@ -157,6 +233,40 @@ export const EditLocationModal: React.FC<Props> = ({
             />
           </div>
 
+          {amenities.length > 0 && (
+            <>
+              <h4 className="ab-form-section-title">Amenities</h4>
+              <div className="mf amenity-grid">
+                {amenities.map((a: ApiAmenity) => (
+                  <label key={a.id} className="amenity-check">
+                    <input
+                      type="checkbox"
+                      checked={(editData.amenityIds ?? []).includes(a.id)}
+                      onChange={(e) => {
+                        const current = editData.amenityIds ?? [];
+                        const ids = e.target.checked ? [...current, a.id] : current.filter((id) => id !== a.id);
+                        update({ amenityIds: ids });
+                      }}
+                    />
+                    {a.name}
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
+
+          <h4 className="ab-form-section-title">Equipment</h4>
+          <EquipmentSelector
+            value={editData.equipment ?? []}
+            onChange={(equipment) => update({ equipment })}
+          />
+
+          <h4 className="ab-form-section-title">Structured Time Ranges</h4>
+          <TimeRangeFormList
+            timeRanges={editData.timeRanges ?? []}
+            onChange={(timeRanges) => update({ timeRanges })}
+          />
+
           <h4 className="ab-form-section-title">Notes</h4>
           <div className="mf">
             <label>🔒 Internal Note</label>
@@ -174,8 +284,8 @@ export const EditLocationModal: React.FC<Props> = ({
           <button type="button" className="btn btn-secondary" onClick={closeEditModal}>
             Cancel
           </button>
-          <button type="button" className="btn btn-primary" onClick={saveEditedLocation}>
-            💾 Save Changes
+          <button type="button" className="btn btn-primary" onClick={saveEditedLocation} disabled={saving}>
+            {saving ? 'Saving…' : '💾 Save Changes'}
           </button>
         </div>
       </div>

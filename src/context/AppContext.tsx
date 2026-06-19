@@ -1,10 +1,12 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { addressBookService } from '../api';
 
 // ==========================================
 // TYPES
 // ==========================================
 
 export interface Contact {
+  id?: number;
   name: string;
   role: string;
   phone: string;
@@ -15,6 +17,7 @@ export interface LocationItem {
   id: string;
   name: string;
   company: string;
+  companyVat: string;
   group: 'my' | 'customer';
   city: string;
   region: string;
@@ -43,6 +46,11 @@ export interface LocationItem {
   otd: number;
   noteInternal: string;
   noteCarrier: string;
+  phone?: string;
+  email?: string;
+  postalCode?: string;
+  amenityIds?: number[];
+  timeRanges?: { id?: number; start_time: string; end_time: string }[];
   status: 'active' | 'archived';
   created: string;
 }
@@ -255,6 +263,7 @@ interface AppContextType {
   updateLocation: (loc: LocationItem) => void;
   archiveLocation: (id: string) => void;
   restoreLocation: (id: string) => void;
+  refreshLocationsFromApi: () => Promise<void>;
   
   companies: Company[];
   addCompany: (comp: Omit<Company, 'id'>) => void;
@@ -732,128 +741,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [toast.show]);
 
   // Locations State
-  const [locations, setLocations] = useState<LocationItem[]>([
-    { id:'LOC-001', name:'ΒΙΚΟΣ Κεντρική Αποθήκη', company:'ΒΙΚΟΣ Α.Ε.', group:'my', city:'Ιωάννινα', region:'Ήπειρος',
-      address:'7ο χλμ Α.Ε. Ιωαννίνων-Αθηνών, 45500', lat:39.643, lng:20.878, geoVerified:true,
-      role:'both', type:'Warehouse', appt:true, hours:'Mon-Fri 06:00–22:00 · Sat 07:00–14:00',
-      dock:'Dock-level', equipment:['Forklift','Pallet jack'], maxTruck:'18.75m', maxWeight:'40T',
-      adr:true, palletExchange:true, loadTime:45,
-      contacts:[{ name:'Γεώργιος Μπακόλας', role:'Receiving', phone:'+30 26510 42100', email:'g.bakolas@vikos.gr' },
-                { name:'Νίκος Δήμος', role:'Gate/Security', phone:'+30 26510 42111', email:'' }],
-      tags:['HQ','Primary'], code:'WH-IOA-01', custCode:'', lastUsed:'2h ago',
-      shipments30:24, shipments90:68, otd:96,
-      noteInternal:'Main loading point. 3 docks available. Gate PIN: 4821#',
-      noteCarrier:'Report to Gate B. Driver must wear PPE.', status:'active', created:'15/03/2024' },
-  
-    { id:'LOC-002', name:'Εργοστάσιο Αμπελιώτης', company:'ΒΙΚΟΣ Α.Ε.', group:'my', city:'Ιωάννινα', region:'Ήπειρος',
-      address:'Θέση Αμπέλια, Βίτσα, 45332', lat:39.710, lng:20.785, geoVerified:true,
-      role:'pickup', type:'Plant', appt:true, hours:'Mon-Fri 05:00–21:00',
-      dock:'Dock-level', equipment:['Forklift','Crane'], maxTruck:'16.5m', maxWeight:'40T',
-      adr:false, palletExchange:true, loadTime:60,
-      contacts:[{ name:'Δημήτρης Τσίπρας', role:'Receiving', phone:'+30 26510 31200', email:'d.tsipras@vikos.gr' }],
-      tags:['Production'], code:'PL-ZIT-01', custCode:'', lastUsed:'5h ago',
-      shipments30:18, shipments90:52, otd:94,
-      noteInternal:'High volume site.', noteCarrier:'Follow signs to loading bay.', status:'active', created:'15/03/2024' },
-  
-    { id:'LOC-003', name:'Σκλαβενίτης Ν. Ηράκλειο', company:'Σκλαβενίτης', group:'customer', city:'Ηράκλειο', region:'Αττική',
-      address:'Λεωφ. Ηρακλείου 340, 14122', lat:38.044, lng:23.752, geoVerified:true,
-      role:'delivery', type:'Store', appt:true, hours:'Mon-Sat 06:00–14:00',
-      dock:'Ramp', equipment:['Pallet jack'], maxTruck:'12m', maxWeight:'19T',
-      adr:false, palletExchange:false, loadTime:30,
-      contacts:[{ name:'Μαρία Αντωνοπούλου', role:'Receiving', phone:'+30 210 2841500', email:'' }],
-      tags:['Retail','Priority'], code:'', custCode:'SKL-HRK-01', lastUsed:'1d ago',
-      shipments30:8, shipments90:22, otd:91,
-      noteInternal:'Strict time windows.', noteCarrier:'Use rear entrance.', status:'active', created:'20/05/2024' },
-  
-    { id:'LOC-004', name:'THE MART Μάνδρα', company:'THE MART (Makro)', group:'customer', city:'Μάνδρα', region:'Αττική',
-      address:'Θέση Λιθαρί, Μάνδρα, 19600', lat:38.091, lng:23.502, geoVerified:true,
-      role:'delivery', type:'Warehouse', appt:true, hours:'Mon-Fri 06:00–16:00',
-      dock:'Dock-level', equipment:['Forklift','Pallet jack'], maxTruck:'18.75m', maxWeight:'40T',
-      adr:true, palletExchange:true, loadTime:40,
-      contacts:[{ name:'Αλέξανδρος Νίκου', role:'Receiving', phone:'+30 210 5551234', email:'a.nikou@themart.gr' },
-                { name:'Γεωργία Παπ.', role:'Gate/Security', phone:'+30 210 5551200', email:'' }],
-      tags:['DC','Key Account'], code:'', custCode:'MART-MDR-01', lastUsed:'3d ago',
-      shipments30:6, shipments90:19, otd:89,
-      noteInternal:'Pallet exchange mandatory.', noteCarrier:'Appointment slot mandatory.', status:'active', created:'01/06/2024' },
-  
-    { id:'LOC-005', name:'AB Βασιλόπουλος DC', company:'AB Βασιλόπουλος', group:'customer', city:'Θήβα', region:'Βοιωτία',
-      address:'Εθν. Οδ. Θηβών, 32200', lat:38.310, lng:23.310, geoVerified:true,
-      role:'delivery', type:'Cross-dock', appt:true, hours:'Mon-Sun 00:00–23:59 (24h)',
-      dock:'Dock-level', equipment:['Forklift'], maxTruck:'18.75m', maxWeight:'40T',
-      adr:false, palletExchange:true, loadTime:35,
-      contacts:[{ name:'Κώστας Αναγνώστου', role:'Receiving', phone:'+30 22620 89100', email:'k.anagnostou@ab.gr' }],
-      tags:['24h','Cross-dock'], code:'', custCode:'AB-THV-DC', lastUsed:'12h ago',
-      shipments30:10, shipments90:31, otd:93,
-      noteInternal:'Best slots 02:00–06:00.', noteCarrier:'Check in at security.', status:'active', created:'10/04/2024' },
-  
-    { id:'LOC-006', name:'Αποθήκη Τρικάλων', company:'ΒΙΚΟΣ Α.Ε.', group:'my', city:'Τρίκαλα', region:'Θεσσαλία',
-      address:'4ο χλμ Τρικάλων-Καρδίτσας, 42100', lat:39.545, lng:21.780, geoVerified:false,
-      role:'both', type:'Warehouse', appt:false, hours:'Mon-Fri 07:00–15:00',
-      dock:'Ground', equipment:['Pallet jack'], maxTruck:'12m', maxWeight:'19T',
-      adr:false, palletExchange:false, loadTime:25, contacts:[],
-      tags:['Secondary'], code:'WH-TRK-01', custCode:'', lastUsed:'14d ago',
-      shipments30:2, shipments90:8, otd:100,
-      noteInternal:'Small facility. Call ahead.', noteCarrier:'', status:'active', created:'22/07/2024' },
-  
-    { id:'LOC-007', name:'Μασούτης DC', company:'Μασούτης', group:'customer', city:'Ωραιόκαστρο', region:'Θεσσαλονίκη',
-      address:'Εθν. Οδ. Ωραιοκάστρου, 57013', lat:40.685, lng:22.916, geoVerified:true,
-      role:'delivery', type:'Warehouse', appt:true, hours:'Mon-Sat 05:00–18:00',
-      dock:'Dock-level', equipment:['Forklift','Pallet jack'], maxTruck:'18.75m', maxWeight:'40T',
-      adr:false, palletExchange:true, loadTime:50,
-      contacts:[{ name:'Σπύρος Τσικαλάκης', role:'Receiving', phone:'+30 2310 698200', email:'s.tsikalakis@masoutis.gr' }],
-      tags:['DC','North Greece'], code:'', custCode:'MAS-ORK-DC', lastUsed:'6d ago',
-      shipments30:4, shipments90:14, otd:92,
-      noteInternal:'Large queue times Monday.', noteCarrier:'Enter from highway exit.', status:'active', created:'15/08/2024' },
-  
-    { id:'LOC-008', name:'Metro Αχαρνές', company:'Metro C&C', group:'customer', city:'Αχαρνές', region:'Αττική',
-      address:'Λεωφ. Δημοκρατίας 33, 13671', lat:38.085, lng:23.741, geoVerified:true,
-      role:'delivery', type:'Store', appt:false, hours:'Mon-Fri 06:00–14:00 · Sat 06:00–12:00',
-      dock:'Ramp', equipment:['Pallet jack'], maxTruck:'10m', maxWeight:'12T',
-      adr:false, palletExchange:false, loadTime:20,
-      contacts:[{ name:'Ελένη Κλάρου', role:'Receiving', phone:'+30 210 2407100', email:'' }],
-      tags:['Retail'], code:'', custCode:'MET-ACH-01', lastUsed:'8d ago',
-      shipments30:3, shipments90:11, otd:88,
-      noteInternal:'Tight loading bay. 10m max.', noteCarrier:'Ring bell at side entrance.', status:'active', created:'20/09/2024' },
-  
-    { id:'LOC-009', name:'Αποθήκη Καλύβια', company:'ΒΙΚΟΣ Α.Ε.', group:'my', city:'Καλύβια', region:'Αττική',
-      address:'Λεωφ. Αθηνών-Σουνίου, Καλύβια 19010', lat:37.828, lng:23.921, geoVerified:true,
-      role:'both', type:'Warehouse', appt:true, hours:'Mon-Fri 07:00–19:00',
-      dock:'Dock-level', equipment:['Forklift','Pallet jack'], maxTruck:'18.75m', maxWeight:'40T',
-      adr:true, palletExchange:true, loadTime:35,
-      contacts:[{ name:'Παναγιώτης Ρέππας', role:'Receiving', phone:'+30 22910 48200', email:'p.reppas@vikos.gr' },
-                { name:'Ειρήνη Δακτή', role:'After-hours', phone:'+30 6945 123456', email:'' }],
-      tags:['Attica Hub'], code:'WH-KAL-3PL', custCode:'', lastUsed:'1d ago',
-      shipments30:15, shipments90:42, otd:95,
-      noteInternal:'Main Attica hub.', noteCarrier:'Dock assignment at gate.', status:'active', created:'01/02/2024' },
-  
-    { id:'LOC-010', name:'Lidl DC Θήβα', company:'Lidl Hellas', group:'customer', city:'Θήβα', region:'Βοιωτία',
-      address:'Εθν. Οδ. Σχηματαρίου, 32009', lat:38.345, lng:23.405, geoVerified:true,
-      role:'delivery', type:'Cross-dock', appt:true, hours:'Mon-Sun 00:00–23:59 (24h)',
-      dock:'Dock-level', equipment:['Forklift'], maxTruck:'18.75m', maxWeight:'40T',
-      adr:false, palletExchange:true, loadTime:30,
-      contacts:[{ name:'Ανδρέας Μητρόπουλος', role:'Receiving', phone:'+30 22620 57000', email:'a.mitropoulos@lidl.gr' }],
-      tags:['24h','Cross-dock','Key Account'], code:'', custCode:'LDL-THV-DC', lastUsed:'2d ago',
-      shipments30:7, shipments90:20, otd:90,
-      noteInternal:'Very strict on time.', noteCarrier:'E-booking required 48h before.', status:'active', created:'11/05/2024' },
-  
-    { id:'LOC-011', name:'Γραφεία Αθήνα', company:'ΒΙΚΟΣ Α.Ε.', group:'my', city:'Μαρούσι', region:'Αττική',
-      address:'Λεωφ. Κηφισίας 120, 15125', lat:38.033, lng:23.804, geoVerified:true,
-      role:'pickup', type:'Office', appt:false, hours:'Mon-Fri 09:00–17:00',
-      dock:'Ground', equipment:[], maxTruck:'7.5m', maxWeight:'3.5T',
-      adr:false, palletExchange:false, loadTime:15,
-      contacts:[{ name:'Αθηνά Κεφάλα', role:'Reception', phone:'+30 210 6100200', email:'a.kefala@vikos.gr' }],
-      tags:['Office','Docs only'], code:'OF-ATH-01', custCode:'', lastUsed:'30d ago',
-      shipments30:1, shipments90:3, otd:100,
-      noteInternal:'Documents and samples only.', noteCarrier:'Call reception.', status:'active', created:'01/01/2024' },
-  
-    { id:'LOC-012', name:'Παλαιά Αποθήκη Πάτρα', company:'ΒΙΚΟΣ Α.Ε.', group:'my', city:'Πάτρα', region:'Δ. Ελλάδα',
-      address:'Ακτή Δυμαίων 80, 26333', lat:38.250, lng:21.740, geoVerified:false,
-      role:'pickup', type:'Warehouse', appt:false, hours:'', dock:'Ground', equipment:[],
-      maxTruck:'', maxWeight:'', adr:false, palletExchange:false, loadTime:0, contacts:[],
-      tags:['Archived'], code:'WH-PAT-01', custCode:'', lastUsed:'92d ago',
-      shipments30:0, shipments90:0, otd:0,
-      noteInternal:'Closed since Oct 2025.', noteCarrier:'', status:'archived', created:'10/01/2023' }
-  ]);
+  const [locations, setLocations] = useState<LocationItem[]>([]);
 
   const addLocation = (loc: Omit<LocationItem, 'id' | 'created' | 'status'>) => {
     const nextId = `LOC-${String(locations.length + 1).padStart(3, '0')}`;
@@ -889,6 +777,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     showToast(`Location restored.`, 'success');
   };
+
+  const refreshLocationsFromApi = useCallback(async () => {
+    try {
+      const list = await addressBookService.listAllLocations({ type: 'all', status: 'active' });
+      setLocations(list);
+    } catch {
+      // Ignore when session is unavailable (e.g. marketing pages).
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshLocationsFromApi();
+  }, [refreshLocationsFromApi]);
 
   // Companies State
   const [companies, setCompanies] = useState<Company[]>([
@@ -1247,6 +1148,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateLocation,
         archiveLocation,
         restoreLocation,
+        refreshLocationsFromApi,
         companies,
         addCompany,
         categories,

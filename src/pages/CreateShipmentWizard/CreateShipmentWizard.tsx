@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import type { Shipment, ShipmentStop } from '../../context/AppContext';
 import { Step1Details, Step2Itinerary, Step3Pricing } from '../../components/CreateShipmentWizard';
@@ -8,6 +8,7 @@ import './CreateShipmentWizard.css';
 export const CreateShipmentWizard: React.FC = () => {
   const { lang, locations, addShipment, shipments, showToast } = useApp();
   const navigate = useNavigate();
+  const locationState = useLocation().state as { prefillLocationId?: string } | null;
 
   const [step, setStep] = useState(1);
 
@@ -20,52 +21,44 @@ export const CreateShipmentWizard: React.FC = () => {
     {
       id: 1,
       type: 'pickup',
-      location: 'LOC-001',
-      address: '7ο χλμ Α.Ε. Ιωαννίνων-Αθηνών, 45500',
-      date: '2026-06-18',
+      location: '',
+      address: '',
+      date: new Date().toISOString().slice(0, 10),
       timeStart: '08:00',
       timeEnd: '12:00',
-      customers: [
-        {
-          name: 'Alpha Foods Ltd',
-          orders: [
-            {
-              id: 'ORD-5001',
-              products: 'Water',
-              qty: 16,
-              qtyUnit: 'Pallets',
-              weight: 13,
-              weightUnit: 'T',
-            },
-          ],
-        },
-      ],
+      customers: [],
     },
     {
       id: 2,
       type: 'delivery',
-      location: 'LOC-003',
-      address: 'Λεωφ. Ηρακλείου 340, 14122',
-      date: '2026-06-19',
+      location: '',
+      address: '',
+      date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
       timeStart: '14:00',
       timeEnd: '18:00',
-      customers: [
-        {
-          name: 'Alpha Foods Ltd',
-          orders: [
-            {
-              id: 'ORD-5001',
-              products: 'Water',
-              qty: 16,
-              qtyUnit: 'Pallets',
-              weight: 13,
-              weightUnit: 'T',
-            },
-          ],
-        },
-      ],
+      customers: [],
     },
   ]);
+
+  useEffect(() => {
+    const prefillId = locationState?.prefillLocationId;
+    if (!prefillId || locations.length === 0) return;
+    const loc = locations.find((l) => l.id === prefillId);
+    if (!loc) return;
+    setStops((prev) =>
+      prev.map((stop, idx) =>
+        idx === 0
+          ? {
+              ...stop,
+              type: loc.role === 'delivery' ? 'delivery' : 'pickup',
+              location: loc.id,
+              address: loc.address,
+            }
+          : stop
+      )
+    );
+    showToast(`Prefilled pickup: ${loc.name}`, 'info');
+  }, [locationState?.prefillLocationId, locations, showToast]);
 
   // Step 3: Pricing, Broadcast, and Bulk State
   const [broadcastType, setBroadcastType] = useState<'private' | 'public' | 'fleet'>('private');

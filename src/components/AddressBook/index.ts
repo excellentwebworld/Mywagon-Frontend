@@ -8,5 +8,8 @@ export { CreateLocationModal } from './CreateLocationModal';
 export { EditLocationModal } from './EditLocationModal';
 export { CreateCompanyModal } from './CreateCompanyModal';
 export { ContactFormList } from './ContactFormList';
+export { EquipmentSelector } from './EquipmentSelector';
+export { TimeRangeFormList } from './TimeRangeFormList';
+export { LocationRowActions } from './LocationRowActions';
 export { ModalStepper } from './ModalStepper';
 export { ToggleField } from './ToggleField';

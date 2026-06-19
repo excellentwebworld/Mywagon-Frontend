@@ -1,12 +1,13 @@
 import React from 'react';
 import { DIR_ICONS, ICON_NAMES } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
-import { getDirectoryWarnings, getNodeCount } from '../../pages/AddressBook/utils/locationUtils';
+import { getDirectoryWarnings, getNodeCountFromSummary } from '../../pages/AddressBook/utils/locationUtils';
 
 type Props = Pick<
   AddressBookState,
   | 'lang'
   | 'locations'
+  | 'summary'
   | 'directories'
   | 'activeNode'
   | 'selectNode'
@@ -25,6 +26,7 @@ type Props = Pick<
 export const DirectoryPane: React.FC<Props> = ({
   lang,
   locations,
+  summary,
   directories,
   activeNode,
   selectNode,
@@ -43,7 +45,7 @@ export const DirectoryPane: React.FC<Props> = ({
     <div className="dir-pane-head">{lang === 'el' ? 'Κατάλογος' : 'Directory'}</div>
 
     {directories.map((d) => {
-      const count = getNodeCount(d, locations);
+      const count = getNodeCountFromSummary(d, summary, locations);
       const isAct = activeNode === d.id;
       const isArch = d.id === 'archived';
       const warnings = getDirectoryWarnings(d, locations);

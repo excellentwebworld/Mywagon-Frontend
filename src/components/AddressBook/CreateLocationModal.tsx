@@ -1,10 +1,14 @@
 import React, { useEffect } from 'react';
-import type { Company, LocationItem } from '../../context/AppContext';
+import type { LocationItem } from '../../context/AppContext';
+import type { ApiAmenity, ApiCompanyLookup } from '../../api';
 import { DOCK_TYPES, LOCATION_TYPES, TEMPLATE_OPTIONS } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { ContactFormList } from './ContactFormList';
+import { EquipmentSelector } from './EquipmentSelector';
 import { ModalStepper } from './ModalStepper';
+import { TimeRangeFormList } from './TimeRangeFormList';
 import { ToggleField } from './ToggleField';
+import { geocodeAddress } from '../../pages/AddressBook/utils/geocode';
 
 type Props = Pick<
   AddressBookState,
@@ -17,6 +21,8 @@ type Props = Pick<
   | 'handleApplyTemplate'
   | 'submitNewLocation'
   | 'potentialDuplicates'
+  | 'saving'
+  | 'amenities'
   | 'showToast'
   | 'filteredCompanies'
   | 'setCompanyQuery'
@@ -35,6 +41,8 @@ export const CreateLocationModal: React.FC<Props> = ({
   handleApplyTemplate,
   submitNewLocation,
   potentialDuplicates,
+  saving,
+  amenities,
   showToast,
   filteredCompanies,
   setCompanyQuery,
@@ -122,30 +130,71 @@ export const CreateLocationModal: React.FC<Props> = ({
                   role="button"
                   tabIndex={0}
                 >
-                  + Create new company
+                  + Enter new company details
                 </div>
-                {filteredCompanies.map((c: Company) => (
+                {filteredCompanies.map((c: ApiCompanyLookup) => (
                   <div
-                    key={c.id}
+                    key={`${c.company_name}-${c.company_vat}`}
                     className="ent-item"
                     onClick={() => {
-                      update({ company: c.name });
+                      update({ company: c.company_name, companyVat: c.company_vat });
                       setCompanyDropdownOpen(false);
                     }}
-                    onKeyDown={(e) => e.key === 'Enter' && update({ company: c.name })}
+                    onKeyDown={(e) =>
+                      e.key === 'Enter' && update({ company: c.company_name, companyVat: c.company_vat })
+                    }
                     role="button"
                     tabIndex={0}
                   >
-                    {c.name}
-                    <div className="sub">
-                      {c.industry} · VAT: {c.vat}
-                    </div>
+                    {c.company_name}
+                    <div className="sub">VAT: {c.company_vat}</div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-          <span className="helper">Search existing or create a new company</span>
+          <span className="helper">Search existing or enter new company details</span>
+        </div>
+      )}
+
+      {createData.context === 'my' && (
+        <div className="mf-row">
+          <div className="mf">
+            <label>
+              Company Name <span className="req">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Your company legal name"
+              value={createData.company}
+              onChange={(e) => update({ company: e.target.value })}
+            />
+          </div>
+          <div className="mf">
+            <label>
+              Company VAT <span className="req">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. EL094123456"
+              value={createData.companyVat}
+              onChange={(e) => update({ companyVat: e.target.value })}
+            />
+          </div>
+        </div>
+      )}
+
+      {createData.context === 'customer' && (
+        <div className="mf">
+          <label>
+            Company VAT <span className="req">*</span>
+          </label>
+          <input
+            type="text"
+            placeholder="e.g. EL094123456"
+            value={createData.companyVat}
+            onChange={(e) => update({ companyVat: e.target.value })}
+          />
         </div>
       )}
 
@@ -207,11 +256,46 @@ export const CreateLocationModal: React.FC<Props> = ({
           <input type="text" placeholder="e.g. 45500" value={createData.postal} onChange={(e) => update({ postal: e.target.value })} />
         </div>
       </div>
-      <div className="map-placeholder">
-        <div className="map-placeholder-icon">📍</div>
-        Map preview & pin adjustment
-        <br />
-        <span className="map-placeholder-sub">Geocode will auto-fill lat/lng after address entry</span>
+      <div className="mf-row">
+        <div className="mf">
+          <label>
+            Latitude <span className="req">*</span>
+          </label>
+          <input type="text" placeholder="e.g. 39.643" value={createData.lat} onChange={(e) => update({ lat: e.target.value })} />
+        </div>
+        <div className="mf">
+          <label>
+            Longitude <span className="req">*</span>
+          </label>
+          <input type="text" placeholder="e.g. 20.878" value={createData.lng} onChange={(e) => update({ lng: e.target.value })} />
+        </div>
+      </div>
+      <div className="mf">
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          onClick={async () => {
+            const result = await geocodeAddress(createData.address, createData.city, createData.postal);
+            if (result) {
+              update({ lat: result.lat, lng: result.lng });
+              showToast('Coordinates filled from address', 'success');
+            } else {
+              showToast('Could not geocode address', 'warning');
+            }
+          }}
+        >
+          📍 Lookup coordinates from address
+        </button>
+      </div>
+      <div className="mf-row">
+        <div className="mf">
+          <label>Phone</label>
+          <input type="text" placeholder="+30 …" value={createData.phone} onChange={(e) => update({ phone: e.target.value })} />
+        </div>
+        <div className="mf">
+          <label>Email</label>
+          <input type="email" placeholder="contact@…" value={createData.email} onChange={(e) => update({ email: e.target.value })} />
+        </div>
       </div>
       <div className="mf-row">
         <div className="mf">
@@ -297,6 +381,35 @@ export const CreateLocationModal: React.FC<Props> = ({
         <label>Est. Loading/Unloading Time (min)</label>
         <input type="number" placeholder="e.g. 45" value={createData.loadTime} onChange={(e) => update({ loadTime: e.target.value })} />
       </div>
+
+      {amenities.length > 0 && (
+        <>
+          <h4 className="ab-form-section-title">Amenities</h4>
+          <div className="mf amenity-grid">
+            {amenities.map((a: ApiAmenity) => (
+              <label key={a.id} className="amenity-check">
+                <input
+                  type="checkbox"
+                  checked={createData.amenityIds.includes(a.id)}
+                  onChange={(e) => {
+                    const ids = e.target.checked
+                      ? [...createData.amenityIds, a.id]
+                      : createData.amenityIds.filter((id) => id !== a.id);
+                    update({ amenityIds: ids });
+                  }}
+                />
+                {a.name}
+              </label>
+            ))}
+          </div>
+        </>
+      )}
+
+      <h4 className="ab-form-section-title">Equipment</h4>
+      <EquipmentSelector value={createData.equipment} onChange={(equipment) => update({ equipment })} />
+
+      <h4 className="ab-form-section-title">Structured Time Ranges</h4>
+      <TimeRangeFormList timeRanges={createData.timeRanges} onChange={(timeRanges) => update({ timeRanges })} />
 
       <h4 className="ab-form-section-title">Notes</h4>
       <div className="mf">
@@ -440,8 +553,8 @@ export const CreateLocationModal: React.FC<Props> = ({
         <button type="button" className="btn btn-secondary" onClick={() => setCreateStep(3)}>
           ← Back
         </button>
-        <button type="button" className="btn btn-primary" onClick={submitNewLocation}>
-          ✅ Create Location
+        <button type="button" className="btn btn-primary" onClick={submitNewLocation} disabled={saving}>
+          {saving ? 'Creating…' : '✅ Create Location'}
         </button>
       </>
     );

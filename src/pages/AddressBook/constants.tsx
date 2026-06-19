@@ -13,6 +13,8 @@ export const LOCATION_TYPES = ['Warehouse', 'Plant', 'Store', 'Office', 'Cross-d
 
 export const DOCK_TYPES = ['Dock-level', 'Ramp', 'Ground'] as const;
 
+export const EQUIPMENT_OPTIONS = ['Forklift', 'Pallet jack', 'Crane', 'Dock plate', 'Loading ramp'] as const;
+
 export const CONTACT_ROLES = ['Receiving', 'Gate/Security', 'After-hours', 'Billing', 'Reception'] as const;
 
 export const FILTER_PILLS: { key: 'role' | 'type' | 'city' | 'appt' | 'hours' | 'active'; label: string }[] = [

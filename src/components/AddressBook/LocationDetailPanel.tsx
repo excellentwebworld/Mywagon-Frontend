@@ -8,6 +8,8 @@ type Props = Pick<
   AddressBookState,
   | 'selectedLoc'
   | 'setSelectedLoc'
+  | 'detailLoading'
+  | 'saving'
   | 't'
   | 'showToast'
   | 'handleCopy'
@@ -15,6 +17,7 @@ type Props = Pick<
   | 'openEditModal'
   | 'handleArchive'
   | 'handleRestore'
+  | 'goToCreateShipment'
 >;
 
 function getRoleClass(role: LocationItem['role']) {
@@ -32,6 +35,8 @@ function getRoleLabel(role: LocationItem['role'], t: AddressBookState['t']) {
 export const LocationDetailPanel: React.FC<Props> = ({
   selectedLoc,
   setSelectedLoc,
+  detailLoading,
+  saving,
   t,
   showToast,
   handleCopy,
@@ -39,6 +44,7 @@ export const LocationDetailPanel: React.FC<Props> = ({
   openEditModal,
   handleArchive,
   handleRestore,
+  goToCreateShipment,
 }) => {
   if (!selectedLoc) {
     return (
@@ -99,25 +105,27 @@ export const LocationDetailPanel: React.FC<Props> = ({
             </span>
           </div>
           <div className="dp-actions">
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEditModal(l)}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEditModal(l)} disabled={saving}>
               ✏️ Edit
             </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleDuplicate(l)}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleDuplicate(l)} disabled={saving}>
               Duplicate
             </button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => showToast('Starting shipment setup')}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => goToCreateShipment(l)} disabled={saving}>
               + Shipment
             </button>
-            {l.status === 'active' ? (
-              <button type="button" className="btn btn-secondary btn-sm dp-archive-btn" onClick={() => handleArchive(l)}>
+            {l.status === 'active' && (
+              <button type="button" className="btn btn-secondary btn-sm dp-archive-btn" onClick={() => handleArchive(l)} disabled={saving}>
                 Archive
               </button>
-            ) : (
-              <button type="button" className="btn btn-secondary btn-sm dp-restore-btn" onClick={() => handleRestore(l)}>
+            )}
+            {l.status === 'archived' && (
+              <button type="button" className="btn btn-secondary btn-sm dp-restore-btn" onClick={() => handleRestore(l)} disabled={saving}>
                 Restore
               </button>
             )}
           </div>
+          {detailLoading && <div className="dp-loading-hint">Loading details…</div>}
         </div>
 
         <DetailSection title="🗺️ Location Map" bodyClassName="dp-map-sec-body">
@@ -159,6 +167,14 @@ export const LocationDetailPanel: React.FC<Props> = ({
             <span className="label">Hours</span>
             <span className="val dp-hours-val">{l.hours || 'Not set'}</span>
           </div>
+          {(l.timeRanges ?? []).length > 0 && (
+            <div className="dp-row">
+              <span className="label">Time ranges</span>
+              <span className="val dp-hours-val">
+                {(l.timeRanges ?? []).map((tr) => `${tr.start_time}–${tr.end_time}`).join(', ')}
+              </span>
+            </div>
+          )}
           <div className="dp-row">
             <span className="label">Dock</span>
             <span className="val">{l.dock || '—'}</span>

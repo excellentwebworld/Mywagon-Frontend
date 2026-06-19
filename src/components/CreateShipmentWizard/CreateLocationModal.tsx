@@ -29,6 +29,7 @@ export const CreateLocationModal: React.FC<CreateLocationModalProps> = ({
     addLocation({
       name: name.trim(),
       company: name.trim(),
+      companyVat: '',
       group: 'customer',
       city: city.trim(),
       region: '',

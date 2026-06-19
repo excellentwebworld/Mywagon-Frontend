@@ -10,16 +10,38 @@ export interface DirectoryItem {
 
 export type FilterKey = 'role' | 'type' | 'city' | 'appt' | 'hours' | 'active';
 
+export interface ServerFilterValues {
+  role: '' | 'pickup' | 'delivery' | 'both';
+  type: string;
+  city: string;
+  appt: boolean;
+  hours: boolean;
+}
+
+export const EMPTY_SERVER_FILTERS: ServerFilterValues = {
+  role: '',
+  type: '',
+  city: '',
+  appt: false,
+  hours: false,
+};
+
 export type SortOption = 'Name A–Z' | 'City' | 'Last used' | 'Created';
 
 export interface CreateLocationData {
   context: 'my' | 'customer';
   company: string;
+  companyVat: string;
   template: string;
   name: string;
   address: string;
   city: string;
   postal: string;
+  region: string;
+  lat: string;
+  lng: string;
+  phone: string;
+  email: string;
   role: 'both' | 'pickup' | 'delivery';
   type: string;
   appt: boolean;
@@ -33,9 +55,12 @@ export interface CreateLocationData {
   loadTime: string;
   noteInternal: string;
   noteCarrier: string;
-  contacts: { name: string; role: string; phone: string; email: string }[];
+  contacts: { id?: number; name: string; role: string; phone: string; email: string }[];
   code: string;
+  custCode: string;
   tags: string;
+  amenityIds: number[];
+  timeRanges: { id?: number; start_time: string; end_time: string }[];
 }
 
 export interface CompanyFormData {
@@ -53,11 +78,17 @@ export interface CompanyFormData {
 export const EMPTY_CREATE_DATA: CreateLocationData = {
   context: 'my',
   company: '',
+  companyVat: '',
   template: '',
   name: '',
   address: '',
   city: '',
   postal: '',
+  region: '',
+  lat: '',
+  lng: '',
+  phone: '',
+  email: '',
   role: 'both',
   type: 'Warehouse',
   appt: false,
@@ -73,7 +104,10 @@ export const EMPTY_CREATE_DATA: CreateLocationData = {
   noteCarrier: '',
   contacts: [],
   code: '',
+  custCode: '',
   tags: '',
+  amenityIds: [],
+  timeRanges: [],
 };
 
 export const EMPTY_COMPANY_DATA: CompanyFormData = {

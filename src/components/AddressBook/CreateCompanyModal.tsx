@@ -3,7 +3,7 @@ import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressB
 
 type Props = Pick<
   AddressBookState,
-  'isCompanyOpen' | 'closeCompanyModal' | 'companyData' | 'setCompanyData' | 'handleCreateCompany'
+  'isCompanyOpen' | 'closeCompanyModal' | 'companyData' | 'setCompanyData' | 'handleApplyCompany'
 >;
 
 const INDUSTRIES = ['', 'Retail', 'Wholesale', 'Manufacturing', 'Logistics', 'Food & Beverage', 'Other'];
@@ -13,7 +13,7 @@ export const CreateCompanyModal: React.FC<Props> = ({
   closeCompanyModal,
   companyData,
   setCompanyData,
-  handleCreateCompany,
+  handleApplyCompany,
 }) => {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -31,7 +31,7 @@ export const CreateCompanyModal: React.FC<Props> = ({
     <div className="modal-backdrop open ab-company-backdrop" onClick={(e) => e.target === e.currentTarget && closeCompanyModal()}>
       <div className="modal ab-company-modal">
         <div className="modal-header">
-          <h2>Create New Company</h2>
+          <h2>Company Details</h2>
           <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeCompanyModal}>
             ✕
           </button>
@@ -96,8 +96,8 @@ export const CreateCompanyModal: React.FC<Props> = ({
           <button type="button" className="btn btn-secondary" onClick={closeCompanyModal}>
             Cancel
           </button>
-          <button type="button" className="btn btn-primary" onClick={handleCreateCompany}>
-            Create Company
+          <button type="button" className="btn btn-primary" onClick={handleApplyCompany}>
+            Use in location form
           </button>
         </div>
       </div>

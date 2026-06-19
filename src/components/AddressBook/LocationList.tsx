@@ -2,10 +2,30 @@ import React from 'react';
 import type { LocationItem } from '../../context/AppContext';
 import { SORT_OPTIONS } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
+import { LocationRowActions } from './LocationRowActions';
 
 type Props = Pick<
   AddressBookState,
-  'activeDirectory' | 'sortBy' | 'setSortBy' | 'filteredLocations' | 'selectedLoc' | 'setSelectedLoc' | 't' | 'showToast' | 'lang'
+  | 'activeDirectory'
+  | 'sortBy'
+  | 'setSortBy'
+  | 'filteredLocations'
+  | 'selectedLoc'
+  | 'setSelectedLoc'
+  | 'loading'
+  | 'saving'
+  | 'listMeta'
+  | 'currentPage'
+  | 'setCurrentPage'
+  | 'pageStart'
+  | 'pageEnd'
+  | 'openEditModal'
+  | 'handleDuplicate'
+  | 'handleArchive'
+  | 'handleCopy'
+  | 't'
+  | 'showToast'
+  | 'lang'
 >;
 
 function getRoleClass(role: LocationItem['role']) {
@@ -27,12 +47,30 @@ export const LocationList: React.FC<Props> = ({
   filteredLocations,
   selectedLoc,
   setSelectedLoc,
+  loading,
+  saving,
+  listMeta,
+  currentPage,
+  setCurrentPage,
+  pageStart,
+  pageEnd,
+  openEditModal,
+  handleDuplicate,
+  handleArchive,
+  handleCopy,
   t,
   showToast,
   lang,
 }) => {
   const count = filteredLocations.length;
-  const countLabel = `${count} location${count !== 1 ? 's' : ''}`;
+  const total = listMeta.total;
+  const lastPage = listMeta.last_page ?? 1;
+  const countLabel = loading ? 'Loading…' : `${total} location${total !== 1 ? 's' : ''}`;
+
+  const pages = Array.from({ length: lastPage }, (_, i) => i + 1).slice(
+    Math.max(0, currentPage - 3),
+    Math.min(lastPage, currentPage + 2)
+  );
 
   return (
     <div className="list-pane">
@@ -67,7 +105,13 @@ export const LocationList: React.FC<Props> = ({
             </tr>
           </thead>
           <tbody>
-            {count === 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={7} className="ab-empty-row">
+                  {lang === 'el' ? 'Φόρτωση…' : 'Loading locations…'}
+                </td>
+              </tr>
+            ) : count === 0 ? (
               <tr>
                 <td colSpan={7} className="ab-empty-row">
                   {lang === 'el' ? 'Δεν βρέθηκαν τοποθεσίες' : t('noItems')}
@@ -113,14 +157,14 @@ export const LocationList: React.FC<Props> = ({
                       <span className="ts-cell">{l.lastUsed}</span>
                     </td>
                     <td onClick={(e) => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        className="act-btn"
-                        title="Actions"
-                        onClick={() => showToast('Actions menu')}
-                      >
-                        ⋯
-                      </button>
+                      <LocationRowActions
+                        location={l}
+                        onEdit={openEditModal}
+                        onDuplicate={handleDuplicate}
+                        onArchive={handleArchive}
+                        onCopy={handleCopy}
+                        disabled={saving}
+                      />
                     </td>
                   </tr>
                 );
@@ -132,16 +176,34 @@ export const LocationList: React.FC<Props> = ({
 
       <div className="ab-pag">
         <div className="pag-info">
-          {count === 0 ? 'Showing 0 of 0' : `Showing 1–${count} of ${count}`}
+          {total === 0 ? 'Showing 0 of 0' : `Showing ${pageStart}–${pageEnd} of ${total}`}
         </div>
         <div className="pag-btns">
-          <button type="button" className="pg-btn" disabled>
+          <button
+            type="button"
+            className="pg-btn"
+            disabled={currentPage <= 1 || loading}
+            onClick={() => setCurrentPage(currentPage - 1)}
+          >
             ‹
           </button>
-          <button type="button" className="pg-btn active">
-            1
-          </button>
-          <button type="button" className="pg-btn" disabled>
+          {pages.map((p) => (
+            <button
+              key={p}
+              type="button"
+              className={`pg-btn ${p === currentPage ? 'active' : ''}`}
+              onClick={() => setCurrentPage(p)}
+              disabled={loading}
+            >
+              {p}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="pg-btn"
+            disabled={currentPage >= lastPage || loading}
+            onClick={() => setCurrentPage(currentPage + 1)}
+          >
             ›
           </button>
         </div>

@@ -11,6 +11,7 @@ import {
 } from '../../components/AddressBook';
 import { useAddressBook } from './hooks/useAddressBook';
 import '../../styles/address-book.css';
+
 export const AddressBook: React.FC = () => {
   const ab = useAddressBook();
   const { setIconPickerOpen } = ab;
@@ -27,7 +28,28 @@ export const AddressBook: React.FC = () => {
 
   return (
     <div className="ab-wrap anim">
-      <AddressBookHeader lang={ab.lang} t={ab.t} showToast={ab.showToast} openCreateModal={ab.openCreateModal} />
+      <AddressBookHeader
+        lang={ab.lang}
+        t={ab.t}
+        exportCsv={ab.exportCsv}
+        exporting={ab.exporting}
+        openCreateModal={ab.openCreateModal}
+      />
+
+      {ab.subscriptionBlocked && (
+        <div className="ab-subscription-banner" role="alert">
+          {ab.error ?? 'Address Book access requires an active subscription.'}
+        </div>
+      )}
+
+      {ab.error && !ab.loading && !ab.subscriptionBlocked && (
+        <div className="ab-error-banner" role="alert">
+          {ab.error}
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => ab.refreshLocations()}>
+            Retry
+          </button>
+        </div>
+      )}
 
       <FilterBar
         lang={ab.lang}
@@ -35,6 +57,8 @@ export const AddressBook: React.FC = () => {
         searchQuery={ab.searchQuery}
         handleSearchChange={ab.handleSearchChange}
         activeFilters={ab.activeFilters}
+        serverFilters={ab.serverFilters}
+        setServerFilter={ab.setServerFilter}
         toggleFilter={ab.toggleFilter}
         clearFilters={ab.clearFilters}
       />
@@ -43,6 +67,7 @@ export const AddressBook: React.FC = () => {
         <DirectoryPane
           lang={ab.lang}
           locations={ab.locations}
+          summary={ab.summary}
           directories={ab.directories}
           activeNode={ab.activeNode}
           selectNode={ab.selectNode}
@@ -65,6 +90,17 @@ export const AddressBook: React.FC = () => {
           filteredLocations={ab.filteredLocations}
           selectedLoc={ab.selectedLoc}
           setSelectedLoc={ab.setSelectedLoc}
+          loading={ab.loading}
+          saving={ab.saving}
+          listMeta={ab.listMeta}
+          currentPage={ab.currentPage}
+          setCurrentPage={ab.setCurrentPage}
+          pageStart={ab.pageStart}
+          pageEnd={ab.pageEnd}
+          openEditModal={ab.openEditModal}
+          handleDuplicate={ab.handleDuplicate}
+          handleArchive={ab.handleArchive}
+          handleCopy={ab.handleCopy}
           t={ab.t}
           showToast={ab.showToast}
           lang={ab.lang}
@@ -73,6 +109,8 @@ export const AddressBook: React.FC = () => {
         <LocationDetailPanel
           selectedLoc={ab.selectedLoc}
           setSelectedLoc={ab.setSelectedLoc}
+          detailLoading={ab.detailLoading}
+          saving={ab.saving}
           t={ab.t}
           showToast={ab.showToast}
           handleCopy={ab.handleCopy}
@@ -80,6 +118,7 @@ export const AddressBook: React.FC = () => {
           openEditModal={ab.openEditModal}
           handleArchive={ab.handleArchive}
           handleRestore={ab.handleRestore}
+          goToCreateShipment={ab.goToCreateShipment}
         />
       </div>
 
@@ -93,6 +132,8 @@ export const AddressBook: React.FC = () => {
         handleApplyTemplate={ab.handleApplyTemplate}
         submitNewLocation={ab.submitNewLocation}
         potentialDuplicates={ab.potentialDuplicates}
+        saving={ab.saving}
+        amenities={ab.amenities}
         showToast={ab.showToast}
         filteredCompanies={ab.filteredCompanies}
         setCompanyQuery={ab.setCompanyQuery}
@@ -107,6 +148,8 @@ export const AddressBook: React.FC = () => {
         isEditOpen={ab.isEditOpen}
         closeEditModal={ab.closeEditModal}
         saveEditedLocation={ab.saveEditedLocation}
+        saving={ab.saving}
+        amenities={ab.amenities}
       />
 
       <CreateCompanyModal
@@ -114,7 +157,7 @@ export const AddressBook: React.FC = () => {
         closeCompanyModal={ab.closeCompanyModal}
         companyData={ab.companyData}
         setCompanyData={ab.setCompanyData}
-        handleCreateCompany={ab.handleCreateCompany}
+        handleApplyCompany={ab.handleApplyCompany}
       />
     </div>
   );
