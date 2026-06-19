@@ -109,7 +109,6 @@ export const AddressBook: React.FC = () => {
 
       <EditLocationModal
         editData={ab.editData}
-        setEditData={ab.setEditData}
         isEditOpen={ab.isEditOpen}
         closeEditModal={ab.closeEditModal}
         saveEditedLocation={ab.saveEditedLocation}

@@ -1153,4 +1153,29 @@ table.ab-table { width: 100%; border-collapse: collapse; }
 .row-actions-dd button:hover { background: var(--surface-alt); }
 .row-actions-dd button.danger { color: var(--danger, #dc2626); }
 
+.mf.has-error input,
+.mf.has-error select,
+.mf.has-error textarea,
+.ab-map-field.has-error .ab-input {
+  border-color: var(--danger, #dc2626);
+}
+
+.field-error {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--danger, #dc2626);
+  line-height: 1.35;
+}
+
+.form-status-error {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 12px;
+  white-space: pre-line;
+}
+
 .dp-loading-hint { font-size: 12px; color: var(--text-tertiary); margin-top: 8px; }

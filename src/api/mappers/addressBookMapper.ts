@@ -211,7 +211,7 @@ export function mapLocationItemToPayload(loc: LocationItem): ApiLocationPayload 
       phone: c.phone,
       email: c.email,
     })),
-    location_subtype: loc.type || null,
+    location_subtype: (loc.type || 'warehouse').toLowerCase(),
     location_role: loc.role,
     location_code: loc.code || null,
     customer_code: loc.custCode || null,
@@ -221,13 +221,16 @@ export function mapLocationItemToPayload(loc: LocationItem): ApiLocationPayload 
     carrier_note: loc.noteCarrier || null,
     appointment_required: loc.appt,
     receiving_hours: loc.hours || null,
-    dock_type: loc.dock || null,
+    dock_type: loc.dock?.trim() || '',
     equipment: loc.equipment,
-    max_truck_length: loc.maxTruck || null,
-    max_weight: loc.maxWeight || null,
+    max_truck_length: loc.maxTruck?.trim() || '',
+    max_weight: loc.maxWeight?.trim() || '',
     adr_allowed: loc.adr,
     pallet_exchange: loc.palletExchange,
-    load_time_minutes: loc.loadTime || null,
+    load_time_minutes: (() => {
+      const minutes = typeof loc.loadTime === 'number' ? loc.loadTime : parseInt(String(loc.loadTime ?? ''), 10);
+      return Number.isFinite(minutes) && minutes >= 1 ? minutes : 1;
+    })(),
   };
 }
 

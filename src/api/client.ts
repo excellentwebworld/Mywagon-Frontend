@@ -47,10 +47,12 @@ axiosInstance.interceptors.response.use(
 
 export class ApiError extends Error {
   status: number;
+  fieldErrors?: Record<string, string[]>;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, fieldErrors?: Record<string, string[]>) {
     super(message);
     this.status = status;
+    this.fieldErrors = fieldErrors;
   }
 }
 
@@ -89,7 +91,8 @@ export async function apiRequest<T>(
       const status = err.response?.status || 500;
       const data = err.response?.data;
       const message = data?.message || err.message;
-      throw new ApiError(message, status);
+      const fieldErrors = data?.errors as Record<string, string[]> | undefined;
+      throw new ApiError(message, status, fieldErrors);
     }
     throw err;
   }
