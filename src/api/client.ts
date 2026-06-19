@@ -1,6 +1,7 @@
 import type { ApiResponse } from './types/addressBook';
+import { AUTH_TOKEN_KEY, clearStoredToken, getStoredToken } from './auth/authService';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1/address-book';
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
 export class ApiError extends Error {
   status: number;
@@ -9,12 +10,6 @@ export class ApiError extends Error {
     super(message);
     this.status = status;
   }
-}
-
-function getCsrfToken(): string | null {
-  const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
-  if (!match) return null;
-  return decodeURIComponent(match[1]);
 }
 
 function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
@@ -31,6 +26,11 @@ function buildQuery(params: Record<string, string | number | boolean | undefined
   return qs ? `?${qs}` : '';
 }
 
+function handleUnauthorized(): void {
+  clearStoredToken();
+  window.dispatchEvent(new CustomEvent('shipper:unauthorized'));
+}
+
 export async function apiRequest<T>(
   path: string,
   options: RequestInit = {}
@@ -44,19 +44,20 @@ export async function apiRequest<T>(
     headers['Content-Type'] = 'application/json';
   }
 
-  const method = (options.method ?? 'GET').toUpperCase();
-  if (method !== 'GET' && method !== 'HEAD') {
-    const csrf = getCsrfToken();
-    if (csrf) {
-      headers['X-XSRF-TOKEN'] = csrf;
-    }
+  const token = getStoredToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
-    credentials: 'include',
     headers,
   });
+
+  if (response.status === 401) {
+    handleUnauthorized();
+    throw new ApiError('Unauthorized', 401);
+  }
 
   let payload: ApiResponse<T> | null = null;
   try {
@@ -96,3 +97,5 @@ export function apiPut<T>(path: string, body: unknown): Promise<ApiResponse<T>> 
 export function apiDelete<T>(path: string): Promise<ApiResponse<T>> {
   return apiRequest<T>(path, { method: 'DELETE' });
 }
+
+export { AUTH_TOKEN_KEY };

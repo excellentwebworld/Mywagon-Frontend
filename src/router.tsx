@@ -1,5 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { LoginPage } from './pages/Login/LoginPage';
 import { Dashboard } from './pages/Dashboard';
 import { ManageShipments } from './pages/ManageShipments';
 import { ShipmentDetail } from './pages/ShipmentDetail';
@@ -43,17 +45,28 @@ const appRoutes = [
   },
 ];
 
+const protectedLayout = {
+  element: (
+    <ProtectedRoute>
+      <AppLayout />
+    </ProtectedRoute>
+  ),
+  children: appRoutes,
+};
+
 export const router = createBrowserRouter(
   basename
     ? [
+        { path: '/login', element: <LoginPage /> },
         { path: '/', element: <Navigate to="/address-book" replace /> },
-        { element: <AppLayout />, children: appRoutes },
+        protectedLayout,
         { path: '*', element: <Navigate to="/address-book" replace /> },
       ]
     : [
+        { path: '/login', element: <LoginPage /> },
         { path: '/', element: <MarketingHome /> },
         { path: '/about', element: <MarketingAbout /> },
-        { element: <AppLayout />, children: appRoutes },
+        protectedLayout,
         { path: '*', element: <Navigate to="/" replace /> },
       ],
   { basename }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface HeaderProps {
   onToggleMobileMenu: () => void;
@@ -8,6 +9,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
   const { lang, setLang, t, showToast } = useApp();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -18,6 +20,20 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
 
   const isDashboard = location.pathname.startsWith('/dashboard');
   const isMaster = ['/address-book', '/products', '/partners'].includes(location.pathname);
+
+  const displayCompany = user?.company_name || (lang === 'el' ? 'Χρήστης' : 'Shipper');
+  const displayEmail = user?.email || '';
+  const avatarInitials = user
+    ? `${(user.first_name?.[0] ?? '').toUpperCase()}${(user.last_name?.[0] ?? '').toUpperCase()}`.trim() || 'SV'
+    : lang === 'el'
+      ? 'ΗΒ'
+      : 'AL';
+
+  const handleSignOut = async () => {
+    setUserOpen(false);
+    await logout();
+    navigate('/login');
+  };
 
   const showFilters = isDashboard;
   const showSearch = isDashboard;
@@ -283,7 +299,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
             aria-haspopup="true"
             style={{ cursor: 'pointer', border: 'none' }}
           >
-            {lang === 'el' ? 'ΗΒ' : 'AL'}
+            {avatarInitials}
           </button>
 
           {userOpen && (
@@ -296,10 +312,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
             >
               <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ fontSize: '13px', fontWeight: 600 }}>
-                  {lang === 'el' ? 'ΗΠΕΙΡΩΤΙΚΗ ΒΙΟΜΗΧΑΝΙΑ ΕΜΦΙΑΛΩΣΕΩΝ' : 'Acme Logistics'}
+                  {displayCompany}
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '1px' }}>
-                  admin@acme.com
+                  {displayEmail}
                 </div>
               </div>
               <div
@@ -352,10 +368,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
               <div
                 className="dropdown-item danger"
                 role="menuitem"
-                onClick={() => {
-                  setUserOpen(false);
-                  navigate('/');
-                }}
+                onClick={handleSignOut}
               >
                 <svg
                   width="14"

@@ -1,0 +1,137 @@
+.shipper-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(119deg, rgba(155, 81, 224, 1) 0%, rgba(31, 31, 65, 1) 76%);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+.shipper-login-card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(31, 31, 65, 0.2);
+  overflow: hidden;
+}
+
+.shipper-login-brand {
+  padding: 28px 32px 12px;
+  text-align: center;
+}
+
+.shipper-login-logo {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: linear-gradient(135deg, #9b51e0, #4e5cdb);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.shipper-login-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.shipper-login-form {
+  padding: 8px 32px 32px;
+}
+
+.shipper-login-title {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f1f41;
+}
+
+.shipper-login-desc {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.shipper-login-error {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 13px;
+  border: 1px solid #fecaca;
+}
+
+.shipper-login-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.shipper-login-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111827;
+  transition: border-color 0.15s ease;
+}
+
+.shipper-login-input:hover,
+.shipper-login-input:focus {
+  outline: none;
+  border-color: #9b51e0;
+}
+
+.shipper-login-password-wrap {
+  position: relative;
+}
+
+.shipper-login-password-wrap .shipper-login-input {
+  padding-right: 56px;
+}
+
+.shipper-login-toggle-pw {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(calc(-50% - 8px));
+  border: none;
+  background: transparent;
+  color: #4e5cdb;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.shipper-login-submit {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #9b51e0, #4e5cdb);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.shipper-login-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.shipper-login-submit:not(:disabled):hover {
+  opacity: 0.95;
+}

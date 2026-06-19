@@ -26,12 +26,12 @@ export interface PaginatedLocationsResult {
 
 export const addressBookService = {
   async getSummary(): Promise<ApiAddressBookSummary> {
-    const res = await apiGet<ApiAddressBookSummary>('/summary');
+    const res = await apiGet<ApiAddressBookSummary>('/address-book/summary');
     return res.data;
   },
 
   async listLocations(params: ListLocationsParams): Promise<PaginatedLocationsResult> {
-    const res = await apiGet<ApiLocationListItem[]>('/locations', params as Record<string, string | number | boolean>);
+    const res = await apiGet<ApiLocationListItem[]>('/address-book/locations', params as Record<string, string | number | boolean>);
     return {
       items: (res.data ?? []).map(mapListItemToLocation),
       meta: res.meta ?? {
@@ -45,30 +45,30 @@ export const addressBookService = {
 
   async getLocation(id: string): Promise<LocationItem> {
     const [detailRes, statsRes] = await Promise.all([
-      apiGet<ApiLocationDetail>(`/locations/${id}`),
-      apiGet<ApiLocationStats>(`/locations/${id}/stats`).catch(() => null),
+      apiGet<ApiLocationDetail>(`/address-book/locations/${id}`),
+      apiGet<ApiLocationStats>(`/address-book/locations/${id}/stats`).catch(() => null),
     ]);
     return mapDetailToLocation(detailRes.data, statsRes?.data);
   },
 
   async createLocation(data: CreateLocationData): Promise<LocationItem> {
     const payload = mapLocationToPayload(data);
-    const res = await apiPost<ApiLocationDetail>('/locations', payload);
+    const res = await apiPost<ApiLocationDetail>('/address-book/locations', payload);
     return mapDetailToLocation(res.data);
   },
 
   async updateLocation(id: string, loc: LocationItem): Promise<LocationItem> {
     const payload = mapLocationItemToPayload(loc);
-    const res = await apiPut<ApiLocationDetail>(`/locations/${id}`, payload);
+    const res = await apiPut<ApiLocationDetail>(`/address-book/locations/${id}`, payload);
     return mapDetailToLocation(res.data);
   },
 
   async deleteLocation(id: string): Promise<void> {
-    await apiDelete<null>(`/locations/${id}`);
+    await apiDelete<null>(`/address-book/locations/${id}`);
   },
 
   async restoreLocation(id: string): Promise<LocationItem> {
-    const res = await apiPost<ApiLocationDetail>(`/locations/${id}/restore`);
+    const res = await apiPost<ApiLocationDetail>(`/address-book/locations/${id}/restore`);
     return mapDetailToLocation(res.data);
   },
 
@@ -88,7 +88,7 @@ export const addressBookService = {
     companyName: string,
     addressId?: string
   ): Promise<ApiDuplicateCheckResult> {
-    const res = await apiPost<ApiDuplicateCheckResult>('/locations/check-duplicate', {
+    const res = await apiPost<ApiDuplicateCheckResult>('/address-book/locations/check-duplicate', {
       location_name: locationName,
       company_name: companyName,
       address_id: addressId ? parseInt(addressId, 10) : undefined,
@@ -97,12 +97,12 @@ export const addressBookService = {
   },
 
   async listCompanies(search?: string): Promise<ApiCompanyLookup[]> {
-    const res = await apiGet<ApiCompanyLookup[]>('/companies', search ? { search } : undefined);
+    const res = await apiGet<ApiCompanyLookup[]>('/address-book/companies', search ? { search } : undefined);
     return res.data ?? [];
   },
 
   async listAmenities(): Promise<ApiAmenity[]> {
-    const res = await apiGet<ApiAmenity[]>('/amenities');
+    const res = await apiGet<ApiAmenity[]>('/address-book/amenities');
     return res.data ?? [];
   },
 };

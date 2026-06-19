@@ -1,12 +1,5 @@
-import axiosInstance from "../utils/axios";
+export { authService, getStoredToken, setStoredToken, clearStoredToken } from './auth/authService';
+export type { LoginPayload, LoginResponse, ShipperUser, ShipperPermission } from './auth/types';
 
-
-
-export const getProfileAPI = async () => {
-  try {
-    const response = await axiosInstance.get("/me/");
-    return response.data;
-  } catch (error: any) {
-    throw error.response.data;
-  }
-};
+/** @deprecated Use authService.me() */
+export const getProfileAPI = () => import('./auth/authService').then((m) => m.authService.me());
