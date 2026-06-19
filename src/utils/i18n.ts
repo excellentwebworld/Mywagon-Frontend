@@ -12,8 +12,18 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { translation: en },
-      el: { translation: el },
+      en: {
+        translation: en,
+        common: en,
+        auth: en,
+        product: en,
+      },
+      el: {
+        translation: el,
+        common: el,
+        auth: el,
+        product: el,
+      },
     },
     lng: locale,
     fallbackLng: "en",

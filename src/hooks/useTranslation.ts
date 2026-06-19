@@ -1,25 +1,16 @@
+import { useEffect } from 'react';
+import { useTranslation as useReactI18nextTranslation } from 'react-i18next';
 import { useApp } from '../context/AppContext';
-import en from '../locale/en.json';
-import el from '../locale/el.json';
-
-const translations: Record<string, Record<string, string>> = {
-  en,
-  el,
-};
 
 export function useTranslation() {
   const { lang } = useApp();
+  const { t, i18n } = useReactI18nextTranslation();
 
-  const t = (key: string, vars?: Record<string, string | number>): string => {
-    const currentDict = translations[lang] || translations.en;
-    let text = currentDict[key] || key;
-    if (vars) {
-      for (const [varKey, value] of Object.entries(vars)) {
-        text = text.replace(new RegExp(`\\{\\{${varKey}\\}\\}`, 'g'), String(value));
-      }
+  useEffect(() => {
+    if (i18n.language !== lang) {
+      i18n.changeLanguage(lang);
     }
-    return text;
-  };
+  }, [lang, i18n]);
 
-  return { t, lang, i18n: { language: lang } };
+  return { t, lang, i18n };
 }
