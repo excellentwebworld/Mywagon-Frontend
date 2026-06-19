@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface ConfirmationModalProps {
   isOpen: boolean;
@@ -93,7 +94,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     }
   };
 
-  return (
+  return createPortal(
     <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ maxWidth: '420px' }}>
         <div className="modal-header">
@@ -130,6 +131,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

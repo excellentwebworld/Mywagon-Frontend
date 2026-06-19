@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { ConfirmationModal } from '../ui/ConfirmationModal';
 
 interface HeaderProps {
   onToggleMobileMenu: () => void;
@@ -19,6 +20,8 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [activePeriod, setActivePeriod] = useState<'today' | '7d' | '30d' | 'quarter' | 'ytd'>('today');
+  const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const isDashboard = location.pathname.startsWith('/dashboard');
   const isMaster = ['/address-book', '/products', '/partners'].includes(location.pathname);
@@ -31,10 +34,17 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
       ? 'ΗΒ'
       : 'AL';
 
-  const handleSignOut = async () => {
-    setUserOpen(false);
-    await logout();
-    navigate('/login');
+  const confirmSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await logout();
+      setSignOutConfirmOpen(false);
+      navigate('/login');
+    } catch {
+      showToast(t('failedToLogout') || 'Failed to logout', 'error');
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
   const showFilters = isDashboard;
@@ -370,7 +380,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
               <div
                 className="dropdown-item danger"
                 role="menuitem"
-                onClick={handleSignOut}
+                onClick={() => {
+                  setUserOpen(false);
+                  setSignOutConfirmOpen(true);
+                }}
               >
                 <svg
                   width="14"
@@ -413,6 +426,27 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
           </button>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={signOutConfirmOpen}
+        onClose={() => setSignOutConfirmOpen(false)}
+        onConfirm={confirmSignOut}
+        title={t('signOutConfirmTitle')}
+        type="danger"
+        confirmText={t('signOut')}
+        cancelText={t('cancel')}
+        confirmLoading={isSigningOut}
+        message={
+          <>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
+              {t('signOutConfirmQuestion')}
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.7 }}>
+              {t('signOutConfirmWarning')}
+            </p>
+          </>
+        }
+      />
     </header>
   );
 };
