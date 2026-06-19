@@ -426,19 +426,12 @@ export function useAddressBook() {
     createLocationMutation.mutate(createData);
   }, [createData, createLocationMutation, showToast]);
 
-  const saveEditedLocation = useCallback(async () => {
-    if (!editData) return;
-    if (!editData.name.trim()) {
-      showToast('Location name is required', 'error');
-      return;
-    }
-    if (!editData.companyVat?.trim()) {
-      showToast('Company VAT is required', 'error');
-      return;
-    }
-
-    updateLocationMutation.mutate({ id: editData.id, data: editData });
-  }, [editData, updateLocationMutation, showToast]);
+  const saveEditedLocation = useCallback(
+    async (loc: LocationItem) => {
+      await updateLocationMutation.mutateAsync({ id: loc.id, data: loc });
+    },
+    [updateLocationMutation]
+  );
 
   const handleApplyCompany = useCallback(async () => {
     if (!companyData.name.trim() || !companyData.vat.trim() || !companyData.address.trim()) {
