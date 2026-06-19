@@ -20,21 +20,30 @@ export const ProductMaster: React.FC = () => {
         showToast={pm.showToast}
         addDropdownOpen={pm.addDropdownOpen}
         setAddDropdownOpen={pm.setAddDropdownOpen}
-        openAddType={pm.openAddType}
         openAddSku={pm.openAddSku}
-        openAddCategory={pm.openAddCategory}
         handleCSVUpload={pm.handleCSVUpload}
-        setIsSyncLogOpen={pm.setIsSyncLogOpen}
+        handleExport={pm.handleExport}
+        exporting={pm.exporting}
+        downloadTemplate={pm.downloadTemplate}
       />
+
+      {pm.subscriptionBlocked && (
+        <div className="ab-subscription-banner" role="alert">
+          {pm.error ?? 'Product Master access requires an active subscription.'}
+        </div>
+      )}
+
+      {pm.error && !pm.loading && !pm.subscriptionBlocked && (
+        <div className="ab-error-banner" role="alert">
+          {pm.error}
+        </div>
+      )}
 
       <KpiStrip
         t={pm.t}
         kpiFilter={pm.kpiFilter}
         handleKpiClick={pm.handleKpiClick}
         totalSkusCount={pm.totalSkusCount}
-        erpSyncedCount={pm.erpSyncedCount}
-        manualCount={pm.manualCount}
-        syncIssuesCount={pm.syncIssuesCount}
         unmappedCount={pm.unmappedCount}
         inactiveCount={pm.inactiveCount}
       />
@@ -44,10 +53,6 @@ export const ProductMaster: React.FC = () => {
         catName={pm.catName}
         searchQuery={pm.searchQuery}
         handleSearchChange={pm.handleSearchChange}
-        filterSource={pm.filterSource}
-        setFilterSource={pm.setFilterSource}
-        filterSync={pm.filterSync}
-        setFilterSync={pm.setFilterSync}
         filterActive={pm.filterActive}
         setFilterActive={pm.setFilterActive}
         filterCat={pm.filterCat}
@@ -62,7 +67,9 @@ export const ProductMaster: React.FC = () => {
         <FacetPane
           categories={pm.categories}
           productTypes={pm.productTypes}
-          skus={pm.skus}
+          totalSkusCount={pm.totalSkusCount}
+          getCategoryCount={pm.getCategoryCount}
+          getTypeCount={pm.getTypeCount}
           viewMode={pm.viewMode}
           setViewMode={pm.setViewMode}
           activeCat={pm.activeCat}
@@ -74,7 +81,6 @@ export const ProductMaster: React.FC = () => {
           setSelectedItem={pm.setSelectedItem}
           setSelectedKind={pm.setSelectedKind}
           clearSelection={pm.clearSelection}
-          setIsCatOpen={pm.setIsCatOpen}
         />
 
         <ProductList
@@ -85,43 +91,34 @@ export const ProductMaster: React.FC = () => {
           filteredTypes={pm.filteredTypes}
           categories={pm.categories}
           productTypes={pm.productTypes}
-          skus={pm.skus}
           catName={pm.catName}
           selectedIds={pm.selectedIds}
-          setSelectedIds={pm.setSelectedIds}
           selectedItem={pm.selectedItem}
           selectedKind={pm.selectedKind}
           setSelectedItem={pm.setSelectedItem}
           setSelectedKind={pm.setSelectedKind}
+          loadSkuDetail={pm.loadSkuDetail}
           handleSelectAll={pm.handleSelectAll}
           handleToggleRowSelection={pm.handleToggleRowSelection}
-          handleBulkToggleActive={pm.handleBulkToggleActive}
           handleBulkArchive={pm.handleBulkArchive}
-          setIsBulkMapOpen={pm.setIsBulkMapOpen}
-          setBulkMapTarget={pm.setBulkMapTarget}
+          loading={pm.loading}
+          currentPage={pm.currentPage}
+          setCurrentPage={pm.setCurrentPage}
+          perPage={pm.perPage}
+          setPerPage={pm.setPerPage}
+          listMeta={pm.listMeta}
         />
 
         <ProductDetailPanel
           categories={pm.categories}
           productTypes={pm.productTypes}
-          skus={pm.skus}
           catName={pm.catName}
           selectedItem={pm.selectedItem}
           selectedKind={pm.selectedKind}
+          detailLoading={pm.detailLoading}
           clearSelection={pm.clearSelection}
-          secCollapsed={pm.secCollapsed}
-          toggleSec={pm.toggleSec}
           openEditSku={pm.openEditSku}
-          updateSku={pm.updateSku}
-          setSelectedItem={pm.setSelectedItem}
-          setSelectedKind={pm.setSelectedKind}
-          setRenameId={pm.setRenameId}
-          setRenameName={pm.setRenameName}
-          setIsRenameOpen={pm.setIsRenameOpen}
-          setMergeSrc={pm.setMergeSrc}
-          setMergeTarget={pm.setMergeTarget}
-          setIsMergeOpen={pm.setIsMergeOpen}
-          updateProductType={pm.updateProductType}
+          handleToggleActive={pm.handleToggleActive}
           showToast={pm.showToast}
         />
       </div>

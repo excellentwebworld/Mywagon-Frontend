@@ -7,9 +7,6 @@ type Props = Pick<
   | 'kpiFilter'
   | 'handleKpiClick'
   | 'totalSkusCount'
-  | 'erpSyncedCount'
-  | 'manualCount'
-  | 'syncIssuesCount'
   | 'unmappedCount'
   | 'inactiveCount'
 >;
@@ -19,17 +16,11 @@ export const KpiStrip: React.FC<Props> = ({
   kpiFilter,
   handleKpiClick,
   totalSkusCount,
-  erpSyncedCount,
-  manualCount,
-  syncIssuesCount,
   unmappedCount,
   inactiveCount,
 }) => {
   const items = [
     { k: 'total', v: totalSkusCount, l: t('totalSkus'), color: undefined },
-    { k: 'erp', v: erpSyncedCount, l: t('erpSynced'), color: 'var(--pk)' },
-    { k: 'manual', v: manualCount, l: t('manual'), color: undefined },
-    { k: 'errors', v: syncIssuesCount, l: t('syncIssues'), color: 'var(--er)' },
     { k: 'unmapped', v: unmappedCount, l: t('unmapped'), color: 'var(--wr)' },
     { k: 'inactive', v: inactiveCount, l: t('inactive'), color: undefined },
   ];

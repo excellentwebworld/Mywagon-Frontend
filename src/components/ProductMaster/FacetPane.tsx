@@ -6,7 +6,9 @@ type Props = Pick<
   ProductMasterState,
   | 'categories'
   | 'productTypes'
-  | 'skus'
+  | 'totalSkusCount'
+  | 'getCategoryCount'
+  | 'getTypeCount'
   | 'viewMode'
   | 'setViewMode'
   | 'activeCat'
@@ -18,13 +20,14 @@ type Props = Pick<
   | 'setSelectedItem'
   | 'setSelectedKind'
   | 'clearSelection'
-  | 'setIsCatOpen'
 >;
 
 export const FacetPane: React.FC<Props> = ({
   categories,
   productTypes,
-  skus,
+  totalSkusCount,
+  getCategoryCount,
+  getTypeCount,
   viewMode,
   setViewMode,
   activeCat,
@@ -36,7 +39,6 @@ export const FacetPane: React.FC<Props> = ({
   setSelectedItem,
   setSelectedKind,
   clearSelection,
-  setIsCatOpen,
 }) => {
   const { t } = useTranslation();
 
@@ -78,7 +80,7 @@ export const FacetPane: React.FC<Props> = ({
       <div className={`cat-node${activeCat === 'all' ? ' act' : ''}`} onClick={() => selectCat('all')} role="button" tabIndex={0}>
         <span className="ico">📁</span>
         {viewMode === 'types' ? t('allTypes') : t('allItems')}
-        <span className="cnt">{viewMode === 'types' ? productTypes.filter((x) => x.active).length : skus.length}</span>
+        <span className="cnt">{viewMode === 'types' ? productTypes.length : totalSkusCount}</span>
       </div>
 
       {viewMode === 'skus' && unmappedCount > 0 && (
@@ -98,13 +100,13 @@ export const FacetPane: React.FC<Props> = ({
       <div className="facet-sep" />
 
       {categories.map((c) => {
-        const hasSkus = skus.filter((s) => s.catId === c.id);
-        const hasTypes = productTypes.filter((x) => x.catId === c.id && x.active);
-        const nodeCount = viewMode === 'types' ? hasTypes.length : hasSkus.length;
+        const nodeCount = viewMode === 'types'
+          ? productTypes.filter((x) => x.catId === c.id).length
+          : getCategoryCount(c.id);
         if (nodeCount === 0 && activeCat !== c.id) return null;
 
         const isCatActive = activeCat === c.id;
-        const unmappedInCat = hasSkus.filter((s) => !s.typeId && s.active).length;
+        const catTypes = productTypes.filter((x) => x.catId === c.id && x.active);
 
         return (
           <div key={c.id}>
@@ -121,59 +123,37 @@ export const FacetPane: React.FC<Props> = ({
 
             {isCatActive && viewMode === 'skus' && (
               <>
-                {hasTypes.map((type) => {
-                  const typeSkus = hasSkus.filter((s) => s.typeId === type.id).length;
-                  return (
-                    <div
-                      key={type.id}
-                      className={`type-node${activeType === type.id ? ' act' : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        selectType(type.id);
-                      }}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <button
-                        type="button"
-                        className="type-info-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          selectTypeInfo(type);
-                        }}
-                        title="Info"
-                      >
-                        ℹ
-                      </button>
-                      {type.name}
-                      <span className="cnt">{typeSkus}</span>
-                    </div>
-                  );
-                })}
-                {unmappedInCat > 0 && (
+                {catTypes.map((type) => (
                   <div
-                    className={`type-node${activeType === 'unmapped-cat' ? ' act' : ''}`}
+                    key={type.id}
+                    className={`type-node${activeType === type.id ? ' act' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      selectType('unmapped-cat');
+                      selectType(type.id);
                     }}
-                    style={{ color: 'var(--wr)' }}
                     role="button"
                     tabIndex={0}
                   >
-                    ⚠ {t('unmapped')}
-                    <span className="cnt">{unmappedInCat}</span>
+                    <button
+                      type="button"
+                      className="type-info-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        selectTypeInfo(type);
+                      }}
+                      title="Info"
+                    >
+                      ℹ
+                    </button>
+                    {type.name}
+                    <span className="cnt">{getTypeCount(c.id, type.id)}</span>
                   </div>
-                )}
+                ))}
               </>
             )}
           </div>
         );
       })}
-
-      <div className="add-cat-btn" onClick={() => setIsCatOpen(true)} role="button" tabIndex={0}>
-        + {t('addCatMenu')}
-      </div>
     </div>
   );
 };

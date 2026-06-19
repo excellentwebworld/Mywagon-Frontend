@@ -8,10 +8,6 @@ type Props = Pick<
   | 'catName'
   | 'searchQuery'
   | 'handleSearchChange'
-  | 'filterSource'
-  | 'setFilterSource'
-  | 'filterSync'
-  | 'setFilterSync'
   | 'filterActive'
   | 'setFilterActive'
   | 'filterCat'
@@ -27,10 +23,6 @@ export const FilterBar: React.FC<Props> = ({
   catName,
   searchQuery,
   handleSearchChange,
-  filterSource,
-  setFilterSource,
-  filterSync,
-  setFilterSync,
   filterActive,
   setFilterActive,
   filterCat,
@@ -70,32 +62,6 @@ export const FilterBar: React.FC<Props> = ({
             {catName(c)}
           </option>
         ))}
-      </select>
-      <select
-        className={`f-sel${filterSource ? ' has' : ''}`}
-        value={filterSource}
-        onChange={(e) => {
-          setFilterSource(e.target.value);
-          clearSelection();
-        }}
-      >
-        <option value="">🗂 Source</option>
-        <option value="erp">ERP</option>
-        <option value="manual">Manual</option>
-      </select>
-      <select
-        className={`f-sel${filterSync ? ' has' : ''}`}
-        value={filterSync}
-        onChange={(e) => {
-          setFilterSync(e.target.value);
-          clearSelection();
-        }}
-      >
-        <option value="">🔄 Sync Status</option>
-        <option value="ok">OK</option>
-        <option value="error">Error</option>
-        <option value="conflict">Conflict</option>
-        <option value="pending">Pending</option>
       </select>
       <select
         className={`f-sel${filterActive ? ' has' : ''}`}

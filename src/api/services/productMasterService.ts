@@ -1,0 +1,132 @@
+import { apiGet, apiPost, apiPut, ApiError, AUTH_TOKEN_KEY } from '../client';
+import {
+  facetToListParams,
+  mapApiSkuToSku,
+  mapReferenceToCategories,
+  mapReferenceToProductTypes,
+  mapTypeGridToProductTypes,
+  newSkuFormToPayload,
+} from '../mappers/productMasterMapper';
+import type { SKU } from '../../context/AppContext';
+import type { NewSkuForm } from '../../pages/ProductMaster/types';
+import type { ApiListMeta as AddressBookListMeta } from '../types/addressBook';
+import type {
+  ApiImportResult,
+  ApiProductSummary,
+  ApiReferenceCategory,
+  ApiSkuDetail,
+  ApiTypeGridItem,
+  ListSkusParams,
+} from '../types/productMaster';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
+
+export interface PaginatedSkusResult {
+  items: SKU[];
+  meta: AddressBookListMeta;
+}
+
+export const productMasterService = {
+  async getSummary(): Promise<ApiProductSummary> {
+    const res = await apiGet<ApiProductSummary>('/product-master/summary');
+    return res.data;
+  },
+
+  async listSkus(params: ListSkusParams): Promise<PaginatedSkusResult> {
+    const res = await apiGet<ApiSkuDetail[]>('/product-master/skus', params as Record<string, string | number | boolean>);
+    return {
+      items: (res.data ?? []).map(mapApiSkuToSku),
+      meta: res.meta ?? { current_page: 1, per_page: 12, total: 0, last_page: 1 },
+    };
+  },
+
+  async getSku(id: string): Promise<SKU> {
+    const res = await apiGet<ApiSkuDetail>(`/product-master/skus/${id}`);
+    return mapApiSkuToSku(res.data);
+  },
+
+  async createSku(form: NewSkuForm): Promise<SKU> {
+    const res = await apiPost<ApiSkuDetail>('/product-master/skus', newSkuFormToPayload(form));
+    return mapApiSkuToSku(res.data);
+  },
+
+  async updateSku(id: string, form: NewSkuForm): Promise<SKU> {
+    const res = await apiPut<ApiSkuDetail>(`/product-master/skus/${id}`, newSkuFormToPayload(form));
+    return mapApiSkuToSku(res.data);
+  },
+
+  async toggleSkuStatus(id: string): Promise<SKU> {
+    const res = await apiPost<ApiSkuDetail>(`/product-master/skus/${id}/toggle-status`);
+    return mapApiSkuToSku(res.data);
+  },
+
+  async bulkArchive(ids: string[]): Promise<number> {
+    const res = await apiPost<{ archived_count: number }>('/product-master/skus/bulk-archive', {
+      ids: ids.map((id) => parseInt(id, 10)),
+    });
+    return res.data?.archived_count ?? 0;
+  },
+
+  async getReferenceCategories(): Promise<ApiReferenceCategory[]> {
+    const res = await apiGet<ApiReferenceCategory[]>('/product-master/reference/categories');
+    return res.data ?? [];
+  },
+
+  async getTypesGrid(): Promise<ApiTypeGridItem[]> {
+    const res = await apiGet<ApiTypeGridItem[]>('/product-master/types');
+    return res.data ?? [];
+  },
+
+  async importFile(file: File): Promise<ApiImportResult> {
+    const formData = new FormData();
+    formData.append('import_file', file);
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const response = await fetch(`${API_BASE}/product-master/import`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const json = await response.json();
+    if (!response.ok) {
+      throw new ApiError(json.message ?? 'Import failed', response.status, json.data);
+    }
+    return json.data as ApiImportResult;
+  },
+
+  async downloadExport(): Promise<void> {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const response = await fetch(`${API_BASE}/product-master/export`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) throw new ApiError('Export failed', response.status);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'shipper_products.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  async downloadImportTemplate(): Promise<void> {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const response = await fetch(`${API_BASE}/product-master/import/template`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) throw new ApiError('Template download failed', response.status);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'product_import_template.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  buildListParams: facetToListParams,
+  mapReferenceToCategories,
+  mapReferenceToProductTypes,
+  mapTypeGridToProductTypes,
+};
+
+export { ApiError };

@@ -1,5 +1,4 @@
-import React from 'react';
-import { useTranslation } from '../../hooks/useTranslation';
+import React, { useState } from 'react';
 import type { ProductType, SKU } from '../../context/AppContext';
 import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
 
@@ -7,85 +6,39 @@ type Props = Pick<
   ProductMasterState,
   | 'categories'
   | 'productTypes'
-  | 'skus'
   | 'catName'
   | 'selectedItem'
   | 'selectedKind'
+  | 'detailLoading'
   | 'clearSelection'
-  | 'secCollapsed'
-  | 'toggleSec'
   | 'openEditSku'
-  | 'updateSku'
-  | 'setSelectedItem'
-  | 'setSelectedKind'
-  | 'setRenameId'
-  | 'setRenameName'
-  | 'setIsRenameOpen'
-  | 'setMergeSrc'
-  | 'setMergeTarget'
-  | 'setIsMergeOpen'
-  | 'updateProductType'
+  | 'handleToggleActive'
   | 'showToast'
 >;
 
 export const ProductDetailPanel: React.FC<Props> = ({
   categories,
   productTypes,
-  skus,
   catName,
   selectedItem,
   selectedKind,
+  detailLoading,
   clearSelection,
-  secCollapsed,
-  toggleSec,
   openEditSku,
-  updateSku,
-  setSelectedItem,
-  setSelectedKind,
-  setRenameId,
-  setRenameName,
-  setIsRenameOpen,
-  setMergeSrc,
-  setMergeTarget,
-  setIsMergeOpen,
-  updateProductType,
-  showToast,
+  handleToggleActive,
 }) => (
   <div className={`detail-pane${selectedItem ? ' open' : ''}`}>
     <div className="dp-inner">
-      {selectedItem && selectedKind === 'sku' && (
+      {detailLoading && <div className="empty-state"><div className="et">Loading…</div></div>}
+      {selectedItem && selectedKind === 'sku' && !detailLoading && (
         <SkuDetail
           sku={selectedItem as SKU}
           productTypes={productTypes}
           categories={categories}
           catName={catName}
           clearSelection={clearSelection}
-          secCollapsed={secCollapsed}
-          toggleSec={toggleSec}
           openEditSku={openEditSku}
-          updateSku={updateSku}
-          setSelectedItem={setSelectedItem}
-        />
-      )}
-      {selectedItem && selectedKind === 'type' && (
-        <TypeDetail
-          tp={selectedItem as ProductType}
-          categories={categories}
-          skus={skus}
-          catName={catName}
-          clearSelection={clearSelection}
-          secCollapsed={secCollapsed}
-          toggleSec={toggleSec}
-          setRenameId={setRenameId}
-          setRenameName={setRenameName}
-          setIsRenameOpen={setIsRenameOpen}
-          setMergeSrc={setMergeSrc}
-          setMergeTarget={setMergeTarget}
-          setIsMergeOpen={setIsMergeOpen}
-          updateProductType={updateProductType}
-          setSelectedItem={setSelectedItem}
-          setSelectedKind={setSelectedKind}
-          showToast={showToast}
+          handleToggleActive={handleToggleActive}
         />
       )}
     </div>
@@ -98,25 +51,21 @@ function SkuDetail({
   categories,
   catName,
   clearSelection,
-  secCollapsed,
-  toggleSec,
   openEditSku,
-  updateSku,
-  setSelectedItem,
+  handleToggleActive,
 }: {
   sku: SKU;
   productTypes: ProductType[];
   categories: ProductMasterState['categories'];
   catName: ProductMasterState['catName'];
   clearSelection: () => void;
-  secCollapsed: Record<string, boolean>;
-  toggleSec: (key: string) => void;
   openEditSku: (s: SKU) => void;
-  updateSku: ProductMasterState['updateSku'];
-  setSelectedItem: ProductMasterState['setSelectedItem'];
+  handleToggleActive: (s: SKU) => void;
 }) {
   const tp = productTypes.find((x) => x.id === s.typeId);
   const cat = categories.find((x) => x.id === s.catId);
+  const [secCollapsed, setSecCollapsed] = useState<Record<string, boolean>>({});
+  const toggleSec = (key: string) => setSecCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
     <>
@@ -168,15 +117,7 @@ function SkuDetail({
           <button type="button" className="btn btn-sm" onClick={() => openEditSku(s)}>
             Edit
           </button>
-          <button
-            type="button"
-            className="btn btn-sm"
-            onClick={() => {
-              const updated = { ...s, active: !s.active };
-              updateSku(updated);
-              setSelectedItem(updated);
-            }}
-          >
+          <button type="button" className="btn btn-sm" onClick={() => handleToggleActive(s)}>
             {s.active ? 'Deactivate' : 'Activate'}
           </button>
         </div>
@@ -264,187 +205,6 @@ function SkuDetail({
           </div>
         </div>
       )}
-    </>
-  );
-}
-
-function TypeDetail({
-  tp,
-  categories,
-  skus,
-  catName,
-  clearSelection,
-  secCollapsed,
-  toggleSec,
-  setRenameId,
-  setRenameName,
-  setIsRenameOpen,
-  setMergeSrc,
-  setMergeTarget,
-  setIsMergeOpen,
-  updateProductType,
-  setSelectedItem,
-  setSelectedKind,
-  showToast,
-}: {
-  tp: ProductType;
-  categories: ProductMasterState['categories'];
-  skus: SKU[];
-  catName: ProductMasterState['catName'];
-  clearSelection: () => void;
-  secCollapsed: Record<string, boolean>;
-  toggleSec: (key: string) => void;
-  setRenameId: ProductMasterState['setRenameId'];
-  setRenameName: ProductMasterState['setRenameName'];
-  setIsRenameOpen: ProductMasterState['setIsRenameOpen'];
-  setMergeSrc: ProductMasterState['setMergeSrc'];
-  setMergeTarget: ProductMasterState['setMergeTarget'];
-  setIsMergeOpen: ProductMasterState['setIsMergeOpen'];
-  updateProductType: ProductMasterState['updateProductType'];
-  setSelectedItem: ProductMasterState['setSelectedItem'];
-  setSelectedKind: ProductMasterState['setSelectedKind'];
-  showToast: ProductMasterState['showToast'];
-}) {
-  const { t } = useTranslation();
-  const cat = categories.find((c) => c.id === tp.catId);
-  const mappedSkus = skus.filter((s) => s.typeId === tp.id && s.active);
-  const erpCount = mappedSkus.filter((s) => s.source === 'erp').length;
-
-  return (
-    <>
-      <div className="dp-hero">
-        <button type="button" className="dp-close" onClick={clearSelection}>
-          ✕
-        </button>
-        <div className="dp-badges">
-          <span className="type-pill">Product Type</span>
-        </div>
-        <div className="dp-name">{tp.name}</div>
-        <div className="dp-sub">{cat ? `${cat.icon} ${catName(cat)}` : '—'}</div>
-
-        <div className="stat-grid" style={{ marginTop: 14 }}>
-          <div className="stat-card">
-            <div className="sv">{mappedSkus.length}</div>
-            <div className="sl">Mapped SKUs</div>
-          </div>
-          <div className="stat-card">
-            <div className="sv">{erpCount}</div>
-            <div className="sl">ERP SKUs</div>
-          </div>
-          <div className="stat-card">
-            <div className="sv">{tp.s30}</div>
-            <div className="sl">Shipments (30d)</div>
-          </div>
-          <div className="stat-card">
-            <div className="sv">{tp.defaults.temp}</div>
-            <div className="sl">Temperature</div>
-          </div>
-        </div>
-
-        <div className="dp-actions">
-          <button
-            type="button"
-            className="btn btn-sm"
-            onClick={() => {
-              setRenameId(tp.id);
-              setRenameName(tp.name);
-              setIsRenameOpen(true);
-            }}
-          >
-            Rename
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm"
-            onClick={() => {
-              setMergeSrc(tp);
-              setMergeTarget('');
-              setIsMergeOpen(true);
-            }}
-          >
-            Merge
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-danger"
-            onClick={() => {
-              if (window.confirm(t('archiveConfirm'))) {
-                updateProductType({ ...tp, active: false });
-                clearSelection();
-                showToast(`Archived type "${tp.name}"`, 'info');
-              }
-            }}
-          >
-            Archive
-          </button>
-        </div>
-      </div>
-
-      <div className="dp-sec">
-        <div className="dp-sec-h" onClick={() => toggleSec('defaults')} role="button" tabIndex={0}>
-          📦 Shipping Defaults
-          <span className={`chev${!secCollapsed.defaults ? ' open' : ''}`}>▼</span>
-        </div>
-        {!secCollapsed.defaults && (
-          <div className="dp-sec-body">
-            <div className="dp-row">
-              <span className="label">Temperature</span>
-              <span className="val">{tp.defaults.temp}</span>
-            </div>
-            <div className="dp-row">
-              <span className="label">Hazardous</span>
-              <span className="val">{tp.defaults.hazard ? 'Yes' : 'No'}</span>
-            </div>
-            <div className="dp-row">
-              <span className="label">Stackable</span>
-              <span className="val">{tp.defaults.stackable ? 'Yes' : 'No'}</span>
-            </div>
-            <div className="dp-row">
-              <span className="label">Pallet Type</span>
-              <span className="val">{tp.defaults.palletType}</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="dp-sec">
-        <div className="dp-sec-h" onClick={() => toggleSec('mapped')} role="button" tabIndex={0}>
-          🏷️ Mapped SKUs ({mappedSkus.length})
-          <span className={`chev${!secCollapsed.mapped ? ' open' : ''}`}>▼</span>
-        </div>
-        {!secCollapsed.mapped && (
-          <div className="dp-sec-body">
-            {mappedSkus.length === 0 ? (
-              <div style={{ color: 'var(--t3)', fontSize: 12 }}>
-                {t('noSkusMapped')}
-              </div>
-            ) : (
-              <table className="mini-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Number</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mappedSkus.map((s) => (
-                    <tr
-                      key={s.id}
-                      onClick={() => {
-                        setSelectedItem(s);
-                        setSelectedKind('sku');
-                      }}
-                    >
-                      <td>{s.name}</td>
-                      <td>{s.number}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
-      </div>
     </>
   );
 }

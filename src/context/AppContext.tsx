@@ -88,6 +88,7 @@ export interface ProductType {
   };
   s30: number;
   s90: number;
+  skuCount?: number;
 }
 
 export interface SKU {

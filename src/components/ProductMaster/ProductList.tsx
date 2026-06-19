@@ -12,20 +12,22 @@ type Props = Pick<
   | 'filteredTypes'
   | 'categories'
   | 'productTypes'
-  | 'skus'
   | 'catName'
   | 'selectedIds'
-  | 'setSelectedIds'
   | 'selectedItem'
   | 'selectedKind'
   | 'setSelectedItem'
   | 'setSelectedKind'
+  | 'loadSkuDetail'
   | 'handleSelectAll'
   | 'handleToggleRowSelection'
-  | 'handleBulkToggleActive'
   | 'handleBulkArchive'
-  | 'setIsBulkMapOpen'
-  | 'setBulkMapTarget'
+  | 'loading'
+  | 'currentPage'
+  | 'setCurrentPage'
+  | 'perPage'
+  | 'setPerPage'
+  | 'listMeta'
 >;
 
 export const ProductList: React.FC<Props> = ({
@@ -36,20 +38,22 @@ export const ProductList: React.FC<Props> = ({
   filteredTypes,
   categories,
   productTypes,
-  skus,
   catName,
   selectedIds,
-  setSelectedIds,
   selectedItem,
   selectedKind,
   setSelectedItem,
   setSelectedKind,
+  loadSkuDetail,
   handleSelectAll,
   handleToggleRowSelection,
-  handleBulkToggleActive,
   handleBulkArchive,
-  setIsBulkMapOpen,
-  setBulkMapTarget,
+  loading,
+  currentPage,
+  setCurrentPage,
+  perPage,
+  setPerPage,
+  listMeta,
 }) => {
   const { t } = useTranslation();
 
@@ -78,31 +82,18 @@ export const ProductList: React.FC<Props> = ({
       <div className="bulk-bar">
         <span className="bulk-ct">{selectedIds.size}</span>
         <span>{t('selected')}</span>
-        <button
-          type="button"
-          className="btn btn-sm"
-          onClick={() => {
-            setBulkMapTarget('');
-            setIsBulkMapOpen(true);
-          }}
-        >
-          Map Type
-        </button>
-        <button type="button" className="btn btn-sm" onClick={handleBulkToggleActive}>
-          Toggle Active
-        </button>
         <button type="button" className="btn btn-sm btn-danger" onClick={handleBulkArchive}>
-          Archive
-        </button>
-        <span className="sp" />
-        <button type="button" className="btn-ghost" onClick={() => setSelectedIds(new Set())} style={{ fontSize: 11, fontWeight: 600 }}>
-          ✕
+          {t('archive')}
         </button>
       </div>
     )}
 
     <div className="tbl-scroll">
-      {viewMode === 'types' ? (
+      {loading && viewMode === 'skus' ? (
+        <div className="empty-state">
+          <div className="et">{t('abLoadingLocations')}</div>
+        </div>
+      ) : viewMode === 'types' ? (
         filteredTypes.length === 0 ? (
           <div className="empty-state">
             <div className="ico">📦</div>
@@ -112,8 +103,7 @@ export const ProductList: React.FC<Props> = ({
           <div className="types-grid">
             {filteredTypes.map((x) => {
               const cat = categories.find((c) => c.id === x.catId);
-              const typeSkus = skus.filter((s) => s.typeId === x.id && s.active).length;
-              const erpCount = skus.filter((s) => s.typeId === x.id && s.source === 'erp' && s.active).length;
+              const typeSkus = x.skuCount ?? 0;
               const isSel = selectedItem?.id === x.id && selectedKind === 'type';
 
               return (
@@ -134,10 +124,6 @@ export const ProductList: React.FC<Props> = ({
                     <div className="tc-stat">
                       <strong>{typeSkus}</strong>
                       SKUs
-                    </div>
-                    <div className="tc-stat">
-                      <strong>{erpCount}</strong>
-                      ERP
                     </div>
                     <div className="tc-stat">
                       <strong>{x.s30}</strong>
@@ -184,16 +170,13 @@ export const ProductList: React.FC<Props> = ({
                 <tr
                   key={s.id}
                   className={isSel ? 'sel' : ''}
-                  onClick={() => {
-                    setSelectedItem(s);
-                    setSelectedKind('sku');
-                  }}
+                  onClick={() => loadSkuDetail(s)}
                 >
                   <td onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selectedIds.has(s.id)}
-                      onChange={(e) => handleToggleRowSelection(s.id, e.target.checked)}
+                      onChange={() => handleToggleRowSelection(s.id)}
                     />
                   </td>
                   <td>
@@ -245,19 +228,48 @@ export const ProductList: React.FC<Props> = ({
       <div className="pag-info">
         {viewMode === 'types'
           ? t('showingTypes', { count: filteredTypes.length })
-          : t('showingSkusRange', { count: filteredSkus.length, total: filteredSkus.length })}
+          : listMeta
+            ? t('showingSkusRange', {
+                count: filteredSkus.length,
+                total: listMeta.total,
+              })
+            : `${filteredSkus.length} SKUs`}
       </div>
-      <div className="pag-btns">
-        <button type="button" className="pg-btn">
-          ‹
-        </button>
-        <button type="button" className="pg-btn act">
-          1
-        </button>
-        <button type="button" className="pg-btn">
-          ›
-        </button>
-      </div>
+      {viewMode === 'skus' && listMeta && (listMeta.last_page ?? 1) > 1 && (
+        <div className="pag-btns">
+          <button
+            type="button"
+            className="pg-btn"
+            disabled={currentPage <= 1}
+            onClick={() => setCurrentPage(currentPage - 1)}
+          >
+            ‹
+          </button>
+          <button type="button" className="pg-btn act">
+            {currentPage}
+          </button>
+          <button
+            type="button"
+            className="pg-btn"
+            disabled={currentPage >= (listMeta.last_page ?? 1)}
+            onClick={() => setCurrentPage(currentPage + 1)}
+          >
+            ›
+          </button>
+          <select
+            className="sort-sel"
+            value={perPage}
+            onChange={(e) => setPerPage(Number(e.target.value))}
+            style={{ marginLeft: 8 }}
+          >
+            {[10, 12, 25, 50, 100].map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   </div>
   );

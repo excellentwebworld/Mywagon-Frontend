@@ -1,431 +1,264 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { productMasterService, ApiError } from '../../../api';
 import type { Category, ProductType, SKU } from '../../../context/AppContext';
-import { SYNC_LOGS } from '../constants';
 import {
-  EMPTY_NEW_CAT,
   EMPTY_NEW_SKU,
-  EMPTY_NEW_TYPE,
-  type ImportRow,
-  type NewCatForm,
   type NewSkuForm,
-  type NewTypeForm,
   type SelectedKind,
   type SortOption,
   type ViewMode,
 } from '../types';
-import { filterSkus, filterTypes, getCategoryName } from '../utils/productUtils';
+import { getCategoryName } from '../utils/productUtils';
+
+const SEARCH_DEBOUNCE_MS = 250;
+const DEFAULT_PAGE_SIZE = 12;
 
 export function useProductMaster() {
   const { lang, t } = useTranslation();
-  const {
-    categories,
-    addCategory,
-    productTypes,
-    addProductType,
-    updateProductType,
-    skus,
-    addSku,
-    updateSku,
-    showToast,
-  } = useApp();
+  const { showToast } = useApp();
+  const queryClient = useQueryClient();
+
+  const [error, setError] = useState<string | null>(null);
+  const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const [viewMode, setViewMode] = useState<ViewMode>('skus');
   const [activeCat, setActiveCat] = useState('all');
   const [activeType, setActiveType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedItem, setSelectedItem] = useState<SKU | ProductType | null>(null);
   const [selectedKind, setSelectedKind] = useState<SelectedKind>('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const [filterSource, setFilterSource] = useState('');
-  const [filterSync, setFilterSync] = useState('');
   const [filterActive, setFilterActive] = useState('');
-  const [filterCat, setFilterCat] = useState('');
   const [filterUnmapped, setFilterUnmapped] = useState(false);
   const [kpiFilter, setKpiFilter] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('name');
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
+
   const [addDropdownOpen, setAddDropdownOpen] = useState(false);
-
-  const [isTypeOpen, setIsTypeOpen] = useState(false);
-  const [newType, setNewType] = useState<NewTypeForm>(EMPTY_NEW_TYPE);
-
   const [isSkuOpen, setIsSkuOpen] = useState(false);
   const [editSkuMode, setEditSkuMode] = useState(false);
   const [newSku, setNewSku] = useState<NewSkuForm>(EMPTY_NEW_SKU);
-
-  const [isCatOpen, setIsCatOpen] = useState(false);
-  const [newCat, setNewCat] = useState<NewCatForm>(EMPTY_NEW_CAT);
-
-  const [isRenameOpen, setIsRenameOpen] = useState(false);
-  const [renameId, setRenameId] = useState('');
-  const [renameName, setRenameName] = useState('');
-
-  const [isMergeOpen, setIsMergeOpen] = useState(false);
-  const [mergeSrc, setMergeSrc] = useState<ProductType | null>(null);
-  const [mergeTarget, setMergeTarget] = useState('');
-
-  const [isBulkMapOpen, setIsBulkMapOpen] = useState(false);
-  const [bulkMapTarget, setBulkMapTarget] = useState('');
-
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [importData, setImportData] = useState<ImportRow[]>([]);
+  const [importSummary, setImportSummary] = useState<string | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
-  const [isSyncLogOpen, setIsSyncLogOpen] = useState(false);
-  const [secCollapsed, setSecCollapsed] = useState<Record<string, boolean>>({});
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest('.add-wrap')) {
-        setAddDropdownOpen(false);
-      }
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
-    document.addEventListener('click', onClick);
-    return () => document.removeEventListener('click', onClick);
-  }, []);
+  }, [searchQuery]);
 
-  const toggleSec = useCallback((key: string) => {
-    setSecCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
-  }, []);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCat, activeType, filterActive, filterUnmapped, sortBy, perPage, kpiFilter]);
+
+  const handleApiError = useCallback(
+    (err: unknown, fallback: string) => {
+      if (err instanceof ApiError) {
+        if (err.status === 403) {
+          setSubscriptionBlocked(true);
+          setError(err.message);
+          showToast(err.message, 'error');
+          return err.message;
+        }
+        if (err.fieldErrors) {
+          const first = Object.values(err.fieldErrors)[0]?.[0];
+          showToast(first ?? err.message, 'error');
+          return first ?? err.message;
+        }
+        showToast(err.message, 'error');
+        return err.message;
+      }
+      showToast(fallback, 'error');
+      return fallback;
+    },
+    [showToast]
+  );
+
+  const listParams = useMemo(() => {
+    let status = filterActive;
+    let unmapped = filterUnmapped;
+    if (kpiFilter === 'inactive') status = 'inactive';
+    if (kpiFilter === 'unmapped') unmapped = true;
+    if (kpiFilter === 'active' || kpiFilter === 'total') status = 'active';
+
+    return productMasterService.buildListParams(
+      activeCat,
+      activeType,
+      status,
+      unmapped,
+      debouncedSearch,
+      currentPage,
+      perPage,
+      sortBy
+    );
+  }, [activeCat, activeType, filterActive, filterUnmapped, debouncedSearch, currentPage, perPage, sortBy, kpiFilter]);
+
+  const summaryQuery = useQuery({
+    queryKey: ['product-master', 'summary'],
+    queryFn: () => productMasterService.getSummary(),
+    retry: false,
+  });
+
+  const referenceQuery = useQuery({
+    queryKey: ['product-master', 'reference'],
+    queryFn: () => productMasterService.getReferenceCategories(),
+    retry: false,
+  });
+
+  const skusQuery = useQuery({
+    queryKey: ['product-master', 'skus', listParams],
+    queryFn: () => productMasterService.listSkus(listParams),
+    enabled: viewMode === 'skus',
+    retry: false,
+  });
+
+  const typesQuery = useQuery({
+    queryKey: ['product-master', 'types'],
+    queryFn: () => productMasterService.getTypesGrid(),
+    enabled: viewMode === 'types',
+    retry: false,
+  });
+
+  useEffect(() => {
+    const err = summaryQuery.error ?? skusQuery.error ?? referenceQuery.error;
+    if (err) handleApiError(err, 'Failed to load product master');
+  }, [summaryQuery.error, skusQuery.error, referenceQuery.error, handleApiError]);
+
+  const invalidateAll = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['product-master'] });
+  }, [queryClient]);
+
+  const categories: Category[] = useMemo(
+    () => productMasterService.mapReferenceToCategories(referenceQuery.data ?? [], lang),
+    [referenceQuery.data, lang]
+  );
+
+  const productTypes: ProductType[] = useMemo(() => {
+    if (viewMode === 'types' && typesQuery.data && referenceQuery.data) {
+      return productMasterService.mapTypeGridToProductTypes(typesQuery.data, referenceQuery.data);
+    }
+    return productMasterService.mapReferenceToProductTypes(referenceQuery.data ?? []);
+  }, [viewMode, typesQuery.data, referenceQuery.data]);
+
+  const skus = skusQuery.data?.items ?? [];
+  const listMeta = skusQuery.data?.meta;
+  const summary = summaryQuery.data;
+
+  const totalSkusCount = summary?.total ?? 0;
+  const inactiveCount = summary?.inactive ?? 0;
+  const unmappedCount = summary?.unmapped ?? 0;
+  const erpSyncedCount = 0;
+  const manualCount = totalSkusCount;
+  const syncIssuesCount = 0;
+
+  const filteredSkus = skus;
+  const filteredTypes = productTypes;
+
+  const createSkuMutation = useMutation({
+    mutationFn: (form: NewSkuForm) => productMasterService.createSku(form),
+    onSuccess: async () => {
+      showToast(t('created'), 'success');
+      setIsSkuOpen(false);
+      setNewSku(EMPTY_NEW_SKU);
+      await invalidateAll();
+    },
+    onError: (err) => handleApiError(err, 'Failed to create SKU'),
+  });
+
+  const updateSkuMutation = useMutation({
+    mutationFn: ({ id, form }: { id: string; form: NewSkuForm }) => productMasterService.updateSku(id, form),
+    onSuccess: async () => {
+      showToast(t('updated'), 'success');
+      setIsSkuOpen(false);
+      setEditSkuMode(false);
+      await invalidateAll();
+    },
+    onError: (err) => handleApiError(err, 'Failed to update SKU'),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: (id: string) => productMasterService.toggleSkuStatus(id),
+    onSuccess: async (sku) => {
+      showToast(sku.active ? t('activated') : t('deactivated'), 'success');
+      setSelectedItem(sku);
+      await invalidateAll();
+    },
+    onError: (err) => handleApiError(err, 'Failed to toggle SKU'),
+  });
+
+  const bulkArchiveMutation = useMutation({
+    mutationFn: (ids: string[]) => productMasterService.bulkArchive(ids),
+    onSuccess: async (count) => {
+      showToast(`${count} ${t('archived')}`, 'success');
+      setSelectedIds(new Set());
+      await invalidateAll();
+    },
+    onError: (err) => handleApiError(err, 'Failed to archive SKUs'),
+  });
 
   const clearSelection = useCallback(() => {
     setSelectedItem(null);
     setSelectedKind('');
+    setSelectedIds(new Set());
   }, []);
 
   const clearFilters = useCallback(() => {
-    setSearchQuery('');
-    setFilterSource('');
-    setFilterSync('');
     setFilterActive('');
-    setFilterCat('');
     setFilterUnmapped(false);
     setKpiFilter('');
-    setActiveCat('all');
-    setActiveType('all');
-    setViewMode('skus');
+    setSearchQuery('');
+    showToast(t('filtersCleared'), 'info');
+  }, [showToast, t]);
+
+  const handleKpiClick = useCallback((key: string) => {
+    setKpiFilter((prev) => (prev === key ? '' : key));
     clearSelection();
-    setSelectedIds(new Set());
-    showToast(t('filtersCleared'));
-  }, [clearSelection, showToast, t]);
+  }, [clearSelection]);
 
-  const totalSkusCount = useMemo(() => skus.filter((s) => s.active).length, [skus]);
-  const erpSyncedCount = useMemo(() => skus.filter((s) => s.source === 'erp' && s.active).length, [skus]);
-  const manualCount = useMemo(() => skus.filter((s) => s.source === 'manual' && s.active).length, [skus]);
-  const syncIssuesCount = useMemo(
-    () => skus.filter((s) => s.erp.status === 'error' || s.erp.status === 'conflict').length,
-    [skus]
-  );
-  const unmappedCount = useMemo(() => skus.filter((s) => !s.typeId && s.active).length, [skus]);
-  const inactiveCount = useMemo(() => skus.filter((s) => !s.active).length, [skus]);
-
-  const handleKpiClick = useCallback(
-    (k: string) => {
-      setKpiFilter((prev) => (prev === k ? '' : k));
-      clearSelection();
-    },
-    [clearSelection]
-  );
-
-  const filteredSkus = useMemo(
-    () =>
-      filterSkus(skus, productTypes, {
-        kpiFilter,
-        filterSource,
-        filterSync,
-        filterActive,
-        filterUnmapped,
-        filterCat,
-        activeCat,
-        activeType,
-        searchQuery,
-        sortBy,
-      }),
-    [
-      skus,
-      productTypes,
-      kpiFilter,
-      filterSource,
-      filterSync,
-      filterActive,
-      filterUnmapped,
-      filterCat,
-      activeCat,
-      activeType,
-      searchQuery,
-      sortBy,
-    ]
-  );
-
-  const filteredTypes = useMemo(
-    () => filterTypes(productTypes, { activeCat, searchQuery }),
-    [productTypes, activeCat, searchQuery]
-  );
-
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setSearchQuery(value);
-      clearSelection();
-    },
-    [clearSelection]
-  );
+  const handleSearchChange = useCallback((q: string) => setSearchQuery(q), []);
 
   const handleSelectAll = useCallback(
     (checked: boolean) => {
-      if (checked) {
-        setSelectedIds(new Set(filteredSkus.map((s) => s.id)));
-      } else {
-        setSelectedIds(new Set());
-      }
+      if (checked) setSelectedIds(new Set(filteredSkus.map((s) => s.id)));
+      else setSelectedIds(new Set());
     },
     [filteredSkus]
   );
 
-  const handleToggleRowSelection = useCallback((id: string, checked: boolean) => {
+  const handleToggleRowSelection = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (checked) next.add(id);
-      else next.delete(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }, []);
 
-  const handleBulkToggleActive = useCallback(() => {
-    selectedIds.forEach((id) => {
-      const sku = skus.find((s) => s.id === id);
-      if (sku) updateSku({ ...sku, active: !sku.active });
-    });
-    showToast(`Toggled status for ${selectedIds.size} item(s)`, 'success');
-    setSelectedIds(new Set());
-  }, [selectedIds, skus, updateSku, showToast]);
-
   const handleBulkArchive = useCallback(() => {
-    if (window.confirm(t('bulkArchiveConfirm'))) {
-      selectedIds.forEach((id) => {
-        const sku = skus.find((s) => s.id === id);
-        if (sku) updateSku({ ...sku, active: false });
-      });
-      showToast(`Archived ${selectedIds.size} item(s)`, 'info');
-      setSelectedIds(new Set());
-    }
-  }, [selectedIds, skus, t, updateSku, showToast]);
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(t('bulkArchiveConfirm'))) return;
+    bulkArchiveMutation.mutate([...selectedIds]);
+  }, [selectedIds, bulkArchiveMutation, t]);
 
-  const handleBulkMap = useCallback(() => {
-    if (!bulkMapTarget) return;
-    const tp = productTypes.find((x) => x.id === bulkMapTarget);
-    if (!tp) return;
-    selectedIds.forEach((id) => {
-      const sku = skus.find((s) => s.id === id);
-      if (sku) updateSku({ ...sku, typeId: tp.id, catId: tp.catId });
-    });
-    showToast(`Mapped ${selectedIds.size} SKU(s) to ${tp.name}`, 'success');
-    setIsBulkMapOpen(false);
-    setSelectedIds(new Set());
-  }, [bulkMapTarget, productTypes, selectedIds, skus, updateSku, showToast]);
-
-  const handleCreateType = useCallback(() => {
-    if (!newType.catId || !newType.name.trim()) {
-      showToast('Category and Name are required', 'error');
-      return;
-    }
-    addProductType({
-      catId: newType.catId,
-      name: newType.name.trim(),
-      active: true,
-      defaults: {
-        temp: newType.temp,
-        hazard: newType.hazard,
-        stackable: newType.stackable,
-        palletType: newType.palletType,
-      },
-    });
-    setIsTypeOpen(false);
-    setNewType(EMPTY_NEW_TYPE);
-    showToast(t('created'), 'success');
-  }, [addProductType, newType, showToast, t]);
-
-  const handleSaveSku = useCallback(() => {
-    if (!newSku.catId || !newSku.name.trim() || !newSku.number.trim()) {
-      showToast('Category, Name, and Number are required', 'error');
-      return;
-    }
-    const tagsArr = newSku.tags ? newSku.tags.split(',').map((tag) => tag.trim()).filter(Boolean) : [];
-
-    if (editSkuMode && selectedItem && selectedKind === 'sku') {
-      const current = selectedItem as SKU;
-      const updated: SKU = {
-        ...current,
-        catId: newSku.catId,
-        typeId: newSku.typeId,
-        name: current.source === 'erp' ? current.name : newSku.name.trim(),
-        number: current.source === 'erp' ? current.number : newSku.number.trim(),
-        barcode: current.source === 'erp' ? current.barcode : newSku.barcode.trim(),
-        uom: newSku.uom,
-        weight: newSku.weight.trim(),
-        active: newSku.active,
-        tags: tagsArr,
-      };
-      updateSku(updated);
-      setSelectedItem(updated);
-      setIsSkuOpen(false);
-      showToast(t('updated'), 'success');
-    } else {
-      if (skus.some((s) => s.number === newSku.number.trim())) {
-        showToast(t('dupeNumber'), 'error');
-        return;
-      }
-      addSku({
-        name: newSku.name.trim(),
-        number: newSku.number.trim(),
-        barcode: newSku.barcode.trim(),
-        catId: newSku.catId,
-        typeId: newSku.typeId,
-        source: 'manual',
-        active: newSku.active,
-        erp: { system: '', extId: '', lastSync: '—', status: '', error: '' },
-        weight: newSku.weight.trim(),
-        uom: newSku.uom,
-        tags: tagsArr,
-      });
-      setIsSkuOpen(false);
-      setNewSku(EMPTY_NEW_SKU);
-      showToast(t('created'), 'success');
-    }
-  }, [addSku, editSkuMode, newSku, selectedItem, selectedKind, skus, showToast, t, updateSku]);
-
-  const handleCreateCategory = useCallback(() => {
-    if (!newCat.name.trim()) return;
-    addCategory(newCat.name.trim(), newCat.name.trim(), newCat.icon);
-    setIsCatOpen(false);
-    setNewCat(EMPTY_NEW_CAT);
-    showToast(t('created'), 'success');
-  }, [addCategory, newCat, showToast, t]);
-
-  const handleRenameType = useCallback(() => {
-    if (!renameName.trim()) return;
-    const tp = productTypes.find((x) => x.id === renameId);
-    if (tp) {
-      const updated = { ...tp, name: renameName.trim() };
-      updateProductType(updated);
-      setSelectedItem(updated);
-      setIsRenameOpen(false);
-      showToast(`Renamed to "${updated.name}"`, 'success');
-    }
-  }, [productTypes, renameId, renameName, updateProductType, showToast]);
-
-  const handleMergeTypes = useCallback(() => {
-    if (!mergeSrc || !mergeTarget) return;
-    const targetType = productTypes.find((x) => x.id === mergeTarget);
-    if (!targetType) return;
-
-    skus.forEach((s) => {
-      if (s.typeId === mergeSrc.id) {
-        updateSku({ ...s, typeId: targetType.id, catId: targetType.catId });
-      }
-    });
-    updateProductType({ ...mergeSrc, active: false });
-    setIsMergeOpen(false);
-    clearSelection();
-    showToast(`Merged "${mergeSrc.name}" into "${targetType.name}"`, 'success');
-  }, [mergeSrc, mergeTarget, productTypes, skus, updateProductType, updateSku, clearSelection, showToast]);
-
-  const handleCSVUpload = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const text = evt.target?.result as string;
-        if (!text) return;
-        const lines = text.split(/\r?\n/).filter((l) => l.trim());
-        if (lines.length < 2) return;
-
-        const sep = text.includes('\t') ? '\t' : ',';
-        const headers = lines[0].split(sep).map((h) => h.replace(/^"|"$/g, '').trim().toLowerCase());
-
-        const indexMap = { name: -1, number: -1, barcode: -1, category: -1, type: -1, uom: -1, weight: -1, tags: -1 };
-        headers.forEach((h, i) => {
-          if (h.includes('name')) indexMap.name = i;
-          if (h.includes('number')) indexMap.number = i;
-          if (h.includes('barcode')) indexMap.barcode = i;
-          if (h.includes('cat')) indexMap.category = i;
-          if (h.includes('type')) indexMap.type = i;
-          if (h.includes('uom') || h.includes('unit')) indexMap.uom = i;
-          if (h.includes('weight')) indexMap.weight = i;
-          if (h.includes('tag')) indexMap.tags = i;
-        });
-
-        if (indexMap.name < 0 || indexMap.number < 0) {
-          showToast('Missing required CSV columns (Name, Number)', 'error');
-          return;
-        }
-
-        const parsed: ImportRow[] = [];
-        for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(sep).map((v) => v.replace(/^"|"$/g, '').trim());
-          const nm = values[indexMap.name] || '';
-          const nu = values[indexMap.number] || '';
-          if (!nm || !nu) continue;
-
-          const cn = indexMap.category >= 0 ? values[indexMap.category] : '';
-          const tn = indexMap.type >= 0 ? values[indexMap.type] : '';
-          const cat = categories.find(
-            (c) => getCategoryName(c, lang).toLowerCase() === cn.toLowerCase()
-          );
-          const tp = cat
-            ? productTypes.find((x) => x.catId === cat.id && x.name.toLowerCase() === tn.toLowerCase())
-            : null;
-
-          parsed.push({
-            name: nm,
-            number: nu,
-            barcode: indexMap.barcode >= 0 ? values[indexMap.barcode] : '',
-            catId: cat ? cat.id : '',
-            catName: cn,
-            typeId: tp ? tp.id : '',
-            typeName: tn,
-            uom: indexMap.uom >= 0 ? values[indexMap.uom] : 'Case',
-            weight: indexMap.weight >= 0 ? values[indexMap.weight] : '',
-            active: true,
-            tags: indexMap.tags >= 0 ? values[indexMap.tags] : '',
-            dupe: skus.some((s) => s.number === nu),
-            line: i + 1,
-          });
-        }
-
-        setImportData(parsed);
-        setIsImportOpen(true);
-      };
-      reader.readAsText(file);
-      e.target.value = '';
-    },
-    [categories, lang, productTypes, skus, showToast]
-  );
-
-  const triggerCSVImport = useCallback(() => {
-    const okRows = importData.filter((r) => !r.dupe && r.catId);
-    okRows.forEach((r) => {
-      addSku({
-        name: r.name,
-        number: r.number,
-        barcode: r.barcode,
-        catId: r.catId,
-        typeId: r.typeId,
-        source: 'manual',
-        active: true,
-        erp: { system: '', extId: '', lastSync: '—', status: '', error: '' },
-        weight: r.weight,
-        uom: r.uom,
-        tags: r.tags ? r.tags.split(/[;,]/).map((x) => x.trim()).filter(Boolean) : [],
-      });
-    });
-    setIsImportOpen(false);
-    setImportData([]);
-    showToast(`Imported ${okRows.length} SKU(s) successfully`, 'success');
-  }, [addSku, importData, showToast]);
+  const handleBulkToggleActive = useCallback(() => {
+    showToast(t('comingSoon'), 'info');
+  }, [showToast, t]);
 
   const openAddSku = useCallback(() => {
     setEditSkuMode(false);
@@ -434,41 +267,132 @@ export function useProductMaster() {
     setAddDropdownOpen(false);
   }, []);
 
-  const openAddType = useCallback(() => {
-    setIsTypeOpen(true);
-    setAddDropdownOpen(false);
-  }, []);
-
-  const openAddCategory = useCallback(() => {
-    setIsCatOpen(true);
-    setAddDropdownOpen(false);
-  }, []);
-
-  const openEditSku = useCallback((s: SKU) => {
-    setNewSku({
-      catId: s.catId,
-      typeId: s.typeId || '',
-      name: s.name,
-      number: s.number,
-      barcode: s.barcode || '',
-      uom: s.uom || 'Case',
-      weight: s.weight || '',
-      active: s.active,
-      tags: s.tags.join(', '),
-    });
+  const openEditSku = useCallback((sku: SKU) => {
     setEditSkuMode(true);
+    setNewSku({
+      catId: sku.catId,
+      typeId: sku.typeId,
+      name: sku.name,
+      number: sku.number,
+      barcode: sku.barcode,
+      uom: sku.uom,
+      weight: sku.weight,
+      active: sku.active,
+      tags: sku.tags.join(', '),
+    });
     setIsSkuOpen(true);
   }, []);
 
+  const handleSaveSku = useCallback(() => {
+    if (!newSku.catId || !newSku.typeId || !newSku.name.trim() || !newSku.number.trim()) {
+      showToast(t('fillRequired'), 'warning');
+      return;
+    }
+    if (editSkuMode && selectedItem && selectedKind === 'sku') {
+      updateSkuMutation.mutate({ id: selectedItem.id, form: newSku });
+    } else {
+      createSkuMutation.mutate(newSku);
+    }
+  }, [newSku, editSkuMode, selectedItem, selectedKind, createSkuMutation, updateSkuMutation, showToast, t]);
+
+  const loadSkuDetail = useCallback(
+    async (sku: SKU) => {
+      setDetailLoading(true);
+      try {
+        const detail = await productMasterService.getSku(sku.id);
+        setSelectedItem(detail);
+        setSelectedKind('sku');
+      } catch (err) {
+        handleApiError(err, 'Failed to load SKU');
+      } finally {
+        setDetailLoading(false);
+      }
+    },
+    [handleApiError]
+  );
+
+  const handleToggleActive = useCallback(
+    (sku: SKU) => {
+      toggleMutation.mutate(sku.id);
+    },
+    [toggleMutation]
+  );
+
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      await productMasterService.downloadExport();
+      showToast(t('exported'), 'success');
+    } catch (err) {
+      handleApiError(err, 'Export failed');
+    } finally {
+      setExporting(false);
+    }
+  }, [handleApiError, showToast, t]);
+
+  const handleCSVUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (!file) return;
+      try {
+        const result = await productMasterService.importFile(file);
+        setImportSummary(
+          `${t('imported')}: ${result.success}/${result.total} (${result.created} ${t('created')}, ${result.updated} ${t('updated')})`
+        );
+        setIsImportOpen(true);
+        await invalidateAll();
+      } catch (err) {
+        handleApiError(err, 'Import failed');
+      }
+    },
+    [handleApiError, invalidateAll, t]
+  );
+
+  const triggerCSVImport = useCallback(() => {
+    document.getElementById('pm-csv-input')?.click();
+  }, []);
+
+  const downloadTemplate = useCallback(async () => {
+    try {
+      await productMasterService.downloadImportTemplate();
+    } catch (err) {
+      handleApiError(err, 'Template download failed');
+    }
+  }, [handleApiError]);
+
   const catName = useCallback((c: Category) => getCategoryName(c, lang), [lang]);
 
+  const loading = summaryQuery.isLoading || referenceQuery.isLoading || skusQuery.isLoading;
+  const saving =
+    createSkuMutation.isPending ||
+    updateSkuMutation.isPending ||
+    toggleMutation.isPending ||
+    bulkArchiveMutation.isPending;
+
+  const getCategoryCount = useCallback(
+    (catId: string) => summary?.categories.find((c) => String(c.id) === catId)?.count ?? 0,
+    [summary]
+  );
+
+  const getTypeCount = useCallback(
+    (catId: string, typeId: string) => {
+      const cat = summary?.categories.find((c) => String(c.id) === catId);
+      return cat?.types.find((t) => String(t.type_id) === typeId)?.count ?? 0;
+    },
+    [summary]
+  );
+
   return {
-    lang,
     t,
+    lang,
     showToast,
-    categories,
-    productTypes,
-    skus,
+    error,
+    subscriptionBlocked,
+    loading,
+    saving,
+    detailLoading,
+    exporting,
     viewMode,
     setViewMode,
     activeCat,
@@ -483,88 +407,99 @@ export function useProductMaster() {
     setSelectedKind,
     selectedIds,
     setSelectedIds,
-    filterSource,
-    setFilterSource,
-    filterSync,
-    setFilterSync,
     filterActive,
     setFilterActive,
-    filterCat,
-    setFilterCat,
+    filterCat: '',
+    setFilterCat: (_v: string) => {},
     filterUnmapped,
     setFilterUnmapped,
     kpiFilter,
     sortBy,
     setSortBy,
+    currentPage,
+    setCurrentPage,
+    perPage,
+    setPerPage,
+    listMeta,
     addDropdownOpen,
     setAddDropdownOpen,
-    isTypeOpen,
-    setIsTypeOpen,
-    newType,
-    setNewType,
     isSkuOpen,
     setIsSkuOpen,
     editSkuMode,
     newSku,
     setNewSku,
-    isCatOpen,
-    setIsCatOpen,
-    newCat,
-    setNewCat,
-    isRenameOpen,
-    setIsRenameOpen,
-    renameId,
-    setRenameId,
-    renameName,
-    setRenameName,
-    isMergeOpen,
-    setIsMergeOpen,
-    mergeSrc,
-    setMergeSrc,
-    mergeTarget,
-    setMergeTarget,
-    isBulkMapOpen,
-    setIsBulkMapOpen,
-    bulkMapTarget,
-    setBulkMapTarget,
     isImportOpen,
     setIsImportOpen,
-    importData,
-    isSyncLogOpen,
-    setIsSyncLogOpen,
-    secCollapsed,
-    toggleSec,
+    importSummary,
     clearSelection,
     clearFilters,
+    categories,
+    productTypes,
+    skus,
+    filteredSkus,
+    filteredTypes,
     totalSkusCount,
     erpSyncedCount,
     manualCount,
     syncIssuesCount,
     unmappedCount,
     inactiveCount,
+    summary,
+    getCategoryCount,
+    getTypeCount,
     handleKpiClick,
-    filteredSkus,
-    filteredTypes,
     handleSelectAll,
     handleToggleRowSelection,
     handleBulkToggleActive,
     handleBulkArchive,
-    handleBulkMap,
-    handleCreateType,
     handleSaveSku,
-    handleCreateCategory,
-    handleRenameType,
-    handleMergeTypes,
     handleCSVUpload,
     triggerCSVImport,
+    downloadTemplate,
+    handleExport,
     openAddSku,
-    openAddType,
-    openAddCategory,
     openEditSku,
+    loadSkuDetail,
+    handleToggleActive,
     catName,
-    updateSku,
-    updateProductType,
-    syncLogs: SYNC_LOGS,
+    // stubs removed from Blade — no-ops for modals still referencing
+    isTypeOpen: false,
+    setIsTypeOpen: () => {},
+    newType: EMPTY_NEW_SKU as unknown as never,
+    setNewType: () => {},
+    isCatOpen: false,
+    setIsCatOpen: () => {},
+    newCat: { name: '', icon: '📦' },
+    setNewCat: () => {},
+    isRenameOpen: false,
+    setIsRenameOpen: () => {},
+    isMergeOpen: false,
+    setIsMergeOpen: () => {},
+    isBulkMapOpen: false,
+    setIsBulkMapOpen: () => {},
+    isSyncLogOpen: false,
+    setIsSyncLogOpen: () => {},
+    openAddType: openAddSku,
+    openAddCategory: () => showToast(t('comingSoon'), 'info'),
+    handleCreateType: () => {},
+    handleCreateCategory: () => {},
+    handleRenameType: () => {},
+    handleMergeTypes: () => {},
+    handleBulkMap: () => {},
+    updateSku: () => {},
+    updateProductType: () => {},
+    syncLogs: [],
+    secCollapsed: {},
+    toggleSec: () => {},
+    renameId: '',
+    setRenameId: () => {},
+    renameName: '',
+    setRenameName: () => {},
+    mergeSrc: null,
+    setMergeSrc: () => {},
+    mergeTarget: '',
+    setBulkMapTarget: () => {},
+    importData: [],
   };
 }
 

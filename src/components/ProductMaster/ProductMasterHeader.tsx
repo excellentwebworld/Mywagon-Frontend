@@ -7,22 +7,21 @@ type Props = Pick<
   | 'showToast'
   | 'addDropdownOpen'
   | 'setAddDropdownOpen'
-  | 'openAddType'
   | 'openAddSku'
-  | 'openAddCategory'
   | 'handleCSVUpload'
-  | 'setIsSyncLogOpen'
+  | 'handleExport'
+  | 'exporting'
+  | 'downloadTemplate'
 >;
 
 export const ProductMasterHeader: React.FC<Props> = ({
-  showToast,
   addDropdownOpen,
   setAddDropdownOpen,
-  openAddType,
   openAddSku,
-  openAddCategory,
   handleCSVUpload,
-  setIsSyncLogOpen,
+  handleExport,
+  exporting,
+  downloadTemplate,
 }) => {
   const { t } = useTranslation();
 
@@ -33,19 +32,13 @@ export const ProductMasterHeader: React.FC<Props> = ({
         <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 3 }}>{t('subtitle')}</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button type="button" className="btn btn-md" onClick={() => showToast(t('syncSettings'))}>
-          🔄 ERP Sync
-        </button>
-        <button type="button" className="btn btn-md" onClick={() => setIsSyncLogOpen(true)}>
-          📋 Sync Log
-        </button>
-        <button type="button" className="btn btn-md" onClick={() => showToast(t('csvExported'))}>
+        <button type="button" className="btn btn-md" onClick={handleExport} disabled={exporting}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          {t('export')}
+          {exporting ? t('abExporting') : t('export')}
         </button>
         <div className="add-wrap">
           <button
@@ -63,20 +56,17 @@ export const ProductMasterHeader: React.FC<Props> = ({
             {t('add')}
           </button>
           <div className={`add-dd${addDropdownOpen ? ' show' : ''}`}>
-            <div className="add-dd-i" onClick={openAddType} role="button" tabIndex={0}>
-              {t('addTypeMenu')}
-            </div>
             <div className="add-dd-i" onClick={openAddSku} role="button" tabIndex={0}>
               {t('addSkuMenu')}
             </div>
             <div className="add-dd-i" onClick={() => document.getElementById('pm-csv-input')?.click()} role="button" tabIndex={0}>
               📥 {t('importCsv')}
             </div>
-            <div className="add-dd-i" onClick={openAddCategory} role="button" tabIndex={0}>
-              {t('addCatMenu')}
+            <div className="add-dd-i" onClick={downloadTemplate} role="button" tabIndex={0}>
+              {t('downloadTemplate')}
             </div>
           </div>
-          <input id="pm-csv-input" type="file" accept=".csv" onChange={handleCSVUpload} style={{ display: 'none' }} />
+          <input id="pm-csv-input" type="file" accept=".csv,.xlsx,.xls" onChange={handleCSVUpload} style={{ display: 'none' }} />
         </div>
       </div>
     </div>
