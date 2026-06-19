@@ -4,27 +4,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../../context/AppContext';
 import type { LocationItem } from '../../../context/AppContext';
 import { addressBookService, ApiError } from '../../../api';
-import type { ApiAddressBookSummary, ApiAmenity, ApiCompanyLookup, ApiListMeta } from '../../../api';
+import type { ApiAddressBookSummary, ApiAmenity, ApiListMeta } from '../../../api';
 import { directoryToListParams } from '../../../api/mappers/addressBookMapper';
 import {
   EMPTY_COMPANY_DATA,
   EMPTY_CREATE_DATA,
-  EMPTY_SERVER_FILTERS,
   type CompanyFormData,
   type CreateLocationData,
-  type DirectoryItem,
-  type FilterKey,
-  type ServerFilterValues,
   type SortOption,
 } from '../types';
+import { DEFAULT_PAGE_SIZE } from '../constants';
 import {
   applyTemplate,
   findPotentialDuplicates,
 } from '../utils/locationUtils';
-import { loadCustomDirectories, saveCustomDirectories } from '../utils/directoryStorage';
-import { downloadCsv, locationsToCsv } from '../utils/exportCsv';
+import type { ApiCompanyEntity } from '../../../api/types/addressBook';
 
-const PER_PAGE = 25;
+const SEARCH_DEBOUNCE_MS = 250;
 
 export function useAddressBook() {
   const { lang, t, showToast, refreshLocationsFromApi } = useApp();
@@ -36,26 +32,12 @@ export function useAddressBook() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const [directories, setDirectories] = useState<DirectoryItem[]>(() => loadCustomDirectories(lang));
   const [activeNode, setActiveNode] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLoc, setSelectedLoc] = useState<LocationItem | null>(null);
-  const [activeFilters, setActiveFilters] = useState<Record<FilterKey, boolean>>({
-    role: false,
-    type: false,
-    city: false,
-    appt: false,
-    hours: false,
-    active: false,
-  });
-  const [serverFilters, setServerFilters] = useState<ServerFilterValues>(EMPTY_SERVER_FILTERS);
   const [sortBy, setSortBy] = useState<SortOption>('Name A–Z');
-
-  const [addingDir, setAddingDir] = useState(false);
-  const [newDirName, setNewDirName] = useState('');
-  const [newDirIcon, setNewDirIcon] = useState('folder');
-  const [iconPickerOpen, setIconPickerOpen] = useState(false);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createStep, setCreateStep] = useState(1);
@@ -69,32 +51,18 @@ export function useAddressBook() {
 
   const [companyQuery, setCompanyQuery] = useState('');
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
-  const [apiCompanies, setApiCompanies] = useState<ApiCompanyLookup[]>([]);
+  const [apiCompanies, setApiCompanies] = useState<ApiCompanyEntity[]>([]);
   const [potentialDuplicates, setPotentialDuplicates] = useState<LocationItem[]>([]);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   useEffect(() => {
-    setDirectories((prev) => {
-      const updated = prev.map((d) => {
-        if (d.id === 'all') return { ...d, name: lang === 'el' ? 'Όλες οι Τοποθεσίες' : 'All Locations' };
-        if (d.id === 'my') return { ...d, name: lang === 'el' ? 'Οι Τοποθεσίες μου' : 'My Locations' };
-        if (d.id === 'customer') return { ...d, name: lang === 'el' ? 'Τοποθεσίες Πελατών' : 'Customer Locations' };
-        if (d.id === 'archived') return { ...d, name: lang === 'el' ? 'Αρχειοθετημένα' : 'Archived' };
-        return d;
-      });
-      saveCustomDirectories(updated);
-      return updated;
-    });
-  }, [lang]);
-
-  useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     searchDebounceRef.current = setTimeout(() => {
       setDebouncedSearch(searchQuery);
       setCurrentPage(1);
-    }, 300);
+    }, SEARCH_DEBOUNCE_MS);
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
@@ -102,7 +70,7 @@ export function useAddressBook() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeNode, sortBy, serverFilters]);
+  }, [activeNode, sortBy, perPage]);
 
   const handleApiError = useCallback(
     (err: unknown, fallback: string) => {
@@ -127,15 +95,8 @@ export function useAddressBook() {
   }, [refreshLocationsFromApi]);
 
   const params = useMemo(() => {
-    return directoryToListParams(
-      activeNode,
-      debouncedSearch,
-      sortBy,
-      currentPage,
-      PER_PAGE,
-      serverFilters
-    );
-  }, [activeNode, debouncedSearch, sortBy, currentPage, serverFilters]);
+    return directoryToListParams(activeNode, debouncedSearch, sortBy, currentPage, perPage);
+  }, [activeNode, debouncedSearch, sortBy, currentPage, perPage]);
 
   // Queries
   const {
@@ -143,7 +104,7 @@ export function useAddressBook() {
     isLoading: loading,
     refetch: refreshLocations,
   } = useQuery({
-    queryKey: ['locations', activeNode, debouncedSearch, sortBy, currentPage, serverFilters],
+    queryKey: ['locations', activeNode, debouncedSearch, sortBy, currentPage, perPage],
     queryFn: async () => {
       try {
         setError(null);
@@ -159,7 +120,7 @@ export function useAddressBook() {
   });
 
   const locations = useMemo(() => locationsData?.items ?? [], [locationsData]);
-  const listMeta = useMemo(() => locationsData?.meta ?? { current_page: 1, per_page: PER_PAGE, total: 0, last_page: 1 }, [locationsData]);
+  const listMeta = useMemo(() => locationsData?.meta ?? { current_page: 1, per_page: perPage, total: 0, last_page: 1 }, [locationsData, perPage]);
 
   const {
     data: summaryData,
@@ -316,7 +277,7 @@ export function useAddressBook() {
     const q = companyQuery.trim();
     const timer = setTimeout(() => {
       addressBookService
-        .listCompanies(q || undefined)
+        .listCompanyEntities(q || undefined)
         .then(setApiCompanies)
         .catch(() => setApiCompanies([]));
     }, 200);
@@ -356,15 +317,24 @@ export function useAddressBook() {
     };
   }, [createStep, createData, locations, queryClient]);
 
-  const filteredLocations = useMemo(() => {
-    const dir = directories.find((d) => d.id === activeNode);
-    if (activeNode.startsWith('custom-') && dir?.filter) {
-      return locations.filter((l) => dir.filter!(l));
-    }
-    return locations;
-  }, [locations, directories, activeNode]);
+  const filteredLocations = locations;
 
-  const activeDirectory = directories.find((d) => d.id === activeNode);
+  const activeDirectoryName =
+    activeNode === 'my'
+      ? lang === 'el'
+        ? 'Οι Τοποθεσίες μου'
+        : 'My Locations'
+      : activeNode === 'customer'
+        ? lang === 'el'
+          ? 'Τοποθεσίες Πελατών'
+          : 'Customer Locations'
+        : activeNode === 'archived'
+          ? lang === 'el'
+            ? 'Αρχειοθετημένα'
+            : 'Archived'
+          : lang === 'el'
+            ? 'Όλες οι Τοποθεσίες'
+            : 'All Locations';
 
   const openCreateModal = useCallback(() => {
     setCreateStep(1);
@@ -386,85 +356,6 @@ export function useAddressBook() {
     setSearchQuery(value);
     setSelectedLoc(null);
   }, []);
-
-  const setServerFilter = useCallback(<K extends keyof ServerFilterValues>(key: K, value: ServerFilterValues[K]) => {
-    setServerFilters((prev) => ({ ...prev, [key]: value }));
-  }, []);
-
-  const toggleFilter = useCallback(
-    (key: FilterKey) => {
-      setActiveFilters((prev) => {
-        const next = !prev[key];
-        const updated = { ...prev, [key]: next };
-        if (!next) {
-          if (key === 'role') setServerFilter('role', '');
-          if (key === 'type') setServerFilter('type', '');
-          if (key === 'city') setServerFilter('city', '');
-          if (key === 'appt') setServerFilter('appt', false);
-          if (key === 'hours') setServerFilter('hours', false);
-        } else {
-          if (key === 'role') setServerFilter('role', 'both');
-          if (key === 'type') setServerFilter('type', 'Warehouse');
-          if (key === 'city') setServerFilter('city', '');
-          if (key === 'appt') setServerFilter('appt', true);
-          if (key === 'hours') setServerFilter('hours', true);
-        }
-        return updated;
-      });
-      showToast(lang === 'el' ? 'Φίλτρο άλλαξε' : 'Filter updated');
-    },
-    [lang, setServerFilter, showToast]
-  );
-
-  const clearFilters = useCallback(() => {
-    setSearchQuery('');
-    setActiveFilters({ role: false, type: false, city: false, appt: false, hours: false, active: false });
-    setServerFilters(EMPTY_SERVER_FILTERS);
-    setSelectedLoc(null);
-    setCurrentPage(1);
-    showToast(t('filtersCleared'));
-  }, [showToast, t]);
-
-  const saveNewDir = useCallback(() => {
-    if (!newDirName.trim()) {
-      showToast('Enter a directory name', 'warning');
-      return;
-    }
-    const id = `custom-${Date.now()}`;
-    const newDir: DirectoryItem = {
-      id,
-      name: newDirName.trim(),
-      icon: newDirIcon,
-      system: false,
-      filter: null,
-    };
-    const archIdx = directories.findIndex((d) => d.id === 'archived');
-    const updated = [...directories];
-    updated.splice(archIdx, 0, newDir);
-    setDirectories(updated);
-    saveCustomDirectories(updated);
-    setNewDirName('');
-    setAddingDir(false);
-    showToast(`Directory "${newDir.name}" created`, 'success');
-  }, [directories, newDirIcon, newDirName, showToast]);
-
-  const deleteDirectory = useCallback(
-    (id: string, name: string) => {
-      if (window.confirm(`Delete directory "${name}"? Locations will remain in All Locations.`)) {
-        setDirectories((prev) => {
-          const updated = prev.filter((d) => d.id !== id);
-          saveCustomDirectories(updated);
-          return updated;
-        });
-        if (activeNode === id) {
-          setActiveNode('all');
-          setSelectedLoc(null);
-        }
-        showToast(`Directory "${name}" deleted`, 'info');
-      }
-    },
-    [activeNode, showToast]
-  );
 
   const handleCopy = useCallback(
     (txt: string, msg: string) => {
@@ -506,6 +397,31 @@ export function useAddressBook() {
       setCreateStep(2);
       return;
     }
+    if (!createData.dock.trim()) {
+      showToast('Dock type is required', 'error');
+      setCreateStep(3);
+      return;
+    }
+    if (!createData.maxTruck.trim()) {
+      showToast('Max truck length is required', 'error');
+      setCreateStep(3);
+      return;
+    }
+    if (!createData.maxWeight.trim()) {
+      showToast('Max weight is required', 'error');
+      setCreateStep(3);
+      return;
+    }
+    if (!createData.loadTime.trim()) {
+      showToast('Estimated loading/unloading time is required', 'error');
+      setCreateStep(3);
+      return;
+    }
+    if (createData.appt && createData.timeRanges.length === 0) {
+      showToast('Add at least one time range when appointment is required', 'error');
+      setCreateStep(3);
+      return;
+    }
 
     createLocationMutation.mutate(createData);
   }, [createData, createLocationMutation, showToast]);
@@ -524,22 +440,38 @@ export function useAddressBook() {
     updateLocationMutation.mutate({ id: editData.id, data: editData });
   }, [editData, updateLocationMutation, showToast]);
 
-  const handleApplyCompany = useCallback(() => {
-    if (!companyData.name.trim() || !companyData.vat.trim()) {
-      showToast('Name and VAT are required', 'error');
+  const handleApplyCompany = useCallback(async () => {
+    if (!companyData.name.trim() || !companyData.vat.trim() || !companyData.address.trim()) {
+      showToast('Name, VAT, and address are required', 'error');
       return;
     }
-    setCreateData((prev) => ({
-      ...prev,
-      company: companyData.name.trim(),
-      companyVat: companyData.vat.trim(),
-      phone: companyData.phone || prev.phone,
-      email: companyData.email || prev.email,
-    }));
-    setIsCompanyOpen(false);
-    setCompanyData(EMPTY_COMPANY_DATA);
-    showToast(`Company "${companyData.name.trim()}" applied to form`, 'success');
-  }, [companyData, showToast]);
+    try {
+      const created = await addressBookService.createCompanyEntity({
+        name: companyData.name.trim(),
+        vat_number: companyData.vat.trim(),
+        address: companyData.address.trim(),
+        country: companyData.country.trim() || 'Greece',
+        phone: companyData.phone || undefined,
+        email: companyData.email || undefined,
+        website: companyData.website || undefined,
+        industry: companyData.industry || undefined,
+        primary_contact: companyData.contactPerson || undefined,
+      });
+      setCreateData((prev) => ({
+        ...prev,
+        company: created.name,
+        companyVat: created.vat_number,
+        companyEntityId: created.id,
+        phone: created.phone || prev.phone,
+        email: created.email || prev.email,
+      }));
+      setIsCompanyOpen(false);
+      setCompanyData(EMPTY_COMPANY_DATA);
+      showToast(`Company "${created.name}" created`, 'success');
+    } catch (err) {
+      handleApiError(err, 'Failed to create company');
+    }
+  }, [companyData, handleApiError, showToast]);
 
   const openEditModal = useCallback(
     async (loc: LocationItem) => {
@@ -579,32 +511,26 @@ export function useAddressBook() {
     [navigate]
   );
 
-  const exportCsv = useCallback(async () => {
+  const exportExcel = useCallback(async () => {
     setExporting(true);
     try {
-      const params = directoryToListParams(activeNode, debouncedSearch, sortBy, 1, 100, serverFilters);
-      const { type, status, search, sort, location_role, location_subtype, city, appointment_required, has_receiving_hours } = params;
-      const all = await addressBookService.listAllLocations({
-        type,
-        status,
-        search,
-        sort,
-        location_role,
-        location_subtype,
-        city,
-        appointment_required,
-        has_receiving_hours,
-      });
-      const dir = directories.find((d) => d.id === activeNode);
-      const rows = dir?.filter ? all.filter((l) => dir.filter!(l)) : all;
-      downloadCsv(`address-book_${new Date().toISOString().slice(0, 10)}.csv`, locationsToCsv(rows));
-      showToast(lang === 'el' ? 'Εξαγωγή CSV ολοκληρώθηκε' : 'CSV exported', 'success');
+      const exportParams = directoryToListParams(activeNode, debouncedSearch, sortBy, 1, perPage);
+      const blob = await addressBookService.exportExcel(exportParams);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `address-book_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast(lang === 'el' ? 'Εξαγωγή Excel ολοκληρώθηκε' : 'Excel exported', 'success');
     } catch (err) {
-      handleApiError(err, 'Failed to export CSV');
+      handleApiError(err, 'Failed to export Excel');
     } finally {
       setExporting(false);
     }
-  }, [activeNode, debouncedSearch, directories, handleApiError, lang, serverFilters, showToast, sortBy]);
+  }, [activeNode, debouncedSearch, handleApiError, lang, perPage, showToast, sortBy]);
 
   const handleSelectLocation = useCallback(
     async (loc: LocationItem | null) => {
@@ -629,6 +555,17 @@ export function useAddressBook() {
     [queryClient, handleApiError]
   );
 
+  const selectExistingDuplicate = useCallback(
+    async (loc: LocationItem) => {
+      setIsCreateOpen(false);
+      setCreateStep(1);
+      setCreateData(EMPTY_CREATE_DATA);
+      await handleSelectLocation(loc);
+      showToast(`Selected existing location "${loc.name}"`, 'success');
+    },
+    [handleSelectLocation, showToast]
+  );
+
   const filteredCompanies = useMemo(() => apiCompanies, [apiCompanies]);
 
   const pageStart = listMeta.total === 0 ? 0 : (listMeta.current_page - 1) * listMeta.per_page + 1;
@@ -650,28 +587,18 @@ export function useAddressBook() {
     listMeta,
     currentPage,
     setCurrentPage,
+    perPage,
+    setPerPage,
     pageStart,
     pageEnd,
-    directories,
     activeNode,
-    activeDirectory,
+    activeDirectoryName,
     searchQuery,
     selectedLoc,
     setSelectedLoc: handleSelectLocation,
-    activeFilters,
-    serverFilters,
-    setServerFilter,
     sortBy,
     setSortBy,
     filteredLocations,
-    addingDir,
-    setAddingDir,
-    newDirName,
-    setNewDirName,
-    newDirIcon,
-    setNewDirIcon,
-    iconPickerOpen,
-    setIconPickerOpen,
     isCreateOpen,
     createStep,
     setCreateStep,
@@ -696,10 +623,6 @@ export function useAddressBook() {
     closeCompanyModal,
     selectNode,
     handleSearchChange,
-    toggleFilter,
-    clearFilters,
-    saveNewDir,
-    deleteDirectory,
     handleCopy,
     handleDuplicate,
     handleApplyTemplate,
@@ -710,7 +633,8 @@ export function useAddressBook() {
     handleArchive,
     handleRestore,
     goToCreateShipment,
-    exportCsv,
+    exportExcel,
+    selectExistingDuplicate,
     refreshLocations,
   };
 }

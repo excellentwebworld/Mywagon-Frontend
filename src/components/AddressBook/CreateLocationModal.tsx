@@ -1,14 +1,14 @@
 import React, { useEffect } from 'react';
 import type { LocationItem } from '../../context/AppContext';
-import type { ApiAmenity, ApiCompanyLookup } from '../../api';
-import { DOCK_TYPES, LOCATION_TYPES, TEMPLATE_OPTIONS } from '../../pages/AddressBook/constants';
+import type { ApiAmenity, ApiCompanyEntity } from '../../api';
+import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES, TEMPLATE_OPTIONS } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { ContactFormList } from './ContactFormList';
 import { EquipmentSelector } from './EquipmentSelector';
+import { GoogleMapAddressField } from './GoogleMapAddressField';
 import { ModalStepper } from './ModalStepper';
 import { TimeRangeFormList } from './TimeRangeFormList';
 import { ToggleField } from './ToggleField';
-import { geocodeAddress } from '../../pages/AddressBook/utils/geocode';
 
 type Props = Pick<
   AddressBookState,
@@ -21,6 +21,7 @@ type Props = Pick<
   | 'handleApplyTemplate'
   | 'submitNewLocation'
   | 'potentialDuplicates'
+  | 'selectExistingDuplicate'
   | 'saving'
   | 'amenities'
   | 'showToast'
@@ -41,6 +42,7 @@ export const CreateLocationModal: React.FC<Props> = ({
   handleApplyTemplate,
   submitNewLocation,
   potentialDuplicates,
+  selectExistingDuplicate,
   saving,
   amenities,
   showToast,
@@ -132,22 +134,33 @@ export const CreateLocationModal: React.FC<Props> = ({
                 >
                   + Enter new company details
                 </div>
-                {filteredCompanies.map((c: ApiCompanyLookup) => (
+                {filteredCompanies.map((c: ApiCompanyEntity) => (
                   <div
-                    key={`${c.company_name}-${c.company_vat}`}
+                    key={c.id}
                     className="ent-item"
                     onClick={() => {
-                      update({ company: c.company_name, companyVat: c.company_vat });
+                      update({
+                        company: c.name,
+                        companyVat: c.vat_number,
+                        companyEntityId: c.id,
+                        phone: c.phone || createData.phone,
+                        email: c.email || createData.email,
+                      });
                       setCompanyDropdownOpen(false);
                     }}
                     onKeyDown={(e) =>
-                      e.key === 'Enter' && update({ company: c.company_name, companyVat: c.company_vat })
+                      e.key === 'Enter' &&
+                      update({
+                        company: c.name,
+                        companyVat: c.vat_number,
+                        companyEntityId: c.id,
+                      })
                     }
                     role="button"
                     tabIndex={0}
                   >
-                    {c.company_name}
-                    <div className="sub">VAT: {c.company_vat}</div>
+                    {c.name}
+                    <div className="sub">VAT: {c.vat_number}</div>
                   </div>
                 ))}
               </div>
@@ -198,6 +211,19 @@ export const CreateLocationModal: React.FC<Props> = ({
         </div>
       )}
 
+      <div className="mf">
+        <label>
+          Facility Type <span className="req">*</span>
+        </label>
+        <select value={createData.type} onChange={(e) => update({ type: e.target.value })}>
+          {FACILITY_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {FACILITY_TYPE_LABELS[type] ?? type}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <h4 className="ab-form-heading ab-form-heading-spaced">
         Quick template <span className="ab-form-optional">(optional)</span>
       </h4>
@@ -232,18 +258,14 @@ export const CreateLocationModal: React.FC<Props> = ({
           onChange={(e) => update({ name: e.target.value })}
         />
       </div>
-      <div className="mf">
-        <label>
-          Address <span className="req">*</span>
-        </label>
-        <input
-          type="text"
-          placeholder="Start typing address…"
-          value={createData.address}
-          onChange={(e) => update({ address: e.target.value })}
-        />
-        <span className="helper">📍 Autocomplete will fill city and postal code</span>
-      </div>
+      <GoogleMapAddressField
+        address={createData.address}
+        lat={createData.lat}
+        lng={createData.lng}
+        onAddressChange={(address) => update({ address })}
+        onLatLngChange={(lat, lng) => update({ lat, lng })}
+        onCityPostalChange={(city, postal) => update({ city, postal })}
+      />
       <div className="mf-row">
         <div className="mf">
           <label>
@@ -252,40 +274,11 @@ export const CreateLocationModal: React.FC<Props> = ({
           <input type="text" placeholder="City" value={createData.city} onChange={(e) => update({ city: e.target.value })} />
         </div>
         <div className="mf">
-          <label>Postal Code</label>
+          <label>
+            Postal Code <span className="req">*</span>
+          </label>
           <input type="text" placeholder="e.g. 45500" value={createData.postal} onChange={(e) => update({ postal: e.target.value })} />
         </div>
-      </div>
-      <div className="mf-row">
-        <div className="mf">
-          <label>
-            Latitude <span className="req">*</span>
-          </label>
-          <input type="text" placeholder="e.g. 39.643" value={createData.lat} onChange={(e) => update({ lat: e.target.value })} />
-        </div>
-        <div className="mf">
-          <label>
-            Longitude <span className="req">*</span>
-          </label>
-          <input type="text" placeholder="e.g. 20.878" value={createData.lng} onChange={(e) => update({ lng: e.target.value })} />
-        </div>
-      </div>
-      <div className="mf">
-        <button
-          type="button"
-          className="btn btn-secondary btn-sm"
-          onClick={async () => {
-            const result = await geocodeAddress(createData.address, createData.city, createData.postal);
-            if (result) {
-              update({ lat: result.lat, lng: result.lng });
-              showToast('Coordinates filled from address', 'success');
-            } else {
-              showToast('Could not geocode address', 'warning');
-            }
-          }}
-        >
-          📍 Lookup coordinates from address
-        </button>
       </div>
       <div className="mf-row">
         <div className="mf">
@@ -309,15 +302,8 @@ export const CreateLocationModal: React.FC<Props> = ({
           </select>
         </div>
         <div className="mf">
-          <label>Location Type</label>
-          <select value={createData.type} onChange={(e) => update({ type: e.target.value })}>
-            <option value="">— None —</option>
-            {LOCATION_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
+          <label>Region</label>
+          <input type="text" placeholder="e.g. Central Greece" value={createData.region} onChange={(e) => update({ region: e.target.value })} />
         </div>
       </div>
       <div className="mf">
@@ -343,7 +329,9 @@ export const CreateLocationModal: React.FC<Props> = ({
       <div className="mf-grid">
         <ToggleField label="Appointment required" value={createData.appt} onChange={(appt) => update({ appt })} />
         <div className="mf">
-          <label>Dock Type</label>
+          <label>
+            Dock Type <span className="req">*</span>
+          </label>
           <select value={createData.dock} onChange={(e) => update({ dock: e.target.value })}>
             <option value="">— Select —</option>
             {DOCK_TYPES.map((dock) => (
@@ -365,11 +353,15 @@ export const CreateLocationModal: React.FC<Props> = ({
       </div>
       <div className="mf-grid">
         <div className="mf">
-          <label>Max Truck Length</label>
+          <label>
+            Max Truck Length <span className="req">*</span>
+          </label>
           <input type="text" placeholder="e.g. 18.75m" value={createData.maxTruck} onChange={(e) => update({ maxTruck: e.target.value })} />
         </div>
         <div className="mf">
-          <label>Max Weight</label>
+          <label>
+            Max Weight <span className="req">*</span>
+          </label>
           <input type="text" placeholder="e.g. 40T" value={createData.maxWeight} onChange={(e) => update({ maxWeight: e.target.value })} />
         </div>
       </div>
@@ -378,7 +370,9 @@ export const CreateLocationModal: React.FC<Props> = ({
         <ToggleField label="Pallet Exchange" value={createData.palletExchange} onChange={(palletExchange) => update({ palletExchange })} />
       </div>
       <div className="mf">
-        <label>Est. Loading/Unloading Time (min)</label>
+        <label>
+          Est. Loading/Unloading Time (min) <span className="req">*</span>
+        </label>
         <input type="number" placeholder="e.g. 45" value={createData.loadTime} onChange={(e) => update({ loadTime: e.target.value })} />
       </div>
 
@@ -441,10 +435,7 @@ export const CreateLocationModal: React.FC<Props> = ({
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  showToast('Using existing location');
-                  closeCreateModal();
-                }}
+                onClick={() => selectExistingDuplicate(d)}
               >
                 Use existing
               </button>

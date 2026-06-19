@@ -26,10 +26,15 @@ export interface ApiLocationListItem {
   latitude: string;
   longitude: string;
   location_subtype: string | null;
-  location_role: 'pickup' | 'delivery' | 'both' | null;
+  location_role: 'pickup' | 'delivery' | 'both' | 'dropoff' | null;
   location_code: string | null;
   appointment_required?: boolean;
   receiving_hours?: string | null;
+  dock_type?: string | null;
+  load_time_minutes?: number | null;
+  max_truck_length?: string | null;
+  max_weight?: string | null;
+  usage_history_count?: number;
   region?: string | null;
   created_at: string | null;
   deleted_at?: string | null;
@@ -90,6 +95,31 @@ export interface ApiLocationStats {
   otd_percent: number;
 }
 
+export interface ApiCompanyEntity {
+  id: number;
+  name: string;
+  vat_number: string;
+  country?: string;
+  address?: string;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  industry?: string | null;
+  primary_contact?: string | null;
+}
+
+export interface ApiCompanyEntityPayload {
+  name: string;
+  vat_number: string;
+  address: string;
+  country: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  industry?: string;
+  primary_contact?: string;
+}
+
 export interface ApiCompanyLookup {
   company_name: string;
   company_vat: string;
@@ -102,6 +132,8 @@ export interface ApiDuplicateCheckResult {
 
 export interface ApiLocationPayload {
   location_type: 'my_locations' | 'customers';
+  company_entity_id?: number | null;
+  quick_template?: string | null;
   location_name: string;
   company_name: string;
   company_vat: string;
@@ -116,7 +148,7 @@ export interface ApiLocationPayload {
   time_ranges?: { id?: number | null; start_time: string; end_time: string }[];
   contacts?: { id?: number | null; name: string; role?: string; phone?: string; email?: string }[];
   location_subtype?: string | null;
-  location_role?: 'pickup' | 'delivery' | 'both' | null;
+  location_role?: 'pickup' | 'delivery' | 'dropoff' | 'both' | null;
   location_code?: string | null;
   customer_code?: string | null;
   region?: string | null;

@@ -3,19 +3,19 @@ import type { LocationItem } from '../../context/AppContext';
 
 interface Props {
   location: LocationItem;
+  isArchivedView: boolean;
   onEdit: (loc: LocationItem) => void;
-  onDuplicate: (loc: LocationItem) => void;
   onArchive: (loc: LocationItem) => void;
-  onCopy: (text: string, msg: string) => void;
+  onRestore: (loc: LocationItem) => void;
   disabled?: boolean;
 }
 
 export const LocationRowActions: React.FC<Props> = ({
   location,
+  isArchivedView,
   onEdit,
-  onDuplicate,
   onArchive,
-  onCopy,
+  onRestore,
   disabled,
 }) => {
   const [open, setOpen] = useState(false);
@@ -30,6 +30,8 @@ export const LocationRowActions: React.FC<Props> = ({
     document.addEventListener('click', onClick);
     return () => document.removeEventListener('click', onClick);
   }, []);
+
+  const archived = location.status === 'archived' || isArchivedView;
 
   return (
     <div className="row-actions-wrap" ref={ref}>
@@ -48,9 +50,9 @@ export const LocationRowActions: React.FC<Props> = ({
       {open && (
         <div className="row-actions-dd open">
           <button type="button" onClick={() => { onEdit(location); setOpen(false); }}>Edit</button>
-          <button type="button" onClick={() => { onDuplicate(location); setOpen(false); }}>Duplicate</button>
-          <button type="button" onClick={() => { onCopy(location.address, 'Address copied'); setOpen(false); }}>Copy address</button>
-          {location.status === 'active' && (
+          {archived ? (
+            <button type="button" onClick={() => { onRestore(location); setOpen(false); }}>Restore</button>
+          ) : (
             <button type="button" className="danger" onClick={() => { onArchive(location); setOpen(false); }}>Archive</button>
           )}
         </div>

@@ -32,6 +32,7 @@ export interface CreateLocationData {
   context: 'my' | 'customer';
   company: string;
   companyVat: string;
+  companyEntityId: number | null;
   template: string;
   name: string;
   address: string;
@@ -79,6 +80,7 @@ export const EMPTY_CREATE_DATA: CreateLocationData = {
   context: 'my',
   company: '',
   companyVat: '',
+  companyEntityId: null,
   template: '',
   name: '',
   address: '',
@@ -90,7 +92,7 @@ export const EMPTY_CREATE_DATA: CreateLocationData = {
   phone: '',
   email: '',
   role: 'both',
-  type: 'Warehouse',
+  type: 'warehouse',
   appt: false,
   hours: '',
   dock: '',

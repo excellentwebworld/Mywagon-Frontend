@@ -426,7 +426,64 @@ table.ab-table { width: 100%; border-collapse: collapse; }
   background: var(--surface);
 }
 .pag-info { font-size: 11px; color: var(--text-tertiary); }
+.pag-controls { display: flex; align-items: center; gap: 10px; }
+.pag-length-sel {
+  font-size: 11px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-secondary);
+}
 .pag-btns { display: flex; gap: 3px; }
+
+.location-type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.location-type-badge.type-my {
+  background: #FEF3C7;
+  color: #92400E;
+  border-color: #FDE68A;
+}
+
+.location-type-badge.type-customer {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border-color: #BFDBFE;
+}
+
+.usage-history-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.ab-map-field { margin-bottom: 12px; }
+.ab-map-field .ab-label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+.ab-map-field .ab-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.ab-coords-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.ab-field-hint { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
 .pg-btn {
   width: 28px;
   height: 28px;

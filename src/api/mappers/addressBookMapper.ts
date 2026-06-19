@@ -1,5 +1,5 @@
 import type { Contact, LocationItem } from '../../context/AppContext';
-import type { CreateLocationData, SortOption, ServerFilterValues } from '../../pages/AddressBook/types';
+import type { CreateLocationData, SortOption } from '../../pages/AddressBook/types';
 import type {
   ApiLocationDetail,
   ApiLocationListItem,
@@ -30,7 +30,13 @@ function mapGroup(type: ApiLocationListItem['type']): LocationItem['group'] {
 
 function mapRole(role: string | null | undefined): LocationItem['role'] {
   if (role === 'pickup' || role === 'delivery' || role === 'both') return role;
+  if (role === 'dropoff') return 'delivery';
   return 'both';
+}
+
+function formatFacilityType(subtype: string | null | undefined): string {
+  if (!subtype) return 'other';
+  return subtype.toLowerCase();
 }
 
 export function mapListItemToLocation(item: ApiLocationListItem): LocationItem {
@@ -47,16 +53,16 @@ export function mapListItemToLocation(item: ApiLocationListItem): LocationItem {
     lng: parseCoord(item.longitude),
     geoVerified: Boolean(item.latitude && item.longitude),
     role: mapRole(item.location_role),
-    type: item.location_subtype ?? 'Warehouse',
+    type: formatFacilityType(item.location_subtype),
     appt: Boolean(item.appointment_required),
-    hours: item.receiving_hours ?? '',
-    dock: '',
+    hours: item.receiving_hours ?? (item.load_time_minutes ? String(item.load_time_minutes) : ''),
+    dock: item.dock_type ?? '',
     equipment: [],
-    maxTruck: '',
-    maxWeight: '',
+    maxTruck: item.max_truck_length ?? '',
+    maxWeight: item.max_weight ?? '',
     adr: false,
     palletExchange: false,
-    loadTime: 0,
+    loadTime: item.load_time_minutes ?? 0,
     contacts: item.phone || item.email
       ? [{ name: item.company_name ?? 'Contact', role: 'Receiving', phone: item.phone ?? '', email: item.email ?? '' }]
       : [],
@@ -66,6 +72,7 @@ export function mapListItemToLocation(item: ApiLocationListItem): LocationItem {
     phone: item.phone ?? '',
     email: item.email ?? '',
     lastUsed: 'Never',
+    usageHistoryCount: item.usage_history_count ?? 0,
     shipments30: 0,
     shipments90: 0,
     otd: 100,
@@ -131,6 +138,8 @@ export function mapLocationToPayload(data: CreateLocationData): ApiLocationPaylo
 
   return {
     location_type: data.context === 'customer' ? 'customers' : 'my_locations',
+    company_entity_id: data.companyEntityId,
+    quick_template: data.template || null,
     location_name: data.name.trim(),
     company_name: data.company.trim(),
     company_vat: data.companyVat.trim(),
@@ -156,7 +165,7 @@ export function mapLocationToPayload(data: CreateLocationData): ApiLocationPaylo
         phone: c.phone,
         email: c.email,
       })),
-    location_subtype: data.type || null,
+    location_subtype: (data.type || 'warehouse').toLowerCase(),
     location_role: data.role,
     location_code: data.code || null,
     customer_code: data.custCode || null,
@@ -240,8 +249,7 @@ export function directoryToListParams(
   search: string,
   sort: SortOption,
   page: number,
-  perPage: number,
-  filters: ServerFilterValues
+  perPage: number
 ): ListLocationsParams {
   const params: ListLocationsParams = {
     sort: sortOptionToApi(sort),
@@ -262,19 +270,18 @@ export function directoryToListParams(
   } else if (activeNode === 'customer') {
     params.type = 'customers';
     params.status = 'active';
-  } else if (activeNode.startsWith('custom-')) {
-    params.type = 'all';
-    params.status = 'active';
   } else {
     params.type = 'all';
     params.status = 'active';
   }
 
-  if (filters.role) params.location_role = filters.role;
-  if (filters.type) params.location_subtype = filters.type;
-  if (filters.city.trim()) params.city = filters.city.trim();
-  if (filters.appt) params.appointment_required = true;
-  if (filters.hours) params.has_receiving_hours = true;
-
   return params;
+}
+
+export function listParamsToExportQuery(params: ListLocationsParams): Record<string, string> {
+  const query: Record<string, string> = {};
+  if (params.type) query.type = params.type;
+  if (params.search) query.search = params.search;
+  if (params.status) query.status = params.status;
+  return query;
 }

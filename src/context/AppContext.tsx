@@ -53,6 +53,7 @@ export interface LocationItem {
   timeRanges?: { id?: number; start_time: string; end_time: string }[];
   status: 'active' | 'archived';
   created: string;
+  usageHistoryCount?: number;
 }
 
 export interface Company {

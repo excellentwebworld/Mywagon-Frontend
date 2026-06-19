@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   AddressBookHeader,
   CreateCompanyModal,
@@ -14,24 +14,13 @@ import '../../styles/address-book.css';
 
 export const AddressBook: React.FC = () => {
   const ab = useAddressBook();
-  const { setIconPickerOpen } = ab;
-
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest('.icon-picker-wrap')) {
-        setIconPickerOpen(false);
-      }
-    };
-    document.addEventListener('click', onClick);
-    return () => document.removeEventListener('click', onClick);
-  }, [setIconPickerOpen]);
 
   return (
     <div className="ab-wrap anim">
       <AddressBookHeader
         lang={ab.lang}
         t={ab.t}
-        exportCsv={ab.exportCsv}
+        exportExcel={ab.exportExcel}
         exporting={ab.exporting}
         openCreateModal={ab.openCreateModal}
       />
@@ -51,40 +40,14 @@ export const AddressBook: React.FC = () => {
         </div>
       )}
 
-      <FilterBar
-        lang={ab.lang}
-        t={ab.t}
-        searchQuery={ab.searchQuery}
-        handleSearchChange={ab.handleSearchChange}
-        activeFilters={ab.activeFilters}
-        serverFilters={ab.serverFilters}
-        setServerFilter={ab.setServerFilter}
-        toggleFilter={ab.toggleFilter}
-        clearFilters={ab.clearFilters}
-      />
+      <FilterBar lang={ab.lang} searchQuery={ab.searchQuery} handleSearchChange={ab.handleSearchChange} />
 
       <div className="ab-panes">
-        <DirectoryPane
-          lang={ab.lang}
-          locations={ab.locations}
-          summary={ab.summary}
-          directories={ab.directories}
-          activeNode={ab.activeNode}
-          selectNode={ab.selectNode}
-          deleteDirectory={ab.deleteDirectory}
-          addingDir={ab.addingDir}
-          setAddingDir={ab.setAddingDir}
-          newDirName={ab.newDirName}
-          setNewDirName={ab.setNewDirName}
-          newDirIcon={ab.newDirIcon}
-          setNewDirIcon={ab.setNewDirIcon}
-          iconPickerOpen={ab.iconPickerOpen}
-          setIconPickerOpen={ab.setIconPickerOpen}
-          saveNewDir={ab.saveNewDir}
-        />
+        <DirectoryPane lang={ab.lang} summary={ab.summary} activeNode={ab.activeNode} selectNode={ab.selectNode} />
 
         <LocationList
-          activeDirectory={ab.activeDirectory}
+          activeDirectoryName={ab.activeDirectoryName}
+          activeNode={ab.activeNode}
           sortBy={ab.sortBy}
           setSortBy={ab.setSortBy}
           filteredLocations={ab.filteredLocations}
@@ -95,12 +58,13 @@ export const AddressBook: React.FC = () => {
           listMeta={ab.listMeta}
           currentPage={ab.currentPage}
           setCurrentPage={ab.setCurrentPage}
+          perPage={ab.perPage}
+          setPerPage={ab.setPerPage}
           pageStart={ab.pageStart}
           pageEnd={ab.pageEnd}
           openEditModal={ab.openEditModal}
-          handleDuplicate={ab.handleDuplicate}
           handleArchive={ab.handleArchive}
-          handleCopy={ab.handleCopy}
+          handleRestore={ab.handleRestore}
           t={ab.t}
           showToast={ab.showToast}
           lang={ab.lang}
@@ -132,6 +96,7 @@ export const AddressBook: React.FC = () => {
         handleApplyTemplate={ab.handleApplyTemplate}
         submitNewLocation={ab.submitNewLocation}
         potentialDuplicates={ab.potentialDuplicates}
+        selectExistingDuplicate={ab.selectExistingDuplicate}
         saving={ab.saving}
         amenities={ab.amenities}
         showToast={ab.showToast}
