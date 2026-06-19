@@ -31,7 +31,7 @@ export const AppLayout: React.FC = () => {
       {/* Global Toast Notification */}
       {toast.show && (
         <div className="toast-container">
-          <div className={`toast ${toast.type}`}>
+          <div className={`toast ${toast.type} show`}>
             <span className="toast-icon">
               {toast.type === 'success' && '✓'}
               {toast.type === 'error' && '✕'}
