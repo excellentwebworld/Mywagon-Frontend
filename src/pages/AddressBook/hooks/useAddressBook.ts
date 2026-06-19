@@ -55,6 +55,7 @@ export function useAddressBook() {
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const [apiCompanies, setApiCompanies] = useState<ApiCompanyEntity[]>([]);
   const [potentialDuplicates, setPotentialDuplicates] = useState<LocationItem[]>([]);
+  const [archiveConfirmLoc, setArchiveConfirmLoc] = useState<LocationItem | null>(null);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -491,11 +492,16 @@ export function useAddressBook() {
 
   const handleArchive = useCallback(
     async (loc: LocationItem) => {
-      if (!window.confirm(`Archive "${loc.name}"? It will be moved to the Archived directory.`)) return;
-      deleteLocationMutation.mutate(loc.id);
+      setArchiveConfirmLoc(loc);
     },
-    [deleteLocationMutation]
+    []
   );
+
+  const confirmArchive = useCallback(async () => {
+    if (!archiveConfirmLoc) return;
+    deleteLocationMutation.mutate(archiveConfirmLoc.id);
+    setArchiveConfirmLoc(null);
+  }, [archiveConfirmLoc, deleteLocationMutation]);
 
   const handleRestore = useCallback(
     async (loc: LocationItem) => {
@@ -631,6 +637,9 @@ export function useAddressBook() {
     openEditModal,
     handleArchive,
     handleRestore,
+    archiveConfirmLoc,
+    setArchiveConfirmLoc,
+    confirmArchive,
     goToCreateShipment,
     exportExcel,
     selectExistingDuplicate,

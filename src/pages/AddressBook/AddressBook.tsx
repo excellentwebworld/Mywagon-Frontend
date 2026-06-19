@@ -9,6 +9,7 @@ import {
   LocationDetailPanel,
   LocationList,
 } from '../../components/AddressBook';
+import { ConfirmationModal } from '../../components/ui/ConfirmationModal';
 import { useAddressBook } from './hooks/useAddressBook';
 import '../../styles/address-book.css';
 
@@ -120,6 +121,27 @@ export const AddressBook: React.FC = () => {
         companyData={ab.companyData}
         setCompanyData={ab.setCompanyData}
         handleApplyCompany={ab.handleApplyCompany}
+      />
+
+      <ConfirmationModal
+        isOpen={!!ab.archiveConfirmLoc}
+        onClose={() => ab.setArchiveConfirmLoc(null)}
+        onConfirm={ab.confirmArchive}
+        title={ab.t('archiveLocation')}
+        type="danger"
+        confirmText={ab.t('archive') || 'Archive'}
+        cancelText={ab.t('cancel') || 'Cancel'}
+        confirmLoading={ab.saving}
+        message={
+          <>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
+              {ab.t('archiveLocationQuestion', { name: ab.archiveConfirmLoc?.name || '' })}
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.7 }}>
+              {ab.t('archiveLocationWarning')}
+            </p>
+          </>
+        }
       />
     </div>
   );
