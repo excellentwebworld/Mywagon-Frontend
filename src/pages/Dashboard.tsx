@@ -8,8 +8,11 @@ import { ShipmentBoard } from '../components/dashboard/ShipmentBoard';
 import { Notifications } from '../components/dashboard/Notifications';
 import { RightPanel } from '../components/dashboard/RightPanel';
 
+import { useTranslation } from '../hooks/useTranslation';
+
 export const Dashboard: React.FC = () => {
   const { lang } = useApp();
+  const { t } = useTranslation();
 
   // Coordinate active board tab state between KpiStrip and ShipmentBoard
   // Index 1 represents "Upcoming" which is the default active tab in the design
@@ -17,6 +20,9 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="animate-fade-in">
+      {/* Page Title */}
+      <h1 className="text-h2" style={{ marginBottom: '16px' }}>{t('dashboard')}</h1>
+
       {/* Greeting Header */}
       <div style={{ marginBottom: '20px' }}>
         <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '2px' }}>
