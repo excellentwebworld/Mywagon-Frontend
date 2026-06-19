@@ -264,7 +264,16 @@ export const CreateLocationModal: React.FC<Props> = ({
         lng={createData.lng}
         onAddressChange={(address) => update({ address })}
         onLatLngChange={(lat, lng) => update({ lat, lng })}
-        onCityPostalChange={(city, postal) => update({ city, postal })}
+        onPlaceSelected={(details) =>
+          update({
+            address: details.address,
+            lat: details.lat,
+            lng: details.lng,
+            city: details.city || createData.city,
+            postal: details.postalCode || createData.postal,
+            region: details.region || createData.region,
+          })
+        }
       />
       <div className="mf-row">
         <div className="mf">
