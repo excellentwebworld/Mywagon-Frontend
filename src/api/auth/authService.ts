@@ -1,69 +1,56 @@
+import axios from 'axios';
+import { axiosInstance, AUTH_TOKEN_KEY, getStoredToken, setStoredToken, clearStoredToken } from '../client';
 import type { LoginPayload, LoginResponse, LogoutResponse, MeResponse, ShipperUser } from './types';
 
-export const AUTH_TOKEN_KEY = 'shipper_auth_token';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
-
-export function getStoredToken(): string | null {
-  return localStorage.getItem(AUTH_TOKEN_KEY);
-}
-
-export function setStoredToken(token: string): void {
-  localStorage.setItem(AUTH_TOKEN_KEY, token);
-}
-
-export function clearStoredToken(): void {
-  localStorage.removeItem(AUTH_TOKEN_KEY);
-}
+export { AUTH_TOKEN_KEY, getStoredToken, setStoredToken, clearStoredToken };
 
 async function authRequest<T>(
   path: string,
-  options: RequestInit = {},
+  options: {
+    method?: string;
+    body?: unknown;
+    headers?: Record<string, string>;
+  } = {},
   token?: string | null
 ): Promise<T> {
   const headers: Record<string, string> = {
-    Accept: 'application/json',
-    ...(options.headers as Record<string, string>),
+    ...options.headers,
   };
 
-  if (options.body && !headers['Content-Type']) {
-    headers['Content-Type'] = 'application/json';
+  if (token === null) {
+    headers.Authorization = '';
+  } else if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
-  const bearer = token ?? getStoredToken();
-  if (bearer) {
-    headers.Authorization = `Bearer ${bearer}`;
-  }
-
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-  });
-
-  let payload: T & { message?: string } | null = null;
   try {
-    payload = (await response.json()) as T & { message?: string };
-  } catch {
-    throw new Error(response.statusText || 'Request failed');
+    const response = await axiosInstance({
+      url: path,
+      method: options.method || 'GET',
+      data: options.body,
+      headers,
+    });
+    return response.data;
+  } catch (err: any) {
+    if (axios.isAxiosError(err)) {
+      const data = err.response?.data;
+      const statusText = err.response?.statusText || err.message;
+      const errPayload = data as { message?: string; errors?: Record<string, string[]> };
+      const firstFieldError = errPayload?.errors
+        ? Object.values(errPayload.errors).flat()[0]
+        : undefined;
+      const message = firstFieldError || errPayload?.message || statusText || 'Request failed';
+      throw new Error(message);
+    }
+    throw err;
   }
-
-  if (!response.ok) {
-    const errPayload = payload as { message?: string; errors?: Record<string, string[]> };
-    const firstFieldError = errPayload.errors
-      ? Object.values(errPayload.errors).flat()[0]
-      : undefined;
-    const message = firstFieldError || errPayload.message || response.statusText || 'Request failed';
-    throw new Error(message);
-  }
-
-  return payload as T;
 }
 
 export const authService = {
   async login(payload: LoginPayload): Promise<{ token: string; user: ShipperUser }> {
     const res = await authRequest<LoginResponse>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: payload,
     }, null);
 
     if (!res.status || !res.bearer_token) {

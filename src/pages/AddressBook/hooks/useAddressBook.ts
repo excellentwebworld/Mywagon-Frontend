@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../../context/AppContext';
 import type { LocationItem } from '../../../context/AppContext';
 import { addressBookService, ApiError } from '../../../api';
@@ -28,17 +29,12 @@ const PER_PAGE = 25;
 export function useAddressBook() {
   const { lang, t, showToast, refreshLocationsFromApi } = useApp();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const [locations, setLocations] = useState<LocationItem[]>([]);
-  const [listMeta, setListMeta] = useState<ApiListMeta>({ current_page: 1, per_page: PER_PAGE, total: 0, last_page: 1 });
-  const [summary, setSummary] = useState<ApiAddressBookSummary | null>(null);
-  const [amenities, setAmenities] = useState<ApiAmenity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const [directories, setDirectories] = useState<DirectoryItem[]>(() => loadCustomDirectories(lang));
   const [activeNode, setActiveNode] = useState('all');
@@ -126,55 +122,194 @@ export function useAddressBook() {
     [showToast]
   );
 
-  const refreshSummary = useCallback(async () => {
-    try {
-      const data = await addressBookService.getSummary();
-      setSummary(data);
-    } catch {
-      // Non-blocking
-    }
-  }, []);
-
-  const refreshLocations = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = directoryToListParams(
-        activeNode,
-        debouncedSearch,
-        sortBy,
-        currentPage,
-        PER_PAGE,
-        serverFilters
-      );
-      const result = await addressBookService.listLocations(params);
-      setLocations(result.items);
-      setListMeta(result.meta);
-      setSubscriptionBlocked(false);
-    } catch (err) {
-      const message = handleApiError(err, 'Failed to load locations');
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeNode, debouncedSearch, sortBy, currentPage, serverFilters, handleApiError]);
-
   const syncGlobalLocations = useCallback(async () => {
     await refreshLocationsFromApi();
   }, [refreshLocationsFromApi]);
 
-  const afterMutation = useCallback(async () => {
-    await Promise.all([refreshLocations(), refreshSummary(), syncGlobalLocations()]);
-  }, [refreshLocations, refreshSummary, syncGlobalLocations]);
+  const params = useMemo(() => {
+    return directoryToListParams(
+      activeNode,
+      debouncedSearch,
+      sortBy,
+      currentPage,
+      PER_PAGE,
+      serverFilters
+    );
+  }, [activeNode, debouncedSearch, sortBy, currentPage, serverFilters]);
 
-  useEffect(() => {
-    refreshLocations();
-  }, [refreshLocations]);
+  // Queries
+  const {
+    data: locationsData,
+    isLoading: loading,
+    refetch: refreshLocations,
+  } = useQuery({
+    queryKey: ['locations', activeNode, debouncedSearch, sortBy, currentPage, serverFilters],
+    queryFn: async () => {
+      try {
+        setError(null);
+        const result = await addressBookService.listLocations(params);
+        setSubscriptionBlocked(false);
+        return result;
+      } catch (err) {
+        const message = handleApiError(err, 'Failed to load locations');
+        setError(message);
+        throw err;
+      }
+    },
+  });
 
-  useEffect(() => {
-    refreshSummary();
-    addressBookService.listAmenities().then(setAmenities).catch(() => {});
-  }, [refreshSummary]);
+  const locations = useMemo(() => locationsData?.items ?? [], [locationsData]);
+  const listMeta = useMemo(() => locationsData?.meta ?? { current_page: 1, per_page: PER_PAGE, total: 0, last_page: 1 }, [locationsData]);
+
+  const {
+    data: summaryData,
+  } = useQuery({
+    queryKey: ['addressBookSummary'],
+    queryFn: async () => {
+      try {
+        return await addressBookService.getSummary();
+      } catch {
+        return null;
+      }
+    },
+  });
+
+  const summary = summaryData ?? null;
+
+  const {
+    data: amenitiesData,
+  } = useQuery({
+    queryKey: ['amenities'],
+    queryFn: async () => {
+      try {
+        return await addressBookService.listAmenities();
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const amenities = amenitiesData ?? [];
+
+  // Mutations
+  const createLocationMutation = useMutation({
+    mutationFn: (data: CreateLocationData) => addressBookService.createLocation(data),
+    onSuccess: (created) => {
+      setIsCreateOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      queryClient.invalidateQueries({ queryKey: ['addressBookSummary'] });
+      syncGlobalLocations();
+      setSelectedLoc(created);
+      showToast(`"${created.name}" created`, 'success');
+    },
+    onError: (err) => {
+      handleApiError(err, 'Failed to create location');
+    },
+  });
+
+  const updateLocationMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: LocationItem }) => addressBookService.updateLocation(id, data),
+    onSuccess: (updated) => {
+      setSelectedLoc(updated);
+      setIsEditOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      queryClient.invalidateQueries({ queryKey: ['addressBookSummary'] });
+      syncGlobalLocations();
+      showToast(`"${updated.name}" updated`, 'success');
+    },
+    onError: (err) => {
+      handleApiError(err, 'Failed to update location');
+    },
+  });
+
+  const deleteLocationMutation = useMutation({
+    mutationFn: (id: string) => addressBookService.deleteLocation(id),
+    onSuccess: (_, id) => {
+      setSelectedLoc(null);
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      queryClient.invalidateQueries({ queryKey: ['addressBookSummary'] });
+      syncGlobalLocations();
+      const loc = locations.find((l) => l.id === id);
+      showToast(`"${loc?.name || 'Location'}" archived`);
+    },
+    onError: (err) => {
+      handleApiError(err, 'Failed to archive location');
+    },
+  });
+
+  const restoreLocationMutation = useMutation({
+    mutationFn: (id: string) => addressBookService.restoreLocation(id),
+    onSuccess: (restored) => {
+      setSelectedLoc(restored);
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      queryClient.invalidateQueries({ queryKey: ['addressBookSummary'] });
+      syncGlobalLocations();
+      showToast(`"${restored.name}" restored`, 'success');
+    },
+    onError: (err) => {
+      handleApiError(err, 'Failed to restore location');
+    },
+  });
+
+  const duplicateLocationMutation = useMutation({
+    mutationFn: async (l: LocationItem) => {
+      const full = await queryClient.fetchQuery({
+        queryKey: ['locationDetail', l.id],
+        queryFn: () => addressBookService.getLocation(l.id),
+      });
+      const duplicateData: CreateLocationData = {
+        ...EMPTY_CREATE_DATA,
+        context: full.group === 'customer' ? 'customer' : 'my',
+        company: full.company,
+        companyVat: full.companyVat,
+        name: `${full.name} (Copy)`,
+        address: full.address,
+        city: full.city,
+        postal: full.postalCode ?? '',
+        region: full.region,
+        lat: String(full.lat),
+        lng: String(full.lng),
+        phone: full.phone ?? '',
+        email: full.email ?? '',
+        role: full.role,
+        type: full.type,
+        appt: full.appt,
+        hours: full.hours,
+        dock: full.dock,
+        equipment: full.equipment,
+        maxTruck: full.maxTruck,
+        maxWeight: full.maxWeight,
+        adr: full.adr,
+        palletExchange: full.palletExchange,
+        loadTime: String(full.loadTime || ''),
+        noteInternal: full.noteInternal,
+        noteCarrier: full.noteCarrier,
+        contacts: full.contacts,
+        code: '',
+        custCode: full.custCode,
+        tags: full.tags.join(', '),
+        amenityIds: full.amenityIds ?? [],
+        timeRanges: full.timeRanges ?? [],
+      };
+      return addressBookService.createLocation(duplicateData);
+    },
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      queryClient.invalidateQueries({ queryKey: ['addressBookSummary'] });
+      syncGlobalLocations();
+      setSelectedLoc(created);
+      showToast(`Duplicated as "${created.name}"`, 'success');
+    },
+    onError: (err) => {
+      handleApiError(err, 'Failed to duplicate location');
+    },
+  });
+
+  const saving = createLocationMutation.isPending || 
+    updateLocationMutation.isPending || 
+    deleteLocationMutation.isPending || 
+    restoreLocationMutation.isPending || 
+    duplicateLocationMutation.isPending;
 
   useEffect(() => {
     if (!companyDropdownOpen) return;
@@ -206,7 +341,10 @@ export function useAddressBook() {
           if (!cancelled) setPotentialDuplicates([]);
           return;
         }
-        const existing = await addressBookService.getLocation(String(result.existing_id));
+        const existing = await queryClient.fetchQuery({
+          queryKey: ['locationDetail', String(result.existing_id)],
+          queryFn: () => addressBookService.getLocation(String(result.existing_id)),
+        });
         if (!cancelled) setPotentialDuplicates([existing]);
       })
       .catch(() => {
@@ -216,7 +354,7 @@ export function useAddressBook() {
     return () => {
       cancelled = true;
     };
-  }, [createStep, createData, locations]);
+  }, [createStep, createData, locations, queryClient]);
 
   const filteredLocations = useMemo(() => {
     const dir = directories.find((d) => d.id === activeNode);
@@ -267,6 +405,7 @@ export function useAddressBook() {
         } else {
           if (key === 'role') setServerFilter('role', 'both');
           if (key === 'type') setServerFilter('type', 'Warehouse');
+          if (key === 'city') setServerFilter('city', '');
           if (key === 'appt') setServerFilter('appt', true);
           if (key === 'hours') setServerFilter('hours', true);
         }
@@ -337,54 +476,9 @@ export function useAddressBook() {
 
   const handleDuplicate = useCallback(
     async (l: LocationItem) => {
-      setSaving(true);
-      try {
-        const full = await addressBookService.getLocation(l.id);
-        const duplicateData: CreateLocationData = {
-          ...EMPTY_CREATE_DATA,
-          context: full.group === 'customer' ? 'customer' : 'my',
-          company: full.company,
-          companyVat: full.companyVat,
-          name: `${full.name} (Copy)`,
-          address: full.address,
-          city: full.city,
-          postal: full.postalCode ?? '',
-          region: full.region,
-          lat: String(full.lat),
-          lng: String(full.lng),
-          phone: full.phone ?? '',
-          email: full.email ?? '',
-          role: full.role,
-          type: full.type,
-          appt: full.appt,
-          hours: full.hours,
-          dock: full.dock,
-          equipment: full.equipment,
-          maxTruck: full.maxTruck,
-          maxWeight: full.maxWeight,
-          adr: full.adr,
-          palletExchange: full.palletExchange,
-          loadTime: String(full.loadTime || ''),
-          noteInternal: full.noteInternal,
-          noteCarrier: full.noteCarrier,
-          contacts: full.contacts,
-          code: '',
-          custCode: full.custCode,
-          tags: full.tags.join(', '),
-          amenityIds: full.amenityIds ?? [],
-          timeRanges: full.timeRanges ?? [],
-        };
-        const created = await addressBookService.createLocation(duplicateData);
-        await afterMutation();
-        setSelectedLoc(created);
-        showToast(`Duplicated as "${created.name}"`, 'success');
-      } catch (err) {
-        handleApiError(err, 'Failed to duplicate location');
-      } finally {
-        setSaving(false);
-      }
+      duplicateLocationMutation.mutate(l);
     },
-    [afterMutation, handleApiError, showToast]
+    [duplicateLocationMutation]
   );
 
   const handleApplyTemplate = useCallback((tpl: string) => {
@@ -413,19 +507,8 @@ export function useAddressBook() {
       return;
     }
 
-    setSaving(true);
-    try {
-      const created = await addressBookService.createLocation(createData);
-      setIsCreateOpen(false);
-      await afterMutation();
-      setSelectedLoc(created);
-      showToast(`"${created.name}" created`, 'success');
-    } catch (err) {
-      handleApiError(err, 'Failed to create location');
-    } finally {
-      setSaving(false);
-    }
-  }, [afterMutation, createData, handleApiError, showToast]);
+    createLocationMutation.mutate(createData);
+  }, [createData, createLocationMutation, showToast]);
 
   const saveEditedLocation = useCallback(async () => {
     if (!editData) return;
@@ -438,19 +521,8 @@ export function useAddressBook() {
       return;
     }
 
-    setSaving(true);
-    try {
-      const updated = await addressBookService.updateLocation(editData.id, editData);
-      setSelectedLoc(updated);
-      setIsEditOpen(false);
-      await afterMutation();
-      showToast(`"${updated.name}" updated`, 'success');
-    } catch (err) {
-      handleApiError(err, 'Failed to update location');
-    } finally {
-      setSaving(false);
-    }
-  }, [afterMutation, editData, handleApiError, showToast]);
+    updateLocationMutation.mutate({ id: editData.id, data: editData });
+  }, [editData, updateLocationMutation, showToast]);
 
   const handleApplyCompany = useCallback(() => {
     if (!companyData.name.trim() || !companyData.vat.trim()) {
@@ -472,50 +544,32 @@ export function useAddressBook() {
   const openEditModal = useCallback(
     async (loc: LocationItem) => {
       try {
-        const full = await addressBookService.getLocation(loc.id);
+        const full = await queryClient.fetchQuery({
+          queryKey: ['locationDetail', loc.id],
+          queryFn: () => addressBookService.getLocation(loc.id),
+        });
         setEditData(JSON.parse(JSON.stringify(full)) as LocationItem);
         setIsEditOpen(true);
       } catch (err) {
         handleApiError(err, 'Failed to load location for editing');
       }
     },
-    [handleApiError]
+    [queryClient, handleApiError]
   );
 
   const handleArchive = useCallback(
     async (loc: LocationItem) => {
       if (!window.confirm(`Archive "${loc.name}"? It will be moved to the Archived directory.`)) return;
-
-      setSaving(true);
-      try {
-        await addressBookService.deleteLocation(loc.id);
-        setSelectedLoc(null);
-        await afterMutation();
-        showToast(`"${loc.name}" archived`);
-      } catch (err) {
-        handleApiError(err, 'Failed to archive location');
-      } finally {
-        setSaving(false);
-      }
+      deleteLocationMutation.mutate(loc.id);
     },
-    [afterMutation, handleApiError, showToast]
+    [deleteLocationMutation]
   );
 
   const handleRestore = useCallback(
     async (loc: LocationItem) => {
-      setSaving(true);
-      try {
-        const restored = await addressBookService.restoreLocation(loc.id);
-        setSelectedLoc(restored);
-        await afterMutation();
-        showToast(`"${restored.name}" restored`, 'success');
-      } catch (err) {
-        handleApiError(err, 'Failed to restore location');
-      } finally {
-        setSaving(false);
-      }
+      restoreLocationMutation.mutate(loc.id);
     },
-    [afterMutation, handleApiError, showToast]
+    [restoreLocationMutation]
   );
 
   const goToCreateShipment = useCallback(
@@ -561,7 +615,10 @@ export function useAddressBook() {
       setSelectedLoc(loc);
       setDetailLoading(true);
       try {
-        const full = await addressBookService.getLocation(loc.id);
+        const full = await queryClient.fetchQuery({
+          queryKey: ['locationDetail', loc.id],
+          queryFn: () => addressBookService.getLocation(loc.id),
+        });
         setSelectedLoc(full);
       } catch (err) {
         handleApiError(err, 'Failed to load location details');
@@ -569,7 +626,7 @@ export function useAddressBook() {
         setDetailLoading(false);
       }
     },
-    [handleApiError]
+    [queryClient, handleApiError]
   );
 
   const filteredCompanies = useMemo(() => apiCompanies, [apiCompanies]);
