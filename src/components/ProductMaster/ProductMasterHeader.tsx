@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
+import { useOutsideClick } from '../../hooks/useOutsideClick';
 
 type Props = Pick<
   ProductMasterState,
@@ -24,6 +25,7 @@ export const ProductMasterHeader: React.FC<Props> = ({
   downloadTemplate,
 }) => {
   const { t } = useTranslation();
+  const addWrapRef = useOutsideClick<HTMLDivElement>(() => setAddDropdownOpen(false), addDropdownOpen);
 
   return (
     <div className="page-hdr anim">
@@ -40,7 +42,7 @@ export const ProductMasterHeader: React.FC<Props> = ({
           </svg>
           {exporting ? t('abExporting') : t('export')}
         </button>
-        <div className="add-wrap">
+        <div ref={addWrapRef} className="add-wrap">
           <button
             type="button"
             className="btn btn-p btn-md"

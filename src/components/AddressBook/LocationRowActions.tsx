@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import type { LocationItem } from '../../context/AppContext';
+import { useOutsideClick } from '../../hooks/useOutsideClick';
 
 interface Props {
   location: LocationItem;
@@ -19,17 +20,7 @@ export const LocationRowActions: React.FC<Props> = ({
   disabled,
 }) => {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('click', onClick);
-    return () => document.removeEventListener('click', onClick);
-  }, []);
+  const ref = useOutsideClick<HTMLDivElement>(() => setOpen(false), open);
 
   const archived = location.status === 'archived' || isArchivedView;
 

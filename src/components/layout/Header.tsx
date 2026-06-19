@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
+import { useOutsideClick } from '../../hooks/useOutsideClick';
 
 interface HeaderProps {
   onToggleMobileMenu: () => void;
@@ -19,6 +20,8 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
   // Dropdown States
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
+  const userRef = useOutsideClick<HTMLDivElement>(() => setUserOpen(false), userOpen);
   const [activePeriod, setActivePeriod] = useState<'today' | '7d' | '30d' | 'quarter' | 'ytd'>('today');
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -186,7 +189,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
 
         {/* Notifications Dropdown */}
         {showNotifications && (
-          <div className="dropdown" style={{ position: 'relative' }}>
+          <div ref={notifRef} className="dropdown" style={{ position: 'relative' }}>
             <button
               className="tb-btn tb-notif"
               onClick={() => {
@@ -300,7 +303,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
         )}
 
         {/* User profile avatar / dropdown */}
-        <div className="dropdown" style={{ position: 'relative' }}>
+        <div ref={userRef} className="dropdown" style={{ position: 'relative' }}>
           <button
             className="tb-avatar"
             onClick={() => {
