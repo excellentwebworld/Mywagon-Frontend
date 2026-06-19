@@ -1,5 +1,6 @@
 import type { Contact, LocationItem } from '../../context/AppContext';
 import type { CreateLocationData, SortOption } from '../../pages/AddressBook/types';
+import { normalizeFacilityType } from '../../pages/AddressBook/constants';
 import type {
   ApiLocationDetail,
   ApiLocationListItem,
@@ -35,8 +36,7 @@ function mapRole(role: string | null | undefined): LocationItem['role'] {
 }
 
 function formatFacilityType(subtype: string | null | undefined): string {
-  if (!subtype) return 'other';
-  return subtype.toLowerCase();
+  return normalizeFacilityType(subtype);
 }
 
 export function mapListItemToLocation(item: ApiLocationListItem): LocationItem {
@@ -165,7 +165,7 @@ export function mapLocationToPayload(data: CreateLocationData): ApiLocationPaylo
         phone: c.phone,
         email: c.email,
       })),
-    location_subtype: (data.type || 'warehouse').toLowerCase(),
+    location_subtype: normalizeFacilityType(data.type),
     location_role: data.role,
     location_code: data.code || null,
     customer_code: data.custCode || null,
@@ -211,7 +211,7 @@ export function mapLocationItemToPayload(loc: LocationItem): ApiLocationPayload 
       phone: c.phone,
       email: c.email,
     })),
-    location_subtype: (loc.type || 'warehouse').toLowerCase(),
+    location_subtype: normalizeFacilityType(loc.type),
     location_role: loc.role,
     location_code: loc.code || null,
     customer_code: loc.custCode || null,

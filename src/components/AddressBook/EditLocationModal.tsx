@@ -204,9 +204,22 @@ export const EditLocationModal: React.FC<Props> = ({
                       setFieldTouched('lat', true, false);
                       setFieldTouched('lng', true, false);
                     }}
-                    onCityPostalChange={(city, postal) => {
-                      setFieldValue('city', city);
-                      setFieldValue('postalCode', postal);
+                    onPlaceSelected={(details) => {
+                      setFieldValue('address', details.address);
+                      setFieldValue('lat', details.lat);
+                      setFieldValue('lng', details.lng);
+                      if (details.city) {
+                        setFieldValue('city', details.city);
+                        setFieldTouched('city', true, false);
+                      }
+                      if (details.postalCode) {
+                        setFieldValue('postalCode', details.postalCode);
+                        setFieldTouched('postalCode', true, false);
+                      }
+                      if (details.region) {
+                        setFieldValue('region', details.region);
+                        setFieldTouched('region', true, false);
+                      }
                     }}
                   />
                   <FormFieldError

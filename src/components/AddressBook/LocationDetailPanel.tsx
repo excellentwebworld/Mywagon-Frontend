@@ -1,6 +1,6 @@
 import React from 'react';
 import type { LocationItem } from '../../context/AppContext';
-import { TYPE_COLORS } from '../../pages/AddressBook/constants';
+import { FACILITY_TYPE_COLORS, FACILITY_TYPE_LABELS } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { DetailSection } from './DetailSection';
 
@@ -72,8 +72,11 @@ export const LocationDetailPanel: React.FC<Props> = ({
           </button>
           <div className="dp-badges">
             <span className={`role-badge ${getRoleClass(l.role)}`}>{getRoleLabel(l.role, t)}</span>
-            <span className="dp-type-badge" style={{ background: TYPE_COLORS[l.type] || 'var(--text-tertiary)' }}>
-              {l.type}
+            <span
+              className="dp-type-badge"
+              style={{ background: FACILITY_TYPE_COLORS[l.type] || 'var(--text-tertiary)' }}
+            >
+              {FACILITY_TYPE_LABELS[l.type] ?? l.type}
             </span>
             {l.status === 'archived' && <span className="dp-archived-badge">Archived</span>}
             {l.tags.map((tag: string) => (

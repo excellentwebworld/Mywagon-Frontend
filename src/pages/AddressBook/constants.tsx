@@ -1,14 +1,5 @@
 import React from 'react';
 
-export const TYPE_COLORS: Record<string, string> = {
-  Warehouse: '#0EA5E9',
-  Plant: '#10B981',
-  Store: '#F59E0B',
-  Office: '#8E8E9A',
-  'Cross-dock': '#7C3AED',
-  Port: '#0891B2',
-};
-
 export const FACILITY_TYPES = ['dc', 'warehouse', 'plant', 'store', 'port', 'other'] as const;
 
 export const FACILITY_TYPE_LABELS: Record<string, string> = {
@@ -18,6 +9,47 @@ export const FACILITY_TYPE_LABELS: Record<string, string> = {
   store: 'Store',
   port: 'Port',
   other: 'Other',
+};
+
+/** Map UI/legacy labels to API enum values (dc | warehouse | plant | store | port | other). */
+export function normalizeFacilityType(type: string | null | undefined): (typeof FACILITY_TYPES)[number] {
+  if (!type?.trim()) return 'warehouse';
+
+  const normalized = type.trim().toLowerCase();
+  if ((FACILITY_TYPES as readonly string[]).includes(normalized)) {
+    return normalized as (typeof FACILITY_TYPES)[number];
+  }
+
+  const aliases: Record<string, (typeof FACILITY_TYPES)[number]> = {
+    'cross-dock': 'dc',
+    'cross dock': 'dc',
+    'distribution center': 'dc',
+    'distribution centre': 'dc',
+    office: 'other',
+    factory: 'plant',
+  };
+
+  return aliases[normalized] ?? 'other';
+}
+
+export const FACILITY_TYPE_COLORS: Record<string, string> = {
+  dc: '#7C3AED',
+  warehouse: '#0EA5E9',
+  plant: '#10B981',
+  store: '#F59E0B',
+  port: '#0891B2',
+  other: '#8E8E9A',
+};
+
+/** @deprecated Use FACILITY_TYPE_COLORS */
+export const TYPE_COLORS: Record<string, string> = {
+  ...FACILITY_TYPE_COLORS,
+  Warehouse: '#0EA5E9',
+  Plant: '#10B981',
+  Store: '#F59E0B',
+  Office: '#8E8E9A',
+  'Cross-dock': '#7C3AED',
+  Port: '#0891B2',
 };
 
 export const LOCATION_TYPES = FACILITY_TYPES;
