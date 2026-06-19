@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../../context/AppContext';
+import { useTranslation } from '../../../hooks/useTranslation';
 import type { LocationItem } from '../../../context/AppContext';
 import { addressBookService, ApiError } from '../../../api';
 import type { ApiAddressBookSummary, ApiAmenity, ApiListMeta } from '../../../api';
@@ -23,7 +24,8 @@ import type { ApiCompanyEntity } from '../../../api/types/addressBook';
 const SEARCH_DEBOUNCE_MS = 250;
 
 export function useAddressBook() {
-  const { lang, t, showToast, refreshLocationsFromApi } = useApp();
+  const { t } = useTranslation();
+  const { showToast, refreshLocationsFromApi } = useApp();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -319,22 +321,15 @@ export function useAddressBook() {
 
   const filteredLocations = locations;
 
-  const activeDirectoryName =
-    activeNode === 'my'
-      ? lang === 'el'
-        ? 'Οι Τοποθεσίες μου'
-        : 'My Locations'
-      : activeNode === 'customer'
-        ? lang === 'el'
-          ? 'Τοποθεσίες Πελατών'
-          : 'Customer Locations'
-        : activeNode === 'archived'
-          ? lang === 'el'
-            ? 'Αρχειοθετημένα'
-            : 'Archived'
-          : lang === 'el'
-            ? 'Όλες οι Τοποθεσίες'
-            : 'All Locations';
+  const activeDirectoryName = useMemo(() => {
+    const names: Record<string, string> = {
+      my: t('abMyLocations'),
+      customer: t('abCustomerLocations'),
+      archived: t('abArchived'),
+      all: t('abAllLocations'),
+    };
+    return names[activeNode] ?? t('abAllLocations');
+  }, [activeNode, t]);
 
   const openCreateModal = useCallback(() => {
     setCreateStep(1);
@@ -529,13 +524,13 @@ export function useAddressBook() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      showToast(lang === 'el' ? 'Εξαγωγή Excel ολοκληρώθηκε' : 'Excel exported', 'success');
+      showToast(t('abExcelExported'), 'success');
     } catch (err) {
       handleApiError(err, 'Failed to export Excel');
     } finally {
       setExporting(false);
     }
-  }, [activeNode, debouncedSearch, handleApiError, lang, perPage, showToast, sortBy]);
+  }, [activeNode, debouncedSearch, handleApiError, perPage, showToast, sortBy, t]);
 
   const handleSelectLocation = useCallback(
     async (loc: LocationItem | null) => {
@@ -577,7 +572,6 @@ export function useAddressBook() {
   const pageEnd = Math.min(listMeta.current_page * listMeta.per_page, listMeta.total);
 
   return {
-    lang,
     t,
     showToast,
     locations,

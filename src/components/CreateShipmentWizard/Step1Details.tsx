@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import type { LocationItem, ShipmentStop, ShipmentCustomer, ShipmentCustomerOrder } from '../../context/AppContext';
 import { CreateCustomerModal } from './CreateCustomerModal';
 import { CreateOrderModal } from './CreateOrderModal';
@@ -19,7 +20,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   stops,
   setStops,
 }) => {
-  const { lang, locations, companies, skus, showToast } = useApp();
+  const { t, lang } = useTranslation();
+  const { locations, companies, skus, showToast } = useApp();
 
   // Modals Visibility
   const [isCustOpen, setIsCustOpen] = useState(false);
@@ -108,7 +110,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   };
 
   const getSpecLabel = (vid: string, spec: string) => {
-    if (spec === 'refr' && vid === 'van') return lang === 'el' ? 'Ψυγείο Van' : 'Refrigerated Van';
+    if (spec === 'refr' && vid === 'van') return t('refrigeratedVan');
     if (spec === 'mega') return 'Mega (3m+)';
     return specLabels[spec] || spec.charAt(0).toUpperCase() + spec.slice(1);
   };
@@ -212,7 +214,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const handleConfirmVehicle = () => {
     setVehicleCardExpanded(false);
-    showToast(lang === 'el' ? 'Η επιλογή οχήματος επιβεβαιώθηκε' : 'Vehicle selection confirmed');
+    showToast(t('vehicleSelectionConfirmed'));
   };
 
   // Stop Actions
@@ -235,7 +237,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const handleRemoveStop = (id: number) => {
     if (stops.length <= 2) {
       showToast(
-        lang === 'el' ? 'Ένα φορτίο πρέπει να έχει τουλάχιστον 2 στάσεις' : 'A shipment must have at least 2 stops',
+        t('minTwoStops'),
         'warning'
       );
       return;
@@ -286,7 +288,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const handleProductCreated = (skuName: string) => {
     // SKU is registered inside AppContext automatically. We will trigger refresh of select options.
-    showToast(lang === 'el' ? `Προϊόν ${skuName} δημιουργήθηκε` : `Product ${skuName} created`);
+    showToast(t('productCreated', { name: skuName }));
   };
 
   // Customers & Orders state manipulation under stops
@@ -444,12 +446,12 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
             <circle cx="5.5" cy="18.5" r="2.5" />
             <circle cx="18.5" cy="18.5" r="2.5" />
           </svg>
-          <span>{lang === 'el' ? 'Τύπος Οχήματος' : 'Vehicle Type'}</span>
+          <span>{t('vehicleType')}</span>
           {!vehicleCardExpanded && vehicleBrief && (
             <span className="ch-brief">{vehicleBrief}</span>
           )}
           <span className="ch-r" style={{ display: vehicleCardExpanded ? '' : 'none' }}>
-            {lang === 'el' ? 'Επιλέξτε 1 ή περισσότερους τύπους' : 'Select 1 or more types'}
+            {t('selectOneOrMoreTypes')}
           </span>
           <div className={`ch-chev ${vehicleCardExpanded ? 'open' : ''}`}>▼</div>
         </div>
@@ -542,13 +544,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
             <div className="vreqs">
               <div className="vr">
                 <span>
-                  🚛 {lang === 'el' ? 'Τύπος οχήματος' : 'Vehicle type'}
+                  🚛 {t('vehicleType')}
                 </span>
                 <span className="vr-v">{selectedTypes.length ? selectedTypes.join(' | ') : '—'}</span>
               </div>
               <div className="vr">
                 <span>
-                  📦 {lang === 'el' ? 'Προδιαγραφές φορτίου' : 'Cargo specs'}
+                  📦 {t('cargoSpecs')}
                 </span>
                 <span className="vr-v">
                   {selectedSpecLabels.length
@@ -567,7 +569,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <span>{lang === 'el' ? 'Επιβεβαίωση Επιλογής' : 'Confirm Selection'}</span>
+                <span>{t('confirmSelection')}</span>
               </button>
             </div>
           </div>
@@ -590,11 +592,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                   </svg>
                 </div>
                 <span className="stop-num">
-                  {lang === 'el' ? 'Στάση' : 'Stop'} #{idx + 1}
+                  {t('stopNumber')} #{idx + 1}
                 </span>
                 <div className="stop-tags">
                   <span className={`tag ${isPickup ? 'pk' : 'do'}`}>
-                    {isPickup ? (lang === 'el' ? 'ΦΟΡΤΩΣΗ' : 'PICKUP') : (lang === 'el' ? 'ΠΑΡΑΔΟΣΗ' : 'DELIVERY')}
+                    {isPickup ? t('loadingUpper') : t('deliveryUpper')}
                   </span>
                 </div>
                 
@@ -618,7 +620,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                 {/* Location select search dropdown */}
                 <div className="field">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label className="field-l">{lang === 'el' ? 'Τοποθεσία' : 'Location'}</label>
+                    <label className="field-l">{t('location')}</label>
                     <button
                       className="btn btn-ghost btn-sm"
                       style={{ border: 'none', padding: '0 4px', color: 'var(--accent)', fontSize: '11px' }}
@@ -627,7 +629,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         setIsLocOpen(true);
                       }}
                     >
-                      + {lang === 'el' ? 'Δημιουργία Νέας Τοποθεσίας' : 'Create New Location'}
+                      + {t('createNewLocation')}
                     </button>
                   </div>
                   <div className="inp-w">
@@ -648,7 +650,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
                 {/* Appointment Date */}
                 <div className="field">
-                  <label className="field-l">{lang === 'el' ? 'Ραντεβού' : 'Appointment'}</label>
+                  <label className="field-l">{t('appointment')}</label>
                   <div className="appt-row">
                     <div className="field" style={{ flex: 1 }}>
                       <input
@@ -665,11 +667,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                 {/* Hours Frame */}
                 <div style={{ marginTop: '12px' }}>
                   <div className="time-tog">
-                    <button className="tt-b act">{lang === 'el' ? 'Ακριβής ώρα' : 'Precise Time'}</button>
+                    <button className="tt-b act">{t('preciseTime')}</button>
                   </div>
                   <div className="time-row">
                     <div className="field" style={{ flex: 1 }}>
-                      <label className="field-l">{lang === 'el' ? 'Από' : 'From'}</label>
+                      <label className="field-l">{t('from')}</label>
                       <input
                         type="time"
                         className="inp"
@@ -678,7 +680,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                       />
                     </div>
                     <div className="field" style={{ flex: 1 }}>
-                      <label className="field-l">{lang === 'el' ? 'Έως' : 'To'}</label>
+                      <label className="field-l">{t('to')}</label>
                       <input
                         type="time"
                         className="inp"
@@ -697,14 +699,14 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                       <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
                       <line x1="12" y1="22.08" x2="12" y2="12" />
                     </svg>
-                    <span>{lang === 'el' ? 'Φορτίο σε αυτή τη στάση' : 'Cargo at this stop'}</span>
+                    <span>{t('cargoAtStop')}</span>
                   </div>
 
                   {stop.customers.map((cust, custIdx) => (
                     <div key={custIdx} className="cust-c">
                       <div className="cust-h">
-                        <span>🏪 {lang === 'el' ? 'Πελάτης' : 'Customer'}</span>
-                        <span className="order-sum">{cust.name || (lang === 'el' ? 'προαιρετικό' : 'optional')}</span>
+                        <span>🏪 {t('customer')}</span>
+                        <span className="order-sum">{cust.name || t('optional')}</span>
                         <div className="acts">
                           <div className="mini-btn del" onClick={() => removeCustomerFromStop(stop.id, custIdx)}>✕</div>
                         </div>
@@ -712,7 +714,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                       <div className="cust-body">
                         <div className="field" style={{ marginTop: 0 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label className="field-l">{lang === 'el' ? 'Επιλογή Πελάτη' : 'Select Customer'}</label>
+                            <label className="field-l">{t('selectCustomer')}</label>
                             <button
                               className="btn btn-ghost btn-sm"
                               style={{ border: 'none', padding: '0 4px', color: 'var(--accent)', fontSize: '11px' }}
@@ -722,7 +724,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                                 setIsCustOpen(true);
                               }}
                             >
-                              + {lang === 'el' ? 'Δημιουργία Νέου Πελάτη' : 'Create New Customer'}
+                              + {t('createNewCustomer')}
                             </button>
                           </div>
                           <select
@@ -743,7 +745,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         {cust.orders.map((order, orderIdx) => (
                           <div key={orderIdx} className="order-c" style={{ marginTop: '12px' }}>
                             <div className="order-h">
-                              <span>{lang === 'el' ? 'Παραγγελία' : 'Order'}</span>
+                              <span>{t('order')}</span>
                               <span className="order-sum">{order.id || 'No ID'}</span>
                               <div className="acts">
                                 <div className="mini-btn del" onClick={() => removeOrderFromCustomer(stop.id, custIdx, orderIdx)}>✕</div>
@@ -752,7 +754,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                             <div className="order-body">
                               <div className="field" style={{ marginTop: 0 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <label className="field-l">{lang === 'el' ? 'Reference / ID' : 'Reference / ID'}</label>
+                                  <label className="field-l">{t('referenceId')}</label>
                                   <button
                                     className="btn btn-ghost btn-sm"
                                     style={{ border: 'none', padding: '0 4px', color: 'var(--accent)', fontSize: '11px' }}
@@ -763,7 +765,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                                       setIsOrderOpen(true);
                                     }}
                                   >
-                                    + {lang === 'el' ? 'Νέα Παραγγελία' : 'Create New Order'}
+                                    + {t('createNewOrder')}
                                   </button>
                                 </div>
                                 <input
@@ -776,11 +778,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
                               <div style={{ marginTop: '10px' }}>
                                 <div className="prod-labels">
-                                  <span className="pl-product">{lang === 'el' ? 'Προϊόν' : 'Product'}</span>
-                                  <span className="pl-action" style={{ width: '135px' }}>{lang === 'el' ? 'Ενέργεια' : 'Action'}</span>
-                                  <span className="pl-qty" style={{ width: '70px' }}>{lang === 'el' ? 'Ποσ' : 'Qty'}</span>
-                                  <span className="pl-unit" style={{ width: '90px' }}>{lang === 'el' ? 'Μονάδα' : 'Unit'}</span>
-                                  <span className="pl-wt" style={{ width: '70px' }}>{lang === 'el' ? 'Βάρος' : 'Weight'}</span>
+                                  <span className="pl-product">{t('product')}</span>
+                                  <span className="pl-action" style={{ width: '135px' }}>{t('action')}</span>
+                                  <span className="pl-qty" style={{ width: '70px' }}>{t('qty')}</span>
+                                  <span className="pl-unit" style={{ width: '90px' }}>{t('unit')}</span>
+                                  <span className="pl-wt" style={{ width: '70px' }}>{t('weight')}</span>
                                 </div>
 
                                 <div className="prod-row">
@@ -812,7 +814,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                                       className={`act-b pk ${order.qty >= 0 ? 'on' : ''}`}
                                       type="button"
                                     >
-                                      {isPickup ? (lang === 'el' ? 'Φόρτωση' : 'Pickup') : (lang === 'el' ? 'Παράδοση' : 'Delivery')}
+                                      {isPickup ? t('stopLoading') : t('stopDelivery')}
                                     </button>
                                   </div>
                                   <div className="pr-qty">
@@ -827,12 +829,12 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                                       value={order.qtyUnit}
                                       onChange={(e) => updateOrderProductField(stop.id, custIdx, orderIdx, 'qtyUnit', e.target.value)}
                                     >
-                                      <option value="Pallets">{lang === 'el' ? 'Παλέτες' : 'Pallets'}</option>
-                                      <option value="Boxes">{lang === 'el' ? 'Κιβώτια' : 'Boxes'}</option>
-                                      <option value="Pieces">{lang === 'el' ? 'Τεμάχια' : 'Pieces'}</option>
-                                      <option value="Liters">{lang === 'el' ? 'Λίτρα' : 'Liters'}</option>
+                                      <option value="Pallets">{t('pallets')}</option>
+                                      <option value="Boxes">{t('boxes')}</option>
+                                      <option value="Pieces">{t('pieces')}</option>
+                                      <option value="Liters">{t('liters')}</option>
                                       <option value="Kg">Kg</option>
-                                      <option value="Tons">{lang === 'el' ? 'Τόνοι' : 'Tons'}</option>
+                                      <option value="Tons">{t('tons')}</option>
                                     </select>
                                   </div>
                                   <div className="pr-wt">
@@ -861,7 +863,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           className="add-btn"
                           onClick={() => addOrderToCustomer(stop.id, custIdx)}
                         >
-                          + {lang === 'el' ? 'Προσθήκη Παραγγελίας' : 'Add Order'}
+                          + {t('addOrder')}
                         </button>
                       </div>
                     </div>
@@ -872,7 +874,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                     style={{ background: 'var(--surface)' }}
                     onClick={() => addCustomerToStop(stop.id)}
                   >
-                    + {lang === 'el' ? 'Προσθήκη Πελάτη' : 'Add Customer'}
+                    + {t('addCustomer')}
                   </button>
                 </div>
               </div>
@@ -881,7 +883,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         })}
 
         <button className="add-btn lg" onClick={handleAddStop}>
-          + {lang === 'el' ? 'Προσθήκη Στάσης' : 'Add Stop'}
+          + {t('addStopLabel')}
         </button>
       </div>
 

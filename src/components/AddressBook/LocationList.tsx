@@ -27,7 +27,6 @@ type Props = Pick<
   | 'handleRestore'
   | 't'
   | 'showToast'
-  | 'lang'
 >;
 
 function getRoleClass(role: LocationItem['role']) {
@@ -42,9 +41,9 @@ function getRoleLabel(role: LocationItem['role'], t: AddressBookState['t']) {
   return 'Both';
 }
 
-function getLocationTypeLabel(group: LocationItem['group'], lang: 'en' | 'el') {
-  if (group === 'customer') return lang === 'el' ? 'Τοποθεσία Πελάτη' : 'Customer Location';
-  return lang === 'el' ? 'Η Τοποθεσία μου' : 'My Location';
+function getLocationTypeLabel(group: LocationItem['group'], t: AddressBookState['t']) {
+  if (group === 'customer') return t('abCustomerLocation');
+  return t('abMyLocation');
 }
 
 export const LocationList: React.FC<Props> = ({
@@ -69,7 +68,6 @@ export const LocationList: React.FC<Props> = ({
   handleRestore,
   t,
   showToast,
-  lang,
 }) => {
   const count = filteredLocations.length;
   const total = listMeta.total;
@@ -118,13 +116,13 @@ export const LocationList: React.FC<Props> = ({
             {loading ? (
               <tr>
                 <td colSpan={8} className="ab-empty-row">
-                  {lang === 'el' ? 'Φόρτωση…' : 'Loading locations…'}
+                  {t('abLoadingLocations')}
                 </td>
               </tr>
             ) : count === 0 ? (
               <tr>
                 <td colSpan={8} className="ab-empty-row">
-                  {lang === 'el' ? 'Δεν βρέθηκαν τοποθεσίες' : t('noItems')}
+                  {t('noItems')}
                 </td>
               </tr>
             ) : (
@@ -144,7 +142,7 @@ export const LocationList: React.FC<Props> = ({
                     </td>
                     <td>
                       <span className={`location-type-badge ${l.group === 'customer' ? 'type-customer' : 'type-my'}`}>
-                        {getLocationTypeLabel(l.group, lang)}
+                        {getLocationTypeLabel(l.group, t)}
                       </span>
                       {facilityLabel && <div className="loc-meta">{facilityLabel}</div>}
                     </td>
@@ -170,7 +168,7 @@ export const LocationList: React.FC<Props> = ({
                     </td>
                     <td>
                       <span className="usage-history-cell">
-                        {usageCount} {lang === 'el' ? 'Φορτώσεις' : 'Loads'}
+                        {usageCount} {t('abLoads')}
                       </span>
                     </td>
                     <td onClick={(e) => e.stopPropagation()}>

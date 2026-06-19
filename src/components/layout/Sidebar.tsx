@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -16,7 +16,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile,
 }) => {
   const location = useLocation();
-  const { lang } = useApp();
+  const { t } = useTranslation();
 
   const currentPath = location.pathname;
 
@@ -70,7 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             to="/dashboard"
             onClick={onCloseMobile}
             className={`ni ${isLinkActive('/dashboard', true) ? 'active' : ''}`}
-            title={lang === 'el' ? 'Ταμπλό' : 'Dashboard'}
+            title={t('dashboard')}
           >
             <svg
               width="18"
@@ -85,14 +85,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <rect x="3" y="14" width="7" height="7" rx="1.5" />
               <rect x="14" y="14" width="7" height="7" rx="1.5" />
             </svg>
-            <span>{lang === 'el' ? 'Ταμπλό' : 'Dashboard'}</span>
+            <span>{t('dashboard')}</span>
           </Link>
 
           <Link
             to="/shipments/create"
             onClick={onCloseMobile}
             className={`ni ${isLinkActive('/shipments/create') ? 'active' : ''}`}
-            title={lang === 'el' ? 'Δημιουργία φορτίου' : 'Create Shipment'}
+            title={t('createShipment')}
           >
             <svg
               width="18"
@@ -104,14 +104,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <path d="M12 20V10M18 20V4M6 20v-4" />
             </svg>
-            <span>{lang === 'el' ? 'Δημιουργία φορτίου' : 'Create Shipment'}</span>
+            <span>{t('createShipment')}</span>
           </Link>
 
           <Link
             to="/shipments"
             onClick={onCloseMobile}
             className={`ni ${isLinkActive('/shipments') ? 'active' : ''}`}
-            title={lang === 'el' ? 'Διαχείριση Αποστολών' : 'Manage Shipments'}
+            title={t('navManageShipments')}
           >
             <svg
               width="18"
@@ -124,14 +124,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <rect x="2" y="7" width="20" height="14" rx="2" />
               <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
             </svg>
-            <span>{lang === 'el' ? 'Διαχείριση Αποστολών' : 'Manage Shipments'}</span>
+            <span>{t('navManageShipments')}</span>
             <span className="nb">5</span>
           </Link>
 
           <a
             href="#search"
             className="ni"
-            title={lang === 'el' ? 'Διαθεσιμότητα φορτηγών' : 'Truck Availability'}
+            title={t('truckAvailability')}
           >
             <svg
               width="18"
@@ -144,19 +144,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
             </svg>
-            <span>{lang === 'el' ? 'Διαθεσιμότητα φορτηγών' : 'Truck Availability'}</span>
+            <span>{t('truckAvailability')}</span>
             <span className="nb" style={{ background: '#0EA5E9' }}>
               BETA
             </span>
           </a>
 
-          <div className="ns">{lang === 'el' ? 'ΜΗΤΡΩΟ' : 'REGISTRY'}</div>
+          <div className="ns">{t('navRegistry')}</div>
 
           <Link
             to="/address-book"
             onClick={onCloseMobile}
             className={`ni ${isLinkActive('/address-book') ? 'active' : ''}`}
-            title={lang === 'el' ? 'Βιβλίο διευθύνσεων' : 'Address Book'}
+            title={t('addressBook')}
           >
             <svg
               width="18"
@@ -169,14 +169,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
               <circle cx="12" cy="10" r="3" />
             </svg>
-            <span>{lang === 'el' ? 'Βιβλίο διευθύνσεων' : 'Address Book'}</span>
+            <span>{t('addressBook')}</span>
           </Link>
 
           <Link
             to="/products"
             onClick={onCloseMobile}
             className={`ni ${isLinkActive('/products') ? 'active' : ''}`}
-            title={lang === 'el' ? 'Μητρώο προϊόντων' : 'Product Master'}
+            title={t('prodMaster')}
           >
             <svg
               width="18"
@@ -188,14 +188,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
             </svg>
-            <span>{lang === 'el' ? 'Μητρώο προϊόντων' : 'Product Master'}</span>
+            <span>{t('prodMaster')}</span>
           </Link>
 
           <Link
             to="/partners"
             onClick={onCloseMobile}
             className={`ni ${isLinkActive('/partners') ? 'active' : ''}`}
-            title={lang === 'el' ? 'Συνεργαζόμενοι' : 'Partners'}
+            title={t('navPartners')}
           >
             <svg
               width="18"
@@ -210,15 +210,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
-            <span>{lang === 'el' ? 'Συνεργαζόμενοι' : 'Partners'}</span>
+            <span>{t('navPartners')}</span>
           </Link>
 
-          <div className="ns">{lang === 'el' ? 'ΑΝΑΛΥΤΙΚΑ' : 'ANALYTICS'}</div>
+          <div className="ns">{t('navAnalytics')}</div>
 
           <a
             href="#reports"
             className="ni"
-            title={lang === 'el' ? 'Αναφορές & Insights' : 'Reports & Insights'}
+            title={t('navReportsInsights')}
           >
             <svg
               width="18"
@@ -230,7 +230,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <path d="M18 20V10M12 20V4M6 20v-8" />
             </svg>
-            <span>{lang === 'el' ? 'Αναφορές & Insights' : 'Reports & Insights'}</span>
+            <span>{t('navReportsInsights')}</span>
           </a>
         </nav>
 
@@ -240,7 +240,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={onToggleCollapse}
             className="ni sb-collapse-toggle"
-            title={lang === 'el' ? 'Σύμπτυξη Μενού' : 'Collapse Menu'}
+            title={t('navCollapseMenu')}
           >
             <svg
               width="16"
@@ -253,13 +253,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <polyline points="15 18 9 12 15 6" />
             </svg>
-            <span>{lang === 'el' ? 'Σύμπτυξη' : 'Collapse'}</span>
+            <span>{t('navCollapse')}</span>
           </button>
 
           <a
             href="#settings"
             className="ni"
-            title={lang === 'el' ? 'Ρυθμίσεις' : 'Settings'}
+            title={t('navSettings')}
           >
             <svg
               width="16"
@@ -273,12 +273,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
-            <span>{lang === 'el' ? 'Ρυθμίσεις' : 'Settings'}</span>
+            <span>{t('navSettings')}</span>
           </a>
           <a
             href="#help"
             className="ni"
-            title={lang === 'el' ? 'Βοήθεια' : 'Help'}
+            title={t('navHelp')}
           >
             <svg
               width="16"
@@ -293,7 +293,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
-            <span>{lang === 'el' ? 'Βοήθεια' : 'Help'}</span>
+            <span>{t('navHelp')}</span>
           </a>
         </div>
       </aside>

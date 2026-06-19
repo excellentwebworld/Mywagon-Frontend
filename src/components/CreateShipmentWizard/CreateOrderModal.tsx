@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface CreateOrderModalProps {
   isOpen: boolean;
@@ -12,7 +13,8 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   onClose,
   onCreated,
 }) => {
-  const { lang, companies } = useApp();
+  const { t } = useTranslation();
+  const { companies } = useApp();
   const [ref, setRef] = useState('');
   const [selectedCust, setSelectedCust] = useState('');
   const [notes, setNotes] = useState('');
@@ -34,13 +36,13 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     <div className={`modal-bg ${isOpen ? 'show' : ''}`} role="dialog" aria-modal="true">
       <div className="modal">
         <div className="modal-h">
-          <span>{lang === 'el' ? 'Δημιουργία Νέας Παραγγελίας' : 'Create New Order'}</span>
+          <span>{t('createNewOrderTitle')}</span>
           <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>
         </div>
         <div className="modal-body">
           <div className="field">
             <label className="field-l" htmlFor="newOrderRef">
-              {lang === 'el' ? 'ID Παραγγελίας / Αναφορά *' : 'Order ID / Reference *'}
+              {t('orderIdReference')}
             </label>
             <input
               id="newOrderRef"
@@ -53,7 +55,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           </div>
           <div className="field">
             <label className="field-l" htmlFor="newOrderCust">
-              {lang === 'el' ? 'Πελάτης (προαιρετικό)' : 'Customer (optional)'}
+              {t('customerOptional')}
             </label>
             <select
               id="newOrderCust"
@@ -71,7 +73,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           </div>
           <div className="field">
             <label className="field-l" htmlFor="newOrderNotes">
-              {lang === 'el' ? 'Σημειώσεις' : 'Notes'}
+              {t('notes')}
             </label>
             <textarea
               id="newOrderNotes"
@@ -85,14 +87,14 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         </div>
         <div className="modal-footer">
           <button className="btn btn-sm" onClick={onClose}>
-            {lang === 'el' ? 'Ακύρωση' : 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             className="btn btn-p btn-sm"
             onClick={handleCreate}
             disabled={!ref.trim()}
           >
-            {lang === 'el' ? 'Δημιουργία Παραγγελίας' : 'Create Order'}
+            {t('createOrder')}
           </button>
         </div>
       </div>

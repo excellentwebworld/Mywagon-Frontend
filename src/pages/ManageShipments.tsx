@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import type { Shipment } from '../context/AppContext';
+import { useTranslation } from '../hooks/useTranslation';
 
 export const ManageShipments: React.FC = () => {
-  const { shipments, updateShipment, carriers, lang, t, showToast } = useApp();
+  const { shipments, updateShipment, carriers, showToast } = useApp();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   // Search & Filters state
@@ -31,7 +33,7 @@ export const ManageShipments: React.FC = () => {
   const handleCopyId = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     navigator.clipboard.writeText(id);
-    showToast(lang === 'el' ? `Αντιγράφηκε: ${id}` : `Copied ID: ${id}`, 'success');
+    showToast(t('copiedId', { id }), 'success');
   };
 
   const getFilteredShipments = () => {
@@ -103,7 +105,7 @@ export const ManageShipments: React.FC = () => {
       updated: 'Just now',
       tl_cur: 3, // Awarded state
     });
-    showToast(lang === 'el' ? `Ανατέθηκε στον ${carrierName}!` : `Awarded to ${carrierName}!`, 'success');
+    showToast(t('awardedTo', { name: carrierName }), 'success');
   };
 
   const handleSendCounter = (s: Shipment) => {
@@ -150,17 +152,17 @@ export const ManageShipments: React.FC = () => {
   return (
     <div className="animate-fade-in" style={{ padding: '0px' }}>
       <h1 className="text-h2" style={{ marginBottom: '16px', fontSize: '24px', fontWeight: 700 }}>
-        {lang === 'el' ? 'Διαχείριση Φορτίων' : 'Manage Shipments'}
+        {t('manageShipments')}
       </h1>
 
       {/* KPI Cards Strip */}
       <div className="mgmt-kpi-s" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginBottom: '20px' }}>
         {[
-          { key: 'action', value: needsActionCount, label: lang === 'el' ? 'Απαιτεί Ενέργεια' : 'Needs Action', type: 'c-warn' },
-          { key: 'bids', value: bidsCount, label: lang === 'el' ? 'Εκκρεμεί + Προσφορές' : 'Pending + Has Bids', type: 'c-acc' },
-          { key: 'uncov', value: uncoveredCount, label: lang === 'el' ? 'Ακάλυπτα' : 'Uncovered', type: 'c-err' },
-          { key: 'risk', value: riskCount, label: lang === 'el' ? 'Σε Κίνδυνο' : 'At Risk / Late', type: 'c-err' },
-          { key: 'all', value: shipments.length, label: lang === 'el' ? 'Όλα' : 'All Shipments', type: '' },
+          { key: 'action', value: needsActionCount, label: t('needsActionLabel'), type: 'c-warn' },
+          { key: 'bids', value: bidsCount, label: t('pendingHasBids'), type: 'c-acc' },
+          { key: 'uncov', value: uncoveredCount, label: t('uncoveredLabel'), type: 'c-err' },
+          { key: 'risk', value: riskCount, label: t('atRiskLate'), type: 'c-err' },
+          { key: 'all', value: shipments.length, label: t('allShipments'), type: '' },
         ].map((kpi) => (
           <div
             key={kpi.key}
@@ -183,7 +185,7 @@ export const ManageShipments: React.FC = () => {
           </svg>
           <input
             type="text"
-            placeholder={lang === 'el' ? 'Αναζήτηση SID, παραγγελίας, μεταφορέα…' : 'Search SID, order, carrier, customer…'}
+            placeholder={t('searchShipmentsPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ paddingLeft: '32px', width: '100%' }}
@@ -225,15 +227,15 @@ export const ManageShipments: React.FC = () => {
                   onChange={(e) => handleSelectAll(e.target.checked)}
                 />
               </th>
-              <th>{lang === 'el' ? 'ID Φορτίου' : 'Shipment ID'}</th>
-              <th>{lang === 'el' ? 'Διαδρομή' : 'Lane'}</th>
-              <th>{lang === 'el' ? 'Πελάτης' : 'Customer'}</th>
-              <th>{lang === 'el' ? 'Κατάσταση' : 'Status'}</th>
-              <th>{lang === 'el' ? 'Ορατότητα' : 'Visibility'}</th>
-              <th>{lang === 'el' ? 'Προσφορές' : 'Bids'}</th>
-              <th>{lang === 'el' ? 'Μεταφορέας' : 'Carrier'}</th>
-              <th>{lang === 'el' ? 'Τιμή' : 'Price'}</th>
-              <th>{lang === 'el' ? 'Τελ. Ενημέρωση' : 'Last Update'}</th>
+              <th>{t('shipmentIdCol')}</th>
+              <th>{t('laneColHeader')}</th>
+              <th>{t('customerCol')}</th>
+              <th>{t('status')}</th>
+              <th>{t('visibilityCol')}</th>
+              <th>{t('bidsCol')}</th>
+              <th>{t('carrierCol')}</th>
+              <th>{t('priceCol')}</th>
+              <th>{t('lastUpdateCol')}</th>
               <th></th>
             </tr>
           </thead>

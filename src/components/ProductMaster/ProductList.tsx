@@ -1,11 +1,10 @@
 import React from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
 import { syncDotClass } from '../../pages/ProductMaster/utils/productUtils';
 
 type Props = Pick<
   ProductMasterState,
-  | 'lang'
-  | 't'
   | 'viewMode'
   | 'sortBy'
   | 'setSortBy'
@@ -30,8 +29,6 @@ type Props = Pick<
 >;
 
 export const ProductList: React.FC<Props> = ({
-  lang,
-  t,
   viewMode,
   sortBy,
   setSortBy,
@@ -53,17 +50,14 @@ export const ProductList: React.FC<Props> = ({
   handleBulkArchive,
   setIsBulkMapOpen,
   setBulkMapTarget,
-}) => (
+}) => {
+  const { t } = useTranslation();
+
+  return (
   <div className="list-pane">
     <div className="list-toolbar">
       <span style={{ fontSize: 12, color: 'var(--t2)', fontWeight: 500 }}>
-        {viewMode === 'types'
-          ? lang === 'el'
-            ? 'Τύποι Προϊόντων'
-            : 'Product Types'
-          : lang === 'el'
-            ? 'Μητρώο SKU'
-            : 'SKU registry'}
+        {viewMode === 'types' ? t('productTypesHeader') : t('skuRegistry')}
       </span>
       {viewMode === 'skus' && (
         <select className="sort-sel" value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
@@ -75,7 +69,7 @@ export const ProductList: React.FC<Props> = ({
       )}
       <span className="list-info">
         {viewMode === 'types'
-          ? `${filteredTypes.length} ${lang === 'el' ? 'τύποι' : 'types'}`
+          ? `${filteredTypes.length} ${t('types')}`
           : `${filteredSkus.length} SKUs`}
       </span>
     </div>
@@ -83,7 +77,7 @@ export const ProductList: React.FC<Props> = ({
     {selectedIds.size > 0 && viewMode === 'skus' && (
       <div className="bulk-bar">
         <span className="bulk-ct">{selectedIds.size}</span>
-        <span>{lang === 'el' ? 'επιλεγμένα' : 'selected'}</span>
+        <span>{t('selected')}</span>
         <button
           type="button"
           className="btn btn-sm"
@@ -112,7 +106,7 @@ export const ProductList: React.FC<Props> = ({
         filteredTypes.length === 0 ? (
           <div className="empty-state">
             <div className="ico">📦</div>
-            <div className="et">{lang === 'el' ? 'Δεν βρέθηκαν τύποι' : 'No types found'}</div>
+            <div className="et">{t('noTypes')}</div>
           </div>
         ) : (
           <div className="types-grid">
@@ -158,7 +152,7 @@ export const ProductList: React.FC<Props> = ({
       ) : filteredSkus.length === 0 ? (
         <div className="empty-state">
           <div className="ico">📦</div>
-          <div className="et">{lang === 'el' ? 'Δεν βρέθηκαν SKU' : 'No SKUs found'}</div>
+          <div className="et">{t('noSkusFound')}</div>
         </div>
       ) : (
         <table className="t">
@@ -176,7 +170,7 @@ export const ProductList: React.FC<Props> = ({
               <th>{t('category')}</th>
               <th>{t('source')}</th>
               <th>{t('syncStatus')}</th>
-              <th>{lang === 'el' ? 'Τελευταίος Συγχρ.' : 'Last Synced'}</th>
+              <th>{t('lastSynced')}</th>
               <th>{t('status')}</th>
             </tr>
           </thead>
@@ -250,8 +244,8 @@ export const ProductList: React.FC<Props> = ({
     <div className="pag">
       <div className="pag-info">
         {viewMode === 'types'
-          ? `${lang === 'el' ? 'Εμφάνιση' : 'Showing'} ${filteredTypes.length} ${lang === 'el' ? 'τύπους' : 'types'}`
-          : `${lang === 'el' ? 'Εμφάνιση' : 'Showing'} 1–${filteredSkus.length} ${lang === 'el' ? 'από' : 'of'} ${filteredSkus.length}`}
+          ? t('showingTypes', { count: filteredTypes.length })
+          : t('showingSkusRange', { count: filteredSkus.length, total: filteredSkus.length })}
       </div>
       <div className="pag-btns">
         <button type="button" className="pg-btn">
@@ -266,4 +260,5 @@ export const ProductList: React.FC<Props> = ({
       </div>
     </div>
   </div>
-);
+  );
+};

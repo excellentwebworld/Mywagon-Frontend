@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { BOARD_DATA, TAB_COUNTS } from './mockData';
 import type { BoardItem } from './types';
 
@@ -9,7 +10,8 @@ interface ShipmentBoardProps {
 }
 
 export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActiveTab }) => {
-  const { lang, showToast } = useApp();
+  const { showToast } = useApp();
+  const { t, lang } = useTranslation();
 
   // Component states
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -97,62 +99,12 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(startItem + paginatedData.length - 1, totalItemsCount);
 
-  // Translations object
-  const labels: Record<string, { en: string; el: string }> = {
-    needsAction: { en: "Needs Action", el: "Χρειάζεται Ενέργεια" },
-    upcoming: { en: "Upcoming", el: "Προσεχές" },
-    inTransit: { en: "In Transit", el: "Σε Μεταφορά" },
-    delivered: { en: "Delivered", el: "Παραδόθηκαν" },
-    billing: { en: "Billing", el: "Χρέωση" },
-    selectAll: { en: "Select all", el: "Επιλογή όλων" },
-    rate: { en: "Rate", el: "Τιμή" },
-    date: { en: "Date", el: "Ημ/νία" },
-    shipmentId: { en: "Shipment ID", el: "ID Φορτίου" },
-    route: { en: "Route", el: "Διαδρομή" },
-    status: { en: "Status", el: "Κατάσταση" },
-    nextMilestone: { en: "Next Milestone", el: "Επόμενο Ορόσημο" },
-    carrier: { en: "Carrier", el: "Μεταφορέας" },
-    selected: { en: "selected", el: "επιλεγμένα" },
-    export: { en: "Export", el: "Εξαγωγή" },
-    messageCarrier: { en: "Message Carrier", el: "Μήνυμα σε Μεταφορέα" },
-    printManifest: { en: "Print Manifest", el: "Εκτύπωση Manifest" },
-    showing: { en: "Showing", el: "Εμφάνιση" },
-    of: { en: "of", el: "από" },
-    details: { en: "Shipment Details", el: "Στοιχεία Φορτίου" },
-    reference: { en: "Reference", el: "Αναφορά" },
-    vehicle: { en: "Vehicle", el: "Όχημα" },
-    weight: { en: "Weight", el: "Βάρος" },
-    cargo: { en: "Cargo", el: "Φορτίο" },
-    routePrice: { en: "Route & Pricing", el: "Διαδρομή & Τιμολόγηση" },
-    distance: { en: "Distance", el: "Απόσταση" },
-    costKm: { en: "Cost / km", el: "Κόστος / km" },
-    notes: { en: "Notes", el: "Σημειώσεις" },
-    booked: { en: "Booked", el: "Κρατήθηκε" },
-    pickedUp: { en: "Picked up", el: "Παραλήφθηκε" },
-    deliveredStep: { en: "Delivered", el: "Παραδόθηκε" },
-    fullDetails: { en: "Full Details", el: "Πλήρη Στοιχεία" },
-    resolveNow: { en: "Resolve Now", el: "Επίλυση Τώρα" },
-    callCarrier: { en: "Call Carrier", el: "Κλήση Μεταφορέα" },
-    liveTrack: { en: "Live Track", el: "Ζωντανός Εντοπισμός" },
-    message: { en: "Message", el: "Μήνυμα" },
-    edit: { en: "Edit", el: "Επεξεργασία" },
-    clone: { en: "Clone", el: "Κλωνοποίηση" },
-    viewPod: { en: "View POD", el: "Προβολή POD" },
-    invoice: { en: "Invoice", el: "Τιμολόγιο" },
-    rateCarrier: { en: "Rate", el: "Αξιολόγηση" },
-    resolve: { en: "Resolve", el: "Επίλυση" },
-  };
-
-  const getT = (key: string): string => {
-    return labels[key]?.[lang] || labels[key]?.en || key;
-  };
-
   const handleBulkAction = (action: string) => {
-    showToast(lang === 'el' ? `Μαζική ενέργεια: ${action} για ${selectedRows.size} φορτία` : `Bulk action: ${action} for ${selectedRows.size} shipments`, 'info');
+    showToast(t('bulkAction', { action, count: selectedRows.size }), 'info');
   };
 
   const handleActionClick = (actionName: string, sid: string) => {
-    showToast(lang === 'el' ? `Ενέργεια: ${actionName} για ${sid}` : `Action: ${actionName} for ${sid}`, 'success');
+    showToast(t('actionForShipment', { action: actionName, sid }), 'success');
   };
 
   return (
@@ -160,23 +112,23 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
       {/* Board tabs */}
       <div className="board-tabs" id="boardTabs">
         <div className={`b-tab ${activeTab === 0 ? 'active' : ''}`} onClick={() => setActiveTab(0)}>
-          <span>{getT('needsAction')}</span>
+          <span>{t('needsActionLabel')}</span>
           <span className="tc warn">{TAB_COUNTS[0]}</span>
         </div>
         <div className={`b-tab ${activeTab === 1 ? 'active' : ''}`} onClick={() => setActiveTab(1)}>
-          <span>{getT('upcoming')}</span>
+          <span>{t('upcoming')}</span>
           <span className="tc">{TAB_COUNTS[1]}</span>
         </div>
         <div className={`b-tab ${activeTab === 2 ? 'active' : ''}`} onClick={() => setActiveTab(2)}>
-          <span>{getT('inTransit')}</span>
+          <span>{t('boardInTransit')}</span>
           <span className="tc">{TAB_COUNTS[2]}</span>
         </div>
         <div className={`b-tab ${activeTab === 3 ? 'active' : ''}`} onClick={() => setActiveTab(3)}>
-          <span>{getT('delivered')}</span>
+          <span>{t('boardDeliveredTab')}</span>
           <span className="tc">{TAB_COUNTS[3]}</span>
         </div>
         <div className={`b-tab ${activeTab === 4 ? 'active' : ''}`} onClick={() => setActiveTab(4)}>
-          <span>{getT('billing')}</span>
+          <span>{t('boardBilling')}</span>
           <span className="tc">{TAB_COUNTS[4]}</span>
         </div>
       </div>
@@ -191,7 +143,7 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
               checked={paginatedData.length > 0 && paginatedData.every(item => selectedRows.has(item.sid))}
               onChange={(e) => handleSelectAll(e.target.checked)}
             />
-            <span>{getT('selectAll')}</span>
+            <span>{t('boardSelectAll')}</span>
           </label>
         </div>
         <div className="board-toolbar-right">
@@ -200,14 +152,14 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
             onClick={() => handleSort('rate')}
             title="Sort by rate"
           >
-            € {getT('rate')} <span className="sort-icon">{sortType === 'rate' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+            € {t('boardRate')} <span className="sort-icon">{sortType === 'rate' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
           </button>
           <button
             className={`board-sort-btn ${sortType === 'date' ? 'active' : ''}`}
             onClick={() => handleSort('date')}
             title="Sort by date"
           >
-            📅 {getT('date')} <span className="sort-icon">{sortType === 'date' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+            📅 {t('boardDate')} <span className="sort-icon">{sortType === 'date' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
           </button>
         </div>
       </div>
@@ -218,12 +170,12 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
           <thead>
             <tr>
               <th className="c-check" style={{ cursor: 'default' }}></th>
-              <th>{getT('shipmentId')} <span className="sort-icon">↕</span></th>
-              <th>{getT('route')} <span className="sort-icon">↕</span></th>
-              <th>{getT('status')} <span className="sort-icon">↕</span></th>
-              <th>{getT('nextMilestone')} <span className="sort-icon">↕</span></th>
-              <th>{getT('carrier')} <span className="sort-icon">↕</span></th>
-              <th>{getT('rate')} <span className="sort-icon">↕</span></th>
+              <th>{t('shipmentIdCol')} <span className="sort-icon">↕</span></th>
+              <th>{t('laneColHeader')} <span className="sort-icon">↕</span></th>
+              <th>{t('status')} <span className="sort-icon">↕</span></th>
+              <th>{t('boardNextMilestone')} <span className="sort-icon">↕</span></th>
+              <th>{t('carrierCol')} <span className="sort-icon">↕</span></th>
+              <th>{t('boardRate')} <span className="sort-icon">↕</span></th>
               <th></th>
             </tr>
           </thead>
@@ -235,7 +187,7 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
               // Action buttons per status inside expanded details
               let actionBtns = (
                 <button className="expand-btn" onClick={() => handleActionClick("Full Details", r.sid)}>
-                  📋 {getT('fullDetails')}
+                  📋 {t('boardFullDetails')}
                 </button>
               );
 
@@ -244,10 +196,10 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
                   <>
                     {actionBtns}
                     <button className="expand-btn primary" onClick={() => handleActionClick("Resolve Now", r.sid)}>
-                      ⚡ {getT('resolveNow')}
+                      ⚡ {t('boardResolveNow')}
                     </button>
                     <button className="expand-btn warn" onClick={() => handleActionClick("Call Carrier", r.sid)}>
-                      📞 {getT('callCarrier')}
+                      📞 {t('boardCallCarrier')}
                     </button>
                   </>
                 );
@@ -256,10 +208,10 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
                   <>
                     {actionBtns}
                     <button className="expand-btn primary" onClick={() => handleActionClick("Live Track", r.sid)}>
-                      📍 {getT('liveTrack')}
+                      📍 {t('liveTracking')}
                     </button>
                     <button className="expand-btn" onClick={() => handleActionClick("Message", r.sid)}>
-                      💬 {getT('message')}
+                      💬 {t('boardMessage')}
                     </button>
                   </>
                 );
@@ -268,10 +220,10 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
                   <>
                     {actionBtns}
                     <button className="expand-btn" onClick={() => handleActionClick("Edit", r.sid)}>
-                      ✏️ {getT('edit')}
+                      ✏️ {t('edit')}
                     </button>
                     <button className="expand-btn" onClick={() => handleActionClick("Clone", r.sid)}>
-                      📄 {getT('clone')}
+                      📄 {t('boardClone')}
                     </button>
                   </>
                 );
@@ -280,13 +232,13 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
                   <>
                     {actionBtns}
                     <button className="expand-btn" onClick={() => handleActionClick("View POD", r.sid)}>
-                      📸 {getT('viewPod')}
+                      📸 {t('boardViewPod')}
                     </button>
                     <button className="expand-btn" onClick={() => handleActionClick("Invoice", r.sid)}>
-                      📥 {getT('invoice')}
+                      📥 {t('boardInvoice')}
                     </button>
                     <button className="expand-btn" onClick={() => handleActionClick("Rate Carrier", r.sid)}>
-                      ⭐ {getT('rateCarrier')}
+                      ⭐ {t('boardRateCarrier')}
                     </button>
                   </>
                 );
@@ -295,10 +247,10 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
                   <>
                     {actionBtns}
                     <button className="expand-btn primary" onClick={() => handleActionClick("Resolve", r.sid)}>
-                      💳 {getT('resolve')}
+                      💳 {t('boardResolve')}
                     </button>
                     <button className="expand-btn" onClick={() => handleActionClick("Invoice", r.sid)}>
-                      📥 {getT('invoice')}
+                      📥 {t('boardInvoice')}
                     </button>
                   </>
                 );
@@ -309,37 +261,37 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
               if (r.status === 'transit' || r.status === 'delayed') {
                 progressHtml = (
                   <div className="expand-progress">
-                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{getT('booked')}</div>
+                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{t('boardBooked')}</div>
                     <div className="expand-progress-line done"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{getT('pickedUp')}</div>
+                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{t('boardPickedUp')}</div>
                     <div className="expand-progress-line done"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot active"></div>{getT('inTransit')}</div>
+                    <div className="expand-progress-step"><div className="expand-progress-dot active"></div>{t('boardInTransit')}</div>
                     <div className="expand-progress-line"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot"></div>{getT('deliveredStep')}</div>
+                    <div className="expand-progress-step"><div className="expand-progress-dot"></div>{t('boardDeliveredStep')}</div>
                   </div>
                 );
               } else if (r.status === 'delivered') {
                 progressHtml = (
                   <div className="expand-progress">
-                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{getT('booked')}</div>
+                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{t('boardBooked')}</div>
                     <div className="expand-progress-line done"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{getT('pickedUp')}</div>
+                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{t('boardPickedUp')}</div>
                     <div className="expand-progress-line done"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{getT('inTransit')}</div>
+                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{t('boardInTransit')}</div>
                     <div className="expand-progress-line done"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{getT('deliveredStep')}</div>
+                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{t('boardDeliveredStep')}</div>
                   </div>
                 );
               } else if (r.status === 'upcoming') {
                 progressHtml = (
                   <div className="expand-progress">
-                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{getT('booked')}</div>
+                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{t('boardBooked')}</div>
                     <div className="expand-progress-line"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot"></div>{getT('pickedUp')}</div>
+                    <div className="expand-progress-step"><div className="expand-progress-dot"></div>{t('boardPickedUp')}</div>
                     <div className="expand-progress-line"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot"></div>{getT('inTransit')}</div>
+                    <div className="expand-progress-step"><div className="expand-progress-dot"></div>{t('boardInTransit')}</div>
                     <div className="expand-progress-line"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot"></div>{getT('deliveredStep')}</div>
+                    <div className="expand-progress-step"><div className="expand-progress-dot"></div>{t('boardDeliveredStep')}</div>
                   </div>
                 );
               }
@@ -421,39 +373,39 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
                       <div className="expand-content">
                         <div className="expand-grid">
                           <div className="expand-section">
-                            <div className="expand-section-title">{getT('details')}</div>
+                            <div className="expand-section-title">{t('boardShipmentDetails')}</div>
                             <div className="expand-field">
-                              <span className="expand-field-label">{getT('reference')}</span>
+                              <span className="expand-field-label">{t('boardReference')}</span>
                               <span className="expand-field-value mono">{r.ref}</span>
                             </div>
                             <div className="expand-field">
-                              <span className="expand-field-label">{getT('vehicle')}</span>
+                              <span className="expand-field-label">{t('boardVehicle')}</span>
                               <span className="expand-field-value">{r.vehicle[lang] || r.vehicle.en}</span>
                             </div>
                             <div className="expand-field">
-                              <span className="expand-field-label">{getT('weight')}</span>
+                              <span className="expand-field-label">{t('weight')}</span>
                               <span className="expand-field-value">{r.weight[lang] || r.weight.en}</span>
                             </div>
                             <div className="expand-field">
-                              <span className="expand-field-label">{getT('cargo')}</span>
+                              <span className="expand-field-label">{t('boardCargo')}</span>
                               <span className="expand-field-value">{r.cargo[lang] || r.cargo.en}</span>
                             </div>
                           </div>
 
                           <div className="expand-section">
-                            <div className="expand-section-title">{getT('routePrice')}</div>
+                            <div className="expand-section-title">{t('boardRoutePrice')}</div>
                             <div className="expand-field">
-                              <span className="expand-field-label">{getT('distance')}</span>
+                              <span className="expand-field-label">{t('boardDistance')}</span>
                               <span className="expand-field-value mono">{r.distance}</span>
                             </div>
                             <div className="expand-field">
-                              <span className="expand-field-label">{getT('costKm')}</span>
+                              <span className="expand-field-label">{t('boardCostKm')}</span>
                               <span className="expand-field-value mono">
                                 € {(r.rate / parseInt(r.distance)).toFixed(2)}
                               </span>
                             </div>
                             <div className="expand-field">
-                              <span className="expand-field-label">{getT('rate')}</span>
+                              <span className="expand-field-label">{t('boardRate')}</span>
                               <span className="expand-field-value mono" style={{ color: 'var(--accent)', fontWeight: 700 }}>
                                 € {r.rate}
                               </span>
@@ -462,7 +414,7 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
                           </div>
 
                           <div className="expand-section">
-                            <div className="expand-section-title">{getT('notes')}</div>
+                            <div className="expand-section-title">{t('notes')}</div>
                             <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
                               {r.notes[lang] || r.notes.en}
                             </div>
@@ -497,17 +449,17 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
       {/* Bulk action bar */}
       <div className={`bulk-bar ${selectedRows.size > 0 ? 'show' : ''}`}>
         <div className="bulk-bar-left">
-          <span>{selectedRows.size}</span> {getT('selected')}
+          <span>{selectedRows.size}</span> {t('selected')}
         </div>
         <div className="bulk-bar-right">
           <button className="bulk-btn" onClick={() => handleBulkAction("Export")}>
-            📥 {getT('export')}
+            📥 {t('export')}
           </button>
           <button className="bulk-btn" onClick={() => handleBulkAction("Message Carrier")}>
-            💬 {getT('messageCarrier')}
+            💬 {t('boardMessageCarrier')}
           </button>
           <button className="bulk-btn" onClick={() => handleBulkAction("Print Manifest")}>
-            🖨 {getT('printManifest')}
+            🖨 {t('boardPrintManifest')}
           </button>
         </div>
       </div>
@@ -515,7 +467,7 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
       {/* Pagination */}
       <div className="pag" id="pagination">
         <div className="pag-info" id="pagInfo">
-          {getT('showing')} {startItem}–{endItem} {getT('of')} {totalItemsCount}
+          {t('showing')} {startItem}–{endItem} {t('of')} {totalItemsCount}
         </div>
         <div className="pag-btns" id="pagBtns">
           {totalPages > 1 && (

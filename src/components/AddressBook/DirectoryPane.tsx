@@ -1,16 +1,17 @@
 import React from 'react';
 import { DIR_ICONS, getSystemDirectories } from '../../pages/AddressBook/constants';
+import { useTranslation } from '../../hooks/useTranslation';
 import type { ApiAddressBookSummary } from '../../api/types/addressBook';
 
 type Props = {
-  lang: 'en' | 'el';
   summary: ApiAddressBookSummary | null;
   activeNode: string;
   selectNode: (id: string) => void;
 };
 
-export const DirectoryPane: React.FC<Props> = ({ lang, summary, activeNode, selectNode }) => {
-  const nodes = getSystemDirectories(lang);
+export const DirectoryPane: React.FC<Props> = ({ summary, activeNode, selectNode }) => {
+  const { t } = useTranslation();
+  const nodes = getSystemDirectories(t);
 
   const countFor = (id: string) => {
     if (!summary) return 0;
@@ -23,7 +24,7 @@ export const DirectoryPane: React.FC<Props> = ({ lang, summary, activeNode, sele
 
   return (
     <div className="dir-pane">
-      <div className="dir-pane-head">{lang === 'el' ? 'Κατάλογος' : 'Directory'}</div>
+      <div className="dir-pane-head">{t('abDirectory')}</div>
       {nodes.map((d, index) => (
         <React.Fragment key={d.id}>
           {d.id === 'archived' && <div className="dir-sep" />}

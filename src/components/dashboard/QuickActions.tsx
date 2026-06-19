@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export const QuickActions: React.FC = () => {
-  const { shipments, lang, t, showToast } = useApp();
+  const { shipments, showToast } = useApp();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const pendingBids = shipments.filter(s => s.status === 'pending').length;
@@ -38,7 +40,7 @@ export const QuickActions: React.FC = () => {
 
       <div
         className="qa-card"
-        onClick={() => showToast(lang === 'el' ? 'Έναρξη εισαγωγής από ERP...' : 'Triggering ERP import...', 'info')}
+        onClick={() => showToast(t('qaErpImportTriggering'), 'info')}
         style={{ flex: 1, cursor: 'pointer' }}
       >
         <div className="qa-icon" style={{ background: 'var(--success-bg)' }}>📋</div>

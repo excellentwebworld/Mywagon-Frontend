@@ -3,18 +3,18 @@ import { buildDefaultDirectories } from './locationUtils';
 
 const STORAGE_KEY = 'myvagon-address-book-custom-directories';
 
-export function loadCustomDirectories(lang: string): DirectoryItem[] {
+export function loadCustomDirectories(t: (k: string) => string): DirectoryItem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return buildDefaultDirectories(lang);
+    if (!raw) return buildDefaultDirectories(t);
     const custom = JSON.parse(raw) as DirectoryItem[];
-    const defaults = buildDefaultDirectories(lang);
+    const defaults = buildDefaultDirectories(t);
     const archivedIdx = defaults.findIndex((d) => d.id === 'archived');
     const merged = [...defaults];
     merged.splice(archivedIdx, 0, ...custom);
     return merged;
   } catch {
-    return buildDefaultDirectories(lang);
+    return buildDefaultDirectories(t);
   }
 }
 

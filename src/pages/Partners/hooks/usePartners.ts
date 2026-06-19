@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useApp } from '../../../context/AppContext';
+import { useTranslation } from '../../../hooks/useTranslation';
 import type { Partner, ContractLane } from '../../../context/AppContext';
 import { REGION_KEYS, TRUCK_TYPES } from '../constants';
 import type {
@@ -48,7 +49,8 @@ const EMPTY_INVITE: InviteFormState = {
 // ── Hook ───────────────────────────────────────────────────
 
 export function usePartners() {
-  const { partners, addPartner, updatePartner, removePartner, t, showToast } = useApp();
+  const { t } = useTranslation();
+  const { partners, addPartner, updatePartner, removePartner, showToast } = useApp();
 
   // ── UI State ──────────────────────────────────────────
   const [facetFilter, setFacetFilter] = useState<FacetFilter>('all');

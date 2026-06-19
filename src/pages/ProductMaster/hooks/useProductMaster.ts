@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useApp } from '../../../context/AppContext';
+import { useTranslation } from '../../../hooks/useTranslation';
 import type { Category, ProductType, SKU } from '../../../context/AppContext';
 import { SYNC_LOGS } from '../constants';
 import {
@@ -17,6 +18,7 @@ import {
 import { filterSkus, filterTypes, getCategoryName } from '../utils/productUtils';
 
 export function useProductMaster() {
+  const { lang, t } = useTranslation();
   const {
     categories,
     addCategory,
@@ -26,8 +28,6 @@ export function useProductMaster() {
     skus,
     addSku,
     updateSku,
-    lang,
-    t,
     showToast,
   } = useApp();
 
@@ -202,7 +202,7 @@ export function useProductMaster() {
   }, [selectedIds, skus, updateSku, showToast]);
 
   const handleBulkArchive = useCallback(() => {
-    if (window.confirm(lang === 'el' ? 'Αρχειοθέτηση επιλεγμένων SKU;' : 'Archive selected SKUs?')) {
+    if (window.confirm(t('bulkArchiveConfirm'))) {
       selectedIds.forEach((id) => {
         const sku = skus.find((s) => s.id === id);
         if (sku) updateSku({ ...sku, active: false });
@@ -210,7 +210,7 @@ export function useProductMaster() {
       showToast(`Archived ${selectedIds.size} item(s)`, 'info');
       setSelectedIds(new Set());
     }
-  }, [lang, selectedIds, skus, updateSku, showToast]);
+  }, [selectedIds, skus, t, updateSku, showToast]);
 
   const handleBulkMap = useCallback(() => {
     if (!bulkMapTarget) return;

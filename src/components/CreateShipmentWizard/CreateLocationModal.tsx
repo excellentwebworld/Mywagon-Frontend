@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface CreateLocationModalProps {
   isOpen: boolean;
@@ -12,7 +13,8 @@ export const CreateLocationModal: React.FC<CreateLocationModalProps> = ({
   onClose,
   onCreated,
 }) => {
-  const { lang, addLocation, locations } = useApp();
+  const { t } = useTranslation();
+  const { addLocation, locations } = useApp();
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
@@ -74,13 +76,13 @@ export const CreateLocationModal: React.FC<CreateLocationModalProps> = ({
     <div className={`modal-bg ${isOpen ? 'show' : ''}`} role="dialog" aria-modal="true">
       <div className="modal">
         <div className="modal-h">
-          <span>📍 {lang === 'el' ? 'Δημιουργία Νέας Τοποθεσίας' : 'Create New Location'}</span>
+          <span>📍 {t('createNewLocation')}</span>
           <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>
         </div>
         <div className="modal-body">
           <div className="field">
             <label className="field-l" htmlFor="newLocName">
-              {lang === 'el' ? 'Όνομα Τοποθεσίας *' : 'Location Name *'}
+              {t('locationName')}
             </label>
             <input
               id="newLocName"
@@ -93,7 +95,7 @@ export const CreateLocationModal: React.FC<CreateLocationModalProps> = ({
           </div>
           <div className="field">
             <label className="field-l" htmlFor="newLocAddr">
-              {lang === 'el' ? 'Διεύθυνση *' : 'Address *'}
+              {t('addressRequired')}
             </label>
             <input
               id="newLocAddr"
@@ -106,7 +108,7 @@ export const CreateLocationModal: React.FC<CreateLocationModalProps> = ({
           </div>
           <div className="field">
             <label className="field-l" htmlFor="newLocCity">
-              {lang === 'el' ? 'Πόλη *' : 'City *'}
+              {t('cityRequired')}
             </label>
             <input
               id="newLocCity"
@@ -119,7 +121,7 @@ export const CreateLocationModal: React.FC<CreateLocationModalProps> = ({
           </div>
           <div className="field">
             <label className="field-l" htmlFor="newLocCountry">
-              {lang === 'el' ? 'Χώρα *' : 'Country *'}
+              {t('countryRequired')}
             </label>
             <input
               id="newLocCountry"
@@ -132,14 +134,14 @@ export const CreateLocationModal: React.FC<CreateLocationModalProps> = ({
         </div>
         <div className="modal-footer">
           <button className="btn btn-sm" onClick={onClose}>
-            {lang === 'el' ? 'Ακύρωση' : 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             className="btn btn-p btn-sm"
             onClick={handleCreate}
             disabled={!name.trim() || !address.trim() || !city.trim()}
           >
-            {lang === 'el' ? 'Δημιουργία Τοποθεσίας' : 'Create Location'}
+            {t('createLocation')}
           </button>
         </div>
       </div>

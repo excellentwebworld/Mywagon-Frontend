@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface CreateProductModalProps {
   isOpen: boolean;
@@ -12,7 +13,8 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   onClose,
   onCreated,
 }) => {
-  const { lang, addSku } = useApp();
+  const { t } = useTranslation();
+  const { addSku } = useApp();
   const [name, setName] = useState('');
   const [sku, setSku] = useState('');
   const [category, setCategory] = useState('');
@@ -57,13 +59,13 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
     <div className={`modal-bg ${isOpen ? 'show' : ''}`} role="dialog" aria-modal="true">
       <div className="modal">
         <div className="modal-h">
-          <span>{lang === 'el' ? 'Δημιουργία Νέου Προϊόντος' : 'Create New Product'}</span>
+          <span>{t('createNewProduct')}</span>
           <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>
         </div>
         <div className="modal-body">
           <div className="field">
             <label className="field-l" htmlFor="newProdName">
-              {lang === 'el' ? 'Όνομα Προϊόντος *' : 'Product Name *'}
+              {t('productNameRequired')}
             </label>
             <input
               id="newProdName"
@@ -89,7 +91,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
           </div>
           <div className="field">
             <label className="field-l" htmlFor="newProdCat">
-              {lang === 'el' ? 'Κατηγορία' : 'Category'}
+              {t('category')}
             </label>
             <input
               id="newProdCat"
@@ -101,7 +103,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
           </div>
           <div className="field">
             <label className="field-l" htmlFor="newProdWpu">
-              {lang === 'el' ? 'Βάρος ανά μονάδα (kg)' : 'Weight per unit (kg)'}
+              {t('weightPerUnit')}
             </label>
             <input
               id="newProdWpu"
@@ -116,14 +118,14 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         </div>
         <div className="modal-footer">
           <button className="btn btn-sm" onClick={onClose}>
-            {lang === 'el' ? 'Ακύρωση' : 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             className="btn btn-p btn-sm"
             onClick={handleCreate}
             disabled={!name.trim() || !sku.trim()}
           >
-            {lang === 'el' ? 'Δημιουργία Προϊόντος' : 'Create Product'}
+            {t('createProduct')}
           </button>
         </div>
       </div>

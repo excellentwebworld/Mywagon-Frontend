@@ -58,12 +58,12 @@ export const PAGE_SIZE_OPTIONS = [10, 12, 25, 50, 100] as const;
 
 export const DEFAULT_PAGE_SIZE = 12;
 
-export function getSystemDirectories(lang: 'en' | 'el'): { id: string; name: string; icon: string }[] {
+export function getSystemDirectories(t: (k: string) => string): { id: string; name: string; icon: string }[] {
   return [
-    { id: 'all', name: lang === 'el' ? 'Όλες οι Τοποθεσίες' : 'All Locations', icon: 'home' },
-    { id: 'my', name: lang === 'el' ? 'Οι Τοποθεσίες μου' : 'My Locations', icon: 'briefcase' },
-    { id: 'customer', name: lang === 'el' ? 'Τοποθεσίες Πελατών' : 'Customer Locations', icon: 'users' },
-    { id: 'archived', name: lang === 'el' ? 'Αρχειοθετημένα' : 'Archived', icon: 'archive' },
+    { id: 'all', name: t('abAllLocations'), icon: 'home' },
+    { id: 'my', name: t('abMyLocations'), icon: 'briefcase' },
+    { id: 'customer', name: t('abCustomerLocations'), icon: 'users' },
+    { id: 'archived', name: t('abArchived'), icon: 'archive' },
   ];
 }
 

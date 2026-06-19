@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import type { Shipment, ShipmentStop } from '../context/AppContext';
+import { useTranslation } from '../hooks/useTranslation';
 
 export const ShipmentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { shipments, lang, t, showToast } = useApp();
+  const { shipments, showToast } = useApp();
+  const { t } = useTranslation();
 
   const [shipment, setShipment] = useState<Shipment | null>(null);
 
@@ -97,12 +99,12 @@ export const ShipmentDetail: React.FC = () => {
 
   const handleCopyId = () => {
     navigator.clipboard.writeText(shipment.id);
-    showToast(lang === 'el' ? `Αντιγράφηκε: ${shipment.id}` : `Copied ID: ${shipment.id}`, 'success');
+    showToast(t('copiedId', { id: shipment.id }), 'success');
   };
 
   const handleCopyText = (txt: string) => {
     navigator.clipboard.writeText(txt);
-    showToast(lang === 'el' ? 'Αντιγράφηκε!' : 'Copied!', 'success');
+    showToast(t('copied'), 'success');
   };
 
   const milestoneLabels = ['Created', 'Booked', 'Dispatched', 'Arrived', 'Pickup Completed', 'In Transit', 'Delivered'];
@@ -112,10 +114,10 @@ export const ShipmentDetail: React.FC = () => {
       {/* Breadcrumb */}
       <div className="bc" style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
         <Link to="/shipments" style={{ textDecoration: 'none', color: 'var(--text-secondary)' }}>
-          {lang === 'el' ? 'Διαχείριση Φορτίων' : 'Manage Shipments'}
+          {t('manageShipments')}
         </Link>
         <span style={{ margin: '0 6px' }}>›</span>
-        <span>{lang === 'el' ? 'Λεπτομέρειες Φορτίου' : 'Load Details'}</span>
+        <span>{t('loadDetails')}</span>
       </div>
 
       {/* Command Header */}
@@ -199,7 +201,7 @@ export const ShipmentDetail: React.FC = () => {
           {/* Stops List */}
           <div className="sd-card">
             <div className="card-h" onClick={() => toggleSection('stops')}>
-              <h3>📍 {lang === 'el' ? 'Στάσεις & Ραντεβού' : 'Stops & Appointments'} <span className="cnt">{stops.length}</span></h3>
+              <h3>📍 {t('stopsAppointments')} <span className="cnt">{stops.length}</span></h3>
               <span className={`chev ${!secCollapsed.stops ? 'open' : ''}`}>▼</span>
             </div>
             {!secCollapsed.stops && (
@@ -240,14 +242,14 @@ export const ShipmentDetail: React.FC = () => {
           {/* Load Summary */}
           <div className="sd-card">
             <div className="card-h" onClick={() => toggleSection('load')}>
-              <h3>📦 {lang === 'el' ? 'Σύνοψη Φορτίου' : 'Load Summary'}</h3>
+              <h3>📦 {t('loadSummary')}</h3>
               <span className={`chev ${!secCollapsed.load ? 'open' : ''}`}>▼</span>
             </div>
             {!secCollapsed.load && (
               <div className="card-body" style={{ padding: '12px' }}>
                 <div className="ls-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="ls-cell">
-                    <label>{lang === 'el' ? 'Τύπος Οχήματος' : 'Vehicle Type'}</label>
+                    <label>{t('vehicleType')}</label>
                     <div className="val">Semi-Trailer Truck</div>
                   </div>
                   <div className="ls-cell">
@@ -277,7 +279,7 @@ export const ShipmentDetail: React.FC = () => {
           {/* Live Map embed */}
           <div className="sd-card">
             <div className="card-h" onClick={() => toggleSection('tracking')}>
-              <h3>🛰 {lang === 'el' ? 'Ζωντανός Εντοπισμός' : 'Live Tracking'}</h3>
+              <h3>🛰 {t('liveTracking')}</h3>
               <span className={`chev ${!secCollapsed.tracking ? 'open' : ''}`}>▼</span>
             </div>
             {!secCollapsed.tracking && (
@@ -305,7 +307,7 @@ export const ShipmentDetail: React.FC = () => {
           {/* Carrier & Driver Info */}
           <div className="sd-card">
             <div className="card-h" onClick={() => toggleSection('carrier')}>
-              <h3>🚛 {lang === 'el' ? 'Μεταφορέας & Οδηγός' : 'Carrier & Driver'}</h3>
+              <h3>🚛 {t('carrierDriver')}</h3>
               <span className={`chev ${!secCollapsed.carrier ? 'open' : ''}`}>▼</span>
             </div>
             {!secCollapsed.carrier && (
@@ -340,7 +342,7 @@ export const ShipmentDetail: React.FC = () => {
           {/* Incidents logs */}
           <div className="sd-card">
             <div className="card-h" onClick={() => toggleSection('incidents')}>
-              <h3>⚠️ {lang === 'el' ? 'Συμβάντα & Εξαιρέσεις' : 'Incidents & Exceptions'}</h3>
+              <h3>⚠️ {t('incidentsExceptions')}</h3>
               <span className={`chev ${!secCollapsed.incidents ? 'open' : ''}`}>▼</span>
             </div>
             {!secCollapsed.incidents && (

@@ -1,38 +1,13 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export const RightPanel: React.FC = () => {
-  const { lang, showToast } = useApp();
+  const { showToast } = useApp();
+  const { t } = useTranslation();
 
   const handleAction = (area: string, detail: string) => {
-    showToast(
-      lang === 'el'
-        ? `Ενέργεια: ${area} (${detail})`
-        : `Action Triggered: ${area} (${detail})`,
-      'success'
-    );
-  };
-
-  // Localized texts
-  const tLabels: Record<string, { en: string; el: string }> = {
-    aiCopilot: { en: "AI Copilot", el: "AI Copilot" },
-    negotiateRate: { en: "Negotiate rate →", el: "Διαπραγμάτευση τιμής →" },
-    postMarketplace: { en: "Post to marketplace →", el: "Δημοσίευση στην αγορά →" },
-    reviewCarrier: { en: "Review carrier →", el: "Έλεγχος μεταφορέα →" },
-    publishedLoads: { en: "Published Loads", el: "Δημοσιευμένα Φορτία" },
-    noPubLoads: { en: "No published loads — publish to receive offers", el: "Δεν υπάρχουν δημοσιευμένα φορτία — δημοσιεύστε για να λάβετε προσφορές" },
-    publishCta: { en: "Publish →", el: "Δημοσίευση →" },
-    perfTitle: { en: "Performance Summary", el: "Σύνοψη Απόδοσης" },
-    today: { en: "Today", el: "Σήμερα" },
-    viewFullAnalytics: { en: "View full analytics →", el: "Προβολή πλήρων αναλυτικών στοιχείων →" },
-    topCarriers: { en: "Top Carriers", el: "Κορυφαίοι Μεταφορείς" },
-    viewAll: { en: "View all", el: "Προβολή όλων" },
-    viewAllCarriers: { en: "View all carriers →", el: "Προβολή όλων των μεταφορέων →" },
-    loads: { en: "loads", el: "φορτία" },
-  };
-
-  const getT = (key: string): string => {
-    return tLabels[key]?.[lang] || tLabels[key]?.en || key;
+    showToast(t('actionTriggered', { area, detail }), 'success');
   };
 
   return (
@@ -45,18 +20,16 @@ export const RightPanel: React.FC = () => {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
             </svg>
-            {getT('aiCopilot')} <span className="ai-type cost">COST</span>
+            {t('aiCopilot')} <span className="ai-type cost">COST</span>
           </div>
           <div className="ai-title">
-            {lang === 'el' ? 'Ιωάννινα → Αττική: Κόστος 8% πάνω από τον μηνιαίο μ.ο.' : 'Ioannina → Attica: Cost 8% above monthly average'}
+            {t('aiCostTitle')}
           </div>
           <div className="ai-body">
-            {lang === 'el'
-              ? 'Πληρώσατε μ.ο. €1.74/km σε αυτή τη διαδρομή έναντι €1.61/km της αγοράς. Διαπραγματευτείτε στα €750 αντί για €790 στα επόμενα φορτία.'
-              : 'You paid avg €1.74/km on this lane vs market €1.61/km. Negotiate to €750 instead of €790 on next loads.'}
+            {t('aiCostBody')}
           </div>
           <a className="ai-action" href="#" onClick={(e) => { e.preventDefault(); handleAction("AI Copilot Cost", "Negotiate"); }}>
-            {getT('negotiateRate')}
+            {t('aiNegotiateRate')}
           </a>
         </div>
 
@@ -66,18 +39,16 @@ export const RightPanel: React.FC = () => {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
             </svg>
-            {getT('aiCopilot')} <span className="ai-type ops">OPS</span>
+            {t('aiCopilot')} <span className="ai-type ops">OPS</span>
           </div>
           <div className="ai-title" style={{ color: '#B45309' }}>
-            {lang === 'el' ? '3 φορτία αύριο δεν έχουν ανατεθεί σε μεταφορέα' : '3 loads tomorrow have no carrier assigned'}
+            {t('aiOpsTitle')}
           </div>
           <div className="ai-body" style={{ color: '#92400E' }}>
-            {lang === 'el'
-              ? 'Μέσος χρόνος κάλυψης: 4.2 ώρες. Αυτόματη δημοσίευση στην αγορά για ταχύτερη λήψη προσφορών.'
-              : 'Average time to fill: 4.2 hours. Auto-post to marketplace to get bids faster.'}
+            {t('aiOpsBody')}
           </div>
           <a className="ai-action" href="#" style={{ color: '#B45309' }} onClick={(e) => { e.preventDefault(); handleAction("AI Copilot Ops", "Post Marketplace"); }}>
-            {getT('postMarketplace')}
+            {t('aiPostMarketplace')}
           </a>
         </div>
 
@@ -87,18 +58,16 @@ export const RightPanel: React.FC = () => {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
             </svg>
-            {getT('aiCopilot')} <span className="ai-type perf">ALERT</span>
+            {t('aiCopilot')} <span className="ai-type perf">ALERT</span>
           </div>
           <div className="ai-title" style={{ color: '#9D174D' }}>
-            {lang === 'el' ? 'Το ποσοστό έγκαιρης παράδοσης της KRP Transport έπεσε στο 87%' : 'KRP Transport on-time rate dropped to 87%'}
+            {t('aiAlertTitle')}
           </div>
           <div className="ai-body" style={{ color: '#BE185D' }}>
-            {lang === 'el'
-              ? '2 καθυστερήσεις τις τελευταίες 3 ημέρες. Κάτω από το 96% της προηγούμενης εβδομάδας. Ελέγξτε την απόδοση του μεταφορέα.'
-              : '2 delays in last 3 days. Down from 96% last week. Review carrier performance.'}
+            {t('aiAlertBody')}
           </div>
           <a className="ai-action" href="#" style={{ color: '#9D174D' }} onClick={(e) => { e.preventDefault(); handleAction("AI Copilot Alert", "Review Carrier"); }}>
-            {getT('reviewCarrier')}
+            {t('aiReviewCarrier')}
           </a>
         </div>
       </div>
@@ -114,17 +83,17 @@ export const RightPanel: React.FC = () => {
         </div>
         <div style={{ flex: 1 }}>
           <div className="pub-strip-text">
-            <strong>{getT('publishedLoads')}</strong>
+            <strong>{t('publishedLoads')}</strong>
             <span style={{ fontSize: '10px', fontWeight: 700, background: 'var(--accent)', color: '#fff', padding: '1px 6px', borderRadius: '99px', marginLeft: '4px' }}>
               BETA
             </span>
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-            {getT('noPubLoads')}
+            {t('noPubLoads')}
           </div>
         </div>
         <a className="card-link" href="#" onClick={(e) => { e.preventDefault(); handleAction("Published Loads", "Publish"); }}>
-          {getT('publishCta')}
+          {t('publishCta')}
         </a>
       </div>
 
@@ -135,59 +104,59 @@ export const RightPanel: React.FC = () => {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 20V10M12 20V4M6 20v-8" />
             </svg>
-            <span>{getT('perfTitle')}</span>
+            <span>{t('perfTitle')}</span>
           </h4>
           <span className="perf-period" id="perfPeriod">
-            {getT('today')}
+            {t('today')}
           </span>
         </div>
         <div className="perf-grid">
           <div className="perf-cell">
-            <div className="perf-cell-label">{lang === 'el' ? 'ΣΥΝΟΛΙΚΟ ΚΟΣΤΟΣ' : 'TOTAL COST'}</div>
+            <div className="perf-cell-label">{t('perfTotalCost')}</div>
             <div className="perf-cell-value">€ 48,230</div>
             <div className="perf-cell-delta up">↑ 6%</div>
           </div>
           <div className="perf-cell">
-            <div className="perf-cell-label">{lang === 'el' ? 'ΣΥΝΟΛΙΚΑ ΦΟΡΤΙΑ' : 'TOTAL LOADS'}</div>
+            <div className="perf-cell-label">{t('perfTotalLoads')}</div>
             <div className="perf-cell-value">189</div>
             <div className="perf-cell-delta up">↑ 12%</div>
           </div>
           <div className="perf-cell">
-            <div className="perf-cell-label">{lang === 'el' ? 'ΕΓΚΑΙΡΗ ΠΑΡΑΛΑΒΗ' : 'ON-TIME PICKUP'}</div>
+            <div className="perf-cell-label">{t('perfOnTimePickup')}</div>
             <div className="perf-cell-value">94.2%</div>
             <div className="perf-cell-delta up">↑ 1.3%</div>
           </div>
           <div className="perf-cell">
-            <div className="perf-cell-label">{lang === 'el' ? 'ΕΓΚΑΙΡΗ ΠΑΡΑΔΟΣΗ' : 'ON-TIME DELIVERY'}</div>
+            <div className="perf-cell-label">{t('perfOnTimeDelivery')}</div>
             <div className="perf-cell-value">91.7%</div>
             <div className="perf-cell-delta down">↓ 2.1%</div>
           </div>
           <div className="perf-cell">
-            <div className="perf-cell-label">{lang === 'el' ? 'Μ.Ο. ΚΟΣΤΟΣ / KM' : 'AVG COST / KM'}</div>
+            <div className="perf-cell-label">{t('perfAvgCostKm')}</div>
             <div className="perf-cell-value">€ 1.61</div>
             <div className="perf-cell-delta up" style={{ color: 'var(--success-text)', background: 'var(--success-bg)' }}>
               ↓ 3%
             </div>
           </div>
           <div className="perf-cell">
-            <div className="perf-cell-label">{lang === 'el' ? 'ΔΗΜΟΦΙΛΗΣ ΔΙΑΔΡΟΜΗ' : 'TOP LANE'}</div>
+            <div className="perf-cell-label">{t('perfTopLane')}</div>
             <div className="perf-cell-value text">
               Ioannina → Attica <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>· 47</span>
             </div>
           </div>
           <div className="perf-cell">
-            <div className="perf-cell-label">{lang === 'el' ? 'Μ.Ο. ΚΟΣΤΟΣ / ΦΟΡΤΙΟ' : 'AVG COST / LOAD'}</div>
+            <div className="perf-cell-label">{t('perfAvgCostLoad')}</div>
             <div className="perf-cell-value">€ 255</div>
           </div>
           <div className="perf-cell">
-            <div className="perf-cell-label">{lang === 'el' ? 'ΑΠΟΔΟΧΗ ΜΕΤΑΦΟΡΕΑ' : 'CARRIER ACCEPTANCE'}</div>
+            <div className="perf-cell-label">{t('perfCarrierAcceptance')}</div>
             <div className="perf-cell-value">87%</div>
             <div className="perf-cell-delta down">↓ 4%</div>
           </div>
         </div>
         <div className="perf-footer">
           <a href="#" onClick={(e) => { e.preventDefault(); handleAction("Performance", "View Full Analytics"); }}>
-            {getT('viewFullAnalytics')}
+            {t('viewFullAnalytics')}
           </a>
         </div>
       </div>
@@ -195,9 +164,9 @@ export const RightPanel: React.FC = () => {
       {/* Carrier Leaderboard */}
       <div className="lb-card">
         <div className="lb-hd">
-          <h4>🏆 {getT('topCarriers')}</h4>
+          <h4>🏆 {t('topCarriers')}</h4>
           <a className="card-link" href="#" onClick={(e) => { e.preventDefault(); handleAction("Top Carriers", "View All Clicked"); }}>
-            {getT('viewAll')}
+            {t('viewAll')}
           </a>
         </div>
         {/* Leaderboard Item 1 */}
@@ -209,7 +178,7 @@ export const RightPanel: React.FC = () => {
             <div className="lb-bar" style={{ width: '96%', background: 'var(--success)' }}></div>
           </div>
           <div className="lb-pct" style={{ color: 'var(--success)' }}>96%</div>
-          <div className="lb-loads">47 {getT('loads')}</div>
+          <div className="lb-loads">47 {t('loadsWord')}</div>
         </div>
         {/* Leaderboard Item 2 */}
         <div className="lb-item">
@@ -220,7 +189,7 @@ export const RightPanel: React.FC = () => {
             <div className="lb-bar" style={{ width: '88%', background: 'var(--info)' }}></div>
           </div>
           <div className="lb-pct" style={{ color: 'var(--info)' }}>88%</div>
-          <div className="lb-loads">12 {getT('loads')}</div>
+          <div className="lb-loads">12 {t('loadsWord')}</div>
         </div>
         {/* Leaderboard Item 3 */}
         <div className="lb-item">
@@ -231,7 +200,7 @@ export const RightPanel: React.FC = () => {
             <div className="lb-bar" style={{ width: '82%', background: 'var(--warning)' }}></div>
           </div>
           <div className="lb-pct" style={{ color: 'var(--warning)' }}>82%</div>
-          <div className="lb-loads">8 {getT('loads')}</div>
+          <div className="lb-loads">8 {t('loadsWord')}</div>
         </div>
         {/* Leaderboard Item 4 */}
         <div className="lb-item">
@@ -242,11 +211,11 @@ export const RightPanel: React.FC = () => {
             <div className="lb-bar" style={{ width: '79%', background: 'var(--text-tertiary)' }}></div>
           </div>
           <div className="lb-pct">79%</div>
-          <div className="lb-loads">5 {getT('loads')}</div>
+          <div className="lb-loads">5 {t('loadsWord')}</div>
         </div>
         <div className="lb-footer">
           <a href="#" onClick={(e) => { e.preventDefault(); handleAction("Top Carriers", "View All Footer"); }}>
-            {getT('viewAllCarriers')}
+            {t('viewAllCarriers')}
           </a>
         </div>
       </div>

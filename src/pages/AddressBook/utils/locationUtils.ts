@@ -155,32 +155,32 @@ export function applyTemplate(tpl: string, prev: CreateLocationData): CreateLoca
   return base;
 }
 
-export function buildDefaultDirectories(lang: string): DirectoryItem[] {
+export function buildDefaultDirectories(t: (k: string) => string): DirectoryItem[] {
   return [
     {
       id: 'all',
-      name: lang === 'el' ? 'Όλες οι Τοποθεσίες' : 'All Locations',
+      name: t('abAllLocations'),
       icon: 'home',
       system: true,
       filter: null,
     },
     {
       id: 'my',
-      name: lang === 'el' ? 'Οι Τοποθεσίες μου' : 'My Locations',
+      name: t('abMyLocations'),
       icon: 'briefcase',
       system: false,
       filter: (l) => l.group === 'my',
     },
     {
       id: 'customer',
-      name: lang === 'el' ? 'Τοποθεσίες Πελατών' : 'Customer Locations',
+      name: t('abCustomerLocations'),
       icon: 'users',
       system: false,
       filter: (l) => l.group === 'customer',
     },
     {
       id: 'archived',
-      name: lang === 'el' ? 'Αρχειοθετημένα' : 'Archived',
+      name: t('abArchived'),
       icon: 'archive',
       system: true,
       filter: (l) => l.status === 'archived',
