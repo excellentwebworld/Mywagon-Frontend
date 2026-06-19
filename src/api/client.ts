@@ -1,7 +1,7 @@
 import type { ApiResponse } from './types/addressBook';
 import { AUTH_TOKEN_KEY, clearStoredToken, getStoredToken } from './auth/authService';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
+// const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
 export class ApiError extends Error {
   status: number;
@@ -49,7 +49,7 @@ export async function apiRequest<T>(
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(`${path}`, {
     ...options,
     headers,
   });
