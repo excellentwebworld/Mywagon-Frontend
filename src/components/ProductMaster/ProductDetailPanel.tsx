@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import type { ProductType, SKU } from '../../context/AppContext';
 import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
 
@@ -10,10 +11,12 @@ type Props = Pick<
   | 'selectedItem'
   | 'selectedKind'
   | 'detailLoading'
+  | 'typeMappedSkus'
+  | 'typeSkusLoading'
   | 'clearSelection'
   | 'openEditSku'
   | 'handleToggleActive'
-  | 'showToast'
+  | 'loadSkuDetail'
 >;
 
 export const ProductDetailPanel: React.FC<Props> = ({
@@ -23,13 +26,20 @@ export const ProductDetailPanel: React.FC<Props> = ({
   selectedItem,
   selectedKind,
   detailLoading,
+  typeMappedSkus,
+  typeSkusLoading,
   clearSelection,
   openEditSku,
   handleToggleActive,
+  loadSkuDetail,
 }) => (
   <div className={`detail-pane${selectedItem ? ' open' : ''}`}>
     <div className="dp-inner">
-      {detailLoading && <div className="empty-state"><div className="et">Loading…</div></div>}
+      {detailLoading && selectedKind === 'sku' && (
+        <div className="empty-state">
+          <div className="et">Loading…</div>
+        </div>
+      )}
       {selectedItem && selectedKind === 'sku' && !detailLoading && (
         <SkuDetail
           sku={selectedItem as SKU}
@@ -39,6 +49,17 @@ export const ProductDetailPanel: React.FC<Props> = ({
           clearSelection={clearSelection}
           openEditSku={openEditSku}
           handleToggleActive={handleToggleActive}
+        />
+      )}
+      {selectedItem && selectedKind === 'type' && (
+        <TypeDetail
+          type={selectedItem as ProductType}
+          categories={categories}
+          catName={catName}
+          mappedSkus={typeMappedSkus}
+          mappedSkusLoading={typeSkusLoading}
+          clearSelection={clearSelection}
+          onSkuClick={loadSkuDetail}
         />
       )}
     </div>
@@ -205,6 +226,124 @@ function SkuDetail({
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+function TypeDetail({
+  type: tp,
+  categories,
+  catName,
+  mappedSkus,
+  mappedSkusLoading,
+  clearSelection,
+  onSkuClick,
+}: {
+  type: ProductType;
+  categories: ProductMasterState['categories'];
+  catName: ProductMasterState['catName'];
+  mappedSkus: SKU[];
+  mappedSkusLoading: boolean;
+  clearSelection: () => void;
+  onSkuClick: (sku: SKU) => void;
+}) {
+  const { t } = useTranslation();
+  const cat = categories.find((c) => c.id === tp.catId);
+  const [secCollapsed, setSecCollapsed] = useState<Record<string, boolean>>({});
+  const toggleSec = (key: string) => setSecCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+  const mappedCount = tp.skuCount ?? mappedSkus.length;
+
+  return (
+    <>
+      <div className="dp-hero">
+        <button type="button" className="dp-close" onClick={clearSelection}>
+          ✕
+        </button>
+        <div className="dp-badges">
+          <span className="type-pill">Product Type</span>
+        </div>
+        <div className="dp-name">{tp.name}</div>
+        <div className="dp-sub">{cat ? `${cat.icon} ${catName(cat)}` : '—'}</div>
+
+        <div className="stat-grid" style={{ marginTop: 14 }}>
+          <div className="stat-card">
+            <div className="sv">{mappedCount}</div>
+            <div className="sl">Mapped SKUs</div>
+          </div>
+          <div className="stat-card">
+            <div className="sv">{tp.s30}</div>
+            <div className="sl">Shipments (30d)</div>
+          </div>
+          <div className="stat-card">
+            <div className="sv">{tp.s90}</div>
+            <div className="sl">Shipments (90d)</div>
+          </div>
+          <div className="stat-card">
+            <div className="sv">{tp.defaults.temp}</div>
+            <div className="sl">Temperature</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="dp-sec">
+        <div className="dp-sec-h" onClick={() => toggleSec('defaults')} role="button" tabIndex={0}>
+          📦 Shipping Defaults
+          <span className={`chev${!secCollapsed.defaults ? ' open' : ''}`}>▼</span>
+        </div>
+        {!secCollapsed.defaults && (
+          <div className="dp-sec-body">
+            <div className="dp-row">
+              <span className="label">Temperature</span>
+              <span className="val">{tp.defaults.temp}</span>
+            </div>
+            <div className="dp-row">
+              <span className="label">Hazardous</span>
+              <span className="val">{tp.defaults.hazard ? 'Yes' : 'No'}</span>
+            </div>
+            <div className="dp-row">
+              <span className="label">Stackable</span>
+              <span className="val">{tp.defaults.stackable ? 'Yes' : 'No'}</span>
+            </div>
+            <div className="dp-row">
+              <span className="label">Pallet Type</span>
+              <span className="val">{tp.defaults.palletType}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="dp-sec">
+        <div className="dp-sec-h" onClick={() => toggleSec('mapped')} role="button" tabIndex={0}>
+          🏷️ Mapped SKUs ({mappedCount})
+          <span className={`chev${!secCollapsed.mapped ? ' open' : ''}`}>▼</span>
+        </div>
+        {!secCollapsed.mapped && (
+          <div className="dp-sec-body">
+            {mappedSkusLoading ? (
+              <div style={{ color: 'var(--t3)', fontSize: 12 }}>Loading SKUs…</div>
+            ) : mappedSkus.length === 0 ? (
+              <div style={{ color: 'var(--t3)', fontSize: 12 }}>{t('noSkusMapped')}</div>
+            ) : (
+              <table className="mini-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Number</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mappedSkus.map((s) => (
+                    <tr key={s.id} onClick={() => onSkuClick(s)} role="button" tabIndex={0}>
+                      <td>{s.name}</td>
+                      <td>{s.number}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </div>
     </>
   );
 }

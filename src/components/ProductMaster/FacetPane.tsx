@@ -17,8 +17,7 @@ type Props = Pick<
   | 'setActiveType'
   | 'unmappedCount'
   | 'catName'
-  | 'setSelectedItem'
-  | 'setSelectedKind'
+  | 'loadTypeDetail'
   | 'clearSelection'
 >;
 
@@ -36,8 +35,7 @@ export const FacetPane: React.FC<Props> = ({
   setActiveType,
   unmappedCount,
   catName,
-  setSelectedItem,
-  setSelectedKind,
+  loadTypeDetail,
   clearSelection,
 }) => {
   const { t } = useTranslation();
@@ -59,8 +57,7 @@ export const FacetPane: React.FC<Props> = ({
   };
 
   const selectTypeInfo = (type: (typeof productTypes)[0]) => {
-    setSelectedItem(type);
-    setSelectedKind('type');
+    loadTypeDetail(type);
   };
 
   return (

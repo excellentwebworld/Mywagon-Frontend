@@ -78,8 +78,7 @@ export const ProductMaster: React.FC = () => {
           setActiveType={pm.setActiveType}
           unmappedCount={pm.unmappedCount}
           catName={pm.catName}
-          setSelectedItem={pm.setSelectedItem}
-          setSelectedKind={pm.setSelectedKind}
+          loadTypeDetail={pm.loadTypeDetail}
           clearSelection={pm.clearSelection}
         />
 
@@ -95,9 +94,8 @@ export const ProductMaster: React.FC = () => {
           selectedIds={pm.selectedIds}
           selectedItem={pm.selectedItem}
           selectedKind={pm.selectedKind}
-          setSelectedItem={pm.setSelectedItem}
-          setSelectedKind={pm.setSelectedKind}
           loadSkuDetail={pm.loadSkuDetail}
+          loadTypeDetail={pm.loadTypeDetail}
           handleSelectAll={pm.handleSelectAll}
           handleToggleRowSelection={pm.handleToggleRowSelection}
           handleBulkArchive={pm.handleBulkArchive}
@@ -116,10 +114,12 @@ export const ProductMaster: React.FC = () => {
           selectedItem={pm.selectedItem}
           selectedKind={pm.selectedKind}
           detailLoading={pm.detailLoading}
+          typeMappedSkus={pm.typeMappedSkus}
+          typeSkusLoading={pm.typeSkusLoading}
           clearSelection={pm.clearSelection}
           openEditSku={pm.openEditSku}
           handleToggleActive={pm.handleToggleActive}
-          showToast={pm.showToast}
+          loadSkuDetail={pm.loadSkuDetail}
         />
       </div>
 

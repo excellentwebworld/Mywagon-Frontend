@@ -49,6 +49,8 @@ export function useProductMaster() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [typeMappedSkus, setTypeMappedSkus] = useState<SKU[]>([]);
+  const [typeSkusLoading, setTypeSkusLoading] = useState(false);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -216,6 +218,7 @@ export function useProductMaster() {
     setSelectedItem(null);
     setSelectedKind('');
     setSelectedIds(new Set());
+    setTypeMappedSkus([]);
   }, []);
 
   const clearFilters = useCallback(() => {
@@ -294,6 +297,35 @@ export function useProductMaster() {
       createSkuMutation.mutate(newSku);
     }
   }, [newSku, editSkuMode, selectedItem, selectedKind, createSkuMutation, updateSkuMutation, showToast, t]);
+
+  const loadTypeDetail = useCallback(
+    async (type: ProductType) => {
+      setSelectedItem(type);
+      setSelectedKind('type');
+      setTypeMappedSkus([]);
+
+      const typeId = type.id;
+      if (!typeId || Number.isNaN(parseInt(typeId, 10))) {
+        return;
+      }
+
+      setTypeSkusLoading(true);
+      try {
+        const result = await productMasterService.listSkus({
+          type_id: typeId,
+          status: 'active',
+          page: 1,
+          per_page: 100,
+        });
+        setTypeMappedSkus(result.items);
+      } catch (err) {
+        handleApiError(err, 'Failed to load mapped SKUs');
+      } finally {
+        setTypeSkusLoading(false);
+      }
+    },
+    [handleApiError]
+  );
 
   const loadSkuDetail = useCallback(
     async (sku: SKU) => {
@@ -460,8 +492,11 @@ export function useProductMaster() {
     openAddSku,
     openEditSku,
     loadSkuDetail,
+    loadTypeDetail,
     handleToggleActive,
     catName,
+    typeMappedSkus,
+    typeSkusLoading,
     // stubs removed from Blade — no-ops for modals still referencing
     isTypeOpen: false,
     setIsTypeOpen: () => {},

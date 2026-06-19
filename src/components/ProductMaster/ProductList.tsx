@@ -16,9 +16,8 @@ type Props = Pick<
   | 'selectedIds'
   | 'selectedItem'
   | 'selectedKind'
-  | 'setSelectedItem'
-  | 'setSelectedKind'
   | 'loadSkuDetail'
+  | 'loadTypeDetail'
   | 'handleSelectAll'
   | 'handleToggleRowSelection'
   | 'handleBulkArchive'
@@ -42,9 +41,8 @@ export const ProductList: React.FC<Props> = ({
   selectedIds,
   selectedItem,
   selectedKind,
-  setSelectedItem,
-  setSelectedKind,
   loadSkuDetail,
+  loadTypeDetail,
   handleSelectAll,
   handleToggleRowSelection,
   handleBulkArchive,
@@ -110,10 +108,7 @@ export const ProductList: React.FC<Props> = ({
                 <div
                   key={x.id}
                   className="type-card"
-                  onClick={() => {
-                    setSelectedItem(x);
-                    setSelectedKind('type');
-                  }}
+                  onClick={() => loadTypeDetail(x)}
                   style={isSel ? { borderColor: 'var(--ac)', background: 'var(--ap)' } : undefined}
                   role="button"
                   tabIndex={0}
