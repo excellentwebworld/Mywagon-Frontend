@@ -18,7 +18,6 @@ export const AddressBook: React.FC = () => {
   return (
     <div className="ab-wrap anim">
       <AddressBookHeader
-        lang={ab.lang}
         t={ab.t}
         exportExcel={ab.exportExcel}
         exporting={ab.exporting}
@@ -40,10 +39,10 @@ export const AddressBook: React.FC = () => {
         </div>
       )}
 
-      <FilterBar lang={ab.lang} searchQuery={ab.searchQuery} handleSearchChange={ab.handleSearchChange} />
+      <FilterBar searchQuery={ab.searchQuery} handleSearchChange={ab.handleSearchChange} />
 
       <div className="ab-panes">
-        <DirectoryPane lang={ab.lang} summary={ab.summary} activeNode={ab.activeNode} selectNode={ab.selectNode} />
+        <DirectoryPane summary={ab.summary} activeNode={ab.activeNode} selectNode={ab.selectNode} />
 
         <LocationList
           activeDirectoryName={ab.activeDirectoryName}
@@ -67,7 +66,6 @@ export const AddressBook: React.FC = () => {
           handleRestore={ab.handleRestore}
           t={ab.t}
           showToast={ab.showToast}
-          lang={ab.lang}
         />
 
         <LocationDetailPanel

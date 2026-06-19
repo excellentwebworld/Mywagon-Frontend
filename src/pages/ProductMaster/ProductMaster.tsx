@@ -17,8 +17,6 @@ export const ProductMaster: React.FC = () => {
   return (
     <div className="pm-container anim">
       <ProductMasterHeader
-        lang={pm.lang}
-        t={pm.t}
         showToast={pm.showToast}
         addDropdownOpen={pm.addDropdownOpen}
         setAddDropdownOpen={pm.setAddDropdownOpen}
@@ -42,8 +40,6 @@ export const ProductMaster: React.FC = () => {
       />
 
       <FilterBar
-        t={pm.t}
-        lang={pm.lang}
         categories={pm.categories}
         catName={pm.catName}
         searchQuery={pm.searchQuery}
@@ -64,8 +60,6 @@ export const ProductMaster: React.FC = () => {
 
       <div className="panes">
         <FacetPane
-          lang={pm.lang}
-          t={pm.t}
           categories={pm.categories}
           productTypes={pm.productTypes}
           skus={pm.skus}
@@ -84,8 +78,6 @@ export const ProductMaster: React.FC = () => {
         />
 
         <ProductList
-          lang={pm.lang}
-          t={pm.t}
           viewMode={pm.viewMode}
           sortBy={pm.sortBy}
           setSortBy={pm.setSortBy}
@@ -110,8 +102,6 @@ export const ProductMaster: React.FC = () => {
         />
 
         <ProductDetailPanel
-          lang={pm.lang}
-          t={pm.t}
           categories={pm.categories}
           productTypes={pm.productTypes}
           skus={pm.skus}

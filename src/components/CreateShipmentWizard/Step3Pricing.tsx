@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import type { ShipmentStop } from '../../context/AppContext';
 
 interface Step3PricingProps {
@@ -59,7 +60,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   setTrackingEmails,
   totalBulkLoads,
 }) => {
-  const { lang, locations } = useApp();
+  const { t } = useTranslation();
+  const { locations } = useApp();
   const [carrierSearch, setCarrierSearch] = useState('');
   const [mapTab, setMapTab] = useState<'map' | 'sat'>('map');
   const [openTrackingGroup, setOpenTrackingGroup] = useState<string | null>(null);
@@ -206,8 +208,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   };
 
   const getStopDetailsString = (stop: ShipmentStop) => {
-    if (stop.customers.length === 0) return lang === 'el' ? 'Καμία παραλαβή' : '0 cargo orders';
-    return stop.customers.map((c) => c.name || (lang === 'el' ? 'προαιρετικό' : 'optional')).join(', ');
+    if (stop.customers.length === 0) return t('noCargoOrders');
+    return stop.customers.map((c) => c.name || t('optional')).join(', ');
   };
 
   const handleAddEmail = (orderId: string) => {
@@ -248,7 +250,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               <path d="M23 21v-2a4 4 0 00-3-3.87" />
               <path d="M16 3.13a4 4 0 010 7.75" />
             </svg>
-            <span>{lang === 'el' ? 'Τύπος αποστολής' : 'Broadcast Type'}</span>
+            <span>{t('broadcastType')}</span>
           </div>
           <div className="bc-grid">
             <button
@@ -257,10 +259,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             >
               <div className="bcc-icon">👥</div>
               <div className="bcc-title">
-                {lang === 'el' ? 'Ιδιωτικό Δίκτυο' : 'Private Network'}
+                {t('privateNetwork')}
               </div>
               <p className="bcc-desc">
-                {lang === 'el' ? 'Αποστολή μόνο σε συνεργάτες' : 'Send only to partner carriers'}
+                {t('privateNetworkDesc')}
               </p>
             </button>
             <button
@@ -269,19 +271,19 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             >
               <div className="bcc-icon">🌐</div>
               <div className="bcc-title">
-                {lang === 'el' ? 'Δημόσια Αγορά' : 'Public Marketplace'}{' '}
+                {t('publicMarketplace')}{' '}
                 <span className="ptag ct">BETA</span>
               </div>
               <p className="bcc-desc">
-                {lang === 'el' ? 'Δημοσίευση σε όλους' : 'Publish to all registered carriers'}
+                {t('publishToAll')}
               </p>
             </button>
             <button className="bcc" disabled>
               <div className="bcc-icon">🚛</div>
               <div className="bcc-title">
-                {lang === 'el' ? 'Ο Στόλος Μου' : 'My Fleet'}
+                {t('myFleet')}
               </div>
-              <p className="bcc-desc">{lang === 'el' ? 'Σύντομα διαθέσιμο' : 'Coming soon'}</p>
+              <p className="bcc-desc">{t('comingSoon')}</p>
             </button>
           </div>
         </article>
@@ -294,7 +296,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
-              <span>{lang === 'el' ? 'Επιλογή μεταφορέων' : 'Select Carriers'}</span>
+              <span>{t('selectCarriers')}</span>
             </div>
 
             {/* Selected Carriers Summary list */}
@@ -326,7 +328,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             <div className="c-search-wrap">
               <input
                 type="search"
-                placeholder={lang === 'el' ? 'Αναζήτηση μεταφορέων…' : 'Search carriers…'}
+                placeholder={t('searchCarriers')}
                 value={carrierSearch}
                 onChange={(e) => setCarrierSearch(e.target.value)}
               />
@@ -362,7 +364,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
             </svg>
-            <span>{lang === 'el' ? 'Μαζική δημιουργία' : 'Bulk Load Creation'}</span>
+            <span>{t('bulkLoadCreation')}</span>
           </div>
 
           <div className="btabs" role="tablist">
@@ -370,34 +372,32 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               className={`btab ${bulkMode === 'single' ? 'act' : ''}`}
               onClick={() => setBulkMode('single')}
             >
-              {lang === 'el' ? 'Μεμονωμένο' : 'Single Load'}
+              {t('singleLoad')}
             </button>
             <button
               className={`btab ${bulkMode === 'qty' ? 'act' : ''}`}
               onClick={() => setBulkMode('qty')}
             >
-              {lang === 'el' ? 'Πολλαπλά' : 'Multiple'}
+              {t('multiple')}
             </button>
             <button
               className={`btab ${bulkMode === 'dates' ? 'act' : ''}`}
               onClick={() => setBulkMode('dates')}
             >
-              {lang === 'el' ? 'Ημερομηνίες' : 'Dates'}
+              {t('dates')}
             </button>
             <button
               className={`btab ${bulkMode === 'rec' ? 'act' : ''}`}
               onClick={() => setBulkMode('rec')}
             >
-              {lang === 'el' ? 'Επαναλαμβανόμενο' : 'Recurring'}
+              {t('recurring')}
             </button>
           </div>
 
           {bulkMode === 'single' && (
             <div className="bpan show">
               <p style={{ textAlign: 'center', fontSize: '13px', color: 'var(--text-tertiary)', padding: '8px 0 4px' }}>
-                {lang === 'el'
-                  ? '1 φορτίο θα δημιουργηθεί. Επιλέξτε άλλη καρτέλα για μαζική δημιουργία.'
-                  : '1 load will be created. Select another tab for bulk creation.'}
+                {t('singleLoadHint')}
               </p>
             </div>
           )}
@@ -406,7 +406,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             <div className="bpan show">
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                 <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  {lang === 'el' ? 'Αριθμός φορτίων:' : 'Number of loads:'}
+                  {t('numberOfLoads')}
                 </span>
                 <div className="qs">
                   <button onClick={() => setBulkQty(Math.max(1, bulkQty - 1))}>−</button>
@@ -419,7 +419,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 </div>
               </div>
               <div className="bcount-txt">
-                ✓ <strong>{bulkQty}</strong> {lang === 'el' ? 'φορτία θα δημιουργηθούν' : 'loads will be created'}
+                ✓ <strong>{bulkQty}</strong> {t('loadsWillBeCreated')}
               </div>
             </div>
           )}
@@ -447,16 +447,16 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                       <button onClick={() => handleUpdateBulkDate(idx, 'qty', item.qty + 1)}>+</button>
                     </div>
                     <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                      {lang === 'el' ? 'φορτία' : 'loads'}
+                      {t('loadsUnit')}
                     </span>
                   </div>
                 ))}
               </div>
               <button className="add-date-btn" onClick={handleAddBulkDate}>
-                + {lang === 'el' ? 'Προσθήκη ημερομηνίας' : 'Add date'}
+                + {t('addDate')}
               </button>
               <div className="bcount-txt" style={{ marginTop: '10px' }}>
-                ✓ <strong>{totalBulkLoads}</strong> {lang === 'el' ? 'φορτία θα δημιουργηθούν' : 'loads will be created'}
+                ✓ <strong>{totalBulkLoads}</strong> {t('loadsWillBeCreated')}
               </div>
             </div>
           )}
@@ -464,7 +464,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
           {bulkMode === 'rec' && (
             <div className="bpan show">
               <div className="rec-row">
-                <span>{lang === 'el' ? 'Κάθε' : 'Every'}</span>
+                <span>{t('every')}</span>
                 <div className="qs">
                   <button onClick={() => setBulkRecInterval(Math.max(1, bulkRecInterval - 1))}>−</button>
                   <input
@@ -479,13 +479,13 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   className="inp-sm"
                   onChange={(e) => setBulkRecType(e.target.value as any)}
                 >
-                  <option value="weekly">{lang === 'el' ? 'εβδομάδες' : 'weeks'}</option>
-                  <option value="daily">{lang === 'el' ? 'μέρες' : 'days'}</option>
-                  <option value="monthly">{lang === 'el' ? 'μήνες' : 'months'}</option>
+                  <option value="weekly">{t('weeks')}</option>
+                  <option value="daily">{t('days')}</option>
+                  <option value="monthly">{t('months')}</option>
                 </select>
               </div>
               <div className="rec-row">
-                <span>{lang === 'el' ? 'Για' : 'For'}</span>
+                <span>{t('for')}</span>
                 <div className="qs">
                   <button onClick={() => setBulkRecOccurrences(Math.max(1, bulkRecOccurrences - 1))}>
                     −
@@ -497,10 +497,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   />
                   <button onClick={() => setBulkRecOccurrences(bulkRecOccurrences + 1)}>+</button>
                 </div>
-                <span>{lang === 'el' ? 'επαναλήψεις' : 'occurrences'}</span>
+                <span>{t('occurrences')}</span>
               </div>
               <div className="bcount-txt">
-                ✓ <strong>{totalBulkLoads}</strong> {lang === 'el' ? 'φορτία θα δημιουργηθούν' : 'loads will be created'}
+                ✓ <strong>{totalBulkLoads}</strong> {t('loadsWillBeCreated')}
               </div>
             </div>
           )}
@@ -513,7 +513,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
-            <span>{lang === 'el' ? 'Σημειώσεις οδηγού' : 'Driver Notes'}</span>
+            <span>{t('driverNotes')}</span>
           </div>
           <div style={{ padding: '16px 20px' }}>
             <textarea
@@ -531,7 +531,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 background: 'var(--surface)',
               }}
               maxLength={500}
-              placeholder={lang === 'el' ? 'Σημειώσεις για τον οδηγό…' : 'Notes for the driver…'}
+              placeholder={t('driverNotesPlaceholder')}
               value={driverNotes}
               onChange={(e) => setDriverNotes(e.target.value)}
             />
@@ -547,13 +547,13 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
-            <span>{lang === 'el' ? 'Σύνδεσμοι παρακολούθησης' : 'Tracking Links'}</span>
+            <span>{t('trackingLinks')}</span>
           </div>
 
           <div className="tracking-wrap">
             {allOrdersList.length === 0 ? (
               <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-tertiary)', padding: '12px' }}>
-                {lang === 'el' ? 'Δεν υπάρχουν παραγγελίες' : 'No orders in shipment'}
+                {t('noOrdersInShipment')}
               </p>
             ) : (
               allOrdersList.map((o, idx) => {
@@ -565,7 +565,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                     <div className="tko-cust-head" onClick={() => setOpenTrackingGroup(isOpen ? null : o.id)}>
                       <span className={`cust-chev ${isOpen ? 'open' : ''}`}>▶</span>
                       <span className="ci-e" style={{ fontSize: '13px', marginRight: '6px' }}>🏪</span>
-                      <span className="cust-name">{o.customerName || (lang === 'el' ? 'Ιδιώτης' : 'Direct Customer')}</span>
+                      <span className="cust-name">{o.customerName || t('directCustomer')}</span>
                       <span className="cust-count">{o.id}</span>
                     </div>
 
@@ -594,7 +594,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                         ))}
 
                         <button className="arb" style={{ marginTop: '8px' }} onClick={() => handleAddEmail(o.id)}>
-                          + {lang === 'el' ? 'Προσθήκη email' : 'Add email'}
+                          + {t('addEmail')}
                         </button>
                       </div>
                     </div>
@@ -615,13 +615,13 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               className={`map-tab ${mapTab === 'map' ? 'act' : ''}`}
               onClick={() => setMapTab('map')}
             >
-              {lang === 'el' ? 'Χάρτης' : 'Map'}
+              {t('map')}
             </button>
             <button
               className={`map-tab ${mapTab === 'sat' ? 'act' : ''}`}
               onClick={() => setMapTab('sat')}
             >
-              {lang === 'el' ? 'Δορυφόρος' : 'Satellite'}
+              {t('satellite')}
             </button>
           </div>
           <iframe
@@ -642,7 +642,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
-            <span>{lang === 'el' ? 'Στάσεις δρομολογίου' : 'Route Stops'}</span>
+            <span>{t('routeStops')}</span>
           </div>
           <div>
             {stops.map((stop, i) => {
@@ -670,28 +670,28 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
-            <span>{lang === 'el' ? 'Σύνοψη ταξιδιού' : 'Trip Summary'}</span>
+            <span>{t('tripSummary')}</span>
           </div>
           <div className="sc-grid">
             <div className="sc">
-              <div className="sc-l">{lang === 'el' ? 'ΑΠΟΣΤΑΣΗ' : 'DISTANCE'}</div>
+              <div className="sc-l">{t('distanceUpper')}</div>
               <div className="sc-v">
                 463 <span className="u">km</span>
               </div>
             </div>
             <div className="sc">
-              <div className="sc-l">{lang === 'el' ? 'ΧΡΟΝΟΣ' : 'TIME'}</div>
+              <div className="sc-l">{t('timeUpper')}</div>
               <div className="sc-v">
-                4<span className="u">{lang === 'el' ? 'ω' : 'h'}</span> 57
-                <span className="u">{lang === 'el' ? 'λ' : 'm'}</span>
+                4<span className="u">{t('hoursShort')}</span> 57
+                <span className="u">{t('minutesShort')}</span>
               </div>
             </div>
             <div className="sc">
-              <div className="sc-l">{lang === 'el' ? 'ΣΤΑΣΕΙΣ' : 'STOPS'}</div>
+              <div className="sc-l">{t('stopsUpper')}</div>
               <div className="sc-v">{stops.length}</div>
             </div>
             <div className="sc">
-              <div className="sc-l">{lang === 'el' ? 'ΠΑΛΕΤΕΣ' : 'PALLETS'}</div>
+              <div className="sc-l">{t('palletsUpper')}</div>
               <div className="sc-v">{totalPallets}</div>
             </div>
           </div>
@@ -704,14 +704,14 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               <line x1="12" y1="1" x2="12" y2="23" />
               <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
             </svg>
-            <span>{lang === 'el' ? 'Τιμολόγηση' : 'Pricing'}</span>
+            <span>{t('pricing')}</span>
           </div>
 
           <div className={`psrc ${activeContractCarrier ? 'ct' : 'sp'}`}>
             <span>
               {activeContractCarrier
-                ? `${lang === 'el' ? 'Τιμή συμβολαίου' : 'Contract price'} · ${contractCarrierName}`
-                : `${lang === 'el' ? 'Τιμή spot' : 'Spot price'} · Price List`}
+                ? `${t('contractPrice')} · ${contractCarrierName}`
+                : `${t('spotPrice')} · Price List`}
             </span>
           </div>
 
@@ -719,12 +719,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             ℹ️{' '}
             {activeContractCarrier ? (
               <span>
-                {lang === 'el' ? 'Τιμή συμβολαίου:' : 'Contract rate:'}{' '}
+                {t('contractRate')}{' '}
                 <strong>{contractDetails}</strong> · Ioannina→Athens
               </span>
             ) : (
               <span>
-                {lang === 'el' ? 'Τιμή spot από τιμοκατάλογο:' : 'Spot rate from price list:'}{' '}
+                {t('spotRateFrom')}{' '}
                 <strong>€750 per load</strong> · Ioannina→Athens
               </span>
             )}
@@ -758,11 +758,9 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
           {isOverride && (
             <div className="override-warn">
               ⚠{' '}
-              {lang === 'el'
-                ? 'Η τιμή διαφέρει από το συμβόλαιο.'
-                : 'Price differs from contract rate.'}
+              {t('priceDiffers')}
               <button onClick={() => setTargetPrice(String(computedContractPrice))}>
-                {lang === 'el' ? 'Επαναφορά' : 'Reset'}
+                {t('reset')}
               </button>
             </div>
           )}
@@ -770,10 +768,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
           <div className="neg-row">
             <div>
               <div className="neg-title">
-                {lang === 'el' ? 'Διαπραγματεύσιμη τιμή' : 'Negotiable price'}
+                {t('negotiablePrice')}
               </div>
               <div className="neg-sub">
-                {lang === 'el' ? 'Οι μεταφορείς μπορούν να αντιπροτείνουν' : 'Carriers can counteroffer'}
+                {t('carriersCanCounteroffer')}
               </div>
             </div>
             <button

@@ -1,10 +1,9 @@
 import React from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
 
 type Props = Pick<
   ProductMasterState,
-  | 'lang'
-  | 't'
   | 'categories'
   | 'productTypes'
   | 'skus'
@@ -23,8 +22,6 @@ type Props = Pick<
 >;
 
 export const FacetPane: React.FC<Props> = ({
-  lang,
-  t,
   categories,
   productTypes,
   skus,
@@ -41,6 +38,8 @@ export const FacetPane: React.FC<Props> = ({
   clearSelection,
   setIsCatOpen,
 }) => {
+  const { t } = useTranslation();
+
   const switchView = (mode: 'skus' | 'types') => {
     setViewMode(mode);
     clearSelection();
@@ -71,14 +70,14 @@ export const FacetPane: React.FC<Props> = ({
             SKUs
           </button>
           <button type="button" className={viewMode === 'types' ? 'act' : ''} onClick={() => switchView('types')}>
-            {lang === 'el' ? 'Τύποι' : 'Types'}
+            {t('typesLabel')}
           </button>
         </div>
       </div>
 
       <div className={`cat-node${activeCat === 'all' ? ' act' : ''}`} onClick={() => selectCat('all')} role="button" tabIndex={0}>
         <span className="ico">📁</span>
-        {lang === 'el' ? 'Όλα' : 'All'} {viewMode === 'types' ? (lang === 'el' ? 'Τύποι' : 'Types') : 'Items'}
+        {viewMode === 'types' ? t('allTypes') : t('allItems')}
         <span className="cnt">{viewMode === 'types' ? productTypes.filter((x) => x.active).length : skus.length}</span>
       </div>
 

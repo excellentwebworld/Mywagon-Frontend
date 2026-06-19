@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import type { ShipmentStop } from '../../context/AppContext';
 
 interface Step2ItineraryProps {
@@ -8,7 +9,8 @@ interface Step2ItineraryProps {
 }
 
 export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ stops, onEditStep }) => {
-  const { lang, locations } = useApp();
+  const { t } = useTranslation();
+  const { locations } = useApp();
   const [mapTab, setMapTab] = useState<'map' | 'sat'>('map');
   const [expandedStopId, setExpandedStopId] = useState<number | null>(null);
 
@@ -49,7 +51,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ stops, onEditSte
 
   const getStopLocationName = (stop: ShipmentStop) => {
     const loc = locations.find((l) => l.id === stop.location);
-    return loc ? (lang === 'el' ? loc.name : loc.name) : 'Unknown Location';
+    return loc ? loc.name : 'Unknown Location';
   };
 
   const getStopCity = (stop: ShipmentStop) => {
@@ -66,14 +68,14 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ stops, onEditSte
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
-          <span>{lang === 'el' ? 'Στάσεις δρομολογίου' : 'Route Stops'}</span>
+          <span>{t('routeStops')}</span>
           <div className="ch-r">
             <button className="edit-btn" onClick={() => onEditStep(1)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
               </svg>
-              <span>{lang === 'el' ? 'Επεξεργασία' : 'Edit'}</span>
+              <span>{t('edit')}</span>
             </button>
           </div>
         </div>
@@ -82,9 +84,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ stops, onEditSte
           {stops.map((stop, idx) => {
             const isPk = idx === 0;
             const dotCls = isPk ? 'pk' : 'dl';
-            const badgeLabel = isPk
-              ? (lang === 'el' ? 'ΠΑΡΑΛΑΒΗ' : 'PICKUP')
-              : (lang === 'el' ? 'ΠΑΡΑΔΟΣΗ' : 'DELIVERY');
+            const badgeLabel = isPk ? t('pickupUpper') : t('deliveryUpper');
             const locName = getStopLocationName(stop);
             const locAddr = stop.address;
             const isExpanded = expandedStopId === stop.id;
@@ -126,7 +126,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ stops, onEditSte
                       {stop.customers.slice(0, 2).map((c, cIdx) => (
                         <span key={cIdx} className="cust-pill">
                           <span className="cust-ico">🏪</span>
-                          {c.name || (lang === 'el' ? 'προαιρετικό' : 'optional')}
+                          {c.name || t('optional')}
                         </span>
                       ))}
                       {stop.customers.length > 2 && (
@@ -141,17 +141,17 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ stops, onEditSte
                       <div key={cIdx} className="cust-group">
                         <div className="cust-group-head">
                           <span className="cust-ico">🏪</span>
-                          <span className="cust-group-name">{cust.name || (lang === 'el' ? 'Χωρίς ανάθεση πελάτη' : 'No customer assigned')}</span>
+                          <span className="cust-group-name">{cust.name || t('noCustomerAssigned')}</span>
                         </div>
                         {cust.orders.map((order, oIdx) => (
                           <div key={oIdx} className="cust-order">
                             <div className="stop-chips">
                               <span className="chip">{order.products || 'General Cargo'}</span>
                               <span className="chip">
-                                {lang === 'el' ? 'Ποσότητα' : 'Quantity'}: <b>{order.qty} {order.qtyUnit}</b>
+                                {t('quantity')}: <b>{order.qty} {order.qtyUnit}</b>
                               </span>
                               <span className="chip">
-                                {lang === 'el' ? 'Βάρος' : 'Weight'}: <b>{order.weight} {order.weightUnit}</b>
+                                {t('weight')}: <b>{order.weight} {order.weightUnit}</b>
                               </span>
                             </div>
                             <div className="order-link">{order.id || 'No Order ID'}</div>
@@ -176,13 +176,13 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ stops, onEditSte
               className={`map-tab ${mapTab === 'map' ? 'act' : ''}`}
               onClick={() => setMapTab('map')}
             >
-              {lang === 'el' ? 'Χάρτης' : 'Map'}
+              {t('map')}
             </button>
             <button
               className={`map-tab ${mapTab === 'sat' ? 'act' : ''}`}
               onClick={() => setMapTab('sat')}
             >
-              {lang === 'el' ? 'Δορυφόρος' : 'Satellite'}
+              {t('satellite')}
             </button>
           </div>
           <iframe
@@ -205,28 +205,28 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ stops, onEditSte
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
-            <span>{lang === 'el' ? 'Σύνοψη ταξιδιού' : 'Trip Summary'}</span>
+            <span>{t('tripSummary')}</span>
           </div>
           <div className="ts-grid">
             <div className="ts-cell">
-              <div className="ts-label">{lang === 'el' ? 'ΑΠΟΣΤΑΣΗ' : 'DISTANCE'}</div>
+              <div className="ts-label">{t('distanceUpper')}</div>
               <div className="ts-val">
                 463 <span className="unit">km</span>
               </div>
             </div>
             <div className="ts-cell">
-              <div className="ts-label">{lang === 'el' ? 'ΧΡΟΝΟΣ' : 'TIME'}</div>
+              <div className="ts-label">{t('timeUpper')}</div>
               <div className="ts-val">
-                4<span className="unit">{lang === 'el' ? 'ω' : 'h'}</span> 57
-                <span className="unit">{lang === 'el' ? 'λ' : 'm'}</span>
+                4<span className="unit">{t('hoursShort')}</span> 57
+                <span className="unit">{t('minutesShort')}</span>
               </div>
             </div>
             <div className="ts-cell">
-              <div className="ts-label">{lang === 'el' ? 'ΣΤΑΣΕΙΣ' : 'STOPS'}</div>
+              <div className="ts-label">{t('stopsUpper')}</div>
               <div className="ts-val">{totalStops}</div>
             </div>
             <div className="ts-cell">
-              <div className="ts-label">{lang === 'el' ? 'ΣΥΝ. ΒΑΡΟΣ' : 'TOTAL WEIGHT'}</div>
+              <div className="ts-label">{t('totalWeightUpper')}</div>
               <div className="ts-val">
                 {totalWeight.toFixed(1)} <span className="unit">T</span>
               </div>
@@ -241,10 +241,10 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ stops, onEditSte
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
             </svg>
-            <span>{lang === 'el' ? 'Παραγγελίες' : 'Orders'}</span>
+            <span>{t('orders')}</span>
             <div className="ch-r">
               <span>
-                {allOrdersList.length} {lang === 'el' ? 'παραγγελίες' : 'orders'}
+                {allOrdersList.length} {t('ordersWord')}
               </span>
             </div>
           </div>
@@ -266,7 +266,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ stops, onEditSte
                         <div>
                           <div className="oi-id">{o.id || 'No Order ID'}</div>
                           <div className="oi-route">
-                            <span className="oi-pk">#{o.stopIndex} {o.stopType === 'pickup' ? (lang === 'el' ? 'Φόρτωση' : 'PK') : (lang === 'el' ? 'Παράδοση' : 'DL')}</span>
+                            <span className="oi-pk">#{o.stopIndex} {o.stopType === 'pickup' ? t('stopLoadingShort') : t('stopDeliveryShort')}</span>
                           </div>
                         </div>
                         <div className="oi-wt">{o.weight} T</div>
@@ -281,7 +281,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ stops, onEditSte
                   <div>
                     <div className="oi-id">{o.id || 'No Order ID'}</div>
                     <div className="oi-route">
-                      <span className="oi-pk">#{o.stopIndex} {o.stopType === 'pickup' ? (lang === 'el' ? 'PK' : 'PK') : (lang === 'el' ? 'DL' : 'DL')}</span>
+                      <span className="oi-pk">#{o.stopIndex} {o.stopType === 'pickup' ? t('stopLoadingShort') : t('stopDeliveryShort')}</span>
                     </div>
                   </div>
                   <div className="oi-wt">{o.weight} T</div>

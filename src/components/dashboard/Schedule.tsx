@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export const Schedule: React.FC = () => {
-  const { lang } = useApp();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -14,7 +14,7 @@ export const Schedule: React.FC = () => {
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
-          <span>{lang === 'el' ? 'Πρόγραμμα σήμερα' : "Today's Schedule"}</span>
+          <span>{t('todaysSchedule')}</span>
           <span className="cnt">8</span>
           <span className="sched-density" style={{ marginLeft: '8px' }}>
             <span className="sched-density-dot" style={{ background: 'var(--pickup)' }}></span><span>5P</span>
@@ -22,7 +22,7 @@ export const Schedule: React.FC = () => {
           </span>
         </h3>
         <Link to="/shipments" className="card-link">
-          <span>{lang === 'el' ? 'Προβολή όλων' : 'View all'}</span> →
+          <span>{t('viewAll')}</span> →
         </Link>
       </div>
 
@@ -36,7 +36,7 @@ export const Schedule: React.FC = () => {
           </div>
           <div className="sched-body">
             <div className="sched-row1">
-              <span className="sched-type pickup">{lang === 'el' ? 'ΠΑΡΑΛΑΒΗ' : 'PICKUP'}</span>
+              <span className="sched-type pickup">{t('pickupUpper')}</span>
               <span className="sched-sid">#SID-90969</span>
               <span className="sched-lane">Ioannina → Livadeia</span>
             </div>
@@ -50,7 +50,7 @@ export const Schedule: React.FC = () => {
           <div className="sched-right">
             <span className="sched-price">€ 920</span>
             <span className="sched-status sts-transit">
-              <span className="sts-dot"></span> {lang === 'el' ? 'Σε μεταφορά' : 'In transit'}
+              <span className="sts-dot"></span> {t('inTransit')}
             </span>
           </div>
         </div>
@@ -64,7 +64,7 @@ export const Schedule: React.FC = () => {
           </div>
           <div className="sched-body">
             <div className="sched-row1">
-              <span className="sched-type pickup">{lang === 'el' ? 'ΠΑΡΑΛΑΒΗ' : 'PICKUP'}</span>
+              <span className="sched-type pickup">{t('pickupUpper')}</span>
               <span className="sched-sid">#SID-84512</span>
               <span className="sched-lane">Ioannina → Patras</span>
             </div>
@@ -78,7 +78,7 @@ export const Schedule: React.FC = () => {
           <div className="sched-right">
             <span className="sched-price">€ 720</span>
             <span className="sched-status sts-ok">
-              <span className="sts-dot"></span> {lang === 'el' ? 'Εντός προγράμματος' : 'On schedule'}
+              <span className="sts-dot"></span> {t('onSchedule')}
             </span>
           </div>
         </div>
@@ -92,7 +92,7 @@ export const Schedule: React.FC = () => {
           </div>
           <div className="sched-body">
             <div className="sched-row1">
-              <span className="sched-type pickup">{lang === 'el' ? 'ΠΑΡΑΛΑΒΗ' : 'PICKUP'}</span>
+              <span className="sched-type pickup">{t('pickupUpper')}</span>
               <span className="sched-sid">#SID-79998</span>
               <span className="sched-lane">Ioannina → Kifissos (THE MART)</span>
             </div>
@@ -101,14 +101,14 @@ export const Schedule: React.FC = () => {
                 <span className="sched-carrier-av">GP</span> Giorgos Pantazis
               </span>
               <span style={{ color: 'var(--warning)', fontWeight: 600 }}>
-                · {lang === 'el' ? 'Χωρίς check-in' : 'No check-in'}
+                · {t('noCheckIn')}
               </span>
             </div>
           </div>
           <div className="sched-right">
             <span className="sched-price">€ 580</span>
             <span className="sched-status sts-warn">
-              <span className="sts-dot"></span> {lang === 'el' ? 'Εκκρεμεί' : 'Pending'}
+              <span className="sts-dot"></span> {t('pending')}
             </span>
           </div>
         </div>
@@ -122,7 +122,7 @@ export const Schedule: React.FC = () => {
           </div>
           <div className="sched-body">
             <div className="sched-row1">
-              <span className="sched-type pickup">{lang === 'el' ? 'ΠΑΡΑΛΑΒΗ' : 'PICKUP'}</span>
+              <span className="sched-type pickup">{t('pickupUpper')}</span>
               <span className="sched-sid">#SID-51222</span>
               <span className="sched-lane">Ioannina → Acharnes</span>
             </div>
@@ -136,7 +136,7 @@ export const Schedule: React.FC = () => {
           <div className="sched-right">
             <span className="sched-price">€ 580</span>
             <span className="sched-status sts-ok">
-              <span className="sts-dot"></span> {lang === 'el' ? 'Εντός προγράμματος' : 'On schedule'}
+              <span className="sts-dot"></span> {t('onSchedule')}
             </span>
           </div>
         </div>
@@ -159,7 +159,7 @@ export const Schedule: React.FC = () => {
           </div>
           <div className="sched-body">
             <div className="sched-row1">
-              <span className="sched-type pickup">{lang === 'el' ? 'ΠΑΡΑΛΑΒΗ' : 'PICKUP'}</span>
+              <span className="sched-type pickup">{t('pickupUpper')}</span>
               <span className="sched-sid">#SID-102245</span>
               <span className="sched-lane">Ioannina → Acharnes</span>
             </div>
@@ -173,7 +173,7 @@ export const Schedule: React.FC = () => {
           <div className="sched-right">
             <span className="sched-price">€ 580</span>
             <span className="sched-status sts-ok">
-              <span className="sts-dot"></span> {lang === 'el' ? 'Εντός προγράμματος' : 'On schedule'}
+              <span className="sts-dot"></span> {t('onSchedule')}
             </span>
           </div>
         </div>
@@ -187,7 +187,7 @@ export const Schedule: React.FC = () => {
           </div>
           <div className="sched-body">
             <div className="sched-row1">
-              <span className="sched-type delivery">{lang === 'el' ? 'ΠΑΡΑΔΟΣΗ' : 'DELIVERY'}</span>
+              <span className="sched-type delivery">{t('deliveryUpper')}</span>
               <span className="sched-sid">#SID-77478</span>
               <span className="sched-lane">→ Keratea (POLYZOS)</span>
             </div>
@@ -201,7 +201,7 @@ export const Schedule: React.FC = () => {
           <div className="sched-right">
             <span className="sched-price">€ 600</span>
             <span className="sched-status sts-transit">
-              <span className="sts-dot"></span> {lang === 'el' ? 'Σε μεταφορά' : 'In transit'}
+              <span className="sts-dot"></span> {t('inTransit')}
             </span>
           </div>
         </div>
@@ -215,7 +215,7 @@ export const Schedule: React.FC = () => {
           </div>
           <div className="sched-body">
             <div className="sched-row1">
-              <span className="sched-type delivery">{lang === 'el' ? 'ΠΑΡΑΔΟΣΗ' : 'DELIVERY'}</span>
+              <span className="sched-type delivery">{t('deliveryUpper')}</span>
               <span className="sched-sid">#SID-88103</span>
               <span className="sched-lane">→ Volos (METRO C&C)</span>
             </div>
@@ -229,7 +229,7 @@ export const Schedule: React.FC = () => {
           <div className="sched-right">
             <span className="sched-price">€ 440</span>
             <span className="sched-status sts-pending">
-              <span className="sts-dot"></span> {lang === 'el' ? 'Προσεχές' : 'Upcoming'}
+              <span className="sts-dot"></span> {t('upcoming')}
             </span>
           </div>
         </div>
@@ -242,7 +242,7 @@ export const Schedule: React.FC = () => {
           </div>
           <div className="sched-body">
             <div className="sched-row1">
-              <span className="sched-type delivery">{lang === 'el' ? 'ΠΑΡΑΔΟΣΗ' : 'DELIVERY'}</span>
+              <span className="sched-type delivery">{t('deliveryUpper')}</span>
               <span className="sched-sid">#SID-13997</span>
               <span className="sched-lane">→ Trikala</span>
             </div>
@@ -251,14 +251,14 @@ export const Schedule: React.FC = () => {
                 <span className="sched-carrier-av">KR</span> KRP Transport S.A
               </span>
               <span style={{ color: 'var(--danger)', fontWeight: 600 }}>
-                · {lang === 'el' ? 'Καθυστέρηση 45 λεπτά' : 'Delayed 45 min'}
+                · {t('delayed45Min')}
               </span>
             </div>
           </div>
           <div className="sched-right">
             <span className="sched-price">€ 320</span>
             <span className="sched-status sts-risk">
-              <span className="sts-dot"></span> {lang === 'el' ? 'Καθυστέρηση' : 'Delayed'}
+              <span className="sts-dot"></span> {t('delayed')}
             </span>
           </div>
         </div>

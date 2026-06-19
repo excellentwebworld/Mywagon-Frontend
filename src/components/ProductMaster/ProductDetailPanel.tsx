@@ -1,11 +1,10 @@
 import React from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import type { ProductType, SKU } from '../../context/AppContext';
 import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
 
 type Props = Pick<
   ProductMasterState,
-  | 'lang'
-  | 't'
   | 'categories'
   | 'productTypes'
   | 'skus'
@@ -30,8 +29,6 @@ type Props = Pick<
 >;
 
 export const ProductDetailPanel: React.FC<Props> = ({
-  lang,
-  t,
   categories,
   productTypes,
   skus,
@@ -76,8 +73,6 @@ export const ProductDetailPanel: React.FC<Props> = ({
           categories={categories}
           skus={skus}
           catName={catName}
-          t={t}
-          lang={lang}
           clearSelection={clearSelection}
           secCollapsed={secCollapsed}
           toggleSec={toggleSec}
@@ -278,8 +273,6 @@ function TypeDetail({
   categories,
   skus,
   catName,
-  t,
-  lang,
   clearSelection,
   secCollapsed,
   toggleSec,
@@ -298,8 +291,6 @@ function TypeDetail({
   categories: ProductMasterState['categories'];
   skus: SKU[];
   catName: ProductMasterState['catName'];
-  t: ProductMasterState['t'];
-  lang: string;
   clearSelection: () => void;
   secCollapsed: Record<string, boolean>;
   toggleSec: (key: string) => void;
@@ -314,6 +305,7 @@ function TypeDetail({
   setSelectedKind: ProductMasterState['setSelectedKind'];
   showToast: ProductMasterState['showToast'];
 }) {
+  const { t } = useTranslation();
   const cat = categories.find((c) => c.id === tp.catId);
   const mappedSkus = skus.filter((s) => s.typeId === tp.id && s.active);
   const erpCount = mappedSkus.filter((s) => s.source === 'erp').length;
@@ -424,7 +416,7 @@ function TypeDetail({
           <div className="dp-sec-body">
             {mappedSkus.length === 0 ? (
               <div style={{ color: 'var(--t3)', fontSize: 12 }}>
-                {lang === 'el' ? 'Δεν υπάρχουν SKU' : 'No SKUs mapped'}
+                {t('noSkusMapped')}
               </div>
             ) : (
               <table className="mini-table">

@@ -1,16 +1,13 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export const Notifications: React.FC = () => {
-  const { lang, showToast } = useApp();
+  const { showToast } = useApp();
+  const { t } = useTranslation();
 
   const handleAction = (action: string, sid: string) => {
-    showToast(
-      lang === 'el'
-        ? `Ενέργεια ειδοποίησης: ${action} για ${sid}`
-        : `Notification Action: ${action} for ${sid}`,
-      'info'
-    );
+    showToast(t('notifAction', { action, sid }), 'info');
   };
 
   return (
@@ -21,10 +18,10 @@ export const Notifications: React.FC = () => {
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
-          <span>{lang === 'el' ? 'Ειδοποιήσεις' : 'Notifications'}</span>
+          <span>{t('notifications')}</span>
         </h3>
         <span className="card-link" style={{ cursor: 'pointer' }} onClick={() => handleAction("View All", "all")}>
-          {lang === 'el' ? 'Όλες' : 'All'}
+          {t('all')}
         </span>
       </div>
 
@@ -39,15 +36,15 @@ export const Notifications: React.FC = () => {
         </div>
         <div className="notif-body">
           <div className="notif-text">
-            <strong>#SID-13997</strong> — {lang === 'el' ? '45 λεπτά καθυστέρηση στην παράδοση στα Τρίκαλα' : '45 min delay on Trikala delivery'}
+            <strong>#SID-13997</strong> — {t('notifDelayTrikala')}
           </div>
-          <div className="notif-time">{lang === 'el' ? 'Πριν από 30 λεπτά' : '30 minutes ago'}</div>
+          <div className="notif-time">{t('notif30MinAgo')}</div>
           <div className="notif-action" onClick={(e) => e.stopPropagation()}>
             <button className="notif-action-btn accent" onClick={() => handleAction("Contact Carrier", "SID-13997")}>
-              💬 {lang === 'el' ? 'Επικοινωνία' : 'Contact Carrier'}
+              💬 {t('contactCarrier')}
             </button>
             <button className="notif-action-btn" onClick={() => handleAction("View Details", "SID-13997")}>
-              {lang === 'el' ? 'Λεπτομέρειες' : 'View Details'}
+              {t('viewDetails')}
             </button>
           </div>
         </div>
@@ -66,12 +63,12 @@ export const Notifications: React.FC = () => {
         </div>
         <div className="notif-body">
           <div className="notif-text">
-            {lang === 'el' ? <>Το φορτίο <strong>#SID-90969</strong> ξεκίνησε τη μεταφορά</> : <>Shipment <strong>#SID-90969</strong> started transport</>}
+            {t('notifStartedBefore')}<strong>#SID-90969</strong>{t('notifStartedAfter')}
           </div>
-          <div className="notif-time">{lang === 'el' ? 'Πριν από 2 ώρες' : '2 hours ago'}</div>
+          <div className="notif-time">{t('notif2HoursAgo')}</div>
           <div className="notif-action" onClick={(e) => e.stopPropagation()}>
             <button className="notif-action-btn" onClick={() => handleAction("Track", "SID-90969")}>
-              📍 {lang === 'el' ? 'Εντοπισμός' : 'Track'}
+              📍 {t('track')}
             </button>
           </div>
         </div>
@@ -88,22 +85,18 @@ export const Notifications: React.FC = () => {
         </div>
         <div className="notif-body">
           <div className="notif-text">
-            {lang === 'el' ? (
-              <>Νέα προσφορά <strong>€ 560</strong> για το <strong>#SID-102245</strong> από <strong>M. Tsoukalas</strong></>
-            ) : (
-              <>New offer <strong>€ 560</strong> for <strong>#SID-102245</strong> from <strong>M. Tsoukalas</strong></>
-            )}
+            {t('notifOfferBefore')}<strong>€ 560</strong>{t('notifOfferMid')}<strong>#SID-102245</strong>{t('notifOfferFrom')}<strong>M. Tsoukalas</strong>
           </div>
-          <div className="notif-time">{lang === 'el' ? 'Πριν από 1 μέρα' : '1 day ago'}</div>
+          <div className="notif-time">{t('notif1DayAgo')}</div>
           <div className="notif-action" onClick={(e) => e.stopPropagation()}>
             <button className="notif-action-btn accept" onClick={() => handleAction("Accept Offer", "SID-102245")}>
-              ✓ {lang === 'el' ? 'Αποδοχή' : 'Accept'}
+              ✓ {t('accept')}
             </button>
             <button className="notif-action-btn" onClick={() => handleAction("Reject Offer", "SID-102245")}>
-              ✕ {lang === 'el' ? 'Απόρριψη' : 'Reject'}
+              ✕ {t('reject')}
             </button>
             <button className="notif-action-btn" onClick={() => handleAction("View Offer", "SID-102245")}>
-              {lang === 'el' ? 'Προβολή' : 'View'}
+              {t('view')}
             </button>
           </div>
         </div>
@@ -120,13 +113,9 @@ export const Notifications: React.FC = () => {
         </div>
         <div className="notif-body">
           <div className="notif-text">
-            {lang === 'el' ? (
-              <>Η <strong>KRP Transport S.A</strong> αποδέχτηκε το φορτίο <strong>#SID-79998</strong></>
-            ) : (
-              <><strong>KRP Transport S.A</strong> accepted shipment <strong>#SID-79998</strong></>
-            )}
+            {t('notifAcceptedBefore')}<strong>KRP Transport S.A</strong>{t('notifAcceptedMid')}<strong>#SID-79998</strong>
           </div>
-          <div className="notif-time">{lang === 'el' ? 'Πριν από 5 ώρες' : '5 hours ago'}</div>
+          <div className="notif-time">{t('notif5HoursAgo')}</div>
         </div>
       </div>
 
@@ -140,16 +129,12 @@ export const Notifications: React.FC = () => {
         </div>
         <div className="notif-body">
           <div className="notif-text">
-            {lang === 'el' ? (
-              <>Το POD ανέβηκε για το <strong>#SID-77301</strong> — η παράδοση επιβεβαιώθηκε</>
-            ) : (
-              <>POD uploaded for <strong>#SID-77301</strong> — delivery confirmed</>
-            )}
+            {t('notifPodBefore')}<strong>#SID-77301</strong>{t('notifPodAfter')}
           </div>
-          <div className="notif-time">{lang === 'el' ? 'Χθες' : 'Yesterday'}</div>
+          <div className="notif-time">{t('yesterday')}</div>
           <div className="notif-action" onClick={(e) => e.stopPropagation()}>
             <button className="notif-action-btn" onClick={() => handleAction("View POD", "SID-77301")}>
-              📄 {lang === 'el' ? 'Προβολή POD' : 'View POD'}
+              📄 {t('boardViewPod')}
             </button>
           </div>
         </div>

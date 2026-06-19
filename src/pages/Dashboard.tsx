@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
 import { QuickActions } from '../components/dashboard/QuickActions';
 import { KpiStrip } from '../components/dashboard/KpiStrip';
 import { Schedule } from '../components/dashboard/Schedule';
@@ -11,7 +10,6 @@ import { RightPanel } from '../components/dashboard/RightPanel';
 import { useTranslation } from '../hooks/useTranslation';
 
 export const Dashboard: React.FC = () => {
-  const { lang } = useApp();
   const { t } = useTranslation();
 
   // Coordinate active board tab state between KpiStrip and ShipmentBoard
@@ -26,10 +24,10 @@ export const Dashboard: React.FC = () => {
       {/* Greeting Header */}
       <div style={{ marginBottom: '20px' }}>
         <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '2px' }}>
-          {lang === 'el' ? 'Καλώς ορίσατε,' : 'Welcome back,'}
+          {t('welcomeBack')}
         </p>
         <h1 className="company" style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-0.5px' }}>
-          {lang === 'el' ? 'ΗΠΕΙΡΩΤΙΚΗ ΒΙΟΜΗΧΑΝΙΑ ΕΜΦΙΑΛΩΣΕΩΝ' : 'EPIRUS BOTTLING INDUSTRY'}
+          {t('companyNameDemo')}
         </h1>
       </div>
 

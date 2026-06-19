@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface HeaderProps {
   onToggleMobileMenu: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
-  const { lang, setLang, t, showToast } = useApp();
+  const { setLang, showToast } = useApp();
+  const { t, lang } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,7 +23,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
   const isDashboard = location.pathname.startsWith('/dashboard');
   const isMaster = ['/address-book', '/products', '/partners'].includes(location.pathname);
 
-  const displayCompany = user?.company_name || (lang === 'el' ? 'Χρήστης' : 'Shipper');
+  const displayCompany = user?.company_name || t('shipper');
   const displayEmail = user?.email || '';
   const avatarInitials = user
     ? `${(user.first_name?.[0] ?? '').toUpperCase()}${(user.last_name?.[0] ?? '').toUpperCase()}`.trim() || 'SV'
@@ -43,13 +45,13 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
   // Breadcrumbs title mapping
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path.startsWith('/dashboard')) return lang === 'el' ? 'Ταμπλό' : 'Dashboard';
-    if (path.startsWith('/shipments/create')) return lang === 'el' ? 'Δημιουργία Φορτίου' : 'Create Shipment';
-    if (path.startsWith('/shipments')) return lang === 'el' ? 'Διαχείριση Φορτίων' : 'Manage Shipments';
-    if (path.startsWith('/address-book')) return lang === 'el' ? 'Βιβλίο Διευθύνσεων' : 'Address Book';
-    if (path.startsWith('/products')) return lang === 'el' ? 'Μητρώο Προϊόντων' : 'Product Registry';
-    if (path.startsWith('/partners')) return lang === 'el' ? 'Συνεργάτες' : 'Partners';
-    return 'Portal';
+    if (path.startsWith('/dashboard')) return t('dashboard');
+    if (path.startsWith('/shipments/create')) return t('createShipment');
+    if (path.startsWith('/shipments')) return t('manageShipments');
+    if (path.startsWith('/address-book')) return t('addressBook');
+    if (path.startsWith('/products')) return t('products');
+    if (path.startsWith('/partners')) return t('partners');
+    return t('portal');
   };
 
   return (
@@ -82,7 +84,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
           :
           <div className='breadcrumb'>
             <span>
-              {lang === 'el' ? 'Διαχείριση Φορτίων' : 'Master Data'}
+              {t('masterData')}
             </span>{" "}
             › <strong>
               {getPageTitle()}
@@ -97,31 +99,31 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
             className={`tb-chip ${activePeriod === 'today' ? 'active' : ''}`}
             onClick={() => setActivePeriod('today')}
           >
-            {lang === 'el' ? 'Σήμερα' : 'Today'}
+            {t('today')}
           </button>
           <button
             className={`tb-chip ${activePeriod === '7d' ? 'active' : ''}`}
             onClick={() => setActivePeriod('7d')}
           >
-            {lang === 'el' ? '7 ημέρες' : '7 days'}
+            {t('sevenDays')}
           </button>
           <button
             className={`tb-chip ${activePeriod === '30d' ? 'active' : ''}`}
             onClick={() => setActivePeriod('30d')}
           >
-            {lang === 'el' ? '30 ημέρες' : '30 days'}
+            {t('thirtyDays')}
           </button>
           <button
             className={`tb-chip ${activePeriod === 'quarter' ? 'active' : ''}`}
             onClick={() => setActivePeriod('quarter')}
           >
-            {lang === 'el' ? 'Τρίμηνο' : 'Quarter'}
+            {t('quarter')}
           </button>
           <button
             className={`tb-chip ${activePeriod === 'ytd' ? 'active' : ''}`}
             onClick={() => setActivePeriod('ytd')}
           >
-            {lang === 'el' ? 'ΑΧ' : 'YTD'}
+            {t('ytd')}
           </button>
         </div>
       )}
@@ -148,7 +150,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
           <input
             type="text"
             id="searchInput"
-            placeholder={lang === 'el' ? 'Αναζήτηση SID, παραγγελία, πελάτη...' : 'Search SID, order, customer...'}
+            placeholder={t('searchPlaceholderHeader')}
             aria-label="Search shipments"
           />
         </div>
@@ -219,7 +221,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                   }}
                 >
                   <span style={{ fontSize: '13px', fontWeight: 600 }}>
-                    {lang === 'el' ? 'Ειδοποιήσεις' : 'Notifications'}
+                    {t('notifications')}
                   </span>
                   <span
                     style={{
@@ -231,7 +233,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                       borderRadius: '99px',
                     }}
                   >
-                    {lang === 'el' ? '3 νέες' : '3 new'}
+                    {t('threeNew')}
                   </span>
                 </div>
                 <div
@@ -240,10 +242,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                   role="menuitem"
                 >
                   <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {lang === 'el' ? 'Νέα προσφορά για το SHP-5012' : 'New bid received on SHP-5012'}
+                    {t('notifNewBid')}
                   </span>
                   <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                    {lang === 'el' ? 'Πριν από 2 λεπτά' : '2 minutes ago'}
+                    {t('notifTwoMinAgo')}
                   </span>
                 </div>
                 <div
@@ -252,10 +254,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                   role="menuitem"
                 >
                   <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {lang === 'el' ? 'Το SHP-5008 παραδόθηκε' : 'SHP-5008 delivered successfully'}
+                    {t('notifDelivered')}
                   </span>
                   <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                    {lang === 'el' ? 'Πριν από 38 λεπτά' : '38 minutes ago'}
+                    {t('notifThirtyEightMin')}
                   </span>
                 </div>
                 <div
@@ -264,10 +266,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                   role="menuitem"
                 >
                   <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {lang === 'el' ? 'Επιβεβαίωση πληρωμής για το SHP-5006' : 'Payment confirmed for SHP-5006'}
+                    {t('notifPayment')}
                   </span>
                   <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                    {lang === 'el' ? 'Πριν από 1 ώρα' : '1 hour ago'}
+                    {t('notifOneHour')}
                   </span>
                 </div>
                 <div className="dropdown-divider"></div>
@@ -277,10 +279,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                   role="menuitem"
                   onClick={() => {
                     setNotifOpen(false);
-                    showToast(lang === 'el' ? 'Προβολή όλων των ειδοποιήσεων' : 'Opening notifications...', 'info');
+                    showToast(t('openingNotifications'), 'info');
                   }}
                 >
-                  {lang === 'el' ? 'Προβολή όλων' : 'View all notifications'}
+                  {t('viewAllNotifications')}
                 </div>
               </div>
             )}
@@ -323,7 +325,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                 role="menuitem"
                 onClick={() => {
                   setUserOpen(false);
-                  showToast(lang === 'el' ? 'Προφίλ Χρήστη' : 'Opening user profile...', 'info');
+                  showToast(t('openingProfile'), 'info');
                 }}
               >
                 <svg
@@ -339,14 +341,14 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg>
-                {lang === 'el' ? 'Προφίλ' : 'Profile'}
+                {t('profile')}
               </div>
               <div
                 className="dropdown-item"
                 role="menuitem"
                 onClick={() => {
                   setUserOpen(false);
-                  showToast(lang === 'el' ? 'Ρυθμίσεις Λογαριασμού' : 'Opening settings...', 'info');
+                  showToast(t('openingSettings'), 'info');
                 }}
               >
                 <svg
@@ -362,7 +364,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                   <circle cx="12" cy="12" r="3" />
                   <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
                 </svg>
-                {lang === 'el' ? 'Ρυθμίσεις' : 'Settings'}
+                {t('settings')}
               </div>
               <div className="dropdown-divider"></div>
               <div
@@ -384,7 +386,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                   <polyline points="16 17 21 12 16 7" />
                   <line x1="21" y1="12" x2="9" y2="12" />
                 </svg>
-                {lang === 'el' ? 'Αποσύνδεση' : 'Sign out'}
+                {t('signOut')}
               </div>
             </div>
           )}

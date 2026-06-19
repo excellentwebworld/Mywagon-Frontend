@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import type { Shipment, ShipmentStop } from '../../context/AppContext';
 import { Step1Details, Step2Itinerary, Step3Pricing } from '../../components/CreateShipmentWizard';
 import './CreateShipmentWizard.css';
 
 export const CreateShipmentWizard: React.FC = () => {
-  const { lang, locations, addShipment, shipments, showToast } = useApp();
+  const { t } = useTranslation();
+  const { locations, addShipment, shipments, showToast } = useApp();
   const navigate = useNavigate();
   const locationState = useLocation().state as { prefillLocationId?: string } | null;
 
@@ -150,17 +152,15 @@ export const CreateShipmentWizard: React.FC = () => {
     
     const label =
       totalBulkLoads > 1
-        ? (lang === 'el'
-            ? `Μαζική δημιουργία ${totalBulkLoads} φορτίων ολοκληρώθηκε!`
-            : `Bulk creation of ${totalBulkLoads} shipments complete!`)
-        : (lang === 'el' ? 'Το φορτίο δημιουργήθηκε επιτυχώς!' : 'Shipment created successfully!');
-    
+        ? t('bulkCreationComplete', { count: totalBulkLoads })
+        : t('shipmentCreatedSuccess');
+
     showToast(label, 'success');
     navigate('/shipments');
   };
 
   const handleSaveDraft = () => {
-    showToast(lang === 'el' ? 'Το πρόχειρο αποθηκεύτηκε επιτυχώς!' : 'Draft saved successfully!', 'success');
+    showToast(t('draftSavedSuccess'), 'success');
   };
 
   return (
@@ -168,14 +168,14 @@ export const CreateShipmentWizard: React.FC = () => {
       {/* Page Header */}
       <div className="ph" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column' }}>
         <h1 className="ph-t" style={{ fontSize: '24px', fontWeight: 700 }}>
-          {step === 1 && (lang === 'el' ? 'Δημιουργία Φορτίου' : 'Create Load')}
-          {step === 2 && (lang === 'el' ? 'Επιβεβαίωση Δρομολογίου' : 'Itinerary Confirmation')}
-          {step === 3 && (lang === 'el' ? 'Όχημα & Τιμή' : 'Vehicle & Pricing')}
+          {step === 1 && t('step1Title')}
+          {step === 2 && t('step2Title')}
+          {step === 3 && t('vehicleAndPricing')}
         </h1>
         <p className="ph-s" style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-          {step === 1 && (lang === 'el' ? 'Προσθέστε στάσεις και στοιχεία φορτίου' : 'Add stops and cargo details')}
-          {step === 2 && (lang === 'el' ? 'Ελέγξτε τις στάσεις και τα δρομολόγια πριν συνεχίσετε' : 'Review your stops and itinerary before proceeding.')}
-          {step === 3 && (lang === 'el' ? 'Επιλέξτε μεταφορείς και ορίστε την τιμή αποστολής' : 'Select carriers and set your shipment price.')}
+          {step === 1 && t('step1Sub')}
+          {step === 2 && t('step2Sub')}
+          {step === 3 && t('vehiclePricingSub')}
         </p>
       </div>
 
@@ -183,19 +183,19 @@ export const CreateShipmentWizard: React.FC = () => {
       <nav className="stepper" aria-label="Progress steps">
         <div className={`step ${step === 1 ? 'act' : ''} ${step > 1 ? 'done' : ''}`} onClick={() => setStep(1)}>
           <div className="sn">{step > 1 ? '✓' : '1'}</div>
-          <span>{lang === 'el' ? 'Στοιχεία Φορτίου' : 'Details'}</span>
+          <span>{t('details')}</span>
         </div>
         <div className={`sl ${step > 1 ? 'done' : ''}`} />
         
         <div className={`step ${step === 2 ? 'act' : ''} ${step > 2 ? 'done' : ''}`} onClick={() => setStep(2)}>
           <div className="sn">{step > 2 ? '✓' : '2'}</div>
-          <span>{lang === 'el' ? 'Δρομολόγιο' : 'Itinerary'}</span>
+          <span>{t('itinerary')}</span>
         </div>
         <div className={`sl ${step > 2 ? 'done' : ''}`} />
         
         <div className={`step ${step === 3 ? 'act' : ''}`} onClick={() => setStep(3)}>
           <div className="sn">3</div>
-          <span>{lang === 'el' ? 'Όχημα & Τιμή' : 'Vehicle & Pricing'}</span>
+          <span>{t('vehicleAndPricing')}</span>
         </div>
       </nav>
 
@@ -267,7 +267,7 @@ export const CreateShipmentWizard: React.FC = () => {
               )}
             </div>
           ) : (
-            <span>{lang === 'el' ? 'Αυτόματη αποθήκευση ενεργή' : 'Auto-save active'}</span>
+            <span>{t('autoSave')}</span>
           )}
         </div>
 
@@ -282,14 +282,14 @@ export const CreateShipmentWizard: React.FC = () => {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style={{ width: '14px', height: '14px' }}>
               <polyline points="15 18 9 12 15 6" />
             </svg>
-            <span>{lang === 'el' ? 'Πίσω' : 'Back'}</span>
+            <span>{t('back')}</span>
           </button>
 
           <button className="btn" onClick={handleSaveDraft}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style={{ width: '14px', height: '14px' }}>
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
             </svg>
-            <span>{lang === 'el' ? 'Αποθήκευση πρόχειρου' : 'Save Draft'}</span>
+            <span>{t('saveDraft')}</span>
           </button>
 
           <button
@@ -302,11 +302,11 @@ export const CreateShipmentWizard: React.FC = () => {
             {step === 3 ? (
               <span>
                 {totalBulkLoads > 1
-                  ? (lang === 'el' ? `Δημιουργία ${totalBulkLoads} φορτίων` : `Create ${totalBulkLoads} Shipments`)
-                  : (lang === 'el' ? 'Δημιουργία φορτίου' : 'Create Shipment')}
+                  ? t('createBulkShipments', { count: totalBulkLoads })
+                  : t('createShipmentBtn')}
               </span>
             ) : (
-              <span>{lang === 'el' ? 'Επιβεβαίωση & Συνέχεια' : 'Confirm & Continue'}</span>
+              <span>{t('confirmContinue')}</span>
             )}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style={{ width: '14px', height: '14px' }}>
               <polyline points="9 18 15 12 9 6" />

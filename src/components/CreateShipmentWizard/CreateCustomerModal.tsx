@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface CreateCustomerModalProps {
   isOpen: boolean;
@@ -12,7 +13,8 @@ export const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
   onClose,
   onCreated,
 }) => {
-  const { lang, addCompany } = useApp();
+  const { t } = useTranslation();
+  const { addCompany } = useApp();
   const [name, setName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [vat, setVat] = useState('');
@@ -53,18 +55,18 @@ export const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
     <div className={`modal-bg ${isOpen ? 'show' : ''}`} role="dialog" aria-modal="true">
       <div className="modal">
         <div className="modal-h">
-          <span>🏪 {lang === 'el' ? 'Δημιουργία Νέου Πελάτη' : 'Create New Customer'}</span>
+          <span>🏪 {t('createNewCustomer')}</span>
           <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>
         </div>
         <div className="modal-body">
           <div className="field">
             <label className="field-l" htmlFor="newCustName">
-              {lang === 'el' ? 'Όνομα Πελάτη *' : 'Customer Name *'}
+              {t('customerNameRequired')}
             </label>
             <input
               id="newCustName"
               className="inp"
-              placeholder={lang === 'el' ? 'π.χ. FreshCo A.E.' : 'e.g. FreshCo S.A.'}
+              placeholder={t('customerNamePlaceholder')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -72,19 +74,19 @@ export const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
           </div>
           <div className="field">
             <label className="field-l" htmlFor="newCustCompany">
-              {lang === 'el' ? 'Όνομα Εταιρείας' : 'Company Name'}
+              {t('companyName')}
             </label>
             <input
               id="newCustCompany"
               className="inp"
-              placeholder={lang === 'el' ? 'π.χ. FreshCo Group' : 'e.g. FreshCo Group'}
+              placeholder={t('companyNamePlaceholder')}
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
             />
           </div>
           <div className="field">
             <label className="field-l" htmlFor="newCustVat">
-              {lang === 'el' ? 'ΑΦΜ' : 'VAT Number'}
+              {t('vatNumber')}
             </label>
             <input
               id="newCustVat"
@@ -96,12 +98,12 @@ export const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
           </div>
           <div className="field">
             <label className="field-l" htmlFor="newCustCity">
-              {lang === 'el' ? 'Πόλη' : 'City'}
+              {t('city')}
             </label>
             <input
               id="newCustCity"
               className="inp"
-              placeholder={lang === 'el' ? 'π.χ. Αθήνα' : 'e.g. Athens'}
+              placeholder={t('cityPlaceholder')}
               value={city}
               onChange={(e) => setCity(e.target.value)}
             />
@@ -121,7 +123,7 @@ export const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
           </div>
           <div className="field">
             <label className="field-l" htmlFor="newCustPhone">
-              {lang === 'el' ? 'Τηλέφωνο' : 'Phone'}
+              {t('phone')}
             </label>
             <input
               id="newCustPhone"
@@ -135,14 +137,14 @@ export const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
         </div>
         <div className="modal-footer">
           <button className="btn btn-sm" onClick={onClose}>
-            {lang === 'el' ? 'Ακύρωση' : 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             className="btn btn-p btn-sm"
             onClick={handleCreate}
             disabled={!name.trim()}
           >
-            {lang === 'el' ? 'Δημιουργία Πελάτη' : 'Create Customer'}
+            {t('createCustomer')}
           </button>
         </div>
       </div>

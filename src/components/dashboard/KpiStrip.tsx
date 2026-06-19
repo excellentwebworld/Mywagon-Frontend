@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface KpiStripProps {
   activeBoardTab: number;
@@ -7,7 +8,8 @@ interface KpiStripProps {
 }
 
 export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoardTab }) => {
-  const { shipments, lang, t } = useApp();
+  const { shipments } = useApp();
+  const { t } = useTranslation();
 
   // Calculate dynamic KPIs from shipments state
   const pendingBids = shipments.filter(s => s.status === 'pending').length;
