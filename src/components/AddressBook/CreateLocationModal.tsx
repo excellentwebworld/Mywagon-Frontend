@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { LocationItem } from '../../context/AppContext';
 import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
+import { applyTemplate } from '../../pages/AddressBook/utils/locationUtils';
 import {
   validateCreateStep1,
   validateCreateStep2,
@@ -114,9 +115,14 @@ export const CreateLocationModal: React.FC<Props> = ({
         company: '',
         companyVat: '',
         companyEntityId: null,
+        template: '',
       });
     } else {
-      update({ context });
+      const nextData = applyTemplate('retail', {
+        ...createData,
+        context,
+      });
+      setCreateData(nextData);
     }
   };
 
