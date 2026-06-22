@@ -27,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const isDashboard = location.pathname.startsWith('/dashboard');
-  const isMaster = ['/address-book', '/products', '/partners'].includes(location.pathname);
+  const isMaster = ['/address-book', '/products', '/partners', '/erp-orders'].includes(location.pathname);
 
   const displayCompany = user?.company_name || t('shipper');
   const displayEmail = user?.email || '';
@@ -64,6 +64,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
     if (path.startsWith('/address-book')) return t('addressBook');
     if (path.startsWith('/products')) return t('products');
     if (path.startsWith('/partners')) return t('partners');
+    if (path.startsWith('/erp-orders')) return t('erpOrders') || 'ERP Orders';
     return t('portal');
   };
 
