@@ -36,7 +36,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
   if (sent) {
     return (
       <div className="modal-backdrop open" onClick={handleOverlayClick} id="invite-modal">
-        <div className="modal ptn-inv-modal">
+        <div className="modal modal-md ptn-inv-modal">
           <div className="modal-header">
             <h2>{t('invSentTitle')}</h2>
           </div>
@@ -66,7 +66,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
 
   return (
     <div className="modal-backdrop open" onClick={handleOverlayClick} id="invite-modal">
-      <div className="modal ptn-inv-modal">
+      <div className="modal modal-md ptn-inv-modal">
         <div className="modal-header">
           <h2>{t('inviteTitle')}</h2>
           <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeInviteModal} aria-label="Close">

@@ -110,7 +110,7 @@ export const ProductMasterModals: React.FC<Props> = (pm) => {
   return (
     <>
       <div className={`modal-bg${pm.isSkuOpen ? ' show' : ''}`} onClick={() => pm.setIsSkuOpen(false)}>
-        <div className="modal" style={{ width: 620 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
           <div className="modal-h">
             <h3>{pm.editSkuMode ? t('editSku') : t('addSkuMenu')}</h3>
             <button type="button" className="modal-close" onClick={() => pm.setIsSkuOpen(false)}>
@@ -230,7 +230,7 @@ export const ProductMasterModals: React.FC<Props> = (pm) => {
       </div>
 
       <div className={`modal-bg${pm.isImportOpen ? ' show' : ''}`} onClick={pm.closeImportModal}>
-        <div className="modal" style={{ width: 700 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal modal-xl" onClick={(e) => e.stopPropagation()}>
           <div className="modal-h">
             <h3>{t('importCsvBulk')}</h3>
             <button type="button" className="modal-close" onClick={pm.closeImportModal}>

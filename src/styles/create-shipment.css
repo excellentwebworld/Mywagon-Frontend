@@ -1349,82 +1349,10 @@ body {
 }
 
 /* ══════════════════════════════════════
-   MODAL
+   MODAL — layout from globals.css
    ══════════════════════════════════════ */
-.modal-bg {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s;
-}
-
-.modal-bg.show {
-  opacity: 1;
-  pointer-events: all;
-}
-
-.modal {
-  background: var(--sf);
-  border-radius: var(--rm);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-  width: 420px;
-  max-width: 90vw;
-  transform: translateY(16px);
-  transition: transform 0.2s;
-}
-
-.modal-bg.show .modal {
-  transform: translateY(0);
-}
-
-.modal-h {
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--bd);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.modal-close {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: 1px solid var(--bd);
-  background: var(--sf);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: var(--t3);
-}
-
-.modal-close:hover {
-  background: var(--sa);
-}
-
-.modal-body {
-  padding: 20px;
-}
-
 .modal-body .field {
   margin-bottom: 12px;
-}
-
-.modal-footer {
-  padding: 14px 20px;
-  border-top: 1px solid var(--bd);
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 /* ══════════════════════════════════════

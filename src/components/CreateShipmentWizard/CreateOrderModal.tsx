@@ -34,7 +34,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
   return (
     <div className={`modal-bg ${isOpen ? 'show' : ''}`} role="dialog" aria-modal="true">
-      <div className="modal">
+      <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
         <div className="modal-h">
           <span>{t('createNewOrderTitle')}</span>
           <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>

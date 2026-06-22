@@ -438,34 +438,138 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .dropdown-divider { border-top: 1px solid var(--border); margin: 4px 0; }
 
 /* ════════════════════════════════════════
-   COMPONENTS — Modal
+   COMPONENTS — Modal (unified layout for all popups)
    ════════════════════════════════════════ */
-.modal-backdrop {
-  position: fixed; inset: 0; background: rgba(0,0,0,.4);
-  backdrop-filter: blur(4px); z-index: 300;
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; pointer-events: none; transition: opacity .2s; padding: 20px;
+.modal-backdrop,
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  padding: 20px;
 }
-.modal-backdrop.open { opacity: 1; pointer-events: all; }
+
+.modal-backdrop.open,
+.modal-bg.show {
+  opacity: 1;
+  pointer-events: all;
+}
+
 .modal {
-  background: var(--surface); border-radius: var(--radius-xl);
-  box-shadow: 0 24px 64px rgba(0,0,0,.12);
-  width: 100%; max-width: 520px;
-  transform: scale(.96) translateY(12px); transition: transform .2s;
-  max-height: 90vh; overflow-y: auto;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.12);
+  width: 100%;
+  max-width: 520px;
+  max-height: min(90vh, 900px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.96) translateY(12px);
+  transition: transform 0.2s;
 }
-.modal-backdrop.open .modal { transform: scale(1) translateY(0); }
-.modal-header {
-  padding: 20px 24px; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0;
+
+.modal-backdrop.open .modal,
+.modal-bg.show .modal {
+  transform: scale(1) translateY(0);
+}
+
+/* Width variants */
+.modal-sm { max-width: 420px; }
+.modal-md { max-width: 520px; }
+.modal-lg { max-width: 620px; }
+.modal-xl { max-width: 700px; }
+.modal-form { max-width: 660px; }
+
+.modal-header,
+.modal-h {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
   background: var(--surface);
 }
-.modal-header h2 { font-size: 16px; font-weight: 700; }
-.modal-body   { padding: 24px; }
-.modal-footer {
-  padding: 16px 24px; border-top: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+
+.modal-header h2,
+.modal-h h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  flex: 1;
 }
+
+.modal-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  font-family: inherit;
+  padding: 0;
+}
+
+.modal-close:hover {
+  background: var(--surface-alt);
+  color: var(--text-primary);
+}
+
+.modal-stepper {
+  display: flex;
+  align-items: center;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 0;
+  background: var(--surface);
+}
+
+.modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: visible;
+  padding: 20px 24px;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-footer,
+.modal-ft {
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+  background: var(--surface);
+}
+
+.modal-dialog-centered {
+  text-align: center;
+}
+
+.ab-company-backdrop { z-index: 400; }
+
 
 /* ════════════════════════════════════════
    COMPONENTS — Avatar
@@ -594,7 +698,16 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 }
 
 @media (max-width: 480px) {
-  .modal { border-radius: var(--radius-lg); }
+  .modal { border-radius: var(--radius-lg); max-height: 100vh; }
+  .modal-backdrop,
+  .modal-bg { padding: 0; align-items: stretch; }
+  .modal-backdrop.open .modal,
+  .modal-bg.show .modal {
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    transform: none;
+  }
   .modal-body { padding: 16px; }
 }
 
