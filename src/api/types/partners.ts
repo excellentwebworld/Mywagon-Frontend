@@ -65,6 +65,21 @@ export interface ApiFleetItem {
   driver: string | null;
 }
 
+export interface ApiPartnerCompanyProfile {
+  company_name: string | null;
+  vat_number: string | null;
+  city: string | null;
+  address: string | null;
+  contact_name: string | null;
+  email: string | null;
+  phone: string | null;
+  unique_id: string | null;
+}
+
+export interface ApiIncomingLoadsMonitoring {
+  enabled: boolean;
+}
+
 export interface ApiPartnerDetail extends ApiPartnerListItem {
   location: string;
   phone: string;
@@ -74,8 +89,10 @@ export interface ApiPartnerDetail extends ApiPartnerListItem {
   relationship: string | null;
   notes: string | null;
   tags: string[];
-  performance: ApiPartnerPerformance;
+  performance: ApiPartnerPerformance | null;
   fleet: ApiFleetItem[];
+  company_profile: ApiPartnerCompanyProfile | null;
+  incoming_loads_monitoring: ApiIncomingLoadsMonitoring;
   contract_lanes: ApiContractLane[];
 }
 

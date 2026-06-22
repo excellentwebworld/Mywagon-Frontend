@@ -28,6 +28,7 @@ const PAGE_SIZE_OPTIONS = [10, 12, 25, 50, 100];
 const EMPTY_FILTERS: ActiveFilters = { status: [], capability: [] };
 
 const EMPTY_SECTIONS: OpenSections = {
+  companyProfile: true,
   kpis: true,
   fleet: true,
   contracts: true,

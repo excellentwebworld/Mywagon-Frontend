@@ -102,6 +102,8 @@ export const PartnerDetailPanel: React.FC<Props> = ({
   const p = selectedPartner;
   const perf = p.performance;
   const isCarrierOrDriver = p.type === 'carrier_company' || p.type === 'freelancer_driver';
+  const isSupplier = p.type === 'supplier';
+  const profile = p.companyProfile;
 
   return (
     <div className="ptn-detail-pane open" id="ptn-detail-pane">
@@ -173,6 +175,54 @@ export const PartnerDetailPanel: React.FC<Props> = ({
             )}
           </div>
         </div>
+
+        {isSupplier && (
+          <div className="ptn-dps">
+            <SectionHeader
+              label={`🏢 ${t('companyProfileSection')}`}
+              sectionKey="companyProfile"
+              open={openSections.companyProfile}
+              onToggle={toggleSection}
+            />
+            {openSections.companyProfile && (
+              <div className="ptn-dpsb">
+                {profile ? (
+                  <div className="ptn-sg" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                    {[
+                      { lbl: t('companyNameCol'), val: profile.companyName },
+                      { lbl: t('vatCol'), val: profile.vatNumber },
+                      { lbl: t('cityCol'), val: profile.city },
+                      { lbl: t('addressCol'), val: profile.address },
+                      { lbl: t('contactNameCol'), val: profile.contactName },
+                      { lbl: t('uniqueIdCol'), val: profile.uniqueId },
+                      { lbl: t('contactCol'), val: profile.email },
+                      { lbl: t('phoneCol'), val: profile.phone },
+                    ].map(({ lbl, val }) => (
+                      <div key={lbl} className="ptn-sc" style={{ textAlign: 'left' }}>
+                        <div className="sl">{lbl}</div>
+                        <div className="sv" style={{ fontSize: 13 }}>
+                          {val || '—'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>—</span>
+                )}
+                <p
+                  style={{
+                    marginTop: 12,
+                    fontSize: 12,
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {t('supplierCollaborationNote')}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {isCarrierOrDriver && perf && (
           <div className="ptn-dps">

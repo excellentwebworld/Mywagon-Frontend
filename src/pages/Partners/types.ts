@@ -27,6 +27,17 @@ export interface FleetItem {
   driver: string | null;
 }
 
+export interface ShipperCompanyProfile {
+  companyName: string | null;
+  vatNumber: string | null;
+  city: string | null;
+  address: string | null;
+  contactName: string | null;
+  email: string | null;
+  phone: string | null;
+  uniqueId: string | null;
+}
+
 export interface Partner {
   id: string;
   name: string;
@@ -55,7 +66,9 @@ export interface Partner {
   isPending?: boolean;
   contractLanes?: ContractLane[];
   fleet?: FleetItem[];
-  performance?: PartnerPerformance;
+  performance?: PartnerPerformance | null;
+  companyProfile?: ShipperCompanyProfile | null;
+  incomingLoadsMonitoring?: { enabled: boolean };
 }
 
 // ─── Filter / Sort ───────────────────────────────────────
@@ -102,6 +115,7 @@ export interface InviteFormState {
 
 // ─── Open sections in detail panel ───────────────────────
 export interface OpenSections {
+  companyProfile: boolean;
   kpis: boolean;
   fleet: boolean;
   contracts: boolean;

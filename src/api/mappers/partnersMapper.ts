@@ -64,7 +64,20 @@ export function mergeDetailIntoPartner(base: Partner, detail: ApiPartnerDetail):
     isPending: detail.is_pending,
     contractLanes: (detail.contract_lanes ?? []).map(mapContractLane),
     fleet: detail.fleet ?? [],
-    performance: detail.performance,
+    performance: detail.performance ?? undefined,
+    companyProfile: detail.company_profile
+      ? {
+          companyName: detail.company_profile.company_name,
+          vatNumber: detail.company_profile.vat_number,
+          city: detail.company_profile.city,
+          address: detail.company_profile.address,
+          contactName: detail.company_profile.contact_name,
+          email: detail.company_profile.email,
+          phone: detail.company_profile.phone,
+          uniqueId: detail.company_profile.unique_id,
+        }
+      : null,
+    incomingLoadsMonitoring: detail.incoming_loads_monitoring,
   };
 }
 

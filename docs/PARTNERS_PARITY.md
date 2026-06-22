@@ -69,3 +69,37 @@ php artisan migrate
 ```
 
 Migration: `2026_06_18_100000_add_partners_master_columns.php` (relationship, notes, tags, partner_contract_lanes)
+
+## Shipper Partners (supplier type)
+
+Shipper-to-shipper partnerships use API `type: shipper` (React facet `supplier`). Inviter is `requestable`; invitee is `partnerable`.
+
+| Feature | Status |
+|---------|--------|
+| Invite by email / phone / MV Unique ID | Done |
+| List facet `supplier` + summary `shippers` count | Done |
+| Display name uses `company_name` (fallback contact name) | Done |
+| Detail `company_profile` (VAT, city, address, contact, MV ID) | Done |
+| Collaboration placeholder copy (Incoming Loads deferred) | Done |
+| Self-invite blocked (422) | Done |
+| Accept / decline by invitee only | Done |
+| Notifications: `shipper_partner_request`, `new_shipper_partner_added_successfully` | Done |
+| Suspend / preferred / notes / tags / contract lanes | Done (same as carrier/driver) |
+
+### Out of scope (follow-up ticket)
+
+- **Incoming Loads** page / manage-shipment tab / live tracking for partner deliveries
+- Create Shipment wizard — pick supplier partner for private load (backend `ShipmentPartner` hook exists in `ShipperShipmentService`)
+
+### Staging QA — shipper-shipper subset
+
+Use two shipper accounts (A invites B):
+
+1. A invites B by email → B sees Invitation Received; A sees Invited
+2. B accepts → both show Active under Shipper Partners facet
+3. Detail shows **company name** and company profile fields
+4. B declines alternate invite → row rejected
+5. Suspend / reactivate shipper partner
+6. Notes, tags, contract lane CRUD on supplier partner
+7. Self-invite blocked with clear error
+8. Subscription partner limit still blocks invite (403)
