@@ -62,6 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Navigation list */}
         <nav className="sb-nav">
+          <div className="ns">{t("main")}</div>
           <Link
             to="/dashboard"
             onClick={onCloseMobile}
@@ -90,15 +91,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={`ni ${isLinkActive("/shipments/create") ? "active" : ""}`}
             title={t("createShipment")}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M12 20V10M18 20V4M6 20v-4" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 5v14M5 12h14" />
             </svg>
             <span>{t("createShipment")}</span>
           </Link>
@@ -109,16 +103,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={`ni ${isLinkActive("/shipments") ? "active" : ""}`}
             title={t("navManageShipments")}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <rect x="2" y="7" width="20" height="14" rx="2" />
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+              <rect x="9" y="3" width="6" height="4" rx="1" />
+              <path d="M9 12h6M9 16h4" />
             </svg>
             <span>{t("navManageShipments")}</span>
             <span className="nb">5</span>
@@ -137,9 +125,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <path d="m21 21-4.35-4.35" />
             </svg>
             <span>{t("truckAvailability")}</span>
-            <span className="nb" style={{ background: "#0EA5E9" }}>
+            {/* <span className="nb" style={{ background: "#0EA5E9" }}>
               BETA
-            </span>
+            </span> */}
           </a>
 
           <div className="ns">{t("navRegistry")}</div>
@@ -150,16 +138,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={`ni ${isLinkActive("/address-book") ? "active" : ""}`}
             title={t("addressBook")}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <circle cx="12" cy="10" r="3" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
             </svg>
             <span>{t("addressBook")}</span>
           </Link>
@@ -211,24 +192,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={`ni ${isLinkActive('/erp-orders') ? 'active' : ''}`}
             title={t('navErpOrders') || 'ERP Orders'}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-              <line x1="2" y1="10" x2="22" y2="10" />
-              <line x1="8" y1="21" x2="16" y2="21" />
-              <line x1="12" y1="17" x2="12" y2="21" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
             </svg>
             <span>{t('navErpOrders') || 'ERP Orders'}</span>
           </Link>
 
 
-          <div className="ns">{t("navAnalytics")}</div>
+          {/* <div className="ns">{t("navAnalytics")}</div>
 
           <a href="#reports" className="ni" title={t("navReportsInsights")}>
             <svg
@@ -242,13 +213,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <path d="M18 20V10M12 20V4M6 20v-8" />
             </svg>
             <span>{t("navReportsInsights")}</span>
-          </a>
+          </a> */}
         </nav>
+
 
         {/* Footer */}
         <div className="sb-ft">
           {/* Collapse Toggle Button */}
-          <button
+          {/* <button
             onClick={onToggleCollapse}
             className="ni sb-collapse-toggle"
             title={t("navCollapseMenu")}
@@ -269,39 +241,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <polyline points="15 18 9 12 15 6" />
             </svg>
             <span>{t("navCollapse")}</span>
-          </button>
+          </button> */}
 
-          <a href="#settings" className="ni" title={t("navSettings")}>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              style={{ flexShrink: 0 }}
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1-2-2 2 2 0 0 1 2-2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+
+
+          <a href="#subscription" className="ni" title={t("navSubscription")}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="2" y1="10" x2="22" y2="10"></line>
             </svg>
-            <span>{t("navSettings")}</span>
+            <span>{t("navSubscription")}</span>
           </a>
-          <a href="#help" className="ni" title={t("navHelp")}>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              style={{ flexShrink: 0 }}
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
+
+          <a href="#billing" className="ni" title={t("billing")}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z"></path>
+              <line x1="9" y1="7" x2="15" y2="7"></line>
+              <line x1="9" y1="11" x2="15" y2="11"></line>
             </svg>
-            <span>{t("navHelp")}</span>
+            <span>{t("billing")}</span>
           </a>
+
+          <a href="#support" className="ni" title={t("support")}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 115.82 1c0 2-3 2-3 4"></path>
+              <line x1="12" y1="17" x2="12" y2="17"></line>
+            </svg>
+            <span>{t("support")}</span>
+          </a>
+
+          <a href="#tutorial" className="ni" title={t("tutorial")}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <span>{t("tutorial")}</span>
+          </a>
+
         </div>
       </aside>
     </>
