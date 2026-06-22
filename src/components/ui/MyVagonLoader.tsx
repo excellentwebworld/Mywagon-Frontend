@@ -29,16 +29,6 @@ export const MyVagonLoaderContent: React.FC<ContentProps> = ({
         style={{ objectFit: 'contain', display: 'block' }}
         aria-label="Loading"
       />
-      <div className="preloader-logo">
-        <img
-          src={Logo}
-          alt=""
-          className={['preloader-logo-img']
-            .filter(Boolean)
-            .join(' ')}
-          aria-hidden="true"
-        />
-      </div>
     </div>
   );
 };
