@@ -7,10 +7,12 @@ import {
   ProductList,
   ProductMasterHeader,
   ProductMasterModals,
+  AiWizardModal,
 } from '../../components/ProductMaster';
 import { ConfirmationModal } from '../../components/ui/ConfirmationModal';
 import { useProductMaster } from './hooks/useProductMaster';
 import '../../styles/product-master.css';
+import '../../styles/ai-wizard.css';
 
 export const ProductMaster: React.FC = () => {
   const pm = useProductMaster();
@@ -22,10 +24,12 @@ export const ProductMaster: React.FC = () => {
         addDropdownOpen={pm.addDropdownOpen}
         setAddDropdownOpen={pm.setAddDropdownOpen}
         openAddSku={pm.openAddSku}
+        openAiWizard={pm.openAiWizard}
         handleCSVUpload={pm.handleCSVUpload}
         handleExport={pm.handleExport}
         exporting={pm.exporting}
         downloadTemplate={pm.downloadTemplate}
+        t={pm.t}
       />
 
       {pm.subscriptionBlocked && (
@@ -125,6 +129,14 @@ export const ProductMaster: React.FC = () => {
       </div>
 
       <ProductMasterModals {...pm} />
+
+      <AiWizardModal
+        isOpen={pm.isAiWizardOpen}
+        onClose={pm.closeAiWizard}
+        onImportSuccess={pm.handleAiWizardImportSuccess}
+        downloadTemplate={pm.downloadTemplate}
+        t={pm.t}
+      />
 
       {/* Deactivate SKU Confirmation Modal */}
       <ConfirmationModal

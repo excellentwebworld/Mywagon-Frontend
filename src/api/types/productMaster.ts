@@ -105,3 +105,30 @@ export interface StoreSkuPayload {
   stackable?: boolean;
   tags?: string;
 }
+
+export interface AiMappedProduct {
+  sku_name: string;
+  sku_number: string;
+  barcode?: string;
+  unit?: string;
+  weight?: string;
+  category: string;
+  product_type: string;
+  hazardous?: string;
+  pallet_type?: string;
+  stackable?: string;
+  temperature?: string;
+  status?: string;
+}
+
+export interface AiTransformResult {
+  products: AiMappedProduct[];
+  file_headers: string[];
+}
+
+export interface AiTransformErrorData {
+  error_type: 'missing_columns' | 'generic';
+  missing_columns?: string[];
+  found_columns?: string[];
+  file_headers?: string[];
+}

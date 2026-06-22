@@ -50,6 +50,7 @@ export function useProductMaster() {
   const [newSku, setNewSku] = useState<NewSkuForm>(EMPTY_NEW_SKU);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<string | null>(null);
+  const [isAiWizardOpen, setIsAiWizardOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [typeMappedSkus, setTypeMappedSkus] = useState<SKU[]>([]);
   const [typeSkusLoading, setTypeSkusLoading] = useState(false);
@@ -407,6 +408,20 @@ export function useProductMaster() {
     }
   }, [handleApiError]);
 
+  const openAiWizard = useCallback(() => {
+    setAddDropdownOpen(false);
+    setIsAiWizardOpen(true);
+  }, []);
+
+  const closeAiWizard = useCallback(() => {
+    setIsAiWizardOpen(false);
+  }, []);
+
+  const handleAiWizardImportSuccess = useCallback(async () => {
+    await invalidateAll();
+    showToast(t('imported'), 'success');
+  }, [invalidateAll, showToast, t]);
+
   const catName = useCallback((c: Category) => getCategoryName(c, lang), [lang]);
 
   const loading = summaryQuery.isLoading || referenceQuery.isLoading || skusQuery.isLoading;
@@ -477,6 +492,10 @@ export function useProductMaster() {
     isImportOpen,
     setIsImportOpen,
     importSummary,
+    isAiWizardOpen,
+    openAiWizard,
+    closeAiWizard,
+    handleAiWizardImportSuccess,
     clearSelection,
     clearFilters,
     categories,

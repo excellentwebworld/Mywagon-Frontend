@@ -13,6 +13,9 @@ import type { ApiListMeta as AddressBookListMeta } from '../types/addressBook';
 import type {
   ApiImportResult,
   ApiProductSummary,
+  AiMappedProduct,
+  AiTransformErrorData,
+  AiTransformResult,
   ApiReferenceCategory,
   ApiSkuDetail,
   ApiTypeGridItem,
@@ -132,6 +135,28 @@ export const productMasterService = {
     a.download = 'product_import_template.xlsx';
     a.click();
     URL.revokeObjectURL(url);
+  },
+
+  async aiTransform(file: File, signal?: AbortSignal): Promise<AiTransformResult> {
+    const formData = new FormData();
+    formData.append('import_file', file);
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const response = await fetch(`${API_BASE}/product-master/ai/transform`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+      signal,
+    });
+    const json = await response.json();
+    if (!response.ok) {
+      throw new ApiError(json.message ?? 'AI transform failed', response.status, undefined, json.data as AiTransformErrorData);
+    }
+    return json.data as AiTransformResult;
+  },
+
+  async aiConfirmImport(products: AiMappedProduct[]): Promise<ApiImportResult> {
+    const res = await apiPost<ApiImportResult>('/product-master/ai/confirm-import', { products });
+    return res.data;
   },
 
   buildListParams: facetToListParams,

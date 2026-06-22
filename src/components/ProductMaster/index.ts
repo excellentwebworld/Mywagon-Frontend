@@ -5,3 +5,4 @@ export { FacetPane } from './FacetPane';
 export { ProductList } from './ProductList';
 export { ProductDetailPanel } from './ProductDetailPanel';
 export { ProductMasterModals } from './ProductMasterModals';
+export { AiWizardModal } from './AiWizardModal';

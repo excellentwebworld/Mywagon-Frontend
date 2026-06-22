@@ -48,11 +48,13 @@ axiosInstance.interceptors.response.use(
 export class ApiError extends Error {
   status: number;
   fieldErrors?: Record<string, string[]>;
+  data?: unknown;
 
-  constructor(message: string, status: number, fieldErrors?: Record<string, string[]>) {
+  constructor(message: string, status: number, fieldErrors?: Record<string, string[]>, data?: unknown) {
     super(message);
     this.status = status;
     this.fieldErrors = fieldErrors;
+    this.data = data;
   }
 }
 

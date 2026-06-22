@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTranslation } from '../../hooks/useTranslation';
 import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
 
@@ -9,22 +8,25 @@ type Props = Pick<
   | 'addDropdownOpen'
   | 'setAddDropdownOpen'
   | 'openAddSku'
+  | 'openAiWizard'
   | 'handleCSVUpload'
   | 'handleExport'
   | 'exporting'
   | 'downloadTemplate'
+  | 't'
 >;
 
 export const ProductMasterHeader: React.FC<Props> = ({
   addDropdownOpen,
   setAddDropdownOpen,
   openAddSku,
+  openAiWizard,
   handleCSVUpload,
   handleExport,
   exporting,
   downloadTemplate,
+  t,
 }) => {
-  const { t } = useTranslation();
   const addWrapRef = useOutsideClick<HTMLDivElement>(() => setAddDropdownOpen(false), addDropdownOpen);
 
   return (
@@ -63,6 +65,24 @@ export const ProductMasterHeader: React.FC<Props> = ({
             </div>
             <div className="add-dd-i" onClick={() => document.getElementById('pm-csv-input')?.click()} role="button" tabIndex={0}>
               📥 {t('importCsv')}
+            </div>
+            <div
+              className="add-dd-i"
+              onClick={openAiWizard}
+              role="button"
+              tabIndex={0}
+              style={{ borderTop: '1px solid rgba(139,92,246,0.1)' }}
+            >
+              <span
+                style={{
+                  fontWeight: 600,
+                  background: 'linear-gradient(135deg, #8B5CF6, #EC4899)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                ✨ {t('aiWizardTitle')}
+              </span>
             </div>
             <div className="add-dd-i" onClick={downloadTemplate} role="button" tabIndex={0}>
               {t('downloadTemplate')}

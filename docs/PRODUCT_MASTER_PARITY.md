@@ -20,7 +20,7 @@ Reference: `mv-new-frontend-design-development` (client-approved Blade)
 | Create Shipment wizard products | Product create | `POST /product-master/skus` + catalog refresh | Done |
 | Subscription | `manage_product_master` | 403 banner | Done |
 | Search filter | DataTable search + subscription | API `search` param | Done |
-| AI Master Wizard | 4-step modal | Phase 2 | Deferred |
+| AI Master Wizard | 4-step modal | `AiWizardModal` + API `/ai/transform` & `/ai/confirm-import` | Done |
 | Rename/merge type | Not in Blade | Removed from React | Done |
 | Sync log / ERP sync | Not in Blade | Removed from React | Done |
 
@@ -41,6 +41,10 @@ Run side-by-side on staging (Blade vs React):
 11. Import template download; CSV import shows success/fail counts
 12. Types view grid loads shipment stats
 13. Subscription blocked user sees banner and cannot mutate
+14. AI Wizard: upload valid messy CSV (non-standard headers) → preview shows mapped rows
+15. AI Wizard: upload file missing Category column → missing-columns error + template download link
+16. AI Wizard: confirm import → SKUs appear in list + facet counts refresh
+17. AI Wizard: cancel during processing → no partial DB writes
 
 ## Env
 
@@ -52,3 +56,6 @@ Run side-by-side on staging (Blade vs React):
 - React service: `shipper/src/api/services/productMasterService.ts`
 - Hook: `shipper/src/pages/ProductMaster/hooks/useProductMaster.ts` (React Query)
 - Feature tests: `MV_Backend_API/tests/Feature/Api/Shipper/ProductMaster/ProductMasterApiTest.php`
+- AI Wizard tests: `MV_Backend_API/tests/Feature/Api/Shipper/ProductMaster/AiWizardApiTest.php`
+- AI Wizard UI: `shipper/src/components/ProductMaster/AiWizardModal.tsx`
+- QA fixture (messy CSV): `shipper/docs/fixtures/ai-wizard-messy-sample.csv`
