@@ -50,19 +50,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         id="sidebar"
         aria-label="Main navigation"
       >
-        {/* Logo and branding */}
-        <div className="sb-logo">
+        {/* Logo */}
+        <Link to="/dashboard" className="sb-logo" onClick={onCloseMobile} aria-label="MYVAGON">
           <img
             src="/gray_white.png"
             alt="MYVAGON"
-            width={28}
-            height={28}
             className="sb-logo-img"
           />
-          <span>
-            MY<span className="hl">VAGON</span>
-          </span>
-        </div>
+        </Link>
 
         {/* Navigation list */}
         <nav className="sb-nav">
