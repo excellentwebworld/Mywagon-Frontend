@@ -59,9 +59,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             height={28}
             className="sb-logo-img"
           />
-          {/* <span>
+          <span>
             MY<span className="hl">VAGON</span>
-          </span> */}
+          </span>
         </div>
 
         {/* Navigation list */}
