@@ -89,7 +89,7 @@ export const ProductList: React.FC<Props> = ({
     <div className="tbl-scroll">
       {loading && viewMode === 'skus' ? (
         <div className="empty-state">
-          <div className="et">{t('abLoadingLocations')}</div>
+          <div className="et">{t('loadingProducts')}</div>
         </div>
       ) : viewMode === 'types' ? (
         filteredTypes.length === 0 ? (

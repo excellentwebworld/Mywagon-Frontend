@@ -543,7 +543,7 @@ table.ab-table { width: 100%; border-collapse: collapse; }
 
 .dp-badges { display: flex; gap: 5px; margin-bottom: 8px; flex-wrap: wrap; }
 .dp-type-badge {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   padding: 2px 9px;
   border-radius: 4px;
