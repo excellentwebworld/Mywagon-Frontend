@@ -135,6 +135,7 @@ export const ProductMaster: React.FC = () => {
         onClose={pm.closeAiWizard}
         onImportSuccess={pm.handleAiWizardImportSuccess}
         downloadTemplate={pm.downloadTemplate}
+        showToast={pm.showToast}
         t={pm.t}
       />
 

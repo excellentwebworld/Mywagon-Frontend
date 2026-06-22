@@ -20,7 +20,7 @@ Reference: `mv-new-frontend-design-development` (client-approved Blade)
 | Create Shipment wizard products | Product create | `POST /product-master/skus` + catalog refresh | Done |
 | Subscription | `manage_product_master` | 403 banner | Done |
 | Search filter | DataTable search + subscription | API `search` param | Done |
-| AI Master Wizard | 4-step modal | `AiWizardModal` + API `/ai/transform` & `/ai/confirm-import` | Done |
+| AI Master Wizard | 4-step modal + interactive preview (accept/reject/edit) | `AiWizardModal` + `AiWizardPreviewPanel` | Done |
 | Rename/merge type | Not in Blade | Removed from React | Done |
 | Sync log / ERP sync | Not in Blade | Removed from React | Done |
 

@@ -1,6 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ApiError, productMasterService } from '../../api';
 import type { AiMappedProduct, AiTransformErrorData, ApiImportResult } from '../../api/types/productMaster';
+import {
+  AiWizardPreviewPanel,
+  acceptedProducts,
+  initPreviewRows,
+  type PreviewRow,
+} from './AiWizardPreviewPanel';
 import {
   parseCsvHeaderLine,
   readCsvFirstLine,
@@ -19,6 +26,7 @@ interface Props {
   onClose: () => void;
   onImportSuccess: () => void;
   downloadTemplate: () => void;
+  showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void;
   t: (key: string, options?: Record<string, unknown>) => string;
 }
 
@@ -82,12 +90,12 @@ function lineClass(idx: number, activeStep: WizardStep): string {
   return idx + 2 < activeStep ? 'ai-step-line done' : 'ai-step-line';
 }
 
-export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSuccess, downloadTemplate, t }) => {
+export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSuccess, downloadTemplate, showToast, t }) => {
   const [activeStep, setActiveStep] = useState<WizardStep>(1);
   const [section, setSection] = useState<Section>('form');
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [products, setProducts] = useState<AiMappedProduct[]>([]);
+  const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
   const [fileHeaders, setFileHeaders] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState('');
@@ -109,6 +117,14 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
   const abortRef = useRef<AbortController | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logStreamRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const referenceQuery = useQuery({
+    queryKey: ['product-master', 'reference'],
+    queryFn: () => productMasterService.getReferenceCategories(),
+    enabled: isOpen,
+  });
+
+  const acceptedCount = previewRows.filter((r) => r.status === 'accepted').length;
 
   const appendLog = useCallback((type: LogEntry['type'], message: string) => {
     setLogs((prev) => [...prev, { type, message, ts: logTs() }]);
@@ -133,7 +149,7 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
     setSection('form');
     setFile(null);
     setDragOver(false);
-    setProducts([]);
+    setPreviewRows([]);
     setFileHeaders([]);
     setProgress(0);
     setStatusText('');
@@ -258,7 +274,7 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
         const result = await productMasterService.aiTransform(selected, controller.signal);
         clearTimers();
         setProgress(100);
-        setProducts(result.products);
+        setPreviewRows(initPreviewRows(result.products));
         setFileHeaders(result.file_headers);
         setRunning(false);
         abortRef.current = null;
@@ -348,8 +364,30 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
     []
   );
 
+  const validateAcceptedRows = useCallback((): AiMappedProduct[] | null => {
+    const toImport = acceptedProducts(previewRows);
+    if (!toImport.length) {
+      showToast(t('aiWizardNoAccepted'), 'warning');
+      return null;
+    }
+    const invalid = previewRows.find(
+      (r) =>
+        r.status === 'accepted' &&
+        (!r.product.sku_name?.trim() ||
+          !r.product.sku_number?.trim() ||
+          !r.product.category?.trim() ||
+          !r.product.product_type?.trim())
+    );
+    if (invalid) {
+      showToast(t('aiWizardRequiredFieldsMissing'), 'error');
+      return null;
+    }
+    return toImport;
+  }, [previewRows, showToast, t]);
+
   const handleConfirmImport = useCallback(async () => {
-    if (!products.length) return;
+    const toImport = validateAcceptedRows();
+    if (!toImport) return;
     setSection('progress');
     setActiveStep(2);
     setLogs([]);
@@ -359,7 +397,7 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
     abortRef.current = controller;
 
     try {
-      const result = await productMasterService.aiConfirmImport(products);
+      const result = await productMasterService.aiConfirmImport(toImport);
       clearTimers();
       setProgress(100);
       setStatusText(t('aiWizardImportDone'));
@@ -380,7 +418,7 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
       const message = err instanceof ApiError ? err.message : t('aiWizardImportFailed');
       showGenericError(message, null);
     }
-  }, [clearTimers, products, showGenericError, startProgressSimulation, streamImportLogs, t]);
+  }, [clearTimers, validateAcceptedRows, showGenericError, startProgressSimulation, streamImportLogs, t]);
 
   const handleAbort = useCallback(() => {
     abortRef.current?.abort();
@@ -416,7 +454,7 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
 
   return (
     <div className={`modal-bg ai-wizard-modal-bg show`} onClick={handleClose}>
-      <div className="modal ai-wizard-modal" onClick={(e) => e.stopPropagation()}>
+      <div className={`modal ai-wizard-modal${section === 'preview' ? ' ai-wizard-modal-wide' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="ai-wizard-header">
           <div className="ai-wizard-header-left">
             <div className="ai-wizard-icon-wrap">
@@ -701,93 +739,39 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
         {section === 'preview' && (
           <div className="ai-wizard-preview-section">
             <div className="modal-body ai-wizard-body ai-preview-body">
-              <div className="ai-preview-bar">
-                <div>
-                  <div className="ai-preview-bar-title">{t('aiWizardPreviewTitle')}</div>
-                  <div className="ai-preview-bar-sub">{t('aiWizardPreviewSub')}</div>
-                </div>
-                <div className="ai-count-chip">
-                  {products.length} {products.length === 1 ? t('aiWizardProduct') : t('aiWizardProducts')}
-                </div>
-              </div>
-              <div className="ai-table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>{t('skuName')}</th>
-                      <th>{t('skuNumber')}</th>
-                      <th>{t('barcode')}</th>
-                      <th>{t('category')}</th>
-                      <th>{t('productType')}</th>
-                      <th>{t('uom')}</th>
-                      <th>{t('weight')}</th>
-                      <th>{t('hazardous')}</th>
-                      <th>{t('palletType')}</th>
-                      <th>{t('stackable')}</th>
-                      <th>{t('temp')}</th>
-                      <th>{t('status')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {products.length === 0 ? (
-                      <tr>
-                        <td colSpan={13} className="ai-table-empty">
-                          {t('aiWizardNoProducts')}
-                        </td>
-                      </tr>
-                    ) : (
-                      products.map((p, idx) => {
-                        const isHazardous = String(p.hazardous || '').toLowerCase() === 'yes';
-                        const isStackable = String(p.stackable || '').toLowerCase() !== 'no';
-                        const isActive = String(p.status || '').toLowerCase() !== 'inactive';
-                        const cell = (field: string, extra = '') =>
-                          [extra, missingFields[field] ? 'ai-highlight-cell' : ''].filter(Boolean).join(' ');
-                        return (
-                          <tr key={`${p.sku_number}-${idx}`}>
-                            <td className="ai-td-num">{idx + 1}</td>
-                            <td className={cell('sku_name', 'ai-td-bold')}>{p.sku_name || ''}</td>
-                            <td className={cell('sku_number', 'ai-td-mono')}>{p.sku_number || ''}</td>
-                            <td className={cell('barcode')}>{p.barcode || '-'}</td>
-                            <td className={cell('category')}>
-                              <span className="cat-pill">{p.category || ''}</span>
-                            </td>
-                            <td className={cell('product_type')}>
-                              <span className="type-pill">{p.product_type || ''}</span>
-                            </td>
-                            <td className={cell('unit', 'ai-td-medium')}>{p.unit || 'Case'}</td>
-                            <td className={cell('weight')}>{p.weight ? `${p.weight} kg` : '-'}</td>
-                            <td className={cell('hazardous')}>
-                              <span className={`ai-badge ${isHazardous ? 'ai-badge-danger' : 'ai-badge-neutral'}`}>{p.hazardous || t('no')}</span>
-                            </td>
-                            <td className={cell('pallet_type')}>{p.pallet_type || 'EUR'}</td>
-                            <td className={cell('stackable')}>
-                              <span className={`ai-badge ${isStackable ? 'ai-badge-success' : 'ai-badge-danger'}`}>{p.stackable || t('yes')}</span>
-                            </td>
-                            <td className={cell('temperature')}>
-                              <span className="ai-badge ai-badge-neutral">{p.temperature || 'Ambient'}</span>
-                            </td>
-                            <td className={cell('status')}>
-                              <span className={`ai-badge ${isActive ? 'ai-badge-success' : 'ai-badge-muted'}`}>{p.status || 'Active'}</span>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <AiWizardPreviewPanel
+                rows={previewRows}
+                fileHeaders={fileHeaders}
+                inferredFields={missingFields}
+                referenceCategories={referenceQuery.data ?? []}
+                t={t}
+                onRowsChange={setPreviewRows}
+              />
             </div>
             <div className="ai-wizard-footer ai-footer-split">
-              <button type="button" className="btn btn-secondary" onClick={reset}>
-                {t('aiWizardReupload')}
-              </button>
-              <button type="button" className="btn ai-primary-btn" disabled={!products.length || running} onClick={handleConfirmImport}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                {t('aiWizardConfirmImport', { count: products.length })}
-              </button>
+              <div className="ai-preview-footer-summary">
+                {t('aiWizardImportSummary', {
+                  accepted: acceptedCount,
+                  rejected: previewRows.length - acceptedCount,
+                  total: previewRows.length,
+                })}
+              </div>
+              <div className="ai-preview-footer-actions">
+                <button type="button" className="btn btn-secondary" onClick={reset}>
+                  {t('aiWizardReupload')}
+                </button>
+                <button
+                  type="button"
+                  className="btn ai-primary-btn"
+                  disabled={acceptedCount === 0 || running}
+                  onClick={handleConfirmImport}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  {t('aiWizardConfirmImport', { count: acceptedCount })}
+                </button>
+              </div>
             </div>
           </div>
         )}
