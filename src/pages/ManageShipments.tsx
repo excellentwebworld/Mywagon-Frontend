@@ -150,7 +150,7 @@ export const ManageShipments: React.FC = () => {
   const riskCount = shipments.filter((s) => s.at_risk).length;
 
   return (
-    <div className="animate-fade-in" style={{ padding: '0px' }}>
+    <div className="animate-fade-in px-7 pt-5">
       <h1 className="text-h2" style={{ marginBottom: '16px', fontSize: '24px', fontWeight: 700 }}>
         {t('manageShipments')}
       </h1>

@@ -55,11 +55,11 @@ export const CreateShipmentWizard: React.FC = () => {
       prev.map((stop, idx) =>
         idx === 0
           ? {
-              ...stop,
-              type: loc.role === 'delivery' ? 'delivery' : 'pickup',
-              location: loc.id,
-              address: loc.address,
-            }
+            ...stop,
+            type: loc.role === 'delivery' ? 'delivery' : 'pickup',
+            location: loc.id,
+            address: loc.address,
+          }
           : stop
       )
     );
@@ -132,10 +132,10 @@ export const CreateShipmentWizard: React.FC = () => {
       via:
         stops.length > 2
           ? stops
-              .slice(1, -1)
-              .map((s) => locations.find((l) => l.id === s.location)?.city)
-              .filter(Boolean)
-              .join(', ')
+            .slice(1, -1)
+            .map((s) => locations.find((l) => l.id === s.location)?.city)
+            .filter(Boolean)
+            .join(', ')
           : null,
       customer: finalCustomers,
       bids: 0,
@@ -153,7 +153,7 @@ export const CreateShipmentWizard: React.FC = () => {
     };
 
     addShipment(payload);
-    
+
     const label =
       totalBulkLoads > 1
         ? t('bulkCreationComplete', { count: totalBulkLoads })
@@ -168,7 +168,7 @@ export const CreateShipmentWizard: React.FC = () => {
   };
 
   return (
-    <div className="animate-fade-in" style={{ padding: '0px' }}>
+    <div className="animate-fade-in pt-5 px-7">
       {/* Page Header */}
       <div className="ph" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column' }}>
         <h1 className="ph-t" style={{ fontSize: '24px', fontWeight: 700 }}>
@@ -190,13 +190,13 @@ export const CreateShipmentWizard: React.FC = () => {
           <span>{t('details')}</span>
         </div>
         <div className={`sl ${step > 1 ? 'done' : ''}`} />
-        
+
         <div className={`step ${step === 2 ? 'act' : ''} ${step > 2 ? 'done' : ''}`} onClick={() => setStep(2)}>
           <div className="sn">{step > 2 ? '✓' : '2'}</div>
           <span>{t('itinerary')}</span>
         </div>
         <div className={`sl ${step > 2 ? 'done' : ''}`} />
-        
+
         <div className={`step ${step === 3 ? 'act' : ''}`} onClick={() => setStep(3)}>
           <div className="sn">3</div>
           <span>{t('vehicleAndPricing')}</span>
