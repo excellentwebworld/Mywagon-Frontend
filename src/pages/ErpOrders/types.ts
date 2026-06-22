@@ -7,6 +7,7 @@ export type ErpOrderSortField = 'orderReference' | 'customer' | 'deliveryDate' |
 export interface ErpOrderLine {
   id?: number;
   productSkuId: number | null;
+  sku?: string;
   productName: string;
   quantity: number | null;
   unit: string;
@@ -24,6 +25,8 @@ export interface ErpOrder {
   destLocationId: number | null;
   shipFrom: string;
   shipTo: string;
+  shipFromAddress?: string;
+  shipToAddress?: string;
   shipDate: string;
   deliveryDate: string;
   productsPreview: string;
@@ -32,6 +35,7 @@ export interface ErpOrder {
   highPriority: boolean;
   linkedLoadSid: string;
   linkedLoadId: string;
+  linkedLoadStatus?: string;
   updatedAt: string;
   canEdit: boolean;
   notes: string;

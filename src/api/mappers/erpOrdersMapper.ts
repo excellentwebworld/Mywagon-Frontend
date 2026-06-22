@@ -29,6 +29,7 @@ export function mapApiLineToLine(line: ApiErpOrderDetail['lines'][number]): ErpO
   return {
     id: line.id,
     productSkuId: line.product_sku_id ?? null,
+    sku: line.sku ?? undefined,
     productName: line.product_name,
     quantity: line.quantity ?? null,
     unit: line.unit ?? '',
@@ -69,6 +70,9 @@ export function mapApiDetailToOrder(detail: ApiErpOrderDetail): ErpOrder {
     companyEntityId: detail.company_entity_id ?? null,
     originLocationId: detail.origin_location_id ?? null,
     destLocationId: detail.dest_location_id ?? null,
+    shipFromAddress: detail.ship_from_address ?? '',
+    shipToAddress: detail.ship_to_address ?? '',
+    linkedLoadStatus: detail.linked_load_status ?? '',
     notes: detail.notes ?? '',
     lines: (detail.lines ?? []).map(mapApiLineToLine),
   };

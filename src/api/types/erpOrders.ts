@@ -16,6 +16,7 @@ export interface ApiErpOrderSummary {
 export interface ApiErpOrderLine {
   id?: number;
   product_sku_id?: number | null;
+  sku?: string | null;
   product_name: string;
   quantity?: number | null;
   unit?: string | null;

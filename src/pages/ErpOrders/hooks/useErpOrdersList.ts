@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useApp } from '../../../context/AppContext';
@@ -134,6 +134,10 @@ export function useErpOrdersList() {
     if (listQuery.error) handleApiError(listQuery.error, t('erpOrdersLoadError'));
   }, [listQuery.error, handleApiError, t]);
 
+  useEffect(() => {
+    if (detailQuery.error) handleApiError(detailQuery.error, t('erpOrdersLoadError'));
+  }, [detailQuery.error, handleApiError, t]);
+
   const createMutation = useMutation({
     mutationFn: (form: ErpOrderFormState) =>
       erpOrdersService.createOrder({
@@ -208,7 +212,7 @@ export function useErpOrdersList() {
   });
 
   const listLoading = listQuery.isLoading || listQuery.isFetching;
-  const detailLoading = detailQuery.isLoading;
+  const detailLoading = detailQuery.isLoading && !detailQuery.data;
   const mutationLoading =
     createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
@@ -229,7 +233,11 @@ export function useErpOrdersList() {
     total: 0,
     last_page: 1,
   };
-  const selectedOrder = detailQuery.data ?? null;
+  const selectedOrderPreview = useMemo(
+    () => orders.find((o) => o.id === selectedOrderId) ?? null,
+    [orders, selectedOrderId]
+  );
+  const selectedOrder = detailQuery.data ?? selectedOrderPreview;
 
   const selectKpi = useCallback((kpi: ErpOrderKpiFilter) => {
     setKpiFilter((prev) => (prev === kpi ? '' : kpi));
