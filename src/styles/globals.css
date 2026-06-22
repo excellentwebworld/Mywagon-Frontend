@@ -467,8 +467,8 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   background: var(--surface);
   border-radius: var(--radius-xl);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.12);
-  width: 100%;
-  max-width: 520px;
+  width: 100% !important;
+  max-width: 650px !important;
   max-height: min(90vh, 900px);
   display: flex;
   flex-direction: column;
@@ -483,11 +483,11 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 }
 
 /* Width variants */
-.modal-sm { max-width: 420px; }
-.modal-md { max-width: 520px; }
-.modal-lg { max-width: 620px; }
-.modal-xl { max-width: 700px; }
-.modal-form { max-width: 660px; }
+.modal-sm { max-width: 460px; }
+.modal-md { max-width: 600px; }
+.modal-lg { max-width: 800px; }
+.modal-xl { max-width: 1000px; }
+.modal-form { max-width: 800px; }
 
 .modal-header,
 .modal-h {
@@ -1026,6 +1026,10 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm, 8px);
   box-shadow: var(--shadow-md); overflow: hidden;
+}
+.searchable-select-menu.open-up {
+  top: auto;
+  bottom: calc(100% + 4px);
 }
 .searchable-select-search { padding: 8px; border-bottom: 1px solid var(--border); }
 .searchable-select-search input {

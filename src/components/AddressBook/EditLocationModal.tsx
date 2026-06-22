@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Form, Formik, type FormikErrors, type FormikHelpers, type FormikTouched } from 'formik';
 import type { LocationItem } from '../../context/AppContext';
 import { ApiError } from '../../api';
@@ -134,7 +135,7 @@ export const EditLocationModal: React.FC<Props> = ({
       }) => {
         const showError = (field: keyof LocationFormValues) => Boolean(errors[field]);
 
-        return (
+        return createPortal(
           <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && closeEditModal()}>
             <Form className="modal modal-form ab-modal-scroll" noValidate>
               <FormScrollToError
@@ -452,7 +453,8 @@ export const EditLocationModal: React.FC<Props> = ({
                 </button>
               </div>
             </Form>
-          </div>
+          </div>,
+          document.body
         );
       }}
     </Formik>

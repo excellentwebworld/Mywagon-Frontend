@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { LocationItem } from '../../context/AppContext';
 import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
@@ -174,7 +175,7 @@ export const CreateLocationModal: React.FC<Props> = ({
         </div>
       )}
 
-      <div className={`mf${fieldErrors.type ? ' has-error' : ''}`}>
+      <div className={`mf${fieldErrors.type ? ' has-error' : ''} mt-3`}>
         <label>
           {t('abLocationType')} <span className="req">*</span>
         </label>
@@ -459,9 +460,9 @@ export const CreateLocationModal: React.FC<Props> = ({
     );
   };
 
-  return (
+  return createPortal(
     <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && closeCreateModal()}>
-      <div className="modal modal-form ab-modal-scroll" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-form" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>New Location</h2>
           <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeCreateModal}>
@@ -477,6 +478,7 @@ export const CreateLocationModal: React.FC<Props> = ({
         </div>
         <div className="modal-footer">{footerButtons()}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

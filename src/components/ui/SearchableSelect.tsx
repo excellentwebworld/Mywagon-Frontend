@@ -34,6 +34,7 @@ export const SearchableSelect: React.FC<Props> = ({
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
   const [query, setQuery] = useState('');
 
   const selected = options.find((o) => o.value === value);
@@ -57,6 +58,19 @@ export const SearchableSelect: React.FC<Props> = ({
     onSearchChange?.(next);
   };
 
+  const handleToggle = () => {
+    if (disabled) return;
+    if (!open) {
+      if (rootRef.current) {
+        const rect = rootRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        setOpenUp(spaceBelow < 280 && spaceAbove > spaceBelow);
+      }
+    }
+    setOpen((v) => !v);
+  };
+
   return (
     <div
       ref={rootRef}
@@ -67,7 +81,7 @@ export const SearchableSelect: React.FC<Props> = ({
         id={id}
         className="searchable-select-trigger"
         disabled={disabled}
-        onClick={() => !disabled && setOpen((v) => !v)}
+        onClick={handleToggle}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -77,7 +91,7 @@ export const SearchableSelect: React.FC<Props> = ({
         <span className="searchable-select-chevron">▾</span>
       </button>
       {open && (
-        <div className="searchable-select-menu" role="listbox">
+        <div className={`searchable-select-menu${openUp ? ' open-up' : ''}`} role="listbox">
           <div className="searchable-select-search">
             <input
               type="text"

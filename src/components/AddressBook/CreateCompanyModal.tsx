@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { GoogleMapAddressField } from './GoogleMapAddressField';
@@ -29,7 +30,7 @@ export const CreateCompanyModal: React.FC<Props> = ({
 
   const update = (patch: Partial<typeof companyData>) => setCompanyData({ ...companyData, ...patch });
 
-  return (
+  return createPortal(
     <div className="modal-backdrop open ab-company-backdrop" onClick={(e) => e.target === e.currentTarget && closeCompanyModal()}>
       <div className="modal modal-md ab-company-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -109,6 +110,7 @@ export const CreateCompanyModal: React.FC<Props> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
