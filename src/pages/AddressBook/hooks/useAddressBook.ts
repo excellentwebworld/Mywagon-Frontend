@@ -20,8 +20,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { validateCreateAll } from '../validation/locationCreateValidation';
 import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from '../validation/locationDuplicateValidation';
 import { applyTemplate } from '../utils/locationUtils';
-import type { ApiCompanyEntity } from '../../../api/types/addressBook';
-
+import type { ApiCompanyEntity, ApiCompanyLookup } from '../../../api/types/addressBook';
 const SEARCH_DEBOUNCE_MS = 250;
 
 export function useAddressBook() {
@@ -59,7 +58,7 @@ export function useAddressBook() {
 
   const [companyQuery, setCompanyQuery] = useState('');
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
-  const [apiCompanies, setApiCompanies] = useState<ApiCompanyEntity[]>([]);
+  const [apiCompanies, setApiCompanies] = useState<ApiCompanyLookup[]>([]);
   const [potentialDuplicates, setPotentialDuplicates] = useState<LocationItem[]>([]);
   const [archiveConfirmLoc, setArchiveConfirmLoc] = useState<LocationItem | null>(null);
 
@@ -289,16 +288,16 @@ export function useAddressBook() {
   useSyncGlobalLoader(globalLoaderActive);
 
   useEffect(() => {
-    if (!companyDropdownOpen) return;
+    if (!isCreateOpen) return;
     const q = companyQuery.trim();
     const timer = setTimeout(() => {
       addressBookService
-        .listCompanyEntities(q || undefined)
+        .listCompanies(q || undefined)
         .then(setApiCompanies)
         .catch(() => setApiCompanies([]));
     }, 200);
     return () => clearTimeout(timer);
-  }, [companyQuery, companyDropdownOpen]);
+  }, [companyQuery, isCreateOpen]);
 
   useEffect(() => {
     if (createStep !== 4) {
