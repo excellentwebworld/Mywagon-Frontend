@@ -52,7 +52,6 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
 
   const showFilters = isDashboard;
   const showSearch = isDashboard;
-  const showNotifications = isDashboard;
   const showCta = !isMaster && location.pathname !== '/shipments/create';
 
   // Breadcrumbs title mapping
@@ -189,119 +188,117 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
         </div>
 
         {/* Notifications Dropdown */}
-        {showNotifications && (
-          <div ref={notifRef} className="dropdown" style={{ position: 'relative' }}>
-            <button
-              className="tb-btn tb-notif"
-              onClick={() => {
-                setNotifOpen(!notifOpen);
-                setUserOpen(false);
-              }}
-              aria-label="Notifications"
-              aria-haspopup="true"
-              title="Notifications"
+        <div ref={notifRef} className="dropdown" style={{ position: 'relative' }}>
+          <button
+            className="tb-btn tb-notif"
+            onClick={() => {
+              setNotifOpen(!notifOpen);
+              setUserOpen(false);
+            }}
+            aria-label="Notifications"
+            aria-haspopup="true"
+            title="Notifications"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 01-3.46 0" />
-              </svg>
-              <span className="tb-notif-dot" aria-label="3 unread notifications"></span>
-            </button>
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+            <span className="tb-notif-dot" aria-label="3 unread notifications"></span>
+          </button>
 
-            {notifOpen && (
+          {notifOpen && (
+            <div
+              className="dropdown-menu open"
+              id="notifMenu"
+              style={{ width: '320px', right: 0, display: 'block' }}
+              role="menu"
+              aria-label="Notifications"
+            >
               <div
-                className="dropdown-menu open"
-                id="notifMenu"
-                style={{ width: '320px', right: 0, display: 'block' }}
-                role="menu"
-                aria-label="Notifications"
+                style={{
+                  padding: '12px 14px',
+                  borderBottom: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
               >
-                <div
+                <span style={{ fontSize: '13px', fontWeight: 600 }}>
+                  {t('notifications')}
+                </span>
+                <span
                   style={{
-                    padding: '12px 14px',
-                    borderBottom: '1px solid var(--border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    background: 'var(--danger-bg)',
+                    color: '#991B1B',
+                    padding: '2px 8px',
+                    borderRadius: '99px',
                   }}
                 >
-                  <span style={{ fontSize: '13px', fontWeight: 600 }}>
-                    {t('notifications')}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      background: 'var(--danger-bg)',
-                      color: '#991B1B',
-                      padding: '2px 8px',
-                      borderRadius: '99px',
-                    }}
-                  >
-                    {t('threeNew')}
-                  </span>
-                </div>
-                <div
-                  className="dropdown-item"
-                  style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}
-                  role="menuitem"
-                >
-                  <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {t('notifNewBid')}
-                  </span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                    {t('notifTwoMinAgo')}
-                  </span>
-                </div>
-                <div
-                  className="dropdown-item"
-                  style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}
-                  role="menuitem"
-                >
-                  <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {t('notifDelivered')}
-                  </span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                    {t('notifThirtyEightMin')}
-                  </span>
-                </div>
-                <div
-                  className="dropdown-item"
-                  style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}
-                  role="menuitem"
-                >
-                  <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {t('notifPayment')}
-                  </span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                    {t('notifOneHour')}
-                  </span>
-                </div>
-                <div className="dropdown-divider"></div>
-                <div
-                  className="dropdown-item"
-                  style={{ justifyContent: 'center', color: 'var(--accent)', fontWeight: 600 }}
-                  role="menuitem"
-                  onClick={() => {
-                    setNotifOpen(false);
-                    showToast(t('openingNotifications'), 'info');
-                  }}
-                >
-                  {t('viewAllNotifications')}
-                </div>
+                  {t('threeNew')}
+                </span>
               </div>
-            )}
-          </div>
-        )}
+              <div
+                className="dropdown-item"
+                style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}
+                role="menuitem"
+              >
+                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                  {t('notifNewBid')}
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                  {t('notifTwoMinAgo')}
+                </span>
+              </div>
+              <div
+                className="dropdown-item"
+                style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}
+                role="menuitem"
+              >
+                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                  {t('notifDelivered')}
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                  {t('notifThirtyEightMin')}
+                </span>
+              </div>
+              <div
+                className="dropdown-item"
+                style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}
+                role="menuitem"
+              >
+                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                  {t('notifPayment')}
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                  {t('notifOneHour')}
+                </span>
+              </div>
+              <div className="dropdown-divider"></div>
+              <div
+                className="dropdown-item"
+                style={{ justifyContent: 'center', color: 'var(--accent)', fontWeight: 600 }}
+                role="menuitem"
+                onClick={() => {
+                  setNotifOpen(false);
+                  showToast(t('openingNotifications'), 'info');
+                }}
+              >
+                {t('viewAllNotifications')}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* User profile avatar / dropdown */}
         <div ref={userRef} className="dropdown" style={{ position: 'relative' }}>
