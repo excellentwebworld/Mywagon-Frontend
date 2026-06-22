@@ -55,6 +55,7 @@ export const AddressBook: React.FC = () => {
           selectedLoc={ab.selectedLoc}
           setSelectedLoc={ab.setSelectedLoc}
           loading={ab.loading}
+          listFetching={ab.listFetching}
           saving={ab.saving}
           listMeta={ab.listMeta}
           currentPage={ab.currentPage}

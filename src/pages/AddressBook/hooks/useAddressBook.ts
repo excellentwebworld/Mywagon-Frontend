@@ -15,6 +15,7 @@ import {
   type SortOption,
 } from '../types';
 import { DEFAULT_PAGE_SIZE } from '../constants';
+import { useLoader } from '../../../context/LoaderContext';
 import { useAuth } from '../../../context/AuthContext';
 import { validateCreateAll } from '../validation/locationCreateValidation';
 import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from '../validation/locationDuplicateValidation';
@@ -27,6 +28,7 @@ export function useAddressBook() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { showToast, refreshLocationsFromApi } = useApp();
+  const { showLoader, hideLoader } = useLoader();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -34,6 +36,9 @@ export function useAddressBook() {
   const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [editModalLoading, setEditModalLoading] = useState(false);
+  const [companySaving, setCompanySaving] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const [activeNode, setActiveNode] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -107,6 +112,7 @@ export function useAddressBook() {
   const {
     data: locationsData,
     isLoading: loading,
+    isFetching: listFetching,
     refetch: refreshLocations,
   } = useQuery({
     queryKey: ['locations', activeNode, debouncedSearch, sortBy, currentPage, perPage],
@@ -271,11 +277,20 @@ export function useAddressBook() {
     },
   });
 
-  const saving = createLocationMutation.isPending || 
-    updateLocationMutation.isPending || 
-    deleteLocationMutation.isPending || 
-    restoreLocationMutation.isPending || 
+  const saving =
+    createLocationMutation.isPending ||
+    updateLocationMutation.isPending ||
+    deleteLocationMutation.isPending ||
+    restoreLocationMutation.isPending ||
     duplicateLocationMutation.isPending;
+
+  const globalLoaderActive =
+    saving || actionLoading || exporting || editModalLoading || companySaving || detailLoading;
+
+  useEffect(() => {
+    if (globalLoaderActive) showLoader();
+    else hideLoader();
+  }, [globalLoaderActive, showLoader, hideLoader]);
 
   useEffect(() => {
     if (!companyDropdownOpen) return;
@@ -401,6 +416,7 @@ export function useAddressBook() {
     }
 
     try {
+      setActionLoading(true);
       const isDuplicate = await checkLocationDuplicate(payload.name, payload.company);
       if (isDuplicate) {
         showToast(DUPLICATE_LOCATION_MESSAGE, 'error');
@@ -410,6 +426,8 @@ export function useAddressBook() {
     } catch (err) {
       handleApiError(err, 'Could not verify location name');
       return;
+    } finally {
+      setActionLoading(false);
     }
 
     createLocationMutation.mutate(payload);
@@ -428,6 +446,7 @@ export function useAddressBook() {
       return;
     }
     try {
+      setCompanySaving(true);
       const created = await addressBookService.createCompanyEntity({
         name: companyData.name.trim(),
         vat_number: companyData.vat.trim(),
@@ -452,11 +471,14 @@ export function useAddressBook() {
       showToast(`Company "${created.name}" created`, 'success');
     } catch (err) {
       handleApiError(err, 'Failed to create company');
+    } finally {
+      setCompanySaving(false);
     }
   }, [companyData, handleApiError, showToast]);
 
   const openEditModal = useCallback(
     async (loc: LocationItem) => {
+      setEditModalLoading(true);
       try {
         const full = await queryClient.fetchQuery({
           queryKey: ['locationDetail', loc.id],
@@ -466,6 +488,8 @@ export function useAddressBook() {
         setIsEditOpen(true);
       } catch (err) {
         handleApiError(err, 'Failed to load location for editing');
+      } finally {
+        setEditModalLoading(false);
       }
     },
     [queryClient, handleApiError]
@@ -570,6 +594,7 @@ export function useAddressBook() {
     summary,
     amenities,
     loading,
+    listFetching,
     detailLoading,
     saving,
     exporting,

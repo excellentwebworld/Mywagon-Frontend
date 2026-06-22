@@ -2,6 +2,7 @@ import React from 'react';
 import type { LocationItem } from '../../context/AppContext';
 import type { SortOption } from '../../pages/AddressBook/types';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
+import { TableLoadingOverlay } from '../ui/TableLoadingOverlay';
 import { LocationRowActions } from './LocationRowActions';
 
 type Props = Pick<
@@ -15,6 +16,7 @@ type Props = Pick<
   | 'selectedLoc'
   | 'setSelectedLoc'
   | 'loading'
+  | 'listFetching'
   | 'saving'
   | 'listMeta'
   | 'currentPage'
@@ -62,6 +64,7 @@ export const LocationList: React.FC<Props> = ({
   selectedLoc,
   setSelectedLoc,
   loading,
+  listFetching,
   saving,
   listMeta,
   currentPage,
@@ -78,9 +81,10 @@ export const LocationList: React.FC<Props> = ({
   const count = filteredLocations.length;
   const total = listMeta.total;
   const lastPage = listMeta.last_page ?? 1;
-  const countLabel = loading ? t('loading') : `${total} location${total !== 1 ? 's' : ''}`;
+  const countLabel = loading ? t('abLoadingLocations') : `${total} location${total !== 1 ? 's' : ''}`;
   const pages = buildPageList(currentPage, lastPage);
   const sortActive = sortBy === 'Name A–Z';
+  const tableLoading = loading || listFetching;
 
   return (
     <div className="list-pane">
@@ -89,7 +93,8 @@ export const LocationList: React.FC<Props> = ({
         <span className="list-info">{countLabel}</span>
       </div>
 
-      <div className="tbl-scroll">
+      <div className={`tbl-scroll${tableLoading ? ' loading-active' : ''}`}>
+        <TableLoadingOverlay active={tableLoading} message={t('abLoadingLocations')} />
         <table className="ab-table">
           <thead>
             <tr>
@@ -113,11 +118,9 @@ export const LocationList: React.FC<Props> = ({
             </tr>
           </thead>
           <tbody>
-            {loading ? (
+            {loading && count === 0 ? (
               <tr>
-                <td colSpan={8} className="ab-empty-row">
-                  {t('abLoadingLocations')}
-                </td>
+                <td colSpan={8} className="ab-empty-row" />
               </tr>
             ) : count === 0 ? (
               <tr>
