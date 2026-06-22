@@ -884,3 +884,8 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
   .ptn-kpi-val { font-size: 18px; }
   .ptn-search { width: 240px; }
 }
+
+.rq {
+  color: var(--danger);
+  margin-left: 2px;
+}

@@ -30,15 +30,15 @@ export const InvitePartnerModal: React.FC<Props> = ({
   const setPartnerType = (pt: InvitePartnerType) => setInviteForm({ ...inviteForm, partnerType: pt });
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLDivElement).classList.contains('modal-overlay')) closeInviteModal();
+    if (e.target === e.currentTarget) closeInviteModal();
   };
 
   if (sent) {
     return (
-      <div className="modal-overlay" onClick={handleOverlayClick} id="invite-modal">
-        <div className="modal-box ptn-inv-modal">
+      <div className="modal-backdrop open" onClick={handleOverlayClick} id="invite-modal">
+        <div className="modal ptn-inv-modal">
           <div className="modal-header">
-            <div className="modal-title">{t('invSentTitle')}</div>
+            <h2>{t('invSentTitle')}</h2>
           </div>
           <div className="modal-body">
             <div className="ptn-invite-success">
@@ -50,7 +50,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
           <div className="modal-footer">
             <button
               type="button"
-              className="btn"
+              className="btn btn-secondary"
               onClick={() => setInviteForm({ ...inviteForm, sent: false, contact: '' })}
             >
               {t('invAnother')}
@@ -65,11 +65,15 @@ export const InvitePartnerModal: React.FC<Props> = ({
   }
 
   return (
-    <div className="modal-overlay" onClick={handleOverlayClick} id="invite-modal">
-      <div className="modal-box ptn-inv-modal">
+    <div className="modal-backdrop open" onClick={handleOverlayClick} id="invite-modal">
+      <div className="modal ptn-inv-modal">
         <div className="modal-header">
-          <div className="modal-title">{t('inviteTitle')}</div>
-          <button type="button" className="modal-close" onClick={closeInviteModal}>✕</button>
+          <h2>{t('inviteTitle')}</h2>
+          <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeInviteModal} aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         <div className="modal-body">
@@ -88,10 +92,11 @@ export const InvitePartnerModal: React.FC<Props> = ({
           </div>
 
           {method === 'phone' && (
-            <div className="mf">
-              <label>{t('countryCode')}</label>
+            <div className="mf" style={{ marginBottom: 12 }}>
+              <label className="form-label">{t('countryCode')}</label>
               <input
                 type="text"
+                className="form-input"
                 value={countryCode}
                 onChange={(e) => setInviteForm({ ...inviteForm, countryCode: e.target.value })}
                 placeholder="+30"
@@ -99,8 +104,8 @@ export const InvitePartnerModal: React.FC<Props> = ({
             </div>
           )}
 
-          <div className="mf">
-            <label>
+          <div className="mf" style={{ marginBottom: 12 }}>
+            <label className="form-label">
               {method === 'email'
                 ? t('email')
                 : method === 'phone'
@@ -110,6 +115,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
             </label>
             <input
               type="text"
+              className="form-input"
               id="invite-contact-input"
               placeholder={
                 method === 'email'
@@ -123,8 +129,8 @@ export const InvitePartnerModal: React.FC<Props> = ({
             />
           </div>
 
-          <div className="mf">
-            <label>
+          <div className="mf" style={{ marginBottom: 12 }}>
+            <label className="form-label">
               {t('partnerType')} <span className="rq">*</span>
             </label>
             <div className="ptn-tag-chips">
@@ -148,7 +154,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
           </div>
 
           <div className="mf">
-            <label>{t('relationshipLabel')}</label>
+            <label className="form-label">{t('relationshipLabel')}</label>
             <div className="ptn-tag-chips">
               {(
                 [
@@ -175,7 +181,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
         </div>
 
         <div className="modal-footer">
-          <button type="button" className="btn" onClick={closeInviteModal}>
+          <button type="button" className="btn btn-secondary" onClick={closeInviteModal}>
             {t('cancel') || 'Cancel'}
           </button>
           <button
