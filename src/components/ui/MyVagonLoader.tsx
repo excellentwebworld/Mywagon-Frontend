@@ -12,36 +12,28 @@ type ContentProps = {
 
 /** Blade `preloader-content`: premium spinner + MYVAGON logo (loader_show parity). */
 export const MyVagonLoaderContent: React.FC<ContentProps> = ({
-  theme = 'dark',
-  compact = false,
   className = '',
 }) => {
-  const isLight = theme === 'light';
-  const rootClass = [
-    'preloader-content',
-    compact ? 'preloader-content--compact' : '',
-    className,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const size = 320;
 
   return (
-    <div className={rootClass}>
-      <div
-        className={[
-          'premium-spinner',
-          isLight ? 'premium-spinner--table' : '',
-          !isLight && compact ? 'premium-spinner--boot' : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-        aria-hidden="true"
+    <div
+      className={['preloader-content', className].filter(Boolean).join(' ')}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      <img
+        src={Logo}
+        alt="Loading…"
+        width={size}
+        height={size}
+        style={{ objectFit: 'contain', display: 'block' }}
+        aria-label="Loading"
       />
       <div className="preloader-logo">
         <img
           src={Logo}
           alt=""
-          className={['preloader-logo-img', compact ? 'preloader-logo-img--compact' : '']
+          className={['preloader-logo-img']
             .filter(Boolean)
             .join(' ')}
           aria-hidden="true"
@@ -60,12 +52,12 @@ type Props = {
 
 export const MyVagonLoader: React.FC<Props> = ({ mode, className }) => {
   if (mode === 'table') {
-    return <MyVagonLoaderContent theme="light" compact className={className} />;
+    return <MyVagonLoaderContent className={className} />;
   }
   if (mode === 'boot') {
-    return <MyVagonLoaderContent theme="dark" compact className={className} />;
+    return <MyVagonLoaderContent className={className} />;
   }
-  return <MyVagonLoaderContent theme="dark" className={className} />;
+  return <MyVagonLoaderContent className={className} />;
 };
 
 type BootScreenProps = {
