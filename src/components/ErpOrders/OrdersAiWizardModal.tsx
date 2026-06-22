@@ -15,6 +15,30 @@ type Props = {
 const ALLOWED_EXT = /\.(csv|tsv|txt|xlsx|xls)$/i;
 
 type PreviewRow = AiMappedOrder & { accepted: boolean };
+type WizardStep = 1 | 2 | 3 | 4;
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function stepFromSection(section: 'upload' | 'processing' | 'preview' | 'done'): WizardStep {
+  if (section === 'upload') return 1;
+  if (section === 'processing') return 2;
+  if (section === 'preview') return 3;
+  return 4;
+}
+
+function stepClass(n: WizardStep, active: WizardStep): string {
+  if (n < active) return 'ai-step done';
+  if (n === active) return 'ai-step active';
+  return 'ai-step';
+}
+
+function lineClass(beforeStep: WizardStep, active: WizardStep): string {
+  return beforeStep < active ? 'ai-step-line done' : 'ai-step-line';
+}
 
 export const OrdersAiWizardModal: React.FC<Props> = ({
   isOpen,
@@ -27,15 +51,19 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
   const fileRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<'upload' | 'processing' | 'preview' | 'done'>('upload');
   const [file, setFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const [rows, setRows] = useState<PreviewRow[]>([]);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<{ created: number; failed: number } | null>(null);
   const abortRef = useRef(false);
 
+  const activeStep = stepFromSection(step);
+
   const reset = useCallback(() => {
     setStep('upload');
     setFile(null);
+    setDragOver(false);
     setRows([]);
     setProgress(0);
     setError(null);
@@ -50,6 +78,16 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
     }
     reset();
     onClose();
+  };
+
+  const pickFile = (selected: File | null | undefined) => {
+    if (!selected) return;
+    if (!ALLOWED_EXT.test(selected.name)) {
+      showToast(t('aiWizardInvalidFormat'), 'error');
+      return;
+    }
+    setFile(selected);
+    setError(null);
   };
 
   const runTransform = async () => {
@@ -102,6 +140,7 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
       );
       setImportResult({ created: result.created, failed: result.failed });
       setStep('done');
+      setProgress(100);
       onImportSuccess();
       showToast(t('ordersAiWizardImportDone'), 'success');
     } catch (err) {
@@ -111,6 +150,12 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
   };
 
   if (!isOpen) return null;
+
+  const requiredCols = [
+    { label: t('erpOrdersColOrderId'), desc: t('ordersAiWizardReqOrderIdDesc') },
+    { label: t('erpOrdersColCustomer'), desc: t('ordersAiWizardReqCustomerDesc') },
+    { label: t('erpOrdersColDeliveryDate'), desc: t('ordersAiWizardReqDeliveryDesc') },
+  ];
 
   return (
     <div className="modal-bg show ai-wizard-modal-bg">
@@ -123,54 +168,196 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
               <div className="ai-wizard-subtitle-header">{t('ordersAiWizardIntro')}</div>
             </div>
           </div>
-          <button type="button" className="ai-wizard-close-btn" onClick={handleClose}>
+          <button type="button" className="ai-wizard-close-btn" onClick={handleClose} aria-label={t('cancel')}>
             ✕
           </button>
         </div>
 
-        <div className="ai-wizard-body">
-          {step === 'upload' && (
-            <div className="ai-wizard-form-section">
-              <p>{t('ordersAiWizardIntro')}</p>
+        <div className="ai-wizard-steps">
+          {[1, 2, 3, 4].map((n, i) => (
+            <React.Fragment key={n}>
+              {i > 0 && <div className={lineClass(i as WizardStep, activeStep)} />}
+              <div className={stepClass(n as WizardStep, activeStep)}>
+                <span className="ai-step-num">{n}</span>
+                <span className="ai-step-label">
+                  {n === 1
+                    ? t('aiWizardStepUpload')
+                    : n === 2
+                      ? t('aiWizardStepProcessing')
+                      : n === 3
+                        ? t('aiWizardStepPreview')
+                        : t('aiWizardStepDone')}
+                </span>
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+
+        {step === 'upload' && (
+          <div className="ai-wizard-form-section">
+            <div className="modal-body ai-wizard-body">
               <div
-                className="ai-dropzone"
+                className={`ai-dropzone-area${dragOver ? ' drag-over' : ''}${file ? ' has-file' : ''}`}
                 onClick={() => fileRef.current?.click()}
-                onDragOver={(e) => e.preventDefault()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOver(true);
+                }}
+                onDragLeave={() => setDragOver(false)}
                 onDrop={(e) => {
                   e.preventDefault();
-                  const f = e.dataTransfer.files?.[0];
-                  if (f && ALLOWED_EXT.test(f.name)) setFile(f);
+                  setDragOver(false);
+                  pickFile(e.dataTransfer.files?.[0]);
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    fileRef.current?.click();
+                  }
+                }}
+                role="button"
+                tabIndex={0}
               >
+                <div className="ai-dropzone-upload-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                </div>
+                <div className="ai-dropzone-main-text">
+                  {file ? `✓ ${file.name} (${formatBytes(file.size)})` : t('ordersAiWizardDropzone')}
+                </div>
+                <div className="ai-dropzone-hint">{t('ordersAiWizardDropzoneHint')}</div>
+                <div className="ai-dropzone-formats">
+                  {['XLSX', 'XLS', 'CSV', 'TXT'].map((fmt) => (
+                    <span key={fmt} className="ai-format-chip">
+                      {fmt}
+                    </span>
+                  ))}
+                </div>
                 <input
                   ref={fileRef}
                   type="file"
-                  accept=".csv,.xlsx,.xls,.txt"
+                  accept=".csv,.tsv,.txt,.xlsx,.xls"
                   hidden
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  onChange={(e) => pickFile(e.target.files?.[0])}
                 />
-                {file ? file.name : t('ordersAiWizardDropzone')}
               </div>
-              {error && <div className="ai-error-msg">{error}</div>}
-              <button type="button" className="btn btn-sm" onClick={downloadTemplate}>
-                {t('ordersAiWizardDownloadTemplate')}
+
+              {error && <div className="ai-error-detail-box" style={{ marginBottom: 16 }}>{error}</div>}
+
+              <div className="ai-req-cols-box" style={{ marginBottom: 16 }}>
+                <div className="ai-req-cols-title">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M9 11l3 3L22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                  </svg>
+                  {t('ordersAiWizardRequiredCols')}
+                </div>
+                <div className="ai-req-cols-grid">
+                  {requiredCols.map((col) => (
+                    <div key={col.label} className="ai-req-col-item ai-req-col-found">
+                      <div className="ai-req-col-status">✓</div>
+                      <div className="ai-req-col-info">
+                        <div className="ai-req-col-label">{col.label}</div>
+                        <div className="ai-req-col-desc">{col.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="ai-template-download-btn"
+                onClick={downloadTemplate}
+                style={{ width: '100%', border: 'none', font: 'inherit' }}
+              >
+                <div className="ai-template-download-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="ai-template-download-title">{t('ordersAiWizardDownloadTemplate')}</div>
+                  <div className="ai-template-download-sub">{t('ordersAiWizardDownloadTemplateSub')}</div>
+                </div>
+                <div className="ai-template-download-arrow">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
+              </button>
+
+              <div className="ai-how-it-works" style={{ marginTop: 16 }}>
+                <div className="ai-how-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+                <div className="ai-how-text">
+                  <strong>{t('aiWizardHowItWorks')}</strong> {t('ordersAiWizardHowItWorksDesc')}
+                </div>
+              </div>
+            </div>
+
+            <div className="ai-wizard-footer">
+              <button type="button" className="btn btn-secondary" onClick={handleClose}>
+                {t('cancel')}
+              </button>
+              <button type="button" className="btn ai-primary-btn" disabled={!file} onClick={runTransform}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                </svg>
+                {t('ordersAiWizardAnalyze')}
               </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {step === 'processing' && (
-            <div className="ai-wizard-progress-section">
-              <div className="ai-progress-bar">
+        {step === 'processing' && (
+          <div className="ai-wizard-progress-section">
+            <div className="modal-body ai-wizard-body">
+              <div className="ai-processing-header">
+                <div className="ai-processing-spinner">
+                  <div className="ai-spinner-ring" />
+                  <div className="ai-spinner-core">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ai-processing-info">
+                  <div className="ai-processing-status">{t('ordersAiWizardAnalyzing')}</div>
+                  <div className="ai-processing-substatus">{t('ordersAiWizardAnalyzingSub')}</div>
+                </div>
+                <div className="ai-processing-pct">{progress}%</div>
+              </div>
+              <div className="ai-progress-track">
                 <div className="ai-progress-fill" style={{ width: `${progress}%` }} />
               </div>
-              <p>{t('ordersAiWizardAnalyzing')}</p>
             </div>
-          )}
+          </div>
+        )}
 
-          {step === 'preview' && (
-            <div className="ai-wizard-preview-section">
-              <p>{t('ordersAiWizardPreviewSub')}</p>
-              <div className="ai-preview-table-wrap">
+        {step === 'preview' && (
+          <div className="ai-wizard-preview-section">
+            <div className="modal-body ai-wizard-body ai-preview-body">
+              <div className="ai-preview-bar">
+                <div>
+                  <div className="ai-preview-bar-title">{t('ordersAiWizardPreviewTitle')}</div>
+                  <div className="ai-preview-bar-sub">{t('ordersAiWizardPreviewSub')}</div>
+                </div>
+                <span className="ai-count-chip">
+                  {rows.length} {t('orders')}
+                </span>
+              </div>
+              <div className="ai-preview-table-wrap ai-table-container">
                 <table className="ai-preview-table">
                   <thead>
                     <tr>
@@ -184,9 +371,9 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
                   <tbody>
                     {rows.map((row, i) => (
                       <tr key={`${row.order_reference}-${i}`} className={row.inferred?.customer ? 'ai-inferred' : ''}>
-                        <td>{row.order_reference}</td>
+                        <td className="ai-td-bold">{row.order_reference}</td>
                         <td>{row.customer_name}</td>
-                        <td>{row.delivery_date}</td>
+                        <td className="ai-td-mono">{row.delivery_date}</td>
                         <td>{row.lines?.[0]?.product_name ?? '—'}</td>
                         <td>
                           <input
@@ -205,43 +392,40 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
                 </table>
               </div>
             </div>
-          )}
+            <div className="ai-wizard-footer ai-footer-split">
+              <button type="button" className="btn btn-secondary" onClick={() => setStep('upload')}>
+                {t('ordersAiWizardReupload')}
+              </button>
+              <button type="button" className="btn ai-primary-btn" onClick={confirmImport}>
+                {t('ordersAiWizardConfirmImport', { count: rows.filter((r) => r.accepted).length })}
+              </button>
+            </div>
+          </div>
+        )}
 
-          {step === 'done' && importResult && (
-            <div className="ai-wizard-result-section">
-              <h3>{t('ordersAiWizardImportDone')}</h3>
-              <p>
+        {step === 'done' && importResult && (
+          <div className="ai-wizard-result-section">
+            <div className="modal-body ai-wizard-body ai-result-center">
+              <div className="ai-done-icon ai-done-icon-success">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <h3 className="ai-done-title">{t('ordersAiWizardImportDone')}</h3>
+              <p className="ai-done-desc">
                 {t('ordersAiWizardImportSummary', {
                   created: importResult.created,
                   failed: importResult.failed,
                 })}
               </p>
             </div>
-          )}
-        </div>
-
-        <div className="ai-wizard-footer">
-          {step === 'upload' && (
-            <button type="button" className="btn btn-p" disabled={!file} onClick={runTransform}>
-              {t('ordersAiWizardAnalyze')}
-            </button>
-          )}
-          {step === 'preview' && (
-            <>
-              <button type="button" className="btn" onClick={() => setStep('upload')}>
-                {t('ordersAiWizardReupload')}
+            <div className="ai-wizard-footer ai-footer-center">
+              <button type="button" className="btn ai-primary-btn" onClick={handleClose}>
+                {t('done')}
               </button>
-              <button type="button" className="btn btn-p" onClick={confirmImport}>
-                {t('ordersAiWizardConfirmImport', { count: rows.filter((r) => r.accepted).length })}
-              </button>
-            </>
-          )}
-          {step === 'done' && (
-            <button type="button" className="btn btn-p" onClick={handleClose}>
-              {t('done')}
-            </button>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
