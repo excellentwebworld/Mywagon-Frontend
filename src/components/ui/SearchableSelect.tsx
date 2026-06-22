@@ -17,6 +17,7 @@ type Props = {
   className?: string;
   onSearchChange?: (query: string) => void;
   footerAction?: { label: string; onClick: () => void };
+  headerAction?: { label: string; onClick: () => void };
 };
 
 export const SearchableSelect: React.FC<Props> = ({
@@ -30,6 +31,7 @@ export const SearchableSelect: React.FC<Props> = ({
   className = '',
   onSearchChange,
   footerAction,
+  headerAction,
 }) => {
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -101,6 +103,18 @@ export const SearchableSelect: React.FC<Props> = ({
               autoFocus
             />
           </div>
+          {headerAction && (
+            <button
+              type="button"
+              className="searchable-select-header-action"
+              onClick={() => {
+                headerAction.onClick();
+                setOpen(false);
+              }}
+            >
+              {headerAction.label}
+            </button>
+          )}
           <div className="searchable-select-options">
             {filtered.length === 0 ? (
               <div className="searchable-select-empty">No matches</div>

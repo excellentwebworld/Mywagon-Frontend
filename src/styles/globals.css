@@ -1049,6 +1049,12 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; font-family: inherit;
 }
 .searchable-select-footer:hover { background: var(--accent-pale); }
+.searchable-select-header-action {
+  width: 100%; padding: 10px 12px; border: none; border-bottom: 1px solid var(--border); background: var(--surface-alt);
+  font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; font-family: inherit;
+  text-align: left; display: block;
+}
+.searchable-select-header-action:hover { background: var(--accent-pale); }
 .mf .searchable-select { margin-top: 0; }
 
 /* ════════════════════════════════════════

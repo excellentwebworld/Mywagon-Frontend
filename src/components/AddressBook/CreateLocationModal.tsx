@@ -174,8 +174,8 @@ export const CreateLocationModal: React.FC<Props> = ({
                 companyVat: entity?.company_vat ?? val ?? '',
               });
             }}
-            footerAction={{
-              label: '+ Enter new company details',
+            headerAction={{
+              label: '+ Create new company',
               onClick: () => setIsCompanyOpen(true),
             }}
           />
