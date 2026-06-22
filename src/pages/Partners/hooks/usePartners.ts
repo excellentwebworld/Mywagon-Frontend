@@ -1,207 +1,295 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
-import type { Partner, ContractLane } from '../../../context/AppContext';
-import { REGION_KEYS, TRUCK_TYPES } from '../constants';
+import { partnersService, ApiError } from '../../../api';
+import {
+  inviteTypeToApi,
+  kpiToFacet,
+  summaryToFacetCounts,
+  summaryToKpiCounts,
+} from '../../../api/mappers/partnersMapper';
 import type {
   ActiveFilters,
+  ConfirmAction,
   FacetFilter,
   GenericModalType,
   InviteFormState,
   KpiFilter,
   OpenSections,
+  Partner,
   SortOption,
 } from '../types';
 
-// ── Helpers ────────────────────────────────────────────────
+const SEARCH_DEBOUNCE_MS = 250;
+const DEFAULT_PAGE_SIZE = 12;
+const PAGE_SIZE_OPTIONS = [10, 12, 25, 50, 100];
 
-function regionName(idx: number, t: (k: string) => string): string {
-  const key = REGION_KEYS[idx];
-  return key ? t(key) : '—';
-}
-
-const EMPTY_FILTERS: ActiveFilters = {
-  status: [],
-  capability: [],
-  performance: [],
-  region: [],
-};
+const EMPTY_FILTERS: ActiveFilters = { status: [], capability: [] };
 
 const EMPTY_SECTIONS: OpenSections = {
   kpis: true,
-  info: true,
   fleet: true,
-  trips: false,
-  billing: false,
-  contracts: false,
-  docs: false,
-  notes: false,
+  contracts: true,
+  notes: true,
 };
 
 const EMPTY_INVITE: InviteFormState = {
   method: 'email',
   partnerType: 'carrier_company',
-  tags: [],
   contact: '',
+  countryCode: '+30',
+  relationship: null,
   sent: false,
 };
 
-// ── Hook ───────────────────────────────────────────────────
-
 export function usePartners() {
   const { t } = useTranslation();
-  const { partners, addPartner, updatePartner, removePartner, showToast } = useApp();
+  const { showToast } = useApp();
+  const queryClient = useQueryClient();
 
-  // ── UI State ──────────────────────────────────────────
+  const [error, setError] = useState<string | null>(null);
+  const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
+
   const [facetFilter, setFacetFilter] = useState<FacetFilter>('all');
   const [kpiFilter, setKpiFilter] = useState<KpiFilter>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
   const [openFilterDropdown, setOpenFilterDropdown] = useState('');
 
-  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
-  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<OpenSections>(EMPTY_SECTIONS);
 
-  // ── Modals ────────────────────────────────────────────
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
+
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteForm, setInviteForm] = useState<InviteFormState>(EMPTY_INVITE);
-
   const [genericModal, setGenericModal] = useState<GenericModalType>(null);
-  const [capTruckType, setCapTruckType] = useState('');
   const [laneOrigin, setLaneOrigin] = useState('');
   const [laneDest, setLaneDest] = useState('');
-  const [laneUnit, setLaneUnit] = useState<'PER_LOAD' | 'PER_PALLET'>('PER_LOAD');
+  const [laneUnit, setLaneUnit] = useState<'load' | 'pallet'>('load');
   const [lanePrice, setLanePrice] = useState('');
-  const [bankIban, setBankIban] = useState('');
-  const [bankBeneficiary, setBankBeneficiary] = useState('');
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
-  // Add customer form
-  const [custName, setCustName] = useState('');
-  const [custCompany, setCustCompany] = useState('');
-  const [custEmail, setCustEmail] = useState('');
-  const [custPhone, setCustPhone] = useState('');
-  const [custVat, setCustVat] = useState('');
-  const [custRegion, setCustRegion] = useState(0);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── regionName helper bound to t ──────────────────────
-  const rName = useCallback((idx: number) => regionName(idx, t), [t]);
-
-  // ── KPI filter match ──────────────────────────────────
-  const matchesKpi = useCallback(
-    (p: Partner): boolean => {
-      if (!kpiFilter || kpiFilter === 'all') return true;
-      if (kpiFilter === 'active') return p.status === 'active';
-      if (kpiFilter === 'carriers') return p.type === 'carrier_company';
-      if (kpiFilter === 'freelancers') return p.type === 'freelancer_driver';
-      if (kpiFilter === 'invited') return p.status === 'invited';
-      if (kpiFilter === 'missingBank') return !p.iban;
-      if (kpiFilter === 'suspended') return p.status === 'suspended';
-      return true;
-    },
-    [kpiFilter]
-  );
-
-  // ── Facet filter match ────────────────────────────────
-  const matchesFacet = useCallback(
-    (p: Partner, override?: FacetFilter): boolean => {
-      const f = override ?? facetFilter;
-      if (f === 'st_suspended') return p.status === 'suspended';
-      if (p.status === 'suspended') return false;
-      if (f === 'all') return true;
-      if (f === 'carrier_company' || f === 'freelancer_driver' || f === 'customer') return p.type === f;
-      if (f === 'st_active') return p.status === 'active';
-      if (f === 'st_invited') return p.status === 'invited';
-      if (f === 'st_pending') return p.status === 'pending';
-      if (f.startsWith('reg_')) return p.regionIdx === parseInt(f.slice(4));
-      return true;
-    },
-    [facetFilter]
-  );
-
-  // ── Bar filters match ─────────────────────────────────
-  const matchesBarFilters = useCallback(
-    (p: Partner): boolean => {
-      if (activeFilters.status.length && !activeFilters.status.includes(p.status as 'active' | 'invited' | 'pending' | 'suspended')) return false;
-      if (activeFilters.capability.length && !activeFilters.capability.some((c) => p.trucks.includes(c))) return false;
-      if (activeFilters.performance.length) {
-        for (const f of activeFilters.performance) {
-          if (f === 'ontime90' && p.otDelivery < 90) return false;
-          if (f === 'rating4' && parseFloat(p.rating) < 4) return false;
-          if (f === 'cancel5' && p.cancelRate > 5) return false;
-        }
-      }
-      if (activeFilters.region.length && !activeFilters.region.includes(p.regionIdx)) return false;
-      return true;
-    },
-    [activeFilters]
-  );
-
-  // ── Full filter + sort ────────────────────────────────
-  const filteredPartners = useMemo(() => {
-    let list = partners.filter((p) => {
-      if (!matchesKpi(p)) return false;
-      if (!matchesFacet(p)) return false;
-      if (!matchesBarFilters(p)) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        const haystack = [p.name, p.vat, p.email, p.phone, rName(p.regionIdx), ...p.trucks, ...p.tags].join(' ').toLowerCase();
-        if (!haystack.includes(q)) return false;
-      }
-      return true;
-    });
-
-    if (sortBy === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name));
-    else if (sortBy === 'act') list = [...list].sort((a, b) => b.lastActivity.localeCompare(a.lastActivity));
-    else if (sortBy === 'ot') list = [...list].sort((a, b) => b.otDelivery - a.otDelivery);
-    else if (sortBy === 'ld') list = [...list].sort((a, b) => b.loads30d - a.loads30d);
-
-    return list;
-  }, [partners, matchesKpi, matchesFacet, matchesBarFilters, searchQuery, sortBy, rName]);
-
-  // ── KPI counts ────────────────────────────────────────
-  const kpiCounts = useMemo(() => {
-    const nonSuspended = partners.filter((p) => p.status !== 'suspended');
-    return {
-      total: nonSuspended.length,
-      active: partners.filter((p) => p.status === 'active').length,
-      carriers: nonSuspended.filter((p) => p.type === 'carrier_company').length,
-      freelancers: nonSuspended.filter((p) => p.type === 'freelancer_driver').length,
-      invited: partners.filter((p) => p.status === 'invited').length,
-      missingBank: nonSuspended.filter((p) => !p.iban).length,
-      suspended: partners.filter((p) => p.status === 'suspended').length,
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
-  }, [partners]);
+  }, [searchQuery]);
 
-  // ── Facet counts ─────────────────────────────────────
-  const facetCounts = useMemo(() => {
-    const base = (filter: FacetFilter) =>
-      partners.filter((p) => matchesKpi(p) && matchesFacet(p, filter) && matchesBarFilters(p)).length;
-    const counts: Record<string, number> = { all: base('all') };
-    for (const type of ['carrier_company', 'freelancer_driver', 'customer'] as const) counts[type] = base(type);
-    for (const st of ['st_active', 'st_invited', 'st_pending', 'st_suspended'] as const) counts[st] = base(st);
-    REGION_KEYS.forEach((_, i) => { counts[`reg_${i}`] = base(`reg_${i}` as FacetFilter); });
-    return counts;
-  }, [partners, matchesKpi, matchesFacet, matchesBarFilters]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [facetFilter, activeFilters, perPage, kpiFilter]);
 
-  // ── Actions ───────────────────────────────────────────
+  const handleApiError = useCallback(
+    (err: unknown, fallback: string) => {
+      if (err instanceof ApiError) {
+        if (err.status === 403) {
+          setSubscriptionBlocked(true);
+          setError(err.message);
+          showToast(err.message, 'error');
+          return err.message;
+        }
+        showToast(err.message, 'error');
+        return err.message;
+      }
+      showToast(fallback, 'error');
+      return fallback;
+    },
+    [showToast]
+  );
+
+  const invalidatePartners = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['partners'] });
+  }, [queryClient]);
+
+  const summaryQuery = useQuery({
+    queryKey: ['partners', 'summary'],
+    queryFn: () => partnersService.getSummary(),
+  });
+
+  const truckCategoriesQuery = useQuery({
+    queryKey: ['partners', 'reference', 'truck-categories'],
+    queryFn: () => partnersService.getTruckCategories(),
+  });
+
+  const listQuery = useQuery({
+    queryKey: [
+      'partners',
+      'list',
+      facetFilter,
+      activeFilters,
+      debouncedSearch,
+      currentPage,
+      perPage,
+    ],
+    queryFn: () =>
+      partnersService.listPartnersMapped(
+        facetFilter,
+        activeFilters.status,
+        activeFilters.capability,
+        debouncedSearch,
+        currentPage,
+        perPage
+      ),
+  });
+
+  const detailQuery = useQuery({
+    queryKey: ['partners', 'detail', selectedPartnerId],
+    queryFn: () => partnersService.getPartner(selectedPartnerId!),
+    enabled: !!selectedPartnerId,
+  });
+
+  const listPartners = listQuery.data?.partners ?? [];
+  const listMeta = listQuery.data?.meta ?? { current_page: 1, per_page: perPage, total: 0, last_page: 1 };
+
+  const selectedPartner: Partner | null = useMemo(() => {
+    if (!selectedPartnerId) return null;
+    if (detailQuery.data) return detailQuery.data;
+    return listPartners.find((p) => p.id === selectedPartnerId) ?? null;
+  }, [selectedPartnerId, detailQuery.data, listPartners]);
+
+  const sortedPartners = useMemo(() => {
+    const list = [...listPartners];
+    if (sortBy === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
+    else if (sortBy === 'added') list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return list;
+  }, [listPartners, sortBy]);
+
+  const kpiCounts = useMemo(
+    () => (summaryQuery.data ? summaryToKpiCounts(summaryQuery.data) : {
+      total: 0, active: 0, carriers: 0, freelancers: 0, invited: 0, suspended: 0,
+    }),
+    [summaryQuery.data]
+  );
+
+  const facetCounts = useMemo(
+    () => (summaryQuery.data ? summaryToFacetCounts(summaryQuery.data) : { all: 0 }),
+    [summaryQuery.data]
+  );
+
+  const truckCategories = truckCategoriesQuery.data ?? [];
+
+  const inviteMutation = useMutation({
+    mutationFn: (form: InviteFormState) => {
+      const type = inviteTypeToApi(form.partnerType);
+      const payload: Parameters<typeof partnersService.invite>[0] = { type };
+      if (form.relationship) payload.relationship = form.relationship;
+      if (form.method === 'email') payload.email = form.contact.trim();
+      else if (form.method === 'phone') {
+        payload.phone = form.contact.trim();
+        payload.country_code = form.countryCode;
+      } else {
+        payload.unique_id = form.contact.trim().toUpperCase();
+      }
+      return partnersService.invite(payload);
+    },
+    onSuccess: () => {
+      setInviteForm((prev) => ({ ...prev, sent: true }));
+      invalidatePartners();
+      showToast(t('inviteSent'));
+    },
+    onError: (err) => handleApiError(err, t('inviteFailed')),
+  });
+
+  const acceptMutation = useMutation({
+    mutationFn: (id: string) => partnersService.accept(id),
+    onSuccess: () => { invalidatePartners(); showToast(t('partnerAccepted')); },
+    onError: (err) => handleApiError(err, t('actionFailed')),
+  });
+
+  const declineMutation = useMutation({
+    mutationFn: (id: string) => partnersService.decline(id),
+    onSuccess: () => {
+      invalidatePartners();
+      setSelectedPartnerId(null);
+      showToast(t('partnerDeclined'));
+    },
+    onError: (err) => handleApiError(err, t('actionFailed')),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => partnersService.delete(id),
+    onSuccess: () => {
+      invalidatePartners();
+      setSelectedPartnerId(null);
+      showToast(t('partnerRemoved'));
+    },
+    onError: (err) => handleApiError(err, t('actionFailed')),
+  });
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: (id: string) => partnersService.toggleStatus(id),
+    onSuccess: (data) => {
+      invalidatePartners();
+      showToast(data.is_suspended ? t('partnerSuspended') : t('partnerReactivated'));
+    },
+    onError: (err) => handleApiError(err, t('actionFailed')),
+  });
+
+  const togglePreferredMutation = useMutation({
+    mutationFn: (id: string) => partnersService.togglePreferred(id),
+    onSuccess: (data) => {
+      invalidatePartners();
+      showToast(data.is_preferred ? t('markedPreferred') : t('relationshipStandard'));
+    },
+    onError: (err) => handleApiError(err, t('actionFailed')),
+  });
+
+  const notesMutation = useMutation({
+    mutationFn: ({ id, notes }: { id: string; notes: string }) => partnersService.updateNotes(id, notes),
+    onSuccess: () => { invalidatePartners(); showToast(t('partnerNoteSaved')); },
+    onError: (err) => handleApiError(err, t('actionFailed')),
+  });
+
+  const tagsMutation = useMutation({
+    mutationFn: ({ id, tags }: { id: string; tags: string[] }) => partnersService.updateTags(id, tags),
+    onSuccess: () => { invalidatePartners(); showToast(t('tagsUpdated')); },
+    onError: (err) => handleApiError(err, t('actionFailed')),
+  });
+
+  const laneMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: { origin_city: string; destination_city: string; price: number; unit: 'load' | 'pallet' } }) =>
+      partnersService.storeContractLane(id, payload),
+    onSuccess: () => {
+      invalidatePartners();
+      closeGenericModal();
+      showToast(t('laneAdded'));
+    },
+    onError: (err) => handleApiError(err, t('actionFailed')),
+  });
+
+  const deleteLaneMutation = useMutation({
+    mutationFn: ({ partnerId, laneId }: { partnerId: string; laneId: string }) =>
+      partnersService.destroyContractLane(partnerId, laneId),
+    onSuccess: () => { invalidatePartners(); showToast(t('laneDeleted')); },
+    onError: (err) => handleApiError(err, t('actionFailed')),
+  });
+
   const selectFacet = useCallback((filter: FacetFilter) => {
     setFacetFilter((prev) => (prev === filter ? 'all' : filter));
-    setSelectedPartner(null);
-    setExpandedRowId(null);
+    setKpiFilter('');
+    setSelectedPartnerId(null);
   }, []);
 
-  const selectKpi = useCallback(
-    (key: KpiFilter) => {
-      setKpiFilter((prev) => (prev === key ? '' : key));
-      if (key === 'suspended') setFacetFilter('st_suspended');
-      else if (facetFilter === 'st_suspended') setFacetFilter('all');
-      setSelectedPartner(null);
-      setExpandedRowId(null);
-    },
-    [facetFilter]
-  );
+  const selectKpi = useCallback((key: KpiFilter) => {
+    const next = kpiFilter === key ? '' : key;
+    setKpiFilter(next);
+    const facet = kpiToFacet(next);
+    if (facet) setFacetFilter(facet);
+    else if (next === '') setFacetFilter('all');
+    setSelectedPartnerId(null);
+  }, [kpiFilter]);
 
   const toggleFilterDropdown = useCallback((key: string) => {
     setOpenFilterDropdown((prev) => (prev === key ? '' : key));
@@ -214,6 +302,7 @@ export function usePartners() {
       const next = idx >= 0 ? arr.filter((_, i) => i !== idx) : [...arr, value];
       return { ...prev, [category]: next };
     });
+    setSelectedPartnerId(null);
   }, []);
 
   const clearAllFilters = useCallback(() => {
@@ -221,237 +310,116 @@ export function usePartners() {
     setKpiFilter('');
     setFacetFilter('all');
     setActiveFilters(EMPTY_FILTERS);
-    setSelectedPartner(null);
-    setExpandedRowId(null);
+    setSelectedPartnerId(null);
     showToast(t('partnerFiltersCleared'));
   }, [showToast, t]);
 
   const openDetailPanel = useCallback((p: Partner) => {
-    setSelectedPartner(p);
-    setExpandedRowId(p.id);
+    setSelectedPartnerId(p.id);
     setOpenSections(EMPTY_SECTIONS);
   }, []);
 
-  const closeDetailPanel = useCallback(() => {
-    setSelectedPartner(null);
-    setExpandedRowId(null);
-  }, []);
+  const closeDetailPanel = useCallback(() => setSelectedPartnerId(null), []);
 
   const toggleSection = useCallback((key: keyof OpenSections) => {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  // ── Partner mutations ─────────────────────────────────
-  const suspendPartner = useCallback(
-    (p: Partner) => {
-      if (!window.confirm(t('confirmSuspendPartner'))) return;
-      const updated = { ...p, status: 'suspended' as const };
-      updatePartner(updated);
-      if (selectedPartner?.id === p.id) setSelectedPartner(updated);
-      showToast(t('partnerSuspended'));
-    },
-    [updatePartner, selectedPartner, t, showToast]
-  );
-
-  const reactivatePartner = useCallback(
-    (p: Partner) => {
-      if (!window.confirm(t('confirmReactivatePartner'))) return;
-      const updated = { ...p, status: 'active' as const };
-      updatePartner(updated);
-      if (selectedPartner?.id === p.id) setSelectedPartner(updated);
-      showToast(t('partnerReactivated'));
-    },
-    [updatePartner, selectedPartner, t, showToast]
-  );
-
-  const permanentlyRemovePartner = useCallback(
-    (p: Partner) => {
-      if (!window.confirm(t('confirmRemovePartner'))) return;
-      removePartner(p.id);
-      if (selectedPartner?.id === p.id) closeDetailPanel();
-      showToast(t('partnerRemoved'));
-    },
-    [removePartner, selectedPartner, closeDetailPanel, t, showToast]
-  );
-
-  // ── Notes ─────────────────────────────────────────────
-  const saveNote = useCallback(
-    (noteText: string) => {
-      if (!selectedPartner) return;
-      const updated = { ...selectedPartner, notes: noteText };
-      updatePartner(updated);
-      setSelectedPartner(updated);
-      showToast(t('partnerNoteSaved'));
-    },
-    [selectedPartner, updatePartner, t, showToast]
-  );
-
-  // ── Invite modal ──────────────────────────────────────
   const openInviteModal = useCallback(() => {
     setInviteForm(EMPTY_INVITE);
     setIsInviteOpen(true);
   }, []);
 
-  const closeInviteModal = useCallback(() => {
-    setIsInviteOpen(false);
-  }, []);
+  const closeInviteModal = useCallback(() => setIsInviteOpen(false), []);
 
   const sendInvite = useCallback(() => {
     if (!inviteForm.contact.trim()) {
       showToast(t('fillRequired'), 'error');
       return;
     }
-    setInviteForm((prev) => ({ ...prev, sent: true }));
-    showToast(t('inviteSent'));
-  }, [inviteForm, showToast, t]);
+    inviteMutation.mutate(inviteForm);
+  }, [inviteForm, inviteMutation, showToast, t]);
 
-  // ── Generic modal helpers ─────────────────────────────
   const openGenericModal = useCallback((type: GenericModalType) => {
     setGenericModal(type);
-    if (type === 'addCap') setCapTruckType(TRUCK_TYPES[0]);
-    if (type === 'editBank' ) {
-      setBankIban('');
-      setBankBeneficiary('');
-    }
     if (type === 'addLane') {
-      setLaneOrigin(''); setLaneDest(''); setLanePrice(''); setLaneUnit('PER_LOAD');
-    }
-    if (type === 'addCustomer') {
-      setCustName(''); setCustCompany(''); setCustEmail(''); setCustPhone(''); setCustVat(''); setCustRegion(0);
+      setLaneOrigin('');
+      setLaneDest('');
+      setLanePrice('');
+      setLaneUnit('load');
     }
   }, []);
 
   const closeGenericModal = useCallback(() => setGenericModal(null), []);
-
-  const saveCapability = useCallback(() => {
-    if (!selectedPartner || !capTruckType) return;
-    if (selectedPartner.trucks.includes(capTruckType)) {
-      showToast('Already added', 'warning');
-      return;
-    }
-    const updated = { ...selectedPartner, trucks: [...selectedPartner.trucks, capTruckType], fleetSize: selectedPartner.fleetSize + 1 };
-    updatePartner(updated);
-    setSelectedPartner(updated);
-    closeGenericModal();
-    showToast(t('capabilityAdded'));
-  }, [selectedPartner, capTruckType, updatePartner, closeGenericModal, t, showToast]);
 
   const saveContractLane = useCallback(() => {
     if (!selectedPartner || !laneOrigin.trim() || !laneDest.trim() || !lanePrice) {
       showToast(t('fillRequired'), 'error');
       return;
     }
-    const newLane: ContractLane = {
-      lane: `${laneOrigin.trim()} → ${laneDest.trim()}`,
-      unit: laneUnit,
-      price: parseFloat(lanePrice),
-      status: 'ACTIVE',
-      volume: 0,
-      ot: 0,
-    };
-    const updated = { ...selectedPartner, contractLanes: [...selectedPartner.contractLanes, newLane] };
-    updatePartner(updated);
-    setSelectedPartner(updated);
-    closeGenericModal();
-    showToast(t('laneAdded'));
-  }, [selectedPartner, laneOrigin, laneDest, laneUnit, lanePrice, updatePartner, closeGenericModal, t, showToast]);
+    laneMutation.mutate({
+      id: selectedPartner.id,
+      payload: {
+        origin_city: laneOrigin.trim(),
+        destination_city: laneDest.trim(),
+        price: parseFloat(lanePrice),
+        unit: laneUnit,
+      },
+    });
+  }, [selectedPartner, laneOrigin, laneDest, lanePrice, laneUnit, laneMutation, showToast, t]);
 
-  const deleteContractLane = useCallback(
-    (laneIdx: number) => {
-      if (!selectedPartner || !window.confirm(t('confirmRemoveLane'))) return;
-      const updated = { ...selectedPartner, contractLanes: selectedPartner.contractLanes.filter((_, i) => i !== laneIdx) };
-      updatePartner(updated);
-      setSelectedPartner(updated);
-      showToast(t('laneDeleted'));
-    },
-    [selectedPartner, updatePartner, t, showToast]
-  );
-
-  const saveBankDetails = useCallback(() => {
-    if (!selectedPartner || !bankIban.trim() || !bankBeneficiary.trim()) {
-      showToast(t('fillRequired'), 'error');
-      return;
+  const executeConfirm = useCallback(() => {
+    if (!confirmAction) return;
+    const { type, partner } = confirmAction;
+    if (type === 'suspend' || type === 'reactivate') toggleStatusMutation.mutate(partner.id);
+    else if (type === 'remove') deleteMutation.mutate(partner.id);
+    else if (type === 'decline') declineMutation.mutate(partner.id);
+    else if (type === 'deleteLane' && confirmAction.type === 'deleteLane') {
+      deleteLaneMutation.mutate({ partnerId: partner.id, laneId: confirmAction.laneId });
     }
-    const updated = { ...selectedPartner, iban: bankIban.trim(), beneficiary: bankBeneficiary.trim(), bankVerified: false };
-    updatePartner(updated);
-    setSelectedPartner(updated);
-    closeGenericModal();
-    showToast(t('bankSaved'));
-  }, [selectedPartner, bankIban, bankBeneficiary, updatePartner, closeGenericModal, t, showToast]);
+    setConfirmAction(null);
+  }, [confirmAction, toggleStatusMutation, deleteMutation, declineMutation, deleteLaneMutation]);
 
-  const saveCustomer = useCallback(() => {
-    if (!custName.trim()) {
-      showToast(t('fillRequired'), 'error');
-      return;
-    }
-    const newPartner: Omit<Partner, 'id'> = {
-      name: custName.trim(),
-      type: 'customer',
-      status: 'active',
-      legalName: custCompany.trim() || custName.trim(),
-      vat: custVat.trim(),
-      email: custEmail.trim(),
-      phone: custPhone.trim(),
-      regionIdx: custRegion,
-      trucks: [],
-      fleetSize: 0,
-      lifetimeLoads: 0,
-      loads30d: 0,
-      otPickup: 0,
-      otDelivery: 0,
-      cancelRate: 0,
-      acceptRate: 0,
-      avgResponse: '—',
-      lastActivity: new Date().toISOString().slice(0, 10),
-      rating: '0.0',
-      paymentTerms: 'Net 30',
-      iban: '',
-      beneficiary: '',
-      bankVerified: false,
-      openInvoices: 0,
-      disputes: 0,
-      tags: [],
-      missingDocs: false,
-      profileCompletion: 30,
-      contractLanes: [],
-      trips: [],
-      contacts: [],
-      notes: '',
-    };
-    addPartner(newPartner);
-    closeGenericModal();
-    showToast(t('customerAdded'));
-  }, [custName, custCompany, custVat, custEmail, custPhone, custRegion, addPartner, closeGenericModal, t, showToast]);
+  const suspendPartner = useCallback((p: Partner) => setConfirmAction({ type: 'suspend', partner: p }), []);
+  const reactivatePartner = useCallback((p: Partner) => setConfirmAction({ type: 'reactivate', partner: p }), []);
+  const permanentlyRemovePartner = useCallback((p: Partner) => setConfirmAction({ type: 'remove', partner: p }), []);
+  const declinePartner = useCallback((p: Partner) => setConfirmAction({ type: 'decline', partner: p }), []);
+  const cancelInvite = useCallback((p: Partner) => setConfirmAction({ type: 'remove', partner: p }), []);
+  const acceptPartner = useCallback((p: Partner) => acceptMutation.mutate(p.id), [acceptMutation]);
+  const togglePreferred = useCallback((p: Partner) => togglePreferredMutation.mutate(p.id), [togglePreferredMutation]);
+  const saveNote = useCallback((noteText: string) => {
+    if (!selectedPartner) return;
+    notesMutation.mutate({ id: selectedPartner.id, notes: noteText });
+  }, [selectedPartner, notesMutation]);
+  const saveTags = useCallback((tags: string[]) => {
+    if (!selectedPartner) return;
+    tagsMutation.mutate({ id: selectedPartner.id, tags });
+  }, [selectedPartner, tagsMutation]);
+  const deleteContractLane = useCallback((laneId: string) => {
+    if (!selectedPartner) return;
+    setConfirmAction({ type: 'deleteLane', partner: selectedPartner, laneId });
+  }, [selectedPartner]);
 
-  // ── Export ────────────────────────────────────────────
-  const exportCsv = useCallback(() => {
-    const headers = ['ID', 'Name', 'Type', 'Status', 'Email', 'Phone', 'Region', 'Trucks', 'Loads 30d', 'On-time %', 'Cancel %', 'Rating', 'Last Activity', 'IBAN', 'Bank Verified'];
-    const rows = filteredPartners.map((p) => [
-      p.id, `"${p.name}"`, p.type, p.status, p.email, p.phone,
-      `"${rName(p.regionIdx)}"`, `"${p.trucks.join(', ')}"`,
-      p.loads30d, `${p.otDelivery}%`, `${p.cancelRate}%`, p.rating,
-      p.lastActivity, p.iban || '', p.bankVerified ? 'Yes' : 'No',
-    ]);
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `partners_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast(t('partnerExported'));
-  }, [filteredPartners, rName, t, showToast]);
+  const goToPage = useCallback((page: number) => setCurrentPage(page), []);
+  const setPageSize = useCallback((size: number) => {
+    if (PAGE_SIZE_OPTIONS.includes(size)) setPerPage(size);
+  }, []);
+
+  const listLoading = listQuery.isLoading || listQuery.isFetching;
+  const detailLoading = detailQuery.isLoading && !!selectedPartnerId;
 
   return {
-    // Data
     t,
     showToast,
-    partners,
-    filteredPartners,
+    error,
+    subscriptionBlocked,
+    filteredPartners: sortedPartners,
     kpiCounts,
     facetCounts,
-    // UI state
+    truckCategories,
+    listMeta,
+    listLoading,
+    detailLoading,
     facetFilter,
     kpiFilter,
     searchQuery,
@@ -461,15 +429,17 @@ export function usePartners() {
     activeFilters,
     openFilterDropdown,
     selectedPartner,
-    expandedRowId,
+    selectedPartnerId,
     openSections,
-    // Modals
+    currentPage,
+    perPage,
+    pageSizeOptions: PAGE_SIZE_OPTIONS,
+    goToPage,
+    setPageSize,
     isInviteOpen,
     inviteForm,
     setInviteForm,
     genericModal,
-    capTruckType,
-    setCapTruckType,
     laneOrigin,
     setLaneOrigin,
     laneDest,
@@ -478,25 +448,9 @@ export function usePartners() {
     setLaneUnit,
     lanePrice,
     setLanePrice,
-    bankIban,
-    setBankIban,
-    bankBeneficiary,
-    setBankBeneficiary,
-    custName,
-    setCustName,
-    custCompany,
-    setCustCompany,
-    custEmail,
-    setCustEmail,
-    custPhone,
-    setCustPhone,
-    custVat,
-    setCustVat,
-    custRegion,
-    setCustRegion,
-    // Helpers
-    rName,
-    // Actions
+    confirmAction,
+    setConfirmAction,
+    executeConfirm,
     selectFacet,
     selectKpi,
     toggleFilterDropdown,
@@ -508,18 +462,20 @@ export function usePartners() {
     suspendPartner,
     reactivatePartner,
     permanentlyRemovePartner,
+    declinePartner,
+    cancelInvite,
+    acceptPartner,
+    togglePreferred,
     saveNote,
+    saveTags,
     openInviteModal,
     closeInviteModal,
     sendInvite,
+    inviteLoading: inviteMutation.isPending,
     openGenericModal,
     closeGenericModal,
-    saveCapability,
     saveContractLane,
     deleteContractLane,
-    saveBankDetails,
-    saveCustomer,
-    exportCsv,
   };
 }
 

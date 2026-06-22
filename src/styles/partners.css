@@ -17,6 +17,22 @@
   overflow: hidden;
 }
 
+.ptn-subscription-banner {
+  margin: 0 24px 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: #FEF2F2;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.pref-star {
+  color: #F59E0B;
+  margin-left: 4px;
+  font-size: 12px;
+}
+
 /* ── Page Header ── */
 .ptn-head {
   padding: 18px 24px 14px;

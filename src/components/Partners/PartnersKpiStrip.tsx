@@ -11,31 +11,28 @@ interface KpiConfig {
 }
 
 const KPIS: KpiConfig[] = [
-  { key: 'all',         labelKey: 'totalPartners',     colorFn: () => undefined },
-  { key: 'active',      labelKey: 'activePartners',    colorFn: () => 'var(--success)' },
-  { key: 'carriers',    labelKey: 'carrierPartners',   colorFn: () => '#2563EB' },
-  { key: 'freelancers', labelKey: 'freelancerPartners',colorFn: () => 'var(--accent)' },
-  { key: 'invited',     labelKey: 'invitedPartners',   colorFn: () => 'var(--info, #0EA5E9)' },
-  { key: 'missingBank', labelKey: 'missingBankPartners', colorFn: (v) => v > 0 ? 'var(--danger)' : 'var(--success)' },
-  { key: 'suspended',   labelKey: 'suspendedPartners', colorFn: (v) => v > 0 ? 'var(--warning)' : 'var(--text-tertiary)' },
+  { key: 'all', labelKey: 'totalPartners', colorFn: () => undefined },
+  { key: 'active', labelKey: 'activePartners', colorFn: () => 'var(--success)' },
+  { key: 'carriers', labelKey: 'carrierPartners', colorFn: () => '#2563EB' },
+  { key: 'freelancers', labelKey: 'freelancerPartners', colorFn: () => 'var(--accent)' },
+  { key: 'invited', labelKey: 'invitedPartners', colorFn: () => 'var(--info, #0EA5E9)' },
+  { key: 'suspended', labelKey: 'suspendedPartners', colorFn: (v) => (v > 0 ? 'var(--warning)' : 'var(--text-tertiary)') },
 ];
 
-// KPI filter key → kpiCounts property key
-const COUNT_KEY_MAP: Record<string, keyof ReturnType<typeof Object.assign<{}, { total: number; active: number; carriers: number; freelancers: number; invited: number; missingBank: number; suspended: number; }>>> = {
+const COUNT_KEY_MAP: Record<string, keyof Props['kpiCounts']> = {
   all: 'total',
   active: 'active',
   carriers: 'carriers',
   freelancers: 'freelancers',
   invited: 'invited',
-  missingBank: 'missingBank',
   suspended: 'suspended',
 };
 
 export const PartnersKpiStrip: React.FC<Props> = ({ t, kpiCounts, kpiFilter, selectKpi }) => (
   <div className="ptn-kpi-strip anim">
     {KPIS.map(({ key, labelKey, colorFn }) => {
-      const countKey = COUNT_KEY_MAP[key] as keyof typeof kpiCounts;
-      const val: number = (kpiCounts[countKey] as number) ?? 0;
+      const countKey = COUNT_KEY_MAP[key] ?? 'total';
+      const val = kpiCounts[countKey] ?? 0;
       const color = colorFn(val);
       const isActive = kpiFilter === key;
       return (
@@ -48,9 +45,7 @@ export const PartnersKpiStrip: React.FC<Props> = ({ t, kpiCounts, kpiFilter, sel
           onKeyDown={(e) => e.key === 'Enter' && selectKpi(key)}
           id={`kpi-${key}`}
         >
-          {color && val > 0 && (
-            <span className="ptn-kpi-dot" style={{ background: color }} />
-          )}
+          {color && val > 0 && <span className="ptn-kpi-dot" style={{ background: color }} />}
           <div className="ptn-kpi-val" style={{ color: color && val > 0 ? color : undefined }}>
             {val}
           </div>
