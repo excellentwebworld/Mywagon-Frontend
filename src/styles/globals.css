@@ -100,16 +100,22 @@ a { color: inherit; text-decoration: none; }
 }
 .sb-logo:hover { opacity: .92; }
 .sb-nav { flex: 1; padding: 4px 8px; overflow-y: auto; }
+.ni,
 .sb-ni {
   display: flex; align-items: center; gap: 12px;
   padding: 10px 14px; border-radius: var(--radius-sm);
   color: rgba(255,255,255,.55); font-size: 14px; font-weight: 500;
   cursor: pointer; transition: all .15s; text-decoration: none; margin-bottom: 2px;
 }
+.ni:hover,
 .sb-ni:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.85); }
-.sb-ni.active { background: rgba(108,58,237,.2); color: #fff; }
-.sb-ni svg { opacity: .7; flex-shrink: 0; width: 18px; height: 18px; }
+.ni.active,
+.sb-ni.active { background: rgba(155,81,224,.2); color: #fff; }
+.ni svg,
+.sb-ni svg { opacity: .7; flex-shrink: 0; width: 18px; height: 18px; display: block; }
+.ni.active svg,
 .sb-ni.active svg { opacity: 1; }
+.ns,
 .sb-ns {
   padding: 14px 14px 6px; font-size: 11px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,.25);
@@ -120,6 +126,7 @@ a { color: inherit; text-decoration: none; }
   background: var(--accent); color: #fff; padding: 2px 7px; border-radius: 99px;
 }
 .sb-ft { padding: 14px; border-top: 1px solid rgba(255,255,255,.08); flex-shrink: 0; }
+.sb-ft .ni,
 .sb-ft .sb-ni { font-size: 13px; color: rgba(255,255,255,.4); }
 
 
@@ -158,19 +165,19 @@ a { color: inherit; text-decoration: none; }
   padding: 20px 0;
   justify-content: center;
 }
-.sidebar.collapsed .sb-logo span {
-  display: none;
-}
 /* .sidebar.collapsed .sb-ni span { */
-.sidebar.collapsed .ni span {
+.sidebar.collapsed .ni span,
+.sidebar.collapsed .sb-ni span {
   display: none;
 }
+.sidebar.collapsed .ns,
 .sidebar.collapsed .sb-ns {
   display: none;
 }
 .sidebar.collapsed .nb {
   display: none;
 }
+.sidebar.collapsed .ni,
 .sidebar.collapsed .sb-ni {
   justify-content: center;
   padding: 10px 0;
@@ -569,7 +576,8 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   .sidebar.collapsed .sb-collapse-toggle {
     display: none !important;
   }
-  .sidebar.collapsed .sb-ni {
+  .sidebar.collapsed .sb-ni,
+  .sidebar.collapsed .ni {
     justify-content: flex-start !important;
     padding: 10px 14px !important;
   }
