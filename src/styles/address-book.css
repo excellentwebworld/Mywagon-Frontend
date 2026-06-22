@@ -698,20 +698,10 @@ table.ab-table { width: 100%; border-collapse: collapse; }
 .stat-label { font-size: 10px; color: var(--text-tertiary); margin-top: 3px; }
 
 /* ─────────────────────────────
-   MODALS — Create / Edit / Company
+   MODALS — Create / Edit / Company (layout from globals.css)
    ───────────────────────────── */
-.ab-modal { max-width: 660px; max-height: 90vh; overflow: visible; }
-.ab-modal .modal-body { overflow-y: auto; overflow-x: visible; padding: 20px 24px; }
 
-/* Stepper */
-.modal-stepper {
-  display: flex;
-  align-items: center;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  gap: 0;
-}
+/* Stepper step styles */
 .ms-step { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
 .ms-step.active { color: var(--text-primary); font-weight: 600; }
 .ms-step.done   { color: var(--success); }
@@ -992,8 +982,14 @@ table.ab-table { width: 100%; border-collapse: collapse; }
   .mf-grid  { grid-template-columns: 1fr; }
   .ctx-cards { grid-template-columns: 1fr; }
   .tpl-cards { grid-template-columns: 1fr 1fr; }
-  .ab-modal { max-width: 100%; max-height: 100vh; border-radius: 0; height: 100vh; }
-  .ab-modal .modal-body { padding: 14px 16px; }
+  .ab-modal,
+  .ab-modal-scroll {
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  .ab-modal .modal-body,
+  .ab-modal-body { padding: 14px 16px; }
 }
 @media (max-width: 480px) {
   .ab-table thead th:nth-child(5),
@@ -1030,28 +1026,12 @@ table.ab-table { width: 100%; border-collapse: collapse; }
 .dp-no-notes { font-size: 12px; color: var(--text-tertiary); }
 .dp-id-val { color: var(--accent); }
 
-.ab-modal-scroll {
-  max-width: 660px;
-  display: flex;
-  flex-direction: column;
-  max-height: 90vh;
-}
-.ab-modal-create { overflow: visible; }
 .ab-modal-header-sticky {
   flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 2;
   background: var(--surface);
 }
-.ab-modal-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px 24px;
-}
-.ab-company-backdrop { z-index: 400; }
-.ab-company-modal { max-width: 560px; }
-.ab-company-body { padding: 20px; }
+.ab-company-modal { /* uses .modal-md via class */ }
+.ab-company-body { /* uses globals .modal-body padding */ }
 
 .ab-form-heading {
   font-size: 14px;

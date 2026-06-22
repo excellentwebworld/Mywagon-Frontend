@@ -363,7 +363,7 @@ export const ShipmentDetail: React.FC = () => {
       {/* SHARE TRACKING MODAL */}
       {isShareOpen && (
         <div className="modal-backdrop open">
-          <div className="modal" style={{ maxWidth: '500px' }}>
+          <div className="modal modal-md">
             <div className="modal-header">
               <h2>🔗 Share Tracking Links</h2>
               <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setIsShareOpen(false)}>
@@ -400,7 +400,7 @@ export const ShipmentDetail: React.FC = () => {
       {/* AUDIT LOG MODAL */}
       {isLogOpen && (
         <div className="modal-backdrop open">
-          <div className="modal" style={{ maxWidth: '580px' }}>
+          <div className="modal modal-md">
             <div className="modal-header">
               <h2>📋 Audit Log / Activity Trail</h2>
               <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setIsLogOpen(false)}>

@@ -461,7 +461,7 @@ export const CreateLocationModal: React.FC<Props> = ({
 
   return (
     <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && closeCreateModal()}>
-      <div className="modal ab-modal ab-modal-scroll ab-modal-create">
+      <div className="modal modal-form ab-modal-scroll" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>New Location</h2>
           <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeCreateModal}>

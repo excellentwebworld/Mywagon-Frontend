@@ -96,7 +96,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
   return createPortal(
     <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: '420px' }}>
+      <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 style={{ color: titleColor }}>{title}</h2>
           <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={onClose} aria-label="Close">
@@ -105,7 +105,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             </svg>
           </button>
         </div>
-        <div className="modal-body" style={{ textAlign: 'center' }}>
+        <div className="modal-body modal-dialog-centered">
           <div
             style={{
               width: '56px',

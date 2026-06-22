@@ -136,7 +136,7 @@ export const EditLocationModal: React.FC<Props> = ({
 
         return (
           <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && closeEditModal()}>
-            <Form className="modal ab-modal ab-modal-scroll" noValidate>
+            <Form className="modal modal-form ab-modal-scroll" noValidate>
               <FormScrollToError
                 submitCount={submitCount}
                 errors={errors}
