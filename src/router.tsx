@@ -11,6 +11,7 @@ import { ProductMaster } from './pages/ProductMaster';
 import { MarketingHome } from './pages/MarketingHome';
 import { MarketingAbout } from './pages/MarketingAbout';
 import Partners from './pages/Partners';
+import { ErpOrders } from './pages/ErpOrders/ErpOrders';
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
 
@@ -42,6 +43,10 @@ const appRoutes = [
   {
     path: '/partners',
     element: <Partners />,
+  },
+  {
+    path: '/erp-orders',
+    element: <ErpOrders />,
   },
 ];
 

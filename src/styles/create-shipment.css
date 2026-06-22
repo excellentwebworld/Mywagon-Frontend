@@ -561,17 +561,17 @@ body {
   transform: rotate(90deg);
 }
 
-.ns {
+.vnest .ns {
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.25s ease;
 }
 
-.ns.open {
+.vnest .ns.open {
   max-height: 300px;
 }
 
-.ni {
+.vnest .ni {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -581,7 +581,7 @@ body {
   color: var(--t2);
 }
 
-.ni:hover {
+.vnest .ni:hover {
   background: var(--bg);
 }
 
@@ -1840,7 +1840,7 @@ body {
     font-size: 12px;
   }
 
-  .ni {
+  .vnest .ni {
     padding: 4px 10px 4px 28px;
     font-size: 11px;
   }
