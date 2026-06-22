@@ -1109,21 +1109,21 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 
 .se-pre-icon .preloader-logo-img,
 .preloader-logo-img {
-  height: 72px;
+  height: 144px;
   width: auto;
-  max-width: min(280px, 70vw);
+  max-width: min(560px, 70vw);
   display: block;
   margin: 0 auto;
   animation: premium-pulse 2s ease-in-out infinite;
 }
 
 .preloader-logo-img--compact {
-  height: 48px;
-  max-width: min(200px, 60vw);
+  height: 96px;
+  max-width: min(400px, 60vw);
 }
 
 .preloader-content--compact .preloader-logo-img {
-  height: 48px;
+  height: 96px;
   animation: none;
 }
 

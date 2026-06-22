@@ -1,5 +1,5 @@
 import React from 'react';
-import { assetUrl } from '../../utils/assetUrl';
+import Logo from '../../assets/logo/fullLogo.svg';
 
 export type MyVagonLoaderTheme = 'light' | 'dark';
 
@@ -9,8 +9,6 @@ type ContentProps = {
   className?: string;
 };
 
-const LOGO_WHITE = assetUrl('logo_white.png');
-const LOGO_DARK = assetUrl('logo.png');
 
 /** Blade `preloader-content`: premium spinner + MYVAGON logo (loader_show parity). */
 export const MyVagonLoaderContent: React.FC<ContentProps> = ({
@@ -41,7 +39,7 @@ export const MyVagonLoaderContent: React.FC<ContentProps> = ({
       />
       <div className="preloader-logo">
         <img
-          src={isLight ? LOGO_DARK : LOGO_WHITE}
+          src={Logo}
           alt=""
           className={['preloader-logo-img', compact ? 'preloader-logo-img--compact' : '']
             .filter(Boolean)
