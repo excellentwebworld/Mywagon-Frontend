@@ -197,7 +197,7 @@ a { color: inherit; text-decoration: none; }
   transition: margin-left .25s cubic-bezier(.4,0,.2,1);
 }
 .main-content.expanded { margin-left: var(--sidebar-collapsed); }
-.page-body { padding: 24px 28px 48px; overflow-y: auto;}
+.page-body { overflow-y: auto;}
 
 /* ════════════════════════════════════════
    COMPONENTS — KPI Cards
