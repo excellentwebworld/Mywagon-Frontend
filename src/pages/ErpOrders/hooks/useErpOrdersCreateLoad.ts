@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type {
-  ErpOrder,
+  ErpOrderLegacy,
   ProductLine,
   Stop,
   StopOrder,
@@ -114,8 +114,8 @@ const ERP_SYS = ["SAP S/4HANA", "MS Dynamics BC", "Soft1 ERP", "Oracle NetSuite"
 const EXC_REASONS = ["Missing ship-to address", "Missing UoM on line items", "Unknown product mapping", "Duplicate order detected"];
 
 // Static seed generator for 86 orders
-function generateMockOrders(): ErpOrder[] {
-  const result: ErpOrder[] = [];
+function generateMockOrders(): ErpOrderLegacy[] {
+  const result: ErpOrderLegacy[] = [];
   for (let i = 0; i < 86; i++) {
     const st = Math.random() < 0.3 ? 'New' : Math.random() < 0.2 ? 'Exception' : pick(STATUSES);
     const erp = pick(ERP_SYS);
@@ -172,12 +172,12 @@ function generateMockOrders(): ErpOrder[] {
   return result;
 }
 
-export function useErpOrders() {
+export function useErpOrdersCreateLoad() {
   const { showToast } = useApp();
   const { t } = useTranslation();
 
   // Persisted master list states (editable inline during Wizard steps)
-  const [orders, setOrders] = useState<ErpOrder[]>(() => generateMockOrders());
+  const [orders, setOrders] = useState<ErpOrderLegacy[]>(() => generateMockOrders());
   const [locations, setLocations] = useState<LocationsData>(LOCATIONS_INIT);
   const [products, setProducts] = useState<ProductGroup[]>(PRODUCTS_INIT);
   const [customers, setCustomers] = useState<ClCustomer[]>(CL_CUSTOMERS_INIT);
@@ -530,8 +530,8 @@ export function useErpOrders() {
   // Convert selected ERP orders to itinerary wizard stops state
   const buildStopsFromERP = useCallback((selectedIds: Set<string>) => {
     const selectedList = orders.filter(o => selectedIds.has(o.id));
-    const byO: { [key: string]: ErpOrder[] } = {};
-    const byD: { [key: string]: ErpOrder[] } = {};
+    const byO: { [key: string]: ErpOrderLegacy[] } = {};
+    const byD: { [key: string]: ErpOrderLegacy[] } = {};
 
     selectedList.forEach(o => {
       (byO[o.origin] = byO[o.origin] || []).push(o);
@@ -545,7 +545,7 @@ export function useErpOrders() {
     Object.entries(byO).forEach(([loc, ords]) => {
       const sid = ++idCounterRef.current.stop;
       const locMatch = LOCATIONS_INIT.my.find(l => l.name === loc);
-      const byCust: { [key: string]: ErpOrder[] } = {};
+      const byCust: { [key: string]: ErpOrderLegacy[] } = {};
       ords.forEach(o => {
         (byCust[o.customer] = byCust[o.customer] || []).push(o);
       });
@@ -592,7 +592,7 @@ export function useErpOrders() {
     Object.entries(byD).forEach(([loc, ords]) => {
       const sid = ++idCounterRef.current.stop;
       const locMatch = [...LOCATIONS_INIT.my, ...LOCATIONS_INIT.customers.flatMap(c => c.locations)].find(l => l.name === loc);
-      const byCust: { [key: string]: ErpOrder[] } = {};
+      const byCust: { [key: string]: ErpOrderLegacy[] } = {};
       ords.forEach(o => {
         (byCust[o.customer] = byCust[o.customer] || []).push(o);
       });

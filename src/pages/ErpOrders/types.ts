@@ -1,30 +1,109 @@
+export type ErpOrderStatus = 'unplanned' | 'planned' | 'on_trip' | 'completed' | 'canceled';
+
+export type ErpOrderKpiFilter = '' | ErpOrderStatus;
+
+export type ErpOrderSortField = 'orderReference' | 'customer' | 'deliveryDate' | 'status' | 'updatedAt';
+
+export interface ErpOrderLine {
+  id?: number;
+  productSkuId: number | null;
+  productName: string;
+  quantity: number | null;
+  unit: string;
+  weight: number | null;
+  weightUnit: string;
+}
+
+export interface ErpOrder {
+  id: string;
+  orderReference: string;
+  erpReference: string;
+  customerName: string;
+  companyEntityId: number | null;
+  originLocationId: number | null;
+  destLocationId: number | null;
+  shipFrom: string;
+  shipTo: string;
+  shipDate: string;
+  deliveryDate: string;
+  productsPreview: string;
+  productCount: number;
+  status: ErpOrderStatus;
+  highPriority: boolean;
+  linkedLoadSid: string;
+  linkedLoadId: string;
+  updatedAt: string;
+  canEdit: boolean;
+  notes: string;
+  lines: ErpOrderLine[];
+}
+
+export interface ErpOrderFormState {
+  orderReference: string;
+  erpReference: string;
+  companyEntityId: number | null;
+  customerName: string;
+  originLocationId: number | null;
+  destLocationId: number | null;
+  shipDate: string;
+  deliveryDate: string;
+  notes: string;
+  highPriority: boolean;
+  lines: ErpOrderLine[];
+}
+
+export const EMPTY_ORDER_LINE: ErpOrderLine = {
+  productSkuId: null,
+  productName: '',
+  quantity: null,
+  unit: 'Pallets',
+  weight: null,
+  weightUnit: 'Kg',
+};
+
+export const EMPTY_ORDER_FORM: ErpOrderFormState = {
+  orderReference: '',
+  erpReference: '',
+  companyEntityId: null,
+  customerName: '',
+  originLocationId: null,
+  destLocationId: null,
+  shipDate: '',
+  deliveryDate: '',
+  notes: '',
+  highPriority: false,
+  lines: [],
+};
+
+// --- Deferred Create Load types (Views 2–3) ---
+
 export interface ProductLine {
   name: string;
   sku: string;
   uom: string;
   qty: number;
-  lw: number; // line weight in kg
-  pid?: number; // matched product ID
+  lw: number;
+  pid?: number;
 }
 
-export interface ErpOrder {
-  id: string; // e.g. ORD-00001
-  erpNum: string; // e.g. SO-300001
-  erp: string; // ERP System
-  status: string; // status: New, Ready to Plan, Planned, In Transit, Completed, Canceled, Exception
+export interface ErpOrderLegacy {
+  id: string;
+  erpNum: string;
+  erp: string;
+  status: string;
   customer: string;
   origin: string;
   dest: string;
-  oDate: Date; // Order Date
-  sDate: Date; // Ship Date
-  dDate: Date; // Delivery Date
+  oDate: Date;
+  sDate: Date;
+  dDate: Date;
   lines: ProductLine[];
-  lc: number; // line count
-  tw: number; // total weight
-  tp: number; // total pallets
-  loadSid: string; // linked load ID
-  loadSt: string; // linked load status
-  lastSync: Date; // last synced date/time
+  lc: number;
+  tw: number;
+  tp: number;
+  loadSid: string;
+  loadSt: string;
+  lastSync: Date;
   syncOk: boolean;
   excReason: string;
   priority: 'Urgent' | 'High' | 'Normal';
@@ -61,13 +140,13 @@ export interface Stop {
   locationId: number | null;
   locationName: string;
   locationAddr: string;
-  date: string; // ISO date string (YYYY-MM-DD)
+  date: string;
   timeMode: 'precise' | 'range';
-  timeStart: string; // HH:MM
-  timeEnd: string; // HH:MM
+  timeStart: string;
+  timeEnd: string;
   expanded: boolean;
-  orders: StopOrder[]; // direct orders
-  customers: StopCustomer[]; // customer-grouped orders
+  orders: StopOrder[];
+  customers: StopCustomer[];
 }
 
 export interface Location {
@@ -93,11 +172,11 @@ export interface ProductSku {
   id: number;
   name: string;
   sku: string;
-  wpu: number; // weight per unit in kg
+  wpu: number;
 }
 
 export interface ProductGroup {
-  type: string; // category
+  type: string;
   skus: ProductSku[];
 }
 

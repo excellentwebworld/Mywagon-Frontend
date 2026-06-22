@@ -1,0 +1,4 @@
+Order ID,ERP Ref,Customer,Ship From,Ship To,Ship Date,Delivery Date,Priority,Notes,Product,Qty,Unit,Weight,Weight Unit
+ORD-ERP-1001,SO-77801,Nestlé S.A.,Rotterdam DC,Paris North,2026-06-01,2026-06-05,Yes,Rush,Cocoa Powder,15,Pallets,375,Kg
+ORD-ERP-1002,SO-77802,Danone SA,Athens Hub,Thessaloniki DC,,2026-06-08,No,,Yogurt 4pk,200,Boxes,800,Kg
+ORD-ERP-1003,,Acme Foods,,,,2026-06-10,No,Manual entry,Olive Oil 5L,50,Pallets,1500,Kg

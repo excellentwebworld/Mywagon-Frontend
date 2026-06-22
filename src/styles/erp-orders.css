@@ -2253,3 +2253,53 @@ table.t tbody td {
   gap: 8px;
   background: var(--surface-alt, #FAFAFE);
 }
+
+/* View 1 PDS-909 additions */
+.erp-subscription-banner {
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 10px 16px;
+  border-bottom: 1px solid #fecaca;
+  font-size: 13px;
+}
+
+.erp-drawer-banner {
+  background: #fff7ed;
+  color: #c2410c;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.erp-product-lines {
+  margin-top: 8px;
+}
+
+.erp-product-line {
+  display: grid;
+  grid-template-columns: 1.5fr 80px 100px 80px 70px auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.tbl-wrap.table-scroll-host {
+  position: relative;
+  flex: 1;
+  min-height: 280px;
+}
+
+.tbl-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border, #E4E4E8);
+}
