@@ -22,9 +22,6 @@ export function useErpOrdersList() {
   const { showToast } = useApp();
   const queryClient = useQueryClient();
 
-  const [error, setError] = useState<string | null>(null);
-  const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
-
   const [kpiFilter, setKpiFilter] = useState<ErpOrderKpiFilter>('');
   const [highPriorityFilter, setHighPriorityFilter] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,12 +57,6 @@ export function useErpOrdersList() {
   const handleApiError = useCallback(
     (err: unknown, fallback: string) => {
       if (err instanceof ApiError) {
-        if (err.status === 403) {
-          setSubscriptionBlocked(true);
-          setError(err.message);
-          showToast(err.message, 'error');
-          return err.message;
-        }
         showToast(err.message, 'error');
         return err.message;
       }
@@ -348,8 +339,6 @@ export function useErpOrdersList() {
 
   return {
     t,
-    error,
-    subscriptionBlocked,
     kpiCounts,
     kpiFilter,
     selectKpi,

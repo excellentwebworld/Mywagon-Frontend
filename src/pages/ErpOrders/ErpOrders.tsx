@@ -40,12 +40,6 @@ export const ErpOrders: React.FC = () => {
 
   return (
     <div className="erp-wrap" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      {state.subscriptionBlocked && state.error && (
-        <div className="erp-subscription-banner" role="alert">
-          {state.error}
-        </div>
-      )}
-
       <div className="anim" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         <ErpOrdersHeader
           t={state.t}
