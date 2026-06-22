@@ -437,8 +437,18 @@ export function useAddressBook() {
   );
 
   const handleApplyCompany = useCallback(async () => {
-    if (!companyData.name.trim() || !companyData.vat.trim() || !companyData.address.trim()) {
-      showToast('Name, VAT, and address are required', 'error');
+    if (
+      !companyData.name.trim() ||
+      !companyData.vat.trim() ||
+      !companyData.address.trim() ||
+      !companyData.email.trim() ||
+      !companyData.phone.trim() ||
+      !companyData.country.trim() ||
+      !companyData.website.trim() ||
+      !companyData.industry.trim() ||
+      !companyData.contactPerson.trim()
+    ) {
+      showToast('All company details are required', 'error');
       return;
     }
     try {

@@ -22,7 +22,6 @@ export function validateCreateStep2(data: CreateLocationData): CreateFieldErrors
   if (!data.name?.trim()) errors.name = 'Location name is required';
   if (!data.address?.trim()) errors.address = 'Address is required';
   if (!data.city?.trim()) errors.city = 'City is required';
-  if (!data.postal?.trim()) errors.postal = 'Postal code is required';
   if (!isValidCoordinate(data.lat, -90, 90)) errors.address = errors.address ?? 'Select a valid address from suggestions';
   if (!isValidCoordinate(data.lng, -180, 180)) errors.address = errors.address ?? 'Select a valid address from suggestions';
   if (!data.role) errors.role = 'Location role is required';

@@ -13,7 +13,7 @@ export const ModalStepper: React.FC<ModalStepperProps> = ({ currentStep }) => (
       return (
         <React.Fragment key={stepName}>
           <div className={`ms-step ${stepNum === currentStep ? 'active' : ''} ${stepNum < currentStep ? 'done' : ''}`}>
-            <div className="ms-num">{stepNum < currentStep ? '✓' : stepNum}</div>
+            <div className="ms-num">{stepNum}</div>
             <span>{stepName}</span>
           </div>
           {i < STEPS.length - 1 && <div className={`ms-line ${stepNum < currentStep ? 'done' : ''}`} />}

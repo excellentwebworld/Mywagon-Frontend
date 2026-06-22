@@ -97,6 +97,7 @@ export const AddressBook: React.FC = () => {
         filteredCompanies={ab.filteredCompanies}
         setCompanyQuery={ab.setCompanyQuery}
         setIsCompanyOpen={ab.setIsCompanyOpen}
+        handleApplyTemplate={ab.handleApplyTemplate}
         t={ab.t}
       />
 

@@ -9,7 +9,17 @@ type Props = Pick<
   'isCompanyOpen' | 'closeCompanyModal' | 'companyData' | 'setCompanyData' | 'handleApplyCompany'
 >;
 
-const INDUSTRIES = ['', 'Retail', 'Wholesale', 'Manufacturing', 'Logistics', 'Food & Beverage', 'Other'];
+const INDUSTRIES = [
+  '',
+  'Retail',
+  'Wholesale',
+  'Manufacturing',
+  'Logistics',
+  'Food & Beverage',
+  'Construction',
+  'Pharmaceuticals',
+  'Other',
+];
 
 export const CreateCompanyModal: React.FC<Props> = ({
   isCompanyOpen,
@@ -34,30 +44,43 @@ export const CreateCompanyModal: React.FC<Props> = ({
     <div className="modal-backdrop open ab-company-backdrop" onClick={(e) => e.target === e.currentTarget && closeCompanyModal()}>
       <div className="modal modal-md ab-company-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Company Details</h2>
+          <h2>Create New Company</h2>
           <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeCompanyModal}>
             ✕
           </button>
         </div>
         <div className="modal-body ab-company-body">
+          <h4 style={{ fontSize: '14px', fontWeight: 700, margin: '0 0 14px' }}>Company Details</h4>
+          
           <div className="mf">
             <label>
               Company Name <span className="req">*</span>
             </label>
             <input type="text" placeholder="e.g. Acme Corp" value={companyData.name} onChange={(e) => update({ name: e.target.value })} />
           </div>
+
           <div className="mf-row">
+            <div className="mf">
+              <label>
+                Email <span className="req">*</span>
+              </label>
+              <input type="email" placeholder="info@company.com" value={companyData.email} onChange={(e) => update({ email: e.target.value })} />
+            </div>
             <div className="mf">
               <label>
                 VAT Number <span className="req">*</span>
               </label>
               <input type="text" placeholder="e.g. EL094123456" value={companyData.vat} onChange={(e) => update({ vat: e.target.value })} />
             </div>
-            <div className="mf">
-              <label>Country</label>
-              <input type="text" value={companyData.country} onChange={(e) => update({ country: e.target.value })} />
-            </div>
           </div>
+
+          <div className="mf">
+            <label>
+              Phone <span className="req">*</span>
+            </label>
+            <input type="text" placeholder="+30 210 ..." value={companyData.phone} onChange={(e) => update({ phone: e.target.value })} />
+          </div>
+
           <GoogleMapAddressField
             address={companyData.address}
             lat=""
@@ -71,23 +94,27 @@ export const CreateCompanyModal: React.FC<Props> = ({
               })
             }
           />
+
           <div className="mf-row">
             <div className="mf">
-              <label>Phone</label>
-              <input type="text" placeholder="+30 210 ..." value={companyData.phone} onChange={(e) => update({ phone: e.target.value })} />
+              <label>
+                Country <span className="req">*</span>
+              </label>
+              <input type="text" placeholder="Greece" value={companyData.country} onChange={(e) => update({ country: e.target.value })} />
             </div>
             <div className="mf">
-              <label>Email</label>
-              <input type="text" placeholder="info@company.com" value={companyData.email} onChange={(e) => update({ email: e.target.value })} />
+              <label>
+                Website <span className="req">*</span>
+              </label>
+              <input type="text" placeholder="https://www.company.com" value={companyData.website} onChange={(e) => update({ website: e.target.value })} />
             </div>
           </div>
+
           <div className="mf-row">
             <div className="mf">
-              <label>Website</label>
-              <input type="text" placeholder="www.company.com" value={companyData.website} onChange={(e) => update({ website: e.target.value })} />
-            </div>
-            <div className="mf">
-              <label>Industry</label>
+              <label>
+                Industry <span className="req">*</span>
+              </label>
               <SearchableSelect
                 value={companyData.industry}
                 options={INDUSTRIES.filter(Boolean).map((ind) => ({ value: ind, label: ind }))}
@@ -95,10 +122,12 @@ export const CreateCompanyModal: React.FC<Props> = ({
                 onChange={(val) => update({ industry: val })}
               />
             </div>
-          </div>
-          <div className="mf">
-            <label>Primary Contact Person</label>
-            <input type="text" placeholder="Full name" value={companyData.contactPerson} onChange={(e) => update({ contactPerson: e.target.value })} />
+            <div className="mf">
+              <label>
+                Primary Contact Person <span className="req">*</span>
+              </label>
+              <input type="text" placeholder="Full name" value={companyData.contactPerson} onChange={(e) => update({ contactPerson: e.target.value })} />
+            </div>
           </div>
         </div>
         <div className="modal-footer">
@@ -106,7 +135,7 @@ export const CreateCompanyModal: React.FC<Props> = ({
             Cancel
           </button>
           <button type="button" className="btn btn-primary" onClick={handleApplyCompany}>
-            Use in location form
+            Create Company
           </button>
         </div>
       </div>

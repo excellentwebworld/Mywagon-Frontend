@@ -32,6 +32,7 @@ type Props = Pick<
   | 'filteredCompanies'
   | 'setCompanyQuery'
   | 'setIsCompanyOpen'
+  | 'handleApplyTemplate'
   | 't'
 >;
 
@@ -49,6 +50,7 @@ export const CreateLocationModal: React.FC<Props> = ({
   filteredCompanies,
   setCompanyQuery,
   setIsCompanyOpen,
+  handleApplyTemplate,
   t,
 }) => {
   const [fieldErrors, setFieldErrors] = useState<CreateFieldErrors>({});
@@ -188,6 +190,50 @@ export const CreateLocationModal: React.FC<Props> = ({
         />
         <FormFieldError message={fieldErrors.type} />
       </div>
+
+      <h4 className="ab-form-heading ab-form-heading-spaced">{t('Quick template')}</h4>
+      <div className="tpl-cards">
+        <div
+          className={`tpl-card ${createData.template === 'retail' ? 'selected' : ''}`}
+          onClick={() => handleApplyTemplate('retail')}
+          onKeyDown={(e) => e.key === 'Enter' && handleApplyTemplate('retail')}
+          role="button"
+          tabIndex={0}
+        >
+          <span className="ico">🏪</span>
+          {t('Retail DC') || 'Retail DC'}
+        </div>
+        <div
+          className={`tpl-card ${createData.template === 'factory' ? 'selected' : ''}`}
+          onClick={() => handleApplyTemplate('factory')}
+          onKeyDown={(e) => e.key === 'Enter' && handleApplyTemplate('factory')}
+          role="button"
+          tabIndex={0}
+        >
+          <span className="ico">🏭</span>
+          {t('Factory') || 'Factory'}
+        </div>
+        <div
+          className={`tpl-card ${createData.template === 'warehouse' ? 'selected' : ''}`}
+          onClick={() => handleApplyTemplate('warehouse')}
+          onKeyDown={(e) => e.key === 'Enter' && handleApplyTemplate('warehouse')}
+          role="button"
+          tabIndex={0}
+        >
+          <span className="ico">📦</span>
+          {t('Warehouse') || 'Warehouse'}
+        </div>
+        <div
+          className={`tpl-card ${createData.template === 'store' ? 'selected' : ''}`}
+          onClick={() => handleApplyTemplate('store')}
+          onKeyDown={(e) => e.key === 'Enter' && handleApplyTemplate('store')}
+          role="button"
+          tabIndex={0}
+        >
+          <span className="ico">🏬</span>
+          {t('Store') || 'Store'}
+        </div>
+      </div>
     </>
   );
 
@@ -235,28 +281,30 @@ export const CreateLocationModal: React.FC<Props> = ({
         </div>
         <div className={`mf${fieldErrors.postal ? ' has-error' : ''}`}>
           <label>
-            Postal Code <span className="req">*</span>
+            Postal Code
           </label>
           <input type="text" placeholder="e.g. 45500" value={createData.postal} onChange={(e) => update({ postal: e.target.value })} />
           <FormFieldError message={fieldErrors.postal} />
         </div>
       </div>
 
-      <div className={`mf${fieldErrors.role ? ' has-error' : ''}`}>
-        <label>
-          Location Role <span className="req">*</span>
-        </label>
-        <SearchableSelect
-          value={createData.role}
-          options={roleOptions}
-          onChange={(val) => update({ role: val as LocationItem['role'] })}
-        />
-        <FormFieldError message={fieldErrors.role} />
-      </div>
+      <div className="mf-row">
+        <div className={`mf${fieldErrors.role ? ' has-error' : ''}`}>
+          <label>
+            Location Role <span className="req">*</span>
+          </label>
+          <SearchableSelect
+            value={createData.role}
+            options={roleOptions}
+            onChange={(val) => update({ role: val as LocationItem['role'] })}
+          />
+          <FormFieldError message={fieldErrors.role} />
+        </div>
 
-      <div className="mf">
-        <label>Internal Location Code</label>
-        <input type="text" placeholder="e.g. WH-IOA-01" value={createData.code} onChange={(e) => update({ code: e.target.value })} />
+        <div className="mf">
+          <label>Internal Location Code</label>
+          <input type="text" placeholder="e.g. WH-IOA-01" value={createData.code} onChange={(e) => update({ code: e.target.value })} />
+        </div>
       </div>
 
       <LocationMapPreview lat={createData.lat} lng={createData.lng} address={createData.address} />
@@ -266,20 +314,23 @@ export const CreateLocationModal: React.FC<Props> = ({
   const renderStep3 = () => (
     <>
       <h4 className="ab-form-heading">Operational Profile</h4>
-      <div className="mf-grid">
-        <ToggleField
-          label="Appointment required"
-          value={createData.appt}
-          onChange={(appt) =>
-            update({
-              appt,
-              timeRanges:
-                appt && createData.timeRanges.length === 0
-                  ? [{ start_time: '08:00', end_time: '17:00' }]
-                  : createData.timeRanges,
-            })
-          }
-        />
+      <div className="mf-row">
+        <div className="mf">
+          <label>Appointment required</label>
+          <ToggleField
+            label=""
+            value={createData.appt}
+            onChange={(appt) =>
+              update({
+                appt,
+                timeRanges:
+                  appt && createData.timeRanges.length === 0
+                    ? [{ start_time: '08:00', end_time: '17:00' }]
+                    : createData.timeRanges,
+              })
+            }
+          />
+        </div>
         <div className={`mf${fieldErrors.dock ? ' has-error' : ''}`}>
           <label>
             Dock Type <span className="req">*</span>
@@ -339,11 +390,11 @@ export const CreateLocationModal: React.FC<Props> = ({
 
       <h4 className="ab-form-section-title">Notes</h4>
       <div className="mf">
-        <label>Internal Note</label>
+        <label>🔒 Internal Note</label>
         <textarea placeholder="Visible only to your team…" value={createData.noteInternal} onChange={(e) => update({ noteInternal: e.target.value })} />
       </div>
       <div className="mf">
-        <label>Carrier-Visible Note</label>
+        <label>🚛 Carrier-Visible Note</label>
         <textarea placeholder="Drivers/carriers will see this…" value={createData.noteCarrier} onChange={(e) => update({ noteCarrier: e.target.value })} />
       </div>
     </>

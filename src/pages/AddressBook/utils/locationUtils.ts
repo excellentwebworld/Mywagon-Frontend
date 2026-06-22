@@ -133,18 +133,17 @@ export function findPotentialDuplicates(
 export function applyTemplate(tpl: string, prev: CreateLocationData): CreateLocationData {
   const base = { ...prev, template: tpl };
   if (tpl === 'retail') {
-    return { ...base, type: 'dc', appt: true, dock: 'Dock-level', hours: 'Mon-Fri 06:00–16:00' };
+    return { ...base, appt: true, dock: 'Dock-level', hours: 'Mon-Fri 06:00–16:00' };
   }
   if (tpl === 'factory') {
-    return { ...base, type: 'plant', appt: true, dock: 'Dock-level', hours: 'Mon-Fri 05:00–21:00' };
+    return { ...base, appt: true, dock: 'Dock-level', hours: 'Mon-Fri 05:00–21:00' };
   }
   if (tpl === 'warehouse') {
-    return { ...base, type: 'warehouse', appt: true, dock: 'Dock-level', hours: 'Mon-Fri 07:00–19:00' };
+    return { ...base, appt: true, dock: 'Dock-level', hours: 'Mon-Fri 07:00–19:00' };
   }
   if (tpl === 'store') {
     return {
       ...base,
-      type: 'store',
       appt: false,
       dock: 'Ramp',
       hours: 'Mon-Sat 06:00–14:00',
