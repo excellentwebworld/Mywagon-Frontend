@@ -16,6 +16,10 @@ type Props = Pick<
   | 'activeType'
   | 'setActiveType'
   | 'unmappedCount'
+  | 'activeCount'
+  | 'inactiveCount'
+  | 'filterActive'
+  | 'setFilterActive'
   | 'catName'
   | 'loadTypeDetail'
   | 'clearSelection'
@@ -34,6 +38,10 @@ export const FacetPane: React.FC<Props> = ({
   activeType,
   setActiveType,
   unmappedCount,
+  activeCount,
+  inactiveCount,
+  filterActive,
+  setFilterActive,
   catName,
   loadTypeDetail,
   clearSelection,
@@ -58,6 +66,11 @@ export const FacetPane: React.FC<Props> = ({
 
   const selectTypeInfo = (type: (typeof productTypes)[0]) => {
     loadTypeDetail(type);
+  };
+
+  const toggleStatusFilter = (status: 'active' | 'inactive') => {
+    setFilterActive(filterActive === status ? '' : status);
+    clearSelection();
   };
 
   return (
@@ -92,6 +105,33 @@ export const FacetPane: React.FC<Props> = ({
           {t('unmappedSkus')}
           <span className="cnt">{unmappedCount}</span>
         </div>
+      )}
+
+      {viewMode === 'skus' && (
+        <>
+          <div className="facet-sep" />
+          <div className="facet-label">{t('status')}</div>
+          <div
+            className={`cat-node${filterActive === 'active' ? ' act' : ''}`}
+            onClick={() => toggleStatusFilter('active')}
+            role="button"
+            tabIndex={0}
+          >
+            <span className="ico">✓</span>
+            {t('active')}
+            <span className="cnt">{activeCount}</span>
+          </div>
+          <div
+            className={`cat-node${filterActive === 'inactive' ? ' act' : ''}`}
+            onClick={() => toggleStatusFilter('inactive')}
+            role="button"
+            tabIndex={0}
+          >
+            <span className="ico">○</span>
+            {t('inactive')}
+            <span className="cnt">{inactiveCount}</span>
+          </div>
+        </>
       )}
 
       <div className="facet-sep" />

@@ -49,7 +49,8 @@ export const AddressBook: React.FC = () => {
           activeDirectoryName={ab.activeDirectoryName}
           activeNode={ab.activeNode}
           sortBy={ab.sortBy}
-          setSortBy={ab.setSortBy}
+          sortDir={ab.sortDir}
+          toggleLocationSort={ab.toggleLocationSort}
           filteredLocations={ab.filteredLocations}
           selectedLoc={ab.selectedLoc}
           setSelectedLoc={ab.setSelectedLoc}
@@ -66,7 +67,6 @@ export const AddressBook: React.FC = () => {
           handleArchive={ab.handleArchive}
           handleRestore={ab.handleRestore}
           t={ab.t}
-          showToast={ab.showToast}
         />
 
         <LocationDetailPanel
@@ -75,13 +75,10 @@ export const AddressBook: React.FC = () => {
           detailLoading={ab.detailLoading}
           saving={ab.saving}
           t={ab.t}
-          showToast={ab.showToast}
           handleCopy={ab.handleCopy}
-          handleDuplicate={ab.handleDuplicate}
           openEditModal={ab.openEditModal}
           handleArchive={ab.handleArchive}
           handleRestore={ab.handleRestore}
-          goToCreateShipment={ab.goToCreateShipment}
         />
       </div>
 
@@ -92,18 +89,14 @@ export const AddressBook: React.FC = () => {
         setCreateStep={ab.setCreateStep}
         createData={ab.createData}
         setCreateData={ab.setCreateData}
-        handleApplyTemplate={ab.handleApplyTemplate}
         submitNewLocation={ab.submitNewLocation}
         potentialDuplicates={ab.potentialDuplicates}
         selectExistingDuplicate={ab.selectExistingDuplicate}
         saving={ab.saving}
-        amenities={ab.amenities}
-        showToast={ab.showToast}
         filteredCompanies={ab.filteredCompanies}
         setCompanyQuery={ab.setCompanyQuery}
-        companyDropdownOpen={ab.companyDropdownOpen}
-        setCompanyDropdownOpen={ab.setCompanyDropdownOpen}
         setIsCompanyOpen={ab.setIsCompanyOpen}
+        t={ab.t}
       />
 
       <EditLocationModal
@@ -112,7 +105,7 @@ export const AddressBook: React.FC = () => {
         closeEditModal={ab.closeEditModal}
         saveEditedLocation={ab.saveEditedLocation}
         saving={ab.saving}
-        amenities={ab.amenities}
+        t={ab.t}
       />
 
       <CreateCompanyModal

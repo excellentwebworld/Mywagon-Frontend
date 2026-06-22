@@ -51,6 +51,9 @@ export function mapApiSkuToSku(item: ApiSkuListItem | ApiSkuDetail): SKU {
     palletType: normalizePalletType(item.pallet_type),
     hazardous: item.hazardous,
     stackable: item.stackable,
+    shipments30: item.shipments_30 ?? 0,
+    shipments90: item.shipments_90 ?? 0,
+    shipmentsTotal: item.shipments_total ?? 0,
   };
 }
 

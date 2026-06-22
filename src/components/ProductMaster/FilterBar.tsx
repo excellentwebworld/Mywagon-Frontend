@@ -4,38 +4,14 @@ import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProd
 
 type Props = Pick<
   ProductMasterState,
-  | 'categories'
-  | 'catName'
-  | 'searchQuery'
-  | 'handleSearchChange'
-  | 'filterActive'
-  | 'setFilterActive'
-  | 'filterCat'
-  | 'setFilterCat'
-  | 'filterUnmapped'
-  | 'setFilterUnmapped'
-  | 'clearFilters'
-  | 'clearSelection'
+  'searchQuery' | 'handleSearchChange' | 'clearSelection'
 >;
 
-export const FilterBar: React.FC<Props> = ({
-  categories,
-  catName,
-  searchQuery,
-  handleSearchChange,
-  filterActive,
-  setFilterActive,
-  filterCat,
-  setFilterCat,
-  filterUnmapped,
-  setFilterUnmapped,
-  clearFilters,
-  clearSelection,
-}) => {
+export const FilterBar: React.FC<Props> = ({ searchQuery, handleSearchChange, clearSelection }) => {
   const { t } = useTranslation();
 
   return (
-    <div className="fbar anim">
+    <div className="fbar anim pm-sticky-toolbar">
       <div className="f-search">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="11" cy="11" r="8" />
@@ -45,49 +21,12 @@ export const FilterBar: React.FC<Props> = ({
           type="text"
           placeholder={t('search')}
           value={searchQuery}
-          onChange={(e) => handleSearchChange(e.target.value)}
+          onChange={(e) => {
+            handleSearchChange(e.target.value);
+            clearSelection();
+          }}
         />
       </div>
-      <select
-        className={`f-sel${filterCat ? ' has' : ''}`}
-        value={filterCat}
-        onChange={(e) => {
-          setFilterCat(e.target.value);
-          clearSelection();
-        }}
-      >
-        <option value="">{t('categoryFilter')}</option>
-        {categories.map((c) => (
-          <option key={c.id} value={c.id}>
-            {catName(c)}
-          </option>
-        ))}
-      </select>
-      <select
-        className={`f-sel${filterActive ? ' has' : ''}`}
-        value={filterActive}
-        onChange={(e) => {
-          setFilterActive(e.target.value);
-          clearSelection();
-        }}
-      >
-        <option value="">✓ Status</option>
-        <option value="active">{t('active')}</option>
-        <option value="inactive">{t('inactive')}</option>
-      </select>
-      <button
-        type="button"
-        className={`f-tog${filterUnmapped ? ' on' : ''}`}
-        onClick={() => {
-          setFilterUnmapped(!filterUnmapped);
-          clearSelection();
-        }}
-      >
-        ⚠️ {t('unmapped')}
-      </button>
-      <span className="f-clear" onClick={clearFilters} role="button" tabIndex={0}>
-        {t('clearAll')}
-      </span>
     </div>
   );
 };

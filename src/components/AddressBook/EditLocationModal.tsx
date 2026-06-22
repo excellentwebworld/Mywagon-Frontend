@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Form, Formik, type FormikErrors, type FormikHelpers, type FormikTouched } from 'formik';
 import type { LocationItem } from '../../context/AppContext';
-import type { ApiAmenity } from '../../api';
 import { ApiError } from '../../api';
 import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
@@ -16,16 +15,15 @@ import {
   formValuesToLocationItem,
   locationToFormValues,
 } from '../../pages/AddressBook/validation/locationFormUtils';
-import { ContactFormList } from './ContactFormList';
-import { EquipmentSelector } from './EquipmentSelector';
 import { FormFieldError } from './FormFieldError';
 import { GoogleMapAddressField } from './GoogleMapAddressField';
+import { LocationMapPreview } from './LocationMapPreview';
 import { TimeRangeFormList } from './TimeRangeFormList';
 import { ToggleField } from './ToggleField';
 
 type Props = Pick<
   AddressBookState,
-  'editData' | 'isEditOpen' | 'closeEditModal' | 'saveEditedLocation' | 'saving' | 'amenities'
+  'editData' | 'isEditOpen' | 'closeEditModal' | 'saveEditedLocation' | 'saving' | 't'
 >;
 
 function fieldClass(hasError: boolean): string {
@@ -75,7 +73,7 @@ export const EditLocationModal: React.FC<Props> = ({
   closeEditModal,
   saveEditedLocation,
   saving,
-  amenities,
+  t,
 }) => {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -265,18 +263,6 @@ export const EditLocationModal: React.FC<Props> = ({
                 </div>
 
                 <div className="mf-row">
-                  <div className={fieldClass(showError('region'))}>
-                    <label htmlFor="edit-region">Region</label>
-                    <input
-                      id="edit-region"
-                      name="region"
-                      type="text"
-                      value={values.region}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                    />
-                    <FormFieldError message={showError('region') ? errors.region : undefined} />
-                  </div>
                   <div className={fieldClass(showError('custCode'))}>
                     <label htmlFor="edit-cust-code">Customer Code</label>
                     <input
@@ -289,64 +275,21 @@ export const EditLocationModal: React.FC<Props> = ({
                     />
                     <FormFieldError message={showError('custCode') ? errors.custCode : undefined} />
                   </div>
-                </div>
-
-                <div className="mf-row">
-                  <div className={fieldClass(showError('phone'))}>
-                    <label htmlFor="edit-phone">Phone</label>
-                    <input
-                      id="edit-phone"
-                      name="phone"
-                      type="text"
-                      value={values.phone}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                    />
-                    <FormFieldError message={showError('phone') ? errors.phone : undefined} />
-                  </div>
-                  <div className={fieldClass(showError('email'))}>
-                    <label htmlFor="edit-email">Email</label>
-                    <input
-                      id="edit-email"
-                      name="email"
-                      type="email"
-                      value={values.email}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                    />
-                    <FormFieldError message={showError('email') ? errors.email : undefined} />
-                  </div>
-                </div>
-
-                <div className="mf-row">
                   <div className={fieldClass(showError('role'))}>
                     <label htmlFor="edit-role">
-                      Role <span className="req">*</span>
+                      Location Role <span className="req">*</span>
                     </label>
                     <select id="edit-role" name="role" value={values.role} onChange={handleChange} onBlur={handleBlur}>
-                      <option value="both">Both (Pickup & Delivery)</option>
+                      <option value="both">Both (Pickup & Drop-off)</option>
                       <option value="pickup">Pickup only</option>
-                      <option value="delivery">Delivery only</option>
+                      <option value="delivery">Drop-off only</option>
                     </select>
                     <FormFieldError message={showError('role') ? errors.role : undefined} />
-                  </div>
-                  <div className={fieldClass(showError('type'))}>
-                    <label htmlFor="edit-type">
-                      Facility Type <span className="req">*</span>
-                    </label>
-                    <select id="edit-type" name="type" value={values.type} onChange={handleChange} onBlur={handleBlur}>
-                      {FACILITY_TYPES.map((type) => (
-                        <option key={type} value={type}>
-                          {FACILITY_TYPE_LABELS[type] ?? type}
-                        </option>
-                      ))}
-                    </select>
-                    <FormFieldError message={showError('type') ? errors.type : undefined} />
                   </div>
                 </div>
 
                 <div className={fieldClass(showError('code'))}>
-                  <label htmlFor="edit-code">Internal Code</label>
+                  <label htmlFor="edit-code">Internal Location Code</label>
                   <input
                     id="edit-code"
                     name="code"
@@ -358,16 +301,20 @@ export const EditLocationModal: React.FC<Props> = ({
                   <FormFieldError message={showError('code') ? errors.code : undefined} />
                 </div>
 
-                <div className="mf">
-                  <label htmlFor="edit-tags">Tags</label>
-                  <input
-                    id="edit-tags"
-                    name="tags"
-                    type="text"
-                    value={values.tags}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                  />
+                <LocationMapPreview lat={values.lat} lng={values.lng} address={values.address} />
+
+                <div className={fieldClass(showError('type'))}>
+                  <label htmlFor="edit-type">
+                    {t('abLocationType')} <span className="req">*</span>
+                  </label>
+                  <select id="edit-type" name="type" value={values.type} onChange={handleChange} onBlur={handleBlur}>
+                    {FACILITY_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {FACILITY_TYPE_LABELS[type] ?? type}
+                      </option>
+                    ))}
+                  </select>
+                  <FormFieldError message={showError('type') ? errors.type : undefined} />
                 </div>
 
                 <h4 className="ab-form-section-title">Operational Profile</h4>
@@ -396,19 +343,26 @@ export const EditLocationModal: React.FC<Props> = ({
                   </div>
                 </div>
 
-                <div className={fieldClass(showError('hours'))}>
-                  <label htmlFor="edit-hours">Receiving Hours</label>
-                  <input
-                    id="edit-hours"
-                    name="hours"
-                    type="text"
-                    placeholder="e.g. Mon-Fri 06:00–22:00"
-                    value={values.hours}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                  />
-                  <FormFieldError message={showError('hours') ? errors.hours : undefined} />
-                </div>
+                {values.appt && (
+                  <div className={`mf ab-preferred-times${showError('timeRanges') ? ' has-error' : ''}`}>
+                    <label className="ab-section-label">Pickup/Dropoff Preferred Times</label>
+                    <TimeRangeFormList
+                      timeRanges={values.timeRanges ?? []}
+                      variant="preferred"
+                      onChange={(timeRanges) => {
+                        setFieldValue('timeRanges', timeRanges);
+                        setFieldTouched('timeRanges', true, false);
+                      }}
+                    />
+                    <FormFieldError
+                      message={
+                        showError('timeRanges') && typeof errors.timeRanges === 'string'
+                          ? errors.timeRanges
+                          : undefined
+                      }
+                    />
+                  </div>
+                )}
 
                 <div className="mf-grid">
                   <div className={fieldClass(showError('maxTruck'))}>
@@ -466,54 +420,6 @@ export const EditLocationModal: React.FC<Props> = ({
                   <FormFieldError message={showError('loadTime') ? errors.loadTime : undefined} />
                 </div>
 
-                {amenities.length > 0 && (
-                  <>
-                    <h4 className="ab-form-section-title">Amenities</h4>
-                    <div className="mf amenity-grid">
-                      {amenities.map((a: ApiAmenity) => (
-                        <label key={a.id} className="amenity-check">
-                          <input
-                            type="checkbox"
-                            checked={(values.amenityIds ?? []).includes(a.id)}
-                            onChange={(e) => {
-                              const current = values.amenityIds ?? [];
-                              const ids = e.target.checked
-                                ? [...current, a.id]
-                                : current.filter((id) => id !== a.id);
-                              setFieldValue('amenityIds', ids);
-                            }}
-                          />
-                          {a.name}
-                        </label>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                <h4 className="ab-form-section-title">Equipment</h4>
-                <EquipmentSelector
-                  value={values.equipment ?? []}
-                  onChange={(equipment) => setFieldValue('equipment', equipment)}
-                />
-
-                <h4 className="ab-form-section-title">Structured Time Ranges</h4>
-                <div className={fieldClass(showError('timeRanges'))}>
-                  <TimeRangeFormList
-                    timeRanges={values.timeRanges ?? []}
-                    onChange={(timeRanges) => {
-                      setFieldValue('timeRanges', timeRanges);
-                      setFieldTouched('timeRanges', true, false);
-                    }}
-                  />
-                  <FormFieldError
-                    message={
-                      showError('timeRanges') && typeof errors.timeRanges === 'string'
-                        ? errors.timeRanges
-                        : undefined
-                    }
-                  />
-                </div>
-
                 <h4 className="ab-form-section-title">Notes</h4>
                 <div className="mf">
                   <label htmlFor="edit-note-internal">Internal Note</label>
@@ -534,20 +440,6 @@ export const EditLocationModal: React.FC<Props> = ({
                     onChange={handleChange}
                     onBlur={handleBlur}
                   />
-                </div>
-
-                <h4 className="ab-form-section-title">Contacts</h4>
-                <div className={fieldClass(Boolean(touched.contacts && errors.contacts))}>
-                  <ContactFormList
-                    contacts={values.contacts ?? []}
-                    onChange={(contacts) => {
-                      setFieldValue('contacts', contacts);
-                      setFieldTouched('contacts', true, false);
-                    }}
-                  />
-                  {touched.contacts && typeof errors.contacts === 'string' && (
-                    <FormFieldError message={errors.contacts} />
-                  )}
                 </div>
               </div>
 

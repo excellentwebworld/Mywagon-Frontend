@@ -15,16 +15,17 @@ import {
   type SortOption,
 } from '../types';
 import { DEFAULT_PAGE_SIZE } from '../constants';
-import {
-  applyTemplate,
-} from '../utils/locationUtils';
+import { useAuth } from '../../../context/AuthContext';
+import { validateCreateAll } from '../validation/locationCreateValidation';
 import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from '../validation/locationDuplicateValidation';
+import { applyTemplate } from '../utils/locationUtils';
 import type { ApiCompanyEntity } from '../../../api/types/addressBook';
 
 const SEARCH_DEBOUNCE_MS = 250;
 
 export function useAddressBook() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { showToast, refreshLocationsFromApi } = useApp();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -40,6 +41,7 @@ export function useAddressBook() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLoc, setSelectedLoc] = useState<LocationItem | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('Name A–Z');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createStep, setCreateStep] = useState(1);
@@ -373,54 +375,33 @@ export function useAddressBook() {
   }, []);
 
   const submitNewLocation = useCallback(async () => {
-    if (!createData.name.trim()) {
-      showToast('Location name is required', 'error');
-      setCreateStep(2);
-      return;
-    }
-    if (!createData.company.trim() || !createData.companyVat.trim()) {
-      showToast('Company name and VAT are required', 'error');
-      setCreateStep(createData.context === 'customer' ? 1 : 2);
-      return;
-    }
-    if (!createData.address.trim() || !createData.city.trim() || !createData.postal.trim()) {
-      showToast('Address, city, and postal code are required', 'error');
-      setCreateStep(2);
-      return;
-    }
-    if (!createData.lat.trim() || !createData.lng.trim()) {
-      showToast('Latitude and longitude are required', 'error');
-      setCreateStep(2);
-      return;
-    }
-    if (!createData.dock.trim()) {
-      showToast('Dock type is required', 'error');
-      setCreateStep(3);
-      return;
-    }
-    if (!createData.maxTruck.trim()) {
-      showToast('Max truck length is required', 'error');
-      setCreateStep(3);
-      return;
-    }
-    if (!createData.maxWeight.trim()) {
-      showToast('Max weight is required', 'error');
-      setCreateStep(3);
-      return;
-    }
-    if (!createData.loadTime.trim()) {
-      showToast('Estimated loading/unloading time is required', 'error');
-      setCreateStep(3);
-      return;
-    }
-    if (createData.appt && createData.timeRanges.length === 0) {
-      showToast('Add at least one time range when appointment is required', 'error');
-      setCreateStep(3);
+    const payload: CreateLocationData = {
+      ...createData,
+      company:
+        createData.context === 'customer'
+          ? createData.company
+          : user?.company_name?.trim() || createData.company || 'My Company',
+      companyVat:
+        createData.context === 'customer' ? createData.companyVat : createData.companyVat || 'N/A',
+      contacts: [],
+      amenityIds: [],
+      equipment: [],
+      hours: '',
+      tags: '',
+    };
+
+    const errors = validateCreateAll(payload);
+    if (Object.keys(errors).length > 0) {
+      const firstKey = Object.keys(errors)[0];
+      showToast(errors[firstKey] ?? 'Please fix validation errors', 'error');
+      if (firstKey === 'companyEntity' || firstKey === 'type') setCreateStep(1);
+      else if (['name', 'address', 'city', 'postal', 'role'].includes(firstKey)) setCreateStep(2);
+      else setCreateStep(3);
       return;
     }
 
     try {
-      const isDuplicate = await checkLocationDuplicate(createData.name, createData.company);
+      const isDuplicate = await checkLocationDuplicate(payload.name, payload.company);
       if (isDuplicate) {
         showToast(DUPLICATE_LOCATION_MESSAGE, 'error');
         setCreateStep(4);
@@ -431,8 +412,8 @@ export function useAddressBook() {
       return;
     }
 
-    createLocationMutation.mutate(createData);
-  }, [createData, createLocationMutation, showToast, handleApiError]);
+    createLocationMutation.mutate(payload);
+  }, [createData, createLocationMutation, showToast, handleApiError, user?.company_name]);
 
   const saveEditedLocation = useCallback(
     async (loc: LocationItem) => {
@@ -572,6 +553,11 @@ export function useAddressBook() {
     [handleSelectLocation, showToast]
   );
 
+  const toggleLocationSort = useCallback(() => {
+    setSortBy('Name A–Z');
+    setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+  }, []);
+
   const filteredCompanies = useMemo(() => apiCompanies, [apiCompanies]);
 
   const pageStart = listMeta.total === 0 ? 0 : (listMeta.current_page - 1) * listMeta.per_page + 1;
@@ -603,6 +589,8 @@ export function useAddressBook() {
     setSelectedLoc: handleSelectLocation,
     sortBy,
     setSortBy,
+    sortDir,
+    toggleLocationSort,
     filteredLocations,
     isCreateOpen,
     createStep,

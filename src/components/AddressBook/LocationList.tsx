@@ -1,6 +1,6 @@
 import React from 'react';
 import type { LocationItem } from '../../context/AppContext';
-import { FACILITY_TYPE_LABELS, PAGE_SIZE_OPTIONS, SORT_OPTIONS } from '../../pages/AddressBook/constants';
+import type { SortOption } from '../../pages/AddressBook/types';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { LocationRowActions } from './LocationRowActions';
 
@@ -9,7 +9,8 @@ type Props = Pick<
   | 'activeDirectoryName'
   | 'activeNode'
   | 'sortBy'
-  | 'setSortBy'
+  | 'sortDir'
+  | 'toggleLocationSort'
   | 'filteredLocations'
   | 'selectedLoc'
   | 'setSelectedLoc'
@@ -26,7 +27,6 @@ type Props = Pick<
   | 'handleArchive'
   | 'handleRestore'
   | 't'
-  | 'showToast'
 >;
 
 function getRoleClass(role: LocationItem['role']) {
@@ -46,11 +46,18 @@ function getLocationTypeLabel(group: LocationItem['group'], t: AddressBookState[
   return t('abMyLocation');
 }
 
+function buildPageList(current: number, last: number): number[] {
+  if (last <= 7) return Array.from({ length: last }, (_, i) => i + 1);
+  const pages = new Set<number>([1, last, current, current - 1, current + 1, 2, last - 1]);
+  return [...pages].filter((p) => p >= 1 && p <= last).sort((a, b) => a - b);
+}
+
 export const LocationList: React.FC<Props> = ({
   activeDirectoryName,
   activeNode,
   sortBy,
-  setSortBy,
+  sortDir,
+  toggleLocationSort,
   filteredLocations,
   selectedLoc,
   setSelectedLoc,
@@ -67,34 +74,18 @@ export const LocationList: React.FC<Props> = ({
   handleArchive,
   handleRestore,
   t,
-  showToast,
 }) => {
   const count = filteredLocations.length;
   const total = listMeta.total;
   const lastPage = listMeta.last_page ?? 1;
-  const countLabel = loading ? 'Loading…' : `${total} location${total !== 1 ? 's' : ''}`;
-
-  const pages = Array.from({ length: lastPage }, (_, i) => i + 1).slice(
-    Math.max(0, currentPage - 3),
-    Math.min(lastPage, currentPage + 2)
-  );
+  const countLabel = loading ? t('loading') : `${total} location${total !== 1 ? 's' : ''}`;
+  const pages = buildPageList(currentPage, lastPage);
+  const sortActive = sortBy === 'Name A–Z';
 
   return (
     <div className="list-pane">
       <div className="list-toolbar">
         <span className="list-toolbar-title">{activeDirectoryName}</span>
-        <select
-          className="sort-sel"
-          value={sortBy}
-          onChange={(e) => {
-            setSortBy(e.target.value as typeof sortBy);
-            showToast(`Sorted by ${e.target.value}`);
-          }}
-        >
-          {SORT_OPTIONS.map((opt) => (
-            <option key={opt}>{opt}</option>
-          ))}
-        </select>
         <span className="list-info">{countLabel}</span>
       </div>
 
@@ -102,9 +93,18 @@ export const LocationList: React.FC<Props> = ({
         <table className="ab-table">
           <thead>
             <tr>
-              <th>Location</th>
-              <th>City / Region</th>
-              <th>Location Type</th>
+              <th>
+                <button
+                  type="button"
+                  className={`th-sort-btn${sortActive ? ' active' : ''}`}
+                  onClick={toggleLocationSort}
+                >
+                  Location
+                  {sortActive && <span className="th-sort-arrow">{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                </button>
+              </th>
+              <th>City</th>
+              <th>{t('abLocationType')}</th>
               <th>Role</th>
               <th>Operational</th>
               <th>Contact</th>
@@ -128,7 +128,6 @@ export const LocationList: React.FC<Props> = ({
             ) : (
               filteredLocations.map((l) => {
                 const isSel = selectedLoc?.id === l.id;
-                const facilityLabel = FACILITY_TYPE_LABELS[l.type] ?? l.type;
                 const usageCount = l.usageHistoryCount ?? 0;
                 return (
                   <tr key={l.id} className={isSel ? 'selected' : ''} onClick={() => setSelectedLoc(l)}>
@@ -137,24 +136,18 @@ export const LocationList: React.FC<Props> = ({
                       <div className="loc-meta">{l.company}</div>
                     </td>
                     <td>
-                      <div className="loc-city">{l.city}</div>
-                      <div className="loc-meta">{l.region || '—'}</div>
+                      <div className="loc-city">{l.city || '—'}</div>
                     </td>
                     <td>
                       <span className={`location-type-badge ${l.group === 'customer' ? 'type-customer' : 'type-my'}`}>
                         {getLocationTypeLabel(l.group, t)}
                       </span>
-                      {facilityLabel && <div className="loc-meta">{facilityLabel}</div>}
                     </td>
                     <td>
                       <span className={`role-badge ${getRoleClass(l.role)}`}>{getRoleLabel(l.role, t)}</span>
                     </td>
                     <td>
-                      <div className="ops-chips">
-                        {l.appt && <span className="op-chip">Appt</span>}
-                        {l.hours && <span className="op-chip">Hours</span>}
-                        {l.dock && <span className="op-chip">{l.dock}</span>}
-                      </div>
+                      <span className="ops-dock-label">{l.dock || '—'}</span>
                     </td>
                     <td>
                       {l.contacts[0] ? (
@@ -201,41 +194,59 @@ export const LocationList: React.FC<Props> = ({
             disabled={loading}
             aria-label="Rows per page"
           >
-            {PAGE_SIZE_OPTIONS.map((n) => (
+            {[10, 12, 25, 50, 100].map((n) => (
               <option key={n} value={n}>
                 {n} / page
               </option>
             ))}
           </select>
           <div className="pag-btns">
-            <button
-              type="button"
-              className="pg-btn"
-              disabled={currentPage <= 1 || loading}
-              onClick={() => setCurrentPage(currentPage - 1)}
-            >
+            <button type="button" className="pg-btn" disabled={currentPage <= 1 || loading} onClick={() => setCurrentPage(1)}>
+              «
+            </button>
+            <button type="button" className="pg-btn" disabled={currentPage <= 1 || loading} onClick={() => setCurrentPage(currentPage - 1)}>
               ‹
             </button>
-            {pages.map((p) => (
-              <button
-                key={p}
-                type="button"
-                className={`pg-btn ${p === currentPage ? 'active' : ''}`}
-                onClick={() => setCurrentPage(p)}
-                disabled={loading}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="pg-btn"
-              disabled={currentPage >= lastPage || loading}
-              onClick={() => setCurrentPage(currentPage + 1)}
-            >
+            {pages.map((p, idx) => {
+              const prev = pages[idx - 1];
+              const gap = prev !== undefined && p - prev > 1;
+              return (
+                <React.Fragment key={p}>
+                  {gap && <span className="pg-ellipsis">…</span>}
+                  <button
+                    type="button"
+                    className={`pg-btn ${p === currentPage ? 'active' : ''}`}
+                    onClick={() => setCurrentPage(p)}
+                    disabled={loading}
+                  >
+                    {p}
+                  </button>
+                </React.Fragment>
+              );
+            })}
+            <button type="button" className="pg-btn" disabled={currentPage >= lastPage || loading} onClick={() => setCurrentPage(currentPage + 1)}>
               ›
             </button>
+            <button type="button" className="pg-btn" disabled={currentPage >= lastPage || loading} onClick={() => setCurrentPage(lastPage)}>
+              »
+            </button>
           </div>
+          <label className="pag-jump">
+            <span>Go to</span>
+            <input
+              type="number"
+              min={1}
+              max={lastPage}
+              defaultValue={currentPage}
+              key={currentPage}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const val = parseInt((e.target as HTMLInputElement).value, 10);
+                  if (val >= 1 && val <= lastPage) setCurrentPage(val);
+                }
+              }}
+            />
+          </label>
         </div>
       </div>
     </div>

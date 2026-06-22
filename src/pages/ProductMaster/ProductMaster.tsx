@@ -2,7 +2,6 @@ import React from 'react';
 import {
   FacetPane,
   FilterBar,
-  KpiStrip,
   ProductDetailPanel,
   ProductList,
   ProductMasterHeader,
@@ -19,54 +18,38 @@ export const ProductMaster: React.FC = () => {
 
   return (
     <div className="pm-container anim">
-      <ProductMasterHeader
-        showToast={pm.showToast}
-        addDropdownOpen={pm.addDropdownOpen}
-        setAddDropdownOpen={pm.setAddDropdownOpen}
-        openAddSku={pm.openAddSku}
-        openAiWizard={pm.openAiWizard}
-        handleCSVUpload={pm.handleCSVUpload}
-        handleExport={pm.handleExport}
-        exporting={pm.exporting}
-        downloadTemplate={pm.downloadTemplate}
-        t={pm.t}
-      />
+      <div className="pm-sticky-header">
+        <ProductMasterHeader
+          showToast={pm.showToast}
+          addDropdownOpen={pm.addDropdownOpen}
+          setAddDropdownOpen={pm.setAddDropdownOpen}
+          openAddSku={pm.openAddSku}
+          openAiWizard={pm.openAiWizard}
+          openImportModal={pm.openImportModal}
+          handleExport={pm.handleExport}
+          exporting={pm.exporting}
+          downloadTemplate={pm.downloadTemplate}
+          t={pm.t}
+        />
 
-      {pm.subscriptionBlocked && (
-        <div className="ab-subscription-banner" role="alert">
-          {pm.error ?? 'Product Master access requires an active subscription.'}
-        </div>
-      )}
+        {pm.subscriptionBlocked && (
+          <div className="ab-subscription-banner" role="alert">
+            {pm.error ?? 'Product Master access requires an active subscription.'}
+          </div>
+        )}
 
-      {pm.error && !pm.loading && !pm.subscriptionBlocked && (
-        <div className="ab-error-banner" role="alert">
-          {pm.error}
-        </div>
-      )}
+        {pm.error && !pm.loading && !pm.subscriptionBlocked && (
+          <div className="ab-error-banner" role="alert">
+            {pm.error}
+          </div>
+        )}
 
-      <KpiStrip
-        t={pm.t}
-        kpiFilter={pm.kpiFilter}
-        handleKpiClick={pm.handleKpiClick}
-        totalSkusCount={pm.totalSkusCount}
-        unmappedCount={pm.unmappedCount}
-        inactiveCount={pm.inactiveCount}
-      />
-
-      <FilterBar
-        categories={pm.categories}
-        catName={pm.catName}
-        searchQuery={pm.searchQuery}
-        handleSearchChange={pm.handleSearchChange}
-        filterActive={pm.filterActive}
-        setFilterActive={pm.setFilterActive}
-        filterCat={pm.filterCat}
-        setFilterCat={pm.setFilterCat}
-        filterUnmapped={pm.filterUnmapped}
-        setFilterUnmapped={pm.setFilterUnmapped}
-        clearFilters={pm.clearFilters}
-        clearSelection={pm.clearSelection}
-      />
+        <FilterBar
+          searchQuery={pm.searchQuery}
+          handleSearchChange={pm.handleSearchChange}
+          clearSelection={pm.clearSelection}
+        />
+      </div>
 
       <div className="panes">
         <FacetPane
@@ -82,6 +65,10 @@ export const ProductMaster: React.FC = () => {
           activeType={pm.activeType}
           setActiveType={pm.setActiveType}
           unmappedCount={pm.unmappedCount}
+          activeCount={pm.activeCount}
+          inactiveCount={pm.inactiveCount}
+          filterActive={pm.filterActive}
+          setFilterActive={pm.setFilterActive}
           catName={pm.catName}
           loadTypeDetail={pm.loadTypeDetail}
           clearSelection={pm.clearSelection}
@@ -110,6 +97,11 @@ export const ProductMaster: React.FC = () => {
           perPage={pm.perPage}
           setPerPage={pm.setPerPage}
           listMeta={pm.listMeta}
+          filterCat={pm.filterCat}
+          setFilterCat={pm.setFilterCat}
+          filterActive={pm.filterActive}
+          setFilterActive={pm.setFilterActive}
+          clearSelection={pm.clearSelection}
         />
 
         <ProductDetailPanel

@@ -49,16 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         {/* Logo and branding */}
         <div className="sb-logo">
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <rect width="28" height="28" rx="8" fill="#6C3AED" />
-            <path
-              d="M7 18V10l4 8 4-8v8M19 10h4l-4 8h4"
-              stroke="#fff"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <img src="/gray_white.png" alt="MYVAGON" width={28} height={28} className="sb-logo-img" />
           <span>
             MY<span className="hl">VAGON</span>
           </span>

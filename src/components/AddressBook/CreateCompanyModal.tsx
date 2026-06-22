@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
+import { SearchableSelect } from '../ui/SearchableSelect';
+import { GoogleMapAddressField } from './GoogleMapAddressField';
 
 type Props = Pick<
   AddressBookState,
@@ -55,12 +57,19 @@ export const CreateCompanyModal: React.FC<Props> = ({
               <input type="text" value={companyData.country} onChange={(e) => update({ country: e.target.value })} />
             </div>
           </div>
-          <div className="mf">
-            <label>
-              Address <span className="req">*</span>
-            </label>
-            <input type="text" placeholder="Full company address" value={companyData.address} onChange={(e) => update({ address: e.target.value })} />
-          </div>
+          <GoogleMapAddressField
+            address={companyData.address}
+            lat=""
+            lng=""
+            onAddressChange={(address) => update({ address })}
+            onLatLngChange={() => {}}
+            onPlaceSelected={(details) =>
+              update({
+                address: details.address,
+                country: details.country || companyData.country,
+              })
+            }
+          />
           <div className="mf-row">
             <div className="mf">
               <label>Phone</label>
@@ -78,13 +87,12 @@ export const CreateCompanyModal: React.FC<Props> = ({
             </div>
             <div className="mf">
               <label>Industry</label>
-              <select value={companyData.industry} onChange={(e) => update({ industry: e.target.value })}>
-                {INDUSTRIES.map((ind) => (
-                  <option key={ind} value={ind}>
-                    {ind || '— Select —'}
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect
+                value={companyData.industry}
+                options={INDUSTRIES.filter(Boolean).map((ind) => ({ value: ind, label: ind }))}
+                placeholder="— Select —"
+                onChange={(val) => update({ industry: val })}
+              />
             </div>
           </div>
           <div className="mf">

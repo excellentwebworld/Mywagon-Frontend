@@ -11,6 +11,8 @@ type Props = {
   onPlaceSelected?: (details: ParsedPlaceAddress) => void;
   /** @deprecated Prefer onPlaceSelected */
   onCityPostalChange?: (city: string, postal: string) => void;
+  showCoordinates?: boolean;
+  error?: string;
 };
 
 type GoogleAutocomplete = {
@@ -65,6 +67,8 @@ export const GoogleMapAddressField: React.FC<Props> = ({
   onLatLngChange,
   onPlaceSelected,
   onCityPostalChange,
+  showCoordinates = false,
+  error,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
@@ -120,7 +124,7 @@ export const GoogleMapAddressField: React.FC<Props> = ({
   }, [apiKey]);
 
   return (
-    <div className="ab-map-field">
+    <div className={`ab-map-field${error ? ' has-error' : ''}`}>
       <label className="ab-label" htmlFor="ab-address-input">
         Address <span className="req">*</span>
       </label>
@@ -137,24 +141,27 @@ export const GoogleMapAddressField: React.FC<Props> = ({
         <p className="ab-field-hint">Set VITE_GOOGLE_MAPS_KEY for Google Places autocomplete.</p>
       )}
       {apiKey && (
-        <p className="ab-field-hint">Select an address from suggestions to auto-fill city, postal code, and region.</p>
+        <p className="ab-field-hint">Select an address from suggestions to auto-fill city and postal code.</p>
       )}
-      <div className="ab-coords-row">
-        <input
-          className="ab-input"
-          value={lat}
-          onChange={(e) => onLatLngChange(e.target.value, lng)}
-          placeholder="Latitude"
-          aria-label="Latitude"
-        />
-        <input
-          className="ab-input"
-          value={lng}
-          onChange={(e) => onLatLngChange(lat, e.target.value)}
-          placeholder="Longitude"
-          aria-label="Longitude"
-        />
-      </div>
+      {error && <p className="ab-field-error">{error}</p>}
+      {showCoordinates && (
+        <div className="ab-coords-row">
+          <input
+            className="ab-input"
+            value={lat}
+            onChange={(e) => onLatLngChange(e.target.value, lng)}
+            placeholder="Latitude"
+            aria-label="Latitude"
+          />
+          <input
+            className="ab-input"
+            value={lng}
+            onChange={(e) => onLatLngChange(lat, e.target.value)}
+            placeholder="Longitude"
+            aria-label="Longitude"
+          />
+        </div>
+      )}
     </div>
   );
 };

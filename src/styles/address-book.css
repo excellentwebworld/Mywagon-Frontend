@@ -1179,3 +1179,17 @@ table.ab-table { width: 100%; border-collapse: collapse; }
 }
 
 .dp-loading-hint { font-size: 12px; color: var(--text-tertiary); margin-top: 8px; }
+
+/* Map preview + list sort/pagination (client feedback) */
+.ab-map-preview { margin-top: 16px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface-alt); }
+.ab-map-preview-empty { padding: 24px; text-align: center; font-size: 12px; color: var(--text-tertiary); }
+.ab-map-preview-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: var(--text-tertiary); padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.ab-map-preview-frame { height: 200px; }
+.ab-map-preview-frame iframe { width: 100%; height: 100%; border: 0; }
+.th-sort-btn { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: none; background: none; font: inherit; font-weight: 600; color: inherit; cursor: pointer; }
+.th-sort-btn:hover { color: var(--accent); }
+.th-sort-btn.active { color: var(--accent); }
+.th-sort-arrow { font-size: 10px; }
+.pag-jump { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); margin-left: 8px; }
+.pag-jump input { width: 48px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; }
+.ops-dock-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }

@@ -27,6 +27,11 @@ type Props = Pick<
   | 'perPage'
   | 'setPerPage'
   | 'listMeta'
+  | 'filterCat'
+  | 'setFilterCat'
+  | 'filterActive'
+  | 'setFilterActive'
+  | 'clearSelection'
 >;
 
 export const ProductList: React.FC<Props> = ({
@@ -52,6 +57,11 @@ export const ProductList: React.FC<Props> = ({
   perPage,
   setPerPage,
   listMeta,
+  filterCat,
+  setFilterCat,
+  filterActive,
+  setFilterActive,
+  clearSelection,
 }) => {
   const { t } = useTranslation();
 
@@ -161,6 +171,47 @@ export const ProductList: React.FC<Props> = ({
               <th>{t('syncStatus')}</th>
               <th>{t('lastSynced')}</th>
               <th>{t('status')}</th>
+            </tr>
+            <tr className="col-filters">
+              <th />
+              <th />
+              <th />
+              <th>
+                <select
+                  className="col-filter-sel"
+                  value={filterCat}
+                  onChange={(e) => {
+                    setFilterCat(e.target.value);
+                    clearSelection();
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <option value="">{t('all')}</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {catName(c)}
+                    </option>
+                  ))}
+                </select>
+              </th>
+              <th />
+              <th />
+              <th />
+              <th>
+                <select
+                  className="col-filter-sel"
+                  value={filterActive}
+                  onChange={(e) => {
+                    setFilterActive(e.target.value);
+                    clearSelection();
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <option value="">{t('all')}</option>
+                  <option value="active">{t('active')}</option>
+                  <option value="inactive">{t('inactive')}</option>
+                </select>
+              </th>
             </tr>
           </thead>
           <tbody>

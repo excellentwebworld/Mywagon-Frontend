@@ -115,6 +115,9 @@ export interface SKU {
   palletType?: string;
   hazardous?: boolean;
   stackable?: boolean;
+  shipments30?: number;
+  shipments90?: number;
+  shipmentsTotal?: number;
 }
 
 export interface ShipmentCustomerOrder {

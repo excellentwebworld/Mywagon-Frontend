@@ -83,6 +83,7 @@ function SkuDetail({
   openEditSku: (s: SKU) => void;
   handleToggleActive: (s: SKU) => void;
 }) {
+  const { t } = useTranslation();
   const tp = productTypes.find((x) => x.id === s.typeId);
   const cat = categories.find((x) => x.id === s.catId);
   const [secCollapsed, setSecCollapsed] = useState<Record<string, boolean>>({});
@@ -130,7 +131,7 @@ function SkuDetail({
           )}
           {s.uom && (
             <div>
-              <strong>Unit:</strong> {s.uom}
+              <strong>{t('uom')}:</strong> {s.uom}
             </div>
           )}
         </div>
@@ -226,6 +227,31 @@ function SkuDetail({
           </div>
         </div>
       )}
+
+      <div className="dp-sec">
+        <div className="dp-sec-h" onClick={() => toggleSec('shipments')} role="button" tabIndex={0}>
+          📊 {t('shipmentStats')}
+          <span className={`chev${!secCollapsed.shipments ? ' open' : ''}`}>▼</span>
+        </div>
+        {!secCollapsed.shipments && (
+          <div className="dp-sec-body">
+            <div className="stat-grid">
+              <div className="stat-card">
+                <div className="sv">{s.shipments30 ?? 0}</div>
+                <div className="sl">{t('shipments30d')}</div>
+              </div>
+              <div className="stat-card">
+                <div className="sv">{s.shipments90 ?? 0}</div>
+                <div className="sl">{t('shipments90d')}</div>
+              </div>
+              <div className="stat-card">
+                <div className="sv">{s.shipmentsTotal ?? 0}</div>
+                <div className="sl">{t('shipmentsTotal')}</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </>
   );
 }

@@ -9,9 +9,14 @@ export interface TimeRangeRow {
 interface TimeRangeFormListProps {
   timeRanges: TimeRangeRow[];
   onChange: (timeRanges: TimeRangeRow[]) => void;
+  variant?: 'default' | 'preferred';
 }
 
-export const TimeRangeFormList: React.FC<TimeRangeFormListProps> = ({ timeRanges, onChange }) => {
+export const TimeRangeFormList: React.FC<TimeRangeFormListProps> = ({
+  timeRanges,
+  onChange,
+  variant = 'default',
+}) => {
   const update = (index: number, field: keyof TimeRangeRow, value: string) => {
     const updated = [...timeRanges];
     updated[index] = { ...updated[index], [field]: value };
@@ -29,27 +34,30 @@ export const TimeRangeFormList: React.FC<TimeRangeFormListProps> = ({ timeRanges
   };
 
   return (
-    <>
+    <div className="time-range-list">
       {timeRanges.map((range, i) => (
-        <div key={i} className="contact-form-row">
-          <button type="button" className="del-contact-btn" onClick={() => remove(i)}>
-            ✕
-          </button>
-          <div className="mf-row">
+        <div key={i} className="time-range-row">
+          <div className="time-range-row-label">Time Range {i + 1}</div>
+          <div className="mf-row time-range-inputs">
             <div className="mf">
-              <label>Start</label>
+              <label>Start Time</label>
               <input type="time" value={range.start_time} onChange={(e) => update(i, 'start_time', e.target.value)} />
             </div>
             <div className="mf">
-              <label>End</label>
+              <label>End Time</label>
               <input type="time" value={range.end_time} onChange={(e) => update(i, 'end_time', e.target.value)} />
             </div>
+            {timeRanges.length > 1 && (
+              <button type="button" className="time-range-remove" onClick={() => remove(i)} aria-label="Remove time range">
+                ✕
+              </button>
+            )}
           </div>
         </div>
       ))}
-      <button type="button" className="add-contact-btn" onClick={add}>
-        + Add Time Range
+      <button type="button" className="btn btn-secondary btn-sm time-range-add" onClick={add}>
+        +
       </button>
-    </>
+    </div>
   );
 };

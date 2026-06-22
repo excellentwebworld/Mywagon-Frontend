@@ -1,11 +1,17 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { LocationItem } from '../../context/AppContext';
-import type { ApiAmenity, ApiCompanyEntity } from '../../api';
-import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES, TEMPLATE_OPTIONS } from '../../pages/AddressBook/constants';
+import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
-import { ContactFormList } from './ContactFormList';
-import { EquipmentSelector } from './EquipmentSelector';
+import {
+  validateCreateStep1,
+  validateCreateStep2,
+  validateCreateStep3,
+  type CreateFieldErrors,
+} from '../../pages/AddressBook/validation/locationCreateValidation';
+import { SearchableSelect } from '../ui/SearchableSelect';
+import { FormFieldError } from './FormFieldError';
 import { GoogleMapAddressField } from './GoogleMapAddressField';
+import { LocationMapPreview } from './LocationMapPreview';
 import { ModalStepper } from './ModalStepper';
 import { TimeRangeFormList } from './TimeRangeFormList';
 import { ToggleField } from './ToggleField';
@@ -18,18 +24,14 @@ type Props = Pick<
   | 'setCreateStep'
   | 'createData'
   | 'setCreateData'
-  | 'handleApplyTemplate'
   | 'submitNewLocation'
   | 'potentialDuplicates'
   | 'selectExistingDuplicate'
   | 'saving'
-  | 'amenities'
-  | 'showToast'
   | 'filteredCompanies'
   | 'setCompanyQuery'
-  | 'companyDropdownOpen'
-  | 'setCompanyDropdownOpen'
   | 'setIsCompanyOpen'
+  | 't'
 >;
 
 export const CreateLocationModal: React.FC<Props> = ({
@@ -39,19 +41,17 @@ export const CreateLocationModal: React.FC<Props> = ({
   setCreateStep,
   createData,
   setCreateData,
-  handleApplyTemplate,
   submitNewLocation,
   potentialDuplicates,
   selectExistingDuplicate,
   saving,
-  amenities,
-  showToast,
   filteredCompanies,
   setCompanyQuery,
-  companyDropdownOpen,
-  setCompanyDropdownOpen,
   setIsCompanyOpen,
+  t,
 }) => {
+  const [fieldErrors, setFieldErrors] = useState<CreateFieldErrors>({});
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isCreateOpen) closeCreateModal();
@@ -61,18 +61,61 @@ export const CreateLocationModal: React.FC<Props> = ({
   }, [isCreateOpen, closeCreateModal]);
 
   useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest('.ent-search')) {
-        setCompanyDropdownOpen(false);
-      }
-    };
-    document.addEventListener('click', onClick);
-    return () => document.removeEventListener('click', onClick);
-  }, [setCompanyDropdownOpen]);
+    if (!isCreateOpen) setFieldErrors({});
+  }, [isCreateOpen]);
 
   if (!isCreateOpen) return null;
 
-  const update = (patch: Partial<typeof createData>) => setCreateData({ ...createData, ...patch });
+  const update = (patch: Partial<typeof createData>) => {
+    setCreateData({ ...createData, ...patch });
+    setFieldErrors({});
+  };
+
+  const companyOptions = useMemo(
+    () =>
+      filteredCompanies.map((c) => ({
+        value: String(c.id),
+        label: c.name,
+        sublabel: c.vat_number ? `VAT: ${c.vat_number}` : undefined,
+      })),
+    [filteredCompanies]
+  );
+
+  const facilityOptions = FACILITY_TYPES.map((type) => ({
+    value: type,
+    label: FACILITY_TYPE_LABELS[type] ?? type,
+  }));
+
+  const dockOptions = DOCK_TYPES.map((dock) => ({ value: dock, label: dock }));
+
+  const roleOptions = [
+    { value: 'both', label: 'Both (Pickup & Drop-off)' },
+    { value: 'pickup', label: 'Pickup only' },
+    { value: 'delivery', label: 'Drop-off only' },
+  ];
+
+  const goNext = (from: number, to: number, validate: () => CreateFieldErrors) => {
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+    setFieldErrors({});
+    setCreateStep(to);
+  };
+
+  const selectContext = (context: 'my' | 'customer') => {
+    if (context === 'my') {
+      update({
+        context,
+        company: '',
+        companyVat: '',
+        companyEntityId: null,
+      });
+    } else {
+      update({ context });
+    }
+  };
 
   const renderStep1 = () => (
     <>
@@ -80,8 +123,8 @@ export const CreateLocationModal: React.FC<Props> = ({
       <div className="ctx-cards">
         <div
           className={`ctx-card ${createData.context === 'my' ? 'selected' : ''}`}
-          onClick={() => update({ context: 'my' })}
-          onKeyDown={(e) => e.key === 'Enter' && update({ context: 'my' })}
+          onClick={() => selectContext('my')}
+          onKeyDown={(e) => e.key === 'Enter' && selectContext('my')}
           role="button"
           tabIndex={0}
         >
@@ -91,8 +134,8 @@ export const CreateLocationModal: React.FC<Props> = ({
         </div>
         <div
           className={`ctx-card ${createData.context === 'customer' ? 'selected' : ''}`}
-          onClick={() => update({ context: 'customer' })}
-          onKeyDown={(e) => e.key === 'Enter' && update({ context: 'customer' })}
+          onClick={() => selectContext('customer')}
+          onKeyDown={(e) => e.key === 'Enter' && selectContext('customer')}
           role="button"
           tabIndex={0}
         >
@@ -103,151 +146,53 @@ export const CreateLocationModal: React.FC<Props> = ({
       </div>
 
       {createData.context === 'customer' && (
-        <div className="mf ab-company-field">
+        <div className={`mf ab-company-field${fieldErrors.companyEntity ? ' has-error' : ''}`}>
           <label>
             Company / Entity <span className="req">*</span>
           </label>
-          <div className="ent-search">
-            <input
-              type="text"
-              className="ent-inp"
-              placeholder="Search existing companies…"
-              value={createData.company}
-              onChange={(e) => {
-                update({ company: e.target.value });
-                setCompanyQuery(e.target.value);
-                setCompanyDropdownOpen(true);
-              }}
-              onFocus={() => setCompanyDropdownOpen(true)}
-            />
-            {companyDropdownOpen && (
-              <div className="ent-results open">
-                <div
-                  className="ent-create"
-                  onClick={() => {
-                    setIsCompanyOpen(true);
-                    setCompanyDropdownOpen(false);
-                  }}
-                  onKeyDown={(e) => e.key === 'Enter' && setIsCompanyOpen(true)}
-                  role="button"
-                  tabIndex={0}
-                >
-                  + Enter new company details
-                </div>
-                {filteredCompanies.map((c: ApiCompanyEntity) => (
-                  <div
-                    key={c.id}
-                    className="ent-item"
-                    onClick={() => {
-                      update({
-                        company: c.name,
-                        companyVat: c.vat_number,
-                        companyEntityId: c.id,
-                        phone: c.phone || createData.phone,
-                        email: c.email || createData.email,
-                      });
-                      setCompanyDropdownOpen(false);
-                    }}
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' &&
-                      update({
-                        company: c.name,
-                        companyVat: c.vat_number,
-                        companyEntityId: c.id,
-                      })
-                    }
-                    role="button"
-                    tabIndex={0}
-                  >
-                    {c.name}
-                    <div className="sub">VAT: {c.vat_number}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <span className="helper">Search existing or enter new company details</span>
-        </div>
-      )}
-
-      {createData.context === 'my' && (
-        <div className="mf-row">
-          <div className="mf">
-            <label>
-              Company Name <span className="req">*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="Your company legal name"
-              value={createData.company}
-              onChange={(e) => update({ company: e.target.value })}
-            />
-          </div>
-          <div className="mf">
-            <label>
-              Company VAT <span className="req">*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. EL094123456"
-              value={createData.companyVat}
-              onChange={(e) => update({ companyVat: e.target.value })}
-            />
-          </div>
-        </div>
-      )}
-
-      {createData.context === 'customer' && (
-        <div className="mf">
-          <label>
-            Company VAT <span className="req">*</span>
-          </label>
-          <input
-            type="text"
-            placeholder="e.g. EL094123456"
-            value={createData.companyVat}
-            onChange={(e) => update({ companyVat: e.target.value })}
+          <SearchableSelect
+            value={createData.companyEntityId ? String(createData.companyEntityId) : ''}
+            options={companyOptions}
+            placeholder="Search existing companies…"
+            searchPlaceholder="Type to search…"
+            hasError={Boolean(fieldErrors.companyEntity)}
+            onSearchChange={setCompanyQuery}
+            onChange={(val, opt) => {
+              const entity = filteredCompanies.find((c) => String(c.id) === val);
+              update({
+                companyEntityId: entity?.id ?? null,
+                company: entity?.name ?? opt?.label ?? '',
+                companyVat: entity?.vat_number ?? '',
+              });
+            }}
+            footerAction={{
+              label: '+ Enter new company details',
+              onClick: () => setIsCompanyOpen(true),
+            }}
           />
+          <FormFieldError message={fieldErrors.companyEntity} />
         </div>
       )}
 
-      <div className="mf">
+      <div className={`mf${fieldErrors.type ? ' has-error' : ''}`}>
         <label>
-          Facility Type <span className="req">*</span>
+          {t('abLocationType')} <span className="req">*</span>
         </label>
-        <select value={createData.type} onChange={(e) => update({ type: e.target.value })}>
-          {FACILITY_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {FACILITY_TYPE_LABELS[type] ?? type}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <h4 className="ab-form-heading ab-form-heading-spaced">
-        Quick template <span className="ab-form-optional">(optional)</span>
-      </h4>
-      <div className="tpl-cards">
-        {TEMPLATE_OPTIONS.map((tpl) => (
-          <div
-            key={tpl.id}
-            className={`tpl-card ${createData.template === tpl.id ? 'selected' : ''}`}
-            onClick={() => handleApplyTemplate(tpl.id)}
-            onKeyDown={(e) => e.key === 'Enter' && handleApplyTemplate(tpl.id)}
-            role="button"
-            tabIndex={0}
-          >
-            <span className="ico">{tpl.icon}</span>
-            {tpl.label}
-          </div>
-        ))}
+        <SearchableSelect
+          value={createData.type}
+          options={facilityOptions}
+          placeholder="— Select —"
+          hasError={Boolean(fieldErrors.type)}
+          onChange={(val) => update({ type: val })}
+        />
+        <FormFieldError message={fieldErrors.type} />
       </div>
     </>
   );
 
   const renderStep2 = () => (
     <>
-      <div className="mf">
+      <div className={`mf${fieldErrors.name ? ' has-error' : ''}`}>
         <label>
           Location Name <span className="req">*</span>
         </label>
@@ -257,11 +202,14 @@ export const CreateLocationModal: React.FC<Props> = ({
           value={createData.name}
           onChange={(e) => update({ name: e.target.value })}
         />
+        <FormFieldError message={fieldErrors.name} />
       </div>
+
       <GoogleMapAddressField
         address={createData.address}
         lat={createData.lat}
         lng={createData.lng}
+        error={fieldErrors.address}
         onAddressChange={(address) => update({ address })}
         onLatLngChange={(lat, lng) => update({ lat, lng })}
         onPlaceSelected={(details) =>
@@ -275,60 +223,42 @@ export const CreateLocationModal: React.FC<Props> = ({
           })
         }
       />
+
       <div className="mf-row">
-        <div className="mf">
+        <div className={`mf${fieldErrors.city ? ' has-error' : ''}`}>
           <label>
             City <span className="req">*</span>
           </label>
           <input type="text" placeholder="City" value={createData.city} onChange={(e) => update({ city: e.target.value })} />
+          <FormFieldError message={fieldErrors.city} />
         </div>
-        <div className="mf">
+        <div className={`mf${fieldErrors.postal ? ' has-error' : ''}`}>
           <label>
             Postal Code <span className="req">*</span>
           </label>
           <input type="text" placeholder="e.g. 45500" value={createData.postal} onChange={(e) => update({ postal: e.target.value })} />
+          <FormFieldError message={fieldErrors.postal} />
         </div>
       </div>
-      <div className="mf-row">
-        <div className="mf">
-          <label>Phone</label>
-          <input type="text" placeholder="+30 …" value={createData.phone} onChange={(e) => update({ phone: e.target.value })} />
-        </div>
-        <div className="mf">
-          <label>Email</label>
-          <input type="email" placeholder="contact@…" value={createData.email} onChange={(e) => update({ email: e.target.value })} />
-        </div>
+
+      <div className={`mf${fieldErrors.role ? ' has-error' : ''}`}>
+        <label>
+          Location Role <span className="req">*</span>
+        </label>
+        <SearchableSelect
+          value={createData.role}
+          options={roleOptions}
+          onChange={(val) => update({ role: val as LocationItem['role'] })}
+        />
+        <FormFieldError message={fieldErrors.role} />
       </div>
-      <div className="mf-row">
-        <div className="mf">
-          <label>
-            Location Role <span className="req">*</span>
-          </label>
-          <select value={createData.role} onChange={(e) => update({ role: e.target.value as LocationItem['role'] })}>
-            <option value="both">Both (Pickup & Delivery)</option>
-            <option value="pickup">Pickup only</option>
-            <option value="delivery">Delivery only</option>
-          </select>
-        </div>
-        <div className="mf">
-          <label>Region</label>
-          <input type="text" placeholder="e.g. Central Greece" value={createData.region} onChange={(e) => update({ region: e.target.value })} />
-        </div>
-      </div>
+
       <div className="mf">
         <label>Internal Location Code</label>
         <input type="text" placeholder="e.g. WH-IOA-01" value={createData.code} onChange={(e) => update({ code: e.target.value })} />
       </div>
-      <div className="mf">
-        <label>Tags</label>
-        <input
-          type="text"
-          placeholder="Comma-separated, e.g. Priority, North"
-          value={createData.tags}
-          onChange={(e) => update({ tags: e.target.value })}
-        />
-        <span className="helper">Tags help with filtering and organization</span>
-      </div>
+
+      <LocationMapPreview lat={createData.lat} lng={createData.lng} address={createData.address} />
     </>
   );
 
@@ -336,96 +266,85 @@ export const CreateLocationModal: React.FC<Props> = ({
     <>
       <h4 className="ab-form-heading">Operational Profile</h4>
       <div className="mf-grid">
-        <ToggleField label="Appointment required" value={createData.appt} onChange={(appt) => update({ appt })} />
-        <div className="mf">
+        <ToggleField
+          label="Appointment required"
+          value={createData.appt}
+          onChange={(appt) =>
+            update({
+              appt,
+              timeRanges:
+                appt && createData.timeRanges.length === 0
+                  ? [{ start_time: '08:00', end_time: '17:00' }]
+                  : createData.timeRanges,
+            })
+          }
+        />
+        <div className={`mf${fieldErrors.dock ? ' has-error' : ''}`}>
           <label>
             Dock Type <span className="req">*</span>
           </label>
-          <select value={createData.dock} onChange={(e) => update({ dock: e.target.value })}>
-            <option value="">— Select —</option>
-            {DOCK_TYPES.map((dock) => (
-              <option key={dock} value={dock}>
-                {dock}
-              </option>
-            ))}
-          </select>
+          <SearchableSelect
+            value={createData.dock}
+            options={[{ value: '', label: '— Select —' }, ...dockOptions]}
+            placeholder="— Select —"
+            hasError={Boolean(fieldErrors.dock)}
+            onChange={(val) => update({ dock: val })}
+          />
+          <FormFieldError message={fieldErrors.dock} />
         </div>
       </div>
-      <div className="mf">
-        <label>Receiving Hours</label>
-        <input
-          type="text"
-          placeholder="e.g. Mon-Fri 06:00–22:00 · Sat 07:00–14:00"
-          value={createData.hours}
-          onChange={(e) => update({ hours: e.target.value })}
-        />
-      </div>
+
+      {createData.appt && (
+        <div className={`mf ab-preferred-times${fieldErrors.timeRanges ? ' has-error' : ''}`}>
+          <label className="ab-section-label">Pickup/Dropoff Preferred Times</label>
+          <TimeRangeFormList
+            timeRanges={createData.timeRanges}
+            onChange={(timeRanges) => update({ timeRanges })}
+            variant="preferred"
+          />
+          <FormFieldError message={fieldErrors.timeRanges} />
+        </div>
+      )}
+
       <div className="mf-grid">
-        <div className="mf">
+        <div className={`mf${fieldErrors.maxTruck ? ' has-error' : ''}`}>
           <label>
             Max Truck Length <span className="req">*</span>
           </label>
           <input type="text" placeholder="e.g. 18.75m" value={createData.maxTruck} onChange={(e) => update({ maxTruck: e.target.value })} />
+          <FormFieldError message={fieldErrors.maxTruck} />
         </div>
-        <div className="mf">
+        <div className={`mf${fieldErrors.maxWeight ? ' has-error' : ''}`}>
           <label>
             Max Weight <span className="req">*</span>
           </label>
           <input type="text" placeholder="e.g. 40T" value={createData.maxWeight} onChange={(e) => update({ maxWeight: e.target.value })} />
+          <FormFieldError message={fieldErrors.maxWeight} />
         </div>
       </div>
+
       <div className="mf-grid">
         <ToggleField label="ADR Allowed" value={createData.adr} onChange={(adr) => update({ adr })} />
         <ToggleField label="Pallet Exchange" value={createData.palletExchange} onChange={(palletExchange) => update({ palletExchange })} />
       </div>
-      <div className="mf">
+
+      <div className={`mf${fieldErrors.loadTime ? ' has-error' : ''}`}>
         <label>
           Est. Loading/Unloading Time (min) <span className="req">*</span>
         </label>
         <input type="number" placeholder="e.g. 45" value={createData.loadTime} onChange={(e) => update({ loadTime: e.target.value })} />
+        <FormFieldError message={fieldErrors.loadTime} />
       </div>
-
-      {amenities.length > 0 && (
-        <>
-          <h4 className="ab-form-section-title">Amenities</h4>
-          <div className="mf amenity-grid">
-            {amenities.map((a: ApiAmenity) => (
-              <label key={a.id} className="amenity-check">
-                <input
-                  type="checkbox"
-                  checked={createData.amenityIds.includes(a.id)}
-                  onChange={(e) => {
-                    const ids = e.target.checked
-                      ? [...createData.amenityIds, a.id]
-                      : createData.amenityIds.filter((id) => id !== a.id);
-                    update({ amenityIds: ids });
-                  }}
-                />
-                {a.name}
-              </label>
-            ))}
-          </div>
-        </>
-      )}
-
-      <h4 className="ab-form-section-title">Equipment</h4>
-      <EquipmentSelector value={createData.equipment} onChange={(equipment) => update({ equipment })} />
-
-      <h4 className="ab-form-section-title">Structured Time Ranges</h4>
-      <TimeRangeFormList timeRanges={createData.timeRanges} onChange={(timeRanges) => update({ timeRanges })} />
 
       <h4 className="ab-form-section-title">Notes</h4>
       <div className="mf">
-        <label>🔒 Internal Note</label>
+        <label>Internal Note</label>
         <textarea placeholder="Visible only to your team…" value={createData.noteInternal} onChange={(e) => update({ noteInternal: e.target.value })} />
       </div>
       <div className="mf">
-        <label>🚛 Carrier-Visible Note</label>
+        <label>Carrier-Visible Note</label>
         <textarea placeholder="Drivers/carriers will see this…" value={createData.noteCarrier} onChange={(e) => update({ noteCarrier: e.target.value })} />
       </div>
-
-      <h4 className="ab-form-section-title">Contacts</h4>
-      <ContactFormList contacts={createData.contacts} onChange={(contacts) => update({ contacts })} />
     </>
   );
 
@@ -433,7 +352,7 @@ export const CreateLocationModal: React.FC<Props> = ({
     <>
       {potentialDuplicates.length > 0 && (
         <div className="dupe-banner">
-          <h4>⚠️ Potential Duplicates Found</h4>
+          <h4>Potential Duplicates Found</h4>
           {potentialDuplicates.map((d) => (
             <div key={d.id} className="dupe-item">
               <div>
@@ -441,11 +360,7 @@ export const CreateLocationModal: React.FC<Props> = ({
                 <br />
                 <span className="dupe-item-addr">{d.address}</span>
               </div>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => selectExistingDuplicate(d)}
-              >
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => selectExistingDuplicate(d)}>
                 Use existing
               </button>
             </div>
@@ -478,33 +393,17 @@ export const CreateLocationModal: React.FC<Props> = ({
           </div>
           <div className="review-row">
             <div className="review-label">Type</div>
-            <div className="review-val">{createData.type || 'Not set'}</div>
+            <div className="review-val">{FACILITY_TYPE_LABELS[createData.type] || createData.type || 'Not set'}</div>
           </div>
         </div>
         <div className="review-row-grid">
           <div className="review-row">
             <div className="review-label">Appointment</div>
-            <div className="review-val">{createData.appt ? '✅ Required' : 'No'}</div>
+            <div className="review-val">{createData.appt ? 'Required' : 'No'}</div>
           </div>
           <div className="review-row">
             <div className="review-label">Dock</div>
             <div className="review-val">{createData.dock || '—'}</div>
-          </div>
-        </div>
-        {createData.hours && (
-          <div className="review-row">
-            <div className="review-label">Hours</div>
-            <div className="review-val review-val-sm">{createData.hours}</div>
-          </div>
-        )}
-        <div className="review-row">
-          <div className="review-label">Contacts</div>
-          <div className="review-val review-val-left">
-            {createData.contacts.length > 0 ? (
-              createData.contacts.map((c) => `${c.name} (${c.role})`).join(', ')
-            ) : (
-              <span className="review-warning">None — you&apos;ll be prompted after save</span>
-            )}
           </div>
         </div>
       </div>
@@ -518,7 +417,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           <button type="button" className="btn btn-secondary" onClick={closeCreateModal}>
             Cancel
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => setCreateStep(2)}>
+          <button type="button" className="btn btn-primary" onClick={() => goNext(1, 2, () => validateCreateStep1(createData))}>
             Next →
           </button>
         </>
@@ -530,7 +429,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           <button type="button" className="btn btn-secondary" onClick={() => setCreateStep(1)}>
             ← Back
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => setCreateStep(3)}>
+          <button type="button" className="btn btn-primary" onClick={() => goNext(2, 3, () => validateCreateStep2(createData))}>
             Next →
           </button>
         </>
@@ -542,7 +441,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           <button type="button" className="btn btn-secondary" onClick={() => setCreateStep(2)}>
             ← Back
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => setCreateStep(4)}>
+          <button type="button" className="btn btn-primary" onClick={() => goNext(3, 4, () => validateCreateStep3(createData))}>
             Review →
           </button>
         </>
@@ -554,7 +453,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           ← Back
         </button>
         <button type="button" className="btn btn-primary" onClick={submitNewLocation} disabled={saving}>
-          {saving ? 'Creating…' : '✅ Create Location'}
+          {saving ? 'Creating…' : 'Create Location'}
         </button>
       </>
     );

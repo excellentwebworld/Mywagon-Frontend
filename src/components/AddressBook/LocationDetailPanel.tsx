@@ -11,13 +11,10 @@ type Props = Pick<
   | 'detailLoading'
   | 'saving'
   | 't'
-  | 'showToast'
   | 'handleCopy'
-  | 'handleDuplicate'
   | 'openEditModal'
   | 'handleArchive'
   | 'handleRestore'
-  | 'goToCreateShipment'
 >;
 
 function getRoleClass(role: LocationItem['role']) {
@@ -38,13 +35,10 @@ export const LocationDetailPanel: React.FC<Props> = ({
   detailLoading,
   saving,
   t,
-  showToast,
   handleCopy,
-  handleDuplicate,
   openEditModal,
   handleArchive,
   handleRestore,
-  goToCreateShipment,
 }) => {
   if (!selectedLoc) {
     return (
@@ -114,13 +108,7 @@ export const LocationDetailPanel: React.FC<Props> = ({
           </div>
           <div className="dp-actions">
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEditModal(l)} disabled={saving}>
-              ✏️ Edit
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleDuplicate(l)} disabled={saving}>
-              Duplicate
-            </button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => goToCreateShipment(l)} disabled={saving}>
-              + Shipment
+              Edit
             </button>
             {l.status === 'active' && (
               <button type="button" className="btn btn-secondary btn-sm dp-archive-btn" onClick={() => handleArchive(l)} disabled={saving}>
@@ -128,7 +116,7 @@ export const LocationDetailPanel: React.FC<Props> = ({
               </button>
             )}
             {l.status === 'archived' && (
-              <button type="button" className="btn btn-secondary btn-sm dp-restore-btn" onClick={() => handleRestore(l)} disabled={saving}>
+              <button type="button" className="btn btn-primary btn-sm dp-restore-btn" onClick={() => handleRestore(l)} disabled={saving}>
                 Restore
               </button>
             )}
@@ -145,28 +133,7 @@ export const LocationDetailPanel: React.FC<Props> = ({
           </div>
         </DetailSection>
 
-        <DetailSection title="📊 Quick Stats">
-          <div className="stat-grid">
-            <div className="stat-card">
-              <div className="stat-val">{l.usageHistoryCount ?? 0}</div>
-              <div className="stat-label">Usage history (loads)</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-val">{l.shipments30}</div>
-              <div className="stat-label">Shipments (30d)</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-val">{l.shipments90}</div>
-              <div className="stat-label">Shipments (90d)</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-val">{l.otd ? `${l.otd}%` : '—'}</div>
-              <div className="stat-label">On-time rate</div>
-            </div>
-          </div>
-        </DetailSection>
-
-        <DetailSection title="🕐 Hours & Scheduling">
+        <DetailSection title="Hours & Scheduling">
           <div className="dp-row">
             <span className="label">Appointment</span>
             <span className="val">{l.appt ? '✅ Yes' : 'No'}</span>
@@ -189,29 +156,37 @@ export const LocationDetailPanel: React.FC<Props> = ({
           </div>
         </DetailSection>
 
-        <DetailSection title={`🤝 Contacts (${l.contacts.length})`}>
+        <DetailSection title="Company & Contact">
+          <div className="dp-row">
+            <span className="label">Company</span>
+            <span className="val">{l.company || '—'}</span>
+          </div>
           {l.contacts.length > 0 ? (
             l.contacts.map((c: LocationItem['contacts'][number], idx: number) => (
               <div key={idx} className="dp-contact-card">
-                <div className="dp-contact-role">{c.role}</div>
+                <div className="dp-contact-role">{c.role || 'Contact'}</div>
                 <div className="dp-contact-name">{c.name}</div>
                 <div className="dp-contact-info">
                   {c.phone && (
                     <>
-                      📞 <span className="mono">{c.phone}</span>
+                      {c.phone}
                       <br />
                     </>
                   )}
-                  {c.email && <>✉️ {c.email}</>}
+                  {c.email}
                 </div>
               </div>
             ))
           ) : (
             <div className="dp-no-contacts">
-              No contacts.{' '}
-              <span className="dp-add-contact-link" onClick={() => openEditModal(l)} onKeyDown={(e) => e.key === 'Enter' && openEditModal(l)} role="button" tabIndex={0}>
-                Add one →
-              </span>
+              {l.phone || l.email ? (
+                <>
+                  {l.phone && <div>{l.phone}</div>}
+                  {l.email && <div>{l.email}</div>}
+                </>
+              ) : (
+                'No contact information on file.'
+              )}
             </div>
           )}
         </DetailSection>

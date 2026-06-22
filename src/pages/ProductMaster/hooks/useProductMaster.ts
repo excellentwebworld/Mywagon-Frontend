@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { productMasterService, ApiError } from '../../../api';
+import type { ApiImportResult } from '../../../api/types/productMaster';
 import { skuToNewSkuForm } from '../../../api/mappers/productMasterMapper';
 import type { Category, ProductType, SKU } from '../../../context/AppContext';
 import {
@@ -38,7 +39,6 @@ export function useProductMaster() {
   const [filterActive, setFilterActive] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [filterUnmapped, setFilterUnmapped] = useState(false);
-  const [kpiFilter, setKpiFilter] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('name');
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,7 +49,11 @@ export function useProductMaster() {
   const [editSkuMode, setEditSkuMode] = useState(false);
   const [newSku, setNewSku] = useState<NewSkuForm>(EMPTY_NEW_SKU);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [importSummary, setImportSummary] = useState<string | null>(null);
+  const [importStep, setImportStep] = useState<'form' | 'processing' | 'result'>('form');
+  const [importResult, setImportResult] = useState<ApiImportResult | null>(null);
+  const [importLogs, setImportLogs] = useState<string[]>([]);
+  const [importProgress, setImportProgress] = useState(0);
+  const importAbortRef = useRef(false);
   const [isAiWizardOpen, setIsAiWizardOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [typeMappedSkus, setTypeMappedSkus] = useState<SKU[]>([]);
@@ -72,7 +76,7 @@ export function useProductMaster() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeCat, activeType, filterActive, filterCat, filterUnmapped, sortBy, perPage, kpiFilter]);
+  }, [activeCat, activeType, filterActive, filterCat, filterUnmapped, sortBy, perPage]);
 
   const handleApiError = useCallback(
     (err: unknown, fallback: string) => {
@@ -97,25 +101,21 @@ export function useProductMaster() {
     [showToast]
   );
 
-  const listParams = useMemo(() => {
-    let status = filterActive;
-    let unmapped = filterUnmapped;
-    if (kpiFilter === 'inactive') status = 'inactive';
-    if (kpiFilter === 'unmapped') unmapped = true;
-    if (kpiFilter === 'active' || kpiFilter === 'total') status = 'active';
-
-    return productMasterService.buildListParams(
-      activeCat,
-      activeType,
-      status,
-      unmapped,
-      debouncedSearch,
-      currentPage,
-      perPage,
-      sortBy,
-      filterCat
-    );
-  }, [activeCat, activeType, filterActive, filterCat, filterUnmapped, debouncedSearch, currentPage, perPage, sortBy, kpiFilter]);
+  const listParams = useMemo(
+    () =>
+      productMasterService.buildListParams(
+        activeCat,
+        activeType,
+        filterActive,
+        filterUnmapped,
+        debouncedSearch,
+        currentPage,
+        perPage,
+        sortBy,
+        filterCat
+      ),
+    [activeCat, activeType, filterActive, filterCat, filterUnmapped, debouncedSearch, currentPage, perPage, sortBy]
+  );
 
   const summaryQuery = useQuery({
     queryKey: ['product-master', 'summary'],
@@ -169,6 +169,7 @@ export function useProductMaster() {
   const summary = summaryQuery.data;
 
   const totalSkusCount = summary?.total ?? 0;
+  const activeCount = summary?.active ?? 0;
   const inactiveCount = summary?.inactive ?? 0;
   const unmappedCount = summary?.unmapped ?? 0;
   const erpSyncedCount = 0;
@@ -234,15 +235,9 @@ export function useProductMaster() {
     setFilterActive('');
     setFilterCat('');
     setFilterUnmapped(false);
-    setKpiFilter('');
     setSearchQuery('');
     showToast(t('filtersCleared'), 'info');
   }, [showToast, t]);
-
-  const handleKpiClick = useCallback((key: string) => {
-    setKpiFilter((prev) => (prev === key ? '' : key));
-    clearSelection();
-  }, [clearSelection]);
 
   const handleSearchChange = useCallback((q: string) => setSearchQuery(q), []);
 
@@ -377,28 +372,67 @@ export function useProductMaster() {
     }
   }, [handleApiError, showToast, t]);
 
-  const handleCSVUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      e.target.value = '';
-      if (!file) return;
+  const openImportModal = useCallback(() => {
+    setImportStep('form');
+    setImportResult(null);
+    setImportLogs([]);
+    setImportProgress(0);
+    importAbortRef.current = false;
+    setIsImportOpen(true);
+    setAddDropdownOpen(false);
+  }, []);
+
+  const closeImportModal = useCallback(() => {
+    setIsImportOpen(false);
+    setImportStep('form');
+    setImportResult(null);
+    setImportLogs([]);
+    setImportProgress(0);
+    importAbortRef.current = false;
+  }, []);
+
+  const runImport = useCallback(
+    async (file: File) => {
+      setImportStep('processing');
+      setImportLogs([t('importReadingFile')]);
+      setImportProgress(5);
+      importAbortRef.current = false;
+
+      const progressTimer = window.setInterval(() => {
+        setImportProgress((p) => (p < 88 ? p + 4 : p));
+      }, 250);
+
       try {
         const result = await productMasterService.importFile(file);
-        setImportSummary(
-          `${t('imported')}: ${result.success}/${result.total} (${result.created} ${t('created')}, ${result.updated} ${t('updated')})`
-        );
-        setIsImportOpen(true);
+        window.clearInterval(progressTimer);
+        if (importAbortRef.current) {
+          setImportStep('form');
+          return;
+        }
+        setImportProgress(100);
+        setImportResult(result);
+        setImportLogs([
+          ...result.success_logs.slice(0, 100),
+          ...result.failures.map((f) => `✗ ${f}`),
+        ]);
+        setImportStep('result');
         await invalidateAll();
       } catch (err) {
+        window.clearInterval(progressTimer);
         handleApiError(err, 'Import failed');
+        setImportStep('form');
       }
     },
     [handleApiError, invalidateAll, t]
   );
 
-  const triggerCSVImport = useCallback(() => {
-    document.getElementById('pm-csv-input')?.click();
-  }, []);
+  const abortImport = useCallback(() => {
+    importAbortRef.current = true;
+    setImportStep('form');
+    setImportLogs([]);
+    setImportProgress(0);
+    showToast(t('importAborted'), 'info');
+  }, [showToast, t]);
 
   const downloadTemplate = useCallback(async () => {
     try {
@@ -407,6 +441,25 @@ export function useProductMaster() {
       handleApiError(err, 'Template download failed');
     }
   }, [handleApiError]);
+
+  const downloadCategoryIndex = useCallback(() => {
+    const lines = ['Category ID,Category Name,Type ID,Type Name'];
+    categories.forEach((c) => {
+      const cName = getCategoryName(c, lang);
+      productTypes
+        .filter((tp) => tp.catId === c.id)
+        .forEach((tp) => {
+          lines.push(`${c.id},"${cName.replace(/"/g, '""')}",${tp.id},"${tp.name.replace(/"/g, '""')}"`);
+        });
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'category_product_type_index.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [categories, productTypes, lang]);
 
   const openAiWizard = useCallback(() => {
     setAddDropdownOpen(false);
@@ -474,7 +527,6 @@ export function useProductMaster() {
     setFilterCat,
     filterUnmapped,
     setFilterUnmapped,
-    kpiFilter,
     sortBy,
     setSortBy,
     currentPage,
@@ -491,7 +543,14 @@ export function useProductMaster() {
     setNewSku,
     isImportOpen,
     setIsImportOpen,
-    importSummary,
+    importStep,
+    importResult,
+    importLogs,
+    importProgress,
+    openImportModal,
+    closeImportModal,
+    runImport,
+    abortImport,
     isAiWizardOpen,
     openAiWizard,
     closeAiWizard,
@@ -504,6 +563,7 @@ export function useProductMaster() {
     filteredSkus,
     filteredTypes,
     totalSkusCount,
+    activeCount,
     erpSyncedCount,
     manualCount,
     syncIssuesCount,
@@ -512,7 +572,6 @@ export function useProductMaster() {
     summary,
     getCategoryCount,
     getTypeCount,
-    handleKpiClick,
     handleSelectAll,
     handleToggleRowSelection,
     handleBulkToggleActive,
@@ -524,9 +583,8 @@ export function useProductMaster() {
     setArchiveConfirmOpen,
     confirmBulkArchive,
     handleSaveSku,
-    handleCSVUpload,
-    triggerCSVImport,
     downloadTemplate,
+    downloadCategoryIndex,
     handleExport,
     openAddSku,
     openEditSku,

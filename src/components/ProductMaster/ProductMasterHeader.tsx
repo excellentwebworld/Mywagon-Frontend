@@ -9,7 +9,7 @@ type Props = Pick<
   | 'setAddDropdownOpen'
   | 'openAddSku'
   | 'openAiWizard'
-  | 'handleCSVUpload'
+  | 'openImportModal'
   | 'handleExport'
   | 'exporting'
   | 'downloadTemplate'
@@ -21,7 +21,7 @@ export const ProductMasterHeader: React.FC<Props> = ({
   setAddDropdownOpen,
   openAddSku,
   openAiWizard,
-  handleCSVUpload,
+  openImportModal,
   handleExport,
   exporting,
   downloadTemplate,
@@ -63,7 +63,7 @@ export const ProductMasterHeader: React.FC<Props> = ({
             <div className="add-dd-i" onClick={openAddSku} role="button" tabIndex={0}>
               {t('addSkuMenu')}
             </div>
-            <div className="add-dd-i" onClick={() => document.getElementById('pm-csv-input')?.click()} role="button" tabIndex={0}>
+            <div className="add-dd-i" onClick={openImportModal} role="button" tabIndex={0}>
               📥 {t('importCsv')}
             </div>
             <div
@@ -84,11 +84,10 @@ export const ProductMasterHeader: React.FC<Props> = ({
                 ✨ {t('aiWizardTitle')}
               </span>
             </div>
-            <div className="add-dd-i" onClick={downloadTemplate} role="button" tabIndex={0}>
+            <div className="add-dd-i" onClick={() => void downloadTemplate()} role="button" tabIndex={0}>
               {t('downloadTemplate')}
             </div>
           </div>
-          <input id="pm-csv-input" type="file" accept=".csv,.xlsx,.xls" onChange={handleCSVUpload} style={{ display: 'none' }} />
         </div>
       </div>
     </div>
