@@ -8,9 +8,13 @@ import './CreateShipmentWizard.css';
 
 export const CreateShipmentWizard: React.FC = () => {
   const { t } = useTranslation();
-  const { locations, addShipment, shipments, showToast } = useApp();
+  const { locations, addShipment, shipments, showToast, refreshLocationsFromApi } = useApp();
   const navigate = useNavigate();
   const locationState = useLocation().state as { prefillLocationId?: string } | null;
+
+  useEffect(() => {
+    refreshLocationsFromApi();
+  }, [refreshLocationsFromApi]);
 
   const [step, setStep] = useState(1);
 

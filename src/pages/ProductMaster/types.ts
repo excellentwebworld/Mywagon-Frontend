@@ -20,6 +20,10 @@ export interface NewSkuForm {
   weight: string;
   active: boolean;
   tags: string;
+  temperature: string;
+  palletType: string;
+  hazardous: boolean;
+  stackable: boolean;
 }
 
 export interface NewCatForm {
@@ -72,6 +76,10 @@ export const EMPTY_NEW_SKU: NewSkuForm = {
   weight: '',
   active: true,
   tags: '',
+  temperature: 'Ambient',
+  palletType: 'EUR',
+  hazardous: false,
+  stackable: true,
 };
 
 export const EMPTY_NEW_CAT: NewCatForm = {

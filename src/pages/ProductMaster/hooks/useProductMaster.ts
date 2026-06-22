@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { productMasterService, ApiError } from '../../../api';
+import { skuToNewSkuForm } from '../../../api/mappers/productMasterMapper';
 import type { Category, ProductType, SKU } from '../../../context/AppContext';
 import {
   EMPTY_NEW_SKU,
@@ -35,6 +36,7 @@ export function useProductMaster() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const [filterActive, setFilterActive] = useState('');
+  const [filterCat, setFilterCat] = useState('');
   const [filterUnmapped, setFilterUnmapped] = useState(false);
   const [kpiFilter, setKpiFilter] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('name');
@@ -67,7 +69,7 @@ export function useProductMaster() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeCat, activeType, filterActive, filterUnmapped, sortBy, perPage, kpiFilter]);
+  }, [activeCat, activeType, filterActive, filterCat, filterUnmapped, sortBy, perPage, kpiFilter]);
 
   const handleApiError = useCallback(
     (err: unknown, fallback: string) => {
@@ -107,9 +109,10 @@ export function useProductMaster() {
       debouncedSearch,
       currentPage,
       perPage,
-      sortBy
+      sortBy,
+      filterCat
     );
-  }, [activeCat, activeType, filterActive, filterUnmapped, debouncedSearch, currentPage, perPage, sortBy, kpiFilter]);
+  }, [activeCat, activeType, filterActive, filterCat, filterUnmapped, debouncedSearch, currentPage, perPage, sortBy, kpiFilter]);
 
   const summaryQuery = useQuery({
     queryKey: ['product-master', 'summary'],
@@ -170,7 +173,10 @@ export function useProductMaster() {
   const syncIssuesCount = 0;
 
   const filteredSkus = skus;
-  const filteredTypes = productTypes;
+  const filteredTypes = useMemo(() => {
+    if (activeCat === 'all') return productTypes;
+    return productTypes.filter((t) => t.catId === activeCat);
+  }, [productTypes, activeCat]);
 
   const createSkuMutation = useMutation({
     mutationFn: (form: NewSkuForm) => productMasterService.createSku(form),
@@ -223,6 +229,7 @@ export function useProductMaster() {
 
   const clearFilters = useCallback(() => {
     setFilterActive('');
+    setFilterCat('');
     setFilterUnmapped(false);
     setKpiFilter('');
     setSearchQuery('');
@@ -272,17 +279,7 @@ export function useProductMaster() {
 
   const openEditSku = useCallback((sku: SKU) => {
     setEditSkuMode(true);
-    setNewSku({
-      catId: sku.catId,
-      typeId: sku.typeId,
-      name: sku.name,
-      number: sku.number,
-      barcode: sku.barcode,
-      uom: sku.uom,
-      weight: sku.weight,
-      active: sku.active,
-      tags: sku.tags.join(', '),
-    });
+    setNewSku(skuToNewSkuForm(sku));
     setIsSkuOpen(true);
   }, []);
 
@@ -441,8 +438,8 @@ export function useProductMaster() {
     setSelectedIds,
     filterActive,
     setFilterActive,
-    filterCat: '',
-    setFilterCat: (_v: string) => {},
+    filterCat,
+    setFilterCat,
     filterUnmapped,
     setFilterUnmapped,
     kpiFilter,

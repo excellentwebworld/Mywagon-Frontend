@@ -188,23 +188,23 @@ function SkuDetail({
         </div>
         {!secCollapsed.shipping && (
           <div className="dp-sec-body">
-            {tp ? (
+            {tp || s.temperature ? (
               <>
                 <div className="dp-row">
                   <span className="label">Temperature</span>
-                  <span className="val">{tp.defaults.temp}</span>
+                  <span className="val">{s.temperature ?? tp?.defaults.temp}</span>
                 </div>
                 <div className="dp-row">
                   <span className="label">Hazardous</span>
-                  <span className="val">{tp.defaults.hazard ? 'Yes' : 'No'}</span>
+                  <span className="val">{(s.hazardous ?? tp?.defaults.hazard) ? 'Yes' : 'No'}</span>
                 </div>
                 <div className="dp-row">
                   <span className="label">Stackable</span>
-                  <span className="val">{tp.defaults.stackable ? 'Yes' : 'No'}</span>
+                  <span className="val">{(s.stackable ?? tp?.defaults.stackable) ? 'Yes' : 'No'}</span>
                 </div>
                 <div className="dp-row">
                   <span className="label">Pallet Type</span>
-                  <span className="val">{tp.defaults.palletType}</span>
+                  <span className="val">{s.palletType ?? tp?.defaults.palletType}</span>
                 </div>
               </>
             ) : (

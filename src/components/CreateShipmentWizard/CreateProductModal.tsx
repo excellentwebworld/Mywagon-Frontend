@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { productMasterService } from '../../api';
+import { mapReferenceToCategories, mapReferenceToProductTypes } from '../../api/mappers/productMasterMapper';
+import type { Category, ProductType } from '../../context/AppContext';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { EMPTY_NEW_SKU } from '../../pages/ProductMaster/types';
 
 interface CreateProductModalProps {
   isOpen: boolean;
@@ -13,46 +17,67 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   onClose,
   onCreated,
 }) => {
-  const { t } = useTranslation();
-  const { addSku } = useApp();
+  const { t, lang } = useTranslation();
+  const { showToast, refreshSkusFromApi } = useApp();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [productTypes, setProductTypes] = useState<ProductType[]>([]);
+  const [catId, setCatId] = useState('');
+  const [typeId, setTypeId] = useState('');
   const [name, setName] = useState('');
-  const [sku, setSku] = useState('');
-  const [category, setCategory] = useState('');
-  const [wpu, setWpu] = useState('');
+  const [number, setNumber] = useState('');
+  const [weight, setWeight] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    productMasterService
+      .getReferenceCategories()
+      .then((data) => {
+        setCategories(mapReferenceToCategories(data, lang));
+        setProductTypes(mapReferenceToProductTypes(data));
+      })
+      .catch(() => showToast(t('abLoadError'), 'error'));
+  }, [isOpen, lang, showToast, t]);
 
   if (!isOpen) return null;
 
-  const handleCreate = () => {
-    if (!name.trim() || !sku.trim()) return;
+  const catName = (c: Category) => c.name[lang] ?? c.name.en;
 
-    addSku({
-      name: name.trim(),
-      number: sku.trim(),
-      barcode: sku.trim(),
-      catId: category || 'CAT-01',
-      typeId: 'PT-01', // Default category types
-      source: 'manual',
-      active: true,
-      erp: {
-        system: '',
-        extId: '',
-        lastSync: '—',
-        status: '',
-        error: '',
-      },
-      weight: wpu ? `${wpu} kg` : '',
-      uom: 'Case',
-      tags: [],
-    });
-
-    onCreated(name.trim());
-
-    // Reset
+  const reset = () => {
+    setCatId('');
+    setTypeId('');
     setName('');
-    setSku('');
-    setCategory('');
-    setWpu('');
-    onClose();
+    setNumber('');
+    setWeight('');
+  };
+
+  const handleCreate = async () => {
+    if (!name.trim() || !number.trim() || !catId || !typeId) {
+      showToast(t('fillRequired'), 'warning');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await productMasterService.createSku({
+        ...EMPTY_NEW_SKU,
+        catId,
+        typeId,
+        name: name.trim(),
+        number: number.trim(),
+        barcode: number.trim(),
+        weight: weight ? `${weight} kg` : '',
+      });
+      await refreshSkusFromApi();
+      onCreated(name.trim());
+      reset();
+      onClose();
+      showToast(t('created'), 'success');
+    } catch {
+      showToast(t('abSaveError'), 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -60,9 +85,39 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       <div className="modal">
         <div className="modal-h">
           <span>{t('createNewProduct')}</span>
-          <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close modal">
+            ✕
+          </button>
         </div>
         <div className="modal-body">
+          <div className="field">
+            <label className="field-l">
+              {t('category')} <span className="req">*</span>
+            </label>
+            <select className="inp" value={catId} onChange={(e) => { setCatId(e.target.value); setTypeId(''); }}>
+              <option value="">— Select —</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {catName(c)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label className="field-l">
+              {t('productType')} <span className="req">*</span>
+            </label>
+            <select className="inp" value={typeId} onChange={(e) => setTypeId(e.target.value)} disabled={!catId}>
+              <option value="">— Select —</option>
+              {productTypes
+                .filter((tp) => tp.catId === catId)
+                .map((tp) => (
+                  <option key={tp.id} value={tp.id}>
+                    {tp.name}
+                  </option>
+                ))}
+            </select>
+          </div>
           <div className="field">
             <label className="field-l" htmlFor="newProdName">
               {t('productNameRequired')}
@@ -84,21 +139,9 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               id="newProdSku"
               className="inp"
               placeholder="e.g. FOD-050"
-              value={sku}
-              onChange={(e) => setSku(e.target.value)}
+              value={number}
+              onChange={(e) => setNumber(e.target.value)}
               required
-            />
-          </div>
-          <div className="field">
-            <label className="field-l" htmlFor="newProdCat">
-              {t('category')}
-            </label>
-            <input
-              id="newProdCat"
-              className="inp"
-              placeholder="e.g. Oils"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
             />
           </div>
           <div className="field">
@@ -111,19 +154,19 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               type="number"
               step="0.1"
               placeholder="e.g. 30"
-              value={wpu}
-              onChange={(e) => setWpu(e.target.value)}
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
             />
           </div>
         </div>
         <div className="modal-footer">
-          <button className="btn btn-sm" onClick={onClose}>
+          <button className="btn btn-sm" onClick={onClose} disabled={saving}>
             {t('cancel')}
           </button>
           <button
             className="btn btn-p btn-sm"
             onClick={handleCreate}
-            disabled={!name.trim() || !sku.trim()}
+            disabled={saving || !name.trim() || !number.trim() || !catId || !typeId}
           >
             {t('createProduct')}
           </button>

@@ -121,8 +121,16 @@ export const ProductList: React.FC<Props> = ({
                       SKUs
                     </div>
                     <div className="tc-stat">
+                      <strong>{x.shipmentTotal ?? 0}</strong>
+                      Shipments
+                    </div>
+                    <div className="tc-stat">
                       <strong>{x.s30}</strong>
-                      Ship (30d)
+                      Last 30d
+                    </div>
+                    <div className="tc-stat">
+                      <strong>{x.s90}</strong>
+                      Last 90d
                     </div>
                   </div>
                 </div>

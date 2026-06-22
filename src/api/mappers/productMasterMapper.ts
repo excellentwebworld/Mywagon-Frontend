@@ -9,6 +9,24 @@ import type {
 } from '../types/productMaster';
 import type { NewSkuForm } from '../../pages/ProductMaster/types';
 
+function normalizeTemperature(value?: string | null): string {
+  if (!value) return 'Ambient';
+  const v = value.toLowerCase().replace(/\s+/g, '');
+  if (v.includes('2-8') || v.includes('2–8')) return '2–8°C';
+  if (v.includes('15-25') || v.includes('15–25')) return '15–25°C';
+  if (v.includes('-18')) return '-18°C';
+  return 'Ambient';
+}
+
+function normalizePalletType(value?: string | null): string {
+  if (!value) return 'EUR';
+  const v = value.toLowerCase();
+  if (v.includes('industrial')) return 'Industrial';
+  if (v.includes('chemical')) return 'Chemical';
+  if (v.includes('pharma')) return 'Pharma';
+  return 'EUR';
+}
+
 export function mapApiSkuToSku(item: ApiSkuListItem | ApiSkuDetail): SKU {
   return {
     id: item.id,
@@ -29,6 +47,28 @@ export function mapApiSkuToSku(item: ApiSkuListItem | ApiSkuDetail): SKU {
     weight: item.weight ?? '',
     uom: item.unit ?? '',
     tags: item.tags ? item.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+    temperature: normalizeTemperature(item.temperature),
+    palletType: normalizePalletType(item.pallet_type),
+    hazardous: item.hazardous,
+    stackable: item.stackable,
+  };
+}
+
+export function skuToNewSkuForm(sku: SKU): NewSkuForm {
+  return {
+    catId: sku.catId,
+    typeId: sku.typeId,
+    name: sku.name,
+    number: sku.number,
+    barcode: sku.barcode,
+    uom: sku.uom || 'Case',
+    weight: sku.weight,
+    active: sku.active,
+    tags: sku.tags.join(', '),
+    temperature: sku.temperature ?? 'Ambient',
+    palletType: sku.palletType ?? 'EUR',
+    hazardous: sku.hazardous ?? false,
+    stackable: sku.stackable ?? true,
   };
 }
 
@@ -71,6 +111,7 @@ export function mapTypeGridToProductTypes(items: ApiTypeGridItem[], reference: A
       s30: row.shipment_count_30,
       s90: row.shipment_count_90,
       skuCount: row.sku_count,
+      shipmentTotal: row.shipment_count,
     };
   });
 }
@@ -83,7 +124,8 @@ export function facetToListParams(
   search: string,
   page: number,
   perPage: number,
-  sortBy: string
+  sortBy: string,
+  filterCat = ''
 ): ListSkusParams {
   const params: ListSkusParams = {
     page,
@@ -96,12 +138,18 @@ export function facetToListParams(
   if (filterActive === 'active') params.status = 'active';
   if (filterActive === 'inactive') params.status = 'inactive';
   if (filterUnmapped || activeCat === 'unmapped') params.unmapped = true;
-  else if (activeCat !== 'all') {
-    params.category_id = activeCat;
-    if (activeType !== 'all') {
-      if (activeType === 'unmapped') params.type_id = 'unmapped';
-      else if (activeType === 'mismatched') params.type_id = 'mismatched';
-      else params.type_id = activeType;
+  else {
+    const categoryId =
+      activeCat !== 'all' && activeCat !== 'unmapped'
+        ? activeCat
+        : filterCat || undefined;
+    if (categoryId) {
+      params.category_id = categoryId;
+      if (activeType !== 'all') {
+        if (activeType === 'unmapped') params.type_id = 'unmapped';
+        else if (activeType === 'mismatched') params.type_id = 'mismatched';
+        else params.type_id = activeType;
+      }
     }
   }
 
@@ -117,10 +165,10 @@ export function newSkuFormToPayload(form: NewSkuForm): StoreSkuPayload {
     barcode: form.barcode || undefined,
     unit: form.uom || undefined,
     weight: form.weight || undefined,
-    temperature: 'Ambient',
-    pallet_type: 'EUR',
-    hazardous: false,
-    stackable: true,
+    temperature: form.temperature || 'Ambient',
+    pallet_type: form.palletType || 'EUR',
+    hazardous: form.hazardous,
+    stackable: form.stackable,
     tags: form.tags || undefined,
   };
 }

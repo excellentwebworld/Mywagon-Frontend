@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { LocationItem, ShipmentStop, ShipmentCustomer, ShipmentCustomerOrder } from '../../context/AppContext';
@@ -21,7 +21,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   setStops,
 }) => {
   const { t, lang } = useTranslation();
-  const { locations, companies, skus, showToast } = useApp();
+  const { locations, companies, skus, showToast, refreshSkusFromApi } = useApp();
+
+  useEffect(() => {
+    refreshSkusFromApi();
+  }, [refreshSkusFromApi]);
 
   // Modals Visibility
   const [isCustOpen, setIsCustOpen] = useState(false);

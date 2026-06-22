@@ -9,13 +9,15 @@ Reference: `mv-new-frontend-design-development` (client-approved Blade)
 | View toggle | SKUs / Types | SKUs / Types | Done |
 | SKU table columns | SKU, Type, Category, Source, Updated, Status, attrs | Aligned | Done |
 | Pagination | Default 12, server-side | API paginated list | Done |
-| Add SKU modal | Category/type dropdowns, shipping defaults | API create | Done |
+| Add SKU modal | Category/type dropdowns, shipping defaults | Editable shipping defaults | Done |
 | Edit SKU | PUT update | API update | Done |
 | Toggle active | POST toggle-status | API toggle | Done |
 | Bulk archive | POST bulk-archive | API bulk-archive | Done |
 | CSV import | Template + upload + summary | API import | Done |
 | Excel export | GET export | API export download | Done |
-| Types grid | AJAX types-grid | API `/types` | Done |
+| Types grid | AJAX types-grid | API `/types` (4 stat columns) | Done |
+| Filter bar category | Category dropdown | Wired to API list filter | Done |
+| Create Shipment wizard products | Product create | `POST /product-master/skus` + catalog refresh | Done |
 | Subscription | `manage_product_master` | 403 banner | Done |
 | Search filter | DataTable search + subscription | API `search` param | Done |
 | AI Master Wizard | 4-step modal | Phase 2 | Deferred |

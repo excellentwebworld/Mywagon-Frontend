@@ -40,6 +40,17 @@ export const productMasterService = {
     };
   },
 
+  async listAllSkus(params: Omit<ListSkusParams, 'page'>): Promise<SKU[]> {
+    const first = await this.listSkus({ ...params, page: 1, per_page: 100 });
+    const all = [...first.items];
+    const lastPage = first.meta.last_page ?? 1;
+    for (let page = 2; page <= lastPage; page += 1) {
+      const next = await this.listSkus({ ...params, page, per_page: 100 });
+      all.push(...next.items);
+    }
+    return all;
+  },
+
   async getSku(id: string): Promise<SKU> {
     const res = await apiGet<ApiSkuDetail>(`/product-master/skus/${id}`);
     return mapApiSkuToSku(res.data);

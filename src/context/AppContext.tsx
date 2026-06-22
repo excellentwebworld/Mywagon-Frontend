@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { addressBookService } from '../api';
+import { addressBookService, productMasterService } from '../api';
 
 // ==========================================
 // TYPES
@@ -89,6 +89,7 @@ export interface ProductType {
   s30: number;
   s90: number;
   skuCount?: number;
+  shipmentTotal?: number;
 }
 
 export interface SKU {
@@ -110,6 +111,10 @@ export interface SKU {
   weight: string;
   uom: string;
   tags: string[];
+  temperature?: string;
+  palletType?: string;
+  hazardous?: boolean;
+  stackable?: boolean;
 }
 
 export interface ShipmentCustomerOrder {
@@ -279,6 +284,7 @@ interface AppContextType {
   skus: SKU[];
   addSku: (sku: Omit<SKU, 'id'>) => void;
   updateSku: (sku: SKU) => void;
+  refreshSkusFromApi: () => Promise<void>;
 
   shipments: Shipment[];
   addShipment: (shp: Shipment) => void;
@@ -393,9 +399,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
-  useEffect(() => {
-    refreshLocationsFromApi();
-  }, [refreshLocationsFromApi]);
+  const refreshSkusFromApi = useCallback(async () => {
+    try {
+      const list = await productMasterService.listAllSkus({ status: 'active' });
+      setSkus(list);
+    } catch {
+      // Ignore when session is unavailable (e.g. marketing pages).
+    }
+  }, []);
 
   // Companies State
   const [companies, setCompanies] = useState<Company[]>([
@@ -764,6 +775,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         skus,
         addSku,
         updateSku,
+        refreshSkusFromApi,
         shipments,
         addShipment,
         updateShipment,
