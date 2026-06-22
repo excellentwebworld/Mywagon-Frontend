@@ -11,7 +11,6 @@ export const TableLoadingOverlay: React.FC<Props> = ({ active, message }) => (
   <div className={`dt-loading-overlay${active ? ' active' : ''}`} aria-hidden={!active}>
     <div className="dt-spinner-wrapper">
       <MyVagonLoaderContent theme="light" compact />
-      {message ? <div className="dt-loading-text">{message}</div> : null}
     </div>
   </div>
 );

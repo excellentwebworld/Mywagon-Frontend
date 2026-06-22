@@ -1224,7 +1224,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   align-items: center !important;
   justify-content: center !important;
   gap: 14px !important;
-  padding: 24px 32px !important;
+  padding: 10px 10px !important;
   background: var(--surface) !important;
   border-radius: var(--radius-md, 12px) !important;
   box-shadow: var(--shadow-lg) !important;
