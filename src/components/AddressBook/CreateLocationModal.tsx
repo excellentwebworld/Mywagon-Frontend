@@ -64,13 +64,6 @@ export const CreateLocationModal: React.FC<Props> = ({
     if (!isCreateOpen) setFieldErrors({});
   }, [isCreateOpen]);
 
-  if (!isCreateOpen) return null;
-
-  const update = (patch: Partial<typeof createData>) => {
-    setCreateData({ ...createData, ...patch });
-    setFieldErrors({});
-  };
-
   const companyOptions = useMemo(
     () =>
       filteredCompanies.map((c) => ({
@@ -80,6 +73,13 @@ export const CreateLocationModal: React.FC<Props> = ({
       })),
     [filteredCompanies]
   );
+
+  if (!isCreateOpen) return null;
+
+  const update = (patch: Partial<typeof createData>) => {
+    setCreateData({ ...createData, ...patch });
+    setFieldErrors({});
+  };
 
   const facilityOptions = FACILITY_TYPES.map((type) => ({
     value: type,
