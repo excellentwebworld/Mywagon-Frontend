@@ -46,7 +46,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     (async () => {
       try {
         if (getStoredToken()) {
-          await refreshUser();
+          await Promise.race([
+            refreshUser(),
+            new Promise<never>((_, reject) => {
+              window.setTimeout(() => reject(new Error('Session check timed out')), 15000);
+            }),
+          ]);
         }
       } catch {
         clearStoredToken();

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { Partner } from '../../pages/Partners/types';
 import type { PartnersState } from '../../pages/Partners/hooks/usePartners';
 import type { OpenSections } from '../../pages/Partners/types';
+import { MyVagonLoaderContent } from '../ui/MyVagonLoader';
 
 type Props = Pick<
   PartnersState,
@@ -107,9 +108,11 @@ export const PartnerDetailPanel: React.FC<Props> = ({
 
   return (
     <div className="ptn-detail-pane open" id="ptn-detail-pane">
-      <div className="ptn-dp-inner">
+      <div className="ptn-dp-inner" style={{ position: 'relative' }}>
         {detailLoading && (
-          <div style={{ padding: 12, fontSize: 12, color: 'var(--text-tertiary)' }}>{t('loading')}…</div>
+          <div className="detail-pane-loader">
+            <MyVagonLoaderContent theme="light" compact />
+          </div>
         )}
 
         <div className="ptn-dp-hero">

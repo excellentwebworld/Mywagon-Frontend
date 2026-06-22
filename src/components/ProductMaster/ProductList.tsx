@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
 import { syncDotClass } from '../../pages/ProductMaster/utils/productUtils';
+import { TableLoadingOverlay } from '../ui/TableLoadingOverlay';
 
 type Props = Pick<
   ProductMasterState,
@@ -22,6 +23,7 @@ type Props = Pick<
   | 'handleToggleRowSelection'
   | 'handleBulkArchive'
   | 'loading'
+  | 'listLoading'
   | 'currentPage'
   | 'setCurrentPage'
   | 'perPage'
@@ -52,6 +54,7 @@ export const ProductList: React.FC<Props> = ({
   handleToggleRowSelection,
   handleBulkArchive,
   loading,
+  listLoading,
   currentPage,
   setCurrentPage,
   perPage,
@@ -64,6 +67,7 @@ export const ProductList: React.FC<Props> = ({
   clearSelection,
 }) => {
   const { t } = useTranslation();
+  const tableBusy = listLoading;
 
   return (
   <div className="list-pane">
@@ -96,20 +100,16 @@ export const ProductList: React.FC<Props> = ({
       </div>
     )}
 
-    <div className="tbl-scroll">
-      {loading && viewMode === 'skus' ? (
-        <div className="empty-state">
-          <div className="et">{t('loadingProducts')}</div>
-        </div>
-      ) : viewMode === 'types' ? (
-        filteredTypes.length === 0 ? (
+    {viewMode === 'types' ? (
+      <div className={`types-grid table-scroll-host${tableBusy ? ' loading-active' : ''}`}>
+        <TableLoadingOverlay active={tableBusy} message={t('loadingProducts')} />
+        {filteredTypes.length === 0 && !tableBusy ? (
           <div className="empty-state">
             <div className="ico">📦</div>
             <div className="et">{t('noTypes')}</div>
           </div>
         ) : (
-          <div className="types-grid">
-            {filteredTypes.map((x) => {
+          filteredTypes.map((x) => {
               const cat = categories.find((c) => c.id === x.catId);
               const typeSkus = x.skuCount ?? 0;
               const isSel = selectedItem?.id === x.id && selectedKind === 'type';
@@ -145,15 +145,18 @@ export const ProductList: React.FC<Props> = ({
                   </div>
                 </div>
               );
-            })}
+          })
+        )}
+      </div>
+    ) : (
+      <div className={`tbl-scroll table-scroll-host${tableBusy ? ' loading-active' : ''}`}>
+        <TableLoadingOverlay active={tableBusy} message={t('loadingProducts')} />
+        {filteredSkus.length === 0 && !tableBusy ? (
+          <div className="empty-state">
+            <div className="ico">📦</div>
+            <div className="et">{t('noSkusFound')}</div>
           </div>
-        )
-      ) : filteredSkus.length === 0 ? (
-        <div className="empty-state">
-          <div className="ico">📦</div>
-          <div className="et">{t('noSkusFound')}</div>
-        </div>
-      ) : (
+        ) : (
         <table className="t">
           <thead>
             <tr>
@@ -275,8 +278,9 @@ export const ProductList: React.FC<Props> = ({
             })}
           </tbody>
         </table>
-      )}
-    </div>
+        )}
+      </div>
+    )}
 
     <div className="pag">
       <div className="pag-info">

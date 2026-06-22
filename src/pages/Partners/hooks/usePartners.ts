@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -408,6 +409,20 @@ export function usePartners() {
 
   const listLoading = listQuery.isLoading || listQuery.isFetching;
   const detailLoading = detailQuery.isLoading && !!selectedPartnerId;
+
+  const actionLoading =
+    inviteMutation.isPending ||
+    acceptMutation.isPending ||
+    declineMutation.isPending ||
+    deleteMutation.isPending ||
+    toggleStatusMutation.isPending ||
+    togglePreferredMutation.isPending ||
+    notesMutation.isPending ||
+    tagsMutation.isPending ||
+    laneMutation.isPending ||
+    deleteLaneMutation.isPending;
+
+  useSyncGlobalLoader(actionLoading);
 
   return {
     t,

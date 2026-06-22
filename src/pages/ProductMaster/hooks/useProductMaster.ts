@@ -14,6 +14,7 @@ import {
   type ViewMode,
 } from '../types';
 import { getCategoryName } from '../utils/productUtils';
+import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 
 const SEARCH_DEBOUNCE_MS = 250;
 const DEFAULT_PAGE_SIZE = 12;
@@ -478,11 +479,15 @@ export function useProductMaster() {
   const catName = useCallback((c: Category) => getCategoryName(c, lang), [lang]);
 
   const loading = summaryQuery.isLoading || referenceQuery.isLoading || skusQuery.isLoading;
+  const listFetching = skusQuery.isFetching || typesQuery.isFetching;
+  const listLoading = loading || listFetching;
   const saving =
     createSkuMutation.isPending ||
     updateSkuMutation.isPending ||
     toggleMutation.isPending ||
     bulkArchiveMutation.isPending;
+
+  useSyncGlobalLoader(saving || exporting);
 
   const getCategoryCount = useCallback(
     (catId: string) => summary?.categories.find((c) => String(c.id) === catId)?.count ?? 0,
@@ -504,6 +509,7 @@ export function useProductMaster() {
     error,
     subscriptionBlocked,
     loading,
+    listLoading,
     saving,
     detailLoading,
     exporting,

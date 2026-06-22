@@ -6,6 +6,13 @@ import { LoaderProvider } from './context/LoaderContext.tsx'
 import './index.css'
 import App from './App.tsx'
 
+function hideBootLoader() {
+  const el = document.getElementById('boot-loader');
+  if (!el) return;
+  el.classList.add('boot-loader--hide');
+  window.setTimeout(() => el.remove(), 300);
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AuthProvider>
@@ -17,5 +24,7 @@ createRoot(document.getElementById('root')!).render(
     </AuthProvider>
   </StrictMode>,
 )
+
+hideBootLoader()
 
 

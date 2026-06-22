@@ -92,6 +92,7 @@ export const ProductMaster: React.FC = () => {
           handleToggleRowSelection={pm.handleToggleRowSelection}
           handleBulkArchive={pm.handleBulkArchive}
           loading={pm.loading}
+          listLoading={pm.listLoading}
           currentPage={pm.currentPage}
           setCurrentPage={pm.setCurrentPage}
           perPage={pm.perPage}

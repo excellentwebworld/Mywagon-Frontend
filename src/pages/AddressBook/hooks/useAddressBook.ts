@@ -15,7 +15,7 @@ import {
   type SortOption,
 } from '../types';
 import { DEFAULT_PAGE_SIZE } from '../constants';
-import { useLoader } from '../../../context/LoaderContext';
+import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useAuth } from '../../../context/AuthContext';
 import { validateCreateAll } from '../validation/locationCreateValidation';
 import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from '../validation/locationDuplicateValidation';
@@ -28,7 +28,6 @@ export function useAddressBook() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { showToast, refreshLocationsFromApi } = useApp();
-  const { showLoader, hideLoader } = useLoader();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -287,10 +286,7 @@ export function useAddressBook() {
   const globalLoaderActive =
     saving || actionLoading || exporting || editModalLoading || companySaving || detailLoading;
 
-  useEffect(() => {
-    if (globalLoaderActive) showLoader();
-    else hideLoader();
-  }, [globalLoaderActive, showLoader, hideLoader]);
+  useSyncGlobalLoader(globalLoaderActive);
 
   useEffect(() => {
     if (!companyDropdownOpen) return;

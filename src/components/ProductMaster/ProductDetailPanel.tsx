@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ProductType, SKU } from '../../context/AppContext';
 import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
+import { MyVagonLoaderContent } from '../ui/MyVagonLoader';
 
 type Props = Pick<
   ProductMasterState,
@@ -36,8 +37,8 @@ export const ProductDetailPanel: React.FC<Props> = ({
   <div className={`detail-pane${selectedItem ? ' open' : ''}`}>
     <div className="dp-inner">
       {detailLoading && selectedKind === 'sku' && (
-        <div className="empty-state">
-          <div className="et">Loading…</div>
+        <div className="detail-pane-loader">
+          <MyVagonLoaderContent theme="light" compact />
         </div>
       )}
       {selectedItem && selectedKind === 'sku' && !detailLoading && (

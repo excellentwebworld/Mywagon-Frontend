@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Partner } from '../../pages/Partners/types';
 import type { PartnersState } from '../../pages/Partners/hooks/usePartners';
+import { TableLoadingOverlay } from '../ui/TableLoadingOverlay';
 
 type Props = Pick<
   PartnersState,
@@ -98,7 +99,8 @@ export const PartnersList: React.FC<Props> = ({
         </span>
       </div>
 
-      <div className="ptn-tbl-scroll">
+      <div className={`ptn-tbl-scroll table-scroll-host${listLoading ? ' loading-active' : ''}`}>
+        <TableLoadingOverlay active={listLoading} message={t('loading')} />
         <table className="ptn-table">
           <thead>
             <tr>
