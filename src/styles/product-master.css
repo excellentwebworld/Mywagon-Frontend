@@ -202,6 +202,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .cat-node .cnt { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--t3); background: var(--sa); padding: 1px 7px; border-radius: 10px; flex-shrink: 0; }
 .cat-node.act .cnt { background: rgba(108,58,237,.15); color: var(--ac); }
 .cat-node .ico { font-size: 14px; }
+.cat-node .lbl { text-overflow: ellipsis; overflow: hidden; white-space: nowrap; flex: 1; min-width: 0; }
 .type-node { padding: 8px 16px 8px 36px; font-size: 12px; font-weight: 500; color: var(--t3); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all .1s; border-left: 3px solid transparent; position: relative; padding-right: 40px; }
 .type-node:hover { background: var(--se); color: var(--t2); }
 .type-node.act  { color: var(--ac); font-weight: 600; background: var(--al); border-left-color: var(--ac); }
