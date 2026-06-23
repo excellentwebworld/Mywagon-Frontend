@@ -140,7 +140,11 @@ function SkuDetail({
           <button type="button" className="btn btn-sm" onClick={() => openEditSku(s)}>
             Edit
           </button>
-          <button type="button" className="btn btn-sm" onClick={() => handleToggleActive(s)}>
+          <button
+            type="button"
+            className={`btn btn-sm ${s.active ? 'btn-danger' : ''}`}
+            onClick={() => handleToggleActive(s)}
+          >
             {s.active ? 'Deactivate' : 'Activate'}
           </button>
         </div>
