@@ -226,6 +226,8 @@
   "sku": "SKU",
   "productType": "Τύπος Προϊόντος",
   "lastSynced": "Τελ. Sync",
+  "lastUpdated": "Τελευταία Ενημέρωση",
+  "hazardousCol": "Επικίνδυνο",
   "items": "στοιχεία",
   "item": "στοιχείο",
   "types": "τύποι",

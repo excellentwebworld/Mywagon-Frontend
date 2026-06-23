@@ -54,6 +54,7 @@ export function mapApiSkuToSku(item: ApiSkuListItem | ApiSkuDetail): SKU {
     shipments30: item.shipments_30 ?? 0,
     shipments90: item.shipments_90 ?? 0,
     shipmentsTotal: item.shipments_total ?? 0,
+    updatedAt: item.updated_at ? item.updated_at.replace('T', ' ').substring(0, 16) : '',
   };
 }
 

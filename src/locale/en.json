@@ -226,6 +226,8 @@
   "sku": "SKU",
   "productType": "Product Type",
   "lastSynced": "Last Synced",
+  "lastUpdated": "Last Updated",
+  "hazardousCol": "Hazardous",
   "items": "items",
   "item": "item",
   "types": "types",

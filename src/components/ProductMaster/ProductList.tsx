@@ -178,9 +178,12 @@ export const ProductList: React.FC<Props> = ({
                   <th>{t('productType')}</th>
                   <th>{t('category')}</th>
                   <th>{t('source')}</th>
-                  <th>{t('syncStatus')}</th>
-                  <th>{t('lastSynced')}</th>
+                  <th>{t('lastUpdated')}</th>
                   <th>{t('status')}</th>
+                  <th>{t('hazardousCol')}</th>
+                  <th>{t('palletType')}</th>
+                  <th>{t('stackable')}</th>
+                  <th>{t('temperature')}</th>
                 </tr>
                 {/* <tr className="col-filters">
               <th />
@@ -264,21 +267,31 @@ export const ProductList: React.FC<Props> = ({
                           {s.source === 'erp' ? 'ERP' : 'Manual'}
                         </span>
                       </td>
-                      <td>
-                        {s.source === 'erp' && s.erp.status ? (
-                          <>
-                            <span className={`sync-dot ${syncDotClass(s.erp.status)}`} />
-                            <span className="sync-text">{s.erp.status}</span>
-                          </>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="ts-cell">{s.source === 'erp' ? s.erp.lastSync : '—'}</td>
+                      <td className="ts-cell">{s.updatedAt || '—'}</td>
                       <td>
                         <span className={s.active ? 'status-active' : 'status-inactive'}>
                           {s.active ? t('active') : t('inactive')}
                         </span>
+                      </td>
+                      <td>
+                        <span className="type-pill">{s.hazardous ? t('yes') : t('no')}</span>
+                      </td>
+                      <td>
+                        {s.palletType ? (
+                          <span className="type-pill">{s.palletType}</span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td>
+                        <span className="type-pill">{s.stackable ? t('yes') : t('no')}</span>
+                      </td>
+                      <td>
+                        {s.temperature ? (
+                          <span className="type-pill">{s.temperature}</span>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                     </tr>
                   );
