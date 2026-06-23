@@ -74,26 +74,7 @@ export const PartnersList: React.FC<Props> = ({
   return (
     <div className="ptn-list-pane">
       <div className="ptn-list-toolbar">
-        <span className="ptn-list-title" id="ptn-list-title">{listTitle}</span>
-        <select
-          className="ptn-sort-sel"
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-          id="ptn-sort-select"
-        >
-          <option value="name">{t('sortByName')}</option>
-          <option value="added">{t('sortByCreated')}</option>
-        </select>
-        <select
-          className="ptn-sort-sel"
-          value={perPage}
-          onChange={(e) => setPageSize(Number(e.target.value))}
-          id="ptn-page-size"
-        >
-          {pageSizeOptions.map((n) => (
-            <option key={n} value={n}>{n}</option>
-          ))}
-        </select>
+        <span className="ptn-list-title" id="ptn-list-title" style={{ fontSize: 14, color: 'var(--accent)', fontWeight: 600 }}>{listTitle}</span>
         <span className="ptn-list-info" id="ptn-list-info">
           {listLoading ? '…' : `${total} ${t('partnersLabel')}`}
         </span>
@@ -224,6 +205,20 @@ export const PartnersList: React.FC<Props> = ({
           {total === 0
             ? `${t('showingLabel')} 0 ${t('ofLabel')} 0`
             : `${t('showingLabel')} ${start}–${end} ${t('ofLabel')} ${total}`}
+
+          <select
+            className="pag-length-sel ml-2"
+            value={perPage}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            disabled={listLoading}
+            aria-label="Rows per page"
+          >
+            {pageSizeOptions.map((n) => (
+              <option key={n} value={n}>
+                {n} / page
+              </option>
+            ))}
+          </select>
         </div>
         <div className="ptn-pag-btns">
           <button

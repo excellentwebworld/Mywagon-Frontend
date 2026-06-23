@@ -505,7 +505,21 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
   flex-shrink: 0;
   background: var(--surface);
 }
-.ptn-pag-info { font-size: 11px; color: var(--text-tertiary); }
+.ptn-pag-info { font-size: 11px; color: var(--text-tertiary); display: flex; align-items: center; }
+.pag-length-sel {
+  font-size: 11px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  outline: none;
+}
+.pag-length-sel:hover {
+  border-color: var(--border-focus);
+}
 .ptn-pag-btns { display: flex; gap: 3px; }
 .ptn-pg-btn {
   width: 28px;

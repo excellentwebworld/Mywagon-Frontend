@@ -651,6 +651,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
    32 → 32px    40 → 40px     48 → 48px
    64 → 64px    80 → 80px     96 → 96px
    ════════════════════════════════════════ */
+.ml-2 { margin-left: 8px; }
 
 /* ════════════════════════════════════════
    UTILITIES

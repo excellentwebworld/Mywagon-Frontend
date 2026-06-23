@@ -89,7 +89,7 @@ export const LocationList: React.FC<Props> = ({
   return (
     <div className="list-pane">
       <div className="list-toolbar">
-        <span className="list-toolbar-title">{activeDirectoryName}</span>
+        <span className="list-toolbar-title" style={{ fontSize: 14, color: 'var(--accent)', fontWeight: 600 }}>{activeDirectoryName}</span>
         <span className="list-info">{countLabel}</span>
       </div>
 
