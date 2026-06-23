@@ -94,6 +94,11 @@ export const ProductList: React.FC<Props> = ({
           <span className="bulk-ct">{selectedIds.size}</span>
           <span>{t('selected')}</span>
           <button type="button" className="btn btn-sm btn-danger" onClick={handleBulkArchive}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '12px', height: '12px', marginRight: '2px' }}>
+              <polyline points="21 8 21 21 3 21 3 8"></polyline>
+              <rect x="1" y="3" width="22" height="5"></rect>
+              <line x1="10" y1="12" x2="14" y2="12"></line>
+            </svg>
             {t('archive')}
           </button>
         </div>

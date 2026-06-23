@@ -54,7 +54,11 @@ export const FacetPane: React.FC<Props> = ({
   };
 
   const selectCat = (catId: string) => {
-    setActiveCat(catId);
+    if (catId !== 'all' && activeCat === catId) {
+      setActiveCat('all');
+    } else {
+      setActiveCat(catId);
+    }
     setActiveType('all');
     clearSelection();
   };
@@ -129,7 +133,7 @@ export const FacetPane: React.FC<Props> = ({
               tabIndex={0}
             >
               <span className="ico">{c.icon === 'fnb' ? '🍷🥨' : c.icon}</span>
-              <span>{catName(c)}</span>
+              <span className="lbl">{catName(c)}</span>
               <span className="cnt">{nodeCount}</span>
             </div>
 

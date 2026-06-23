@@ -321,7 +321,7 @@ export const ProductMasterModals: React.FC<Props> = (pm) => {
 
       {pm.isImportOpen && (
         <div className="modal-bg show" onClick={pm.closeImportModal}>
-          <div className="modal modal-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="modal-h">
               <h3>{t("importCsvBulk")}</h3>
               <button
@@ -357,7 +357,7 @@ export const ProductMasterModals: React.FC<Props> = (pm) => {
                       role="button"
                       tabIndex={0}
                     >
-                      <div className="io-ico">🗂️</div>
+                      <div className="io-ico">📁</div>
                       <div className="io-title">
                         {t("downloadCategoryIndex")}
                       </div>
@@ -372,21 +372,19 @@ export const ProductMasterModals: React.FC<Props> = (pm) => {
                       ref={fileInputRef}
                       type="file"
                       accept=".csv,.tsv,.txt,.xlsx,.xls"
+                      style={{ display: "none" }}
                       onChange={(e) =>
                         setImportFile(e.target.files?.[0] ?? null)
                       }
                     />
-                    {importFile && (
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: "var(--t2)",
-                          marginTop: 6,
-                        }}
-                      >
-                        {importFile.name}
-                      </div>
-                    )}
+                    <input
+                      type="text"
+                      readOnly
+                      placeholder={t("chooseFile", "Choose file")}
+                      value={importFile ? importFile.name : ""}
+                      onClick={() => fileInputRef.current?.click()}
+                      style={{ cursor: "pointer" }}
+                    />
                   </div>
                   <div className="import-stat">
                     <div>
@@ -398,7 +396,8 @@ export const ProductMasterModals: React.FC<Props> = (pm) => {
                 <div className="modal-ft">
                   <button
                     type="button"
-                    className="btn"
+                    className="btn btn-ghost"
+                    style={{ color: "var(--t2)", fontWeight: 600 }}
                     onClick={pm.closeImportModal}
                   >
                     {t("cancel")}
