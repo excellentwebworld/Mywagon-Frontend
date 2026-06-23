@@ -117,13 +117,12 @@ export const CreateLocationModal: React.FC<Props> = ({
         companyEntityId: null,
         template: '',
       });
-    } else {
-      const nextData = applyTemplate('retail', {
-        ...createData,
-        context,
-      });
-      setCreateData(nextData);
     }
+    const nextData = applyTemplate('retail', {
+      ...createData,
+      context,
+    });
+    setCreateData(nextData);
   };
 
   const renderStep1 = () => (
