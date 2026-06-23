@@ -9,6 +9,7 @@ interface Props {
   onArchive: (loc: LocationItem) => void;
   onRestore: (loc: LocationItem) => void;
   disabled?: boolean;
+  setSelectedLoc: (loc: LocationItem) => void;
 }
 
 export const LocationRowActions: React.FC<Props> = ({
@@ -18,6 +19,7 @@ export const LocationRowActions: React.FC<Props> = ({
   onArchive,
   onRestore,
   disabled,
+  setSelectedLoc
 }) => {
   const [open, setOpen] = useState(false);
   const ref = useOutsideClick<HTMLDivElement>(() => setOpen(false), open);
@@ -33,12 +35,13 @@ export const LocationRowActions: React.FC<Props> = ({
         disabled={disabled}
         onClick={(e) => {
           e.stopPropagation();
-          setOpen((v) => !v);
+          setSelectedLoc(location);
+          // setOpen((v) => !v);
         }}
       >
         ⋯
       </button>
-      {open && (
+      {/* {open && (
         <div className="row-actions-dd open">
           <button type="button" onClick={() => { onEdit(location); setOpen(false); }}>Edit</button>
           {archived ? (
@@ -47,7 +50,7 @@ export const LocationRowActions: React.FC<Props> = ({
             <button type="button" className="danger" onClick={() => { onArchive(location); setOpen(false); }}>Archive</button>
           )}
         </div>
-      )}
+      )} */}
     </div>
   );
 };

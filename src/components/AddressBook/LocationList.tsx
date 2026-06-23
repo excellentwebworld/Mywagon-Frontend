@@ -170,6 +170,7 @@ export const LocationList: React.FC<Props> = ({
                     <td onClick={(e) => e.stopPropagation()}>
                       <LocationRowActions
                         location={l}
+                        setSelectedLoc={setSelectedLoc}
                         isArchivedView={activeNode === 'archived'}
                         onEdit={openEditModal}
                         onArchive={handleArchive}
