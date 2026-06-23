@@ -127,7 +127,7 @@ function SkuDetail({
           )}
           {s.weight && (
             <div>
-              <strong>Weight:</strong> {s.weight}
+              <strong>Weight:</strong> {s.weight.toLowerCase().includes('kg') ? s.weight : `${s.weight} kg`}
             </div>
           )}
           {s.uom && (
