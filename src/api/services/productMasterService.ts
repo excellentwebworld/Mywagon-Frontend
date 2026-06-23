@@ -29,6 +29,15 @@ export interface PaginatedSkusResult {
   meta: AddressBookListMeta;
 }
 
+function csvCell(val: string | number | undefined | null): string {
+  if (val === undefined || val === null) return '';
+  const str = String(val);
+  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
 export const productMasterService = {
   async getSummary(): Promise<ApiProductSummary> {
     const res = await apiGet<ApiProductSummary>('/product-master/summary');
@@ -122,18 +131,35 @@ export const productMasterService = {
     URL.revokeObjectURL(url);
   },
 
-  async downloadImportTemplate(): Promise<void> {
-    const token = localStorage.getItem(AUTH_TOKEN_KEY);
-    const response = await fetch(`${API_BASE}/product-master/import/template`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!response.ok) throw new ApiError('Template download failed', response.status);
-    const blob = await response.blob();
+  async downloadImportTemplate(kind: 'sku' | 'index' = 'sku'): Promise<void> {
+    let filename = 'sku-bulk-upload-template.csv';
+    let content = [
+      'SKU Name,SKU Number,Barcode,Unit,Weight,Category,Product Type,Hazardous,Pallet Type,Stackable,Temperature,Status',
+      'Example SKU,5200000000000,5200000000000,Case,12.5 kg,Food & Beverages,Frozen Foods,No,EUR,Yes,Ambient,Active'
+    ].join('\n');
+
+    if (kind === 'index') {
+      filename = 'category-product-type-index.csv';
+      const rows = ['Category,Product Type'];
+      ((window as any).dbCategories || []).forEach((category: any) => {
+        (category.types || []).forEach((type: any) => {
+          rows.push([
+            csvCell(category.name),
+            csvCell(type.name)
+          ].join(','));
+        });
+      });
+      content = rows.join('\n');
+    }
+
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'product_import_template.xlsx';
-    a.click();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   },
 

@@ -445,13 +445,13 @@ export function useProductMaster() {
   }, [handleApiError]);
 
   const downloadCategoryIndex = useCallback(() => {
-    const lines = ['Category ID,Category Name,Type ID,Type Name'];
+    const lines = ['Category Name,Type Name'];
     categories.forEach((c) => {
       const cName = getCategoryName(c, lang);
       productTypes
         .filter((tp) => tp.catId === c.id)
         .forEach((tp) => {
-          lines.push(`${c.id},"${cName.replace(/"/g, '""')}",${tp.id},"${tp.name.replace(/"/g, '""')}"`);
+          lines.push(`"${cName.replace(/"/g, '""')}","${tp.name.replace(/"/g, '""')}"`);
         });
     });
     const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
