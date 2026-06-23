@@ -444,24 +444,26 @@ export function useProductMaster() {
     }
   }, [handleApiError]);
 
-  const downloadCategoryIndex = useCallback(() => {
-    const lines = ['Category Name,Type Name'];
-    categories.forEach((c) => {
-      const cName = getCategoryName(c, lang);
-      productTypes
-        .filter((tp) => tp.catId === c.id)
-        .forEach((tp) => {
-          lines.push(`"${cName.replace(/"/g, '""')}","${tp.name.replace(/"/g, '""')}"`);
+  const downloadCategoryIndex = useCallback(async () => {
+    try {
+      const data = await productMasterService.getAllReferenceCategories();
+      const lines = ['Category Name,Type Name'];
+      data.forEach((c) => {
+        (c.types ?? []).forEach((tp) => {
+          lines.push(`"${c.name.replace(/"/g, '""')}","${tp.name.replace(/"/g, '""')}"`);
         });
-    });
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'category_product_type_index.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [categories, productTypes, lang]);
+      });
+      const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'category_product_type_index.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      handleApiError(err, 'Failed to download category index');
+    }
+  }, [handleApiError]);
 
   const openAiWizard = useCallback(() => {
     setAddDropdownOpen(false);
