@@ -21,7 +21,7 @@ export const LocationMapPreview: React.FC<Props> = ({ lat, lng, address }) => {
   }
 
   const mapUrl = mapsKey
-    ? `https://www.google.com/maps/embed/v1/place?key=${mapsKey}&q=${latNum},${lngNum}&zoom=15`
+    ? `https://maps.google.com/maps?q=${latNum},${lngNum}&z=15&output=embed`
     : `https://www.openstreetmap.org/export/embed.html?bbox=${lngNum - 0.008}%2C${latNum - 0.005}%2C${lngNum + 0.008}%2C${latNum + 0.005}&layer=mapnik&marker=${latNum}%2C${lngNum}`;
 
   return (

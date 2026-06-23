@@ -51,7 +51,7 @@ export const LocationDetailPanel: React.FC<Props> = ({
   const l = selectedLoc;
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
   const mapUrl = mapsKey
-    ? `https://www.google.com/maps/embed/v1/place?key=${mapsKey}&q=${l.lat},${l.lng}&zoom=15`
+    ? `https://maps.google.com/maps?q=${l.lat},${l.lng}&z=15&output=embed`
     : `https://www.openstreetmap.org/export/embed.html?bbox=${l.lng - 0.008}%2C${l.lat - 0.005}%2C${l.lng + 0.008}%2C${l.lat + 0.005}&layer=mapnik&marker=${l.lat}%2C${l.lng}`;
   const mapLink = mapsKey
     ? `https://www.google.com/maps?q=${l.lat},${l.lng}`
