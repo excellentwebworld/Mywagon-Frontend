@@ -95,6 +95,11 @@ export const productMasterService = {
     return res.data ?? [];
   },
 
+  async getAllReferenceCategories(): Promise<ApiReferenceCategory[]> {
+    const res = await apiGet<ApiReferenceCategory[]>('/product-master/reference/categories/get/all');
+    return res.data ?? [];
+  },
+
   async getTypesGrid(): Promise<ApiTypeGridItem[]> {
     const res = await apiGet<ApiTypeGridItem[]>('/product-master/types');
     return res.data ?? [];

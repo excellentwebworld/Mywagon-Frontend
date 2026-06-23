@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
@@ -13,6 +13,8 @@ import type { ProductMasterState } from "../../pages/ProductMaster/hooks/useProd
 import type { NewSkuForm } from "../../pages/ProductMaster/types";
 import { ToggleField } from "../AddressBook";
 import { FormFieldError } from "../AddressBook/FormFieldError";
+import { productMasterService } from "../../api/services/productMasterService";
+import type { ApiReferenceCategory } from "../../api/types/productMaster";
 
 type Props = Pick<
   ProductMasterState,
@@ -54,10 +56,17 @@ export const ProductMasterModals: React.FC<Props> = (pm) => {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [apiCategories, setApiCategories] = useState<ApiReferenceCategory[]>([]);
+
+  useEffect(() => {
+    if (pm.isSkuOpen) {
+      productMasterService.getAllReferenceCategories().then(setApiCategories).catch(() => {});
+    }
+  }, [pm.isSkuOpen]);
 
   const categoryOptions = [
     { value: "", label: t("selectCategory") },
-    ...pm.categories.map((c) => ({ value: c.id, label: pm.catName(c) })),
+    ...apiCategories.map((c) => ({ value: String(c.id), label: c.name })),
   ];
 
   const uomOptions = UOM_OPTIONS.map((u) => ({ value: u, label: u }));
@@ -98,11 +107,10 @@ export const ProductMasterModals: React.FC<Props> = (pm) => {
             const showError = (field: keyof NewSkuForm) =>
               Boolean(touched[field] && errors[field]);
 
+            const selectedCat = apiCategories.find((c) => String(c.id) === values.catId);
             const typeOptions = [
               { value: "", label: t("selectType") },
-              ...pm.productTypes
-                .filter((tp) => tp.catId === values.catId)
-                .map((tp) => ({ value: tp.id, label: tp.name })),
+              ...(selectedCat?.types ?? []).map((tp) => ({ value: String(tp.id), label: tp.name })),
             ];
 
             return (
