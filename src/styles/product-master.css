@@ -294,9 +294,6 @@ input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--ac); cur
   justify-content: flex-start;
   box-sizing: border-box;
 }
-.stat-grid-3 .stat-card .stat-val {
-  font-family: inherit;
-}
 .stat-grid-3 .stat-card .stat-lbl {
   line-height: 1.2;
 }
