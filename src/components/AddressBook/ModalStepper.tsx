@@ -1,24 +1,32 @@
 import React from 'react';
 
-const STEPS = ['Context', 'Address', 'Operations', 'Review'] as const;
+const DEFAULT_STEPS = ['Context', 'Address', 'Operations', 'Review'] as const;
 
 interface ModalStepperProps {
   currentStep: number;
+  steps?: readonly string[];
 }
 
-export const ModalStepper: React.FC<ModalStepperProps> = ({ currentStep }) => (
+export const ModalStepper: React.FC<ModalStepperProps> = ({
+  currentStep,
+  steps = DEFAULT_STEPS,
+}) => (
   <div className="modal-stepper">
-    {STEPS.map((stepName, i) => {
+    {steps.map((stepName, i) => {
       const stepNum = i + 1;
+      const isDone = stepNum < currentStep;
+      const isActive = stepNum === currentStep;
       return (
         <React.Fragment key={stepName}>
-          <div className={`ms-step ${stepNum === currentStep ? 'active' : ''} ${stepNum < currentStep ? 'done' : ''}`}>
-            <div className="ms-num">{stepNum}</div>
+          <div className={`ms-step ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}`}>
+            <div className="ms-num">{isDone ? '✓' : stepNum}</div>
             <span>{stepName}</span>
           </div>
-          {i < STEPS.length - 1 && <div className={`ms-line ${stepNum < currentStep ? 'done' : ''}`} />}
+          {i < steps.length - 1 && <div className={`ms-line ${isDone ? 'done' : ''}`} />}
         </React.Fragment>
       );
     })}
   </div>
 );
+
+export const EDIT_MODAL_STEPS = ['Type', 'Address', 'Operations', 'Review'] as const;

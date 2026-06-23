@@ -7,11 +7,20 @@ interface ToggleFieldProps {
 }
 
 export const ToggleField: React.FC<ToggleFieldProps> = ({ label, value, onChange }) => (
-  <div className="mf">
-    <label>{label}</label>
-    <div className="tog" onClick={() => onChange(!value)} onKeyDown={(e) => e.key === 'Enter' && onChange(!value)} role="button" tabIndex={0}>
-      <div className={`tog-sw ${value ? 'on' : ''}`} />
-      <span>{value ? 'Yes' : 'No'}</span>
-    </div>
+  <div className={`ab-toggle-field${label ? '' : ' ab-toggle-field--bare'}`}>
+    {label ? <span className="ab-toggle-field__label">{label}</span> : null}
+    <button
+      type="button"
+      className="ab-toggle"
+      role="switch"
+      aria-checked={value}
+      aria-label={label || undefined}
+      onClick={() => onChange(!value)}
+    >
+      <span className={`ab-toggle__track${value ? ' is-on' : ''}`}>
+        <span className="ab-toggle__thumb" />
+      </span>
+      <span className={`ab-toggle__text${value ? ' is-on' : ''}`}>{value ? 'Yes' : 'No'}</span>
+    </button>
   </div>
 );

@@ -1,4 +1,5 @@
 import type { CreateLocationData } from '../types';
+import { validateTimeRangesList } from './timeRangeValidation';
 
 export type CreateFieldErrors = Partial<Record<string, string>>;
 
@@ -35,16 +36,8 @@ export function validateCreateStep3(data: CreateLocationData): CreateFieldErrors
   if (!data.maxWeight?.trim()) errors.maxWeight = 'Max weight is required';
   if (!data.loadTime?.trim()) errors.loadTime = 'Estimated loading/unloading time is required';
   if (data.appt) {
-    if (!data.timeRanges.length) {
-      errors.timeRanges = 'Add at least one preferred time range';
-    } else {
-      for (const range of data.timeRanges) {
-        if (!range.start_time || !range.end_time || range.start_time >= range.end_time) {
-          errors.timeRanges = 'End time must be after start time';
-          break;
-        }
-      }
-    }
+    const timeRangeError = validateTimeRangesList(data.timeRanges);
+    if (timeRangeError) errors.timeRanges = timeRangeError;
   }
   return errors;
 }

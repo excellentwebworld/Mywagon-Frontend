@@ -19,7 +19,7 @@ import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useAuth } from '../../../context/AuthContext';
 import { validateCreateAll } from '../validation/locationCreateValidation';
 import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from '../validation/locationDuplicateValidation';
-import { applyTemplate } from '../utils/locationUtils';
+import { applyTemplate, getDefaultCreateData } from '../utils/locationUtils';
 import type { ApiCompanyEntity, ApiCompanyLookup } from '../../../api/types/addressBook';
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -346,9 +346,9 @@ export function useAddressBook() {
 
   const openCreateModal = useCallback(() => {
     setCreateStep(1);
-    setCreateData(EMPTY_CREATE_DATA);
+    setCreateData(getDefaultCreateData(activeNode));
     setIsCreateOpen(true);
-  }, []);
+  }, [activeNode]);
 
   const closeCreateModal = useCallback(() => setIsCreateOpen(false), []);
   const closeEditModal = useCallback(() => setIsEditOpen(false), []);

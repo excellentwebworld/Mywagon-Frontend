@@ -1,6 +1,6 @@
 import type { ApiAddressBookSummary } from '../../../api/types/addressBook';
 import type { LocationItem } from '../../../context/AppContext';
-import type { CreateLocationData, DirectoryItem, FilterKey, SortOption } from '../types';
+import { EMPTY_CREATE_DATA, type CreateLocationData, type DirectoryItem, type FilterKey, type SortOption } from '../types';
 
 export function getNodeCountFromSummary(
   dir: DirectoryItem,
@@ -133,18 +133,17 @@ export function findPotentialDuplicates(
 export function applyTemplate(tpl: string, prev: CreateLocationData): CreateLocationData {
   const base = { ...prev, template: tpl };
   if (tpl === 'retail') {
-    return { ...base, appt: true, dock: 'Dock-level', hours: 'Mon-Fri 06:00–16:00' };
+    return { ...base, dock: 'Dock-level', hours: 'Mon-Fri 06:00–16:00' };
   }
   if (tpl === 'factory') {
-    return { ...base, appt: true, dock: 'Dock-level', hours: 'Mon-Fri 05:00–21:00' };
+    return { ...base, dock: 'Dock-level', hours: 'Mon-Fri 05:00–21:00' };
   }
   if (tpl === 'warehouse') {
-    return { ...base, appt: true, dock: 'Dock-level', hours: 'Mon-Fri 07:00–19:00' };
+    return { ...base, dock: 'Dock-level', hours: 'Mon-Fri 07:00–19:00' };
   }
   if (tpl === 'store') {
     return {
       ...base,
-      appt: false,
       dock: 'Ramp',
       hours: 'Mon-Sat 06:00–14:00',
       maxTruck: '12m',
@@ -152,6 +151,28 @@ export function applyTemplate(tpl: string, prev: CreateLocationData): CreateLoca
     };
   }
   return base;
+}
+
+/** Map facility type to the closest quick-template card for edit/create UI. */
+export function inferQuickTemplateFromType(type: string): string {
+  switch (type) {
+    case 'dc':
+      return 'retail';
+    case 'plant':
+      return 'factory';
+    case 'warehouse':
+      return 'warehouse';
+    case 'store':
+      return 'store';
+    default:
+      return '';
+  }
+}
+
+/** Default create form: context follows directory; Retail DC template selected by default. */
+export function getDefaultCreateData(activeNode: string): CreateLocationData {
+  const context: CreateLocationData['context'] = activeNode === 'customer' ? 'customer' : 'my';
+  return applyTemplate('retail', { ...EMPTY_CREATE_DATA, context });
 }
 
 export function buildDefaultDirectories(t: (k: string) => string): DirectoryItem[] {

@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import type { LocationItem } from '../../context/AppContext';
 import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
-import { applyTemplate } from '../../pages/AddressBook/utils/locationUtils';
 import {
   validateCreateStep1,
   validateCreateStep2,
@@ -109,20 +108,12 @@ export const CreateLocationModal: React.FC<Props> = ({
   };
 
   const selectContext = (context: 'my' | 'customer') => {
-    if (context === 'my') {
-      update({
-        context,
-        company: '',
-        companyVat: '',
-        companyEntityId: null,
-        template: '',
-      });
-    }
-    const nextData = applyTemplate('retail', {
-      ...createData,
+    update({
       context,
+      ...(context === 'my'
+        ? { company: '', companyVat: '', companyEntityId: null }
+        : {}),
     });
-    setCreateData(nextData);
   };
 
   const renderStep1 = () => (
@@ -372,7 +363,9 @@ export const CreateLocationModal: React.FC<Props> = ({
 
       {createData.appt && (
         <div className={`mf ab-preferred-times${fieldErrors.timeRanges ? ' has-error' : ''}`}>
-          <label className="ab-section-label">Pickup/Dropoff Preferred Times</label>
+          <label className="ab-section-label">
+            Pickup/Dropoff Preferred Times <span className="req">*</span>
+          </label>
           <TimeRangeFormList
             timeRanges={createData.timeRanges}
             onChange={(timeRanges) => update({ timeRanges })}
@@ -424,67 +417,139 @@ export const CreateLocationModal: React.FC<Props> = ({
     </>
   );
 
-  const renderStep4 = () => (
-    <>
-      {potentialDuplicates.length > 0 && (
-        <div className="dupe-banner">
-          <h4>Potential Duplicates Found</h4>
-          {potentialDuplicates.map((d) => (
-            <div key={d.id} className="dupe-item">
-              <div>
-                <strong>{d.name}</strong>
-                <br />
-                <span className="dupe-item-addr">{d.address}</span>
-              </div>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => selectExistingDuplicate(d)}>
-                Use existing
-              </button>
-            </div>
-          ))}
-          <div className="dupe-banner-note">You can still create if this is a different location.</div>
-        </div>
-      )}
+  const roleLabel =
+    roleOptions.find((r) => r.value === createData.role)?.label ?? createData.role ?? '—';
 
-      <h4 className="ab-form-heading">Review & Confirm</h4>
-      <div className="review-box">
-        <div className="review-row review-row-highlight">
-          <div className="review-label">Context</div>
-          <div className="review-val">
-            {createData.context === 'my' ? 'My Company' : `Customer: ${createData.company || '—'}`}
+  const reviewValue = (value: string | undefined | null) => (value?.trim() ? value.trim() : '—');
+
+  const renderStep4 = () => {
+    const contextLabel =
+      createData.context === 'my'
+        ? 'My Location'
+        : reviewValue(createData.company) === '—'
+          ? 'Customer Location'
+          : createData.company.trim();
+
+    const locationAddress =
+      [createData.address, createData.city, createData.postal, createData.region].filter(Boolean).join(', ') ||
+      '—';
+
+    const preferredTimes =
+      createData.appt && createData.timeRanges.length > 0
+        ? createData.timeRanges.map((tr) => `${tr.start_time} – ${tr.end_time}`).join(', ')
+        : '—';
+
+    const loadTimeLabel = createData.loadTime?.trim() ? `${createData.loadTime.trim()} min` : '—';
+
+    return (
+      <>
+        {potentialDuplicates.length > 0 && (
+          <div className="dupe-banner">
+            <h4>Potential Duplicates Found</h4>
+            {potentialDuplicates.map((d) => (
+              <div key={d.id} className="dupe-item">
+                <div>
+                  <strong>{d.name}</strong>
+                  <br />
+                  <span className="dupe-item-addr">{d.address}</span>
+                </div>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => selectExistingDuplicate(d)}>
+                  Use existing
+                </button>
+              </div>
+            ))}
+            <div className="dupe-banner-note">You can still create if this is a different location.</div>
+          </div>
+        )}
+
+        <h4 className="ab-form-heading">Review & Confirm</h4>
+        <div className="review-box">
+          <div className="review-row-grid">
+            <div className="review-row">
+              <div className="review-label">Context</div>
+              <div className="review-val">{contextLabel}</div>
+            </div>
+            <div className="review-row">
+              <div className="review-label">Location Type</div>
+              <div className="review-val">
+                {FACILITY_TYPE_LABELS[createData.type] ?? createData.type ?? '—'}
+              </div>
+            </div>
+          </div>
+
+          <div className="review-row">
+            <div className="review-label">Location</div>
+            <div className="review-val review-val-lg">{reviewValue(createData.name)}</div>
+            <div className="review-sub">{locationAddress}</div>
+          </div>
+
+          <div className="review-row-grid">
+            <div className="review-row">
+              <div className="review-label">Role</div>
+              <div className="review-val">{roleLabel}</div>
+            </div>
+            <div className="review-row">
+              <div className="review-label">Internal Code</div>
+              <div className="review-val">{reviewValue(createData.code)}</div>
+            </div>
+          </div>
+
+          <div className="review-row-grid">
+            <div className="review-row">
+              <div className="review-label">Dock Type</div>
+              <div className="review-val">{reviewValue(createData.dock)}</div>
+            </div>
+            <div className="review-row">
+              <div className="review-label">Appointment Required</div>
+              <div className="review-val">{createData.appt ? 'Yes' : 'No'}</div>
+            </div>
+          </div>
+
+          <div className="review-row">
+            <div className="review-label">Preferred Time Ranges</div>
+            <div className="review-val">{preferredTimes}</div>
+          </div>
+
+          <div className="review-row-grid">
+            <div className="review-row">
+              <div className="review-label">Max Truck Length</div>
+              <div className="review-val">{reviewValue(createData.maxTruck)}</div>
+            </div>
+            <div className="review-row">
+              <div className="review-label">Max Weight</div>
+              <div className="review-val">{reviewValue(createData.maxWeight)}</div>
+            </div>
+          </div>
+
+          <div className="review-row-grid">
+            <div className="review-row">
+              <div className="review-label">ADR Allowed</div>
+              <div className="review-val">{createData.adr ? 'Yes' : 'No'}</div>
+            </div>
+            <div className="review-row">
+              <div className="review-label">Pallet Exchange</div>
+              <div className="review-val">{createData.palletExchange ? 'Yes' : 'No'}</div>
+            </div>
+          </div>
+
+          <div className="review-row">
+            <div className="review-label">Est. Loading/Unloading Time</div>
+            <div className="review-val">{loadTimeLabel}</div>
+          </div>
+
+          <div className="review-row">
+            <div className="review-label">Internal Note</div>
+            <div className="review-val review-val-left">{reviewValue(createData.noteInternal)}</div>
+          </div>
+
+          <div className="review-row">
+            <div className="review-label">Carrier-Visible Note</div>
+            <div className="review-val review-val-left">{reviewValue(createData.noteCarrier)}</div>
           </div>
         </div>
-        <div className="review-row">
-          <div className="review-label">Location</div>
-          <div className="review-val review-val-lg">{createData.name || '—'}</div>
-          <div className="review-sub">
-            {createData.address || '—'}
-            {createData.city ? `, ${createData.city}` : ''}
-            {createData.postal ? ` ${createData.postal}` : ''}
-          </div>
-        </div>
-        <div className="review-row-grid">
-          <div className="review-row">
-            <div className="review-label">Role</div>
-            <div className="review-val">{createData.role}</div>
-          </div>
-          <div className="review-row">
-            <div className="review-label">Type</div>
-            <div className="review-val">{FACILITY_TYPE_LABELS[createData.type] || createData.type || 'Not set'}</div>
-          </div>
-        </div>
-        <div className="review-row-grid">
-          <div className="review-row">
-            <div className="review-label">Appointment</div>
-            <div className="review-val">{createData.appt ? 'Required' : 'No'}</div>
-          </div>
-          <div className="review-row">
-            <div className="review-label">Dock</div>
-            <div className="review-val">{createData.dock || '—'}</div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
+      </>
+    );
+  };
 
   const footerButtons = () => {
     if (createStep === 1) {
@@ -525,12 +590,17 @@ export const CreateLocationModal: React.FC<Props> = ({
     }
     return (
       <>
-        <button type="button" className="btn btn-secondary" onClick={() => setCreateStep(3)}>
+        <button type="button" className="btn btn-secondary ab-review-back" onClick={() => setCreateStep(3)}>
           ← Back
         </button>
-        <button type="button" className="btn btn-primary" onClick={submitNewLocation} disabled={saving}>
-          {saving ? 'Creating…' : 'Create Location'}
-        </button>
+        <div className="ab-review-footer-actions">
+          <button type="button" className="btn btn-secondary" onClick={closeCreateModal}>
+            Cancel
+          </button>
+          <button type="button" className="btn btn-primary" onClick={submitNewLocation} disabled={saving}>
+            {saving ? 'Creating…' : '✓ Create Location'}
+          </button>
+        </div>
       </>
     );
   };
@@ -551,7 +621,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           {createStep === 3 && renderStep3()}
           {createStep === 4 && renderStep4()}
         </div>
-        <div className="modal-footer">{footerButtons()}</div>
+        <div className={`modal-footer${createStep === 4 ? ' ab-review-footer' : ''}`}>{footerButtons()}</div>
       </div>
     </div>,
     document.body

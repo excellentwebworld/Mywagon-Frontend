@@ -1,6 +1,7 @@
 import * as Yup from 'yup';
 import { DOCK_TYPES, FACILITY_TYPES } from '../constants';
-import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from './locationDuplicateValidation';
+import { DUPLICATE_LOCATION_MESSAGE } from './locationDuplicateValidation';
+import { areTimeRangesValid } from './timeRangeValidation';
 
 const facilityValues = [...FACILITY_TYPES];
 
@@ -10,16 +11,12 @@ function isValidCoordinate(value: string | undefined, min: number, max: number):
   return Number.isFinite(n) && n >= min && n <= max;
 }
 
-function validateTimeRanges(ranges: { start_time?: string; end_time?: string }[] | undefined): boolean {
-  if (!ranges?.length) return true;
-  for (const range of ranges) {
-    const start = range.start_time ?? '';
-    const end = range.end_time ?? '';
-    if (!start || !end) continue;
-    if (start === '00:00' || end === '00:00') return false;
-    if (start >= end) return false;
-  }
-  return true;
+function validateTimeRanges(
+  ranges: { start_time?: string; end_time?: string }[] | undefined,
+  context?: { parent?: { appt?: boolean } }
+): boolean {
+  if (!context?.parent?.appt) return true;
+  return areTimeRangesValid(ranges);
 }
 
 const contactSchema = Yup.object({
@@ -34,25 +31,6 @@ const contactSchema = Yup.object({
   return Boolean(value.name?.trim());
 });
 
-const duplicateNameTest = async function (
-  this: Yup.TestContext,
-  value: string | undefined
-): Promise<boolean | Yup.ValidationError> {
-  const company = (this.parent as { company?: string }).company?.trim();
-  const name = value?.trim();
-  if (!name || !company) return true;
-
-    const excludeLocationId = (this.options.context as { excludeLocationId?: string } | undefined)
-      ?.excludeLocationId;
-
-  try {
-    const isDuplicate = await checkLocationDuplicate(name, company, excludeLocationId);
-    return !isDuplicate;
-  } catch {
-    return true;
-  }
-};
-
 /** Mirrors MV_Backend_API UpdateLocationRequest / StoreLocationRequest rules. */
 export const locationEditValidationSchema = Yup.object({
   company: Yup.string(),
@@ -62,11 +40,7 @@ export const locationEditValidationSchema = Yup.object({
   palletExchange: Yup.boolean(),
   equipment: Yup.array().of(Yup.string()),
   amenityIds: Yup.array().of(Yup.number()),
-  name: Yup.string()
-    .trim()
-    .required('Location name is required')
-    .max(255)
-    .test('unique-location-name', DUPLICATE_LOCATION_MESSAGE, duplicateNameTest),
+  name: Yup.string().trim().required('Location name is required').max(255),
   address: Yup.string().trim().required('Address is required').max(500),
   city: Yup.string().trim().required('City is required').max(255),
   postalCode: Yup.string().max(50),
@@ -108,8 +82,10 @@ export const locationEditValidationSchema = Yup.object({
     })
     .test(
       'valid-ranges',
-      'Use valid 24-hour ranges. 00:00 is not allowed and end must be after start.',
-      validateTimeRanges
+      'Enter start and end times; end must be after start.',
+      function validateRanges(ranges) {
+        return validateTimeRanges(ranges, this);
+      }
     ),
   contacts: Yup.array().of(contactSchema),
   noteInternal: Yup.string(),
