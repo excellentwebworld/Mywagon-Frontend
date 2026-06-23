@@ -177,6 +177,8 @@ export const CreateLocationModal: React.FC<Props> = ({
               label: '+ Create new company',
               onClick: () => setIsCompanyOpen(true),
             }}
+            direction="down"
+            className="company-entity-select"
           />
           <FormFieldError message={fieldErrors.companyEntity} />
         </div>

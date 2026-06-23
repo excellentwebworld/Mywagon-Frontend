@@ -1179,3 +1179,9 @@ table.ab-table { width: 100%; border-collapse: collapse; }
   height: 120px;
   overflow-y: auto;
 }
+
+/* Company / Entity dropdown options list height limit and internal scroll */
+.company-entity-select .searchable-select-options {
+  height: 120px;
+  overflow-y: auto;
+}
