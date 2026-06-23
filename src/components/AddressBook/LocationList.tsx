@@ -4,6 +4,7 @@ import type { SortOption } from '../../pages/AddressBook/types';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { TableLoadingOverlay } from '../ui/TableLoadingOverlay';
 import { LocationRowActions } from './LocationRowActions';
+import { Pagination } from '../ui/Pagination';
 
 type Props = Pick<
   AddressBookState,
@@ -48,12 +49,6 @@ function getLocationTypeLabel(group: LocationItem['group'], t: AddressBookState[
   return t('abMyLocation');
 }
 
-function buildPageList(current: number, last: number): number[] {
-  if (last <= 7) return Array.from({ length: last }, (_, i) => i + 1);
-  const pages = new Set<number>([1, last, current, current - 1, current + 1, 2, last - 1]);
-  return [...pages].filter((p) => p >= 1 && p <= last).sort((a, b) => a - b);
-}
-
 export const LocationList: React.FC<Props> = ({
   activeDirectoryName,
   activeNode,
@@ -82,7 +77,6 @@ export const LocationList: React.FC<Props> = ({
   const total = listMeta.total;
   const lastPage = listMeta.last_page ?? 1;
   const countLabel = loading ? t('abLoadingLocations') : `${total} location${total !== 1 ? 's' : ''}`;
-  const pages = buildPageList(currentPage, lastPage);
   const sortActive = sortBy === 'Name A–Z';
   const tableLoading = loading || listFetching;
 
@@ -185,73 +179,16 @@ export const LocationList: React.FC<Props> = ({
         </table>
       </div>
 
-      <div className="ab-pag">
-        <div className="pag-info">
-          {total === 0 ? 'Showing 0 of 0' : `Showing ${pageStart}–${pageEnd} of ${total}`}
-        </div>
-        <div className="pag-controls">
-          <select
-            className="pag-length-sel"
-            value={perPage}
-            onChange={(e) => setPerPage(Number(e.target.value))}
-            disabled={loading}
-            aria-label="Rows per page"
-          >
-            {[10, 12, 25, 50, 100].map((n) => (
-              <option key={n} value={n}>
-                {n} / page
-              </option>
-            ))}
-          </select>
-          <div className="pag-btns">
-            <button type="button" className="pg-btn" disabled={currentPage <= 1 || loading} onClick={() => setCurrentPage(1)}>
-              «
-            </button>
-            <button type="button" className="pg-btn" disabled={currentPage <= 1 || loading} onClick={() => setCurrentPage(currentPage - 1)}>
-              ‹
-            </button>
-            {pages.map((p, idx) => {
-              const prev = pages[idx - 1];
-              const gap = prev !== undefined && p - prev > 1;
-              return (
-                <React.Fragment key={p}>
-                  {gap && <span className="pg-ellipsis">…</span>}
-                  <button
-                    type="button"
-                    className={`pg-btn ${p === currentPage ? 'active' : ''}`}
-                    onClick={() => setCurrentPage(p)}
-                    disabled={loading}
-                  >
-                    {p}
-                  </button>
-                </React.Fragment>
-              );
-            })}
-            <button type="button" className="pg-btn" disabled={currentPage >= lastPage || loading} onClick={() => setCurrentPage(currentPage + 1)}>
-              ›
-            </button>
-            <button type="button" className="pg-btn" disabled={currentPage >= lastPage || loading} onClick={() => setCurrentPage(lastPage)}>
-              »
-            </button>
-          </div>
-          {/* <label className="pag-jump">
-            <span>Go to</span>
-            <input
-              type="number"
-              min={1}
-              max={lastPage}
-              defaultValue={currentPage}
-              key={currentPage}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = parseInt((e.target as HTMLInputElement).value, 10);
-                  if (val >= 1 && val <= lastPage) setCurrentPage(val);
-                }
-              }}
-            />
-          </label> */}
-        </div>
-      </div>
+      <Pagination
+        t={t}
+        total={total ?? 0}
+        currentPage={currentPage}
+        perPage={perPage}
+        pageSizeOptions={[10, 12, 25, 50, 100]}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPerPage}
+        showPageSizeSelector={true}
+      />
     </div>
   );
 };

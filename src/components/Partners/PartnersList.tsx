@@ -2,6 +2,7 @@ import React from 'react';
 import type { Partner } from '../../pages/Partners/types';
 import type { PartnersState } from '../../pages/Partners/hooks/usePartners';
 import { TableLoadingOverlay } from '../ui/TableLoadingOverlay';
+import { Pagination } from '../ui/Pagination';
 
 type Props = Pick<
   PartnersState,
@@ -43,7 +44,7 @@ const FACET_LABEL_MAP: Record<string, string> = {
   supplier: 'suppliersType',
   st_active: 'activePartners',
   st_invited: 'invitationSent',
-  st_inv_recv: 'invitationReceived',
+  inv_recv: 'invitationReceived',
   st_suspended: 'suspendedPartners',
 };
 
@@ -67,8 +68,6 @@ export const PartnersList: React.FC<Props> = ({
 }) => {
   const total = listMeta.total ?? 0;
   const lastPage = listMeta.last_page ?? 1;
-  const start = total === 0 ? 0 : (currentPage - 1) * perPage + 1;
-  const end = Math.min(currentPage * perPage, total);
   const listTitle = t(FACET_LABEL_MAP[facetFilter] ?? 'allPartners');
 
   return (
@@ -83,16 +82,6 @@ export const PartnersList: React.FC<Props> = ({
         >
           <option value="name">{t('sortByName')}</option>
           <option value="added">{t('sortByCreated')}</option>
-        </select>
-        <select
-          className="ptn-sort-sel"
-          value={perPage}
-          onChange={(e) => setPageSize(Number(e.target.value))}
-          id="ptn-page-size"
-        >
-          {pageSizeOptions.map((n) => (
-            <option key={n} value={n}>{n}</option>
-          ))}
         </select>
         <span className="ptn-list-info" id="ptn-list-info">
           {listLoading ? '…' : `${total} ${t('partnersLabel')}`}
@@ -219,44 +208,15 @@ export const PartnersList: React.FC<Props> = ({
         </table>
       </div>
 
-      <div className="ptn-pag">
-        <div className="ptn-pag-info">
-          {total === 0
-            ? `${t('showingLabel')} 0 ${t('ofLabel')} 0`
-            : `${t('showingLabel')} ${start}–${end} ${t('ofLabel')} ${total}`}
-        </div>
-        <div className="ptn-pag-btns">
-          <button
-            type="button"
-            className="ptn-pg-btn"
-            disabled={currentPage <= 1}
-            onClick={() => goToPage(currentPage - 1)}
-          >
-            ‹
-          </button>
-          {Array.from({ length: Math.min(lastPage, 5) }, (_, i) => {
-            const page = i + 1;
-            return (
-              <button
-                key={page}
-                type="button"
-                className={`ptn-pg-btn${currentPage === page ? ' active' : ''}`}
-                onClick={() => goToPage(page)}
-              >
-                {page}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            className="ptn-pg-btn"
-            disabled={currentPage >= lastPage}
-            onClick={() => goToPage(currentPage + 1)}
-          >
-            ›
-          </button>
-        </div>
-      </div>
+      <Pagination
+        t={t}
+        total={total}
+        currentPage={currentPage}
+        perPage={perPage}
+        pageSizeOptions={pageSizeOptions}
+        onPageChange={goToPage}
+        onPageSizeChange={setPageSize}
+        showPageSizeSelector={true} />
     </div>
   );
 };

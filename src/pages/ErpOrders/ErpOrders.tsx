@@ -8,11 +8,11 @@ import {
   ErpOrdersKpiStrip,
   ErpOrdersFilterBar,
   ErpOrdersTable,
-  ErpOrdersPagination,
   OrderDetailDrawer,
   CreateEditOrderModal,
   OrdersAiWizardModal,
 } from '../../components/ErpOrders';
+import { Pagination } from '../../components/ui/Pagination';
 import { ErpOrdersDeferredViews } from './ErpOrdersDeferredViews';
 import type { ViewMode } from './types';
 
@@ -77,14 +77,15 @@ export const ErpOrders: React.FC = () => {
           statusLabel={state.statusLabel}
         />
 
-        <ErpOrdersPagination
+        <Pagination
           t={state.t}
-          listMeta={state.listMeta}
+          total={state.listMeta.total ?? 0}
           currentPage={state.currentPage}
           perPage={state.perPage}
           pageSizeOptions={state.pageSizeOptions}
-          goToPage={state.goToPage}
-          setPageSize={state.setPageSize}
+          onPageChange={state.goToPage}
+          onPageSizeChange={state.setPageSize}
+          showPageSizeSelector={true}
         />
       </div>
 

@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { BOARD_DATA, TAB_COUNTS } from './mockData';
 import type { BoardItem } from './types';
+import { Pagination } from '../../components/ui/Pagination';
 
 interface ShipmentBoardProps {
   activeTab: number;
@@ -94,15 +95,17 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
 
   const paginatedData = getPaginatedData();
 
-  // Dynamic values
+  // Dynamic values for pagination
   const totalPages = Math.ceil(rawData.length / itemsPerPage);
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(startItem + paginatedData.length - 1, totalItemsCount);
 
+  // Handle bulk action
   const handleBulkAction = (action: string) => {
     showToast(t('bulkAction', { action, count: selectedRows.size }), 'info');
   };
 
+  // Handle action click
   const handleActionClick = (actionName: string, sid: string) => {
     showToast(t('actionForShipment', { action: actionName, sid }), 'success');
   };
@@ -400,9 +403,7 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
                             </div>
                             <div className="expand-field">
                               <span className="expand-field-label">{t('boardCostKm')}</span>
-                              <span className="expand-field-value mono">
-                                € {(r.rate / parseInt(r.distance)).toFixed(2)}
-                              </span>
+                              <span className="expand-field-value mono">€ {(r.rate / parseInt(r.distance)).toFixed(2)}</span>
                             </div>
                             <div className="expand-field">
                               <span className="expand-field-label">{t('boardRate')}</span>
