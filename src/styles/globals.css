@@ -1160,9 +1160,9 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .sb-logo-img { object-fit: contain; flex-shrink: 0; display: block; }
 
 .sb-logo-img--expanded {
-  height: 32px;
+  height: 26px;
   width: auto;
-  max-width: 140px;
+  max-width: 178px;
 }
 
 .sb-logo-img--collapsed {
