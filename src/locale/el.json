@@ -254,7 +254,7 @@
   "shippingDefaults": "Προεπιλογές Αποστολής",
   "shippingProfile": "Προφίλ Αποστολής",
   "temp": "Θερμοκρασία",
-  "hazardous": "Επικίνδυνο",
+  "hazardous": "Επικίνδυνο?",
   "stackable": "Στοιβαζόμενο",
   "palletType": "Τύπος Παλέτας",
   "noTypeAssigned": "Δεν υπάρχει τύπος.",

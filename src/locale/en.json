@@ -254,7 +254,7 @@
   "shippingDefaults": "Shipping Defaults",
   "shippingProfile": "Shipping Profile",
   "temp": "Temperature",
-  "hazardous": "Hazardous",
+  "hazardous": "Hazardous?",
   "stackable": "Stackable",
   "palletType": "Pallet Type",
   "noTypeAssigned": "No type assigned.",

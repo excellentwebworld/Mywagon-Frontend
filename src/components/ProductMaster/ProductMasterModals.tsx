@@ -237,7 +237,7 @@ export const ProductMasterModals: React.FC<Props> = (pm) => {
                 />
               </div>
 
-              <div className="mf">
+              <div className="mf mt-3">
                 <label>{t("tags")}</label>
                 <input
                   value={pm.newSku.tags}
