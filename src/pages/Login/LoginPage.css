@@ -1,137 +1,388 @@
 .shipper-login-page {
+  position: relative;
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+  margin: 0;
+  padding: 0;
   background: linear-gradient(119deg, rgba(155, 81, 224, 1) 0%, rgba(31, 31, 65, 1) 76%);
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-family: 'DM Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  overflow-x: hidden;
 }
 
-.shipper-login-card {
+.shipper-login-particles {
+  position: fixed;
+  inset: 0;
   width: 100%;
-  max-width: 420px;
-  background: #fff;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.shipper-login-particles .particles-js-canvas-el,
+.shipper-login-particles canvas {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 0;
+  pointer-events: auto;
+}
+
+.shipper-login-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 0 10px;
+  pointer-events: none;
+}
+
+.shipper-login-card-cont {
+  margin-top: 50px;
+  width: 100%;
+  max-width: 500px;
+  pointer-events: auto;
+}
+
+/* .card */
+.shipper-login-card {
+  margin-bottom: 0;
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(31, 31, 65, 0.2);
+  background-color: #fcfcfc;
   overflow: hidden;
 }
 
-.shipper-login-brand {
-  padding: 28px 32px 12px;
+/* .card-body.login-box */
+.shipper-login-box {
+  padding: 0.5rem 1.5rem 1.5rem;
+  background-color: #fcfcfc;
+}
+
+.shipper-login-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.shipper-login-lang-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 25px;
+  float: right;
+  cursor: pointer;
+}
+
+.shipper-login-lang-switch input {
+  display: none;
+}
+
+.shipper-login-lang-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+.shipper-login-lang-slider::before {
+  position: absolute;
+  content: '';
+  height: 18px;
+  width: 18px;
+  left: 4px;
+  bottom: 4px;
+  background-color: #fff;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+.shipper-login-lang-switch input:checked + .shipper-login-lang-slider {
+  background: linear-gradient(135deg, #9b51e0, #4e5cdb);
+}
+
+.shipper-login-lang-switch input:focus + .shipper-login-lang-slider {
+  box-shadow: 0 0 1px #9b51e0;
+}
+
+.shipper-login-lang-switch input:checked + .shipper-login-lang-slider::before {
+  transform: translateX(24px);
+}
+
+.shipper-login-lang-slider::after {
+  content: 'GR';
+  color: #fff;
+  display: block;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  top: 48%;
+  left: 70%;
+  font-size: 10px;
+  font-family: Verdana, sans-serif;
+  pointer-events: none;
+}
+
+.shipper-login-lang-switch input:checked + .shipper-login-lang-slider::after {
+  content: 'EN';
+  left: 32%;
+}
+
+/* .text-center.w-md-75.m-auto */
+.shipper-login-header {
+  clear: both;
+  text-align: center;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.shipper-login-logo-link {
+  display: inline-block;
+  margin-left: 50px;
+}
+
+.shipper-login-logo-link img,
+.shipper-login-logo {
+  height: 48px;
+  width: auto;
+  min-width: 200px;
+  max-width: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+}
+
+.shipper-login-para {
+  max-width: 480px;
+  margin: 1rem auto 1.5rem;
+  color: #6c757d;
+  font-size: 14px;
+  line-height: 1.5;
   text-align: center;
 }
 
-.shipper-login-logo {
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  background: linear-gradient(135deg, #9b51e0, #4e5cdb);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+.shipper-login-alert {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.25rem;
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  font-size: 14px;
 }
 
-.shipper-login-subtitle {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: #6b7280;
+/* .nav.nav-tabs */
+.shipper-login-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  list-style: none;
+  margin: 0 0 0.25rem;
+  padding: 0;
+  border: 0;
+}
+
+.shipper-login-tab-item {
+  padding: 0 0.25rem;
+}
+
+.shipper-login-tab {
+  display: block;
+  text-align: center;
+  background: #fcfcfc;
+  border: none;
+  font-size: 30px;
+  font-weight: 600;
+  color: #9b51e0;
+  padding: 0.25rem 0.75rem;
+  line-height: 1.2;
+}
+
+/* .tab-pane */
+.shipper-login-tab-pane {
+  padding: 1rem 0 0;
 }
 
 .shipper-login-form {
-  padding: 8px 32px 32px;
+  margin: 0;
 }
 
-.shipper-login-title {
-  margin: 0 0 4px;
-  font-size: 22px;
-  font-weight: 700;
-  color: #1f1f41;
+.shipper-login-field {
+  margin-bottom: 1rem;
 }
 
-.shipper-login-desc {
-  margin: 0 0 20px;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.shipper-login-error {
-  margin-bottom: 16px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #fef2f2;
-  color: #991b1b;
-  font-size: 13px;
-  border: 1px solid #fecaca;
-}
-
-.shipper-login-label {
+.shipper-login-field label {
   display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: #000;
 }
 
-.shipper-login-input {
+.shipper-login-control {
+  display: block;
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: 16px;
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
   font-size: 14px;
-  color: #111827;
-  transition: border-color 0.15s ease;
+  line-height: 1.5;
+  color: #000;
+  background-color: #eef2f7;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  transition: border-color 0.15s ease-in-out;
 }
 
-.shipper-login-input:hover,
-.shipper-login-input:focus {
+.shipper-login-control:hover {
+  border: 1px solid #9b51e0;
+}
+
+.shipper-login-control:focus {
   outline: none;
   border-color: #9b51e0;
+  background-color: #fff;
 }
 
-.shipper-login-password-wrap {
+.shipper-login-control:disabled {
+  opacity: 0.7;
+}
+
+.shipper-login-field.has-error .shipper-login-control {
+  border-color: #dc3545;
+}
+
+.shipper-login-field.has-error .shipper-login-control:focus {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15);
+}
+
+.shipper-login-field-error {
+  margin: 0.35rem 0 0;
+  font-size: 12px;
+  color: #dc3545;
+  line-height: 1.4;
+}
+
+.shipper-login-password-div {
   position: relative;
 }
 
-.shipper-login-password-wrap .shipper-login-input {
-  padding-right: 56px;
+.shipper-login-password-div .shipper-login-control {
+  padding: 0.45rem 2rem 0.45rem 0.9rem;
 }
 
-.shipper-login-toggle-pw {
+.shipper-login-password-toggle {
   position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(calc(-50% - 8px));
+  top: 40px;
+  right: 0.9rem;
+  z-index: 9;
   border: none;
   background: transparent;
-  color: #4e5cdb;
-  font-size: 12px;
-  font-weight: 600;
+  color: #6c757d;
   cursor: pointer;
-  padding: 4px 6px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.shipper-login-submit {
+.shipper-login-password-toggle:hover {
+  color: #1f1f41;
+}
+
+.shipper-login-forgot {
+  margin-bottom: 1rem;
+  text-align: left;
+  padding-left: 0;
+}
+
+.shipper-login-pw-link {
+  font-size: 14px;
+  color: #4e5cdb;
+  text-decoration: none;
+}
+
+.shipper-login-pw-link:hover {
+  text-decoration: underline;
+}
+
+.shipper-login-submit-wrap {
+  margin-bottom: 0;
+  text-align: center;
+}
+
+.shipper-login-submit-btn {
+  display: block;
   width: 100%;
-  margin-top: 8px;
-  padding: 12px 16px;
-  border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #9b51e0, #4e5cdb);
-  color: #fff;
+  padding: 0.65rem 1rem;
   font-size: 15px;
   font-weight: 600;
+  letter-spacing: 0.5px;
+  line-height: 1.5;
+  color: #fff;
+  background: linear-gradient(135deg, #9b51e0, #4e5cdb);
+  border: none;
+  border-radius: 15px;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: all 0.3s ease;
 }
 
-.shipper-login-submit:disabled {
+.shipper-login-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4e5cdb, #9b51e0);
+  transform: translateY(-1px);
+}
+
+.shipper-login-submit-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
-.shipper-login-submit:not(:disabled):hover {
-  opacity: 0.95;
+.shipper-login-join-wrap {
+  margin-top: 1rem;
+}
+
+.shipper-login-join {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: none;
+  background-color: #fff;
+  text-align: center;
+  color: #000;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.shipper-login-join:hover {
+  color: #9b51e0;
+  transform: translateY(-1px);
+}
+
+@media (min-width: 768px) {
+  .shipper-login-header {
+    width: 75%;
+  }
+}
+
+@media only screen and (max-width: 1024px) {
+  .shipper-login-card-cont {
+    margin-top: 55px;
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+
+  .shipper-login-box {
+    margin: 30px 10px 10px;
+    padding: 0.5rem 1rem 1.25rem;
+  }
+
+  .shipper-login-logo-link {
+    margin-left: 5px;
+  }
 }
