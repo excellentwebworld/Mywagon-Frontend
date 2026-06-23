@@ -435,33 +435,19 @@ export function useAddressBook() {
     [updateLocationMutation]
   );
 
-  const handleApplyCompany = useCallback(async () => {
-    if (
-      !companyData.name.trim() ||
-      !companyData.vat.trim() ||
-      !companyData.address.trim() ||
-      !companyData.email.trim() ||
-      !companyData.phone.trim() ||
-      !companyData.country.trim() ||
-      !companyData.website.trim() ||
-      !companyData.industry.trim() ||
-      !companyData.contactPerson.trim()
-    ) {
-      showToast('All company details are required', 'error');
-      return;
-    }
+  const handleApplyCompany = useCallback(async (values: CompanyFormData) => {
     try {
       setCompanySaving(true);
       const created = await addressBookService.createCompanyEntity({
-        name: companyData.name.trim(),
-        vat_number: companyData.vat.trim(),
-        address: companyData.address.trim(),
-        country: companyData.country.trim() || 'Greece',
-        phone: companyData.phone || undefined,
-        email: companyData.email || undefined,
-        website: companyData.website || undefined,
-        industry: companyData.industry || undefined,
-        primary_contact: companyData.contactPerson || undefined,
+        name: values.name.trim(),
+        vat_number: values.vat.trim(),
+        address: values.address.trim(),
+        country: values.country.trim() || 'Greece',
+        phone: values.phone || undefined,
+        email: values.email || undefined,
+        website: values.website || undefined,
+        industry: values.industry || undefined,
+        primary_contact: values.contactPerson || undefined,
       });
       setCreateData((prev) => ({
         ...prev,
@@ -476,10 +462,11 @@ export function useAddressBook() {
       showToast(`Company "${created.name}" created`, 'success');
     } catch (err) {
       handleApiError(err, 'Failed to create company');
+      throw err;
     } finally {
       setCompanySaving(false);
     }
-  }, [companyData, handleApiError, showToast]);
+  }, [handleApiError, showToast]);
 
   const openEditModal = useCallback(
     async (loc: LocationItem) => {
