@@ -934,5 +934,22 @@
   "categoryFilter": "📁 Category",
   "typesLabel": "Types",
   "showingTypes": "Showing {{count}} types",
-  "showingSkusRange": "Showing 1–{{count}} of {{total}}"
+  "showingSkusRange": "Showing 1–{{count}} of {{total}}",
+  "loginDescription": "Εισάγετε τη διεύθυνση email και τον κωδικό πρόσβασής σας για να συνδεθείτε στον πίνακα αποστολέα.",
+  "loginEmailAddress": "Διεύθυνση Email",
+  "loginEnterEmail": "Εισάγετε τη διεύθυνση email σας",
+  "loginPassword": "Κωδικός Πρόσβασης",
+  "loginEnterPassword": "Εισάγετε τον κωδικό πρόσβασής σας",
+  "loginForgotPassword": "Ξεχάσατε τον κωδικό σας;",
+  "loginSignup": "Εγγραφή",
+  "loginLogIn": "Σύνδεση",
+  "loginJoinForFree": "Εγγραφή δωρεάν",
+  "loginSigningIn": "Σύνδεση…",
+  "loginShowPassword": "Εμφάνιση κωδικού",
+  "loginHidePassword": "Απόκρυψη κωδικού",
+  "loginEmailRequired": "Παρακαλώ εισάγετε διεύθυνση email",
+  "loginEmailMinLength": "Το email πρέπει να περιέχει τουλάχιστον 2 χαρακτήρες",
+  "loginEmailMaxLength": "Το email δεν πρέπει να υπερβαίνει τους 50 χαρακτήρες",
+  "loginEmailInvalid": "Παρακαλώ εισάγετε έγκυρη διεύθυνση email.",
+  "loginPasswordRequired": "Παρακαλώ εισάγετε κωδικό πρόσβασης"
 }

@@ -934,5 +934,22 @@
   "categoryFilter": "📁 Category",
   "typesLabel": "Types",
   "showingTypes": "Showing {{count}} types",
-  "showingSkusRange": "Showing 1–{{count}} of {{total}}"
+  "showingSkusRange": "Showing 1–{{count}} of {{total}}",
+  "loginDescription": "Please input your email address and password to log into the shipper panel.",
+  "loginEmailAddress": "Email Address",
+  "loginEnterEmail": "Enter your email address",
+  "loginPassword": "Password",
+  "loginEnterPassword": "Enter your password",
+  "loginForgotPassword": "Forgot your password?",
+  "loginSignup": "Signup",
+  "loginLogIn": "Login",
+  "loginJoinForFree": "Join for free",
+  "loginSigningIn": "Signing in…",
+  "loginShowPassword": "Show password",
+  "loginHidePassword": "Hide password",
+  "loginEmailRequired": "Please enter email address",
+  "loginEmailMinLength": "Email must contain at least 2 characters",
+  "loginEmailMaxLength": "Email must not exceed 50 characters",
+  "loginEmailInvalid": "Please enter valid email address.",
+  "loginPasswordRequired": "Please enter password"
 }
