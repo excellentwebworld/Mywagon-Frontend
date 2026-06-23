@@ -32,7 +32,7 @@ declare global {
         places: {
           Autocomplete: new (
             input: HTMLInputElement,
-            opts?: { fields?: string[] }
+            opts?: any
           ) => GoogleAutocomplete;
         };
       };
@@ -43,7 +43,7 @@ declare global {
 
 let mapsScriptLoading: Promise<void> | null = null;
 
-function loadGoogleMaps(apiKey: string): Promise<void> {
+export function loadGoogleMaps(apiKey: string): Promise<void> {
   if (window.google?.maps) return Promise.resolve();
   if (mapsScriptLoading) return mapsScriptLoading;
 
@@ -95,6 +95,7 @@ export const GoogleMapAddressField: React.FC<Props> = ({
 
         autocomplete = new window.google.maps.places.Autocomplete(inputEl, {
           fields: ['formatted_address', 'geometry', 'address_components', 'name'],
+          componentRestrictions: { country: 'gr' },
         });
 
         autocomplete.addListener('place_changed', () => {

@@ -316,7 +316,22 @@ export const CreateLocationModal: React.FC<Props> = ({
         </div>
       </div>
 
-      <LocationMapPreview lat={createData.lat} lng={createData.lng} address={createData.address} />
+      <LocationMapPreview
+        lat={createData.lat}
+        lng={createData.lng}
+        address={createData.address}
+        onLatLngChange={(lat, lng) => update({ lat, lng })}
+        onPlaceSelected={(details) =>
+          update({
+            address: details.address,
+            lat: details.lat,
+            lng: details.lng,
+            city: details.city || createData.city,
+            postal: details.postalCode || createData.postal,
+            region: details.region || createData.region,
+          })
+        }
+      />
     </>
   );
 

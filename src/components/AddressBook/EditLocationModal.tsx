@@ -302,7 +302,37 @@ export const EditLocationModal: React.FC<Props> = ({
                   <FormFieldError message={showError('code') ? errors.code : undefined} />
                 </div>
 
-                <LocationMapPreview lat={values.lat} lng={values.lng} address={values.address} />
+                <LocationMapPreview
+                  lat={values.lat}
+                  lng={values.lng}
+                  address={values.address}
+                  onLatLngChange={(lat, lng) => {
+                    setFieldValue('lat', lat);
+                    setFieldValue('lng', lng);
+                    setFieldTouched('lat', true, false);
+                    setFieldTouched('lng', true, false);
+                  }}
+                  onPlaceSelected={(details) => {
+                    setFieldValue('address', details.address);
+                    setFieldTouched('address', true, false);
+                    setFieldValue('lat', details.lat);
+                    setFieldTouched('lat', true, false);
+                    setFieldValue('lng', details.lng);
+                    setFieldTouched('lng', true, false);
+                    if (details.city) {
+                      setFieldValue('city', details.city);
+                      setFieldTouched('city', true, false);
+                    }
+                    if (details.postalCode) {
+                      setFieldValue('postalCode', details.postalCode);
+                      setFieldTouched('postalCode', true, false);
+                    }
+                    if (details.region) {
+                      setFieldValue('region', details.region);
+                      setFieldTouched('region', true, false);
+                    }
+                  }}
+                />
 
                 <div className={fieldClass(showError('type'))}>
                   <label htmlFor="edit-type">
