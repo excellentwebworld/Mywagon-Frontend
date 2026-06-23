@@ -142,7 +142,7 @@ function SkuDetail({
           </button>
           <button
             type="button"
-            className={`btn btn-sm ${s.active ? 'btn-danger' : ''}`}
+            className={`btn btn-sm ${s.active ? 'btn-danger' : 'btn-primary'}`}
             onClick={() => handleToggleActive(s)}
           >
             {s.active ? 'Deactivate' : 'Activate'}
