@@ -84,9 +84,9 @@ export const ProductMasterHeader: React.FC<Props> = ({
                 ✨ {t('aiWizardTitle')}
               </span>
             </div>
-            <div className="add-dd-i" onClick={() => void downloadTemplate()} role="button" tabIndex={0}>
+            {/* <div className="add-dd-i" onClick={() => void downloadTemplate()} role="button" tabIndex={0}>
               {t('downloadTemplate')}
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
