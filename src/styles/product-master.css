@@ -220,8 +220,8 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .list-toolbar { padding: 8px 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--bd); background: var(--se); flex-shrink: 0; }
 .list-toolbar .sort-sel { padding: 5px 8px; border: 1px solid var(--bd); border-radius: 6px; font-size: 11px; font-family: inherit; background: var(--sf); color: var(--t2); cursor: pointer; }
 .list-info { font-size: 11px; color: var(--t3); margin-left: auto; }
-.bulk-bar { padding: 8px 16px; background: var(--al); border-bottom: 1px solid rgba(108,58,237,.2); display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--ac); flex-shrink: 0; }
-.bulk-bar .bulk-ct { background: var(--ac); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+.pm-container .bulk-bar { padding: 8px 16px; background: var(--al); border-bottom: 1px solid rgba(108,58,237,.2); display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-size: 12px; font-weight: 600; color: var(--ac); flex-shrink: 0; }
+.pm-container .bulk-bar .bulk-ct { background: var(--ac); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
 
 /* ─── Table ─── */
 .tbl-scroll { flex: 1; overflow-y: auto; }
