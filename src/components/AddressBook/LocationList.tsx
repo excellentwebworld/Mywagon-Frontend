@@ -234,7 +234,7 @@ export const LocationList: React.FC<Props> = ({
               »
             </button>
           </div>
-          <label className="pag-jump">
+          {/* <label className="pag-jump">
             <span>Go to</span>
             <input
               type="number"
@@ -249,7 +249,7 @@ export const LocationList: React.FC<Props> = ({
                 }
               }}
             />
-          </label>
+          </label> */}
         </div>
       </div>
     </div>
