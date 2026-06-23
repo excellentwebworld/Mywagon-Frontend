@@ -281,9 +281,25 @@ input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--ac); cur
 
 /* ─── Stat Grid ─── */
 .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .stat-card { padding: 10px 12px; background: var(--se); border-radius: var(--rs); border: 1px solid var(--bd); }
-.stat-card .sv { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; }
-.stat-card .sl { font-size: 10px; color: var(--t3); margin-top: 2px; }
+.stat-card .stat-val { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.stat-card .stat-lbl { font-size: 10px; margin-top: 2px; color: var(--t3); }
+
+.stat-grid-3 .stat-card {
+  background: var(--sa);
+  border: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  box-sizing: border-box;
+}
+.stat-grid-3 .stat-card .stat-val {
+  font-family: inherit;
+}
+.stat-grid-3 .stat-card .stat-lbl {
+  line-height: 1.2;
+}
 
 /* ─── Mini Table ─── */
 .mini-table { width: 100%; border-collapse: collapse; margin-top: 8px; }

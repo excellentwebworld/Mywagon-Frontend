@@ -230,28 +230,25 @@ function SkuDetail({
       )}
 
       <div className="dp-sec">
-        <div className="dp-sec-h" onClick={() => toggleSec('shipments')} role="button" tabIndex={0}>
-          📊 {t('shipmentStats')}
-          <span className={`chev${!secCollapsed.shipments ? ' open' : ''}`}>▼</span>
+        <div className="dp-sec-h" style={{ cursor: 'default' }}>
+          {t('shipmentStats')}
         </div>
-        {!secCollapsed.shipments && (
-          <div className="dp-sec-body">
-            <div className="stat-grid">
-              <div className="stat-card">
-                <div className="sv">{s.shipments30 ?? 0}</div>
-                <div className="sl">{t('shipments30d')}</div>
-              </div>
-              <div className="stat-card">
-                <div className="sv">{s.shipments90 ?? 0}</div>
-                <div className="sl">{t('shipments90d')}</div>
-              </div>
-              <div className="stat-card">
-                <div className="sv">{s.shipmentsTotal ?? 0}</div>
-                <div className="sl">{t('shipmentsTotal')}</div>
-              </div>
+        <div className="dp-sec-body">
+          <div className="stat-grid-3">
+            <div className="stat-card">
+              <div className="stat-val">{s.shipmentsTotal ?? 0}</div>
+              <div className="stat-lbl">{t('shipmentsTotal')}</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-val">{s.shipments30 ?? 0}</div>
+              <div className="stat-lbl">{t('shipments30d')}</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-val">{s.shipments90 ?? 0}</div>
+              <div className="stat-lbl">{t('shipments90d')}</div>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </>
   );
@@ -294,20 +291,20 @@ function TypeDetail({
 
         <div className="stat-grid" style={{ marginTop: 14 }}>
           <div className="stat-card">
-            <div className="sv">{mappedCount}</div>
-            <div className="sl">Mapped SKUs</div>
+            <div className="stat-val">{mappedCount}</div>
+            <div className="stat-lbl">Mapped SKUs</div>
           </div>
           <div className="stat-card">
-            <div className="sv">{tp.s30}</div>
-            <div className="sl">Shipments (30d)</div>
+            <div className="stat-val">{tp.s30}</div>
+            <div className="stat-lbl">Shipments (30d)</div>
           </div>
           <div className="stat-card">
-            <div className="sv">{tp.s90}</div>
-            <div className="sl">Shipments (90d)</div>
+            <div className="stat-val">{tp.s90}</div>
+            <div className="stat-lbl">Shipments (90d)</div>
           </div>
           <div className="stat-card">
-            <div className="sv">{tp.defaults.temp}</div>
-            <div className="sl">Temperature</div>
+            <div className="stat-val">{tp.defaults.temp}</div>
+            <div className="stat-lbl">Temperature</div>
           </div>
         </div>
       </div>
