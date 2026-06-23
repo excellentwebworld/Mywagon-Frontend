@@ -18,6 +18,7 @@ type Props = {
   onSearchChange?: (query: string) => void;
   footerAction?: { label: string; onClick: () => void };
   headerAction?: { label: string; onClick: () => void };
+  direction?: 'up' | 'down' | 'auto';
 };
 
 export const SearchableSelect: React.FC<Props> = ({
@@ -32,6 +33,7 @@ export const SearchableSelect: React.FC<Props> = ({
   onSearchChange,
   footerAction,
   headerAction,
+  direction = 'auto',
 }) => {
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -63,7 +65,11 @@ export const SearchableSelect: React.FC<Props> = ({
   const handleToggle = () => {
     if (disabled) return;
     if (!open) {
-      if (rootRef.current) {
+      if (direction === 'down') {
+        setOpenUp(false);
+      } else if (direction === 'up') {
+        setOpenUp(true);
+      } else if (rootRef.current) {
         const rect = rootRef.current.getBoundingClientRect();
         const spaceBelow = window.innerHeight - rect.bottom;
         const spaceAbove = rect.top;

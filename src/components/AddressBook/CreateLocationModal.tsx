@@ -192,6 +192,8 @@ export const CreateLocationModal: React.FC<Props> = ({
           placeholder="— Select —"
           hasError={Boolean(fieldErrors.type)}
           onChange={(val) => update({ type: val })}
+          direction="down"
+          className="location-type-select"
         />
         <FormFieldError message={fieldErrors.type} />
       </div>
