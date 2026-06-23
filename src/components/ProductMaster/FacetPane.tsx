@@ -150,7 +150,7 @@ export const FacetPane: React.FC<Props> = ({
                     role="button"
                     tabIndex={0}
                   >
-                    <button
+                    {/* <button
                       type="button"
                       className="type-info-btn"
                       onClick={(e) => {
@@ -160,7 +160,7 @@ export const FacetPane: React.FC<Props> = ({
                       title="Info"
                     >
                       ℹ
-                    </button>
+                    </button> */}
                     {type.name}
                     <span className="cnt">{getTypeCount(c.id, type.id)}</span>
                   </div>
