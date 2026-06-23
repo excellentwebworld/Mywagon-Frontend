@@ -189,10 +189,9 @@ export const LocationList: React.FC<Props> = ({
       <div className="ab-pag">
         <div className="pag-info">
           {total === 0 ? 'Showing 0 of 0' : `Showing ${pageStart}–${pageEnd} of ${total}`}
-        </div>
-        <div className="pag-controls">
+
           <select
-            className="pag-length-sel"
+            className="pag-length-sel ml-2"
             value={perPage}
             onChange={(e) => setPerPage(Number(e.target.value))}
             disabled={loading}
@@ -204,6 +203,9 @@ export const LocationList: React.FC<Props> = ({
               </option>
             ))}
           </select>
+        </div>
+        <div className="pag-controls">
+
           <div className="pag-btns">
             <button type="button" className="pg-btn" disabled={currentPage <= 1 || loading} onClick={() => setCurrentPage(1)}>
               «

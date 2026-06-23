@@ -255,6 +255,21 @@ input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--ac); cur
 .pg-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--bd); background: var(--sf); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 11px; font-weight: 500; color: var(--t2); font-family: inherit; }
 .pg-btn:hover { border-color: var(--bf); }
 .pg-btn.act { background: var(--ac); border-color: var(--ac); color: #fff; }
+.pag-controls { display: flex; align-items: center; gap: 10px; }
+.pag-length-sel {
+  font-size: 11px;
+  padding: 4px 8px;
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  background: var(--sf);
+  color: var(--t2);
+  cursor: pointer;
+  font-family: inherit;
+  outline: none;
+}
+.pag-length-sel:hover {
+  border-color: var(--bf);
+}
 
 /* ─── Detail Pane ─── */
 .detail-pane { width: 0; flex-shrink: 0; border-left: 1px solid var(--bd); background: var(--sf); overflow-y: auto; transition: width .3s ease; overflow-x: hidden; }
