@@ -79,21 +79,13 @@ export const ProductList: React.FC<Props> = ({
   return (
     <div className="list-pane">
       <div className="list-toolbar">
-        <span style={{ fontSize: 12, color: 'var(--t2)', fontWeight: 500 }}>
+        <span style={{ fontSize: 14, color: 'var(--accent)', fontWeight: 600 }}>
           {viewMode === 'types' ? t('productTypesHeader') : t('skuRegistry')}
         </span>
-        {viewMode === 'skus' && (
-          <select className="sort-sel" value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
-            <option value="name">Name A–Z</option>
-            <option value="number">SKU Number</option>
-            <option value="type">Product Type</option>
-            <option value="status">Status</option>
-          </select>
-        )}
         <span className="list-info">
           {viewMode === 'types'
             ? `${filteredTypes.length} ${t('types')}`
-            : `${filteredSkus.length} SKUs`}
+            : `${listMeta.total} SKUs`}
         </span>
       </div>
 
@@ -315,60 +307,60 @@ export const ProductList: React.FC<Props> = ({
         </div>
         {viewMode === 'skus' && listMeta && (listMeta.last_page ?? 1) > 1 && (
           <div className="pag-btns">
-                <button
-                  type="button"
-                  className="pg-btn"
-                  disabled={currentPage <= 1 || listLoading}
-                  onClick={() => setCurrentPage(1)}
-                >
-                  «
-                </button>
-                <button
-                  type="button"
-                  className="pg-btn"
-                  disabled={currentPage <= 1 || listLoading}
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                >
-                  ‹
-                </button>
-                {buildPageList(currentPage, listMeta.last_page ?? 1).map(
-                  (p, idx) => {
-                    const prev =
-                      buildPageList(currentPage, listMeta.last_page ?? 1)[idx - 1];
-                    const gap =
-                      prev !== undefined && p - prev > 1;
-                    return (
-                      <React.Fragment key={p}>
-                        {gap && <span className="pg-ellipsis">…</span>}
-                        <button
-                          type="button"
-                          className={`pg-btn ${p === currentPage ? 'active' : ''}`}
-                          onClick={() => setCurrentPage(p)}
-                          disabled={listLoading}
-                        >
-                          {p}
-                        </button>
-                      </React.Fragment>
-                    );
-                  }
-                )}
-                <button
-                  type="button"
-                  className="pg-btn"
-                  disabled={currentPage >= (listMeta.last_page ?? 1) || listLoading}
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                >
-                  ›
-                </button>
-                <button
-                  type="button"
-                  className="pg-btn"
-                  disabled={currentPage >= (listMeta.last_page ?? 1) || listLoading}
-                  onClick={() => setCurrentPage(listMeta.last_page ?? 1)}
-                >
-                  »
-                </button>
-              </div>
+            <button
+              type="button"
+              className="pg-btn"
+              disabled={currentPage <= 1 || listLoading}
+              onClick={() => setCurrentPage(1)}
+            >
+              «
+            </button>
+            <button
+              type="button"
+              className="pg-btn"
+              disabled={currentPage <= 1 || listLoading}
+              onClick={() => setCurrentPage(currentPage - 1)}
+            >
+              ‹
+            </button>
+            {buildPageList(currentPage, listMeta.last_page ?? 1).map(
+              (p, idx) => {
+                const prev =
+                  buildPageList(currentPage, listMeta.last_page ?? 1)[idx - 1];
+                const gap =
+                  prev !== undefined && p - prev > 1;
+                return (
+                  <React.Fragment key={p}>
+                    {gap && <span className="pg-ellipsis">…</span>}
+                    <button
+                      type="button"
+                      className={`pg-btn ${p === currentPage ? 'active' : ''}`}
+                      onClick={() => setCurrentPage(p)}
+                      disabled={listLoading}
+                    >
+                      {p}
+                    </button>
+                  </React.Fragment>
+                );
+              }
+            )}
+            <button
+              type="button"
+              className="pg-btn"
+              disabled={currentPage >= (listMeta.last_page ?? 1) || listLoading}
+              onClick={() => setCurrentPage(currentPage + 1)}
+            >
+              ›
+            </button>
+            <button
+              type="button"
+              className="pg-btn"
+              disabled={currentPage >= (listMeta.last_page ?? 1) || listLoading}
+              onClick={() => setCurrentPage(listMeta.last_page ?? 1)}
+            >
+              »
+            </button>
+          </div>
         )}
       </div>
     </div>
