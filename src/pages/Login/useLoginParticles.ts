@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { LOGIN_PARTICLES_CONFIG } from './loginParticlesConfig';
+import { useEffect, useRef } from "react";
+import { LOGIN_PARTICLES_CONFIG } from "./loginParticlesConfig";
 
 declare global {
   interface Window {
@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-export const LOGIN_PARTICLES_ID = 'shipper-login-particles';
+export const LOGIN_PARTICLES_ID = "shipper-login-particles";
 
 const particlesScriptSrc = `${import.meta.env.BASE_URL}js/particles.min.js`;
 
@@ -36,16 +36,20 @@ function loadParticlesScript(): Promise<void> {
         resolve();
         return;
       }
-      existing.addEventListener('load', finish, { once: true });
-      existing.addEventListener('error', () => reject(new Error('particles.js failed')), { once: true });
+      existing.addEventListener("load", finish, { once: true });
+      existing.addEventListener(
+        "error",
+        () => reject(new Error("particles.js failed")),
+        { once: true },
+      );
       return;
     }
 
-    const script = document.createElement('script');
+    const script = document.createElement("script");
     script.src = particlesScriptSrc;
     script.async = true;
     script.onload = finish;
-    script.onerror = () => reject(new Error('particles.js failed'));
+    script.onerror = () => reject(new Error("particles.js failed"));
     document.body.appendChild(script);
   });
 
@@ -53,13 +57,14 @@ function loadParticlesScript(): Promise<void> {
 }
 
 function destroyParticlesInstance(container: HTMLElement) {
-  const canvas = container.querySelector('canvas');
+  const canvas = container.querySelector("canvas");
   if (!canvas) return;
 
-  const index = window.pJSDom?.findIndex((entry) => entry.pJS.canvas.el === canvas) ?? -1;
+  const index =
+    window.pJSDom?.findIndex((entry) => entry.pJS.canvas.el === canvas) ?? -1;
   if (index >= 0 && window.pJSDom?.[index]?.pJS?.fn?.vendors?.destroypJS) {
     window.pJSDom[index].pJS.fn.vendors.destroypJS();
-    window.pJSDom.splice(index, 1);
+    window?.pJSDom?.splice(index, 1);
     return;
   }
 
