@@ -4,6 +4,13 @@ import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProd
 import { syncDotClass } from '../../pages/ProductMaster/utils/productUtils';
 import { TableLoadingOverlay } from '../ui/TableLoadingOverlay';
 
+// Helper function to build page list for pagination (similar to AddressBook)
+function buildPageList(current: number, last: number): number[] {
+  if (last <= 7) return Array.from({ length: last }, (_, i) => i + 1);
+  const pages = new Set<number>([1, last, current, current - 1, current + 1, 2, last - 1]);
+  return [...pages].filter((p) => p >= 1 && p <= last).sort((a, b) => a - b);
+}
+
 type Props = Pick<
   ProductMasterState,
   | 'viewMode'
@@ -295,38 +302,60 @@ export const ProductList: React.FC<Props> = ({
         </div>
         {viewMode === 'skus' && listMeta && (listMeta.last_page ?? 1) > 1 && (
           <div className="pag-btns">
-            <button
-              type="button"
-              className="pg-btn"
-              disabled={currentPage <= 1}
-              onClick={() => setCurrentPage(currentPage - 1)}
-            >
-              ‹
-            </button>
-            <button type="button" className="pg-btn act">
-              {currentPage}
-            </button>
-            <button
-              type="button"
-              className="pg-btn"
-              disabled={currentPage >= (listMeta.last_page ?? 1)}
-              onClick={() => setCurrentPage(currentPage + 1)}
-            >
-              ›
-            </button>
-            <select
-              className="sort-sel"
-              value={perPage}
-              onChange={(e) => setPerPage(Number(e.target.value))}
-              style={{ marginLeft: 8 }}
-            >
-              {[10, 12, 25, 50, 100].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </div>
+                <button
+                  type="button"
+                  className="pg-btn"
+                  disabled={currentPage <= 1 || listLoading}
+                  onClick={() => setCurrentPage(1)}
+                >
+                  «
+                </button>
+                <button
+                  type="button"
+                  className="pg-btn"
+                  disabled={currentPage <= 1 || listLoading}
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                >
+                  ‹
+                </button>
+                {buildPageList(currentPage, listMeta.last_page ?? 1).map(
+                  (p, idx) => {
+                    const prev =
+                      buildPageList(currentPage, listMeta.last_page ?? 1)[idx - 1];
+                    const gap =
+                      prev !== undefined && p - prev > 1;
+                    return (
+                      <React.Fragment key={p}>
+                        {gap && <span className="pg-ellipsis">…</span>}
+                        <button
+                          type="button"
+                          className={`pg-btn ${p === currentPage ? 'active' : ''}`}
+                          onClick={() => setCurrentPage(p)}
+                          disabled={listLoading}
+                        >
+                          {p}
+                        </button>
+                      </React.Fragment>
+                    );
+                  }
+                )}
+                <button
+                  type="button"
+                  className="pg-btn"
+                  disabled={currentPage >= (listMeta.last_page ?? 1) || listLoading}
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                >
+                  ›
+                </button>
+                <button
+                  type="button"
+                  className="pg-btn"
+                  disabled={currentPage >= (listMeta.last_page ?? 1) || listLoading}
+                  onClick={() => setCurrentPage(listMeta.last_page ?? 1)}
+                >
+                  »
+                </button>
+              </div>
         )}
       </div>
     </div>
