@@ -207,7 +207,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .type-node.act  { color: var(--ac); font-weight: 600; background: var(--al); border-left-color: var(--ac); }
 .type-node .cnt { margin-left: auto; font-size: 10px; color: var(--t3); background: var(--sa); padding: 0 6px; border-radius: 8px; flex-shrink: 0; }
 .type-node.act .cnt { color: var(--ac); background: rgba(108,58,237,.12); }
-.facet-sep { height: 1px; background: var(--bd); margin: 6px 0; }
+.facet-sep { height: 1px; background: var(--bd); }
 .type-info-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; border-radius: 4px; border: none; background: none; color: var(--t3); cursor: pointer; font-size: 9px; display: none; align-items: center; justify-content: center; }
 .type-node:hover .type-info-btn { display: flex; }
 .type-info-btn:hover { background: var(--ac); color: #fff; }

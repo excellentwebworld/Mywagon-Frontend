@@ -107,32 +107,7 @@ export const FacetPane: React.FC<Props> = ({
         </div>
       )}
 
-      {viewMode === 'skus' && (
-        <>
-          <div className="facet-sep" />
-          <div className="facet-label">{t('status')}</div>
-          <div
-            className={`cat-node${filterActive === 'active' ? ' act' : ''}`}
-            onClick={() => toggleStatusFilter('active')}
-            role="button"
-            tabIndex={0}
-          >
-            <span className="ico">✓</span>
-            {t('active')}
-            <span className="cnt">{activeCount}</span>
-          </div>
-          <div
-            className={`cat-node${filterActive === 'inactive' ? ' act' : ''}`}
-            onClick={() => toggleStatusFilter('inactive')}
-            role="button"
-            tabIndex={0}
-          >
-            <span className="ico">○</span>
-            {t('inactive')}
-            <span className="cnt">{inactiveCount}</span>
-          </div>
-        </>
-      )}
+
 
       <div className="facet-sep" />
 
@@ -191,6 +166,34 @@ export const FacetPane: React.FC<Props> = ({
           </div>
         );
       })}
+      <div className="facet-sep" />
+
+      {viewMode === 'skus' && (
+        <>
+          <div className="facet-sep" />
+          <div className="facet-label">{t('status')}</div>
+          <div
+            className={`cat-node${filterActive === 'active' ? ' act' : ''}`}
+            onClick={() => toggleStatusFilter('active')}
+            role="button"
+            tabIndex={0}
+          >
+            <span className="ico">✓</span>
+            {t('active')}
+            <span className="cnt">{activeCount}</span>
+          </div>
+          <div
+            className={`cat-node${filterActive === 'inactive' ? ' act' : ''}`}
+            onClick={() => toggleStatusFilter('inactive')}
+            role="button"
+            tabIndex={0}
+          >
+            <span className="ico">○</span>
+            {t('inactive')}
+            <span className="cnt">{inactiveCount}</span>
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -287,15 +287,16 @@ export function useProductMaster() {
     setIsSkuOpen(true);
   }, []);
 
-  const handleSaveSku = useCallback(() => {
-    if (!newSku.catId || !newSku.typeId || !newSku.name.trim() || !newSku.number.trim()) {
+  const handleSaveSku = useCallback((values?: NewSkuForm) => {
+    const data = values || newSku;
+    if (!data.catId || !data.typeId || !data.name.trim() || !data.number.trim()) {
       showToast(t('fillRequired'), 'warning');
       return;
     }
     if (editSkuMode && selectedItem && selectedKind === 'sku') {
-      updateSkuMutation.mutate({ id: selectedItem.id, form: newSku });
+      updateSkuMutation.mutate({ id: selectedItem.id, form: data });
     } else {
-      createSkuMutation.mutate(newSku);
+      createSkuMutation.mutate(data);
     }
   }, [newSku, editSkuMode, selectedItem, selectedKind, createSkuMutation, updateSkuMutation, showToast, t]);
 

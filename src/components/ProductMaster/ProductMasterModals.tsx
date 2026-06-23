@@ -1,5 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Formik, Form } from "formik";
+import * as Yup from "yup";
 import { SearchableSelect } from "../ui/SearchableSelect";
 import {
   UOM_OPTIONS,
@@ -8,7 +10,9 @@ import {
 } from "../../pages/ProductMaster/constants";
 import { useTranslation } from "../../hooks/useTranslation";
 import type { ProductMasterState } from "../../pages/ProductMaster/hooks/useProductMaster";
+import type { NewSkuForm } from "../../pages/ProductMaster/types";
 import { ToggleField } from "../AddressBook";
+import { FormFieldError } from "../AddressBook/FormFieldError";
 
 type Props = Pick<
   ProductMasterState,
@@ -35,44 +39,25 @@ type Props = Pick<
   | "t"
 >;
 
+const skuValidationSchema = Yup.object().shape({
+  catId: Yup.string().required("Category is required"),
+  typeId: Yup.string().required("Please select a product type"),
+  name: Yup.string().trim().required("SKU Name is required"),
+  number: Yup.string().trim().required("SKU Number is required"),
+});
+
+function fieldClass(hasError: boolean): string {
+  return hasError ? "mf has-error" : "mf";
+}
+
 export const ProductMasterModals: React.FC<Props> = (pm) => {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
 
-  useEffect(() => {
-    if (pm.editSkuMode || !pm.newSku.typeId) return;
-    const tp = pm.productTypes.find((x) => x.id === pm.newSku.typeId);
-    if (!tp) return;
-    pm.setNewSku((prev) => {
-      if (
-        prev.temperature === tp.defaults.temp &&
-        prev.palletType === tp.defaults.palletType &&
-        prev.hazardous === tp.defaults.hazard &&
-        prev.stackable === tp.defaults.stackable
-      ) {
-        return prev;
-      }
-      return {
-        ...prev,
-        temperature: tp.defaults.temp,
-        palletType: tp.defaults.palletType,
-        hazardous: tp.defaults.hazard,
-        stackable: tp.defaults.stackable,
-      };
-    });
-  }, [pm.newSku.typeId, pm.editSkuMode, pm.productTypes]);
-
   const categoryOptions = [
     { value: "", label: t("selectCategory") },
     ...pm.categories.map((c) => ({ value: c.id, label: pm.catName(c) })),
-  ];
-
-  const typeOptions = [
-    { value: "", label: t("selectType") },
-    ...pm.productTypes
-      .filter((tp) => tp.catId === pm.newSku.catId)
-      .map((tp) => ({ value: tp.id, label: tp.name })),
   ];
 
   const uomOptions = UOM_OPTIONS.map((u) => ({ value: u, label: u }));
@@ -92,181 +77,246 @@ export const ProductMasterModals: React.FC<Props> = (pm) => {
   return createPortal(
     <>
       {pm.isSkuOpen && (
-        <div className="modal-bg show" onClick={() => pm.setIsSkuOpen(false)}>
-          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-h">
-              <h3>{pm.editSkuMode ? t("editSku") : t("addSkuMenu")}</h3>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => pm.setIsSkuOpen(false)}
-              >
-                ✕
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="mf-row">
-                <div className="mf">
-                  <label>
-                    {t("category")} <span className="req">*</span>
-                  </label>
-                  <SearchableSelect
-                    options={categoryOptions}
-                    value={pm.newSku.catId}
-                    onChange={(catId) =>
-                      pm.setNewSku({ ...pm.newSku, catId, typeId: "" })
-                    }
-                    placeholder={t("selectCategory")}
-                  />
-                </div>
-                <div className="mf">
-                  <label>
-                    {t("productType")} <span className="req">*</span>
-                  </label>
-                  <SearchableSelect
-                    options={typeOptions}
-                    value={pm.newSku.typeId}
-                    onChange={(typeId) =>
-                      pm.setNewSku({ ...pm.newSku, typeId })
-                    }
-                    placeholder={t("selectType")}
-                    disabled={!pm.newSku.catId}
-                  />
-                </div>
-              </div>
-              <div className="mf">
-                <label>
-                  {t("skuName")} <span className="req">*</span>
-                </label>
-                <input
-                  value={pm.newSku.name}
-                  onChange={(e) =>
-                    pm.setNewSku({ ...pm.newSku, name: e.target.value })
-                  }
-                />
-              </div>
-              <div className="mf-row">
-                <div className="mf">
-                  <label>
-                    {t("skuNumber")} <span className="req">*</span>
-                  </label>
-                  <input
-                    value={pm.newSku.number}
-                    onChange={(e) =>
-                      pm.setNewSku({ ...pm.newSku, number: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="mf">
-                  <label>{t("barcode")}</label>
-                  <input
-                    value={pm.newSku.barcode}
-                    onChange={(e) =>
-                      pm.setNewSku({ ...pm.newSku, barcode: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-              <div className="mf-row">
-                <div className="mf">
-                  <label>{t("uom")}</label>
-                  <SearchableSelect
-                    options={uomOptions}
-                    value={pm.newSku.uom}
-                    onChange={(uom) => pm.setNewSku({ ...pm.newSku, uom })}
-                    placeholder={t("uom")}
-                  />
-                </div>
-                <div className="mf">
-                  <label>{t("weightKg")}</label>
-                  <input
-                    value={pm.newSku.weight}
-                    onChange={(e) =>
-                      pm.setNewSku({ ...pm.newSku, weight: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
+        <Formik
+          initialValues={pm.newSku}
+          validationSchema={skuValidationSchema}
+          enableReinitialize
+          onSubmit={async (values) => {
+            pm.handleSaveSku(values);
+          }}
+        >
+          {({
+            values,
+            errors,
+            touched,
+            handleChange,
+            handleBlur,
+            setFieldValue,
+            setFieldTouched,
+            isSubmitting,
+          }) => {
+            const showError = (field: keyof NewSkuForm) =>
+              Boolean(touched[field] && errors[field]);
 
-              <h4
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  margin: "16px 0 10px",
-                  color: "var(--t2)",
-                }}
-              >
-                {t("shippingDefaults")}
-              </h4>
-              <div className="mf-grid">
-                <div className="mf">
-                  <label>{t("temperature")}</label>
-                  <SearchableSelect
-                    options={tempOptions}
-                    value={pm.newSku.temperature}
-                    onChange={(temperature) =>
-                      pm.setNewSku({ ...pm.newSku, temperature })
-                    }
-                  />
-                </div>
-                <div className="mf">
-                  <label>{t("palletType")}</label>
-                  <SearchableSelect
-                    options={palletOptions}
-                    value={pm.newSku.palletType}
-                    onChange={(palletType) =>
-                      pm.setNewSku({ ...pm.newSku, palletType })
-                    }
-                  />
-                </div>
-              </div>
-              <div className="mf-grid">
-                <ToggleField
-                  label={t("hazardous")}
-                  value={pm.newSku.hazardous}
-                  onChange={(hazardous) =>
-                    pm.setNewSku({ ...pm.newSku, hazardous })
-                  }
-                />
-                <ToggleField
-                  label={t("stackable")}
-                  value={pm.newSku.stackable}
-                  onChange={(stackable) =>
-                    pm.setNewSku({ ...pm.newSku, stackable })
-                  }
-                />
-              </div>
+            const typeOptions = [
+              { value: "", label: t("selectType") },
+              ...pm.productTypes
+                .filter((tp) => tp.catId === values.catId)
+                .map((tp) => ({ value: tp.id, label: tp.name })),
+            ];
 
-              <div className="mf mt-3">
-                <label>{t("tags")}</label>
-                <input
-                  value={pm.newSku.tags}
-                  onChange={(e) =>
-                    pm.setNewSku({ ...pm.newSku, tags: e.target.value })
-                  }
-                  placeholder={t("tagsCommaSeparated")}
-                />
+            return (
+              <div className="modal-bg show" onClick={() => pm.setIsSkuOpen(false)}>
+                <Form className="modal modal-lg" onClick={(e) => e.stopPropagation()} noValidate>
+                  <div className="modal-h">
+                    <h3>{pm.editSkuMode ? t("editSku") : t("addSkuMenu")}</h3>
+                    <button
+                      type="button"
+                      className="modal-close"
+                      onClick={() => pm.setIsSkuOpen(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="modal-body">
+                    <div className="mf-row">
+                      <div className={fieldClass(showError("catId"))}>
+                        <label>
+                          {t("category")} <span className="req">*</span>
+                        </label>
+                        <SearchableSelect
+                          options={categoryOptions}
+                          value={values.catId}
+                          onChange={(catId) => {
+                            setFieldValue("catId", catId);
+                            setFieldValue("typeId", "");
+                            setFieldTouched("catId", true, false);
+                          }}
+                          placeholder={t("selectCategory")}
+                          hasError={showError("catId")}
+                        />
+                        <FormFieldError message={showError("catId") ? errors.catId : undefined} />
+                      </div>
+                      <div className={fieldClass(showError("typeId"))}>
+                        <label>
+                          {t("productType")} <span className="req">*</span>
+                        </label>
+                        <SearchableSelect
+                          options={typeOptions}
+                          value={values.typeId}
+                          onChange={(typeId) => {
+                            setFieldValue("typeId", typeId);
+                            setFieldTouched("typeId", true, false);
+                            if (!pm.editSkuMode && typeId) {
+                              const tp = pm.productTypes.find((x) => x.id === typeId);
+                              if (tp) {
+                                setFieldValue("temperature", tp.defaults.temp);
+                                setFieldValue("palletType", tp.defaults.palletType);
+                                setFieldValue("hazardous", tp.defaults.hazard);
+                                setFieldValue("stackable", tp.defaults.stackable);
+                              }
+                            }
+                          }}
+                          placeholder={t("selectType")}
+                          disabled={!values.catId}
+                          hasError={showError("typeId")}
+                        />
+                        <FormFieldError message={showError("typeId") ? errors.typeId : undefined} />
+                      </div>
+                    </div>
+                    <div className={fieldClass(showError("name"))}>
+                      <label>
+                        {t("skuName")} <span className="req">*</span>
+                      </label>
+                      <input
+                        name="name"
+                        value={values.name}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      />
+                      <FormFieldError message={showError("name") ? errors.name : undefined} />
+                    </div>
+                    <div className="mf-row">
+                      <div className={fieldClass(showError("number"))}>
+                        <label>
+                          {t("skuNumber")} <span className="req">*</span>
+                        </label>
+                        <input
+                          name="number"
+                          value={values.number}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                        />
+                        <FormFieldError message={showError("number") ? errors.number : undefined} />
+                      </div>
+                      <div className={fieldClass(showError("barcode"))}>
+                        <label>{t("barcode")}</label>
+                        <input
+                          name="barcode"
+                          value={values.barcode}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                        />
+                        <FormFieldError message={showError("barcode") ? errors.barcode : undefined} />
+                      </div>
+                    </div>
+                    <div className="mf-row">
+                      <div className={fieldClass(showError("uom"))}>
+                        <label>{t("uom")}</label>
+                        <SearchableSelect
+                          options={uomOptions}
+                          value={values.uom}
+                          onChange={(uom) => {
+                            setFieldValue("uom", uom);
+                            setFieldTouched("uom", true, false);
+                          }}
+                          placeholder={t("uom")}
+                          hasError={showError("uom")}
+                        />
+                        <FormFieldError message={showError("uom") ? errors.uom : undefined} />
+                      </div>
+                      <div className={fieldClass(showError("weight"))}>
+                        <label>{t("weightKg")}</label>
+                        <input
+                          name="weight"
+                          value={values.weight}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                        />
+                        <FormFieldError message={showError("weight") ? errors.weight : undefined} />
+                      </div>
+                    </div>
+
+                    <h4
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        margin: "16px 0 10px",
+                        color: "var(--t2)",
+                      }}
+                    >
+                      {t("shippingDefaults")}
+                    </h4>
+                    <div className="mf-grid">
+                      <div className={fieldClass(showError("temperature"))}>
+                        <label>{t("temperature")}</label>
+                        <SearchableSelect
+                          options={tempOptions}
+                          value={values.temperature}
+                          onChange={(temperature) => {
+                            setFieldValue("temperature", temperature);
+                            setFieldTouched("temperature", true, false);
+                          }}
+                          hasError={showError("temperature")}
+                        />
+                        <FormFieldError message={showError("temperature") ? errors.temperature : undefined} />
+                      </div>
+                      <div className={fieldClass(showError("palletType"))}>
+                        <label>{t("palletType")}</label>
+                        <SearchableSelect
+                          options={palletOptions}
+                          value={values.palletType}
+                          onChange={(palletType) => {
+                            setFieldValue("palletType", palletType);
+                            setFieldTouched("palletType", true, false);
+                          }}
+                          hasError={showError("palletType")}
+                        />
+                        <FormFieldError message={showError("palletType") ? errors.palletType : undefined} />
+                      </div>
+                    </div>
+                    <div className="mf-grid">
+                      <ToggleField
+                        label={t("hazardous")}
+                        value={values.hazardous}
+                        onChange={(hazardous) => {
+                          setFieldValue("hazardous", hazardous);
+                          setFieldTouched("hazardous", true, false);
+                        }}
+                      />
+                      <ToggleField
+                        label={t("stackable")}
+                        value={values.stackable}
+                        onChange={(stackable) => {
+                          setFieldValue("stackable", stackable);
+                          setFieldTouched("stackable", true, false);
+                        }}
+                      />
+                    </div>
+
+                    <div className={fieldClass(showError("tags"))}>
+                      <label>{t("tags")}</label>
+                      <input
+                        name="tags"
+                        value={values.tags}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        placeholder={t("tagsCommaSeparated")}
+                      />
+                      <FormFieldError message={showError("tags") ? errors.tags : undefined} />
+                    </div>
+                  </div>
+                  <div className="modal-ft">
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => pm.setIsSkuOpen(false)}
+                    >
+                      {t("cancel")}
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-p"
+                      disabled={isSubmitting || pm.saving}
+                    >
+                      {pm.editSkuMode ? t("save") : t("create")}
+                    </button>
+                  </div>
+                </Form>
               </div>
-            </div>
-            <div className="modal-ft">
-              <button
-                type="button"
-                className="btn"
-                onClick={() => pm.setIsSkuOpen(false)}
-              >
-                {t("cancel")}
-              </button>
-              <button
-                type="button"
-                className="btn btn-p"
-                onClick={pm.handleSaveSku}
-                disabled={pm.saving}
-              >
-                {pm.editSkuMode ? t("save") : t("create")}
-              </button>
-            </div>
-          </div>
-        </div>
+            );
+          }}
+        </Formik>
       )}
 
       {pm.isImportOpen && (
