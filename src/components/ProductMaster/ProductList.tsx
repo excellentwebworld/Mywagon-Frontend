@@ -299,93 +299,93 @@ export const ProductList: React.FC<Props> = ({
         </div>
       )}
 
-      <div className="pag">
-        <div className="pag-info">
-          {viewMode === 'types'
-            ? t('showingTypes', { count: filteredTypes.length })
-            : listMeta
+      {viewMode === 'skus' && (
+        <div className="pag">
+          <div className="pag-info">
+            {listMeta
               ? t('showingSkusRange', {
                 count: filteredSkus.length,
                 total: listMeta.total,
               })
               : `${filteredSkus.length} SKUs`}
-          <select
-            className="pag-length-sel ml-2"
-            value={perPage}
-            onChange={(e) => setPerPage(Number(e.target.value))}
-            disabled={listLoading}
-            aria-label="Rows per page"
-          >
-            {[10, 12, 25, 50, 100].map((n) => (
-              <option key={n} value={n}>
-                {n} / page
-              </option>
-            ))}
-          </select>
-        </div>
-        {viewMode === 'skus' && listMeta && (
-          <div className="pag-controls">
-
-            {(listMeta.last_page ?? 1) > 1 && (
-              <div className="pag-btns">
-                <button
-                  type="button"
-                  className="pg-btn"
-                  disabled={currentPage <= 1 || listLoading}
-                  onClick={() => setCurrentPage(1)}
-                >
-                  «
-                </button>
-                <button
-                  type="button"
-                  className="pg-btn"
-                  disabled={currentPage <= 1 || listLoading}
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                >
-                  ‹
-                </button>
-                {buildPageList(currentPage, listMeta.last_page ?? 1).map(
-                  (p, idx) => {
-                    const prev =
-                      buildPageList(currentPage, listMeta.last_page ?? 1)[idx - 1];
-                    const gap =
-                      prev !== undefined && p - prev > 1;
-                    return (
-                      <React.Fragment key={p}>
-                        {gap && <span className="pg-ellipsis">…</span>}
-                        <button
-                          type="button"
-                          className={`pg-btn ${p === currentPage ? 'active' : ''}`}
-                          onClick={() => setCurrentPage(p)}
-                          disabled={listLoading}
-                        >
-                          {p}
-                        </button>
-                      </React.Fragment>
-                    );
-                  }
-                )}
-                <button
-                  type="button"
-                  className="pg-btn"
-                  disabled={currentPage >= (listMeta.last_page ?? 1) || listLoading}
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                >
-                  ›
-                </button>
-                <button
-                  type="button"
-                  className="pg-btn"
-                  disabled={currentPage >= (listMeta.last_page ?? 1) || listLoading}
-                  onClick={() => setCurrentPage(listMeta.last_page ?? 1)}
-                >
-                  »
-                </button>
-              </div>
-            )}
+            <select
+              className="pag-length-sel ml-2"
+              value={perPage}
+              onChange={(e) => setPerPage(Number(e.target.value))}
+              disabled={listLoading}
+              aria-label="Rows per page"
+            >
+              {[10, 12, 25, 50, 100].map((n) => (
+                <option key={n} value={n}>
+                  {n} / page
+                </option>
+              ))}
+            </select>
           </div>
-        )}
-      </div>
+          {listMeta && (
+            <div className="pag-controls">
+
+              {(listMeta.last_page ?? 1) > 1 && (
+                <div className="pag-btns">
+                  <button
+                    type="button"
+                    className="pg-btn"
+                    disabled={currentPage <= 1 || listLoading}
+                    onClick={() => setCurrentPage(1)}
+                  >
+                    «
+                  </button>
+                  <button
+                    type="button"
+                    className="pg-btn"
+                    disabled={currentPage <= 1 || listLoading}
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                  >
+                    ‹
+                  </button>
+                  {buildPageList(currentPage, listMeta.last_page ?? 1).map(
+                    (p, idx) => {
+                      const prev =
+                        buildPageList(currentPage, listMeta.last_page ?? 1)[idx - 1];
+                      const gap =
+                        prev !== undefined && p - prev > 1;
+                      return (
+                        <React.Fragment key={p}>
+                          {gap && <span className="pg-ellipsis">…</span>}
+                          <button
+                            type="button"
+                            className={`pg-btn ${p === currentPage ? 'active' : ''}`}
+                            onClick={() => setCurrentPage(p)}
+                            disabled={listLoading}
+                          >
+                            {p}
+                          </button>
+                        </React.Fragment>
+                      );
+                    }
+                  )}
+                  <button
+                    type="button"
+                    className="pg-btn"
+                    disabled={currentPage >= (listMeta.last_page ?? 1) || listLoading}
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                  >
+                    ›
+                  </button>
+                  <button
+                    type="button"
+                    className="pg-btn"
+                    disabled={currentPage >= (listMeta.last_page ?? 1) || listLoading}
+                    onClick={() => setCurrentPage(listMeta.last_page ?? 1)}
+                  >
+                    »
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -51,36 +51,11 @@
 body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t1); min-height: 100vh; }
 
 /* ─── Layout: full-height panes (scoped to Product Master route) ─── */
-.main-content:has(.pm-container) {
-  margin-left: var(--sidebar-w, 242px);
-  height: 100vh;
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-}
-
-.main-content:has(.pm-container).expanded {
-  margin-left: var(--sidebar-collapsed, 72px);
-}
-
-.page-body:has(.pm-container) {
-  padding: 0;
-  overflow: hidden;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
 .pm-container {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
   height: calc(100vh - var(--topbar-h, 64px));
+  overflow: hidden;
 }
 
 /* ─── Buttons ─── */
