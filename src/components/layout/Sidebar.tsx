@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "../../hooks/useTranslation";
 import { assetUrl } from "../../utils/assetUrl";
+import collapsedLogo from "../../assets/logo/logo.svg";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -54,9 +55,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Logo */}
         <Link to="/dashboard" className="sb-logo" onClick={onCloseMobile} aria-label="MYVAGON">
           <img
-            src={assetUrl('gray_white.png')}
+            src={collapsed ? collapsedLogo : assetUrl('gray_white.png')}
             alt=""
-            className="sb-logo-img"
+            className={`sb-logo-img${collapsed ? ' sb-logo-img--collapsed' : ' sb-logo-img--expanded'}`}
           />
         </Link>
 

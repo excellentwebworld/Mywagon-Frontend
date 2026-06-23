@@ -17,7 +17,7 @@ export const Dashboard: React.FC = () => {
   const [activeBoardTab, setActiveBoardTab] = useState<number>(1);
 
   return (
-    <div className="animate-fade-in pt-5 px-7">
+    <div className="animate-fade-in dashboard-page">
       {/* Page Title */}
       <h1 className="text-h2" style={{ marginBottom: '16px' }}>{t('dashboard')}</h1>
 
