@@ -457,6 +457,10 @@ export function useAddressBook() {
         phone: created.phone || prev.phone,
         email: created.email || prev.email,
       }));
+      setApiCompanies((prev) => [
+        { company_name: created.name, company_vat: created.vat_number },
+        ...prev,
+      ]);
       setIsCompanyOpen(false);
       setCompanyData(EMPTY_COMPANY_DATA);
       showToast(`Company "${created.name}" created`, 'success');
