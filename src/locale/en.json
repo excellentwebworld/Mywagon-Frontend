@@ -472,7 +472,7 @@
   "byStatus": "By Status",
   "byRegion": "By Region",
   "partnersNetwork": "Partners Network",
-  "partnerSearchPlaceholder": "Search name, VAT, email, truck type, region…",
+  "partnerSearchPlaceholder": "Search name, email, phone, unique ID, type…",
   "statusFilter": "Status",
   "capabilityFilter": "Capability",
   "performanceFilter": "Performance",
