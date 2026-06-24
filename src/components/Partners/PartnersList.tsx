@@ -1,14 +1,48 @@
 import React from 'react';
 import type { Partner } from '../../pages/Partners/types';
+import type { PartnersSortField } from '../../pages/Partners/types';
 import type { PartnersState } from '../../pages/Partners/hooks/usePartners';
 import { ListSkeleton } from '../skeletons/ListSkeleton';
+
+function SortColumnHeader({
+  label,
+  field,
+  sortField,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  field: PartnersSortField;
+  sortField: PartnersSortField;
+  sortDir: 'asc' | 'desc';
+  onSort: (field: PartnersSortField) => void;
+}) {
+  const isActive = sortField === field;
+  const arrow = isActive ? (sortDir === 'asc' ? '↑' : '↓') : '↑';
+
+  return (
+    <th>
+      <button
+        type="button"
+        className={`th-sort-btn${isActive ? ' active' : ''}`}
+        onClick={() => onSort(field)}
+      >
+        {label}
+        <span className="th-sort-arrow" aria-hidden="true">
+          {arrow}
+        </span>
+      </button>
+    </th>
+  );
+}
 
 type Props = Pick<
   PartnersState,
   | 't'
   | 'filteredPartners'
-  | 'sortBy'
-  | 'setSortBy'
+  | 'sortField'
+  | 'sortDir'
+  | 'toggleSort'
   | 'facetFilter'
   | 'selectedPartner'
   | 'openDetailPanel'
@@ -50,8 +84,9 @@ const FACET_LABEL_MAP: Record<string, string> = {
 export const PartnersList: React.FC<Props> = ({
   t,
   filteredPartners,
-  sortBy,
-  setSortBy,
+  sortField,
+  sortDir,
+  toggleSort,
   facetFilter,
   selectedPartner,
   openDetailPanel,
@@ -84,14 +119,26 @@ export const PartnersList: React.FC<Props> = ({
         <table className="ptn-table">
           <thead>
             <tr>
-              <th>{t('partnerCol')}</th>
+              <SortColumnHeader
+                label={t('partnerCol')}
+                field="name"
+                sortField={sortField}
+                sortDir={sortDir}
+                onSort={toggleSort}
+              />
               <th>{t('uniqueIdCol')}</th>
               <th>{t('typeCol')}</th>
               <th>{t('statusCol')}</th>
               <th>{t('contactCol')}</th>
               <th>{t('ratingTripsCol')}</th>
               <th>{t('capabilitiesCol')}</th>
-              <th>{t('createdAtCol')}</th>
+              <SortColumnHeader
+                label={t('createdAtCol')}
+                field="created_at"
+                sortField={sortField}
+                sortDir={sortDir}
+                onSort={toggleSort}
+              />
             </tr>
           </thead>
           <tbody id="ptn-tbody">

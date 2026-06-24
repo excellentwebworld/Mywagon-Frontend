@@ -5,7 +5,7 @@ import type {
   ApiPartnerSummary,
   ListPartnersParams,
 } from '../types/partners';
-import type { FacetFilter, KpiFilter, Partner, ContractLane, PartnerStatus, PartnerType } from '../../pages/Partners/types';
+import type { FacetFilter, KpiFilter, Partner, ContractLane, PartnerStatus, PartnerType, PartnersSortField } from '../../pages/Partners/types';
 
 const STATUS_MAP: Record<string, PartnerStatus> = {
   active: 'active',
@@ -128,9 +128,16 @@ export function buildListParams(
   capabilities: number[],
   search: string,
   page: number,
-  perPage: number
+  perPage: number,
+  sortField: PartnersSortField,
+  sortDir: 'asc' | 'desc'
 ): ListPartnersParams {
-  const params: ListPartnersParams = { page, per_page: perPage };
+  const params: ListPartnersParams = {
+    page,
+    per_page: perPage,
+    sort: sortField,
+    sort_dir: sortDir,
+  };
   if (facet && facet !== 'all') params.facet = facetToApiParam(facet);
   if (search.trim()) params.search = search.trim();
   if (statuses.length) params.statuses = statuses;

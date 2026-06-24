@@ -91,8 +91,9 @@ const Partners: React.FC = () => {
         <PartnersList
           t={state.t}
           filteredPartners={state.filteredPartners}
-          sortBy={state.sortBy}
-          setSortBy={state.setSortBy}
+          sortField={state.sortField}
+          sortDir={state.sortDir}
+          toggleSort={state.toggleSort}
           facetFilter={state.facetFilter}
           selectedPartner={state.selectedPartner}
           openDetailPanel={state.openDetailPanel}

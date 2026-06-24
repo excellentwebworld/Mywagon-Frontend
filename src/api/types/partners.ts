@@ -103,6 +103,8 @@ export interface ListPartnersParams {
   facet?: string;
   statuses?: string[];
   capabilities?: number[];
+  sort?: 'name' | 'created_at';
+  sort_dir?: 'asc' | 'desc';
 }
 
 export interface PaginatedPartnersResult {

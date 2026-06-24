@@ -91,7 +91,7 @@ export type KpiFilter =
   | 'invited'
   | 'suspended';
 
-export type SortOption = 'name' | 'added';
+export type PartnersSortField = 'name' | 'created_at';
 
 export type StatusFilter = 'active' | 'invited' | 'pending' | 'suspended';
 

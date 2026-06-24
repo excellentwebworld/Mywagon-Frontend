@@ -19,7 +19,7 @@ import type {
   KpiFilter,
   OpenSections,
   Partner,
-  SortOption,
+  PartnersSortField,
 } from '../types';
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -57,7 +57,8 @@ export function usePartners() {
   const [kpiFilter, setKpiFilter] = useState<KpiFilter>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [sortField, setSortField] = useState<PartnersSortField>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
   const [openFilterDropdown, setOpenFilterDropdown] = useState('');
 
@@ -91,7 +92,7 @@ export function usePartners() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [facetFilter, activeFilters, perPage, kpiFilter]);
+  }, [facetFilter, activeFilters, perPage, kpiFilter, sortField, sortDir]);
 
   const handleApiError = useCallback(
     (err: unknown, fallback: string) => {
@@ -134,6 +135,8 @@ export function usePartners() {
       debouncedSearch,
       currentPage,
       perPage,
+      sortField,
+      sortDir,
     ],
     queryFn: () =>
       partnersService.listPartnersMapped(
@@ -142,7 +145,9 @@ export function usePartners() {
         activeFilters.capability,
         debouncedSearch,
         currentPage,
-        perPage
+        perPage,
+        sortField,
+        sortDir
       ),
   });
 
@@ -161,12 +166,14 @@ export function usePartners() {
     return listPartners.find((p) => p.id === selectedPartnerId) ?? null;
   }, [selectedPartnerId, detailQuery.data, listPartners]);
 
-  const sortedPartners = useMemo(() => {
-    const list = [...listPartners];
-    if (sortBy === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
-    else if (sortBy === 'added') list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    return list;
-  }, [listPartners, sortBy]);
+  const toggleSort = useCallback((field: PartnersSortField) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortField(field);
+    setSortDir(field === 'created_at' ? 'desc' : 'asc');
+  }, [sortField]);
 
   const kpiCounts = useMemo(
     () => (summaryQuery.data ? summaryToKpiCounts(summaryQuery.data) : {
@@ -429,7 +436,7 @@ export function usePartners() {
     showToast,
     error,
     subscriptionBlocked,
-    filteredPartners: sortedPartners,
+    filteredPartners: listPartners,
     kpiCounts,
     facetCounts,
     truckCategories,
@@ -440,8 +447,9 @@ export function usePartners() {
     kpiFilter,
     searchQuery,
     setSearchQuery,
-    sortBy,
-    setSortBy,
+    sortField,
+    sortDir,
+    toggleSort,
     activeFilters,
     openFilterDropdown,
     selectedPartner,

@@ -12,7 +12,7 @@ import type {
   ListPartnersParams,
   PaginatedPartnersResult,
 } from '../types/partners';
-import type { FacetFilter, Partner } from '../../pages/Partners/types';
+import type { FacetFilter, Partner, PartnersSortField } from '../../pages/Partners/types';
 import type { ApiListMeta } from '../types/addressBook';
 
 export const partnersService = {
@@ -34,6 +34,8 @@ export const partnersService = {
     if (params.facet) query.facet = params.facet;
     if (params.statuses?.length) query.statuses = params.statuses.join(',');
     if (params.capabilities?.length) query.capabilities = params.capabilities.join(',');
+    if (params.sort) query.sort = params.sort;
+    if (params.sort_dir) query.sort_dir = params.sort_dir;
 
     const res = await apiGet<ApiPartnerListItem[]>('/partners', query);
     return {
@@ -48,9 +50,11 @@ export const partnersService = {
     capabilities: number[],
     search: string,
     page: number,
-    perPage: number
+    perPage: number,
+    sortField: PartnersSortField,
+    sortDir: 'asc' | 'desc'
   ): Promise<{ partners: Partner[]; meta: ApiListMeta }> {
-    const params = buildListParams(facet, statuses, capabilities, search, page, perPage);
+    const params = buildListParams(facet, statuses, capabilities, search, page, perPage, sortField, sortDir);
     const result = await this.listPartners(params);
     return {
       partners: result.items.map(mapListItemToPartner),
