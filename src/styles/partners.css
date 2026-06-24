@@ -787,7 +787,13 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
 /* ─────────────────────────────
    INVITE MODAL
    ───────────────────────────── */
-.ptn-inv-modal { max-width: 520px; }
+.ptn-inv-modal {
+  max-width: 520px;
+  overflow: visible !important;
+}
+.ptn-inv-modal .modal-body {
+  overflow: visible !important;
+}
 .ptn-mtog {
   display: flex;
   gap: 8px;
@@ -831,6 +837,100 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
   border-color: var(--accent);
   background: var(--accent-light);
   color: var(--accent);
+}
+
+.ptn-custom-select {
+  position: relative;
+  width: 100%;
+}
+
+.ptn-custom-select-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  height: 42px;
+  box-sizing: border-box;
+}
+
+.ptn-custom-select-trigger:focus {
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.ptn-custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  z-index: 250;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ptn-custom-select-search {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--accent);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  background: var(--surface);
+  color: var(--text-primary);
+  height: 42px;
+  box-sizing: border-box;
+}
+
+.ptn-custom-select-options {
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ptn-custom-select-option {
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all .1s;
+  text-align: left;
+}
+
+.ptn-custom-select-option:hover {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.ptn-custom-select-option.selected {
+  color: var(--accent);
+  font-weight: 600;
+  background: var(--accent-light);
+}
+
+.ptn-custom-select-no-results {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  text-align: center;
 }
 
 .ptn-customer-warn {
