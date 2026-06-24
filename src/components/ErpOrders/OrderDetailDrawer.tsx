@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import type { ErpOrder } from '../../pages/ErpOrders/types';
+import { OrderDetailSkeleton } from '../skeletons/OrderDetailSkeleton';
 import { CloseIcon, PlusIcon, SyncIcon } from './erpOrderIcons';
 import {
   ERP_SOURCE_STYLE,
@@ -79,6 +80,10 @@ export const OrderDetailDrawer: React.FC<Props> = ({
         aria-labelledby="erp-order-drawer-title"
         onClick={(e) => e.stopPropagation()}
       >
+        {loading ? (
+          <OrderDetailSkeleton onClose={onClose} t={t} />
+        ) : (
+          <>
         <div className="erp-order-drawer-head">
           <div className="erp-order-drawer-head-top">
             <div className="erp-order-drawer-head-main">
@@ -113,9 +118,7 @@ export const OrderDetailDrawer: React.FC<Props> = ({
         </div>
 
         <div className="erp-order-drawer-body">
-          {loading && !order ? (
-            <div className="erp-order-drawer-empty">{t('loading')}</div>
-          ) : !order ? (
+          {!order ? (
             <div className="erp-order-drawer-empty">{t('erpOrdersLoadError')}</div>
           ) : (
             <>
@@ -231,6 +234,8 @@ export const OrderDetailDrawer: React.FC<Props> = ({
               </button>
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>,
