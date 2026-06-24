@@ -117,28 +117,30 @@ export const ErpOrders: React.FC = () => {
         clearFilters={state.clearFilters}
       />
 
-      <ErpOrdersTable
-        t={state.t}
-        orders={state.orders}
-        listLoading={state.listLoading}
-        sortField={state.sortField}
-        sortDir={state.sortDir}
-        doSort={state.doSort}
-        openDrawer={state.openDrawer}
-        statusLabel={state.statusLabel}
-        selectedIds={state.selectedIds}
-        selectedOrderId={state.selectedOrderId}
-        toggleSelect={state.toggleSelect}
-        toggleSelectAll={state.toggleSelectAll}
-        clearSelection={state.clearSelection}
-        onCreateLoad={() => handleCreateLoad()}
-        listMeta={state.listMeta}
-        currentPage={state.currentPage}
-        perPage={state.perPage}
-        pageSizeOptions={state.pageSizeOptions}
-        goToPage={state.goToPage}
-        setPageSize={state.setPageSize}
-      />
+      <div className="erp-panes">
+        <ErpOrdersTable
+          t={state.t}
+          orders={state.orders}
+          listLoading={state.listLoading}
+          sortField={state.sortField}
+          sortDir={state.sortDir}
+          doSort={state.doSort}
+          openDrawer={state.openDrawer}
+          statusLabel={state.statusLabel}
+          selectedIds={state.selectedIds}
+          selectedOrderId={state.selectedOrderId}
+          toggleSelect={state.toggleSelect}
+          toggleSelectAll={state.toggleSelectAll}
+          clearSelection={state.clearSelection}
+          onCreateLoad={() => handleCreateLoad()}
+          listMeta={state.listMeta}
+          currentPage={state.currentPage}
+          perPage={state.perPage}
+          pageSizeOptions={state.pageSizeOptions}
+          goToPage={state.goToPage}
+          setPageSize={state.setPageSize}
+        />
+      </div>
 
       <OrderDetailDrawer
         t={state.t}

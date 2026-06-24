@@ -6,24 +6,45 @@
 .page-body:has(.erp-wrap) {
   padding: 0;
   overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content:has(.erp-wrap) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .erp-wrap {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--topbar-h, 64px));
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   background: var(--bg, #F7F7F8);
 }
 
-/* ── List pane (matches Partners / Product Master listing) ── */
+/* ── List area (matches Partners ptn-panes) ── */
+.erp-panes {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── List pane (matches Partners ptn-list-pane) ── */
 .erp-list-pane {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  margin: 0 24px 16px;
   border: 1px solid var(--border, #E4E4E8);
   border-radius: var(--radius-md, 12px);
   background: var(--surface, #FFF);
@@ -2767,6 +2788,9 @@ table.t tbody td {
   }
 }
 @media(max-width: 900px) {
+  .erp-panes {
+    margin: 0 12px 12px;
+  }
   .tbl-wrap {
     margin: 0 12px;
   }
