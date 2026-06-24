@@ -39,7 +39,7 @@ const Partners: React.FC = () => {
       case 'reactivate':
         return { title: state.t('confirmReactivatePartner'), message: name, confirmLabel: state.t('partnerReactivate'), variant: 'primary' as const };
       case 'remove':
-        return { title: state.t('confirmRemovePartner'), message: `Remove request to ` + name, confirmLabel: state.t('partnerRemove'), variant: 'danger' as const };
+        return { title: state.t('confirmRemovePartner'), message: `Cancel invitation to ` + name, confirmLabel: state.t('partnerRemove'), variant: 'danger' as const };
       case 'decline':
         return { title: state.t('confirmDeclinePartner'), message: name, confirmLabel: state.t('decline'), variant: 'danger' as const };
       case 'deleteLane':
