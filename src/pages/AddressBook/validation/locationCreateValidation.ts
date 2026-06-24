@@ -13,7 +13,9 @@ export function validateCreateStep1(data: CreateLocationData): CreateFieldErrors
   const errors: CreateFieldErrors = {};
   if (!data.type?.trim()) errors.type = 'Location type is required';
   if (data.context === 'customer') {
-    if (!data.companyEntityId) errors.companyEntity = 'Company / entity is required';
+    if (!data.companyEntityId && !data.company?.trim()) {
+      errors.companyEntity = 'Company / entity is required';
+    }
   }
   return errors;
 }
