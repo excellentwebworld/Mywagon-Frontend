@@ -1,5 +1,7 @@
 export { ErpOrdersHeader } from './ErpOrdersHeader';
 export { ErpOrdersKpiStrip } from './ErpOrdersKpiStrip';
+export { ErpOrdersTabs } from './ErpOrdersTabs';
+export { ErpOrdersFloatingSelectionBar } from './ErpOrdersFloatingSelectionBar';
 export { ErpOrdersFilterBar } from './ErpOrdersFilterBar';
 export { ErpOrdersTable } from './ErpOrdersTable';
 export { ErpOrdersPagination } from './ErpOrdersPagination';

@@ -1,6 +1,15 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import type { ErpOrder } from '../../pages/ErpOrders/types';
+import { PlusIcon, SyncIcon } from './erpOrderIcons';
+import {
+  ERP_SOURCE_STYLE,
+  formatDateTime,
+  formatShipDate,
+  getOrderListTotals,
+  getShipUrgency,
+  shouldSuggestSplit,
+} from '../../pages/ErpOrders/erpOrderUiUtils';
 
 const ST_CLS: Record<string, string> = {
   unplanned: 'st-new',
@@ -10,20 +19,6 @@ const ST_CLS: Record<string, string> = {
   canceled: 'st-canceled',
 };
 
-const fmtD = (d: string) => {
-  if (!d) return '—';
-  const parsed = new Date(d);
-  if (Number.isNaN(parsed.getTime())) return d;
-  return parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-};
-
-const fmtDT = (d: string) => {
-  if (!d) return '—';
-  const parsed = new Date(d);
-  if (Number.isNaN(parsed.getTime())) return d;
-  return parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-};
-
 type Props = {
   t: (key: string) => string;
   order: ErpOrder | null;
@@ -31,86 +26,68 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onEdit: (order: ErpOrder) => void;
+  onCreateLoad: (orderId: string) => void;
+  onResync: (order: ErpOrder) => void;
   statusLabel: (status: ErpOrder['status']) => string;
 };
 
-export const OrderDetailDrawer: React.FC<Props> = ({ t, order, loading, open, onClose, onEdit, statusLabel }) => {
-  const lineTotals = useMemo(() => {
-    if (!order?.lines.length) return null;
-    let pallets = 0;
-    let weightKg = 0;
-    for (const line of order.lines) {
-      const unit = (line.unit || '').toLowerCase();
-      if (unit.includes('pallet') && line.quantity != null) {
-        pallets += line.quantity;
-      }
-      if (line.weight != null) {
-        const wUnit = (line.weightUnit || '').toLowerCase();
-        weightKg += wUnit.startsWith('t') ? line.weight * 1000 : line.weight;
-      }
-    }
-    const weightT = weightKg / 1000;
-    return {
-      pallets: pallets > 0 ? pallets : null,
-      weightT: weightT > 0 ? weightT.toFixed(1) : null,
+export const OrderDetailDrawer: React.FC<Props> = ({
+  t,
+  order,
+  loading,
+  open,
+  onClose,
+  onEdit,
+  onCreateLoad,
+  onResync,
+  statusLabel,
+}) => {
+  const lineTotals = useMemo(
+    () => (order ? getOrderListTotals(order) : { lineCount: 0, pallets: 0, weightTons: '0.0' }),
+    [order]
+  );
+  const urgency = order ? getShipUrgency(order.shipDate, t) : null;
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
     };
-  }, [order?.lines]);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open, onClose]);
 
   if (!open) return null;
 
   return (
     <>
-      <div className="dr-overlay show" onClick={onClose} aria-hidden="false" />
-      <div className="drawer show" role="dialog" aria-modal="true" aria-labelledby="erp-order-drawer-title">
+      <div className="dr-overlay show erp-dr-overlay" onClick={onClose} aria-hidden="false" />
+      <div className="drawer show drawer-ref" role="dialog" aria-modal="true" aria-labelledby="erp-order-drawer-title">
         <div className="dr-head">
           <div className="dr-head-top">
-            <div>
+            <div className="dr-head-main">
               <div className="dr-title" id="erp-order-drawer-title">
-                {order?.orderReference ?? t('erpOrdersDetail')}
-                {order && (
-                  <span className={`st ${ST_CLS[order.status] || ''}`}>{statusLabel(order.status)}</span>
-                )}
+                <span className="cell-id dr-order-id">{order?.orderReference ?? t('erpOrdersDetail')}</span>
+                {order && <span className={`st ${ST_CLS[order.status] || ''}`}>{statusLabel(order.status)}</span>}
+                {order?.highPriority && <span className="pri-badge urgent">⚡ {t('erpOrdersPriorityUrgent')}</span>}
+                <span className="erp-source-pill">
+                  <span>{ERP_SOURCE_STYLE.icon}</span>
+                  <span>{t(ERP_SOURCE_STYLE.labelKey)}</span>
+                </span>
               </div>
-              {order?.erpReference && (
-                <div className="dr-erp">{order.erpReference}</div>
-              )}
+              {order?.erpReference && <div className="dr-erp">{order.erpReference}</div>}
             </div>
             <button type="button" className="dr-close" onClick={onClose} aria-label={t('cancel')}>
               ✕
             </button>
           </div>
-
-          {order && (
-            <div className="dr-meta">
-              <div>
-                <div className="dm-label">{t('erpOrdersColCustomer')}</div>
-                <div className="dm-val">{order.customerName}</div>
-              </div>
-              <div>
-                <div className="dm-label">{t('erpOrdersShipDate')}</div>
-                <div className="dm-val">{fmtD(order.shipDate)}</div>
-              </div>
-              <div>
-                <div className="dm-label">{t('erpOrdersColDeliveryDate')}</div>
-                <div className="dm-val">{fmtD(order.deliveryDate)}</div>
-              </div>
-              <div>
-                <div className="dm-label">{t('erpOrdersColLastUpdate')}</div>
-                <div className="dm-val">{fmtDT(order.updatedAt)}</div>
-              </div>
-            </div>
-          )}
         </div>
 
-        <div className="dr-body">
+        <div className="dr-body dr-body-ref">
           {loading && !order ? (
-            <div className="dr-sec" style={{ textAlign: 'center', color: 'var(--text-tertiary, #8E8E9A)' }}>
-              {t('loading')}
-            </div>
+            <div className="dr-sec dr-sec-center">{t('loading')}</div>
           ) : !order ? (
-            <div className="dr-sec" style={{ textAlign: 'center', color: 'var(--text-tertiary, #8E8E9A)' }}>
-              {t('erpOrdersLoadError')}
-            </div>
+            <div className="dr-sec dr-sec-center">{t('erpOrdersLoadError')}</div>
           ) : (
             <>
               {!order.canEdit && (
@@ -119,105 +96,131 @@ export const OrderDetailDrawer: React.FC<Props> = ({ t, order, loading, open, on
                 </div>
               )}
 
+              <DrawerSection title={t('erpOrdersSectionMeta')}>
+                <MetaRow label={t('erpOrdersColCustomer')} value={order.customerName} />
+                <MetaRow label={t('erpOrdersShipDate')} value={formatShipDate(order.shipDate)} extra={urgency ? <span className="erp-urgency-badge sm" style={{ background: urgency.bg, color: urgency.fg, borderColor: urgency.bd }}>{urgency.label}</span> : null} />
+                <MetaRow label={t('erpOrdersColDeliveryDate')} value={formatShipDate(order.deliveryDate)} />
+                <MetaRow label={t('erpOrdersColLastSync')} value={formatDateTime(order.updatedAt)} />
+              </DrawerSection>
+
               {order.notes && (
-                <div className="dr-sec">
-                  <div className="dr-sec-h">{t('notes')}</div>
-                  <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary, #5E5E6E)', lineHeight: 1.5 }}>
-                    {order.notes}
-                  </p>
-                </div>
+                <DrawerSection title={t('notes')}>
+                  <div className="dr-notes">{order.notes}</div>
+                </DrawerSection>
               )}
 
-              <div className="dr-sec">
-                <div className="dr-sec-h">{t('erpOrdersAddresses')}</div>
+              <DrawerSection title={t('erpOrdersAddresses')}>
                 <div className="addr-grid">
                   <div className="addr-card">
-                    <div className="addr-lbl">{t('erpOrdersColShipFrom')}</div>
+                    <div className="addr-lbl">📍 {t('erpOrdersColShipFrom')}</div>
                     <div className="addr-name">{order.shipFrom || '—'}</div>
                     {order.shipFromAddress && <div className="addr-detail">{order.shipFromAddress}</div>}
                   </div>
                   <div className="addr-card">
-                    <div className="addr-lbl">{t('erpOrdersColShipTo')}</div>
+                    <div className="addr-lbl">🏁 {t('erpOrdersColShipTo')}</div>
                     <div className="addr-name">{order.shipTo || '—'}</div>
                     {order.shipToAddress && <div className="addr-detail">{order.shipToAddress}</div>}
                   </div>
                 </div>
-              </div>
+              </DrawerSection>
 
-              {order.lines.length > 0 && (
-                <div className="dr-sec">
-                  <div className="dr-sec-h">
-                    {t('erpOrdersLineItems')} ({order.lines.length})
-                  </div>
+              {(order.lines?.length ?? 0) > 0 && (
+                <DrawerSection title={`${t('erpOrdersLineItems')} (${order.lines!.length})`}>
                   <table className="lt">
                     <thead>
                       <tr>
-                        <th>#</th>
                         <th>{t('product')}</th>
-                        <th>{t('qty')}</th>
-                        <th>{t('unit')}</th>
-                        <th>{t('weight')}</th>
+                        <th>SKU</th>
+                        <th style={{ textAlign: 'right' }}>{t('qty')}</th>
+                        <th style={{ textAlign: 'right' }}>{t('weight')}</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {order.lines.map((line, i) => (
+                      {(order.lines ?? []).map((line, i) => (
                         <tr key={line.id ?? i}>
-                          <td className="ai-td-num">{i + 1}</td>
-                          <td>
-                            <div>{line.productName}</div>
-                            {line.sku && <div className="sku">{line.sku}</div>}
+                          <td style={{ fontWeight: 500 }}>{line.productName}</td>
+                          <td className="sku">{line.sku || '—'}</td>
+                          <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
+                            {line.quantity ?? '—'} {line.unit || ''}
                           </td>
-                          <td>{line.quantity ?? '—'}</td>
-                          <td>{line.unit || '—'}</td>
-                          <td>{line.weight != null ? `${line.weight} ${line.weightUnit}` : '—'}</td>
+                          <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace" }}>
+                            {line.weight != null ? `${line.weight} ${line.weightUnit}` : '—'}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                  {lineTotals && (lineTotals.pallets != null || lineTotals.weightT != null) && (
-                    <div className="lines-totals">
-                      {lineTotals.pallets != null && (
-                        <span>
-                          {lineTotals.pallets} {t('erpOrdersPallets')}
-                        </span>
-                      )}
-                      {lineTotals.weightT != null && (
-                        <span>
-                          {lineTotals.weightT} t {t('erpOrdersTotalWeight')}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
+                  <div className="lines-totals dr-totals-box">
+                    <span>
+                      {lineTotals.lineCount} {t('erpOrdersLinesShort')} · {lineTotals.pallets} {t('erpOrdersPltShort')} · {lineTotals.weightTons}
+                      {t('erpOrdersTonsShort')}
+                    </span>
+                  </div>
+                </DrawerSection>
               )}
 
-              {order.linkedLoadSid && (
-                <div className="dr-sec">
-                  <div className="dr-sec-h">{t('erpOrdersColLinkedLoad')}</div>
+              <DrawerSection title={t('erpOrdersColLinkedLoad')}>
+                {order.linkedLoadSid ? (
                   <div className="load-card">
                     <Link to={`/shipments/${order.linkedLoadId || order.linkedLoadSid}`} className="load-sid">
                       {order.linkedLoadSid}
                     </Link>
-                    {order.linkedLoadStatus && (
-                      <span className="load-meta">{order.linkedLoadStatus}</span>
-                    )}
+                    {order.linkedLoadStatus && <span className="load-meta">{order.linkedLoadStatus}</span>}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="dr-muted">{t('erpOrdersNotYetPlanned')}</div>
+                )}
+              </DrawerSection>
             </>
           )}
         </div>
 
         {order && (
-          <div className="dr-foot">
+          <div className="dr-foot dr-foot-ref">
+            {!order.linkedLoadSid && (
+              <button type="button" className="btn btn-p btn-sm" onClick={() => onCreateLoad(order.id)}>
+                <PlusIcon />
+                {t('erpOrdersCreateLoad')}
+              </button>
+            )}
+            {shouldSuggestSplit(order) && (
+              <button type="button" className="btn btn-sm" disabled title={t('erpOrdersSuggestSplitSoon')}>
+                ✂️ {t('erpOrdersSuggestSplit')}
+              </button>
+            )}
             {order.canEdit && (
-              <button type="button" className="btn btn-p btn-sm" onClick={() => onEdit(order)}>
+              <button type="button" className="btn btn-sm" onClick={() => onEdit(order)}>
                 {t('edit')}
               </button>
             )}
+            <button type="button" className="btn btn-sm" onClick={() => onResync(order)}>
+              <SyncIcon />
+              {t('erpOrdersResync')}
+            </button>
           </div>
         )}
       </div>
     </>
   );
 };
+
+function DrawerSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="dr-sec">
+      <div className="dr-sec-h dr-sec-title">{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function MetaRow({ label, value, extra }: { label: string; value: string; extra?: React.ReactNode }) {
+  return (
+    <div className="dr-meta-row">
+      <span className="dr-meta-label">{label}</span>
+      <span className="dr-meta-value">
+        {value}
+        {extra}
+      </span>
+    </div>
+  );
+}

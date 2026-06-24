@@ -6,15 +6,22 @@ import { useApp } from '../../context/AppContext';
 import {
   ErpOrdersHeader,
   ErpOrdersKpiStrip,
+  ErpOrdersTabs,
   ErpOrdersFilterBar,
   ErpOrdersTable,
-  ErpOrdersPagination,
   OrderDetailDrawer,
   CreateEditOrderModal,
   OrdersAiWizardModal,
 } from '../../components/ErpOrders';
 import { ErpOrdersDeferredViews } from './ErpOrdersDeferredViews';
 import type { ViewMode } from './types';
+
+const TAB_CONFIG = [
+  { key: 'workQueue' as const, labelKey: 'erpOrdersTabWork' },
+  { key: 'all' as const, labelKey: 'erpOrdersTabAll' },
+  { key: 'completed' as const, labelKey: 'erpOrdersTabCompleted' },
+  { key: 'exceptions' as const, labelKey: 'erpOrdersTabExceptions' },
+];
 
 export const ErpOrders: React.FC = () => {
   const state = useErpOrdersList();
@@ -34,59 +41,74 @@ export const ErpOrders: React.FC = () => {
     return () => document.removeEventListener('keydown', handler);
   }, [state, viewMode]);
 
+  const handleCreateLoad = (singleOrderId?: string) => {
+    if (state.goToCreateLoad(singleOrderId)) {
+      setViewMode('create');
+    }
+  };
+
   if (viewMode !== 'orders') {
     return <ErpOrdersDeferredViews viewMode={viewMode} setViewMode={setViewMode} />;
   }
 
   return (
     <div className="erp-wrap" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      <div className="anim" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-        <ErpOrdersHeader
-          t={state.t}
-          summarySubtitle={state.summarySubtitle}
-          openCreateOrder={state.openCreateOrder}
-          openAiWizard={state.openAiWizard}
-          downloadImportTemplate={state.downloadImportTemplate}
-        />
+      <ErpOrdersHeader
+        t={state.t}
+        summarySubtitle={state.summarySubtitle}
+        selectedCount={state.selectedCount}
+        openCreateOrder={state.openCreateOrder}
+        openAiWizard={state.openAiWizard}
+        onExport={state.handleExport}
+        onCreateLoad={() => handleCreateLoad()}
+      />
 
-        <ErpOrdersKpiStrip
-          t={state.t}
-          kpiCounts={state.kpiCounts}
-          kpiFilter={state.kpiFilter}
-          selectKpi={state.selectKpi}
-        />
+      <ErpOrdersKpiStrip
+        t={state.t}
+        kpiCounts={state.kpiCounts}
+        kpiFilter={state.kpiFilter}
+        selectKpi={state.selectKpi}
+      />
 
-        <ErpOrdersFilterBar
-          t={state.t}
-          searchQuery={state.searchQuery}
-          setSearchQuery={state.setSearchQuery}
-          highPriorityFilter={state.highPriorityFilter}
-          toggleHighPriorityFilter={state.toggleHighPriorityFilter}
-          hasActiveFilters={state.hasActiveFilters}
-          clearFilters={state.clearFilters}
-        />
+      <ErpOrdersTabs
+        t={state.t}
+        tabs={TAB_CONFIG.map((tab) => ({ ...tab, count: state.tabCounts[tab.key] }))}
+        activeTab={state.activeTab}
+        setActiveTab={state.setActiveTab}
+      />
 
-        <ErpOrdersTable
-          t={state.t}
-          orders={state.orders}
-          listLoading={state.listLoading}
-          sortField={state.sortField}
-          sortDir={state.sortDir}
-          doSort={state.doSort}
-          openDrawer={state.openDrawer}
-          statusLabel={state.statusLabel}
-        />
+      <ErpOrdersFilterBar
+        t={state.t}
+        searchQuery={state.searchQuery}
+        setSearchQuery={state.setSearchQuery}
+        filters={state.filters}
+        setFilters={state.setFilters}
+        hasActiveFilters={state.hasActiveFilters}
+        clearFilters={state.clearFilters}
+      />
 
-        <ErpOrdersPagination
-          t={state.t}
-          listMeta={state.listMeta}
-          currentPage={state.currentPage}
-          perPage={state.perPage}
-          pageSizeOptions={state.pageSizeOptions}
-          goToPage={state.goToPage}
-          setPageSize={state.setPageSize}
-        />
-      </div>
+      <ErpOrdersTable
+        t={state.t}
+        orders={state.orders}
+        listLoading={state.listLoading}
+        sortField={state.sortField}
+        sortDir={state.sortDir}
+        doSort={state.doSort}
+        openDrawer={state.openDrawer}
+        statusLabel={state.statusLabel}
+        selectedIds={state.selectedIds}
+        selectedOrderId={state.selectedOrderId}
+        toggleSelect={state.toggleSelect}
+        toggleSelectAll={state.toggleSelectAll}
+        clearSelection={state.clearSelection}
+        onCreateLoad={() => handleCreateLoad()}
+        listMeta={state.listMeta}
+        currentPage={state.currentPage}
+        perPage={state.perPage}
+        pageSizeOptions={state.pageSizeOptions}
+        goToPage={state.goToPage}
+        setPageSize={state.setPageSize}
+      />
 
       <OrderDetailDrawer
         t={state.t}
@@ -98,6 +120,11 @@ export const ErpOrders: React.FC = () => {
           state.closeDrawer();
           state.openEditOrder(order);
         }}
+        onCreateLoad={(orderId) => {
+          state.closeDrawer();
+          handleCreateLoad(orderId);
+        }}
+        onResync={state.handleResync}
         statusLabel={state.statusLabel}
       />
 

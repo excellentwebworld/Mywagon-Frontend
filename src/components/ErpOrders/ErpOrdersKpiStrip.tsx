@@ -2,11 +2,12 @@ import React from 'react';
 import type { ErpOrderKpiFilter } from '../../pages/ErpOrders/types';
 
 const KPI_CONFIG = [
-  { key: 'unplanned' as const, labelKey: 'erpOrdersKpiUnplanned', color: '#6366F1' },
-  { key: 'planned' as const, labelKey: 'erpOrdersKpiPlanned', color: '#3B82F6' },
-  { key: 'on_trip' as const, labelKey: 'erpOrdersKpiOnTrip', color: '#F59E0B' },
-  { key: 'completed' as const, labelKey: 'erpOrdersKpiCompleted', color: '#10B981' },
-  { key: 'canceled' as const, labelKey: 'erpOrdersKpiCanceled', color: '#94A3B8' },
+  { key: 'unplanned' as const, labelKey: 'erpOrdersKpiUnplanned', color: '#4338CA' },
+  { key: 'planned' as const, labelKey: 'erpOrdersKpiPlanned', color: '#1D4ED8' },
+  { key: 'on_trip' as const, labelKey: 'erpOrdersKpiOnTrip', color: '#B45309' },
+  { key: 'completed' as const, labelKey: 'erpOrdersKpiCompleted', color: '#047857' },
+  { key: 'exceptions' as const, labelKey: 'erpOrdersKpiExceptions', color: '#B91C1C' },
+  { key: 'upcoming48' as const, labelKey: 'erpOrdersKpiUpcoming48', color: '#C2410C' },
 ];
 
 type Props = {
@@ -17,24 +18,34 @@ type Props = {
 };
 
 export const ErpOrdersKpiStrip: React.FC<Props> = ({ t, kpiCounts, kpiFilter, selectKpi }) => (
-  <div className="kpi-strip">
-    {KPI_CONFIG.map((x) => (
-      <div
-        key={x.key}
-        className={`kpi-card${kpiFilter === x.key ? ' act' : ''}`}
-        onClick={() => selectKpi(x.key)}
-        onKeyDown={(e) => e.key === 'Enter' && selectKpi(x.key)}
-        role="button"
-        tabIndex={0}
-      >
-        <div className="kpi-val" style={{ color: x.color }}>
-          {kpiCounts[x.key] ?? 0}
-        </div>
-        <div className="kpi-lbl">
-          <span className="kpi-dot" style={{ background: x.color }} />
-          {t(x.labelKey)}
-        </div>
-      </div>
-    ))}
+  <div className="kpi-strip kpi-strip-grid anim">
+    {KPI_CONFIG.map((tile, index) => {
+      const isActive = kpiFilter === tile.key;
+      const count = kpiCounts[tile.key] ?? 0;
+      return (
+        <button
+          key={tile.key}
+          type="button"
+          className={`kpi-card kpi-card-btn${isActive ? ' act' : ''}`}
+          onClick={() => selectKpi(tile.key)}
+          style={{
+            borderRadius:
+              index === 0
+                ? '8px 0 0 8px'
+                : index === KPI_CONFIG.length - 1
+                  ? '0 8px 8px 0'
+                  : 0,
+          }}
+        >
+          <div className="kpi-lbl">
+            <span className="kpi-dot" style={{ background: tile.color }} />
+            <span className="kpi-lbl-text">{t(tile.labelKey)}</span>
+          </div>
+          <div className="kpi-val" style={{ color: isActive ? 'var(--accent, #6C3AED)' : 'var(--text-primary, #121217)' }}>
+            {count}
+          </div>
+        </button>
+      );
+    })}
   </div>
 );

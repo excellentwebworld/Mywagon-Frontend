@@ -6,7 +6,7 @@ import type {
   ErpOrderStatus,
   ListErpOrdersParams,
 } from '../types/erpOrders';
-import type { ErpOrder, ErpOrderLine, ErpOrderSortField } from '../../pages/ErpOrders/types';
+import type { ErpOrder, ErpOrderLine, ErpOrderSortField, ErpOrderTab } from '../../pages/ErpOrders/types';
 
 const STATUS_LABELS: Record<ErpOrderStatus, string> = {
   unplanned: 'Unplanned',
@@ -74,7 +74,7 @@ export function mapApiDetailToOrder(detail: ApiErpOrderDetail): ErpOrder {
     shipToAddress: detail.ship_to_address ?? '',
     linkedLoadStatus: detail.linked_load_status ?? '',
     notes: detail.notes ?? '',
-    lines: (detail.lines ?? []).map(mapApiLineToLine),
+    lines: Array.isArray(detail.lines) ? detail.lines.map(mapApiLineToLine) : [],
   };
 }
 
@@ -102,13 +102,16 @@ export function formToPayload(form: ErpOrderFormPayload): ErpOrderFormPayload {
 }
 
 export function kpiToStatusFilter(kpi: ErpOrderKpiFilter): string {
-  return kpi || 'all';
+  if (!kpi || kpi === 'upcoming48') return 'all';
+  if (kpi === 'exceptions') return 'canceled';
+  return kpi;
 }
 
 export function sortFieldToApi(field: ErpOrderSortField): string {
   const map: Record<ErpOrderSortField, string> = {
     orderReference: 'order_reference',
     customer: 'customer',
+    shipDate: 'ship_date',
     deliveryDate: 'delivery_date',
     status: 'status',
     updatedAt: 'updated_at',
@@ -116,18 +119,35 @@ export function sortFieldToApi(field: ErpOrderSortField): string {
   return map[field] ?? 'updated_at';
 }
 
+const TAB_STATUS: Record<Exclude<ErpOrderTab, 'all'>, ErpOrderStatus> = {
+  workQueue: 'unplanned',
+  completed: 'completed',
+  exceptions: 'canceled',
+};
+
+export function tabToStatusFilter(tab: ErpOrderTab): ErpOrderKpiFilter | '' {
+  if (tab === 'all') return '';
+  return TAB_STATUS[tab];
+}
+
 export function buildListParams(
   kpiFilter: ErpOrderKpiFilter,
+  activeTab: ErpOrderTab,
   highPriority: boolean,
+  noLinkedLoad: boolean,
   search: string,
   sortField: ErpOrderSortField,
   sortDir: 'asc' | 'desc',
   page: number,
   perPage: number
 ): ListErpOrdersParams {
+  const tabStatus = tabToStatusFilter(activeTab);
+  const status = kpiFilter || tabStatus;
+
   return {
-    status: kpiToStatusFilter(kpiFilter),
+    status: kpiToStatusFilter(status),
     high_priority: highPriority || undefined,
+    unlinked: noLinkedLoad || undefined,
     search: search || undefined,
     sort: sortFieldToApi(sortField),
     sort_dir: sortDir,

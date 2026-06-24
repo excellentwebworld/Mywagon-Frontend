@@ -10,8 +10,17 @@ import type {
   ErpOrderFormState,
   ErpOrderKpiFilter,
   ErpOrderSortField,
+  ErpOrderTab,
+  ErpOrdersFilterState,
 } from '../types';
 import { EMPTY_ORDER_FORM as EMPTY_FORM } from '../types';
+import { isUpcoming48h } from '../erpOrderUiUtils';
+
+const DEFAULT_FILTERS: ErpOrdersFilterState = {
+  priority: [],
+  noLinkedLoad: false,
+  syncErrors: false,
+};
 
 const SEARCH_DEBOUNCE_MS = 250;
 const DEFAULT_PAGE_SIZE = 20;
@@ -23,11 +32,13 @@ export function useErpOrdersList() {
   const queryClient = useQueryClient();
 
   const [kpiFilter, setKpiFilter] = useState<ErpOrderKpiFilter>('');
-  const [highPriorityFilter, setHighPriorityFilter] = useState(false);
+  const [activeTab, setActiveTabState] = useState<ErpOrderTab>('workQueue');
+  const [filters, setFilters] = useState<ErpOrdersFilterState>(DEFAULT_FILTERS);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [sortField, setSortField] = useState<ErpOrderSortField>('updatedAt');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [sortField, setSortField] = useState<ErpOrderSortField>('shipDate');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
 
@@ -52,7 +63,7 @@ export function useErpOrdersList() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [kpiFilter, highPriorityFilter, perPage]);
+  }, [kpiFilter, activeTab, filters, perPage]);
 
   const handleApiError = useCallback(
     (err: unknown, fallback: string) => {
@@ -81,7 +92,8 @@ export function useErpOrdersList() {
       'erp-orders',
       'list',
       kpiFilter,
-      highPriorityFilter,
+      activeTab,
+      filters,
       debouncedSearch,
       sortField,
       sortDir,
@@ -91,7 +103,9 @@ export function useErpOrdersList() {
     queryFn: () =>
       erpOrdersService.listOrdersMapped(
         kpiFilter,
-        highPriorityFilter,
+        activeTab,
+        filters.priority.length > 0,
+        filters.noLinkedLoad,
         debouncedSearch,
         sortField,
         sortDir,
@@ -218,15 +232,37 @@ export function useErpOrdersList() {
 
   useSyncGlobalLoader(mutationLoading);
 
-  const kpiCounts = {
-    unplanned: summaryQuery.data?.unplanned ?? 0,
-    planned: summaryQuery.data?.planned ?? 0,
-    on_trip: summaryQuery.data?.on_trip ?? 0,
-    completed: summaryQuery.data?.completed ?? 0,
-    canceled: summaryQuery.data?.canceled ?? 0,
-  };
+  const kpiCounts = useMemo(() => {
+    const base = {
+      unplanned: summaryQuery.data?.unplanned ?? 0,
+      planned: summaryQuery.data?.planned ?? 0,
+      on_trip: summaryQuery.data?.on_trip ?? 0,
+      completed: summaryQuery.data?.completed ?? 0,
+      exceptions: summaryQuery.data?.canceled ?? 0,
+      upcoming48: 0,
+    };
+    base.upcoming48 = (listQuery.data?.orders ?? []).filter((o) => isUpcoming48h(o.shipDate)).length;
+    return base;
+  }, [summaryQuery.data, listQuery.data?.orders]);
 
-  const orders = listQuery.data?.orders ?? [];
+  const rawOrders = listQuery.data?.orders ?? [];
+  const orders = useMemo(() => {
+    let result = rawOrders;
+    if (kpiFilter === 'upcoming48') {
+      result = result.filter((o) => isUpcoming48h(o.shipDate));
+    }
+    if (filters.syncErrors) {
+      result = result.filter(() => false);
+    }
+    if (filters.priority.length > 0) {
+      result = result.filter((o) => {
+        if (filters.priority.includes('urgent') && o.highPriority) return true;
+        if (filters.priority.includes('high') && o.highPriority) return true;
+        return false;
+      });
+    }
+    return result;
+  }, [rawOrders, kpiFilter, filters.syncErrors, filters.priority]);
   const listMeta = listQuery.data?.meta ?? {
     current_page: 1,
     per_page: perPage,
@@ -243,15 +279,88 @@ export function useErpOrdersList() {
     setKpiFilter((prev) => (prev === kpi ? '' : kpi));
   }, []);
 
-  const toggleHighPriorityFilter = useCallback(() => {
-    setHighPriorityFilter((prev) => !prev);
+  const setActiveTab = useCallback((tab: ErpOrderTab) => {
+    setActiveTabState(tab);
+    setKpiFilter('');
+    setCurrentPage(1);
   }, []);
+
+  const setFiltersState = useCallback((updater: ErpOrdersFilterState | ((prev: ErpOrdersFilterState) => ErpOrdersFilterState)) => {
+    setFilters(updater);
+  }, []);
+
+  const toggleHighPriorityFilter = useCallback(() => {
+    setFilters((prev) => ({
+      ...prev,
+      priority: prev.priority.length ? [] : ['urgent', 'high'],
+    }));
+  }, []);
+
+  const toggleNoLinkedLoadFilter = useCallback(() => {
+    setFilters((prev) => ({ ...prev, noLinkedLoad: !prev.noLinkedLoad }));
+  }, []);
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(
+    (checked: boolean) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        orders.forEach((o) => {
+          if (checked) next.add(o.id);
+          else next.delete(o.id);
+        });
+        return next;
+      });
+    },
+    [orders]
+  );
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const goToCreateLoad = useCallback(
+    (singleOrderId?: string): boolean => {
+      if (singleOrderId) {
+        setSelectedIds(new Set([singleOrderId]));
+        setSelectedOrderId(null);
+        return true;
+      }
+      if (selectedIds.size === 0) {
+        showToast(t('erpOrdersSelectAtLeastOne'), 'warning');
+        return false;
+      }
+      setSelectedOrderId(null);
+      return true;
+    },
+    [selectedIds.size, showToast, t]
+  );
+
+  const handleExport = useCallback(() => {
+    showToast(t('erpOrdersExportSoon'), 'info');
+  }, [showToast, t]);
+
+  const handleResync = useCallback(
+    (order: ErpOrder) => {
+      showToast(t('erpOrdersResyncTriggered', { id: order.orderReference }), 'info');
+    },
+    [showToast, t]
+  );
 
   const clearFilters = useCallback(() => {
     setSearchQuery('');
     setDebouncedSearch('');
     setKpiFilter('');
-    setHighPriorityFilter(false);
+    setActiveTabState('all');
+    setFilters(DEFAULT_FILTERS);
     setCurrentPage(1);
   }, []);
 
@@ -343,15 +452,47 @@ export function useErpOrdersList() {
   const goToPage = useCallback((page: number) => setCurrentPage(page), []);
   const setPageSize = useCallback((size: number) => setPerPage(size), []);
 
-  const hasActiveFilters = !!(searchQuery || kpiFilter || highPriorityFilter);
+  const hasActiveFilters = !!(
+    searchQuery ||
+    kpiFilter ||
+    filters.priority.length ||
+    filters.noLinkedLoad ||
+    filters.syncErrors ||
+    activeTab !== 'all'
+  );
+
+  const tabCounts = useMemo(
+    () => ({
+      workQueue: kpiCounts.unplanned,
+      all: summaryQuery.data?.total ?? 0,
+      completed: kpiCounts.completed,
+      exceptions: kpiCounts.exceptions,
+    }),
+    [kpiCounts, summaryQuery.data?.total]
+  );
 
   return {
     t,
     kpiCounts,
     kpiFilter,
     selectKpi,
-    highPriorityFilter,
+    activeTab,
+    setActiveTab,
+    tabCounts,
+    filters,
+    setFilters: setFiltersState,
+    highPriorityFilter: filters.priority.length > 0,
     toggleHighPriorityFilter,
+    noLinkedLoadFilter: filters.noLinkedLoad,
+    toggleNoLinkedLoadFilter,
+    selectedIds,
+    selectedCount: selectedIds.size,
+    toggleSelect,
+    toggleSelectAll,
+    clearSelection,
+    goToCreateLoad,
+    handleExport,
+    handleResync,
     searchQuery,
     setSearchQuery,
     clearFilters,

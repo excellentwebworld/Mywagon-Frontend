@@ -2,7 +2,7 @@ import type { ApiListMeta } from './addressBook';
 
 export type ErpOrderStatus = 'unplanned' | 'planned' | 'on_trip' | 'completed' | 'canceled';
 
-export type ErpOrderKpiFilter = '' | ErpOrderStatus;
+export type ErpOrderKpiFilter = '' | ErpOrderStatus | 'exceptions' | 'upcoming48';
 
 export interface ApiErpOrderSummary {
   total: number;
@@ -59,6 +59,7 @@ export interface ListErpOrdersParams {
   search?: string;
   status?: string;
   high_priority?: boolean;
+  unlinked?: boolean;
   sort?: string;
   sort_dir?: 'asc' | 'desc';
   page?: number;

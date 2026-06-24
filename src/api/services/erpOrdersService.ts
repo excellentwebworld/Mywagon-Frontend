@@ -17,7 +17,7 @@ import type {
   ListErpOrdersParams,
   PaginatedErpOrdersResult,
 } from '../types/erpOrders';
-import type { ErpOrder, ErpOrderKpiFilter, ErpOrderSortField } from '../../pages/ErpOrders/types';
+import type { ErpOrder, ErpOrderKpiFilter, ErpOrderSortField, ErpOrderTab } from '../../pages/ErpOrders/types';
 import type { ApiListMeta } from '../types/addressBook';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
@@ -35,6 +35,7 @@ export const erpOrdersService = {
     if (params.search) query.search = params.search;
     if (params.status && params.status !== 'all') query.status = params.status;
     if (params.high_priority) query.high_priority = 1;
+    if (params.unlinked) query.unlinked = 1;
     if (params.sort) query.sort = params.sort;
     if (params.sort_dir) query.sort_dir = params.sort_dir;
 
@@ -47,14 +48,26 @@ export const erpOrdersService = {
 
   async listOrdersMapped(
     kpiFilter: ErpOrderKpiFilter,
+    activeTab: ErpOrderTab,
     highPriority: boolean,
+    noLinkedLoad: boolean,
     search: string,
     sortField: ErpOrderSortField,
     sortDir: 'asc' | 'desc',
     page: number,
     perPage: number
   ): Promise<{ orders: ErpOrder[]; meta: ApiListMeta }> {
-    const params = buildListParams(kpiFilter, highPriority, search, sortField, sortDir, page, perPage);
+    const params = buildListParams(
+      kpiFilter,
+      activeTab,
+      highPriority,
+      noLinkedLoad,
+      search,
+      sortField,
+      sortDir,
+      page,
+      perPage
+    );
     const result = await this.listOrders(params);
     return {
       orders: result.items.map(mapApiListItemToOrder),

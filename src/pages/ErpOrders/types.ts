@@ -1,8 +1,16 @@
 export type ErpOrderStatus = 'unplanned' | 'planned' | 'on_trip' | 'completed' | 'canceled';
 
-export type ErpOrderKpiFilter = '' | ErpOrderStatus;
+export type ErpOrderKpiFilter = '' | ErpOrderStatus | 'exceptions' | 'upcoming48';
 
-export type ErpOrderSortField = 'orderReference' | 'customer' | 'deliveryDate' | 'status' | 'updatedAt';
+export type ErpOrderTab = 'workQueue' | 'all' | 'completed' | 'exceptions';
+
+export interface ErpOrdersFilterState {
+  priority: string[];
+  noLinkedLoad: boolean;
+  syncErrors: boolean;
+}
+
+export type ErpOrderSortField = 'orderReference' | 'customer' | 'shipDate' | 'deliveryDate' | 'status' | 'updatedAt';
 
 export interface ErpOrderLine {
   id?: number;
