@@ -993,6 +993,52 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
 .ptn-invite-success .title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
 .ptn-invite-success .desc  { font-size: 13px; color: var(--text-secondary); }
 
+/* Awaiting response box */
+.ptn-awaiting-box {
+  background: #F5F3FF;
+  border: 1px solid #DDD6FE;
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  width: 70%;
+  text-align: center;
+}
+.ptn-awaiting-title {
+  color: #7C3AED;
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.ptn-awaiting-desc {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+.btn-cancel-inv {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 38px;
+  background: #FFFFFF;
+  border: 1px solid #FCA5A5;
+  color: var(--danger);
+  font-weight: 600;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-cancel-inv:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+}
+
 /* ─────────────────────────────
    GENERIC MODAL (addCap / addLane / editBank / addCustomer)
    ───────────────────────────── */

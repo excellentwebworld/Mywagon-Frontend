@@ -124,7 +124,16 @@ export const PartnerDetailPanel: React.FC<Props> = ({
 
           <div className="ptn-dp-badges">
             <span className={`ptn-tp ${getTypeClass(p.type)}`}>{p.typeLabel}</span>
-            <span className={`ptn-st ${getStatusClass(p.status)}`}>{p.statusLabel}</span>
+            <span className={`ptn-st ${getStatusClass(p.status)}`}>
+              {p.statusLabel ||
+                (p.status === 'active'
+                  ? t('activePartners')
+                  : p.status === 'invited'
+                    ? t('invitationSent')
+                    : p.status === 'pending'
+                      ? t('invitationReceived')
+                      : t('suspendedPartners'))}
+            </span>
             {p.isPreferred && <span className="ptn-tag ptn-tag-pref">★ {t('preferred')}</span>}
           </div>
 
@@ -153,11 +162,7 @@ export const PartnerDetailPanel: React.FC<Props> = ({
                 </button>
               </>
             )}
-            {p.isSent && p.isPending && (
-              <button type="button" className="btn btn-danger btn-sm" onClick={() => cancelInvite(p)}>
-                {t('cancelInvitation')}
-              </button>
-            )}
+
             {p.status === 'active' && (
               <>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => togglePreferred(p)}>
@@ -179,7 +184,26 @@ export const PartnerDetailPanel: React.FC<Props> = ({
               </>
             )}
           </div>
+
+          {p.isSent && p.isPending && (
+            <div className="ptn-awaiting-box">
+              <div className="ptn-awaiting-title">
+                📥 {t('awaitingResponse', 'Awaiting Response')}
+              </div>
+              <div className="ptn-awaiting-desc">
+                {t('invitationSentOn', 'Your invitation was sent on')} {p.createdAtFormatted}.
+              </div>
+              <button
+                type="button"
+                className="btn-cancel-inv"
+                onClick={() => cancelInvite(p)}
+              >
+                ✕ {t('cancelInvitation')}
+              </button>
+            </div>
+          )}
         </div>
+
 
         {isSupplier && (
           <div className="ptn-dps">

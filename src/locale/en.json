@@ -567,7 +567,7 @@
   "customerInviteNote": "Customer invitations are not yet available. You can add customers manually or sync from your ERP.",
   "confirmSuspendPartner": "Are you sure you want to suspend this partner?",
   "confirmReactivatePartner": "Reactivate this partner?",
-  "confirmRemovePartner": "PERMANENTLY remove this partner? This cannot be undone.",
+  "confirmRemovePartner": "Cancel Invitation.",
   "confirmRemoveLane": "Remove this contract lane?",
   "partnerSuspended": "🚫 Partner suspended",
   "partnerReactivated": "✅ Partner reactivated",
