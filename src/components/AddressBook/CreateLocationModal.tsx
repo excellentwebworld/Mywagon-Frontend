@@ -118,7 +118,7 @@ export const CreateLocationModal: React.FC<Props> = ({
 
   const renderStep1 = () => (
     <>
-      <h4 className="ab-form-heading">Who does this location belong to?</h4>
+      <h4 className="ab-form-heading">{t('abBelongsTo')}</h4>
       <div className="ctx-cards">
         <div
           className={`ctx-card ${createData.context === 'my' ? 'selected' : ''}`}
@@ -128,8 +128,8 @@ export const CreateLocationModal: React.FC<Props> = ({
           tabIndex={0}
         >
           <div className="ico">🏢</div>
-          <div className="lbl">My Company</div>
-          <div className="sub">Own warehouse, plant, office</div>
+          <div className="lbl">{t('abMyCompany')}</div>
+          <div className="sub">{t('abMyCompanySub')}</div>
         </div>
         <div
           className={`ctx-card ${createData.context === 'customer' ? 'selected' : ''}`}
@@ -139,21 +139,21 @@ export const CreateLocationModal: React.FC<Props> = ({
           tabIndex={0}
         >
           <div className="ico">🤝</div>
-          <div className="lbl">Customer Location</div>
-          <div className="sub">Delivery site, store, DC</div>
+          <div className="lbl">{t('abCustomerLocation')}</div>
+          <div className="sub">{t('abCustomerLocationSub')}</div>
         </div>
       </div>
 
       {createData.context === 'customer' && (
         <div className={`mf ab-company-field${fieldErrors.companyEntity ? ' has-error' : ''}`}>
           <label>
-            Company / Entity <span className="req">*</span>
+            {t('abCompanyEntity')} <span className="req">*</span>
           </label>
           <SearchableSelect
             value={createData.companyVat}
             options={companyOptions}
-            placeholder="Search existing companies…"
-            searchPlaceholder="Type to search…"
+            placeholder={t('abSearchExistingCompanies')}
+            searchPlaceholder={t('abTypeToSearch')}
             hasError={Boolean(fieldErrors.companyEntity)}
             onSearchChange={setCompanyQuery}
             onChange={(val, opt) => {
@@ -165,7 +165,7 @@ export const CreateLocationModal: React.FC<Props> = ({
               });
             }}
             headerAction={{
-              label: '+ Create new company',
+              label: t('abCreateNewCompany'),
               onClick: () => setIsCompanyOpen(true),
             }}
             direction="down"
@@ -191,7 +191,7 @@ export const CreateLocationModal: React.FC<Props> = ({
         <FormFieldError message={fieldErrors.type} />
       </div>
 
-      <h4 className="ab-form-heading ab-form-heading-spaced">{t('Quick template')}</h4>
+      <h4 className="ab-form-heading ab-form-heading-spaced">{t('abQuickTemplate')}</h4>
       <div className="tpl-cards">
         <div
           className={`tpl-card ${createData.template === 'retail' ? 'selected' : ''}`}
@@ -201,7 +201,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           tabIndex={0}
         >
           <span className="ico">🏪</span>
-          {t('Retail DC') || 'Retail DC'}
+          {t('abRetailDc')}
         </div>
         <div
           className={`tpl-card ${createData.template === 'factory' ? 'selected' : ''}`}
@@ -211,7 +211,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           tabIndex={0}
         >
           <span className="ico">🏭</span>
-          {t('Factory') || 'Factory'}
+          {t('abFactory')}
         </div>
         <div
           className={`tpl-card ${createData.template === 'warehouse' ? 'selected' : ''}`}
@@ -221,7 +221,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           tabIndex={0}
         >
           <span className="ico">📦</span>
-          {t('Warehouse') || 'Warehouse'}
+          {t('abWarehouse')}
         </div>
         <div
           className={`tpl-card ${createData.template === 'store' ? 'selected' : ''}`}
@@ -231,7 +231,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           tabIndex={0}
         >
           <span className="ico">🏬</span>
-          {t('Store') || 'Store'}
+          {t('abStore')}
         </div>
       </div>
     </>
@@ -241,7 +241,7 @@ export const CreateLocationModal: React.FC<Props> = ({
     <>
       <div className={`mf${fieldErrors.name ? ' has-error' : ''}`}>
         <label>
-          Location Name <span className="req">*</span>
+          {t('abLocationName')} <span className="req">*</span>
         </label>
         <input
           type="text"
@@ -274,14 +274,14 @@ export const CreateLocationModal: React.FC<Props> = ({
       <div className="mf-row">
         <div className={`mf${fieldErrors.city ? ' has-error' : ''}`}>
           <label>
-            City <span className="req">*</span>
+            {t('abCity')} <span className="req">*</span>
           </label>
-          <input type="text" placeholder="City" value={createData.city} onChange={(e) => update({ city: e.target.value })} />
+          <input type="text" placeholder={t('abCity')} value={createData.city} onChange={(e) => update({ city: e.target.value })} />
           <FormFieldError message={fieldErrors.city} />
         </div>
         <div className={`mf${fieldErrors.postal ? ' has-error' : ''}`}>
           <label>
-            Postal Code
+            {t('abPostalCode')}
           </label>
           <input type="text" placeholder="e.g. 45500" value={createData.postal} onChange={(e) => update({ postal: e.target.value })} />
           <FormFieldError message={fieldErrors.postal} />
@@ -291,7 +291,7 @@ export const CreateLocationModal: React.FC<Props> = ({
       <div className="mf-row">
         <div className={`mf${fieldErrors.role ? ' has-error' : ''}`}>
           <label>
-            Location Role <span className="req">*</span>
+            {t('abLocationRole')} <span className="req">*</span>
           </label>
           <SearchableSelect
             value={createData.role}
@@ -302,7 +302,7 @@ export const CreateLocationModal: React.FC<Props> = ({
         </div>
 
         <div className="mf">
-          <label>Internal Location Code</label>
+          <label>{t('abInternalCode')}</label>
           <input type="text" placeholder="e.g. WH-IOA-01" value={createData.code} onChange={(e) => update({ code: e.target.value })} />
         </div>
       </div>
@@ -328,10 +328,10 @@ export const CreateLocationModal: React.FC<Props> = ({
 
   const renderStep3 = () => (
     <>
-      <h4 className="ab-form-heading">Operational Profile</h4>
+      <h4 className="ab-form-heading">{t('abOperationalProfile')}</h4>
       <div className="mf-row">
         <div className="mf">
-          <label>Appointment required</label>
+          <label>{t('abAppointmentRequired')}</label>
           <ToggleField
             label=""
             value={createData.appt}
@@ -348,7 +348,7 @@ export const CreateLocationModal: React.FC<Props> = ({
         </div>
         <div className={`mf${fieldErrors.dock ? ' has-error' : ''}`}>
           <label>
-            Dock Type <span className="req">*</span>
+            {t('abDockType')} <span className="req">*</span>
           </label>
           <SearchableSelect
             value={createData.dock}
@@ -364,7 +364,7 @@ export const CreateLocationModal: React.FC<Props> = ({
       {createData.appt && (
         <div className={`mf ab-preferred-times${fieldErrors.timeRanges ? ' has-error' : ''}`}>
           <label className="ab-section-label">
-            Pickup/Dropoff Preferred Times <span className="req">*</span>
+            {t('abPreferredTimes')} <span className="req">*</span>
           </label>
           <TimeRangeFormList
             timeRanges={createData.timeRanges}
@@ -378,14 +378,14 @@ export const CreateLocationModal: React.FC<Props> = ({
       <div className="mf-grid">
         <div className={`mf${fieldErrors.maxTruck ? ' has-error' : ''}`}>
           <label>
-            Max Truck Length <span className="req">*</span>
+            {t('abMaxTruckLength')} <span className="req">*</span>
           </label>
           <input type="text" placeholder="e.g. 18.75m" value={createData.maxTruck} onChange={(e) => update({ maxTruck: e.target.value })} />
           <FormFieldError message={fieldErrors.maxTruck} />
         </div>
         <div className={`mf${fieldErrors.maxWeight ? ' has-error' : ''}`}>
           <label>
-            Max Weight <span className="req">*</span>
+            {t('abMaxWeight')} <span className="req">*</span>
           </label>
           <input type="text" placeholder="e.g. 40T" value={createData.maxWeight} onChange={(e) => update({ maxWeight: e.target.value })} />
           <FormFieldError message={fieldErrors.maxWeight} />
@@ -393,26 +393,26 @@ export const CreateLocationModal: React.FC<Props> = ({
       </div>
 
       <div className="mf-grid">
-        <ToggleField label="ADR Allowed" value={createData.adr} onChange={(adr) => update({ adr })} />
-        <ToggleField label="Pallet Exchange" value={createData.palletExchange} onChange={(palletExchange) => update({ palletExchange })} />
+        <ToggleField label={t('abAdrAllowed')} value={createData.adr} onChange={(adr) => update({ adr })} />
+        <ToggleField label={t('abPalletExchange')} value={createData.palletExchange} onChange={(palletExchange) => update({ palletExchange })} />
       </div>
 
       <div className={`mf${fieldErrors.loadTime ? ' has-error' : ''}`}>
         <label>
-          Est. Loading/Unloading Time (min) <span className="req">*</span>
+          {t('abEstLoadTime')} <span className="req">*</span>
         </label>
         <input type="number" placeholder="e.g. 45" value={createData.loadTime} onChange={(e) => update({ loadTime: e.target.value })} />
         <FormFieldError message={fieldErrors.loadTime} />
       </div>
 
-      <h4 className="ab-form-section-title">Notes</h4>
+      <h4 className="ab-form-section-title">{t('abNotes')}</h4>
       <div className="mf">
-        <label>🔒 Internal Note</label>
-        <textarea placeholder="Visible only to your team…" value={createData.noteInternal} onChange={(e) => update({ noteInternal: e.target.value })} />
+        <label>🔒 {t('abInternalNote')}</label>
+        <textarea placeholder={t('abInternalNotePlaceholder')} value={createData.noteInternal} onChange={(e) => update({ noteInternal: e.target.value })} />
       </div>
       <div className="mf">
-        <label>🚛 Carrier-Visible Note</label>
-        <textarea placeholder="Drivers/carriers will see this…" value={createData.noteCarrier} onChange={(e) => update({ noteCarrier: e.target.value })} />
+        <label>🚛 {t('abCarrierNote')}</label>
+        <textarea placeholder={t('abCarrierNotePlaceholder')} value={createData.noteCarrier} onChange={(e) => update({ noteCarrier: e.target.value })} />
       </div>
     </>
   );
@@ -425,9 +425,9 @@ export const CreateLocationModal: React.FC<Props> = ({
   const renderStep4 = () => {
     const contextLabel =
       createData.context === 'my'
-        ? 'My Location'
+        ? t('abMyCompany')
         : reviewValue(createData.company) === '—'
-          ? 'Customer Location'
+          ? t('abCustomerLocation')
           : createData.company.trim();
 
     const locationAddress =
@@ -445,7 +445,7 @@ export const CreateLocationModal: React.FC<Props> = ({
       <>
         {potentialDuplicates.length > 0 && (
           <div className="dupe-banner">
-            <h4>Potential Duplicates Found</h4>
+            <h4>{t('abPotentialDuplicates')}</h4>
             {potentialDuplicates.map((d) => (
               <div key={d.id} className="dupe-item">
                 <div>
@@ -454,23 +454,23 @@ export const CreateLocationModal: React.FC<Props> = ({
                   <span className="dupe-item-addr">{d.address}</span>
                 </div>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => selectExistingDuplicate(d)}>
-                  Use existing
+                  {t('abUseExisting')}
                 </button>
               </div>
             ))}
-            <div className="dupe-banner-note">You can still create if this is a different location.</div>
+            <div className="dupe-banner-note">{t('abDupeBannerNote')}</div>
           </div>
         )}
 
-        <h4 className="ab-form-heading">Review & Confirm</h4>
+        <h4 className="ab-form-heading">{t('abReviewConfirm')}</h4>
         <div className="review-box">
           <div className="review-row-grid">
             <div className="review-row">
-              <div className="review-label">Context</div>
+              <div className="review-label">{t('abContext')}</div>
               <div className="review-val">{contextLabel}</div>
             </div>
             <div className="review-row">
-              <div className="review-label">Location Type</div>
+              <div className="review-label">{t('abLocationType')}</div>
               <div className="review-val">
                 {FACILITY_TYPE_LABELS[createData.type] ?? createData.type ?? '—'}
               </div>
@@ -478,72 +478,72 @@ export const CreateLocationModal: React.FC<Props> = ({
           </div>
 
           <div className="review-row">
-            <div className="review-label">Location</div>
+            <div className="review-label">{t('abLocation')}</div>
             <div className="review-val review-val-lg">{reviewValue(createData.name)}</div>
             <div className="review-sub">{locationAddress}</div>
           </div>
 
           <div className="review-row-grid">
             <div className="review-row">
-              <div className="review-label">Role</div>
+              <div className="review-label">{t('abRole')}</div>
               <div className="review-val">{roleLabel}</div>
             </div>
             <div className="review-row">
-              <div className="review-label">Internal Code</div>
+              <div className="review-label">{t('abInternalCodeShort')}</div>
               <div className="review-val">{reviewValue(createData.code)}</div>
             </div>
           </div>
 
           <div className="review-row-grid">
             <div className="review-row">
-              <div className="review-label">Dock Type</div>
+              <div className="review-label">{t('abDockType')}</div>
               <div className="review-val">{reviewValue(createData.dock)}</div>
             </div>
             <div className="review-row">
-              <div className="review-label">Appointment Required</div>
-              <div className="review-val">{createData.appt ? 'Yes' : 'No'}</div>
+              <div className="review-label">{t('abAppointmentRequiredCol')}</div>
+              <div className="review-val">{createData.appt ? t('abYes') : t('abNo')}</div>
             </div>
           </div>
 
           <div className="review-row">
-            <div className="review-label">Preferred Time Ranges</div>
+            <div className="review-label">{t('abPreferredTimeRanges')}</div>
             <div className="review-val">{preferredTimes}</div>
           </div>
 
           <div className="review-row-grid">
             <div className="review-row">
-              <div className="review-label">Max Truck Length</div>
+              <div className="review-label">{t('abMaxTruckLength')}</div>
               <div className="review-val">{reviewValue(createData.maxTruck)}</div>
             </div>
             <div className="review-row">
-              <div className="review-label">Max Weight</div>
+              <div className="review-label">{t('abMaxWeight')}</div>
               <div className="review-val">{reviewValue(createData.maxWeight)}</div>
             </div>
           </div>
 
           <div className="review-row-grid">
             <div className="review-row">
-              <div className="review-label">ADR Allowed</div>
-              <div className="review-val">{createData.adr ? 'Yes' : 'No'}</div>
+              <div className="review-label">{t('abAdrAllowed')}</div>
+              <div className="review-val">{createData.adr ? t('abYes') : t('abNo')}</div>
             </div>
             <div className="review-row">
-              <div className="review-label">Pallet Exchange</div>
-              <div className="review-val">{createData.palletExchange ? 'Yes' : 'No'}</div>
+              <div className="review-label">{t('abPalletExchange')}</div>
+              <div className="review-val">{createData.palletExchange ? t('abYes') : t('abNo')}</div>
             </div>
           </div>
 
           <div className="review-row">
-            <div className="review-label">Est. Loading/Unloading Time</div>
+            <div className="review-label">{t('abEstLoadTimeShort')}</div>
             <div className="review-val">{loadTimeLabel}</div>
           </div>
 
           <div className="review-row">
-            <div className="review-label">Internal Note</div>
+            <div className="review-label">{t('abInternalNote')}</div>
             <div className="review-val review-val-left">{reviewValue(createData.noteInternal)}</div>
           </div>
 
           <div className="review-row">
-            <div className="review-label">Carrier-Visible Note</div>
+            <div className="review-label">{t('abCarrierNote')}</div>
             <div className="review-val review-val-left">{reviewValue(createData.noteCarrier)}</div>
           </div>
         </div>
@@ -556,10 +556,10 @@ export const CreateLocationModal: React.FC<Props> = ({
       return (
         <>
           <button type="button" className="btn btn-secondary" onClick={closeCreateModal}>
-            Cancel
+            {t('abCancel')}
           </button>
           <button type="button" className="btn btn-primary" onClick={() => goNext(1, 2, () => validateCreateStep1(createData))}>
-            Next →
+            {t('abNext')}
           </button>
         </>
       );
@@ -568,10 +568,10 @@ export const CreateLocationModal: React.FC<Props> = ({
       return (
         <>
           <button type="button" className="btn btn-secondary" onClick={() => setCreateStep(1)}>
-            ← Back
+            {t('abBack')}
           </button>
           <button type="button" className="btn btn-primary" onClick={() => goNext(2, 3, () => validateCreateStep2(createData))}>
-            Next →
+            {t('abNext')}
           </button>
         </>
       );
@@ -580,10 +580,10 @@ export const CreateLocationModal: React.FC<Props> = ({
       return (
         <>
           <button type="button" className="btn btn-secondary" onClick={() => setCreateStep(2)}>
-            ← Back
+            {t('abBack')}
           </button>
           <button type="button" className="btn btn-primary" onClick={() => goNext(3, 4, () => validateCreateStep3(createData))}>
-            Review →
+            {t('abReview')}
           </button>
         </>
       );
@@ -591,14 +591,14 @@ export const CreateLocationModal: React.FC<Props> = ({
     return (
       <>
         <button type="button" className="btn btn-secondary ab-review-back" onClick={() => setCreateStep(3)}>
-          ← Back
+          {t('abBack')}
         </button>
         <div className="ab-review-footer-actions">
           <button type="button" className="btn btn-secondary" onClick={closeCreateModal}>
-            Cancel
+            {t('abCancel')}
           </button>
           <button type="button" className="btn btn-primary" onClick={submitNewLocation} disabled={saving}>
-            {saving ? 'Creating…' : '✓ Create Location'}
+            {saving ? t('abCreating') : t('abCreateLocationBtn')}
           </button>
         </div>
       </>
@@ -609,7 +609,7 @@ export const CreateLocationModal: React.FC<Props> = ({
     <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && closeCreateModal()}>
       <div className="modal modal-form" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>New Location</h2>
+          <h2>{t('abNewLocation')}</h2>
           <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeCreateModal}>
             ✕
           </button>
