@@ -14,7 +14,7 @@ type ContentProps = {
 export const MyVagonLoaderContent: React.FC<ContentProps> = ({
   className = '',
 }) => {
-  const size = 320;
+  const size = 500;
 
   return (
     <div
@@ -26,7 +26,7 @@ export const MyVagonLoaderContent: React.FC<ContentProps> = ({
         alt="Loading…"
         width={size}
         height={size}
-        style={{ objectFit: 'contain', display: 'block' }}
+        style={{ objectFit: 'cover', display: 'block' }}
         aria-label="Loading"
       />
     </div>
