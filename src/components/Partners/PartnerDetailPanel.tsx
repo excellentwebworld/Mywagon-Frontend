@@ -83,16 +83,37 @@ export const PartnerDetailPanel: React.FC<Props> = ({
   saveTags,
 }) => {
   const [localNote, setLocalNote] = useState('');
-  const [localTags, setLocalTags] = useState('');
+  const [localTagsList, setLocalTagsList] = useState<string[]>([]);
+  const [newTagInput, setNewTagInput] = useState('');
 
   /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
   React.useEffect(() => {
     if (selectedPartner) {
       setLocalNote(selectedPartner.notes || '');
-      setLocalTags((selectedPartner.tags || []).join(', '));
+      setLocalTagsList(selectedPartner.tags || []);
     }
   }, [selectedPartner?.id, selectedPartner?.notes, selectedPartner?.tags]);
   /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
+
+  const handleAddTag = () => {
+    const tag = newTagInput.trim();
+    if (tag && !localTagsList.includes(tag)) {
+      const nextTags = [...localTagsList, tag];
+      setLocalTagsList(nextTags);
+      saveTags(nextTags);
+    }
+    setNewTagInput('');
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const nextTags = localTagsList.filter((t) => t !== tagToRemove);
+    setLocalTagsList(nextTags);
+    saveTags(nextTags);
+  };
+
+  const handleSaveNotes = () => {
+    saveNote(localNote);
+  };
 
   if (!selectedPartner) {
     return (
@@ -381,54 +402,73 @@ export const PartnerDetailPanel: React.FC<Props> = ({
           />
           {openSections.notes && (
             <div className="ptn-dpsb">
-              <div className="mf" style={{ marginBottom: 10 }}>
-                <label>{t('tagsLabel')}</label>
-                <input
-                  type="text"
-                  placeholder={t('tagsPlaceholder')}
-                  value={localTags}
-                  onChange={(e) => setLocalTags(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  style={{ marginTop: 6 }}
-                  onClick={() =>
-                    saveTags(
-                      localTags
-                        .split(',')
-                        .map((s) => s.trim())
-                        .filter(Boolean)
-                    )
-                  }
-                >
-                  {t('saveTags')}
-                </button>
+              <div className="mf" style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>
+                  {t('tagsLabel', 'Tags')}
+                </label>
+                {localTagsList.length > 0 && (
+                  <div className="ptn-tag-list">
+                    {localTagsList.map((tag) => (
+                      <span key={tag} className="ptn-tag-chip-item">
+                        {tag}
+                        <button
+                          type="button"
+                          className="btn-remove-tag"
+                          onClick={() => handleRemoveTag(tag)}
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="ptn-tag-input-group">
+                  <input
+                    type="text"
+                    placeholder={t('newTagPlaceholder', 'New tag..')}
+                    value={newTagInput}
+                    onChange={(e) => setNewTagInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleAddTag}
+                  >
+                    {t('add', 'Add')}
+                  </button>
+                </div>
               </div>
-              <textarea
-                id="ptn-note-input"
-                placeholder={`${t('notesSection')}…`}
-                value={localNote}
-                onChange={(e) => setLocalNote(e.target.value)}
-                style={{
-                  width: '100%',
-                  minHeight: 70,
-                  padding: '8px 10px',
-                  border: '1.5px solid var(--border)',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: 12,
-                  fontFamily: 'inherit',
-                  resize: 'vertical',
-                }}
-              />
+              <div className="mf" style={{ marginBottom: 10 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>
+                  {t('notesLabel', 'Notes')}
+                </label>
+                <textarea
+                  id="ptn-note-input"
+                  placeholder={t('notesPlaceholder', 'Type partner notes here..')}
+                  value={localNote}
+                  onChange={(e) => setLocalNote(e.target.value)}
+                  style={{
+                    width: '100%',
+                    minHeight: 70,
+                    padding: '8px 10px',
+                    border: '1.5px solid var(--border)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: 12,
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                    outline: 'none',
+                  }}
+                />
+              </div>
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
-                style={{ marginTop: 8 }}
-                onClick={() => saveNote(localNote)}
+                style={{ marginTop: 8, width: '100%', justifyContent: 'center' }}
+                onClick={handleSaveNotes}
                 id="btn-save-note"
               >
-                💾 {t('saveNote')}
+                {t('saveNote')}
               </button>
             </div>
           )}

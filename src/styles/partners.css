@@ -1078,3 +1078,57 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
   color: var(--danger);
   margin-left: 2px;
 }
+
+/* Custom Tags UI in Notes section */
+.ptn-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.ptn-tag-chip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #EEF2FF;
+  color: #4F46E5;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.ptn-tag-chip-item .btn-remove-tag {
+  border: none;
+  background: none;
+  color: #EF4444;
+  cursor: pointer;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s;
+}
+.ptn-tag-chip-item .btn-remove-tag:hover {
+  opacity: 0.7;
+}
+.ptn-tag-input-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.ptn-tag-input-group input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.ptn-tag-input-group input:focus {
+  border-color: var(--accent);
+}
+
