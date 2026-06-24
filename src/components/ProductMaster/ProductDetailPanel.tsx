@@ -1,24 +1,23 @@
-import React, { useState } from 'react';
-import { ProductDetailSkeleton } from '../skeletons/ProductDetailSkeleton';
-import { useTranslation } from '../../hooks/useTranslation';
-import type { ProductType, SKU } from '../../context/AppContext';
-import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
-import { MyVagonLoaderContent } from '../ui/MyVagonLoader';
+import React, { useState } from "react";
+import { ProductDetailSkeleton } from "../skeletons/ProductDetailSkeleton";
+import { useTranslation } from "../../hooks/useTranslation";
+import type { ProductType, SKU } from "../../context/AppContext";
+import type { ProductMasterState } from "../../pages/ProductMaster/hooks/useProductMaster";
 
 type Props = Pick<
   ProductMasterState,
-  | 'categories'
-  | 'productTypes'
-  | 'catName'
-  | 'selectedItem'
-  | 'selectedKind'
-  | 'detailLoading'
-  | 'typeMappedSkus'
-  | 'typeSkusLoading'
-  | 'clearSelection'
-  | 'openEditSku'
-  | 'handleToggleActive'
-  | 'loadSkuDetail'
+  | "categories"
+  | "productTypes"
+  | "catName"
+  | "selectedItem"
+  | "selectedKind"
+  | "detailLoading"
+  | "typeMappedSkus"
+  | "typeSkusLoading"
+  | "clearSelection"
+  | "openEditSku"
+  | "handleToggleActive"
+  | "loadSkuDetail"
 >;
 
 export const ProductDetailPanel: React.FC<Props> = ({
@@ -35,12 +34,12 @@ export const ProductDetailPanel: React.FC<Props> = ({
   handleToggleActive,
   loadSkuDetail,
 }) => (
-  <div className={`detail-pane${selectedItem ? ' open' : ''}`}>
+  <div className={`detail-pane${selectedItem ? " open" : ""}`}>
     <div className="dp-inner">
-      {detailLoading && selectedKind === 'sku' && (
+      {detailLoading && selectedKind === "sku" && (
         <ProductDetailSkeleton onClose={clearSelection} />
       )}
-      {selectedItem && selectedKind === 'sku' && !detailLoading && (
+      {selectedItem && selectedKind === "sku" && !detailLoading && (
         <SkuDetail
           sku={selectedItem as SKU}
           productTypes={productTypes}
@@ -51,7 +50,7 @@ export const ProductDetailPanel: React.FC<Props> = ({
           handleToggleActive={handleToggleActive}
         />
       )}
-      {selectedItem && selectedKind === 'type' && (
+      {selectedItem && selectedKind === "type" && (
         <TypeDetail
           type={selectedItem as ProductType}
           categories={categories}
@@ -77,8 +76,8 @@ function SkuDetail({
 }: {
   sku: SKU;
   productTypes: ProductType[];
-  categories: ProductMasterState['categories'];
-  catName: ProductMasterState['catName'];
+  categories: ProductMasterState["categories"];
+  catName: ProductMasterState["catName"];
   clearSelection: () => void;
   openEditSku: (s: SKU) => void;
   handleToggleActive: (s: SKU) => void;
@@ -87,7 +86,8 @@ function SkuDetail({
   const tp = productTypes.find((x) => x.id === s.typeId);
   const cat = categories.find((x) => x.id === s.catId);
   const [secCollapsed, setSecCollapsed] = useState<Record<string, boolean>>({});
-  const toggleSec = (key: string) => setSecCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleSec = (key: string) =>
+    setSecCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
     <>
@@ -96,16 +96,32 @@ function SkuDetail({
           ✕
         </button>
         <div className="dp-badges">
-          <span className={`src-badge ${s.source === 'erp' ? 'src-erp' : 'src-manual'}`}>
-            {s.source === 'erp' ? 'ERP' : 'Manual'}
+          <span
+            className={`src-badge ${s.source === "erp" ? "src-erp" : "src-manual"}`}
+          >
+            {s.source === "erp" ? "ERP" : "Manual"}
           </span>
-          {s.erp.status === 'conflict' && (
-            <span className="src-badge" style={{ background: '#F5F3FF', color: '#7C3AED', border: '1px solid #DDD6FE' }}>
+          {s.erp.status === "conflict" && (
+            <span
+              className="src-badge"
+              style={{
+                background: "#F5F3FF",
+                color: "#7C3AED",
+                border: "1px solid #DDD6FE",
+              }}
+            >
               Conflict
             </span>
           )}
           {!s.typeId && (
-            <span className="src-badge" style={{ background: 'var(--bol)', color: '#92400E', border: '1px solid var(--bobd)' }}>
+            <span
+              className="src-badge"
+              style={{
+                background: "var(--bol)",
+                color: "#92400E",
+                border: "1px solid var(--bobd)",
+              }}
+            >
               Unmapped
             </span>
           )}
@@ -113,7 +129,7 @@ function SkuDetail({
         </div>
         <div className="dp-name">{s.name}</div>
         <div className="dp-sub">
-          {tp ? tp.name : 'No type assigned'} · {cat ? catName(cat) : '—'}
+          {tp ? tp.name : "No type assigned"} · {cat ? catName(cat) : "—"}
         </div>
         <div className="dp-meta">
           <div>
@@ -126,60 +142,73 @@ function SkuDetail({
           )}
           {s.weight && (
             <div>
-              <strong>Weight:</strong> {s.weight.toLowerCase().includes('kg') ? s.weight : `${s.weight} kg`}
+              <strong>Weight:</strong>{" "}
+              {s.weight.toLowerCase().includes("kg")
+                ? s.weight
+                : `${s.weight} kg`}
             </div>
           )}
           {s.uom && (
             <div>
-              <strong>{t('uom')}:</strong> {s.uom}
+              <strong>{t("uom")}:</strong> {s.uom}
             </div>
           )}
         </div>
         <div className="dp-actions">
-          <button type="button" className="btn btn-sm" onClick={() => openEditSku(s)}>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => openEditSku(s)}
+          >
             Edit
           </button>
           <button
             type="button"
-            className={`btn btn-sm ${s.active ? 'btn-danger' : 'btn-primary'}`}
+            className={`btn btn-sm ${s.active ? "btn-danger" : "btn-primary"}`}
             onClick={() => handleToggleActive(s)}
           >
-            {s.active ? 'Deactivate' : 'Activate'}
+            {s.active ? "Deactivate" : "Activate"}
           </button>
         </div>
       </div>
 
-      {s.source === 'erp' && s.erp.status === 'conflict' && (
-        <div style={{ padding: '12px 20px' }}>
+      {s.source === "erp" && s.erp.status === "conflict" && (
+        <div style={{ padding: "12px 20px" }}>
           <div className="conflict-banner">
-            <strong>Sync conflict:</strong> {s.erp.error || 'Field mismatch with ERP source'}
+            <strong>Sync conflict:</strong>{" "}
+            {s.erp.error || "Field mismatch with ERP source"}
           </div>
         </div>
       )}
 
-      {s.source === 'erp' && (
+      {s.source === "erp" && (
         <div className="dp-sec">
-          <div className="dp-sec-h" onClick={() => toggleSec('erp')} role="button" tabIndex={0}>
+          <div
+            className="dp-sec-h"
+            onClick={() => toggleSec("erp")}
+            role="button"
+            tabIndex={0}
+          >
             🔌 ERP Integration
-            <span className={`chev${!secCollapsed.erp ? ' open' : ''}`}>▼</span>
+            <span className={`chev${!secCollapsed.erp ? " open" : ""}`}>▼</span>
           </div>
           {!secCollapsed.erp && (
             <div className="dp-sec-body">
               <div className="dp-row">
                 <span className="label">ERP System</span>
-                <span className="val">{s.erp.system || '—'}</span>
+                <span className="val">{s.erp.system || "—"}</span>
               </div>
               <div className="dp-row">
                 <span className="label">External ID</span>
-                <span className="val">{s.erp.extId || '—'}</span>
+                <span className="val">{s.erp.extId || "—"}</span>
               </div>
               <div className="dp-row">
                 <span className="label">Last Synced</span>
-                <span className="val">{s.erp.lastSync || '—'}</span>
+                <span className="val">{s.erp.lastSync || "—"}</span>
               </div>
               <div className="dp-row">
                 <span className="label">Sync Status</span>
-                <span className="val">{s.erp.status || '—'}</span>
+                <span className="val">{s.erp.status || "—"}</span>
               </div>
             </div>
           )}
@@ -187,9 +216,16 @@ function SkuDetail({
       )}
 
       <div className="dp-sec">
-        <div className="dp-sec-h" onClick={() => toggleSec('shipping')} role="button" tabIndex={0}>
+        <div
+          className="dp-sec-h"
+          onClick={() => toggleSec("shipping")}
+          role="button"
+          tabIndex={0}
+        >
           📦 Shipping Defaults
-          <span className={`chev${!secCollapsed.shipping ? ' open' : ''}`}>▼</span>
+          <span className={`chev${!secCollapsed.shipping ? " open" : ""}`}>
+            ▼
+          </span>
         </div>
         {!secCollapsed.shipping && (
           <div className="dp-sec-body">
@@ -197,23 +233,33 @@ function SkuDetail({
               <>
                 <div className="dp-row">
                   <span className="label">Temperature</span>
-                  <span className="val">{s.temperature ?? tp?.defaults.temp}</span>
+                  <span className="val">
+                    {s.temperature ?? tp?.defaults.temp}
+                  </span>
                 </div>
                 <div className="dp-row">
                   <span className="label">Hazardous</span>
-                  <span className="val">{(s.hazardous ?? tp?.defaults.hazard) ? 'Yes' : 'No'}</span>
+                  <span className="val">
+                    {(s.hazardous ?? tp?.defaults.hazard) ? "Yes" : "No"}
+                  </span>
                 </div>
                 <div className="dp-row">
                   <span className="label">Stackable</span>
-                  <span className="val">{(s.stackable ?? tp?.defaults.stackable) ? 'Yes' : 'No'}</span>
+                  <span className="val">
+                    {(s.stackable ?? tp?.defaults.stackable) ? "Yes" : "No"}
+                  </span>
                 </div>
                 <div className="dp-row">
                   <span className="label">Pallet Type</span>
-                  <span className="val">{s.palletType ?? tp?.defaults.palletType}</span>
+                  <span className="val">
+                    {s.palletType ?? tp?.defaults.palletType}
+                  </span>
                 </div>
               </>
             ) : (
-              <div style={{ color: 'var(--t3)', fontSize: 12 }}>No type profile assigned</div>
+              <div style={{ color: "var(--t3)", fontSize: 12 }}>
+                No type profile assigned
+              </div>
             )}
           </div>
         )}
@@ -222,7 +268,10 @@ function SkuDetail({
       {s.tags.length > 0 && (
         <div className="dp-sec">
           <div className="dp-sec-h">🏷️ Tags</div>
-          <div className="dp-sec-body" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div
+            className="dp-sec-body"
+            style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
+          >
             {s.tags.map((tag) => (
               <span key={tag} className="type-pill">
                 {tag}
@@ -233,22 +282,22 @@ function SkuDetail({
       )}
 
       <div className="dp-sec">
-        <div className="dp-sec-h" style={{ cursor: 'default' }}>
-          {t('shipmentStats')}
+        <div className="dp-sec-h" style={{ cursor: "default" }}>
+          {t("shipmentStats")}
         </div>
         <div className="dp-sec-body">
           <div className="stat-grid-3">
             <div className="stat-card">
               <div className="stat-val">{s.shipmentsTotal ?? 0}</div>
-              <div className="stat-lbl">{t('shipmentsTotal')}</div>
+              <div className="stat-lbl">{t("shipmentsTotal")}</div>
             </div>
             <div className="stat-card">
               <div className="stat-val">{s.shipments30 ?? 0}</div>
-              <div className="stat-lbl">{t('shipments30d')}</div>
+              <div className="stat-lbl">{t("shipments30d")}</div>
             </div>
             <div className="stat-card">
               <div className="stat-val">{s.shipments90 ?? 0}</div>
-              <div className="stat-lbl">{t('shipments90d')}</div>
+              <div className="stat-lbl">{t("shipments90d")}</div>
             </div>
           </div>
         </div>
@@ -267,8 +316,8 @@ function TypeDetail({
   onSkuClick,
 }: {
   type: ProductType;
-  categories: ProductMasterState['categories'];
-  catName: ProductMasterState['catName'];
+  categories: ProductMasterState["categories"];
+  catName: ProductMasterState["catName"];
   mappedSkus: SKU[];
   mappedSkusLoading: boolean;
   clearSelection: () => void;
@@ -277,7 +326,8 @@ function TypeDetail({
   const { t } = useTranslation();
   const cat = categories.find((c) => c.id === tp.catId);
   const [secCollapsed, setSecCollapsed] = useState<Record<string, boolean>>({});
-  const toggleSec = (key: string) => setSecCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleSec = (key: string) =>
+    setSecCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
   const mappedCount = tp.skuCount ?? mappedSkus.length;
 
   return (
@@ -290,7 +340,9 @@ function TypeDetail({
           <span className="type-pill">Product Type</span>
         </div>
         <div className="dp-name">{tp.name}</div>
-        <div className="dp-sub">{cat ? `${cat.icon} ${catName(cat)}` : '—'}</div>
+        <div className="dp-sub">
+          {cat ? `${cat.icon} ${catName(cat)}` : "—"}
+        </div>
 
         <div className="stat-grid" style={{ marginTop: 14 }}>
           <div className="stat-card">
@@ -313,9 +365,16 @@ function TypeDetail({
       </div>
 
       <div className="dp-sec">
-        <div className="dp-sec-h" onClick={() => toggleSec('defaults')} role="button" tabIndex={0}>
+        <div
+          className="dp-sec-h"
+          onClick={() => toggleSec("defaults")}
+          role="button"
+          tabIndex={0}
+        >
           📦 Shipping Defaults
-          <span className={`chev${!secCollapsed.defaults ? ' open' : ''}`}>▼</span>
+          <span className={`chev${!secCollapsed.defaults ? " open" : ""}`}>
+            ▼
+          </span>
         </div>
         {!secCollapsed.defaults && (
           <div className="dp-sec-body">
@@ -325,11 +384,13 @@ function TypeDetail({
             </div>
             <div className="dp-row">
               <span className="label">Hazardous</span>
-              <span className="val">{tp.defaults.hazard ? 'Yes' : 'No'}</span>
+              <span className="val">{tp.defaults.hazard ? "Yes" : "No"}</span>
             </div>
             <div className="dp-row">
               <span className="label">Stackable</span>
-              <span className="val">{tp.defaults.stackable ? 'Yes' : 'No'}</span>
+              <span className="val">
+                {tp.defaults.stackable ? "Yes" : "No"}
+              </span>
             </div>
             <div className="dp-row">
               <span className="label">Pallet Type</span>
@@ -340,16 +401,27 @@ function TypeDetail({
       </div>
 
       <div className="dp-sec">
-        <div className="dp-sec-h" onClick={() => toggleSec('mapped')} role="button" tabIndex={0}>
+        <div
+          className="dp-sec-h"
+          onClick={() => toggleSec("mapped")}
+          role="button"
+          tabIndex={0}
+        >
           🏷️ Mapped SKUs ({mappedCount})
-          <span className={`chev${!secCollapsed.mapped ? ' open' : ''}`}>▼</span>
+          <span className={`chev${!secCollapsed.mapped ? " open" : ""}`}>
+            ▼
+          </span>
         </div>
         {!secCollapsed.mapped && (
           <div className="dp-sec-body">
             {mappedSkusLoading ? (
-              <div style={{ color: 'var(--t3)', fontSize: 12 }}>Loading SKUs…</div>
+              <div style={{ color: "var(--t3)", fontSize: 12 }}>
+                Loading SKUs…
+              </div>
             ) : mappedSkus.length === 0 ? (
-              <div style={{ color: 'var(--t3)', fontSize: 12 }}>{t('noSkusMapped')}</div>
+              <div style={{ color: "var(--t3)", fontSize: 12 }}>
+                {t("noSkusMapped")}
+              </div>
             ) : (
               <table className="mini-table">
                 <thead>
@@ -360,7 +432,12 @@ function TypeDetail({
                 </thead>
                 <tbody>
                   {mappedSkus.map((s) => (
-                    <tr key={s.id} onClick={() => onSkuClick(s)} role="button" tabIndex={0}>
+                    <tr
+                      key={s.id}
+                      onClick={() => onSkuClick(s)}
+                      role="button"
+                      tabIndex={0}
+                    >
                       <td>{s.name}</td>
                       <td>{s.number}</td>
                     </tr>
@@ -374,4 +451,3 @@ function TypeDetail({
     </>
   );
 }
-

@@ -1,5 +1,5 @@
 import React from 'react';
-import Logo from '../../assets/logo/fullLogo.svg';
+import LoaderGif from '../../assets/loader.gif';
 
 export type MyVagonLoaderTheme = 'light' | 'dark';
 
@@ -10,7 +10,7 @@ type ContentProps = {
 };
 
 
-/** Blade `preloader-content`: premium spinner + MYVAGON logo (loader_show parity). */
+/** Blade `preloader-content`: animated truck loader (`loader.gif`). */
 export const MyVagonLoaderContent: React.FC<ContentProps> = ({
   className = '',
 }) => {
@@ -22,7 +22,7 @@ export const MyVagonLoaderContent: React.FC<ContentProps> = ({
       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
       <img
-        src={Logo}
+        src={LoaderGif}
         alt="Loading…"
         width={size}
         height={size}
