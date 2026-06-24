@@ -53,9 +53,11 @@ export function mapListItemToPartner(item: ApiPartnerListItem): Partner {
 }
 
 export function mergeDetailIntoPartner(base: Partner, detail: ApiPartnerDetail): Partner {
+  const mappedDetail = mapListItemToPartner(detail);
   return {
     ...base,
-    ...mapListItemToPartner(detail),
+    ...mappedDetail,
+    canAcceptDecline: detail.can_accept_decline ?? base.canAcceptDecline,
     location: detail.location,
     notes: detail.notes ?? '',
     tags: detail.tags ?? [],

@@ -195,7 +195,7 @@ export const PartnerDetailPanel: React.FC<Props> = ({
             )}
           </div>
 
-          {p.canAcceptDecline && (
+          {(p.canAcceptDecline || p.status === 'pending') && (
             <div className="ptn-awaiting-box">
               <div className="ptn-awaiting-title">
                 📥 {t('invitationReceived')}
