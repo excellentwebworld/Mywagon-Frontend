@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
+import { userAvatarUrl } from '../../utils/resolveMediaUrl';
 
 interface HeaderProps {
   onToggleMobileMenu: () => void;
@@ -44,6 +45,16 @@ export const Header: React.FC<HeaderProps> = ({
     : lang === 'el'
       ? 'ΗΒ'
       : 'AL';
+
+  const avatarUrl = useMemo(
+    () => userAvatarUrl(user?.profile_picture, user?.first_name, user?.last_name),
+    [user?.profile_picture, user?.first_name, user?.last_name]
+  );
+  const [avatarImgError, setAvatarImgError] = useState(false);
+
+  useEffect(() => {
+    setAvatarImgError(false);
+  }, [avatarUrl]);
 
   const confirmSignOut = async () => {
     setIsSigningOut(true);
@@ -345,9 +356,17 @@ export const Header: React.FC<HeaderProps> = ({
             }}
             aria-label="User menu"
             aria-haspopup="true"
-            style={{ cursor: 'pointer', border: 'none' }}
+            style={{ cursor: 'pointer', border: 'none', overflow: 'hidden', padding: 0 }}
           >
-            {avatarInitials}
+            {avatarUrl && !avatarImgError ? (
+              <img
+                src={avatarUrl}
+                alt={t('profile')}
+                onError={() => setAvatarImgError(true)}
+              />
+            ) : (
+              avatarInitials
+            )}
           </button>
 
           {userOpen && (

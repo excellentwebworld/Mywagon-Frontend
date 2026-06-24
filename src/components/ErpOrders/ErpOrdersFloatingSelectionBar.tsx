@@ -11,7 +11,7 @@ type Props = {
 export const ErpOrdersFloatingSelectionBar: React.FC<Props> = ({
   t,
   selectedCount,
-  onCreateLoad,
+  onCreateLoad: _onCreateLoad,
   onClear,
 }) => {
   if (selectedCount === 0) return null;
@@ -22,10 +22,12 @@ export const ErpOrdersFloatingSelectionBar: React.FC<Props> = ({
         {t('erpOrdersNSelected', { n: selectedCount })}
       </span>
       <span className="erp-float-sel-divider" />
-      <button type="button" className="btn btn-p btn-sm" onClick={onCreateLoad}>
+      {/* Create Load — temporarily hidden
+      <button type="button" className="btn btn-p btn-sm" onClick={_onCreateLoad}>
         <PlusIcon />
         {t('erpOrdersCreateLoad')}
       </button>
+      */}
       <button type="button" className="btn btn-sm erp-float-sel-clear" onClick={onClear}>
         ✕ {t('erpOrdersClearSelection')}
       </button>

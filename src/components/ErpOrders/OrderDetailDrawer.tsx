@@ -40,7 +40,7 @@ export const OrderDetailDrawer: React.FC<Props> = ({
   open,
   onClose,
   onEdit,
-  onCreateLoad,
+  onCreateLoad: _onCreateLoad,
   onResync,
   statusLabel,
 }) => {
@@ -211,12 +211,14 @@ export const OrderDetailDrawer: React.FC<Props> = ({
 
         {order && (
           <div className="erp-order-drawer-foot">
+            {/* Create Load — temporarily hidden
             {!order.linkedLoadSid && (
-              <button type="button" className="btn btn-p erp-order-drawer-create-load" onClick={() => onCreateLoad(order.id)}>
+              <button type="button" className="btn btn-p erp-order-drawer-create-load" onClick={() => _onCreateLoad(order.id)}>
                 <PlusIcon />
                 {t('erpOrdersCreateLoad')}
               </button>
             )}
+            */}
             <div className="erp-order-drawer-actions">
               {shouldSuggestSplit(order) && (
                 <button type="button" className="btn btn-sm erp-order-drawer-action" disabled>

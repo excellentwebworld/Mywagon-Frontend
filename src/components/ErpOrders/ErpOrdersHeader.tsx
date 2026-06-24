@@ -18,7 +18,7 @@ export const ErpOrdersHeader: React.FC<Props> = ({
   openCreateOrder,
   openAiWizard,
   onExport,
-  onCreateLoad,
+  onCreateLoad: _onCreateLoad,
 }) => (
   <div className="pg-head anim">
     <div className="pg-head-l">
@@ -39,15 +39,17 @@ export const ErpOrdersHeader: React.FC<Props> = ({
         <ExportIcon />
         {t('erpOrdersExport')}
       </button>
+      {/* Create Load — temporarily hidden
       <button
         type="button"
         className="btn"
         disabled={selectedCount === 0}
-        onClick={onCreateLoad}
+        onClick={_onCreateLoad}
       >
         <PlusIcon />
         {t('erpOrdersCreateLoad')}
       </button>
+      */}
     </div>
   </div>
 );
