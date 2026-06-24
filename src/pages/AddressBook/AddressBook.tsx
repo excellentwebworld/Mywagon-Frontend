@@ -48,9 +48,9 @@ export const AddressBook: React.FC = () => {
         <LocationList
           activeDirectoryName={ab.activeDirectoryName}
           activeNode={ab.activeNode}
-          sortBy={ab.sortBy}
+          sortField={ab.sortField}
           sortDir={ab.sortDir}
-          toggleLocationSort={ab.toggleLocationSort}
+          toggleSort={ab.toggleSort}
           filteredLocations={ab.filteredLocations}
           selectedLoc={ab.selectedLoc}
           setSelectedLoc={ab.setSelectedLoc}

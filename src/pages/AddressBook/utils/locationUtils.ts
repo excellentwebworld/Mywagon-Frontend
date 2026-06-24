@@ -1,6 +1,6 @@
 import type { ApiAddressBookSummary } from '../../../api/types/addressBook';
 import type { LocationItem } from '../../../context/AppContext';
-import { EMPTY_CREATE_DATA, type CreateLocationData, type DirectoryItem, type FilterKey, type SortOption } from '../types';
+import { EMPTY_CREATE_DATA, type AddressBookSortField, type CreateLocationData, type DirectoryItem, type FilterKey } from '../types';
 
 export function getNodeCountFromSummary(
   dir: DirectoryItem,
@@ -29,22 +29,6 @@ export function getDirectoryWarnings(dir: DirectoryItem, locations: LocationItem
     const inDir = dir.filter ? dir.filter(l) : l.group === dir.id;
     return inDir && l.status === 'active' && (!l.geoVerified || l.contacts.length === 0);
   }).length;
-}
-
-function parseLastUsed(value: string): number {
-  if (value === 'Never') return Infinity;
-  const match = value.match(/^(\d+)([hdm])/);
-  if (!match) return Infinity;
-  const n = parseInt(match[1], 10);
-  if (match[2] === 'h') return n;
-  if (match[2] === 'd') return n * 24;
-  return n / 60;
-}
-
-function parseCreatedDate(value: string): number {
-  const [d, m, y] = value.split('/').map(Number);
-  if (!d || !m || !y) return 0;
-  return new Date(y, m - 1, d).getTime();
 }
 
 export function filterLocations(
@@ -105,12 +89,18 @@ export function applyClientFilters(
   });
 }
 
-export function sortLocations(items: LocationItem[], sortBy: SortOption): LocationItem[] {
+export function sortLocations(
+  items: LocationItem[],
+  sortField: AddressBookSortField,
+  sortDir: 'asc' | 'desc' = 'asc'
+): LocationItem[] {
   const sorted = [...items];
-  if (sortBy === 'Name A–Z') sorted.sort((a, b) => a.name.localeCompare(b.name));
-  else if (sortBy === 'City') sorted.sort((a, b) => a.city.localeCompare(b.city));
-  else if (sortBy === 'Last used') sorted.sort((a, b) => parseLastUsed(a.lastUsed) - parseLastUsed(b.lastUsed));
-  else if (sortBy === 'Created') sorted.sort((a, b) => parseCreatedDate(b.created) - parseCreatedDate(a.created));
+  const factor = sortDir === 'asc' ? 1 : -1;
+  if (sortField === 'city') {
+    sorted.sort((a, b) => factor * a.city.localeCompare(b.city));
+  } else {
+    sorted.sort((a, b) => factor * a.name.localeCompare(b.name));
+  }
   return sorted;
 }
 

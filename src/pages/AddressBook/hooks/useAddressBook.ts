@@ -10,9 +10,9 @@ import { directoryToListParams } from '../../../api/mappers/addressBookMapper';
 import {
   EMPTY_COMPANY_DATA,
   EMPTY_CREATE_DATA,
+  type AddressBookSortField,
   type CompanyFormData,
   type CreateLocationData,
-  type SortOption,
 } from '../types';
 import { DEFAULT_PAGE_SIZE } from '../constants';
 import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
@@ -43,7 +43,7 @@ export function useAddressBook() {
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLoc, setSelectedLoc] = useState<LocationItem | null>(null);
-  const [sortBy, setSortBy] = useState<SortOption>('Name A–Z');
+  const [sortField, setSortField] = useState<AddressBookSortField>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -78,7 +78,7 @@ export function useAddressBook() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeNode, sortBy, perPage]);
+  }, [activeNode, sortField, sortDir, perPage]);
 
   const handleApiError = useCallback(
     (err: unknown, fallback: string) => {
@@ -103,8 +103,8 @@ export function useAddressBook() {
   }, [refreshLocationsFromApi]);
 
   const params = useMemo(() => {
-    return directoryToListParams(activeNode, debouncedSearch, sortBy, currentPage, perPage);
-  }, [activeNode, debouncedSearch, sortBy, currentPage, perPage]);
+    return directoryToListParams(activeNode, debouncedSearch, sortField, sortDir, currentPage, perPage);
+  }, [activeNode, debouncedSearch, sortField, sortDir, currentPage, perPage]);
 
   // Queries
   const {
@@ -113,7 +113,7 @@ export function useAddressBook() {
     isFetching: listFetching,
     refetch: refreshLocations,
   } = useQuery({
-    queryKey: ['locations', activeNode, debouncedSearch, sortBy, currentPage, perPage],
+    queryKey: ['locations', activeNode, debouncedSearch, sortField, sortDir, currentPage, perPage],
     queryFn: async () => {
       try {
         setError(null);
@@ -521,7 +521,7 @@ export function useAddressBook() {
   const exportExcel = useCallback(async () => {
     setExporting(true);
     try {
-      const exportParams = directoryToListParams(activeNode, debouncedSearch, sortBy, 1, perPage);
+      const exportParams = directoryToListParams(activeNode, debouncedSearch, sortField, sortDir, 1, perPage);
       const blob = await addressBookService.exportExcel(exportParams);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -537,7 +537,7 @@ export function useAddressBook() {
     } finally {
       setExporting(false);
     }
-  }, [activeNode, debouncedSearch, handleApiError, perPage, showToast, sortBy, t]);
+  }, [activeNode, debouncedSearch, handleApiError, perPage, showToast, sortField, sortDir, t]);
 
   const handleSelectLocation = useCallback(
     async (loc: LocationItem | null) => {
@@ -573,10 +573,14 @@ export function useAddressBook() {
     [handleSelectLocation, showToast]
   );
 
-  const toggleLocationSort = useCallback(() => {
-    setSortBy('Name A–Z');
-    setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-  }, []);
+  const toggleSort = useCallback((field: AddressBookSortField) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortField(field);
+    setSortDir('asc');
+  }, [sortField]);
 
   const filteredCompanies = useMemo(() => apiCompanies, [apiCompanies]);
 
@@ -608,10 +612,9 @@ export function useAddressBook() {
     searchQuery,
     selectedLoc,
     setSelectedLoc: handleSelectLocation,
-    sortBy,
-    setSortBy,
+    sortField,
     sortDir,
-    toggleLocationSort,
+    toggleSort,
     filteredLocations,
     isCreateOpen,
     createStep,

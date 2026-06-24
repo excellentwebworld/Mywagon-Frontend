@@ -1,5 +1,5 @@
 import type { Contact, LocationItem } from '../../context/AppContext';
-import type { CreateLocationData, SortOption } from '../../pages/AddressBook/types';
+import type { CreateLocationData, AddressBookSortField } from '../../pages/AddressBook/types';
 import { normalizeFacilityType } from '../../pages/AddressBook/constants';
 import type {
   ApiLocationDetail,
@@ -234,28 +234,17 @@ export function mapLocationItemToPayload(loc: LocationItem): ApiLocationPayload 
   };
 }
 
-export function sortOptionToApi(sort: SortOption): ListLocationsParams['sort'] {
-  switch (sort) {
-    case 'City':
-      return 'city';
-    case 'Last used':
-      return 'last_used';
-    case 'Created':
-      return 'created';
-    default:
-      return 'name';
-  }
-}
-
 export function directoryToListParams(
   activeNode: string,
   search: string,
-  sort: SortOption,
+  sortField: AddressBookSortField,
+  sortDir: 'asc' | 'desc',
   page: number,
   perPage: number
 ): ListLocationsParams {
   const params: ListLocationsParams = {
-    sort: sortOptionToApi(sort),
+    sort: sortField,
+    sort_dir: sortDir,
     page,
     per_page: perPage,
   };

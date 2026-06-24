@@ -1,6 +1,5 @@
 import React from 'react';
 import type { LocationItem } from '../../context/AppContext';
-import type { SortOption } from '../../pages/AddressBook/types';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { LocationRowActions } from './LocationRowActions';
 import { ListSkeleton } from '../skeletons/ListSkeleton';
@@ -9,9 +8,9 @@ type Props = Pick<
   AddressBookState,
   | 'activeDirectoryName'
   | 'activeNode'
-  | 'sortBy'
+  | 'sortField'
   | 'sortDir'
-  | 'toggleLocationSort'
+  | 'toggleSort'
   | 'filteredLocations'
   | 'selectedLoc'
   | 'setSelectedLoc'
@@ -57,9 +56,9 @@ function buildPageList(current: number, last: number): number[] {
 export const LocationList: React.FC<Props> = ({
   activeDirectoryName,
   activeNode,
-  sortBy,
+  sortField,
   sortDir,
-  toggleLocationSort,
+  toggleSort,
   filteredLocations,
   selectedLoc,
   setSelectedLoc,
@@ -83,7 +82,8 @@ export const LocationList: React.FC<Props> = ({
   const lastPage = listMeta.last_page ?? 1;
   const countLabel = loading ? t('abLoadingLocations') : `${total} location${total !== 1 ? 's' : ''}`;
   const pages = buildPageList(currentPage, lastPage);
-  const sortActive = sortBy === 'Name A–Z';
+  const sortActiveName = sortField === 'name';
+  const sortActiveCity = sortField === 'city';
   const tableLoading = loading || listFetching;
 
   return (
@@ -100,14 +100,23 @@ export const LocationList: React.FC<Props> = ({
               <th>
                 <button
                   type="button"
-                  className={`th-sort-btn${sortActive ? ' active' : ''}`}
-                  onClick={toggleLocationSort}
+                  className={`th-sort-btn${sortActiveName ? ' active' : ''}`}
+                  onClick={() => toggleSort('name')}
                 >
                   Location
-                  {sortActive && <span className="th-sort-arrow">{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                  {sortActiveName && <span className="th-sort-arrow">{sortDir === 'asc' ? '↑' : '↓'}</span>}
                 </button>
               </th>
-              <th>City</th>
+              <th>
+                <button
+                  type="button"
+                  className={`th-sort-btn${sortActiveCity ? ' active' : ''}`}
+                  onClick={() => toggleSort('city')}
+                >
+                  City
+                  {sortActiveCity && <span className="th-sort-arrow">{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                </button>
+              </th>
               <th>{t('abLocationType')}</th>
               <th>Role</th>
               <th>Operational</th>

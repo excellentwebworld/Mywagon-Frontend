@@ -170,6 +170,7 @@ export interface ListLocationsParams {
   type?: 'my_locations' | 'customers' | 'all';
   search?: string;
   sort?: 'name' | 'city' | 'created' | 'last_used';
+  sort_dir?: 'asc' | 'desc';
   page?: number;
   per_page?: number;
   status?: 'active' | 'archived';
