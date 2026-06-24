@@ -76,8 +76,9 @@ export const ProductMaster: React.FC = () => {
 
         <ProductList
           viewMode={pm.viewMode}
-          sortBy={pm.sortBy}
-          setSortBy={pm.setSortBy}
+          sortField={pm.sortField}
+          sortDir={pm.sortDir}
+          toggleSort={pm.toggleSort}
           filteredSkus={pm.filteredSkus}
           filteredTypes={pm.filteredTypes}
           categories={pm.categories}

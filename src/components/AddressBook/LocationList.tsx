@@ -104,7 +104,9 @@ export const LocationList: React.FC<Props> = ({
                   onClick={() => toggleSort('name')}
                 >
                   Location
-                  {sortActiveName && <span className="th-sort-arrow">{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                  <span className="th-sort-arrow" aria-hidden="true">
+                    {sortActiveName ? (sortDir === 'asc' ? '↑' : '↓') : '↑'}
+                  </span>
                 </button>
               </th>
               <th>
@@ -114,7 +116,9 @@ export const LocationList: React.FC<Props> = ({
                   onClick={() => toggleSort('city')}
                 >
                   City
-                  {sortActiveCity && <span className="th-sort-arrow">{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                  <span className="th-sort-arrow" aria-hidden="true">
+                    {sortActiveCity ? (sortDir === 'asc' ? '↑' : '↓') : '↑'}
+                  </span>
                 </button>
               </th>
               <th>{t('abLocationType')}</th>

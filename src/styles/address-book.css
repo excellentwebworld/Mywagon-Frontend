@@ -1241,7 +1241,9 @@ table.ab-table { width: 100%; border-collapse: collapse; }
 .th-sort-btn { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: none; background: none; font: inherit; font-weight: 600; color: inherit; cursor: pointer; }
 .th-sort-btn:hover { color: var(--accent); }
 .th-sort-btn.active { color: var(--accent); }
-.th-sort-arrow { font-size: 10px; }
+.th-sort-arrow { font-size: 10px; opacity: 0; transition: opacity .12s ease; }
+.th-sort-btn:hover .th-sort-arrow,
+.th-sort-btn.active .th-sort-arrow { opacity: 1; }
 .pag-jump { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); margin-left: 8px; }
 .pag-jump input { width: 48px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; }
 .ops-dock-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }

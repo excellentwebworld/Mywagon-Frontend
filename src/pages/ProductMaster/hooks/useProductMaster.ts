@@ -8,9 +8,9 @@ import { skuToNewSkuForm } from '../../../api/mappers/productMasterMapper';
 import type { Category, ProductType, SKU } from '../../../context/AppContext';
 import {
   EMPTY_NEW_SKU,
+  type ProductMasterSortField,
   type NewSkuForm,
   type SelectedKind,
-  type SortOption,
   type ViewMode,
 } from '../types';
 import { getCategoryName } from '../utils/productUtils';
@@ -40,7 +40,8 @@ export function useProductMaster() {
   const [filterActive, setFilterActive] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [filterUnmapped, setFilterUnmapped] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [sortField, setSortField] = useState<ProductMasterSortField>('number');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
@@ -77,7 +78,7 @@ export function useProductMaster() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeCat, activeType, filterActive, filterCat, filterUnmapped, sortBy, perPage]);
+  }, [activeCat, activeType, filterActive, filterCat, filterUnmapped, sortField, sortDir, perPage]);
 
   const handleApiError = useCallback(
     (err: unknown, fallback: string) => {
@@ -112,10 +113,11 @@ export function useProductMaster() {
         debouncedSearch,
         currentPage,
         perPage,
-        sortBy,
+        sortField,
+        sortDir,
         filterCat
       ),
-    [activeCat, activeType, filterActive, filterCat, filterUnmapped, debouncedSearch, currentPage, perPage, sortBy]
+    [activeCat, activeType, filterActive, filterCat, filterUnmapped, debouncedSearch, currentPage, perPage, sortField, sortDir]
   );
 
   const summaryQuery = useQuery({
@@ -482,6 +484,15 @@ export function useProductMaster() {
     showToast(t('imported'), 'success');
   }, [invalidateAll, showToast, t]);
 
+  const toggleSort = useCallback((field: ProductMasterSortField) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortField(field);
+    setSortDir(field === 'updated_at' ? 'desc' : 'asc');
+  }, [sortField]);
+
   const catName = useCallback((c: Category) => getCategoryName(c, lang), [lang]);
 
   const loading = summaryQuery.isLoading || referenceQuery.isLoading || skusQuery.isLoading;
@@ -539,8 +550,9 @@ export function useProductMaster() {
     setFilterCat,
     filterUnmapped,
     setFilterUnmapped,
-    sortBy,
-    setSortBy,
+    sortField,
+    sortDir,
+    toggleSort,
     currentPage,
     setCurrentPage,
     perPage,

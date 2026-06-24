@@ -1,5 +1,5 @@
 import type { Category, ProductType, SKU } from '../../../context/AppContext';
-import type { SortOption } from '../types';
+import type { ProductMasterSortField } from '../types';
 
 export function getCategoryName(c: Category, lang: string): string {
   return typeof c.name === 'string' ? c.name : c.name[lang as 'en' | 'el'] || c.name.en;
@@ -23,7 +23,8 @@ export function filterSkus(
     activeCat: string;
     activeType: string;
     searchQuery: string;
-    sortBy: SortOption;
+    sortField: ProductMasterSortField;
+    sortDir?: 'asc' | 'desc';
   }
 ): SKU[] {
   const {
@@ -36,7 +37,8 @@ export function filterSkus(
     activeCat,
     activeType,
     searchQuery,
-    sortBy,
+    sortField,
+    sortDir = 'asc',
   } = opts;
 
   return skus
@@ -82,14 +84,15 @@ export function filterSkus(
       );
     })
     .sort((a, b) => {
-      if (sortBy === 'name') return a.name.localeCompare(b.name);
-      if (sortBy === 'number') return a.number.localeCompare(b.number);
-      if (sortBy === 'type') {
+      const factor = sortDir === 'asc' ? 1 : -1;
+      if (sortField === 'number') return factor * a.number.localeCompare(b.number);
+      if (sortField === 'type') {
         const tpA = productTypes.find((x) => x.id === a.typeId)?.name || 'zzz';
         const tpB = productTypes.find((x) => x.id === b.typeId)?.name || 'zzz';
-        return tpA.localeCompare(tpB);
+        return factor * tpA.localeCompare(tpB);
       }
-      if (sortBy === 'status') return a.active === b.active ? 0 : a.active ? -1 : 1;
+      if (sortField === 'category') return factor * (a.catId ?? '').localeCompare(b.catId ?? '');
+      if (sortField === 'updated_at') return factor * (a.updatedAt ?? '').localeCompare(b.updatedAt ?? '');
       return 0;
     });
 }

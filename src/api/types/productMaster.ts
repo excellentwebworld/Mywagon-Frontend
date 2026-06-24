@@ -87,7 +87,7 @@ export interface ListSkusParams {
   type_id?: string;
   status?: 'active' | 'inactive';
   unmapped?: boolean;
-  sort?: 'name' | 'number' | 'type' | 'status' | 'updated_at';
+  sort?: 'name' | 'number' | 'type' | 'category' | 'status' | 'updated_at';
   sort_dir?: 'asc' | 'desc';
 }
 

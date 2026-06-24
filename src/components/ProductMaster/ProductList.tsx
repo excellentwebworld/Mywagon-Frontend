@@ -1,8 +1,41 @@
 import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { ProductMasterSortField } from '../../pages/ProductMaster/types';
 import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
 import { syncDotClass } from '../../pages/ProductMaster/utils/productUtils';
 import { ListSkeleton } from '../skeletons/ListSkeleton';
+
+function SortColumnHeader({
+  label,
+  field,
+  sortField,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  field: ProductMasterSortField;
+  sortField: ProductMasterSortField;
+  sortDir: 'asc' | 'desc';
+  onSort: (field: ProductMasterSortField) => void;
+}) {
+  const isActive = sortField === field;
+  const arrow = isActive ? (sortDir === 'asc' ? '↑' : '↓') : '↑';
+
+  return (
+    <th>
+      <button
+        type="button"
+        className={`th-sort-btn${isActive ? ' active' : ''}`}
+        onClick={() => onSort(field)}
+      >
+        {label}
+        <span className="th-sort-arrow" aria-hidden="true">
+          {arrow}
+        </span>
+      </button>
+    </th>
+  );
+}
 
 // Helper function to build page list for pagination (similar to AddressBook)
 function buildPageList(current: number, last: number): number[] {
@@ -14,8 +47,9 @@ function buildPageList(current: number, last: number): number[] {
 type Props = Pick<
   ProductMasterState,
   | 'viewMode'
-  | 'sortBy'
-  | 'setSortBy'
+  | 'sortField'
+  | 'sortDir'
+  | 'toggleSort'
   | 'filteredSkus'
   | 'filteredTypes'
   | 'categories'
@@ -45,8 +79,9 @@ type Props = Pick<
 
 export const ProductList: React.FC<Props> = ({
   viewMode,
-  sortBy,
-  setSortBy,
+  sortField,
+  sortDir,
+  toggleSort,
   filteredSkus,
   filteredTypes,
   categories,
@@ -171,11 +206,35 @@ export const ProductList: React.FC<Props> = ({
                       onChange={(e) => handleSelectAll(e.target.checked)}
                     />
                   </th>
-                  <th>{t('sku')}</th>
-                  <th>{t('productType')}</th>
-                  <th>{t('category')}</th>
+                  <SortColumnHeader
+                    label={t('sku')}
+                    field="number"
+                    sortField={sortField}
+                    sortDir={sortDir}
+                    onSort={toggleSort}
+                  />
+                  <SortColumnHeader
+                    label={t('productType')}
+                    field="type"
+                    sortField={sortField}
+                    sortDir={sortDir}
+                    onSort={toggleSort}
+                  />
+                  <SortColumnHeader
+                    label={t('category')}
+                    field="category"
+                    sortField={sortField}
+                    sortDir={sortDir}
+                    onSort={toggleSort}
+                  />
                   <th>{t('source')}</th>
-                  <th>{t('lastUpdated')}</th>
+                  <SortColumnHeader
+                    label={t('lastUpdated')}
+                    field="updated_at"
+                    sortField={sortField}
+                    sortDir={sortDir}
+                    onSort={toggleSort}
+                  />
                   <th>{t('status')}</th>
                   <th>{t('hazardousCol')}</th>
                   <th>{t('palletType')}</th>

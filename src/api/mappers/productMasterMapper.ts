@@ -7,7 +7,7 @@ import type {
   ListSkusParams,
   StoreSkuPayload,
 } from '../types/productMaster';
-import type { NewSkuForm } from '../../pages/ProductMaster/types';
+import type { NewSkuForm, ProductMasterSortField } from '../../pages/ProductMaster/types';
 
 function normalizeTemperature(value?: string | null): string {
   if (!value) return 'Ambient';
@@ -128,14 +128,15 @@ export function facetToListParams(
   search: string,
   page: number,
   perPage: number,
-  sortBy: string,
+  sortField: ProductMasterSortField,
+  sortDir: 'asc' | 'desc',
   filterCat = ''
 ): ListSkusParams {
   const params: ListSkusParams = {
     page,
     per_page: perPage,
-    sort: sortBy === 'name' ? 'name' : sortBy === 'number' ? 'number' : sortBy === 'type' ? 'type' : sortBy === 'status' ? 'status' : 'updated_at',
-    sort_dir: sortBy === 'name' ? 'asc' : 'desc',
+    sort: sortField,
+    sort_dir: sortDir,
   };
 
   if (search.trim()) params.search = search.trim();
