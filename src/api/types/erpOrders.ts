@@ -2,7 +2,7 @@ import type { ApiListMeta } from './addressBook';
 
 export type ErpOrderStatus = 'unplanned' | 'planned' | 'on_trip' | 'completed' | 'canceled';
 
-export type ErpOrderKpiFilter = '' | ErpOrderStatus | 'exceptions' | 'upcoming48';
+export type ErpOrderKpiFilter = '' | ErpOrderStatus;
 
 export interface ApiErpOrderSummary {
   total: number;

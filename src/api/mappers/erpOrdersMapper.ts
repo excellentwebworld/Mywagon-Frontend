@@ -6,7 +6,7 @@ import type {
   ErpOrderStatus,
   ListErpOrdersParams,
 } from '../types/erpOrders';
-import type { ErpOrder, ErpOrderLine, ErpOrderSortField, ErpOrderTab } from '../../pages/ErpOrders/types';
+import type { ErpOrder, ErpOrderLine, ErpOrderSortField } from '../../pages/ErpOrders/types';
 
 const STATUS_LABELS: Record<ErpOrderStatus, string> = {
   unplanned: 'Unplanned',
@@ -102,8 +102,7 @@ export function formToPayload(form: ErpOrderFormPayload): ErpOrderFormPayload {
 }
 
 export function kpiToStatusFilter(kpi: ErpOrderKpiFilter): string {
-  if (!kpi || kpi === 'upcoming48') return 'all';
-  if (kpi === 'exceptions') return 'canceled';
+  if (!kpi) return 'all';
   return kpi;
 }
 
@@ -119,35 +118,18 @@ export function sortFieldToApi(field: ErpOrderSortField): string {
   return map[field] ?? 'updated_at';
 }
 
-const TAB_STATUS: Record<Exclude<ErpOrderTab, 'all'>, ErpOrderStatus> = {
-  workQueue: 'unplanned',
-  completed: 'completed',
-  exceptions: 'canceled',
-};
-
-export function tabToStatusFilter(tab: ErpOrderTab): ErpOrderKpiFilter | '' {
-  if (tab === 'all') return '';
-  return TAB_STATUS[tab];
-}
-
 export function buildListParams(
   kpiFilter: ErpOrderKpiFilter,
-  activeTab: ErpOrderTab,
   highPriority: boolean,
-  noLinkedLoad: boolean,
   search: string,
   sortField: ErpOrderSortField,
   sortDir: 'asc' | 'desc',
   page: number,
   perPage: number
 ): ListErpOrdersParams {
-  const tabStatus = tabToStatusFilter(activeTab);
-  const status = kpiFilter || tabStatus;
-
   return {
-    status: kpiToStatusFilter(status),
+    status: kpiToStatusFilter(kpiFilter),
     high_priority: highPriority || undefined,
-    unlinked: noLinkedLoad || undefined,
     search: search || undefined,
     sort: sortFieldToApi(sortField),
     sort_dir: sortDir,

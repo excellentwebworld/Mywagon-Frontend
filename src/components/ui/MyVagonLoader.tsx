@@ -1,7 +1,7 @@
-import React from 'react';
-import LoaderGif from '../../assets/loader.gif';
+import React from "react";
+import LoaderGif from "../../assets/loader.gif";
 
-export type MyVagonLoaderTheme = 'light' | 'dark';
+export type MyVagonLoaderTheme = "light" | "dark";
 
 type ContentProps = {
   theme?: MyVagonLoaderTheme;
@@ -9,31 +9,34 @@ type ContentProps = {
   className?: string;
 };
 
-
 /** Blade `preloader-content`: animated truck loader (`loader.gif`). */
 export const MyVagonLoaderContent: React.FC<ContentProps> = ({
-  className = '',
+  className = "",
 }) => {
-  const size = 500;
+  const size = 300;
 
   return (
     <div
-      className={['preloader-content', className].filter(Boolean).join(' ')}
-      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      className={["preloader-content", className].filter(Boolean).join(" ")}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
     >
       <img
         src={LoaderGif}
         alt="Loading…"
         width={size}
         height={size}
-        style={{ objectFit: 'cover', display: 'block' }}
+        style={{ objectFit: "cover", display: "block" }}
         aria-label="Loading"
       />
     </div>
   );
 };
 
-export type MyVagonLoaderMode = 'global' | 'table' | 'boot';
+export type MyVagonLoaderMode = "global" | "table" | "boot";
 
 type Props = {
   mode: MyVagonLoaderMode;
@@ -41,10 +44,10 @@ type Props = {
 };
 
 export const MyVagonLoader: React.FC<Props> = ({ mode, className }) => {
-  if (mode === 'table') {
+  if (mode === "table") {
     return <MyVagonLoaderContent className={className} />;
   }
-  if (mode === 'boot') {
+  if (mode === "boot") {
     return <MyVagonLoaderContent className={className} />;
   }
   return <MyVagonLoaderContent className={className} />;
@@ -55,7 +58,13 @@ type BootScreenProps = {
 };
 
 export const MyVagonBootScreen: React.FC<BootScreenProps> = ({ children }) => (
-  <div className="mv-boot-screen" role="status" aria-live="polite" aria-busy="true" aria-label="Loading">
+  <div
+    className="mv-boot-screen"
+    role="status"
+    aria-live="polite"
+    aria-busy="true"
+    aria-label="Loading"
+  >
     {children ?? <MyVagonLoader mode="boot" />}
   </div>
 );

@@ -2,12 +2,9 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ErpOrder, ErpOrderSortField } from '../../pages/ErpOrders/types';
 import {
-  ERP_SOURCE_STYLE,
   formatDateTime,
+  formatProductsPreview,
   formatShipDate,
-  getOrderListTotals,
-  getShipUrgency,
-  shouldSuggestSplit,
   truncateText,
 } from '../../pages/ErpOrders/erpOrderUiUtils';
 import { ErpOrdersFloatingSelectionBar } from './ErpOrdersFloatingSelectionBar';
@@ -21,7 +18,7 @@ const ST_CLS: Record<string, string> = {
   canceled: 'st-canceled',
 };
 
-type SortCol = ErpOrderSortField | 'source' | 'linkedLoad' | null;
+type SortCol = ErpOrderSortField | 'linkedLoad' | null;
 
 type Props = {
   t: (key: string, options?: Record<string, unknown>) => string;
@@ -47,7 +44,7 @@ type Props = {
 };
 
 const mapSortCol = (col: SortCol): ErpOrderSortField | null => {
-  if (!col || col === 'source') return null;
+  if (!col) return null;
   if (col === 'linkedLoad') return 'orderReference';
   return col;
 };
@@ -110,9 +107,7 @@ export const ErpOrdersTable: React.FC<Props> = ({
     <>
       <div className="tbl-wrap anim">
         <div className="tbl-count-bar">
-          <span>
-            {t('erpOrdersShowingCount', { count: orders.length, total })}
-          </span>
+          <span>{t('erpOrdersShowingCount', { count: orders.length, total })}</span>
         </div>
         <div className="tbl-scroll">
           <table className="t t-ref">
@@ -128,22 +123,21 @@ export const ErpOrdersTable: React.FC<Props> = ({
                   />
                 </th>
                 <SortTh label={t('erpOrdersColOrderId')} col="orderReference" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} />
-                <SortTh label={t('erpOrdersColSource')} col="source" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} />
                 <SortTh label={t('erpOrdersColCustomer')} col="customer" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} />
                 <th>{t('erpOrdersColShipFrom')}</th>
                 <th>{t('erpOrdersColShipTo')}</th>
-                <SortTh label={t('erpOrdersShipDate')} col="shipDate" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} />
+                <SortTh label={t('erpOrdersColDeliveryDate')} col="deliveryDate" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} />
                 <th className="hide-lg">{t('erpOrdersColProducts')}</th>
                 <SortTh label={t('erpOrdersColStatus')} col="status" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} />
                 <SortTh label={t('erpOrdersColLinkedLoad')} col="linkedLoad" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} className="hide-xl" />
-                <SortTh label={t('erpOrdersColLastSync')} col="updatedAt" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} className="hide-xl" />
+                <SortTh label={t('erpOrdersColLastUpdate')} col="updatedAt" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} className="hide-xl" />
                 <th style={{ width: 40 }} />
               </tr>
             </thead>
             <tbody>
               {orders.length === 0 && !listLoading ? (
                 <tr>
-                  <td colSpan={12} className="erp-empty-cell">
+                  <td colSpan={11} className="erp-empty-cell">
                     <div className="erp-empty-state">
                       <div className="erp-empty-icon">📦</div>
                       <div className="erp-empty-title">{t('erpOrdersEmptyTitle')}</div>
@@ -155,9 +149,6 @@ export const ErpOrdersTable: React.FC<Props> = ({
                 orders.map((o) => {
                   const isRowSelected = selectedOrderId === o.id;
                   const isChecked = selectedIds.has(o.id);
-                  const totals = getOrderListTotals(o);
-                  const urgency = getShipUrgency(o.shipDate, t);
-                  const needsSplit = shouldSuggestSplit(o);
 
                   return (
                     <tr
@@ -177,12 +168,6 @@ export const ErpOrdersTable: React.FC<Props> = ({
                         <div className="cell-id">{o.orderReference}</div>
                         {o.erpReference ? <div className="cell-erp">{o.erpReference}</div> : null}
                       </td>
-                      <td>
-                        <span className="erp-source-pill">
-                          <span>{ERP_SOURCE_STYLE.icon}</span>
-                          <span>{t(ERP_SOURCE_STYLE.labelKey)}</span>
-                        </span>
-                      </td>
                       <td className="cell-cust">
                         {o.highPriority && <span className="pri-badge urgent">⚡</span>}
                         {o.customerName}
@@ -193,26 +178,9 @@ export const ErpOrdersTable: React.FC<Props> = ({
                       <td className="hide-md">
                         <div className="cell-loc">📍 {truncateText(o.shipTo)}</div>
                       </td>
-                      <td className="cell-date">
-                        <div className="erp-ship-date-cell">
-                          <span>{formatShipDate(o.shipDate || o.deliveryDate)}</span>
-                          {urgency && (
-                            <span className="erp-urgency-badge" style={{ background: urgency.bg, color: urgency.fg, borderColor: urgency.bd }}>
-                              {urgency.label}
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                      <td className="cell-date">{formatShipDate(o.deliveryDate)}</td>
                       <td className="hide-lg cell-prod">
-                        <span className="erp-prod-summary">
-                          {totals.lineCount} {t('erpOrdersLinesShort')} · {totals.pallets} {t('erpOrdersPltShort')} · {totals.weightTons}
-                          {t('erpOrdersTonsShort')}
-                        </span>
-                        {needsSplit && (
-                          <span className="erp-split-flag" title={t('erpOrdersSuggestSplit')}>
-                            ⚠ {t('erpOrdersSuggestSplit')}
-                          </span>
-                        )}
+                        {formatProductsPreview(o.productsPreview, o.productCount)}
                       </td>
                       <td>
                         <span className={`st ${ST_CLS[o.status] || ''}`}>{statusLabel(o.status)}</span>
@@ -226,10 +194,7 @@ export const ErpOrdersTable: React.FC<Props> = ({
                           <span className="cell-muted">—</span>
                         )}
                       </td>
-                      <td className="cell-sync hide-xl">
-                        <span className="dq-dot ok" />
-                        {formatDateTime(o.updatedAt)}
-                      </td>
+                      <td className="cell-sync hide-xl">{formatDateTime(o.updatedAt)}</td>
                       <td />
                     </tr>
                   );

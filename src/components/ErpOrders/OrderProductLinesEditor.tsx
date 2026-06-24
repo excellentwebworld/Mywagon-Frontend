@@ -10,7 +10,7 @@ type Props = {
   lines: ErpOrderLine[];
   skus: SKU[];
   onChange: (lines: ErpOrderLine[]) => void;
-  onAddProduct?: () => void;
+  onAddProduct?: (lineIndex: number) => void;
 };
 
 export const OrderProductLinesEditor: React.FC<Props> = ({ t, lines, skus, onChange, onAddProduct }) => {
@@ -48,7 +48,7 @@ export const OrderProductLinesEditor: React.FC<Props> = ({ t, lines, skus, onCha
               });
             }}
             placeholder={t('erpOrdersSelectProduct')}
-            footerAction={onAddProduct ? { label: `+ ${t('erpOrdersAddProduct')}`, onClick: onAddProduct } : undefined}
+            footerAction={onAddProduct ? { label: `+ ${t('erpOrdersAddProduct')}`, onClick: () => onAddProduct(index) } : undefined}
           />
           <input
             type="number"

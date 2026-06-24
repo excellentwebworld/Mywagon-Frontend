@@ -28,7 +28,7 @@ export const ErpOrdersHeader: React.FC<Props> = ({
       </div>
     </div>
     <div className="pg-head-r">
-      <button type="button" className="btn" onClick={openCreateOrder}>
+      <button type="button" className="btn btn-p" onClick={openCreateOrder}>
         <PlusIcon />
         {t('erpOrdersCreateOrder')}
       </button>
@@ -41,7 +41,7 @@ export const ErpOrdersHeader: React.FC<Props> = ({
       </button>
       <button
         type="button"
-        className="btn btn-p"
+        className="btn"
         disabled={selectedCount === 0}
         onClick={onCreateLoad}
       >

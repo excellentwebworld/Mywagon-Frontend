@@ -82,6 +82,12 @@ export function isUpcoming48h(shipDate: string): boolean {
   return days !== null && days >= 0 && days <= 2;
 }
 
+export function formatProductsPreview(preview: string | undefined, productCount: number): string {
+  if (preview) return preview;
+  if (productCount <= 0) return '—';
+  return String(productCount);
+}
+
 export function truncateText(value: string, max = 30): string {
   if (!value) return '—';
   return value.length > max ? `${value.slice(0, max)}…` : value;

@@ -17,8 +17,9 @@ type Props = {
   companies: ApiCompanyEntity[];
   locations: LocationItem[];
   skus: SKU[];
-  onAddLocation?: () => void;
-  onAddProduct?: () => void;
+  onAddLocationOrigin?: () => void;
+  onAddLocationDest?: () => void;
+  onAddProduct?: (lineIndex: number) => void;
 };
 
 export const CreateEditOrderModal: React.FC<Props> = ({
@@ -33,7 +34,8 @@ export const CreateEditOrderModal: React.FC<Props> = ({
   companies,
   locations,
   skus,
-  onAddLocation,
+  onAddLocationOrigin,
+  onAddLocationDest,
   onAddProduct,
 }) => {
   const companyOptions = useMemo(
@@ -122,7 +124,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
               value={form.originLocationId ? String(form.originLocationId) : ''}
               onChange={(val) => setForm((f) => ({ ...f, originLocationId: val ? Number(val) : null }))}
               placeholder={t('erpOrdersSelectLocation')}
-              footerAction={onAddLocation ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocation } : undefined}
+              footerAction={onAddLocationOrigin ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationOrigin } : undefined}
             />
           </div>
           <div className="field">
@@ -132,7 +134,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
               value={form.destLocationId ? String(form.destLocationId) : ''}
               onChange={(val) => setForm((f) => ({ ...f, destLocationId: val ? Number(val) : null }))}
               placeholder={t('erpOrdersSelectLocation')}
-              footerAction={onAddLocation ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocation } : undefined}
+              footerAction={onAddLocationDest ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationDest } : undefined}
             />
           </div>
           <div className="field">

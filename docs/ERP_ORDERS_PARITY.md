@@ -4,19 +4,21 @@ Reference: [PDS-909](https://myvagon.atlassian.net/browse/PDS-909), [PDS-910](ht
 
 | Section | Requirement | React | Status |
 |---------|-------------|-------|--------|
-| Header | Create Order + Import (AI) + template download | `ErpOrdersHeader` | Done |
+| Header | Create Order (primary) + Import (AI wizard) | `ErpOrdersHeader` | Done |
 | KPI strip | Unplanned, Planned, On Trip, Completed, Canceled | `ErpOrdersKpiStrip` | Done |
-| Tabs | Removed — KPIs are filters | No tabs row | Done |
+| Tabs | Removed — KPIs are filters | Not rendered | Done |
 | Filters | High Priority only + search | `ErpOrdersFilterBar` | Done |
 | Table | Delivery Date, product name +N, Last Update | `ErpOrdersTable` | Done |
 | Linked Load | Hyperlink to shipment | `Link` in table | Done |
 | Create Order | Full form with Address Book + Product Master | `CreateEditOrderModal` | Done |
+| Inline add | Quick location + SKU modals | `ErpOrderQuickLocationModal`, `ErpOrderQuickSkuModal` | Done |
 | Edit | Unplanned only | API 422 + drawer banner | Done |
 | Status model | Computed from load/shipment | Backend `ShipperErpOrder::computeStatus` | Done |
 | AI Import | 4-step wizard | `OrdersAiWizardModal` | Done |
-| Loaders | Table overlay + global on mutations | `TableLoadingOverlay`, `useSyncGlobalLoader` | Done |
+| Loaders | Table overlay + global on mutations | `useSyncGlobalLoader` | Done |
 | i18n | en + el keys | `locale/en.json`, `locale/el.json` | Done |
 | Create Load / Itinerary | Deferred | `ErpOrdersDeferredViews` stub | Deferred |
+| Export | Stub toast | `handleExport` | Deferred |
 
 ## Staging QA script
 
@@ -25,8 +27,8 @@ Reference: [PDS-909](https://myvagon.atlassian.net/browse/PDS-909), [PDS-910](ht
 3. High Priority filter works; no “No load” or “Sync issues” pills
 4. Table columns: Order ID, Customer, Ship From/To, Delivery Date, Products (+N), Status, Linked Load, Last Update
 5. Create Order — all fields, high-priority toggle, optional product lines
-6. Edit unplanned order succeeds; planned/on-trip/completed shows locked message
-7. List shows `TableLoadingOverlay` on refresh; mutations show global loader
+6. Add address / add product from create form opens quick modals and selects new item
+7. Edit unplanned order succeeds; planned/on-trip/completed shows locked message
 8. AI Wizard: upload `docs/fixtures/orders-ai-wizard-messy-sample.csv` → preview → confirm import
 9. Greek locale shows translated labels
 10. Subscription-blocked user (no `manage_erp_orders`) sees 403 banner

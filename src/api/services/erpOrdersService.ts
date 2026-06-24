@@ -17,7 +17,7 @@ import type {
   ListErpOrdersParams,
   PaginatedErpOrdersResult,
 } from '../types/erpOrders';
-import type { ErpOrder, ErpOrderKpiFilter, ErpOrderSortField, ErpOrderTab } from '../../pages/ErpOrders/types';
+import type { ErpOrder, ErpOrderKpiFilter, ErpOrderSortField } from '../../pages/ErpOrders/types';
 import type { ApiListMeta } from '../types/addressBook';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
@@ -48,9 +48,7 @@ export const erpOrdersService = {
 
   async listOrdersMapped(
     kpiFilter: ErpOrderKpiFilter,
-    activeTab: ErpOrderTab,
     highPriority: boolean,
-    noLinkedLoad: boolean,
     search: string,
     sortField: ErpOrderSortField,
     sortDir: 'asc' | 'desc',
@@ -59,9 +57,7 @@ export const erpOrdersService = {
   ): Promise<{ orders: ErpOrder[]; meta: ApiListMeta }> {
     const params = buildListParams(
       kpiFilter,
-      activeTab,
       highPriority,
-      noLinkedLoad,
       search,
       sortField,
       sortDir,

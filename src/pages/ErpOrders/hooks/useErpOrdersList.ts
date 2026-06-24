@@ -10,16 +10,12 @@ import type {
   ErpOrderFormState,
   ErpOrderKpiFilter,
   ErpOrderSortField,
-  ErpOrderTab,
   ErpOrdersFilterState,
 } from '../types';
 import { EMPTY_ORDER_FORM as EMPTY_FORM } from '../types';
-import { isUpcoming48h } from '../erpOrderUiUtils';
 
 const DEFAULT_FILTERS: ErpOrdersFilterState = {
-  priority: [],
-  noLinkedLoad: false,
-  syncErrors: false,
+  highPriority: false,
 };
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -32,12 +28,11 @@ export function useErpOrdersList() {
   const queryClient = useQueryClient();
 
   const [kpiFilter, setKpiFilter] = useState<ErpOrderKpiFilter>('');
-  const [activeTab, setActiveTabState] = useState<ErpOrderTab>('workQueue');
   const [filters, setFilters] = useState<ErpOrdersFilterState>(DEFAULT_FILTERS);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [sortField, setSortField] = useState<ErpOrderSortField>('shipDate');
+  const [sortField, setSortField] = useState<ErpOrderSortField>('deliveryDate');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
@@ -63,7 +58,7 @@ export function useErpOrdersList() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [kpiFilter, activeTab, filters, perPage]);
+  }, [kpiFilter, filters, perPage]);
 
   const handleApiError = useCallback(
     (err: unknown, fallback: string) => {
@@ -81,6 +76,14 @@ export function useErpOrdersList() {
     queryClient.invalidateQueries({ queryKey: ['erp-orders'] });
   }, [queryClient]);
 
+  const refreshLocations = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['address-book', 'locations', 'erp-orders'] });
+  }, [queryClient]);
+
+  const refreshSkus = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['product-master', 'skus', 'erp-orders'] });
+  }, [queryClient]);
+
   const summaryQuery = useQuery({
     queryKey: ['erp-orders', 'summary'],
     queryFn: () => erpOrdersService.getSummary(),
@@ -92,7 +95,6 @@ export function useErpOrdersList() {
       'erp-orders',
       'list',
       kpiFilter,
-      activeTab,
       filters,
       debouncedSearch,
       sortField,
@@ -103,9 +105,7 @@ export function useErpOrdersList() {
     queryFn: () =>
       erpOrdersService.listOrdersMapped(
         kpiFilter,
-        activeTab,
-        filters.priority.length > 0,
-        filters.noLinkedLoad,
+        filters.highPriority,
         debouncedSearch,
         sortField,
         sortDir,
@@ -232,37 +232,18 @@ export function useErpOrdersList() {
 
   useSyncGlobalLoader(mutationLoading);
 
-  const kpiCounts = useMemo(() => {
-    const base = {
+  const kpiCounts = useMemo(
+    () => ({
       unplanned: summaryQuery.data?.unplanned ?? 0,
       planned: summaryQuery.data?.planned ?? 0,
       on_trip: summaryQuery.data?.on_trip ?? 0,
       completed: summaryQuery.data?.completed ?? 0,
-      exceptions: summaryQuery.data?.canceled ?? 0,
-      upcoming48: 0,
-    };
-    base.upcoming48 = (listQuery.data?.orders ?? []).filter((o) => isUpcoming48h(o.shipDate)).length;
-    return base;
-  }, [summaryQuery.data, listQuery.data?.orders]);
+      canceled: summaryQuery.data?.canceled ?? 0,
+    }),
+    [summaryQuery.data]
+  );
 
-  const rawOrders = listQuery.data?.orders ?? [];
-  const orders = useMemo(() => {
-    let result = rawOrders;
-    if (kpiFilter === 'upcoming48') {
-      result = result.filter((o) => isUpcoming48h(o.shipDate));
-    }
-    if (filters.syncErrors) {
-      result = result.filter(() => false);
-    }
-    if (filters.priority.length > 0) {
-      result = result.filter((o) => {
-        if (filters.priority.includes('urgent') && o.highPriority) return true;
-        if (filters.priority.includes('high') && o.highPriority) return true;
-        return false;
-      });
-    }
-    return result;
-  }, [rawOrders, kpiFilter, filters.syncErrors, filters.priority]);
+  const orders = listQuery.data?.orders ?? [];
   const listMeta = listQuery.data?.meta ?? {
     current_page: 1,
     per_page: perPage,
@@ -279,25 +260,8 @@ export function useErpOrdersList() {
     setKpiFilter((prev) => (prev === kpi ? '' : kpi));
   }, []);
 
-  const setActiveTab = useCallback((tab: ErpOrderTab) => {
-    setActiveTabState(tab);
-    setKpiFilter('');
-    setCurrentPage(1);
-  }, []);
-
-  const setFiltersState = useCallback((updater: ErpOrdersFilterState | ((prev: ErpOrdersFilterState) => ErpOrdersFilterState)) => {
-    setFilters(updater);
-  }, []);
-
   const toggleHighPriorityFilter = useCallback(() => {
-    setFilters((prev) => ({
-      ...prev,
-      priority: prev.priority.length ? [] : ['urgent', 'high'],
-    }));
-  }, []);
-
-  const toggleNoLinkedLoadFilter = useCallback(() => {
-    setFilters((prev) => ({ ...prev, noLinkedLoad: !prev.noLinkedLoad }));
+    setFilters((prev) => ({ ...prev, highPriority: !prev.highPriority }));
   }, []);
 
   const toggleSelect = useCallback((id: string) => {
@@ -359,7 +323,6 @@ export function useErpOrdersList() {
     setSearchQuery('');
     setDebouncedSearch('');
     setKpiFilter('');
-    setActiveTabState('all');
     setFilters(DEFAULT_FILTERS);
     setCurrentPage(1);
   }, []);
@@ -452,39 +415,15 @@ export function useErpOrdersList() {
   const goToPage = useCallback((page: number) => setCurrentPage(page), []);
   const setPageSize = useCallback((size: number) => setPerPage(size), []);
 
-  const hasActiveFilters = !!(
-    searchQuery ||
-    kpiFilter ||
-    filters.priority.length ||
-    filters.noLinkedLoad ||
-    filters.syncErrors ||
-    activeTab !== 'all'
-  );
-
-  const tabCounts = useMemo(
-    () => ({
-      workQueue: kpiCounts.unplanned,
-      all: summaryQuery.data?.total ?? 0,
-      completed: kpiCounts.completed,
-      exceptions: kpiCounts.exceptions,
-    }),
-    [kpiCounts, summaryQuery.data?.total]
-  );
+  const hasActiveFilters = !!(searchQuery || kpiFilter || filters.highPriority);
 
   return {
     t,
     kpiCounts,
     kpiFilter,
     selectKpi,
-    activeTab,
-    setActiveTab,
-    tabCounts,
     filters,
-    setFilters: setFiltersState,
-    highPriorityFilter: filters.priority.length > 0,
     toggleHighPriorityFilter,
-    noLinkedLoadFilter: filters.noLinkedLoad,
-    toggleNoLinkedLoadFilter,
     selectedIds,
     selectedCount: selectedIds.size,
     toggleSelect,
@@ -531,6 +470,8 @@ export function useErpOrdersList() {
     companies: companiesQuery.data ?? [],
     locations: locationsQuery.data ?? [],
     skus: skusQuery.data ?? [],
+    refreshLocations,
+    refreshSkus,
     statusLabel,
     summarySubtitle: summaryQuery.data?.total ?? 0,
   };

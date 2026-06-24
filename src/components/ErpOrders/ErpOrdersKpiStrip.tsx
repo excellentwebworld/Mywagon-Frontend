@@ -6,8 +6,7 @@ const KPI_CONFIG = [
   { key: 'planned' as const, labelKey: 'erpOrdersKpiPlanned', color: '#1D4ED8' },
   { key: 'on_trip' as const, labelKey: 'erpOrdersKpiOnTrip', color: '#B45309' },
   { key: 'completed' as const, labelKey: 'erpOrdersKpiCompleted', color: '#047857' },
-  { key: 'exceptions' as const, labelKey: 'erpOrdersKpiExceptions', color: '#B91C1C' },
-  { key: 'upcoming48' as const, labelKey: 'erpOrdersKpiUpcoming48', color: '#C2410C' },
+  { key: 'canceled' as const, labelKey: 'erpOrdersKpiCanceled', color: '#B91C1C' },
 ];
 
 type Props = {

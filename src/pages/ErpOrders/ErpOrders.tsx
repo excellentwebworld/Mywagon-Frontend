@@ -6,32 +6,34 @@ import { useApp } from '../../context/AppContext';
 import {
   ErpOrdersHeader,
   ErpOrdersKpiStrip,
-  ErpOrdersTabs,
   ErpOrdersFilterBar,
   ErpOrdersTable,
   OrderDetailDrawer,
   CreateEditOrderModal,
   OrdersAiWizardModal,
+  ErpOrderQuickLocationModal,
+  ErpOrderQuickSkuModal,
 } from '../../components/ErpOrders';
 import { ErpOrdersDeferredViews } from './ErpOrdersDeferredViews';
 import type { ViewMode } from './types';
 
-const TAB_CONFIG = [
-  { key: 'workQueue' as const, labelKey: 'erpOrdersTabWork' },
-  { key: 'all' as const, labelKey: 'erpOrdersTabAll' },
-  { key: 'completed' as const, labelKey: 'erpOrdersTabCompleted' },
-  { key: 'exceptions' as const, labelKey: 'erpOrdersTabExceptions' },
-];
+type LocationTarget = 'origin' | 'dest';
 
 export const ErpOrders: React.FC = () => {
   const state = useErpOrdersList();
   const { showToast } = useApp();
   const [viewMode, setViewMode] = useState<ViewMode>('orders');
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const [locationTarget, setLocationTarget] = useState<LocationTarget>('origin');
+  const [skuModalOpen, setSkuModalOpen] = useState(false);
+  const [skuLineIndex, setSkuLineIndex] = useState(0);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (state.isFormOpen) state.closeForm();
+        if (locationModalOpen) setLocationModalOpen(false);
+        else if (skuModalOpen) setSkuModalOpen(false);
+        else if (state.isFormOpen) state.closeForm();
         else if (state.isAiWizardOpen) state.closeAiWizard();
         else if (state.selectedOrderId) state.closeDrawer();
         else if (viewMode !== 'orders') setViewMode('orders');
@@ -39,12 +41,47 @@ export const ErpOrders: React.FC = () => {
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [state, viewMode]);
+  }, [state, viewMode, locationModalOpen, skuModalOpen]);
 
   const handleCreateLoad = (singleOrderId?: string) => {
     if (state.goToCreateLoad(singleOrderId)) {
       setViewMode('create');
     }
+  };
+
+  const openLocationModal = (target: LocationTarget) => {
+    setLocationTarget(target);
+    setLocationModalOpen(true);
+  };
+
+  const openSkuModal = (lineIndex: number) => {
+    setSkuLineIndex(lineIndex);
+    setSkuModalOpen(true);
+  };
+
+  const handleLocationCreated = (locationId: number) => {
+    state.refreshLocations();
+    state.setOrderForm((f) => ({
+      ...f,
+      ...(locationTarget === 'origin'
+        ? { originLocationId: locationId }
+        : { destLocationId: locationId }),
+    }));
+  };
+
+  const handleSkuCreated = (sku: { id: number; name: string; number: string }) => {
+    state.refreshSkus();
+    state.setOrderForm((f) => {
+      const lines = [...f.lines];
+      const line = lines[skuLineIndex] ?? { productSkuId: null, productName: '', quantity: null, unit: 'Pallets', weight: null, weightUnit: 'Kg' };
+      lines[skuLineIndex] = {
+        ...line,
+        productSkuId: sku.id,
+        productName: sku.name,
+        sku: sku.number,
+      };
+      return { ...f, lines };
+    });
   };
 
   if (viewMode !== 'orders') {
@@ -70,19 +107,12 @@ export const ErpOrders: React.FC = () => {
         selectKpi={state.selectKpi}
       />
 
-      <ErpOrdersTabs
-        t={state.t}
-        tabs={TAB_CONFIG.map((tab) => ({ ...tab, count: state.tabCounts[tab.key] }))}
-        activeTab={state.activeTab}
-        setActiveTab={state.setActiveTab}
-      />
-
       <ErpOrdersFilterBar
         t={state.t}
         searchQuery={state.searchQuery}
         setSearchQuery={state.setSearchQuery}
-        filters={state.filters}
-        setFilters={state.setFilters}
+        highPriorityFilter={state.filters.highPriority}
+        toggleHighPriorityFilter={state.toggleHighPriorityFilter}
         hasActiveFilters={state.hasActiveFilters}
         clearFilters={state.clearFilters}
       />
@@ -140,8 +170,27 @@ export const ErpOrders: React.FC = () => {
         companies={state.companies}
         locations={state.locations}
         skus={state.skus}
-        onAddLocation={() => showToast(state.t('erpOrdersAddAddressHint'), 'info')}
-        onAddProduct={() => showToast(state.t('erpOrdersAddProductHint'), 'info')}
+        onAddLocationOrigin={() => openLocationModal('origin')}
+        onAddLocationDest={() => openLocationModal('dest')}
+        onAddProduct={openSkuModal}
+      />
+
+      <ErpOrderQuickLocationModal
+        t={state.t}
+        isOpen={locationModalOpen}
+        onClose={() => setLocationModalOpen(false)}
+        companies={state.companies}
+        defaultCompanyEntityId={state.orderForm.companyEntityId}
+        onCreated={handleLocationCreated}
+        showToast={showToast}
+      />
+
+      <ErpOrderQuickSkuModal
+        t={state.t}
+        isOpen={skuModalOpen}
+        onClose={() => setSkuModalOpen(false)}
+        onCreated={handleSkuCreated}
+        showToast={showToast}
       />
 
       <OrdersAiWizardModal
