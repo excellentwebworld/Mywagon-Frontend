@@ -1,12 +1,22 @@
 import React from 'react';
 import type { ErpOrderKpiFilter } from '../../pages/ErpOrders/types';
 
-const KPI_CONFIG = [
-  { key: 'unplanned' as const, labelKey: 'erpOrdersKpiUnplanned', color: '#4338CA' },
-  { key: 'planned' as const, labelKey: 'erpOrdersKpiPlanned', color: '#1D4ED8' },
-  { key: 'on_trip' as const, labelKey: 'erpOrdersKpiOnTrip', color: '#B45309' },
-  { key: 'completed' as const, labelKey: 'erpOrdersKpiCompleted', color: '#047857' },
-  { key: 'canceled' as const, labelKey: 'erpOrdersKpiCanceled', color: '#B91C1C' },
+type KpiKey = ErpOrderKpiFilter | 'total';
+
+type KpiConfig = {
+  key: KpiKey;
+  filter: ErpOrderKpiFilter;
+  labelKey: string;
+  color?: string;
+};
+
+const KPI_CONFIG: KpiConfig[] = [
+  { key: 'total', filter: '', labelKey: 'erpOrdersKpiTotal' },
+  { key: 'unplanned', filter: 'unplanned', labelKey: 'erpOrdersKpiUnplanned', color: '#4338CA' },
+  { key: 'planned', filter: 'planned', labelKey: 'erpOrdersKpiPlanned', color: '#1D4ED8' },
+  { key: 'on_trip', filter: 'on_trip', labelKey: 'erpOrdersKpiOnTrip', color: '#B45309' },
+  { key: 'completed', filter: 'completed', labelKey: 'erpOrdersKpiCompleted', color: '#047857' },
+  { key: 'canceled', filter: 'canceled', labelKey: 'erpOrdersKpiCanceled', color: '#B91C1C' },
 ];
 
 type Props = {
@@ -17,33 +27,27 @@ type Props = {
 };
 
 export const ErpOrdersKpiStrip: React.FC<Props> = ({ t, kpiCounts, kpiFilter, selectKpi }) => (
-  <div className="kpi-strip kpi-strip-grid anim">
-    {KPI_CONFIG.map((tile, index) => {
-      const isActive = kpiFilter === tile.key;
-      const count = kpiCounts[tile.key] ?? 0;
+  <div className="erp-kpi-strip anim">
+    {KPI_CONFIG.map(({ key, filter, labelKey, color }) => {
+      const val = kpiCounts[key] ?? 0;
+      const isActive = kpiFilter === filter;
+      const showColor = !!color && val > 0;
+
       return (
-        <button
-          key={tile.key}
-          type="button"
-          className={`kpi-card kpi-card-btn${isActive ? ' act' : ''}`}
-          onClick={() => selectKpi(tile.key)}
-          style={{
-            borderRadius:
-              index === 0
-                ? '8px 0 0 8px'
-                : index === KPI_CONFIG.length - 1
-                  ? '0 8px 8px 0'
-                  : 0,
-          }}
+        <div
+          key={key}
+          className={`erp-kpi${isActive ? ' active' : ''}`}
+          onClick={() => selectKpi(filter)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && selectKpi(filter)}
         >
-          <div className="kpi-lbl">
-            <span className="kpi-dot" style={{ background: tile.color }} />
-            <span className="kpi-lbl-text">{t(tile.labelKey)}</span>
+          {showColor && <span className="erp-kpi-dot" style={{ background: color }} />}
+          <div className="erp-kpi-val" style={{ color: showColor ? color : undefined }}>
+            {val}
           </div>
-          <div className="kpi-val" style={{ color: isActive ? 'var(--accent, #6C3AED)' : 'var(--text-primary, #121217)' }}>
-            {count}
-          </div>
-        </button>
+          <div className="erp-kpi-lbl">{t(labelKey)}</div>
+        </div>
       );
     })}
   </div>

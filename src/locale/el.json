@@ -49,6 +49,7 @@
   "erpOrdersPageSize": "Γραμμές ανά σελίδα",
   "erpOrdersPrevPage": "Προηγούμενη σελίδα",
   "erpOrdersNextPage": "Επόμενη σελίδα",
+  "erpOrdersKpiTotal": "Σύνολο",
   "erpOrdersKpiUnplanned": "Μη προγραμματισμένες",
   "erpOrdersKpiPlanned": "Προγραμματισμένες",
   "erpOrdersKpiOnTrip": "Σε διαδρομή",

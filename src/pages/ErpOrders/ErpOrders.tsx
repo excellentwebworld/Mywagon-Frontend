@@ -89,7 +89,7 @@ export const ErpOrders: React.FC = () => {
   }
 
   return (
-    <div className="erp-wrap" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+    <div className="erp-wrap">
       <ErpOrdersHeader
         t={state.t}
         summarySubtitle={state.summarySubtitle}

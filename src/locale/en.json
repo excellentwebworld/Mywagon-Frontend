@@ -49,6 +49,7 @@
   "erpOrdersPageSize": "Rows per page",
   "erpOrdersPrevPage": "Previous page",
   "erpOrdersNextPage": "Next page",
+  "erpOrdersKpiTotal": "Total",
   "erpOrdersKpiUnplanned": "Unplanned",
   "erpOrdersKpiPlanned": "Planned",
   "erpOrdersKpiOnTrip": "On Trip",

@@ -234,6 +234,7 @@ export function useErpOrdersList() {
 
   const kpiCounts = useMemo(
     () => ({
+      total: summaryQuery.data?.total ?? 0,
       unplanned: summaryQuery.data?.unplanned ?? 0,
       planned: summaryQuery.data?.planned ?? 0,
       on_trip: summaryQuery.data?.on_trip ?? 0,
