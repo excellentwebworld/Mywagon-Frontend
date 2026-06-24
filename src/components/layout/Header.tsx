@@ -78,50 +78,50 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="topbar" role="banner">
       {isDesktop && (
-      <button
-        type="button"
-        className="btn btn-ghost btn-icon sidebar-toggle-btn"
-        onClick={onToggleSidebarCollapse}
-        aria-label={sidebarCollapsed ? t('navExpandMenu') : t('navCollapseMenu')}
-        aria-expanded={!sidebarCollapsed}
-        title={sidebarCollapsed ? t('navExpandMenu') : t('navCollapseMenu')}
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          aria-hidden
+        <button
+          type="button"
+          className="btn btn-ghost btn-icon sidebar-toggle-btn"
+          onClick={onToggleSidebarCollapse}
+          aria-label={sidebarCollapsed ? t('navExpandMenu') : t('navCollapseMenu')}
+          aria-expanded={!sidebarCollapsed}
+          title={sidebarCollapsed ? t('navExpandMenu') : t('navCollapseMenu')}
         >
-          <path d="M3 6h18M3 12h18M3 18h18" />
-        </svg>
-      </button>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden
+          >
+            <path d="M3 6h18M3 12h18M3 18h18" />
+          </svg>
+        </button>
       )}
 
       {/* Mobile hamburger menu */}
       {!isDesktop && (
-      <button
-        id="mobileMenuBtn"
-        aria-label="Open navigation"
-        onClick={onToggleMobileMenu}
-        className="btn btn-ghost btn-icon mobile-menu-toggle"
-        style={{ color: 'var(--text-secondary)' }}
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
+        <button
+          id="mobileMenuBtn"
+          aria-label="Open navigation"
+          onClick={onToggleMobileMenu}
+          className="btn btn-ghost btn-icon mobile-menu-toggle"
+          style={{ color: 'var(--text-secondary)' }}
         >
-          <path d="M3 6h18M3 12h18M3 18h18" />
-        </svg>
-      </button>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <path d="M3 6h18M3 12h18M3 18h18" />
+          </svg>
+        </button>
       )}
 
       {/* Page Title */}
@@ -129,14 +129,15 @@ export const Header: React.FC<HeaderProps> = ({
         isDashboard ?
           <span className="tb-title">{getPageTitle()}</span>
           :
-          <div className='breadcrumb'>
-            <span>
-              {t('masterData')}
-            </span>{" "}
-            › <strong>
-              {getPageTitle()}
-            </strong>
-          </div>
+          <></>
+        // <div className='breadcrumb'>
+        //   <span>
+        //     {t('masterData')}
+        //   </span>{" "}
+        //   › <strong>
+        //     {getPageTitle()}
+        //   </strong>
+        // </div>
       }
 
       {/* Quick period filter chips */}
