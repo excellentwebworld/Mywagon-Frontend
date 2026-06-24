@@ -3,8 +3,6 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { useApp } from '../../context/AppContext';
-import { useLoader } from '../../context/LoaderContext';
-import { GlobalLoader } from '../ui/GlobalLoader';
 import { DESKTOP_SIDEBAR_QUERY, useMediaQuery } from '../../hooks/useMediaQuery';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
@@ -21,7 +19,6 @@ export const AppLayout: React.FC = () => {
   const isDesktop = useMediaQuery(DESKTOP_SIDEBAR_QUERY);
   const isSidebarCollapsed = sidebarCollapsed && isDesktop;
   const { toast } = useApp();
-  const { visible: loaderVisible } = useLoader();
 
   useEffect(() => {
     try {
@@ -52,7 +49,6 @@ export const AppLayout: React.FC = () => {
 
   return (
     <div className="app-layout" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <GlobalLoader visible={loaderVisible} />
       <Sidebar
         collapsed={isSidebarCollapsed}
         onToggleCollapse={toggleSidebarCollapse}

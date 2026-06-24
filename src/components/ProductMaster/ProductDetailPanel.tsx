@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ProductDetailSkeleton } from '../skeletons/ProductDetailSkeleton';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ProductType, SKU } from '../../context/AppContext';
 import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
@@ -37,9 +38,7 @@ export const ProductDetailPanel: React.FC<Props> = ({
   <div className={`detail-pane${selectedItem ? ' open' : ''}`}>
     <div className="dp-inner">
       {detailLoading && selectedKind === 'sku' && (
-        <div className="detail-pane-loader">
-          <MyVagonLoaderContent theme="light" compact />
-        </div>
+        <ProductDetailSkeleton onClose={clearSelection} />
       )}
       {selectedItem && selectedKind === 'sku' && !detailLoading && (
         <SkuDetail
@@ -375,3 +374,4 @@ function TypeDetail({
     </>
   );
 }
+

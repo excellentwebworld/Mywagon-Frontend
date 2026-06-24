@@ -1,4 +1,5 @@
 import React from 'react';
+import { LocationDetailSkeleton } from '../skeletons/LocationDetailSkeleton';
 import type { LocationItem } from '../../context/AppContext';
 import { FACILITY_TYPE_COLORS, FACILITY_TYPE_LABELS } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
@@ -46,6 +47,10 @@ export const LocationDetailPanel: React.FC<Props> = ({
         <div className="dp-inner" />
       </div>
     );
+  }
+
+  if (detailLoading) {
+    return <LocationDetailSkeleton onClose={() => setSelectedLoc(null)} />;
   }
 
   const l = selectedLoc;
@@ -121,7 +126,6 @@ export const LocationDetailPanel: React.FC<Props> = ({
               </button>
             )}
           </div>
-          {detailLoading && <div className="dp-loading-hint">Loading details…</div>}
         </div>
 
         <DetailSection title="🗺️ Location Map" bodyClassName="dp-map-sec-body">

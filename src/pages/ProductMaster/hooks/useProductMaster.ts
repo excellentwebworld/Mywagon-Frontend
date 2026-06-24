@@ -331,13 +331,16 @@ export function useProductMaster() {
 
   const loadSkuDetail = useCallback(
     async (sku: SKU) => {
+      setSelectedItem(sku);
+      setSelectedKind('sku');
       setDetailLoading(true);
       try {
         const detail = await productMasterService.getSku(sku.id);
         setSelectedItem(detail);
-        setSelectedKind('sku');
       } catch (err) {
         handleApiError(err, 'Failed to load SKU');
+        setSelectedItem(null);
+        setSelectedKind('');
       } finally {
         setDetailLoading(false);
       }

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PartnerDetailSkeleton } from '../skeletons/PartnerDetailSkeleton';
 import type { Partner } from '../../pages/Partners/types';
 import type { PartnersState } from '../../pages/Partners/hooks/usePartners';
 import type { OpenSections } from '../../pages/Partners/types';
@@ -123,6 +124,16 @@ export const PartnerDetailPanel: React.FC<Props> = ({
     );
   }
 
+  if (detailLoading) {
+    return (
+      <PartnerDetailSkeleton
+        selectedPartner={selectedPartner}
+        closeDetailPanel={closeDetailPanel}
+        t={t}
+      />
+    );
+  }
+
   const p = selectedPartner;
   const perf = p.performance;
   const isCarrierOrDriver = p.type === 'carrier_company' || p.type === 'freelancer_driver';
@@ -132,11 +143,6 @@ export const PartnerDetailPanel: React.FC<Props> = ({
   return (
     <div className="ptn-detail-pane open" id="ptn-detail-pane">
       <div className="ptn-dp-inner" style={{ position: 'relative' }}>
-        {detailLoading && (
-          <div className="detail-pane-loader">
-            <MyVagonLoaderContent theme="light" compact />
-          </div>
-        )}
 
         <div className="ptn-dp-hero">
           <button type="button" className="ptn-dp-close" onClick={closeDetailPanel} id="ptn-dp-close">
