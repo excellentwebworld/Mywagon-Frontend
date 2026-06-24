@@ -130,6 +130,7 @@
   "erpOrdersOrderIdRequired": "Απαιτείται ID παραγγελίας.",
   "erpOrdersCustomerRequired": "Απαιτείται πελάτης.",
   "erpOrdersDeliveryDateRequired": "Απαιτείται ημερομηνία παράδοσης.",
+  "erpOrdersDuplicateProduct": "Κάθε προϊόν μπορεί να προστεθεί μόνο μία φορά ανά παραγγελία.",
   "ordersAiWizardTitle": "AI Wizard εισαγωγής παραγγελιών",
   "ordersAiWizardIntro": "Μεταφορτώστε εξαγωγή παραγγελιών ERP (Excel ή CSV). Το AI αντιστοιχίζει στήλες πριν την εισαγωγή.",
   "ordersAiWizardDropzone": "Σύρετε αρχείο εδώ ή κάντε κλικ",

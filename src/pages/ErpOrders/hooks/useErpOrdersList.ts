@@ -12,7 +12,8 @@ import type {
   ErpOrderSortField,
   ErpOrdersFilterState,
 } from '../types';
-import { EMPTY_ORDER_FORM as EMPTY_FORM } from '../types';
+import { EMPTY_ORDER_FORM as EMPTY_FORM, EMPTY_ORDER_LINE } from '../types';
+import type { SKU } from '../../../context/AppContext';
 
 const DEFAULT_FILTERS: ErpOrdersFilterState = {
   highPriority: false,
@@ -83,6 +84,18 @@ export function useErpOrdersList() {
   const refreshSkus = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['product-master', 'skus', 'erp-orders'] });
   }, [queryClient]);
+
+  const prependSku = useCallback(
+    (sku: SKU) => {
+      queryClient.setQueryData<SKU[]>(['product-master', 'skus', 'erp-orders'], (old) => {
+        const list = old ?? [];
+        if (list.some((s) => String(s.id) === String(sku.id))) return list;
+        return [sku, ...list];
+      });
+      void queryClient.invalidateQueries({ queryKey: ['product-master', 'skus', 'erp-orders'] });
+    },
+    [queryClient]
+  );
 
   const summaryQuery = useQuery({
     queryKey: ['erp-orders', 'summary'],
@@ -349,7 +362,7 @@ export function useErpOrdersList() {
 
   const openCreateOrder = useCallback(() => {
     setEditingOrderId(null);
-    setOrderForm(EMPTY_FORM);
+    setOrderForm({ ...EMPTY_FORM, lines: [{ ...EMPTY_ORDER_LINE }] });
     setIsFormOpen(true);
   }, []);
 
@@ -388,6 +401,13 @@ export function useErpOrdersList() {
     }
     if (!orderForm.deliveryDate) {
       showToast(t('erpOrdersDeliveryDateRequired'), 'error');
+      return;
+    }
+    const productIds = orderForm.lines
+      .map((line) => line.productSkuId)
+      .filter((id): id is number => id != null);
+    if (productIds.length !== new Set(productIds).size) {
+      showToast(t('erpOrdersDuplicateProduct'), 'error');
       return;
     }
     if (editingOrderId) {
@@ -473,6 +493,7 @@ export function useErpOrdersList() {
     skus: skusQuery.data ?? [],
     refreshLocations,
     refreshSkus,
+    prependSku,
     statusLabel,
     summarySubtitle: summaryQuery.data?.total ?? 0,
   };

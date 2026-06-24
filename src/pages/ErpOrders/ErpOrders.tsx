@@ -19,6 +19,8 @@ import {
 } from '../../components/ErpOrders';
 import { ErpOrdersDeferredViews } from './ErpOrdersDeferredViews';
 import type { ViewMode } from './types';
+import { EMPTY_ORDER_LINE } from './types';
+import type { SKU } from '../../context/AppContext';
 
 type LocationTarget = 'origin' | 'dest';
 
@@ -59,6 +61,13 @@ export const ErpOrders: React.FC = () => {
   };
 
   const openSkuModal = (lineIndex: number) => {
+    state.setOrderForm((f) => {
+      const lines = [...f.lines];
+      while (lines.length <= lineIndex) {
+        lines.push({ ...EMPTY_ORDER_LINE });
+      }
+      return lines.length === f.lines.length ? f : { ...f, lines };
+    });
     setSkuLineIndex(lineIndex);
     setSkuModalOpen(true);
   };
@@ -73,14 +82,23 @@ export const ErpOrders: React.FC = () => {
     }));
   };
 
-  const handleSkuCreated = (sku: { id: number; name: string; number: string }) => {
-    state.refreshSkus();
+  const handleSkuCreated = (sku: SKU) => {
+    const skuId = Number(sku.id);
     state.setOrderForm((f) => {
+      const duplicate = f.lines.some(
+        (line, i) => i !== skuLineIndex && line.productSkuId != null && Number(line.productSkuId) === skuId
+      );
+      if (duplicate) {
+        showToast(state.t('erpOrdersDuplicateProduct'), 'warning');
+        return f;
+      }
       const lines = [...f.lines];
-      const line = lines[skuLineIndex] ?? { productSkuId: null, productName: '', quantity: null, unit: 'Pallets', weight: null, weightUnit: 'Kg' };
+      while (lines.length <= skuLineIndex) {
+        lines.push({ ...EMPTY_ORDER_LINE });
+      }
       lines[skuLineIndex] = {
-        ...line,
-        productSkuId: sku.id,
+        ...lines[skuLineIndex],
+        productSkuId: skuId,
         productName: sku.name,
         sku: sku.number,
       };
@@ -92,8 +110,9 @@ export const ErpOrders: React.FC = () => {
     setSkuSaving(true);
     try {
       const created = await productMasterService.createSku(values);
+      state.prependSku(created);
       showToast(state.t('erpOrdersProductCreated'), 'success');
-      handleSkuCreated({ id: Number(created.id), name: created.name, number: created.number });
+      handleSkuCreated(created);
       setSkuModalOpen(false);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : state.t('erpOrdersProductCreateError');

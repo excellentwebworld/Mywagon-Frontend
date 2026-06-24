@@ -19,8 +19,8 @@ import type { ProductType } from '../../context/AppContext';
 import '../../styles/product-master-sku-modal.css';
 
 const skuValidationSchema = Yup.object().shape({
-  catId: Yup.string().required('Category is required'),
-  typeId: Yup.string().required('Please select a product type'),
+  catId: Yup.string().trim().required('Category is required'),
+  typeId: Yup.string().trim().required('Please select a product type'),
   name: Yup.string().trim().required('SKU Name is required'),
   number: Yup.string().trim().required('SKU Number is required'),
 });
@@ -64,16 +64,18 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
   }, [productTypesProp, apiCategories]);
 
   const categoryOptions = useMemo(
-    () => [
-      { value: '', label: t('selectCategory') },
-      ...apiCategories.map((c) => ({ value: String(c.id), label: c.name })),
-    ],
-    [apiCategories, t]
+    () => apiCategories.map((c) => ({ value: String(c.id), label: c.name })),
+    [apiCategories]
   );
 
   const uomOptions = useMemo(() => UOM_OPTIONS.map((u) => ({ value: u, label: u })), []);
   const tempOptions = useMemo(() => TEMP_OPTIONS.map((v) => ({ value: v, label: v })), []);
   const palletOptions = useMemo(() => PALLET_OPTIONS.map((v) => ({ value: v, label: v })), []);
+
+  const formInitialValues = useMemo(
+    () => ({ ...EMPTY_NEW_SKU, ...initialValues }),
+    [initialValues]
+  );
 
   if (!isOpen) return null;
 
@@ -81,9 +83,11 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
 
   return createPortal(
     <Formik
-      initialValues={initialValues}
+      initialValues={formInitialValues}
       validationSchema={skuValidationSchema}
-      enableReinitialize
+      enableReinitialize={editMode}
+      validateOnChange
+      validateOnBlur
       onSubmit={async (values, { setSubmitting }) => {
         try {
           await onSubmit(values);
@@ -96,19 +100,22 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
         values,
         errors,
         touched,
+        submitCount,
         handleChange,
         handleBlur,
         setFieldValue,
         setFieldTouched,
+        setValues,
         isSubmitting,
       }) => {
-        const showError = (field: keyof NewSkuForm) => Boolean(touched[field] && errors[field]);
+        const showError = (field: keyof NewSkuForm) =>
+          Boolean((touched[field] || submitCount > 0) && errors[field]);
 
-        const selectedCat = apiCategories.find((c) => String(c.id) === values.catId);
-        const typeOptions = [
-          { value: '', label: t('selectType') },
-          ...(selectedCat?.types ?? []).map((tp) => ({ value: String(tp.id), label: tp.name })),
-        ];
+        const selectedCat = apiCategories.find((c) => String(c.id) === String(values.catId));
+        const typeOptions = (selectedCat?.types ?? []).map((tp) => ({
+          value: String(tp.id),
+          label: tp.name,
+        }));
 
         return (
           <div className="modal-bg show pm-sku-modal" onClick={onClose}>
@@ -129,9 +136,16 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
                       options={categoryOptions}
                       value={values.catId}
                       onChange={(catId) => {
-                        setFieldValue('catId', catId);
-                        setFieldValue('typeId', '');
+                        void setValues(
+                          {
+                            ...values,
+                            catId,
+                            typeId: '',
+                          },
+                          true
+                        );
                         setFieldTouched('catId', true, false);
+                        setFieldTouched('typeId', false, false);
                       }}
                       placeholder={t('selectCategory')}
                       hasError={showError('catId')}
@@ -146,17 +160,18 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
                       options={typeOptions}
                       value={values.typeId}
                       onChange={(typeId) => {
-                        setFieldValue('typeId', typeId);
-                        setFieldTouched('typeId', true, false);
+                        const next: NewSkuForm = { ...values, typeId };
                         if (!editMode && typeId) {
-                          const tp = productTypes.find((x) => x.id === typeId);
+                          const tp = productTypes.find((x) => String(x.id) === String(typeId));
                           if (tp) {
-                            setFieldValue('temperature', tp.defaults.temp);
-                            setFieldValue('palletType', tp.defaults.palletType);
-                            setFieldValue('hazardous', tp.defaults.hazard);
-                            setFieldValue('stackable', tp.defaults.stackable);
+                            next.temperature = tp.defaults.temp;
+                            next.palletType = tp.defaults.palletType;
+                            next.hazardous = tp.defaults.hazard;
+                            next.stackable = tp.defaults.stackable;
                           }
                         }
+                        void setValues(next, true);
+                        setFieldTouched('typeId', true, false);
                       }}
                       placeholder={t('selectType')}
                       disabled={!values.catId}
@@ -193,7 +208,7 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
                       options={uomOptions}
                       value={values.uom}
                       onChange={(uom) => {
-                        setFieldValue('uom', uom);
+                        void setFieldValue('uom', uom, true);
                         setFieldTouched('uom', true, false);
                       }}
                       placeholder={t('uom')}
@@ -225,7 +240,7 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
                       options={tempOptions}
                       value={values.temperature}
                       onChange={(temperature) => {
-                        setFieldValue('temperature', temperature);
+                        void setFieldValue('temperature', temperature, true);
                         setFieldTouched('temperature', true, false);
                       }}
                       hasError={showError('temperature')}
@@ -238,7 +253,7 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
                       options={palletOptions}
                       value={values.palletType}
                       onChange={(palletType) => {
-                        setFieldValue('palletType', palletType);
+                        void setFieldValue('palletType', palletType, true);
                         setFieldTouched('palletType', true, false);
                       }}
                       hasError={showError('palletType')}

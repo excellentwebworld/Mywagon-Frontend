@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { SearchableSelect } from '../ui/SearchableSelect';
+import { ToggleField } from '../AddressBook';
 import { OrderProductLinesEditor } from './OrderProductLinesEditor';
 import type { ApiCompanyEntity } from '../../api/types/addressBook';
 import type { LocationItem, SKU } from '../../context/AppContext';
@@ -137,13 +138,11 @@ export const CreateEditOrderModal: React.FC<Props> = ({
               footerAction={onAddLocationDest ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationDest } : undefined}
             />
           </div>
-          <div className="field">
-            <label className="field-l">{t('erpOrdersHighPriority')}</label>
-            <div className="tog" onClick={() => setForm((f) => ({ ...f, highPriority: !f.highPriority }))} role="button" tabIndex={0}>
-              <div className={`tog-sw${form.highPriority ? ' on' : ''}`} />
-              <span className="tog-txt">{form.highPriority ? t('yes') : t('no')}</span>
-            </div>
-          </div>
+          <ToggleField
+            label={t('erpOrdersHighPriority')}
+            value={form.highPriority}
+            onChange={(highPriority) => setForm((f) => ({ ...f, highPriority }))}
+          />
           <div className="field">
             <label className="field-l">{t('notes')}</label>
             <textarea

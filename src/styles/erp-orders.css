@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════
    MYVAGON — erp-orders.css | ERP Orders master page styles
    ═══════════════════════════════════════════════════ */
+@import './toggle-field.css';
 
 /* Full-bleed layout inside app shell */
 .page-body:has(.erp-wrap) {

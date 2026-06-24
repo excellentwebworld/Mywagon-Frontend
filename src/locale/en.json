@@ -130,6 +130,7 @@
   "erpOrdersOrderIdRequired": "Order ID is required.",
   "erpOrdersCustomerRequired": "Customer is required.",
   "erpOrdersDeliveryDateRequired": "Delivery date is required.",
+  "erpOrdersDuplicateProduct": "Each product can only be added once per order.",
   "ordersAiWizardTitle": "AI Orders Import Wizard",
   "ordersAiWizardIntro": "Upload an ERP order export (Excel or CSV). AI maps columns to our order schema for review before import.",
   "ordersAiWizardDropzone": "Drop file here or click to browse",

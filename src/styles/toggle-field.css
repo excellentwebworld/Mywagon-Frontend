@@ -1,0 +1,86 @@
+/* Shared toggle switch (Address Book ToggleField + ERP / Product modals) */
+.ab-toggle-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ab-toggle-field--bare .ab-toggle {
+  margin-top: 2px;
+}
+
+.ab-toggle-field__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.ab-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-primary);
+  border-radius: 8px;
+  line-height: 1;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.ab-toggle:hover {
+  opacity: 0.92;
+}
+
+.ab-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.ab-toggle__track {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--border);
+  flex-shrink: 0;
+  transition: background-color .2s ease;
+}
+
+.ab-toggle__track.is-on {
+  background: var(--accent);
+}
+
+.ab-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform .2s ease;
+  pointer-events: none;
+}
+
+.ab-toggle__track.is-on .ab-toggle__thumb {
+  transform: translateX(16px);
+}
+
+.ab-toggle__text {
+  min-width: 22px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-primary);
+  transition: color .15s;
+  user-select: none;
+}
+
+.ab-toggle__text.is-on {
+  color: var(--text-primary);
+}

@@ -1,4 +1,5 @@
 /* Shared SKU form modal (Product Master + ERP Orders inline add) */
+@import './toggle-field.css';
 .pm-sku-modal .mf { margin-bottom: 14px; }
 .pm-sku-modal .mf label {
   display: block;

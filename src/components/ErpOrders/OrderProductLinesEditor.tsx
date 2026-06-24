@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS } from '../../constants/cargoUnits';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import type { SKU } from '../../context/AppContext';
@@ -13,12 +13,46 @@ type Props = {
   onAddProduct?: (lineIndex: number) => void;
 };
 
+function usedSkuIds(lines: ErpOrderLine[], excludeIndex?: number): Set<number> {
+  const used = new Set<number>();
+  lines.forEach((line, i) => {
+    if (excludeIndex !== undefined && i === excludeIndex) return;
+    if (line.productSkuId != null) used.add(line.productSkuId);
+  });
+  return used;
+}
+
 export const OrderProductLinesEditor: React.FC<Props> = ({ t, lines, skus, onChange, onAddProduct }) => {
-  const skuOptions = skus.map((s) => ({
-    value: String(s.id),
-    label: s.name,
-    sublabel: s.number,
-  }));
+  const selectedSkuCount = useMemo(
+    () => lines.filter((line) => line.productSkuId != null).length,
+    [lines]
+  );
+  const canAddLine = lines.length === 0 || selectedSkuCount < skus.length;
+
+  const getSkuOptionsForLine = (lineIndex: number) => {
+    const line = lines[lineIndex];
+    const taken = usedSkuIds(lines, lineIndex);
+    const options = skus
+      .filter((s) => !taken.has(Number(s.id)))
+      .map((s) => ({
+        value: String(s.id),
+        label: s.name,
+        sublabel: s.number,
+      }));
+
+    if (line?.productSkuId != null) {
+      const value = String(line.productSkuId);
+      if (!options.some((o) => o.value === value)) {
+        options.unshift({
+          value,
+          label: line.productName || value,
+          sublabel: line.sku ?? '',
+        });
+      }
+    }
+
+    return options;
+  };
 
   const updateLine = (index: number, patch: Partial<ErpOrderLine>) => {
     const next = lines.map((line, i) => (i === index ? { ...line, ...patch } : line));
@@ -30,6 +64,7 @@ export const OrderProductLinesEditor: React.FC<Props> = ({ t, lines, skus, onCha
   };
 
   const addLine = () => {
+    if (!canAddLine) return;
     onChange([...lines, { ...EMPTY_ORDER_LINE }]);
   };
 
@@ -39,12 +74,18 @@ export const OrderProductLinesEditor: React.FC<Props> = ({ t, lines, skus, onCha
       {lines.map((line, index) => (
         <div key={index} className="erp-product-line">
           <SearchableSelect
-            options={skuOptions}
+            options={getSkuOptionsForLine(index)}
             value={line.productSkuId ? String(line.productSkuId) : ''}
             onChange={(val, opt) => {
+              const skuId = val ? Number(val) : null;
+              if (skuId != null && usedSkuIds(lines, index).has(skuId)) {
+                return;
+              }
+              const sku = skuId != null ? skus.find((s) => Number(s.id) === skuId) : undefined;
               updateLine(index, {
-                productSkuId: val ? Number(val) : null,
-                productName: opt?.label ?? line.productName,
+                productSkuId: skuId,
+                productName: opt?.label ?? sku?.name ?? line.productName,
+                sku: sku?.number,
               });
             }}
             placeholder={t('erpOrdersSelectProduct')}
@@ -83,7 +124,7 @@ export const OrderProductLinesEditor: React.FC<Props> = ({ t, lines, skus, onCha
           </button>
         </div>
       ))}
-      <button type="button" className="btn btn-sm" onClick={addLine}>
+      <button type="button" className="btn btn-sm" onClick={addLine} disabled={!canAddLine}>
         + {t('erpOrdersAddProductLine')}
       </button>
     </div>
