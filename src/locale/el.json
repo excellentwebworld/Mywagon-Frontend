@@ -70,6 +70,7 @@
   "erpOrdersShowingCount": "Εμφάνιση {{count}} από {{total}}",
   "erpOrdersEmptyTitle": "Δεν βρέθηκαν παραγγελίες",
   "erpOrdersSectionMeta": "Λεπτομέρειες παραγγελίας",
+  "erpOrdersSectionTotals": "Σύνολα",
   "erpOrdersNotYetPlanned": "Μη προγραμματισμένη",
   "erpOrdersUpcomingToday": "Σήμερα",
   "erpOrdersUpcomingTomorrow": "Αύριο",

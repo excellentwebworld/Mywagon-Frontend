@@ -47,3 +47,10 @@ export const SyncIcon: React.FC = () => (
     <path d="M22 12.5a10 10 0 0 1-18.8 4.2" />
   </svg>
 );
+
+export const CloseIcon: React.FC = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);

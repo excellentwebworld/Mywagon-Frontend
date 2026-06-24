@@ -70,6 +70,7 @@
   "erpOrdersShowingCount": "Showing {{count}} of {{total}}",
   "erpOrdersEmptyTitle": "No orders found",
   "erpOrdersSectionMeta": "Order details",
+  "erpOrdersSectionTotals": "Totals",
   "erpOrdersNotYetPlanned": "Not yet planned",
   "erpOrdersUpcomingToday": "Today",
   "erpOrdersUpcomingTomorrow": "Tomorrow",
