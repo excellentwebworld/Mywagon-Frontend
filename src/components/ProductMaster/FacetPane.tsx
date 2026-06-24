@@ -60,6 +60,7 @@ export const FacetPane: React.FC<Props> = ({
       setActiveCat(catId);
     }
     setActiveType('all');
+    setFilterActive('');
     clearSelection();
   };
 
@@ -74,6 +75,8 @@ export const FacetPane: React.FC<Props> = ({
 
   const toggleStatusFilter = (status: 'active' | 'inactive') => {
     setFilterActive(filterActive === status ? '' : status);
+    setActiveCat('all');
+    setActiveType('all');
     clearSelection();
   };
 
@@ -91,7 +94,7 @@ export const FacetPane: React.FC<Props> = ({
         </div>
       </div>
 
-      <div className={`cat-node${activeCat === 'all' ? ' act' : ''}`} onClick={() => selectCat('all')} role="button" tabIndex={0}>
+      <div className={`cat-node${activeCat === 'all' && !filterActive ? ' act' : ''}`} onClick={() => selectCat('all')} role="button" tabIndex={0}>
         <span className="ico">📁</span>
         {viewMode === 'types' ? t('allTypes') : t('allItems')}
         <span className="cnt">{viewMode === 'types' ? productTypes.length : totalSkusCount}</span>
