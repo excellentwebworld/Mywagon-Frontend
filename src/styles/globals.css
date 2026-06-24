@@ -1341,7 +1341,9 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(119deg, rgba(155, 81, 224, 1) 0%, rgba(31, 31, 65, 1) 76%);
+  background: transparent;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 #boot-loader {
@@ -1351,7 +1353,9 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(119deg, rgba(155, 81, 224, 1) 0%, rgba(31, 31, 65, 1) 76%);
+  background: transparent;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transition: opacity 0.25s ease, visibility 0.25s ease;
 }
 

@@ -18,7 +18,9 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(119deg, #9b51e0 0%, #1f1f41 76%);
+        background: transparent;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         transition: opacity 0.25s ease, visibility 0.25s ease;
       }
       #boot-loader.boot-loader--hide {
