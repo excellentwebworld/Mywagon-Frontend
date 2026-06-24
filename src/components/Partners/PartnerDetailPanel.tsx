@@ -85,12 +85,14 @@ export const PartnerDetailPanel: React.FC<Props> = ({
   const [localNote, setLocalNote] = useState('');
   const [localTags, setLocalTags] = useState('');
 
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
   React.useEffect(() => {
     if (selectedPartner) {
       setLocalNote(selectedPartner.notes || '');
       setLocalTags((selectedPartner.tags || []).join(', '));
     }
   }, [selectedPartner?.id, selectedPartner?.notes, selectedPartner?.tags]);
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
   if (!selectedPartner) {
     return (
@@ -202,7 +204,7 @@ export const PartnerDetailPanel: React.FC<Props> = ({
                       { lbl: t('phoneCol'), val: profile.phone },
                     ].map(({ lbl, val }) => (
                       <div key={lbl} className="ptn-sc" style={{ textAlign: 'left' }}>
-                        <div className="sl">{lbl}</div>
+                        <div className="ptn-sl">{lbl}</div>
                         <div className="sv" style={{ fontSize: 13 }}>
                           {val || '—'}
                         </div>
@@ -241,14 +243,14 @@ export const PartnerDetailPanel: React.FC<Props> = ({
                   {[
                     { val: perf.loads_30d, lbl: t('loads30dCol') },
                     { val: perf.lifetime_loads, lbl: t('lifetimeLoads') },
-                    { val: `${perf.fulfilled_pct}%`, lbl: t('fulfilledPct') },
-                    { val: `${perf.partially_fulfilled_pct}%`, lbl: t('partiallyFulfilledPct') },
-                    { val: `${perf.canceled_pct}%`, lbl: t('canceledPct') },
+                    { val: `${perf.fulfilled_pct}%`, lbl: t('fulfilledPct'), cls: 'ptn-ki-g' },
+                    { val: `${perf.partially_fulfilled_pct}%`, lbl: t('partiallyFulfilledPct'), cls: 'ptn-ki-w' },
+                    { val: `${perf.canceled_pct}%`, lbl: t('canceledPct'), cls: 'ptn-ki-b' },
                     { val: `${perf.unfulfilled_pct}%`, lbl: t('unfulfilledPct') },
-                  ].map(({ val, lbl }) => (
-                    <div key={lbl} className="ptn-sc">
-                      <div className="sv">{val}</div>
-                      <div className="sl">{lbl}</div>
+                  ].map(({ val, lbl, cls }) => (
+                    <div key={lbl} className="ptn-sc-noborder">
+                      <div className={`sv ${cls || ''}`}>{val}</div>
+                      <div className="ptn-sl">{lbl}</div>
                     </div>
                   ))}
                 </div>

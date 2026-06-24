@@ -670,6 +670,12 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
   gap: 8px;
   margin-bottom: 4px;
 }
+.ptn-sg-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 4px;
+}
 .ptn-sc {
   padding: 10px 12px;
   background: var(--surface-alt);
@@ -682,7 +688,30 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
   font-family: 'JetBrains Mono', monospace;
   line-height: 1;
 }
-.ptn-sc .sl { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
+.ptn-sc .ptn-sl { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
+
+.ptn-sc-noborder {
+  padding: 10px 12px;
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+  border: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  box-sizing: border-box;
+}
+.ptn-sc-noborder .sv {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1;
+}
+.ptn-sc-noborder .ptn-sl {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+  line-height: 1.2;
+}
 
 /* Mini table in detail */
 .ptn-mt2 { width: 100%; border-collapse: collapse; margin-top: 8px; }
@@ -789,7 +818,7 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
    ───────────────────────────── */
 .ptn-inv-modal {
   max-width: 520px;
-  overflow: visible !important;
+  overflow: auto !important;
 }
 .ptn-inv-modal .modal-body {
   overflow: visible !important;
