@@ -126,8 +126,8 @@ export const LoginPage: React.FC = () => {
                   <span className="shipper-login-lang-slider" />
                 </label>
 
-                <div className="shipper-login-header">
-                  <a href="/login" className="shipper-login-logo-link">
+                <div className="shipper-login-header ">
+                  <a href="/login" className="shipper-login-logo-link mt-2">
                     <img src={fullLogo} alt={t('appName')} className="shipper-login-logo" height={48} />
                   </a>
                   <p className="shipper-login-para">{t('loginDescription')}</p>
@@ -177,9 +177,8 @@ export const LoginPage: React.FC = () => {
                     </div>
 
                     <div
-                      className={`shipper-login-field shipper-login-password-div pw-input${
-                        fieldErrors.password ? ' has-error' : ''
-                      }`}
+                      className={`shipper-login-field shipper-login-password-div pw-input${fieldErrors.password ? ' has-error' : ''
+                        }`}
                     >
                       <label htmlFor="password">{t('loginPassword')}</label>
                       <input
