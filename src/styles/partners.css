@@ -1001,8 +1001,7 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
   border: 1px solid #DDD6FE;
   border-radius: var(--radius-sm);
   padding: 16px;
-  width: 100%;
-  margin: 16px 0 0;
+  width: 70%;
   text-align: center;
 }
 .ptn-awaiting-title {
