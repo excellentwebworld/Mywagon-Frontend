@@ -3,6 +3,10 @@ import '../../styles/erp-orders.css';
 import '../../styles/ai-wizard.css';
 import { useErpOrdersList } from './hooks/useErpOrdersList';
 import { useApp } from '../../context/AppContext';
+import { ApiError } from '../../api';
+import { productMasterService } from '../../api/services/productMasterService';
+import { ProductMasterSkuModal } from '../../components/ProductMaster/ProductMasterSkuModal';
+import type { NewSkuForm } from '../ProductMaster/types';
 import {
   ErpOrdersHeader,
   ErpOrdersKpiStrip,
@@ -12,7 +16,6 @@ import {
   CreateEditOrderModal,
   OrdersAiWizardModal,
   ErpOrderQuickLocationModal,
-  ErpOrderQuickSkuModal,
 } from '../../components/ErpOrders';
 import { ErpOrdersDeferredViews } from './ErpOrdersDeferredViews';
 import type { ViewMode } from './types';
@@ -27,6 +30,7 @@ export const ErpOrders: React.FC = () => {
   const [locationTarget, setLocationTarget] = useState<LocationTarget>('origin');
   const [skuModalOpen, setSkuModalOpen] = useState(false);
   const [skuLineIndex, setSkuLineIndex] = useState(0);
+  const [skuSaving, setSkuSaving] = useState(false);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -82,6 +86,21 @@ export const ErpOrders: React.FC = () => {
       };
       return { ...f, lines };
     });
+  };
+
+  const handleCreateSku = async (values: NewSkuForm) => {
+    setSkuSaving(true);
+    try {
+      const created = await productMasterService.createSku(values);
+      showToast(state.t('erpOrdersProductCreated'), 'success');
+      handleSkuCreated({ id: Number(created.id), name: created.name, number: created.number });
+      setSkuModalOpen(false);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : state.t('erpOrdersProductCreateError');
+      showToast(message, 'error');
+    } finally {
+      setSkuSaving(false);
+    }
   };
 
   if (viewMode !== 'orders') {
@@ -187,12 +206,12 @@ export const ErpOrders: React.FC = () => {
         showToast={showToast}
       />
 
-      <ErpOrderQuickSkuModal
-        t={state.t}
+      <ProductMasterSkuModal
         isOpen={skuModalOpen}
         onClose={() => setSkuModalOpen(false)}
-        onCreated={handleSkuCreated}
-        showToast={showToast}
+        onSubmit={handleCreateSku}
+        saving={skuSaving}
+        title={state.t('erpOrdersAddProduct')}
       />
 
       <OrdersAiWizardModal

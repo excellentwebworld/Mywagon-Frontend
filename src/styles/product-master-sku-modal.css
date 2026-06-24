@@ -1,0 +1,42 @@
+/* Shared SKU form modal (Product Master + ERP Orders inline add) */
+.pm-sku-modal .mf { margin-bottom: 14px; }
+.pm-sku-modal .mf label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+.pm-sku-modal .mf label .req { color: var(--danger); }
+.pm-sku-modal .mf input,
+.pm-sku-modal .mf select,
+.pm-sku-modal .mf textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: border-color .15s;
+}
+.pm-sku-modal .mf input:focus,
+.pm-sku-modal .mf select:focus,
+.pm-sku-modal .mf textarea:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+.pm-sku-modal .mf.has-error input,
+.pm-sku-modal .mf.has-error select,
+.pm-sku-modal .mf.has-error textarea {
+  border-color: var(--danger);
+}
+.pm-sku-modal .mf-row { display: flex; gap: 12px; }
+.pm-sku-modal .mf-row .mf { flex: 1; }
+.pm-sku-modal .mf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) {
+  .pm-sku-modal .mf-row { flex-direction: column; gap: 0; }
+  .pm-sku-modal .mf-grid { grid-template-columns: 1fr; }
+}

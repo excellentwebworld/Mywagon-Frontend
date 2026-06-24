@@ -3,7 +3,6 @@ export { ErpOrdersKpiStrip } from './ErpOrdersKpiStrip';
 export { ErpOrdersFloatingSelectionBar } from './ErpOrdersFloatingSelectionBar';
 export { ErpOrdersFilterBar } from './ErpOrdersFilterBar';
 export { ErpOrderQuickLocationModal } from './ErpOrderQuickLocationModal';
-export { ErpOrderQuickSkuModal } from './ErpOrderQuickSkuModal';
 export { ErpOrdersTable } from './ErpOrdersTable';
 export { ErpOrdersPagination } from './ErpOrdersPagination';
 export { OrderDetailDrawer } from './OrderDetailDrawer';
