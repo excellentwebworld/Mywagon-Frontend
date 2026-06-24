@@ -756,7 +756,7 @@
   "abDirectory": "Directory",
   "abNewLocation": "New Location",
   "abExporting": "Exporting…",
-  "abSearchPlaceholder": "Search name, address, city, contact…",
+  "abSearchPlaceholder": "Search Location name, city, contact…",
   "abSubtitle": "Manage locations, contacts and operational profiles",
   "abExcelExported": "Excel exported",
   "roleBoth": "Both",
