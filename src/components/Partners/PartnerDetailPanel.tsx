@@ -173,17 +173,6 @@ export const PartnerDetailPanel: React.FC<Props> = ({
           </div>
 
           <div className="ptn-dp-actions">
-            {p.canAcceptDecline && (
-              <>
-                <button type="button" className="btn btn-ok btn-sm" onClick={() => acceptPartner(p)}>
-                  ✓ {t('accept')}
-                </button>
-                <button type="button" className="btn btn-danger btn-sm" onClick={() => declinePartner(p)}>
-                  ✕ {t('decline')}
-                </button>
-              </>
-            )}
-
             {p.status === 'active' && (
               <>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => togglePreferred(p)}>
@@ -205,6 +194,30 @@ export const PartnerDetailPanel: React.FC<Props> = ({
               </>
             )}
           </div>
+
+          {p.canAcceptDecline && (
+            <div className="ptn-awaiting-box">
+              <div className="ptn-awaiting-title">
+                📥 {t('invitationReceived')}
+              </div>
+              <div className="ptn-inv-actions-container">
+                <button
+                  type="button"
+                  className="btn-decline-inv"
+                  onClick={() => declinePartner(p)}
+                >
+                  ✕ {t('decline')}
+                </button>
+                <button
+                  type="button"
+                  className="btn-accept-inv"
+                  onClick={() => acceptPartner(p)}
+                >
+                  ✓ {t('accept')}
+                </button>
+              </div>
+            </div>
+          )}
 
           {p.isSent && p.isPending && (
             <div className="ptn-awaiting-box">
