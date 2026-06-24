@@ -2,8 +2,8 @@ import React from 'react';
 import type { LocationItem } from '../../context/AppContext';
 import type { SortOption } from '../../pages/AddressBook/types';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
-import { TableLoadingOverlay } from '../ui/TableLoadingOverlay';
 import { LocationRowActions } from './LocationRowActions';
+import { ListSkeleton } from '../skeletons/ListSkeleton';
 
 type Props = Pick<
   AddressBookState,
@@ -94,7 +94,6 @@ export const LocationList: React.FC<Props> = ({
       </div>
 
       <div className={`tbl-scroll${tableLoading ? ' loading-active' : ''}`}>
-        <TableLoadingOverlay active={tableLoading} message={t('abLoadingLocations')} />
         <table className="ab-table">
           <thead>
             <tr>
@@ -119,9 +118,7 @@ export const LocationList: React.FC<Props> = ({
           </thead>
           <tbody>
             {loading && count === 0 ? (
-              <tr>
-                <td colSpan={8} className="ab-empty-row" />
-              </tr>
+              <ListSkeleton type="table" rowCount={8} columnCount={8} />
             ) : count === 0 ? (
               <tr>
                 <td colSpan={8} className="ab-empty-row">

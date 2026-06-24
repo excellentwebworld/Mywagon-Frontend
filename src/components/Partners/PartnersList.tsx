@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Partner } from '../../pages/Partners/types';
 import type { PartnersState } from '../../pages/Partners/hooks/usePartners';
-import { TableLoadingOverlay } from '../ui/TableLoadingOverlay';
+import { ListSkeleton } from '../skeletons/ListSkeleton';
 
 type Props = Pick<
   PartnersState,
@@ -81,7 +81,6 @@ export const PartnersList: React.FC<Props> = ({
       </div>
 
       <div className={`ptn-tbl-scroll table-scroll-host${listLoading ? ' loading-active' : ''}`}>
-        <TableLoadingOverlay active={listLoading} message={t('loading')} />
         <table className="ptn-table">
           <thead>
             <tr>
@@ -106,6 +105,8 @@ export const PartnersList: React.FC<Props> = ({
                   </div>
                 </td>
               </tr>
+            ) : filteredPartners.length === 0 && listLoading ? (
+              <ListSkeleton type="table" rowCount={8} columnCount={8} />
             ) : (
               filteredPartners.map((p) => (
                 <tr

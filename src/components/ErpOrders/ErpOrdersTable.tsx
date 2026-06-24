@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { TableLoadingOverlay } from '../ui/TableLoadingOverlay';
 import type { ErpOrder, ErpOrderSortField } from '../../pages/ErpOrders/types';
 
 const ST_CLS: Record<string, string> = {
@@ -53,7 +52,6 @@ export const ErpOrdersTable: React.FC<Props> = ({
 
   return (
     <div className="tbl-wrap table-scroll-host">
-      <TableLoadingOverlay active={listLoading} />
       <div className="tbl-scroll">
         <table className="t">
           <thead>

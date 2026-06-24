@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
 import { syncDotClass } from '../../pages/ProductMaster/utils/productUtils';
-import { TableLoadingOverlay } from '../ui/TableLoadingOverlay';
+import { ListSkeleton } from '../skeletons/ListSkeleton';
 
 // Helper function to build page list for pagination (similar to AddressBook)
 function buildPageList(current: number, last: number): number[] {
@@ -106,12 +106,13 @@ export const ProductList: React.FC<Props> = ({
 
       {viewMode === 'types' ? (
         <div className={`types-grid table-scroll-host${tableBusy ? ' loading-active' : ''}`}>
-          <TableLoadingOverlay active={tableBusy} message={t('loadingProducts')} />
           {filteredTypes.length === 0 && !tableBusy ? (
             <div className="empty-state">
               <div className="ico">📦</div>
               <div className="et">{t('noTypes')}</div>
             </div>
+          ) : filteredTypes.length === 0 && tableBusy ? (
+            <ListSkeleton type="grid" rowCount={8} />
           ) : (
             filteredTypes.map((x) => {
               const cat = categories.find((c) => c.id === x.catId);
@@ -154,7 +155,6 @@ export const ProductList: React.FC<Props> = ({
         </div>
       ) : (
         <div className={`tbl-scroll table-scroll-host${tableBusy ? ' loading-active' : ''}`}>
-          <TableLoadingOverlay active={tableBusy} message={t('loadingProducts')} />
           {filteredSkus.length === 0 && !tableBusy ? (
             <div className="empty-state">
               <div className="ico">📦</div>
@@ -225,74 +225,77 @@ export const ProductList: React.FC<Props> = ({
             </tr> */}
               </thead>
               <tbody>
-                {filteredSkus.map((s) => {
-                  const tp = productTypes.find((x) => x.id === s.typeId);
-                  const cat = categories.find((x) => x.id === s.catId);
-                  const isSel = selectedItem?.id === s.id && selectedKind === 'sku';
+                {tableBusy && filteredSkus.length === 0 ? (
+                  <ListSkeleton type="table" rowCount={8} columnCount={11} />
+                ) : (
+                  filteredSkus.map((s) => {
+                    const tp = productTypes.find((x) => x.id === s.typeId);
+                    const cat = categories.find((x) => x.id === s.catId);
+                    const isSel = selectedItem?.id === s.id && selectedKind === 'sku';
 
-                  return (
-                    <tr
-                      key={s.id}
-                      className={isSel ? 'sel' : ''}
-                      onClick={() => loadSkuDetail(s)}
-                    >
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(s.id)}
-                          onChange={() => handleToggleRowSelection(s.id)}
-                        />
-                      </td>
-                      <td>
-                        <div className="sku-name">{s.name}</div>
-                        <div className="sku-num">{s.number}</div>
-                      </td>
-                      <td>
-                        {tp ? (
-                          <span className="type-pill">{tp.name}</span>
-                        ) : (
-                          <span style={{ color: 'var(--wr)', fontWeight: 600, fontSize: 11 }}>
-                            ⚠ {t('unmapped')}
+                    return (
+                      <tr
+                        key={s.id}
+                        className={isSel ? 'sel' : ''}
+                        onClick={() => loadSkuDetail(s)}
+                      >
+                        <td onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(s.id)}
+                            onChange={() => handleToggleRowSelection(s.id)}
+                          />
+                        </td>
+                        <td>
+                          <div className="sku-name">{s.name}</div>
+                          <div className="sku-num">{s.number}</div>
+                        </td>
+                        <td>
+                          {tp ? (
+                            <span className="type-pill">{tp.name}</span>
+                          ) : (
+                            <span style={{ color: 'var(--wr)', fontWeight: 600, fontSize: 11 }}>
+                              ⚠ {t('unmapped')}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <span className="cat-pill">{cat ? catName(cat) : '—'}</span>
+                        </td>
+                        <td>
+                          <span className={`src-badge ${s.source === 'erp' ? 'src-erp' : 'src-manual'}`}>
+                            {s.source === 'erp' ? 'ERP' : 'Manual'}
                           </span>
-                        )}
-                      </td>
-                      <td>
-                        <span className="cat-pill">{cat ? catName(cat) : '—'}</span>
-                      </td>
-                      <td>
-                        <span className={`src-badge ${s.source === 'erp' ? 'src-erp' : 'src-manual'}`}>
-                          {s.source === 'erp' ? 'ERP' : 'Manual'}
-                        </span>
-                      </td>
-                      <td className="ts-cell">{s.updatedAt || '—'}</td>
-                      <td>
-                        <span className={s.active ? 'status-active' : 'status-inactive'}>
-                          {s.active ? t('active') : t('inactive')}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="type-pill">{s.hazardous ? t('yes') : t('no')}</span>
-                      </td>
-                      <td>
-                        {s.palletType ? (
-                          <span className="type-pill">{s.palletType}</span>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td>
-                        <span className="type-pill">{s.stackable ? t('yes') : t('no')}</span>
-                      </td>
-                      <td>
-                        {s.temperature ? (
-                          <span className="type-pill">{s.temperature}</span>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                        </td>
+                        <td className="ts-cell">{s.updatedAt || '—'}</td>
+                        <td>
+                          <span className={s.active ? 'status-active' : 'status-inactive'}>
+                            {s.active ? t('active') : t('inactive')}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="type-pill">{s.hazardous ? t('yes') : t('no')}</span>
+                        </td>
+                        <td>
+                          {s.palletType ? (
+                            <span className="type-pill">{s.palletType}</span>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td>
+                          <span className="type-pill">{s.stackable ? t('yes') : t('no')}</span>
+                        </td>
+                        <td>
+                          {s.temperature ? (
+                            <span className="type-pill">{s.temperature}</span>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  }))}
               </tbody>
             </table>
           )}

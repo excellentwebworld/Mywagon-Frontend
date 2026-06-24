@@ -6,11 +6,3 @@ type Props = {
   message?: string;
 };
 
-/** Blade `showTableLoader()` — pane overlay with branded spinner + logo + message. */
-export const TableLoadingOverlay: React.FC<Props> = ({ active, message }) => (
-  <div className={`dt-loading-overlay${active ? ' active' : ''}`} aria-hidden={!active}>
-    <div className="dt-spinner-wrapper">
-      <MyVagonLoaderContent theme="light" compact />
-    </div>
-  </div>
-);
