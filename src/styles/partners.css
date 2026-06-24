@@ -646,8 +646,8 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
   user-select: none;
 }
 .ptn-dpsh:hover { color: var(--text-secondary); }
-.ptn-dpsh .ch { margin-left: auto; font-size: 9px; transition: transform .2s; }
-.ptn-dpsh .ch.open { transform: rotate(180deg); }
+.ptn-dpsh .ptn-ch { margin-left: auto; font-size: 9px; transition: transform .2s; }
+.ptn-dpsh .ptn-ch.open { transform: rotate(180deg); }
 .ptn-dpsb { padding: 0 20px 16px; }
 
 /* Detail rows */

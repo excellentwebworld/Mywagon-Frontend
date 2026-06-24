@@ -58,7 +58,7 @@ function SectionHeader({
       onKeyDown={(e) => e.key === 'Enter' && onToggle(sectionKey)}
     >
       {label}
-      <span className={`ch${open ? ' open' : ''}`}>▼</span>
+      <span className={`ptn-ch${open ? ' open' : ''}`}>▼</span>
     </div>
   );
 }
