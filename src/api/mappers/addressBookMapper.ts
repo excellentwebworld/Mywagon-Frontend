@@ -238,16 +238,16 @@ export function directoryToListParams(
   activeNode: string,
   search: string,
   sortField: AddressBookSortField,
-  sortDir: 'asc' | 'desc',
+  sortDir: 'asc' | 'desc' | '',
   page: number,
   perPage: number
 ): ListLocationsParams {
   const params: ListLocationsParams = {
-    sort: sortField,
-    sort_dir: sortDir,
     page,
     per_page: perPage,
   };
+  if (sortField) params.sort = sortField;
+  if (sortDir) params.sort_dir = sortDir;
 
   if (search.trim()) {
     params.search = search.trim();

@@ -40,8 +40,8 @@ export function useProductMaster() {
   const [filterActive, setFilterActive] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [filterUnmapped, setFilterUnmapped] = useState(false);
-  const [sortField, setSortField] = useState<ProductMasterSortField>('number');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortField, setSortField] = useState<ProductMasterSortField>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc' | ''>('');
 
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
@@ -199,10 +199,11 @@ export function useProductMaster() {
 
   const updateSkuMutation = useMutation({
     mutationFn: ({ id, form }: { id: string; form: NewSkuForm }) => productMasterService.updateSku(id, form),
-    onSuccess: async () => {
+    onSuccess: async (updatedSku) => {
       showToast(t('updated'), 'success');
       setIsSkuOpen(false);
       setEditSkuMode(false);
+      setSelectedItem(updatedSku);
       await invalidateAll();
     },
     onError: (err) => handleApiError(err, 'Failed to update SKU'),
@@ -294,16 +295,16 @@ export function useProductMaster() {
     setIsSkuOpen(true);
   }, []);
 
-  const handleSaveSku = useCallback((values?: NewSkuForm) => {
+  const handleSaveSku = useCallback(async (values?: NewSkuForm) => {
     const data = values || newSku;
     if (!data.catId || !data.typeId || !data.name.trim() || !data.number.trim()) {
       showToast(t('fillRequired'), 'warning');
       return;
     }
-    if (editSkuMode && editingSkuId) {
-      updateSkuMutation.mutate({ id: editingSkuId, form: data });
+    if (editSkuMode && selectedItem && selectedKind === 'sku') {
+      await updateSkuMutation.mutateAsync({ id: selectedItem.id, form: data });
     } else {
-      createSkuMutation.mutate(data);
+      await createSkuMutation.mutateAsync(data);
     }
   }, [newSku, editSkuMode, editingSkuId, createSkuMutation, updateSkuMutation, showToast, t]);
 

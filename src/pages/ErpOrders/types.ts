@@ -6,7 +6,7 @@ export interface ErpOrdersFilterState {
   highPriority: boolean;
 }
 
-export type ErpOrderSortField = 'orderReference' | 'customer' | 'shipDate' | 'deliveryDate' | 'status' | 'updatedAt';
+export type ErpOrderSortField = '' | 'orderReference' | 'customer' | 'shipDate' | 'deliveryDate' | 'status' | 'updatedAt';
 
 /** Columns with server-side sort in the ERP orders table. */
 export type ErpOrderTableSortField = 'orderReference' | 'customer' | 'deliveryDate' | 'updatedAt';

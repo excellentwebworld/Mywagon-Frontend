@@ -55,7 +55,7 @@ export interface SyncLogEntry {
   d: string;
 }
 
-export type ProductMasterSortField = 'number' | 'type' | 'category' | 'updated_at';
+export type ProductMasterSortField = '' | 'number' | 'type' | 'category' | 'updated_at';
 
 export const EMPTY_NEW_TYPE: NewTypeForm = {
   catId: '',

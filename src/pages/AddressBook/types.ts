@@ -26,7 +26,7 @@ export const EMPTY_SERVER_FILTERS: ServerFilterValues = {
   hours: false,
 };
 
-export type AddressBookSortField = 'name' | 'city';
+export type AddressBookSortField = '' | 'name' | 'city';
 
 export interface CreateLocationData {
   context: 'my' | 'customer';
