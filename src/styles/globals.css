@@ -54,6 +54,8 @@
   --sidebar-collapsed: 72px;
   --topbar-h:         64px;
   --z-topbar:         200;
+  --z-sidebar:        210;
+  --z-sidebar-overlay: 209;
   --z-dropdown:       250;
 
   /* Border Radius */
@@ -94,7 +96,7 @@ a { color: inherit; text-decoration: none; }
   height: 100dvh;
   background: var(--text-primary); color: #fff;
   display: flex; flex-direction: column;
-  z-index: 100;
+  z-index: var(--z-sidebar);
   transition: transform .25s cubic-bezier(.4,0,.2,1), width .25s cubic-bezier(.4,0,.2,1);
   overflow: hidden;
 }
@@ -137,7 +139,7 @@ a { color: inherit; text-decoration: none; }
 
 .sb-overlay {
   display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
-  z-index: 99; backdrop-filter: blur(2px);
+  z-index: var(--z-sidebar-overlay); backdrop-filter: blur(2px);
 }
 .sb-overlay.active { display: block; }
 
