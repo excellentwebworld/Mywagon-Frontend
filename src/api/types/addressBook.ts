@@ -106,6 +106,8 @@ export interface ApiCompanyEntity {
   website?: string | null;
   industry?: string | null;
   primary_contact?: string | null;
+  source?: 'company_entity' | 'partner';
+  partner_id?: number | null;
 }
 
 export interface ApiCompanyEntityPayload {
