@@ -81,6 +81,8 @@
   "erpOrdersHighPriority": "Υψηλή προτεραιότητα",
   "erpOrdersClearFilters": "Καθαρισμός όλων",
   "erpOrdersColOrderId": "ID Παραγγελίας",
+  "erpOrdersOrderIdPlaceholder": "π.χ. ORD-1234",
+  "erpOrdersErpIdPlaceholder": "π.χ. ERP-5678",
   "erpOrdersColCustomer": "Πελάτης",
   "erpOrdersColShipFrom": "Αποστολή από",
   "erpOrdersColShipTo": "Αποστολή προς",

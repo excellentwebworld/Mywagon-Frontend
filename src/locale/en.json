@@ -81,6 +81,8 @@
   "erpOrdersHighPriority": "High Priority",
   "erpOrdersClearFilters": "Clear all",
   "erpOrdersColOrderId": "Order ID",
+  "erpOrdersOrderIdPlaceholder": "e.g. ORD-1234",
+  "erpOrdersErpIdPlaceholder": "e.g. ERP-5678",
   "erpOrdersColCustomer": "Customer",
   "erpOrdersColShipFrom": "Ship From",
   "erpOrdersColShipTo": "Ship To",

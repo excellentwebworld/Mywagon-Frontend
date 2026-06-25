@@ -137,6 +137,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                   <label className="field-l">{t('erpOrdersColOrderId')} <span className="req">*</span></label>
                   <input
                     className={`inp${showError('orderReference') ? ' has-error' : ''}`}
+                    placeholder={t('erpOrdersOrderIdPlaceholder')}
                     value={values.orderReference}
                     onChange={(e) => setFieldValue('orderReference', e.target.value)}
                     disabled={isEdit}
@@ -148,6 +149,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                   <label className="field-l">{t('erpOrdersErpId')}</label>
                   <input
                     className={`inp${showError('erpReference') ? ' has-error' : ''}`}
+                    placeholder={t('erpOrdersErpIdPlaceholder')}
                     value={values.erpReference}
                     onChange={(e) => setFieldValue('erpReference', e.target.value)}
                   />
