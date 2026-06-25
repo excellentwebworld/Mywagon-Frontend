@@ -121,7 +121,7 @@ export const LocationDetailPanel: React.FC<Props> = ({
               </button>
             )}
             {l.status === 'archived' && (
-              <button type="button" className="btn btn-primary btn-sm dp-restore-btn" onClick={() => handleRestore(l)} disabled={saving}>
+              <button type="button" className="btn btn-secondary btn-sm dp-restore-btn" onClick={() => handleRestore(l)} disabled={saving}>
                 Restore
               </button>
             )}

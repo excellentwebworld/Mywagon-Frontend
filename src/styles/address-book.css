@@ -1075,13 +1075,30 @@ table.ab-table { width: 100%; border-collapse: collapse; }
   font-weight: 700;
   padding: 2px 9px;
   border-radius: 4px;
-  background: var(--surface-alt);
-  color: var(--text-tertiary);
+  background: var(--warning-bg, #FFFBEB);
+  color: #92400E;
+  border: 1px solid #FDE68A;
 }
 .dp-map-sec-body { padding: 0 !important; }
 .dp-hours-val { font-size: 11px; }
-.dp-archive-btn { color: var(--danger); border-color: var(--danger); }
-.dp-restore-btn { color: var(--success); }
+.btn.btn-secondary.dp-archive-btn {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.btn.btn-secondary.dp-archive-btn:hover {
+  background: var(--danger-bg, #FEF2F2);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.btn.btn-secondary.dp-restore-btn {
+  color: var(--success);
+  border-color: var(--success);
+}
+.btn.btn-secondary.dp-restore-btn:hover {
+  background: var(--success-bg, #ECFDF5);
+  color: var(--success);
+  border-color: var(--success);
+}
 .dp-no-contacts { padding: 8px 0; font-size: 12px; color: var(--text-tertiary); }
 .dp-add-contact-link { color: var(--accent); cursor: pointer; font-weight: 600; }
 .dp-no-notes { font-size: 12px; color: var(--text-tertiary); }
