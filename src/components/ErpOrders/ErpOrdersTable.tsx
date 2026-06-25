@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import type { ErpOrder, ErpOrderSortField } from '../../pages/ErpOrders/types';
+import type { ErpOrder, ErpOrderSortField, ErpOrderTableSortField } from '../../pages/ErpOrders/types';
 import {
   formatDateTime,
   formatProductsPreview,
@@ -21,7 +21,39 @@ const ST_CLS: Record<string, string> = {
 
 const TABLE_COL_COUNT = 11;
 
-type SortCol = ErpOrderSortField | 'linkedLoad' | null;
+function SortColumnHeader({
+  label,
+  field,
+  sortField,
+  sortDir,
+  onSort,
+  className,
+}: {
+  label: string;
+  field: ErpOrderTableSortField;
+  sortField: ErpOrderSortField;
+  sortDir: 'asc' | 'desc';
+  onSort: (field: ErpOrderTableSortField) => void;
+  className?: string;
+}) {
+  const isActive = sortField === field;
+  const arrow = isActive ? (sortDir === 'asc' ? '↑' : '↓') : '↑';
+
+  return (
+    <th className={className}>
+      <button
+        type="button"
+        className={`th-sort-btn${isActive ? ' active' : ''}`}
+        onClick={() => onSort(field)}
+      >
+        {label}
+        <span className="th-sort-arrow" aria-hidden="true">
+          {arrow}
+        </span>
+      </button>
+    </th>
+  );
+}
 
 type Props = {
   t: (key: string, options?: Record<string, unknown>) => string;
@@ -29,7 +61,7 @@ type Props = {
   listLoading: boolean;
   sortField: ErpOrderSortField;
   sortDir: 'asc' | 'desc';
-  doSort: (field: ErpOrderSortField) => void;
+  doSort: (field: ErpOrderTableSortField) => void;
   openDrawer: (id: string) => void;
   statusLabel: (status: ErpOrder['status']) => string;
   selectedIds: Set<string>;
@@ -44,12 +76,6 @@ type Props = {
   pageSizeOptions: number[];
   goToPage: (page: number) => void;
   setPageSize: (size: number) => void;
-};
-
-const mapSortCol = (col: SortCol): ErpOrderSortField | null => {
-  if (!col) return null;
-  if (col === 'linkedLoad') return 'orderReference';
-  return col;
 };
 
 export const ErpOrdersTable: React.FC<Props> = ({
@@ -74,33 +100,6 @@ export const ErpOrdersTable: React.FC<Props> = ({
   goToPage,
   setPageSize,
 }) => {
-  const [uiSortCol, setUiSortCol] = useState<SortCol>(sortField);
-  const [uiSortDir, setUiSortDir] = useState<'asc' | 'desc'>(sortDir);
-
-  const handleHeaderClick = (col: SortCol) => {
-    const apiField = mapSortCol(col);
-    if (apiField) {
-      doSort(apiField);
-      setUiSortCol(col);
-      setUiSortDir(sortField === apiField && sortDir === 'asc' ? 'desc' : 'asc');
-      return;
-    }
-    if (uiSortCol !== col) {
-      setUiSortCol(col);
-      setUiSortDir('asc');
-      return;
-    }
-    if (uiSortDir === 'asc') {
-      setUiSortDir('desc');
-      return;
-    }
-    setUiSortCol(null);
-    setUiSortDir('asc');
-  };
-
-  const activeSortCol = mapSortCol(uiSortCol) ? uiSortCol : uiSortCol;
-  const activeSortDir = mapSortCol(uiSortCol) ? sortDir : uiSortDir;
-
   const allOnPageSelected = orders.length > 0 && orders.every((o) => selectedIds.has(o.id));
   const total = listMeta.total ?? 0;
   const lastPage = listMeta.last_page ?? 1;
@@ -133,15 +132,40 @@ export const ErpOrdersTable: React.FC<Props> = ({
                     disabled={listLoading && orders.length === 0}
                   />
                 </th>
-                <SortTh label={t('erpOrdersColOrderId')} col="orderReference" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} />
-                <SortTh label={t('erpOrdersColCustomer')} col="customer" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} />
+                <SortColumnHeader
+                  label={t('erpOrdersColOrderId')}
+                  field="orderReference"
+                  sortField={sortField}
+                  sortDir={sortDir}
+                  onSort={doSort}
+                />
+                <SortColumnHeader
+                  label={t('erpOrdersColCustomer')}
+                  field="customer"
+                  sortField={sortField}
+                  sortDir={sortDir}
+                  onSort={doSort}
+                />
                 <th>{t('erpOrdersColShipFrom')}</th>
                 <th>{t('erpOrdersColShipTo')}</th>
-                <SortTh label={t('erpOrdersColDeliveryDate')} col="deliveryDate" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} />
+                <SortColumnHeader
+                  label={t('erpOrdersColDeliveryDate')}
+                  field="deliveryDate"
+                  sortField={sortField}
+                  sortDir={sortDir}
+                  onSort={doSort}
+                />
                 <th className="hide-lg">{t('erpOrdersColProducts')}</th>
-                <SortTh label={t('erpOrdersColStatus')} col="status" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} />
-                <SortTh label={t('erpOrdersColLinkedLoad')} col="linkedLoad" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} className="hide-xl" />
-                <SortTh label={t('erpOrdersColLastUpdate')} col="updatedAt" sortCol={activeSortCol} sortDir={activeSortDir} onClick={handleHeaderClick} className="hide-xl" />
+                <th>{t('erpOrdersColStatus')}</th>
+                <th className="hide-xl">{t('erpOrdersColLinkedLoad')}</th>
+                <SortColumnHeader
+                  label={t('erpOrdersColLastUpdate')}
+                  field="updatedAt"
+                  sortField={sortField}
+                  sortDir={sortDir}
+                  onSort={doSort}
+                  className="hide-xl"
+                />
                 <th style={{ width: 40 }} />
               </tr>
             </thead>
@@ -267,37 +291,3 @@ export const ErpOrdersTable: React.FC<Props> = ({
     </>
   );
 };
-
-function SortTh({
-  label,
-  col,
-  sortCol,
-  sortDir,
-  onClick,
-  className,
-}: {
-  label: string;
-  col: SortCol;
-  sortCol: SortCol;
-  sortDir: 'asc' | 'desc';
-  onClick: (col: SortCol) => void;
-  className?: string;
-}) {
-  const isActive = sortCol === col;
-  const ascActive = isActive && sortDir === 'asc';
-  const descActive = isActive && sortDir === 'desc';
-  return (
-    <th
-      className={`sort-th${isActive ? ' sorted' : ''}${className ? ` ${className}` : ''}`}
-      onClick={() => onClick(col)}
-    >
-      <span className="sort-th-inner">
-        <span>{label}</span>
-        <span className="sort-chevs">
-          <span className={`sort-chev up${ascActive ? ' act' : ''}`}>▲</span>
-          <span className={`sort-chev down${descActive ? ' act' : ''}`}>▼</span>
-        </span>
-      </span>
-    </th>
-  );
-}

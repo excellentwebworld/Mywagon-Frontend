@@ -8,6 +8,9 @@ export interface ErpOrdersFilterState {
 
 export type ErpOrderSortField = 'orderReference' | 'customer' | 'shipDate' | 'deliveryDate' | 'status' | 'updatedAt';
 
+/** Columns with server-side sort in the ERP orders table. */
+export type ErpOrderTableSortField = 'orderReference' | 'customer' | 'deliveryDate' | 'updatedAt';
+
 export interface ErpOrderLine {
   id?: number;
   productSkuId: number | null;

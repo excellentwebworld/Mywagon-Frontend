@@ -394,11 +394,8 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
 .ptn-table tbody td { padding: 9px 12px; font-size: 13px; vertical-align: middle; }
 
 .th-sort-btn { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: none; background: none; font: inherit; font-weight: 600; color: inherit; cursor: pointer; text-transform: uppercase; letter-spacing: .5px; }
-.th-sort-btn:hover { color: var(--accent); }
-.th-sort-btn.active { color: var(--accent); }
-.th-sort-arrow { font-size: 10px; opacity: 0; transition: opacity .12s ease; }
-.th-sort-btn:hover .th-sort-arrow,
-.th-sort-btn.active .th-sort-arrow { opacity: 1; }
+.th-sort-arrow { font-size: 10px; color: var(--text-tertiary, #8E8E9A); transition: color .12s ease; }
+.th-sort-btn.active .th-sort-arrow { color: var(--accent); }
 
 /* Table cell content */
 .ptn-p-name {

@@ -10,6 +10,7 @@ import type {
   ErpOrderFormState,
   ErpOrderKpiFilter,
   ErpOrderSortField,
+  ErpOrderTableSortField,
   ErpOrdersFilterState,
 } from '../types';
 import { EMPTY_ORDER_FORM as EMPTY_FORM, EMPTY_ORDER_LINE } from '../types';
@@ -366,16 +367,15 @@ export function useErpOrdersList() {
     setCurrentPage(1);
   }, []);
 
-  const doSort = useCallback((field: ErpOrderSortField) => {
-    setSortField((prev) => {
-      if (prev === field) {
-        setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-        return prev;
-      }
-      setSortDir('asc');
-      return field;
-    });
-  }, []);
+  const doSort = useCallback((field: ErpOrderTableSortField) => {
+    setCurrentPage(1);
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortField(field);
+    setSortDir(field === 'updatedAt' ? 'desc' : 'asc');
+  }, [sortField]);
 
   const openDrawer = useCallback((id: string) => {
     setSelectedOrderId(id);
