@@ -61,11 +61,16 @@ export const SearchableSelect: React.FC<Props> = ({
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      if (rootRef.current?.contains(e.target as Node)) return;
+      if (menuFixed) {
+        const target = e.target as HTMLElement;
+        if (target.closest('.searchable-select-menu.menu-fixed')) return;
+      }
+      setOpen(false);
     };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
-  }, []);
+  }, [menuFixed]);
 
   useEffect(() => {
     if (!open || !menuFixed) return;

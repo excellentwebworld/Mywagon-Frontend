@@ -1391,30 +1391,23 @@
 
 .ai-customer-picker {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
     width: 100%;
     min-width: 168px;
 }
 
-.ai-customer-required-pill {
-    align-self: flex-start;
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.35px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    background: rgba(220, 38, 38, 0.08);
-    color: #DC2626;
-    line-height: 1.2;
+.ai-customer-picker .ai-customer-select {
+    flex: 1;
 }
 
-.ai-customer-hint {
-    font-size: 10px;
-    color: var(--t3);
-    line-height: 1.35;
-    padding: 0 2px;
+.ai-customer-required-star {
+    color: #DC2626;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+    user-select: none;
 }
 
 .ai-customer-picker.is-empty .ai-customer-select .searchable-select-trigger {

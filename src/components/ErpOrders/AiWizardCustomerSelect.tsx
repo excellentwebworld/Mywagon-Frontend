@@ -28,7 +28,6 @@ export const AiWizardCustomerSelect: React.FC<Props> = ({
         required && isEmpty ? ' is-required' : ''
       }`}
     >
-      {required && isEmpty && <span className="ai-customer-required-pill">Required</span>}
       <SearchableSelect
         className="ai-customer-select"
         direction="down"
@@ -40,7 +39,7 @@ export const AiWizardCustomerSelect: React.FC<Props> = ({
         searchPlaceholder={searchPlaceholder}
         hasError={required && isEmpty}
       />
-      {hint && isEmpty && <div className="ai-customer-hint">{hint}</div>}
+      {required && isEmpty && <span className="ai-customer-required-star">*</span>}
     </div>
   );
 };
