@@ -1188,8 +1188,8 @@
 
 /* ─── Interactive preview (accept / reject / edit) ─── */
 .ai-wizard-modal-bg .ai-wizard-modal.ai-wizard-modal-wide {
-    width: min(96vw, 1180px);
-    max-height: 92vh;
+    width: min(100vw, 1700px);
+    max-height: 96vh;
 }
 
 .ai-preview-stats {

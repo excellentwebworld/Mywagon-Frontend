@@ -53,11 +53,11 @@
   --sidebar-w:        242px;
   --sidebar-collapsed: 72px;
   --topbar-h:         64px;
-  --z-topbar:         200;
-  --z-sidebar:        210;
-  --z-sidebar-overlay: 209;
-  --z-dropdown:       250;
-  --z-datepicker:     410;
+  --z-topbar:         100;
+  --z-sidebar:        110;
+  --z-sidebar-overlay: 109;
+  --z-dropdown:       150;
+  --z-datepicker:     210;
 
   /* Border Radius */
   --radius-sm:        8px;
