@@ -57,8 +57,8 @@ export function usePartners() {
   const [kpiFilter, setKpiFilter] = useState<KpiFilter>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [sortField, setSortField] = useState<PartnersSortField>('name');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortField, setSortField] = useState<PartnersSortField>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc' | ''>('');
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
   const [openFilterDropdown, setOpenFilterDropdown] = useState('');
 

@@ -40,8 +40,8 @@ export function useProductMaster() {
   const [filterActive, setFilterActive] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [filterUnmapped, setFilterUnmapped] = useState(false);
-  const [sortField, setSortField] = useState<ProductMasterSortField>('number');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortField, setSortField] = useState<ProductMasterSortField>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc' | ''>('');
 
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);

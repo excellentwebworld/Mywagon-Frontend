@@ -43,8 +43,8 @@ export function useAddressBook() {
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLoc, setSelectedLoc] = useState<LocationItem | null>(null);
-  const [sortField, setSortField] = useState<AddressBookSortField>('name');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortField, setSortField] = useState<AddressBookSortField>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc' | ''>('');
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createStep, setCreateStep] = useState(1);

@@ -129,15 +129,15 @@ export function facetToListParams(
   page: number,
   perPage: number,
   sortField: ProductMasterSortField,
-  sortDir: 'asc' | 'desc',
+  sortDir: 'asc' | 'desc' | '',
   filterCat = ''
 ): ListSkusParams {
   const params: ListSkusParams = {
     page,
     per_page: perPage,
-    sort: sortField,
-    sort_dir: sortDir,
   };
+  if (sortField) params.sort = sortField;
+  if (sortDir) params.sort_dir = sortDir;
 
   if (search.trim()) params.search = search.trim();
   if (filterActive === 'active') params.status = 'active';

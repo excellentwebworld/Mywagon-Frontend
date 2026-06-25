@@ -130,14 +130,14 @@ export function buildListParams(
   page: number,
   perPage: number,
   sortField: PartnersSortField,
-  sortDir: 'asc' | 'desc'
+  sortDir: 'asc' | 'desc' | ''
 ): ListPartnersParams {
   const params: ListPartnersParams = {
     page,
     per_page: perPage,
-    sort: sortField,
-    sort_dir: sortDir,
   };
+  if (sortField) params.sort = sortField;
+  if (sortDir) params.sort_dir = sortDir;
   if (facet && facet !== 'all') params.facet = facetToApiParam(facet);
   if (search.trim()) params.search = search.trim();
   if (statuses.length) params.statuses = statuses;

@@ -34,8 +34,8 @@ export function useErpOrdersList() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [sortField, setSortField] = useState<ErpOrderSortField>('deliveryDate');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortField, setSortField] = useState<ErpOrderSortField>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc' | ''>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
 

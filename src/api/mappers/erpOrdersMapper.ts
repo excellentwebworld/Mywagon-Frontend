@@ -107,7 +107,8 @@ export function kpiToStatusFilter(kpi: ErpOrderKpiFilter): string {
 }
 
 export function sortFieldToApi(field: ErpOrderSortField): string {
-  const map: Record<ErpOrderSortField, string> = {
+  if (!field) return '';
+  const map: Record<Exclude<ErpOrderSortField, ''>, string> = {
     orderReference: 'order_reference',
     customer: 'customer',
     shipDate: 'ship_date',
@@ -115,7 +116,7 @@ export function sortFieldToApi(field: ErpOrderSortField): string {
     status: 'status',
     updatedAt: 'updated_at',
   };
-  return map[field] ?? 'updated_at';
+  return map[field] ?? '';
 }
 
 export function buildListParams(
@@ -123,19 +124,21 @@ export function buildListParams(
   highPriority: boolean,
   search: string,
   sortField: ErpOrderSortField,
-  sortDir: 'asc' | 'desc',
+  sortDir: 'asc' | 'desc' | '',
   page: number,
   perPage: number
 ): ListErpOrdersParams {
-  return {
+  const params: ListErpOrdersParams = {
     status: kpiToStatusFilter(kpiFilter),
     high_priority: highPriority || undefined,
     search: search || undefined,
-    sort: sortFieldToApi(sortField),
-    sort_dir: sortDir,
     page,
     per_page: perPage,
   };
+  const apiSort = sortFieldToApi(sortField);
+  if (apiSort) params.sort = apiSort;
+  if (sortDir) params.sort_dir = sortDir;
+  return params;
 }
 
 export function buildExportParams(
@@ -143,7 +146,7 @@ export function buildExportParams(
   highPriority: boolean,
   search: string,
   sortField: ErpOrderSortField,
-  sortDir: 'asc' | 'desc'
+  sortDir: 'asc' | 'desc' | ''
 ): Omit<ListErpOrdersParams, 'page' | 'per_page'> {
   const { page: _page, per_page: _perPage, ...params } = buildListParams(
     kpiFilter,
