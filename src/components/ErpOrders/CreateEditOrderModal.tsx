@@ -39,6 +39,22 @@ const FormikStateSync: React.FC<{
   return null;
 };
 
+const getNextDay = (dateStr: string): string => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return '';
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  const d = parseInt(parts[2], 10);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return '';
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + 1);
+  const nextY = date.getFullYear();
+  const nextM = String(date.getMonth() + 1).padStart(2, '0');
+  const nextD = String(date.getDate()).padStart(2, '0');
+  return `${nextY}-${nextM}-${nextD}`;
+};
+
 export const CreateEditOrderModal: React.FC<Props> = ({
   t,
   isOpen,
@@ -55,6 +71,14 @@ export const CreateEditOrderModal: React.FC<Props> = ({
   onAddLocationDest,
   onAddProduct,
 }) => {
+  const todayStr = useMemo(() => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, []);
+
   const companyOptions = useMemo(
     () => companies.map((c) => ({ value: String(c.id), label: c.name, sublabel: c.vat_number })),
     [companies]
@@ -176,8 +200,13 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                     <label className="field-l">{t('erpOrdersShipDate')}</label>
                     <DatePicker
                       value={values.shipDate}
-                      onChange={(val) => setFieldValue('shipDate', val)}
-                      max={values.deliveryDate || undefined}
+                      onChange={(val) => {
+                        setFieldValue('shipDate', val);
+                        if (val) {
+                          setFieldValue('deliveryDate', getNextDay(val));
+                        }
+                      }}
+                      min={todayStr}
                       hasError={showError('shipDate')}
                     />
                     <FormFieldError message={showError('shipDate') ? errors.shipDate : undefined} />
@@ -187,7 +216,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                     <DatePicker
                       value={values.deliveryDate}
                       onChange={(val) => setFieldValue('deliveryDate', val)}
-                      min={values.shipDate || undefined}
+                      min={values.shipDate || todayStr}
                       hasError={showError('deliveryDate')}
                     />
                     <FormFieldError message={showError('deliveryDate') ? errors.deliveryDate : undefined} />

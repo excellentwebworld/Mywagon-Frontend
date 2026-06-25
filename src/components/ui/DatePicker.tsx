@@ -62,6 +62,23 @@ export const DatePicker: React.FC<Props> = ({
     }
   }, [value]);
 
+  // Adjust display month if it is before the min date
+  useEffect(() => {
+    if (min) {
+      const parts = min.split('-');
+      if (parts.length === 3) {
+        const minY = parseInt(parts[0], 10);
+        const minM = parseInt(parts[1], 10) - 1;
+        if (!isNaN(minY) && !isNaN(minM)) {
+          if (currentYear < minY || (currentYear === minY && currentMonth < minM)) {
+            setCurrentYear(minY);
+            setCurrentMonth(minM);
+          }
+        }
+      }
+    }
+  }, [currentYear, currentMonth, min]);
+
   // Click outside listener
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -241,6 +258,39 @@ export const DatePicker: React.FC<Props> = ({
     return false;
   };
 
+  const isMonthDisabled = (y: number, m: number) => {
+    if (!min) return false;
+    const lastDay = new Date(y, m + 1, 0).getDate();
+    const monthStr = String(m + 1).padStart(2, '0');
+    const dayStr = String(lastDay).padStart(2, '0');
+    const lastDayStr = `${y}-${monthStr}-${dayStr}`;
+    return lastDayStr < min;
+  };
+
+  const isYearDisabled = (y: number) => {
+    if (!min) return false;
+    return isMonthDisabled(y, 11);
+  };
+
+  const isMonthAfterMax = (y: number, m: number) => {
+    if (!max) return false;
+    const firstDayStr = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+    return firstDayStr > max;
+  };
+
+  const isYearAfterMax = (y: number) => {
+    if (!max) return false;
+    return isMonthAfterMax(y, 0);
+  };
+
+  const prevMonthVal = currentMonth === 0 ? 11 : currentMonth - 1;
+  const prevYearVal = currentMonth === 0 ? currentYear - 1 : currentYear;
+  const isPrevDisabled = isMonthDisabled(prevYearVal, prevMonthVal);
+
+  const nextMonthVal = currentMonth === 11 ? 0 : currentMonth + 1;
+  const nextYearVal = currentMonth === 11 ? currentYear + 1 : currentYear;
+  const isNextDisabled = isMonthAfterMax(nextYearVal, nextMonthVal);
+
   return (
     <div
       ref={rootRef}
@@ -283,6 +333,7 @@ export const DatePicker: React.FC<Props> = ({
             <button
               type="button"
               className="date-picker-nav-btn"
+              disabled={isPrevDisabled}
               onClick={handlePrevMonth}
               aria-label="Previous Month"
             >
@@ -295,11 +346,14 @@ export const DatePicker: React.FC<Props> = ({
                 className="date-picker-select"
                 aria-label="Select Month"
               >
-                {monthsList.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
+                {monthsList.map((m) => {
+                  const isDisabled = isMonthDisabled(currentYear, m.value) || isMonthAfterMax(currentYear, m.value);
+                  return (
+                    <option key={m.value} value={m.value} disabled={isDisabled}>
+                      {m.label}
+                    </option>
+                  );
+                })}
               </select>
               <select
                 value={currentYear}
@@ -307,16 +361,20 @@ export const DatePicker: React.FC<Props> = ({
                 className="date-picker-select"
                 aria-label="Select Year"
               >
-                {yearRange.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
+                {yearRange.map((y) => {
+                  const isDisabled = isYearDisabled(y) || isYearAfterMax(y);
+                  return (
+                    <option key={y} value={y} disabled={isDisabled}>
+                      {y}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <button
               type="button"
               className="date-picker-nav-btn"
+              disabled={isNextDisabled}
               onClick={handleNextMonth}
               aria-label="Next Month"
             >
@@ -334,6 +392,16 @@ export const DatePicker: React.FC<Props> = ({
 
           <div className="date-picker-grid">
             {calendarCells.map((cell, idx) => {
+              if (!cell.isCurrentMonth) {
+                return (
+                  <div
+                    key={idx}
+                    className="date-picker-cell empty"
+                    style={{ cursor: 'default', pointerEvents: 'none' }}
+                  />
+                );
+              }
+
               const isSelected = value === formatDateString(cell.year, cell.month, cell.day);
               const isToday =
                 cell.day === today.getDate() &&
@@ -342,7 +410,6 @@ export const DatePicker: React.FC<Props> = ({
               const isDisabled = isDateDisabled(cell.year, cell.month, cell.day);
               
               let cellClass = 'date-picker-cell';
-              if (!cell.isCurrentMonth) cellClass += ' other-month';
               if (isSelected) cellClass += ' selected';
               if (isToday) cellClass += ' today';
               if (isDisabled) cellClass += ' disabled';
