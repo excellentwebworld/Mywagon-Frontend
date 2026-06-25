@@ -122,10 +122,7 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
         r.status === 'accepted' &&
         (!r.order.order_reference?.trim() ||
           !r.order.customer_name?.trim() ||
-          !r.order.delivery_date?.trim() ||
-          !(r.order.lines ?? []).some(
-            (line) => line.product_name?.trim() || line.product_sku_id != null
-          ))
+          !r.order.delivery_date?.trim())
     );
 
     if (invalid) {
