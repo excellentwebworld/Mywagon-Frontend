@@ -290,14 +290,15 @@ export function useAddressBook() {
   useEffect(() => {
     if (!isCreateOpen) return;
     const q = companyQuery.trim();
+    const companyType = createData.context === 'customer' ? 'customers' : 'my_locations';
     const timer = setTimeout(() => {
       addressBookService
-        .listCompanies(q || undefined)
+        .listCompanies(q || undefined, companyType)
         .then(setApiCompanies)
         .catch(() => setApiCompanies([]));
     }, 200);
     return () => clearTimeout(timer);
-  }, [companyQuery, isCreateOpen]);
+  }, [companyQuery, isCreateOpen, createData.context]);
 
   useEffect(() => {
     if (createStep !== 4) {

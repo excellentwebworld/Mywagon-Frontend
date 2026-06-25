@@ -108,8 +108,17 @@ export const addressBookService = {
     return res.data ?? { duplicate: false, existing_id: null };
   },
 
-  async listCompanies(search?: string): Promise<ApiCompanyLookup[]> {
-    const res = await apiGet<ApiCompanyLookup[]>('/address-book/companies', search ? { search } : undefined);
+  async listCompanies(
+    search?: string,
+    type?: 'my_locations' | 'customers'
+  ): Promise<ApiCompanyLookup[]> {
+    const params: Record<string, string> = {};
+    if (search) params.search = search;
+    if (type) params.type = type;
+    const res = await apiGet<ApiCompanyLookup[]>(
+      '/address-book/companies',
+      Object.keys(params).length ? params : undefined
+    );
     return res.data ?? [];
   },
 

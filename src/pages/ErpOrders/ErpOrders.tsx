@@ -63,7 +63,7 @@ export const ErpOrders: React.FC = () => {
     const q = companyQuery.trim();
     const timer = setTimeout(() => {
       addressBookService
-        .listCompanies(q || undefined)
+        .listCompanies(q || undefined, 'my_locations')
         .then(setApiCompanies)
         .catch(() => setApiCompanies([]));
     }, 200);
