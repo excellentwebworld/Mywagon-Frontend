@@ -97,7 +97,6 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
   const [dragOver, setDragOver] = useState(false);
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
   const [fileHeaders, setFileHeaders] = useState<string[]>([]);
-  const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState('');
   const [substatusText, setSubstatusText] = useState('');
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -115,7 +114,6 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logStreamRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const referenceQuery = useQuery({
@@ -131,10 +129,6 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
   }, []);
 
   const clearTimers = useCallback(() => {
-    if (progressTimerRef.current) {
-      clearInterval(progressTimerRef.current);
-      progressTimerRef.current = null;
-    }
     if (logStreamRef.current) {
       clearTimeout(logStreamRef.current);
       logStreamRef.current = null;
@@ -151,7 +145,6 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
     setDragOver(false);
     setPreviewRows([]);
     setFileHeaders([]);
-    setProgress(0);
     setStatusText('');
     setSubstatusText('');
     setLogs([]);
@@ -203,37 +196,17 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
     [t]
   );
 
-  const startProgressSimulation = useCallback(
+  const setProcessingStatus = useCallback(
     (mode: 'transform' | 'import') => {
-      clearTimers();
-      setProgress(mode === 'import' ? 40 : 0);
-      setStatusText(mode === 'import' ? t('aiWizardImporting') : t('aiWizardInit'));
-      setSubstatusText(mode === 'import' ? t('aiWizardImportSub') : t('aiWizardInitSub'));
-
-      progressTimerRef.current = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 95) return prev;
-          const next = prev + 2;
-          if (mode === 'transform') {
-            if (next < 25) {
-              setStatusText(t('aiWizardUploading'));
-              setSubstatusText(t('aiWizardUploadingSub'));
-            } else if (next < 50) {
-              setStatusText(t('aiWizardAnalyzing'));
-              setSubstatusText(t('aiWizardAnalyzingSub'));
-            } else if (next < 75) {
-              setStatusText(t('aiWizardMapping'));
-              setSubstatusText(t('aiWizardMappingSub'));
-            } else {
-              setStatusText(t('aiWizardFormulating'));
-              setSubstatusText(t('aiWizardFormulatingSub'));
-            }
-          }
-          return next;
-        });
-      }, 400);
+      if (mode === 'import') {
+        setStatusText(t('aiWizardImporting'));
+        setSubstatusText(t('aiWizardImportSub'));
+      } else {
+        setStatusText(t('aiWizardAnalyzing'));
+        setSubstatusText(t('aiWizardAnalyzingSub'));
+      }
     },
-    [clearTimers, t]
+    [t]
   );
 
   const handleFile = useCallback((selected: File | null) => {
@@ -266,14 +239,13 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
       appendLog('info', t('aiWizardUploadLog'));
 
       setRunning(true);
-      startProgressSimulation('transform');
+      setProcessingStatus('transform');
       const controller = new AbortController();
       abortRef.current = controller;
 
       try {
         const result = await productMasterService.aiTransform(selected, controller.signal);
         clearTimers();
-        setProgress(100);
         setPreviewRows(initPreviewRows(result.products));
         setFileHeaders(result.file_headers);
         setRunning(false);
@@ -310,7 +282,7 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
         showGenericError(message, err instanceof ApiError ? `HTTP ${err.status}` : null);
       }
     },
-    [appendLog, clearTimers, showGenericError, showMissingColumnsError, startProgressSimulation, t]
+    [appendLog, clearTimers, showGenericError, showMissingColumnsError, setProcessingStatus, t]
   );
 
   const handleStartTransform = useCallback(async () => {
@@ -392,14 +364,13 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
     setActiveStep(2);
     setLogs([]);
     setRunning(true);
-    startProgressSimulation('import');
+    setProcessingStatus('import');
     const controller = new AbortController();
     abortRef.current = controller;
 
     try {
       const result = await productMasterService.aiConfirmImport(toImport);
       clearTimers();
-      setProgress(100);
       setStatusText(t('aiWizardImportDone'));
       setSubstatusText(t('aiWizardImportDoneSub'));
       setRunning(false);
@@ -418,7 +389,7 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
       const message = err instanceof ApiError ? err.message : t('aiWizardImportFailed');
       showGenericError(message, null);
     }
-  }, [clearTimers, validateAcceptedRows, showGenericError, startProgressSimulation, streamImportLogs, t]);
+  }, [clearTimers, validateAcceptedRows, showGenericError, setProcessingStatus, streamImportLogs, t]);
 
   const handleAbort = useCallback(() => {
     abortRef.current?.abort();
@@ -571,10 +542,6 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
                   <div className="ai-processing-status">{statusText}</div>
                   <div className="ai-processing-substatus">{substatusText}</div>
                 </div>
-                <div className="ai-processing-pct">{progress}%</div>
-              </div>
-              <div className="ai-progress-track">
-                <div className="ai-progress-fill" style={{ width: `${progress}%` }} />
               </div>
               <div className="ai-terminal">
                 <div className="ai-terminal-titlebar">
