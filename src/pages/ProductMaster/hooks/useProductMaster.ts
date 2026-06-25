@@ -198,10 +198,11 @@ export function useProductMaster() {
 
   const updateSkuMutation = useMutation({
     mutationFn: ({ id, form }: { id: string; form: NewSkuForm }) => productMasterService.updateSku(id, form),
-    onSuccess: async () => {
+    onSuccess: async (updatedSku) => {
       showToast(t('updated'), 'success');
       setIsSkuOpen(false);
       setEditSkuMode(false);
+      setSelectedItem(updatedSku);
       await invalidateAll();
     },
     onError: (err) => handleApiError(err, 'Failed to update SKU'),
@@ -289,16 +290,16 @@ export function useProductMaster() {
     setIsSkuOpen(true);
   }, []);
 
-  const handleSaveSku = useCallback((values?: NewSkuForm) => {
+  const handleSaveSku = useCallback(async (values?: NewSkuForm) => {
     const data = values || newSku;
     if (!data.catId || !data.typeId || !data.name.trim() || !data.number.trim()) {
       showToast(t('fillRequired'), 'warning');
       return;
     }
     if (editSkuMode && selectedItem && selectedKind === 'sku') {
-      updateSkuMutation.mutate({ id: selectedItem.id, form: data });
+      await updateSkuMutation.mutateAsync({ id: selectedItem.id, form: data });
     } else {
-      createSkuMutation.mutate(data);
+      await createSkuMutation.mutateAsync(data);
     }
   }, [newSku, editSkuMode, selectedItem, selectedKind, createSkuMutation, updateSkuMutation, showToast, t]);
 
