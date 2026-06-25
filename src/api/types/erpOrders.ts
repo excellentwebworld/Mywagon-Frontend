@@ -103,7 +103,7 @@ export interface AiMappedOrderLine {
 export interface AiMappedOrder {
   order_reference: string;
   erp_reference?: string | null;
-  customer_name: string;
+  customer_name?: string | null;
   company_entity_id?: number | null;
   ship_from?: string | null;
   ship_to?: string | null;

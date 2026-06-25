@@ -1199,7 +1199,25 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .searchable-select.disabled .searchable-select-trigger { opacity: .55; cursor: not-allowed; }
 .searchable-select.has-error .searchable-select-trigger { border-color: var(--danger); }
 .searchable-select-placeholder { color: var(--text-tertiary); }
-.searchable-select-value { color: var(--text-primary); font-weight: 500; }
+.searchable-select-value-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
+.searchable-select-value { color: var(--text-primary); font-weight: 500; line-height: 1.2; }
+.searchable-select-value-sub {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .searchable-select-chevron { color: var(--text-tertiary); font-size: 11px; }
 .searchable-select-menu {
   position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
@@ -1209,6 +1227,9 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .searchable-select-menu.open-up {
   top: auto;
   bottom: calc(100% + 4px);
+}
+.searchable-select-menu.menu-fixed {
+  right: auto;
 }
 .searchable-select-search { padding: 8px; border-bottom: 1px solid var(--border); }
 .searchable-select-search input {

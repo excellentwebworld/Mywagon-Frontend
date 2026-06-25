@@ -1,4 +1,5 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface SearchableSelectOption {
   value: string;
@@ -19,6 +20,7 @@ type Props = {
   footerAction?: { label: string; onClick: () => void };
   headerAction?: { label: string; onClick: () => void };
   direction?: 'up' | 'down' | 'auto';
+  menuFixed?: boolean;
 };
 
 export const SearchableSelect: React.FC<Props> = ({
@@ -34,12 +36,20 @@ export const SearchableSelect: React.FC<Props> = ({
   footerAction,
   headerAction,
   direction = 'auto',
+  menuFixed = false,
 }) => {
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [openUp, setOpenUp] = useState(false);
   const [query, setQuery] = useState('');
+  const [menuRect, setMenuRect] = useState<{
+    anchorTop: number;
+    anchorBottom: number;
+    left: number;
+    width: number;
+    openUp: boolean;
+  } | null>(null);
 
   const selected = options.find((o) => o.value === value);
 
@@ -56,6 +66,32 @@ export const SearchableSelect: React.FC<Props> = ({
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
+
+  useEffect(() => {
+    if (!open || !menuFixed) return;
+    const onScroll = () => setOpen(false);
+    window.addEventListener('scroll', onScroll, true);
+    return () => window.removeEventListener('scroll', onScroll, true);
+  }, [open, menuFixed]);
+
+  useLayoutEffect(() => {
+    if (!open || !menuFixed || !rootRef.current) {
+      setMenuRect(null);
+      return;
+    }
+    const trigger = rootRef.current.querySelector('.searchable-select-trigger') as HTMLElement | null;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const up =
+      direction === 'up' ? true : direction === 'down' ? false : openUp;
+    setMenuRect({
+      anchorTop: rect.top,
+      anchorBottom: rect.bottom,
+      left: rect.left,
+      width: rect.width,
+      openUp: up,
+    });
+  }, [open, menuFixed, openUp, direction]);
 
   const handleQuery = (next: string) => {
     setQuery(next);
@@ -79,6 +115,86 @@ export const SearchableSelect: React.FC<Props> = ({
     setOpen((v) => !v);
   };
 
+  const menuInner = (
+    <>
+      <div className="searchable-select-search">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => handleQuery(e.target.value)}
+          placeholder={searchPlaceholder}
+          autoFocus
+        />
+      </div>
+      {headerAction && (
+        <button
+          type="button"
+          className="searchable-select-header-action"
+          onClick={() => {
+            headerAction.onClick();
+            setOpen(false);
+          }}
+        >
+          {headerAction.label}
+        </button>
+      )}
+      <div className="searchable-select-options">
+        {filtered.length === 0 ? (
+          <div className="searchable-select-empty">No matches</div>
+        ) : (
+          filtered.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              role="option"
+              aria-selected={opt.value === value}
+              className={`searchable-select-option${opt.value === value ? ' selected' : ''}`}
+              onClick={() => {
+                onChange(opt.value, opt);
+                setOpen(false);
+                setQuery('');
+              }}
+            >
+              <span>{opt.label}</span>
+              {opt.sublabel && <small>{opt.sublabel}</small>}
+            </button>
+          ))
+        )}
+      </div>
+      {footerAction && (
+        <button type="button" className="searchable-select-footer" onClick={footerAction.onClick}>
+          {footerAction.label}
+        </button>
+      )}
+    </>
+  );
+
+  const menuNode =
+    open &&
+    (menuFixed && menuRect ? (
+      createPortal(
+        <div
+          className={`searchable-select-menu menu-fixed${menuRect.openUp ? ' open-up' : ''}`}
+          role="listbox"
+          style={{
+            position: 'fixed',
+            left: menuRect.left,
+            width: menuRect.width,
+            top: menuRect.openUp ? undefined : menuRect.anchorBottom + 4,
+            bottom: menuRect.openUp ? window.innerHeight - menuRect.anchorTop + 4 : undefined,
+            zIndex: 10050,
+          }}
+        >
+          {menuInner}
+        </div>,
+        document.body
+      )
+    ) : (
+      <div className={`searchable-select-menu${openUp ? ' open-up' : ''}`} role="listbox">
+        {menuInner}
+      </div>
+    ));
+
   return (
     <div
       ref={rootRef}
@@ -93,64 +209,21 @@ export const SearchableSelect: React.FC<Props> = ({
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className={selected ? 'searchable-select-value' : 'searchable-select-placeholder'}>
-          {selected ? selected.label : placeholder}
+        <span className={selected ? 'searchable-select-value-wrap' : 'searchable-select-placeholder'}>
+          {selected ? (
+            <>
+              <span className="searchable-select-value">{selected.label}</span>
+              {selected.sublabel ? (
+                <small className="searchable-select-value-sub">{selected.sublabel}</small>
+              ) : null}
+            </>
+          ) : (
+            placeholder
+          )}
         </span>
         <span className="searchable-select-chevron">▾</span>
       </button>
-      {open && (
-        <div className={`searchable-select-menu${openUp ? ' open-up' : ''}`} role="listbox">
-          <div className="searchable-select-search">
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => handleQuery(e.target.value)}
-              placeholder={searchPlaceholder}
-              autoFocus
-            />
-          </div>
-          {headerAction && (
-            <button
-              type="button"
-              className="searchable-select-header-action"
-              onClick={() => {
-                headerAction.onClick();
-                setOpen(false);
-              }}
-            >
-              {headerAction.label}
-            </button>
-          )}
-          <div className="searchable-select-options">
-            {filtered.length === 0 ? (
-              <div className="searchable-select-empty">No matches</div>
-            ) : (
-              filtered.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  role="option"
-                  aria-selected={opt.value === value}
-                  className={`searchable-select-option${opt.value === value ? ' selected' : ''}`}
-                  onClick={() => {
-                    onChange(opt.value, opt);
-                    setOpen(false);
-                    setQuery('');
-                  }}
-                >
-                  <span>{opt.label}</span>
-                  {opt.sublabel && <small>{opt.sublabel}</small>}
-                </button>
-              ))
-            )}
-          </div>
-          {footerAction && (
-            <button type="button" className="searchable-select-footer" onClick={footerAction.onClick}>
-              {footerAction.label}
-            </button>
-          )}
-        </div>
-      )}
+      {menuNode}
     </div>
   );
 };

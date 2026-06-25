@@ -85,6 +85,30 @@ export function acceptedOrders(rows: OrderPreviewRow[]): AiMappedOrder[] {
   return rows.filter((r) => r.status === 'accepted').map((r) => r.order);
 }
 
+export function toConfirmImportOrders(rows: OrderPreviewRow[]): AiMappedOrder[] {
+  return acceptedOrders(rows).map((order) => {
+    const companyEntityId = order.company_entity_id ?? null;
+    const normalizedCompanyEntityId =
+      companyEntityId != null && Number(companyEntityId) < 0 ? null : companyEntityId;
+
+    return {
+      order_reference: order.order_reference,
+      erp_reference: order.erp_reference ?? null,
+      customer_name: order.customer_name?.trim() || null,
+      company_entity_id: normalizedCompanyEntityId,
+      origin_location_id: order.origin_location_id ?? null,
+      dest_location_id: order.dest_location_id ?? null,
+      ship_from: order.ship_from ?? null,
+      ship_to: order.ship_to ?? null,
+      ship_date: order.ship_date ?? null,
+      delivery_date: order.delivery_date,
+      notes: order.notes ?? null,
+      high_priority: order.high_priority ?? false,
+      lines: order.lines ?? [],
+    };
+  });
+}
+
 export function areOrderLinesEdited(row: OrderPreviewRow): boolean {
   return !linesEqual(row.original.lines, row.order.lines);
 }

@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import type { ApiCompanyEntity } from '../../api/types/addressBook';
+import type { ApiErpOrderCustomer } from '../../api/types/erpOrders';
 import type { AiMappedOrder } from '../../api/types/erpOrders';
 import type { LocationItem, SKU } from '../../context/AppContext';
 import { SearchableSelect } from '../ui/SearchableSelect';
+import { AiWizardCustomerSelect } from './AiWizardCustomerSelect';
 import { DatePicker } from '../ui/DatePicker';
 import { OrderProductLinesEditor } from './OrderProductLinesEditor';
 import {
@@ -13,6 +14,7 @@ import {
   initOrderPreviewRows,
   isOrderRowEdited,
   orderRowHasInferred,
+  toConfirmImportOrders,
   toErpLines,
   type OrderPreviewFilter,
   type OrderPreviewRow,
@@ -22,6 +24,7 @@ export {
   acceptedOrders,
   initOrderPreviewRows,
   isOrderRowEdited,
+  toConfirmImportOrders,
   type OrderPreviewRow,
 };
 
@@ -40,7 +43,7 @@ type HeaderField =
 interface Props {
   rows: OrderPreviewRow[];
   fileHeaders: string[];
-  companies: ApiCompanyEntity[];
+  companies: ApiErpOrderCustomer[];
   locations: LocationItem[];
   skus: SKU[];
   t: (key: string, options?: Record<string, unknown>) => string;
@@ -78,7 +81,15 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
   const [filter, setFilter] = useState<OrderPreviewFilter>('all');
 
   const companyOptions = useMemo(
-    () => companies.map((c) => ({ value: String(c.id), label: c.name, sublabel: c.vat_number })),
+    () =>
+      companies.map((c) => ({
+        value: String(c.id),
+        label: c.name,
+        sublabel:
+          c.is_partner && c.partner_company_name
+            ? [c.vat_number, c.partner_company_name].filter(Boolean).join(' · ')
+            : c.vat_number,
+      })),
     [companies]
   );
 
@@ -176,16 +187,22 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
 
     if (field === 'customer_name') {
       return (
-        <SearchableSelect
+        <AiWizardCustomerSelect
           options={companyOptions}
-          value={row.order.company_entity_id ? String(row.order.company_entity_id) : ''}
+          value={row.order.company_entity_id != null ? String(row.order.company_entity_id) : ''}
           onChange={(val, opt) => {
             updateOrder(row.id, {
               company_entity_id: val ? Number(val) : null,
-              customer_name: opt?.label ?? row.order.customer_name,
+              customer_name: val ? (opt?.label ?? '') : null,
+              inferred: {
+                ...row.order.inferred,
+                customer: !val,
+              },
             });
           }}
-          placeholder={t('erpOrdersSelectCustomer')}
+          placeholder={t('ordersAiWizardSelectCustomer')}
+          searchPlaceholder={t('ordersAiWizardSearchCustomer')}
+          hint={t('ordersAiWizardCustomerHint')}
         />
       );
     }
@@ -268,9 +285,14 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
     if (field === 'ship_to') {
       return row.order.ship_to || '—';
     }
+    if (field === 'customer_name') {
+      return row.order.customer_name?.trim() || '—';
+    }
     const val = row.order[field as keyof AiMappedOrder];
     return val != null && String(val).trim() !== '' ? String(val) : '—';
   };
+
+  const shouldRenderCustomerPicker = (row: OrderPreviewRow) => row.status === 'accepted';
 
   const colCount = 11;
 
@@ -357,7 +379,12 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
               <th className="ai-preview-col-actions">{t('aiWizardActions')}</th>
               <th>#</th>
               <th>{t('erpOrdersColOrderId')}</th>
-              <th>{t('erpOrdersColCustomer')}</th>
+              <th className="ai-th-customer">
+                {t('erpOrdersColCustomer')}
+                <span className="ai-th-required" title={t('ordersAiWizardCustomerHint')}>
+                  *
+                </span>
+              </th>
               <th>{t('erpOrdersShipDate')}</th>
               <th>{t('erpOrdersColDeliveryDate')}</th>
               <th>{t('erpOrdersColShipFrom')}</th>
@@ -443,12 +470,22 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
                       </td>
                       <td className="ai-td-num">{idx + 1}</td>
                       {headerFields.map(({ field, inferred, extra }) => (
-                        <td key={field} className={cellClasses(row, field === 'products' ? 'products' : field, inferred, extra)}>
-                          {row.isEditing && row.status === 'accepted'
-                            ? field === 'products'
-                              ? renderDisplayCell(row, field)
-                              : renderEditCell(row, field)
-                            : renderDisplayCell(row, field)}
+                        <td
+                          key={field}
+                          className={[
+                            cellClasses(row, field === 'products' ? 'products' : field, inferred, extra),
+                            field === 'customer_name' ? 'ai-td-customer' : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                        >
+                          {field === 'customer_name' && shouldRenderCustomerPicker(row)
+                            ? renderEditCell(row, field)
+                            : row.isEditing && row.status === 'accepted'
+                              ? field === 'products'
+                                ? renderDisplayCell(row, field)
+                                : renderEditCell(row, field)
+                              : renderDisplayCell(row, field)}
                         </td>
                       ))}
                     </tr>

@@ -1,11 +1,11 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { erpOrdersService, ApiError } from '../../api';
 import type { AiMappedOrder, AiOrdersTransformErrorData } from '../../api/types/erpOrders';
-import type { ApiCompanyEntity } from '../../api/types/addressBook';
+import type { ApiErpOrderCustomer } from '../../api/types/erpOrders';
 import type { LocationItem, SKU } from '../../context/AppContext';
 import {
   OrdersAiWizardPreviewPanel,
-  acceptedOrders,
+  toConfirmImportOrders,
   initOrderPreviewRows,
   type OrderPreviewRow,
 } from './OrdersAiWizardPreviewPanel';
@@ -17,7 +17,7 @@ type Props = {
   onImportSuccess: () => void;
   downloadTemplate: () => void;
   showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void;
-  companies: ApiCompanyEntity[];
+  companies: ApiErpOrderCustomer[];
   locations: LocationItem[];
   skus: SKU[];
   t: (key: string, options?: Record<string, unknown>) => string;
@@ -111,7 +111,7 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
   };
 
   const validateAcceptedRows = useCallback((): AiMappedOrder[] | null => {
-    const toImport = acceptedOrders(rows);
+    const toImport = toConfirmImportOrders(rows);
     if (!toImport.length) {
       showToast(t('ordersAiWizardNoAccepted'), 'warning');
       return null;
@@ -121,6 +121,7 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
       (r) =>
         r.status === 'accepted' &&
         (!r.order.order_reference?.trim() ||
+          r.order.company_entity_id == null ||
           !r.order.customer_name?.trim() ||
           !r.order.delivery_date?.trim() ||
           !(r.order.lines ?? []).some(
@@ -195,7 +196,6 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
 
   const requiredCols = [
     { label: t('erpOrdersColOrderId'), desc: t('ordersAiWizardReqOrderIdDesc') },
-    { label: t('erpOrdersColCustomer'), desc: t('ordersAiWizardReqCustomerDesc') },
     { label: t('erpOrdersColDeliveryDate'), desc: t('ordersAiWizardReqDeliveryDesc') },
   ];
 

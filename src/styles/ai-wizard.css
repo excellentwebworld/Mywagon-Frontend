@@ -1361,3 +1361,109 @@
     .ai-preview-footer-actions { width: 100%; }
     .ai-preview-footer-actions .btn { flex: 1; }
 }
+
+/* ── Customer picker (AI wizard preview) ── */
+.ai-th-customer {
+    min-width: 200px;
+}
+
+.ai-th-required {
+    color: #DC2626;
+    margin-left: 2px;
+    font-weight: 700;
+    cursor: help;
+}
+
+.ai-td-customer {
+    min-width: 200px;
+    max-width: 240px;
+    white-space: normal !important;
+    vertical-align: top;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    overflow: visible;
+    position: relative;
+}
+
+.ai-td-customer:has(.searchable-select.open) {
+    z-index: 20;
+}
+
+.ai-customer-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    min-width: 168px;
+}
+
+.ai-customer-required-pill {
+    align-self: flex-start;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.35px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(220, 38, 38, 0.08);
+    color: #DC2626;
+    line-height: 1.2;
+}
+
+.ai-customer-hint {
+    font-size: 10px;
+    color: var(--t3);
+    line-height: 1.35;
+    padding: 0 2px;
+}
+
+.ai-customer-picker.is-empty .ai-customer-select .searchable-select-trigger {
+    background: rgba(108, 58, 237, 0.04);
+    border-color: rgba(108, 58, 237, 0.35);
+    border-style: dashed;
+    min-height: 36px;
+    padding: 5px 8px;
+}
+
+.ai-customer-picker.is-required.is-empty .ai-customer-select.has-error .searchable-select-trigger {
+    border-color: rgba(220, 38, 38, 0.45);
+    background: rgba(220, 38, 38, 0.03);
+}
+
+.ai-customer-picker.is-set .ai-customer-select .searchable-select-trigger {
+    background: rgba(16, 185, 129, 0.04);
+    border-color: rgba(16, 185, 129, 0.35);
+    min-height: 36px;
+    padding: 5px 8px;
+}
+
+.ai-customer-select .searchable-select-trigger {
+    font-size: 11px;
+    text-align: left;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.ai-customer-select .searchable-select-value {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.ai-customer-select .searchable-select-value-sub {
+    font-size: 9px;
+}
+
+.ai-customer-select .searchable-select-placeholder {
+    font-size: 11px;
+    color: var(--ac);
+    font-weight: 500;
+}
+
+.ai-customer-select.open .searchable-select-trigger {
+    border-color: var(--ac) !important;
+    border-style: solid !important;
+    box-shadow: 0 0 0 3px rgba(108, 58, 237, 0.12);
+}
