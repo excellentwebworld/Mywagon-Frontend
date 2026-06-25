@@ -295,6 +295,7 @@ export const ErpOrders: React.FC = () => {
         openCreateOrder={state.openCreateOrder}
         openAiWizard={state.openAiWizard}
         onExport={state.handleExport}
+        exporting={state.exporting}
         onCreateLoad={() => handleCreateLoad()}
       />
 

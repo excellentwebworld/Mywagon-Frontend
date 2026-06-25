@@ -4,7 +4,7 @@ import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { erpOrdersService, ApiError, addressBookService, productMasterService } from '../../../api';
-import { statusLabel } from '../../../api/mappers/erpOrdersMapper';
+import { statusLabel, buildExportParams } from '../../../api/mappers/erpOrdersMapper';
 import type {
   ErpOrder,
   ErpOrderFormState,
@@ -43,6 +43,7 @@ export function useErpOrdersList() {
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [orderForm, setOrderForm] = useState<ErpOrderFormState>(EMPTY_FORM);
   const [isAiWizardOpen, setIsAiWizardOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -243,7 +244,7 @@ export function useErpOrdersList() {
   const mutationLoading =
     createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
-  useSyncGlobalLoader(mutationLoading);
+  useSyncGlobalLoader(mutationLoading || exporting);
 
   const kpiCounts = useMemo(
     () => ({
@@ -322,9 +323,33 @@ export function useErpOrdersList() {
     [selectedIds.size, showToast, t]
   );
 
-  const handleExport = useCallback(() => {
-    showToast(t('erpOrdersExportSoon'), 'info');
-  }, [showToast, t]);
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      const params = buildExportParams(
+        kpiFilter,
+        filters.highPriority,
+        debouncedSearch,
+        sortField,
+        sortDir
+      );
+      await erpOrdersService.exportOrders(params);
+      showToast(t('erpOrdersExported'), 'success');
+    } catch (err) {
+      handleApiError(err, t('erpOrdersExportError'));
+    } finally {
+      setExporting(false);
+    }
+  }, [
+    kpiFilter,
+    filters.highPriority,
+    debouncedSearch,
+    sortField,
+    sortDir,
+    showToast,
+    t,
+    handleApiError,
+  ]);
 
   const handleResync = useCallback(
     (order: ErpOrder) => {
@@ -433,6 +458,7 @@ export function useErpOrdersList() {
     clearSelection,
     goToCreateLoad,
     handleExport,
+    exporting,
     handleResync,
     searchQuery,
     setSearchQuery,

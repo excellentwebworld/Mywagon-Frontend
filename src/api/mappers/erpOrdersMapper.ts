@@ -138,4 +138,23 @@ export function buildListParams(
   };
 }
 
+export function buildExportParams(
+  kpiFilter: ErpOrderKpiFilter,
+  highPriority: boolean,
+  search: string,
+  sortField: ErpOrderSortField,
+  sortDir: 'asc' | 'desc'
+): Omit<ListErpOrdersParams, 'page' | 'per_page'> {
+  const { page: _page, per_page: _perPage, ...params } = buildListParams(
+    kpiFilter,
+    highPriority,
+    search,
+    sortField,
+    sortDir,
+    1,
+    20
+  );
+  return params;
+}
+
 export { STATUS_LABELS };

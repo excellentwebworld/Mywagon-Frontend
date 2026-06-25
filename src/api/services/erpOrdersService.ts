@@ -22,6 +22,17 @@ import type { ApiListMeta } from '../types/addressBook';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
+function exportParamsToQuery(params: Omit<ListErpOrdersParams, 'page' | 'per_page'>): URLSearchParams {
+  const query = new URLSearchParams();
+  if (params.search) query.set('search', params.search);
+  if (params.status && params.status !== 'all') query.set('status', params.status);
+  if (params.high_priority) query.set('high_priority', '1');
+  if (params.unlinked) query.set('unlinked', '1');
+  if (params.sort) query.set('sort', params.sort);
+  if (params.sort_dir) query.set('sort_dir', params.sort_dir);
+  return query;
+}
+
 export const erpOrdersService = {
   async getSummary(): Promise<ApiErpOrderSummary> {
     const res = await apiGet<ApiErpOrderSummary>('/erp-orders/summary');
@@ -101,6 +112,24 @@ export const erpOrdersService = {
     const a = document.createElement('a');
     a.href = url;
     a.download = 'erp-orders-import-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  async exportOrders(params: Omit<ListErpOrdersParams, 'page' | 'per_page'>): Promise<void> {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const response = await fetch(`${API_BASE}/erp-orders/export?${exportParamsToQuery(params).toString()}`, {
+      headers: {
+        Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!response.ok) throw new ApiError('Export failed', response.status);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'erp_orders.xlsx';
     a.click();
     URL.revokeObjectURL(url);
   },

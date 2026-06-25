@@ -8,6 +8,7 @@ type Props = {
   openCreateOrder: () => void;
   openAiWizard: () => void;
   onExport: () => void;
+  exporting?: boolean;
   onCreateLoad: () => void;
 };
 
@@ -18,6 +19,7 @@ export const ErpOrdersHeader: React.FC<Props> = ({
   openCreateOrder,
   openAiWizard,
   onExport,
+  exporting = false,
   onCreateLoad: _onCreateLoad,
 }) => (
   <div className="pg-head anim">
@@ -35,9 +37,9 @@ export const ErpOrdersHeader: React.FC<Props> = ({
       <button type="button" className="btn" onClick={openAiWizard}>
         ✨ {t('erpOrdersImport')}
       </button>
-      <button type="button" className="btn" onClick={onExport}>
+      <button type="button" className="btn" onClick={onExport} disabled={exporting}>
         <ExportIcon />
-        {t('erpOrdersExport')}
+        {exporting ? t('erpOrdersExporting') : t('erpOrdersExport')}
       </button>
       {/* Create Load — temporarily hidden
       <button
