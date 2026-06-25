@@ -49,6 +49,7 @@ export function useProductMaster() {
   const [addDropdownOpen, setAddDropdownOpen] = useState(false);
   const [isSkuOpen, setIsSkuOpen] = useState(false);
   const [editSkuMode, setEditSkuMode] = useState(false);
+  const [editingSkuId, setEditingSkuId] = useState<string | null>(null);
   const [newSku, setNewSku] = useState<NewSkuForm>(EMPTY_NEW_SKU);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importStep, setImportStep] = useState<'form' | 'processing' | 'result'>('form');
@@ -278,6 +279,7 @@ export function useProductMaster() {
 
   const openAddSku = useCallback(() => {
     setEditSkuMode(false);
+    setEditingSkuId(null);
     setNewSku(EMPTY_NEW_SKU);
     setIsSkuOpen(true);
     setAddDropdownOpen(false);
@@ -285,6 +287,9 @@ export function useProductMaster() {
 
   const openEditSku = useCallback((sku: SKU) => {
     setEditSkuMode(true);
+    setEditingSkuId(sku.id);
+    setSelectedItem(sku);
+    setSelectedKind('sku');
     setNewSku(skuToNewSkuForm(sku));
     setIsSkuOpen(true);
   }, []);
@@ -295,12 +300,12 @@ export function useProductMaster() {
       showToast(t('fillRequired'), 'warning');
       return;
     }
-    if (editSkuMode && selectedItem && selectedKind === 'sku') {
-      updateSkuMutation.mutate({ id: selectedItem.id, form: data });
+    if (editSkuMode && editingSkuId) {
+      updateSkuMutation.mutate({ id: editingSkuId, form: data });
     } else {
       createSkuMutation.mutate(data);
     }
-  }, [newSku, editSkuMode, selectedItem, selectedKind, createSkuMutation, updateSkuMutation, showToast, t]);
+  }, [newSku, editSkuMode, editingSkuId, createSkuMutation, updateSkuMutation, showToast, t]);
 
   const loadTypeDetail = useCallback(
     async (type: ProductType) => {
