@@ -219,14 +219,15 @@ export const OrderDetailDrawer: React.FC<Props> = ({
               </button>
             )}
             */}
-                <div className="erp-order-drawer-actions">
+                <div className="
+                ">
                   {shouldSuggestSplit(order) && (
                     <button type="button" className="btn btn-sm erp-order-drawer-action" disabled>
                       ✂️ {t('erpOrdersSuggestSplit')}
                     </button>
                   )}
                   {order.canEdit && (
-                    <button type="button" className="btn btn-sm erp-order-drawer-action" onClick={() => onEdit(order)}>
+                    <button type="button" className="btn btn-md erp-order-drawer-action" onClick={() => onEdit(order)}>
                       {t('edit')}
                     </button>
                   )}

@@ -23,8 +23,7 @@
 .erp-wrap {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
+  height: calc(100vh - var(--topbar-h));
   overflow: hidden;
   background: var(--bg, #F7F7F8);
 }
@@ -47,7 +46,6 @@
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border, #E4E4E8);
-  border-radius: var(--radius-md, 12px);
   background: var(--surface, #FFF);
 }
 
@@ -835,7 +833,7 @@
   font-style: italic;
 }
 .erp-order-drawer-foot {
-  padding: 12px 20px 16px;
+  padding: 8px 20px ;
   border-top: 1px solid var(--border, #E4E4E8);
   background: var(--bg, #F7F7F8);
   flex-shrink: 0;
@@ -967,6 +965,7 @@ table.t thead th.sorted .s-arr {
   color: var(--accent, #6C3AED);
 }
 table.t tbody tr {
+  background: var(--bg, #F7F7F8);
   transition: background .08s;
   cursor: pointer;
   border-bottom: 1px solid var(--border, #E4E4E8);
@@ -974,7 +973,8 @@ table.t tbody tr {
 table.t tbody tr:hover {
   background: #FAFAFD;
 }
-table.t tbody tr.sel {
+table.t tbody tr.sel,
+table.t tbody tr.row-open {
   background: var(--accent-light-pale, #EDE9FE) !important;
 }
 table.t tbody td {
