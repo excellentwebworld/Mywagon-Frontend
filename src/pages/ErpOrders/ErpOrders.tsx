@@ -139,7 +139,8 @@ export const ErpOrders: React.FC = () => {
   const openLocationModal = (target: LocationTarget) => {
     setLocationTarget(target);
     setCreateStep(1);
-    setCreateData(applyTemplate('retail', { ...EMPTY_CREATE_DATA, context: 'my' }));
+    const defaultRole = target === 'origin' ? 'pickup' : 'delivery';
+    setCreateData(applyTemplate('retail', { ...EMPTY_CREATE_DATA, context: 'my', role: defaultRole }));
     setLocationModalOpen(true);
   };
 
