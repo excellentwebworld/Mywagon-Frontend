@@ -14,7 +14,7 @@ function SortColumnHeader({
   label: string;
   field: PartnersSortField;
   sortField: PartnersSortField;
-  sortDir: 'asc' | 'desc';
+  sortDir: 'asc' | 'desc' | '';
   onSort: (field: PartnersSortField) => void;
 }) {
   const isActive = sortField === field;

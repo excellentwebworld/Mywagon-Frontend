@@ -71,7 +71,7 @@ export const erpOrdersService = {
     highPriority: boolean,
     search: string,
     sortField: ErpOrderSortField,
-    sortDir: 'asc' | 'desc',
+    sortDir: 'asc' | 'desc' | '',
     page: number,
     perPage: number
   ): Promise<{ orders: ErpOrder[]; meta: ApiListMeta }> {
