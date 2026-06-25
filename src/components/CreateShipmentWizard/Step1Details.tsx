@@ -661,6 +661,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                       <DatePicker
                         value={stop.date}
                         onChange={(val) => handleUpdateStopField(stop.id, 'date', val)}
+                        min={idx > 0 ? stops[idx - 1].date : undefined}
+                        max={idx < stops.length - 1 ? stops[idx + 1].date : undefined}
                       />
                     </div>
                     {stop.date && <span className="day-badge">{getDayName(stop.date)}</span>}

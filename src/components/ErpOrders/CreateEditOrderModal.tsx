@@ -1,8 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
+import { Formik, Form, useFormikContext } from 'formik';
+import * as Yup from 'yup';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { DatePicker } from '../ui/DatePicker';
 import { ToggleField } from '../AddressBook';
 import { OrderProductLinesEditor } from './OrderProductLinesEditor';
+import { FormFieldError } from '../AddressBook/FormFieldError';
 import type { ApiCompanyEntity } from '../../api/types/addressBook';
 import type { LocationItem, SKU } from '../../context/AppContext';
 import type { ErpOrderFormState } from '../../pages/ErpOrders/types';
@@ -14,7 +17,7 @@ type Props = {
   form: ErpOrderFormState;
   setForm: React.Dispatch<React.SetStateAction<ErpOrderFormState>>;
   onClose: () => void;
-  onSubmit: () => void;
+  onSubmit: (values: ErpOrderFormState) => void;
   saving: boolean;
   companies: ApiCompanyEntity[];
   locations: LocationItem[];
@@ -22,6 +25,18 @@ type Props = {
   onAddLocationOrigin?: () => void;
   onAddLocationDest?: () => void;
   onAddProduct?: (lineIndex: number) => void;
+};
+
+// FormikStateSync links the Formik values back to the parent state,
+// allowing quick modal dialogs (location/product additions) to preserve forms.
+const FormikStateSync: React.FC<{
+  setForm: React.Dispatch<React.SetStateAction<ErpOrderFormState>>;
+}> = ({ setForm }) => {
+  const { values } = useFormikContext<ErpOrderFormState>();
+  useEffect(() => {
+    setForm(values);
+  }, [values, setForm]);
+  return null;
 };
 
 export const CreateEditOrderModal: React.FC<Props> = ({
@@ -55,117 +70,188 @@ export const CreateEditOrderModal: React.FC<Props> = ({
     [locations]
   );
 
+  // Formik Validation Schema
+  const validationSchema = useMemo(() => {
+    return Yup.object().shape({
+      orderReference: Yup.string().trim().required(t('erpOrdersOrderIdRequired')),
+      customerName: Yup.string().trim().required(t('erpOrdersCustomerRequired')),
+      deliveryDate: Yup.string().trim().required(t('erpOrdersDeliveryDateRequired')),
+      shipDate: Yup.string()
+        .nullable()
+        .test(
+          'shipDate-before-deliveryDate',
+          t('erpOrdersShipDateInvalid'),
+          function (value) {
+            const { deliveryDate } = this.parent;
+            if (value && deliveryDate && value > deliveryDate) {
+              return false;
+            }
+            return true;
+          }
+        ),
+      lines: Yup.array()
+        .of(
+          Yup.object().shape({
+            productSkuId: Yup.number().nullable(),
+          })
+        )
+        .test(
+          'unique-products',
+          t('erpOrdersDuplicateProduct'),
+          (lines) => {
+            if (!lines) return true;
+            const ids = lines.map((l) => l.productSkuId).filter((id) => id != null);
+            return ids.length === new Set(ids).size;
+          }
+        ),
+    });
+  }, [t]);
+
   if (!isOpen) return null;
 
   return (
     <div className="modal-bg show">
-      <div className="modal modal-form">
-        <div className="modal-hd">
-          <span>{isEdit ? t('erpOrdersEditOrder') : t('erpOrdersCreateOrder')}</span>
-          <button type="button" className="modal-close" onClick={onClose}>
-            ✕
-          </button>
-        </div>
-        <div className="modal-body">
-          <div className="field">
-            <label className="field-l">{t('erpOrdersColOrderId')} *</label>
-            <input
-              className="inp"
-              value={form.orderReference}
-              onChange={(e) => setForm((f) => ({ ...f, orderReference: e.target.value }))}
-              disabled={isEdit}
-            />
-          </div>
-          <div className="field">
-            <label className="field-l">{t('erpOrdersErpId')}</label>
-            <input
-              className="inp"
-              value={form.erpReference}
-              onChange={(e) => setForm((f) => ({ ...f, erpReference: e.target.value }))}
-            />
-          </div>
-          <div className="field">
-            <label className="field-l">{t('erpOrdersColCustomer')} *</label>
-            <SearchableSelect
-              options={companyOptions}
-              value={form.companyEntityId ? String(form.companyEntityId) : ''}
-              onChange={(val, opt) =>
-                setForm((f) => ({
-                  ...f,
-                  companyEntityId: val ? Number(val) : null,
-                  customerName: opt?.label ?? f.customerName,
-                }))
-              }
-              placeholder={t('erpOrdersSelectCustomer')}
-            />
-          </div>
-          <div className="field-row">
-            <div className="field">
-              <label className="field-l">{t('erpOrdersShipDate')}</label>
-              <DatePicker
-                value={form.shipDate}
-                onChange={(val) => setForm((f) => ({ ...f, shipDate: val }))}
-              />
-            </div>
-            <div className="field">
-              <label className="field-l">{t('erpOrdersColDeliveryDate')} *</label>
-              <DatePicker
-                value={form.deliveryDate}
-                onChange={(val) => setForm((f) => ({ ...f, deliveryDate: val }))}
-              />
-            </div>
-          </div>
-          <div className="field">
-            <label className="field-l">{t('erpOrdersColShipFrom')}</label>
-            <SearchableSelect
-              options={locationOptions}
-              value={form.originLocationId ? String(form.originLocationId) : ''}
-              onChange={(val) => setForm((f) => ({ ...f, originLocationId: val ? Number(val) : null }))}
-              placeholder={t('erpOrdersSelectLocation')}
-              footerAction={onAddLocationOrigin ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationOrigin } : undefined}
-            />
-          </div>
-          <div className="field">
-            <label className="field-l">{t('erpOrdersColShipTo')}</label>
-            <SearchableSelect
-              options={locationOptions}
-              value={form.destLocationId ? String(form.destLocationId) : ''}
-              onChange={(val) => setForm((f) => ({ ...f, destLocationId: val ? Number(val) : null }))}
-              placeholder={t('erpOrdersSelectLocation')}
-              footerAction={onAddLocationDest ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationDest } : undefined}
-            />
-          </div>
-          <ToggleField
-            label={t('erpOrdersHighPriority')}
-            value={form.highPriority}
-            onChange={(highPriority) => setForm((f) => ({ ...f, highPriority }))}
-          />
-          <div className="field">
-            <label className="field-l">{t('notes')}</label>
-            <textarea
-              className="inp"
-              rows={2}
-              value={form.notes}
-              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-            />
-          </div>
-          <OrderProductLinesEditor
-            t={t}
-            lines={form.lines}
-            skus={skus}
-            onChange={(lines) => setForm((f) => ({ ...f, lines }))}
-            onAddProduct={onAddProduct}
-          />
-        </div>
-        <div className="modal-footer">
-          <button type="button" className="btn btn-sm" onClick={onClose}>
-            {t('cancel')}
-          </button>
-          <button type="button" className="btn btn-p btn-sm" onClick={onSubmit} disabled={saving}>
-            {saving ? t('saving') : isEdit ? t('save') : t('create')}
-          </button>
-        </div>
-      </div>
+      <Formik
+        initialValues={form}
+        validationSchema={validationSchema}
+        onSubmit={(values) => onSubmit(values)}
+        enableReinitialize={true}
+      >
+        {({ values, errors, touched, setFieldValue, submitCount }) => {
+          const showError = (field: keyof ErpOrderFormState) =>
+            Boolean((touched[field] || submitCount > 0) && errors[field]);
+
+          return (
+            <Form className="modal modal-form" noValidate>
+              <FormikStateSync setForm={setForm} />
+              
+              <div className="modal-hd">
+                <span>{isEdit ? t('erpOrdersEditOrder') : t('erpOrdersCreateOrder')}</span>
+                <button type="button" className="modal-close" onClick={onClose}>
+                  ✕
+                </button>
+              </div>
+
+              <div className="modal-body">
+                <div className="field">
+                  <label className="field-l">{t('erpOrdersColOrderId')} <span className="req">*</span></label>
+                  <input
+                    className={`inp${showError('orderReference') ? ' has-error' : ''}`}
+                    value={values.orderReference}
+                    onChange={(e) => setFieldValue('orderReference', e.target.value)}
+                    disabled={isEdit}
+                  />
+                  <FormFieldError message={showError('orderReference') ? errors.orderReference : undefined} />
+                </div>
+
+                <div className="field">
+                  <label className="field-l">{t('erpOrdersErpId')}</label>
+                  <input
+                    className={`inp${showError('erpReference') ? ' has-error' : ''}`}
+                    value={values.erpReference}
+                    onChange={(e) => setFieldValue('erpReference', e.target.value)}
+                  />
+                  <FormFieldError message={showError('erpReference') ? errors.erpReference : undefined} />
+                </div>
+
+                <div className="field">
+                  <label className="field-l">{t('erpOrdersColCustomer')} <span className="req">*</span></label>
+                  <SearchableSelect
+                    options={companyOptions}
+                    value={values.companyEntityId ? String(values.companyEntityId) : ''}
+                    onChange={(val, opt) => {
+                      setFieldValue('companyEntityId', val ? Number(val) : null);
+                      setFieldValue('customerName', opt?.label ?? '');
+                    }}
+                    placeholder={t('erpOrdersSelectCustomer')}
+                    hasError={showError('customerName')}
+                  />
+                  <FormFieldError message={showError('customerName') ? errors.customerName : undefined} />
+                </div>
+
+                <div className="field-row">
+                  <div className="field">
+                    <label className="field-l">{t('erpOrdersShipDate')}</label>
+                    <DatePicker
+                      value={values.shipDate}
+                      onChange={(val) => setFieldValue('shipDate', val)}
+                      max={values.deliveryDate || undefined}
+                      hasError={showError('shipDate')}
+                    />
+                    <FormFieldError message={showError('shipDate') ? errors.shipDate : undefined} />
+                  </div>
+                  <div className="field">
+                    <label className="field-l">{t('erpOrdersColDeliveryDate')} <span className="req">*</span></label>
+                    <DatePicker
+                      value={values.deliveryDate}
+                      onChange={(val) => setFieldValue('deliveryDate', val)}
+                      min={values.shipDate || undefined}
+                      hasError={showError('deliveryDate')}
+                    />
+                    <FormFieldError message={showError('deliveryDate') ? errors.deliveryDate : undefined} />
+                  </div>
+                </div>
+
+                <div className="field">
+                  <label className="field-l">{t('erpOrdersColShipFrom')}</label>
+                  <SearchableSelect
+                    options={locationOptions}
+                    value={values.originLocationId ? String(values.originLocationId) : ''}
+                    onChange={(val) => setFieldValue('originLocationId', val ? Number(val) : null)}
+                    placeholder={t('erpOrdersSelectLocation')}
+                    footerAction={onAddLocationOrigin ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationOrigin } : undefined}
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field-l">{t('erpOrdersColShipTo')}</label>
+                  <SearchableSelect
+                    options={locationOptions}
+                    value={values.destLocationId ? String(values.destLocationId) : ''}
+                    onChange={(val) => setFieldValue('destLocationId', val ? Number(val) : null)}
+                    placeholder={t('erpOrdersSelectLocation')}
+                    footerAction={onAddLocationDest ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationDest } : undefined}
+                  />
+                </div>
+
+                <ToggleField
+                  label={t('erpOrdersHighPriority')}
+                  value={values.highPriority}
+                  onChange={(highPriority) => setFieldValue('highPriority', highPriority)}
+                />
+
+                <div className="field">
+                  <label className="field-l">{t('notes')}</label>
+                  <textarea
+                    className="inp"
+                    rows={2}
+                    value={values.notes}
+                    onChange={(e) => setFieldValue('notes', e.target.value)}
+                  />
+                </div>
+
+                <OrderProductLinesEditor
+                  t={t}
+                  lines={values.lines}
+                  skus={skus}
+                  onChange={(lines) => setFieldValue('lines', lines)}
+                  onAddProduct={onAddProduct}
+                />
+                <FormFieldError message={showError('lines') ? (errors.lines as string) : undefined} />
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-sm" onClick={onClose}>
+                  {t('cancel')}
+                </button>
+                <button type="submit" className="btn btn-p btn-sm" disabled={saving}>
+                  {saving ? t('saving') : isEdit ? t('save') : t('create')}
+                </button>
+              </div>
+            </Form>
+          );
+        }}
+      </Formik>
     </div>
   );
 };

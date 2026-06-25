@@ -390,32 +390,13 @@ export function useErpOrdersList() {
     setOrderForm(EMPTY_FORM);
   }, []);
 
-  const submitForm = useCallback(() => {
-    if (!orderForm.orderReference.trim()) {
-      showToast(t('erpOrdersOrderIdRequired'), 'error');
-      return;
-    }
-    if (!orderForm.customerName.trim()) {
-      showToast(t('erpOrdersCustomerRequired'), 'error');
-      return;
-    }
-    if (!orderForm.deliveryDate) {
-      showToast(t('erpOrdersDeliveryDateRequired'), 'error');
-      return;
-    }
-    const productIds = orderForm.lines
-      .map((line) => line.productSkuId)
-      .filter((id): id is number => id != null);
-    if (productIds.length !== new Set(productIds).size) {
-      showToast(t('erpOrdersDuplicateProduct'), 'error');
-      return;
-    }
+  const submitForm = useCallback((values: ErpOrderFormState) => {
     if (editingOrderId) {
-      updateMutation.mutate({ id: editingOrderId, form: orderForm });
+      updateMutation.mutate({ id: editingOrderId, form: values });
     } else {
-      createMutation.mutate(orderForm);
+      createMutation.mutate(values);
     }
-  }, [orderForm, editingOrderId, createMutation, updateMutation, showToast, t]);
+  }, [editingOrderId, createMutation, updateMutation]);
 
   const openAiWizard = useCallback(() => setIsAiWizardOpen(true), []);
   const closeAiWizard = useCallback(() => setIsAiWizardOpen(false), []);

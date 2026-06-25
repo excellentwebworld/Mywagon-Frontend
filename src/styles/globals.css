@@ -1661,5 +1661,21 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   padding: 7px 10px;
 }
 
+/* General input error styling */
+.inp.has-error {
+  border-color: var(--danger, #EF4444) !important;
+}
+.inp.has-error:focus {
+  box-shadow: 0 0 0 3px var(--danger-bg, #FEF2F2) !important;
+}
+
+/* Required field asterisk styling */
+.req {
+  color: var(--danger, #EF4444) !important;
+  margin-left: 2px;
+}
+
+
+
 
 
