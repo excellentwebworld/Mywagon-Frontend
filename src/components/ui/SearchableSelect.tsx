@@ -51,6 +51,14 @@ export const SearchableSelect: React.FC<Props> = ({
     openUp: boolean;
   } | null>(null);
 
+  const openTimeRef = useRef(0);
+
+  useEffect(() => {
+    if (open) {
+      openTimeRef.current = Date.now();
+    }
+  }, [open]);
+
   const selected = options.find((o) => o.value === value);
 
   const filtered = options.filter((o) => {
@@ -74,7 +82,10 @@ export const SearchableSelect: React.FC<Props> = ({
 
   useEffect(() => {
     if (!open || !menuFixed) return;
-    const onScroll = () => setOpen(false);
+    const onScroll = () => {
+      if (Date.now() - openTimeRef.current < 150) return;
+      setOpen(false);
+    };
     window.addEventListener('scroll', onScroll, true);
     return () => window.removeEventListener('scroll', onScroll, true);
   }, [open, menuFixed]);
