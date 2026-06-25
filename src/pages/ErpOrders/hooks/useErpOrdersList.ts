@@ -138,8 +138,8 @@ export function useErpOrdersList() {
   });
 
   const companiesQuery = useQuery({
-    queryKey: ['address-book', 'company-entities', 'erp-orders'],
-    queryFn: () => addressBookService.listCompanyEntities(''),
+    queryKey: ['erp-orders', 'customers'],
+    queryFn: () => erpOrdersService.listCustomers(),
     staleTime: 60_000,
   });
 

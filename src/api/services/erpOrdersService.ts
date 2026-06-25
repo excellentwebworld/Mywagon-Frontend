@@ -11,6 +11,7 @@ import type {
   AiOrdersTransformResult,
   ApiErpOrderDetail,
   ApiErpOrderListItem,
+  ApiErpOrderCustomer,
   ApiErpOrderSummary,
   ApiErpOrdersImportResult,
   ErpOrderFormPayload,
@@ -37,6 +38,14 @@ export const erpOrdersService = {
   async getSummary(): Promise<ApiErpOrderSummary> {
     const res = await apiGet<ApiErpOrderSummary>('/erp-orders/summary');
     return res.data;
+  },
+
+  async listCustomers(search?: string): Promise<ApiErpOrderCustomer[]> {
+    const res = await apiGet<ApiErpOrderCustomer[]>(
+      '/erp-orders/customers',
+      search ? { search } : undefined
+    );
+    return res.data ?? [];
   },
 
   async listOrders(params: ListErpOrdersParams): Promise<PaginatedErpOrdersResult> {

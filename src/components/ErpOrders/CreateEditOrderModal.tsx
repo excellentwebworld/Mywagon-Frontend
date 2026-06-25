@@ -6,7 +6,7 @@ import { DatePicker } from '../ui/DatePicker';
 import { ToggleField } from '../AddressBook';
 import { OrderProductLinesEditor } from './OrderProductLinesEditor';
 import { FormFieldError } from '../AddressBook/FormFieldError';
-import type { ApiCompanyEntity } from '../../api/types/addressBook';
+import type { ApiErpOrderCustomer } from '../../api/types/erpOrders';
 import type { LocationItem, SKU } from '../../context/AppContext';
 import type { ErpOrderFormState } from '../../pages/ErpOrders/types';
 
@@ -19,7 +19,7 @@ type Props = {
   onClose: () => void;
   onSubmit: (values: ErpOrderFormState) => void;
   saving: boolean;
-  companies: ApiCompanyEntity[];
+  companies: ApiErpOrderCustomer[];
   locations: LocationItem[];
   skus: SKU[];
   onAddLocationOrigin?: () => void;
@@ -80,7 +80,15 @@ export const CreateEditOrderModal: React.FC<Props> = ({
   }, []);
 
   const companyOptions = useMemo(
-    () => companies.map((c) => ({ value: String(c.id), label: c.name, sublabel: c.vat_number })),
+    () =>
+      companies.map((c) => ({
+        value: String(c.id),
+        label: c.name,
+        sublabel:
+          c.is_partner && c.partner_company_name
+            ? [c.vat_number, c.partner_company_name].filter(Boolean).join(' · ')
+            : c.vat_number,
+      })),
     [companies]
   );
 
