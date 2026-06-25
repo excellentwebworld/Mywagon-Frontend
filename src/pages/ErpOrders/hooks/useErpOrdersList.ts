@@ -428,8 +428,7 @@ export function useErpOrdersList() {
 
   const handleAiWizardImportSuccess = useCallback(() => {
     invalidateOrders();
-    closeAiWizard();
-  }, [invalidateOrders, closeAiWizard]);
+  }, [invalidateOrders]);
 
   const downloadImportTemplate = useCallback(async () => {
     try {

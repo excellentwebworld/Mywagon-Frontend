@@ -1,6 +1,14 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { erpOrdersService, ApiError } from '../../api';
 import type { AiMappedOrder, AiOrdersTransformErrorData } from '../../api/types/erpOrders';
+import type { ApiCompanyEntity } from '../../api/types/addressBook';
+import type { LocationItem, SKU } from '../../context/AppContext';
+import {
+  OrdersAiWizardPreviewPanel,
+  acceptedOrders,
+  initOrderPreviewRows,
+  type OrderPreviewRow,
+} from './OrdersAiWizardPreviewPanel';
 import '../../styles/ai-wizard.css';
 
 type Props = {
@@ -9,12 +17,14 @@ type Props = {
   onImportSuccess: () => void;
   downloadTemplate: () => void;
   showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void;
+  companies: ApiCompanyEntity[];
+  locations: LocationItem[];
+  skus: SKU[];
   t: (key: string, options?: Record<string, unknown>) => string;
 };
 
 const ALLOWED_EXT = /\.(csv|tsv|txt|xlsx|xls)$/i;
 
-type PreviewRow = AiMappedOrder & { accepted: boolean };
 type WizardStep = 1 | 2 | 3 | 4;
 
 function formatBytes(bytes: number): string {
@@ -46,26 +56,33 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
   onImportSuccess,
   downloadTemplate,
   showToast,
+  companies,
+  locations,
+  skus,
   t,
 }) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<'upload' | 'processing' | 'preview' | 'done'>('upload');
+  const [processingMode, setProcessingMode] = useState<'transform' | 'import'>('transform');
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [rows, setRows] = useState<PreviewRow[]>([]);
-  const [progress, setProgress] = useState(0);
+  const [rows, setRows] = useState<OrderPreviewRow[]>([]);
+  const [fileHeaders, setFileHeaders] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [importResult, setImportResult] = useState<{ created: number; failed: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ created: number; updated: number; failed: number } | null>(
+    null
+  );
   const abortRef = useRef(false);
 
   const activeStep = stepFromSection(step);
 
   const reset = useCallback(() => {
     setStep('upload');
+    setProcessingMode('transform');
     setFile(null);
     setDragOver(false);
     setRows([]);
-    setProgress(0);
+    setFileHeaders([]);
     setError(null);
     setImportResult(null);
     abortRef.current = false;
@@ -75,6 +92,9 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
     if (step === 'processing') {
       if (!window.confirm(t('ordersAiWizardCloseConfirm'))) return;
       abortRef.current = true;
+    }
+    if (step === 'done') {
+      onImportSuccess();
     }
     reset();
     onClose();
@@ -90,27 +110,51 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
     setError(null);
   };
 
+  const validateAcceptedRows = useCallback((): AiMappedOrder[] | null => {
+    const toImport = acceptedOrders(rows);
+    if (!toImport.length) {
+      showToast(t('ordersAiWizardNoAccepted'), 'warning');
+      return null;
+    }
+
+    const invalid = rows.find(
+      (r) =>
+        r.status === 'accepted' &&
+        (!r.order.order_reference?.trim() ||
+          !r.order.customer_name?.trim() ||
+          !r.order.delivery_date?.trim() ||
+          !(r.order.lines ?? []).some(
+            (line) => line.product_name?.trim() || line.product_sku_id != null
+          ))
+    );
+
+    if (invalid) {
+      showToast(t('ordersAiWizardValidationError'), 'error');
+      return null;
+    }
+
+    return toImport;
+  }, [rows, showToast, t]);
+
   const runTransform = async () => {
     if (!file) return;
     setStep('processing');
-    setProgress(10);
+    setProcessingMode('transform');
     setError(null);
     abortRef.current = false;
 
     try {
-      setProgress(40);
       const result = await erpOrdersService.aiTransform(file);
       if (abortRef.current) return;
-      setProgress(90);
-      const preview: PreviewRow[] = (result.orders ?? []).map((o) => ({ ...o, accepted: true }));
+      const preview = initOrderPreviewRows(result.orders ?? []);
       if (!preview.length) {
         setError(t('ordersAiWizardNoOrders'));
         setStep('upload');
         return;
       }
       setRows(preview);
+      setFileHeaders(result.file_headers ?? []);
       setStep('preview');
-      setProgress(100);
     } catch (err) {
       if (err instanceof ApiError && err.data) {
         const data = err.data as AiOrdersTransformErrorData;
@@ -127,21 +171,19 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
   };
 
   const confirmImport = async () => {
-    const accepted = rows.filter((r) => r.accepted);
-    if (!accepted.length) {
-      showToast(t('ordersAiWizardNoAccepted'), 'warning');
-      return;
-    }
+    const toImport = validateAcceptedRows();
+    if (!toImport) return;
+
     setStep('processing');
-    setProgress(20);
+    setProcessingMode('import');
     try {
-      const result = await erpOrdersService.aiConfirmImport(
-        accepted.map(({ accepted: _a, ...order }) => order)
-      );
-      setImportResult({ created: result.created, failed: result.failed });
+      const result = await erpOrdersService.aiConfirmImport(toImport);
+      setImportResult({
+        created: result.created,
+        updated: result.updated,
+        failed: result.failed,
+      });
       setStep('done');
-      setProgress(100);
-      onImportSuccess();
       showToast(t('ordersAiWizardImportDone'), 'success');
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : t('ordersAiWizardImportFailed'), 'error');
@@ -156,6 +198,12 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
     { label: t('erpOrdersColCustomer'), desc: t('ordersAiWizardReqCustomerDesc') },
     { label: t('erpOrdersColDeliveryDate'), desc: t('ordersAiWizardReqDeliveryDesc') },
   ];
+
+  const acceptedCount = rows.filter((r) => r.status === 'accepted').length;
+  const processingTitle =
+    processingMode === 'import' ? t('ordersAiWizardImporting') : t('ordersAiWizardAnalyzing');
+  const processingSub =
+    processingMode === 'import' ? t('ordersAiWizardImportingSub') : t('ordersAiWizardAnalyzingSub');
 
   return (
     <div className="modal-bg show ai-wizard-modal-bg">
@@ -333,13 +381,9 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
                   </div>
                 </div>
                 <div className="ai-processing-info">
-                  <div className="ai-processing-status">{t('ordersAiWizardAnalyzing')}</div>
-                  <div className="ai-processing-substatus">{t('ordersAiWizardAnalyzingSub')}</div>
+                  <div className="ai-processing-status">{processingTitle}</div>
+                  <div className="ai-processing-substatus">{processingSub}</div>
                 </div>
-                <div className="ai-processing-pct">{progress}%</div>
-              </div>
-              <div className="ai-progress-track">
-                <div className="ai-progress-fill" style={{ width: `${progress}%` }} />
               </div>
             </div>
           </div>
@@ -348,56 +392,22 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
         {step === 'preview' && (
           <div className="ai-wizard-preview-section">
             <div className="modal-body ai-wizard-body ai-preview-body">
-              <div className="ai-preview-bar">
-                <div>
-                  <div className="ai-preview-bar-title">{t('ordersAiWizardPreviewTitle')}</div>
-                  <div className="ai-preview-bar-sub">{t('ordersAiWizardPreviewSub')}</div>
-                </div>
-                <span className="ai-count-chip">
-                  {rows.length} {t('orders')}
-                </span>
-              </div>
-              <div className="ai-preview-table-wrap ai-table-container">
-                <table className="ai-preview-table">
-                  <thead>
-                    <tr>
-                      <th>{t('erpOrdersColOrderId')}</th>
-                      <th>{t('erpOrdersColCustomer')}</th>
-                      <th>{t('erpOrdersColDeliveryDate')}</th>
-                      <th>{t('erpOrdersColProducts')}</th>
-                      <th>{t('ordersAiWizardAccept')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row, i) => (
-                      <tr key={`${row.order_reference}-${i}`} className={row.inferred?.customer ? 'ai-inferred' : ''}>
-                        <td className="ai-td-bold">{row.order_reference}</td>
-                        <td>{row.customer_name}</td>
-                        <td className="ai-td-mono">{row.delivery_date}</td>
-                        <td>{row.lines?.[0]?.product_name ?? '—'}</td>
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={row.accepted}
-                            onChange={(e) =>
-                              setRows((prev) =>
-                                prev.map((r, idx) => (idx === i ? { ...r, accepted: e.target.checked } : r))
-                              )
-                            }
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <OrdersAiWizardPreviewPanel
+                rows={rows}
+                fileHeaders={fileHeaders}
+                companies={companies}
+                locations={locations}
+                skus={skus}
+                t={t}
+                onRowsChange={setRows}
+              />
             </div>
             <div className="ai-wizard-footer ai-footer-split">
               <button type="button" className="btn btn-secondary" onClick={() => setStep('upload')}>
                 {t('ordersAiWizardReupload')}
               </button>
               <button type="button" className="btn ai-primary-btn" onClick={confirmImport}>
-                {t('ordersAiWizardConfirmImport', { count: rows.filter((r) => r.accepted).length })}
+                {t('ordersAiWizardConfirmImport', { count: acceptedCount })}
               </button>
             </div>
           </div>
@@ -415,6 +425,7 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
               <p className="ai-done-desc">
                 {t('ordersAiWizardImportSummary', {
                   created: importResult.created,
+                  updated: importResult.updated,
                   failed: importResult.failed,
                 })}
               </p>

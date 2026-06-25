@@ -14,7 +14,7 @@ Reference: [PDS-909](https://myvagon.atlassian.net/browse/PDS-909), [PDS-910](ht
 | Inline add | Quick location + SKU modals | `ErpOrderQuickLocationModal`, `ErpOrderQuickSkuModal` | Done |
 | Edit | Unplanned only | API 422 + drawer banner | Done |
 | Status model | Computed from load/shipment | Backend `ShipperErpOrder::computeStatus` | Done |
-| AI Import | 4-step wizard | `OrdersAiWizardModal` | Done |
+| AI Import | 4-step wizard with preview edit + upsert on same Order ID | `OrdersAiWizardModal`, `OrdersAiWizardPreviewPanel` | Done |
 | Loaders | Table overlay + global on mutations | `useSyncGlobalLoader` | Done |
 | i18n | en + el keys | `locale/en.json`, `locale/el.json` | Done |
 | Create Load / Itinerary | Deferred | `ErpOrdersDeferredViews` stub | Deferred |
@@ -29,9 +29,11 @@ Reference: [PDS-909](https://myvagon.atlassian.net/browse/PDS-909), [PDS-910](ht
 5. Create Order — all fields, high-priority toggle, optional product lines
 6. Add address / add product from create form opens quick modals and selects new item
 7. Edit unplanned order succeeds; planned/on-trip/completed shows locked message
-8. AI Wizard: upload `docs/fixtures/orders-ai-wizard-messy-sample.csv` → preview → confirm import
-9. Greek locale shows translated labels
-10. Subscription-blocked user (no `manage_erp_orders`) sees 403 banner
+8. AI Wizard: upload `docs/fixtures/orders-ai-wizard-messy-sample.csv` → preview (accept/reject/edit rows and product lines) → confirm import
+9. Re-import same file with edits → existing unplanned orders update (`updated` count in summary); planned orders fail with row error
+10. Processing step shows spinner only (no progress percentage)
+11. Greek locale shows translated labels
+12. Subscription-blocked user (no `manage_erp_orders`) sees 403 banner
 
 ## API routes
 

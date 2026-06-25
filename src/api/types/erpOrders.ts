@@ -132,7 +132,7 @@ export interface ApiErpOrdersImportResult {
   total: number;
   success: number;
   created: number;
-  skipped: number;
+  updated: number;
   failed: number;
   failures: string[];
 }

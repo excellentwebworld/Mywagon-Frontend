@@ -416,6 +416,9 @@ export const ErpOrders: React.FC = () => {
         onImportSuccess={state.handleAiWizardImportSuccess}
         downloadTemplate={state.downloadImportTemplate}
         showToast={showToast}
+        companies={state.companies}
+        locations={state.locations}
+        skus={state.skus}
         t={state.t}
       />
     </div>
