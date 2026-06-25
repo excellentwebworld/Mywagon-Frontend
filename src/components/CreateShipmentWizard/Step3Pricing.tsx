@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ShipmentStop } from '../../context/AppContext';
+import { DatePicker } from '../ui/DatePicker';
 
 interface Step3PricingProps {
   stops: ShipmentStop[];
@@ -429,11 +430,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               <div id="bdlist">
                 {bulkDates.map((item, idx) => (
                   <div key={idx} className="bdr">
-                    <input
-                      type="date"
-                      className="bdi"
+                    <DatePicker
+                      className="date-picker-bdi"
                       value={item.date}
-                      onChange={(e) => handleUpdateBulkDate(idx, 'date', e.target.value)}
+                      onChange={(val) => handleUpdateBulkDate(idx, 'date', val)}
                     />
                     <div className="qs">
                       <button onClick={() => handleUpdateBulkDate(idx, 'qty', Math.max(1, item.qty - 1))}>

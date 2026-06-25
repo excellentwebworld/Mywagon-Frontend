@@ -6,6 +6,7 @@ import { CreateCustomerModal } from './CreateCustomerModal';
 import { CreateOrderModal } from './CreateOrderModal';
 import { CreateLocationModal } from './CreateLocationModal';
 import { CreateProductModal } from './CreateProductModal';
+import { DatePicker } from '../ui/DatePicker';
 
 interface Step1DetailsProps {
   vehicleSpecs: Record<string, string[]>;
@@ -657,11 +658,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                   <label className="field-l">{t('appointment')}</label>
                   <div className="appt-row">
                     <div className="field" style={{ flex: 1 }}>
-                      <input
-                        type="date"
-                        className="inp"
+                      <DatePicker
                         value={stop.date}
-                        onChange={(e) => handleUpdateStopField(stop.id, 'date', e.target.value)}
+                        onChange={(val) => handleUpdateStopField(stop.id, 'date', val)}
                       />
                     </div>
                     {stop.date && <span className="day-badge">{getDayName(stop.date)}</span>}

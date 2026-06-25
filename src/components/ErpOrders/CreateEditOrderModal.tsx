@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { SearchableSelect } from '../ui/SearchableSelect';
+import { DatePicker } from '../ui/DatePicker';
 import { ToggleField } from '../AddressBook';
 import { OrderProductLinesEditor } from './OrderProductLinesEditor';
 import type { ApiCompanyEntity } from '../../api/types/addressBook';
@@ -101,20 +102,16 @@ export const CreateEditOrderModal: React.FC<Props> = ({
           <div className="field-row">
             <div className="field">
               <label className="field-l">{t('erpOrdersShipDate')}</label>
-              <input
-                type="date"
-                className="inp"
+              <DatePicker
                 value={form.shipDate}
-                onChange={(e) => setForm((f) => ({ ...f, shipDate: e.target.value }))}
+                onChange={(val) => setForm((f) => ({ ...f, shipDate: val }))}
               />
             </div>
             <div className="field">
               <label className="field-l">{t('erpOrdersColDeliveryDate')} *</label>
-              <input
-                type="date"
-                className="inp"
+              <DatePicker
                 value={form.deliveryDate}
-                onChange={(e) => setForm((f) => ({ ...f, deliveryDate: e.target.value }))}
+                onChange={(val) => setForm((f) => ({ ...f, deliveryDate: val }))}
               />
             </div>
           </div>
