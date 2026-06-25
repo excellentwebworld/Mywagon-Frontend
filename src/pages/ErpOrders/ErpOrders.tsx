@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import '../../styles/erp-orders.css';
 import '../../styles/ai-wizard.css';
 import { useErpOrdersList } from './hooks/useErpOrdersList';
@@ -15,8 +16,18 @@ import {
   OrderDetailDrawer,
   CreateEditOrderModal,
   OrdersAiWizardModal,
-  ErpOrderQuickLocationModal,
 } from '../../components/ErpOrders';
+import { CreateLocationModal } from '../../components/AddressBook/CreateLocationModal';
+import { CreateCompanyModal } from '../../components/AddressBook/CreateCompanyModal';
+import { EMPTY_COMPANY_DATA, EMPTY_CREATE_DATA } from '../../pages/AddressBook/types';
+import type { CreateLocationData, CompanyFormData } from '../../pages/AddressBook/types';
+import { validateCreateAll } from '../../pages/AddressBook/validation/locationCreateValidation';
+import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from '../../pages/AddressBook/validation/locationDuplicateValidation';
+import { applyTemplate } from '../../pages/AddressBook/utils/locationUtils';
+import { addressBookService } from '../../api';
+import type { ApiCompanyLookup } from '../../api';
+import { useAuth } from '../../context/AuthContext';
+import type { LocationItem } from '../../context/AppContext';
 import { ErpOrdersDeferredViews } from './ErpOrdersDeferredViews';
 import type { ViewMode } from './types';
 import { EMPTY_ORDER_LINE } from './types';
@@ -33,6 +44,66 @@ export const ErpOrders: React.FC = () => {
   const [skuModalOpen, setSkuModalOpen] = useState(false);
   const [skuLineIndex, setSkuLineIndex] = useState(0);
   const [skuSaving, setSkuSaving] = useState(false);
+
+  const { user } = useAuth();
+  const [createStep, setCreateStep] = useState(1);
+  const [createData, setCreateData] = useState<CreateLocationData>(EMPTY_CREATE_DATA);
+  const [companyQuery, setCompanyQuery] = useState('');
+  const [apiCompanies, setApiCompanies] = useState<ApiCompanyLookup[]>([]);
+  const [potentialDuplicates, setPotentialDuplicates] = useState<LocationItem[]>([]);
+  const [isCompanyOpen, setIsCompanyOpen] = useState(false);
+  const [companyData, setCompanyData] = useState<CompanyFormData>(EMPTY_COMPANY_DATA);
+  const [savingLocation, setSavingLocation] = useState(false);
+  const [companySaving, setCompanySaving] = useState(false);
+
+  const filteredCompanies = useMemo(() => apiCompanies, [apiCompanies]);
+
+  useEffect(() => {
+    if (!locationModalOpen) return;
+    const q = companyQuery.trim();
+    const timer = setTimeout(() => {
+      addressBookService
+        .listCompanies(q || undefined)
+        .then(setApiCompanies)
+        .catch(() => setApiCompanies([]));
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [companyQuery, locationModalOpen]);
+
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (createStep !== 4) {
+      setPotentialDuplicates([]);
+      return;
+    }
+
+    const name = createData.name.trim();
+    const company = createData.company.trim();
+    if (!name || !company) return;
+
+    let cancelled = false;
+    addressBookService
+      .checkDuplicate(name, company)
+      .then(async (result) => {
+        if (cancelled || !result.duplicate || !result.existing_id) {
+          if (!cancelled) setPotentialDuplicates([]);
+          return;
+        }
+        const existing = await queryClient.fetchQuery({
+          queryKey: ['locationDetail', String(result.existing_id)],
+          queryFn: () => addressBookService.getLocation(String(result.existing_id)),
+        });
+        if (!cancelled) setPotentialDuplicates([existing]);
+      })
+      .catch(() => {
+        if (!cancelled) setPotentialDuplicates([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [createStep, createData, queryClient]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -55,8 +126,20 @@ export const ErpOrders: React.FC = () => {
     }
   };
 
+  const handleLocationCreated = useCallback((locationId: number) => {
+    state.refreshLocations();
+    state.setOrderForm((f) => ({
+      ...f,
+      ...(locationTarget === 'origin'
+        ? { originLocationId: locationId }
+        : { destLocationId: locationId }),
+    }));
+  }, [locationTarget, state]);
+
   const openLocationModal = (target: LocationTarget) => {
     setLocationTarget(target);
+    setCreateStep(1);
+    setCreateData(applyTemplate('retail', { ...EMPTY_CREATE_DATA, context: 'my' }));
     setLocationModalOpen(true);
   };
 
@@ -72,15 +155,91 @@ export const ErpOrders: React.FC = () => {
     setSkuModalOpen(true);
   };
 
-  const handleLocationCreated = (locationId: number) => {
-    state.refreshLocations();
-    state.setOrderForm((f) => ({
-      ...f,
-      ...(locationTarget === 'origin'
-        ? { originLocationId: locationId }
-        : { destLocationId: locationId }),
-    }));
-  };
+  const submitNewLocation = useCallback(async () => {
+    const payload: CreateLocationData = {
+      ...createData,
+      company:
+        createData.context === 'customer'
+          ? createData.company
+          : user?.company_name?.trim() || createData.company || 'My Company',
+      companyVat:
+        createData.context === 'customer' ? createData.companyVat : createData.companyVat || 'N/A',
+      contacts: [],
+      amenityIds: [],
+      equipment: [],
+      hours: '',
+      tags: '',
+    };
+
+    const errors = validateCreateAll(payload);
+    if (Object.keys(errors).length > 0) {
+      const firstKey = Object.keys(errors)[0];
+      showToast(errors[firstKey] ?? 'Please fix validation errors', 'error');
+      if (firstKey === 'companyEntity' || firstKey === 'type') setCreateStep(1);
+      else if (['name', 'address', 'city', 'postal', 'role'].includes(firstKey)) setCreateStep(2);
+      else setCreateStep(3);
+      return;
+    }
+
+    try {
+      setSavingLocation(true);
+      const isDuplicate = await checkLocationDuplicate(payload.name, payload.company);
+      if (isDuplicate) {
+        showToast(DUPLICATE_LOCATION_MESSAGE, 'error');
+        setCreateStep(4);
+        return;
+      }
+
+      const created = await addressBookService.createLocation(payload);
+      handleLocationCreated(Number(created.id));
+      setLocationModalOpen(false);
+      showToast(state.t('erpOrdersLocationCreated') || `"${created.name}" created`, 'success');
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to create location';
+      showToast(message, 'error');
+    } finally {
+      setSavingLocation(false);
+    }
+  }, [createData, user?.company_name, showToast, state.t, handleLocationCreated]);
+
+  const handleApplyCompany = useCallback(async (values: CompanyFormData) => {
+    try {
+      setCompanySaving(true);
+      const created = await addressBookService.createCompanyEntity({
+        name: values.name.trim(),
+        vat_number: values.vat.trim(),
+        address: values.address.trim(),
+        country: values.country.trim() || 'Greece',
+        phone: values.phone || undefined,
+        email: values.email || undefined,
+        website: values.website || undefined,
+        industry: values.industry || undefined,
+        primary_contact: values.contactPerson || undefined,
+      });
+
+      setCreateData((prev) => ({
+        ...prev,
+        companyEntityId: created.id,
+        company: created.name,
+        companyVat: created.vat_number,
+      }));
+      setIsCompanyOpen(false);
+      showToast(`Company "${created.name}" created`, 'success');
+
+      const updatedCompanies = await addressBookService.listCompanies(companyQuery.trim() || undefined);
+      setApiCompanies(updatedCompanies);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to create company';
+      showToast(message, 'error');
+    } finally {
+      setCompanySaving(false);
+    }
+  }, [companyQuery, showToast]);
+
+  const selectExistingDuplicate = useCallback(async (loc: LocationItem) => {
+    handleLocationCreated(Number(loc.id));
+    setLocationModalOpen(false);
+  }, [handleLocationCreated]);
 
   const handleSkuCreated = (sku: SKU) => {
     const skuId = Number(sku.id);
@@ -215,14 +374,30 @@ export const ErpOrders: React.FC = () => {
         onAddProduct={openSkuModal}
       />
 
-      <ErpOrderQuickLocationModal
+      <CreateLocationModal
+        isCreateOpen={locationModalOpen}
+        closeCreateModal={() => setLocationModalOpen(false)}
+        createStep={createStep}
+        setCreateStep={setCreateStep}
+        createData={createData}
+        setCreateData={setCreateData}
+        submitNewLocation={submitNewLocation}
+        potentialDuplicates={potentialDuplicates}
+        selectExistingDuplicate={selectExistingDuplicate}
+        saving={savingLocation}
+        filteredCompanies={filteredCompanies}
+        setCompanyQuery={setCompanyQuery}
+        setIsCompanyOpen={setIsCompanyOpen}
+        handleApplyTemplate={(tpl) => setCreateData((prev) => applyTemplate(tpl, prev))}
         t={state.t}
-        isOpen={locationModalOpen}
-        onClose={() => setLocationModalOpen(false)}
-        companies={state.companies}
-        defaultCompanyEntityId={state.orderForm.companyEntityId}
-        onCreated={handleLocationCreated}
-        showToast={showToast}
+      />
+
+      <CreateCompanyModal
+        isCompanyOpen={isCompanyOpen}
+        closeCompanyModal={() => setIsCompanyOpen(false)}
+        companyData={companyData}
+        setCompanyData={setCompanyData}
+        handleApplyCompany={handleApplyCompany}
       />
 
       <ProductMasterSkuModal
