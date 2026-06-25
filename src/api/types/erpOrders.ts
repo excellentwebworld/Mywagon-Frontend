@@ -1,4 +1,4 @@
-import type { ApiListMeta } from './addressBook';
+import type { ApiCompanyEntity, ApiListMeta } from './addressBook';
 
 export type ErpOrderStatus = 'unplanned' | 'planned' | 'on_trip' | 'completed' | 'canceled';
 
@@ -11,6 +11,11 @@ export interface ApiErpOrderSummary {
   on_trip: number;
   completed: number;
   canceled: number;
+}
+
+export interface ApiErpOrderCustomer extends ApiCompanyEntity {
+  is_partner?: boolean;
+  partner_company_name?: string | null;
 }
 
 export interface ApiErpOrderLine {
