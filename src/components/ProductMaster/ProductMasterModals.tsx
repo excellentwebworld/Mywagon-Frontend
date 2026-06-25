@@ -15,7 +15,7 @@ type Props = Pick<
   | "newSku"
   | "setNewSku"
   | "handleSaveSku"
-  | "saving"
+  | "skuSaving"
   | "isImportOpen"
   | "importStep"
   | "importResult"
@@ -52,7 +52,7 @@ export const ProductMasterModals: React.FC<Props> = (pm) => {
         editMode={pm.editSkuMode}
         initialValues={pm.newSku}
         onSubmit={pm.handleSaveSku}
-        saving={pm.saving}
+        saving={pm.skuSaving}
         productTypes={pm.productTypes}
       />
 

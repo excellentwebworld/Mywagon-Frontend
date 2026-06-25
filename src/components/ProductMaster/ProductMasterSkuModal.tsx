@@ -88,13 +88,7 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
       enableReinitialize={editMode}
       validateOnChange
       validateOnBlur
-      onSubmit={async (values, { setSubmitting }) => {
-        try {
-          await onSubmit(values);
-        } finally {
-          setSubmitting(false);
-        }
-      }}
+      onSubmit={(values) => onSubmit(values)}
     >
       {({
         values,
@@ -297,7 +291,11 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
                   {t('cancel')}
                 </button>
                 <button type="submit" className="btn btn-p" disabled={isSubmitting || saving}>
-                  {editMode ? t('save') : t('create')}
+                  {isSubmitting || saving
+                    ? t('saving')
+                    : editMode
+                      ? t('save')
+                      : t('create')}
                 </button>
               </div>
             </Form>

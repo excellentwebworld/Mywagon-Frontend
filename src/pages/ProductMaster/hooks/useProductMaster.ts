@@ -295,18 +295,18 @@ export function useProductMaster() {
     setIsSkuOpen(true);
   }, []);
 
-  const handleSaveSku = useCallback(async (values?: NewSkuForm) => {
-    const data = values || newSku;
+  const handleSaveSku = useCallback(async (values: NewSkuForm) => {
+    const data = values;
     if (!data.catId || !data.typeId || !data.name.trim() || !data.number.trim()) {
       showToast(t('fillRequired'), 'warning');
       return;
     }
-    if (editSkuMode && selectedItem && selectedKind === 'sku') {
-      await updateSkuMutation.mutateAsync({ id: selectedItem.id, form: data });
-    } else {
-      await createSkuMutation.mutateAsync(data);
+    if (editSkuMode && editingSkuId) {
+      await updateSkuMutation.mutateAsync({ id: editingSkuId, form: data });
+      return;
     }
-  }, [newSku, editSkuMode, editingSkuId, createSkuMutation, updateSkuMutation, showToast, t]);
+    await createSkuMutation.mutateAsync(data);
+  }, [editSkuMode, editingSkuId, createSkuMutation, updateSkuMutation, showToast, t]);
 
   const loadTypeDetail = useCallback(
     async (type: ProductType) => {
@@ -504,11 +504,9 @@ export function useProductMaster() {
   const loading = summaryQuery.isLoading || referenceQuery.isLoading || skusQuery.isLoading;
   const listFetching = skusQuery.isFetching || typesQuery.isFetching;
   const listLoading = loading || listFetching;
+  const skuSaving = createSkuMutation.isPending || updateSkuMutation.isPending;
   const saving =
-    createSkuMutation.isPending ||
-    updateSkuMutation.isPending ||
-    toggleMutation.isPending ||
-    bulkArchiveMutation.isPending;
+    skuSaving || toggleMutation.isPending || bulkArchiveMutation.isPending;
 
   useSyncGlobalLoader(saving || exporting);
 
@@ -534,6 +532,7 @@ export function useProductMaster() {
     loading,
     listLoading,
     saving,
+    skuSaving,
     detailLoading,
     exporting,
     viewMode,
