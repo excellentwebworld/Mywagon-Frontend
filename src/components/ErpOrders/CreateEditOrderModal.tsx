@@ -200,7 +200,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                       value={values.originLocationId ? String(values.originLocationId) : ''}
                       onChange={(val) => setFieldValue('originLocationId', val ? Number(val) : null)}
                       placeholder={t('erpOrdersSelectLocation')}
-                      footerAction={onAddLocationOrigin ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationOrigin } : undefined}
+                      headerAction={onAddLocationOrigin ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationOrigin } : undefined}
                     />
                   </div>
                   <div className="field">
@@ -210,7 +210,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                       value={values.destLocationId ? String(values.destLocationId) : ''}
                       onChange={(val) => setFieldValue('destLocationId', val ? Number(val) : null)}
                       placeholder={t('erpOrdersSelectLocation')}
-                      footerAction={onAddLocationDest ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationDest } : undefined}
+                      headerAction={onAddLocationDest ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationDest } : undefined}
                     />
                   </div>
                 </div>
