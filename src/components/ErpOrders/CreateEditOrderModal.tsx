@@ -124,7 +124,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
           return (
             <Form className="modal modal-form" noValidate>
               <FormikStateSync setForm={setForm} />
-              
+
               <div className="modal-hd">
                 <span>{isEdit ? t('erpOrdersEditOrder') : t('erpOrdersCreateOrder')}</span>
                 <button type="button" className="modal-close" onClick={onClose}>
@@ -192,33 +192,37 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                   </div>
                 </div>
 
-                <div className="field">
-                  <label className="field-l">{t('erpOrdersColShipFrom')}</label>
-                  <SearchableSelect
-                    options={locationOptions}
-                    value={values.originLocationId ? String(values.originLocationId) : ''}
-                    onChange={(val) => setFieldValue('originLocationId', val ? Number(val) : null)}
-                    placeholder={t('erpOrdersSelectLocation')}
-                    footerAction={onAddLocationOrigin ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationOrigin } : undefined}
-                  />
+                <div className="field-row">
+                  <div className="field">
+                    <label className="field-l">{t('erpOrdersColShipFrom')}</label>
+                    <SearchableSelect
+                      options={locationOptions}
+                      value={values.originLocationId ? String(values.originLocationId) : ''}
+                      onChange={(val) => setFieldValue('originLocationId', val ? Number(val) : null)}
+                      placeholder={t('erpOrdersSelectLocation')}
+                      footerAction={onAddLocationOrigin ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationOrigin } : undefined}
+                    />
+                  </div>
+                  <div className="field">
+                    <label className="field-l">{t('erpOrdersColShipTo')}</label>
+                    <SearchableSelect
+                      options={locationOptions}
+                      value={values.destLocationId ? String(values.destLocationId) : ''}
+                      onChange={(val) => setFieldValue('destLocationId', val ? Number(val) : null)}
+                      placeholder={t('erpOrdersSelectLocation')}
+                      footerAction={onAddLocationDest ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationDest } : undefined}
+                    />
+                  </div>
                 </div>
 
-                <div className="field">
-                  <label className="field-l">{t('erpOrdersColShipTo')}</label>
-                  <SearchableSelect
-                    options={locationOptions}
-                    value={values.destLocationId ? String(values.destLocationId) : ''}
-                    onChange={(val) => setFieldValue('destLocationId', val ? Number(val) : null)}
-                    placeholder={t('erpOrdersSelectLocation')}
-                    footerAction={onAddLocationDest ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationDest } : undefined}
+
+                <div className='my-3'>
+                  <ToggleField
+                    label={t('erpOrdersHighPriority')}
+                    value={values.highPriority}
+                    onChange={(highPriority) => setFieldValue('highPriority', highPriority)}
                   />
                 </div>
-
-                <ToggleField
-                  label={t('erpOrdersHighPriority')}
-                  value={values.highPriority}
-                  onChange={(highPriority) => setFieldValue('highPriority', highPriority)}
-                />
 
                 <div className="field">
                   <label className="field-l">{t('notes')}</label>
@@ -241,10 +245,10 @@ export const CreateEditOrderModal: React.FC<Props> = ({
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn btn-sm" onClick={onClose}>
+                <button type="button" className="btn btn-md" onClick={onClose}>
                   {t('cancel')}
                 </button>
-                <button type="submit" className="btn btn-p btn-sm" disabled={saving}>
+                <button type="submit" className="btn btn-p btn-md" disabled={saving}>
                   {saving ? t('saving') : isEdit ? t('save') : t('create')}
                 </button>
               </div>

@@ -119,8 +119,33 @@ export const OrderProductLinesEditor: React.FC<Props> = ({ t, lines, skus, onCha
               </option>
             ))}
           </select>
-          <button type="button" className="btn btn-sm" onClick={() => removeLine(index)}>
-            ✕
+          <button
+            type="button"
+            className="btn !p-0"
+            onClick={() => removeLine(index)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '38px',
+              height: '38px',
+              flexShrink: 0,
+            }}
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ color: 'var(--danger, #ef4444)' }}
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         </div>
       ))}
