@@ -612,7 +612,7 @@
 
 .ai-error-detail-box {
     width: 100%;
-    max-width: 480px;
+    max-width: 100%;
     background: #fff5f5;
     border: 1px solid rgba(239, 68, 68, 0.2);
     border-radius: 8px;
@@ -913,6 +913,11 @@
     border-color: color-mix(in srgb, #ef4444 25%, transparent);
 }
 
+.ai-req-col-neutral {
+    background: var(--sa);
+    border-color: var(--bd);
+}
+
 .ai-req-col-status {
     flex-shrink: 0;
     width: 20px;
@@ -932,6 +937,11 @@
 .ai-req-col-missing .ai-req-col-status {
     background: #ef4444;
     color: #fff;
+}
+
+.ai-req-col-neutral .ai-req-col-status {
+    background: var(--bd);
+    color: var(--t3);
 }
 
 .ai-req-col-info {
