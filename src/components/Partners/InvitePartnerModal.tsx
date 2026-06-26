@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Formik, Form } from 'formik';
+import * as Yup from 'yup';
 import type { PartnersState } from '../../pages/Partners/hooks/usePartners';
 import type { InviteMethod, InvitePartnerType } from '../../pages/Partners/types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { FormFieldError } from '../AddressBook/FormFieldError';
+
+function fieldClass(hasError: boolean): string {
+  return hasError ? 'mf has-error' : 'mf';
+}
 
 const COUNTRIES = [
   { en: 'Albania', el: 'Αλβανία', code: '+355' },
@@ -79,6 +86,72 @@ export const InvitePartnerModal: React.FC<Props> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const validationSchema = React.useMemo(() => {
+    return Yup.object().shape({
+      method: Yup.string().required(),
+      partnerType: Yup.string().required(),
+      contact: Yup.string()
+        .trim()
+        .required(t('fillRequired') || 'Fill required fields')
+        .test('method-validation', function (value) {
+          const { method } = this.parent;
+          if (!value) return true;
+          if (method === 'email') {
+            const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!EMAIL_PATTERN.test(value)) {
+              return this.createError({
+                message: t('partnerEmailInvalid') || 'Please enter a valid email address.',
+              });
+            }
+          } else if (method === 'phone') {
+            const clean = value.replace(/[\s-()]/g, '');
+            if (!/^\d+$/.test(clean)) {
+              return this.createError({
+                message: t('partnerPhoneInvalidFormat') || 'Phone number must contain only digits.',
+              });
+            }
+            if (clean.length < 9 || clean.length > 15) {
+              return this.createError({
+                message: t('partnerPhoneInvalidLength') || 'Phone number must be between 9 and 15 digits.',
+              });
+            }
+          } else if (method === 'unique_id') {
+            const { partnerType } = this.parent;
+            if (partnerType === 'supplier') {
+              const MVS_PATTERN = /^[mM][vV][sS]\d{6}$/;
+              if (!MVS_PATTERN.test(value)) {
+                return this.createError({
+                  message: t('partnerUniqueIdMvsInvalid') || 'Unique ID must start with MVS followed by 6 digits (e.g. MVS000001).',
+                });
+              }
+            } else if (partnerType === 'freelancer_driver') {
+              const MVD_PATTERN = /^[mM][vV][dD]\d{6}$/;
+              if (!MVD_PATTERN.test(value)) {
+                return this.createError({
+                  message: t('partnerUniqueIdMvdInvalid') || 'Unique ID must start with MVD followed by 6 digits (e.g. MVD000001).',
+                });
+              }
+            } else if (partnerType === 'carrier_company') {
+              const MVC_PATTERN = /^[mM][vV][cC]\d{6}$/;
+              if (!MVC_PATTERN.test(value)) {
+                return this.createError({
+                  message: t('partnerUniqueIdMvcInvalid') || 'Unique ID must start with MVC followed by 6 digits (e.g. MVC000001).',
+                });
+              }
+            } else {
+              const GENERIC_PATTERN = /^[a-zA-Z]{3}\d{6}$/;
+              if (!GENERIC_PATTERN.test(value)) {
+                return this.createError({
+                  message: t('partnerUniqueIdMvcInvalid') || 'Unique ID must start with MVC, MVD, or MVS followed by 6 digits.',
+                });
+              }
+            }
+          }
+          return true;
+        }),
+    });
+  }, [t]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -145,178 +218,228 @@ export const InvitePartnerModal: React.FC<Props> = ({
     );
   }
 
+
+
+  const initialValues = {
+    method: method,
+    partnerType: partnerType,
+    contact: contact,
+    countryCode: countryCode,
+  };
+
+  const handleSubmit = (values: typeof initialValues) => {
+    sendInvite({
+      method: values.method,
+      partnerType: values.partnerType,
+      contact: values.contact,
+      countryCode: values.countryCode,
+      relationship: null,
+      sent: false,
+    });
+  };
+
   return (
-    <div className="modal-backdrop open" onClick={handleOverlayClick} id="invite-modal">
-      <div className="modal modal-md ptn-inv-modal">
-        <div className="modal-header">
-          <h2>{t('inviteTitle')}</h2>
-          <button type="button" className="modal-close" onClick={closeInviteModal} aria-label="Close">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <Formik
+      initialValues={initialValues}
+      validationSchema={validationSchema}
+      onSubmit={handleSubmit}
+      enableReinitialize
+    >
+      {({
+        values,
+        errors,
+        touched,
+        handleChange,
+        handleBlur,
+        setFieldValue,
+        submitCount,
+      }) => {
+        const showError = (field: keyof typeof initialValues) =>
+          Boolean((touched[field] || submitCount > 0) && errors[field]);
 
-        <div className="modal-body">
-          <div className="ptn-mtog">
-            {(['email', 'phone', 'unique_id'] as InviteMethod[]).map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={method === m ? 'active' : ''}
-                onClick={() => setMethod(m)}
-              >
-                {m === 'email' ? '📧' : m === 'phone' ? '📱' : '🆔'}{' '}
-                {m === 'unique_id' ? t('mvUniqueId') : t(m) || m}
-              </button>
-            ))}
-          </div>
+        return (
+          <div className="modal-backdrop open" onClick={handleOverlayClick} id="invite-modal">
+            <Form className="modal modal-md ptn-inv-modal" noValidate>
+              <div className="modal-header">
+                <h2>{t('inviteTitle')}</h2>
+                <button type="button" className="modal-close" onClick={closeInviteModal} aria-label="Close">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
 
-          {method === 'phone' ? (
-            <div className="mf" style={{ marginBottom: 12 }}>
-              <label className="form-label">
-                {t('phone')} <span className="rq">*</span>
-              </label>
-              <div className="ptn-phone-row" style={{ display: 'flex', gap: 12 }}>
-                <div style={{ width: '160px', flexShrink: 0 }}>
-                  <div className="ptn-custom-select" ref={dropdownRef}>
+              <div className="modal-body">
+                <div className="ptn-mtog">
+                  {(['email', 'phone', 'unique_id'] as InviteMethod[]).map((m) => (
                     <button
+                      key={m}
                       type="button"
-                      className="ptn-custom-select-trigger"
+                      className={values.method === m ? 'active' : ''}
                       onClick={() => {
-                        setIsDropdownOpen(!isDropdownOpen);
-                        setSearchQuery('');
+                        setFieldValue('method', m);
+                        setFieldValue('contact', '');
                       }}
                     >
-                      <span>
-                        {(() => {
-                          const selected = COUNTRIES.find((c) => c.code === countryCode) || { en: 'Greece', el: 'Ελλάδα', code: '+30' };
-                          return `${selected.code} (${lang === 'el' ? selected.el : selected.en})`;
-                        })()}
-                      </span>
-                      <span className="arrow">{isDropdownOpen ? '▲' : '▼'}</span>
+                      {m === 'email' ? '📧' : m === 'phone' ? '📱' : '🆔'}{' '}
+                      {m === 'unique_id' ? t('mvUniqueId') : t(m) || m}
                     </button>
-                    {isDropdownOpen && (
-                      <div className="ptn-custom-select-dropdown">
-                        <input
-                          type="text"
-                          className="ptn-custom-select-search"
-                          placeholder=""
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          autoFocus
-                        />
-                        <div className="ptn-custom-select-options">
-                          {COUNTRIES.filter((c) => {
-                            const name = lang === 'el' ? c.el : c.en;
-                            const search = searchQuery.toLowerCase();
-                            return (
-                              c.code.toLowerCase().includes(search) ||
-                              name.toLowerCase().includes(search)
-                            );
-                          }).map((c) => {
-                            const isSelected = c.code === countryCode;
-                            const label = `${c.code} (${lang === 'el' ? c.el : c.en})`;
-                            return (
-                              <div
-                                key={c.code}
-                                className={`ptn-custom-select-option${isSelected ? ' selected' : ''}`}
-                                onClick={() => {
-                                  setInviteForm({ ...inviteForm, countryCode: c.code });
-                                  setIsDropdownOpen(false);
-                                }}
-                              >
-                                {label}
+                  ))}
+                </div>
+
+                {values.method === 'phone' ? (
+                  <div className={fieldClass(showError('contact'))} style={{ marginBottom: 12 }}>
+                    <label className="form-label">
+                      {t('phone')} <span className="rq">*</span>
+                    </label>
+                    <div className="ptn-phone-row" style={{ display: 'flex', gap: 12 }}>
+                      <div style={{ width: '160px', flexShrink: 0 }}>
+                        <div className="ptn-custom-select" ref={dropdownRef}>
+                          <button
+                            type="button"
+                            className="ptn-custom-select-trigger"
+                            onClick={() => {
+                              setIsDropdownOpen(!isDropdownOpen);
+                              setSearchQuery('');
+                            }}
+                          >
+                            <span>
+                              {(() => {
+                                const selected = COUNTRIES.find((c) => c.code === values.countryCode) || { en: 'Greece', el: 'Ελλάδα', code: '+30' };
+                                return `${selected.code} (${lang === 'el' ? selected.el : selected.en})`;
+                              })()}
+                            </span>
+                            <span className="arrow">{isDropdownOpen ? '▲' : '▼'}</span>
+                          </button>
+                          {isDropdownOpen && (
+                            <div className="ptn-custom-select-dropdown">
+                              <input
+                                type="text"
+                                className="ptn-custom-select-search"
+                                placeholder=""
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                autoFocus
+                              />
+                              <div className="ptn-custom-select-options">
+                                {COUNTRIES.filter((c) => {
+                                  const name = lang === 'el' ? c.el : c.en;
+                                  const search = searchQuery.toLowerCase();
+                                  return (
+                                    c.code.toLowerCase().includes(search) ||
+                                    name.toLowerCase().includes(search)
+                                  );
+                                }).map((c) => {
+                                  const isSelected = c.code === values.countryCode;
+                                  const label = `${c.code} (${lang === 'el' ? c.el : c.en})`;
+                                  return (
+                                    <div
+                                      key={c.code}
+                                      className={`ptn-custom-select-option${isSelected ? ' selected' : ''}`}
+                                      onClick={() => {
+                                        setFieldValue('countryCode', c.code);
+                                        setIsDropdownOpen(false);
+                                      }}
+                                    >
+                                      {label}
+                                    </div>
+                                  );
+                                })}
+                                {COUNTRIES.filter((c) => {
+                                  const name = lang === 'el' ? c.el : c.en;
+                                  const search = searchQuery.toLowerCase();
+                                  return (
+                                    c.code.toLowerCase().includes(search) ||
+                                    name.toLowerCase().includes(search)
+                                  );
+                                }).length === 0 && (
+                                  <div className="ptn-custom-select-no-results">No results</div>
+                                )}
                               </div>
-                            );
-                          })}
-                          {COUNTRIES.filter((c) => {
-                            const name = lang === 'el' ? c.el : c.en;
-                            const search = searchQuery.toLowerCase();
-                            return (
-                              c.code.toLowerCase().includes(search) ||
-                              name.toLowerCase().includes(search)
-                            );
-                          }).length === 0 && (
-                            <div className="ptn-custom-select-no-results">No results</div>
+                            </div>
                           )}
                         </div>
                       </div>
-                    )}
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="text"
+                          className="form-input"
+                          id="invite-contact-input"
+                          name="contact"
+                          placeholder="69xxxxxxxx"
+                          value={values.contact}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                        />
+                      </div>
+                    </div>
+                    <FormFieldError message={showError('contact') ? errors.contact : undefined} />
+                  </div>
+                ) : (
+                  <div className={fieldClass(showError('contact'))} style={{ marginBottom: 12 }}>
+                    <label className="form-label">
+                      {values.method === 'email' ? t('email') : t('mvUniqueId')} <span className="rq">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      id="invite-contact-input"
+                      name="contact"
+                      placeholder={
+                        values.method === 'email'
+                          ? 'partner@company.com'
+                          : 'ABC123456'
+                      }
+                      value={values.contact}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                    />
+                    <FormFieldError message={showError('contact') ? errors.contact : undefined} />
+                  </div>
+                )}
+
+                <div className="mf" style={{ marginBottom: 12 }}>
+                  <label className="form-label">
+                    {t('partnerType')} <span className="rq">*</span>
+                  </label>
+                  <div className="ptn-tag-chips">
+                    {(
+                      [
+                        { value: 'carrier_company', label: t('carrierCoType') },
+                        { value: 'freelancer_driver', label: t('freelancerDrType') },
+                        { value: 'supplier', label: t('supplierType') },
+                      ] as { value: InvitePartnerType; label: string }[]
+                    ).map(({ value, label }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`ptn-tag-chip${values.partnerType === value ? ' selected' : ''}`}
+                        onClick={() => setFieldValue('partnerType', value)}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <input
-                    type="text"
-                    className="form-input"
-                    id="invite-contact-input"
-                    placeholder="69xxxxxxxx"
-                    value={contact}
-                    onChange={(e) => setInviteForm({ ...inviteForm, contact: e.target.value })}
-                  />
-                </div>
               </div>
-            </div>
-          ) : (
-            <div className="mf" style={{ marginBottom: 12 }}>
-              <label className="form-label">
-                {method === 'email' ? t('email') : t('mvUniqueId')} <span className="rq">*</span>
-              </label>
-              <input
-                type="text"
-                className="form-input"
-                id="invite-contact-input"
-                placeholder={
-                  method === 'email'
-                    ? 'partner@company.com'
-                    : 'ABC123456'
-                }
-                value={contact}
-                onChange={(e) => setInviteForm({ ...inviteForm, contact: e.target.value })}
-              />
-            </div>
-          )}
 
-          <div className="mf" style={{ marginBottom: 12 }}>
-            <label className="form-label">
-              {t('partnerType')} <span className="rq">*</span>
-            </label>
-            <div className="ptn-tag-chips">
-              {(
-                [
-                  { value: 'carrier_company', label: t('carrierCoType') },
-                  { value: 'freelancer_driver', label: t('freelancerDrType') },
-                  { value: 'supplier', label: t('supplierType') },
-                ] as { value: InvitePartnerType; label: string }[]
-              ).map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`ptn-tag-chip${partnerType === value ? ' selected' : ''}`}
-                  onClick={() => setPartnerType(value)}
-                >
-                  {label}
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={closeInviteModal}>
+                  {t('cancel') || 'Cancel'}
                 </button>
-              ))}
-            </div>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={inviteLoading}
+                  id="btn-send-invite"
+                >
+                  {inviteLoading ? '…' : `✉ ${t('sendInvitation')}`}
+                </button>
+              </div>
+            </Form>
           </div>
-        </div>
-
-        <div className="modal-footer">
-          <button type="button" className="btn btn-secondary" onClick={closeInviteModal}>
-            {t('cancel') || 'Cancel'}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={sendInvite}
-            disabled={inviteLoading}
-            id="btn-send-invite"
-          >
-            {inviteLoading ? '…' : `✉ ${t('sendInvitation')}`}
-          </button>
-        </div>
-      </div>
-    </div>
+        );
+      }}
+    </Formik>
   );
 };

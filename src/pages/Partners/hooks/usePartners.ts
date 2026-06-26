@@ -337,13 +337,9 @@ export function usePartners() {
 
   const closeInviteModal = useCallback(() => setIsInviteOpen(false), []);
 
-  const sendInvite = useCallback(() => {
-    if (!inviteForm.contact.trim()) {
-      showToast(t('fillRequired'), 'error');
-      return;
-    }
-    inviteMutation.mutate(inviteForm);
-  }, [inviteForm, inviteMutation, showToast, t]);
+  const sendInvite = useCallback((values: InviteFormState) => {
+    inviteMutation.mutate(values);
+  }, [inviteMutation]);
 
   const openGenericModal = useCallback((type: GenericModalType) => {
     setGenericModal(type);
