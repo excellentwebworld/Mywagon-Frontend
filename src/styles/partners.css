@@ -180,7 +180,7 @@
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-lg);
   min-width: 220px;
-  max-height: 380px;
+  max-height: 300px;
   z-index: 40;
   padding: 8px;
   display: none;
