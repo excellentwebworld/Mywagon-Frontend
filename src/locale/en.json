@@ -663,7 +663,7 @@
   "fillRequired": "⚠ Fill required fields",
   "partnerEmailInvalid": "Please enter a valid email address.",
   "partnerPhoneInvalidFormat": "Phone number must contain only digits.",
-  "partnerPhoneInvalidLength": "Phone number must be between 9 and 15 digits.",
+  "partnerPhoneInvalidLength": "Phone number must contain 8 digits.",
   "partnerUniqueIdMvsInvalid": "Unique ID must start with MVS followed by 6 digits (e.g. MVS000001).",
   "partnerUniqueIdMvdInvalid": "Unique ID must start with MVD followed by 6 digits (e.g. MVD000001).",
   "partnerUniqueIdMvcInvalid": "Unique ID must start with MVC followed by 6 digits (e.g. MVC000001).",

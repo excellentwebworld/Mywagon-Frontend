@@ -663,7 +663,7 @@
   "fillRequired": "⚠ Συμπληρώστε τα υποχρεωτικά πεδία",
   "partnerEmailInvalid": "Παρακαλώ εισάγετε μια έγκυρη διεύθυνση email.",
   "partnerPhoneInvalidFormat": "Ο αριθμός τηλεφώνου πρέπει να περιέχει μόνο ψηφία.",
-  "partnerPhoneInvalidLength": "Ο αριθμός τηλεφώνου πρέπει να είναι μεταξύ 9 και 15 ψηφίων.",
+  "partnerPhoneInvalidLength": "Ο αριθμός τηλεφώνου πρέπει να περιέχει 8 ψηφία.",
   "partnerUniqueIdMvsInvalid": "Το Μοναδικό ID πρέπει να ξεκινά με MVS ακολουθούμενο από 6 ψηφία (π.χ. MVS000001).",
   "partnerUniqueIdMvdInvalid": "Το Μοναδικό ID πρέπει να ξεκινά με MVD ακολουθούμενο από 6 ψηφία (π.χ. MVD000001).",
   "partnerUniqueIdMvcInvalid": "Το Μοναδικό ID πρέπει να ξεκινά με MVC ακολουθούμενο από 6 ψηφία (π.χ. MVC000001).",

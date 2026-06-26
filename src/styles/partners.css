@@ -982,6 +982,17 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
   text-align: center;
 }
 
+/* Hide number input spin-buttons (up/down arrows) in the phone input */
+#invite-contact-input[type="number"]::-webkit-outer-spin-button,
+#invite-contact-input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+#invite-contact-input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 .ptn-customer-warn {
   padding: 14px 16px;
   background: #FFFBEB;
