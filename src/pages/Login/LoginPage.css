@@ -147,9 +147,9 @@
 
 .shipper-login-logo-link img,
 .shipper-login-logo {
-  height: 48px;
+  height: 35px;
   width: auto;
-  min-width: 200px;
+  min-width: 150px;
   max-width: 100%;
   display: block;
   object-fit: contain;
