@@ -980,24 +980,108 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
 .ptn-customer-warn .cta   { display: flex; gap: 8px; margin-top: 10px; }
 
 /* Invite success state */
+.ptn-inv-modal--success {
+  position: relative;
+  max-width: 400px !important;
+  width: 100%;
+}
+
+.ptn-inv-success-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  padding: 0;
+  z-index: 1;
+}
+
+.ptn-inv-success-close:hover {
+  background: var(--surface-alt);
+  color: var(--text-primary);
+}
+
 .ptn-invite-success {
   text-align: center;
-  padding: 28px 20px;
+  padding: 28px 24px 8px;
 }
+
 .ptn-invite-success .icon {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: var(--success-bg, #ECFDF5);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 16px;
-  font-size: 24px;
+  margin: 0 auto 14px;
+  font-size: 22px;
   color: var(--success);
 }
-.ptn-invite-success .title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
-.ptn-invite-success .desc  { font-size: 13px; color: var(--text-secondary); }
+
+.ptn-invite-success .title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: var(--text-primary);
+}
+
+.ptn-invite-success .desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 280px;
+  margin-inline: auto;
+}
+
+.ptn-invite-success-footer {
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 20px 20px;
+  border-top: none;
+}
+
+.ptn-invite-success-footer .btn {
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+}
+
+@media (max-width: 480px) {
+  .ptn-inv-success-backdrop {
+    padding: 20px 16px !important;
+    align-items: center !important;
+  }
+
+  .ptn-inv-success-backdrop .ptn-inv-modal--success {
+    max-width: 100% !important;
+    max-height: none !important;
+    border-radius: var(--radius-xl) !important;
+    transform: none !important;
+  }
+
+  .ptn-invite-success {
+    padding: 24px 20px 4px;
+  }
+
+  .ptn-invite-success-footer {
+    flex-direction: column;
+    padding: 12px 20px 20px;
+  }
+
+  .ptn-invite-success-footer .btn {
+    width: 100%;
+  }
+}
 
 /* Awaiting response box */
 .ptn-awaiting-box {

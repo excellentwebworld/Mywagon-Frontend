@@ -108,19 +108,27 @@ export const InvitePartnerModal: React.FC<Props> = ({
 
   if (sent) {
     return (
-      <div className="modal-backdrop open" onClick={handleOverlayClick} id="invite-modal">
-        <div className="modal modal-md ptn-inv-modal">
-          <div className="modal-header">
-            <h2>{t('invSentTitle')}</h2>
+      <div className="modal-backdrop open ptn-inv-success-backdrop" onClick={handleOverlayClick} id="invite-modal">
+        <div
+          className="modal modal-sm ptn-inv-modal ptn-inv-modal--success"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="ptn-inv-success-close"
+            onClick={closeInviteModal}
+            aria-label={t('close') || 'Close'}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="ptn-invite-success">
+            <div className="icon" aria-hidden>✓</div>
+            <h3 className="title">{t('invSentTitle')}</h3>
+            <p className="desc">{t('invSentDesc')}</p>
           </div>
-          <div className="modal-body">
-            <div className="ptn-invite-success">
-              <div className="icon">✓</div>
-              <div className="title">{t('invSentTitle')}</div>
-              <div className="desc">{t('invSentDesc')}</div>
-            </div>
-          </div>
-          <div className="modal-footer">
+          <div className="modal-footer ptn-invite-success-footer">
             <button
               type="button"
               className="btn btn-secondary"
@@ -129,7 +137,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
               {t('invAnother')}
             </button>
             <button type="button" className="btn btn-primary" onClick={closeInviteModal}>
-              {t('done') || 'Done'}
+              {t('done')}
             </button>
           </div>
         </div>
