@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import type { PartnersState } from '../../pages/Partners/hooks/usePartners';
 import type { ActiveFilters } from '../../pages/Partners/types';
+import { useOutsideClick } from '../../hooks/useOutsideClick';
 
 type Props = Pick<
   PartnersState,
@@ -12,6 +13,7 @@ type Props = Pick<
   | 'clearAllFilters'
   | 'openFilterDropdown'
   | 'toggleFilterDropdown'
+  | 'closeFilterDropdown'
   | 'truckCategories'
   | 'closeDetailPanel'
   | 'subscriptionBlocked'
@@ -26,6 +28,7 @@ export const PartnersFilterBar: React.FC<Props> = ({
   clearAllFilters,
   openFilterDropdown,
   toggleFilterDropdown,
+  closeFilterDropdown,
   truckCategories,
   closeDetailPanel,
   subscriptionBlocked,
@@ -35,16 +38,10 @@ export const PartnersFilterBar: React.FC<Props> = ({
     activeFilters.status.length > 0 ||
     activeFilters.capability.length > 0;
 
-  const barRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (barRef.current && !barRef.current.contains(e.target as Node)) {
-        if (openFilterDropdown) toggleFilterDropdown('');
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [openFilterDropdown, toggleFilterDropdown]);
+  const barRef = useOutsideClick<HTMLDivElement>(
+    closeFilterDropdown,
+    Boolean(openFilterDropdown)
+  );
 
   const statusOptions: Array<{ value: ActiveFilters['status'][number]; label: string }> = [
     { value: 'active', label: t('activePartners') },
@@ -52,6 +49,11 @@ export const PartnersFilterBar: React.FC<Props> = ({
     { value: 'pending', label: t('invitationReceived') },
     { value: 'suspended', label: t('suspendedPartners') },
   ];
+
+  const handleClearAll = () => {
+    clearAllFilters();
+    closeFilterDropdown();
+  };
 
   return (
     <div className="ptn-fbar anim" ref={barRef}>
@@ -122,7 +124,7 @@ export const PartnersFilterBar: React.FC<Props> = ({
       </div>
 
       {hasFilters && (
-        <button type="button" className="ptn-fclear" onClick={clearAllFilters}>
+        <button type="button" className="ptn-fclear" onClick={handleClearAll}>
           {t('clearAll') || 'Clear all'}
         </button>
       )}
