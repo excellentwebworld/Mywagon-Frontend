@@ -125,7 +125,7 @@ export const CreateCompanyModal: React.FC<Props> = ({
 
         return (
           <div className="modal-backdrop open ab-company-backdrop" onClick={(e) => e.target === e.currentTarget && closeCompanyModal()}>
-            <Form className="modal modal-md ab-company-modal" onClick={(e) => e.stopPropagation()} noValidate>
+            <Form className="modal modal-lg ab-company-modal" onClick={(e) => e.stopPropagation()} noValidate>
               <div className="modal-header">
                 <h2>Create New Company</h2>
                 <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeCompanyModal}>

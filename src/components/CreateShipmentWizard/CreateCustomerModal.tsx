@@ -53,7 +53,7 @@ export const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
 
   return (
     <div className={`modal-bg ${isOpen ? 'show' : ''}`} role="dialog" aria-modal="true">
-      <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-h">
           <span>🏪 {t('createNewCustomer')}</span>
           <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>

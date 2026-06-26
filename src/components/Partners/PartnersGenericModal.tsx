@@ -89,7 +89,7 @@ export const PartnersGenericModal: React.FC<Props> = ({
 
         return (
           <div className="modal-backdrop open" onClick={handleOverlayClick} id="generic-modal">
-            <Form className="modal modal-md ptn-gm-modal" noValidate>
+            <Form className="modal modal-lg ptn-gm-modal" noValidate>
               <div className="modal-header">
                 <h2>{t('addLaneTitle')}</h2>
                 <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeGenericModal} aria-label="Close">

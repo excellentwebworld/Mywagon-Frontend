@@ -487,7 +487,7 @@ export const ManageShipments: React.FC = () => {
       {/* Invite Carrier Modal */}
       {isInviteOpen && (
         <div className="modal-backdrop open">
-          <div className="modal modal-md">
+          <div className="modal modal-lg">
             <div className="modal-header">
               <h2>🚛 Invite Carriers</h2>
               <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setIsInviteOpen(false)}>

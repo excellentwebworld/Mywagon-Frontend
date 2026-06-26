@@ -259,7 +259,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
 
         return (
           <div className="modal-backdrop open" onClick={handleOverlayClick} id="invite-modal">
-            <Form className="modal modal-md ptn-inv-modal" noValidate>
+            <Form className="modal modal-lg ptn-inv-modal" noValidate>
               <div className="modal-header">
                 <h2>{t('inviteTitle')}</h2>
                 <button type="button" className="modal-close" onClick={closeInviteModal} aria-label="Close">
