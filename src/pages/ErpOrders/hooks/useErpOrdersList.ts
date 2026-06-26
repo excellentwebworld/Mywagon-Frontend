@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useApp } from '../../../context/AppContext';
@@ -36,7 +37,19 @@ export function useErpOrdersList() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortField, setSortField] = useState<ErpOrderSortField>('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc' | ''>('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = parseInt(searchParams.get('page') || '1', 10) || 1;
+  const setCurrentPage = (page: number | ((prev: number) => number)) => {
+    setSearchParams(
+      (prev) => {
+        const nextParams = new URLSearchParams(prev);
+        const nextPage = typeof page === 'function' ? page(currentPage) : page;
+        nextParams.set('page', nextPage.toString());
+        return nextParams;
+      },
+      { replace: true }
+    );
+  };
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
 
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);

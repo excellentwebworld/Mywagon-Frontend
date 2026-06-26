@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../../context/AppContext';
@@ -65,7 +66,19 @@ export function usePartners() {
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<OpenSections>(EMPTY_SECTIONS);
 
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = parseInt(searchParams.get('page') || '1', 10) || 1;
+  const setCurrentPage = (page: number | ((prev: number) => number)) => {
+    setSearchParams(
+      (prev) => {
+        const nextParams = new URLSearchParams(prev);
+        const nextPage = typeof page === 'function' ? page(currentPage) : page;
+        nextParams.set('page', nextPage.toString());
+        return nextParams;
+      },
+      { replace: true }
+    );
+  };
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
 
   const [isInviteOpen, setIsInviteOpen] = useState(false);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -39,7 +39,19 @@ export function useAddressBook() {
   const [actionLoading, setActionLoading] = useState(false);
 
   const [activeNode, setActiveNode] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = parseInt(searchParams.get('page') || '1', 10) || 1;
+  const setCurrentPage = (page: number | ((prev: number) => number)) => {
+    setSearchParams(
+      (prev) => {
+        const nextParams = new URLSearchParams(prev);
+        const nextPage = typeof page === 'function' ? page(currentPage) : page;
+        nextParams.set('page', nextPage.toString());
+        return nextParams;
+      },
+      { replace: true }
+    );
+  };
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLoc, setSelectedLoc] = useState<LocationItem | null>(null);
