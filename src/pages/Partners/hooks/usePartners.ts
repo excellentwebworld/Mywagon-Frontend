@@ -346,13 +346,8 @@ export function usePartners() {
     setOpenFilterDropdown('');
   }, []);
 
-  const toggleBarFilter = useCallback(<K extends keyof ActiveFilters>(category: K, value: ActiveFilters[K][number]) => {
-    setActiveFilters((prev) => {
-      const arr = prev[category] as unknown[];
-      const idx = arr.indexOf(value);
-      const next = idx >= 0 ? arr.filter((_, i) => i !== idx) : [...arr, value];
-      return { ...prev, [category]: next };
-    });
+  const applyFilters = useCallback((filters: ActiveFilters) => {
+    setActiveFilters(filters);
     setSelectedPartnerId(null);
   }, []);
 
@@ -496,7 +491,7 @@ export function usePartners() {
     selectKpi,
     toggleFilterDropdown,
     closeFilterDropdown,
-    toggleBarFilter,
+    applyFilters,
     clearAllFilters,
     openDetailPanel,
     closeDetailPanel,

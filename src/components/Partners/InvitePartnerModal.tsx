@@ -110,7 +110,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
                 message: t('partnerPhoneInvalidFormat') || 'Phone number must contain only digits.',
               });
             }
-            if (clean.length < 9 || clean.length > 15) {
+            if (clean.length < 8) {
               return this.createError({
                 message: t('partnerPhoneInvalidLength') || 'Phone number must be between 9 and 15 digits.',
               });
@@ -353,8 +353,8 @@ export const InvitePartnerModal: React.FC<Props> = ({
                                     name.toLowerCase().includes(search)
                                   );
                                 }).length === 0 && (
-                                  <div className="ptn-custom-select-no-results">No results</div>
-                                )}
+                                    <div className="ptn-custom-select-no-results">No results</div>
+                                  )}
                               </div>
                             </div>
                           )}
@@ -362,7 +362,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
                       </div>
                       <div style={{ flex: 1 }}>
                         <input
-                          type="text"
+                          type="number"
                           className="form-input"
                           id="invite-contact-input"
                           name="contact"

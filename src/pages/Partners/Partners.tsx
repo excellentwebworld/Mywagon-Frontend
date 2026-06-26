@@ -78,7 +78,7 @@ const Partners: React.FC = () => {
         searchQuery={state.searchQuery}
         setSearchQuery={state.setSearchQuery}
         activeFilters={state.activeFilters}
-        toggleBarFilter={state.toggleBarFilter}
+        applyFilters={state.applyFilters}
         clearAllFilters={state.clearAllFilters}
         openFilterDropdown={state.openFilterDropdown}
         toggleFilterDropdown={state.toggleFilterDropdown}

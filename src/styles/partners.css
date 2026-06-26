@@ -180,13 +180,28 @@
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-lg);
   min-width: 220px;
-  max-height: 350px;
-  overflow-y: auto;
+  max-height: 300px;
   z-index: 40;
   padding: 8px;
   display: none;
+  flex-direction: column;
 }
-.ptn-fdd.show { display: block; }
+.ptn-fdd.show { display: flex; }
+.ptn-fdd-list {
+  overflow-y: auto;
+  flex: 1;
+  max-height: 280px;
+}
+.ptn-fdd-actions {
+  padding-top: 8px;
+  border-top: 1.5px solid var(--border);
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+.ptn-fdd-actions button {
+  width: 100%;
+}
 .ptn-fdd-item {
   padding: 7px 10px;
   font-size: 12px;
@@ -966,6 +981,17 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
   font-size: 13px;
   color: var(--text-tertiary);
   text-align: center;
+}
+
+/* Hide number input spin-buttons (up/down arrows) in the phone input */
+#invite-contact-input[type="number"]::-webkit-outer-spin-button,
+#invite-contact-input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+#invite-contact-input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 .ptn-customer-warn {
