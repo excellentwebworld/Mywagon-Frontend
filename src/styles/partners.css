@@ -180,13 +180,27 @@
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-lg);
   min-width: 220px;
-  max-height: 350px;
-  overflow-y: auto;
+  max-height: 380px;
   z-index: 40;
   padding: 8px;
   display: none;
+  flex-direction: column;
 }
-.ptn-fdd.show { display: block; }
+.ptn-fdd.show { display: flex; }
+.ptn-fdd-list {
+  overflow-y: auto;
+  flex: 1;
+  max-height: 280px;
+}
+.ptn-fdd-actions {
+  padding-top: 8px;
+  border-top: 1.5px solid var(--border);
+  margin-top: 8px;
+  display: flex;
+}
+.ptn-fdd-actions button {
+  width: 100%;
+}
 .ptn-fdd-item {
   padding: 7px 10px;
   font-size: 12px;

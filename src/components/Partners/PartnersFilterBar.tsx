@@ -85,16 +85,27 @@ export const PartnersFilterBar: React.FC<Props> = ({
           📋 {t('statusFilter')}
         </button>
         <div className={`ptn-fdd${openFilterDropdown === 'status' ? ' show' : ''}`}>
-          {statusOptions.map(({ value, label }) => (
-            <div
-              key={value}
-              className={`ptn-fdd-item${activeFilters.status.includes(value) ? ' selected' : ''}`}
-              onClick={() => toggleBarFilter('status', value)}
+          <div className="ptn-fdd-list">
+            {statusOptions.map(({ value, label }) => (
+              <div
+                key={value}
+                className={`ptn-fdd-item${activeFilters.status.includes(value) ? ' selected' : ''}`}
+                onClick={() => toggleBarFilter('status', value)}
+              >
+                <span className="ptn-fdd-check">{activeFilters.status.includes(value) ? '✓' : ''}</span>
+                {label}
+              </div>
+            ))}
+          </div>
+          <div className="ptn-fdd-actions">
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={closeFilterDropdown}
             >
-              <span className="ptn-fdd-check">{activeFilters.status.includes(value) ? '✓' : ''}</span>
-              {label}
-            </div>
-          ))}
+              {t('apply')}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -108,18 +119,29 @@ export const PartnersFilterBar: React.FC<Props> = ({
           🚛 {t('capabilityFilter')}
         </button>
         <div className={`ptn-fdd${openFilterDropdown === 'capability' ? ' show' : ''}`} style={{ width: 240 }}>
-          {truckCategories.map((cat) => (
-            <div
-              key={cat.id}
-              className={`ptn-fdd-item${activeFilters.capability.includes(cat.id) ? ' selected' : ''}`}
-              onClick={() => toggleBarFilter('capability', cat.id)}
+          <div className="ptn-fdd-list">
+            {truckCategories.map((cat) => (
+              <div
+                key={cat.id}
+                className={`ptn-fdd-item${activeFilters.capability.includes(cat.id) ? ' selected' : ''}`}
+                onClick={() => toggleBarFilter('capability', cat.id)}
+              >
+                <span className="ptn-fdd-check">
+                  {activeFilters.capability.includes(cat.id) ? '✓' : ''}
+                </span>
+                {cat.name}
+              </div>
+            ))}
+          </div>
+          <div className="ptn-fdd-actions">
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={closeFilterDropdown}
             >
-              <span className="ptn-fdd-check">
-                {activeFilters.capability.includes(cat.id) ? '✓' : ''}
-              </span>
-              {cat.name}
-            </div>
-          ))}
+              {t('apply')}
+            </button>
+          </div>
         </div>
       </div>
 
