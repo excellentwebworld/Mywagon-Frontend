@@ -15,6 +15,7 @@ const KPIS: KpiConfig[] = [
   { key: 'active', labelKey: 'activePartners', colorFn: () => 'var(--success)' },
   { key: 'carriers', labelKey: 'carrierPartners', colorFn: () => '#2563EB' },
   { key: 'freelancers', labelKey: 'freelancerPartners', colorFn: () => 'var(--accent)' },
+  { key: 'shippers', labelKey: 'shipperPartners', colorFn: () => 'var(--success)' },
   { key: 'invited', labelKey: 'invitedPartners', colorFn: () => 'var(--info, #0EA5E9)' },
   { key: 'suspended', labelKey: 'suspendedPartners', colorFn: (v) => (v > 0 ? 'var(--warning)' : 'var(--text-tertiary)') },
 ];
@@ -24,6 +25,7 @@ const COUNT_KEY_MAP: Record<string, keyof Props['kpiCounts']> = {
   active: 'active',
   carriers: 'carriers',
   freelancers: 'freelancers',
+  shippers: 'shippers',
   invited: 'invited',
   suspended: 'suspended',
 };
