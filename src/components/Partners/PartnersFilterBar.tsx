@@ -9,7 +9,7 @@ type Props = Pick<
   | 'searchQuery'
   | 'setSearchQuery'
   | 'activeFilters'
-  | 'toggleBarFilter'
+  | 'applyFilters'
   | 'clearAllFilters'
   | 'openFilterDropdown'
   | 'toggleFilterDropdown'
@@ -24,7 +24,7 @@ export const PartnersFilterBar: React.FC<Props> = ({
   searchQuery,
   setSearchQuery,
   activeFilters,
-  toggleBarFilter,
+  applyFilters,
   clearAllFilters,
   openFilterDropdown,
   toggleFilterDropdown,
@@ -33,6 +33,26 @@ export const PartnersFilterBar: React.FC<Props> = ({
   closeDetailPanel,
   subscriptionBlocked,
 }) => {
+  const [tempFilters, setTempFilters] = React.useState<ActiveFilters>(activeFilters);
+
+  React.useEffect(() => {
+    if (openFilterDropdown) {
+      setTempFilters(activeFilters);
+    }
+  }, [openFilterDropdown, activeFilters]);
+
+  const toggleTempFilter = <K extends keyof ActiveFilters>(
+    category: K,
+    value: ActiveFilters[K][number]
+  ) => {
+    setTempFilters((prev) => {
+      const arr = prev[category] as unknown[];
+      const idx = arr.indexOf(value);
+      const next = idx >= 0 ? arr.filter((_, i) => i !== idx) : [...arr, value];
+      return { ...prev, [category]: next as any };
+    });
+  };
+
   const hasFilters =
     searchQuery.length > 0 ||
     activeFilters.status.length > 0 ||
@@ -89,10 +109,10 @@ export const PartnersFilterBar: React.FC<Props> = ({
             {statusOptions.map(({ value, label }) => (
               <div
                 key={value}
-                className={`ptn-fdd-item${activeFilters.status.includes(value) ? ' selected' : ''}`}
-                onClick={() => toggleBarFilter('status', value)}
+                className={`ptn-fdd-item${tempFilters.status.includes(value) ? ' selected' : ''}`}
+                onClick={() => toggleTempFilter('status', value)}
               >
-                <span className="ptn-fdd-check">{activeFilters.status.includes(value) ? '✓' : ''}</span>
+                <span className="ptn-fdd-check">{tempFilters.status.includes(value) ? '✓' : ''}</span>
                 {label}
               </div>
             ))}
@@ -100,8 +120,18 @@ export const PartnersFilterBar: React.FC<Props> = ({
           <div className="ptn-fdd-actions">
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-secondary btn-sm"
               onClick={closeFilterDropdown}
+            >
+              {t('cancel')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                applyFilters(tempFilters);
+                closeFilterDropdown();
+              }}
             >
               {t('apply')}
             </button>
@@ -123,11 +153,11 @@ export const PartnersFilterBar: React.FC<Props> = ({
             {truckCategories.map((cat) => (
               <div
                 key={cat.id}
-                className={`ptn-fdd-item${activeFilters.capability.includes(cat.id) ? ' selected' : ''}`}
-                onClick={() => toggleBarFilter('capability', cat.id)}
+                className={`ptn-fdd-item${tempFilters.capability.includes(cat.id) ? ' selected' : ''}`}
+                onClick={() => toggleTempFilter('capability', cat.id)}
               >
                 <span className="ptn-fdd-check">
-                  {activeFilters.capability.includes(cat.id) ? '✓' : ''}
+                  {tempFilters.capability.includes(cat.id) ? '✓' : ''}
                 </span>
                 {cat.name}
               </div>
@@ -136,8 +166,18 @@ export const PartnersFilterBar: React.FC<Props> = ({
           <div className="ptn-fdd-actions">
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-secondary btn-sm"
               onClick={closeFilterDropdown}
+            >
+              {t('cancel')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                applyFilters(tempFilters);
+                closeFilterDropdown();
+              }}
             >
               {t('apply')}
             </button>

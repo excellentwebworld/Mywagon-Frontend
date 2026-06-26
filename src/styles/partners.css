@@ -197,6 +197,7 @@
   border-top: 1.5px solid var(--border);
   margin-top: 8px;
   display: flex;
+  gap: 8px;
 }
 .ptn-fdd-actions button {
   width: 100%;
