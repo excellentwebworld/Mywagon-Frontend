@@ -98,6 +98,7 @@ export const Header: React.FC<HeaderProps> = ({
           title={sidebarCollapsed ? t('navExpandMenu') : t('navCollapseMenu')}
         >
           <svg
+            style={{ height: "22px", width: "22px" }}
             width="20"
             height="20"
             viewBox="0 0 24 24"
