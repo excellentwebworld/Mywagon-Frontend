@@ -32,7 +32,7 @@ function SortColumnHeader({
   label: string;
   field: ErpOrderTableSortField;
   sortField: ErpOrderSortField;
-  sortDir: 'asc' | 'desc';
+  sortDir: 'asc' | 'desc' | '';
   onSort: (field: ErpOrderTableSortField) => void;
   className?: string;
 }) {
@@ -60,7 +60,7 @@ type Props = {
   orders: ErpOrder[];
   listLoading: boolean;
   sortField: ErpOrderSortField;
-  sortDir: 'asc' | 'desc';
+  sortDir: 'asc' | 'desc' | '';
   doSort: (field: ErpOrderTableSortField) => void;
   openDrawer: (id: string) => void;
   statusLabel: (status: ErpOrder['status']) => string;

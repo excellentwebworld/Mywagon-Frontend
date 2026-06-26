@@ -52,7 +52,7 @@ export const partnersService = {
     page: number,
     perPage: number,
     sortField: PartnersSortField,
-    sortDir: 'asc' | 'desc'
+    sortDir: 'asc' | 'desc' |''
   ): Promise<{ partners: Partner[]; meta: ApiListMeta }> {
     const params = buildListParams(facet, statuses, capabilities, search, page, perPage, sortField, sortDir);
     const result = await this.listPartners(params);

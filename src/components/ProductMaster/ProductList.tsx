@@ -15,7 +15,7 @@ function SortColumnHeader({
   label: string;
   field: ProductMasterSortField;
   sortField: ProductMasterSortField;
-  sortDir: 'asc' | 'desc';
+  sortDir: 'asc' | 'desc' | '';
   onSort: (field: ProductMasterSortField) => void;
 }) {
   const isActive = sortField === field;

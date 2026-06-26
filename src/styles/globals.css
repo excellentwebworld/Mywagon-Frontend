@@ -419,6 +419,18 @@ a { color: inherit; text-decoration: none; }
 .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
 .form-input::placeholder { color: var(--text-tertiary); }
 
+.mf.has-error .form-input,
+.mf.has-error input {
+  border-color: var(--danger, #dc2626) !important;
+}
+
+.field-error {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--danger, #dc2626);
+  line-height: 1.35;
+}
+
 /* ════════════════════════════════════════
    COMPONENTS — Tabs
    ════════════════════════════════════════ */
@@ -538,7 +550,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   border-radius: var(--radius-xl);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.12);
   width: 100% !important;
-  max-width: 650px !important;
+  max-width: min(90vw, 900px) !important;
   max-height: min(90vh, 900px);
   display: flex;
   flex-direction: column;

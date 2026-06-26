@@ -274,7 +274,7 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
                   />
                 </div>
 
-                <div className={fieldClass(showError('tags'))}>
+                <div className={fieldClass(showError('tags'))} style={{ marginTop: '1rem' }}>
                   <label>{t('tags')}</label>
                   <input
                     name="tags"

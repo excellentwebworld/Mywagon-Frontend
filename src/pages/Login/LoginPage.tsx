@@ -128,7 +128,7 @@ export const LoginPage: React.FC = () => {
 
                 <div className="shipper-login-header ">
                   <a href="/login" className="shipper-login-logo-link mt-2">
-                    <img src={fullLogo} alt={t('appName')} className="shipper-login-logo" height={48} />
+                    <img src={fullLogo} alt={t('appName')} className="shipper-login-logo" height={35} />
                   </a>
                   <p className="shipper-login-para">{t('loginDescription')}</p>
                 </div>

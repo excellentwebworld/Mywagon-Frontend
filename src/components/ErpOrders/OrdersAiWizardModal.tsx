@@ -69,6 +69,7 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
   const [rows, setRows] = useState<OrderPreviewRow[]>([]);
   const [fileHeaders, setFileHeaders] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [missingCols, setMissingCols] = useState<string[]>([]);
   const [importResult, setImportResult] = useState<{ created: number; updated: number; failed: number } | null>(
     null
   );
@@ -84,6 +85,7 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
     setRows([]);
     setFileHeaders([]);
     setError(null);
+    setMissingCols([]);
     setImportResult(null);
     abortRef.current = false;
   }, []);
@@ -108,6 +110,7 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
     }
     setFile(selected);
     setError(null);
+    setMissingCols([]);
   };
 
   const validateAcceptedRows = useCallback((): AiMappedOrder[] | null => {
@@ -134,11 +137,45 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
     return toImport;
   }, [rows, showToast, t]);
 
+  const getColName = (colKey: string) => {
+    const norm = colKey.toLowerCase();
+    if (norm.includes('order') || norm.includes('id') || norm.includes('ref')) {
+      return t('erpOrdersColOrderId') || 'Order ID';
+    }
+    if (norm.includes('delivery') || norm.includes('date') || norm.includes('due') || norm.includes('require')) {
+      return t('erpOrdersColDeliveryDate') || 'Delivery Date';
+    }
+    return colKey;
+  };
+
+  const isOrderIdMissing = missingCols.some(c => {
+    const norm = c.toLowerCase();
+    return norm.includes('order') || norm.includes('id') || norm.includes('ref');
+  });
+
+  const isDeliveryDateMissing = missingCols.some(c => {
+    const norm = c.toLowerCase();
+    return norm.includes('delivery') || norm.includes('date') || norm.includes('due') || norm.includes('require');
+  });
+
+  const getColStatus = (colKey: 'order_id' | 'delivery_date'): 'found' | 'missing' | 'neutral' => {
+    if (!file) return 'neutral';
+    if (error) {
+      if (missingCols.length > 0) {
+        const isMissing = colKey === 'order_id' ? isOrderIdMissing : isDeliveryDateMissing;
+        return isMissing ? 'missing' : 'found';
+      }
+      return 'neutral';
+    }
+    return 'neutral';
+  };
+
   const runTransform = async () => {
     if (!file) return;
     setStep('processing');
     setProcessingMode('transform');
     setError(null);
+    setMissingCols([]);
     abortRef.current = false;
 
     try {
@@ -157,7 +194,16 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
       if (err instanceof ApiError && err.data) {
         const data = err.data as AiOrdersTransformErrorData;
         if (data.error_type === 'missing_columns') {
-          setError(t('ordersAiWizardMissingCols', { count: data.missing_columns?.length ?? 0 }));
+          const missing = data.missing_columns ?? [];
+          setMissingCols(missing);
+          if (missing.length > 0) {
+            const missingNames = missing.map(getColName);
+            setError(
+              `${t('ordersAiWizardMissingCols', { count: missing.length })}: ${missingNames.join(', ')}`
+            );
+          } else {
+            setError(t('ordersAiWizardGenericError'));
+          }
         } else {
           setError(err.message);
         }
@@ -192,8 +238,8 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
   if (!isOpen) return null;
 
   const requiredCols = [
-    { label: t('erpOrdersColOrderId'), desc: t('ordersAiWizardReqOrderIdDesc') },
-    { label: t('erpOrdersColDeliveryDate'), desc: t('ordersAiWizardReqDeliveryDesc') },
+    { key: 'order_id' as const, label: t('erpOrdersColOrderId'), desc: t('ordersAiWizardReqOrderIdDesc') },
+    { key: 'delivery_date' as const, label: t('erpOrdersColDeliveryDate'), desc: t('ordersAiWizardReqDeliveryDesc') },
   ];
 
   const acceptedCount = rows.filter((r) => r.status === 'accepted').length;
@@ -290,7 +336,16 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
                 />
               </div>
 
-              {error && <div className="ai-error-detail-box" style={{ marginBottom: 16 }}>{error}</div>}
+              {error && (
+                <div className="ai-error-detail-box" style={{ marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#EF4444', flexShrink: 0, marginTop: 1 }}>
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <span style={{ fontSize: 12, lineHeight: '1.5', color: '#991B1B', fontWeight: 500 }}>{error}</span>
+                </div>
+              )}
 
               <div className="ai-req-cols-box" style={{ marginBottom: 16 }}>
                 <div className="ai-req-cols-title">
@@ -301,15 +356,23 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
                   {t('ordersAiWizardRequiredCols')}
                 </div>
                 <div className="ai-req-cols-grid">
-                  {requiredCols.map((col) => (
-                    <div key={col.label} className="ai-req-col-item ai-req-col-found">
-                      <div className="ai-req-col-status">✓</div>
-                      <div className="ai-req-col-info">
-                        <div className="ai-req-col-label">{col.label}</div>
-                        <div className="ai-req-col-desc">{col.desc}</div>
+                  {requiredCols.map((col) => {
+                    const status = getColStatus(col.key);
+                    const config = {
+                      found: { className: 'ai-req-col-found', icon: '✓' },
+                      missing: { className: 'ai-req-col-missing', icon: '✕' },
+                      neutral: { className: 'ai-req-col-neutral', icon: '•' },
+                    }[status];
+                    return (
+                      <div key={col.label} className={`ai-req-col-item ${config.className}`}>
+                        <div className="ai-req-col-status">{config.icon}</div>
+                        <div className="ai-req-col-info">
+                          <div className="ai-req-col-label">{col.label}</div>
+                          <div className="ai-req-col-desc">{col.desc}</div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
