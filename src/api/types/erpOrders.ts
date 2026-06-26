@@ -69,6 +69,7 @@ export interface ListErpOrdersParams {
   sort_dir?: 'asc' | 'desc';
   page?: number;
   per_page?: number;
+  timezone?: string;
 }
 
 export interface PaginatedErpOrdersResult {

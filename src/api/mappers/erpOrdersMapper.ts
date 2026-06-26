@@ -157,7 +157,10 @@ export function buildExportParams(
     1,
     20
   );
-  return params;
+  return {
+    ...params,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  };
 }
 
 export { STATUS_LABELS };

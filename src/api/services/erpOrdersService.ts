@@ -31,6 +31,7 @@ function exportParamsToQuery(params: Omit<ListErpOrdersParams, 'page' | 'per_pag
   if (params.unlinked) query.set('unlinked', '1');
   if (params.sort) query.set('sort', params.sort);
   if (params.sort_dir) query.set('sort_dir', params.sort_dir);
+  if (params.timezone) query.set('timezone', params.timezone);
   return query;
 }
 
