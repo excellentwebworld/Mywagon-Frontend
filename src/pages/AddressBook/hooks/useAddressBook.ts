@@ -38,8 +38,9 @@ export function useAddressBook() {
   const [companySaving, setCompanySaving] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const [activeNode, setActiveNode] = useState('all');
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const [activeNode, setActiveNode] = useState(() => searchParams.get('node') || 'all');
   const currentPage = parseInt(searchParams.get('page') || '1', 10) || 1;
   const setCurrentPage = (page: number | ((prev: number) => number)) => {
     setSearchParams(
@@ -53,10 +54,35 @@ export function useAddressBook() {
     );
   };
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get('search') || '');
   const [selectedLoc, setSelectedLoc] = useState<LocationItem | null>(null);
   const [sortField, setSortField] = useState<AddressBookSortField>('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc' | ''>('');
+
+  // Synchronize state changes to URL query parameters
+  useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      
+      if (activeNode === 'all') next.delete('node');
+      else next.set('node', activeNode);
+
+      if (!debouncedSearch) next.delete('search');
+      else next.set('search', debouncedSearch);
+
+      return next;
+    }, { replace: true });
+  }, [activeNode, debouncedSearch, setSearchParams]);
+
+  // Synchronize URL query parameters back to state (for back/forward navigation)
+  useEffect(() => {
+    setActiveNode(searchParams.get('node') || 'all');
+    
+    const q = searchParams.get('search') || '';
+    setSearchQuery(q);
+    setDebouncedSearch(q);
+  }, [searchParams]);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createStep, setCreateStep] = useState(1);
@@ -75,7 +101,6 @@ export function useAddressBook() {
   const [archiveConfirmLoc, setArchiveConfirmLoc] = useState<LocationItem | null>(null);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);

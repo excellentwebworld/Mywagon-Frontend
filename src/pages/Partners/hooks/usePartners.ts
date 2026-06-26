@@ -54,10 +54,12 @@ export function usePartners() {
   const [error, setError] = useState<string | null>(null);
   const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
 
-  const [facetFilter, setFacetFilter] = useState<FacetFilter>('all');
-  const [kpiFilter, setKpiFilter] = useState<KpiFilter>('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [facetFilter, setFacetFilter] = useState<FacetFilter>(() => (searchParams.get('facet') as FacetFilter) || 'all');
+  const [kpiFilter, setKpiFilter] = useState<KpiFilter>(() => (searchParams.get('kpi') as KpiFilter) || '');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get('search') || '');
   const [sortField, setSortField] = useState<PartnersSortField>('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc' | ''>('');
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
@@ -66,7 +68,6 @@ export function usePartners() {
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<OpenSections>(EMPTY_SECTIONS);
 
-  const [searchParams, setSearchParams] = useSearchParams();
   const currentPage = parseInt(searchParams.get('page') || '1', 10) || 1;
   const setCurrentPage = (page: number | ((prev: number) => number)) => {
     setSearchParams(
@@ -80,6 +81,34 @@ export function usePartners() {
     );
   };
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
+
+  // Synchronize state changes to URL query parameters
+  useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      
+      if (facetFilter === 'all') next.delete('facet');
+      else next.set('facet', facetFilter);
+      
+      if (!kpiFilter) next.delete('kpi');
+      else next.set('kpi', kpiFilter);
+
+      if (!debouncedSearch) next.delete('search');
+      else next.set('search', debouncedSearch);
+
+      return next;
+    }, { replace: true });
+  }, [facetFilter, kpiFilter, debouncedSearch, setSearchParams]);
+
+  // Synchronize URL query parameters back to state (for back/forward navigation)
+  useEffect(() => {
+    setFacetFilter((searchParams.get('facet') as FacetFilter) || 'all');
+    setKpiFilter((searchParams.get('kpi') as KpiFilter) || '');
+    
+    const q = searchParams.get('search') || '';
+    setSearchQuery(q);
+    setDebouncedSearch(q);
+  }, [searchParams]);
 
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteForm, setInviteForm] = useState<InviteFormState>(EMPTY_INVITE);

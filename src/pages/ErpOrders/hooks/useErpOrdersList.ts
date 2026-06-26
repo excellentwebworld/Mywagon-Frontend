@@ -30,14 +30,18 @@ export function useErpOrdersList() {
   const { showToast } = useApp();
   const queryClient = useQueryClient();
 
-  const [kpiFilter, setKpiFilter] = useState<ErpOrderKpiFilter>('');
-  const [filters, setFilters] = useState<ErpOrdersFilterState>(DEFAULT_FILTERS);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [kpiFilter, setKpiFilter] = useState<ErpOrderKpiFilter>(() => (searchParams.get('kpi') as ErpOrderKpiFilter) || '');
+  const [filters, setFilters] = useState<ErpOrdersFilterState>(() => ({
+    highPriority: searchParams.get('priority') === 'true',
+  }));
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get('search') || '');
   const [sortField, setSortField] = useState<ErpOrderSortField>('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc' | ''>('');
-  const [searchParams, setSearchParams] = useSearchParams();
+
   const currentPage = parseInt(searchParams.get('page') || '1', 10) || 1;
   const setCurrentPage = (page: number | ((prev: number) => number)) => {
     setSearchParams(
@@ -51,6 +55,37 @@ export function useErpOrdersList() {
     );
   };
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
+
+  // Synchronize state changes to URL query parameters
+  useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      
+      if (!kpiFilter) next.delete('kpi');
+      else next.set('kpi', kpiFilter);
+
+      if (!debouncedSearch) next.delete('search');
+      else next.set('search', debouncedSearch);
+
+      if (!filters.highPriority) next.delete('priority');
+      else next.set('priority', 'true');
+
+      return next;
+    }, { replace: true });
+  }, [kpiFilter, debouncedSearch, filters, setSearchParams]);
+
+  // Synchronize URL query parameters back to state (for back/forward navigation)
+  useEffect(() => {
+    setKpiFilter((searchParams.get('kpi') as ErpOrderKpiFilter) || '');
+    
+    const q = searchParams.get('search') || '';
+    setSearchQuery(q);
+    setDebouncedSearch(q);
+
+    setFilters({
+      highPriority: searchParams.get('priority') === 'true',
+    });
+  }, [searchParams]);
 
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);

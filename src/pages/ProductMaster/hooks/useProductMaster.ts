@@ -29,22 +29,23 @@ export function useProductMaster() {
   const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const [viewMode, setViewMode] = useState<ViewMode>('skus');
-  const [activeCat, setActiveCat] = useState('all');
-  const [activeType, setActiveType] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [viewMode, setViewMode] = useState<ViewMode>(() => (searchParams.get('view') as ViewMode) || 'skus');
+  const [activeCat, setActiveCat] = useState(() => searchParams.get('cat') || 'all');
+  const [activeType, setActiveType] = useState(() => searchParams.get('type') || 'all');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get('search') || '');
   const [selectedItem, setSelectedItem] = useState<SKU | ProductType | null>(null);
   const [selectedKind, setSelectedKind] = useState<SelectedKind>('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const [filterActive, setFilterActive] = useState('');
-  const [filterCat, setFilterCat] = useState('');
-  const [filterUnmapped, setFilterUnmapped] = useState(false);
+  const [filterActive, setFilterActive] = useState(() => searchParams.get('status') || '');
+  const [filterCat, setFilterCat] = useState(() => searchParams.get('filter_cat') || '');
+  const [filterUnmapped, setFilterUnmapped] = useState(() => searchParams.get('unmapped') === 'true');
   const [sortField, setSortField] = useState<ProductMasterSortField>('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc' | ''>('');
 
-  const [searchParams, setSearchParams] = useSearchParams();
   const currentPage = parseInt(searchParams.get('page') || '1', 10) || 1;
   const setCurrentPage = (page: number | ((prev: number) => number)) => {
     setSearchParams(
@@ -58,6 +59,50 @@ export function useProductMaster() {
     );
   };
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
+
+  // Synchronize state changes to URL query parameters
+  useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      
+      if (viewMode === 'skus') next.delete('view');
+      else next.set('view', viewMode);
+      
+      if (activeCat === 'all') next.delete('cat');
+      else next.set('cat', activeCat);
+      
+      if (activeType === 'all') next.delete('type');
+      else next.set('type', activeType);
+
+      if (!filterActive) next.delete('status');
+      else next.set('status', filterActive);
+
+      if (!filterCat) next.delete('filter_cat');
+      else next.set('filter_cat', filterCat);
+
+      if (!filterUnmapped) next.delete('unmapped');
+      else next.set('unmapped', 'true');
+
+      if (!debouncedSearch) next.delete('search');
+      else next.set('search', debouncedSearch);
+
+      return next;
+    }, { replace: true });
+  }, [viewMode, activeCat, activeType, filterActive, filterCat, filterUnmapped, debouncedSearch, setSearchParams]);
+
+  // Synchronize URL query parameters back to state (for back/forward navigation)
+  useEffect(() => {
+    setViewMode((searchParams.get('view') as ViewMode) || 'skus');
+    setActiveCat(searchParams.get('cat') || 'all');
+    setActiveType(searchParams.get('type') || 'all');
+    setFilterActive(searchParams.get('status') || '');
+    setFilterCat(searchParams.get('filter_cat') || '');
+    setFilterUnmapped(searchParams.get('unmapped') === 'true');
+    
+    const q = searchParams.get('search') || '';
+    setSearchQuery(q);
+    setDebouncedSearch(q);
+  }, [searchParams]);
 
   const [addDropdownOpen, setAddDropdownOpen] = useState(false);
   const [isSkuOpen, setIsSkuOpen] = useState(false);
