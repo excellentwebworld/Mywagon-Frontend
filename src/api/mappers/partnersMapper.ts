@@ -111,6 +111,8 @@ export function kpiToFacet(kpi: KpiFilter): FacetFilter | '' {
       return 'carrier_company';
     case 'freelancers':
       return 'freelancer_driver';
+    case 'shippers':
+      return 'supplier';
     case 'invited':
       return 'st_invited';
     case 'suspended':
@@ -151,6 +153,7 @@ export function summaryToKpiCounts(summary: ApiPartnerSummary) {
     active: summary.active,
     carriers: summary.carrier_companies,
     freelancers: summary.freelancer_drivers,
+    shippers: summary.shippers,
     invited: summary.invited,
     suspended: summary.suspended,
   };

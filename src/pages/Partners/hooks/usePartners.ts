@@ -173,7 +173,7 @@ export function usePartners() {
 
   const kpiCounts = useMemo(
     () => (summaryQuery.data ? summaryToKpiCounts(summaryQuery.data) : {
-      total: 0, active: 0, carriers: 0, freelancers: 0, invited: 0, suspended: 0,
+      total: 0, active: 0, carriers: 0, freelancers: 0, shippers: 0, invited: 0, suspended: 0,
     }),
     [summaryQuery.data]
   );

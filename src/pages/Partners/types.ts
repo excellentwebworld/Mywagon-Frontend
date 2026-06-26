@@ -88,6 +88,7 @@ export type KpiFilter =
   | 'active'
   | 'carriers'
   | 'freelancers'
+  | 'shippers'
   | 'invited'
   | 'suspended';
 
