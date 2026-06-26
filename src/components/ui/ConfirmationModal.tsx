@@ -11,6 +11,7 @@ export interface ConfirmationModalProps {
   cancelText?: string;
   type?: 'danger' | 'warning' | 'success' | 'info';
   confirmLoading?: boolean;
+  className?: string;
 }
 
 export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -23,6 +24,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   cancelText = 'Cancel',
   type = 'danger',
   confirmLoading = false,
+  className,
 }) => {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -96,7 +98,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
   return createPortal(
     <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+      <div className={`modal modal-sm ${className || ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 style={{ color: titleColor }}>{title}</h2>
           <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={onClose} aria-label="Close">

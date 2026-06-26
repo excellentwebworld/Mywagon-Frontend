@@ -565,11 +565,12 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 }
 
 /* Width variants */
-.modal-sm { max-width: 460px; }
-.modal-md { max-width: 600px; }
-.modal-lg { max-width: 800px; }
-.modal-xl { max-width: 1000px; }
-.modal-form { max-width: 800px; }
+.modal-xs { max-width: 380px !important; }
+.modal-sm { max-width: 460px !important; }
+.modal-md { max-width: 600px !important; }
+.modal-lg { max-width: 800px !important; }
+.modal-xl { max-width: 1000px !important; }
+.modal-form { max-width: 800px !important; }
 
 .modal-header,
 .modal-h {

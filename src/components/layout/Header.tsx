@@ -491,6 +491,7 @@ export const Header: React.FC<HeaderProps> = ({
         confirmText={t('signOut')}
         cancelText={t('cancel')}
         confirmLoading={isSigningOut}
+        className="modal-xs"
         message={
           <>
             <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
