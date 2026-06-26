@@ -1302,7 +1302,7 @@
     margin-right: 4px;
 }
 
-.ai-preview-table-wrap { max-height: 340px; }
+.ai-preview-table-wrap { max-height: 440px; min-height: 340px !important; }
 
 .ai-preview-col-actions {
     width: 108px;

@@ -17,7 +17,8 @@ export const ProductMaster: React.FC = () => {
   const pm = useProductMaster();
 
   return (
-    <div className="pm-container anim">
+    <>
+      <div className="pm-container anim">
       <div className="pm-sticky-header">
         <ProductMasterHeader
           showToast={pm.showToast}
@@ -121,8 +122,9 @@ export const ProductMaster: React.FC = () => {
           loadSkuDetail={pm.loadSkuDetail}
         />
       </div>
+    </div>
 
-      <ProductMasterModals {...pm} />
+    <ProductMasterModals {...pm} />
 
       <AiWizardModal
         isOpen={pm.isAiWizardOpen}
@@ -176,6 +178,6 @@ export const ProductMaster: React.FC = () => {
           </>
         }
       />
-    </div>
+    </>
   );
 };
