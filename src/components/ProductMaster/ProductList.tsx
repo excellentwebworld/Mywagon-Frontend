@@ -141,13 +141,13 @@ export const ProductList: React.FC<Props> = ({
 
       {viewMode === 'types' ? (
         <div className={`types-grid table-scroll-host${tableBusy ? ' loading-active' : ''}`}>
-          {filteredTypes.length === 0 && !tableBusy ? (
+          {tableBusy ? (
+            <ListSkeleton type="grid" rowCount={12} />
+          ) : filteredTypes.length === 0 ? (
             <div className="empty-state">
               <div className="ico">📦</div>
               <div className="et">{t('noTypes')}</div>
             </div>
-          ) : filteredTypes.length === 0 && tableBusy ? (
-            <ListSkeleton type="grid" rowCount={8} />
           ) : (
             filteredTypes.map((x) => {
               const cat = categories.find((c) => c.id === x.catId);
