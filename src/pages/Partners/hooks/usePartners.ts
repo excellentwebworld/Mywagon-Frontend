@@ -71,10 +71,6 @@ export function usePartners() {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteForm, setInviteForm] = useState<InviteFormState>(EMPTY_INVITE);
   const [genericModal, setGenericModal] = useState<GenericModalType>(null);
-  const [laneOrigin, setLaneOrigin] = useState('');
-  const [laneDest, setLaneDest] = useState('');
-  const [laneUnit, setLaneUnit] = useState<'load' | 'pallet'>('load');
-  const [lanePrice, setLanePrice] = useState('');
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -351,31 +347,17 @@ export function usePartners() {
 
   const openGenericModal = useCallback((type: GenericModalType) => {
     setGenericModal(type);
-    if (type === 'addLane') {
-      setLaneOrigin('');
-      setLaneDest('');
-      setLanePrice('');
-      setLaneUnit('load');
-    }
   }, []);
 
   const closeGenericModal = useCallback(() => setGenericModal(null), []);
 
-  const saveContractLane = useCallback(() => {
-    if (!selectedPartner || !laneOrigin.trim() || !laneDest.trim() || !lanePrice) {
-      showToast(t('fillRequired'), 'error');
-      return;
-    }
+  const saveContractLane = useCallback((values: { origin_city: string; destination_city: string; price: number; unit: 'load' | 'pallet' }) => {
+    if (!selectedPartner) return;
     laneMutation.mutate({
       id: selectedPartner.id,
-      payload: {
-        origin_city: laneOrigin.trim(),
-        destination_city: laneDest.trim(),
-        price: parseFloat(lanePrice),
-        unit: laneUnit,
-      },
+      payload: values,
     });
-  }, [selectedPartner, laneOrigin, laneDest, lanePrice, laneUnit, laneMutation, showToast, t]);
+  }, [selectedPartner, laneMutation]);
 
   const executeConfirm = useCallback(() => {
     if (!confirmAction) return;
@@ -464,14 +446,6 @@ export function usePartners() {
     inviteForm,
     setInviteForm,
     genericModal,
-    laneOrigin,
-    setLaneOrigin,
-    laneDest,
-    setLaneDest,
-    laneUnit,
-    setLaneUnit,
-    lanePrice,
-    setLanePrice,
     confirmAction,
     setConfirmAction,
     executeConfirm,
@@ -500,6 +474,7 @@ export function usePartners() {
     closeGenericModal,
     saveContractLane,
     deleteContractLane,
+    laneLoading: laneMutation.isPending,
   };
 }
 

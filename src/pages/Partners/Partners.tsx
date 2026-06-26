@@ -143,15 +143,8 @@ const Partners: React.FC = () => {
         t={state.t}
         genericModal={state.genericModal}
         closeGenericModal={state.closeGenericModal}
-        laneOrigin={state.laneOrigin}
-        setLaneOrigin={state.setLaneOrigin}
-        laneDest={state.laneDest}
-        setLaneDest={state.setLaneDest}
-        laneUnit={state.laneUnit}
-        setLaneUnit={state.setLaneUnit}
-        lanePrice={state.lanePrice}
-        setLanePrice={state.setLanePrice}
         saveContractLane={state.saveContractLane}
+        laneLoading={state.laneLoading}
       />
 
       {confirmConfig && (
