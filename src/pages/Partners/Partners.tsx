@@ -19,6 +19,7 @@ const Partners: React.FC = () => {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        state.closeFilterDropdown();
         state.closeInviteModal();
         state.closeGenericModal();
         state.closeDetailPanel();
@@ -27,7 +28,13 @@ const Partners: React.FC = () => {
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [state.closeInviteModal, state.closeGenericModal, state.closeDetailPanel, state.setConfirmAction]);
+  }, [
+    state.closeFilterDropdown,
+    state.closeInviteModal,
+    state.closeGenericModal,
+    state.closeDetailPanel,
+    state.setConfirmAction,
+  ]);
 
   const confirmConfig = useMemo(() => {
     if (!state.confirmAction) return null;
@@ -75,6 +82,7 @@ const Partners: React.FC = () => {
         clearAllFilters={state.clearAllFilters}
         openFilterDropdown={state.openFilterDropdown}
         toggleFilterDropdown={state.toggleFilterDropdown}
+        closeFilterDropdown={state.closeFilterDropdown}
         truckCategories={state.truckCategories}
         closeDetailPanel={state.closeDetailPanel}
         subscriptionBlocked={state.subscriptionBlocked}

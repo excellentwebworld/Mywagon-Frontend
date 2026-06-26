@@ -300,6 +300,10 @@ export function usePartners() {
     setOpenFilterDropdown((prev) => (prev === key ? '' : key));
   }, []);
 
+  const closeFilterDropdown = useCallback(() => {
+    setOpenFilterDropdown('');
+  }, []);
+
   const toggleBarFilter = useCallback(<K extends keyof ActiveFilters>(category: K, value: ActiveFilters[K][number]) => {
     setActiveFilters((prev) => {
       const arr = prev[category] as unknown[];
@@ -315,6 +319,7 @@ export function usePartners() {
     setKpiFilter('');
     setFacetFilter('all');
     setActiveFilters(EMPTY_FILTERS);
+    setOpenFilterDropdown('');
     setSelectedPartnerId(null);
     showToast(t('partnerFiltersCleared'));
   }, [showToast, t]);
@@ -448,6 +453,7 @@ export function usePartners() {
     selectFacet,
     selectKpi,
     toggleFilterDropdown,
+    closeFilterDropdown,
     toggleBarFilter,
     clearAllFilters,
     openDetailPanel,
