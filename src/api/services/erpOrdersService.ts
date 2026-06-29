@@ -35,6 +35,14 @@ function exportParamsToQuery(params: Omit<ListErpOrdersParams, 'page' | 'per_pag
   return query;
 }
 
+function browserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return 'UTC';
+  }
+}
+
 export const erpOrdersService = {
   async getSummary(): Promise<ApiErpOrderSummary> {
     const res = await apiGet<ApiErpOrderSummary>('/erp-orders/summary');
@@ -128,7 +136,11 @@ export const erpOrdersService = {
 
   async exportOrders(params: Omit<ListErpOrdersParams, 'page' | 'per_page'>): Promise<void> {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
-    const response = await fetch(`${API_BASE}/erp-orders/export?${exportParamsToQuery(params).toString()}`, {
+    const exportQuery = exportParamsToQuery({
+      ...params,
+      timezone: params.timezone ?? browserTimezone(),
+    });
+    const response = await fetch(`${API_BASE}/erp-orders/export?${exportQuery.toString()}`, {
       headers: {
         Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
