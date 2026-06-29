@@ -124,6 +124,7 @@ export interface AiMappedProduct {
 export interface AiTransformResult {
   products: AiMappedProduct[];
   file_headers: string[];
+  categories?: ApiReferenceCategory[];
 }
 
 export interface AiTransformErrorData {

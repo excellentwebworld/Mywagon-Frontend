@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ApiError, productMasterService } from '../../api';
-import type { AiMappedProduct, AiTransformErrorData, ApiImportResult } from '../../api/types/productMaster';
+import type { AiMappedProduct, AiTransformErrorData, ApiImportResult, ApiReferenceCategory } from '../../api/types/productMaster';
 import {
   AiWizardPreviewPanel,
   acceptedProducts,
@@ -104,6 +104,7 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
   const [running, setRunning] = useState(false);
   const [imported, setImported] = useState(false);
   const [importResult, setImportResult] = useState<ApiImportResult | null>(null);
+  const [transformCategories, setTransformCategories] = useState<ApiReferenceCategory[]>([]);
 
   const [errorTitle, setErrorTitle] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -116,11 +117,14 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
   const abortRef = useRef<AbortController | null>(null);
   const logStreamRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const referenceQuery = useQuery({
-    queryKey: ['product-master', 'reference'],
-    queryFn: () => productMasterService.getReferenceCategories(),
+  const allCategoriesQuery = useQuery({
+    queryKey: ['product-master', 'reference', 'all'],
+    queryFn: () => productMasterService.getAllReferenceCategories(),
     enabled: isOpen,
   });
+
+  const referenceCategories =
+    transformCategories.length > 0 ? transformCategories : (allCategoriesQuery.data ?? []);
 
   const acceptedCount = previewRows.filter((r) => r.status === 'accepted').length;
 
@@ -152,6 +156,7 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
     setRunning(false);
     setImported(false);
     setImportResult(null);
+    setTransformCategories([]);
     setErrorTitle('');
     setErrorMessage('');
     setErrorDetail(null);
@@ -248,6 +253,7 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
         clearTimers();
         setPreviewRows(initPreviewRows(result.products));
         setFileHeaders(result.file_headers);
+        setTransformCategories(result.categories ?? []);
         setRunning(false);
         abortRef.current = null;
         setSection('preview');
@@ -371,12 +377,12 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
     try {
       const result = await productMasterService.aiConfirmImport(toImport);
       clearTimers();
-      setStatusText(t('aiWizardImportDone'));
+      setStatusText(result.failed > 0 && result.success === 0 ? t('aiWizardImportFailed') : t('aiWizardImportDone'));
       setSubstatusText(t('aiWizardImportDoneSub'));
       setRunning(false);
       abortRef.current = null;
       setImportResult(result);
-      setImported(true);
+      setImported(result.success > 0);
 
       streamImportLogs(result, () => {
         setSection('result');
@@ -710,7 +716,7 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
                 rows={previewRows}
                 fileHeaders={fileHeaders}
                 inferredFields={missingFields}
-                referenceCategories={referenceQuery.data ?? []}
+                referenceCategories={referenceCategories}
                 t={t}
                 onRowsChange={setPreviewRows}
               />
@@ -777,6 +783,17 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
                   <div className="ai-done-stat-lbl">{t('failed')}</div>
                 </div>
               </div>
+              {hasFailures && (importResult.failures?.length ?? 0) > 0 && (
+                <div className="ai-terminal ai-import-result-log" style={{ marginTop: 16, textAlign: 'left', width: '100%' }}>
+                  <div className="ai-terminal-body">
+                    {importResult.failures.map((msg, i) => (
+                      <div key={`fail-${i}`} className="ai-log-entry error">
+                        <span>{msg}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="ai-wizard-footer ai-footer-center">
               <button type="button" className="btn ai-primary-btn" onClick={handleDone}>

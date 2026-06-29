@@ -186,8 +186,28 @@ export const productMasterService = {
   },
 
   async aiConfirmImport(products: AiMappedProduct[]): Promise<ApiImportResult> {
-    const res = await apiPost<ApiImportResult>('/product-master/ai/confirm-import', { products });
-    return res.data;
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const response = await fetch(`${API_BASE}/product-master/ai/confirm-import`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ products }),
+    });
+    const json = await response.json();
+    const data = json.data as ApiImportResult | undefined;
+
+    if (data && typeof data.total === 'number') {
+      return data;
+    }
+
+    if (!response.ok) {
+      throw new ApiError(json.message ?? 'Import failed', response.status, json.errors, json.data);
+    }
+
+    return data as ApiImportResult;
   },
 
   buildListParams: facetToListParams,
