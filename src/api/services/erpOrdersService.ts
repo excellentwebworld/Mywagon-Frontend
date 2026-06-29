@@ -136,13 +136,15 @@ export const erpOrdersService = {
 
   async exportOrders(params: Omit<ListErpOrdersParams, 'page' | 'per_page'>): Promise<void> {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const clientTimezone = params.timezone ?? browserTimezone();
     const exportQuery = exportParamsToQuery({
       ...params,
-      timezone: params.timezone ?? browserTimezone(),
+      timezone: clientTimezone,
     });
     const response = await fetch(`${API_BASE}/erp-orders/export?${exportQuery.toString()}`, {
       headers: {
         Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'X-Client-Timezone': clientTimezone,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
