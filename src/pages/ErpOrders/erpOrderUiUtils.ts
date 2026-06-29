@@ -1,4 +1,7 @@
 import type { ErpOrder } from './types';
+import { formatErpLastUpdate } from './erpDateTimeUtils';
+
+export { formatErpLastUpdate, getBrowserTimezone, parseUtcIsoDate } from './erpDateTimeUtils';
 
 export const ERP_SOURCE_STYLE = {
   icon: '📥',
@@ -41,10 +44,7 @@ export function formatShipDate(d: string): string {
 }
 
 export function formatDateTime(d: string): string {
-  if (!d) return '—';
-  const parsed = new Date(d);
-  if (Number.isNaN(parsed.getTime())) return d;
-  return parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return formatErpLastUpdate(d);
 }
 
 export function getOrderListTotals(order: Partial<ErpOrder> | null | undefined) {

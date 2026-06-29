@@ -7,6 +7,7 @@ import type {
   ListErpOrdersParams,
 } from '../types/erpOrders';
 import type { ErpOrder, ErpOrderLine, ErpOrderSortField } from '../../pages/ErpOrders/types';
+import { getBrowserTimezone } from '../../pages/ErpOrders/erpDateTimeUtils';
 
 const STATUS_LABELS: Record<ErpOrderStatus, string> = {
   unplanned: 'Unplanned',
@@ -159,7 +160,7 @@ export function buildExportParams(
   );
   return {
     ...params,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timezone: getBrowserTimezone(),
   };
 }
 
