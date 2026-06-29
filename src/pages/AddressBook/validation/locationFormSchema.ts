@@ -64,8 +64,8 @@ export const locationEditValidationSchema = Yup.object({
     .required('Dock type is required')
     .max(50)
     .test('valid-dock', 'Select a valid dock type', (v) => DOCK_TYPES.includes(v as (typeof DOCK_TYPES)[number])),
-  maxTruck: Yup.string().trim().required('Max truck length is required'),
-  maxWeight: Yup.string().trim().required('Max weight is required'),
+  maxTruck: Yup.string().trim(),
+  maxWeight: Yup.string().trim(),
   loadTime: Yup.string()
     .required('Estimated loading/unloading time is required')
     .test('min-load-time', 'Must be at least 1 minute', (v) => {

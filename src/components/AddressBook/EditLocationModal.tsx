@@ -467,7 +467,7 @@ export const EditLocationModal: React.FC<Props> = ({
             <div className="mf-grid">
               <div className={fieldClass(showError('maxTruck'))}>
                 <label htmlFor="edit-max-truck">
-                  Max Truck Length <span className="req">*</span>
+                  Max Truck Length (m)
                 </label>
                 <input
                   id="edit-max-truck"
@@ -485,7 +485,7 @@ export const EditLocationModal: React.FC<Props> = ({
               </div>
               <div className={fieldClass(showError('maxWeight'))}>
                 <label htmlFor="edit-max-weight">
-                  Max Weight <span className="req">*</span>
+                  Max Weight (T)
                 </label>
                 <input
                   id="edit-max-weight"
@@ -609,11 +609,11 @@ export const EditLocationModal: React.FC<Props> = ({
 
               <div className="review-row-grid">
                 <div className="review-row">
-                  <div className="review-label">Max Truck Length</div>
+                  <div className="review-label">Max Truck Length (m)</div>
                   <div className="review-val">{reviewValue(values.maxTruck)}</div>
                 </div>
                 <div className="review-row">
-                  <div className="review-label">Max Weight</div>
+                  <div className="review-label">Max Weight (T)</div>
                   <div className="review-val">{reviewValue(values.maxWeight)}</div>
                 </div>
               </div>

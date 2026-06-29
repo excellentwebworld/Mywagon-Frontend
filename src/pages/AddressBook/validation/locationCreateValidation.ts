@@ -34,8 +34,6 @@ export function validateCreateStep2(data: CreateLocationData): CreateFieldErrors
 export function validateCreateStep3(data: CreateLocationData): CreateFieldErrors {
   const errors: CreateFieldErrors = {};
   if (!data.dock?.trim()) errors.dock = 'Dock type is required';
-  if (!data.maxTruck?.trim()) errors.maxTruck = 'Max truck length is required';
-  if (!data.maxWeight?.trim()) errors.maxWeight = 'Max weight is required';
   if (!data.loadTime?.trim()) errors.loadTime = 'Estimated loading/unloading time is required';
   if (data.appt) {
     const timeRangeError = validateTimeRangesList(data.timeRanges);
