@@ -20,6 +20,8 @@ export interface ErpOrderLine {
   unit: string;
   weight: number | null;
   weightUnit: string;
+  /** AI wizard: fields empty in the uploaded source row. */
+  sourceEmptyFields?: string[];
 }
 
 export interface ErpOrder {

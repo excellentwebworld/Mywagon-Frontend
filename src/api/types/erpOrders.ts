@@ -99,6 +99,8 @@ export interface AiMappedOrderLine {
   weight?: number | null;
   weight_unit?: string | null;
   inferred?: { product?: boolean };
+  /** Fields with no value in the uploaded source row/column (from API). */
+  source_empty_fields?: string[];
 }
 
 export interface AiMappedOrder {
@@ -120,6 +122,8 @@ export interface AiMappedOrder {
     ship_from?: boolean;
     ship_to?: boolean;
   };
+  /** Header fields with no value in the uploaded source file (from API). */
+  source_empty_fields?: string[];
 }
 
 export interface AiOrdersTransformResult {

@@ -11,6 +11,8 @@ type Props = {
   skus: SKU[];
   onChange: (lines: ErpOrderLine[]) => void;
   onAddProduct?: (lineIndex: number) => void;
+  /** When true, unit/weight selects include an empty "—" option (AI import wizard). */
+  allowEmptySelects?: boolean;
 };
 
 function usedSkuIds(lines: ErpOrderLine[], excludeIndex?: number): Set<number> {
@@ -22,7 +24,14 @@ function usedSkuIds(lines: ErpOrderLine[], excludeIndex?: number): Set<number> {
   return used;
 }
 
-export const OrderProductLinesEditor: React.FC<Props> = ({ t, lines, skus, onChange, onAddProduct }) => {
+export const OrderProductLinesEditor: React.FC<Props> = ({
+  t,
+  lines,
+  skus,
+  onChange,
+  onAddProduct,
+  allowEmptySelects = false,
+}) => {
   const selectedSkuCount = useMemo(
     () => lines.filter((line) => line.productSkuId != null).length,
     [lines]
@@ -55,7 +64,20 @@ export const OrderProductLinesEditor: React.FC<Props> = ({ t, lines, skus, onCha
   };
 
   const updateLine = (index: number, patch: Partial<ErpOrderLine>) => {
-    const next = lines.map((line, i) => (i === index ? { ...line, ...patch } : line));
+    const next = lines.map((line, i) => {
+      if (i !== index) return line;
+      const merged = { ...line, ...patch };
+      const filledKeys = Object.keys(patch).filter((key) => {
+        const val = merged[key as keyof ErpOrderLine];
+        return val != null && String(val).trim() !== '';
+      });
+      const fieldMap: Record<string, string> = { unit: 'unit', weightUnit: 'weight_unit', weight: 'weight' };
+      const cleared = (merged.sourceEmptyFields ?? []).filter((f) => {
+        const patchKey = Object.entries(fieldMap).find(([, v]) => v === f)?.[0];
+        return !(patchKey && filledKeys.includes(patchKey));
+      });
+      return { ...merged, sourceEmptyFields: cleared };
+    });
     onChange(next);
   };
 
@@ -99,6 +121,7 @@ export const OrderProductLinesEditor: React.FC<Props> = ({ t, lines, skus, onCha
             onChange={(e) => updateLine(index, { quantity: e.target.value ? Number(e.target.value) : null })}
           />
           <select className="inp" value={line.unit} onChange={(e) => updateLine(index, { unit: e.target.value })}>
+            {allowEmptySelects && <option value="">—</option>}
             {QTY_UNIT_OPTIONS.map((u) => (
               <option key={u} value={u}>
                 {u}
@@ -113,6 +136,7 @@ export const OrderProductLinesEditor: React.FC<Props> = ({ t, lines, skus, onCha
             onChange={(e) => updateLine(index, { weight: e.target.value ? Number(e.target.value) : null })}
           />
           <select className="inp" value={line.weightUnit} onChange={(e) => updateLine(index, { weightUnit: e.target.value })}>
+            {allowEmptySelects && <option value="">—</option>}
             {WEIGHT_UNIT_OPTIONS.map((u) => (
               <option key={u} value={u}>
                 {u}

@@ -4,17 +4,21 @@ import { EMPTY_ORDER_LINE } from '../../pages/ErpOrders/types';
 
 export type OrderPreviewRowStatus = 'accepted' | 'rejected';
 
-export interface OrderPreviewRow {
-  id: string;
-  order: AiMappedOrder;
-  original: AiMappedOrder;
-  status: OrderPreviewRowStatus;
-  isEditing: boolean;
-}
+export type OrderHeaderField =
+  | 'order_reference'
+  | 'erp_reference'
+  | 'customer_name'
+  | 'company_entity_id'
+  | 'ship_date'
+  | 'delivery_date'
+  | 'origin_location_id'
+  | 'dest_location_id'
+  | 'ship_from'
+  | 'ship_to'
+  | 'notes'
+  | 'high_priority';
 
-export type OrderPreviewFilter = 'all' | 'accepted' | 'rejected' | 'edited' | 'inferred';
-
-const HEADER_FIELDS: (keyof AiMappedOrder)[] = [
+const HEADER_FIELDS: OrderHeaderField[] = [
   'order_reference',
   'erp_reference',
   'customer_name',
@@ -29,11 +33,31 @@ const HEADER_FIELDS: (keyof AiMappedOrder)[] = [
   'high_priority',
 ];
 
+export interface OrderPreviewRow {
+  id: string;
+  order: AiMappedOrder;
+  original: AiMappedOrder;
+  status: OrderPreviewRowStatus;
+  isEditing: boolean;
+  sourceEmptyFields: string[];
+}
+
+export type OrderPreviewFilter = 'all' | 'accepted' | 'rejected' | 'edited' | 'inferred';
+
+function cloneLine(line: AiMappedOrderLine): AiMappedOrderLine {
+  return {
+    ...line,
+    inferred: line.inferred ? { ...line.inferred } : undefined,
+    source_empty_fields: line.source_empty_fields ? [...line.source_empty_fields] : undefined,
+  };
+}
+
 function cloneOrder(order: AiMappedOrder): AiMappedOrder {
   return {
     ...order,
-    lines: (order.lines ?? []).map((line) => ({ ...line, inferred: line.inferred ? { ...line.inferred } : undefined })),
+    lines: (order.lines ?? []).map(cloneLine),
     inferred: order.inferred ? { ...order.inferred } : undefined,
+    source_empty_fields: order.source_empty_fields ? [...order.source_empty_fields] : undefined,
   };
 }
 
@@ -46,6 +70,7 @@ export function initOrderPreviewRows(orders: AiMappedOrder[]): OrderPreviewRow[]
       original: cloneOrder(o),
       status: 'accepted',
       isEditing: false,
+      sourceEmptyFields: [...(o.source_empty_fields ?? [])],
     };
   });
 }
@@ -74,11 +99,35 @@ export function isOrderRowEdited(row: OrderPreviewRow): boolean {
   return headerChanged || !linesEqual(row.original.lines, row.order.lines);
 }
 
+export function effectiveOrderFieldValue(row: OrderPreviewRow, field: string): string {
+  if (row.sourceEmptyFields.includes(field)) return '';
+  const val = row.order[field as keyof AiMappedOrder];
+  if (val == null) return '';
+  return String(val).trim();
+}
+
+export function effectiveLineFieldValue(line: AiMappedOrderLine, field: keyof AiMappedOrderLine): string {
+  if (line.source_empty_fields?.includes(field)) return '';
+  const val = line[field];
+  if (val == null) return '';
+  return String(val).trim();
+}
+
+export function isOrderHeaderFieldInferred(row: OrderPreviewRow, field: 'ship_from' | 'ship_to'): boolean {
+  if (row.sourceEmptyFields.includes(field)) return false;
+  const val = effectiveOrderFieldValue(row, field);
+  if (!val) return false;
+  return Boolean(row.order.inferred?.[field]);
+}
+
 export function orderRowHasInferred(row: OrderPreviewRow): boolean {
-  if (row.order.inferred?.customer || row.order.inferred?.ship_from || row.order.inferred?.ship_to) {
+  if (row.order.inferred?.customer) {
     return true;
   }
-  return (row.order.lines ?? []).some((line) => line.inferred?.product);
+  if (isOrderHeaderFieldInferred(row, 'ship_from') || isOrderHeaderFieldInferred(row, 'ship_to')) {
+    return true;
+  }
+  return (row.order.lines ?? []).some((line) => line.inferred?.product && Boolean(line.product_name?.trim()));
 }
 
 export function acceptedOrders(rows: OrderPreviewRow[]): AiMappedOrder[] {
@@ -104,7 +153,14 @@ export function toConfirmImportOrders(rows: OrderPreviewRow[]): AiMappedOrder[] 
       delivery_date: order.delivery_date,
       notes: order.notes ?? null,
       high_priority: order.high_priority ?? false,
-      lines: order.lines ?? [],
+      lines: (order.lines ?? []).map((line) => ({
+        product_sku_id: line.product_sku_id ?? null,
+        product_name: line.product_name,
+        quantity: line.quantity ?? null,
+        unit: line.source_empty_fields?.includes('unit') ? null : (line.unit ?? null),
+        weight: line.source_empty_fields?.includes('weight') ? null : (line.weight ?? null),
+        weight_unit: line.source_empty_fields?.includes('weight_unit') ? null : (line.weight_unit ?? null),
+      })),
     };
   });
 }
@@ -122,27 +178,33 @@ export function formatOrderLinesSummary(lines?: AiMappedOrderLine[]): string {
 }
 
 export function toErpLines(lines: AiMappedOrderLine[] | undefined): ErpOrderLine[] {
-  if (!lines?.length) return [{ ...EMPTY_ORDER_LINE }];
+  if (!lines?.length) return [{ ...EMPTY_ORDER_LINE, unit: '', weightUnit: '' }];
   return lines.map((line) => ({
     productSkuId: line.product_sku_id ?? null,
     productName: line.product_name ?? '',
     sku: undefined,
     quantity: line.quantity ?? null,
-    unit: line.unit ?? 'Pallets',
-    weight: line.weight ?? null,
-    weightUnit: line.weight_unit ?? 'Kg',
+    unit: line.source_empty_fields?.includes('unit') ? '' : (line.unit ?? ''),
+    weight: line.source_empty_fields?.includes('weight') ? null : (line.weight ?? null),
+    weightUnit: line.source_empty_fields?.includes('weight_unit') ? '' : (line.weight_unit ?? ''),
+    sourceEmptyFields: line.source_empty_fields ? [...line.source_empty_fields] : [],
   }));
 }
 
 export function fromErpLines(lines: ErpOrderLine[]): AiMappedOrderLine[] {
   return lines
     .filter((line) => line.productSkuId != null || line.productName.trim() !== '')
-    .map((line) => ({
-      product_sku_id: line.productSkuId,
-      product_name: line.productName,
-      quantity: line.quantity,
-      unit: line.unit,
-      weight: line.weight,
-      weight_unit: line.weightUnit,
-    }));
+    .map((line) => {
+      const sourceEmpty = line.sourceEmptyFields ?? [];
+      return {
+        product_sku_id: line.productSkuId,
+        product_name: line.productName,
+        quantity: line.quantity,
+        unit: sourceEmpty.includes('unit') ? null : (line.unit || null),
+        weight: sourceEmpty.includes('weight') ? null : line.weight,
+        weight_unit: sourceEmpty.includes('weight_unit') ? null : (line.weightUnit || null),
+        source_empty_fields: [...sourceEmpty],
+        inferred: { product: line.productSkuId == null },
+      };
+    });
 }
