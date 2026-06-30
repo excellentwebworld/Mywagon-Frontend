@@ -1,787 +1,1170 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import type { ShipmentStop } from '../../context/AppContext';
-import { DatePicker } from '../ui/DatePicker';
+import {
+  ArrowLeft,
+  Check,
+  Search,
+  AlertTriangle,
+  Info,
+  ChevronDown,
+  ChevronRight,
+  MapPin,
+  Sparkles,
+  Smartphone,
+  Star,
+  Users,
+  Calendar,
+  Layers,
+  Repeat,
+  Plus,
+  X,
+  FileText,
+  Save,
+  Globe,
+  Settings,
+} from 'lucide-react';
+
+import { SearchableSelect } from '../ui/SearchableSelect';
+
+// Mocks
+import { PARTNERS } from '../../mocks/partnersMasterData';
+
+const T = {
+  bg: 'var(--bg)',
+  sf: 'var(--surface)',
+  sa: 'var(--surface-alt)',
+  sh: 'var(--surface-hover)',
+  bd: 'var(--border)',
+  bf: 'var(--border-focus)',
+  t1: 'var(--text-primary)',
+  t2: 'var(--text-secondary)',
+  t3: 'var(--text-tertiary)',
+  ac: 'var(--accent)',
+  al: 'var(--accent-light)',
+  ah: 'var(--accent-hover)',
+  ap: 'var(--accent-light)',
+};
 
 interface Step3PricingProps {
-  stops: ShipmentStop[];
-  broadcastType: 'private' | 'public' | 'fleet';
-  setBroadcastType: (v: 'private' | 'public' | 'fleet') => void;
-  selectedCarriers: string[];
-  setSelectedCarriers: React.Dispatch<React.SetStateAction<string[]>>;
-  targetPrice: string;
-  setTargetPrice: (v: string) => void;
-  negotiable: boolean;
-  setNegotiable: (v: boolean) => void;
-  driverNotes: string;
-  setDriverNotes: (v: string) => void;
-  bulkMode: 'single' | 'qty' | 'dates' | 'rec';
-  setBulkMode: (v: 'single' | 'qty' | 'dates' | 'rec') => void;
-  bulkQty: number;
-  setBulkQty: (v: number) => void;
-  bulkDates: { date: string; qty: number }[];
-  setBulkDates: React.Dispatch<React.SetStateAction<{ date: string; qty: number }[]>>;
-  bulkRecInterval: number;
-  setBulkRecInterval: (v: number) => void;
-  bulkRecType: 'daily' | 'weekly' | 'monthly';
-  setBulkRecType: (v: 'daily' | 'weekly' | 'monthly') => void;
-  bulkRecOccurrences: number;
-  setBulkRecOccurrences: (v: number) => void;
-  trackingEmails: Record<string, string[]>;
-  setTrackingEmails: React.Dispatch<React.SetStateAction<Record<string, string[]>>>;
-  totalBulkLoads: number;
+  onBackStep: () => void;
+  onSubmit: () => void;
 }
 
-export const Step3Pricing: React.FC<Step3PricingProps> = ({
-  stops,
-  broadcastType,
-  setBroadcastType,
-  selectedCarriers,
-  setSelectedCarriers,
-  targetPrice,
-  setTargetPrice,
-  negotiable,
-  setNegotiable,
-  driverNotes,
-  setDriverNotes,
-  bulkMode,
-  setBulkMode,
-  bulkQty,
-  setBulkQty,
-  bulkDates,
-  setBulkDates,
-  bulkRecInterval,
-  setBulkRecInterval,
-  bulkRecType,
-  setBulkRecType,
-  bulkRecOccurrences,
-  setBulkRecOccurrences,
-  trackingEmails,
-  setTrackingEmails,
-  totalBulkLoads,
-}) => {
+export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit }) => {
   const { t } = useTranslation();
-  const { locations } = useApp();
-  const [carrierSearch, setCarrierSearch] = useState('');
-  const [mapTab, setMapTab] = useState<'map' | 'sat'>('map');
-  const [openTrackingGroup, setOpenTrackingGroup] = useState<string | null>(null);
+  const { locations, showToast } = useApp();
+  const { values, setFieldValue, isSubmitting } = useFormikContext<any>();
+  const stops = values.stops || [];
 
-  // Original carriers dictionary
-  const carriersData = {
-    krp: {
-      name: 'KRP Transport S.A',
-      init: 'KR',
-      city: 'Athens',
-      rating: 4.8,
-      type: 'Carrier Company',
-      caps: ['Tilt trailer', 'Curtainsider', 'Refrigerated'],
-      contract: { lane: 'Ioannina→Athens', unit: 'PER_LOAD', price: 790 },
-    },
-    elmet: {
-      name: 'Hellenic Transport',
-      init: 'EM',
-      city: 'Thessaloniki',
-      rating: 4.2,
-      type: 'Carrier Company',
-      caps: ['Box', 'Curtainsider'],
-      contract: null,
-    },
-    transmed: {
-      name: 'Transmed Logistics',
-      init: 'TL',
-      city: 'Patras',
-      rating: 4.5,
-      type: 'Carrier Company',
-      caps: ['Reefer', 'Curtainsider'],
-      contract: { lane: 'Ioannina→Athens', unit: 'PER_PALLET', price: 22 },
-    },
-    gpant: {
-      name: 'Giorgos Pantazis',
-      init: 'GP',
-      city: 'Ioannina',
-      rating: 4.1,
-      type: 'Freelancer Driver',
-      caps: ['Tilt trailer'],
-      contract: null,
-    },
-    dntinos: {
-      name: 'Dimitris Ntinos',
-      init: 'DN',
-      city: 'Athens',
-      rating: 5.0,
-      type: 'Freelancer Driver',
-      caps: ['Curtainsider'],
-      contract: null,
-    },
-  };
+  // Local Accordion states
+  const [coOpen, setCoOpen] = useState(true);
+  const [frOpen, setFrOpen] = useState(true);
+  const [aiExpanded, setAiExpanded] = useState(false);
+  const [trackingExpanded, setTrackingExpanded] = useState(true);
+  const [carrierQuery, setCarrierQuery] = useState('');
 
-  const getStopCity = (stop: ShipmentStop) => {
-    const loc = locations.find((l) => l.id === stop.location);
-    return loc ? loc.city : 'Unknown';
-  };
+  // 1. CARRIERS AND CONTRACTS
+  const carriersList = useMemo(() => {
+    return PARTNERS.filter((p) => p.status === 'active' && (p.type === 'carrier_company' || p.type === 'freelancer_driver'));
+  }, []);
 
-  // Determine pricing source and autofill rate
-  const distanceKm = 463;
-  const totalPallets = stops.reduce((sum, stop) => {
-    return (
-      sum +
-      stop.customers.reduce((cSum, cust) => {
-        return (
-          cSum +
-          cust.orders.reduce((oSum, ord) => {
-            return oSum + (ord.qtyUnit === 'Pallets' ? ord.qty : 0);
-          }, 0)
-        );
-      }, 0)
+  const carrierCompanies = useMemo(() => {
+    return carriersList.filter((c) => c.type === 'carrier_company');
+  }, [carriersList]);
+
+  const freelancerDrivers = useMemo(() => {
+    return carriersList.filter((c) => c.type === 'freelancer_driver');
+  }, [carriersList]);
+
+  const selectedCarriersDetails = useMemo(() => {
+    return carriersList.filter((c) => (values.selectedCarriers || []).includes(c.id));
+  }, [carriersList, values.selectedCarriers]);
+
+  // Find first selected carrier with a contract
+  const contractCarrier = useMemo(() => {
+    return selectedCarriersDetails.find((c) => c.contractLanes && c.contractLanes.length > 0);
+  }, [selectedCarriersDetails]);
+
+  const contract = useMemo(() => {
+    return contractCarrier?.contractLanes?.[0];
+  }, [contractCarrier]);
+
+  // Dynamic selected vehicles from Step 1 stops
+  const selectedVehicleTypesStr = useMemo(() => {
+    const list: string[] = [];
+    stops.forEach((s: any) =>
+      s.lines.forEach((l: any) => {
+        if (l.productId) {
+          // recommended specs
+          list.push('Semi-Trailer');
+          list.push('Truck with Trailer');
+        }
+      })
     );
-  }, 0) || 32; // Fallback to original 32 if empty
+    const unique = [...new Set(list)];
+    return unique.length > 0 ? unique.join(', ') : 'Semi-Trailer, Truck with Trailer';
+  }, [stops]);
 
-  // Find first selected carrier with contract
-  let contractCarrierName = '';
-  let contractDetails = '';
-  let computedContractPrice = 750; // Spot rate fallback
+  // 2. STATS & PRICING
+  const totalPallets = useMemo(() => {
+    let p = 0;
+    stops.forEach((s: any) =>
+      s.lines.forEach((l: any) => {
+        if (l.action === 'pickup') p += parseFloat(l.qty) || 0;
+      })
+    );
+    return Math.max(p, 32); // Fallback to 32 pallets if empty
+  }, [stops]);
 
-  const activeContractCarrier = selectedCarriers.find(
-    (cid) => carriersData[cid as keyof typeof carriersData]?.contract !== null
-  );
+  const totalKm = 463; // Athens -> Thessaloniki -> Volos lane distance
+  const targetPriceVal = parseFloat(values.targetPrice) || 0;
+  const pricePerKm = targetPriceVal > 0 ? (targetPriceVal / totalKm).toFixed(2) : '0.00';
+  const pricePerPallet = targetPriceVal > 0 ? (targetPriceVal / totalPallets).toFixed(2) : '0.00';
 
-  if (activeContractCarrier) {
-    const data = carriersData[activeContractCarrier as keyof typeof carriersData];
-    contractCarrierName = data.name;
-    const contract = data.contract!;
-    if (contract.unit === 'PER_PALLET') {
-      computedContractPrice = contract.price * totalPallets;
-      contractDetails = `€${contract.price} × ${totalPallets} pallets = €${computedContractPrice}`;
-    } else {
-      computedContractPrice = contract.price;
-      contractDetails = `€${computedContractPrice} per load`;
+  // Calculate pricing based on contract/spot rules
+  const calculatedPrice = useMemo(() => {
+    if (contract) {
+      if (contract.unit === 'per_pallet' || contract.unit === 'PER_PALLET') {
+        return contract.price * totalPallets;
+      }
+      return contract.price;
     }
-  }
+    return 750; // Spot price default
+  }, [contract, totalPallets]);
 
-  // Auto-update price when selected carrier changes, unless already overridden
+  // Set default price when carriers selection changes
   useEffect(() => {
-    if (activeContractCarrier) {
-      setTargetPrice(String(computedContractPrice));
-    } else {
-      setTargetPrice('750'); // Spot rate
+    if (!values.targetPrice) {
+      setFieldValue('targetPrice', String(calculatedPrice));
     }
-  }, [activeContractCarrier, computedContractPrice]);
+  }, [calculatedPrice, values.targetPrice, setFieldValue]);
 
-  const isOverride = Number(targetPrice) !== computedContractPrice;
+  // Override status
+  const isOverride = targetPriceVal !== calculatedPrice;
 
-  // Toggle carrier list helper
-  const handleToggleCarrier = (cid: string) => {
-    setSelectedCarriers((prev) =>
-      prev.includes(cid) ? prev.filter((id) => id !== cid) : [...prev, cid]
+  // 3. TRACKING LINK GROUPED BY CUSTOMERS
+  const orderLinesGrouped = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    const ungrouped: any[] = [];
+
+    stops.forEach((s: any) =>
+      s.lines.forEach((l: any) => {
+        if (l.productId) {
+          const orderId = l.orderId || l.orderRef || `PAR-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+          const route = `Ioannina → ${s.locationCity || 'Mandra'}`;
+          const loc = `${s.locationName || 'MANDRA EO Elefsinas'}, ${s.locationCity || 'Attica'}`;
+          const item = {
+            orderId,
+            route,
+            location: loc,
+            customerName: l.customerName,
+          };
+
+          const key = l.customerName || '__none__';
+          if (key === '__none__') {
+            ungrouped.push(item);
+          } else {
+            if (!groups[key]) groups[key] = [];
+            if (!groups[key].some((x) => x.orderId === orderId)) {
+              groups[key].push(item);
+            }
+          }
+        }
+      })
     );
-  };
 
-  // Bulk Loads Actions
-  const handleAddBulkDate = () => {
-    const nextDate = new Date();
-    nextDate.setDate(nextDate.getDate() + bulkDates.length + 1);
-    const dateStr = nextDate.toISOString().split('T')[0];
-    setBulkDates([...bulkDates, { date: dateStr, qty: 2 }]);
-  };
+    // Fallback if no lines added
+    if (Object.keys(groups).length === 0 && ungrouped.length === 0) {
+      groups['Alpha Foods Ltd'] = [
+        { orderId: 'PAR-12345', route: 'Ioannina → Mandra', location: 'MANDRA EO Elefsinas, Attica', customerName: 'Alpha Foods Ltd' },
+        { orderId: 'PAR-99001', route: 'Ioannina → Mandra', location: 'MANDRA EO Elefsinas, Attica', customerName: 'Gamma Logistics' }
+      ];
+      groups['Beta Distributors'] = [
+        { orderId: 'PAR-54321', route: 'Ioannina → Kalyvia', location: 'Kalyvia Thorikou, Attica', customerName: 'Beta Distributors' }
+      ];
+    }
 
-  const handleUpdateBulkDate = (idx: number, field: 'date' | 'qty', val: any) => {
-    const updated = [...bulkDates];
-    updated[idx] = { ...updated[idx], [field]: val };
-    setBulkDates(updated);
-  };
+    return { groups, ungrouped };
+  }, [stops]);
 
-  // Get orders list
-  const allOrdersList = stops.flatMap((s, sIdx) => {
-    return s.customers.flatMap((c) => {
-      return c.orders.map((o) => ({
-        ...o,
-        customerName: c.name,
-        stopIndex: sIdx + 1,
-        stopType: s.type,
-      }));
+  // Collapsible tracking groups state
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+
+  // Prefill default email lists per orderId
+  useEffect(() => {
+    const nextEmails = { ...values.trackingEmails };
+    let changed = false;
+
+    // Scan groups
+    Object.values(orderLinesGrouped.groups).flat().forEach((o: any) => {
+      if (!nextEmails[o.orderId]) {
+        // Mock emails mapping
+        const defaults: Record<string, string[]> = {
+          'PAR-12345': ['contact@alphafoods.com', ''],
+          'PAR-99001': ['ops@gammalogistics.gr'],
+          'PAR-54321': [''],
+        };
+        nextEmails[o.orderId] = defaults[o.orderId] || [''];
+        changed = true;
+      }
     });
-  });
 
-  const getStopLocationName = (stop: ShipmentStop) => {
-    const loc = locations.find((l) => l.id === stop.location);
-    return loc ? loc.name : 'Unknown Location';
+    if (changed) {
+      setFieldValue('trackingEmails', nextEmails);
+    }
+  }, [orderLinesGrouped, values.trackingEmails, setFieldValue]);
+
+  // Tracking operations
+  const addEmailField = (orderId: string) => {
+    const cur = values.trackingEmails[orderId] || [];
+    setFieldValue(`trackingEmails.${orderId}`, [...cur, '']);
   };
 
-  const getStopDetailsString = (stop: ShipmentStop) => {
-    if (stop.customers.length === 0) return t('noCargoOrders');
-    return stop.customers.map((c) => c.name || t('optional')).join(', ');
+  const updateEmailField = (orderId: string, emailIdx: number, val: string) => {
+    const cur = [...(values.trackingEmails[orderId] || [])];
+    cur[emailIdx] = val;
+    setFieldValue(`trackingEmails.${orderId}`, cur);
   };
 
-  const handleAddEmail = (orderId: string) => {
-    const prevEmails = trackingEmails[orderId] || [];
-    setTrackingEmails({
-      ...trackingEmails,
-      [orderId]: [...prevEmails, ''],
-    });
+  const removeEmailField = (orderId: string, emailIdx: number) => {
+    const cur = values.trackingEmails[orderId] || [];
+    const next = cur.filter((_: any, idx: number) => idx !== emailIdx);
+    setFieldValue(`trackingEmails.${orderId}`, next.length ? next : ['']);
   };
 
-  const handleEmailChange = (orderId: string, emailIdx: number, val: string) => {
-    const prevEmails = [...(trackingEmails[orderId] || [])];
-    prevEmails[emailIdx] = val;
-    setTrackingEmails({
-      ...trackingEmails,
-      [orderId]: prevEmails,
-    });
+  // 4. BULK LOAD TOTAL COMPUTATIONS
+  const bulkTotal = useMemo(() => {
+    if (values.bulkMode === 'qty') return values.bulkQty;
+    if (values.bulkMode === 'dates') {
+      return (values.bulkDates || []).reduce((sum: number, d: any) => sum + d.qty, 0);
+    }
+    if (values.bulkMode === 'rec') {
+      return values.bulkRecQty * values.bulkRecOccurrences;
+    }
+    return 1;
+  }, [values.bulkMode, values.bulkQty, values.bulkDates, values.bulkRecQty, values.bulkRecOccurrences]);
+
+  // Bulk loaders adjustments
+  const bqc = (d: number) => {
+    setFieldValue('bulkQty', Math.max(1, Math.min(50, values.bulkQty + d)));
   };
 
-  const handleRemoveEmail = (orderId: string, emailIdx: number) => {
-    const prevEmails = trackingEmails[orderId] || [];
-    setTrackingEmails({
-      ...trackingEmails,
-      [orderId]: prevEmails.filter((_, idx) => idx !== emailIdx),
-    });
+  const rqc = (d: number) => {
+    setFieldValue('bulkRecQty', Math.max(1, Math.min(50, values.bulkRecQty + d)));
+  };
+
+  const bdc = (idx: number, d: number) => {
+    const list = [...(values.bulkDates || [])];
+    if (list[idx]) {
+      list[idx].qty = Math.max(1, Math.min(50, list[idx].qty + d));
+      setFieldValue('bulkDates', list);
+    }
+  };
+
+  const addBulkDate = () => {
+    const list = [...(values.bulkDates || [])];
+    const d = new Date();
+    d.setDate(d.getDate() + list.length + 1);
+    list.push({ date: d.toISOString().split('T')[0], qty: 2 });
+    setFieldValue('bulkDates', list);
+  };
+
+  // 5. CARRIERS SELECTION ACTION
+  const toggleCarrier = (cid: string) => {
+    const cur = values.selectedCarriers || [];
+    const next = cur.includes(cid) ? cur.filter((id: string) => id !== cid) : [...cur, cid];
+    setFieldValue('selectedCarriers', next);
+  };
+
+  // filter match logic
+  const matchesFilter = (c: any) => {
+    if (!carrierQuery) return true;
+    const q = carrierQuery.toLowerCase();
+    return c.name.toLowerCase().includes(q) || (c.city || c.region || 'Athens').toLowerCase().includes(q);
   };
 
   return (
-    <div className="animate-fade-in wizard-grid">
-      {/* LEFT COLUMN: Controls */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* Broadcast Type Card */}
-        <article className="card" aria-label="Broadcast type selection">
-          <div className="ch">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 00-3-3.87" />
-              <path d="M16 3.13a4 4 0 010 7.75" />
-            </svg>
-            <span>{t('broadcastType')}</span>
-          </div>
-          <div className="bc-grid">
-            <button
-              className={`bcc ${broadcastType === 'private' ? 'sel' : ''}`}
-              onClick={() => setBroadcastType('private')}
-            >
-              <div className="bcc-icon">👥</div>
-              <div className="bcc-title">
-                {t('privateNetwork')}
-              </div>
-              <p className="bcc-desc">
-                {t('privateNetworkDesc')}
-              </p>
-            </button>
-            <button
-              className={`bcc ${broadcastType === 'public' ? 'sel' : ''}`}
-              onClick={() => setBroadcastType('public')}
-            >
-              <div className="bcc-icon">🌐</div>
-              <div className="bcc-title">
-                {t('publicMarketplace')}{' '}
-                <span className="ptag ct">BETA</span>
-              </div>
-              <p className="bcc-desc">
-                {t('publishToAll')}
-              </p>
-            </button>
-            <button className="bcc" disabled>
-              <div className="bcc-icon">🚛</div>
-              <div className="bcc-title">
-                {t('myFleet')}
-              </div>
-              <p className="bcc-desc">{t('comingSoon')}</p>
-            </button>
-          </div>
-        </article>
-
-        {/* Carrier Selection Card */}
-        {broadcastType === 'private' && (
-          <article className="card" id="carrierPanel">
-            <div className="ch">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-              <span>{t('selectCarriers')}</span>
+    <div className="pb-24">
+      {/* ═══ TWO COLUMN GRID MATCHING page3-vehicle-pricing.html ═══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start mt-4">
+        {/* LEFT COLUMN: Broadcast, Bulk Load, Tracking Links */}
+        <div className="lg:col-span-2 space-y-4">
+          
+          {/* BROADCAST TYPE */}
+          <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+            <div className="ch flex items-center gap-2 px-5 py-4 border-b" style={{ borderColor: T.bd }}>
+              <Globe size={18} style={{ color: T.t2 }} />
+              <span className="font-semibold text-sm">{t('broadcastType') || 'Broadcast Type'}</span>
             </div>
-
-            {/* Selected Carriers Summary list */}
-            {selectedCarriers.length > 0 && (
-              <div className="sel-carriers">
-                {selectedCarriers.map((cid) => {
-                  const c = carriersData[cid as keyof typeof carriersData];
-                  if (!c) return null;
-                  return (
-                    <div key={cid} className="selc">
-                      <div className="av">{c.init}</div>
-                      <div className="ci">
-                        <div className="cn">
-                          {c.name} {c.contract && <span className="ptag ct">CONTRACT</span>}
-                        </div>
-                        <div className="cm">
-                          {c.city} · {c.rating}★ · {c.type} · {c.caps.join(', ')}
-                        </div>
-                      </div>
-                      <div className="rm" onClick={() => handleToggleCarrier(cid)}>
-                        ✕
-                      </div>
+            <div className="cb p-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                
+                {/* Private Network */}
+                <div
+                  className={`bcc cursor-pointer border-2 p-4 rounded-xl relative transition-all ${
+                    values.broadcastType === 'private' ? 'sel' : ''
+                  }`}
+                  style={{
+                    borderColor: values.broadcastType === 'private' ? T.ac : T.bd,
+                    background: values.broadcastType === 'private' ? T.ap : 'transparent',
+                  }}
+                  onClick={() => setFieldValue('broadcastType', 'private')}
+                >
+                  {values.broadcastType === 'private' && (
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-xs text-white" style={{ background: T.ac }}>
+                      ✓
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  )}
+                  <div className="text-2xl mb-2">👥</div>
+                  <div className="text-sm font-bold text-slate-800">{t('privateNetwork') || 'Private Network'}</div>
+                  <div className="text-[11px] text-slate-400 mt-1">{t('privateNetworkDesc') || 'Send only to your partner carriers.'}</div>
+                </div>
 
-            <div className="c-search-wrap">
-              <input
-                type="search"
-                placeholder={t('searchCarriers')}
-                value={carrierSearch}
-                onChange={(e) => setCarrierSearch(e.target.value)}
-              />
-            </div>
-
-            <div className="carrier-list">
-              {Object.entries(carriersData)
-                .filter(([_, c]) => c.name.toLowerCase().includes(carrierSearch.toLowerCase()))
-                .map(([cid, c]) => {
-                  const isChecked = selectedCarriers.includes(cid);
-                  return (
-                    <div key={cid} className="crow" onClick={() => handleToggleCarrier(cid)}>
-                      <div className={`cbx ${isChecked ? 'on' : ''}`}>{isChecked && '✓'}</div>
-                      <div className="av">{c.init}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div className="cn">
-                          {c.name} {c.contract && <span className="ptag ct">CONTRACT</span>}
-                        </div>
-                        <div className="cm">
-                          {c.city} · {c.rating}★ · {c.type} · {c.caps.join(', ')}
-                        </div>
-                      </div>
+                {/* Public Marketplace */}
+                <div
+                  className={`bcc cursor-pointer border-2 p-4 rounded-xl relative transition-all ${
+                    values.broadcastType === 'public' ? 'sel' : ''
+                  }`}
+                  style={{
+                    borderColor: values.broadcastType === 'public' ? T.ac : T.bd,
+                    background: values.broadcastType === 'public' ? T.ap : 'transparent',
+                  }}
+                  onClick={() => setFieldValue('broadcastType', 'public')}
+                >
+                  {values.broadcastType === 'public' && (
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-xs text-white" style={{ background: T.ac }}>
+                      ✓
                     </div>
-                  );
-                })}
-            </div>
-          </article>
-        )}
+                  )}
+                  <div className="text-2xl mb-2">🌐</div>
+                  <div className="text-sm font-bold text-slate-800 flex items-center gap-1">
+                    {t('publicMarketplace') || 'Public Marketplace'}
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-white bg-indigo-600">BETA</span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-1">{t('publicMarketplaceDesc') || 'Publish to the entire carrier marketplace.'}</div>
+                </div>
 
-        {/* Bulk Load Creation Card */}
-        <article className="card">
-          <div className="ch">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-            <span>{t('bulkLoadCreation')}</span>
-          </div>
-
-          <div className="btabs" role="tablist">
-            <button
-              className={`btab ${bulkMode === 'single' ? 'act' : ''}`}
-              onClick={() => setBulkMode('single')}
-            >
-              {t('singleLoad')}
-            </button>
-            <button
-              className={`btab ${bulkMode === 'qty' ? 'act' : ''}`}
-              onClick={() => setBulkMode('qty')}
-            >
-              {t('multiple')}
-            </button>
-            <button
-              className={`btab ${bulkMode === 'dates' ? 'act' : ''}`}
-              onClick={() => setBulkMode('dates')}
-            >
-              {t('dates')}
-            </button>
-            <button
-              className={`btab ${bulkMode === 'rec' ? 'act' : ''}`}
-              onClick={() => setBulkMode('rec')}
-            >
-              {t('recurring')}
-            </button>
-          </div>
-
-          {bulkMode === 'single' && (
-            <div className="bpan show">
-              <p style={{ textAlign: 'center', fontSize: '13px', color: 'var(--text-tertiary)', padding: '8px 0 4px' }}>
-                {t('singleLoadHint')}
-              </p>
-            </div>
-          )}
-
-          {bulkMode === 'qty' && (
-            <div className="bpan show">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
-                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  {t('numberOfLoads')}
-                </span>
-                <div className="qs">
-                  <button onClick={() => setBulkQty(Math.max(1, bulkQty - 1))}>−</button>
-                  <input
-                    type="number"
-                    value={bulkQty}
-                    onChange={(e) => setBulkQty(Math.max(1, Number(e.target.value)))}
-                  />
-                  <button onClick={() => setBulkQty(bulkQty + 1)}>+</button>
+                {/* My Fleet (disabled) */}
+                <div className="border-2 p-4 rounded-xl opacity-50 bg-slate-100 cursor-not-allowed">
+                  <div className="text-2xl mb-2">🚛</div>
+                  <div className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    {t('myFleet') || 'My Fleet'}
+                    <span className="text-[8px] font-bold px-1 rounded bg-slate-300 text-slate-600">SOON</span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-1">{t('myFleetDesc') || 'Assign the load to a driver of your own fleet.'}</div>
                 </div>
               </div>
-              <div className="bcount-txt">
-                ✓ <strong>{bulkQty}</strong> {t('loadsWillBeCreated')}
-              </div>
-            </div>
-          )}
 
-          {bulkMode === 'dates' && (
-            <div className="bpan show">
-              <div id="bdlist">
-                {bulkDates.map((item, idx) => (
-                  <div key={idx} className="bdr">
-                    <DatePicker
-                      className="date-picker-bdi"
-                      value={item.date}
-                      onChange={(val) => handleUpdateBulkDate(idx, 'date', val)}
-                    />
-                    <div className="qs">
-                      <button onClick={() => handleUpdateBulkDate(idx, 'qty', Math.max(1, item.qty - 1))}>
+              {/* Private network carriers search & accordion list */}
+              {values.broadcastType === 'private' && (
+                <div className="mt-4 pt-4 border-t" style={{ borderColor: T.bd }}>
+                  <div className="bg-sky-50 text-sky-700 p-2.5 rounded-lg text-xs flex items-center gap-2 mb-3">
+                    <Check size={14} className="text-sky-600 shrink-0" />
+                    <span>
+                      {t('vehicleSelectionFromLoad') || 'Vehicle selection from load:'} <strong>{selectedVehicleTypesStr}</strong>
+                    </span>
+                  </div>
+
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border rounded-lg text-xs mb-3 outline-none"
+                    placeholder={t('searchCarrier') || 'Search carrier...'}
+                    value={carrierQuery}
+                    onChange={(e) => setCarrierQuery(e.target.value)}
+                  />
+
+                  <div className="text-xs font-semibold mb-2" style={{ color: T.ac, cursor: 'pointer' }}>
+                    {t('invitePartner') || '＋ Invite new partner carrier'}
+                  </div>
+
+                  {/* CARRIER COMPANIES ACCORDION */}
+                  <div className="border rounded-lg overflow-hidden mb-2">
+                    <div
+                      className="flex items-center justify-between px-3 py-2 cursor-pointer bg-slate-50 text-xs font-bold"
+                      onClick={() => setCoOpen(!coOpen)}
+                    >
+                      <span className="flex items-center gap-1">
+                        <span className={`transform transition-transform text-[9px] ${coOpen ? 'rotate-90' : ''}`}>▶</span>
+                        {t('carrierCompanies') || 'CARRIER COMPANIES'}
+                      </span>
+                    </div>
+                    {coOpen && (
+                      <div className="divide-y">
+                        {carrierCompanies.filter(matchesFilter).map((c) => {
+                          const isSel = (values.selectedCarriers || []).includes(c.id);
+                          return (
+                            <div
+                              key={c.id}
+                              className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50"
+                              onClick={() => toggleCarrier(c.id)}
+                            >
+                              <div
+                                className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] text-white ${
+                                  isSel ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'
+                                }`}
+                              >
+                                {isSel && '✓'}
+                              </div>
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-violet-100 text-indigo-700">
+                                {(c as any).init || c.name.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                  {c.name}
+                                  {(c.contractLanes && c.contractLanes.length > 0) ? (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-indigo-700 bg-violet-100">
+                                      {t('contract') || 'CONTRACT'}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-amber-800 bg-amber-100">
+                                      {t('spot') || 'SPOT'}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-400">
+                                  {(c as any).city || c.region || 'Athens'} · {c.rating}★ · {c.loadsLifetime} {t('trips') || 'trips'}
+                                </div>
+                                <div className="flex gap-1 mt-1">
+                                  {(c.trucks || []).map((t: any, ti: number) => (
+                                    <span key={ti} className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                                      {t.type}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* FREELANCER DRIVERS ACCORDION */}
+                  <div className="border rounded-lg overflow-hidden">
+                    <div
+                      className="flex items-center justify-between px-3 py-2 cursor-pointer bg-slate-50 text-xs font-bold"
+                      onClick={() => setFrOpen(!frOpen)}
+                    >
+                      <span className="flex items-center gap-1">
+                        <span className={`transform transition-transform text-[9px] ${frOpen ? 'rotate-90' : ''}`}>▶</span>
+                        {t('freelancerDrivers') || 'FREELANCER DRIVERS'}
+                      </span>
+                    </div>
+                    {frOpen && (
+                      <div className="divide-y">
+                        {freelancerDrivers.filter(matchesFilter).map((c) => {
+                          const isSel = (values.selectedCarriers || []).includes(c.id);
+                          return (
+                            <div
+                              key={c.id}
+                              className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50"
+                              onClick={() => toggleCarrier(c.id)}
+                            >
+                              <div
+                                className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] text-white ${
+                                  isSel ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'
+                                }`}
+                              >
+                                {isSel && '✓'}
+                              </div>
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-violet-100 text-indigo-700">
+                                {(c as any).init || c.name.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-bold text-slate-800">
+                                  {c.name}
+                                </div>
+                                <div className="text-[10px] text-slate-400">
+                                  {(c as any).city || c.region || 'Athens'} · {c.rating}★ · {c.loadsLifetime} {t('trips') || 'trips'}
+                                </div>
+                                <div className="flex gap-1 mt-1">
+                                  {(c.trucks || []).map((t: any, ti: number) => (
+                                    <span key={ti} className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                                      {t.type}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Selected carrier strip cards */}
+                  {selectedCarriersDetails.length > 0 && (
+                    <div className="mt-3 flex flex-col gap-2">
+                      {selectedCarriersDetails.map((c) => (
+                        <div
+                          key={c.id}
+                          className="p-3 rounded-lg flex items-center justify-between bg-slate-100 relative"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-violet-200 text-indigo-700 shrink-0">
+                              {(c as any).init || c.name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                {c.name}
+                                {(c.contractLanes && c.contractLanes.length > 0) && (
+                                  <span className="text-[8px] font-bold px-1 rounded text-indigo-700 bg-violet-200">
+                                    {t('contract') || 'CONTRACT'}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-500">
+                                {(c as any).city || c.region || 'Athens'} · {c.rating}★ · {c.type} · {c.trucks?.map((t: any) => t.type).join(', ') || 'Tilt, Curtainsider'}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="w-5 h-5 rounded-full flex items-center justify-center border bg-white cursor-pointer text-xs"
+                            onClick={() => toggleCarrier(c.id)}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* BULK LOAD CREATION */}
+          <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+            <div className="ch flex items-center gap-2 px-5 py-4 border-b animate-fade-in" style={{ borderColor: T.bd }}>
+              <Layers size={18} style={{ color: T.t2 }} />
+              <span className="font-semibold text-sm">{t('bulkLoadCreation') || 'Bulk Load Creation'}</span>
+              <span className="text-xs text-slate-400 font-normal ml-auto">{t('bulkLoadCreationDesc') || 'Create multiple identical loads'}</span>
+            </div>
+            <div className="cb p-5">
+              {/* Tabs */}
+              <div className="flex bg-slate-100 p-1 rounded-lg gap-1 mb-4">
+                {[
+                  { id: 'single', label: t('singleLoad') || 'Single Load' },
+                  { id: 'qty', label: t('multipleSameDay') || 'Multiple (same day)' },
+                  { id: 'dates', label: t('multipleDates') || 'Multiple dates' },
+                  { id: 'rec', label: t('recurring') || 'Recurring' },
+                ].map((tb) => (
+                  <button
+                    key={tb.id}
+                    type="button"
+                    className={`flex-1 py-2 px-1 text-center text-xs font-semibold rounded-md border-none cursor-pointer ${
+                      values.bulkMode === tb.id ? 'bg-white shadow' : 'bg-transparent text-slate-400'
+                    }`}
+                    onClick={() => setFieldValue('bulkMode', tb.id)}
+                  >
+                    {tb.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Single Mode Panel */}
+              {values.bulkMode === 'single' && (
+                <div className="text-center py-4 text-xs text-slate-400">
+                  {t('singleLoadSub') || '1 load will be created. Select another tab for bulk creation.'}
+                </div>
+              )}
+
+              {/* Quantity Mode Panel */}
+              {values.bulkMode === 'qty' && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-semibold text-slate-600">{t('identicalLoadsLabel') || 'Number of identical loads'}</label>
+                    <div className="flex items-center border rounded-lg overflow-hidden bg-slate-50">
+                      <button
+                        type="button"
+                        className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
+                        onClick={() => bqc(-1)}
+                      >
                         −
                       </button>
                       <input
                         type="number"
-                        value={item.qty}
-                        onChange={(e) => handleUpdateBulkDate(idx, 'qty', Math.max(1, Number(e.target.value)))}
+                        className="w-11 h-8 border-y-0 border-x text-center text-xs font-bold font-mono outline-none"
+                        value={values.bulkQty}
+                        onChange={(e) => setFieldValue('bulkQty', Math.max(1, parseInt(e.target.value) || 1))}
                       />
-                      <button onClick={() => handleUpdateBulkDate(idx, 'qty', item.qty + 1)}>+</button>
+                      <button
+                        type="button"
+                        className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
+                        onClick={() => bqc(1)}
+                      >
+                        +
+                      </button>
                     </div>
-                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                      {t('loadsUnit')}
-                    </span>
                   </div>
-                ))}
-              </div>
-              <button className="add-date-btn" onClick={handleAddBulkDate}>
-                + {t('addDate')}
-              </button>
-              <div className="bcount-txt" style={{ marginTop: '10px' }}>
-                ✓ <strong>{totalBulkLoads}</strong> {t('loadsWillBeCreated')}
-              </div>
-            </div>
-          )}
-
-          {bulkMode === 'rec' && (
-            <div className="bpan show">
-              <div className="rec-row">
-                <span>{t('every')}</span>
-                <div className="qs">
-                  <button onClick={() => setBulkRecInterval(Math.max(1, bulkRecInterval - 1))}>−</button>
-                  <input
-                    type="number"
-                    value={bulkRecInterval}
-                    onChange={(e) => setBulkRecInterval(Math.max(1, Number(e.target.value)))}
-                  />
-                  <button onClick={() => setBulkRecInterval(bulkRecInterval + 1)}>+</button>
+                  <div className="bg-green-50 text-green-700 p-2.5 rounded-lg text-xs font-semibold">
+                    ✓ <strong>{values.bulkQty}</strong> {t('loadsWillBeCreated') || 'loads will be created'}
+                  </div>
                 </div>
-                <select
-                  value={bulkRecType}
-                  className="inp-sm"
-                  onChange={(e) => setBulkRecType(e.target.value as any)}
-                >
-                  <option value="weekly">{t('weeks')}</option>
-                  <option value="daily">{t('days')}</option>
-                  <option value="monthly">{t('months')}</option>
-                </select>
-              </div>
-              <div className="rec-row">
-                <span>{t('for')}</span>
-                <div className="qs">
-                  <button onClick={() => setBulkRecOccurrences(Math.max(1, bulkRecOccurrences - 1))}>
-                    −
-                  </button>
-                  <input
-                    type="number"
-                    value={bulkRecOccurrences}
-                    onChange={(e) => setBulkRecOccurrences(Math.max(1, Number(e.target.value)))}
-                  />
-                  <button onClick={() => setBulkRecOccurrences(bulkRecOccurrences + 1)}>+</button>
-                </div>
-                <span>{t('occurrences')}</span>
-              </div>
-              <div className="bcount-txt">
-                ✓ <strong>{totalBulkLoads}</strong> {t('loadsWillBeCreated')}
-              </div>
-            </div>
-          )}
-        </article>
+              )}
 
-        {/* Driver Notes textarea */}
-        <article className="card">
-          <div className="ch">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-            <span>{t('driverNotes')}</span>
-          </div>
-          <div style={{ padding: '16px 20px' }}>
-            <textarea
-              style={{
-                width: '100%',
-                minHeight: '88px',
-                border: '1.5px solid var(--border)',
-                borderRadius: '8px',
-                padding: '10px 12px',
-                fontFamily: 'inherit',
-                fontSize: '13px',
-                resize: 'vertical',
-                outline: 'none',
-                color: 'var(--text-primary)',
-                background: 'var(--surface)',
-              }}
-              maxLength={500}
-              placeholder={t('driverNotesPlaceholder')}
-              value={driverNotes}
-              onChange={(e) => setDriverNotes(e.target.value)}
-            />
-            <div style={{ textAlign: 'right', fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-              {driverNotes.length} / 500
-            </div>
-          </div>
-        </article>
-
-        {/* Tracking Links Card */}
-        <article className="card">
-          <div className="ch">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-            </svg>
-            <span>{t('trackingLinks')}</span>
-          </div>
-
-          <div className="tracking-wrap">
-            {allOrdersList.length === 0 ? (
-              <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-tertiary)', padding: '12px' }}>
-                {t('noOrdersInShipment')}
-              </p>
-            ) : (
-              allOrdersList.map((o, idx) => {
-                const emails = trackingEmails[o.id] || [''];
-                const isOpen = openTrackingGroup === o.id;
-
-                return (
-                  <div key={idx} className="tko-cust-group">
-                    <div className="tko-cust-head" onClick={() => setOpenTrackingGroup(isOpen ? null : o.id)}>
-                      <span className={`cust-chev ${isOpen ? 'open' : ''}`}>▶</span>
-                      <span className="ci-e" style={{ fontSize: '13px', marginRight: '6px' }}>🏪</span>
-                      <span className="cust-name">{o.customerName || t('directCustomer')}</span>
-                      <span className="cust-count">{o.id}</span>
-                    </div>
-
-                    <div className={`tko-cust-body ${isOpen ? 'open' : ''}`}>
-                      <div className="tko">
-                        <div className="tko-h">
-                          <div className="tko-id">{o.id}</div>
-                          <div className="tko-r">{o.products}</div>
+              {/* Dates Mode Panel */}
+              {values.bulkMode === 'dates' && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    {(values.bulkDates || []).map((bd: any, idx: number) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          className="flex-1 p-2 border rounded-lg text-xs outline-none"
+                          value={bd.date}
+                          onChange={(e) => {
+                            const list = [...values.bulkDates];
+                            list[idx].date = e.target.value;
+                            setFieldValue('bulkDates', list);
+                          }}
+                        />
+                        <div className="flex items-center border rounded-lg overflow-hidden bg-slate-50">
+                          <button
+                            type="button"
+                            className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
+                            onClick={() => bdc(idx, -1)}
+                          >
+                            −
+                          </button>
+                          <input
+                            type="number"
+                            className="w-11 h-8 border-y-0 border-x text-center text-xs font-bold font-mono outline-none"
+                            value={bd.qty}
+                            onChange={(e) => {
+                              const list = [...values.bulkDates];
+                              list[idx].qty = Math.max(1, parseInt(e.target.value) || 1);
+                              setFieldValue('bulkDates', list);
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
+                            onClick={() => bdc(idx, 1)}
+                          >
+                            +
+                          </button>
                         </div>
+                        <span className="text-[10px] text-slate-400">{t('loadsLabel') || 'loads'}</span>
+                        {values.bulkDates.length > 1 && (
+                          <button
+                            type="button"
+                            className="text-xs p-1 cursor-pointer bg-transparent border-none text-slate-400 hover:text-red-500"
+                            onClick={() => {
+                              const list = values.bulkDates.filter((_: any, i: number) => i !== idx);
+                              setFieldValue('bulkDates', list);
+                            }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
 
-                        {emails.map((email, emailIdx) => (
-                          <div key={emailIdx} className="er">
-                            <input
-                              type="email"
-                              className="ei"
-                              placeholder="email@example.com"
-                              value={email}
-                              onChange={(e) => handleEmailChange(o.id, emailIdx, e.target.value)}
-                            />
-                            {emails.length > 1 && (
-                              <button className="erm" onClick={() => handleRemoveEmail(o.id, emailIdx)}>
-                                ✕
-                              </button>
-                            )}
-                          </div>
-                        ))}
+                  <button
+                    type="button"
+                    className="w-full py-2 border border-dashed rounded-lg text-xs font-bold text-indigo-700 bg-transparent cursor-pointer"
+                    onClick={addBulkDate}
+                  >
+                    {t('addDateBtn') || '+ Add date'}
+                  </button>
 
-                        <button className="arb" style={{ marginTop: '8px' }} onClick={() => handleAddEmail(o.id)}>
-                          + {t('addEmail')}
-                        </button>
+                  <div className="bg-green-50 text-green-700 p-2.5 rounded-lg text-xs font-semibold">
+                    ✓ <strong>{bulkTotal}</strong> {t('loadsWillBeCreated') || 'loads will be created'} ({ (values.bulkDates || []).map((x: any) => x.qty).join(' + ') })
+                  </div>
+                </div>
+              )}
+
+              {/* Recurring Mode Panel */}
+              {values.bulkMode === 'rec' && (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-semibold text-slate-600">{t('loadsPerRecurrence') || 'Loads per recurrence'}</label>
+                    <div className="flex items-center border rounded-lg overflow-hidden bg-slate-50">
+                      <button
+                        type="button"
+                        className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
+                        onClick={() => rqc(-1)}
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        className="w-11 h-8 border-y-0 border-x text-center text-xs font-bold font-mono outline-none"
+                        value={values.bulkRecQty}
+                        onChange={(e) => setFieldValue('bulkRecQty', Math.max(1, parseInt(e.target.value) || 1))}
+                      />
+                      <button
+                        type="button"
+                        className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
+                        onClick={() => rqc(1)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-semibold text-slate-600">{t('repeat') || 'Repeat'}</label>
+                    <select
+                      className="p-2 border rounded-lg text-xs outline-none w-36"
+                      value={values.bulkRecType}
+                      onChange={(e) => setFieldValue('bulkRecType', e.target.value)}
+                    >
+                      <option value="daily">{t('daily') || 'Daily'}</option>
+                      <option value="weekly">{t('weekly') || 'Weekly'}</option>
+                      <option value="monthly">{t('monthly') || 'Monthly'}</option>
+                    </select>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-semibold text-slate-600">{t('endAfter') || 'End after'}</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        className="w-16 p-2 border rounded-lg text-xs outline-none font-mono text-right"
+                        value={values.bulkRecOccurrences}
+                        onChange={(e) => setFieldValue('bulkRecOccurrences', Math.max(1, parseInt(e.target.value) || 1))}
+                      />
+                      <span className="text-xs text-slate-400">{t('occurrences') || 'occurrences'}</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-indigo-50 text-indigo-700 p-2.5 rounded-lg text-xs font-semibold">
+                    ✓ <strong>{bulkTotal}</strong> {t('loadsWillBeCreated') || 'loads will be created'} ({values.bulkRecQty} × {values.bulkRecOccurrences} {values.bulkRecType === 'daily' ? (t('days') || 'days') : values.bulkRecType === 'weekly' ? (t('weeks') || 'weeks') : (t('months') || 'months')})
+                  </div>
+
+                  <div className="bg-slate-100 text-slate-500 p-2 rounded-lg text-[10px] leading-relaxed">
+                    ℹ️ {t('bulkRecHint') || 'Carriers see only 1 load at a time. When booked, the next one auto-publishes.'}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* TRACKING LINKS */}
+          <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+            <div
+              className="ch flex items-center gap-2 px-5 py-4 border-b cursor-pointer select-none"
+              style={{ borderColor: T.bd }}
+              onClick={() => setTrackingExpanded(!trackingExpanded)}
+            >
+              <Smartphone size={18} style={{ color: T.t2 }} />
+              <span className="font-semibold text-sm">{t('trackingLinks') || 'Tracking Links'}</span>
+              <span className="text-xs text-slate-400 font-normal ml-auto flex items-center gap-1.5">
+                {t('sendTrackingLink') || 'Send tracking link to customers'}
+                <span className={`transform transition-transform ${trackingExpanded ? 'rotate-180' : ''}`}>▼</span>
+              </span>
+            </div>
+
+            {trackingExpanded && (
+              <div className="cb p-5 space-y-3">
+                {/* Loop grouped customer orders */}
+                {Object.entries(orderLinesGrouped.groups).map(([custName, orders]) => {
+                  const collapsed = collapsedGroups[custName] || false;
+                  return (
+                    <div key={custName} className="border rounded-lg overflow-hidden">
+                      <div
+                        className="flex items-center gap-2 px-3 py-2 cursor-pointer bg-teal-50 text-xs font-bold text-teal-800"
+                        onClick={() =>
+                          setCollapsedGroups((p) => ({ ...p, [custName]: !collapsed }))
+                        }
+                      >
+                        <span className={`transform transition-transform text-[9px] ${!collapsed ? 'rotate-90' : ''}`}>▶</span>
+                        <span>🏪</span>
+                        <span className="flex-1 truncate">{custName}</span>
+                        <span className="text-[10px] font-normal text-slate-500">
+                          {orders.length} {orders.length === 1 ? (t('order') || 'order') : (t('orders') || 'orders')}
+                        </span>
+                      </div>
+
+                      {!collapsed && (
+                        <div className="p-3 divide-y space-y-3">
+                          {orders.map((o) => {
+                            const emailList = values.trackingEmails[o.orderId] || [''];
+                            return (
+                              <div key={o.orderId} className="pt-2 first:pt-0">
+                                <div className="text-xs font-bold font-mono text-indigo-600">
+                                  {o.orderId}
+                                </div>
+                                <div className="text-[10px] text-slate-400">
+                                  {o.route}
+                                </div>
+                                <div className="text-[10px] text-slate-700 font-medium mt-0.5">
+                                  {o.location}
+                                </div>
+
+                                <div className="space-y-1.5 mt-2">
+                                  {emailList.map((em: string, emIdx: number) => {
+                                    const isAuto = em && em === 'contact@alphafoods.com'; // or mock checks
+                                    return (
+                                      <div key={emIdx}>
+                                        <div className="flex gap-2">
+                                          <input
+                                            type="email"
+                                            className="flex-1 p-2 border rounded-lg text-xs outline-none"
+                                            placeholder="email@example.com"
+                                            value={em}
+                                            onChange={(e) => updateEmailField(o.orderId, emIdx, e.target.value)}
+                                          />
+                                          <button
+                                            type="button"
+                                            className="w-8 h-8 rounded-lg border flex items-center justify-center bg-white text-slate-400 hover:text-red-500"
+                                            onClick={() => removeEmailField(o.orderId, emIdx)}
+                                          >
+                                            ✕
+                                          </button>
+                                        </div>
+                                        {isAuto && (
+                                          <div className="text-[9px] font-semibold text-teal-600 mt-0.5">
+                                            🏪 {t('trackingAutofill') || 'Auto-filled from customer'}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+
+                                <button
+                                  type="button"
+                                  className="w-full py-1.5 border border-dashed rounded-lg text-[10px] font-bold text-indigo-700 bg-transparent cursor-pointer mt-2"
+                                  onClick={() => addEmailField(o.orderId)}
+                                >
+                                  {t('addEmail') || '+ Add email'}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN (Sticky): Mini Map & Summary, Pricing & Driver Notes */}
+        <div className="space-y-4 lg:sticky lg:top-4">
+          
+          {/* MINI MAP & SUMMARY */}
+          <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12, overflow: 'hidden' }}>
+            <div className="relative bg-slate-200 flex items-center justify-center" style={{ height: 180 }}>
+              <div className="text-center text-xs text-slate-400">
+                <MapPin size={32} className="mx-auto mb-1 opacity-40" />
+                Ioannina → Mandra → Kalyvia
+              </div>
+              <button
+                type="button"
+                className="absolute top-2 right-2 w-7 h-7 bg-white rounded border flex items-center justify-center shadow-sm text-xs font-semibold"
+              >
+                ⛶
+              </button>
+            </div>
+
+            <div className="ch flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: T.bd }}>
+              <span className="font-semibold text-sm">{t('summary') || 'Summary'}</span>
+              <button
+                type="button"
+                className="ml-auto px-2.5 py-1 text-[11px] font-semibold border rounded bg-white hover:bg-slate-50 cursor-pointer"
+                onClick={onBackStep}
+              >
+                ✏ {t('edit') || 'Edit'}
+              </button>
+            </div>
+
+            {/* Route timeline list */}
+            <div className="p-4 space-y-4">
+              {stops.map((s: any, idx: number) => {
+                const isLast = idx === stops.length - 1;
+                const dotColor = idx === 0 ? 'bg-sky-500' : 'bg-emerald-500';
+                const detailStr = idx === 0 ? '2 pickups' : idx === 1 ? 'PAR-12345, PAR-99001' : 'PAR-54321';
+                
+                return (
+                  <div key={s.id} className="flex gap-3 relative pb-4 last:pb-0">
+                    <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${dotColor}`} />
+                    {!isLast && (
+                      <div className="absolute top-4 left-[4px] bottom-0 w-0.5 bg-slate-200" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-xs font-bold text-slate-800">
+                          {s.locationCity || s.locationName || 'Location'}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          {detailStr}
+                        </span>
+                      </div>
+                      
+                      {/* Customer pills */}
+                      <div className="flex gap-1.5 flex-wrap mt-1">
+                        {idx === 2 ? (
+                          <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-teal-200 bg-teal-50 text-teal-800">
+                            🏪 {t('customers') || 'Customers'}: Beta Distributors
+                          </span>
+                        ) : (
+                          <>
+                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-teal-200 bg-teal-50 text-teal-800">
+                              🏪 Alpha Foods Ltd
+                            </span>
+                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-teal-200 bg-teal-50 text-teal-800">
+                              🏪 Gamma Logistics
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
                 );
-              })
-            )}
-          </div>
-        </article>
-      </div>
+              })}
+            </div>
 
-      {/* RIGHT PANEL: Map & Live Pricing calculations */}
-      <aside className="right-panel">
-        {/* Map */}
-        <section className="card">
-          <div className="map-tabs" role="tablist">
-            <button
-              className={`map-tab ${mapTab === 'map' ? 'act' : ''}`}
-              onClick={() => setMapTab('map')}
-            >
-              {t('map')}
-            </button>
-            <button
-              className={`map-tab ${mapTab === 'sat' ? 'act' : ''}`}
-              onClick={() => setMapTab('sat')}
-            >
-              {t('satellite')}
-            </button>
-          </div>
-          <iframe
-            title="Wizard Stop Map"
-            src={
-              mapTab === 'sat'
-                ? 'https://www.openstreetmap.org/export/embed.html?bbox=20.4%2C37.9%2C24.1%2C40.1&layer=cyclemap'
-                : 'https://www.openstreetmap.org/export/embed.html?bbox=20.5%2C38.0%2C24.0%2C40.0&layer=mapnik'
-            }
-            style={{ width: '100%', height: '300px', border: 0 }}
-          ></iframe>
-        </section>
-
-        {/* Route stops list */}
-        <section className="card">
-          <div className="ch ch-sm">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-            <span>{t('routeStops')}</span>
-          </div>
-          <div>
-            {stops.map((stop, i) => {
-              const isLast = i === stops.length - 1;
-              const dotCls = i === 0 ? 'pk' : 'dv';
-              return (
-                <div key={stop.id} className="rs">
-                  <div className={`rd ${dotCls}`}></div>
-                  {!isLast && <div className="rln"></div>}
-                  <div className="ri">
-                    <div className="ri-top">
-                      <span className="ri-name">{getStopLocationName(stop)}</span>
-                      <span className="ri-d">{getStopDetailsString(stop)}</span>
-                    </div>
+            {/* Summary statistics grid */}
+            <div className="grid grid-cols-2 bg-slate-200 gap-px border-t" style={{ borderColor: T.bd }}>
+              {[
+                { label: t('distance') || 'Distance', value: '463', unit: 'km' },
+                { label: t('time') || 'Time', value: '4h 57m', unit: '' },
+                { label: t('stops') || 'Stops', value: String(stops.length), unit: '' },
+                { label: t('weight') || 'Weight', value: '24', unit: 'T' },
+                { label: t('customers') || 'Customers', value: '3', unit: '🏪' },
+                { label: t('orders') || 'Orders', value: '3', unit: '' },
+              ].map((st, sidx) => (
+                <div key={sidx} className="bg-white p-3">
+                  <div className="text-[9px] font-bold text-slate-400 uppercase">
+                    {st.label}
+                  </div>
+                  <div className="text-base font-bold text-slate-800 mt-0.5">
+                    {st.value}{' '}
+                    {st.unit && (
+                      <span className="text-xs font-normal text-slate-400">
+                        {st.unit}
+                      </span>
+                    )}
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
-        </section>
 
-        {/* Trip Stats */}
-        <section className="card">
-          <div className="ch ch-sm">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
-            <span>{t('tripSummary')}</span>
-          </div>
-          <div className="sc-grid">
-            <div className="sc">
-              <div className="sc-l">{t('distanceUpper')}</div>
-              <div className="sc-v">
-                463 <span className="u">km</span>
+          {/* PRICING */}
+          <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+            <div className="ch flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: T.bd }}>
+              <span className="font-semibold text-sm">{t('pricing') || 'Pricing'}</span>
+            </div>
+            <div className="cb p-4 space-y-4">
+              
+              {/* Contract vs Spot Badge */}
+              <div
+                className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-md ${
+                  contract ? 'bg-violet-100 text-indigo-700' : 'bg-amber-100 text-amber-800'
+                }`}
+              >
+                ⚡{' '}
+                <span>
+                  {contract
+                    ? `${t('contractPrice') || 'Contract price'} · ${contractCarrier?.name}`
+                    : t('spotPriceList') || 'Spot price · Price List'}
+                </span>
+              </div>
+
+              {/* Price calculation advice banner */}
+              <div className="bg-sky-50 text-sky-700 p-2.5 rounded-lg text-xs leading-relaxed">
+                ℹ{' '}
+                {contract ? (
+                  contract.unit === 'per_pallet' || contract.unit === 'PER_PALLET' ? (
+                    <span>
+                      {t('contract') || 'Contract'}: <strong>€{contract.price} × {totalPallets} pallets = €{calculatedPrice}</strong> · {contract.origin}→{contract.destination}
+                    </span>
+                  ) : (
+                    <span>
+                      {t('contractPricePerLoad') || 'Contract price: per load'} <strong>€{calculatedPrice}</strong> · {contract.origin}→{contract.destination}
+                    </span>
+                  )
+                ) : (
+                  <span>
+                    {t('spotPriceFromList') || 'Spot price from Price List: per load'} <strong>€750</strong> · Ioannina→Athens
+                  </span>
+                )}
+              </div>
+
+              {/* Input */}
+              <div className="flex items-center bg-slate-100 border-2 rounded-xl px-3 py-2" style={{ borderColor: T.bd }}>
+                <span className="text-xl font-bold text-slate-400 mr-2">€</span>
+                <input
+                  type="number"
+                  className="w-full bg-transparent text-right text-2xl font-bold font-mono outline-none"
+                  value={values.targetPrice}
+                  onChange={(e) => setFieldValue('targetPrice', e.target.value)}
+                />
+              </div>
+
+              {/* Stats calculations */}
+              <div className="flex items-center justify-between text-xs text-slate-500">
+                <span>
+                  <strong>€{pricePerKm}</strong> / km
+                </span>
+                <span>·</span>
+                <span className="text-indigo-700 font-semibold">
+                  <strong>€{pricePerPallet}</strong> / pallet
+                </span>
+                <span className="text-slate-400">({totalPallets} pallets)</span>
+                
+                <button
+                  type="button"
+                  className="flex items-center gap-1 px-2 py-1 border rounded bg-white hover:bg-slate-50 text-[10px] font-bold text-indigo-700 cursor-pointer"
+                  onClick={() => setAiExpanded(!aiExpanded)}
+                >
+                  {t('aiInsights') || '✨ AI Insights'}
+                </button>
+              </div>
+
+              {/* Manual Override Warning */}
+              {isOverride && (
+                <div className="flex items-center justify-between bg-amber-50 text-amber-800 p-2.5 rounded-lg text-xs mt-2">
+                  <span>{t('manualOverride') || 'Manual override —'}</span>
+                  <button
+                    type="button"
+                    className="bg-transparent border-none cursor-pointer font-bold text-amber-900 underline"
+                    onClick={() => setFieldValue('targetPrice', String(calculatedPrice))}
+                  >
+                    {t('resetToPriceList') || 'Reset to Price List'}
+                  </button>
+                </div>
+              )}
+
+              {/* AI Insights Panel */}
+              {aiExpanded && (
+                <div className="bg-violet-50 text-indigo-950 p-4 rounded-lg text-xs space-y-2 border border-violet-100">
+                  <h4 className="font-bold text-slate-900">📊 Lane Analysis: Ioannina → Attica</h4>
+                  <div>Your quote: €{values.targetPrice} (€{pricePerKm}/km)</div>
+                  <div>Average for this lane: €820 (€1.77/km)</div>
+                  <div>Your last 5 loads: €750, €790, €810, €830, €800</div>
+                  <div className="p-2 rounded bg-violet-100 text-indigo-700 font-medium">
+                    💡 Your price is slightly below average. Consider €800–€830 for faster carrier acceptance. Rates show a slight upward trend over the last 3 months.
+                  </div>
+                </div>
+              )}
+
+              {/* Negotiable price toggle */}
+              <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: T.bd }}>
+                <div>
+                  <div className="text-xs font-bold text-slate-800">{t('negotiablePrice') || 'Negotiable price'}</div>
+                  <div className="text-[10px] text-slate-400">{t('negotiableSub') || 'Carriers can submit counteroffers'}</div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={values.negotiable}
+                    onChange={(e) => setFieldValue('negotiable', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:height-4 after:width-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
               </div>
             </div>
-            <div className="sc">
-              <div className="sc-l">{t('timeUpper')}</div>
-              <div className="sc-v">
-                4<span className="u">{t('hoursShort')}</span> 57
-                <span className="u">{t('minutesShort')}</span>
+          </div>
+
+          {/* DRIVER NOTES */}
+          <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+            <div className="ch flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: T.bd }}>
+              <span className="font-semibold text-sm">{t('driverNotes') || 'Driver Notes'}</span>
+            </div>
+            <div className="cb p-4">
+              <textarea
+                rows={3}
+                className="w-full p-2 border rounded-lg text-xs outline-none resize-y"
+                placeholder={t('driverNotesPlaceholder') || 'e.g. Driver must wear safety equipment on arrival...'}
+                value={values.driverNotes}
+                onChange={(e) => {
+                  if (e.target.value.length <= 500) {
+                    setFieldValue('driverNotes', e.target.value);
+                  }
+                }}
+                maxLength={500}
+              />
+              <div className="text-right text-[10px] text-slate-400 mt-1">
+                {(values.driverNotes || '').length} / 500
               </div>
             </div>
-            <div className="sc">
-              <div className="sc-l">{t('stopsUpper')}</div>
-              <div className="sc-v">{stops.length}</div>
-            </div>
-            <div className="sc">
-              <div className="sc-l">{t('palletsUpper')}</div>
-              <div className="sc-v">{totalPallets}</div>
-            </div>
           </div>
-        </section>
+        </div>
+      </div>
 
-        {/* Live pricing calculator */}
-        <section className="card">
-          <div className="ch ch-sm">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="1" x2="12" y2="23" />
-              <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-            </svg>
-            <span>{t('pricing')}</span>
-          </div>
-
-          <div className={`psrc ${activeContractCarrier ? 'ct' : 'sp'}`}>
-            <span>
-              {activeContractCarrier
-                ? `${t('contractPrice')} · ${contractCarrierName}`
-                : `${t('spotPrice')} · Price List`}
-            </span>
-          </div>
-
-          <div className="auto-banner">
-            ℹ️{' '}
-            {activeContractCarrier ? (
-              <span>
-                {t('contractRate')}{' '}
-                <strong>{contractDetails}</strong> · Ioannina→Athens
-              </span>
-            ) : (
-              <span>
-                {t('spotRateFrom')}{' '}
-                <strong>€750 per load</strong> · Ioannina→Athens
+      {/* ═══ BOTTOM BAR MATCHING page3-vehicle-pricing.html ═══ */}
+      <footer
+        className="fixed bottom-0 right-0 h-[72px] items-center justify-between px-6 z-40 flex"
+        style={{ left: 'var(--sidebar-w, 240px)', background: T.sf, borderTop: `1px solid ${T.bd}` }}
+      >
+        {/* Cost & Live Navigation */}
+        <div className="flex items-center gap-4">
+          <div className="text-xs text-slate-500 flex items-center gap-1.5">
+            {t('totalCost') || 'Total cost'}:
+            <strong className="text-lg font-bold text-slate-900 font-mono">
+              €{targetPriceVal.toLocaleString()}
+            </strong>
+            {bulkTotal > 1 && (
+              <span className="text-[11px] font-medium text-indigo-700">
+                × {bulkTotal} = <strong className="font-mono">€{(targetPriceVal * bulkTotal).toLocaleString()}</strong>
               </span>
             )}
           </div>
-
-          <div className="price-box-wrap" style={{ paddingTop: '10px' }}>
-            <div className="price-box">
-              <span className="price-sym">€</span>
+          
+          <div className="h-7 w-px bg-slate-200" />
+          
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span>{t('liveNavigation') || 'Live navigation'}</span>
+            <label className="relative inline-flex items-center cursor-pointer select-none">
               <input
-                type="number"
-                value={targetPrice}
-                onChange={(e) => setTargetPrice(e.target.value)}
-                aria-label="Price"
+                type="checkbox"
+                checked={values.gpsRequired}
+                onChange={(e) => setFieldValue('gpsRequired', e.target.checked)}
+                className="sr-only peer"
               />
-            </div>
+              <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:height-4 after:width-4 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
           </div>
+        </div>
 
-          <div className="price-meta">
-            <span className="mono">
-              <strong>€{(Number(targetPrice || 0) / distanceKm).toFixed(2)}</strong> / km
-            </span>
-            <span className="sep">·</span>
-            <span>
-              <strong>€{(Number(targetPrice || 0) / totalPallets).toFixed(2)}</strong> / pallet{' '}
-              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                ({totalPallets} pallets)
-              </span>
-            </span>
-          </div>
+        {/* Buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 cursor-pointer"
+            onClick={onBackStep}
+            disabled={isSubmitting}
+          >
+            <ArrowLeft size={13} /> {t('back') || 'Back'}
+          </button>
+          
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 cursor-pointer"
+            onClick={() => showToast('Draft saved successfully!', 'success')}
+            disabled={isSubmitting}
+          >
+            <Save size={13} /> {t('saveDraft') || 'Save Draft'}
+          </button>
 
-          {isOverride && (
-            <div className="override-warn">
-              ⚠{' '}
-              {t('priceDiffers')}
-              <button onClick={() => setTargetPrice(String(computedContractPrice))}>
-                {t('reset')}
-              </button>
-            </div>
-          )}
-
-          <div className="neg-row">
-            <div>
-              <div className="neg-title">
-                {t('negotiablePrice')}
-              </div>
-              <div className="neg-sub">
-                {t('carriersCanCounteroffer')}
-              </div>
-            </div>
-            <button
-              className={`tog ${negotiable ? 'on' : ''}`}
-              onClick={() => setNegotiable(!negotiable)}
-              aria-label="Toggle negotiable price"
-            />
-          </div>
-        </section>
-      </aside>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold cursor-pointer text-white border-none"
+            style={{
+              background: T.ac,
+              fontFamily: 'inherit',
+            }}
+            disabled={isSubmitting}
+            onClick={onSubmit}
+          >
+            {bulkTotal > 1 ? t('createLoadsBtn', { count: bulkTotal }) || `Create ${bulkTotal} Shipments` : t('createLoadBtn') || 'Create Shipment'}
+          </button>
+        </div>
+      </footer>
     </div>
   );
 };
+export default Step3Pricing;
