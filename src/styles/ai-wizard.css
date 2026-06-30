@@ -1494,6 +1494,7 @@
     font-style: italic;
 }
 
+/* -- Input fields inside preview -- */
 .ai-preview-input {
     width: 100%;
     min-width: 72px;
@@ -1504,6 +1505,21 @@
     border-radius: 5px;
     background: var(--sf);
     color: var(--t1);
+}
+
+select.ai-preview-input {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 20px !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238B5CF6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    cursor: pointer;
+}
+
+select.ai-preview-input-invalid {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23EF4444'/%3E%3C/svg%3E") !important;
 }
 
 .ai-preview-footer-summary { font-size: 12px; font-weight: 600; color: var(--t2); }
