@@ -1034,11 +1034,9 @@ table.t tbody td {
   text-decoration: underline;
 }
 .cell-sync {
-  font-size: 11px;
+  font-family: inherit;
+  font-size: 11.5px;
   color: var(--text-tertiary, #8E8E9A);
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 .dq-dot {
   width: 7px;

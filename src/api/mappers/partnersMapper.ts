@@ -5,6 +5,7 @@ import type {
   ApiPartnerSummary,
   ListPartnersParams,
 } from '../types/partners';
+import { formatErpLastUpdate } from '../../pages/ErpOrders/erpDateTimeUtils';
 import type { FacetFilter, KpiFilter, Partner, ContractLane, PartnerStatus, PartnerType, PartnersSortField } from '../../pages/Partners/types';
 
 const STATUS_MAP: Record<string, PartnerStatus> = {
@@ -47,7 +48,7 @@ export function mapListItemToPartner(item: ApiPartnerListItem): Partner {
     capabilities: item.capabilities ?? [],
     capabilitiesExtra: item.capabilities_extra ?? 0,
     createdAt: item.created_at ?? '',
-    createdAtFormatted: item.created_at_formatted ?? '—',
+    createdAtFormatted: item.created_at ? formatErpLastUpdate(item.created_at) : '—',
     typeLabel: item.type_label,
   };
 }

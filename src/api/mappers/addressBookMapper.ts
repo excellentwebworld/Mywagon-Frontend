@@ -1,4 +1,5 @@
 import type { Contact, LocationItem } from '../../context/AppContext';
+import { formatErpLastUpdate } from '../../pages/ErpOrders/erpDateTimeUtils';
 import type { CreateLocationData, AddressBookSortField } from '../../pages/AddressBook/types';
 import { normalizeFacilityType } from '../../pages/AddressBook/constants';
 import type {
@@ -79,7 +80,7 @@ export function mapListItemToLocation(item: ApiLocationListItem): LocationItem {
     noteInternal: '',
     noteCarrier: '',
     status: item.deleted_at ? 'archived' : 'active',
-    created: item.created_at ? new Date(item.created_at).toLocaleDateString() : '',
+    created: item.created_at ? formatErpLastUpdate(item.created_at) : '',
   };
 }
 

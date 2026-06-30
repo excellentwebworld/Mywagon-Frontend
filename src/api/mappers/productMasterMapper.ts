@@ -1,4 +1,5 @@
 import type { Category, ProductType, SKU } from '../../context/AppContext';
+import { formatErpLastUpdate } from '../../pages/ErpOrders/erpDateTimeUtils';
 import type {
   ApiReferenceCategory,
   ApiSkuDetail,
@@ -54,7 +55,7 @@ export function mapApiSkuToSku(item: ApiSkuListItem | ApiSkuDetail): SKU {
     shipments30: item.shipments_30 ?? 0,
     shipments90: item.shipments_90 ?? 0,
     shipmentsTotal: item.shipments_total ?? 0,
-    updatedAt: item.updated_at ? item.updated_at.replace('T', ' ').substring(0, 16) : '',
+    updatedAt: item.updated_at ? formatErpLastUpdate(item.updated_at) : '',
   };
 }
 
