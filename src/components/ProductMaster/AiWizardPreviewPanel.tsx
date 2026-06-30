@@ -1,5 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import type { AiMappedProduct, ApiReferenceCategory } from '../../api/types/productMaster';
+import {
+  PALLET_OPTIONS,
+  TEMP_OPTIONS,
+  UOM_OPTIONS,
+} from '../../pages/ProductMaster/constants';
+import {
+  computeColumnMapping,
+  getRowInvalidFields,
+  type ColumnMappingSummary,
+  type ValidatableProductField,
+} from '../../pages/ProductMaster/utils/aiWizardUtils';
 
 export type PreviewRowStatus = 'accepted' | 'rejected';
 
@@ -11,9 +22,9 @@ export interface PreviewRow {
   isEditing: boolean;
 }
 
-export type PreviewFilter = 'all' | 'accepted' | 'rejected' | 'edited' | 'inferred';
+export type PreviewFilter = 'all' | 'accepted' | 'rejected' | 'edited' | 'inferred' | 'invalid';
 
-const EDITABLE_FIELDS: (keyof AiMappedProduct)[] = [
+const EDITABLE_FIELDS: ValidatableProductField[] = [
   'sku_name',
   'sku_number',
   'barcode',
@@ -59,16 +70,70 @@ interface Props {
   onRowsChange: (rows: PreviewRow[]) => void;
 }
 
-function fieldEdited(row: PreviewRow, field: keyof AiMappedProduct): boolean {
+function fieldEdited(row: PreviewRow, field: ValidatableProductField): boolean {
   return (row.original[field] ?? '') !== (row.product[field] ?? '');
 }
 
-function cellClasses(row: PreviewRow, field: keyof AiMappedProduct, inferred: boolean, extra = ''): string {
+function cellClasses(
+  row: PreviewRow,
+  field: ValidatableProductField,
+  inferred: boolean,
+  invalidFields: ValidatableProductField[],
+  extra = ''
+): string {
   const parts = [extra];
   if (row.status === 'rejected') parts.push('ai-preview-cell-rejected');
-  if (fieldEdited(row, field)) parts.push('ai-preview-cell-edited');
+  if (invalidFields.includes(field)) parts.push('ai-preview-cell-invalid');
+  else if (fieldEdited(row, field)) parts.push('ai-preview-cell-edited');
   else if (inferred) parts.push('ai-highlight-cell');
   return parts.filter(Boolean).join(' ');
+}
+
+function ColumnMappingSummaryBar({
+  summary,
+  t,
+}: {
+  summary: ColumnMappingSummary;
+  t: Props['t'];
+}) {
+  if (summary.mapped.length === 0 && summary.unmapped.length === 0) return null;
+
+  return (
+    <div className="ai-preview-column-summary">
+      <div className="ai-preview-col-summary-block">
+        <div className="ai-preview-col-summary-title ai-preview-col-summary-ok">
+          {t('aiWizardMappedColumnsTitle', { count: summary.mapped.length })}
+        </div>
+        <div className="ai-preview-col-summary-chips">
+          {summary.mapped.length === 0 ? (
+            <span className="ai-preview-col-summary-empty">{t('aiWizardNoMappedColumns')}</span>
+          ) : (
+            summary.mapped.map((col) => (
+              <span key={`${col.header}-${col.field}`} className="ai-detected-col-chip ai-detected-col-mapped" title={col.label}>
+                {col.header} → {col.label}
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+      <div className="ai-preview-col-summary-block">
+        <div className="ai-preview-col-summary-title ai-preview-col-summary-skip">
+          {t('aiWizardUnmappedColumnsTitle', { count: summary.unmapped.length })}
+        </div>
+        <div className="ai-preview-col-summary-chips">
+          {summary.unmapped.length === 0 ? (
+            <span className="ai-preview-col-summary-empty">{t('aiWizardAllColumnsMapped')}</span>
+          ) : (
+            summary.unmapped.map((header) => (
+              <span key={header} className="ai-detected-col-chip ai-detected-col-unmapped" title={t('aiWizardUnmappedColumnHint')}>
+                {header}
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export const AiWizardPreviewPanel: React.FC<Props> = ({
@@ -81,13 +146,30 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
 }) => {
   const [filter, setFilter] = useState<PreviewFilter>('all');
 
+  const columnSummary = useMemo(() => computeColumnMapping(fileHeaders), [fileHeaders]);
+
+  const invalidByRowId = useMemo(() => {
+    const map = new Map<string, ValidatableProductField[]>();
+    for (const row of rows) {
+      if (row.status === 'rejected') {
+        map.set(row.id, []);
+        continue;
+      }
+      map.set(row.id, getRowInvalidFields(row.product, referenceCategories));
+    }
+    return map;
+  }, [rows, referenceCategories]);
+
   const stats = useMemo(() => {
     const accepted = rows.filter((r) => r.status === 'accepted').length;
     const rejected = rows.filter((r) => r.status === 'rejected').length;
     const edited = rows.filter(isRowEdited).length;
     const inferred = rows.filter((r) => rowHasInferred(r, inferredFields)).length;
-    return { accepted, rejected, edited, inferred, total: rows.length };
-  }, [rows, inferredFields]);
+    const invalid = rows.filter(
+      (r) => r.status === 'accepted' && (invalidByRowId.get(r.id)?.length ?? 0) > 0
+    ).length;
+    return { accepted, rejected, edited, inferred, invalid, total: rows.length };
+  }, [rows, inferredFields, invalidByRowId]);
 
   const filteredRows = useMemo(() => {
     switch (filter) {
@@ -99,10 +181,14 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
         return rows.filter(isRowEdited);
       case 'inferred':
         return rows.filter((r) => rowHasInferred(r, inferredFields));
+      case 'invalid':
+        return rows.filter(
+          (r) => r.status === 'accepted' && (invalidByRowId.get(r.id)?.length ?? 0) > 0
+        );
       default:
         return rows;
     }
-  }, [rows, filter, inferredFields]);
+  }, [rows, filter, inferredFields, invalidByRowId]);
 
   const updateRow = (id: string, patch: Partial<PreviewRow>) => {
     onRowsChange(rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -129,16 +215,15 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
   };
 
   const typesForCategory = (categoryName: string) => {
-    const cat = referenceCategories.find(
-      (c) => c.name.toLowerCase() === categoryName.toLowerCase()
-    );
+    const cat = referenceCategories.find((c) => c.name.toLowerCase() === categoryName.toLowerCase());
     return cat?.types ?? [];
   };
 
-  const renderEditCell = (row: PreviewRow, field: keyof AiMappedProduct) => {
+  const renderEditCell = (row: PreviewRow, field: ValidatableProductField, invalidFields: ValidatableProductField[]) => {
     const val = row.product[field] ?? '';
+    const isInvalid = invalidFields.includes(field);
     const common = {
-      className: 'ai-preview-input',
+      className: `ai-preview-input${isInvalid ? ' ai-preview-input-invalid' : ''}`,
       onClick: (e: React.MouseEvent) => e.stopPropagation(),
     };
 
@@ -162,10 +247,6 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
               {c.name}
             </option>
           ))}
-          {row.product.category &&
-            !referenceCategories.some((c) => c.name.toLowerCase() === row.product.category.toLowerCase()) && (
-              <option value={row.product.category}>{row.product.category} ({t('aiWizardCustom')})</option>
-            )}
         </select>
       );
     }
@@ -184,10 +265,42 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
               {tp.name}
             </option>
           ))}
-          {row.product.product_type &&
-            !types.some((tp) => tp.name.toLowerCase() === row.product.product_type.toLowerCase()) && (
-              <option value={row.product.product_type}>{row.product.product_type} ({t('aiWizardCustom')})</option>
-            )}
+        </select>
+      );
+    }
+
+    if (field === 'unit') {
+      return (
+        <select {...common} value={String(val || 'Case')} onChange={(e) => updateProduct(row.id, { unit: e.target.value })}>
+          {UOM_OPTIONS.map((u) => (
+            <option key={u} value={u}>
+              {u}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
+    if (field === 'temperature') {
+      return (
+        <select {...common} value={String(val || 'Ambient')} onChange={(e) => updateProduct(row.id, { temperature: e.target.value })}>
+          {TEMP_OPTIONS.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
+    if (field === 'pallet_type') {
+      return (
+        <select {...common} value={String(val || 'EUR')} onChange={(e) => updateProduct(row.id, { pallet_type: e.target.value })}>
+          {PALLET_OPTIONS.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
         </select>
       );
     }
@@ -220,13 +333,20 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
     );
   };
 
-  const renderDisplayCell = (row: PreviewRow, field: keyof AiMappedProduct, inferred: boolean) => {
+  const renderDisplayCell = (row: PreviewRow, field: ValidatableProductField, inferred: boolean, invalidFields: ValidatableProductField[]) => {
     const val = row.product[field] ?? '';
+    const isInvalid = invalidFields.includes(field);
+    const wrap = (content: React.ReactNode) => (
+      <span className={isInvalid ? 'ai-preview-invalid-value' : undefined} title={isInvalid ? t('aiWizardInvalidValueHint') : undefined}>
+        {content}
+      </span>
+    );
+
     if (field === 'category') {
-      return <span className="cat-pill">{String(val)}</span>;
+      return wrap(<span className="cat-pill">{String(val) || '—'}</span>);
     }
     if (field === 'product_type') {
-      return <span className="type-pill">{String(val)}</span>;
+      return wrap(<span className="type-pill">{String(val) || '—'}</span>);
     }
     if (field === 'hazardous' || field === 'stackable' || field === 'status' || field === 'temperature') {
       const lower = String(val).toLowerCase();
@@ -234,13 +354,15 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
       if (field === 'hazardous' && lower === 'yes') badge = 'ai-badge ai-badge-danger';
       if (field === 'stackable' && lower !== 'no') badge = 'ai-badge ai-badge-success';
       if (field === 'status' && lower !== 'inactive') badge = 'ai-badge ai-badge-success';
-      return <span className={badge}>{String(val || (field === 'status' ? 'Active' : field === 'stackable' ? t('yes') : t('no')))}</span>;
+      return wrap(
+        <span className={badge}>{String(val || (field === 'status' ? 'Active' : field === 'stackable' ? t('yes') : t('no')))}</span>
+      );
     }
-    if (field === 'weight' && val) return `${val} kg`;
+    if (field === 'weight' && val) return wrap(`${val} kg`);
     if (field === 'barcode' && !val) return '-';
-    if (field === 'unit' && !val) return 'Case';
-    if (field === 'pallet_type' && !val) return 'EUR';
-    return String(val);
+    if (field === 'unit' && !val) return wrap('Case');
+    if (field === 'pallet_type' && !val) return wrap('EUR');
+    return wrap(String(val || '—'));
   };
 
   return (
@@ -253,6 +375,9 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
         <div className="ai-preview-stats">
           <span className="ai-preview-stat ai-preview-stat-ok">{stats.accepted} {t('aiWizardAccepted')}</span>
           <span className="ai-preview-stat ai-preview-stat-no">{stats.rejected} {t('aiWizardRejected')}</span>
+          {stats.invalid > 0 && (
+            <span className="ai-preview-stat ai-preview-stat-invalid">{stats.invalid} {t('aiWizardInvalid')}</span>
+          )}
           {stats.edited > 0 && (
             <span className="ai-preview-stat ai-preview-stat-edit">{stats.edited} {t('aiWizardEdited')}</span>
           )}
@@ -261,6 +386,14 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
           )}
         </div>
       </div>
+
+      <ColumnMappingSummaryBar summary={columnSummary} t={t} />
+
+      {stats.invalid > 0 && (
+        <div className="ai-preview-invalid-banner">
+          {t('aiWizardInvalidBanner')}
+        </div>
+      )}
 
       <div className="ai-preview-toolbar">
         <div className="ai-preview-bulk">
@@ -272,7 +405,7 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
           </button>
         </div>
         <div className="ai-preview-filters">
-          {(['all', 'accepted', 'rejected', 'edited', 'inferred'] as PreviewFilter[]).map((f) => (
+          {(['all', 'accepted', 'rejected', 'invalid', 'edited', 'inferred'] as PreviewFilter[]).map((f) => (
             <button
               key={f}
               type="button"
@@ -293,21 +426,12 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
           <span className="ai-legend-dot ai-legend-edited" /> {t('aiWizardLegendEdited')}
         </span>
         <span className="ai-legend-item">
+          <span className="ai-legend-dot ai-legend-invalid" /> {t('aiWizardLegendInvalid')}
+        </span>
+        <span className="ai-legend-item">
           <span className="ai-legend-dot ai-legend-rejected" /> {t('aiWizardLegendRejected')}
         </span>
       </div>
-
-      {fileHeaders.length > 0 && (
-        <div className="ai-preview-source-hdr">
-          <span className="ai-preview-source-label">{t('aiWizardSourceColumns')}:</span>
-          {fileHeaders.slice(0, 8).map((h) => (
-            <span key={h} className="ai-detected-col-chip">{h}</span>
-          ))}
-          {fileHeaders.length > 8 && (
-            <span className="ai-detected-col-chip ai-detected-col-more">+{fileHeaders.length - 8}</span>
-          )}
-        </div>
-      )}
 
       <div className="ai-table-container ai-preview-table-wrap">
         <table className="ai-preview-table">
@@ -338,10 +462,12 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
               </tr>
             ) : (
               filteredRows.map((row, idx) => {
+                const invalidFields = invalidByRowId.get(row.id) ?? [];
                 const rowClass = [
                   row.status === 'rejected' ? 'ai-preview-row-rejected' : '',
                   row.isEditing ? 'ai-preview-row-editing' : '',
                   isRowEdited(row) ? 'ai-preview-row-modified' : '',
+                  row.status === 'accepted' && invalidFields.length > 0 ? 'ai-preview-row-invalid' : '',
                 ]
                   .filter(Boolean)
                   .join(' ');
@@ -387,26 +513,24 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
                       </div>
                     </td>
                     <td className="ai-td-num">{idx + 1}</td>
-                    {(['sku_name', 'sku_number', 'barcode', 'category', 'product_type', 'unit', 'weight', 'hazardous', 'pallet_type', 'stackable', 'temperature', 'status'] as const).map(
-                      (field) => {
-                        const inferred = inferredFields[field] ?? false;
-                        const extra =
-                          field === 'sku_name'
-                            ? 'ai-td-bold'
-                            : field === 'sku_number'
-                              ? 'ai-td-mono'
-                              : field === 'unit'
-                                ? 'ai-td-medium'
-                                : '';
-                        return (
-                          <td key={field} className={cellClasses(row, field, inferred, extra)}>
-                            {row.isEditing && row.status === 'accepted'
-                              ? renderEditCell(row, field)
-                              : renderDisplayCell(row, field, inferred)}
-                          </td>
-                        );
-                      }
-                    )}
+                    {EDITABLE_FIELDS.map((field) => {
+                      const inferred = inferredFields[field] ?? false;
+                      const extra =
+                        field === 'sku_name'
+                          ? 'ai-td-bold'
+                          : field === 'sku_number'
+                            ? 'ai-td-mono'
+                            : field === 'unit'
+                              ? 'ai-td-medium'
+                              : '';
+                      return (
+                        <td key={field} className={cellClasses(row, field, inferred, invalidFields, extra)}>
+                          {row.isEditing && row.status === 'accepted'
+                            ? renderEditCell(row, field, invalidFields)
+                            : renderDisplayCell(row, field, inferred, invalidFields)}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })
@@ -417,3 +541,5 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
     </>
   );
 };
+
+export { countAcceptedRowsWithIssues, getRowInvalidFields, rowHasBlockingIssues } from '../../pages/ProductMaster/utils/aiWizardUtils';

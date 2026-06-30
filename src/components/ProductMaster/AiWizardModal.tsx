@@ -5,10 +5,13 @@ import type { AiMappedProduct, AiTransformErrorData, ApiImportResult, ApiReferen
 import {
   AiWizardPreviewPanel,
   acceptedProducts,
+  countAcceptedRowsWithIssues,
   initPreviewRows,
+  rowHasBlockingIssues,
   type PreviewRow,
 } from './AiWizardPreviewPanel';
 import {
+  computeMissingFields,
   parseCsvHeaderLine,
   readCsvFirstLine,
   validateRequiredCsvColumns,
@@ -32,21 +35,6 @@ interface Props {
 
 const ALLOWED_EXT = /\.(csv|tsv|txt|xlsx|xls)$/i;
 
-const FIELD_KEYWORDS: Record<string, string[]> = {
-  sku_name: ['sku name', 'sku_name', 'product name', 'item name', 'productname', 'itemname', 'sku nm', 'product nm'],
-  sku_number: ['sku number', 'sku_number', 'sku no', 'sku#', 'skuno', 'sku id', 'skuid', 'item code', 'product code', 'product_code', 'item_code', 'sku code', 'sku_code'],
-  barcode: ['barcode', 'bar_code', 'bar code', 'upc', 'ean', 'sku barcode'],
-  category: ['category', 'product category', 'item category', 'product group', 'sku category'],
-  product_type: ['product type', 'producttype', 'product_type', 'item type', 'sku type', 'sku_type'],
-  unit: ['unit', 'unit of measure', 'uom', 'measure', 'sku unit', 'pack'],
-  weight: ['weight', 'net weight', 'gross weight', 'weight kg', 'weight_kg', 'kg'],
-  hazardous: ['hazardous', 'hazard', 'hazmat', 'is hazardous', 'dangerous goods'],
-  pallet_type: ['pallet type', 'pallet_type', 'pallet', 'skids'],
-  stackable: ['stackable', 'is stackable', 'stack'],
-  temperature: ['temperature', 'temp', 'temp requirement', 'storage temp'],
-  status: ['status', 'state', 'active'],
-};
-
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -55,29 +43,6 @@ function formatBytes(bytes: number): string {
 
 function logTs(): string {
   return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
-
-function computeMissingFields(headers: string[]): Record<string, boolean> {
-  const normalized = headers.map((h) => String(h).toLowerCase().trim().replace(/["']+/g, ''));
-  const out: Record<string, boolean> = {};
-  for (const [field, kws] of Object.entries(FIELD_KEYWORDS)) {
-    if (!normalized.length) {
-      out[field] = false;
-      continue;
-    }
-    let found = false;
-    for (const kw of kws) {
-      for (const h of normalized) {
-        if (h === kw || h.includes(kw)) {
-          found = true;
-          break;
-        }
-      }
-      if (found) break;
-    }
-    out[field] = !found;
-  }
-  return out;
 }
 
 function stepClass(step: WizardStep, activeStep: WizardStep): string {
@@ -127,6 +92,8 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
     transformCategories.length > 0 ? transformCategories : (allCategoriesQuery.data ?? []);
 
   const acceptedCount = previewRows.filter((r) => r.status === 'accepted').length;
+  const invalidAcceptedCount = countAcceptedRowsWithIssues(previewRows, referenceCategories);
+  const canConfirmImport = acceptedCount > 0 && invalidAcceptedCount === 0;
 
   const appendLog = useCallback((type: LogEntry['type'], message: string) => {
     setLogs((prev) => [...prev, { type, message, ts: logTs() }]);
@@ -348,20 +315,18 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
       showToast(t('aiWizardNoAccepted'), 'warning');
       return null;
     }
-    const invalid = previewRows.find(
-      (r) =>
-        r.status === 'accepted' &&
-        (!r.product.sku_name?.trim() ||
-          !r.product.sku_number?.trim() ||
-          !r.product.category?.trim() ||
-          !r.product.product_type?.trim())
+    const blocking = previewRows.find(
+      (r) => r.status === 'accepted' && rowHasBlockingIssues(r.product, referenceCategories)
     );
-    if (invalid) {
-      showToast(t('aiWizardRequiredFieldsMissing'), 'error');
+    if (blocking) {
+      showToast(
+        invalidAcceptedCount > 0 ? t('aiWizardInvalidValuesBlocking') : t('aiWizardRequiredFieldsMissing'),
+        'error'
+      );
       return null;
     }
     return toImport;
-  }, [previewRows, showToast, t]);
+  }, [previewRows, referenceCategories, invalidAcceptedCount, showToast, t]);
 
   const handleConfirmImport = useCallback(async () => {
     const toImport = validateAcceptedRows();
@@ -723,11 +688,13 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
             </div>
             <div className="ai-wizard-footer ai-footer-split">
               <div className="ai-preview-footer-summary">
-                {t('aiWizardImportSummary', {
-                  accepted: acceptedCount,
-                  rejected: previewRows.length - acceptedCount,
-                  total: previewRows.length,
-                })}
+                {invalidAcceptedCount > 0
+                  ? t('aiWizardImportBlockedSummary', { count: invalidAcceptedCount })
+                  : t('aiWizardImportSummary', {
+                      accepted: acceptedCount,
+                      rejected: previewRows.length - acceptedCount,
+                      total: previewRows.length,
+                    })}
               </div>
               <div className="ai-preview-footer-actions">
                 <button type="button" className="btn btn-secondary" onClick={reset}>
@@ -736,7 +703,8 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
                 <button
                   type="button"
                   className="btn ai-primary-btn"
-                  disabled={acceptedCount === 0 || running}
+                  disabled={!canConfirmImport || running}
+                  title={invalidAcceptedCount > 0 ? t('aiWizardInvalidValuesBlocking') : undefined}
                   onClick={handleConfirmImport}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
