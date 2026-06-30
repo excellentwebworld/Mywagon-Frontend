@@ -368,7 +368,9 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
                         <div className="ai-req-col-status">{config.icon}</div>
                         <div className="ai-req-col-info">
                           <div className="ai-req-col-label">{col.label}</div>
-                          <div className="ai-req-col-desc">{col.desc}</div>
+                          <div className="ai-req-col-desc">
+                            {status === 'missing' ? t('ordersAiWizardColNotExist') : col.desc}
+                          </div>
                         </div>
                       </div>
                     );

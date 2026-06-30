@@ -153,14 +153,7 @@ export function toConfirmImportOrders(rows: OrderPreviewRow[]): AiMappedOrder[] 
       delivery_date: order.delivery_date,
       notes: order.notes ?? null,
       high_priority: order.high_priority ?? false,
-      lines: (order.lines ?? []).map((line) => ({
-        product_sku_id: line.product_sku_id ?? null,
-        product_name: line.product_name,
-        quantity: line.quantity ?? null,
-        unit: line.source_empty_fields?.includes('unit') ? null : (line.unit ?? null),
-        weight: line.source_empty_fields?.includes('weight') ? null : (line.weight ?? null),
-        weight_unit: line.source_empty_fields?.includes('weight_unit') ? null : (line.weight_unit ?? null),
-      })),
+      lines: [],
     };
   });
 }
@@ -217,12 +210,7 @@ export type ValidatableOrderField =
   | 'ship_date'
   | 'delivery_date'
   | 'notes'
-  | 'high_priority'
-  | 'product_name'
-  | 'quantity'
-  | 'unit'
-  | 'weight'
-  | 'weight_unit';
+  | 'high_priority';
 
 export const MV_ORDER_FIELD_KEYWORDS: Record<
   ValidatableOrderField,
@@ -259,26 +247,6 @@ export const MV_ORDER_FIELD_KEYWORDS: Record<
   high_priority: {
     label: 'High Priority',
     keywords: ['high priority', 'high_priority', 'priority', 'urgent', 'rush'],
-  },
-  product_name: {
-    label: 'Product Name',
-    keywords: ['product', 'product name', 'product_name', 'item', 'item name', 'sku name', 'sku', 'material', 'description'],
-  },
-  quantity: {
-    label: 'Quantity',
-    keywords: ['quantity', 'qty', 'amount', 'order qty', 'order quantity'],
-  },
-  unit: {
-    label: 'Unit',
-    keywords: ['unit', 'uom', 'unit of measure', 'qty unit', 'pack'],
-  },
-  weight: {
-    label: 'Weight',
-    keywords: ['weight', 'net weight', 'gross weight', 'weight kg', 'weight_kg'],
-  },
-  weight_unit: {
-    label: 'Weight Unit',
-    keywords: ['weight unit', 'weight_unit', 'wt unit', 'weight uom'],
   },
 };
 

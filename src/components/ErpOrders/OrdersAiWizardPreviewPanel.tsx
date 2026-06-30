@@ -41,8 +41,7 @@ type HeaderField =
   | 'ship_from'
   | 'ship_to'
   | 'notes'
-  | 'high_priority'
-  | 'products';
+  | 'high_priority';
 
 interface Props {
   rows: OrderPreviewRow[];
@@ -62,10 +61,33 @@ function linesEdited(row: OrderPreviewRow): boolean {
   return areOrderLinesEdited(row);
 }
 
-function cellClasses(row: OrderPreviewRow, field: keyof AiMappedOrder | 'products', inferred: boolean, extra = ''): string {
+function isFieldInvalid(row: OrderPreviewRow, field: HeaderField): boolean {
+  if (row.status === 'rejected') return false;
+
+  if (field === 'order_reference') {
+    return !row.order.order_reference?.trim();
+  }
+  if (field === 'customer_name') {
+    return row.order.company_entity_id == null;
+  }
+  if (field === 'delivery_date') {
+    return !row.order.delivery_date?.trim();
+  }
+  if (field === 'ship_from') {
+    return !row.sourceEmptyFields.includes('ship_from') && row.order.origin_location_id == null;
+  }
+  if (field === 'ship_to') {
+    return !row.sourceEmptyFields.includes('ship_to') && row.order.dest_location_id == null;
+  }
+  return false;
+}
+
+function cellClasses(row: OrderPreviewRow, field: HeaderField, inferred: boolean, extra = ''): string {
   const parts = [extra];
   if (row.status === 'rejected') parts.push('ai-preview-cell-rejected');
-  if (field === 'products' ? linesEdited(row) : fieldEdited(row, field)) {
+  if (isFieldInvalid(row, field)) {
+    parts.push('ai-preview-cell-invalid');
+  } else if (fieldEdited(row, field as keyof AiMappedOrder)) {
     parts.push('ai-preview-cell-edited');
   } else if (inferred) {
     parts.push('ai-highlight-cell');
@@ -342,6 +364,7 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
     if (field === 'ship_from') {
       return (
         <SearchableSelect
+          menuFixed
           options={locationOptions}
           value={row.order.origin_location_id ? String(row.order.origin_location_id) : ''}
           onChange={(val, opt) => {
@@ -358,6 +381,7 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
     if (field === 'ship_to') {
       return (
         <SearchableSelect
+          menuFixed
           options={locationOptions}
           value={row.order.dest_location_id ? String(row.order.dest_location_id) : ''}
           onChange={(val, opt) => {
@@ -396,20 +420,43 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
   };
 
   const renderDisplayCell = (row: OrderPreviewRow, field: HeaderField) => {
-    if (field === 'products') {
-      return formatOrderLinesSummary(row.order.lines);
-    }
     if (field === 'high_priority') {
       return row.order.high_priority ? t('yes') : t('no');
     }
     if (field === 'ship_from') {
-      return effectiveOrderFieldValue(row, 'ship_from') || '—';
+      const val = effectiveOrderFieldValue(row, 'ship_from') || '—';
+      if (isFieldInvalid(row, 'ship_from')) {
+        return <span className="ai-preview-invalid-value" title={t('erpOrdersSelectLocation')}>{val}</span>;
+      }
+      return val;
     }
     if (field === 'ship_to') {
-      return effectiveOrderFieldValue(row, 'ship_to') || '—';
+      const val = effectiveOrderFieldValue(row, 'ship_to') || '—';
+      if (isFieldInvalid(row, 'ship_to')) {
+        return <span className="ai-preview-invalid-value" title={t('erpOrdersSelectLocation')}>{val}</span>;
+      }
+      return val;
     }
     if (field === 'customer_name') {
-      return row.order.customer_name?.trim() || '—';
+      const val = row.order.customer_name?.trim() || '—';
+      if (isFieldInvalid(row, 'customer_name')) {
+        return <span className="ai-preview-invalid-value" title={t('ordersAiWizardSelectCustomer')}>{val}</span>;
+      }
+      return val;
+    }
+    if (field === 'order_reference') {
+      const val = effectiveOrderFieldValue(row, 'order_reference') || '—';
+      if (isFieldInvalid(row, 'order_reference')) {
+        return <span className="ai-preview-invalid-value">{val}</span>;
+      }
+      return val;
+    }
+    if (field === 'delivery_date') {
+      const val = effectiveOrderFieldValue(row, 'delivery_date') || '—';
+      if (isFieldInvalid(row, 'delivery_date')) {
+        return <span className="ai-preview-invalid-value">{val}</span>;
+      }
+      return val;
     }
     if (field === 'erp_reference' || field === 'notes' || field === 'ship_date') {
       const val = effectiveOrderFieldValue(row, field);
@@ -421,7 +468,7 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
 
   const shouldRenderCustomerPicker = (row: OrderPreviewRow) => row.status === 'accepted';
 
-  const colCount = 11;
+  const colCount = 10;
 
   return (
     <>
@@ -504,7 +551,6 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
               <th>{t('erpOrdersColDeliveryDate')}</th>
               <th>{t('erpOrdersColShipFrom')}</th>
               <th>{t('erpOrdersColShipTo')}</th>
-              <th>{t('erpOrdersColProducts')}</th>
               <th>{t('erpOrdersHighPriority')}</th>
               <th>{t('notes')}</th>
             </tr>
@@ -518,10 +564,15 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
               </tr>
             ) : (
               filteredRows.map((row, idx) => {
+                const hasInvalidFields = ['order_reference', 'customer_name', 'delivery_date', 'ship_from', 'ship_to'].some(
+                  (f) => isFieldInvalid(row, f as HeaderField)
+                );
+
                 const rowClass = [
                   row.status === 'rejected' ? 'ai-preview-row-rejected' : '',
                   row.isEditing ? 'ai-preview-row-editing' : '',
                   isOrderRowEdited(row) ? 'ai-preview-row-modified' : '',
+                  row.status === 'accepted' && hasInvalidFields ? 'ai-preview-row-invalid' : '',
                 ]
                   .filter(Boolean)
                   .join(' ');
@@ -533,10 +584,6 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
                   { field: 'delivery_date', inferred: false, extra: 'ai-td-mono' },
                   { field: 'ship_from', inferred: isOrderHeaderFieldInferred(row, 'ship_from') },
                   { field: 'ship_to', inferred: isOrderHeaderFieldInferred(row, 'ship_to') },
-                  {
-                    field: 'products',
-                    inferred: Boolean((row.order.lines ?? []).some((l) => l.inferred?.product)),
-                  },
                   { field: 'high_priority', inferred: false },
                   { field: 'notes', inferred: false },
                 ];
@@ -588,7 +635,7 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
                         <td
                           key={field}
                           className={[
-                            cellClasses(row, field === 'products' ? 'products' : field, inferred, extra),
+                            cellClasses(row, field, inferred, extra),
                             field === 'customer_name' ? 'ai-td-customer' : '',
                           ]
                             .filter(Boolean)
@@ -597,26 +644,11 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
                           {field === 'customer_name' && shouldRenderCustomerPicker(row)
                             ? renderEditCell(row, field)
                             : row.isEditing && row.status === 'accepted'
-                              ? field === 'products'
-                                ? renderDisplayCell(row, field)
-                                : renderEditCell(row, field)
+                              ? renderEditCell(row, field)
                               : renderDisplayCell(row, field)}
                         </td>
                       ))}
                     </tr>
-                    {row.isEditing && row.status === 'accepted' && (
-                      <tr className="ai-preview-row-lines">
-                        <td colSpan={colCount} className="ai-preview-lines-cell">
-                          <OrderProductLinesEditor
-                            t={t}
-                            lines={toErpLines(row.order.lines)}
-                            skus={skus}
-                            allowEmptySelects
-                            onChange={(next) => updateOrder(row.id, { lines: fromErpLines(next) })}
-                          />
-                        </td>
-                      </tr>
-                    )}
                   </React.Fragment>
                 );
               })

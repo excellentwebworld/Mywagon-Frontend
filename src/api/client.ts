@@ -94,7 +94,7 @@ export async function apiRequest<T>(
       const data = err.response?.data;
       const message = data?.message || err.message;
       const fieldErrors = data?.errors as Record<string, string[]> | undefined;
-      throw new ApiError(message, status, fieldErrors);
+      throw new ApiError(message, status, fieldErrors, data?.data);
     }
     throw err;
   }
