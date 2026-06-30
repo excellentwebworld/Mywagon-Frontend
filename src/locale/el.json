@@ -1158,5 +1158,9 @@
   "sendTrackingLink": "Αποστολή συνδέσμου παρακολούθησης στους πελάτες",
   "order": "παραγγελία",
   "perLoad": "ανά φορτίο",
-  "aiInsights": "✨ AI Insights"
+  "aiInsights": "✨ AI Insights",
+  "deleteStopTitle": "Διαγραφή Στάσης",
+  "deleteStopMsg": "Είστε βέβαιοι ότι θέλετε να διαγράψετε αυτή τη στάση και όλες τις γραμμές φορτίου της;",
+  "deleteStopConfirm": "Διαγραφή",
+  "deleteStopCancel": "Ακύρωση"
 }

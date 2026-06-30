@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import { SearchableSelect } from '../ui/SearchableSelect';
+import { ConfirmationModal } from '../ui/ConfirmationModal';
 import { CreateLocationModal } from './CreateLocationModal';
 import { CreateCustomerModal } from './CreateCustomerModal';
 import { CreateOrderModal } from './CreateOrderModal';
@@ -1820,6 +1821,21 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
           </div>
         </div>
       )}
+      <ConfirmationModal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => {
+          if (deleteConfirm) {
+            delStop(deleteConfirm);
+            setDeleteConfirm(null);
+          }
+        }}
+        title={t('deleteStopTitle') || 'Delete Stop'}
+        message={t('deleteStopMsg') || 'Are you sure you want to delete this stop and all its cargo lines?'}
+        confirmText={t('deleteStopConfirm') || 'Delete'}
+        cancelText={t('deleteStopCancel') || 'Cancel'}
+        type="danger"
+      />
     </div>
   );
 };
