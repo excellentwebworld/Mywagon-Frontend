@@ -9,9 +9,11 @@ import { OrderProductLinesEditor } from './OrderProductLinesEditor';
 import {
   acceptedOrders,
   areOrderLinesEdited,
+  effectiveOrderFieldValue,
   formatOrderLinesSummary,
   fromErpLines,
   initOrderPreviewRows,
+  isOrderHeaderFieldInferred,
   isOrderRowEdited,
   orderRowHasInferred,
   toConfirmImportOrders,
@@ -131,7 +133,22 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
   };
 
   const updateOrder = (id: string, patch: Partial<AiMappedOrder>) => {
-    onRowsChange(rows.map((r) => (r.id === id ? { ...r, order: { ...r.order, ...patch } } : r)));
+    onRowsChange(
+      rows.map((r) => {
+        if (r.id !== id) return r;
+        const nextOrder = { ...r.order, ...patch };
+        let sourceEmptyFields = r.sourceEmptyFields;
+        if (!patch.lines) {
+          const filledFields = Object.keys(patch).filter((key) => {
+            const val = nextOrder[key as keyof AiMappedOrder];
+            return val != null && String(val).trim() !== '';
+          });
+          sourceEmptyFields = r.sourceEmptyFields.filter((f) => !filledFields.includes(f));
+          nextOrder.source_empty_fields = sourceEmptyFields;
+        }
+        return { ...r, order: nextOrder, sourceEmptyFields };
+      })
+    );
   };
 
   const setAllStatus = (status: OrderPreviewRow['status']) => {
@@ -148,7 +165,11 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
                 ...r.original,
                 lines: (r.original.lines ?? []).map((line) => ({ ...line })),
                 inferred: r.original.inferred ? { ...r.original.inferred } : undefined,
+                source_empty_fields: r.original.source_empty_fields
+                  ? [...r.original.source_empty_fields]
+                  : undefined,
               },
+              sourceEmptyFields: [...(r.original.source_empty_fields ?? [])],
               status: 'accepted',
               isEditing: false,
             }
@@ -179,7 +200,7 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
         <input
           {...common}
           type="text"
-          value={row.order.erp_reference ?? ''}
+          value={effectiveOrderFieldValue(row, 'erp_reference')}
           onChange={(e) => updateOrder(row.id, { erp_reference: e.target.value })}
         />
       );
@@ -253,7 +274,7 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
         <input
           {...common}
           type="text"
-          value={row.order.notes ?? ''}
+          value={effectiveOrderFieldValue(row, 'notes')}
           onChange={(e) => updateOrder(row.id, { notes: e.target.value })}
         />
       );
@@ -280,13 +301,17 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
       return row.order.high_priority ? t('yes') : t('no');
     }
     if (field === 'ship_from') {
-      return row.order.ship_from || '—';
+      return effectiveOrderFieldValue(row, 'ship_from') || '—';
     }
     if (field === 'ship_to') {
-      return row.order.ship_to || '—';
+      return effectiveOrderFieldValue(row, 'ship_to') || '—';
     }
     if (field === 'customer_name') {
       return row.order.customer_name?.trim() || '—';
+    }
+    if (field === 'erp_reference' || field === 'notes' || field === 'ship_date') {
+      const val = effectiveOrderFieldValue(row, field);
+      return val || '—';
     }
     const val = row.order[field as keyof AiMappedOrder];
     return val != null && String(val).trim() !== '' ? String(val) : '—';
@@ -416,8 +441,8 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
                   { field: 'customer_name', inferred: Boolean(row.order.inferred?.customer) },
                   { field: 'ship_date', inferred: false, extra: 'ai-td-mono' },
                   { field: 'delivery_date', inferred: false, extra: 'ai-td-mono' },
-                  { field: 'ship_from', inferred: Boolean(row.order.inferred?.ship_from) },
-                  { field: 'ship_to', inferred: Boolean(row.order.inferred?.ship_to) },
+                  { field: 'ship_from', inferred: isOrderHeaderFieldInferred(row, 'ship_from') },
+                  { field: 'ship_to', inferred: isOrderHeaderFieldInferred(row, 'ship_to') },
                   {
                     field: 'products',
                     inferred: Boolean((row.order.lines ?? []).some((l) => l.inferred?.product)),
@@ -496,6 +521,7 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
                             t={t}
                             lines={toErpLines(row.order.lines)}
                             skus={skus}
+                            allowEmptySelects
                             onChange={(next) => updateOrder(row.id, { lines: fromErpLines(next) })}
                           />
                         </td>
