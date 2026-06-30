@@ -208,3 +208,121 @@ export function fromErpLines(lines: ErpOrderLine[]): AiMappedOrderLine[] {
       };
     });
 }
+
+export type ValidatableOrderField =
+  | 'order_reference'
+  | 'erp_reference'
+  | 'ship_from'
+  | 'ship_to'
+  | 'ship_date'
+  | 'delivery_date'
+  | 'notes'
+  | 'high_priority'
+  | 'product_name'
+  | 'quantity'
+  | 'unit'
+  | 'weight'
+  | 'weight_unit';
+
+export const MV_ORDER_FIELD_KEYWORDS: Record<
+  ValidatableOrderField,
+  { label: string; keywords: string[] }
+> = {
+  order_reference: {
+    label: 'Order ID',
+    keywords: ['order id', 'order_id', 'orderid', 'order ref', 'order reference', 'order_reference', 'orderno', 'order no'],
+  },
+  erp_reference: {
+    label: 'ERP Reference',
+    keywords: ['erp reference', 'erp_reference', 'erp ref', 'erp id', 'erp_id'],
+  },
+  ship_from: {
+    label: 'Ship From',
+    keywords: ['ship from', 'ship_from', 'origin', 'from location', 'pickup', 'pick up location', 'source'],
+  },
+  ship_to: {
+    label: 'Ship To',
+    keywords: ['ship to', 'ship_to', 'destination', 'to location', 'delivery location', 'dest', 'drop off'],
+  },
+  ship_date: {
+    label: 'Ship Date',
+    keywords: ['ship date', 'ship_date', 'shipping date', 'dispatch date', 'load date'],
+  },
+  delivery_date: {
+    label: 'Delivery Date',
+    keywords: ['delivery date', 'delivery_date', 'del date', 'due date', 'required date'],
+  },
+  notes: {
+    label: 'Notes',
+    keywords: ['notes', 'note', 'comments', 'comment', 'remarks'],
+  },
+  high_priority: {
+    label: 'High Priority',
+    keywords: ['high priority', 'high_priority', 'priority', 'urgent', 'rush'],
+  },
+  product_name: {
+    label: 'Product Name',
+    keywords: ['product', 'product name', 'product_name', 'item', 'item name', 'sku name', 'sku', 'material', 'description'],
+  },
+  quantity: {
+    label: 'Quantity',
+    keywords: ['quantity', 'qty', 'amount', 'order qty', 'order quantity'],
+  },
+  unit: {
+    label: 'Unit',
+    keywords: ['unit', 'uom', 'unit of measure', 'qty unit', 'pack'],
+  },
+  weight: {
+    label: 'Weight',
+    keywords: ['weight', 'net weight', 'gross weight', 'weight kg', 'weight_kg'],
+  },
+  weight_unit: {
+    label: 'Weight Unit',
+    keywords: ['weight unit', 'weight_unit', 'wt unit', 'weight uom'],
+  },
+};
+
+export interface MappedSourceOrderColumn {
+  header: string;
+  field: ValidatableOrderField;
+  label: string;
+}
+
+export interface OrderColumnMappingSummary {
+  mapped: MappedSourceOrderColumn[];
+  unmapped: string[];
+}
+
+function normalizeHeader(header: string): string {
+  return String(header).toLowerCase().trim().replace(/["']+/g, '');
+}
+
+function headerMatchesField(header: string, keywords: string[]): boolean {
+  const h = normalizeHeader(header);
+  return keywords.some((kw) => h === kw || h.includes(kw));
+}
+
+export function computeOrderColumnMapping(fileHeaders: string[]): OrderColumnMappingSummary {
+  const mapped: MappedSourceOrderColumn[] = [];
+  const unmapped: string[] = [];
+
+  for (const header of fileHeaders) {
+    if (!header?.trim()) continue;
+    let matchedField: ValidatableOrderField | null = null;
+    for (const [field, { label, keywords }] of Object.entries(MV_ORDER_FIELD_KEYWORDS) as [
+      ValidatableOrderField,
+      { label: string; keywords: string[] },
+    ][]) {
+      if (headerMatchesField(header, keywords)) {
+        matchedField = field;
+        mapped.push({ header, field: matchedField, label });
+        break;
+      }
+    }
+    if (!matchedField) {
+      unmapped.push(header);
+    }
+  }
+  return { mapped, unmapped };
+}
+

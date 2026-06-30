@@ -20,6 +20,8 @@ import {
   toErpLines,
   type OrderPreviewFilter,
   type OrderPreviewRow,
+  computeOrderColumnMapping,
+  type OrderColumnMappingSummary,
 } from './ordersAiWizardUtils';
 
 export {
@@ -71,6 +73,104 @@ function cellClasses(row: OrderPreviewRow, field: keyof AiMappedOrder | 'product
   return parts.filter(Boolean).join(' ');
 }
 
+function ColumnMappingSummaryBar({
+  summary,
+  t,
+}: {
+  summary: OrderColumnMappingSummary;
+  t: Props['t'];
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (summary.mapped.length === 0 && summary.unmapped.length === 0) return null;
+
+  if (!isExpanded) {
+    return (
+      <div
+        className="ai-preview-column-summary-collapsed"
+        onClick={() => setIsExpanded(true)}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="summary-toggle-icon">▶</span>
+          <span className="summary-text" style={{ fontSize: '11px', color: 'var(--t2)' }}>
+            <strong>{t('aiWizardMappedColumnsTitle', { count: summary.mapped.length })}</strong>
+            {summary.unmapped.length > 0 && (
+              <>
+                <span style={{ margin: '0 8px', color: 'var(--bd)' }}>|</span>
+                <span style={{ color: 'var(--t3)' }}>
+                  {t('aiWizardUnmappedColumnsTitle', { count: summary.unmapped.length })}
+                </span>
+              </>
+            )}
+          </span>
+        </div>
+        <span className="summary-action-hint" style={{ fontSize: '10px', color: 'var(--t3)', fontStyle: 'italic' }}>
+          {t('clickToExpand', { defaultValue: 'Click to expand' })}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ai-preview-column-summary">
+      <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', borderBottom: '1px solid var(--bd)', paddingBottom: '6px' }}>
+        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--t2)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setIsExpanded(false)}>
+          <span className="summary-toggle-icon" style={{ transform: 'rotate(90deg)', display: 'inline-block' }}>▶</span>
+          Column Mapping Details
+        </span>
+        <button
+          type="button"
+          onClick={() => setIsExpanded(false)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--t3)',
+            cursor: 'pointer',
+            fontSize: '10px',
+            textDecoration: 'underline',
+            padding: 0
+          }}
+        >
+          {t('collapse', { defaultValue: 'Collapse' })}
+        </button>
+      </div>
+
+      <div className="ai-preview-col-summary-block">
+        <div className="ai-preview-col-summary-title ai-preview-col-summary-ok">
+          {t('aiWizardMappedColumnsTitle', { count: summary.mapped.length })}
+        </div>
+        <div className="ai-preview-col-summary-chips">
+          {summary.mapped.length === 0 ? (
+            <span className="ai-preview-col-summary-empty">{t('aiWizardNoMappedColumns')}</span>
+          ) : (
+            summary.mapped.map((col) => (
+              <span key={`${col.header}-${col.field}`} className="ai-detected-col-chip ai-detected-col-mapped" title={col.label}>
+                {col.header} → {col.label}
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+      <div className="ai-preview-col-summary-block">
+        <div className="ai-preview-col-summary-title ai-preview-col-summary-skip">
+          {t('aiWizardUnmappedColumnsTitle', { count: summary.unmapped.length })}
+        </div>
+        <div className="ai-preview-col-summary-chips">
+          {summary.unmapped.length === 0 ? (
+            <span className="ai-preview-col-summary-empty">{t('aiWizardAllColumnsMapped')}</span>
+          ) : (
+            summary.unmapped.map((header) => (
+              <span key={header} className="ai-detected-col-chip ai-detected-col-unmapped" title={t('aiWizardUnmappedColumnHint')}>
+                {header}
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
   rows,
   fileHeaders,
@@ -81,6 +181,8 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
   onRowsChange,
 }) => {
   const [filter, setFilter] = useState<OrderPreviewFilter>('all');
+
+  const columnSummary = useMemo(() => computeOrderColumnMapping(fileHeaders), [fileHeaders]);
 
   const companyOptions = useMemo(
     () =>
@@ -383,19 +485,7 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
         </span>
       </div>
 
-      {fileHeaders.length > 0 && (
-        <div className="ai-preview-source-hdr">
-          <span className="ai-preview-source-label">{t('aiWizardSourceColumns')}:</span>
-          {fileHeaders.slice(0, 8).map((h) => (
-            <span key={h} className="ai-detected-col-chip">
-              {h}
-            </span>
-          ))}
-          {fileHeaders.length > 8 && (
-            <span className="ai-detected-col-chip ai-detected-col-more">+{fileHeaders.length - 8}</span>
-          )}
-        </div>
-      )}
+      <ColumnMappingSummaryBar summary={columnSummary} t={t} />
 
       <div className="ai-table-container ai-preview-table-wrap">
         <table className="ai-preview-table">
