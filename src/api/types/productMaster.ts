@@ -119,6 +119,8 @@ export interface AiMappedProduct {
   stackable?: string;
   temperature?: string;
   status?: string;
+  /** Fields with no value in the uploaded source row/column (from API). */
+  source_empty_fields?: string[];
 }
 
 export interface AiTransformResult {

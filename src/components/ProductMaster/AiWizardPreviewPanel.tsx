@@ -21,6 +21,7 @@ export interface PreviewRow {
   original: AiMappedProduct;
   status: PreviewRowStatus;
   isEditing: boolean;
+  sourceEmptyFields: string[];
 }
 
 export type PreviewFilter = 'all' | 'accepted' | 'rejected' | 'edited' | 'inferred' | 'invalid';
@@ -47,6 +48,7 @@ export function initPreviewRows(products: AiMappedProduct[]): PreviewRow[] {
     original: { ...p },
     status: 'accepted',
     isEditing: false,
+    sourceEmptyFields: [...(p.source_empty_fields ?? [])],
   }));
 }
 
@@ -55,7 +57,27 @@ export function isRowEdited(row: PreviewRow): boolean {
 }
 
 export function rowHasInferred(row: PreviewRow, inferredFields: Record<string, boolean>): boolean {
-  return Object.entries(inferredFields).some(([field, missing]) => missing && row.product[field as keyof AiMappedProduct]);
+  return EDITABLE_FIELDS.some((field) => {
+    const val = effectiveFieldValue(row, field);
+    if (!val) return false;
+    if (row.sourceEmptyFields.includes(field)) return false;
+    return inferredFields[field] ?? false;
+  });
+}
+
+function effectiveFieldValue(row: PreviewRow, field: ValidatableProductField): string {
+  if (row.sourceEmptyFields.includes(field)) return '';
+  return getFieldValue(row.product, field);
+}
+
+function isFieldInferred(
+  row: PreviewRow,
+  field: ValidatableProductField,
+  inferredFields: Record<string, boolean>
+): boolean {
+  const val = effectiveFieldValue(row, field);
+  if (!val || row.sourceEmptyFields.includes(field)) return false;
+  return inferredFields[field] ?? false;
 }
 
 export function acceptedProducts(rows: PreviewRow[]): AiMappedProduct[] {
@@ -248,7 +270,15 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
 
   const updateProduct = (id: string, patch: Partial<AiMappedProduct>) => {
     onRowsChange(
-      rows.map((r) => (r.id === id ? { ...r, product: { ...r.product, ...patch } } : r))
+      rows.map((r) => {
+        if (r.id !== id) return r;
+        const nextProduct = { ...r.product, ...patch };
+        const filledFields = Object.keys(patch).filter(
+          (key) => String(nextProduct[key as keyof AiMappedProduct] ?? '').trim() !== ''
+        );
+        const sourceEmptyFields = r.sourceEmptyFields.filter((f) => !filledFields.includes(f));
+        return { ...r, product: nextProduct, sourceEmptyFields };
+      })
     );
   };
 
@@ -272,7 +302,7 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
   };
 
   const renderEditCell = (row: PreviewRow, field: ValidatableProductField, invalidFields: ValidatableProductField[]) => {
-    const val = getFieldValue(row.product, field);
+    const val = effectiveFieldValue(row, field);
     const isInvalid = invalidFields.includes(field);
     const common = {
       className: `ai-preview-input${isInvalid ? ' ai-preview-input-invalid' : ''}`,
@@ -284,7 +314,7 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
       return (
         <select
           {...common}
-          value={row.product.category}
+          value={effectiveFieldValue(row, 'category')}
           onChange={(e) => {
             const name = e.target.value;
             const types = typesForCategory(name);
@@ -294,7 +324,7 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
             });
           }}
         >
-          <option value="">{t('selectCat')}</option>
+          {emptyOption}
           {referenceCategories.map((c) => (
             <option key={c.id} value={c.name}>
               {c.name}
@@ -309,10 +339,10 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
       return (
         <select
           {...common}
-          value={row.product.product_type}
+          value={effectiveFieldValue(row, 'product_type')}
           onChange={(e) => updateProduct(row.id, { product_type: e.target.value })}
         >
-          <option value="">{t('selectCatFirst')}</option>
+          {emptyOption}
           {types.map((tp) => (
             <option key={tp.id} value={tp.name}>
               {tp.name}
@@ -392,7 +422,7 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
   };
 
   const renderDisplayCell = (row: PreviewRow, field: ValidatableProductField, inferred: boolean, invalidFields: ValidatableProductField[]) => {
-    const val = getFieldValue(row.product, field);
+    const val = effectiveFieldValue(row, field);
     const isInvalid = invalidFields.includes(field);
     const empty = '—';
     const wrap = (content: React.ReactNode) => (
@@ -572,7 +602,7 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
                     </td>
                     <td className="ai-td-num">{idx + 1}</td>
                     {EDITABLE_FIELDS.map((field) => {
-                      const inferred = inferredFields[field] ?? false;
+                      const inferred = isFieldInferred(row, field, inferredFields);
                       const extra =
                         field === 'sku_name'
                           ? 'ai-td-bold'

@@ -12,9 +12,12 @@ const REQUIRED_COLUMNS = [
   { label: 'Product Type', icon: '🏷️', desc: 'Type of product (e.g. physical, digital)', keywords: ['product type', 'producttype', 'product_type', 'item type', 'sku type', 'sku_type'] },
 ];
 
+/** Product fields shown in AI preview and validated against catalog options. */
+export type ValidatableProductField = Exclude<keyof AiMappedProduct, 'source_empty_fields'>;
+
 /** MV table fields and source-file header keywords used for column mapping. */
 export const MV_FIELD_KEYWORDS: Record<
-  keyof AiMappedProduct,
+  ValidatableProductField,
   { label: string; keywords: string[] }
 > = {
   sku_name: { label: 'SKU Name', keywords: ['sku name', 'sku_name', 'product name', 'item name', 'productname', 'itemname', 'sku nm', 'product nm'] },
@@ -30,8 +33,6 @@ export const MV_FIELD_KEYWORDS: Record<
   temperature: { label: 'Temperature', keywords: ['temperature', 'temp', 'temp requirement', 'storage temp'] },
   status: { label: 'Status', keywords: ['status', 'state', 'active'] },
 };
-
-export type ValidatableProductField = keyof AiMappedProduct;
 
 export interface MappedSourceColumn {
   header: string;
