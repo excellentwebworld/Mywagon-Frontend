@@ -1489,6 +1489,11 @@
     background: #EF4444;
 }
 
+.ai-preview-empty-value {
+    color: var(--t3);
+    font-style: italic;
+}
+
 .ai-preview-input {
     width: 100%;
     min-width: 72px;

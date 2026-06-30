@@ -115,23 +115,8 @@ export function computeMissingFields(headers: string[]): Record<string, boolean>
   return out;
 }
 
-function effectiveFieldValue(product: AiMappedProduct, field: ValidatableProductField): string {
-  const raw = String(product[field] ?? '').trim();
-  switch (field) {
-    case 'unit':
-      return raw || 'Case';
-    case 'pallet_type':
-      return raw || 'EUR';
-    case 'temperature':
-      return raw || 'Ambient';
-    case 'hazardous':
-    case 'stackable':
-      return raw || 'No';
-    case 'status':
-      return raw || 'Active';
-    default:
-      return raw;
-  }
+export function fieldValue(product: AiMappedProduct, field: ValidatableProductField): string {
+  return String(product[field] ?? '').trim();
 }
 
 function categoryNames(referenceCategories: ApiReferenceCategory[]): string[] {
@@ -165,15 +150,15 @@ export function getRowInvalidFields(
 ): ValidatableProductField[] {
   const invalid: ValidatableProductField[] = [];
 
-  const category = effectiveFieldValue(product, 'category');
-  const productType = effectiveFieldValue(product, 'product_type');
-  const unit = effectiveFieldValue(product, 'unit');
-  const palletType = effectiveFieldValue(product, 'pallet_type');
-  const temperature = effectiveFieldValue(product, 'temperature');
-  const hazardous = effectiveFieldValue(product, 'hazardous');
-  const stackable = effectiveFieldValue(product, 'stackable');
-  const status = effectiveFieldValue(product, 'status');
-  const weight = String(product.weight ?? '').trim();
+  const category = fieldValue(product, 'category');
+  const productType = fieldValue(product, 'product_type');
+  const unit = fieldValue(product, 'unit');
+  const palletType = fieldValue(product, 'pallet_type');
+  const temperature = fieldValue(product, 'temperature');
+  const hazardous = fieldValue(product, 'hazardous');
+  const stackable = fieldValue(product, 'stackable');
+  const status = fieldValue(product, 'status');
+  const weight = fieldValue(product, 'weight');
 
   if (!category || !categoryNames(referenceCategories).includes(category.toLowerCase())) {
     invalid.push('category');

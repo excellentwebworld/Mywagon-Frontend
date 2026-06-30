@@ -7,6 +7,7 @@ import {
 } from '../../pages/ProductMaster/constants';
 import {
   computeColumnMapping,
+  fieldValue as getFieldValue,
   getRowInvalidFields,
   type ColumnMappingSummary,
   type ValidatableProductField,
@@ -271,12 +272,13 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
   };
 
   const renderEditCell = (row: PreviewRow, field: ValidatableProductField, invalidFields: ValidatableProductField[]) => {
-    const val = row.product[field] ?? '';
+    const val = getFieldValue(row.product, field);
     const isInvalid = invalidFields.includes(field);
     const common = {
       className: `ai-preview-input${isInvalid ? ' ai-preview-input-invalid' : ''}`,
       onClick: (e: React.MouseEvent) => e.stopPropagation(),
     };
+    const emptyOption = <option value="">—</option>;
 
     if (field === 'category') {
       return (
@@ -322,7 +324,8 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
 
     if (field === 'unit') {
       return (
-        <select {...common} value={String(val || 'Case')} onChange={(e) => updateProduct(row.id, { unit: e.target.value })}>
+        <select {...common} value={val} onChange={(e) => updateProduct(row.id, { unit: e.target.value })}>
+          {emptyOption}
           {UOM_OPTIONS.map((u) => (
             <option key={u} value={u}>
               {u}
@@ -334,7 +337,8 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
 
     if (field === 'temperature') {
       return (
-        <select {...common} value={String(val || 'Ambient')} onChange={(e) => updateProduct(row.id, { temperature: e.target.value })}>
+        <select {...common} value={val} onChange={(e) => updateProduct(row.id, { temperature: e.target.value })}>
+          {emptyOption}
           {TEMP_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>
               {opt}
@@ -346,7 +350,8 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
 
     if (field === 'pallet_type') {
       return (
-        <select {...common} value={String(val || 'EUR')} onChange={(e) => updateProduct(row.id, { pallet_type: e.target.value })}>
+        <select {...common} value={val} onChange={(e) => updateProduct(row.id, { pallet_type: e.target.value })}>
+          {emptyOption}
           {PALLET_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>
               {opt}
@@ -358,7 +363,8 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
 
     if (field === 'hazardous' || field === 'stackable') {
       return (
-        <select {...common} value={String(val || 'No')} onChange={(e) => updateProduct(row.id, { [field]: e.target.value })}>
+        <select {...common} value={val} onChange={(e) => updateProduct(row.id, { [field]: e.target.value })}>
+          {emptyOption}
           <option value="Yes">{t('yes')}</option>
           <option value="No">{t('no')}</option>
         </select>
@@ -367,7 +373,8 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
 
     if (field === 'status') {
       return (
-        <select {...common} value={String(val || 'Active')} onChange={(e) => updateProduct(row.id, { status: e.target.value })}>
+        <select {...common} value={val} onChange={(e) => updateProduct(row.id, { status: e.target.value })}>
+          {emptyOption}
           <option value="Active">Active</option>
           <option value="Inactive">Inactive</option>
         </select>
@@ -378,42 +385,42 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
       <input
         {...common}
         type="text"
-        value={String(val)}
+        value={val}
         onChange={(e) => updateProduct(row.id, { [field]: e.target.value })}
       />
     );
   };
 
   const renderDisplayCell = (row: PreviewRow, field: ValidatableProductField, inferred: boolean, invalidFields: ValidatableProductField[]) => {
-    const val = row.product[field] ?? '';
+    const val = getFieldValue(row.product, field);
     const isInvalid = invalidFields.includes(field);
+    const empty = '—';
     const wrap = (content: React.ReactNode) => (
       <span className={isInvalid ? 'ai-preview-invalid-value' : undefined} title={isInvalid ? t('aiWizardInvalidValueHint') : undefined}>
         {content}
       </span>
     );
 
+    if (!val) {
+      return wrap(<span className="ai-preview-empty-value">{empty}</span>);
+    }
+
     if (field === 'category') {
-      return wrap(<span className="cat-pill">{String(val) || '—'}</span>);
+      return wrap(<span className="cat-pill">{val}</span>);
     }
     if (field === 'product_type') {
-      return wrap(<span className="type-pill">{String(val) || '—'}</span>);
+      return wrap(<span className="type-pill">{val}</span>);
     }
     if (field === 'hazardous' || field === 'stackable' || field === 'status' || field === 'temperature') {
-      const lower = String(val).toLowerCase();
+      const lower = val.toLowerCase();
       let badge = 'ai-badge ai-badge-neutral';
       if (field === 'hazardous' && lower === 'yes') badge = 'ai-badge ai-badge-danger';
       if (field === 'stackable' && lower !== 'no') badge = 'ai-badge ai-badge-success';
       if (field === 'status' && lower !== 'inactive') badge = 'ai-badge ai-badge-success';
-      return wrap(
-        <span className={badge}>{String(val || (field === 'status' ? 'Active' : field === 'stackable' ? t('yes') : t('no')))}</span>
-      );
+      return wrap(<span className={badge}>{val}</span>);
     }
-    if (field === 'weight' && val) return wrap(`${val} kg`);
-    if (field === 'barcode' && !val) return '-';
-    if (field === 'unit' && !val) return wrap('Case');
-    if (field === 'pallet_type' && !val) return wrap('EUR');
-    return wrap(String(val || '—'));
+    if (field === 'weight') return wrap(`${val} kg`);
+    return wrap(val);
   };
 
   return (
