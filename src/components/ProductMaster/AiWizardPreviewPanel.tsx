@@ -96,10 +96,61 @@ function ColumnMappingSummaryBar({
   summary: ColumnMappingSummary;
   t: Props['t'];
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   if (summary.mapped.length === 0 && summary.unmapped.length === 0) return null;
+
+  if (!isExpanded) {
+    return (
+      <div
+        className="ai-preview-column-summary-collapsed"
+        onClick={() => setIsExpanded(true)}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="summary-toggle-icon">▶</span>
+          <span className="summary-text" style={{ fontSize: '11px', color: 'var(--t2)' }}>
+            <strong>{t('aiWizardMappedColumnsTitle', { count: summary.mapped.length })}</strong>
+            {summary.unmapped.length > 0 && (
+              <>
+                <span style={{ margin: '0 8px', color: 'var(--bd)' }}>|</span>
+                <span style={{ color: 'var(--t3)' }}>
+                  {t('aiWizardUnmappedColumnsTitle', { count: summary.unmapped.length })}
+                </span>
+              </>
+            )}
+          </span>
+        </div>
+        <span className="summary-action-hint" style={{ fontSize: '10px', color: 'var(--t3)', fontStyle: 'italic' }}>
+          {t('clickToExpand', { defaultValue: 'Click to expand' })}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="ai-preview-column-summary">
+      <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', borderBottom: '1px solid var(--bd)', paddingBottom: '6px' }}>
+        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--t2)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setIsExpanded(false)}>
+          <span className="summary-toggle-icon" style={{ transform: 'rotate(90deg)', display: 'inline-block' }}>▶</span>
+          Column Mapping Details
+        </span>
+        <button
+          type="button"
+          onClick={() => setIsExpanded(false)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--t3)',
+            cursor: 'pointer',
+            fontSize: '10px',
+            textDecoration: 'underline',
+            padding: 0
+          }}
+        >
+          {t('collapse', { defaultValue: 'Collapse' })}
+        </button>
+      </div>
+
       <div className="ai-preview-col-summary-block">
         <div className="ai-preview-col-summary-title ai-preview-col-summary-ok">
           {t('aiWizardMappedColumnsTitle', { count: summary.mapped.length })}
