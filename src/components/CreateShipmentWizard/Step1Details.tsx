@@ -1955,6 +1955,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         label: `+ Create Product`,
                         onClick: () => onNewProd(ln.id),
                       }}
+                      menuFixed={true}
                     />
                     {indicators.length > 0 && (
                       <div className="flex gap-1 mt-0.5">
@@ -2001,6 +2002,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                           label: `+ Create Customer`,
                           onClick: () => onNewCust(ln.id),
                         }}
+                        menuFixed={true}
                       />
                     )}
                   </td>
@@ -2144,6 +2146,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                             onQuickFillNew();
                           },
                         }}
+                        menuFixed={true}
                       />
                     ) : (
                       <button
@@ -2232,6 +2235,7 @@ const OrderCell: React.FC<OrderCellProps> = ({
         label: `+ Create Order`,
         onClick: onNewOrd,
       }}
+      menuFixed={true}
     />
   );
 };

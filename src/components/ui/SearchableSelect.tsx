@@ -82,8 +82,10 @@ export const SearchableSelect: React.FC<Props> = ({
 
   useEffect(() => {
     if (!open || !menuFixed) return;
-    const onScroll = () => {
+    const onScroll = (e: Event) => {
       if (Date.now() - openTimeRef.current < 150) return;
+      const target = e.target as HTMLElement;
+      if (target && target.closest && target.closest('.searchable-select-menu')) return;
       setOpen(false);
     };
     window.addEventListener('scroll', onScroll, true);
