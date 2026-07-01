@@ -1162,5 +1162,6 @@
   "deleteStopTitle": "Delete Stop",
   "deleteStopMsg": "Are you sure you want to delete this stop and all its cargo lines?",
   "deleteStopConfirm": "Delete",
-  "deleteStopCancel": "Cancel"
+  "deleteStopCancel": "Cancel",
+  "refPlaceholder": "Customer Reference"
 }

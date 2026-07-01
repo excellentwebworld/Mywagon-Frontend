@@ -1162,5 +1162,6 @@
   "deleteStopTitle": "Διαγραφή Στάσης",
   "deleteStopMsg": "Είστε βέβαιοι ότι θέλετε να διαγράψετε αυτή τη στάση και όλες τις γραμμές φορτίου της;",
   "deleteStopConfirm": "Διαγραφή",
-  "deleteStopCancel": "Ακύρωση"
+  "deleteStopCancel": "Ακύρωση",
+  "refPlaceholder": "Αναφορά Πελάτη"
 }
