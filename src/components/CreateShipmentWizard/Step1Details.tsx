@@ -27,11 +27,12 @@ import { applyTemplate as applyAddressTemplate } from '../../pages/AddressBook/u
 import { EMPTY_CREATE_DATA, EMPTY_COMPANY_DATA } from '../../pages/AddressBook/types';
 import type { CreateLocationData, CompanyFormData } from '../../pages/AddressBook/types';
 import type { ApiCompanyLookup } from '../../api/types/addressBook';
+import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS } from '../../constants/cargoUnits';
 
 // Mocks imports
 import { MOCK_LOCATIONS as AB_LOCATIONS, DEFAULT_DIRECTORIES } from '../../mocks/addressBookData';
 import { PARTNERS } from '../../mocks/partnersMasterData';
-import { ORDERS, UNITS, WEIGHT_UNITS } from '../../mocks/ordersMasterData';
+import { ORDERS } from '../../mocks/ordersMasterData';
 import { CATEGORIES as PM_CAT, PRODUCT_TYPES as PM_TYP, SKUS as PM_SKU } from '../../mocks/productMasterData';
 import { MOCK_USERS } from '../../mocks/userMgmtData';
 import {
@@ -56,9 +57,9 @@ export const createNewCargoLine = (action: 'pickup' | 'dropoff' = 'pickup') => (
   orderRef: '',
   action,
   qty: '',
-  unit: 'Pallets',
+  unit: 'EUR Pallets',
   weight: '',
-  wtUnit: 'kg',
+  wtUnit: 'Kgs',
   mirrorOf: '',
 });
 
@@ -2380,11 +2381,11 @@ const CargoTable: React.FC<CargoTableProps> = ({
                   </td>
                   <td style={tdS}>
                     <select
-                      style={selS}
+                      style={{ ...selS, width: 105 }}
                       value={ln.unit}
                       onChange={(e) => onSetField(ln.id, 'unit', e.target.value)}
                     >
-                      {UNITS.map((u) => (
+                      {QTY_UNIT_OPTIONS.map((u) => (
                         <option key={u} value={u}>
                           {u}
                         </option>
@@ -2405,11 +2406,11 @@ const CargoTable: React.FC<CargoTableProps> = ({
                   </td>
                   <td style={tdS}>
                     <select
-                      style={selS}
+                      style={{ ...selS, width: 75 }}
                       value={ln.wtUnit}
                       onChange={(e) => onSetField(ln.id, 'wtUnit', e.target.value)}
                     >
-                      {WEIGHT_UNITS.map((u) => (
+                      {WEIGHT_UNIT_OPTIONS.map((u) => (
                         <option key={u} value={u}>
                           {u}
                         </option>
