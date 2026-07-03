@@ -117,6 +117,8 @@
   "erpOrdersLocationAddressRequired": "Απαιτείται διεύθυνση.",
   "erpOrdersLocationCreated": "Η διεύθυνση δημιουργήθηκε επιτυχώς.",
   "erpOrdersLocationCreateError": "Αποτυχία δημιουργίας διεύθυνσης.",
+  "erpOrdersCompanyCreated": "Η εταιρεία δημιουργήθηκε επιτυχώς.",
+  "erpOrdersCompanyCreateError": "Αποτυχία δημιουργίας εταιρείας.",
   "erpOrdersSkuCategoryRequired": "Απαιτείται κατηγορία.",
   "erpOrdersSkuTypeRequired": "Απαιτείται τύπος προϊόντος.",
   "erpOrdersSkuNameRequired": "Απαιτείται όνομα προϊόντος.",

@@ -21,6 +21,7 @@ type Props = {
   headerAction?: { label: string; onClick: () => void };
   direction?: 'up' | 'down' | 'auto';
   menuFixed?: boolean;
+  hideSublabelInTrigger?: boolean;
 };
 
 export const SearchableSelect: React.FC<Props> = ({
@@ -37,6 +38,7 @@ export const SearchableSelect: React.FC<Props> = ({
   headerAction,
   direction = 'auto',
   menuFixed = false,
+  hideSublabelInTrigger = false,
 }) => {
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -231,7 +233,7 @@ export const SearchableSelect: React.FC<Props> = ({
           {selected ? (
             <>
               <span className="searchable-select-value">{selected.label}</span>
-              {selected.sublabel ? (
+              {selected.sublabel && !hideSublabelInTrigger ? (
                 <small className="searchable-select-value-sub">{selected.sublabel}</small>
               ) : null}
             </>

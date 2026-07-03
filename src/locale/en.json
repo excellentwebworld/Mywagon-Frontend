@@ -117,6 +117,8 @@
   "erpOrdersLocationAddressRequired": "Address is required.",
   "erpOrdersLocationCreated": "Address created successfully.",
   "erpOrdersLocationCreateError": "Failed to create address.",
+  "erpOrdersCompanyCreated": "Company created successfully.",
+  "erpOrdersCompanyCreateError": "Failed to create company.",
   "erpOrdersSkuCategoryRequired": "Category is required.",
   "erpOrdersSkuTypeRequired": "Product type is required.",
   "erpOrdersSkuNameRequired": "Product name is required.",

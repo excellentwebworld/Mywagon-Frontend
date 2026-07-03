@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useFormikContext } from 'formik';
-import { useApp } from '../../context/AppContext';
+import { useApp, type LocationItem } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   MapPin, ChevronDown, ChevronRight, X, Plus, Save, ArrowRight, Users,
@@ -11,10 +11,22 @@ import {
 
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
-import { CreateLocationModal } from './CreateLocationModal';
 import { CreateCustomerModal } from './CreateCustomerModal';
-import { CreateOrderModal } from './CreateOrderModal';
-import { CreateProductModal } from './CreateProductModal';
+import { CreateLocationModal } from '../AddressBook/CreateLocationModal';
+import { CreateCompanyModal } from '../AddressBook/CreateCompanyModal';
+import { ProductMasterSkuModal } from '../ProductMaster/ProductMasterSkuModal';
+import { CreateEditOrderModal } from '../ErpOrders';
+import { useQueryClient } from '@tanstack/react-query';
+import { productMasterService, addressBookService, erpOrdersService, ApiError } from '../../api';
+import { EMPTY_ORDER_FORM } from '../../pages/ErpOrders/types';
+import type { ErpOrderFormState } from '../../pages/ErpOrders/types';
+import type { ApiErpOrderCustomer } from '../../api/types/erpOrders';
+import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from '../../pages/AddressBook/validation/locationDuplicateValidation';
+import { validateCreateAll } from '../../pages/AddressBook/validation/locationCreateValidation';
+import { applyTemplate as applyAddressTemplate } from '../../pages/AddressBook/utils/locationUtils';
+import { EMPTY_CREATE_DATA, EMPTY_COMPANY_DATA } from '../../pages/AddressBook/types';
+import type { CreateLocationData, CompanyFormData } from '../../pages/AddressBook/types';
+import type { ApiCompanyLookup } from '../../api/types/addressBook';
 
 // Mocks imports
 import { MOCK_LOCATIONS as AB_LOCATIONS, DEFAULT_DIRECTORIES } from '../../mocks/addressBookData';
@@ -98,15 +110,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
   const { values, setFieldValue } = useFormikContext<any>();
   const stops = values.stops || [];
 
-  // Local master data states
-  const [abLocs, setAbLocs] = useState<any[]>(() => AB_LOCATIONS.filter((l) => l.status === 'active'));
-  const [abComps, setAbComps] = useState<any[]>(() => []);
-  const [custs, setCusts] = useState<any[]>(() => PARTNERS.filter((p) => p.type === 'customer' && p.status === 'active'));
-  const [ords, setOrds] = useState<any[]>(() => [...ORDERS]);
-  const [pmCats, setPmCats] = useState<any[]>(() => [...PM_CAT]);
-  const [pmTyps, setPmTyps] = useState<any[]>(() => [...PM_TYP]);
-  const [pmSkus, setPmSkus] = useState<any[]>(() => [...PM_SKU]);
-
   // Modal Visibility states
   const [mLoc, setMLoc] = useState(false);
   const [mComp, setMComp] = useState(false);
@@ -126,6 +129,108 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
   const [previewOrd, setPreviewOrd] = useState<any | null>(null);
   const [notesStop, setNotesStop] = useState<string | null>(null);
   const [saveConfirm, setSaveConfirm] = useState(false);
+
+  const { locations, skus, showToast, refreshLocationsFromApi, refreshSkusFromApi } = useApp();
+  const queryClient = useQueryClient();
+
+  // Local master data states
+  const [abLocs, setAbLocs] = useState<any[]>(() =>
+    locations.length > 0 ? locations.filter((l) => l.status === 'active') : AB_LOCATIONS.filter((l) => l.status === 'active')
+  );
+  const [abComps, setAbComps] = useState<any[]>(() => []);
+  const [custs, setCusts] = useState<any[]>(() => PARTNERS.filter((p) => p.type === 'customer' && p.status === 'active'));
+  const [ords, setOrds] = useState<any[]>(() => [...ORDERS]);
+  const [pmCats, setPmCats] = useState<any[]>(() => [...PM_CAT]);
+  const [pmTyps, setPmTyps] = useState<any[]>(() => [...PM_TYP]);
+  const [pmSkus, setPmSkus] = useState<any[]>(() =>
+    skus.length > 0 ? skus.filter((s) => s.active) : PM_SKU.filter((s) => s.active)
+  );
+
+  // Address Book Location Modal states
+  const [createStep, setCreateStep] = useState(1);
+  const [createData, setCreateData] = useState<CreateLocationData>(EMPTY_CREATE_DATA);
+  const [companyQuery, setCompanyQuery] = useState('');
+  const [apiCompanies, setApiCompanies] = useState<ApiCompanyLookup[]>([]);
+  const [potentialDuplicates, setPotentialDuplicates] = useState<LocationItem[]>([]);
+  const [isCompanyOpen, setIsCompanyOpen] = useState(false);
+  const [companyData, setCompanyData] = useState<CompanyFormData>(EMPTY_COMPANY_DATA);
+  const [savingLocation, setSavingLocation] = useState(false);
+  const [companySaving, setCompanySaving] = useState(false);
+  const [skuSaving, setSkuSaving] = useState(false);
+
+  // ERP Order Modal states
+  const [erpOrderForm, setErpOrderForm] = useState<ErpOrderFormState>(EMPTY_ORDER_FORM);
+  const [erpOrderSaving, setErpOrderSaving] = useState(false);
+  const [erpCompanies, setErpCompanies] = useState<ApiErpOrderCustomer[]>([]);
+
+  const filteredCompanies = useMemo(() => apiCompanies, [apiCompanies]);
+
+  useEffect(() => {
+    if (!mOrd) return;
+    erpOrdersService
+      .listCustomers()
+      .then(setErpCompanies)
+      .catch(() => setErpCompanies([]));
+  }, [mOrd]);
+
+  useEffect(() => {
+    if (locations.length > 0) {
+      setAbLocs(locations.filter((l) => l.status === 'active'));
+    }
+  }, [locations]);
+
+  useEffect(() => {
+    if (skus.length > 0) {
+      setPmSkus(skus.filter((s) => s.active));
+    }
+  }, [skus]);
+
+  useEffect(() => {
+    if (!mLoc) return;
+    const q = companyQuery.trim();
+    const timer = setTimeout(() => {
+      addressBookService
+        .listCompanies(q || undefined, 'my_locations')
+        .then(setApiCompanies)
+        .catch(() => setApiCompanies([]));
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [companyQuery, mLoc]);
+
+  useEffect(() => {
+    if (createStep !== 4) {
+      setPotentialDuplicates([]);
+      return;
+    }
+
+    const name = createData.name.trim();
+    const company = createData.company.trim();
+    if (!name || !company) return;
+
+    let cancelled = false;
+    addressBookService
+      .checkDuplicate(name, company)
+      .then(async (result) => {
+        if (cancelled || !result.duplicate || !result.existing_id) {
+          if (!cancelled) setPotentialDuplicates([]);
+          return;
+        }
+        const existing = await queryClient.fetchQuery({
+          queryKey: ['locationDetail', String(result.existing_id)],
+          queryFn: () => addressBookService.getLocation(String(result.existing_id)),
+        });
+        if (!cancelled) setPotentialDuplicates([existing]);
+      })
+      .catch(() => {
+        if (!cancelled) setPotentialDuplicates([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [createStep, createData, queryClient]);
+
+
 
   // Co-owners states
   const activeUsers = useMemo(() => MOCK_USERS.filter((u) => u.status === 'active'), []);
@@ -332,10 +437,16 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
   );
 
   const setLF = useCallback(
-    (sid: string, lid: string, field: string, val: any) => {
+    (sid: string, lid: string, fieldOrUpdates: string | Record<string, any>, val?: any) => {
       uStop(sid, (s: any) => ({
         ...s,
-        lines: s.lines.map((l: any) => (l.id === lid ? { ...l, [field]: val } : l)),
+        lines: s.lines.map((l: any) => {
+          if (l.id !== lid) return l;
+          if (typeof fieldOrUpdates === 'string') {
+            return { ...l, [fieldOrUpdates]: val };
+          }
+          return { ...l, ...fieldOrUpdates };
+        }),
       }));
     },
     [uStop]
@@ -391,52 +502,131 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
   // ═══ HANDLERS ═══
   const selLoc = useCallback(
     (sid: string, lid: string) => {
-      const l = abLocs.find((x) => x.id === lid);
+      const l = abLocs.find((x) => String(x.id) === String(lid));
       if (l) {
-        uStop(sid, {
-          locationId: lid,
-          locationName: l.name,
-          locationCompany: l.company || '',
-          locationCity: l.city || '',
-          locationCountry: l.country || '',
-        });
-        if (l.noteCarrier) uStop(sid, (s: any) => ({ ...s, noteCarrier: s.noteCarrier || l.noteCarrier }));
-        if (l.contacts?.[0]) {
-          uStop(sid, (s: any) => ({
+        uStop(sid, (s: any) => {
+          let updatedStop = {
             ...s,
-            contactName: s.contactName || l.contacts[0].name,
-            contactPhone: s.contactPhone || l.contacts[0].phone,
-          }));
-        }
+            locationId: lid,
+            locationName: l.name,
+            locationCompany: l.company || '',
+            locationCity: l.city || '',
+            locationCountry: l.country || '',
+          };
+          if (l.noteCarrier) {
+            updatedStop.noteCarrier = s.noteCarrier || l.noteCarrier;
+          }
+          if (l.contacts?.[0]) {
+            updatedStop.contactName = s.contactName || l.contacts[0].name;
+            updatedStop.contactPhone = s.contactPhone || l.contacts[0].phone;
+          }
+          return updatedStop;
+        });
       }
     },
     [abLocs, uStop]
   );
 
-  const onLocCreated = useCallback(
-    (d: any) => {
-      const nl = { ...d, id: `LOC-N-${Date.now()}`, status: 'active', group: 'my' };
-      setAbLocs((p) => [...p, nl]);
-      if (pCtx.locS) {
-        selLoc(pCtx.locS, nl.id);
+  const handleApplyCompany = useCallback(async (values: CompanyFormData) => {
+    try {
+      setCompanySaving(true);
+      const created = await addressBookService.createCompanyEntity({
+        name: values.name.trim(),
+        vat_number: values.vat.trim(),
+        address: values.address.trim(),
+        country: values.country.trim() || 'Greece',
+        phone: values.phone || undefined,
+        email: values.email || undefined,
+        website: values.website || undefined,
+        industry: values.industry || undefined,
+        primary_contact: values.contactPerson || undefined,
+      });
+
+      setApiCompanies((prev) => [
+        ...prev,
+        {
+          company_name: created.name,
+          company_vat: created.vat_number || '',
+        },
+      ]);
+      setCreateData((prev) => ({
+        ...prev,
+        company: created.name,
+        companyVat: created.vat_number || '',
+      }));
+      setIsCompanyOpen(false);
+      showToast(t('erpOrdersCompanyCreated') || 'Company created successfully.', 'success');
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : (t('erpOrdersCompanyCreateError') || 'Failed to create company');
+      showToast(message, 'error');
+    } finally {
+      setCompanySaving(false);
+    }
+  }, [showToast, t]);
+
+  const submitNewLocation = useCallback(async () => {
+    const payload: CreateLocationData = {
+      ...createData,
+      company:
+        createData.context === 'customer'
+          ? createData.company
+          : 'My Company',
+      companyVat:
+        createData.context === 'customer' ? createData.companyVat : createData.companyVat || 'N/A',
+      contacts: [],
+      amenityIds: [],
+      equipment: [],
+      hours: '',
+      tags: '',
+    };
+
+    const errors = validateCreateAll(payload);
+    if (Object.keys(errors).length > 0) {
+      const firstKey = Object.keys(errors)[0];
+      showToast(errors[firstKey] ?? 'Please fix validation errors', 'error');
+      if (firstKey === 'companyEntity' || firstKey === 'type') setCreateStep(1);
+      else if (['name', 'address', 'city', 'postal', 'role'].includes(firstKey)) setCreateStep(2);
+      else setCreateStep(3);
+      return;
+    }
+
+    try {
+      setSavingLocation(true);
+      const isDuplicate = await checkLocationDuplicate(payload.name, payload.company);
+      if (isDuplicate) {
+        showToast(DUPLICATE_LOCATION_MESSAGE, 'error');
+        setCreateStep(4);
+        return;
+      }
+
+      const created = await addressBookService.createLocation(payload);
+      await refreshLocationsFromApi();
+
+      if (pCtx.orderFormTarget === 'origin') {
+        setErpOrderForm((f) => ({ ...f, originLocationId: Number(created.id) }));
+        setPCtx((p: any) => ({ ...p, orderFormTarget: null }));
+      } else if (pCtx.orderFormTarget === 'dest') {
+        setErpOrderForm((f) => ({ ...f, destLocationId: Number(created.id) }));
+        setPCtx((p: any) => ({ ...p, orderFormTarget: null }));
+      } else if (pCtx.locS) {
+        selLoc(pCtx.locS, String(created.id));
         setPCtx((p: any) => ({ ...p, locS: null }));
       }
       setMLoc(false);
-    },
-    [pCtx, selLoc]
-  );
-
-  const onCompCreated = useCallback((d: any) => {
-    setAbComps((p) => [...p, { ...d, id: `C-N-${Date.now()}` }]);
-    setMComp(false);
-  }, []);
+      showToast(t('erpOrdersLocationCreated') || 'Address created successfully.', 'success');
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : (t('erpOrdersLocationCreateError') || 'Failed to create address.');
+      showToast(message, 'error');
+    } finally {
+      setSavingLocation(false);
+    }
+  }, [createData, showToast, t, pCtx, selLoc, refreshLocationsFromApi]);
 
   const selCustLine = useCallback(
     (sid: string, lid: string, cid: string) => {
       const c = custs.find((x) => x.id === cid);
       if (c) {
-        setLF(sid, lid, 'customerId', cid);
-        setLF(sid, lid, 'customerName', c.name);
+        setLF(sid, lid, { customerId: cid, customerName: c.name });
       }
     },
     [custs, setLF]
@@ -447,8 +637,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
       const nc = { ...d, id: `PR-N-${Date.now()}`, type: 'customer', status: 'active', source: 'manual' };
       setCusts((p) => [...p, nc]);
       if (pCtx.custS && pCtx.custL) {
-        setLF(pCtx.custS, pCtx.custL, 'customerId', nc.id);
-        setLF(pCtx.custS, pCtx.custL, 'customerName', d.name);
+        setLF(pCtx.custS, pCtx.custL, { customerId: nc.id, customerName: d.name });
         setPCtx((p: any) => ({ ...p, custS: null, custL: null }));
       }
       setMCust(false);
@@ -459,53 +648,102 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
   const selOrdLine = useCallback(
     (sid: string, lid: string, oid: string) => {
       const mo = ords.find((o) => o.id === oid);
-      setLF(sid, lid, 'orderId', oid);
-      setLF(sid, lid, 'orderRef', oid);
       if (mo) {
-        setLF(sid, lid, 'customerName', mo.customer || '');
-        setLF(sid, lid, 'customerId', mo.customerId || '');
+        setLF(sid, lid, { orderId: oid, orderRef: oid, customerName: mo.customer || '', customerId: mo.customerId || '' });
+      } else {
+        setLF(sid, lid, { orderId: oid, orderRef: oid });
       }
     },
     [ords, setLF]
   );
 
-  const onOrdCreated = useCallback(
-    (d: any) => {
-      const no = { ...d, status: 'new', source: 'manual', lines: d.lines || [] };
-      setOrds((p) => [...p, no]);
+  const handleCreateOrder = useCallback(async (values: ErpOrderFormState) => {
+    try {
+      setErpOrderSaving(true);
+
+      const payload = {
+        order_reference: values.orderReference,
+        erp_reference: values.erpReference || null,
+        company_entity_id: values.companyEntityId,
+        customer_name: values.customerName,
+        origin_location_id: values.originLocationId,
+        dest_location_id: values.destLocationId,
+        ship_date: values.shipDate || null,
+        delivery_date: values.deliveryDate,
+        notes: values.notes || null,
+        high_priority: values.highPriority,
+        lines: values.lines.map((l) => ({
+          product_sku_id: l.productSkuId,
+          product_name: l.productName,
+          quantity: l.quantity,
+          unit: l.unit,
+          weight: l.weight,
+          weight_unit: l.weightUnit,
+        })),
+      };
+
+      const created = await erpOrdersService.createOrder(payload);
+
+      // Update local orders state
+      setOrds((prev) => [...prev, created]);
+
       if (pCtx.ordS && pCtx.ordL) {
-        setLF(pCtx.ordS, pCtx.ordL, 'orderId', d.id);
-        setLF(pCtx.ordS, pCtx.ordL, 'orderRef', d.id);
+        setLF(pCtx.ordS, pCtx.ordL, { orderId: created.id, orderRef: created.orderReference });
         setPCtx((p: any) => ({ ...p, ordS: null, ordL: null }));
       }
+
       setMOrd(false);
-    },
-    [pCtx, setLF]
-  );
+      setErpOrderForm(EMPTY_ORDER_FORM);
+      showToast(t('erpOrdersCreateSuccess') || 'Order created successfully.', 'success');
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : (t('erpOrdersCreateError') || 'Failed to create order');
+      showToast(message, 'error');
+    } finally {
+      setErpOrderSaving(false);
+    }
+  }, [pCtx, setLF, showToast]);
 
   const selProdLine = useCallback(
     (sid: string, lid: string, skuId: string) => {
-      const sk = pmSkus.find((s) => s.id === skuId);
+      const sk = pmSkus.find((s) => String(s.id) === String(skuId));
       if (sk) {
-        setLF(sid, lid, 'productId', skuId);
-        setLF(sid, lid, 'productName', sk.name);
+        setLF(sid, lid, { productId: skuId, productName: sk.name });
       }
     },
     [pmSkus, setLF]
   );
 
-  const onProdCreated = useCallback(
-    (sku: any) => {
-      setPmSkus((p) => [...p, sku]);
-      if (pCtx.pS && pCtx.pL) {
-        setLF(pCtx.pS, pCtx.pL, 'productId', sku.id);
-        setLF(pCtx.pS, pCtx.pL, 'productName', sku.name);
+  const handleCreateSku = useCallback(async (values: any) => {
+    try {
+      setSkuSaving(true);
+      const created = await productMasterService.createSku(values);
+      await refreshSkusFromApi();
+
+      if (pCtx.orderFormTarget === 'product' && pCtx.orderFormLineIndex !== undefined) {
+        setErpOrderForm((f) => {
+          const lines = [...f.lines];
+          if (lines[pCtx.orderFormLineIndex]) {
+            lines[pCtx.orderFormLineIndex] = {
+              ...lines[pCtx.orderFormLineIndex],
+              productSkuId: Number(created.id),
+              productName: created.name,
+            };
+          }
+          return { ...f, lines };
+        });
+        setPCtx((p: any) => ({ ...p, orderFormTarget: null, orderFormLineIndex: null }));
+      } else if (pCtx.pS && pCtx.pL) {
+        setLF(pCtx.pS, pCtx.pL, { productId: created.id, productName: created.name });
         setPCtx((p: any) => ({ ...p, pS: null, pL: null }));
       }
       setMSku(false);
-    },
-    [pCtx, setLF]
-  );
+      showToast(t('erpOrdersProductCreated') || 'Product created successfully.', 'success');
+    } catch {
+      showToast(t('erpOrdersProductCreateError') || 'Failed to create product', 'error');
+    } finally {
+      setSkuSaving(false);
+    }
+  }, [pCtx, setLF, refreshSkusFromApi, showToast]);
 
   const getCatName = useCallback(
     (catId: string) => {
@@ -951,174 +1189,174 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
     <div className="pb-24">
       {portalTargetReady && document.getElementById('wizard-header-portal')
         ? createPortal(
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Template select */}
-              <div className="relative" ref={tplRef}>
-                {activeTpl ? (
-                  <div
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: T.al, color: T.ac, border: `1px solid ${T.ac}` }}
-                  >
-                    <FileText size={13} /> {activeTpl.name}
-                    <button
-                      type="button"
-                      className="border-none bg-transparent cursor-pointer p-0 ml-1"
-                      style={{ color: T.ac }}
-                      onClick={clearTemplate}
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ) : (
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Template select */}
+            <div className="relative" ref={tplRef}>
+              {activeTpl ? (
+                <div
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
+                  style={{ background: T.al, color: T.ac, border: `1px solid ${T.ac}` }}
+                >
+                  <FileText size={13} /> {activeTpl.name}
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
-                    style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t2, fontFamily: 'inherit' }}
-                    onClick={() => {
-                      setTplOpen(!tplOpen);
-                      setTplSearch('');
-                    }}
+                    className="border-none bg-transparent cursor-pointer p-0 ml-1"
+                    style={{ color: T.ac }}
+                    onClick={clearTemplate}
                   >
-                    <FileText size={13} /> {t('useTemplate') || 'Use Template'} <ChevronDown size={12} />
+                    <X size={12} />
                   </button>
-                )}
-                {tplOpen && (
-                  <div
-                    className="absolute right-0 top-full mt-2 rounded-xl shadow-xl overflow-hidden z-50"
-                    style={{ width: 340, background: T.sf, border: `1px solid ${T.bd}` }}
-                  >
-                    <div className="p-2" style={{ borderBottom: `1px solid ${T.bd}` }}>
-                      <input
-                        placeholder="Search templates..."
-                        value={tplSearch}
-                        onChange={(e) => setTplSearch(e.target.value)}
-                        className="w-full px-2.5 py-1.5 rounded text-xs outline-none"
-                        style={{ border: `1px solid ${T.bd}`, background: T.sa, color: T.t1, fontFamily: 'inherit' }}
-                        autoFocus
-                      />
-                    </div>
-                    <div style={{ maxHeight: 280, overflowY: 'auto' }}>
-                      {filteredTpls.length === 0 && <div className="px-3 py-4 text-xs text-center" style={{ color: T.t3 }}>No templates</div>}
-                      {filteredTpls.map((tpl) => (
-                        <div
-                          key={tpl.id}
-                          className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-slate-50"
-                          style={{ borderBottom: `0.5px solid ${T.bd}` }}
-                          onClick={() => applyTemplate(tpl)}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-semibold truncate" style={{ color: T.t1 }}>
-                              {tpl.name}
-                            </div>
-                            <div className="text-[10px] truncate" style={{ color: T.t3 }}>
-                              {tpl.stops.map((s: any) => s.locationCity || s.locationName).join(' → ')}
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            className="w-5 h-5 rounded flex items-center justify-center cursor-pointer border-none shrink-0"
-                            style={{ background: 'transparent', color: T.t3 }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteTemplate(tpl.id);
-                            }}
-                          >
-                            <Trash2 size={11} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <input
-                placeholder={t('refPlaceholder') || 'Customer Ref...'}
-                value={values.custRef || ''}
-                onChange={(e) => setFieldValue('custRef', e.target.value)}
-                style={{ ...iS, width: 160, fontSize: 11 }}
-              />
-
-              <div
-                className="px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide"
-                style={{ background: T.sa, color: T.t1, border: `1px solid ${T.bd}` }}
-              >
-                {values.loadId}
-              </div>
-
-              {/* Co-owners */}
-              <div className="relative" ref={coRef}>
+                </div>
+              ) : (
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
-                  style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.ac, fontFamily: 'inherit' }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
+                  style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t2, fontFamily: 'inherit' }}
                   onClick={() => {
-                    setCoOpen(!coOpen);
-                    setCoSearch('');
+                    setTplOpen(!tplOpen);
+                    setTplSearch('');
                   }}
                 >
-                  <Users size={14} />
-                  {(values.coOwners || []).length > 0 && (
-                    <span
-                      className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                      style={{ background: T.ac }}
-                    >
-                      {(values.coOwners || []).length}
-                    </span>
-                  )}
+                  <FileText size={13} /> {t('useTemplate') || 'Use Template'} <ChevronDown size={12} />
                 </button>
-                {coOpen && (
-                  <div
-                    className="absolute right-0 top-full mt-2 rounded-lg shadow-xl overflow-hidden z-50"
-                    style={{ width: 260, background: T.sf, border: `1px solid ${T.bd}` }}
-                  >
-                    <div className="px-3 py-2" style={{ borderBottom: `1px solid ${T.bd}` }}>
-                      <input
-                        placeholder="Search users..."
-                        value={coSearch}
-                        onChange={(e) => setCoSearch(e.target.value)}
-                        className="w-full px-2 py-1 rounded text-xs outline-none"
-                        style={{ border: `1px solid ${T.bd}`, background: T.sa, color: T.t1, fontFamily: 'inherit' }}
-                        autoFocus
-                      />
-                    </div>
-                    <div style={{ maxHeight: 220, overflowY: 'auto' }}>
-                      {activeUsers
-                        .filter((u) => !coSearch || `${u.firstName} ${u.lastName}`.toLowerCase().includes(coSearch.toLowerCase()))
-                        .map((u) => {
-                          const sel = (values.coOwners || []).includes(u.id);
-                          return (
-                            <div
-                              key={u.id}
-                              className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-slate-50"
-                              onClick={() => {
-                                const cur = values.coOwners || [];
-                                setFieldValue('coOwners', sel ? cur.filter((id: string) => id !== u.id) : [...cur, u.id]);
-                              }}
-                            >
-                              <input type="checkbox" checked={sel} readOnly />
-                              <div className="text-xs truncate" style={{ color: T.t1 }}>
-                                {u.firstName} {u.lastName}
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
+              )}
+              {tplOpen && (
+                <div
+                  className="absolute right-0 top-full mt-2 rounded-xl shadow-xl overflow-hidden z-50"
+                  style={{ width: 340, background: T.sf, border: `1px solid ${T.bd}` }}
+                >
+                  <div className="p-2" style={{ borderBottom: `1px solid ${T.bd}` }}>
+                    <input
+                      placeholder="Search templates..."
+                      value={tplSearch}
+                      onChange={(e) => setTplSearch(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded text-xs outline-none"
+                      style={{ border: `1px solid ${T.bd}`, background: T.sa, color: T.t1, fontFamily: 'inherit' }}
+                      autoFocus
+                    />
                   </div>
-                )}
-              </div>
+                  <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+                    {filteredTpls.length === 0 && <div className="px-3 py-4 text-xs text-center" style={{ color: T.t3 }}>No templates</div>}
+                    {filteredTpls.map((tpl) => (
+                      <div
+                        key={tpl.id}
+                        className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-slate-50"
+                        style={{ borderBottom: `0.5px solid ${T.bd}` }}
+                        onClick={() => applyTemplate(tpl)}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold truncate" style={{ color: T.t1 }}>
+                            {tpl.name}
+                          </div>
+                          <div className="text-[10px] truncate" style={{ color: T.t3 }}>
+                            {tpl.stops.map((s: any) => s.locationCity || s.locationName).join(' → ')}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="w-5 h-5 rounded flex items-center justify-center cursor-pointer border-none shrink-0"
+                          style={{ background: 'transparent', color: T.t3 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteTemplate(tpl.id);
+                          }}
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
+            <input
+              placeholder={t('refPlaceholder') || 'Customer Ref...'}
+              value={values.custRef || ''}
+              onChange={(e) => setFieldValue('custRef', e.target.value)}
+              style={{ ...iS, width: 160, fontSize: 11 }}
+            />
+
+            <div
+              className="px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide"
+              style={{ background: T.sa, color: T.t1, border: `1px solid ${T.bd}` }}
+            >
+              {values.loadId}
+            </div>
+
+            {/* Co-owners */}
+            <div className="relative" ref={coRef}>
               <button
                 type="button"
-                className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer border-none shrink-0"
-                style={{ background: 'transparent', color: T.t3 }}
-                onClick={resetItinerary}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
+                style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.ac, fontFamily: 'inherit' }}
+                onClick={() => {
+                  setCoOpen(!coOpen);
+                  setCoSearch('');
+                }}
               >
-                <RotateCcw size={15} />
+                <Users size={14} />
+                {(values.coOwners || []).length > 0 && (
+                  <span
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                    style={{ background: T.ac }}
+                  >
+                    {(values.coOwners || []).length}
+                  </span>
+                )}
               </button>
-            </div>,
-            document.getElementById('wizard-header-portal')!
-          )
+              {coOpen && (
+                <div
+                  className="absolute right-0 top-full mt-2 rounded-lg shadow-xl overflow-hidden z-50"
+                  style={{ width: 260, background: T.sf, border: `1px solid ${T.bd}` }}
+                >
+                  <div className="px-3 py-2" style={{ borderBottom: `1px solid ${T.bd}` }}>
+                    <input
+                      placeholder="Search users..."
+                      value={coSearch}
+                      onChange={(e) => setCoSearch(e.target.value)}
+                      className="w-full px-2 py-1 rounded text-xs outline-none"
+                      style={{ border: `1px solid ${T.bd}`, background: T.sa, color: T.t1, fontFamily: 'inherit' }}
+                      autoFocus
+                    />
+                  </div>
+                  <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                    {activeUsers
+                      .filter((u) => !coSearch || `${u.firstName} ${u.lastName}`.toLowerCase().includes(coSearch.toLowerCase()))
+                      .map((u) => {
+                        const sel = (values.coOwners || []).includes(u.id);
+                        return (
+                          <div
+                            key={u.id}
+                            className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-slate-50"
+                            onClick={() => {
+                              const cur = values.coOwners || [];
+                              setFieldValue('coOwners', sel ? cur.filter((id: string) => id !== u.id) : [...cur, u.id]);
+                            }}
+                          >
+                            <input type="checkbox" checked={sel} readOnly />
+                            <div className="text-xs truncate" style={{ color: T.t1 }}>
+                              {u.firstName} {u.lastName}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer border-none shrink-0"
+              style={{ background: 'transparent', color: T.t3 }}
+              onClick={resetItinerary}
+            >
+              <RotateCcw size={15} />
+            </button>
+          </div>,
+          document.getElementById('wizard-header-portal')!
+        )
         : null}
 
       <LoadBalanceBar bal={bal} balExp={balExp} setBalExp={setBalExp} fmtW={fmtW} T={T} t={t} />
@@ -1378,7 +1616,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
                               onChange={(lid) => selLoc(stop.id, lid)}
                               options={locOpts}
                               placeholder="Select location..."
-                              footerAction={{
+                              headerAction={{
                                 label: `+ ${t('createNewLocation') || 'Create New Location'}`,
                                 onClick: () => {
                                   setPCtx({ locS: stop.id });
@@ -1546,7 +1784,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
                         onSelOrd={(lid, oid) => selOrdLine(stop.id, lid, oid)}
                         onNewProd={(lid) => {
                           setPCtx({ pS: stop.id, pL: lid });
-                          setMPC(true);
+                          setMSku(true);
                         }}
                         onNewCust={(lid) => {
                           setPCtx({ custS: stop.id, custL: lid });
@@ -1688,24 +1926,88 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
 
       {/* Modals & Dialogs */}
       <CreateLocationModal
-        isOpen={mLoc}
-        onClose={() => setMLoc(false)}
-        onCreated={onLocCreated}
+        isCreateOpen={mLoc}
+        closeCreateModal={() => setMLoc(false)}
+        createStep={createStep}
+        setCreateStep={setCreateStep}
+        createData={createData}
+        setCreateData={setCreateData}
+        submitNewLocation={submitNewLocation}
+        potentialDuplicates={potentialDuplicates}
+        selectExistingDuplicate={async (loc) => {
+          if (pCtx.locS) {
+            selLoc(pCtx.locS, String(loc.id));
+            setPCtx((p: any) => ({ ...p, locS: null }));
+          }
+          setMLoc(false);
+        }}
+        saving={savingLocation}
+        filteredCompanies={filteredCompanies}
+        setCompanyQuery={setCompanyQuery}
+        setIsCompanyOpen={setIsCompanyOpen}
+        handleApplyTemplate={(tpl) => setCreateData((prev) => applyAddressTemplate(tpl, prev))}
+        t={t}
       />
+
+      <CreateCompanyModal
+        isCompanyOpen={isCompanyOpen}
+        closeCompanyModal={() => setIsCompanyOpen(false)}
+        companyData={companyData}
+        setCompanyData={setCompanyData}
+        handleApplyCompany={handleApplyCompany}
+      />
+
       <CreateCustomerModal
         isOpen={mCust}
         onClose={() => setMCust(false)}
         onCreated={onCustCreated}
       />
-      <CreateOrderModal
+      <CreateEditOrderModal
+        t={t}
         isOpen={mOrd}
-        onClose={() => setMOrd(false)}
-        onCreated={onOrdCreated}
+        isEdit={false}
+        form={erpOrderForm}
+        setForm={setErpOrderForm}
+        onClose={() => {
+          setMOrd(false);
+          setErpOrderForm(EMPTY_ORDER_FORM);
+        }}
+        onSubmit={handleCreateOrder}
+        saving={erpOrderSaving}
+        companies={erpCompanies}
+        locations={locations}
+        skus={skus}
+        onAddLocationOrigin={() => {
+          setPCtx((p: any) => ({ ...p, orderFormTarget: 'origin' }));
+          setCreateStep(1);
+          setCreateData({
+            ...EMPTY_CREATE_DATA,
+            context: 'my',
+            role: 'pickup',
+          });
+          setMLoc(true);
+        }}
+        onAddLocationDest={() => {
+          setPCtx((p: any) => ({ ...p, orderFormTarget: 'dest' }));
+          setCreateStep(1);
+          setCreateData({
+            ...EMPTY_CREATE_DATA,
+            context: 'my',
+            role: 'delivery',
+          });
+          setMLoc(true);
+        }}
+        onAddProduct={(index) => {
+          setPCtx((p: any) => ({ ...p, orderFormTarget: 'product', orderFormLineIndex: index }));
+          setMSku(true);
+        }}
       />
-      <CreateProductModal
+
+      <ProductMasterSkuModal
         isOpen={mSku}
         onClose={() => setMSku(false)}
-        onCreated={onProdCreated}
+        onSubmit={handleCreateSku}
+        saving={skuSaving}
       />
 
       {/* Dialog for templates */}
@@ -1968,11 +2270,12 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       onChange={(v) => onSelProd(ln.id, v)}
                       options={prodOpts}
                       placeholder="Select product..."
-                      footerAction={{
+                      headerAction={{
                         label: `+ Create Product`,
                         onClick: () => onNewProd(ln.id),
                       }}
                       menuFixed={true}
+                      hideSublabelInTrigger={true}
                     />
                     {indicators.length > 0 && (
                       <div className="flex gap-1 mt-0.5">
@@ -2020,6 +2323,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                           onClick: () => onNewCust(ln.id),
                         }}
                         menuFixed={true}
+                        hideSublabelInTrigger={true}
                       />
                     )}
                   </td>
@@ -2253,6 +2557,7 @@ const OrderCell: React.FC<OrderCellProps> = ({
         onClick: onNewOrd,
       }}
       menuFixed={true}
+      hideSublabelInTrigger={true}
     />
   );
 };
