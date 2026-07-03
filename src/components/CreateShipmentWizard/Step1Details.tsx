@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
@@ -136,6 +136,23 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
   const [templates, setTemplates] = useState<any[]>(() => [...INIT_TPLS]);
   const [tplOpen, setTplOpen] = useState(false);
   const [tplSearch, setTplSearch] = useState('');
+
+  // Refs for click outside handling
+  const coRef = useRef<HTMLDivElement>(null);
+  const tplRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (coRef.current && !coRef.current.contains(event.target as Node)) {
+        setCoOpen(false);
+      }
+      if (tplRef.current && !tplRef.current.contains(event.target as Node)) {
+        setTplOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   const [activeTpl, setActiveTpl] = useState<any | null>(null);
   const [saveTplOpen, setSaveTplOpen] = useState(false);
   const [saveTplName, setSaveTplName] = useState('');
@@ -936,7 +953,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
         ? createPortal(
             <div className="flex items-center gap-2 flex-wrap">
               {/* Template select */}
-              <div className="relative">
+              <div className="relative" ref={tplRef}>
                 {activeTpl ? (
                   <div
                     className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
@@ -1030,7 +1047,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
               </div>
 
               {/* Co-owners */}
-              <div className="relative">
+              <div className="relative" ref={coRef}>
                 <button
                   type="button"
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
