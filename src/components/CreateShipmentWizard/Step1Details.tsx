@@ -18,6 +18,7 @@ import { ProductMasterSkuModal } from '../ProductMaster/ProductMasterSkuModal';
 import { CreateEditOrderModal } from '../ErpOrders';
 import { useQueryClient } from '@tanstack/react-query';
 import { productMasterService, addressBookService, erpOrdersService, ApiError } from '../../api';
+import { mapApiListItemToOrder } from '../../api/mappers/erpOrdersMapper';
 import { EMPTY_ORDER_FORM } from '../../pages/ErpOrders/types';
 import type { ErpOrderFormState } from '../../pages/ErpOrders/types';
 import type { ApiErpOrderCustomer } from '../../api/types/erpOrders';
@@ -113,6 +114,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
 
   // Modal Visibility states
   const [mLoc, setMLoc] = useState(false);
+  const [stopLocGroup, setStopLocGroup] = useState<Record<string, 'my' | 'customer'>>({});
+
   const [mComp, setMComp] = useState(false);
   const [mCust, setMCust] = useState(false);
   const [mOrd, setMOrd] = useState(false);
@@ -138,9 +141,14 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
   const [abLocs, setAbLocs] = useState<any[]>(() =>
     locations.length > 0 ? locations.filter((l) => l.status === 'active') : AB_LOCATIONS.filter((l) => l.status === 'active')
   );
+
+  const getLocGroup = useCallback((locId: string) => {
+    const loc = abLocs.find((l) => String(l.id) === String(locId));
+    return loc?.group === 'customer' ? 'customer' : 'my';
+  }, [abLocs]);
   const [abComps, setAbComps] = useState<any[]>(() => []);
   const [custs, setCusts] = useState<any[]>(() => PARTNERS.filter((p) => p.type === 'customer' && p.status === 'active'));
-  const [ords, setOrds] = useState<any[]>(() => [...ORDERS]);
+  const [ords, setOrds] = useState<any[]>([]);
   const [pmCats, setPmCats] = useState<any[]>(() => [...PM_CAT]);
   const [pmTyps, setPmTyps] = useState<any[]>(() => [...PM_TYP]);
   const [pmSkus, setPmSkus] = useState<any[]>(() =>
@@ -185,6 +193,25 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
       setPmSkus(skus.filter((s) => s.active));
     }
   }, [skus]);
+
+  useEffect(() => {
+    let active = true;
+    const fetchOrders = async () => {
+      try {
+        const result = await erpOrdersService.listOrders({ per_page: 100, status: 'unplanned' });
+        if (active) {
+          const mapped = result.items.map(mapApiListItemToOrder);
+          setOrds(mapped);
+        }
+      } catch (err) {
+        console.error('Failed to fetch ERP orders:', err);
+      }
+    };
+    fetchOrders();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!mLoc) return;
@@ -460,17 +487,17 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
       if (!mo?.lines?.length) return;
       const newLines = mo.lines.map((ln: any) => ({
         id: makeId('l'),
-        productId: ln.sku || ln.id,
-        productName: ln.name || '',
-        customerId: mo.customerId || '',
-        customerName: mo.customer || '',
+        productId: String(ln.productSkuId || ln.product_sku_id || ln.sku || ln.id || ''),
+        productName: ln.productName || ln.product_name || ln.name || '',
+        customerId: mo.customerId || mo.companyEntityId || '',
+        customerName: mo.customerName || mo.customer || '',
         orderId: mo.id,
-        orderRef: mo.id,
+        orderRef: mo.orderReference || mo.id,
         action: 'pickup',
-        qty: String(ln.qty || ''),
+        qty: String(ln.quantity || ln.qty || ''),
         unit: ln.unit || 'Pallets',
         weight: String(ln.weight || ''),
-        wtUnit: ln.weightUnit || 'kg',
+        wtUnit: ln.weightUnit || ln.weight_unit || 'kg',
         mirrorOf: '',
       }));
       uStop(sid, (s: any) => ({ ...s, lines: [...s.lines.filter((l: any) => l.productId), ...newLines] }));
@@ -481,7 +508,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
   // ═══ OPTIONS ═══
   const locOpts = useMemo(() => abLocs.map((l) => ({ value: l.id, label: l.name, sublabel: `${l.company || ''} · ${l.city}` })), [abLocs]);
   const custOpts = useMemo(() => custs.map((c) => ({ value: c.id, label: c.name, sublabel: `${c.region || ''} · ${c.vat || ''}` })), [custs]);
-  const ordOpts = useMemo(() => ords.map((o) => ({ value: o.id, label: o.id, sublabel: `${o.customer || ''} · ${(o.lines || []).length} lines` })), [ords]);
+  const ordOpts = useMemo(() => ords.map((o) => ({ value: o.id, label: o.orderReference || o.id, sublabel: `${o.customerName || o.customer || ''} · ${(o.lines || []).length} lines` })), [ords]);
   const prodOpts = useMemo(() => {
     const o: any[] = [];
     pmTyps.forEach((pt) => {
@@ -650,12 +677,58 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
     (sid: string, lid: string, oid: string) => {
       const mo = ords.find((o) => o.id === oid);
       if (mo) {
-        setLF(sid, lid, { orderId: oid, orderRef: oid, customerName: mo.customer || '', customerId: mo.customerId || '' });
+        let patch: any = {
+          orderId: oid,
+          orderRef: mo.orderReference || oid,
+          customerName: mo.customerName || mo.customer || '',
+          customerId: mo.customerId || mo.companyEntityId || '',
+          productId: '',
+          productName: '',
+          qty: '',
+          weight: '',
+        };
+        if (mo.lines && mo.lines.length === 1) {
+          const ol = mo.lines[0];
+          patch.productId = String(ol.productSkuId || ol.product_sku_id || ol.sku || '');
+          patch.productName = ol.productName || ol.product_name || ol.name || '';
+          patch.qty = ol.quantity || ol.qty || '';
+          patch.unit = ol.unit || 'EUR Pallets';
+          patch.weight = ol.weight || '';
+          patch.wtUnit = ol.weightUnit || ol.weight_unit || 'Kgs';
+        }
+        setLF(sid, lid, patch);
       } else {
-        setLF(sid, lid, { orderId: oid, orderRef: oid });
+        setLF(sid, lid, { orderId: oid, orderRef: oid, productId: '', productName: '', qty: '', weight: '' });
       }
     },
     [ords, setLF]
+  );
+
+  const selProdLine = useCallback(
+    (sid: string, lid: string, skuId: string) => {
+      const sk = pmSkus.find((s) => String(s.id) === String(skuId));
+      if (!sk) return;
+
+      const stop = stops.find((s: any) => s.id === sid);
+      const line = stop?.lines?.find((l: any) => l.id === lid);
+      const orderId = line?.orderId;
+
+      let patch: any = { productId: skuId, productName: sk.name };
+
+      if (orderId) {
+        const mo = ords.find((o) => o.id === orderId);
+        const ordLine = mo?.lines?.find((ol: any) => String(ol.productSkuId || ol.product_sku_id) === String(skuId));
+        if (ordLine) {
+          patch.qty = ordLine.quantity || ordLine.qty || '';
+          patch.unit = ordLine.unit || 'EUR Pallets';
+          patch.weight = ordLine.weight || '';
+          patch.wtUnit = ordLine.weightUnit || ordLine.weight_unit || 'Kgs';
+        }
+      }
+
+      setLF(sid, lid, patch);
+    },
+    [pmSkus, stops, ords, setLF]
   );
 
   const handleCreateOrder = useCallback(async (values: ErpOrderFormState) => {
@@ -703,16 +776,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
       setErpOrderSaving(false);
     }
   }, [pCtx, setLF, showToast]);
-
-  const selProdLine = useCallback(
-    (sid: string, lid: string, skuId: string) => {
-      const sk = pmSkus.find((s) => String(s.id) === String(skuId));
-      if (sk) {
-        setLF(sid, lid, { productId: skuId, productName: sk.name });
-      }
-    },
-    [pmSkus, setLF]
-  );
 
   const handleCreateSku = useCallback(async (values: any) => {
     try {
@@ -1188,177 +1251,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
 
   return (
     <div className="pb-24">
-      {portalTargetReady && document.getElementById('wizard-header-portal')
-        ? createPortal(
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Template select */}
-            <div className="relative" ref={tplRef}>
-              {activeTpl ? (
-                <div
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-                  style={{ background: T.al, color: T.ac, border: `1px solid ${T.ac}` }}
-                >
-                  <FileText size={13} /> {activeTpl.name}
-                  <button
-                    type="button"
-                    className="border-none bg-transparent cursor-pointer p-0 ml-1"
-                    style={{ color: T.ac }}
-                    onClick={clearTemplate}
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
-                  style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t2, fontFamily: 'inherit' }}
-                  onClick={() => {
-                    setTplOpen(!tplOpen);
-                    setTplSearch('');
-                  }}
-                >
-                  <FileText size={13} /> {t('useTemplate') || 'Use Template'} <ChevronDown size={12} />
-                </button>
-              )}
-              {tplOpen && (
-                <div
-                  className="absolute right-0 top-full mt-2 rounded-xl shadow-xl overflow-hidden z-50"
-                  style={{ width: 340, background: T.sf, border: `1px solid ${T.bd}` }}
-                >
-                  <div className="p-2" style={{ borderBottom: `1px solid ${T.bd}` }}>
-                    <input
-                      placeholder="Search templates..."
-                      value={tplSearch}
-                      onChange={(e) => setTplSearch(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded text-xs outline-none"
-                      style={{ border: `1px solid ${T.bd}`, background: T.sa, color: T.t1, fontFamily: 'inherit' }}
-                      autoFocus
-                    />
-                  </div>
-                  <div style={{ maxHeight: 280, overflowY: 'auto' }}>
-                    {filteredTpls.length === 0 && <div className="px-3 py-4 text-xs text-center" style={{ color: T.t3 }}>No templates</div>}
-                    {filteredTpls.map((tpl) => (
-                      <div
-                        key={tpl.id}
-                        className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-slate-50"
-                        style={{ borderBottom: `0.5px solid ${T.bd}` }}
-                        onClick={() => applyTemplate(tpl)}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold truncate" style={{ color: T.t1 }}>
-                            {tpl.name}
-                          </div>
-                          <div className="text-[10px] truncate" style={{ color: T.t3 }}>
-                            {tpl.stops.map((s: any) => s.locationCity || s.locationName).join(' → ')}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          className="w-5 h-5 rounded flex items-center justify-center cursor-pointer border-none shrink-0"
-                          style={{ background: 'transparent', color: T.t3 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteTemplate(tpl.id);
-                          }}
-                        >
-                          <Trash2 size={11} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
 
-            <input
-              placeholder={t('refPlaceholder') || 'Customer Ref...'}
-              value={values.custRef || ''}
-              onChange={(e) => setFieldValue('custRef', e.target.value)}
-              style={{ ...iS, width: 160, fontSize: 11 }}
-            />
-
-            <div
-              className="px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide"
-              style={{ background: T.sa, color: T.t1, border: `1px solid ${T.bd}` }}
-            >
-              {values.loadId}
-            </div>
-
-            {/* Co-owners */}
-            <div className="relative" ref={coRef}>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
-                style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.ac, fontFamily: 'inherit' }}
-                onClick={() => {
-                  setCoOpen(!coOpen);
-                  setCoSearch('');
-                }}
-              >
-                <Users size={14} />
-                {(values.coOwners || []).length > 0 && (
-                  <span
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                    style={{ background: T.ac }}
-                  >
-                    {(values.coOwners || []).length}
-                  </span>
-                )}
-              </button>
-              {coOpen && (
-                <div
-                  className="absolute right-0 top-full mt-2 rounded-lg shadow-xl overflow-hidden z-50"
-                  style={{ width: 260, background: T.sf, border: `1px solid ${T.bd}` }}
-                >
-                  <div className="px-3 py-2" style={{ borderBottom: `1px solid ${T.bd}` }}>
-                    <input
-                      placeholder="Search users..."
-                      value={coSearch}
-                      onChange={(e) => setCoSearch(e.target.value)}
-                      className="w-full px-2 py-1 rounded text-xs outline-none"
-                      style={{ border: `1px solid ${T.bd}`, background: T.sa, color: T.t1, fontFamily: 'inherit' }}
-                      autoFocus
-                    />
-                  </div>
-                  <div style={{ maxHeight: 220, overflowY: 'auto' }}>
-                    {activeUsers
-                      .filter((u) => !coSearch || `${u.firstName} ${u.lastName}`.toLowerCase().includes(coSearch.toLowerCase()))
-                      .map((u) => {
-                        const sel = (values.coOwners || []).includes(u.id);
-                        return (
-                          <div
-                            key={u.id}
-                            className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-slate-50"
-                            onClick={() => {
-                              const cur = values.coOwners || [];
-                              setFieldValue('coOwners', sel ? cur.filter((id: string) => id !== u.id) : [...cur, u.id]);
-                            }}
-                          >
-                            <input type="checkbox" checked={sel} readOnly />
-                            <div className="text-xs truncate" style={{ color: T.t1 }}>
-                              {u.firstName} {u.lastName}
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <button
-              type="button"
-              className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer border-none shrink-0"
-              style={{ background: 'transparent', color: T.t3 }}
-              onClick={resetItinerary}
-            >
-              <RotateCcw size={15} />
-            </button>
-          </div>,
-          document.getElementById('wizard-header-portal')!
-        )
-        : null}
 
       <LoadBalanceBar bal={bal} balExp={balExp} setBalExp={setBalExp} fmtW={fmtW} T={T} t={t} />
 
@@ -1610,158 +1503,102 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
                         <label className="block text-[11px] font-semibold mb-1 uppercase tracking-wide" style={{ color: T.t3 }}>
                           Location
                         </label>
-                        <div className="flex items-center gap-1">
-                          <div className="flex-1 min-w-0">
-                            <SearchableSelect
-                              value={stop.locationId}
-                              onChange={(lid) => selLoc(stop.id, lid)}
-                              options={locOpts}
-                              placeholder="Select location..."
-                              headerAction={{
-                                label: `+ ${t('createNewLocation') || 'Create New Location'}`,
-                                onClick: () => {
-                                  setPCtx({ locS: stop.id });
-                                  setMLoc(true);
-                                },
-                              }}
-                            />
-                          </div>
-                          {stop.locationId && (
-                            <button
-                              type="button"
-                              className="w-7 h-7 rounded flex items-center justify-center cursor-pointer border-none shrink-0"
-                              style={{ background: 'transparent', color: T.t3 }}
-                              onClick={() => previewLocation(stop.locationId)}
-                            >
-                              <Eye size={15} />
-                            </button>
-                          )}
-                        </div>
+                        {(() => {
+                          const activeGroup = stopLocGroup[stop.id] || (stop.locationId ? getLocGroup(stop.locationId) : 'my');
+                          return (
+                            <div className="flex items-center gap-1">
+                              <div className="flex-1 min-w-0">
+                                <SearchableSelect
+                                  value={stop.locationId}
+                                  onChange={(lid) => selLoc(stop.id, lid)}
+                                  options={abLocs
+                                    .filter((l) => l.group === activeGroup)
+                                    .map((l) => ({ value: String(l.id), label: l.name, sublabel: `${l.company || ''} · ${l.address || ''} · ${l.city}` }))
+                                  }
+                                  placeholder="Select location..."
+                                  tabs={{
+                                    activeTab: activeGroup,
+                                    onTabChange: (tab) => setStopLocGroup(prev => ({ ...prev, [stop.id]: tab as 'my' | 'customer' })),
+                                    list: [
+                                      { id: 'my', label: t('myLocations') || 'My Locations' },
+                                      { id: 'customer', label: t('thirdPartyLocations') || '3rd Party Locations' },
+                                    ],
+                                  }}
+                                  headerAction={{
+                                    label: `+ ${t('createNewLocation') || 'Create New Location'}`,
+                                    onClick: () => {
+                                      setPCtx({ locS: stop.id });
+                                      setCreateData({
+                                        ...EMPTY_CREATE_DATA,
+                                        context: activeGroup,
+                                      });
+                                      setCreateStep(1);
+                                      setMLoc(true);
+                                    },
+                                  }}
+                                />
+                              </div>
+                              {stop.locationId && (
+                                <button
+                                  type="button"
+                                  className="w-7 h-7 rounded flex items-center justify-center cursor-pointer border-none shrink-0"
+                                  style={{ background: 'transparent', color: T.t3 }}
+                                  onClick={() => previewLocation(stop.locationId)}
+                                >
+                                  <Eye size={15} />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })()}
                         {hintsFor(idx, LOC_CODES)}
                       </div>
 
                       {/* Appointment Row */}
                       <div className="flex items-start gap-3 flex-wrap">
-                        <div className="shrink-0 pt-5">
-                          <div className="inline-flex overflow-hidden rounded-md" style={{ border: `1px solid ${T.bd}` }}>
-                            <button
-                              type="button"
-                              className="py-1.5 px-3 text-[10px] font-semibold cursor-pointer border-none"
-                              style={{
-                                background: stop.appointmentMode === 'fixed' ? T.ac : T.sf,
-                                color: stop.appointmentMode === 'fixed' ? '#fff' : T.t3,
-                                fontFamily: 'inherit',
-                              }}
-                              onClick={() =>
-                                uStop(stop.id, (s: any) => ({
-                                  ...s,
-                                  appointmentMode: 'fixed' as const,
-                                  dateFrom: s.dateFrom || s.windowStart || '',
-                                  dateTo: s.dateTo || s.windowEnd || '',
-                                }))
-                              }
-                            >
-                              Fixed Time
-                            </button>
-                            <button
-                              type="button"
-                              className="py-1.5 px-3 text-[10px] font-semibold cursor-pointer border-none"
-                              style={{
-                                background: stop.appointmentMode === 'self_scheduling' ? '#5E3BEE' : T.sf,
-                                color: stop.appointmentMode === 'self_scheduling' ? '#fff' : T.t3,
-                                fontFamily: 'inherit',
-                              }}
-                              onClick={() =>
-                                uStop(stop.id, (s: any) => ({
-                                  ...s,
-                                  appointmentMode: 'self_scheduling' as const,
-                                  windowStart: s.windowStart || s.dateFrom || '',
-                                  windowEnd: s.windowEnd || s.dateTo || '',
-                                }))
-                              }
-                            >
-                              <CalendarClock size={11} style={{ display: 'inline', verticalAlign: '-1px', marginRight: 3 }} />
-                              Self-Scheduling
-                            </button>
+                        {/* Fixed Time Selectors */}
+                        <div className="flex items-end gap-2 flex-1">
+                          <div>
+                            <label className="block text-[11px] font-semibold mb-1 uppercase tracking-wide" style={{ color: T.t3 }}>
+                              From
+                            </label>
+                            <div className="flex gap-1">
+                              <input
+                                type="date"
+                                style={{ ...iS, width: 125 }}
+                                value={stop.dateFrom}
+                                onChange={(e) => uStop(stop.id, { dateFrom: e.target.value })}
+                              />
+                              <input
+                                type="time"
+                                style={{ ...iS, width: 90 }}
+                                value={stop.timeFrom}
+                                onChange={(e) => uStop(stop.id, { timeFrom: e.target.value })}
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <label className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: T.t3 }}>
+                                To (Optional)
+                              </label>
+                            </div>
+                            <div className="flex gap-1">
+                              <input
+                                type="date"
+                                style={{ ...iS, width: 125 }}
+                                value={stop.dateTo}
+                                onChange={(e) => uStop(stop.id, { dateTo: e.target.value })}
+                              />
+                              <input
+                                type="time"
+                                style={{ ...iS, width: 90 }}
+                                value={stop.timeTo}
+                                onChange={(e) => uStop(stop.id, { timeTo: e.target.value })}
+                              />
+                            </div>
                           </div>
                         </div>
-
-                        {stop.appointmentMode === 'fixed' ? (
-                          /* Fixed Time Selectors */
-                          <div className="flex items-end gap-2 flex-1">
-                            <div>
-                              <label className="block text-[11px] font-semibold mb-1 uppercase tracking-wide" style={{ color: T.t3 }}>
-                                From
-                              </label>
-                              <div className="flex gap-1">
-                                <input
-                                  type="date"
-                                  style={{ ...iS, width: 125 }}
-                                  value={stop.dateFrom}
-                                  onChange={(e) => uStop(stop.id, { dateFrom: e.target.value })}
-                                />
-                                <input
-                                  type="time"
-                                  style={{ ...iS, width: 90 }}
-                                  value={stop.timeFrom}
-                                  onChange={(e) => uStop(stop.id, { timeFrom: e.target.value })}
-                                />
-                              </div>
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-1.5 mb-1">
-                                <label className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: T.t3 }}>
-                                  To (Optional)
-                                </label>
-                              </div>
-                              <div className="flex gap-1">
-                                <input
-                                  type="date"
-                                  style={{ ...iS, width: 125 }}
-                                  value={stop.dateTo}
-                                  onChange={(e) => uStop(stop.id, { dateTo: e.target.value })}
-                                />
-                                <input
-                                  type="time"
-                                  style={{ ...iS, width: 90 }}
-                                  value={stop.timeTo}
-                                  onChange={(e) => uStop(stop.id, { timeTo: e.target.value })}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          /* Self Scheduling Date Window */
-                          <div className="flex-1 rounded-lg p-3" style={{ background: '#F3F0FF', border: '1px solid #E0DBFF' }}>
-                            <div className="flex items-end gap-3 mb-2 flex-wrap">
-                              <div>
-                                <label className="block text-[10px] font-semibold mb-1" style={{ color: '#7C6DD8' }}>
-                                  Window From
-                                </label>
-                                <input
-                                  type="date"
-                                  style={{ ...iS, width: 130, borderColor: '#E0DBFF' }}
-                                  value={stop.windowStart}
-                                  onChange={(e) => uStop(stop.id, { windowStart: e.target.value })}
-                                />
-                              </div>
-                              <span className="text-[11px] pb-2" style={{ color: '#7C6DD8' }}>
-                                →
-                              </span>
-                              <div>
-                                <label className="block text-[10px] font-semibold mb-1" style={{ color: '#7C6DD8' }}>
-                                  Window To
-                                </label>
-                                <input
-                                  type="date"
-                                  style={{ ...iS, width: 130, borderColor: '#E0DBFF' }}
-                                  value={stop.windowEnd}
-                                  onChange={(e) => uStop(stop.id, { windowEnd: e.target.value })}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
                       {hintsFor(idx, DATE_CODES)}
                     </div>
@@ -1776,6 +1613,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
                         prodOpts={prodOpts}
                         custOpts={custOpts}
                         ordOpts={ordOpts}
+                        ords={ords}
                         onAddLine={() => addLine(stop.id)}
                         onDelLine={(lid) => delLine(stop.id, lid)}
                         onDupLine={(lid) => dupLine(stop.id, lid)}
@@ -2171,6 +2009,7 @@ interface CargoTableProps {
   prodOpts: any[];
   custOpts: any[];
   ordOpts: any[];
+  ords: any[];
   onAddLine: () => void;
   onDelLine: (lid: string) => void;
   onDupLine: (lid: string) => void;
@@ -2197,6 +2036,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
   prodOpts,
   custOpts,
   ordOpts,
+  ords,
   onAddLine,
   onDelLine,
   onDupLine,
@@ -2248,9 +2088,9 @@ const CargoTable: React.FC<CargoTableProps> = ({
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr>
+              <th style={{ ...thS, width: '20%' }}>Order ID</th>
+              <th style={{ ...thS, width: '18%' }}>Customer</th>
               <th style={{ ...thS, width: '22%' }}>Product</th>
-              <th style={{ ...thS, width: '11%' }}>Customer</th>
-              <th style={{ ...thS, width: '10%' }}>Order ID</th>
               <th style={{ ...thS, width: '11%', textAlign: 'center' }}>Action</th>
               <th style={{ ...thS, width: '7%' }}>Qty</th>
               <th style={{ ...thS, width: '8%' }}>Unit</th>
@@ -2263,18 +2103,49 @@ const CargoTable: React.FC<CargoTableProps> = ({
             {(stop.lines || []).map((ln: any, li: number) => {
               const indicators = getGoodsIndicators(ln.productId);
               const isLast = li === stop.lines.length - 1;
+
+              // Filter product options to only show those present in the selected order
+              const rowProdOpts = (() => {
+                if (!ln.orderId) return [];
+                const mo = ords.find((o) => o.id === ln.orderId);
+                if (!mo || !mo.lines) return [];
+                return mo.lines.map((ol: any) => ({
+                  value: String(ol.productSkuId || ol.product_sku_id || ol.sku),
+                  label: ol.productName || ol.product_name || ol.name || 'Product',
+                }));
+              })();
+
               return (
                 <tr key={ln.id} style={{ background: ln.mirrorOf ? T.sa : 'transparent' }}>
+                  {/* Column 1: Order ID */}
+                  <td style={tdS}>
+                    <OrderCell
+                      ln={ln}
+                      T={T}
+                      t={t}
+                      iS={iS}
+                      ordOpts={ordOpts}
+                      onSelOrd={(v) => onSelOrd(ln.id, v)}
+                      onSetField={(f, v) => onSetField(ln.id, f, v)}
+                      onNewOrd={() => onNewOrd(ln.id)}
+                    />
+                  </td>
+
+                  {/* Column 2: Customer (Read-only) */}
+                  <td style={tdS}>
+                    <span className="text-[11px] px-1.5 py-0.5 rounded truncate inline-block font-semibold" style={{ background: T.sa, color: T.t1, maxWidth: 100 }}>
+                      {ln.customerName || '—'}
+                    </span>
+                  </td>
+
+                  {/* Column 3: Product */}
                   <td style={tdS}>
                     <SearchableSelect
                       value={ln.productId}
                       onChange={(v) => onSelProd(ln.id, v)}
-                      options={prodOpts}
-                      placeholder="Select product..."
-                      headerAction={{
-                        label: `+ Create Product`,
-                        onClick: () => onNewProd(ln.id),
-                      }}
+                      options={rowProdOpts}
+                      placeholder={ln.orderId ? "Select product..." : "Select order first"}
+                      disabled={!ln.orderId}
                       menuFixed={true}
                       hideSublabelInTrigger={true}
                     />
@@ -2292,54 +2163,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       </div>
                     )}
                   </td>
-                  <td style={tdS}>
-                    {ln.customerName ? (
-                      <div className="flex items-center gap-0.5">
-                        <span
-                          className="text-[11px] px-1.5 py-0.5 rounded truncate"
-                          style={{ background: T.sa, color: T.t1, maxWidth: 80 }}
-                        >
-                          {ln.customerName}
-                        </span>
-                        <button
-                          type="button"
-                          className="border-none bg-transparent cursor-pointer p-0"
-                          style={{ color: T.t3 }}
-                          onClick={() => {
-                            onSetField(ln.id, 'customerId', '');
-                            onSetField(ln.id, 'customerName', '');
-                          }}
-                        >
-                          <X size={10} />
-                        </button>
-                      </div>
-                    ) : (
-                      <SearchableSelect
-                        value=""
-                        onChange={(v) => onSelCust(ln.id, v)}
-                        options={custOpts}
-                        placeholder="—"
-                        footerAction={{
-                          label: `+ Create Customer`,
-                          onClick: () => onNewCust(ln.id),
-                        }}
-                        menuFixed={true}
-                        hideSublabelInTrigger={true}
-                      />
-                    )}
-                  </td>
-                  <td style={tdS}>
-                    <OrderCell
-                      ln={ln}
-                      T={T}
-                      t={t}
-                      iS={iS}
-                      ordOpts={ordOpts}
-                      onSelOrd={(v) => onSelOrd(ln.id, v)}
-                      onSetField={(f, v) => onSetField(ln.id, f, v)}
-                      onNewOrd={() => onNewOrd(ln.id)}
-                    />
-                  </td>
+
+                  {/* Column 4: Action */}
                   <td style={{ ...tdS, textAlign: 'center' }}>
                     <div className="inline-flex overflow-hidden rounded" style={{ border: `1px solid ${T.bd}` }}>
                       <button
@@ -2368,6 +2193,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       </button>
                     </div>
                   </td>
+
+                  {/* Column 5: Qty */}
                   <td style={tdS}>
                     <input
                       type="number"
@@ -2379,6 +2206,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       onChange={(e) => onSetField(ln.id, 'qty', e.target.value)}
                     />
                   </td>
+
+                  {/* Column 6: Unit */}
                   <td style={tdS}>
                     <select
                       style={{ ...selS, width: 105 }}
@@ -2392,6 +2221,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       ))}
                     </select>
                   </td>
+
+                  {/* Column 7: Weight */}
                   <td style={tdS}>
                     <input
                       type="number"
@@ -2404,6 +2235,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       onKeyDown={(e) => handleKeyDown(e, isLast)}
                     />
                   </td>
+
+                  {/* Column 8: W.Unit */}
                   <td style={tdS}>
                     <select
                       style={{ ...selS, width: 75 }}
@@ -2417,6 +2250,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       ))}
                     </select>
                   </td>
+
+                  {/* Column 9: Duplicate/Delete */}
                   <td style={tdS}>
                     <div className="flex items-center gap-0.5">
                       <button

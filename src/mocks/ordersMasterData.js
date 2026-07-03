@@ -77,6 +77,7 @@ function mkOrder(id, opts) {
     groupId: opts.groupId || null,
     exception: opts.exception || null,
     splitFromId: opts.splitFromId || null,
+    revenueValue: opts.revenueValue || 0,
   };
 }
 
@@ -96,6 +97,7 @@ export const ORDERS = [
       line('ΒΙΚΟΣ Natural water 1.5L (x6)', '5201054001028', 6, 'pallets', 1200),
     ],
     notes: 'Delivery to cold-dock only. Call receiver 1h before arrival.',
+    revenueValue: 1200,
   }),
   mkOrder('ORD-0002', {
     erpNumber: 'SAP-4501792', source: 'erp', erpSystem: 'SAP',
@@ -105,6 +107,7 @@ export const ORDERS = [
     shipTo: 'Σκλαβενίτης DC, Ασπρόπυργος, GR',
     shipDate: relDay(1), deliveryDate: relDay(2),
     lines: [line('Fresh milk 1L (x6)', '5201093100115', 18, 'pallets', 9500, 'kg')],
+    revenueValue: 2400,
   }),
   mkOrder('ORD-0003', {
     erpNumber: 'SAP-4501804', source: 'erp', erpSystem: 'SAP',

@@ -46,6 +46,8 @@ export interface ApiErpOrderListItem {
   linked_load_id?: number | null;
   updated_at?: string | null;
   can_edit: boolean;
+  revenue_value?: number | null;
+  lines?: ApiErpOrderLine[];
 }
 
 export interface ApiErpOrderDetail extends ApiErpOrderListItem {
@@ -89,6 +91,7 @@ export interface ErpOrderFormPayload {
   notes?: string | null;
   high_priority?: boolean;
   lines?: ApiErpOrderLine[];
+  revenue_value?: number | null;
 }
 
 export interface AiMappedOrderLine {

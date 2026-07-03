@@ -264,6 +264,18 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                 </div>
 
                 <div className="field">
+                  <label className="field-l">{t('erpOrdersOrderValue') || 'Order Value (€)'}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="inp"
+                    placeholder="e.g. 500"
+                    value={values.revenueValue || ''}
+                    onChange={(e) => setFieldValue('revenueValue', e.target.value ? parseFloat(e.target.value) : undefined)}
+                  />
+                </div>
+
+                <div className="field">
                   <label className="field-l">{t('notes')}</label>
                   <textarea
                     className="inp"

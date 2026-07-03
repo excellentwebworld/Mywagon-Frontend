@@ -22,6 +22,11 @@ type Props = {
   direction?: 'up' | 'down' | 'auto';
   menuFixed?: boolean;
   hideSublabelInTrigger?: boolean;
+  tabs?: {
+    activeTab: string;
+    onTabChange: (tab: string) => void;
+    list: { id: string; label: string }[];
+  };
 };
 
 export const SearchableSelect: React.FC<Props> = ({
@@ -39,6 +44,7 @@ export const SearchableSelect: React.FC<Props> = ({
   direction = 'auto',
   menuFixed = false,
   hideSublabelInTrigger = false,
+  tabs,
 }) => {
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -137,6 +143,35 @@ export const SearchableSelect: React.FC<Props> = ({
 
   const menuInner = (
     <>
+      {tabs && (
+        <div className="searchable-select-tabs" style={{ display: 'flex', gap: '4px', padding: '8px', borderBottom: '1px solid var(--border, #e5e7eb)', background: '#f9fafb' }}>
+          {tabs.list.map((t) => {
+            const isActive = tabs.activeTab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => tabs.onTabChange(t.id)}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: isActive ? '#1A1D36' : 'transparent',
+                  color: isActive ? '#ffffff' : '#4B5563',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  textAlign: 'center',
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div className="searchable-select-search">
         <input
           type="text"

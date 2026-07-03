@@ -167,38 +167,10 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
               <div className="flex items-center gap-2">
                 <Clock size={16} style={{ color: T.t2 }} />
                 <span className="text-sm font-semibold" style={{ color: T.t1 }}>
-                  {leftView === 'list' ? 'Route Stops' : 'Route Timeline'}
+                  Route Stops
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="inline-flex overflow-hidden rounded-md" style={{ border: `1px solid ${T.bd}` }}>
-                  <button
-                    type="button"
-                    className="py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none"
-                    style={{
-                      background: leftView === 'list' ? T.ac : T.sf,
-                      color: leftView === 'list' ? '#fff' : T.t3,
-                      fontFamily: 'inherit',
-                    }}
-                    onClick={() => setLeftView('list')}
-                  >
-                    <LayoutList size={11} style={{ display: 'inline', verticalAlign: '-1px', marginRight: 2 }} />
-                    Stops
-                  </button>
-                  <button
-                    type="button"
-                    className="py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none"
-                    style={{
-                      background: leftView === 'timeline' ? T.ac : T.sf,
-                      color: leftView === 'timeline' ? '#fff' : T.t3,
-                      fontFamily: 'inherit',
-                    }}
-                    onClick={() => setLeftView('timeline')}
-                  >
-                    <BarChart3 size={11} style={{ display: 'inline', verticalAlign: '-1px', marginRight: 2 }} />
-                    Timeline
-                  </button>
-                </div>
                 <button
                   type="button"
                   className="text-xs font-semibold cursor-pointer border-none px-2.5 py-1 rounded"
@@ -210,317 +182,130 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
               </div>
             </div>
 
-            {leftView === 'list' ? (
-              /* Stop list view */
-              <div className="px-4 py-3">
-                {stops.map((stop: any, si: number) => {
-                  const hasPickup = stop.lines.some((l: any) => l.action === 'pickup');
-                  const hasDropoff = stop.lines.some((l: any) => l.action === 'dropoff');
-                  const dw = driveWarnings.find((d) => d.to === si);
-                  const ww = weekendWarnings[si];
-                  const isExp = expandedStop === si;
-                  const rw = runningWeights[si];
+            {/* Stop list view */}
+            <div className="px-4 py-3">
+              {stops.map((stop: any, si: number) => {
+                const hasPickup = stop.lines.some((l: any) => l.action === 'pickup');
+                const hasDropoff = stop.lines.some((l: any) => l.action === 'dropoff');
+                const ww = weekendWarnings[si];
+                const isExp = expandedStop === si;
+                const rw = runningWeights[si];
 
-                  return (
-                    <div key={stop.id}>
-                      {dw && dw.level !== 'ok' && (
-                        <div
-                          className="flex items-center gap-2 py-1.5 ml-8 text-[10px]"
-                          style={{ color: dw.level === 'red' ? '#DC2626' : '#D97706' }}
-                        >
-                          <AlertTriangle size={10} />
-                          <span>
-                            Drive {DRIVE.find((d) => d.to === si)?.label} · {DRIVE.find((d) => d.to === si)?.distKm} km
-                          </span>
-                          <span className="font-semibold">{dw.msg}</span>
-                        </div>
-                      )}
+                return (
+                  <div key={stop.id}>
+                    <div
+                      className="flex gap-3 pb-4"
+                      style={{
+                        borderLeft: si < stops.length - 1 ? `2px solid ${T.ac}` : '2px solid transparent',
+                        marginLeft: 14,
+                      }}
+                    >
                       <div
-                        className="flex gap-3 pb-4"
-                        style={{
-                          borderLeft: si < stops.length - 1 ? `2px solid ${T.ac}` : '2px solid transparent',
-                          marginLeft: 14,
-                        }}
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 -ml-[15px]"
+                        style={{ background: '#059669' }}
                       >
-                        <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 -ml-[15px]"
-                          style={{ background: '#059669' }}
-                        >
-                          {si + 1}
-                        </div>
-                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedStop(isExp ? null : si)}>
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            {hasPickup && (
-                              <span
-                                className="text-[10px] font-bold px-2 py-0.5 rounded"
-                                style={{ background: '#DBEAFE', color: '#2563EB' }}
-                              >
-                                PICKUP
-                              </span>
-                            )}
-                            {hasDropoff && (
-                              <span
-                                className="text-[10px] font-bold px-2 py-0.5 rounded"
-                                style={{ background: '#D1FAE5', color: '#059669' }}
-                              >
-                                DROPOFF
-                              </span>
-                            )}
-                            {stop.appointmentMode === 'self_scheduling' ? (
-                              <>
-                                <span className="text-[10px]" style={{ color: T.t3 }}>
-                                  📅 {stop.windowStart} → {stop.windowEnd}
-                                </span>
-                                <span
-                                  className="text-[9px] font-bold px-1.5 py-0.5 rounded inline-flex items-center gap-1"
-                                  style={{ background: '#F3F0FF', color: '#5E3BEE', border: '1px solid #E0DBFF' }}
-                                >
-                                  Self-scheduling
-                                </span>
-                              </>
-                            ) : (
-                              <span className="text-[10px]" style={{ color: T.t3 }}>
-                                📅 {stop.dateFrom} · {stop.timeFrom}
-                                {stop.timeTo ? ` – ${stop.timeTo}` : ''}
-                              </span>
-                            )}
-                            {(() => {
-                              const wx = getWeather(stop.locationCity);
-                              return (
-                                <span
-                                  className="text-[9px] px-1.5 py-0.5 rounded inline-flex items-center gap-1"
-                                  style={{ background: wx.alert ? '#FEF3C7' : T.sa, color: wx.alert ? '#D97706' : T.t3 }}
-                                >
-                                  {wx.icon} {wx.tempC}°C
-                                </span>
-                              );
-                            })()}
-                            {ww && (
-                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ background: '#FEF3C7', color: '#D97706' }}>
-                                ⚠ {ww}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm font-bold" style={{ color: T.t1 }}>
-                            {getStopLocationName(stop)}
-                          </div>
-                          <div className="text-[11px] mb-1" style={{ color: T.t3 }}>
-                            {getStopAddress(stop)}
-                          </div>
-
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[9px] font-semibold" style={{ color: rw > 28000 ? '#DC2626' : T.t3 }}>
-                              On Truck: {(rw / 1000).toFixed(1)}T
+                        {si + 1}
+                      </div>
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedStop(isExp ? null : si)}>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          {hasPickup && (
+                            <span
+                              className="text-[10px] font-bold px-2 py-0.5 rounded"
+                              style={{ background: '#DBEAFE', color: '#2563EB' }}
+                            >
+                              PICKUP
                             </span>
-                            <div className="flex-1 rounded-full overflow-hidden" style={{ height: 3, background: T.sa, maxWidth: 120 }}>
-                              <div
-                                style={{
-                                  width: `${Math.min((rw / 28000) * 100, 100)}%`,
-                                  height: '100%',
-                                  background: rw > 28000 ? '#DC2626' : rw > 20000 ? '#D97706' : '#059669',
-                                  borderRadius: 2,
-                                }}
-                              />
-                            </div>
+                          )}
+                          {hasDropoff && (
+                            <span
+                              className="text-[10px] font-bold px-2 py-0.5 rounded"
+                              style={{ background: '#D1FAE5', color: '#059669' }}
+                            >
+                              DROPOFF
+                            </span>
+                          )}
+                          {stop.appointmentMode === 'self_scheduling' ? (
+                            <>
+                              <span className="text-[10px]" style={{ color: T.t3 }}>
+                                📅 {stop.windowStart} → {stop.windowEnd}
+                              </span>
+                              <span
+                                className="text-[9px] font-bold px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+                                style={{ background: '#F3F0FF', color: '#5E3BEE', border: '1px solid #E0DBFF' }}
+                              >
+                                Self-scheduling
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-[10px]" style={{ color: T.t3 }}>
+                              📅 {stop.dateFrom} · {stop.timeFrom}
+                              {stop.timeTo ? ` – ${stop.timeTo}` : ''}
+                            </span>
+                          )}
+                          {ww && (
+                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                              ⚠ {ww}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm font-bold" style={{ color: T.t1 }}>
+                          {getStopLocationName(stop)}
+                        </div>
+                        <div className="text-[11px] mb-1" style={{ color: T.t3 }}>
+                          {getStopAddress(stop)}
+                        </div>
+
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[9px] font-semibold" style={{ color: rw > 28000 ? '#DC2626' : T.t3 }}>
+                            On Truck: {(rw / 1000).toFixed(1)}T
+                          </span>
+                          <div className="flex-1 rounded-full overflow-hidden" style={{ height: 3, background: T.sa, maxWidth: 120 }}>
+                            <div
+                              style={{
+                                width: `${Math.min((rw / 28000) * 100, 100)}%`,
+                                height: '100%',
+                                background: rw > 28000 ? '#DC2626' : rw > 20000 ? '#D97706' : '#059669',
+                                borderRadius: 2,
+                              }}
+                            />
                           </div>
                         </div>
                       </div>
+                    </div>
 
-                      {/* Cargo rows dropdown on click stop */}
-                      {isExp && (
-                        <div className="ml-12 mb-3 p-3 rounded-lg" style={{ background: T.sa, border: `1px solid ${T.bd}` }}>
-                          <div className="text-[10px] font-bold uppercase mb-2" style={{ color: T.t3 }}>
-                            Cargo at Stop
-                          </div>
-                          {(stop.lines || []).map((l: any, li: number) => (
-                            <div
-                              key={li}
-                              className="flex items-center gap-3 py-1.5 text-xs"
-                              style={{ borderBottom: li < stop.lines.length - 1 ? `0.5px solid ${T.bd}` : 'none' }}
-                            >
+                    {isExp && (
+                      <div className="pl-8 pb-4">
+                        {stop.lines.map((l: any, li: number) => (
+                          <div
+                            key={l.id}
+                            className="flex items-center justify-between text-xs py-1"
+                            style={{ borderBottom: li < stop.lines.length - 1 ? `1px dashed ${T.bd}` : 'none' }}
+                          >
+                            <div>
                               <span
-                                className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                                className="font-bold text-[10px] uppercase px-1 rounded mr-2"
                                 style={{
                                   background: l.action === 'pickup' ? '#DBEAFE' : '#D1FAE5',
                                   color: l.action === 'pickup' ? '#2563EB' : '#059669',
                                 }}
                               >
-                                {l.action === 'pickup' ? '↑' : '↓'}
+                                {l.action}
                               </span>
-                              <span className="font-medium flex-1" style={{ color: T.t1 }}>
+                              <span className="font-semibold" style={{ color: T.t1 }}>
                                 {l.productName}
                               </span>
-                              <span style={{ color: T.t2 }}>
-                                {l.qty} {l.unit}
-                              </span>
-                              <span style={{ color: T.t3 }}>{fmtW(parseFloat(l.weight) || 0)}</span>
-                              {l.customerName && (
-                                <span className="text-[10px]" style={{ color: '#059669' }}>
-                                  🏪 {l.customerName}
-                                </span>
-                              )}
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              /* Horizontal Timeline View */
-              <div className="px-4 py-6">
-                <div className="flex items-center justify-end gap-3 mb-4 text-[11px]">
-                  <span style={{ color: T.ac }}>
-                    ● Picked up:{' '}
-                    <strong>
-                      {stops
-                        .flatMap((s: any) => s.lines)
-                        .filter((l: any) => l.action === 'pickup')
-                        .reduce((sum: number, l: any) => sum + (parseFloat(l.qty) || 0), 0)}{' '}
-                      units
-                    </strong>
-                  </span>
-                  <span style={{ color: '#059669' }}>
-                    Dropped off:{' '}
-                    <strong>
-                      {stops
-                        .flatMap((s: any) => s.lines)
-                        .filter((l: any) => l.action === 'dropoff')
-                        .reduce((sum: number, l: any) => sum + (parseFloat(l.qty) || 0), 0)}{' '}
-                      units
-                    </strong>{' '}
-                    ●
-                  </span>
-                </div>
-
-                <div className="flex items-start mb-6">
-                  {stops.map((stop: any, si: number) => {
-                    const hasPickup = stop.lines.some((l: any) => l.action === 'pickup');
-                    const hasDropoff = stop.lines.some((l: any) => l.action === 'dropoff');
-                    const drive = DRIVE.find((d) => d.from === si);
-                    const dw = driveWarnings.find((d) => d.from === si);
-
-                    return (
-                      <div key={stop.id} className="flex items-start" style={{ flex: 1 }}>
-                        <div className="flex flex-col items-center" style={{ flex: 1 }}>
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white"
-                            style={{ background: '#059669', zIndex: 1 }}
-                          >
-                            {si + 1}
+                            <span style={{ color: T.t2 }}>
+                              {l.qty} {l.unit} · {l.weight} {l.wtUnit}
+                            </span>
                           </div>
-                          <div className="text-center mt-2">
-                            <div className="text-xs font-bold" style={{ color: T.t1 }}>
-                              {stop.locationCity || getStopLocationName(stop).split(' ')[0]}
-                            </div>
-                            {stop.appointmentMode === 'self_scheduling' ? (
-                              <div className="text-[9px] font-bold px-1 py-0.5 rounded mt-0.5" style={{ background: '#F3F0FF', color: '#5E3BEE' }}>
-                                Self-Scheduling
-                              </div>
-                            ) : (
-                              <div className="text-[10px]" style={{ color: T.t3 }}>
-                                {stop.dateFrom?.slice(5)} · {stop.timeFrom}
-                              </div>
-                            )}
-                            <div
-                              className="text-[10px] font-bold mt-0.5"
-                              style={{ color: hasPickup ? '#2563EB' : '#059669' }}
-                            >
-                              {hasPickup ? 'PICKUP' : 'DROPOFF'}
-                            </div>
-                          </div>
-                        </div>
-                        {si < stops.length - 1 && (
-                          <div className="flex flex-col items-center" style={{ minWidth: 70, paddingTop: 18 }}>
-                            <div style={{ height: 3, background: T.ac, width: '100%', borderRadius: 2 }} />
-                            {drive && (
-                              <div
-                                className="text-[9px] font-semibold mt-1 px-1 py-0.5 rounded"
-                                style={{
-                                  background: dw?.level === 'red' ? '#FEE2E2' : dw?.level === 'amber' ? '#FEF3C7' : T.sa,
-                                  color: dw?.level === 'red' ? '#DC2626' : dw?.level === 'amber' ? '#D97706' : T.t3,
-                                }}
-                              >
-                                {drive.label}
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        ))}
                       </div>
-                    );
-                  })}
-                </div>
-
-                {/* Cargo flows */}
-                <div style={{ borderTop: `1px solid ${T.bd}`, paddingTop: 12 }}>
-                  <div className="text-[10px] font-bold uppercase mb-3" style={{ color: T.t3 }}>
-                    Cargo Flows
+                    )}
                   </div>
-                  {(() => {
-                    const flows: Record<string, any> = {};
-                    stops.forEach((s: any, si: number) =>
-                      s.lines.forEach((l: any) => {
-                        const key = `${l.customerName}|${l.productName}`;
-                        if (!flows[key]) {
-                          flows[key] = {
-                            customer: l.customerName,
-                            product: l.productName,
-                            pickup: -1,
-                            dropoff: -1,
-                            qty: 0,
-                            weight: 0,
-                          };
-                        }
-                        if (l.action === 'pickup') {
-                          flows[key].pickup = si;
-                          flows[key].qty = parseFloat(l.qty) || 0;
-                          flows[key].weight = parseFloat(l.weight) || 0;
-                        } else {
-                          flows[key].dropoff = si;
-                        }
-                      })
-                    );
-                    return Object.values(flows).map((f: any, fi: number) => (
-                      <div key={fi} className="flex items-center gap-3 mb-3">
-                        <div style={{ width: 120 }}>
-                          <div className="text-[10px] font-semibold truncate" style={{ color: '#059669' }}>
-                            🏪 {f.customer || 'No Customer'}
-                          </div>
-                          <div className="text-[9px] truncate" style={{ color: T.t3 }}>
-                            {f.product}
-                          </div>
-                        </div>
-                        <div className="flex-1 relative" style={{ height: 18 }}>
-                          <div style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 2, background: T.sa, borderRadius: 1 }} />
-                          {f.pickup >= 0 && f.dropoff >= 0 && (
-                            <div
-                              style={{
-                                position: 'absolute',
-                                left: `${(f.pickup / (stops.length - 1)) * 100}%`,
-                                right: `${100 - (f.dropoff / (stops.length - 1)) * 100}%`,
-                                top: 3,
-                                height: 12,
-                                background: '#7C3AED',
-                                borderRadius: 6,
-                                opacity: 0.75,
-                              }}
-                            >
-                              <span className="text-[8px] font-bold text-white px-1.5">
-                                #{f.pickup + 1}→#{f.dropoff + 1}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-[10px] font-semibold text-right" style={{ color: T.t1, width: 75 }}>
-                          {f.qty} plt · {fmtW(f.weight)}
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
-            )}
+                );
+              })}
+            </div>
 
             {/* Confirmation indicator */}
             <div className="flex items-center justify-between px-4 py-2.5" style={{ borderTop: `1px solid ${T.bd}`, background: T.sa }}>

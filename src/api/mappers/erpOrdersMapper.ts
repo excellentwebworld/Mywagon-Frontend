@@ -57,7 +57,8 @@ export function mapApiListItemToOrder(item: ApiErpOrderListItem): ErpOrder {
     linkedLoadId: item.linked_load_id ? String(item.linked_load_id) : '',
     updatedAt: item.updated_at ?? '',
     canEdit: item.can_edit,
-    lines: [],
+    revenueValue: item.revenue_value ? Number(item.revenue_value) : undefined,
+    lines: Array.isArray(item.lines) ? item.lines.map(mapApiLineToLine) : [],
     notes: '',
     companyEntityId: null,
     originLocationId: null,
@@ -79,25 +80,26 @@ export function mapApiDetailToOrder(detail: ApiErpOrderDetail): ErpOrder {
   };
 }
 
-export function formToPayload(form: ErpOrderFormPayload): ErpOrderFormPayload {
+export function formToPayload(form: any): any {
   return {
-    order_reference: form.order_reference.trim(),
-    erp_reference: form.erp_reference?.trim() || null,
-    company_entity_id: form.company_entity_id ?? null,
-    customer_name: form.customer_name.trim(),
-    origin_location_id: form.origin_location_id ?? null,
-    dest_location_id: form.dest_location_id ?? null,
-    ship_date: form.ship_date || null,
-    delivery_date: form.delivery_date,
+    order_reference: form.orderReference.trim(),
+    erp_reference: form.erpReference?.trim() || null,
+    company_entity_id: form.companyEntityId ?? null,
+    customer_name: form.customerName.trim(),
+    origin_location_id: form.originLocationId ?? null,
+    dest_location_id: form.destLocationId ?? null,
+    ship_date: form.shipDate || null,
+    delivery_date: form.deliveryDate,
     notes: form.notes?.trim() || null,
-    high_priority: !!form.high_priority,
-    lines: (form.lines ?? []).map((line) => ({
-      product_sku_id: line.product_sku_id ?? null,
-      product_name: line.product_name,
+    high_priority: !!form.highPriority,
+    revenue_value: form.revenueValue || null,
+    lines: (form.lines ?? []).map((line: any) => ({
+      product_sku_id: line.productSkuId ?? null,
+      product_name: line.productName,
       quantity: line.quantity ?? null,
       unit: line.unit || null,
       weight: line.weight ?? null,
-      weight_unit: line.weight_unit || null,
+      weight_unit: line.weightUnit || null,
     })),
   };
 }

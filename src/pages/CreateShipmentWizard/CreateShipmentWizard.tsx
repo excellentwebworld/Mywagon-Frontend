@@ -8,6 +8,7 @@ import type { Shipment } from '../../context/AppContext';
 import { Step1Details, createNewStop } from '../../components/CreateShipmentWizard/Step1Details';
 import { Step2Itinerary } from '../../components/CreateShipmentWizard/Step2Itinerary';
 import { Step3Pricing } from '../../components/CreateShipmentWizard/Step3Pricing';
+import { shipmentsService } from '../../api';
 import './CreateShipmentWizard.css';
 
 const validationSchema = Yup.object().shape({
@@ -84,7 +85,7 @@ export const CreateShipmentWizard: React.FC = () => {
     bulkRecOccurrences: 7,
   };
 
-  const handleConfirmWizard = (values: typeof initialValues, { setSubmitting }: any) => {
+  const handleConfirmWizard = async (values: typeof initialValues, { setSubmitting }: any) => {
     const stops = values.stops;
     const originLoc = locations.find((l) => l.id === stops[0].locationId);
     const destLoc = locations.find((l) => l.id === stops[stops.length - 1].locationId);
@@ -162,10 +163,50 @@ export const CreateShipmentWizard: React.FC = () => {
       negotiable: true,
     };
 
-    addShipment(payload);
-    showToast(t('shipmentCreatedSuccess') || 'Shipment created successfully!', 'success');
-    setSubmitting(false);
-    navigate('/shipments');
+    try {
+      setSubmitting(true);
+
+      const apiPayload = {
+        vis: values.broadcastType,
+        price: Number(values.targetPrice),
+        price_type: values.broadcastType === 'public' ? 'spot' : 'contract',
+        gpsRequired: values.gpsRequired,
+        driverNotes: values.driverNotes,
+        selectedCarriers: values.selectedCarriers,
+        coOwners: values.coOwners,
+        vehicleSpecs: values.vehicleSpecs,
+        stops: stops.map((s, idx) => ({
+          locationId: s.locationId,
+          type: idx === 0 ? 'pickup' : 'delivery',
+          date: s.dateFrom || s.windowStart || '',
+          timeStart: s.timeFrom || '08:00',
+          timeEnd: s.timeTo || '18:00',
+          lines: s.lines.map((l: any) => ({
+            productId: l.productId,
+            qty: Number(l.qty) || 0,
+            unit: l.unit || 'Pallets',
+            weight: Number(l.weight) || 0,
+            wtUnit: l.wtUnit || 'kg',
+            orderId: l.orderId || l.orderRef || '',
+          })),
+        })),
+      };
+
+      const result = await shipmentsService.createShipment(apiPayload);
+
+      const customPayload: Shipment = {
+        ...payload,
+        id: String(result.auto_id || result.shipment_id || payload.id),
+      };
+
+      addShipment(customPayload);
+      showToast(t('shipmentCreatedSuccess') || 'Shipment created successfully!', 'success');
+      navigate('/shipments');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to create shipment. Please try again.', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

@@ -54,9 +54,28 @@ interface Step3PricingProps {
 
 export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit }) => {
   const { t } = useTranslation();
-  const { locations, showToast } = useApp();
+  const { locations, showToast, ords } = useApp();
   const { values, setFieldValue, isSubmitting } = useFormikContext<any>();
   const stops = values.stops || [];
+
+  const loadValue = useMemo(() => {
+    const selectedOrderIds = new Set<string>();
+    stops.forEach((s: any) => {
+      s.lines.forEach((l: any) => {
+        if (l.orderId) {
+          selectedOrderIds.add(l.orderId);
+        }
+      });
+    });
+    let sum = 0;
+    selectedOrderIds.forEach((oid) => {
+      const order = ords.find((o) => o.id === oid);
+      if (order) {
+        sum += parseFloat(order.revenueValue || order.revenue_value) || 0;
+      }
+    });
+    return sum;
+  }, [stops, ords]);
 
   // Local Accordion states
   const [coOpen, setCoOpen] = useState(true);
@@ -292,6 +311,86 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
         {/* LEFT COLUMN: Broadcast, Bulk Load, Tracking Links */}
         <div className="lg:col-span-2 space-y-4">
           
+          {/* VEHICLE TYPE & SPECIFICATIONS SELECTION */}
+          <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+            <div className="ch flex items-center gap-2 px-5 py-4 border-b" style={{ borderColor: T.bd }}>
+              <Settings size={18} style={{ color: T.t2 }} />
+              <span className="font-semibold text-sm">{t('vehicleTypeSpecs') || 'Vehicle Type & Specifications Selection'}</span>
+            </div>
+            <div className="cb p-5">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {[
+                  { key: 'semi-trailer', label: 'Semi-Trailer' },
+                  { key: 'road-train', label: 'Truck with Trailer' },
+                  { key: 'triaxle', label: 'Rigid Truck (7-12t)' },
+                  { key: 'van', label: 'Van' },
+                ].map((vt) => {
+                  const specs = values.vehicleSpecs[vt.key] || [];
+                  const isColSelected = specs.length > 0;
+
+                  const toggleCol = () => {
+                    if (isColSelected) {
+                      setFieldValue(`vehicleSpecs.${vt.key}`, []);
+                    } else {
+                      setFieldValue(`vehicleSpecs.${vt.key}`, ['dry']);
+                    }
+                  };
+
+                  const toggleSpec = (specKey: string) => {
+                    const next = specs.includes(specKey)
+                      ? specs.filter((s: string) => s !== specKey)
+                      : [...specs, specKey];
+                    setFieldValue(`vehicleSpecs.${vt.key}`, next);
+                  };
+
+                  return (
+                    <div
+                      key={vt.key}
+                      className="border rounded-xl p-4 transition-all"
+                      style={{
+                        borderColor: isColSelected ? '#2563EB' : T.bd,
+                        background: isColSelected ? '#EFF6FF' : 'transparent',
+                        boxShadow: isColSelected ? '0 0 0 1px #2563EB' : 'none',
+                      }}
+                    >
+                      <div className="flex items-center gap-2 mb-3 cursor-pointer" onClick={toggleCol}>
+                        <input
+                          type="checkbox"
+                          checked={isColSelected}
+                          onChange={toggleCol}
+                          className="w-4 h-4 cursor-pointer"
+                        />
+                        <span className="font-bold text-xs text-slate-800">{vt.label}</span>
+                      </div>
+
+                      <div className="space-y-2 pl-6">
+                        {[
+                          { key: 'dry', label: 'Dry cargo' },
+                          { key: 'tilt', label: 'Tilt/Curtain' },
+                          { key: 'frigo', label: 'Frigo' },
+                          { key: 'adr', label: 'ADR' },
+                        ].map((sp) => {
+                          const isSpecChecked = specs.includes(sp.key);
+                          return (
+                            <label key={sp.key} className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={isSpecChecked}
+                                onChange={() => toggleSpec(sp.key)}
+                                className="w-3.5 h-3.5 cursor-pointer"
+                              />
+                              <span>{sp.label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           {/* BROADCAST TYPE */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
             <div className="ch flex items-center gap-2 px-5 py-4 border-b" style={{ borderColor: T.bd }}>
@@ -375,9 +474,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
                     onChange={(e) => setCarrierQuery(e.target.value)}
                   />
 
-                  <div className="text-xs font-semibold mb-2" style={{ color: T.ac, cursor: 'pointer' }}>
-                    {t('invitePartner') || '＋ Invite new partner carrier'}
-                  </div>
+
 
                   {/* CARRIER COMPANIES ACCORDION */}
                   <div className="border rounded-lg overflow-hidden mb-2">
@@ -536,215 +633,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
             </div>
           </div>
 
-          {/* BULK LOAD CREATION */}
-          <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
-            <div className="ch flex items-center gap-2 px-5 py-4 border-b animate-fade-in" style={{ borderColor: T.bd }}>
-              <Layers size={18} style={{ color: T.t2 }} />
-              <span className="font-semibold text-sm">{t('bulkLoadCreation') || 'Bulk Load Creation'}</span>
-              <span className="text-xs text-slate-400 font-normal ml-auto">{t('bulkLoadCreationDesc') || 'Create multiple identical loads'}</span>
-            </div>
-            <div className="cb p-5">
-              {/* Tabs */}
-              <div className="flex bg-slate-100 p-1 rounded-lg gap-1 mb-4">
-                {[
-                  { id: 'single', label: t('singleLoad') || 'Single Load' },
-                  { id: 'qty', label: t('multipleSameDay') || 'Multiple (same day)' },
-                  { id: 'dates', label: t('multipleDates') || 'Multiple dates' },
-                  { id: 'rec', label: t('recurring') || 'Recurring' },
-                ].map((tb) => (
-                  <button
-                    key={tb.id}
-                    type="button"
-                    className={`flex-1 py-2 px-1 text-center text-xs font-semibold rounded-md border-none cursor-pointer ${
-                      values.bulkMode === tb.id ? 'bg-white shadow' : 'bg-transparent text-slate-400'
-                    }`}
-                    onClick={() => setFieldValue('bulkMode', tb.id)}
-                  >
-                    {tb.label}
-                  </button>
-                ))}
-              </div>
 
-              {/* Single Mode Panel */}
-              {values.bulkMode === 'single' && (
-                <div className="text-center py-4 text-xs text-slate-400">
-                  {t('singleLoadSub') || '1 load will be created. Select another tab for bulk creation.'}
-                </div>
-              )}
-
-              {/* Quantity Mode Panel */}
-              {values.bulkMode === 'qty' && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-semibold text-slate-600">{t('identicalLoadsLabel') || 'Number of identical loads'}</label>
-                    <div className="flex items-center border rounded-lg overflow-hidden bg-slate-50">
-                      <button
-                        type="button"
-                        className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
-                        onClick={() => bqc(-1)}
-                      >
-                        −
-                      </button>
-                      <input
-                        type="number"
-                        className="w-11 h-8 border-y-0 border-x text-center text-xs font-bold font-mono outline-none"
-                        value={values.bulkQty}
-                        onChange={(e) => setFieldValue('bulkQty', Math.max(1, parseInt(e.target.value) || 1))}
-                      />
-                      <button
-                        type="button"
-                        className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
-                        onClick={() => bqc(1)}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                  <div className="bg-green-50 text-green-700 p-2.5 rounded-lg text-xs font-semibold">
-                    ✓ <strong>{values.bulkQty}</strong> {t('loadsWillBeCreated') || 'loads will be created'}
-                  </div>
-                </div>
-              )}
-
-              {/* Dates Mode Panel */}
-              {values.bulkMode === 'dates' && (
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    {(values.bulkDates || []).map((bd: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <input
-                          type="date"
-                          className="flex-1 p-2 border rounded-lg text-xs outline-none"
-                          value={bd.date}
-                          onChange={(e) => {
-                            const list = [...values.bulkDates];
-                            list[idx].date = e.target.value;
-                            setFieldValue('bulkDates', list);
-                          }}
-                        />
-                        <div className="flex items-center border rounded-lg overflow-hidden bg-slate-50">
-                          <button
-                            type="button"
-                            className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
-                            onClick={() => bdc(idx, -1)}
-                          >
-                            −
-                          </button>
-                          <input
-                            type="number"
-                            className="w-11 h-8 border-y-0 border-x text-center text-xs font-bold font-mono outline-none"
-                            value={bd.qty}
-                            onChange={(e) => {
-                              const list = [...values.bulkDates];
-                              list[idx].qty = Math.max(1, parseInt(e.target.value) || 1);
-                              setFieldValue('bulkDates', list);
-                            }}
-                          />
-                          <button
-                            type="button"
-                            className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
-                            onClick={() => bdc(idx, 1)}
-                          >
-                            +
-                          </button>
-                        </div>
-                        <span className="text-[10px] text-slate-400">{t('loadsLabel') || 'loads'}</span>
-                        {values.bulkDates.length > 1 && (
-                          <button
-                            type="button"
-                            className="text-xs p-1 cursor-pointer bg-transparent border-none text-slate-400 hover:text-red-500"
-                            onClick={() => {
-                              const list = values.bulkDates.filter((_: any, i: number) => i !== idx);
-                              setFieldValue('bulkDates', list);
-                            }}
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="w-full py-2 border border-dashed rounded-lg text-xs font-bold text-indigo-700 bg-transparent cursor-pointer"
-                    onClick={addBulkDate}
-                  >
-                    {t('addDateBtn') || '+ Add date'}
-                  </button>
-
-                  <div className="bg-green-50 text-green-700 p-2.5 rounded-lg text-xs font-semibold">
-                    ✓ <strong>{bulkTotal}</strong> {t('loadsWillBeCreated') || 'loads will be created'} ({ (values.bulkDates || []).map((x: any) => x.qty).join(' + ') })
-                  </div>
-                </div>
-              )}
-
-              {/* Recurring Mode Panel */}
-              {values.bulkMode === 'rec' && (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-semibold text-slate-600">{t('loadsPerRecurrence') || 'Loads per recurrence'}</label>
-                    <div className="flex items-center border rounded-lg overflow-hidden bg-slate-50">
-                      <button
-                        type="button"
-                        className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
-                        onClick={() => rqc(-1)}
-                      >
-                        −
-                      </button>
-                      <input
-                        type="number"
-                        className="w-11 h-8 border-y-0 border-x text-center text-xs font-bold font-mono outline-none"
-                        value={values.bulkRecQty}
-                        onChange={(e) => setFieldValue('bulkRecQty', Math.max(1, parseInt(e.target.value) || 1))}
-                      />
-                      <button
-                        type="button"
-                        className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
-                        onClick={() => rqc(1)}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-semibold text-slate-600">{t('repeat') || 'Repeat'}</label>
-                    <select
-                      className="p-2 border rounded-lg text-xs outline-none w-36"
-                      value={values.bulkRecType}
-                      onChange={(e) => setFieldValue('bulkRecType', e.target.value)}
-                    >
-                      <option value="daily">{t('daily') || 'Daily'}</option>
-                      <option value="weekly">{t('weekly') || 'Weekly'}</option>
-                      <option value="monthly">{t('monthly') || 'Monthly'}</option>
-                    </select>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-semibold text-slate-600">{t('endAfter') || 'End after'}</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        className="w-16 p-2 border rounded-lg text-xs outline-none font-mono text-right"
-                        value={values.bulkRecOccurrences}
-                        onChange={(e) => setFieldValue('bulkRecOccurrences', Math.max(1, parseInt(e.target.value) || 1))}
-                      />
-                      <span className="text-xs text-slate-400">{t('occurrences') || 'occurrences'}</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-indigo-50 text-indigo-700 p-2.5 rounded-lg text-xs font-semibold">
-                    ✓ <strong>{bulkTotal}</strong> {t('loadsWillBeCreated') || 'loads will be created'} ({values.bulkRecQty} × {values.bulkRecOccurrences} {values.bulkRecType === 'daily' ? (t('days') || 'days') : values.bulkRecType === 'weekly' ? (t('weeks') || 'weeks') : (t('months') || 'months')})
-                  </div>
-
-                  <div className="bg-slate-100 text-slate-500 p-2 rounded-lg text-[10px] leading-relaxed">
-                    ℹ️ {t('bulkRecHint') || 'Carriers see only 1 load at a time. When booked, the next one auto-publishes.'}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* TRACKING LINKS */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
@@ -992,15 +881,31 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
                 )}
               </div>
 
-              {/* Input */}
-              <div className="flex items-center bg-slate-100 border-2 rounded-xl px-3 py-2" style={{ borderColor: T.bd }}>
-                <span className="text-xl font-bold text-slate-400 mr-2">€</span>
-                <input
-                  type="number"
-                  className="w-full bg-transparent text-right text-2xl font-bold font-mono outline-none"
-                  value={values.targetPrice}
-                  onChange={(e) => setFieldValue('targetPrice', e.target.value)}
-                />
+              {/* Load Value display */}
+              <div className="flex items-center justify-between text-xs text-slate-700 py-1.5 border-b" style={{ borderColor: T.bd }}>
+                <span className="font-semibold text-slate-500">Load Value:</span>
+                <span className="font-bold text-slate-800">€{loadValue.toLocaleString()}</span>
+              </div>
+
+              {/* Input & AI Suggest */}
+              <div className="flex gap-2 items-center">
+                <div className="flex-1 flex items-center bg-slate-100 border-2 rounded-xl px-3 py-2" style={{ borderColor: T.bd }}>
+                  <span className="text-xl font-bold text-slate-400 mr-2">€</span>
+                  <input
+                    type="number"
+                    className="w-full bg-transparent text-right text-2xl font-bold font-mono outline-none"
+                    value={values.targetPrice}
+                    onChange={(e) => setFieldValue('targetPrice', e.target.value)}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="h-12 px-3 rounded-xl font-semibold text-xs border-none text-white cursor-pointer"
+                  style={{ background: T.ac, fontFamily: 'inherit' }}
+                  onClick={() => setFieldValue('targetPrice', '820')}
+                >
+                  AI Suggest
+                </button>
               </div>
 
               {/* Stats calculations */}
@@ -1013,42 +918,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
                   <strong>€{pricePerPallet}</strong> / pallet
                 </span>
                 <span className="text-slate-400">({totalPallets} pallets)</span>
-                
-                <button
-                  type="button"
-                  className="flex items-center gap-1 px-2 py-1 border rounded bg-white hover:bg-slate-50 text-[10px] font-bold text-indigo-700 cursor-pointer"
-                  onClick={() => setAiExpanded(!aiExpanded)}
-                >
-                  {t('aiInsights') || '✨ AI Insights'}
-                </button>
               </div>
-
-              {/* Manual Override Warning */}
-              {isOverride && (
-                <div className="flex items-center justify-between bg-amber-50 text-amber-800 p-2.5 rounded-lg text-xs mt-2">
-                  <span>{t('manualOverride') || 'Manual override —'}</span>
-                  <button
-                    type="button"
-                    className="bg-transparent border-none cursor-pointer font-bold text-amber-900 underline"
-                    onClick={() => setFieldValue('targetPrice', String(calculatedPrice))}
-                  >
-                    {t('resetToPriceList') || 'Reset to Price List'}
-                  </button>
-                </div>
-              )}
-
-              {/* AI Insights Panel */}
-              {aiExpanded && (
-                <div className="bg-violet-50 text-indigo-950 p-4 rounded-lg text-xs space-y-2 border border-violet-100">
-                  <h4 className="font-bold text-slate-900">📊 Lane Analysis: Ioannina → Attica</h4>
-                  <div>Your quote: €{values.targetPrice} (€{pricePerKm}/km)</div>
-                  <div>Average for this lane: €820 (€1.77/km)</div>
-                  <div>Your last 5 loads: €750, €790, €810, €830, €800</div>
-                  <div className="p-2 rounded bg-violet-100 text-indigo-700 font-medium">
-                    💡 Your price is slightly below average. Consider €800–€830 for faster carrier acceptance. Rates show a slight upward trend over the last 3 months.
-                  </div>
-                </div>
-              )}
 
               {/* Negotiable price toggle */}
               <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: T.bd }}>

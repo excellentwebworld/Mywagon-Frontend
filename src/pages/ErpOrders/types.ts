@@ -49,6 +49,7 @@ export interface ErpOrder {
   canEdit: boolean;
   notes: string;
   lines: ErpOrderLine[];
+  revenueValue?: number;
 }
 
 export interface ErpOrderFormState {
@@ -63,6 +64,7 @@ export interface ErpOrderFormState {
   notes: string;
   highPriority: boolean;
   lines: ErpOrderLine[];
+  revenueValue?: number;
 }
 
 export const EMPTY_ORDER_LINE: ErpOrderLine = {
@@ -86,6 +88,7 @@ export const EMPTY_ORDER_FORM: ErpOrderFormState = {
   notes: '',
   highPriority: false,
   lines: [],
+  revenueValue: undefined,
 };
 
 // --- Deferred Create Load types (Views 2–3) ---
