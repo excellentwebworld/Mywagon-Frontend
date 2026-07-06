@@ -77,6 +77,8 @@ function extractRoutePath(route: any, fallback: { lat: number; lng: number }[]):
   return fallback;
 }
 
+const routeLegsCache = new Map<string, RouteLegsResult>();
+
 export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
   const coordStops = useMemo(
     () =>
@@ -94,6 +96,11 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
     [coordStops]
   );
 
+  const coordsKey = useMemo(
+    () => coords.map((c) => `${c.lat},${c.lng}`).join('|'),
+    [coords]
+  );
+
   const buildFallback = (pts: { lat: number; lng: number }[]) => {
     if (pts.length < 2) {
       return { legs: [] as RouteLeg[], polylinePath: pts, ...sumLegs([]) };
@@ -109,18 +116,29 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
 
   const fallback = useMemo(() => buildFallback(coords), [coords, coordStops]);
 
-  const [state, setState] = useState<RouteLegsResult>({
-    loading: false,
-    error: null,
-    legs: fallback.legs,
-    totalDistKm: fallback.totalDistKm,
-    totalDriveMin: fallback.totalDriveMin,
-    polylinePath: fallback.polylinePath,
-    directionsResult: null,
-    usedGoogle: false,
+  const cachedResult = routeLegsCache.get(coordsKey);
+
+  const [state, setState] = useState<RouteLegsResult>(() => {
+    if (cachedResult) return cachedResult;
+    return {
+      loading: false,
+      error: null,
+      legs: fallback.legs,
+      totalDistKm: fallback.totalDistKm,
+      totalDriveMin: fallback.totalDriveMin,
+      polylinePath: fallback.polylinePath,
+      directionsResult: null,
+      usedGoogle: false,
+    };
   });
 
   useEffect(() => {
+    const cached = routeLegsCache.get(coordsKey);
+    if (cached) {
+      setState(cached);
+      return;
+    }
+
     if (coords.length < 2) {
       setState({
         loading: false,
@@ -210,7 +228,7 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
             const polylinePath = extractRoutePath(route, coords);
             const totals = sumLegs(legs);
 
-            setState({
+            const nextState: RouteLegsResult = {
               loading: false,
               error: null,
               legs,
@@ -218,7 +236,9 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
               directionsResult: result,
               usedGoogle: true,
               ...totals,
-            });
+            };
+            routeLegsCache.set(coordsKey, nextState);
+            setState(nextState);
           }
         );
       })
@@ -239,7 +259,7 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
     return () => {
       cancelled = true;
     };
-  }, [coords, coordStops, fallback.legs, fallback.polylinePath, fallback.totalDistKm, fallback.totalDriveMin]);
+  }, [coords, coordsKey, coordStops]);
 
   return state;
 }

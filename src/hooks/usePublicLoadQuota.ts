@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { createShipmentService } from '../api/services/createShipmentService';
+import { wizardQueryKeys } from '../pages/CreateShipmentWizard/hooks/wizardQueryKeys';
 
 export interface PublicLoadQuota {
   status: boolean;
@@ -13,46 +14,24 @@ export interface PublicLoadQuota {
 }
 
 export function usePublicLoadQuota(draftId: number | null, broadcastType: 'private' | 'public') {
-  const [quota, setQuota] = useState<PublicLoadQuota | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: wizardQueryKeys.publicQuota(draftId),
+    queryFn: () => createShipmentService.checkPublicLoadLimit(draftId ?? undefined),
+    enabled: broadcastType === 'public',
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    if (broadcastType !== 'public') {
-      setQuota(null);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    async function loadQuota() {
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await createShipmentService.checkPublicLoadLimit(draftId ?? undefined);
-        if (!cancelled) {
-          setQuota(result);
-        }
-      } catch (err: unknown) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load public load quota.');
-          setQuota(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadQuota();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [broadcastType, draftId]);
-
-  return { quota, loading, error };
+  return {
+    quota: broadcastType === 'public' ? (query.data ?? null) : null,
+    loading: broadcastType === 'public' ? query.isLoading : false,
+    error:
+      query.error instanceof Error
+        ? query.error.message
+        : query.error
+          ? 'Failed to load public load quota.'
+          : null,
+  };
 }

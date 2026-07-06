@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -27,6 +27,7 @@ import {
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { useCreateShipmentPartners } from '../../hooks/useCreateShipmentPartners';
 import { usePublicLoadQuota } from '../../hooks/usePublicLoadQuota';
+import { useTrackingEmailLookup } from '../../hooks/useTrackingEmailLookup';
 import { useAiSuggestedPrice } from '../../hooks/useAiSuggestedPrice';
 import { matchContractLane } from '../../api/utils/matchContractLane';
 import type { Step3Carrier } from '../../api/mappers/mapPartnerToStep3Carrier';
@@ -36,7 +37,7 @@ import { computeTripTotals, formatDurationMin, formatWeightKg } from './itinerar
 import type { TrackingOrderItem } from './itinerary/buildTrackingGroups';
 import { useRouteLegs } from './itinerary/useRouteLegs';
 import { RouteMap } from './itinerary/RouteMap';
-import { addressBookService, erpOrdersService } from '../../api';
+import { erpOrdersService } from '../../api';
 import { CarrierListSkeleton } from '../skeletons/CarrierListSkeleton';
 
 const T = {
@@ -80,10 +81,14 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   const [trackingExpanded, setTrackingExpanded] = useState(true);
   const [carrierQuery, setCarrierQuery] = useState('');
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
-  const [emailLookup, setEmailLookup] = useState<{
-    byCustomerId: Record<string, string>;
-    byOrderId: Record<string, string>;
-  }>({ byCustomerId: {}, byOrderId: {} });
+  const { byCustomerId } = useTrackingEmailLookup();
+  const [byOrderId, setByOrderId] = useState<Record<string, string>>({});
+  const loadedOrderIdsRef = useRef<Set<string>>(new Set());
+
+  const emailLookup = useMemo(
+    () => ({ byCustomerId, byOrderId }),
+    [byCustomerId, byOrderId]
+  );
 
   const enrichedStops = useMemo(() => enrichStops(stops, locations), [stops, locations]);
   const route = useRouteLegs(enrichedStops);
@@ -219,60 +224,42 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
     [stops, locations, emailLookup]
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([addressBookService.listCompanyEntities(), erpOrdersService.listCustomers()])
-      .then(([entities, customers]) => {
-        if (cancelled) return;
-        const byCustomerId: Record<string, string> = {};
-        [...entities, ...customers].forEach((entity) => {
-          if (entity.id && entity.email) {
-            byCustomerId[String(entity.id)] = entity.email;
-          }
-        });
-        setEmailLookup((prev) => ({ ...prev, byCustomerId }));
-      })
-      .catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const orderIdsKey = useMemo(() => {
+    const ids = new Set<string>();
+    stops.forEach((s: any) => {
+      (s.lines || []).forEach((l: any) => {
+        if (l.orderId) ids.add(String(l.orderId));
+      });
+    });
+    return [...ids].sort().join(',');
+  }, [stops]);
 
   useEffect(() => {
-    const orderIds = [
-      ...new Set<string>(
-        stops.flatMap((s: any) =>
-          (s.lines || [])
-            .map((l: any) => (l.orderId ? String(l.orderId) : ''))
-            .filter((id: string) => id.length > 0)
-        )
-      ),
-    ];
-    if (orderIds.length === 0) return;
+    if (!orderIdsKey) return;
+
+    const orderIds = orderIdsKey.split(',').filter(Boolean);
+    const pending = orderIds.filter((id) => !loadedOrderIdsRef.current.has(id));
+    if (pending.length === 0) return;
 
     let cancelled = false;
 
-    const loadOrders = (byCustomerId: Record<string, string>) =>
-      Promise.all(orderIds.map((id) => erpOrdersService.getOrder(id))).then((orders) => {
+    Promise.all(pending.map((id) => erpOrdersService.getOrder(id)))
+      .then((orders) => {
         if (cancelled) return;
 
-        const byOrderId: Record<string, string> = {};
+        const nextByOrderId: Record<string, string> = {};
         orders.forEach((order) => {
+          loadedOrderIdsRef.current.add(order.id);
           const email =
             order.companyEntityId != null
               ? byCustomerId[String(order.companyEntityId)]
               : undefined;
           if (email) {
-            byOrderId[order.id] = email;
+            nextByOrderId[order.id] = email;
           }
         });
 
-        setEmailLookup((prev) => ({
-          ...prev,
-          byCustomerId: { ...prev.byCustomerId, ...byCustomerId },
-          byOrderId: { ...prev.byOrderId, ...byOrderId },
-        }));
+        setByOrderId((prev) => ({ ...prev, ...nextByOrderId }));
 
         if (!values.orderValue) {
           const sum = orders.reduce((acc, order) => acc + (order.orderValue ?? 0), 0);
@@ -280,24 +267,13 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
             setFieldValue('orderValue', String(Math.round(sum * 100) / 100));
           }
         }
-      });
-
-    Promise.all([addressBookService.listCompanyEntities(), erpOrdersService.listCustomers()])
-      .then(([entities, customers]) => {
-        const byCustomerId: Record<string, string> = {};
-        [...entities, ...customers].forEach((entity) => {
-          if (entity.id && entity.email) {
-            byCustomerId[String(entity.id)] = entity.email;
-          }
-        });
-        return loadOrders(byCustomerId);
       })
       .catch(() => {});
 
     return () => {
       cancelled = true;
     };
-  }, [stops, values.orderValue, setFieldValue]);
+  }, [orderIdsKey, byCustomerId, values.orderValue, setFieldValue]);
 
   // Override status
   const isOverride = targetPriceVal !== calculatedPrice;

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { SearchableSelect } from '../ui/SearchableSelect';
+import { DatePicker, getTodayDateString } from '../ui/DatePicker';
 import { LocationSelect } from './LocationSelect';
 import { LocationPreviewOverlay } from './LocationPreviewOverlay';
 import { createNewStop, createNewCargoLine } from './types';
@@ -240,6 +241,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
 
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const todayStr = useMemo(() => getTodayDateString(), []);
 
   const iS = {
     border: `1px solid ${T.bd}`,
@@ -584,7 +586,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         setPCtx((p: any) => ({ ...p, locS: null }));
       }
 
-      void refreshLocationsFromApi();
+      void refreshLocationsFromApi(true);
       setMLoc(false);
       showToast(t('erpOrdersLocationCreated') || 'Address created successfully.', 'success');
     } catch (err) {
@@ -716,7 +718,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     try {
       setSkuSaving(true);
       const created = await productMasterService.createSku(values);
-      await refreshSkusFromApi();
+      await refreshSkusFromApi(true);
 
       if (pCtx.orderFormTarget === 'product' && pCtx.orderFormLineIndex !== undefined) {
         setErpOrderForm((f) => {
@@ -1149,13 +1151,14 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           <label className="block text-[11px] font-semibold mb-1 uppercase tracking-wide" style={{ color: T.t3 }}>
                             From
                           </label>
-                          <div className="flex gap-1">
-                            <input
-                              type="date"
-                              className={invalidFieldClass(`stop-${idx}-date`)}
-                              style={{ ...iS, width: 125 }}
+                          <div className="flex gap-1 items-center">
+                            <DatePicker
+                              className="cs-stop-date-picker"
                               value={stop.dateFrom}
-                              onChange={(e) => uStop(stop.id, { dateFrom: e.target.value })}
+                              onChange={(val) => uStop(stop.id, { dateFrom: val })}
+                              min={todayStr}
+                              hasError={isFieldInvalid(`stop-${idx}-date`)}
+                              direction="auto"
                             />
                             <input
                               type="time"
@@ -1172,12 +1175,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               To (Optional)
                             </label>
                           </div>
-                          <div className="flex gap-1">
-                            <input
-                              type="date"
-                              style={{ ...iS, width: 125 }}
+                          <div className="flex gap-1 items-center">
+                            <DatePicker
+                              className="cs-stop-date-picker"
                               value={stop.dateTo}
-                              onChange={(e) => uStop(stop.id, { dateTo: e.target.value })}
+                              onChange={(val) => uStop(stop.id, { dateTo: val })}
+                              min={stop.dateFrom || todayStr}
+                              direction="auto"
                             />
                             <input
                               type="time"

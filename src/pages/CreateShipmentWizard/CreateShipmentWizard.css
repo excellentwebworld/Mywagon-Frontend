@@ -1778,6 +1778,13 @@
 .bcount-txt strong { color: var(--accent); }
 
 .bdr { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+
+/* Stop appointment row — shared DatePicker (same trigger/menu as Create order modal) */
+.cs-stop-date-picker {
+  width: 148px;
+  flex-shrink: 0;
+}
+
 .bdi { padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 13px; outline: none; flex: 1; background: var(--surface); color: var(--text-primary); }
 .bdi:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
 

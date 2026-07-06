@@ -5,7 +5,10 @@ import { LoginPage } from './pages/Login/LoginPage';
 import { Dashboard } from './pages/Dashboard';
 import { ManageShipments } from './pages/ManageShipments';
 import { ShipmentDetail } from './pages/ShipmentDetail';
-import { CreateShipmentWizard } from './pages/CreateShipmentWizard/CreateShipmentWizard';
+import { CreateShipmentWizardLayout } from './pages/CreateShipmentWizard/CreateShipmentWizardLayout';
+import { CreateShipmentStep1Page } from './pages/CreateShipmentWizard/steps/CreateShipmentStep1Page';
+import { CreateShipmentStep2Page } from './pages/CreateShipmentWizard/steps/CreateShipmentStep2Page';
+import { CreateShipmentStep3Page } from './pages/CreateShipmentWizard/steps/CreateShipmentStep3Page';
 import { AddressBook } from './pages/AddressBook';
 import { ProductMaster } from './pages/ProductMaster';
 import { MarketingHome } from './pages/MarketingHome';
@@ -30,7 +33,13 @@ const appRoutes = [
   },
   {
     path: '/shipments/create',
-    element: <CreateShipmentWizard />,
+    element: <CreateShipmentWizardLayout />,
+    children: [
+      { index: true, element: <Navigate to="step/1" replace /> },
+      { path: 'step/1', element: <CreateShipmentStep1Page /> },
+      { path: 'step/2', element: <CreateShipmentStep2Page /> },
+      { path: 'step/3', element: <CreateShipmentStep3Page /> },
+    ],
   },
   {
     path: '/address-book',

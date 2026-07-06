@@ -1,53 +1,55 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMatch, useNavigate, useSearchParams } from 'react-router-dom';
 import { createShipmentService, ApiError } from '../../../api';
 import { draftToFormValues, formValuesToStepOnePayload, formValuesToStepThreePayload, formValuesToStepTwoPayload } from '../../../api/mappers/createShipmentMapper';
 import type { WizardFormValues } from '../../../api/mappers/createShipmentMapper';
 import { buildDefaultWizardValues } from '../../../components/CreateShipmentWizard/types';
 import { hasVehicleSelection } from '../../../components/CreateShipmentWizard/vehicleTypes';
 
-function parseStep(value: string | null): number {
+function parseStep(value: string | undefined | null): number {
   const n = parseInt(value || '1', 10);
   if (Number.isNaN(n) || n < 1 || n > 3) return 1;
   return n;
 }
 
+function buildWizardStepPath(step: number, draftId: number | null): string {
+  const base = `/shipments/create/step/${step}`;
+  if (!draftId) return base;
+  return `${base}?id=${draftId}`;
+}
+
 export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success' | 'error' | 'info') => void, t: (key: string) => string) {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [step, setStepState] = useState(() => parseStep(searchParams.get('step')));
-  const [shipmentId, setShipmentId] = useState<number | null>(() => {
-    const id = searchParams.get('id');
-    return id ? parseInt(id, 10) || null : null;
-  });
+  const navigate = useNavigate();
+  const stepMatch = useMatch('/shipments/create/step/:stepNumber');
+  const [searchParams] = useSearchParams();
+  const step = parseStep(stepMatch?.params.stepNumber);
+
+  const draftUrlId = searchParams.get('id');
+  const [shipmentId, setShipmentId] = useState<number | null>(() =>
+    draftUrlId ? parseInt(draftUrlId, 10) || null : null
+  );
   const [loadId, setLoadId] = useState<string>(() => buildDefaultWizardValues().loadId);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(() => !draftUrlId);
   const [loadedValues, setLoadedValues] = useState<WizardFormValues | null>(null);
   const [stepNavigationError, setStepNavigationError] = useState<string | null>(null);
   const [validationRequest, setValidationRequest] = useState(0);
 
   const defaultValues = useMemo(() => buildDefaultWizardValues(), []);
-  const draftUrlId = searchParams.get('id');
+  const loadedDraftIdRef = useRef<string | null>(null);
+  const showToastRef = useRef(showToast);
+  const tRef = useRef(t);
+
+  showToastRef.current = showToast;
+  tRef.current = t;
 
   const syncUrl = useCallback(
     (nextStep: number, nextId: number | null) => {
-      setSearchParams(
-        (prev) => {
-          const params = new URLSearchParams(prev);
-          params.set('step', String(nextStep));
-          if (nextId) {
-            params.set('id', String(nextId));
-          } else {
-            params.delete('id');
-          }
-          return params;
-        },
-        { replace: true }
-      );
+      navigate(buildWizardStepPath(nextStep, nextId), { replace: true });
     },
-    [setSearchParams]
+    [navigate]
   );
 
   const goToStep = useCallback(
@@ -56,13 +58,11 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setStepNavigationError('validationCompleteStep1First');
         setValidationRequest((count) => count + 1);
         if (step !== 1) {
-          setStepState(1);
           syncUrl(1, shipmentId);
         }
         return false;
       }
       setStepNavigationError(null);
-      setStepState(nextStep);
       syncUrl(nextStep, shipmentId);
       return true;
     },
@@ -70,30 +70,20 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   );
 
   useEffect(() => {
-    if (!searchParams.get('step')) {
-      setSearchParams(
-        (prev) => {
-          const params = new URLSearchParams(prev);
-          params.set('step', '1');
-          return params;
-        },
-        { replace: true }
-      );
-    }
-  }, [searchParams, setSearchParams]);
-
-  useEffect(() => {
-    const urlStep = parseStep(searchParams.get('step'));
     const urlId = searchParams.get('id');
-    setStepState(urlStep);
     setShipmentId(urlId ? parseInt(urlId, 10) || null : null);
   }, [searchParams]);
 
   useEffect(() => {
     if (!draftUrlId) {
+      loadedDraftIdRef.current = null;
       setDraftLoaded(true);
       setLoadedValues(null);
       setIsLoading(false);
+      return;
+    }
+
+    if (loadedDraftIdRef.current === draftUrlId) {
       return;
     }
 
@@ -107,39 +97,34 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       .then((draft) => {
         if (cancelled) return;
         const mapped = draftToFormValues(draft, defaultValues);
+        loadedDraftIdRef.current = draftUrlId;
         setShipmentId(draft.id);
         setLoadId(draft.auto_id);
         setLoadedValues(mapped);
-        setStepState(parseStep(searchParams.get('step')));
         setDraftLoaded(true);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
+        loadedDraftIdRef.current = null;
         const message =
           err instanceof ApiError
             ? err.message
-            : t('draftLoadFailed') || 'Failed to load draft shipment.';
+            : tRef.current('draftLoadFailed') || 'Failed to load draft shipment.';
         setLoadError(message);
-        showToast(message, 'error');
+        showToastRef.current(message, 'error');
         setDraftLoaded(true);
-        setSearchParams(
-          (prev) => {
-            const params = new URLSearchParams(prev);
-            params.delete('id');
-            params.set('step', '1');
-            return params;
-          },
-          { replace: true }
-        );
+        navigate(buildWizardStepPath(1, null), { replace: true });
       })
       .finally(() => {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [draftUrlId, defaultValues, setSearchParams, showToast, t]);
+  }, [draftUrlId, defaultValues, navigate]);
 
   const ensureDraftId = useCallback(async (): Promise<number> => {
     if (shipmentId) return shipmentId;
@@ -160,7 +145,6 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setShipmentId(draft.id);
         setLoadId(draft.auto_id);
         if (mode === 'complete') {
-          setStepState(2);
           syncUrl(2, draft.id);
           setStepNavigationError(null);
         } else {
@@ -197,7 +181,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         throw new Error('Itinerary not confirmed');
       }
 
-        if (mode === 'complete' && !hasVehicleSelection(values.vehicleSpecs)) {
+      if (mode === 'complete' && !hasVehicleSelection(values.vehicleSpecs)) {
         showToast(t('step2SelectVehicleRequired') || 'Please select at least one vehicle type.', 'error');
         throw new Error('Vehicle not selected');
       }
@@ -219,7 +203,6 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setShipmentId(draft.id);
         setLoadId(draft.auto_id);
         if (mode === 'complete') {
-          setStepState(3);
           syncUrl(3, draft.id);
           setStepNavigationError(null);
         } else {
@@ -234,6 +217,9 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         return draft;
       } catch (err: unknown) {
         if (err instanceof Error && err.message === 'Itinerary not confirmed') {
+          throw err;
+        }
+        if (err instanceof Error && err.message === 'Vehicle not selected') {
           throw err;
         }
         const message =

@@ -274,7 +274,7 @@ interface AppContextType {
   updateLocation: (loc: LocationItem) => void;
   archiveLocation: (id: string) => void;
   restoreLocation: (id: string) => void;
-  refreshLocationsFromApi: () => Promise<void>;
+  refreshLocationsFromApi: (force?: boolean) => Promise<void>;
 
   companies: Company[];
   addCompany: (comp: Omit<Company, 'id'>) => void;
@@ -289,7 +289,7 @@ interface AppContextType {
   skus: SKU[];
   addSku: (sku: Omit<SKU, 'id'>) => void;
   updateSku: (sku: SKU) => void;
-  refreshSkusFromApi: () => Promise<void>;
+  refreshSkusFromApi: (force?: boolean) => Promise<void>;
 
   shipments: Shipment[];
   addShipment: (shp: Shipment) => void;
@@ -313,6 +313,14 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
+
+type MasterDataFetchState = {
+  loaded: boolean;
+  inflight: Promise<void> | null;
+};
+
+const locationsFetchState: MasterDataFetchState = { loaded: false, inflight: null };
+const skusFetchState: MasterDataFetchState = { loaded: false, inflight: null };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Locale State
@@ -340,13 +348,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     info: 6000,
   };
 
-  const showToast = (msg: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+  const showToast = useCallback((msg: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
     setToast((prev) => ({ message: msg, type, show: true, key: prev.key + 1 }));
-  };
+  }, []);
 
-  const hideToast = () => {
+  const hideToast = useCallback(() => {
     setToast((prev) => ({ ...prev, show: false }));
-  };
+  }, []);
 
   useEffect(() => {
     if (!toast.show) return;
@@ -395,22 +403,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(`Location restored.`, 'success');
   };
 
-  const refreshLocationsFromApi = useCallback(async () => {
-    try {
-      const list = await addressBookService.listAllLocations({ type: 'all', status: 'active' });
-      setLocations(list);
-    } catch {
-      // Ignore when session is unavailable (e.g. marketing pages).
-    }
+  const refreshLocationsFromApi = useCallback(async (force = false) => {
+    if (!force && locationsFetchState.loaded) return;
+    if (locationsFetchState.inflight) return locationsFetchState.inflight;
+
+    locationsFetchState.inflight = (async () => {
+      try {
+        const list = await addressBookService.listAllLocations({ type: 'all', status: 'active' });
+        setLocations(list);
+        locationsFetchState.loaded = true;
+      } catch {
+        // Ignore when session is unavailable (e.g. marketing pages).
+      } finally {
+        locationsFetchState.inflight = null;
+      }
+    })();
+
+    return locationsFetchState.inflight;
   }, []);
 
-  const refreshSkusFromApi = useCallback(async () => {
-    try {
-      const list = await productMasterService.listAllSkus({ status: 'active' });
-      setSkus(list);
-    } catch {
-      // Ignore when session is unavailable (e.g. marketing pages).
-    }
+  const refreshSkusFromApi = useCallback(async (force = false) => {
+    if (!force && skusFetchState.loaded) return;
+    if (skusFetchState.inflight) return skusFetchState.inflight;
+
+    skusFetchState.inflight = (async () => {
+      try {
+        const list = await productMasterService.listAllSkus({ status: 'active' });
+        setSkus(list);
+        skusFetchState.loaded = true;
+      } catch {
+        // Ignore when session is unavailable (e.g. marketing pages).
+      } finally {
+        skusFetchState.inflight = null;
+      }
+    })();
+
+    return skusFetchState.inflight;
   }, []);
 
   // Companies State
