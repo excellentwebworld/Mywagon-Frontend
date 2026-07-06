@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { createShipmentService, ApiError } from '../../../api';
-import { draftToFormValues, formValuesToStepOnePayload, formValuesToStepTwoPayload } from '../../../api/mappers/createShipmentMapper';
+import { draftToFormValues, formValuesToStepOnePayload, formValuesToStepThreePayload, formValuesToStepTwoPayload } from '../../../api/mappers/createShipmentMapper';
 import type { WizardFormValues } from '../../../api/mappers/createShipmentMapper';
 import { buildDefaultWizardValues } from '../../../components/CreateShipmentWizard/types';
 import { hasVehicleSelection } from '../../../components/CreateShipmentWizard/vehicleTypes';
@@ -247,6 +247,84 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     [ensureDraftId, showToast, syncUrl, t]
   );
 
+  const saveStep3 = useCallback(
+    async (values: WizardFormValues, mode: 'partial' | 'complete') => {
+      if (mode === 'complete') {
+        const price = parseFloat(String(values.targetPrice ?? ''));
+        if (!price || price <= 0) {
+          showToast(t('priceRequired') || 'Price must be positive.', 'error');
+          throw new Error('Invalid price');
+        }
+        if (values.broadcastType === 'private' && (values.selectedCarriers || []).length < 1) {
+          showToast(t('selectCarrierRequired') || 'Please select at least one carrier.', 'error');
+          throw new Error('No carriers selected');
+        }
+      }
+
+      setIsSaving(true);
+      try {
+        const id = await ensureDraftId();
+        const payload = formValuesToStepThreePayload(values, mode);
+        const draft = await createShipmentService.saveStepThree(id, payload);
+        setShipmentId(draft.id);
+        setLoadId(draft.auto_id);
+        syncUrl(3, draft.id);
+        showToast(
+          mode === 'complete'
+            ? t('step3SavedSuccess') || 'Step 3 saved successfully.'
+            : t('draftSavedSuccess') || 'Draft saved successfully.',
+          'success'
+        );
+        return draft;
+      } catch (err: unknown) {
+        if (err instanceof Error && (err.message === 'Invalid price' || err.message === 'No carriers selected')) {
+          throw err;
+        }
+        const message =
+          err instanceof ApiError ? err.message : t('draftSaveFailed') || 'Failed to save draft.';
+        showToast(message, 'error');
+        throw err;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [ensureDraftId, showToast, syncUrl, t]
+  );
+
+  const publishShipment = useCallback(
+    async (values: WizardFormValues) => {
+      const price = parseFloat(String(values.targetPrice ?? ''));
+      if (!price || price <= 0) {
+        showToast(t('priceRequired') || 'Price must be positive.', 'error');
+        throw new Error('Invalid price');
+      }
+      if (values.broadcastType === 'private' && (values.selectedCarriers || []).length < 1) {
+        showToast(t('selectCarrierRequired') || 'Please select at least one carrier.', 'error');
+        throw new Error('No carriers selected');
+      }
+
+      setIsSaving(true);
+      try {
+        const id = await ensureDraftId();
+        await createShipmentService.saveStepThree(id, formValuesToStepThreePayload(values, 'complete'));
+        const published = await createShipmentService.publishDraft(id);
+        showToast(t('shipmentCreatedSuccess') || 'Shipment created successfully!', 'success');
+        return published;
+      } catch (err: unknown) {
+        if (err instanceof Error && (err.message === 'Invalid price' || err.message === 'No carriers selected')) {
+          throw err;
+        }
+        const message =
+          err instanceof ApiError ? err.message : t('publishFailed') || 'Failed to publish shipment.';
+        showToast(message, 'error');
+        throw err;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [ensureDraftId, showToast, t]
+  );
+
   return {
     step,
     shipmentId,
@@ -260,6 +338,8 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     goToStep,
     saveStep1,
     saveStep2,
+    saveStep3,
+    publishShipment,
     setLoadId,
     stepNavigationError,
     validationRequest,

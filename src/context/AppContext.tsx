@@ -148,6 +148,7 @@ export interface ShipmentStop {
 
 export interface Shipment {
   id: string;
+  autoId?: string;
   date: string;
   status: 'pending' | 'upcoming' | 'in_progress' | 'awarded' | 'delivered' | 'cancelled';
   vis: 'private' | 'public' | 'fleet';

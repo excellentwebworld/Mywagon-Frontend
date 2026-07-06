@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import type { Shipment } from '../context/AppContext';
 import { useTranslation } from '../hooks/useTranslation';
+import { useShipmentsList } from '../hooks/useShipments';
 
 export const ManageShipments: React.FC = () => {
-  const { shipments, updateShipment, carriers, showToast } = useApp();
+  const { updateShipment, carriers, showToast } = useApp();
+  const { shipments, loading, error } = useShipmentsList();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -45,7 +47,7 @@ export const ManageShipments: React.FC = () => {
         const customerMatches = s.customer.some((c) => c.name.toLowerCase().includes(q));
         const carrierMatches = s.carrier && s.carrier.toLowerCase().includes(q);
         return (
-          s.id.toLowerCase().includes(q) ||
+          (s.autoId || s.id).toLowerCase().includes(q) ||
           s.origin.toLowerCase().includes(q) ||
           s.dest.toLowerCase().includes(q) ||
           customerMatches ||
@@ -154,6 +156,13 @@ export const ManageShipments: React.FC = () => {
       <h1 className="text-h2" style={{ marginBottom: '16px', fontSize: '24px', fontWeight: 700 }}>
         {t('manageShipments')}
       </h1>
+
+      {loading && (
+        <div style={{ marginBottom: '12px', color: 'var(--text-secondary)' }}>{t('loading') || 'Loading...'}</div>
+      )}
+      {error && (
+        <div style={{ marginBottom: '12px', color: 'var(--danger, #ef4444)' }}>{error}</div>
+      )}
 
       {/* KPI Cards Strip */}
       <div className="mgmt-kpi-s" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginBottom: '20px' }}>
@@ -268,8 +277,8 @@ export const ManageShipments: React.FC = () => {
                       </td>
                       <td>
                         <div className="sid">
-                          <span className="mono" onClick={(e) => handleCopyId(s.id, e)} title="Click to copy">
-                            {s.id}
+                          <span className="mono" onClick={(e) => handleCopyId(s.autoId || s.id, e)} title="Click to copy">
+                            {s.autoId || s.id}
                           </span>
                         </div>
                         <div className="sub">{s.date}</div>

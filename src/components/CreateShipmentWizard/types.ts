@@ -54,19 +54,12 @@ export function buildDefaultWizardValues(loadId = 'SHP-NEW') {
     vehicleSpecs: {} as Record<string, string[]>,
     vehicleSelectionConfirmed: false,
     broadcastType: 'private' as 'private' | 'public',
-    selectedCarriers: ['krp', 'dntinos'] as string[],
-    targetPrice: '790',
+    selectedCarriers: [] as string[],
+    targetPrice: '',
+    negotiable: true,
     trackingEmails: {} as Record<string, string[]>,
     driverNotes: 'Driver must wear safety equipment on arrival.',
     gpsRequired: true,
-    bulkMode: 'single' as 'single' | 'qty' | 'dates' | 'rec',
-    bulkQty: 5,
-    bulkDates: [
-      { date: '2026-06-21', qty: 3 },
-      { date: '2026-06-22', qty: 3 },
-    ] as { date: string; qty: number }[],
-    bulkRecQty: 5,
-    bulkRecType: 'weekly' as 'daily' | 'weekly' | 'monthly',
-    bulkRecOccurrences: 7,
+    orderValue: '',
   };
 }

@@ -17,9 +17,6 @@ import {
   Smartphone,
   Star,
   Users,
-  Calendar,
-  Layers,
-  Repeat,
   Plus,
   X,
   FileText,
@@ -29,9 +26,10 @@ import {
 } from 'lucide-react';
 
 import { SearchableSelect } from '../ui/SearchableSelect';
-
-// Mocks
-import { PARTNERS } from '../../mocks/partnersMasterData';
+import { useCreateShipmentPartners } from '../../hooks/useCreateShipmentPartners';
+import { usePublicLoadQuota } from '../../hooks/usePublicLoadQuota';
+import { useAiSuggestedPrice } from '../../hooks/useAiSuggestedPrice';
+import { matchContractLane, resolveRouteCities } from '../../api/utils/matchContractLane';
 
 const T = {
   bg: 'var(--bg)',
@@ -50,27 +48,30 @@ const T = {
 };
 
 interface Step3PricingProps {
+  draftId?: number | null;
   onBackStep: () => void;
   onSubmit: () => void;
+  onSaveDraft?: () => Promise<void>;
+  isSaving?: boolean;
 }
 
-export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit }) => {
+export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBackStep, onSubmit, onSaveDraft, isSaving = false }) => {
   const { t, lang } = useTranslation();
-  const { locations, showToast } = useApp();
+  const { locations } = useApp();
   const { values, setFieldValue, isSubmitting } = useFormikContext<any>();
   const stops = values.stops || [];
-
-  // Local Accordion states
+  const { carriersList, loading: partnersLoading, error: partnersError } = useCreateShipmentPartners();
+  const { quota: publicQuota, loading: publicQuotaLoading } = usePublicLoadQuota(
+    draftId,
+    values.broadcastType || 'private'
+  );
   const [coOpen, setCoOpen] = useState(true);
   const [frOpen, setFrOpen] = useState(true);
   const [aiExpanded, setAiExpanded] = useState(false);
   const [trackingExpanded, setTrackingExpanded] = useState(true);
   const [carrierQuery, setCarrierQuery] = useState('');
 
-  // 1. CARRIERS AND CONTRACTS
-  const carriersList = useMemo(() => {
-    return PARTNERS.filter((p) => p.status === 'active' && (p.type === 'carrier_company' || p.type === 'freelancer_driver'));
-  }, []);
+  const { pickupCity, deliveryCity, routeLabel } = useMemo(() => resolveRouteCities(stops), [stops]);
 
   const carrierCompanies = useMemo(() => {
     return carriersList.filter((c) => c.type === 'carrier_company');
@@ -84,14 +85,24 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
     return carriersList.filter((c) => (values.selectedCarriers || []).includes(c.id));
   }, [carriersList, values.selectedCarriers]);
 
-  // Find first selected carrier with a contract
   const contractCarrier = useMemo(() => {
     return selectedCarriersDetails.find((c) => c.contractLanes && c.contractLanes.length > 0);
   }, [selectedCarriersDetails]);
 
   const contract = useMemo(() => {
-    return contractCarrier?.contractLanes?.[0];
-  }, [contractCarrier]);
+    return matchContractLane(contractCarrier?.contractLanes, pickupCity, deliveryCity);
+  }, [contractCarrier, pickupCity, deliveryCity]);
+
+  const { data: aiPriceData, loading: aiPriceLoading, error: aiPriceError, denied: aiPriceDenied } =
+    useAiSuggestedPrice({
+      draftId,
+      enabled: !contract && Boolean(draftId),
+      onRecommendedPrice: (price) => {
+        if (!values.targetPrice) {
+          setFieldValue('targetPrice', String(price));
+        }
+      },
+    });
 
   const { vehicleTypes } = useVehicleTypes();
 
@@ -108,28 +119,80 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
   const totalPallets = useMemo(() => {
     let p = 0;
     stops.forEach((s: any) =>
-      s.lines.forEach((l: any) => {
+      (s.lines || []).forEach((l: any) => {
         if (l.action === 'pickup') p += parseFloat(l.qty) || 0;
       })
     );
-    return Math.max(p, 32); // Fallback to 32 pallets if empty
+    return p;
   }, [stops]);
 
-  const totalKm = 463; // Athens -> Thessaloniki -> Volos lane distance
-  const targetPriceVal = parseFloat(values.targetPrice) || 0;
-  const pricePerKm = targetPriceVal > 0 ? (targetPriceVal / totalKm).toFixed(2) : '0.00';
-  const pricePerPallet = targetPriceVal > 0 ? (targetPriceVal / totalPallets).toFixed(2) : '0.00';
+  const totalWeightKg = useMemo(() => {
+    let weight = 0;
+    stops.forEach((s: any) =>
+      (s.lines || []).forEach((l: any) => {
+        if (l.action === 'pickup') weight += parseFloat(l.weight) || 0;
+      })
+    );
+    return weight;
+  }, [stops]);
 
-  // Calculate pricing based on contract/spot rules
+  const customerCount = useMemo(() => {
+    const names = new Set<string>();
+    stops.forEach((s: any) =>
+      (s.lines || []).forEach((l: any) => {
+        if (l.customerName) names.add(l.customerName);
+      })
+    );
+    return names.size;
+  }, [stops]);
+
+  const orderCount = useMemo(() => {
+    const orders = new Set<string>();
+    stops.forEach((s: any) =>
+      (s.lines || []).forEach((l: any) => {
+        const key = l.orderId || l.orderRef;
+        if (key) orders.add(String(key));
+      })
+    );
+    return orders.size;
+  }, [stops]);
+
+  const formattedDriveTime = useMemo(() => {
+    const minutes = values.routeSummary?.totalDriveMin || 0;
+    if (!minutes) return '—';
+    const hours = Math.floor(minutes / 60);
+    const mins = Math.round(minutes % 60);
+    if (hours <= 0) return `${mins}m`;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  }, [values.routeSummary?.totalDriveMin]);
+
+  const formattedWeight = useMemo(() => {
+    if (totalWeightKg <= 0) return '0';
+    if (totalWeightKg >= 1000) return (totalWeightKg / 1000).toFixed(1);
+    return String(Math.round(totalWeightKg));
+  }, [totalWeightKg]);
+
+  const weightUnit = totalWeightKg >= 1000 ? 'T' : 'kg';
+
+  const totalKm = values.routeSummary?.totalDistKm || 0;
+  const targetPriceVal = parseFloat(values.targetPrice) || 0;
+  const pricePerKm = targetPriceVal > 0 && totalKm > 0 ? (targetPriceVal / totalKm).toFixed(2) : '0.00';
+  const palletDivisor = totalPallets > 0 ? totalPallets : 1;
+  const pricePerPallet = targetPriceVal > 0 ? (targetPriceVal / palletDivisor).toFixed(2) : '0.00';
+  const publicQuotaBlocked = values.broadcastType === 'public' && publicQuota?.status === false;
+
   const calculatedPrice = useMemo(() => {
     if (contract) {
       if (contract.unit === 'per_pallet' || contract.unit === 'PER_PALLET') {
-        return contract.price * totalPallets;
+        return contract.price * (totalPallets > 0 ? totalPallets : 1);
       }
       return contract.price;
     }
-    return 750; // Spot price default
-  }, [contract, totalPallets]);
+    if (aiPriceData?.recommended_price && aiPriceData.recommended_price > 0) {
+      return aiPriceData.recommended_price;
+    }
+    return 750;
+  }, [contract, totalPallets, aiPriceData?.recommended_price]);
 
   // Set default price when carriers selection changes
   useEffect(() => {
@@ -231,43 +294,6 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
     setFieldValue(`trackingEmails.${orderId}`, next.length ? next : ['']);
   };
 
-  // 4. BULK LOAD TOTAL COMPUTATIONS
-  const bulkTotal = useMemo(() => {
-    if (values.bulkMode === 'qty') return values.bulkQty;
-    if (values.bulkMode === 'dates') {
-      return (values.bulkDates || []).reduce((sum: number, d: any) => sum + d.qty, 0);
-    }
-    if (values.bulkMode === 'rec') {
-      return values.bulkRecQty * values.bulkRecOccurrences;
-    }
-    return 1;
-  }, [values.bulkMode, values.bulkQty, values.bulkDates, values.bulkRecQty, values.bulkRecOccurrences]);
-
-  // Bulk loaders adjustments
-  const bqc = (d: number) => {
-    setFieldValue('bulkQty', Math.max(1, Math.min(50, values.bulkQty + d)));
-  };
-
-  const rqc = (d: number) => {
-    setFieldValue('bulkRecQty', Math.max(1, Math.min(50, values.bulkRecQty + d)));
-  };
-
-  const bdc = (idx: number, d: number) => {
-    const list = [...(values.bulkDates || [])];
-    if (list[idx]) {
-      list[idx].qty = Math.max(1, Math.min(50, list[idx].qty + d));
-      setFieldValue('bulkDates', list);
-    }
-  };
-
-  const addBulkDate = () => {
-    const list = [...(values.bulkDates || [])];
-    const d = new Date();
-    d.setDate(d.getDate() + list.length + 1);
-    list.push({ date: d.toISOString().split('T')[0], qty: 2 });
-    setFieldValue('bulkDates', list);
-  };
-
   // 5. CARRIERS SELECTION ACTION
   const toggleCarrier = (cid: string) => {
     const cur = values.selectedCarriers || [];
@@ -354,6 +380,36 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
                 </div>
               </div>
 
+              {values.broadcastType === 'public' && (
+                <div className="mt-4">
+                  {publicQuotaLoading ? (
+                    <div className="text-xs text-slate-500">{t('loading') || 'Loading...'}</div>
+                  ) : publicQuota?.status === false ? (
+                    <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs flex items-start justify-between gap-3">
+                      <span>{publicQuota.message || t('publicQuotaExceeded') || 'You have reached your Public Load limit for this billing cycle.'}</span>
+                      {publicQuota.actions?.upgrade_url && (
+                        <a
+                          href={publicQuota.actions.upgrade_url}
+                          className="font-bold underline whitespace-nowrap"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {t('publicQuotaUpgrade') || 'Upgrade plan'}
+                        </a>
+                      )}
+                    </div>
+                  ) : publicQuota && publicQuota.limit !== undefined && publicQuota.limit > 0 && publicQuota.limit < 10000 ? (
+                    <div className="bg-sky-50 text-sky-800 p-3 rounded-lg text-xs">
+                      {`Public loads this cycle: ${publicQuota.used ?? 0} / ${publicQuota.limit ?? 0} used (${publicQuota.remaining ?? 0} remaining)`}
+                    </div>
+                  ) : publicQuota?.status ? (
+                    <div className="bg-sky-50 text-sky-800 p-3 rounded-lg text-xs">
+                      {t('publicQuotaUnlimited') || 'Unlimited public loads this billing cycle.'}
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
               {/* Private network carriers search & accordion list */}
               {values.broadcastType === 'private' && (
                 <div className="mt-4 pt-4 border-t" style={{ borderColor: T.bd }}>
@@ -375,6 +431,13 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
                   <div className="text-xs font-semibold mb-2" style={{ color: T.ac, cursor: 'pointer' }}>
                     {t('invitePartner') || '＋ Invite new partner carrier'}
                   </div>
+
+                  {partnersLoading && (
+                    <div className="text-xs text-slate-500 py-2">{t('partnersLoading') || 'Loading partners...'}</div>
+                  )}
+                  {partnersError && (
+                    <div className="text-xs text-red-600 py-2">{t('partnersLoadFailed') || 'Failed to load partners.'}</div>
+                  )}
 
                   {/* CARRIER COMPANIES ACCORDION */}
                   <div className="border rounded-lg overflow-hidden mb-2">
@@ -533,216 +596,6 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
             </div>
           </div>
 
-          {/* BULK LOAD CREATION */}
-          <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
-            <div className="ch flex items-center gap-2 px-5 py-4 border-b animate-fade-in" style={{ borderColor: T.bd }}>
-              <Layers size={18} style={{ color: T.t2 }} />
-              <span className="font-semibold text-sm">{t('bulkLoadCreation') || 'Bulk Load Creation'}</span>
-              <span className="text-xs text-slate-400 font-normal ml-auto">{t('bulkLoadCreationDesc') || 'Create multiple identical loads'}</span>
-            </div>
-            <div className="cb p-5">
-              {/* Tabs */}
-              <div className="flex bg-slate-100 p-1 rounded-lg gap-1 mb-4">
-                {[
-                  { id: 'single', label: t('singleLoad') || 'Single Load' },
-                  { id: 'qty', label: t('multipleSameDay') || 'Multiple (same day)' },
-                  { id: 'dates', label: t('multipleDates') || 'Multiple dates' },
-                  { id: 'rec', label: t('recurring') || 'Recurring' },
-                ].map((tb) => (
-                  <button
-                    key={tb.id}
-                    type="button"
-                    className={`flex-1 py-2 px-1 text-center text-xs font-semibold rounded-md border-none cursor-pointer ${
-                      values.bulkMode === tb.id ? 'bg-white shadow' : 'bg-transparent text-slate-400'
-                    }`}
-                    onClick={() => setFieldValue('bulkMode', tb.id)}
-                  >
-                    {tb.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Single Mode Panel */}
-              {values.bulkMode === 'single' && (
-                <div className="text-center py-4 text-xs text-slate-400">
-                  {t('singleLoadSub') || '1 load will be created. Select another tab for bulk creation.'}
-                </div>
-              )}
-
-              {/* Quantity Mode Panel */}
-              {values.bulkMode === 'qty' && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-semibold text-slate-600">{t('identicalLoadsLabel') || 'Number of identical loads'}</label>
-                    <div className="flex items-center border rounded-lg overflow-hidden bg-slate-50">
-                      <button
-                        type="button"
-                        className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
-                        onClick={() => bqc(-1)}
-                      >
-                        −
-                      </button>
-                      <input
-                        type="number"
-                        className="w-11 h-8 border-y-0 border-x text-center text-xs font-bold font-mono outline-none"
-                        value={values.bulkQty}
-                        onChange={(e) => setFieldValue('bulkQty', Math.max(1, parseInt(e.target.value) || 1))}
-                      />
-                      <button
-                        type="button"
-                        className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
-                        onClick={() => bqc(1)}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                  <div className="bg-green-50 text-green-700 p-2.5 rounded-lg text-xs font-semibold">
-                    ✓ <strong>{values.bulkQty}</strong> {t('loadsWillBeCreated') || 'loads will be created'}
-                  </div>
-                </div>
-              )}
-
-              {/* Dates Mode Panel */}
-              {values.bulkMode === 'dates' && (
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    {(values.bulkDates || []).map((bd: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <input
-                          type="date"
-                          className="flex-1 p-2 border rounded-lg text-xs outline-none"
-                          value={bd.date}
-                          onChange={(e) => {
-                            const list = [...values.bulkDates];
-                            list[idx].date = e.target.value;
-                            setFieldValue('bulkDates', list);
-                          }}
-                        />
-                        <div className="flex items-center border rounded-lg overflow-hidden bg-slate-50">
-                          <button
-                            type="button"
-                            className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
-                            onClick={() => bdc(idx, -1)}
-                          >
-                            −
-                          </button>
-                          <input
-                            type="number"
-                            className="w-11 h-8 border-y-0 border-x text-center text-xs font-bold font-mono outline-none"
-                            value={bd.qty}
-                            onChange={(e) => {
-                              const list = [...values.bulkDates];
-                              list[idx].qty = Math.max(1, parseInt(e.target.value) || 1);
-                              setFieldValue('bulkDates', list);
-                            }}
-                          />
-                          <button
-                            type="button"
-                            className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
-                            onClick={() => bdc(idx, 1)}
-                          >
-                            +
-                          </button>
-                        </div>
-                        <span className="text-[10px] text-slate-400">{t('loadsLabel') || 'loads'}</span>
-                        {values.bulkDates.length > 1 && (
-                          <button
-                            type="button"
-                            className="text-xs p-1 cursor-pointer bg-transparent border-none text-slate-400 hover:text-red-500"
-                            onClick={() => {
-                              const list = values.bulkDates.filter((_: any, i: number) => i !== idx);
-                              setFieldValue('bulkDates', list);
-                            }}
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="w-full py-2 border border-dashed rounded-lg text-xs font-bold text-indigo-700 bg-transparent cursor-pointer"
-                    onClick={addBulkDate}
-                  >
-                    {t('addDateBtn') || '+ Add date'}
-                  </button>
-
-                  <div className="bg-green-50 text-green-700 p-2.5 rounded-lg text-xs font-semibold">
-                    ✓ <strong>{bulkTotal}</strong> {t('loadsWillBeCreated') || 'loads will be created'} ({ (values.bulkDates || []).map((x: any) => x.qty).join(' + ') })
-                  </div>
-                </div>
-              )}
-
-              {/* Recurring Mode Panel */}
-              {values.bulkMode === 'rec' && (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-semibold text-slate-600">{t('loadsPerRecurrence') || 'Loads per recurrence'}</label>
-                    <div className="flex items-center border rounded-lg overflow-hidden bg-slate-50">
-                      <button
-                        type="button"
-                        className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
-                        onClick={() => rqc(-1)}
-                      >
-                        −
-                      </button>
-                      <input
-                        type="number"
-                        className="w-11 h-8 border-y-0 border-x text-center text-xs font-bold font-mono outline-none"
-                        value={values.bulkRecQty}
-                        onChange={(e) => setFieldValue('bulkRecQty', Math.max(1, parseInt(e.target.value) || 1))}
-                      />
-                      <button
-                        type="button"
-                        className="w-8 h-8 border-none bg-transparent cursor-pointer font-bold"
-                        onClick={() => rqc(1)}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-semibold text-slate-600">{t('repeat') || 'Repeat'}</label>
-                    <select
-                      className="p-2 border rounded-lg text-xs outline-none w-36"
-                      value={values.bulkRecType}
-                      onChange={(e) => setFieldValue('bulkRecType', e.target.value)}
-                    >
-                      <option value="daily">{t('daily') || 'Daily'}</option>
-                      <option value="weekly">{t('weekly') || 'Weekly'}</option>
-                      <option value="monthly">{t('monthly') || 'Monthly'}</option>
-                    </select>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-semibold text-slate-600">{t('endAfter') || 'End after'}</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        className="w-16 p-2 border rounded-lg text-xs outline-none font-mono text-right"
-                        value={values.bulkRecOccurrences}
-                        onChange={(e) => setFieldValue('bulkRecOccurrences', Math.max(1, parseInt(e.target.value) || 1))}
-                      />
-                      <span className="text-xs text-slate-400">{t('occurrences') || 'occurrences'}</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-indigo-50 text-indigo-700 p-2.5 rounded-lg text-xs font-semibold">
-                    ✓ <strong>{bulkTotal}</strong> {t('loadsWillBeCreated') || 'loads will be created'} ({values.bulkRecQty} × {values.bulkRecOccurrences} {values.bulkRecType === 'daily' ? (t('days') || 'days') : values.bulkRecType === 'weekly' ? (t('weeks') || 'weeks') : (t('months') || 'months')})
-                  </div>
-
-                  <div className="bg-slate-100 text-slate-500 p-2 rounded-lg text-[10px] leading-relaxed">
-                    ℹ️ {t('bulkRecHint') || 'Carriers see only 1 load at a time. When booked, the next one auto-publishes.'}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* TRACKING LINKS */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
             <div
@@ -854,7 +707,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
             <div className="relative bg-slate-200 flex items-center justify-center" style={{ height: 180 }}>
               <div className="text-center text-xs text-slate-400">
                 <MapPin size={32} className="mx-auto mb-1 opacity-40" />
-                Ioannina → Mandra → Kalyvia
+                {routeLabel}
               </div>
               <button
                 type="button"
@@ -924,12 +777,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
             {/* Summary statistics grid */}
             <div className="grid grid-cols-2 bg-slate-200 gap-px border-t" style={{ borderColor: T.bd }}>
               {[
-                { label: t('distance') || 'Distance', value: '463', unit: 'km' },
-                { label: t('time') || 'Time', value: '4h 57m', unit: '' },
+                { label: t('distance') || 'Distance', value: totalKm > 0 ? String(Math.round(totalKm)) : '0', unit: 'km' },
+                { label: t('time') || 'Time', value: formattedDriveTime, unit: '' },
                 { label: t('stops') || 'Stops', value: String(stops.length), unit: '' },
-                { label: t('weight') || 'Weight', value: '24', unit: 'T' },
-                { label: t('customers') || 'Customers', value: '3', unit: '🏪' },
-                { label: t('orders') || 'Orders', value: '3', unit: '' },
+                { label: t('weight') || 'Weight', value: formattedWeight, unit: weightUnit },
+                { label: t('customers') || 'Customers', value: String(customerCount), unit: customerCount > 0 ? '🏪' : '' },
+                { label: t('orders') || 'Orders', value: String(orderCount), unit: '' },
               ].map((st, sidx) => (
                 <div key={sidx} className="bg-white p-3">
                   <div className="text-[9px] font-bold text-slate-400 uppercase">
@@ -984,7 +837,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
                   )
                 ) : (
                   <span>
-                    {t('spotPriceFromList') || 'Spot price from Price List: per load'} <strong>€750</strong> · Ioannina→Athens
+                    {t('spotPriceFromList') || 'Spot price from Price List: per load'} <strong>€{calculatedPrice}</strong> · {pickupCity || '—'}→{deliveryCity || '—'}
                   </span>
                 )}
               </div>
@@ -1037,15 +890,67 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
               {/* AI Insights Panel */}
               {aiExpanded && (
                 <div className="bg-violet-50 text-indigo-950 p-4 rounded-lg text-xs space-y-2 border border-violet-100">
-                  <h4 className="font-bold text-slate-900">📊 Lane Analysis: Ioannina → Attica</h4>
-                  <div>Your quote: €{values.targetPrice} (€{pricePerKm}/km)</div>
-                  <div>Average for this lane: €820 (€1.77/km)</div>
-                  <div>Your last 5 loads: €750, €790, €810, €830, €800</div>
-                  <div className="p-2 rounded bg-violet-100 text-indigo-700 font-medium">
-                    💡 Your price is slightly below average. Consider €800–€830 for faster carrier acceptance. Rates show a slight upward trend over the last 3 months.
-                  </div>
+                  {aiPriceLoading ? (
+                    <div>{t('aiSuggestedPriceLoading') || 'Generating AI suggested prices...'}</div>
+                  ) : aiPriceDenied ? (
+                    <div>
+                      {aiPriceDenied.message}
+                      {aiPriceDenied.upgradeUrl && (
+                        <>
+                          {' '}
+                          <a href={aiPriceDenied.upgradeUrl} className="font-bold underline" target="_blank" rel="noreferrer">
+                            {t('publicQuotaUpgrade') || 'Upgrade plan'}
+                          </a>
+                        </>
+                      )}
+                    </div>
+                  ) : aiPriceError ? (
+                    <div>{t('aiSuggestedPriceFailed') || 'Unable to generate AI suggested prices.'}</div>
+                  ) : aiPriceData ? (
+                    <>
+                      <h4 className="font-bold text-slate-900">
+                        📊 {t('laneAnalysis') || 'Lane Analysis'}: {pickupCity || '—'} → {deliveryCity || '—'}
+                      </h4>
+                      <div>
+                        {t('aiSuggestedPriceMarket') || 'Market price'}: {aiPriceData.formatted?.market_price || `€${aiPriceData.market_price}`}
+                      </div>
+                      <div>
+                        {t('aiSuggestedPriceAttractive') || 'Attractive price'}: {aiPriceData.formatted?.attractive_price || `€${aiPriceData.attractive_price}`}
+                      </div>
+                      <div>
+                        {t('aiSuggestedPriceConservative') || 'Conservative price'}: {aiPriceData.formatted?.conservative_price || `€${aiPriceData.conservative_price}`}
+                      </div>
+                      <div className="p-2 rounded bg-violet-100 text-indigo-700 font-medium">
+                        {t('aiSuggestedPriceRecommended') || 'Recommended price'}: {aiPriceData.formatted?.recommended_price || `€${aiPriceData.recommended_price}`}
+                      </div>
+                    </>
+                  ) : (
+                    <div>{t('aiSuggestedPriceFailed') || 'Unable to generate AI suggested prices.'}</div>
+                  )}
                 </div>
               )}
+
+              <div className="pt-3 border-t space-y-2" style={{ borderColor: T.bd }}>
+                <div>
+                  <div className="text-xs font-bold text-slate-800">{t('orderValue') || 'Order Value'}</div>
+                  <div className="text-[10px] text-slate-400">{t('orderValueOptional') || 'Optional'}</div>
+                </div>
+                <div className="flex items-center border rounded-lg overflow-hidden bg-white">
+                  <span className="px-3 text-sm font-bold text-indigo-700">€</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="flex-1 py-2 pr-3 text-sm font-bold outline-none"
+                    placeholder="0"
+                    value={values.orderValue || ''}
+                    maxLength={11}
+                    onChange={(e) => setFieldValue('orderValue', e.target.value.replace(/[^0-9.,]/g, ''))}
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 italic">
+                  {t('orderValueHint') || 'Enter here for your own records the market value of the goods being shipped in this load. This information will not be shared with your transporter.'}
+                </p>
+              </div>
 
               {/* Negotiable price toggle */}
               <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: T.bd }}>
@@ -1104,11 +1009,6 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
             <strong className="text-lg font-bold text-slate-900 font-mono">
               €{targetPriceVal.toLocaleString()}
             </strong>
-            {bulkTotal > 1 && (
-              <span className="text-[11px] font-medium text-indigo-700">
-                × {bulkTotal} = <strong className="font-mono">€{(targetPriceVal * bulkTotal).toLocaleString()}</strong>
-              </span>
-            )}
           </div>
           
           <div className="h-7 w-px bg-slate-200" />
@@ -1141,8 +1041,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
           <button
             type="button"
             className="inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 cursor-pointer"
-            onClick={() => showToast('Draft saved successfully!', 'success')}
-            disabled={isSubmitting}
+            onClick={() => onSaveDraft?.()}
+            disabled={isSubmitting || isSaving}
           >
             <Save size={13} /> {t('saveDraft') || 'Save Draft'}
           </button>
@@ -1154,10 +1054,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
               background: T.ac,
               fontFamily: 'inherit',
             }}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isSaving || publicQuotaBlocked}
             onClick={onSubmit}
           >
-            {bulkTotal > 1 ? t('createLoadsBtn', { count: bulkTotal }) || `Create ${bulkTotal} Shipments` : t('createLoadBtn') || 'Create Shipment'}
+            {t('createLoadBtn') || 'Create Shipment'}
           </button>
         </div>
       </footer>

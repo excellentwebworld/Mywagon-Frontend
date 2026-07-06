@@ -1,4 +1,4 @@
-import type { ApiStop, ApiWizardState, SaveStepOnePayload, SaveStepTwoPayload } from '../types/createShipment';
+import type { ApiStop, ApiWizardState, SaveStepOnePayload, SaveStepThreePayload, SaveStepTwoPayload } from '../types/createShipment';
 import { createNewCargoLine, createNewStop } from '../../components/CreateShipmentWizard/types';
 import { computeItineraryFingerprint } from '../../components/CreateShipmentWizard/itineraryFingerprint';
 import { normalizeWeightUnit } from '../../constants/cargoUnits';
@@ -16,15 +16,11 @@ export interface WizardFormValues {
   broadcastType: 'private' | 'public';
   selectedCarriers: string[];
   targetPrice: string;
+  negotiable: boolean;
   trackingEmails: Record<string, string[]>;
   driverNotes: string;
   gpsRequired: boolean;
-  bulkMode: 'single' | 'qty' | 'dates' | 'rec';
-  bulkQty: number;
-  bulkDates: { date: string; qty: number }[];
-  bulkRecQty: number;
-  bulkRecType: 'daily' | 'weekly' | 'monthly';
-  bulkRecOccurrences: number;
+  orderValue: string;
 }
 
 function browserTimezone(): string {
@@ -102,11 +98,50 @@ export function draftToFormValues(
     vehicleSelectionConfirmed:
       state.vehicleSelectionConfirmed ?? defaults.vehicleSelectionConfirmed,
     broadcastType: state.broadcastType ?? defaults.broadcastType,
-    selectedCarriers: state.selectedCarriers ?? defaults.selectedCarriers,
+    selectedCarriers: (state.selectedCarriers ?? defaults.selectedCarriers)
+      .map((id) => String(id))
+      .filter((id) => /^\d+$/.test(id)),
     targetPrice: state.targetPrice ?? defaults.targetPrice,
+    negotiable: state.negotiable ?? defaults.negotiable,
     trackingEmails: state.trackingEmails ?? defaults.trackingEmails,
     driverNotes: state.driverNotes ?? defaults.driverNotes,
     gpsRequired: state.gpsRequired ?? defaults.gpsRequired,
+    orderValue: state.orderValue ?? defaults.orderValue,
+  };
+}
+
+export function formValuesToStepThreePayload(
+  values: Pick<
+    WizardFormValues,
+    | 'broadcastType'
+    | 'selectedCarriers'
+    | 'targetPrice'
+    | 'negotiable'
+    | 'trackingEmails'
+    | 'driverNotes'
+    | 'gpsRequired'
+    | 'orderValue'
+  >,
+  mode: SaveStepThreePayload['mode']
+): SaveStepThreePayload {
+  const targetPrice = parseFloat(String(values.targetPrice ?? ''));
+  const selectedCarriers = (values.selectedCarriers || [])
+    .map((id) => parseInt(String(id), 10))
+    .filter((id) => !Number.isNaN(id) && id > 0);
+
+  const orderValue = parseFloat(String(values.orderValue ?? ''));
+
+  return {
+    mode,
+    broadcast_type: values.broadcastType,
+    selected_carriers: selectedCarriers,
+    target_price: Number.isNaN(targetPrice) ? undefined : targetPrice,
+    negotiable: Boolean(values.negotiable),
+    tracking_emails: values.trackingEmails || {},
+    driver_notes: values.driverNotes || '',
+    gps_required: Boolean(values.gpsRequired),
+    bulk_mode: 'single',
+    order_value: Number.isNaN(orderValue) || orderValue <= 0 ? undefined : orderValue,
   };
 }
 
@@ -155,8 +190,10 @@ export function formValuesToWizardState(values: WizardFormValues): ApiWizardStat
     broadcastType: values.broadcastType,
     selectedCarriers: values.selectedCarriers,
     targetPrice: values.targetPrice,
+    negotiable: values.negotiable,
     trackingEmails: values.trackingEmails,
     driverNotes: values.driverNotes,
     gpsRequired: values.gpsRequired,
+    orderValue: values.orderValue,
   };
 }

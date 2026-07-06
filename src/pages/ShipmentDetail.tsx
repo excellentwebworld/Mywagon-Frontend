@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import type { Shipment, ShipmentStop } from '../context/AppContext';
+import type { ShipmentStop } from '../context/AppContext';
 import { useTranslation } from '../hooks/useTranslation';
+import { useShipment } from '../hooks/useShipments';
 
 export const ShipmentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { shipments, showToast } = useApp();
+  const { showToast } = useApp();
   const { t } = useTranslation();
-
-  const [shipment, setShipment] = useState<Shipment | null>(null);
+  const { shipment, loading, error } = useShipment(id);
 
   // Modals state
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -22,21 +22,26 @@ export const ShipmentDetail: React.FC = () => {
     setSecCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  useEffect(() => {
-    if (id) {
-      const found = shipments.find((s) => s.id === id);
-      if (found) {
-        setShipment(found);
-      }
-    }
-  }, [id, shipments]);
+  const displayId = shipment?.autoId || shipment?.id || id || '';
+
+  if (loading) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+        {t('loading') || 'Loading...'}
+      </div>
+    );
+  }
 
   if (!shipment) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <h2 style={{ fontSize: '20px', fontWeight: 700 }}>Shipment Not Found</h2>
         <p style={{ margin: '12px 0', color: 'var(--text-tertiary)' }}>
-          The shipment with ID <span className="mono">{id}</span> does not exist or has been deleted.
+          {error || (
+            <>
+              The shipment with ID <span className="mono">{id}</span> does not exist or has been deleted.
+            </>
+          )}
         </p>
         <Link to="/shipments" className="btn btn-primary btn-sm">
           Back to Shipments
@@ -98,8 +103,8 @@ export const ShipmentDetail: React.FC = () => {
   ];
 
   const handleCopyId = () => {
-    navigator.clipboard.writeText(shipment.id);
-    showToast(t('copiedId', { id: shipment.id }), 'success');
+    navigator.clipboard.writeText(displayId);
+    showToast(t('copiedId', { id: displayId }), 'success');
   };
 
   const handleCopyText = (txt: string) => {
@@ -125,7 +130,7 @@ export const ShipmentDetail: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <div className="cmd-sid" style={{ fontSize: '20px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              #{shipment.id}
+              #{displayId}
               <span style={{ cursor: 'pointer', fontSize: '14px' }} onClick={handleCopyId} title="Copy ID">
                 📋
               </span>

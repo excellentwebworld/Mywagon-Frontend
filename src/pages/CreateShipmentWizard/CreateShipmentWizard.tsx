@@ -4,7 +4,6 @@ import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import type { Shipment } from '../../context/AppContext';
 import { Step1Details } from '../../components/CreateShipmentWizard/Step1Details';
 import { Step2Itinerary } from '../../components/CreateShipmentWizard/Step2Itinerary';
 import { Step3Pricing } from '../../components/CreateShipmentWizard/Step3Pricing';
@@ -13,6 +12,7 @@ import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
 import { scrollToValidationAnchor } from '../../components/CreateShipmentWizard/validation';
 import { Step1DetailsSkeleton } from '../../components/skeletons/Step1DetailsSkeleton';
 import { Step2ItinerarySkeleton } from '../../components/skeletons/Step2ItinerarySkeleton';
+import { Step3PricingSkeleton } from '../../components/skeletons/Step3PricingSkeleton';
 import './CreateShipmentWizard.css';
 
 const validationSchema = Yup.object().shape({
@@ -35,12 +35,13 @@ const validationSchema = Yup.object().shape({
 
 export const CreateShipmentWizard: React.FC = () => {
   const { t } = useTranslation();
-  const { locations, addShipment, showToast, refreshLocationsFromApi } = useApp();
+  const { showToast, refreshLocationsFromApi } = useApp();
   const navigate = useNavigate();
   const locationState = useLocation().state as { prefillLocationId?: string } | null;
 
   const {
     step,
+    shipmentId,
     loadId,
     isLoading,
     isSaving,
@@ -50,6 +51,8 @@ export const CreateShipmentWizard: React.FC = () => {
     goToStep,
     saveStep1,
     saveStep2,
+    saveStep3,
+    publishShipment,
     stepNavigationError,
     validationRequest,
   } = useCreateShipmentWizard(showToast, t);
@@ -66,88 +69,17 @@ export const CreateShipmentWizard: React.FC = () => {
     return { ...base, loadId: loadId || base.loadId };
   }, [defaultValues, loadedValues, loadId]);
 
-  const handleConfirmWizard = (values: WizardFormValues, { setSubmitting }: { setSubmitting: (v: boolean) => void }) => {
-    const stops = values.stops;
-    const originLoc = locations.find((l) => l.id === stops[0].locationId);
-    const destLoc = locations.find((l) => l.id === stops[stops.length - 1].locationId);
-
-    const customersMap = stops.flatMap((s) =>
-      s.lines?.map((l) => ({
-        name: l.customerName || 'Direct Customer',
-        orders: l.orderId ? [l.orderId] : [],
-      })) ?? []
-    );
-
-    const finalCustomers: { name: string; orders: string[] }[] = [];
-    customersMap.forEach((c) => {
-      const existing = finalCustomers.find((fc) => fc.name === c.name);
-      if (existing) {
-        c.orders.forEach((o) => {
-          if (!existing.orders.includes(o)) existing.orders.push(o);
-        });
-      } else {
-        finalCustomers.push({ name: c.name, orders: [...c.orders] });
-      }
-    });
-
-    const payload: Shipment = {
-      id: values.loadId,
-      date: stops[0].dateFrom
-        ? new Date(stops[0].dateFrom).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      status: 'pending',
-      vis: values.broadcastType,
-      origin: originLoc ? originLoc.city : 'Unknown',
-      dest: destLoc ? destLoc.city : 'Unknown',
-      via:
-        stops.length > 2
-          ? stops
-              .slice(1, -1)
-              .map((s) => locations.find((l) => l.id === s.locationId)?.city || s.locationCity)
-              .filter(Boolean)
-              .join(', ')
-          : null,
-      customer: finalCustomers,
-      bids: 0,
-      best_bid: null,
-      bid_exp: values.broadcastType === 'public' ? '12h' : null,
-      carrier: values.selectedCarriers.length > 0 ? values.selectedCarriers[0] : null,
-      price: Number(values.targetPrice),
-      price_type: values.broadcastType === 'public' ? 'spot' : 'contract',
-      updated: 'Just now',
-      timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
-      tl_cur: 1,
-      stops: stops.map((s, idx) => ({
-        id: idx + 1,
-        type: idx === 0 ? ('pickup' as const) : ('delivery' as const),
-        location: s.locationId || '',
-        address: s.locationCity ? `${s.locationCity}, Greece` : '',
-        date: s.dateFrom || '',
-        timeStart: s.timeFrom || '08:00',
-        timeEnd: s.timeTo || '18:00',
-        customers:
-          s.lines?.filter((l) => l.productId).map((l) => ({
-            name: l.customerName || 'Direct Customer',
-            orders: [
-              {
-                id: l.orderId || l.orderRef || `ORD-${Date.now()}`,
-                products: l.productName || 'General Cargo',
-                qty: Number(l.qty) || 0,
-                qtyUnit: l.unit || 'Pallets',
-                weight: Number(l.weight) || 0,
-                weightUnit: l.wtUnit || 'kg',
-              },
-            ],
-          })) ?? [],
-      })),
-      driverNotes: values.driverNotes,
-      negotiable: true,
-    };
-
-    addShipment(payload);
-    showToast(t('shipmentCreatedSuccess') || 'Shipment created successfully!', 'success');
-    setSubmitting(false);
-    navigate('/shipments');
+  const handleConfirmWizard = async (
+    values: WizardFormValues,
+    { setSubmitting }: { setSubmitting: (v: boolean) => void }
+  ) => {
+    try {
+      const published = await publishShipment(values);
+      setSubmitting(false);
+      navigate(`/shipments/${published.id}`);
+    } catch {
+      setSubmitting(false);
+    }
   };
 
   const handleStepClick = (targetStep: number) => {
@@ -215,9 +147,7 @@ export const CreateShipmentWizard: React.FC = () => {
           ) : step === 2 ? (
             <Step2ItinerarySkeleton />
           ) : (
-            <div className="py-12 text-center" style={{ color: 'var(--text-secondary)' }}>
-              {t('loading') || 'Loading...'}
-            </div>
+            <Step3PricingSkeleton />
           )}
         </div>
       </div>
@@ -351,7 +281,21 @@ export const CreateShipmentWizard: React.FC = () => {
                   isSaving={isSaving}
                 />
               )}
-              {step === 3 && <Step3Pricing onBackStep={() => goToStep(2)} onSubmit={submitForm} />}
+              {step === 3 && (
+                <Step3Pricing
+                  draftId={shipmentId}
+                  onBackStep={() => goToStep(2)}
+                  onSubmit={submitForm}
+                  onSaveDraft={async () => {
+                    try {
+                      await saveStep3(values, 'partial');
+                    } catch {
+                      // saveStep3 already toasts errors
+                    }
+                  }}
+                  isSaving={isSaving}
+                />
+              )}
             </div>
           </Form>
           );

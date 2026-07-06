@@ -56,6 +56,8 @@ export interface ApiWizardState {
   trackingEmails?: Record<string, string[]>;
   driverNotes?: string;
   gpsRequired?: boolean;
+  negotiable?: boolean;
+  orderValue?: string;
 }
 
 export interface ApiDraftShipment {
@@ -88,6 +90,54 @@ export interface SaveStepTwoPayload {
   vehicle_specs?: Record<string, string[]>;
   vehicle_selection_confirmed?: boolean;
   itinerary_confirm_snapshot?: string;
+}
+
+export interface SaveStepThreePayload {
+  mode: 'partial' | 'complete';
+  broadcast_type?: 'private' | 'public';
+  selected_carriers?: number[];
+  target_price?: number;
+  negotiable?: boolean;
+  tracking_emails?: Record<string, string[]>;
+  driver_notes?: string;
+  gps_required?: boolean;
+  bulk_mode?: 'single';
+  order_value?: number;
+}
+
+export interface PublishShipmentResponse {
+  id: number;
+  auto_id: string;
+  status: string;
+  type: string;
+  total: string;
+  order_value?: string | null;
+}
+
+export interface AiSuggestedPriceResult {
+  market_price: number;
+  attractive_price: number;
+  conservative_price: number;
+  recommended_price: number;
+  formatted?: {
+    market_price?: string;
+    attractive_price?: string;
+    conservative_price?: string;
+    recommended_price?: string;
+  };
+  currency?: string;
+  summary?: Record<string, unknown>;
+}
+
+export interface PublicLoadQuotaResponse {
+  status: boolean;
+  limit?: number;
+  used?: number;
+  remaining?: number;
+  message?: string;
+  actions?: {
+    upgrade_url?: string;
+  };
 }
 
 export interface ApiVehicleCategory {

@@ -1,5 +1,12 @@
 import { apiDelete, apiGet, apiPost, apiPut } from '../client';
-import type { ApiDraftShipment, ApiVehicleType, SaveStepOnePayload, SaveStepTwoPayload } from '../types/createShipment';
+import type {
+  ApiDraftShipment,
+  ApiVehicleType,
+  PublishShipmentResponse,
+  SaveStepOnePayload,
+  SaveStepThreePayload,
+  SaveStepTwoPayload,
+} from '../types/createShipment';
 
 export const createShipmentService = {
   async getVehicleTypes(): Promise<ApiVehicleType[]> {
@@ -27,7 +34,33 @@ export const createShipmentService = {
     return res.data;
   },
 
+  async saveStepThree(id: number | string, payload: SaveStepThreePayload): Promise<ApiDraftShipment> {
+    const res = await apiPut<ApiDraftShipment>(`/create-shipment/drafts/${id}/step-3`, payload);
+    return res.data;
+  },
+
+  async publishDraft(id: number | string): Promise<PublishShipmentResponse> {
+    const res = await apiPost<PublishShipmentResponse>(`/create-shipment/drafts/${id}/publish`);
+    return res.data;
+  },
+
   async deleteDraft(id: number | string): Promise<void> {
     await apiDelete(`/create-shipment/drafts/${id}`);
+  },
+
+  async checkPublicLoadLimit(draftId?: number): Promise<import('../types/createShipment').PublicLoadQuotaResponse> {
+    const res = await apiPost<import('../types/createShipment').PublicLoadQuotaResponse>(
+      '/create-shipment/check-public-limit',
+      draftId ? { draft_id: draftId } : {}
+    );
+    return res.data;
+  },
+
+  async fetchAiSuggestedPrice(draftId: number | string): Promise<import('../types/createShipment').AiSuggestedPriceResult> {
+    const res = await apiPost<import('../types/createShipment').AiSuggestedPriceResult>(
+      `/create-shipment/drafts/${draftId}/ai-suggested-price`,
+      {}
+    );
+    return res.data;
   },
 };
