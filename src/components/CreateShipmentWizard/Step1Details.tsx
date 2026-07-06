@@ -10,6 +10,7 @@ import {
 
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { LocationSelect } from './LocationSelect';
+import { LocationPreviewOverlay } from './LocationPreviewOverlay';
 import { createNewStop, createNewCargoLine } from './types';
 import {
   useCreateShipmentOrders,
@@ -795,6 +796,14 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     [abLocs]
   );
 
+  const handlePreviewCopy = useCallback(
+    (text: string, message: string) => {
+      navigator.clipboard?.writeText(text);
+      showToast(message, 'success');
+    },
+    [showToast]
+  );
+
   const previewProduct = useCallback(
     (skuId: string) => {
       const s = pmSkus.find((x) => x.id === skuId);
@@ -1159,6 +1168,17 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               invalid={isFieldInvalid(`stop-${idx}-location`)}
                             />
                           </div>
+                          {stop.locationId && (
+                            <button
+                              type="button"
+                              className="w-7 h-7 rounded flex items-center justify-center cursor-pointer border-none shrink-0"
+                              style={{ background: 'transparent', color: T.t3 }}
+                              title={t('createLoadViewLocation') || 'View location'}
+                              onClick={() => previewLocation(stop.locationId)}
+                            >
+                              <Eye size={15} />
+                            </button>
+                          )}
                         </div>
                         <FieldValidationHint
                           conflicts={getBlockersForAnchor(blockers, `stop-${idx}-location`)}
@@ -1359,6 +1379,15 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           </button>
         </div>
       </footer>
+
+      {previewLoc && (
+        <LocationPreviewOverlay
+          location={previewLoc}
+          onClose={() => setPreviewLoc(null)}
+          t={t}
+          onCopy={handlePreviewCopy}
+        />
+      )}
 
       {/* Modals & Dialogs */}
       <CreateLocationModal

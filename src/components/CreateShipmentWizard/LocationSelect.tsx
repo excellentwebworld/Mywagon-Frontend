@@ -60,38 +60,44 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
   };
 
   const renderLocationRow = (loc: LocationItem) => (
-    <button
+    <div
       key={loc.id}
-      type="button"
-      className="w-full text-left px-3 py-2 hover:bg-[var(--surface-hover)] flex items-start gap-2"
-      onClick={() => {
-        onChange(loc.id);
-        setOpen(false);
-      }}
+      className="flex items-stretch hover:bg-[var(--surface-hover)]"
     >
-      <MapPin size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
-      <div className="min-w-0 flex-1">
-        <div className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-          {loc.name}
+      <button
+        type="button"
+        className="flex-1 min-w-0 text-left px-3 py-2 flex items-start gap-2 border-none bg-transparent cursor-pointer"
+        style={{ color: 'inherit', font: 'inherit' }}
+        onClick={() => {
+          onChange(loc.id);
+          setOpen(false);
+        }}
+      >
+        <MapPin size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+            {loc.name}
+          </div>
+          <div className="text-[10px] truncate" style={{ color: 'var(--text-tertiary)' }}>
+            {[loc.company, loc.city, loc.address].filter(Boolean).join(' · ')}
+          </div>
         </div>
-        <div className="text-[10px] truncate" style={{ color: 'var(--text-tertiary)' }}>
-          {[loc.company, loc.city, loc.address].filter(Boolean).join(' · ')}
-        </div>
-      </div>
+      </button>
       {onPreview && (
-        <span
-          role="button"
-          tabIndex={0}
-          className="p-1 rounded hover:bg-[var(--surface-alt)]"
+        <button
+          type="button"
+          className="px-2 shrink-0 flex items-center justify-center border-none bg-transparent cursor-pointer rounded hover:bg-[var(--surface-alt)]"
+          title={t('createLoadViewLocation') || 'View location'}
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             onPreview(loc);
           }}
         >
-          <Eye size={12} />
-        </span>
+          <Eye size={12} style={{ color: 'var(--text-tertiary)' }} />
+        </button>
       )}
-    </button>
+    </div>
   );
 
   const groups = tab === 'my' ? myGroups : customerGroups;

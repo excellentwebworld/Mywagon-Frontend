@@ -1929,3 +1929,21 @@
     gap: 8px;
   }
 }
+
+@keyframes wizardSlideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.wizard-location-preview-pane .detail-pane {
+  width: 100%;
+  border-left: none;
+}
+
+.wizard-location-preview-pane .detail-pane.open {
+  width: 100%;
+}
