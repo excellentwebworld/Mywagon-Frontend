@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { createShipmentService, ApiError } from '../../../api';
 import { draftToFormValues, formValuesToStepOnePayload } from '../../../api/mappers/createShipmentMapper';
@@ -26,9 +26,9 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   const [loadedValues, setLoadedValues] = useState<WizardFormValues | null>(null);
   const [stepNavigationError, setStepNavigationError] = useState<string | null>(null);
   const [validationRequest, setValidationRequest] = useState(0);
-  const loadAttemptedRef = useRef<string | null>(null);
 
   const defaultValues = useMemo(() => buildDefaultWizardValues(), []);
+  const draftUrlId = searchParams.get('id');
 
   const syncUrl = useCallback(
     (nextStep: number, nextId: number | null) => {
@@ -89,29 +89,27 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   }, [searchParams]);
 
   useEffect(() => {
-    const urlId = searchParams.get('id');
-    if (!urlId) {
+    if (!draftUrlId) {
       setDraftLoaded(true);
       setLoadedValues(null);
+      setIsLoading(false);
       return;
     }
-
-    if (loadAttemptedRef.current === urlId) return;
-    loadAttemptedRef.current = urlId;
 
     let cancelled = false;
     setIsLoading(true);
     setLoadError(null);
+    setDraftLoaded(false);
 
     createShipmentService
-      .getDraft(urlId)
+      .getDraft(draftUrlId)
       .then((draft) => {
         if (cancelled) return;
         const mapped = draftToFormValues(draft, defaultValues);
         setShipmentId(draft.id);
         setLoadId(draft.auto_id);
         setLoadedValues(mapped);
-        setStepState(draft.wizard_step || parseStep(searchParams.get('step')));
+        setStepState(draft.wizard_step || 1);
         setDraftLoaded(true);
       })
       .catch((err: unknown) => {
@@ -123,7 +121,6 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setLoadError(message);
         showToast(message, 'error');
         setDraftLoaded(true);
-        loadAttemptedRef.current = null;
         setSearchParams(
           (prev) => {
             const params = new URLSearchParams(prev);
@@ -135,13 +132,13 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         );
       })
       .finally(() => {
-        if (!cancelled) setIsLoading(false);
+        setIsLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [defaultValues, searchParams, setSearchParams, showToast, t]);
+  }, [draftUrlId, defaultValues, setSearchParams, showToast, t]);
 
   const ensureDraftId = useCallback(async (): Promise<number> => {
     if (shipmentId) return shipmentId;

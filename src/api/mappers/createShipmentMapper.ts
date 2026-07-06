@@ -1,4 +1,5 @@
 import type { ApiStop, ApiWizardState, SaveStepOnePayload } from '../types/createShipment';
+import { createNewCargoLine, createNewStop } from '../../components/CreateShipmentWizard/types';
 
 export interface WizardFormValues {
   loadId: string;
@@ -43,17 +44,36 @@ export function formValuesToStepOnePayload(
 }
 
 export function draftToFormValues(
-  draft: { auto_id: string; customer_reference?: string | null; wizard_state?: ApiWizardState },
+  draft: { auto_id: string; customer_reference?: string | null; wizard_state?: ApiWizardState | unknown },
   defaults: WizardFormValues
 ): WizardFormValues {
-  const state = draft.wizard_state || {};
+  const rawState = draft.wizard_state;
+  const state: ApiWizardState =
+    rawState && typeof rawState === 'object' && !Array.isArray(rawState)
+      ? (rawState as ApiWizardState)
+      : {};
+
+  const stops =
+    Array.isArray(state.stops) && state.stops.length > 0
+      ? state.stops.map((stop) => ({
+          ...createNewStop(false),
+          ...stop,
+          lines:
+            Array.isArray(stop.lines) && stop.lines.length > 0
+              ? stop.lines.map((line) => ({
+                  ...createNewCargoLine(),
+                  ...line,
+                }))
+              : [createNewCargoLine()],
+        }))
+      : defaults.stops;
 
   return {
     ...defaults,
     loadId: draft.auto_id || state.loadId || defaults.loadId,
     custRef: draft.customer_reference ?? state.custRef ?? defaults.custRef,
     coOwners: state.coOwners ?? defaults.coOwners,
-    stops: state.stops?.length ? state.stops : defaults.stops,
+    stops,
     itineraryConfirmed: state.itineraryConfirmed ?? defaults.itineraryConfirmed,
     vehicleSpecs: state.vehicleSpecs ?? defaults.vehicleSpecs,
     broadcastType: state.broadcastType ?? defaults.broadcastType,
