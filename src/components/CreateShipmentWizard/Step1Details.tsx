@@ -1170,9 +1170,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const MISSING = new Set<string>();
   const conflictCount = useMemo(() => {
-    if (showAll) return blockers.length + warnings.length;
-    return allConflicts.filter((c) => c.severity !== 'info' && !MISSING.has(c.code)).length;
-  }, [allConflicts, blockers, warnings, showAll]);
+    if (!showAll) return 0;
+    return blockers.length + warnings.length;
+  }, [blockers, warnings, showAll]);
 
   const expandStopForValidation = useCallback(
     (stopIndex: number) => {
@@ -1225,48 +1225,21 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   }, [onContinue]);
 
   const handleSaveDraftClick = useCallback(async () => {
+    setShowAll(true);
     try {
       await onSaveDraft();
       setLastSaved(new Date());
     } catch {
       // Error toast handled by parent
     }
-  }, [onSaveDraft]);
+  }, [onSaveDraft, setShowAll]);
 
   const stopConflicts = useCallback(
     (idx: number) => {
-      return allConflicts.filter((c) => c.stopIndex === idx && (showAll || !MISSING.has(c.code)));
+      if (!showAll) return [];
+      return allConflicts.filter((c) => c.stopIndex === idx);
     },
     [allConflicts, showAll]
-  );
-
-  const LOC_CODES = new Set(['L1', 'L2', 'L4']);
-  const DATE_CODES = new Set(['D1', 'D2', 'D3', 'D4', 'D5', 'D7', 'D8', 'S1', 'S2']);
-  const CARGO_CODES = new Set(['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'O1', 'O2', 'O3', 'S4', 'X4']);
-
-  const hintsFor = useCallback(
-    (idx: number, codeSet: Set<string>) => {
-      const hits = stopConflicts(idx).filter((c) => codeSet.has(c.code));
-      if (!hits.length) return null;
-      return hits.map((c, ci) => (
-        <div
-          key={ci}
-          className="flex items-center gap-1 mt-1 text-[10px]"
-          style={{
-            color: c.severity === 'blocker' ? '#DC2626' : c.severity === 'warning' ? '#D97706' : '#2563EB',
-          }}
-        >
-          <AlertTriangle size={9} className="shrink-0" />
-          <span>{translateConflict(c, t)}</span>
-        </div>
-      ));
-    },
-    [stopConflicts, t]
-  );
-
-  const globalBlockers = useMemo(
-    () => blockers.filter((conflict) => conflict.stopIndex < 0),
-    [blockers]
   );
 
   return (
@@ -1445,19 +1418,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
       <LoadBalanceBar bal={bal} balExp={balExp} setBalExp={setBalExp} fmtW={fmtW} T={T} t={t} />
 
-      {showAll && blockers.length > 0 && (
-        <div className="wizard-validation-banner" role="alert" data-validation-anchor="wizard-global">
-          <AlertTriangle size={16} className="shrink-0 mt-0.5" />
-          <div>
-            <div>{t('validationFixFieldsBelow')}</div>
-            {globalBlockers.length > 0 && (
-              <div className="mt-1 text-[11px] font-medium">
-                {globalBlockers.map((conflict) => translateConflict(conflict, t)).join(' · ')}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ═══ TIMELINE ═══ */}
       <div className="relative" style={{ paddingLeft: 18 }}>
@@ -1709,7 +1669,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           Location
                         </label>
                         <div
-                          className={`flex items-center gap-1 ${invalidFieldClass(`stop-${idx}-location`)}`}
+                          className="flex items-center gap-1"
                           data-validation-anchor={`stop-${idx}-location`}
                         >
                           <div className="flex-1 min-w-0">
@@ -1731,12 +1691,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           show={showAll}
                           t={t}
                         />
-                        {hintsFor(idx, LOC_CODES)}
                       </div>
 
                       {/* Appointment Row — Fixed Time only */}
                       <div
-                        className={`flex items-end gap-2 flex-wrap ${invalidFieldClass(`stop-${idx}-date`)}`}
+                        className="flex items-end gap-2 flex-wrap"
                         data-validation-anchor={`stop-${idx}-date`}
                       >
                         <div>
@@ -1746,12 +1705,14 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           <div className="flex gap-1">
                             <input
                               type="date"
+                              className={invalidFieldClass(`stop-${idx}-date`)}
                               style={{ ...iS, width: 125 }}
                               value={stop.dateFrom}
                               onChange={(e) => uStop(stop.id, { dateFrom: e.target.value })}
                             />
                             <input
                               type="time"
+                              className={invalidFieldClass(`stop-${idx}-date`)}
                               style={{ ...iS, width: 90 }}
                               value={stop.timeFrom}
                               onChange={(e) => uStop(stop.id, { timeFrom: e.target.value })}
@@ -1785,7 +1746,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         show={showAll}
                         t={t}
                       />
-                      {hintsFor(idx, DATE_CODES)}
                     </div>
 
                     {/* Cargo Lines Table */}
@@ -1825,7 +1785,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         previewCustomer={previewCustomer}
                         previewOrder={previewOrder}
                       />
-                      {hintsFor(idx, CARGO_CODES)}
                     </div>
 
                     {/* Footer Checkmark actions */}
