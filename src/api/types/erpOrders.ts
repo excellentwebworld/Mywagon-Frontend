@@ -42,6 +42,7 @@ export interface ApiErpOrderListItem {
   product_count: number;
   status: ErpOrderStatus;
   high_priority: boolean;
+  order_value?: number | null;
   linked_load_sid?: string | null;
   linked_load_id?: number | null;
   updated_at?: string | null;
@@ -88,6 +89,7 @@ export interface ErpOrderFormPayload {
   delivery_date: string;
   notes?: string | null;
   high_priority?: boolean;
+  order_value?: number | null;
   lines?: ApiErpOrderLine[];
 }
 

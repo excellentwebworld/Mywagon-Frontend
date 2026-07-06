@@ -20,7 +20,7 @@ import {
   formatWeightKg,
   TRUCK_WEIGHT_CAP_KG,
 } from './itinerary/cargoUtils';
-import { buildOrdersCardData } from './itinerary/stopGrouping';
+import { buildOrdersCardData, groupStopLinesByCustomer } from './itinerary/stopGrouping';
 import { formatAppointmentLabel } from './itinerary/scheduleWarnings';
 import { computeItineraryFingerprint } from './itineraryFingerprint';
 import { hasVehicleSelection } from './vehicleTypes';
@@ -69,7 +69,11 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
   const missingLocations = enrichedStops.some((s) => !s.locationId);
   const vehicleSelected = hasVehicleSelection(values.vehicleSpecs);
   const canContinue =
-    !missingLocations && vehicleSelected && values.itineraryConfirmed && !isSaving;
+    !missingLocations &&
+    vehicleSelected &&
+    values.vehicleSelectionConfirmed &&
+    values.itineraryConfirmed &&
+    !isSaving;
 
   const handleConfirmAndContinue = async () => {
     if (!canContinue) return;
@@ -205,7 +209,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                         </div>
                         {stop.customers.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-1">
-                            {stop.customers.map((c, ci) => (
+                            {stop.customers.slice(0, 2).map((c, ci) => (
                               <span
                                 key={ci}
                                 className="text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1"
@@ -218,6 +222,14 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                                 🏪 {c.name}
                               </span>
                             ))}
+                            {stop.customers.length > 2 && (
+                              <span
+                                className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                                style={{ background: T.sa, color: T.t2, border: `1px solid ${T.bd}` }}
+                              >
+                                +{stop.customers.length - 2}
+                              </span>
+                            )}
                           </div>
                         )}
                         <div className="flex items-center gap-2 mt-1">
@@ -260,38 +272,51 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                         >
                           {t('step2CargoAtStop')}
                         </div>
-                        {(stop.lines || []).map((l: any, li: number) => (
-                          <div
-                            key={li}
-                            className="flex items-center gap-3 py-1.5 text-xs flex-wrap"
-                            style={{
-                              borderBottom:
-                                li < (stop.lines?.length || 0) - 1 ? `0.5px solid ${T.bd}` : 'none',
-                            }}
-                          >
-                            <span
-                              className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                              style={{
-                                background: l.action === 'pickup' ? '#DBEAFE' : '#D1FAE5',
-                                color: l.action === 'pickup' ? '#2563EB' : '#059669',
-                              }}
-                            >
-                              {l.action === 'pickup' ? '↑' : '↓'}
-                            </span>
-                            <span className="font-medium flex-1 min-w-[80px]" style={{ color: T.t1 }}>
-                              {l.productName || '—'}
-                            </span>
-                            <span style={{ color: T.t2 }}>
-                              {l.qty} {l.unit || ''}
-                            </span>
-                            <span style={{ color: T.t3 }}>
-                              {formatWeightDisplay(l.weight, l.wtUnit)}
-                            </span>
-                            {l.customerName && (
-                              <span className="text-[10px]" style={{ color: '#059669' }}>
-                                🏪 {l.customerName}
-                              </span>
+                        {groupStopLinesByCustomer(stop).map((customerGroup, gi) => (
+                          <div key={gi} className="mb-3 last:mb-0">
+                            {customerGroup.name && (
+                              <div className="text-[10px] font-semibold mb-1" style={{ color: '#059669' }}>
+                                🏪 {customerGroup.name}
+                              </div>
                             )}
+                            {customerGroup.orders.map((orderGroup, oi) => (
+                              <div key={oi} className="mb-2 last:mb-0">
+                                {(orderGroup.orderRef || orderGroup.orderId) && (
+                                  <div className="text-[10px] font-mono mb-1" style={{ color: T.t2 }}>
+                                    {orderGroup.orderRef || orderGroup.orderId}
+                                  </div>
+                                )}
+                                {orderGroup.lines.map((l, li) => (
+                                  <div
+                                    key={li}
+                                    className="flex items-center gap-3 py-1.5 text-xs flex-wrap"
+                                    style={{
+                                      borderBottom:
+                                        li < orderGroup.lines.length - 1 ? `0.5px solid ${T.bd}` : 'none',
+                                    }}
+                                  >
+                                    <span
+                                      className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                                      style={{
+                                        background: l.action === 'pickup' ? '#DBEAFE' : '#D1FAE5',
+                                        color: l.action === 'pickup' ? '#2563EB' : '#059669',
+                                      }}
+                                    >
+                                      {l.action === 'pickup' ? '↑' : '↓'}
+                                    </span>
+                                    <span className="font-medium flex-1 min-w-[80px]" style={{ color: T.t1 }}>
+                                      {l.productName || '—'}
+                                    </span>
+                                    <span style={{ color: T.t2 }}>
+                                      {l.qty} {l.unit || ''}
+                                    </span>
+                                    <span style={{ color: T.t3 }}>
+                                      {formatWeightDisplay(l.weight, l.wtUnit)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
                           </div>
                         ))}
                       </div>

@@ -17,16 +17,13 @@ export function matchContractLane(
   const destination = normalizeCity(deliveryCity);
 
   if (origin && destination) {
-    const matched = lanes.find(
+    return lanes.find(
       (lane) =>
         normalizeCity(lane.origin) === origin && normalizeCity(lane.destination) === destination
     );
-    if (matched) {
-      return matched;
-    }
   }
 
-  return lanes[0];
+  return undefined;
 }
 
 export function resolveRouteCities(stops: Array<{ locationCity?: string; lines?: Array<{ action?: string }> }>): {

@@ -11,6 +11,7 @@ interface RouteMapProps {
   loading?: boolean;
   routeLabel?: string;
   mapType?: 'roadmap' | 'satellite';
+  height?: number;
   t: (key: string, params?: Record<string, unknown>) => string;
 }
 
@@ -22,6 +23,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   loading = false,
   routeLabel,
   mapType = 'roadmap',
+  height: heightProp,
   t,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -113,7 +115,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     };
   }, [mapsKey, pathSignature, directionsResult, stops, mapType]);
 
-  const height = expanded ? 340 : 300;
+  const height = heightProp ?? (expanded ? 340 : 300);
 
   if (!mapsKey || polylinePath.length === 0) {
     const center = polylinePath[0] || { lat: 37.983819, lng: 23.727539 };

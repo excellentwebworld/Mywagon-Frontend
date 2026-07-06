@@ -58,6 +58,7 @@ export function mapApiListItemToOrder(item: ApiErpOrderListItem): ErpOrder {
     linkedLoadId: item.linked_load_id ? String(item.linked_load_id) : '',
     updatedAt: item.updated_at ?? '',
     canEdit: item.can_edit,
+    orderValue: item.order_value ?? null,
     lines: [],
     notes: '',
     companyEntityId: null,
@@ -76,6 +77,7 @@ export function mapApiDetailToOrder(detail: ApiErpOrderDetail): ErpOrder {
     shipToAddress: detail.ship_to_address ?? '',
     linkedLoadStatus: detail.linked_load_status ?? '',
     notes: detail.notes ?? '',
+    orderValue: detail.order_value ?? null,
     lines: Array.isArray(detail.lines) ? detail.lines.map(mapApiLineToLine) : [],
   };
 }
@@ -92,6 +94,7 @@ export function formToPayload(form: ErpOrderFormPayload): ErpOrderFormPayload {
     delivery_date: form.delivery_date,
     notes: form.notes?.trim() || null,
     high_priority: !!form.high_priority,
+    order_value: form.order_value ?? null,
     lines: (form.lines ?? []).map((line) => ({
       product_sku_id: line.product_sku_id ?? null,
       product_name: line.product_name,

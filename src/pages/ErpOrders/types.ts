@@ -42,6 +42,7 @@ export interface ErpOrder {
   productCount: number;
   status: ErpOrderStatus;
   highPriority: boolean;
+  orderValue: number | null;
   linkedLoadSid: string;
   linkedLoadId: string;
   linkedLoadStatus?: string;
@@ -62,6 +63,7 @@ export interface ErpOrderFormState {
   deliveryDate: string;
   notes: string;
   highPriority: boolean;
+  orderValue: number | null;
   lines: ErpOrderLine[];
 }
 
@@ -85,6 +87,7 @@ export const EMPTY_ORDER_FORM: ErpOrderFormState = {
   deliveryDate: '',
   notes: '',
   highPriority: false,
+  orderValue: null,
   lines: [],
 };
 

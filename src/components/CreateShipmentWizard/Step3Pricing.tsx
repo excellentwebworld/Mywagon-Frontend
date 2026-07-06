@@ -12,7 +12,6 @@ import {
   Info,
   ChevronDown,
   ChevronRight,
-  MapPin,
   Sparkles,
   Smartphone,
   Star,
@@ -29,7 +28,15 @@ import { SearchableSelect } from '../ui/SearchableSelect';
 import { useCreateShipmentPartners } from '../../hooks/useCreateShipmentPartners';
 import { usePublicLoadQuota } from '../../hooks/usePublicLoadQuota';
 import { useAiSuggestedPrice } from '../../hooks/useAiSuggestedPrice';
-import { matchContractLane, resolveRouteCities } from '../../api/utils/matchContractLane';
+import { matchContractLane } from '../../api/utils/matchContractLane';
+import type { Step3Carrier } from '../../api/mappers/mapPartnerToStep3Carrier';
+import { enrichStops } from './itinerary/stopEnrichment';
+import { buildStopSummaryLabels, buildTrackingGroups } from './itinerary/buildTrackingGroups';
+import { computeTripTotals, formatDurationMin, formatWeightKg } from './itinerary/cargoUtils';
+import type { TrackingOrderItem } from './itinerary/buildTrackingGroups';
+import { useRouteLegs } from './itinerary/useRouteLegs';
+import { RouteMap } from './itinerary/RouteMap';
+import { addressBookService, erpOrdersService } from '../../api';
 
 const T = {
   bg: 'var(--bg)',
@@ -70,8 +77,34 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   const [aiExpanded, setAiExpanded] = useState(false);
   const [trackingExpanded, setTrackingExpanded] = useState(true);
   const [carrierQuery, setCarrierQuery] = useState('');
+  const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
+  const [emailLookup, setEmailLookup] = useState<{
+    byCustomerId: Record<string, string>;
+    byOrderId: Record<string, string>;
+  }>({ byCustomerId: {}, byOrderId: {} });
 
-  const { pickupCity, deliveryCity, routeLabel } = useMemo(() => resolveRouteCities(stops), [stops]);
+  const enrichedStops = useMemo(() => enrichStops(stops, locations), [stops, locations]);
+  const route = useRouteLegs(enrichedStops);
+  const tripTotals = useMemo(() => computeTripTotals(stops), [stops]);
+
+  const { pickupCity, deliveryCity, routeLabel } = useMemo(() => {
+    const firstPickup = enrichedStops.find((s) => s.hasPickup);
+    const lastDropoff = [...enrichedStops].reverse().find((s) => s.hasDropoff);
+    const pickup = firstPickup?.resolvedCity || firstPickup?.locationCity || undefined;
+    const delivery = lastDropoff?.resolvedCity || lastDropoff?.locationCity || undefined;
+    const label =
+      enrichedStops
+        .map((s) => s.resolvedCity || s.resolvedName || s.locationCity)
+        .filter(Boolean)
+        .join(' → ') || '—';
+    return { pickupCity: pickup, deliveryCity: delivery, routeLabel: label };
+  }, [enrichedStops]);
+
+  const hasMatchingContract = (carrier: Step3Carrier) =>
+    Boolean(matchContractLane(carrier.contractLanes, pickupCity, deliveryCity));
+
+  const formatPartnerRating = (rating: number | null | undefined) =>
+    rating != null && rating > 0 ? `${rating.toFixed(1)}★` : '—';
 
   const carrierCompanies = useMemo(() => {
     return carriersList.filter((c) => c.type === 'carrier_company');
@@ -86,8 +119,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   }, [carriersList, values.selectedCarriers]);
 
   const contractCarrier = useMemo(() => {
-    return selectedCarriersDetails.find((c) => c.contractLanes && c.contractLanes.length > 0);
-  }, [selectedCarriersDetails]);
+    return selectedCarriersDetails.find((c) => hasMatchingContract(c));
+  }, [selectedCarriersDetails, pickupCity, deliveryCity]);
 
   const contract = useMemo(() => {
     return matchContractLane(contractCarrier?.contractLanes, pickupCity, deliveryCity);
@@ -115,68 +148,28 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
     return types.join(', ') + specPart;
   }, [values.vehicleSpecs, lang, vehicleTypes]);
 
-  // 2. STATS & PRICING
-  const totalPallets = useMemo(() => {
-    let p = 0;
-    stops.forEach((s: any) =>
-      (s.lines || []).forEach((l: any) => {
-        if (l.action === 'pickup') p += parseFloat(l.qty) || 0;
-      })
-    );
-    return p;
-  }, [stops]);
-
-  const totalWeightKg = useMemo(() => {
-    let weight = 0;
-    stops.forEach((s: any) =>
-      (s.lines || []).forEach((l: any) => {
-        if (l.action === 'pickup') weight += parseFloat(l.weight) || 0;
-      })
-    );
-    return weight;
-  }, [stops]);
-
-  const customerCount = useMemo(() => {
-    const names = new Set<string>();
-    stops.forEach((s: any) =>
-      (s.lines || []).forEach((l: any) => {
-        if (l.customerName) names.add(l.customerName);
-      })
-    );
-    return names.size;
-  }, [stops]);
-
-  const orderCount = useMemo(() => {
-    const orders = new Set<string>();
-    stops.forEach((s: any) =>
-      (s.lines || []).forEach((l: any) => {
-        const key = l.orderId || l.orderRef;
-        if (key) orders.add(String(key));
-      })
-    );
-    return orders.size;
-  }, [stops]);
+  const totalPallets = tripTotals.totalPallets;
+  const totalWeightKg = tripTotals.totalWeightKg;
+  const customerCount = tripTotals.uniqueCustomers.size;
+  const orderCount = tripTotals.orderCount;
 
   const formattedDriveTime = useMemo(() => {
-    const minutes = values.routeSummary?.totalDriveMin || 0;
+    const minutes =
+      route.totalDriveMin > 0 ? route.totalDriveMin : values.routeSummary?.totalDriveMin || 0;
     if (!minutes) return '—';
-    const hours = Math.floor(minutes / 60);
-    const mins = Math.round(minutes % 60);
-    if (hours <= 0) return `${mins}m`;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-  }, [values.routeSummary?.totalDriveMin]);
+    return formatDurationMin(minutes);
+  }, [route.totalDriveMin, values.routeSummary?.totalDriveMin]);
 
-  const formattedWeight = useMemo(() => {
-    if (totalWeightKg <= 0) return '0';
-    if (totalWeightKg >= 1000) return (totalWeightKg / 1000).toFixed(1);
-    return String(Math.round(totalWeightKg));
-  }, [totalWeightKg]);
-
-  const weightUnit = totalWeightKg >= 1000 ? 'T' : 'kg';
+  const formattedWeight = useMemo(
+    () => (totalWeightKg > 0 ? formatWeightKg(totalWeightKg) : '—'),
+    [totalWeightKg]
+  );
 
   const totalKm = values.routeSummary?.totalDistKm || 0;
+  const displayKm = route.totalDistKm > 0 ? route.totalDistKm : totalKm;
+
   const targetPriceVal = parseFloat(values.targetPrice) || 0;
-  const pricePerKm = targetPriceVal > 0 && totalKm > 0 ? (targetPriceVal / totalKm).toFixed(2) : '0.00';
+  const pricePerKm = targetPriceVal > 0 && displayKm > 0 ? (targetPriceVal / displayKm).toFixed(2) : '0.00';
   const palletDivisor = totalPallets > 0 ? totalPallets : 1;
   const pricePerPallet = targetPriceVal > 0 ? (targetPriceVal / palletDivisor).toFixed(2) : '0.00';
   const publicQuotaBlocked = values.broadcastType === 'public' && publicQuota?.status === false;
@@ -191,90 +184,126 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
     if (aiPriceData?.recommended_price && aiPriceData.recommended_price > 0) {
       return aiPriceData.recommended_price;
     }
-    return 750;
+    return 0;
   }, [contract, totalPallets, aiPriceData?.recommended_price]);
 
   // Set default price when carriers selection changes
   useEffect(() => {
-    if (!values.targetPrice) {
+    if (!values.targetPrice && calculatedPrice > 0) {
       setFieldValue('targetPrice', String(calculatedPrice));
     }
   }, [calculatedPrice, values.targetPrice, setFieldValue]);
 
-  // Override status
-  const isOverride = targetPriceVal !== calculatedPrice;
+  const trackingGroups = useMemo(
+    () => buildTrackingGroups(stops, locations, emailLookup),
+    [stops, locations, emailLookup]
+  );
 
-  // 3. TRACKING LINK GROUPED BY CUSTOMERS
-  const orderLinesGrouped = useMemo(() => {
-    const groups: Record<string, any[]> = {};
-    const ungrouped: any[] = [];
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([addressBookService.listCompanyEntities(), erpOrdersService.listCustomers()])
+      .then(([entities, customers]) => {
+        if (cancelled) return;
+        const byCustomerId: Record<string, string> = {};
+        [...entities, ...customers].forEach((entity) => {
+          if (entity.id && entity.email) {
+            byCustomerId[String(entity.id)] = entity.email;
+          }
+        });
+        setEmailLookup((prev) => ({ ...prev, byCustomerId }));
+      })
+      .catch(() => {});
 
-    stops.forEach((s: any) =>
-      s.lines.forEach((l: any) => {
-        if (l.productId) {
-          const orderId = l.orderId || l.orderRef || `PAR-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-          const route = `Ioannina → ${s.locationCity || 'Mandra'}`;
-          const loc = `${s.locationName || 'MANDRA EO Elefsinas'}, ${s.locationCity || 'Attica'}`;
-          const item = {
-            orderId,
-            route,
-            location: loc,
-            customerName: l.customerName,
-          };
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-          const key = l.customerName || '__none__';
-          if (key === '__none__') {
-            ungrouped.push(item);
-          } else {
-            if (!groups[key]) groups[key] = [];
-            if (!groups[key].some((x) => x.orderId === orderId)) {
-              groups[key].push(item);
-            }
+  useEffect(() => {
+    const orderIds = [
+      ...new Set<string>(
+        stops.flatMap((s: any) =>
+          (s.lines || [])
+            .map((l: any) => (l.orderId ? String(l.orderId) : ''))
+            .filter((id: string) => id.length > 0)
+        )
+      ),
+    ];
+    if (orderIds.length === 0) return;
+
+    let cancelled = false;
+
+    const loadOrders = (byCustomerId: Record<string, string>) =>
+      Promise.all(orderIds.map((id) => erpOrdersService.getOrder(id))).then((orders) => {
+        if (cancelled) return;
+
+        const byOrderId: Record<string, string> = {};
+        orders.forEach((order) => {
+          const email =
+            order.companyEntityId != null
+              ? byCustomerId[String(order.companyEntityId)]
+              : undefined;
+          if (email) {
+            byOrderId[order.id] = email;
+          }
+        });
+
+        setEmailLookup((prev) => ({
+          ...prev,
+          byCustomerId: { ...prev.byCustomerId, ...byCustomerId },
+          byOrderId: { ...prev.byOrderId, ...byOrderId },
+        }));
+
+        if (!values.orderValue) {
+          const sum = orders.reduce((acc, order) => acc + (order.orderValue ?? 0), 0);
+          if (sum > 0) {
+            setFieldValue('orderValue', String(Math.round(sum * 100) / 100));
           }
         }
+      });
+
+    Promise.all([addressBookService.listCompanyEntities(), erpOrdersService.listCustomers()])
+      .then(([entities, customers]) => {
+        const byCustomerId: Record<string, string> = {};
+        [...entities, ...customers].forEach((entity) => {
+          if (entity.id && entity.email) {
+            byCustomerId[String(entity.id)] = entity.email;
+          }
+        });
+        return loadOrders(byCustomerId);
       })
-    );
+      .catch(() => {});
 
-    // Fallback if no lines added
-    if (Object.keys(groups).length === 0 && ungrouped.length === 0) {
-      groups['Alpha Foods Ltd'] = [
-        { orderId: 'PAR-12345', route: 'Ioannina → Mandra', location: 'MANDRA EO Elefsinas, Attica', customerName: 'Alpha Foods Ltd' },
-        { orderId: 'PAR-99001', route: 'Ioannina → Mandra', location: 'MANDRA EO Elefsinas, Attica', customerName: 'Gamma Logistics' }
-      ];
-      groups['Beta Distributors'] = [
-        { orderId: 'PAR-54321', route: 'Ioannina → Kalyvia', location: 'Kalyvia Thorikou, Attica', customerName: 'Beta Distributors' }
-      ];
-    }
+    return () => {
+      cancelled = true;
+    };
+  }, [stops, values.orderValue, setFieldValue]);
 
-    return { groups, ungrouped };
-  }, [stops]);
+  // Override status
+  const isOverride = targetPriceVal !== calculatedPrice;
 
   // Collapsible tracking groups state
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
-  // Prefill default email lists per orderId
+  // Prefill default email lists per orderId from customer company data
   useEffect(() => {
     const nextEmails = { ...values.trackingEmails };
     let changed = false;
 
-    // Scan groups
-    Object.values(orderLinesGrouped.groups).flat().forEach((o: any) => {
-      if (!nextEmails[o.orderId]) {
-        // Mock emails mapping
-        const defaults: Record<string, string[]> = {
-          'PAR-12345': ['contact@alphafoods.com', ''],
-          'PAR-99001': ['ops@gammalogistics.gr'],
-          'PAR-54321': [''],
-        };
-        nextEmails[o.orderId] = defaults[o.orderId] || [''];
-        changed = true;
-      }
-    });
+    Object.values(trackingGroups.groups)
+      .flat()
+      .concat(trackingGroups.ungrouped)
+      .forEach((order) => {
+        if (!nextEmails[order.orderId]) {
+          nextEmails[order.orderId] = order.defaultEmail ? [order.defaultEmail] : [''];
+          changed = true;
+        }
+      });
 
     if (changed) {
       setFieldValue('trackingEmails', nextEmails);
     }
-  }, [orderLinesGrouped, values.trackingEmails, setFieldValue]);
+  }, [trackingGroups, values.trackingEmails, setFieldValue]);
 
   // Tracking operations
   const addEmailField = (orderId: string) => {
@@ -305,7 +334,59 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   const matchesFilter = (c: any) => {
     if (!carrierQuery) return true;
     const q = carrierQuery.toLowerCase();
-    return c.name.toLowerCase().includes(q) || (c.city || c.region || 'Athens').toLowerCase().includes(q);
+    return c.name.toLowerCase().includes(q) || (c.region || '—').toLowerCase().includes(q);
+  };
+
+  const renderTrackingOrder = (o: TrackingOrderItem) => {
+    const emailList = values.trackingEmails[o.orderId] || [''];
+    return (
+      <div key={o.orderId} className="pt-2 first:pt-0">
+        <div className="text-xs font-bold font-mono text-indigo-600">
+          {o.orderRef || o.orderId}
+        </div>
+        <div className="text-[10px] text-slate-400">{o.route}</div>
+        <div className="text-[10px] text-slate-700 font-medium mt-0.5">{o.location}</div>
+
+        <div className="space-y-1.5 mt-2">
+          {emailList.map((em: string, emIdx: number) => {
+            const isAuto = Boolean(o.defaultEmail && em === o.defaultEmail);
+            return (
+              <div key={emIdx}>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    className="flex-1 p-2 border rounded-lg text-xs outline-none"
+                    placeholder="email@example.com"
+                    value={em}
+                    onChange={(e) => updateEmailField(o.orderId, emIdx, e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="w-8 h-8 rounded-lg border flex items-center justify-center bg-white text-slate-400 hover:text-red-500"
+                    onClick={() => removeEmailField(o.orderId, emIdx)}
+                  >
+                    ✕
+                  </button>
+                </div>
+                {isAuto && (
+                  <div className="text-[9px] font-semibold text-teal-600 mt-0.5">
+                    🏪 {t('trackingAutofill') || 'Auto-filled from customer'}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          className="w-full py-1.5 border border-dashed rounded-lg text-[10px] font-bold text-indigo-700 bg-transparent cursor-pointer mt-2"
+          onClick={() => addEmailField(o.orderId)}
+        >
+          {t('addEmail') || '+ Add email'}
+        </button>
+      </div>
+    );
   };
 
   return (
@@ -400,7 +481,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                     </div>
                   ) : publicQuota && publicQuota.limit !== undefined && publicQuota.limit > 0 && publicQuota.limit < 10000 ? (
                     <div className="bg-sky-50 text-sky-800 p-3 rounded-lg text-xs">
-                      {`Public loads this cycle: ${publicQuota.used ?? 0} / ${publicQuota.limit ?? 0} used (${publicQuota.remaining ?? 0} remaining)`}
+                      {t('publicQuotaBanner', {
+                        used: publicQuota.used ?? 0,
+                        limit: publicQuota.limit ?? 0,
+                        remaining: publicQuota.remaining ?? 0,
+                      })}
                     </div>
                   ) : publicQuota?.status ? (
                     <div className="bg-sky-50 text-sky-800 p-3 rounded-lg text-xs">
@@ -427,10 +512,6 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                     value={carrierQuery}
                     onChange={(e) => setCarrierQuery(e.target.value)}
                   />
-
-                  <div className="text-xs font-semibold mb-2" style={{ color: T.ac, cursor: 'pointer' }}>
-                    {t('invitePartner') || '＋ Invite new partner carrier'}
-                  </div>
 
                   {partnersLoading && (
                     <div className="text-xs text-slate-500 py-2">{t('partnersLoading') || 'Loading partners...'}</div>
@@ -473,7 +554,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                               <div className="flex-1 min-w-0">
                                 <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                                   {c.name}
-                                  {(c.contractLanes && c.contractLanes.length > 0) ? (
+                                  {(hasMatchingContract(c)) ? (
                                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-indigo-700 bg-violet-100">
                                       {t('contract') || 'CONTRACT'}
                                     </span>
@@ -484,7 +565,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                                   )}
                                 </div>
                                 <div className="text-[10px] text-slate-400">
-                                  {(c as any).city || c.region || 'Athens'} · {c.rating}★ · {c.loadsLifetime} {t('trips') || 'trips'}
+                                  {(c as any).city || c.region || '—'} · {formatPartnerRating(c.rating)} · {c.loadsLifetime} {t('trips') || 'trips'}
                                 </div>
                                 <div className="flex gap-1 mt-1">
                                   {(c.trucks || []).map((t: any, ti: number) => (
@@ -537,7 +618,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                                   {c.name}
                                 </div>
                                 <div className="text-[10px] text-slate-400">
-                                  {(c as any).city || c.region || 'Athens'} · {c.rating}★ · {c.loadsLifetime} {t('trips') || 'trips'}
+                                  {(c as any).city || c.region || '—'} · {formatPartnerRating(c.rating)} · {c.loadsLifetime} {t('trips') || 'trips'}
                                 </div>
                                 <div className="flex gap-1 mt-1">
                                   {(c.trucks || []).map((t: any, ti: number) => (
@@ -569,14 +650,14 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                             <div>
                               <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                                 {c.name}
-                                {(c.contractLanes && c.contractLanes.length > 0) && (
+                                {(hasMatchingContract(c)) && (
                                   <span className="text-[8px] font-bold px-1 rounded text-indigo-700 bg-violet-200">
                                     {t('contract') || 'CONTRACT'}
                                   </span>
                                 )}
                               </div>
                               <div className="text-[10px] text-slate-500">
-                                {(c as any).city || c.region || 'Athens'} · {c.rating}★ · {c.type} · {c.trucks?.map((t: any) => t.type).join(', ') || 'Tilt, Curtainsider'}
+                                {c.region || '—'} · {formatPartnerRating(c.rating)} · {c.type} · {c.trucks?.map((tr: any) => tr.type).join(', ') || selectedVehicleTypesStr}
                               </div>
                             </div>
                           </div>
@@ -613,87 +694,51 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
 
             {trackingExpanded && (
               <div className="cb p-5 space-y-3">
-                {/* Loop grouped customer orders */}
-                {Object.entries(orderLinesGrouped.groups).map(([custName, orders]) => {
-                  const collapsed = collapsedGroups[custName] || false;
-                  return (
-                    <div key={custName} className="border rounded-lg overflow-hidden">
-                      <div
-                        className="flex items-center gap-2 px-3 py-2 cursor-pointer bg-teal-50 text-xs font-bold text-teal-800"
-                        onClick={() =>
-                          setCollapsedGroups((p) => ({ ...p, [custName]: !collapsed }))
-                        }
-                      >
-                        <span className={`transform transition-transform text-[9px] ${!collapsed ? 'rotate-90' : ''}`}>▶</span>
-                        <span>🏪</span>
-                        <span className="flex-1 truncate">{custName}</span>
-                        <span className="text-[10px] font-normal text-slate-500">
-                          {orders.length} {orders.length === 1 ? (t('order') || 'order') : (t('orders') || 'orders')}
-                        </span>
-                      </div>
+                {trackingGroups.isEmpty ? (
+                  <div className="text-xs text-slate-500 py-2">
+                    {t('trackingLinksEmpty') || 'Add cargo lines with linked orders in Step 1 to configure tracking links.'}
+                  </div>
+                ) : (
+                  <>
+                    {Object.entries(trackingGroups.groups).map(([custName, orders]) => {
+                      const collapsed = collapsedGroups[custName] || false;
+                      return (
+                        <div key={custName} className="border rounded-lg overflow-hidden">
+                          <div
+                            className="flex items-center gap-2 px-3 py-2 cursor-pointer bg-teal-50 text-xs font-bold text-teal-800"
+                            onClick={() =>
+                              setCollapsedGroups((p) => ({ ...p, [custName]: !collapsed }))
+                            }
+                          >
+                            <span className={`transform transition-transform text-[9px] ${!collapsed ? 'rotate-90' : ''}`}>▶</span>
+                            <span>🏪</span>
+                            <span className="flex-1 truncate">{custName}</span>
+                            <span className="text-[10px] font-normal text-slate-500">
+                              {orders.length} {orders.length === 1 ? (t('order') || 'order') : (t('orders') || 'orders')}
+                            </span>
+                          </div>
 
-                      {!collapsed && (
-                        <div className="p-3 divide-y space-y-3">
-                          {orders.map((o) => {
-                            const emailList = values.trackingEmails[o.orderId] || [''];
-                            return (
-                              <div key={o.orderId} className="pt-2 first:pt-0">
-                                <div className="text-xs font-bold font-mono text-indigo-600">
-                                  {o.orderId}
-                                </div>
-                                <div className="text-[10px] text-slate-400">
-                                  {o.route}
-                                </div>
-                                <div className="text-[10px] text-slate-700 font-medium mt-0.5">
-                                  {o.location}
-                                </div>
-
-                                <div className="space-y-1.5 mt-2">
-                                  {emailList.map((em: string, emIdx: number) => {
-                                    const isAuto = em && em === 'contact@alphafoods.com'; // or mock checks
-                                    return (
-                                      <div key={emIdx}>
-                                        <div className="flex gap-2">
-                                          <input
-                                            type="email"
-                                            className="flex-1 p-2 border rounded-lg text-xs outline-none"
-                                            placeholder="email@example.com"
-                                            value={em}
-                                            onChange={(e) => updateEmailField(o.orderId, emIdx, e.target.value)}
-                                          />
-                                          <button
-                                            type="button"
-                                            className="w-8 h-8 rounded-lg border flex items-center justify-center bg-white text-slate-400 hover:text-red-500"
-                                            onClick={() => removeEmailField(o.orderId, emIdx)}
-                                          >
-                                            ✕
-                                          </button>
-                                        </div>
-                                        {isAuto && (
-                                          <div className="text-[9px] font-semibold text-teal-600 mt-0.5">
-                                            🏪 {t('trackingAutofill') || 'Auto-filled from customer'}
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-
-                                <button
-                                  type="button"
-                                  className="w-full py-1.5 border border-dashed rounded-lg text-[10px] font-bold text-indigo-700 bg-transparent cursor-pointer mt-2"
-                                  onClick={() => addEmailField(o.orderId)}
-                                >
-                                  {t('addEmail') || '+ Add email'}
-                                </button>
-                              </div>
-                            );
-                          })}
+                          {!collapsed && (
+                            <div className="p-3 divide-y space-y-3">
+                              {orders.map((o) => renderTrackingOrder(o))}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+
+                    {trackingGroups.ungrouped.length > 0 && (
+                      <div className="border rounded-lg overflow-hidden">
+                        <div className="px-3 py-2 bg-slate-50 text-xs font-bold text-slate-700">
+                          {t('trackingUngroupedOrders') || 'Other orders'}
+                        </div>
+                        <div className="p-3 divide-y space-y-3">
+                          {trackingGroups.ungrouped.map((o) => renderTrackingOrder(o))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -704,17 +749,35 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
           
           {/* MINI MAP & SUMMARY */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12, overflow: 'hidden' }}>
-            <div className="relative bg-slate-200 flex items-center justify-center" style={{ height: 180 }}>
-              <div className="text-center text-xs text-slate-400">
-                <MapPin size={32} className="mx-auto mb-1 opacity-40" />
-                {routeLabel}
+            <div className="relative">
+              <div className="absolute top-2 left-2 z-10 flex rounded-md overflow-hidden border bg-white shadow-sm" style={{ borderColor: T.bd }}>
+                <button
+                  type="button"
+                  className={`px-2.5 py-1 text-[10px] font-semibold ${mapType === 'roadmap' ? 'text-white' : ''}`}
+                  style={{ background: mapType === 'roadmap' ? T.ac : 'transparent', color: mapType === 'roadmap' ? '#fff' : T.t2 }}
+                  onClick={() => setMapType('roadmap')}
+                >
+                  {t('map') || 'Map'}
+                </button>
+                <button
+                  type="button"
+                  className={`px-2.5 py-1 text-[10px] font-semibold ${mapType === 'satellite' ? 'text-white' : ''}`}
+                  style={{ background: mapType === 'satellite' ? T.ac : 'transparent', color: mapType === 'satellite' ? '#fff' : T.t2 }}
+                  onClick={() => setMapType('satellite')}
+                >
+                  {t('satellite') || 'Satellite'}
+                </button>
               </div>
-              <button
-                type="button"
-                className="absolute top-2 right-2 w-7 h-7 bg-white rounded border flex items-center justify-center shadow-sm text-xs font-semibold"
-              >
-                ⛶
-              </button>
+              <RouteMap
+                stops={enrichedStops}
+                polylinePath={route.polylinePath}
+                directionsResult={route.directionsResult}
+                loading={route.loading}
+                routeLabel={routeLabel}
+                mapType={mapType}
+                height={200}
+                t={t}
+              />
             </div>
 
             <div className="ch flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: T.bd }}>
@@ -730,44 +793,44 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
 
             {/* Route timeline list */}
             <div className="p-4 space-y-4">
-              {stops.map((s: any, idx: number) => {
-                const isLast = idx === stops.length - 1;
-                const dotColor = idx === 0 ? 'bg-sky-500' : 'bg-emerald-500';
-                const detailStr = idx === 0 ? '2 pickups' : idx === 1 ? 'PAR-12345, PAR-99001' : 'PAR-54321';
-                
+              {enrichedStops.map((stop, idx) => {
+                const isLast = idx === enrichedStops.length - 1;
+                const dotColor = stop.hasPickup && !stop.hasDropoff ? 'bg-sky-500' : 'bg-emerald-500';
+                const { orderRefs, customers } = buildStopSummaryLabels(stops[idx], stop);
+
                 return (
-                  <div key={s.id} className="flex gap-3 relative pb-4 last:pb-0">
+                  <div key={stop.id || idx} className="flex gap-3 relative pb-4 last:pb-0">
                     <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${dotColor}`} />
                     {!isLast && (
                       <div className="absolute top-4 left-[4px] bottom-0 w-0.5 bg-slate-200" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-baseline">
+                      <div className="flex justify-between items-baseline gap-2">
                         <span className="text-xs font-bold text-slate-800">
-                          {s.locationCity || s.locationName || 'Location'}
+                          {stop.resolvedCity || stop.resolvedName || stop.locationCity || stop.locationName || '—'}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400">
-                          {detailStr}
+                        <span className="text-[10px] font-mono text-slate-400 truncate max-w-[45%]">
+                          {orderRefs}
                         </span>
                       </div>
-                      
-                      {/* Customer pills */}
-                      <div className="flex gap-1.5 flex-wrap mt-1">
-                        {idx === 2 ? (
-                          <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-teal-200 bg-teal-50 text-teal-800">
-                            🏪 {t('customers') || 'Customers'}: Beta Distributors
-                          </span>
-                        ) : (
-                          <>
-                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-teal-200 bg-teal-50 text-teal-800">
-                              🏪 Alpha Foods Ltd
+
+                      {customers.length > 0 && (
+                        <div className="flex gap-1.5 flex-wrap mt-1">
+                          {customers.slice(0, 2).map((name) => (
+                            <span
+                              key={name}
+                              className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-teal-200 bg-teal-50 text-teal-800"
+                            >
+                              🏪 {name}
                             </span>
-                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-teal-200 bg-teal-50 text-teal-800">
-                              🏪 Gamma Logistics
+                          ))}
+                          {customers.length > 2 && (
+                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-slate-600">
+                              +{customers.length - 2}
                             </span>
-                          </>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -777,12 +840,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
             {/* Summary statistics grid */}
             <div className="grid grid-cols-2 bg-slate-200 gap-px border-t" style={{ borderColor: T.bd }}>
               {[
-                { label: t('distance') || 'Distance', value: totalKm > 0 ? String(Math.round(totalKm)) : '0', unit: 'km' },
-                { label: t('time') || 'Time', value: formattedDriveTime, unit: '' },
+                { label: t('distance') || 'Distance', value: displayKm > 0 ? String(Math.round(displayKm)) : '—', unit: displayKm > 0 ? 'km' : '' },
+                { label: t('time') || 'Time', value: formattedDriveTime !== '—' ? formattedDriveTime : '—', unit: '' },
                 { label: t('stops') || 'Stops', value: String(stops.length), unit: '' },
-                { label: t('weight') || 'Weight', value: formattedWeight, unit: weightUnit },
-                { label: t('customers') || 'Customers', value: String(customerCount), unit: customerCount > 0 ? '🏪' : '' },
-                { label: t('orders') || 'Orders', value: String(orderCount), unit: '' },
+                { label: t('weight') || 'Weight', value: formattedWeight, unit: '' },
+                { label: t('customers') || 'Customers', value: customerCount > 0 ? String(customerCount) : '—', unit: '' },
+                { label: t('orders') || 'Orders', value: orderCount > 0 ? String(orderCount) : '—', unit: '' },
               ].map((st, sidx) => (
                 <div key={sidx} className="bg-white p-3">
                   <div className="text-[9px] font-bold text-slate-400 uppercase">
@@ -835,20 +898,31 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                       {t('contractPricePerLoad') || 'Contract price: per load'} <strong>€{calculatedPrice}</strong> · {contract.origin}→{contract.destination}
                     </span>
                   )
-                ) : (
+                ) : calculatedPrice > 0 ? (
                   <span>
                     {t('spotPriceFromList') || 'Spot price from Price List: per load'} <strong>€{calculatedPrice}</strong> · {pickupCity || '—'}→{deliveryCity || '—'}
                   </span>
+                ) : aiPriceLoading ? (
+                  <span>{t('aiSuggestedPriceLoading') || 'Generating AI suggested price...'}</span>
+                ) : (
+                  <span>{t('step3EnterTargetPrice') || 'Enter a target price below, or open AI Insights for a suggested spot price.'}</span>
                 )}
               </div>
 
               {/* Input */}
-              <div className="flex items-center bg-slate-100 border-2 rounded-xl px-3 py-2" style={{ borderColor: T.bd }}>
-                <span className="text-xl font-bold text-slate-400 mr-2">€</span>
+              <div
+                className="flex items-center border-2 rounded-xl px-3 py-2"
+                style={{ borderColor: targetPriceVal > 0 ? T.ac : T.bd, background: T.sa }}
+              >
+                <span className="text-xl font-bold mr-2" style={{ color: T.t3 }}>€</span>
                 <input
                   type="number"
+                  min={0}
+                  step="0.01"
                   className="w-full bg-transparent text-right text-2xl font-bold font-mono outline-none"
-                  value={values.targetPrice}
+                  style={{ color: T.t1 }}
+                  placeholder="0.00"
+                  value={values.targetPrice || ''}
                   onChange={(e) => setFieldValue('targetPrice', e.target.value)}
                 />
               </div>
@@ -929,45 +1003,42 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                   )}
                 </div>
               )}
+            </div>
 
-              <div className="pt-3 border-t space-y-2" style={{ borderColor: T.bd }}>
-                <div>
-                  <div className="text-xs font-bold text-slate-800">{t('orderValue') || 'Order Value'}</div>
-                  <div className="text-[10px] text-slate-400">{t('orderValueOptional') || 'Optional'}</div>
-                </div>
-                <div className="flex items-center border rounded-lg overflow-hidden bg-white">
-                  <span className="px-3 text-sm font-bold text-indigo-700">€</span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    className="flex-1 py-2 pr-3 text-sm font-bold outline-none"
-                    placeholder="0"
-                    value={values.orderValue || ''}
-                    maxLength={11}
-                    onChange={(e) => setFieldValue('orderValue', e.target.value.replace(/[^0-9.,]/g, ''))}
-                  />
-                </div>
-                <p className="text-[10px] text-slate-400 italic">
-                  {t('orderValueHint') || 'Enter here for your own records the market value of the goods being shipped in this load. This information will not be shared with your transporter.'}
-                </p>
+            <div className="ov-row">
+              <div>
+                <div className="ov-title">{t('orderValue') || 'Order Value'}</div>
+                <div className="ov-sub">{t('orderValueOptional') || 'Optional'}</div>
               </div>
+              <div className="ov-input-wrap">
+                <span className="ov-sym">€</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="ov-input"
+                  placeholder={t('orderValuePlaceholder') || 'Optional'}
+                  value={values.orderValue || ''}
+                  maxLength={11}
+                  onChange={(e) => setFieldValue('orderValue', e.target.value.replace(/[^0-9.,]/g, ''))}
+                />
+              </div>
+              <p className="ov-hint">
+                {t('orderValueHint') || 'Enter here for your own records the market value of the goods being shipped in this load. This information will not be shared with your transporter.'}
+              </p>
+            </div>
 
-              {/* Negotiable price toggle */}
-              <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: T.bd }}>
-                <div>
-                  <div className="text-xs font-bold text-slate-800">{t('negotiablePrice') || 'Negotiable price'}</div>
-                  <div className="text-[10px] text-slate-400">{t('negotiableSub') || 'Carriers can submit counteroffers'}</div>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={values.negotiable}
-                    onChange={(e) => setFieldValue('negotiable', e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:height-4 after:width-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                </label>
+            <div className="neg-row">
+              <div className="neg-copy">
+                <div className="neg-title">{t('negotiablePrice') || 'Negotiable price'}</div>
+                <div className="neg-sub">{t('negotiableSub') || 'Carriers can submit counteroffers'}</div>
               </div>
+              <button
+                type="button"
+                className={`tog${values.negotiable ? ' on' : ''}`}
+                aria-pressed={values.negotiable}
+                aria-label={t('negotiablePrice') || 'Negotiable price'}
+                onClick={() => setFieldValue('negotiable', !values.negotiable)}
+              />
             </div>
           </div>
 
@@ -1003,17 +1074,17 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
         style={{ left: 'var(--sidebar-w, 240px)', background: T.sf, borderTop: `1px solid ${T.bd}` }}
       >
         {/* Cost & Live Navigation */}
-        <div className="flex items-center gap-4">
-          <div className="text-xs text-slate-500 flex items-center gap-1.5">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="text-xs flex items-center gap-1.5" style={{ color: T.t2 }}>
             {t('totalCost') || 'Total cost'}:
-            <strong className="text-lg font-bold text-slate-900 font-mono">
-              €{targetPriceVal.toLocaleString()}
+            <strong className="text-lg font-bold font-mono" style={{ color: T.t1 }}>
+              {targetPriceVal > 0 ? `€${targetPriceVal.toLocaleString()}` : '—'}
             </strong>
           </div>
           
-          <div className="h-7 w-px bg-slate-200" />
+          <div className="h-7 w-px" style={{ background: T.bd }} />
           
-          <div className="flex items-center gap-2 text-xs text-slate-500">
+          <div className="flex items-center gap-2 text-xs" style={{ color: T.t2 }}>
             <span>{t('liveNavigation') || 'Live navigation'}</span>
             <label className="relative inline-flex items-center cursor-pointer select-none">
               <input
@@ -1022,7 +1093,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                 onChange={(e) => setFieldValue('gpsRequired', e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:height-4 after:width-4 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div
+                className="w-9 h-5 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all after:border-gray-300"
+                style={{ background: values.gpsRequired ? T.ac : '#E5E7EB' }}
+              />
             </label>
           </div>
         </div>

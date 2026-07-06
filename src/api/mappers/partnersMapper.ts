@@ -50,6 +50,7 @@ export function mapListItemToPartner(item: ApiPartnerListItem): Partner {
     createdAt: item.created_at ?? '',
     createdAtFormatted: item.created_at ? formatErpLastUpdate(item.created_at) : '—',
     typeLabel: item.type_label,
+    contractLanes: (item.contract_lanes ?? []).map(mapContractLane),
   };
 }
 

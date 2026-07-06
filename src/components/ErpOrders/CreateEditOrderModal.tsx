@@ -264,6 +264,22 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                 </div>
 
                 <div className="field">
+                  <label className="field-l">{t('erpOrdersOrderValue')}</label>
+                  <input
+                    type="text"
+                    className="inp"
+                    inputMode="decimal"
+                    placeholder={t('erpOrdersOrderValuePlaceholder')}
+                    value={values.orderValue != null ? String(values.orderValue) : ''}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^0-9.,]/g, '');
+                      setFieldValue('orderValue', raw ? Number(raw.replace(',', '.')) : null);
+                    }}
+                  />
+                  <div className="text-[11px] text-slate-400 mt-1">{t('orderValueHint')}</div>
+                </div>
+
+                <div className="field">
                   <label className="field-l">{t('notes')}</label>
                   <textarea
                     className="inp"

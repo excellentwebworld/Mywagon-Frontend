@@ -35,6 +35,7 @@ export interface ApiPartnerListItem {
   trips: number;
   capabilities: string[];
   capabilities_extra: number;
+  contract_lanes?: ApiContractLane[];
   created_at: string | null;
   created_at_formatted: string | null;
 }

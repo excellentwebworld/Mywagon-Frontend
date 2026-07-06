@@ -228,6 +228,7 @@ export function useErpOrdersList() {
         delivery_date: form.deliveryDate,
         notes: form.notes || null,
         high_priority: form.highPriority,
+        order_value: form.orderValue,
         lines: form.lines.map((l) => ({
           product_sku_id: l.productSkuId,
           product_name: l.productName,
@@ -259,6 +260,7 @@ export function useErpOrdersList() {
         delivery_date: form.deliveryDate,
         notes: form.notes || null,
         high_priority: form.highPriority,
+        order_value: form.orderValue,
         lines: form.lines.map((l) => ({
           product_sku_id: l.productSkuId,
           product_name: l.productName,
@@ -452,6 +454,7 @@ export function useErpOrdersList() {
       deliveryDate: order.deliveryDate,
       notes: order.notes,
       highPriority: order.highPriority,
+      orderValue: order.orderValue,
       lines: order.lines.length ? order.lines : [],
     });
     setIsFormOpen(true);

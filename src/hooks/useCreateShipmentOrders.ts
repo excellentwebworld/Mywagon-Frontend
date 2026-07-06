@@ -52,6 +52,11 @@ export function useCreateShipmentOrders() {
     return detailCache.current.get(orderId) ?? null;
   }, []);
 
+  const getOrderValue = useCallback((orderId: string): number | null => {
+    const cached = detailCache.current.get(orderId);
+    return cached?.orderValue ?? null;
+  }, []);
+
   const addOrder = useCallback((order: ErpOrder) => {
     setOrders((prev) => {
       if (prev.some((o) => o.id === order.id)) return prev;
@@ -79,6 +84,7 @@ export function useCreateShipmentOrders() {
     error,
     fetchOrderDetail,
     getCachedOrder,
+    getOrderValue,
     addOrder,
   };
 }

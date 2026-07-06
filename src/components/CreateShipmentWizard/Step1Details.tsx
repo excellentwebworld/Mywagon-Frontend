@@ -52,16 +52,6 @@ const clearOrderDependentCargoFields = () => {
   };
 };
 
-// Mocks imports
-import { MOCK_LOCATIONS as AB_LOCATIONS } from '../../mocks/addressBookData';
-import { SKUS as PM_SKU } from '../../mocks/productMasterData';
-import {
-  LOADING_POINTS as SCHED_LPS,
-  BLACKOUT_PERIODS as SCHED_BLK,
-  SCHEDULE_TEMPLATES as SCHED_TPL,
-  SCHEDULE_RULES as SCHED_RUL,
-} from '../../mocks/schedulingData';
-
 import useConflicts from '../../hooks/useConflicts';
 import { FieldValidationHint } from './FieldValidationHint';
 import {
@@ -121,8 +111,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const [balExp, setBalExp] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [previewLoc, setPreviewLoc] = useState<any | null>(null);
-  const [previewProd, setPreviewProd] = useState<any | null>(null);
-  const [previewOrd, setPreviewOrd] = useState<any | null>(null);
   const [orderLoadingLineId, setOrderLoadingLineId] = useState<string | null>(null);
 
   const { locations, skus, showToast, refreshLocationsFromApi, refreshSkusFromApi } = useApp();
@@ -130,11 +118,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   // Local master data states
   const [abLocs, setAbLocs] = useState<any[]>(() =>
-    locations.length > 0 ? locations.filter((l) => l.status === 'active') : AB_LOCATIONS.filter((l) => l.status === 'active')
+    locations.filter((l) => l.status === 'active')
   );
-  const [abComps, setAbComps] = useState<any[]>(() => []);
   const [pmSkus, setPmSkus] = useState<any[]>(() =>
-    skus.length > 0 ? skus.filter((s) => s.active) : PM_SKU.filter((s) => s.active)
+    skus.filter((s) => s.active)
   );
 
   // Address Book Location Modal states
@@ -481,7 +468,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           locationName: l.name,
           locationCompany: l.company || '',
           locationCity: l.city || '',
-          locationCountry: '',
+          locationCountry: l.region || '',
         };
         if (l.noteCarrier) {
           updatedStop.noteCarrier = s.noteCarrier || l.noteCarrier;
@@ -785,22 +772,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     [showToast]
   );
 
-  const previewProduct = useCallback(
-    (skuId: string) => {
-      const s = pmSkus.find((x) => x.id === skuId);
-      if (s) setPreviewProd(s);
-    },
-    [pmSkus]
-  );
-
-  const previewOrder = useCallback(
-    (ordId: string) => {
-      const o = apiOrders.find((x) => x.id === ordId) || orderDetailsById[ordId];
-      if (o) setPreviewOrd(o);
-    },
-    [apiOrders, orderDetailsById]
-  );
-
   // ═══ GOODS TYPE INDICATORS ═══
   const getGoodsIndicators = useCallback(
     (productId: string) => {
@@ -857,12 +828,12 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   // ═══ CONFLICT CHECKING ═══
   const { blockers, warnings, all: allConflicts } = useConflicts(stops, {
     locations: abLocs,
-    loadingPoints: SCHED_LPS,
-    blackouts: SCHED_BLK,
+    loadingPoints: [],
+    blackouts: [],
     products: pmSkus,
     orders: apiOrders,
-    templates: SCHED_TPL,
-    rules: SCHED_RUL,
+    templates: [],
+    rules: [],
   });
 
   const canContinue = blockers.length === 0;
@@ -1257,8 +1228,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         showValidation={showAll}
                         blockers={blockers}
                         stopIndex={idx}
-                        previewProduct={previewProduct}
-                        previewOrder={previewOrder}
                         orderLoadingLineId={orderLoadingLineId}
                         ordersLoading={ordersLoading}
                       />
@@ -1349,7 +1318,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
             disabled={!canContinue || isSaving}
             onClick={handleContinue}
           >
-            {isSaving ? (t('saving') || 'Saving...') : 'Continue'}
+            {isSaving ? (t('saving') || 'Saving...') : t('continue')}
             {conflictCount > 0 && (
               <span
                 className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
@@ -1572,8 +1541,6 @@ interface CargoTableProps {
   showValidation?: boolean;
   blockers?: import('../../hooks/useConflicts').Conflict[];
   stopIndex: number;
-  previewProduct: (skuId: string) => void;
-  previewOrder: (ordId: string) => void;
   orderLoadingLineId?: string | null;
   ordersLoading?: boolean;
 }
@@ -1645,14 +1612,14 @@ const CargoTable: React.FC<CargoTableProps> = ({
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr>
-              <th style={{ ...thS, width: '12%' }}>Order ID</th>
-              <th style={{ ...thS, width: '12%' }}>Customer</th>
-              <th style={{ ...thS, width: '20%' }}>Product</th>
-              <th style={{ ...thS, width: '11%', textAlign: 'center' }}>Action</th>
-              <th style={{ ...thS, width: '7%' }}>Qty</th>
-              <th style={{ ...thS, width: '8%' }}>Unit</th>
-              <th style={{ ...thS, width: '7%' }}>Weight</th>
-              <th style={{ ...thS, width: '7%' }}>W.Unit</th>
+              <th style={{ ...thS, width: '12%' }}>{t('cargoColOrderId')}</th>
+              <th style={{ ...thS, width: '12%' }}>{t('cargoColCustomer')}</th>
+              <th style={{ ...thS, width: '20%' }}>{t('cargoColProduct')}</th>
+              <th style={{ ...thS, width: '11%', textAlign: 'center' }}>{t('cargoColAction')}</th>
+              <th style={{ ...thS, width: '7%' }}>{t('cargoColQty')}</th>
+              <th style={{ ...thS, width: '8%' }}>{t('cargoColUnit')}</th>
+              <th style={{ ...thS, width: '7%' }}>{t('cargoColWeight')}</th>
+              <th style={{ ...thS, width: '7%' }}>{t('cargoColWeightUnit')}</th>
               <th style={{ ...thS, width: '3%' }}></th>
             </tr>
           </thead>

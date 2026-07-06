@@ -161,6 +161,16 @@ export default function useConflicts(stops: any[], options: any = {}) {
             'Enter weight > 0'
           );
         }
+        if (ln.productId && !ln.orderId && !ln.orderRef) {
+          add(
+            'O2',
+            'warning',
+            si,
+            li,
+            `Stop ${si + 1}, line ${li + 1}: ${ln.productName || 'Product'} has no linked order`,
+            'Select an ERP order for this line'
+          );
+        }
         if (ln.action === 'dropoff' && ln.productId && !ln.customerId && !ln.orderId) {
           add('O1', 'warning', si, li, `Stop ${si + 1}, line ${li + 1}: Dropoff of ${ln.productName || 'product'} has no customer`, 'Assign an order or customer');
         }

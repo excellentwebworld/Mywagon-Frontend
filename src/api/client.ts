@@ -87,7 +87,24 @@ export async function apiRequest<T>(
       data: options.body,
       headers: options.headers,
     });
-    return response.data;
+
+    const data = response.data as ApiResponse<T> & { status?: boolean };
+    if (data && typeof data === 'object') {
+      if (data.success === false) {
+        throw new ApiError(
+          data.message || 'Request failed',
+          response.status,
+          (data as { errors?: Record<string, string[]> }).errors,
+          data.data
+        );
+      }
+      // Laravel global Handler returns some 404s as HTTP 200 with status:false.
+      if (data.status === false) {
+        throw new ApiError(data.message || 'Request failed', 404, undefined, data.data);
+      }
+    }
+
+    return data;
   } catch (err: any) {
     if (axios.isAxiosError(err)) {
       const status = err.response?.status || 500;
