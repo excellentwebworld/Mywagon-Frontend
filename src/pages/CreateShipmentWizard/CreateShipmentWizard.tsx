@@ -180,7 +180,7 @@ export const CreateShipmentWizard: React.FC = () => {
             </h1>
             <p className="ph-s" style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
               {step === 1 && (t('step1Sub') || 'Add stops and cargo details')}
-              {step === 2 && (t('step2Sub') || 'Verify drive limits, weather warnings, and cargo balance.')}
+              {step === 2 && (t('step2Sub') || 'Review your stops and itinerary before proceeding.')}
               {step === 3 && (t('vehiclePricingSub') || 'Choose vehicle type, target price, and tracking options.')}
             </p>
           </div>
@@ -231,7 +231,7 @@ export const CreateShipmentWizard: React.FC = () => {
           </h1>
           <p className="ph-s" style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
             {step === 1 && (t('step1Sub') || 'Add stops and cargo details')}
-            {step === 2 && (t('step2Sub') || 'Verify drive limits, weather warnings, and cargo balance.')}
+            {step === 2 && (t('step2Sub') || 'Review your stops and itinerary before proceeding.')}
             {step === 3 && (t('vehiclePricingSub') || 'Choose vehicle type, target price, and tracking options.')}
           </p>
         </div>
@@ -294,13 +294,26 @@ export const CreateShipmentWizard: React.FC = () => {
                     setFieldValue('itineraryConfirmed', false);
                     goToStep(1);
                   }}
+                  onSaveDraft={async () => {
+                    await saveStep2(
+                      {
+                        ...values,
+                        itineraryConfirmed: values.itineraryConfirmed,
+                        vehicleSpecs: values.vehicleSpecs,
+                        vehicleSelectionConfirmed: values.vehicleSelectionConfirmed,
+                      },
+                      'partial',
+                      values.routeSummary ?? undefined
+                    );
+                  }}
                   onContinue={async (routeSummary) => {
                     setFieldValue('routeSummary', routeSummary);
+                    setFieldValue('itineraryConfirmed', true);
                     await saveStep2(
                       {
                         ...values,
                         routeSummary,
-                        itineraryConfirmed: values.itineraryConfirmed,
+                        itineraryConfirmed: true,
                         vehicleSpecs: values.vehicleSpecs,
                         vehicleSelectionConfirmed: values.vehicleSelectionConfirmed,
                       },

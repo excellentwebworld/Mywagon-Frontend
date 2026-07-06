@@ -80,6 +80,10 @@
   }
 }
 
+.ts-grid-6 .ts-cell:nth-last-child(-n+2) {
+  border-bottom: none;
+}
+
 /* ── Cards ── */
 .card {
   background: var(--surface);

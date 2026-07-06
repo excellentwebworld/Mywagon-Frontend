@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { weightToKg } from '../constants/cargoUnits';
 
 export interface Conflict {
   code: string;
@@ -81,7 +82,7 @@ export default function useConflicts(stops: any[], options: any = {}) {
       }
       // L4
       if (stop.locationId && locations.length > 0) {
-        const loc = locations.find((l: any) => l.id === stop.locationId);
+        const loc = locations.find((l: any) => String(l.id) === String(stop.locationId));
         if (loc && loc.status !== 'active') {
           add('L4', 'blocker', si, -1, `Stop ${si + 1}: "${stop.locationName}" is inactive`, 'Select an active location');
         }
@@ -307,7 +308,7 @@ export default function useConflicts(stops: any[], options: any = {}) {
     stops.forEach((s, si) => {
       (s.lines || []).forEach((l: any) => {
         if (!l.productId) return;
-        const w = parseFloat(l.weight) || 0;
+        const w = weightToKg(l.weight, l.wtUnit);
         rw += l.action === 'pickup' ? w : -w;
       });
       if (rw > 28000) {

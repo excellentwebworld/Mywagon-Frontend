@@ -16,9 +16,9 @@ import {
   useCreateShipmentOrders,
   findOrderLineForProduct,
   getProductOptionsForCargoLine,
+  countUnmappedOrderLines,
 } from '../../hooks/useCreateShipmentOrders';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
-import { CreateCustomerModal } from './CreateCustomerModal';
 import { CreateLocationModal } from '../AddressBook/CreateLocationModal';
 import { CreateCompanyModal } from '../AddressBook/CreateCompanyModal';
 import { ProductMasterSkuModal } from '../ProductMaster/ProductMasterSkuModal';
@@ -53,10 +53,8 @@ const clearOrderDependentCargoFields = () => {
 };
 
 // Mocks imports
-import { MOCK_LOCATIONS as AB_LOCATIONS, DEFAULT_DIRECTORIES } from '../../mocks/addressBookData';
-import { PARTNERS } from '../../mocks/partnersMasterData';
-import { ORDERS } from '../../mocks/ordersMasterData';
-import { CATEGORIES as PM_CAT, PRODUCT_TYPES as PM_TYP, SKUS as PM_SKU } from '../../mocks/productMasterData';
+import { MOCK_LOCATIONS as AB_LOCATIONS } from '../../mocks/addressBookData';
+import { SKUS as PM_SKU } from '../../mocks/productMasterData';
 import {
   LOADING_POINTS as SCHED_LPS,
   BLACKOUT_PERIODS as SCHED_BLK,
@@ -110,26 +108,22 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const { t } = useTranslation();
   const { values, setFieldValue } = useFormikContext<any>();
   const stops = values.stops || [];
-  const { orderOptions, fetchOrderDetail, addOrder, orders: apiOrders } = useCreateShipmentOrders();
+  const { orderOptions, fetchOrderDetail, addOrder, orders: apiOrders, loading: ordersLoading, error: ordersError } = useCreateShipmentOrders();
   const [orderDetailsById, setOrderDetailsById] = useState<Record<string, import('../../pages/ErpOrders/types').ErpOrder>>({});
 
   // Modal Visibility states
   const [mLoc, setMLoc] = useState(false);
   const [mComp, setMComp] = useState(false);
-  const [mCust, setMCust] = useState(false);
   const [mOrd, setMOrd] = useState(false);
-  const [mPC, setMPC] = useState(false);
   const [mSku, setMSku] = useState(false);
-  const [mTyp, setMTyp] = useState(false);
-  const [mCat, setMCat] = useState(false);
 
   const [pCtx, setPCtx] = useState<any>({});
   const [balExp, setBalExp] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [previewLoc, setPreviewLoc] = useState<any | null>(null);
   const [previewProd, setPreviewProd] = useState<any | null>(null);
-  const [previewCust, setPreviewCust] = useState<any | null>(null);
   const [previewOrd, setPreviewOrd] = useState<any | null>(null);
+  const [orderLoadingLineId, setOrderLoadingLineId] = useState<string | null>(null);
 
   const { locations, skus, showToast, refreshLocationsFromApi, refreshSkusFromApi } = useApp();
   const queryClient = useQueryClient();
@@ -139,10 +133,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     locations.length > 0 ? locations.filter((l) => l.status === 'active') : AB_LOCATIONS.filter((l) => l.status === 'active')
   );
   const [abComps, setAbComps] = useState<any[]>(() => []);
-  const [custs, setCusts] = useState<any[]>(() => PARTNERS.filter((p) => p.type === 'customer' && p.status === 'active'));
-  const [ords, setOrds] = useState<any[]>(() => [...ORDERS]);
-  const [pmCats, setPmCats] = useState<any[]>(() => [...PM_CAT]);
-  const [pmTyps, setPmTyps] = useState<any[]>(() => [...PM_TYP]);
   const [pmSkus, setPmSkus] = useState<any[]>(() =>
     skus.length > 0 ? skus.filter((s) => s.active) : PM_SKU.filter((s) => s.active)
   );
@@ -263,12 +253,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
 
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-
-  useEffect(() => {
-    if (apiOrders.length > 0) {
-      setOrds(apiOrders);
-    }
-  }, [apiOrders]);
 
   const iS = {
     border: `1px solid ${T.bd}`,
@@ -454,11 +438,16 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const quickFill = useCallback(
     async (sid: string, orderId: string) => {
       const mo = orderDetailsById[orderId] || (await fetchOrderDetail(orderId));
-      if (!mo) return;
-      if (mo) {
-        setOrderDetailsById((prev) => ({ ...prev, [orderId]: mo }));
+      if (!mo) {
+        showToast(t('createLoadOrderLoadError') || 'Could not load order details.', 'error');
+        return;
       }
-      if (!mo?.lines?.length) return;
+      setOrderDetailsById((prev) => ({ ...prev, [orderId]: mo }));
+      if (!mo.lines?.length) return;
+
+      const stopIndex = stops.findIndex((s: any) => s.id === sid);
+      const defaultAction = stopIndex === stops.length - 1 && stops.length > 1 ? 'dropoff' : 'pickup';
+
       const newLines = mo.lines.map((ln) => ({
         id: makeId('l'),
         productId: ln.productSkuId ? String(ln.productSkuId) : '',
@@ -467,7 +456,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         customerName: mo.customerName || '',
         orderId: mo.id,
         orderRef: mo.orderReference,
-        action: 'pickup' as const,
+        action: defaultAction as 'pickup' | 'dropoff',
         qty: ln.quantity != null ? String(ln.quantity) : '',
         unit: ln.unit || 'EUR Pallets',
         weight: ln.weight != null ? String(ln.weight) : '',
@@ -476,7 +465,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       }));
       uStop(sid, (s: any) => ({ ...s, lines: [...s.lines.filter((l: any) => l.productId), ...newLines] }));
     },
-    [fetchOrderDetail, orderDetailsById, uStop]
+    [fetchOrderDetail, orderDetailsById, showToast, stops, t, uStop]
   );
 
   // ═══ OPTIONS ═══
@@ -619,67 +608,36 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     }
   }, [applyLocationToStop, createData, showToast, t, pCtx, refreshLocationsFromApi]);
 
-  const selCustLine = useCallback(
-    (sid: string, lid: string, cid: string) => {
-      const c = custs.find((x) => x.id === cid);
-      if (c) {
-        setLF(sid, lid, { customerId: cid, customerName: c.name });
-      }
-    },
-    [custs, setLF]
-  );
-
-  const onCustCreated = useCallback(
-    (d: any) => {
-      const nc = { ...d, id: `PR-N-${Date.now()}`, type: 'customer', status: 'active', source: 'manual' };
-      setCusts((p) => [...p, nc]);
-      if (pCtx.custS && pCtx.custL) {
-        setLF(pCtx.custS, pCtx.custL, { customerId: nc.id, customerName: d.name });
-        setPCtx((p: any) => ({ ...p, custS: null, custL: null }));
-      }
-      setMCust(false);
-    },
-    [pCtx, setLF]
-  );
-
   const selOrdLine = useCallback(
     async (sid: string, lid: string, oid: string) => {
       if (!oid) {
         setLF(sid, lid, clearOrderDependentCargoFields());
         return;
       }
-      const detail = await fetchOrderDetail(oid);
-      if (detail) {
-        setOrderDetailsById((prev) => ({ ...prev, [oid]: detail }));
-        setLF(sid, lid, {
-          orderId: oid,
-          orderRef: detail.orderReference,
-          customerName: detail.customerName || '',
-          customerId: detail.companyEntityId ? String(detail.companyEntityId) : '',
-          productId: '',
-          productName: '',
-          qty: '',
-          weight: '',
-        });
-        return;
-      }
-      const mo = ords.find((o) => o.id === oid);
-      if (mo) {
-        setLF(sid, lid, {
-          orderId: oid,
-          orderRef: mo.orderReference || oid,
-          customerName: mo.customerName || mo.customer || '',
-          customerId: mo.companyEntityId ? String(mo.companyEntityId) : '',
-          productId: '',
-          productName: '',
-          qty: '',
-          weight: '',
-        });
-      } else {
-        setLF(sid, lid, { orderId: oid, orderRef: oid, productId: '', productName: '', qty: '', weight: '' });
+      setOrderLoadingLineId(lid);
+      try {
+        const detail = await fetchOrderDetail(oid);
+        if (detail) {
+          setOrderDetailsById((prev) => ({ ...prev, [oid]: detail }));
+          setLF(sid, lid, {
+            orderId: oid,
+            orderRef: detail.orderReference,
+            customerName: detail.customerName || '',
+            customerId: detail.companyEntityId ? String(detail.companyEntityId) : '',
+            productId: '',
+            productName: '',
+            qty: '',
+            weight: '',
+          });
+          return;
+        }
+        showToast(t('createLoadOrderLoadError') || 'Could not load order details.', 'error');
+        setLF(sid, lid, clearOrderDependentCargoFields());
+      } finally {
+        setOrderLoadingLineId(null);
       }
     },
-    [fetchOrderDetail, ords, setLF]
+    [fetchOrderDetail, setLF, showToast, t]
   );
 
   const clearOrderLine = useCallback(
@@ -717,7 +675,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       const created = await erpOrdersService.createOrder(payload);
 
       addOrder(created);
-      setOrds((prev) => [...prev, created]);
       setOrderDetailsById((prev) => ({ ...prev, [created.id]: created }));
 
       if (pCtx.ordS && pCtx.ordL) {
@@ -726,6 +683,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           orderRef: created.orderReference,
           customerName: created.customerName,
           customerId: created.companyEntityId ? String(created.companyEntityId) : '',
+          productId: '',
+          productName: '',
+          qty: '',
+          weight: '',
         });
         setPCtx((p: any) => ({ ...p, ordS: null, ordL: null }));
       }
@@ -759,14 +720,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           weight: orderLine.weight != null ? String(orderLine.weight) : '',
           wtUnit: normalizeWeightUnit(orderLine.weightUnit || line?.wtUnit),
         });
-        return;
-      }
-      const sk = pmSkus.find((s) => String(s.id) === String(skuId));
-      if (sk) {
-        setLF(sid, lid, { productId: skuId, productName: sk.name });
       }
     },
-    [fetchOrderDetail, orderDetailsById, pmSkus, setLF, stops]
+    [fetchOrderDetail, orderDetailsById, setLF, stops]
   );
 
   const handleCreateSku = useCallback(async (values: any) => {
@@ -789,7 +745,19 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         });
         setPCtx((p: any) => ({ ...p, orderFormTarget: null, orderFormLineIndex: null }));
       } else if (pCtx.pS && pCtx.pL) {
-        setLF(pCtx.pS, pCtx.pL, { productId: created.id, productName: created.name });
+        const line = stops
+          .find((s: any) => s.id === pCtx.pS)
+          ?.lines?.find((l: any) => l.id === pCtx.pL);
+        if (line?.orderId) {
+          const refreshed = await fetchOrderDetail(line.orderId);
+          if (refreshed) {
+            setOrderDetailsById((prev) => ({ ...prev, [line.orderId]: refreshed }));
+          }
+          showToast(
+            t('createLoadProductCreatedReselect') || 'Product created. Select it from the order lines.',
+            'info'
+          );
+        }
         setPCtx((p: any) => ({ ...p, pS: null, pL: null }));
       }
       setMSku(false);
@@ -799,23 +767,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     } finally {
       setSkuSaving(false);
     }
-  }, [pCtx, setLF, refreshSkusFromApi, showToast]);
-
-  const getCatName = useCallback(
-    (catId: string) => {
-      const c = pmCats.find((x) => x.id === catId);
-      return c ? c.name.en : '';
-    },
-    [pmCats]
-  );
-
-  const localProds = useMemo(() => pmSkus.filter((s) => s.active).map((s) => ({ id: s.id, name: s.name, sku: s.number || s.id })), [pmSkus]);
-  const localCusts = useMemo(() => custs.map((c) => ({ id: c.id, name: c.name })), [custs]);
-  const localLocs = useMemo(() => abLocs.map((l) => `${l.name}, ${l.city}, ${l.country || 'GR'}`), [abLocs]);
+  }, [fetchOrderDetail, pCtx, refreshSkusFromApi, showToast, stops, t]);
 
   const previewLocation = useCallback(
     (locId: string) => {
-      const l = abLocs.find((x) => x.id === locId);
+      const l = abLocs.find((x) => String(x.id) === String(locId));
       if (l) setPreviewLoc(l);
     },
     [abLocs]
@@ -837,20 +793,12 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     [pmSkus]
   );
 
-  const previewCustomer = useCallback(
-    (custId: string) => {
-      const c = custs.find((x) => x.id === custId);
-      if (c) setPreviewCust(c);
-    },
-    [custs]
-  );
-
   const previewOrder = useCallback(
     (ordId: string) => {
-      const o = ords.find((x) => x.id === ordId);
+      const o = apiOrders.find((x) => x.id === ordId) || orderDetailsById[ordId];
       if (o) setPreviewOrd(o);
     },
-    [ords]
+    [apiOrders, orderDetailsById]
   );
 
   // ═══ GOODS TYPE INDICATORS ═══
@@ -908,11 +856,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   // ═══ CONFLICT CHECKING ═══
   const { blockers, warnings, all: allConflicts } = useConflicts(stops, {
-    locations: AB_LOCATIONS,
+    locations: abLocs,
     loadingPoints: SCHED_LPS,
     blackouts: SCHED_BLK,
-    products: PM_SKU,
-    orders: ords,
+    products: pmSkus,
+    orders: apiOrders,
     templates: SCHED_TPL,
     rules: SCHED_RUL,
   });
@@ -920,9 +868,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const canContinue = blockers.length === 0;
   const [conflictPopup, setConflictPopup] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  const [previewDock, setPreviewDock] = useState<string | null>(null);
 
-  const MISSING = new Set<string>();
   const conflictCount = useMemo(() => {
     if (!showAll) return 0;
     return blockers.length + warnings.length;
@@ -998,6 +944,12 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   return (
     <div className="pb-24">
+      {ordersError && (
+        <div className="wizard-validation-banner mb-4" role="alert">
+          {t('createLoadOrdersLoadError') || 'Could not load orders.'} {ordersError}
+        </div>
+      )}
+
       <LoadBalanceBar bal={bal} balExp={balExp} setBalExp={setBalExp} fmtW={fmtW} T={T} t={t} />
 
 
@@ -1306,8 +1258,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         blockers={blockers}
                         stopIndex={idx}
                         previewProduct={previewProduct}
-                        previewCustomer={previewCustomer}
                         previewOrder={previewOrder}
+                        orderLoadingLineId={orderLoadingLineId}
+                        ordersLoading={ordersLoading}
                       />
                     </div>
 
@@ -1457,11 +1410,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         handleApplyCompany={handleApplyCompany}
       />
 
-      <CreateCustomerModal
-        isOpen={mCust}
-        onClose={() => setMCust(false)}
-        onCreated={onCustCreated}
-      />
       <CreateEditOrderModal
         t={t}
         isOpen={mOrd}
@@ -1625,8 +1573,9 @@ interface CargoTableProps {
   blockers?: import('../../hooks/useConflicts').Conflict[];
   stopIndex: number;
   previewProduct: (skuId: string) => void;
-  previewCustomer: (custId: string) => void;
   previewOrder: (ordId: string) => void;
+  orderLoadingLineId?: string | null;
+  ordersLoading?: boolean;
 }
 
 const CargoTable: React.FC<CargoTableProps> = ({
@@ -1651,6 +1600,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
   showValidation = false,
   blockers = [],
   stopIndex,
+  orderLoadingLineId = null,
+  ordersLoading = false,
 }) => {
   const thS: React.CSSProperties = {
     fontSize: 10,
@@ -1710,11 +1661,12 @@ const CargoTable: React.FC<CargoTableProps> = ({
               const indicators = getGoodsIndicators(ln.productId);
               const isLast = li === stop.lines.length - 1;
               const orderDetail = ln.orderId ? orderDetailsById[ln.orderId] : undefined;
-              const productOpts = getProductOptionsForCargoLine(orderDetail, ln).map((opt) => ({
+              const productOpts = getProductOptionsForCargoLine(orderDetail).map((opt) => ({
                 value: opt.value,
                 label: opt.label,
                 sublabel: opt.sublabel,
               }));
+              const unmappedCount = countUnmappedOrderLines(orderDetail);
               return (
                 <tr key={ln.id} style={{ background: ln.mirrorOf ? T.sa : 'transparent' }}>
                   <td
@@ -1728,6 +1680,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       t={t}
                       iS={iS}
                       ordOpts={ordOpts}
+                      loading={ordersLoading || orderLoadingLineId === ln.id}
                       onSelOrd={(v) => onSelOrd(ln.id, v)}
                       onClearOrder={() => onClearOrder(ln.id)}
                       onNewOrd={() => onNewOrd(ln.id)}
@@ -1796,6 +1749,12 @@ const CargoTable: React.FC<CargoTableProps> = ({
                             {ind.label}
                           </span>
                         ))}
+                      </div>
+                    )}
+                    {unmappedCount > 0 && productOpts.length === 0 && (
+                      <div className="text-[10px] mt-1" style={{ color: '#D97706' }}>
+                        {t('createLoadUnmappedOrderLines') ||
+                          `${unmappedCount} order line(s) have no mapped product SKU.`}
                       </div>
                     )}
                     <FieldValidationHint
@@ -1997,6 +1956,7 @@ interface OrderCellProps {
   t: any;
   iS: any;
   ordOpts: any[];
+  loading?: boolean;
   onSelOrd: (val: string) => void;
   onClearOrder: () => void;
   onNewOrd: () => void;
@@ -2007,10 +1967,18 @@ const OrderCell: React.FC<OrderCellProps> = ({
   T,
   t,
   ordOpts,
+  loading = false,
   onSelOrd,
   onClearOrder,
   onNewOrd,
 }) => {
+  if (loading && !ln.orderRef) {
+    return (
+      <span className="text-[10px]" style={{ color: T.t3 }}>
+        {t('loading') || 'Loading...'}
+      </span>
+    );
+  }
   if (ln.orderRef) {
     return (
       <div className="flex items-center gap-0.5">

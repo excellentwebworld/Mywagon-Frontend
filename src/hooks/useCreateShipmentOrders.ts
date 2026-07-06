@@ -44,14 +44,13 @@ export function useCreateShipmentOrders() {
       detailCache.current.set(orderId, mapped);
       return mapped;
     } catch {
-      const fallback = orders.find((o) => o.id === orderId);
-      if (fallback) {
-        detailCache.current.set(orderId, fallback);
-        return fallback;
-      }
       return null;
     }
-  }, [orders]);
+  }, []);
+
+  const getCachedOrder = useCallback((orderId: string) => {
+    return detailCache.current.get(orderId) ?? null;
+  }, []);
 
   const addOrder = useCallback((order: ErpOrder) => {
     setOrders((prev) => {
@@ -64,7 +63,13 @@ export function useCreateShipmentOrders() {
   const orderOptions = orders.map((order) => ({
     value: order.id,
     label: order.orderReference,
-    sublabel: `${order.customerName}${order.productCount ? ` · ${order.productCount} lines` : ''}`,
+    sublabel: [
+      order.customerName,
+      order.erpReference ? order.erpReference : null,
+      order.productCount ? `${order.productCount} lines` : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
   }));
 
   return {
@@ -73,6 +78,7 @@ export function useCreateShipmentOrders() {
     loading,
     error,
     fetchOrderDetail,
+    getCachedOrder,
     addOrder,
   };
 }
@@ -98,25 +104,13 @@ export function getProductOptionsForOrder(order: ErpOrder | null | undefined) {
   return options;
 }
 
-export function getProductOptionsForCargoLine(
-  order: ErpOrder | null | undefined,
-  line: { productId?: string; productName?: string }
-) {
-  const options = getProductOptionsForOrder(order);
-  const productId = line.productId ? String(line.productId) : '';
-  if (!productId || options.some((option) => option.value === productId)) {
-    return options;
-  }
+export function countUnmappedOrderLines(order: ErpOrder | null | undefined): number {
+  if (!order?.lines?.length) return 0;
+  return order.lines.filter((line) => !line.productSkuId).length;
+}
 
-  return [
-    {
-      value: productId,
-      label: line.productName || productId,
-      sublabel: undefined,
-      lineIndex: -1,
-    },
-    ...options,
-  ];
+export function getProductOptionsForCargoLine(order: ErpOrder | null | undefined) {
+  return getProductOptionsForOrder(order);
 }
 
 export function findOrderLineForProduct(order: ErpOrder | null | undefined, productId: string) {

@@ -10,6 +10,7 @@ interface RouteMapProps {
   expanded?: boolean;
   loading?: boolean;
   routeLabel?: string;
+  mapType?: 'roadmap' | 'satellite';
   t: (key: string, params?: Record<string, unknown>) => string;
 }
 
@@ -20,6 +21,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   expanded = false,
   loading = false,
   routeLabel,
+  mapType = 'roadmap',
   t,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,6 +50,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 
         map = new google.maps.Map(containerRef.current, {
           zoom: 8,
+          mapTypeId: mapType,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
@@ -108,9 +111,9 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       if (polyline) polyline.setMap(null);
       markers.forEach((m) => m.setMap(null));
     };
-  }, [mapsKey, pathSignature, directionsResult, stops]);
+  }, [mapsKey, pathSignature, directionsResult, stops, mapType]);
 
-  const height = expanded ? 340 : 200;
+  const height = expanded ? 340 : 300;
 
   if (!mapsKey || polylinePath.length === 0) {
     const center = polylinePath[0] || { lat: 37.983819, lng: 23.727539 };

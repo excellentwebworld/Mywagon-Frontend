@@ -197,7 +197,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         throw new Error('Itinerary not confirmed');
       }
 
-      if (mode === 'complete' && !hasVehicleSelection(values.vehicleSpecs)) {
+        if (mode === 'complete' && !hasVehicleSelection(values.vehicleSpecs)) {
         showToast(t('step2SelectVehicleRequired') || 'Please select at least one vehicle type.', 'error');
         throw new Error('Vehicle not selected');
       }

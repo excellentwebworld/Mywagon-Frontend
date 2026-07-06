@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Eye, MapPin, Plus } from 'lucide-react';
 import type { LocationItem } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -29,16 +29,34 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
   invalid = false,
 }) => {
   const { t } = useTranslation();
+  const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<LocationTab>('my');
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
 
-  const selected = locations.find((loc) => loc.id === value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query), 150);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [open]);
+
+  const selected = locations.find((loc) => String(loc.id) === String(value));
 
   const filtered = useMemo(
-    () => filterLocations(locations, query, tab),
-    [locations, query, tab]
+    () => filterLocations(locations, debouncedQuery, tab),
+    [locations, debouncedQuery, tab]
   );
 
   const myGroups = useMemo(
@@ -50,7 +68,12 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
     [filtered, tab]
   );
 
+  const searchActive = debouncedQuery.trim().length > 0;
+
+  const isCompanyExpanded = (company: string) => searchActive || expandedCompanies.has(company);
+
   const toggleCompany = (company: string) => {
+    if (searchActive) return;
     setExpandedCompanies((prev) => {
       const next = new Set(prev);
       if (next.has(company)) next.delete(company);
@@ -69,7 +92,7 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
         className="flex-1 min-w-0 text-left px-3 py-2 flex items-start gap-2 border-none bg-transparent cursor-pointer"
         style={{ color: 'inherit', font: 'inherit' }}
         onClick={() => {
-          onChange(loc.id);
+          onChange(String(loc.id));
           setOpen(false);
         }}
       >
@@ -103,7 +126,7 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
   const groups = tab === 'my' ? myGroups : customerGroups;
 
   return (
-    <div className="relative">
+    <div className="relative" ref={rootRef}>
       <button
         type="button"
         disabled={disabled}
@@ -193,11 +216,11 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
                       style={{ color: 'var(--text-secondary)', background: 'var(--surface-alt)' }}
                       onClick={() => toggleCompany(group.company)}
                     >
-                      {expandedCompanies.has(group.company) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                      {isCompanyExpanded(group.company) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                       {group.company}
                     </button>
                   )}
-                  {(group.locations.length === 1 || expandedCompanies.has(group.company)) &&
+                  {(group.locations.length === 1 || isCompanyExpanded(group.company)) &&
                     group.locations.map(renderLocationRow)}
                 </div>
               ))}
@@ -211,11 +234,11 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
                     style={{ color: 'var(--text-secondary)', background: 'var(--surface-alt)' }}
                     onClick={() => toggleCompany(group.company)}
                   >
-                    {expandedCompanies.has(group.company) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                    {isCompanyExpanded(group.company) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                     {group.company}
                     <span className="ml-auto opacity-70">{group.locations.length}</span>
                   </button>
-                  {expandedCompanies.has(group.company) && group.locations.map(renderLocationRow)}
+                  {isCompanyExpanded(group.company) && group.locations.map(renderLocationRow)}
                 </div>
               ))}
           </div>
