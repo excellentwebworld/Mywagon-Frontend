@@ -1097,8 +1097,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
 
       {/* ═══ BOTTOM BAR MATCHING page3-vehicle-pricing.html ═══ */}
       <footer
-        className="fixed bottom-0 right-0 h-[72px] items-center justify-between px-6 z-40 flex"
-        style={{ left: 'var(--sidebar-w, 240px)', background: T.sf, borderTop: `1px solid ${T.bd}` }}
+        className="fixed bottom-0 right-0 h-[72px] items-center justify-between px-6 z-40 flex wizard-footer"
+        style={{ background: T.sf, borderTop: `1px solid ${T.bd}` }}
       >
         {/* Cost & Live Navigation */}
         <div className="flex items-center gap-4">

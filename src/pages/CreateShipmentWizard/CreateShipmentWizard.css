@@ -1883,3 +1883,20 @@
 .sc-l { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); margin-bottom: 4px; }
 .sc-v { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary); letter-spacing: -0.3px; }
 .sc-v .u { font-size: 11px; font-weight: 500; color: var(--text-secondary); font-family: 'DM Sans', sans-serif; }
+
+/* ── wizard-footer dynamic positioning ── */
+.wizard-footer {
+  left: var(--sidebar-w, 242px);
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-content.expanded .wizard-footer {
+  left: var(--sidebar-collapsed, 72px);
+}
+
+@media (max-width: 1024px) {
+  .wizard-footer {
+    left: 0 !important;
+  }
+}
+

@@ -1862,8 +1862,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
 
       {/* Footer controls mirroring BottomBar */}
       <footer
-        className="fixed bottom-0 right-0 h-[72px] items-center justify-between px-6 z-40 hidden md:flex"
-        style={{ left: 'var(--sidebar-w, 240px)', background: T.sf, borderTop: `1px solid ${T.bd}` }}
+        className="fixed bottom-0 right-0 h-[72px] items-center justify-between px-6 z-40 flex wizard-footer"
+        style={{ background: T.sf, borderTop: `1px solid ${T.bd}` }}
       >
         <div className="flex items-center gap-3">
           <button
@@ -1872,11 +1872,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
             style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.ac, fontFamily: 'inherit' }}
             onClick={() => setSaveConfirm(true)}
           >
-            <Save size={14} /> {t('saveDraft') || 'Save Draft'}
+            <Save size={14} /> <span className="hidden sm:inline">{t('saveDraft') || 'Save Draft'}</span>
           </button>
           <button
             type="button"
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer hidden sm:inline-flex"
             style={{ border: `1px solid ${T.ac}`, background: T.al, color: T.ac, fontFamily: 'inherit' }}
             onClick={() => {
               setSaveTplOpen(true);
@@ -1886,7 +1886,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
             <FileText size={13} /> Save as Template
           </button>
           {lastSaved && (
-            <span className="text-[10px]" style={{ color: T.t3 }}>
+            <span className="text-[10px] hidden md:inline" style={{ color: T.t3 }}>
               Auto-saved {lastSaved.toLocaleTimeString()}
             </span>
           )}
@@ -1898,7 +1898,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({ onNextStep }) => {
             style={{ border: `1px dashed #D97706`, background: '#FEF3C7', color: '#D97706', fontFamily: 'inherit' }}
             onClick={fillTestData}
           >
-            ⚡ Dev: Fill test
+            ⚡ <span className="hidden sm:inline">Dev: Fill test</span>
           </button>
           <button
             type="button"
