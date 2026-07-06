@@ -1,12 +1,11 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { useFormikContext } from 'formik';
 import { useApp, type LocationItem } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
-  MapPin, ChevronDown, ChevronRight, X, Plus, Save, ArrowRight, Users,
-  ArrowDown, ArrowUp, FileText, Check, Trash2, Eye, Copy, StickyNote, Phone,
-  AlertTriangle, GripVertical, Minimize2, RotateCcw,
+  MapPin, ChevronDown, ChevronRight, X, Plus, Save, ArrowRight,
+  ArrowDown, ArrowUp, FileText, Check, Trash2, Eye, Copy, Phone,
+  AlertTriangle, GripVertical,
 } from 'lucide-react';
 
 import { SearchableSelect } from '../ui/SearchableSelect';
@@ -41,14 +40,12 @@ import { MOCK_LOCATIONS as AB_LOCATIONS, DEFAULT_DIRECTORIES } from '../../mocks
 import { PARTNERS } from '../../mocks/partnersMasterData';
 import { ORDERS } from '../../mocks/ordersMasterData';
 import { CATEGORIES as PM_CAT, PRODUCT_TYPES as PM_TYP, SKUS as PM_SKU } from '../../mocks/productMasterData';
-import { MOCK_USERS } from '../../mocks/userMgmtData';
 import {
   LOADING_POINTS as SCHED_LPS,
   BLACKOUT_PERIODS as SCHED_BLK,
   SCHEDULE_TEMPLATES as SCHED_TPL,
   SCHEDULE_RULES as SCHED_RUL,
 } from '../../mocks/schedulingData';
-import { ITINERARY_TEMPLATES as INIT_TPLS } from '../../mocks/itineraryTemplates';
 
 import useConflicts from '../../hooks/useConflicts';
 import { FieldValidationHint } from './FieldValidationHint';
@@ -116,7 +113,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const [previewProd, setPreviewProd] = useState<any | null>(null);
   const [previewCust, setPreviewCust] = useState<any | null>(null);
   const [previewOrd, setPreviewOrd] = useState<any | null>(null);
-  const [notesStop, setNotesStop] = useState<string | null>(null);
 
   const { locations, skus, showToast, refreshLocationsFromApi, refreshSkusFromApi } = useApp();
   const queryClient = useQueryClient();
@@ -249,43 +245,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
 
 
-  // Co-owners states
-  const activeUsers = useMemo(() => MOCK_USERS.filter((u) => u.status === 'active'), []);
-  const [coOpen, setCoOpen] = useState(false);
-  const [coSearch, setCoSearch] = useState('');
-
-  // Templates states
-  const [templates, setTemplates] = useState<any[]>(() => [...INIT_TPLS]);
-  const [tplOpen, setTplOpen] = useState(false);
-  const [tplSearch, setTplSearch] = useState('');
-
-  // Refs for click outside handling
-  const coRef = useRef<HTMLDivElement>(null);
-  const tplRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (coRef.current && !coRef.current.contains(event.target as Node)) {
-        setCoOpen(false);
-      }
-      if (tplRef.current && !tplRef.current.contains(event.target as Node)) {
-        setTplOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-  const [activeTpl, setActiveTpl] = useState<any | null>(null);
-  const [saveTplOpen, setSaveTplOpen] = useState(false);
-  const [saveTplName, setSaveTplName] = useState('');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   useEffect(() => {
     if (apiOrders.length > 0) {
       setOrds(apiOrders);
     }
   }, [apiOrders]);
-
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   const iS = {
     border: `1px solid ${T.bd}`,
@@ -867,273 +833,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     [pmSkus]
   );
 
-  // ═══ TEMPLATES ═══
-  const applyTemplate = useCallback(
-    (tpl: any) => {
-      const newStops = tpl.stops.map((ts: any) => {
-        const lines = ts.lines.map((tl: any) => ({ ...tl, id: makeId('l'), mirrorOf: '' }));
-        return {
-          id: makeId('s'),
-          locationId: ts.locationId,
-          locationName: ts.locationName,
-          locationCompany: ts.locationCompany || '',
-          locationCity: ts.locationCity || '',
-          locationCountry: ts.locationCountry || '',
-          dateFrom: '',
-          timeFrom: '',
-          dateTo: '',
-          timeTo: '',
-          expanded: true,
-          lines: lines.length ? lines : [createNewCargoLine()],
-          noteCarrier: ts.noteCarrier || '',
-          noteInternal: ts.noteInternal || '',
-          contactName: ts.contactName || '',
-          contactPhone: ts.contactPhone || '',
-          appointmentMode: 'fixed' as const,
-          windowStart: '',
-          windowEnd: '',
-          allowedLoadingPoints: [],
-        };
-      });
-      setFieldValue('stops', newStops);
-      setActiveTpl(tpl);
-      setTplOpen(false);
-      setTemplates((p) =>
-        p.map((t2) =>
-          t2.id === tpl.id
-            ? { ...t2, usageCount: t2.usageCount + 1, lastUsedAt: new Date().toISOString().slice(0, 10) }
-            : t2
-        )
-      );
-    },
-    [setFieldValue]
-  );
-
-  const clearTemplate = useCallback(() => {
-    setActiveTpl(null);
-  }, []);
-
-  const resetItinerary = useCallback(() => {
-    setFieldValue('stops', [createNewStop(true), createNewStop(true)]);
-    setActiveTpl(null);
-    setFieldValue('custRef', '');
-    setFieldValue('coOwners', []);
-  }, [setFieldValue]);
-
-  // DEV Fill Test
-  const fillTestData = useCallback(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const d1 = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(
-      tomorrow.getDate()
-    ).padStart(2, '0')}`;
-    const day2 = new Date(tomorrow);
-    day2.setDate(day2.getDate() + 1);
-    const d2 = `${day2.getFullYear()}-${String(day2.getMonth() + 1).padStart(2, '0')}-${String(
-      day2.getDate()
-    ).padStart(2, '0')}`;
-
-    setFieldValue('stops', [
-      {
-        id: makeId('s'),
-        locationId: 'LOC-001',
-        locationName: 'ΒΙΚΟΣ Κεντρική Αποθήκη',
-        locationCompany: 'ΒΙΚΟΣ Α.Ε.',
-        locationCity: 'Ιωάννινα',
-        locationCountry: 'GR',
-        dateFrom: d1,
-        timeFrom: '06:30',
-        dateTo: d1,
-        timeTo: '08:00',
-        expanded: false,
-        lines: [
-          {
-            id: makeId('l'),
-            productId: 'SKU-001',
-            productName: 'ΒΙΚΟΣ Φυσικό Νερό 500ml (x24)',
-            action: 'pickup',
-            qty: '15',
-            unit: 'Pallets',
-            weight: '3000',
-            wtUnit: 'kg',
-            customerId: 'PR-080',
-            customerName: 'FreshCo S.A.',
-            orderId: '',
-            orderRef: '',
-            mirrorOf: '',
-          },
-          {
-            id: makeId('l'),
-            productId: 'SKU-004',
-            productName: 'ΒΙΚΟΣ Σόδα Lemon 330ml (x24)',
-            action: 'pickup',
-            qty: '10',
-            unit: 'Pallets',
-            weight: '2000',
-            wtUnit: 'kg',
-            customerId: 'PR-081',
-            customerName: 'Σκλαβενίτης Α.Ε.Ε.',
-            orderId: '',
-            orderRef: '',
-            mirrorOf: '',
-          },
-        ],
-        noteCarrier: 'Report to Gate B',
-        noteInternal: '',
-        contactName: 'Γιώργος Μπακόλας',
-        contactPhone: '+30 26510 42100',
-        appointmentMode: 'fixed',
-        windowStart: '',
-        windowEnd: '',
-        allowedLoadingPoints: [],
-      },
-      {
-        id: makeId('s'),
-        locationId: 'LOC-003',
-        locationName: 'Αποθήκη Λαμίας',
-        locationCompany: 'ΒΙΚΟΣ Α.Ε.',
-        locationCity: 'Λαμία',
-        locationCountry: 'GR',
-        dateFrom: d1,
-        timeFrom: '10:30',
-        dateTo: d1,
-        timeTo: '11:30',
-        expanded: false,
-        lines: [
-          {
-            id: makeId('l'),
-            productId: 'SKU-001',
-            productName: 'ΒΙΚΟΣ Φυσικό Νερό 500ml (x24)',
-            action: 'dropoff',
-            qty: '5',
-            unit: 'Pallets',
-            weight: '1000',
-            wtUnit: 'kg',
-            customerId: 'PR-082',
-            customerName: 'Lidl Hellas',
-            orderId: '',
-            orderRef: '',
-            mirrorOf: '',
-          },
-        ],
-        noteCarrier: '',
-        noteInternal: '',
-        contactName: '',
-        contactPhone: '',
-        appointmentMode: 'fixed',
-        windowStart: '',
-        windowEnd: '',
-        allowedLoadingPoints: [],
-      },
-      {
-        id: makeId('s'),
-        locationId: 'LOC-002',
-        locationName: 'Αποθήκη Καλύβια',
-        locationCompany: 'ΒΙΚΟΣ Α.Ε.',
-        locationCity: 'Καλύβια',
-        locationCountry: 'GR',
-        dateFrom: d2,
-        timeFrom: '08:00',
-        dateTo: d2,
-        timeTo: '10:00',
-        expanded: false,
-        lines: [
-          {
-            id: makeId('l'),
-            productId: 'SKU-001',
-            productName: 'ΒΙΚΟΣ Φυσικό Νερό 500ml (x24)',
-            action: 'dropoff',
-            qty: '10',
-            unit: 'Pallets',
-            weight: '2000',
-            wtUnit: 'kg',
-            customerId: 'PR-080',
-            customerName: 'FreshCo S.A.',
-            orderId: '',
-            orderRef: '',
-            mirrorOf: '',
-          },
-          {
-            id: makeId('l'),
-            productId: 'SKU-004',
-            productName: 'ΒΙΚΟΣ Σόδα Lemon 330ml (x24)',
-            action: 'dropoff',
-            qty: '10',
-            unit: 'Pallets',
-            weight: '2000',
-            wtUnit: 'kg',
-            customerId: 'PR-081',
-            customerName: 'Σκλαβενίτης Α.Ε.Ε.',
-            orderId: '',
-            orderRef: '',
-            mirrorOf: '',
-          },
-        ],
-        noteCarrier: 'Dock assignment at gate',
-        noteInternal: 'Main Attica hub',
-        contactName: '',
-        contactPhone: '',
-        appointmentMode: 'fixed',
-        windowStart: '',
-        windowEnd: '',
-        allowedLoadingPoints: [],
-      },
-    ]);
-    setFieldValue('custRef', 'DEV-TEST-001');
-    setShowAll(false);
-  }, [setFieldValue]);
-
-  const saveAsTemplate = useCallback(() => {
-    if (!saveTplName.trim()) return;
-    const tpl = {
-      id: `TPL-IT-${Date.now()}`,
-      name: saveTplName.trim(),
-      usageCount: 0,
-      lastUsedAt: new Date().toISOString().slice(0, 10),
-      stops: stops.map((s: any) => ({
-        locationId: s.locationId,
-        locationName: s.locationName,
-        locationCompany: s.locationCompany,
-        locationCity: s.locationCity,
-        locationCountry: s.locationCountry,
-        noteCarrier: s.noteCarrier,
-        noteInternal: s.noteInternal,
-        contactName: s.contactName,
-        contactPhone: s.contactPhone,
-        lines: s.lines
-          .filter((l: any) => l.productId)
-          .map((l: any) => ({
-            productId: l.productId,
-            productName: l.productName,
-            action: l.action,
-            qty: l.qty,
-            unit: l.unit,
-            weight: l.weight,
-            wtUnit: l.wtUnit,
-            customerId: l.customerId,
-            customerName: l.customerName,
-            orderId: l.orderId,
-            orderRef: l.orderRef,
-          })),
-      })),
-    };
-    setTemplates((p) => [...p, tpl]);
-    setSaveTplOpen(false);
-    setSaveTplName('');
-  }, [saveTplName, stops]);
-
-  const deleteTemplate = useCallback(
-    (tplId: string) => {
-      setTemplates((p) => p.filter((t2) => t2.id !== tplId));
-      if (activeTpl?.id === tplId) setActiveTpl(null);
-    },
-    [activeTpl]
-  );
-
-  const filteredTpls = useMemo(() => {
-    return tplSearch ? templates.filter((t2) => t2.name.toLowerCase().includes(tplSearch.toLowerCase())) : templates;
-  }, [templates, tplSearch]);
-
   // ═══ LOAD BALANCE + VALIDATION ═══
   const bal = useMemo(() => {
     let pkU = 0,
@@ -1189,13 +888,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const [conflictPopup, setConflictPopup] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [previewDock, setPreviewDock] = useState<string | null>(null);
-
-  const [portalTargetReady, setPortalTargetReady] = useState(false);
-  useEffect(() => {
-    if (document.getElementById('wizard-header-portal')) {
-      setPortalTargetReady(true);
-    }
-  }, []);
 
   const MISSING = new Set<string>();
   const conflictCount = useMemo(() => {
@@ -1273,178 +965,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   return (
     <div className="pb-24">
-      {portalTargetReady && document.getElementById('wizard-header-portal')
-        ? createPortal(
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Template select */}
-            <div className="relative" ref={tplRef}>
-              {activeTpl ? (
-                <div
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-                  style={{ background: T.al, color: T.ac, border: `1px solid ${T.ac}` }}
-                >
-                  <FileText size={13} /> {activeTpl.name}
-                  <button
-                    type="button"
-                    className="border-none bg-transparent cursor-pointer p-0 ml-1"
-                    style={{ color: T.ac }}
-                    onClick={clearTemplate}
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
-                  style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t2, fontFamily: 'inherit' }}
-                  onClick={() => {
-                    setTplOpen(!tplOpen);
-                    setTplSearch('');
-                  }}
-                >
-                  <FileText size={13} /> {t('useTemplate') || 'Use Template'} <ChevronDown size={12} />
-                </button>
-              )}
-              {tplOpen && (
-                <div
-                  className="absolute right-0 top-full mt-2 rounded-xl shadow-xl overflow-hidden z-50"
-                  style={{ width: 340, background: T.sf, border: `1px solid ${T.bd}` }}
-                >
-                  <div className="p-2" style={{ borderBottom: `1px solid ${T.bd}` }}>
-                    <input
-                      placeholder="Search templates..."
-                      value={tplSearch}
-                      onChange={(e) => setTplSearch(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded text-xs outline-none"
-                      style={{ border: `1px solid ${T.bd}`, background: T.sa, color: T.t1, fontFamily: 'inherit' }}
-                      autoFocus
-                    />
-                  </div>
-                  <div style={{ maxHeight: 280, overflowY: 'auto' }}>
-                    {filteredTpls.length === 0 && <div className="px-3 py-4 text-xs text-center" style={{ color: T.t3 }}>No templates</div>}
-                    {filteredTpls.map((tpl) => (
-                      <div
-                        key={tpl.id}
-                        className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-slate-50"
-                        style={{ borderBottom: `0.5px solid ${T.bd}` }}
-                        onClick={() => applyTemplate(tpl)}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold truncate" style={{ color: T.t1 }}>
-                            {tpl.name}
-                          </div>
-                          <div className="text-[10px] truncate" style={{ color: T.t3 }}>
-                            {tpl.stops.map((s: any) => s.locationCity || s.locationName).join(' → ')}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          className="w-5 h-5 rounded flex items-center justify-center cursor-pointer border-none shrink-0"
-                          style={{ background: 'transparent', color: T.t3 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteTemplate(tpl.id);
-                          }}
-                        >
-                          <Trash2 size={11} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <input
-              placeholder={t('refPlaceholder') || 'Customer Ref...'}
-              value={values.custRef || ''}
-              onChange={(e) => setFieldValue('custRef', e.target.value)}
-              style={{ ...iS, width: 160, fontSize: 11 }}
-            />
-
-            <div
-              className="px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide"
-              style={{ background: T.sa, color: T.t1, border: `1px solid ${T.bd}` }}
-            >
-              {values.loadId}
-            </div>
-
-            {/* Co-owners */}
-            <div className="relative" ref={coRef}>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
-                style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.ac, fontFamily: 'inherit' }}
-                onClick={() => {
-                  setCoOpen(!coOpen);
-                  setCoSearch('');
-                }}
-              >
-                <Users size={14} />
-                {(values.coOwners || []).length > 0 && (
-                  <span
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                    style={{ background: T.ac }}
-                  >
-                    {(values.coOwners || []).length}
-                  </span>
-                )}
-              </button>
-              {coOpen && (
-                <div
-                  className="absolute right-0 top-full mt-2 rounded-lg shadow-xl overflow-hidden z-50"
-                  style={{ width: 260, background: T.sf, border: `1px solid ${T.bd}` }}
-                >
-                  <div className="px-3 py-2" style={{ borderBottom: `1px solid ${T.bd}` }}>
-                    <input
-                      placeholder="Search users..."
-                      value={coSearch}
-                      onChange={(e) => setCoSearch(e.target.value)}
-                      className="w-full px-2 py-1 rounded text-xs outline-none"
-                      style={{ border: `1px solid ${T.bd}`, background: T.sa, color: T.t1, fontFamily: 'inherit' }}
-                      autoFocus
-                    />
-                  </div>
-                  <div style={{ maxHeight: 220, overflowY: 'auto' }}>
-                    {activeUsers
-                      .filter((u) => !coSearch || `${u.firstName} ${u.lastName}`.toLowerCase().includes(coSearch.toLowerCase()))
-                      .map((u) => {
-                        const sel = (values.coOwners || []).includes(u.id);
-                        return (
-                          <div
-                            key={u.id}
-                            className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-slate-50"
-                            onClick={() => {
-                              const cur = values.coOwners || [];
-                              setFieldValue('coOwners', sel ? cur.filter((id: string) => id !== u.id) : [...cur, u.id]);
-                            }}
-                          >
-                            <input type="checkbox" checked={sel} readOnly />
-                            <div className="text-xs truncate" style={{ color: T.t1 }}>
-                              {u.firstName} {u.lastName}
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <button
-              type="button"
-              className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer border-none shrink-0"
-              style={{ background: 'transparent', color: T.t3 }}
-              onClick={resetItinerary}
-            >
-              <RotateCcw size={15} />
-            </button>
-          </div>,
-          document.getElementById('wizard-header-portal')!
-        )
-        : null}
-
       <LoadBalanceBar bal={bal} balExp={balExp} setBalExp={setBalExp} fmtW={fmtW} T={T} t={t} />
 
 
@@ -1603,25 +1123,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         </span>
                       ))}
                       <div className="flex-1" />
-                      <button
-                        type="button"
-                        className="w-7 h-7 rounded-md flex items-center justify-center cursor-pointer border-none shrink-0"
-                        style={{ background: stop.noteCarrier ? T.al : 'transparent', color: stop.noteCarrier ? T.ac : T.t3 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setNotesStop(notesStop === stop.id ? null : stop.id);
-                        }}
-                      >
-                        <StickyNote size={14} />
-                      </button>
                       {stop.contactName && (
                         <span
-                          className="text-[10px] px-2 py-0.5 rounded flex items-center gap-1 shrink-0 cursor-pointer"
+                          className="text-[10px] px-2 py-0.5 rounded flex items-center gap-1 shrink-0"
                           style={{ background: T.sa, color: T.t2 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setNotesStop(notesStop === stop.id ? null : stop.id);
-                          }}
                         >
                           <Phone size={10} />
                           {stop.contactName}
@@ -1629,66 +1134,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                       )}
                       <ChevronDown size={16} style={{ color: T.t3, flexShrink: 0 }} />
                     </div>
-
-                    {/* Notes popup */}
-                    {notesStop === stop.id && (
-                      <div className="mx-4 mt-3 p-3 rounded-lg" style={{ background: T.sa, border: `1px solid ${T.bd}` }}>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-semibold" style={{ color: T.t1 }}>
-                            📝 {t('notes') || 'Notes'}
-                          </span>
-                          <button
-                            type="button"
-                            className="border-none bg-transparent cursor-pointer"
-                            style={{ color: T.t3 }}
-                            onClick={() => setNotesStop(null)}
-                          >
-                            <Minimize2 size={14} />
-                          </button>
-                        </div>
-                        <label className="block text-[10px] font-semibold mb-1" style={{ color: T.t3 }}>
-                          🚛 Carrier Note
-                        </label>
-                        <textarea
-                          rows={2}
-                          className="w-full rounded text-xs mb-2 p-2 outline-none resize-y"
-                          style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontFamily: 'inherit' }}
-                          value={stop.noteCarrier}
-                          onChange={(e) => uStop(stop.id, { noteCarrier: e.target.value })}
-                          placeholder="e.g. Report to Gate B"
-                        />
-                        <label className="block text-[10px] font-semibold mb-1" style={{ color: T.t3 }}>
-                          🔒 Internal Note
-                        </label>
-                        <textarea
-                          rows={2}
-                          className="w-full rounded text-xs p-2 outline-none resize-y"
-                          style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontFamily: 'inherit' }}
-                          value={stop.noteInternal}
-                          onChange={(e) => uStop(stop.id, { noteInternal: e.target.value })}
-                          placeholder="Internal remarks..."
-                        />
-                        <label className="block text-[10px] font-semibold mt-2 mb-1" style={{ color: T.t3 }}>
-                          📞 Contact Person
-                        </label>
-                        <div className="flex gap-2">
-                          <input
-                            className="flex-1 rounded text-xs p-2 outline-none"
-                            style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontFamily: 'inherit' }}
-                            value={stop.contactName}
-                            onChange={(e) => uStop(stop.id, { contactName: e.target.value })}
-                            placeholder="Name..."
-                          />
-                          <input
-                            className="w-[140px] rounded text-xs p-2 outline-none"
-                            style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontFamily: 'inherit' }}
-                            value={stop.contactPhone}
-                            onChange={(e) => uStop(stop.id, { contactPhone: e.target.value })}
-                            placeholder="Phone..."
-                          />
-                        </div>
-                      </div>
-                    )}
 
                     {/* Location + Appointment */}
                     <div className="p-4" style={{ borderBottom: `1px solid ${T.bd}` }}>
@@ -1883,17 +1328,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           >
             <Save size={14} /> {isSaving ? (t('saving') || 'Saving...') : (t('saveDraft') || 'Save Draft')}
           </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer"
-            style={{ border: `1px solid ${T.ac}`, background: T.al, color: T.ac, fontFamily: 'inherit' }}
-            onClick={() => {
-              setSaveTplOpen(true);
-              setSaveTplName('');
-            }}
-          >
-            <FileText size={13} /> Save as Template
-          </button>
           {lastSaved && (
             <span className="text-[10px]" style={{ color: T.t3 }}>
               {t('draftSavedAt') || 'Draft saved'} {lastSaved.toLocaleTimeString()}
@@ -1901,14 +1335,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-semibold cursor-pointer"
-            style={{ border: `1px dashed #D97706`, background: '#FEF3C7', color: '#D97706', fontFamily: 'inherit' }}
-            onClick={fillTestData}
-          >
-            ⚡ Dev: Fill test
-          </button>
           <button
             type="button"
             className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold cursor-pointer text-white border-none"
@@ -2019,66 +1445,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         onSubmit={handleCreateSku}
         saving={skuSaving}
       />
-
-      {/* Dialog for templates */}
-      {saveTplOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.3)' }}
-          onClick={() => setSaveTplOpen(false)}
-        >
-          <div
-            className="rounded-xl overflow-hidden p-5"
-            style={{ width: 400, background: T.sf, border: `1px solid ${T.bd}` }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-semibold" style={{ color: T.t1 }}>
-                Save as Template
-              </span>
-              <button
-                type="button"
-                className="border-none bg-transparent cursor-pointer"
-                style={{ color: T.t3 }}
-                onClick={() => setSaveTplOpen(false)}
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="mb-4">
-              <label className="block text-[10px] font-semibold mb-1 uppercase" style={{ color: T.t3 }}>
-                Template Name
-              </label>
-              <input
-                style={{ ...iS, fontSize: 13 }}
-                value={saveTplName}
-                onChange={(e) => setSaveTplName(e.target.value)}
-                placeholder="Name..."
-                autoFocus
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                className="px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer border"
-                style={{ borderColor: T.bd, background: T.sf, color: T.t2, fontFamily: 'inherit' }}
-                onClick={() => setSaveTplOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer text-white border-none"
-                style={{ background: saveTplName.trim() ? T.ac : T.bf, fontFamily: 'inherit' }}
-                disabled={!saveTplName.trim()}
-                onClick={saveAsTemplate}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Conflict summary dialog */}
       {conflictPopup && (

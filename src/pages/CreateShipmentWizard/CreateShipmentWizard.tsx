@@ -51,7 +51,7 @@ export const CreateShipmentWizard: React.FC = () => {
     validationRequest,
   } = useCreateShipmentWizard(showToast, t);
 
-
+  const stepNavBannerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     refreshLocationsFromApi();
@@ -148,8 +148,22 @@ export const CreateShipmentWizard: React.FC = () => {
 
   const handleStepClick = (targetStep: number) => {
     const requireId = targetStep >= 2;
-    goToStep(targetStep, requireId ? { requireId: true } : undefined);
+    const moved = goToStep(targetStep, requireId ? { requireId: true } : undefined);
+    if (!moved) {
+      window.requestAnimationFrame(() => {
+        stepNavBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        scrollToValidationAnchor('wizard-step-nav', { focus: false, highlightClass: 'wizard-validation-flash' });
+      });
+    }
   };
+
+  useEffect(() => {
+    if (stepNavigationError) {
+      window.requestAnimationFrame(() => {
+        stepNavBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  }, [stepNavigationError, validationRequest]);
 
   if (isLoading || !draftLoaded) {
     return (
@@ -174,7 +188,6 @@ export const CreateShipmentWizard: React.FC = () => {
             {step === 3 && (t('vehiclePricingSub') || 'Choose vehicle type, target price, and tracking options.')}
           </p>
         </div>
-        <div id="wizard-header-portal" className="flex items-center gap-2 flex-wrap" />
       </div>
 
       <nav className="stepper" aria-label="Progress steps">
@@ -196,7 +209,16 @@ export const CreateShipmentWizard: React.FC = () => {
         </div>
       </nav>
 
-
+      {stepNavigationError && (
+        <div
+          ref={stepNavBannerRef}
+          className="wizard-validation-banner"
+          role="alert"
+          data-validation-anchor="wizard-step-nav"
+        >
+          {t(stepNavigationError)}
+        </div>
+      )}
 
       <Formik
         initialValues={initialValues}

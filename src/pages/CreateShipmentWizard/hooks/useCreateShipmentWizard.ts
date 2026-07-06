@@ -109,7 +109,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setShipmentId(draft.id);
         setLoadId(draft.auto_id);
         setLoadedValues(mapped);
-        setStepState(draft.wizard_step || 1);
+        setStepState(parseStep(searchParams.get('step')));
         setDraftLoaded(true);
       })
       .catch((err: unknown) => {
