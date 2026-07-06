@@ -5,9 +5,8 @@ import { useTranslation } from '../../hooks/useTranslation';
 import {
   ArrowLeft,
   ArrowRight,
-  Calendar,
+  Check,
   Clock,
-  MoreHorizontal,
   Save,
 } from 'lucide-react';
 import { useItineraryStats } from './itinerary/useItineraryStats';
@@ -15,15 +14,28 @@ import { useRouteLegs } from './itinerary/useRouteLegs';
 import { RouteMap } from './itinerary/RouteMap';
 import { OrdersCard } from './itinerary/OrdersCard';
 import { VehicleSelector } from './VehicleSelector';
-import { formatDurationMin, formatWeightKg } from './itinerary/cargoUtils';
 import {
-  buildOrdersCardData,
-  formatStopDateTime,
-  getStopBadgeType,
-  groupStopLinesByCustomer,
-} from './itinerary/stopGrouping';
+  formatDurationMin,
+  formatWeightDisplay,
+  formatWeightKg,
+  TRUCK_WEIGHT_CAP_KG,
+} from './itinerary/cargoUtils';
+import { buildOrdersCardData } from './itinerary/stopGrouping';
+import { formatAppointmentLabel } from './itinerary/scheduleWarnings';
 import { hasVehicleSelection } from './vehicleTypes';
 import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
+
+const T = {
+  sf: 'var(--surface)',
+  sa: 'var(--surface-alt)',
+  bd: 'var(--border)',
+  bf: 'var(--border-focus)',
+  t1: 'var(--text-primary)',
+  t2: 'var(--text-secondary)',
+  t3: 'var(--text-tertiary)',
+  ac: 'var(--accent)',
+  al: 'var(--accent-light)',
+};
 
 interface Step2ItineraryProps {
   onBackStep: () => void;
@@ -46,7 +58,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
   const [expandedStop, setExpandedStop] = useState<number | null>(null);
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
 
-  const { enrichedStops, totals } = useItineraryStats(stops, locations);
+  const { enrichedStops, totals, runningWeights } = useItineraryStats(stops, locations);
   const route = useRouteLegs(enrichedStops);
   const ordersCardData = useMemo(
     () => buildOrdersCardData(stops, enrichedStops),
@@ -55,11 +67,11 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
 
   const missingLocations = enrichedStops.some((s) => !s.locationId);
   const vehicleSelected = hasVehicleSelection(values.vehicleSpecs);
-  const canContinue = !missingLocations && vehicleSelected && !isSaving;
+  const canContinue =
+    !missingLocations && vehicleSelected && values.itineraryConfirmed && !isSaving;
 
   const handleConfirmAndContinue = async () => {
     if (!canContinue) return;
-    setFieldValue('itineraryConfirmed', true);
     await onContinue({
       totalDistKm: route.totalDistKm,
       totalDriveMin: route.totalDriveMin,
@@ -92,120 +104,213 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
 
       <div className="wizard-grid mt-4">
         <div className="min-w-0">
-          <div className="card">
-            <div className="ch" style={{ cursor: 'default' }}>
-              <Clock size={18} />
-              <span>{t('step2RouteStops')}</span>
+          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${T.bd}`, background: T.sf }}>
+            <div
+              className="flex items-center justify-between px-4 py-3"
+              style={{ borderBottom: `1px solid ${T.bd}` }}
+            >
+              <div className="flex items-center gap-2">
+                <Clock size={16} style={{ color: T.t2 }} />
+                <span className="text-sm font-semibold" style={{ color: T.t1 }}>
+                  {t('step2RouteStops')}
+                </span>
+              </div>
               <button
                 type="button"
-                className="ml-auto text-xs font-semibold cursor-pointer border-none px-2.5 py-1 rounded"
-                style={{ background: 'var(--accent-light)', color: 'var(--accent)', fontFamily: 'inherit' }}
+                className="text-xs font-semibold cursor-pointer border-none px-2.5 py-1 rounded"
+                style={{ background: T.al, color: T.ac, fontFamily: 'inherit' }}
                 onClick={onBackStep}
               >
                 {t('step2EditItinerary')}
               </button>
             </div>
 
-            <div className="timeline">
+            <div className="px-4 py-3">
               {enrichedStops.map((stop, si) => {
                 const isExp = expandedStop === si;
-                const badge = getStopBadgeType(stop);
-                const customerGroups = groupStopLinesByCustomer(stop);
-                const pills = stop.customers.filter((c) => c.name);
-                const visiblePills = pills.slice(0, 2);
-                const overflow = pills.length - visiblePills.length;
+                const rw = runningWeights[si] || 0;
 
                 return (
-                  <div
-                    key={stop.id || si}
-                    className={`stop-row${isExp ? ' expanded' : ''}`}
-                    onClick={() => setExpandedStop(isExp ? null : si)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setExpandedStop(isExp ? null : si);
-                      }
-                    }}
-                  >
-                    <button
-                      type="button"
-                      className="stop-menu"
-                      aria-hidden
-                      onClick={(e) => e.stopPropagation()}
+                  <div key={stop.id || si}>
+                    <div
+                      className="flex gap-3 pb-4"
+                      style={{
+                        borderLeft:
+                          si < enrichedStops.length - 1 ? `2px solid ${T.ac}` : '2px solid transparent',
+                        marginLeft: 14,
+                      }}
                     >
-                      <MoreHorizontal size={14} />
-                    </button>
-
-                    <div className="tl-col">
-                      <div className={`tl-dot ${badge === 'pickup' ? 'pk' : 'dl'}`} />
-                      <div className="tl-line" />
-                      <div className="tl-num">#{si + 1}</div>
-                    </div>
-
-                    <div className="stop-content">
-                      <div className="stop-meta">
-                        <span className={`stop-badge ${badge === 'pickup' ? 'pk' : 'dl'}`}>
-                          {badge === 'pickup' ? t('pickupUpper') || 'PICKUP' : t('deliveryUpper') || 'DELIVERY'}
-                        </span>
-                        <span className="stop-dt">
-                          <Calendar size={12} />
-                          {formatStopDateTime(stop)}
-                        </span>
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 -ml-[15px]"
+                        style={{ background: '#059669' }}
+                      >
+                        {si + 1}
                       </div>
-                      <div className="stop-loc">{stop.resolvedCity || stop.resolvedName}</div>
-                      <div className="stop-addr">{stop.resolvedAddress || stop.resolvedCompany}</div>
-
-                      {visiblePills.length > 0 && (
-                        <div className="stop-cust-summary">
-                          {visiblePills.map((c, ci) => (
-                            <span key={ci} className="cust-pill">
-                              🏪 {c.name}
+                      <div
+                        className="flex-1 min-w-0 cursor-pointer"
+                        onClick={() => setExpandedStop(isExp ? null : si)}
+                      >
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          {stop.hasPickup && (
+                            <span
+                              className="text-[10px] font-bold px-2 py-0.5 rounded"
+                              style={{ background: '#DBEAFE', color: '#2563EB' }}
+                            >
+                              {t('pickup').toUpperCase()}
                             </span>
-                          ))}
-                          {overflow > 0 && (
-                            <span className="cust-pill-more">+{overflow}</span>
+                          )}
+                          {stop.hasDropoff && (
+                            <span
+                              className="text-[10px] font-bold px-2 py-0.5 rounded"
+                              style={{ background: '#D1FAE5', color: '#059669' }}
+                            >
+                              {t('dropoff').toUpperCase()}
+                            </span>
+                          )}
+                          {formatAppointmentLabel(stop) && (
+                            <span className="text-[10px]" style={{ color: T.t3 }}>
+                              📅 {formatAppointmentLabel(stop)}
+                            </span>
                           )}
                         </div>
-                      )}
-
-                      <div className="stop-detail">
-                        {customerGroups.length === 0 && (
-                          <div className="text-xs py-2" style={{ color: 'var(--text-tertiary)' }}>
-                            {t('step2NoCargoFlows')}
+                        <div className="text-sm font-bold" style={{ color: T.t1 }}>
+                          {stop.resolvedName}
+                        </div>
+                        <div className="text-[11px] mb-1" style={{ color: T.t3 }}>
+                          {stop.resolvedAddress || stop.resolvedCity}
+                        </div>
+                        {stop.customers.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-1">
+                            {stop.customers.map((c, ci) => (
+                              <span
+                                key={ci}
+                                className="text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1"
+                                style={{
+                                  background: '#F0FDF9',
+                                  color: '#059669',
+                                  border: '1px solid #A7F3D0',
+                                }}
+                              >
+                                🏪 {c.name}
+                              </span>
+                            ))}
                           </div>
                         )}
-                        {customerGroups.map((group, gi) => (
-                          <div key={gi} className={group.name ? 'cust-group' : 'bare-order'}>
-                            {group.name && (
-                              <div className="cust-group-head">
-                                <span>🏪</span>
-                                <span className="cust-group-name">{group.name}</span>
-                              </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span
+                            className="text-[9px] font-semibold"
+                            style={{ color: rw > TRUCK_WEIGHT_CAP_KG ? '#DC2626' : T.t3 }}
+                          >
+                            {t('step2OnTruck')}: {formatWeightKg(rw)}
+                          </span>
+                          <div
+                            className="flex-1 rounded-full overflow-hidden"
+                            style={{ height: 3, background: T.sa, maxWidth: 120 }}
+                          >
+                            <div
+                              style={{
+                                width: `${Math.min((rw / TRUCK_WEIGHT_CAP_KG) * 100, 100)}%`,
+                                height: '100%',
+                                background:
+                                  rw > TRUCK_WEIGHT_CAP_KG
+                                    ? '#DC2626'
+                                    : rw > 20000
+                                      ? '#D97706'
+                                      : '#059669',
+                                borderRadius: 2,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {isExp && (
+                      <div
+                        className="ml-12 mb-3 p-3 rounded-lg"
+                        style={{ background: T.sa, border: `1px solid ${T.bd}` }}
+                      >
+                        <div
+                          className="text-[10px] font-bold uppercase mb-2"
+                          style={{ color: T.t3 }}
+                        >
+                          {t('step2CargoAtStop')}
+                        </div>
+                        {(stop.lines || []).map((l: any, li: number) => (
+                          <div
+                            key={li}
+                            className="flex items-center gap-3 py-1.5 text-xs flex-wrap"
+                            style={{
+                              borderBottom:
+                                li < (stop.lines?.length || 0) - 1 ? `0.5px solid ${T.bd}` : 'none',
+                            }}
+                          >
+                            <span
+                              className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                              style={{
+                                background: l.action === 'pickup' ? '#DBEAFE' : '#D1FAE5',
+                                color: l.action === 'pickup' ? '#2563EB' : '#059669',
+                              }}
+                            >
+                              {l.action === 'pickup' ? '↑' : '↓'}
+                            </span>
+                            <span className="font-medium flex-1 min-w-[80px]" style={{ color: T.t1 }}>
+                              {l.productName || '—'}
+                            </span>
+                            <span style={{ color: T.t2 }}>
+                              {l.qty} {l.unit || ''}
+                            </span>
+                            <span style={{ color: T.t3 }}>
+                              {formatWeightDisplay(l.weight, l.wtUnit)}
+                            </span>
+                            {l.customerName && (
+                              <span className="text-[10px]" style={{ color: '#059669' }}>
+                                🏪 {l.customerName}
+                              </span>
                             )}
-                            {group.orders.map((order) => (
-                              <div key={order.orderId || order.orderRef} className="cust-order">
-                                <div className="stop-chips">
-                                  {order.lines.map((line, li) => (
-                                    <span key={li} className="chip">
-                                      {line.productName || '—'}{' '}
-                                      <b>
-                                        {line.qty} {line.unit || ''}
-                                      </b>
-                                    </span>
-                                  ))}
-                                </div>
-                                <div className="order-link">{order.orderRef}</div>
-                              </div>
-                            ))}
                           </div>
                         ))}
                       </div>
-                    </div>
+                    )}
                   </div>
                 );
               })}
+            </div>
+
+            <div
+              className="flex items-center justify-between px-4 py-2.5 flex-wrap gap-2"
+              style={{ borderTop: `1px solid ${T.bd}`, background: T.sa }}
+            >
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
+                style={{
+                  border: `1px solid ${T.bd}`,
+                  background: T.sf,
+                  color: T.t2,
+                  fontFamily: 'inherit',
+                }}
+                onClick={onBackStep}
+              >
+                {t('step2GoBackEdit')}
+              </button>
+              {!values.itineraryConfirmed ? (
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer text-white border-none"
+                  style={{ background: '#059669', fontFamily: 'inherit' }}
+                  onClick={() => setFieldValue('itineraryConfirmed', true)}
+                >
+                  <Check size={13} /> {t('step2ConfirmItinerary')}
+                </button>
+              ) : (
+                <span
+                  className="inline-flex items-center gap-1.5 text-xs font-bold"
+                  style={{ color: '#059669' }}
+                >
+                  <Check size={14} /> {t('step2ItineraryConfirmed')}
+                </span>
+              )}
             </div>
           </div>
 
