@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS } from '../../constants/cargoUnits';
+import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS, normalizeWeightUnit } from '../../constants/cargoUnits';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import type { SKU } from '../../context/AppContext';
 import type { ErpOrderLine, ErpOrderFormState } from '../../pages/ErpOrders/types';
@@ -135,7 +135,11 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
             value={line.weight ?? ''}
             onChange={(e) => updateLine(index, { weight: e.target.value ? Number(e.target.value) : null })}
           />
-          <select className="inp" value={line.weightUnit} onChange={(e) => updateLine(index, { weightUnit: e.target.value })}>
+          <select
+            className="inp"
+            value={normalizeWeightUnit(line.weightUnit)}
+            onChange={(e) => updateLine(index, { weightUnit: e.target.value })}
+          >
             {allowEmptySelects && <option value="">—</option>}
             {WEIGHT_UNIT_OPTIONS.map((u) => (
               <option key={u} value={u}>

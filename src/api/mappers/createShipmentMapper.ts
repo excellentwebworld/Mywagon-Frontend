@@ -1,5 +1,6 @@
 import type { ApiStop, ApiWizardState, SaveStepOnePayload, SaveStepTwoPayload } from '../types/createShipment';
 import { createNewCargoLine, createNewStop } from '../../components/CreateShipmentWizard/types';
+import { normalizeWeightUnit } from '../../constants/cargoUnits';
 
 export interface WizardFormValues {
   loadId: string;
@@ -35,11 +36,19 @@ export function formValuesToStepOnePayload(
   values: Pick<WizardFormValues, 'stops' | 'custRef' | 'coOwners'>,
   mode: SaveStepOnePayload['mode']
 ): SaveStepOnePayload {
+  const stops = (values.stops || []).map((stop) => ({
+    ...stop,
+    lines: (stop.lines || []).map((line) => ({
+      ...line,
+      wtUnit: normalizeWeightUnit(line.wtUnit),
+    })),
+  }));
+
   return {
     mode,
     customer_reference: values.custRef || '',
     co_owners: values.coOwners || [],
-    stops: values.stops || [],
+    stops,
     timezone: browserTimezone(),
   };
 }
@@ -64,6 +73,7 @@ export function draftToFormValues(
               ? stop.lines.map((line) => ({
                   ...createNewCargoLine(),
                   ...line,
+                  wtUnit: normalizeWeightUnit(line.wtUnit),
                 }))
               : [createNewCargoLine()],
         }))

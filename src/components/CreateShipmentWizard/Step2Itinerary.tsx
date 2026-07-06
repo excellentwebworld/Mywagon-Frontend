@@ -11,7 +11,6 @@ import {
   BarChart3,
   Maximize2,
   Sparkles,
-  AlertTriangle,
 } from 'lucide-react';
 import { useItineraryStats } from './itinerary/useItineraryStats';
 import { useRouteLegs } from './itinerary/useRouteLegs';
@@ -21,12 +20,12 @@ import { ItineraryAiInsights } from './itinerary/ItineraryAiInsights';
 import {
   formatDurationMin,
   formatQtyWithUnit,
+  formatWeightDisplay,
   formatWeightKg,
   summarizeStopLines,
   TRUCK_WEIGHT_CAP_KG,
-  weightToKg,
 } from './itinerary/cargoUtils';
-import { formatAppointmentLabel, formatStopScheduleShort, getMockWeather } from './itinerary/scheduleWarnings';
+import { formatAppointmentLabel, formatStopScheduleShort } from './itinerary/scheduleWarnings';
 
 const T = {
   sf: 'var(--surface)',
@@ -68,8 +67,6 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
     totals,
     runningWeights,
     cargoFlows,
-    weekendWarnings,
-    driveWarnings,
   } = useItineraryStats(stops, locations, route.legs);
 
   const missingLocations = enrichedStops.some((s) => !s.locationId);
@@ -153,27 +150,11 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
             {leftView === 'list' ? (
               <div className="px-4 py-3">
                 {enrichedStops.map((stop, si) => {
-                  const dw = driveWarnings.find((d) => d.to === si);
-                  const ww = weekendWarnings[si];
                   const isExp = expandedStop === si;
                   const rw = runningWeights[si] || 0;
-                  const wx = getMockWeather(stop.resolvedCity, stop.locationId);
-                  const leg = route.legs.find((d) => d.to === si);
 
                   return (
                     <div key={stop.id || si}>
-                      {dw && dw.level !== 'ok' && (
-                        <div
-                          className="flex items-center gap-2 py-1.5 ml-8 text-[10px] flex-wrap"
-                          style={{ color: dw.level === 'red' ? '#DC2626' : '#D97706' }}
-                        >
-                          <AlertTriangle size={10} />
-                          <span>
-                            {leg ? `${leg.label} · ${leg.distKm} km` : dw.label}
-                          </span>
-                          <span className="font-semibold">{dw.msg}</span>
-                        </div>
-                      )}
                       <div
                         className="flex gap-3 pb-4"
                         style={{
@@ -211,24 +192,6 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                             {formatAppointmentLabel(stop) && (
                               <span className="text-[10px]" style={{ color: T.t3 }}>
                                 📅 {formatAppointmentLabel(stop)}
-                              </span>
-                            )}
-                            <span
-                              className="text-[9px] px-1.5 py-0.5 rounded inline-flex items-center gap-1"
-                              style={{
-                                background: wx.alert ? '#FEF3C7' : T.sa,
-                                color: wx.alert ? '#D97706' : T.t3,
-                              }}
-                            >
-                              {wx.icon} {wx.tempC}°C
-                              {wx.rain > 0 ? ` · ${wx.rain}% rain` : ''}
-                            </span>
-                            {ww && (
-                              <span
-                                className="text-[9px] font-semibold px-1.5 py-0.5 rounded"
-                                style={{ background: '#FEF3C7', color: '#D97706' }}
-                              >
-                                ⚠ {ww}
                               </span>
                             )}
                           </div>
@@ -310,7 +273,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                                 {l.qty} {l.unit || ''}
                               </span>
                               <span style={{ color: T.t3 }}>
-                                {formatWeightKg(weightToKg(l.weight, l.wtUnit))}
+                                {formatWeightDisplay(l.weight, l.wtUnit)}
                               </span>
                               {l.customerName && (
                                 <span className="text-[10px]" style={{ color: '#059669' }}>
@@ -339,7 +302,6 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                 <div className="flex items-start mb-6 overflow-x-auto pb-2">
                   {enrichedStops.map((stop, si) => {
                     const drive = route.legs.find((d) => d.from === si);
-                    const dw = driveWarnings.find((d) => d.from === si);
                     const onTruckKg = runningWeights[si] ?? 0;
                     const stopActivity = summarizeStopLines(stop);
 
@@ -380,20 +342,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                             {drive && (
                               <div
                                 className="text-[9px] font-semibold mt-1 px-1 py-0.5 rounded text-center"
-                                style={{
-                                  background:
-                                    dw?.level === 'red'
-                                      ? '#FEE2E2'
-                                      : dw?.level === 'amber'
-                                        ? '#FEF3C7'
-                                        : T.sa,
-                                  color:
-                                    dw?.level === 'red'
-                                      ? '#DC2626'
-                                      : dw?.level === 'amber'
-                                        ? '#D97706'
-                                        : T.t3,
-                                }}
+                                style={{ background: T.sa, color: T.t3 }}
                               >
                                 {drive.label}
                               </div>
@@ -515,6 +464,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
             <RouteMap
               stops={enrichedStops}
               polylinePath={route.polylinePath}
+              directionsResult={route.directionsResult}
               expanded={fullMap}
               loading={route.loading}
               t={t}

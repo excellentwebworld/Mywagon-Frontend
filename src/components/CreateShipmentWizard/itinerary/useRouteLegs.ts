@@ -11,6 +11,7 @@ export interface RouteLegsResult {
   totalDistKm: number;
   totalDriveMin: number;
   polylinePath: { lat: number; lng: number }[];
+  directionsResult: unknown | null;
   usedGoogle: boolean;
 }
 
@@ -55,6 +56,27 @@ function decodePolyline(encoded: string): { lat: number; lng: number }[] {
   return points;
 }
 
+function extractRoutePath(route: any, fallback: { lat: number; lng: number }[]): { lat: number; lng: number }[] {
+  const overview = route?.overview_polyline?.points;
+  if (overview) {
+    const decoded = decodePolyline(overview);
+    if (decoded.length >= 2) return decoded;
+  }
+
+  const path: { lat: number; lng: number }[] = [];
+  (route?.legs || []).forEach((leg: any) => {
+    (leg?.steps || []).forEach((step: any) => {
+      const encoded = step?.polyline?.points;
+      if (encoded) {
+        path.push(...decodePolyline(encoded));
+      }
+    });
+  });
+
+  if (path.length >= 2) return path;
+  return fallback;
+}
+
 export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
   const coordStops = useMemo(
     () =>
@@ -94,6 +116,7 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
     totalDistKm: fallback.totalDistKm,
     totalDriveMin: fallback.totalDriveMin,
     polylinePath: fallback.polylinePath,
+    directionsResult: null,
     usedGoogle: false,
   });
 
@@ -106,6 +129,7 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
         totalDistKm: 0,
         totalDriveMin: 0,
         polylinePath: coords,
+        directionsResult: null,
         usedGoogle: false,
       });
       return;
@@ -120,6 +144,7 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
         totalDistKm: fallback.totalDistKm,
         totalDriveMin: fallback.totalDriveMin,
         polylinePath: fallback.polylinePath,
+        directionsResult: null,
         usedGoogle: false,
       });
       return;
@@ -162,6 +187,7 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
                 totalDistKm: fallback.totalDistKm,
                 totalDriveMin: fallback.totalDriveMin,
                 polylinePath: fallback.polylinePath,
+                directionsResult: null,
                 usedGoogle: false,
               });
               return;
@@ -181,8 +207,7 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
               });
             });
 
-            const encoded = route.overview_polyline?.points;
-            const polylinePath = encoded ? decodePolyline(encoded) : coords;
+            const polylinePath = extractRoutePath(route, coords);
             const totals = sumLegs(legs);
 
             setState({
@@ -190,6 +215,7 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
               error: null,
               legs,
               polylinePath,
+              directionsResult: result,
               usedGoogle: true,
               ...totals,
             });
@@ -205,6 +231,7 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
           totalDistKm: fallback.totalDistKm,
           totalDriveMin: fallback.totalDriveMin,
           polylinePath: fallback.polylinePath,
+          directionsResult: null,
           usedGoogle: false,
         });
       });
@@ -212,7 +239,7 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
     return () => {
       cancelled = true;
     };
-  }, [coords, coordStops]);
+  }, [coords, coordStops, fallback.legs, fallback.polylinePath, fallback.totalDistKm, fallback.totalDriveMin]);
 
   return state;
 }

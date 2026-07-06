@@ -34,7 +34,7 @@ import { applyTemplate as applyAddressTemplate } from '../../pages/AddressBook/u
 import { EMPTY_CREATE_DATA, EMPTY_COMPANY_DATA } from '../../pages/AddressBook/types';
 import type { CreateLocationData, CompanyFormData } from '../../pages/AddressBook/types';
 import type { ApiCompanyLookup } from '../../api/types/addressBook';
-import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS } from '../../constants/cargoUnits';
+import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS, normalizeWeightUnit, weightToKg, formatWeightKgTotal } from '../../constants/cargoUnits';
 
 const clearOrderDependentCargoFields = () => {
   const blank = createNewCargoLine();
@@ -471,7 +471,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         qty: ln.quantity != null ? String(ln.quantity) : '',
         unit: ln.unit || 'EUR Pallets',
         weight: ln.weight != null ? String(ln.weight) : '',
-        wtUnit: ln.weightUnit || 'Kgs',
+        wtUnit: normalizeWeightUnit(ln.weightUnit),
         mirrorOf: '',
       }));
       uStop(sid, (s: any) => ({ ...s, lines: [...s.lines.filter((l: any) => l.productId), ...newLines] }));
@@ -757,7 +757,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           qty: orderLine.quantity != null ? String(orderLine.quantity) : '',
           unit: orderLine.unit || line?.unit || 'EUR Pallets',
           weight: orderLine.weight != null ? String(orderLine.weight) : '',
-          wtUnit: orderLine.weightUnit || line?.wtUnit || 'Kgs',
+          wtUnit: normalizeWeightUnit(orderLine.weightUnit || line?.wtUnit),
         });
         return;
       }
@@ -876,9 +876,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     const byP: Record<string, any> = {};
     stops.forEach((s: any) =>
       s.lines.forEach((ln: any) => {
-        const q = parseFloat(ln.qty) || 0,
-          w = parseFloat(ln.weight) || 0;
-        const wk = ln.wtUnit === 't' ? w * 1000 : ln.wtUnit === 'lb' ? w * 0.4536 : w;
+        const q = parseFloat(ln.qty) || 0;
+        const wk = weightToKg(ln.weight, ln.wtUnit);
         if (ln.action === 'pickup') {
           pkU += q;
           pkW += wk;
@@ -905,7 +904,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     };
   }, [stops]);
 
-  const fmtW = (kg: number) => (kg >= 1000 ? `${(kg / 1000).toFixed(1)}t` : `${Math.round(kg)} kg`);
+  const fmtW = (kg: number) => formatWeightKgTotal(kg);
 
   // ═══ CONFLICT CHECKING ═══
   const { blockers, warnings, all: allConflicts } = useConflicts(stops, {
@@ -1895,7 +1894,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                   <td style={tdS}>
                     <select
                       style={{ ...selS, width: 75 }}
-                      value={ln.wtUnit}
+                      value={normalizeWeightUnit(ln.wtUnit)}
                       onChange={(e) => onSetField(ln.id, 'wtUnit', e.target.value)}
                     >
                       {WEIGHT_UNIT_OPTIONS.map((u) => (

@@ -6,6 +6,7 @@ import type { EnrichedStop } from './types';
 interface RouteMapProps {
   stops: EnrichedStop[];
   polylinePath: { lat: number; lng: number }[];
+  directionsResult?: unknown | null;
   expanded?: boolean;
   loading?: boolean;
   routeLabel?: string;
@@ -15,6 +16,7 @@ interface RouteMapProps {
 export const RouteMap: React.FC<RouteMapProps> = ({
   stops,
   polylinePath,
+  directionsResult = null,
   expanded = false,
   loading = false,
   routeLabel,
@@ -22,6 +24,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
+  const pathSignature = polylinePath.map((p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join('|');
 
   const label =
     routeLabel ||
@@ -33,55 +36,79 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   useEffect(() => {
     if (!mapsKey || !containerRef.current || polylinePath.length === 0) return;
 
+    let renderer: any = null;
     let polyline: any = null;
     let markers: any[] = [];
+    let map: any = null;
 
     loadGoogleMaps(mapsKey)
       .then(() => {
         if (!containerRef.current || !(window as any).google) return;
         const google = (window as any).google;
 
-        const bounds = new google.maps.LatLngBounds();
-        polylinePath.forEach((p) => bounds.extend(new google.maps.LatLng(p.lat, p.lng)));
-
-        const map = new google.maps.Map(containerRef.current, {
+        map = new google.maps.Map(containerRef.current, {
           zoom: 8,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
         });
+
+        const addStopMarkers = () => {
+          markers = stops
+            .filter((s) => s.lat != null && s.lng != null)
+            .map((s, idx) =>
+              new google.maps.Marker({
+                position: { lat: s.lat as number, lng: s.lng as number },
+                map,
+                label: { text: String(idx + 1), color: '#fff', fontWeight: '700' },
+                title: s.resolvedName,
+              })
+            );
+        };
+
+        if (directionsResult && google.maps.DirectionsRenderer) {
+          renderer = new google.maps.DirectionsRenderer({
+            map,
+            suppressMarkers: true,
+            preserveViewport: true,
+            polylineOptions: {
+              strokeColor: '#5E3BEE',
+              strokeOpacity: 0.9,
+              strokeWeight: 4,
+            },
+          });
+          renderer.setDirections(directionsResult);
+          addStopMarkers();
+          const bounds = new google.maps.LatLngBounds();
+          polylinePath.forEach((p) => bounds.extend(new google.maps.LatLng(p.lat, p.lng)));
+          if (!bounds.isEmpty()) map.fitBounds(bounds);
+          return;
+        }
+
+        const bounds = new google.maps.LatLngBounds();
+        polylinePath.forEach((p) => bounds.extend(new google.maps.LatLng(p.lat, p.lng)));
         map.fitBounds(bounds);
 
         polyline = new google.maps.Polyline({
           path: polylinePath.map((p) => ({ lat: p.lat, lng: p.lng })),
-          geodesic: true,
-          strokeColor: 'var(--accent, #5E3BEE)',
+          geodesic: false,
+          strokeColor: '#5E3BEE',
           strokeOpacity: 0.9,
           strokeWeight: 4,
         });
         polyline.setMap(map);
-
-        markers = stops
-          .filter((s) => s.lat != null && s.lng != null)
-          .map((s, idx) => {
-            const marker = new google.maps.Marker({
-              position: { lat: s.lat as number, lng: s.lng as number },
-              map,
-              label: { text: String(idx + 1), color: '#fff', fontWeight: '700' },
-              title: s.resolvedName,
-            });
-            return marker;
-          });
+        addStopMarkers();
       })
       .catch(() => {
         /* fallback handled in render */
       });
 
     return () => {
+      if (renderer) renderer.setMap(null);
       if (polyline) polyline.setMap(null);
       markers.forEach((m) => m.setMap(null));
     };
-  }, [mapsKey, polylinePath, stops]);
+  }, [mapsKey, pathSignature, directionsResult, stops]);
 
   const height = expanded ? 340 : 200;
 

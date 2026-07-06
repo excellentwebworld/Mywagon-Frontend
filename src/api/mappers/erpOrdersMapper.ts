@@ -7,6 +7,7 @@ import type {
   ListErpOrdersParams,
 } from '../types/erpOrders';
 import type { ErpOrder, ErpOrderLine, ErpOrderSortField } from '../../pages/ErpOrders/types';
+import { normalizeWeightUnit } from '../../constants/cargoUnits';
 import { getBrowserTimezone } from '../../pages/ErpOrders/erpDateTimeUtils';
 
 const STATUS_LABELS: Record<ErpOrderStatus, string> = {
@@ -35,7 +36,7 @@ export function mapApiLineToLine(line: ApiErpOrderDetail['lines'][number]): ErpO
     quantity: line.quantity ?? null,
     unit: line.unit ?? '',
     weight: line.weight ?? null,
-    weightUnit: line.weight_unit ?? 'Kg',
+    weightUnit: normalizeWeightUnit(line.weight_unit ?? 'Kgs'),
   };
 }
 
