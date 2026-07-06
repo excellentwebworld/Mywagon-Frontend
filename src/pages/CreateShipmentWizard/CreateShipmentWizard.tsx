@@ -11,6 +11,7 @@ import { Step3Pricing } from '../../components/CreateShipmentWizard/Step3Pricing
 import { useCreateShipmentWizard } from './hooks/useCreateShipmentWizard';
 import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
 import { scrollToValidationAnchor } from '../../components/CreateShipmentWizard/validation';
+import { Step1DetailsSkeleton } from '../../components/skeletons/Step1DetailsSkeleton';
 import './CreateShipmentWizard.css';
 
 const validationSchema = Yup.object().shape({
@@ -167,8 +168,50 @@ export const CreateShipmentWizard: React.FC = () => {
 
   if (isLoading || !draftLoaded) {
     return (
-      <div className="animate-fade-in pt-5 px-7" style={{ color: 'var(--text-secondary)' }}>
-        {t('loading') || 'Loading...'}
+      <div className="animate-fade-in pt-5 px-7">
+        <div className="ph" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 className="ph-t" style={{ fontSize: '24px', fontWeight: 700 }}>
+              {step === 1 && (t('step1Title') || 'Create Load')}
+              {step === 2 && (t('step2Title') || 'Review Itinerary & Stats')}
+              {step === 3 && (t('vehicleAndPricing') || 'Vehicle & Pricing options')}
+            </h1>
+            <p className="ph-s" style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+              {step === 1 && (t('step1Sub') || 'Add stops and cargo details')}
+              {step === 2 && (t('step2Sub') || 'Verify drive limits, weather warnings, and cargo balance.')}
+              {step === 3 && (t('vehiclePricingSub') || 'Choose vehicle type, target price, and tracking options.')}
+            </p>
+          </div>
+        </div>
+
+        <nav className="stepper" aria-label="Progress steps">
+          <div className={`step ${step === 1 ? 'act' : ''} ${step > 1 ? 'done' : ''}`}>
+            <div className="sn">{step > 1 ? '✓' : '1'}</div>
+            <span>Details</span>
+          </div>
+          <div className={`sl ${step > 1 ? 'done' : ''}`} />
+
+          <div className={`step ${step === 2 ? 'act' : ''} ${step > 2 ? 'done' : ''}`}>
+            <div className="sn">{step > 2 ? '✓' : '2'}</div>
+            <span>Itinerary</span>
+          </div>
+          <div className={`sl ${step > 2 ? 'done' : ''}`} />
+
+          <div className={`step ${step === 3 ? 'act' : ''}`}>
+            <div className="sn">3</div>
+            <span>Vehicle & Pricing</span>
+          </div>
+        </nav>
+
+        <div className="content" style={{ paddingBottom: '120px' }}>
+          {step === 1 ? (
+            <Step1DetailsSkeleton />
+          ) : (
+            <div className="py-12 text-center" style={{ color: 'var(--text-secondary)' }}>
+              {t('loading') || 'Loading...'}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
