@@ -98,6 +98,27 @@ export function getProductOptionsForOrder(order: ErpOrder | null | undefined) {
   return options;
 }
 
+export function getProductOptionsForCargoLine(
+  order: ErpOrder | null | undefined,
+  line: { productId?: string; productName?: string }
+) {
+  const options = getProductOptionsForOrder(order);
+  const productId = line.productId ? String(line.productId) : '';
+  if (!productId || options.some((option) => option.value === productId)) {
+    return options;
+  }
+
+  return [
+    {
+      value: productId,
+      label: line.productName || productId,
+      sublabel: undefined,
+      lineIndex: -1,
+    },
+    ...options,
+  ];
+}
+
 export function findOrderLineForProduct(order: ErpOrder | null | undefined, productId: string) {
   if (!order?.lines?.length || !productId) return null;
   return order.lines.find((line) => String(line.productSkuId) === String(productId)) ?? null;

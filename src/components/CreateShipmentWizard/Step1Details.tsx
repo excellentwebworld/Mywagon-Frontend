@@ -15,7 +15,7 @@ import { createNewStop, createNewCargoLine } from './types';
 import {
   useCreateShipmentOrders,
   findOrderLineForProduct,
-  getProductOptionsForOrder,
+  getProductOptionsForCargoLine,
 } from '../../hooks/useCreateShipmentOrders';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
 import { CreateCustomerModal } from './CreateCustomerModal';
@@ -172,6 +172,35 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       setPmSkus(skus.filter((s) => s.active));
     }
   }, [skus]);
+
+  const orderIdsFromStops = useMemo(() => {
+    const ids = new Set<string>();
+    stops.forEach((stop: { lines?: { orderId?: string }[] }) => {
+      (stop.lines || []).forEach((line) => {
+        if (line.orderId) ids.add(String(line.orderId));
+      });
+    });
+    return [...ids].sort().join(',');
+  }, [stops]);
+
+  useEffect(() => {
+    if (!orderIdsFromStops) return;
+
+    let cancelled = false;
+    const ids = orderIdsFromStops.split(',').filter(Boolean);
+
+    void (async () => {
+      for (const orderId of ids) {
+        const detail = await fetchOrderDetail(orderId);
+        if (cancelled || !detail) continue;
+        setOrderDetailsById((prev) => (prev[orderId] ? prev : { ...prev, [orderId]: detail }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchOrderDetail, orderIdsFromStops]);
 
   useEffect(() => {
     if (!mLoc) return;
@@ -2251,7 +2280,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
               const indicators = getGoodsIndicators(ln.productId);
               const isLast = li === stop.lines.length - 1;
               const orderDetail = ln.orderId ? orderDetailsById[ln.orderId] : undefined;
-              const productOpts = getProductOptionsForOrder(orderDetail).map((opt) => ({
+              const productOpts = getProductOptionsForCargoLine(orderDetail, ln).map((opt) => ({
                 value: opt.value,
                 label: opt.label,
                 sublabel: opt.sublabel,
