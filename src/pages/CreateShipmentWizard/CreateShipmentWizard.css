@@ -2077,6 +2077,7 @@
   width: 100%;
 }
 
-.wizard-step2-skeleton .react-loading-skeleton {
+.wizard-step2-skeleton .react-loading-skeleton,
+.wizard-step3-skeleton .react-loading-skeleton {
   line-height: unset;
 }

@@ -37,6 +37,7 @@ import type { TrackingOrderItem } from './itinerary/buildTrackingGroups';
 import { useRouteLegs } from './itinerary/useRouteLegs';
 import { RouteMap } from './itinerary/RouteMap';
 import { addressBookService, erpOrdersService } from '../../api';
+import { CarrierListSkeleton } from '../skeletons/CarrierListSkeleton';
 
 const T = {
   bg: 'var(--bg)',
@@ -532,9 +533,6 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                     onChange={(e) => setCarrierQuery(e.target.value)}
                   />
 
-                  {partnersLoading && (
-                    <div className="text-xs text-slate-500 py-2">{t('partnersLoading') || 'Loading partners...'}</div>
-                  )}
                   {partnersError && (
                     <div className="text-xs text-red-600 py-2">{t('partnersLoadFailed') || 'Failed to load partners.'}</div>
                   )}
@@ -551,6 +549,9 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                       </span>
                     </div>
                     {coOpen && (
+                      partnersLoading ? (
+                        <CarrierListSkeleton rows={4} />
+                      ) : (
                       <div className="divide-y">
                         {carrierCompanies.filter(matchesFilter).map((c) => {
                           const isSel = (values.selectedCarriers || []).includes(c.id);
@@ -598,6 +599,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                           );
                         })}
                       </div>
+                      )
                     )}
                   </div>
 
@@ -613,6 +615,9 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                       </span>
                     </div>
                     {frOpen && (
+                      partnersLoading ? (
+                        <CarrierListSkeleton rows={2} />
+                      ) : (
                       <div className="divide-y">
                         {freelancerDrivers.filter(matchesFilter).map((c) => {
                           const isSel = (values.selectedCarriers || []).includes(c.id);
@@ -651,6 +656,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                           );
                         })}
                       </div>
+                      )
                     )}
                   </div>
 
