@@ -912,21 +912,23 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
 
               {/* Price calculation advice banner */}
               <div
-                className="price-hint bg-sky-50 text-sky-700 p-2.5 rounded-lg text-xs leading-relaxed"
+                className="price-hint bg-sky-50 text-sky-700 p-2.5 rounded-lg text-xs"
                 aria-busy={aiPriceLoading && aiInsightsRequested}
               >
                 {contract ? (
                   <>
-                    ℹ{' '}
-                    {contract.unit === 'per_pallet' || contract.unit === 'PER_PALLET' ? (
-                      <span>
-                        {t('contract') || 'Contract'}: <strong>€{contract.price} × {totalPallets} pallets = €{calculatedPrice}</strong> · {contract.origin}→{contract.destination}
-                      </span>
-                    ) : (
-                      <span>
-                        {t('contractPricePerLoad') || 'Contract price: per load'} <strong>€{calculatedPrice}</strong> · {contract.origin}→{contract.destination}
-                      </span>
-                    )}
+                    <Info size={14} className="price-hint-icon shrink-0" aria-hidden="true" />
+                    <span className="price-hint-copy">
+                      {contract.unit === 'per_pallet' || contract.unit === 'PER_PALLET' ? (
+                        <>
+                          {t('contract') || 'Contract'}: <strong>€{contract.price} × {totalPallets} pallets = €{calculatedPrice}</strong> · {contract.origin}→{contract.destination}
+                        </>
+                      ) : (
+                        <>
+                          {t('contractPricePerLoad') || 'Contract price: per load'} <strong>€{calculatedPrice}</strong> · {contract.origin}→{contract.destination}
+                        </>
+                      )}
+                    </span>
                   </>
                 ) : aiPriceLoading && aiInsightsRequested ? (
                   <span className="price-hint-loading">
@@ -935,15 +937,15 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                   </span>
                 ) : calculatedPrice > 0 ? (
                   <>
-                    ℹ{' '}
-                    <span>
+                    <Info size={14} className="price-hint-icon shrink-0" aria-hidden="true" />
+                    <span className="price-hint-copy">
                       {t('spotPriceFromList') || 'Spot price from Price List: per load'} <strong>€{calculatedPrice}</strong> · {pickupCity || '—'}→{deliveryCity || '—'}
                     </span>
                   </>
                 ) : (
                   <>
-                    ℹ{' '}
-                    <span>{t('step3EnterTargetPrice') || 'Enter a target price below, or open AI Insights for a suggested spot price.'}</span>
+                    <Info size={14} className="price-hint-icon shrink-0" aria-hidden="true" />
+                    <span className="price-hint-copy">{t('step3EnterTargetPrice') || 'Enter a target price below, or open AI Insights for a suggested spot price.'}</span>
                   </>
                 )}
               </div>
