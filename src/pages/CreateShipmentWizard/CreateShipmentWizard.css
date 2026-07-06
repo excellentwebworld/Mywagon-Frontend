@@ -1913,3 +1913,19 @@
   border-color: #DC2626 !important;
   box-shadow: 0 0 0 1px #DC2626 !important;
 }
+
+/* Fixed footer — must not use Tailwind `hidden md:flex` (app.css .hidden uses !important) */
+.wizard-footer-bar {
+  display: flex !important;
+}
+
+@media (max-width: 767px) {
+  .wizard-footer-bar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 72px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    gap: 8px;
+  }
+}

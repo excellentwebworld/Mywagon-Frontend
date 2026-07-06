@@ -615,7 +615,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
 
       {/* Footer continue control */}
       <footer
-        className="fixed bottom-0 right-0 h-[72px] items-center justify-between px-6 z-40 hidden md:flex"
+        className="wizard-footer-bar fixed bottom-0 right-0 h-[72px] items-center justify-between px-6 z-40 flex"
         style={{ left: 'var(--sidebar-w, 240px)', background: T.sf, borderTop: `1px solid ${T.bd}` }}
       >
         <button
