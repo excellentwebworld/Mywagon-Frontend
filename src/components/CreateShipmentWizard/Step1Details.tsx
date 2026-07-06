@@ -467,31 +467,36 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const ordOpts = useMemo(() => orderOptions, [orderOptions]);
 
   // ═══ HANDLERS ═══
+  const applyLocationToStop = useCallback(
+    (sid: string, l: LocationItem) => {
+      uStop(sid, (s: any) => {
+        const updatedStop = {
+          ...s,
+          locationId: String(l.id),
+          locationName: l.name,
+          locationCompany: l.company || '',
+          locationCity: l.city || '',
+          locationCountry: '',
+        };
+        if (l.noteCarrier) {
+          updatedStop.noteCarrier = s.noteCarrier || l.noteCarrier;
+        }
+        if (l.contacts?.[0]) {
+          updatedStop.contactName = s.contactName || l.contacts[0].name;
+          updatedStop.contactPhone = s.contactPhone || l.contacts[0].phone;
+        }
+        return updatedStop;
+      });
+    },
+    [uStop]
+  );
+
   const selLoc = useCallback(
     (sid: string, lid: string) => {
       const l = abLocs.find((x) => String(x.id) === String(lid));
-      if (l) {
-        uStop(sid, (s: any) => {
-          let updatedStop = {
-            ...s,
-            locationId: lid,
-            locationName: l.name,
-            locationCompany: l.company || '',
-            locationCity: l.city || '',
-            locationCountry: l.country || '',
-          };
-          if (l.noteCarrier) {
-            updatedStop.noteCarrier = s.noteCarrier || l.noteCarrier;
-          }
-          if (l.contacts?.[0]) {
-            updatedStop.contactName = s.contactName || l.contacts[0].name;
-            updatedStop.contactPhone = s.contactPhone || l.contacts[0].phone;
-          }
-          return updatedStop;
-        });
-      }
+      if (l) applyLocationToStop(sid, l);
     },
-    [abLocs, uStop]
+    [abLocs, applyLocationToStop]
   );
 
   const handleApplyCompany = useCallback(async (values: CompanyFormData) => {
@@ -567,7 +572,14 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       }
 
       const created = await addressBookService.createLocation(payload);
-      await refreshLocationsFromApi();
+
+      setAbLocs((prev) => {
+        const id = String(created.id);
+        if (prev.some((x) => String(x.id) === id)) {
+          return prev.map((x) => (String(x.id) === id ? created : x));
+        }
+        return [...prev, created];
+      });
 
       if (pCtx.orderFormTarget === 'origin') {
         setErpOrderForm((f) => ({ ...f, originLocationId: Number(created.id) }));
@@ -576,9 +588,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         setErpOrderForm((f) => ({ ...f, destLocationId: Number(created.id) }));
         setPCtx((p: any) => ({ ...p, orderFormTarget: null }));
       } else if (pCtx.locS) {
-        selLoc(pCtx.locS, String(created.id));
+        applyLocationToStop(pCtx.locS, created);
         setPCtx((p: any) => ({ ...p, locS: null }));
       }
+
+      void refreshLocationsFromApi();
       setMLoc(false);
       showToast(t('erpOrdersLocationCreated') || 'Address created successfully.', 'success');
     } catch (err) {
@@ -587,7 +601,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     } finally {
       setSavingLocation(false);
     }
-  }, [createData, showToast, t, pCtx, selLoc, refreshLocationsFromApi]);
+  }, [applyLocationToStop, createData, showToast, t, pCtx, refreshLocationsFromApi]);
 
   const selCustLine = useCallback(
     (sid: string, lid: string, cid: string) => {
@@ -1161,7 +1175,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               value={stop.locationId}
                               onChange={(lid) => selLoc(stop.id, lid)}
                               onCreateNew={() => {
-                                setPCtx({ locS: stop.id });
+                                setPCtx((p: any) => ({ ...p, locS: stop.id }));
+                                setCreateStep(1);
+                                setCreateData({
+                                  ...EMPTY_CREATE_DATA,
+                                  context: 'my',
+                                  role: idx === 0 ? 'pickup' : idx === stops.length - 1 ? 'delivery' : 'both',
+                                });
                                 setMLoc(true);
                               }}
                               onPreview={(loc) => previewLocation(loc.id)}
@@ -1400,8 +1420,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         submitNewLocation={submitNewLocation}
         potentialDuplicates={potentialDuplicates}
         selectExistingDuplicate={async (loc) => {
+          setAbLocs((prev) => {
+            const id = String(loc.id);
+            if (prev.some((x) => String(x.id) === id)) return prev;
+            return [...prev, loc];
+          });
           if (pCtx.locS) {
-            selLoc(pCtx.locS, String(loc.id));
+            applyLocationToStop(pCtx.locS, loc);
             setPCtx((p: any) => ({ ...p, locS: null }));
           }
           setMLoc(false);
