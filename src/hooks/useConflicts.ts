@@ -109,36 +109,20 @@ export default function useConflicts(stops: any[], options: any = {}) {
       }
       // D3 — Chronological order
       if (si > 0) {
-        const prevStart =
-          stops[si - 1].appointmentMode === 'self_scheduling'
-            ? stops[si - 1].windowStart
-            : stops[si - 1].dateFrom
-            ? `${stops[si - 1].dateFrom}T${stops[si - 1].timeFrom || '00:00'}`
-            : null;
-        const currStart =
-          stop.appointmentMode === 'self_scheduling'
-            ? stop.windowStart
-            : stop.dateFrom
-            ? `${stop.dateFrom}T${stop.timeFrom || '00:00'}`
-            : null;
+        const prevStart = stops[si - 1].dateFrom
+          ? `${stops[si - 1].dateFrom}T${stops[si - 1].timeFrom || '00:00'}`
+          : null;
+        const currStart = stop.dateFrom ? `${stop.dateFrom}T${stop.timeFrom || '00:00'}` : null;
         if (prevStart && currStart && new Date(currStart) < new Date(prevStart)) {
           add('D3', 'blocker', si, -1, `Stop ${si + 1}: Start is before Stop ${si}`, 'Fix chronological order');
         }
       }
       // D5 — Overlap
       if (si > 0) {
-        const prevEnd =
-          stops[si - 1].appointmentMode === 'self_scheduling'
-            ? stops[si - 1].windowEnd
-            : stops[si - 1].dateTo
-            ? `${stops[si - 1].dateTo}T${stops[si - 1].timeTo || '23:59'}`
-            : null;
-        const currStart =
-          stop.appointmentMode === 'self_scheduling'
-            ? stop.windowStart
-            : stop.dateFrom
-            ? `${stop.dateFrom}T${stop.timeFrom || '00:00'}`
-            : null;
+        const prevEnd = stops[si - 1].dateTo
+          ? `${stops[si - 1].dateTo}T${stops[si - 1].timeTo || '23:59'}`
+          : null;
+        const currStart = stop.dateFrom ? `${stop.dateFrom}T${stop.timeFrom || '00:00'}` : null;
         if (prevEnd && currStart && new Date(currStart) < new Date(prevEnd)) {
           add(
             'D5',
@@ -148,17 +132,6 @@ export default function useConflicts(stops: any[], options: any = {}) {
             `Stop ${si + 1}: Overlaps with Stop ${si} — end of Stop ${si} must be before start of Stop ${si + 1}`,
             "Adjust dates so stops don't overlap"
           );
-        }
-      }
-      // D7
-      if (stop.appointmentMode === 'self_scheduling' && (!stop.windowStart || !stop.windowEnd)) {
-        add('D7', 'blocker', si, -1, `Stop ${si + 1}: Self-scheduling but no date window`, 'Set from/to dates');
-      }
-      // D8
-      if (stop.appointmentMode === 'self_scheduling' && stop.windowStart && stop.windowEnd) {
-        const h = (new Date(stop.windowEnd).getTime() - new Date(stop.windowStart).getTime()) / 36e5;
-        if (h < 24) {
-          add('D8', 'warning', si, -1, `Stop ${si + 1}: Scheduling window < 24h`, 'Widen the window');
         }
       }
 
@@ -177,8 +150,18 @@ export default function useConflicts(stops: any[], options: any = {}) {
         if (ln.productId && (!ln.qty || parseFloat(ln.qty) <= 0)) {
           add('C3', 'blocker', si, li, `Stop ${si + 1}, line ${li + 1}: ${ln.productName || 'Product'} has zero qty`, 'Enter qty > 0');
         }
-        if (ln.action === 'dropoff' && ln.productId && !ln.customerId) {
-          add('O1', 'warning', si, li, `Stop ${si + 1}, line ${li + 1}: Dropoff of ${ln.productName || 'product'} has no customer`, 'Assign a customer');
+        if (ln.productId && (!ln.weight || parseFloat(ln.weight) <= 0)) {
+          add(
+            'C10',
+            'blocker',
+            si,
+            li,
+            `Stop ${si + 1}, line ${li + 1}: ${ln.productName || 'Product'} has zero weight`,
+            'Enter weight > 0'
+          );
+        }
+        if (ln.action === 'dropoff' && ln.productId && !ln.customerId && !ln.orderId) {
+          add('O1', 'warning', si, li, `Stop ${si + 1}, line ${li + 1}: Dropoff of ${ln.productName || 'product'} has no customer`, 'Assign an order or customer');
         }
       });
 

@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Shipment } from '../../context/AppContext';
-import { Step1Details, createNewStop } from '../../components/CreateShipmentWizard/Step1Details';
+import { Step1Details } from '../../components/CreateShipmentWizard/Step1Details';
 import { Step2Itinerary } from '../../components/CreateShipmentWizard/Step2Itinerary';
 import { Step3Pricing } from '../../components/CreateShipmentWizard/Step3Pricing';
+import { useCreateShipmentWizard } from './hooks/useCreateShipmentWizard';
+import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
+import { scrollToValidationAnchor } from '../../components/CreateShipmentWizard/validation';
 import './CreateShipmentWizard.css';
 
 const validationSchema = Yup.object().shape({
@@ -15,19 +18,7 @@ const validationSchema = Yup.object().shape({
   stops: Yup.array().of(
     Yup.object().shape({
       locationId: Yup.string().required('Location is required'),
-      appointmentMode: Yup.string().oneOf(['fixed', 'self_scheduling']).required(),
-      dateFrom: Yup.string().when('appointmentMode', {
-        is: 'fixed',
-        then: () => Yup.string().required('Date is required'),
-      }),
-      windowStart: Yup.string().when('appointmentMode', {
-        is: 'self_scheduling',
-        then: () => Yup.string().required('Window start is required'),
-      }),
-      windowEnd: Yup.string().when('appointmentMode', {
-        is: 'self_scheduling',
-        then: () => Yup.string().required('Window end is required'),
-      }),
+      dateFrom: Yup.string().required('Date is required'),
       lines: Yup.array().of(
         Yup.object().shape({
           productId: Yup.string().required('Product is required'),
@@ -42,61 +33,47 @@ const validationSchema = Yup.object().shape({
 
 export const CreateShipmentWizard: React.FC = () => {
   const { t } = useTranslation();
-  const { locations, addShipment, shipments, showToast, refreshLocationsFromApi } = useApp();
+  const { locations, addShipment, showToast, refreshLocationsFromApi } = useApp();
   const navigate = useNavigate();
   const locationState = useLocation().state as { prefillLocationId?: string } | null;
+
+  const {
+    step,
+    loadId,
+    isLoading,
+    isSaving,
+    draftLoaded,
+    loadedValues,
+    defaultValues,
+    goToStep,
+    saveStep1,
+    stepNavigationError,
+    validationRequest,
+  } = useCreateShipmentWizard(showToast, t);
+
+  const stepNavBannerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     refreshLocationsFromApi();
   }, [refreshLocationsFromApi]);
 
-  const [step, setStep] = useState(1);
+  const initialValues = useMemo(() => {
+    const base = loadedValues ?? defaultValues;
+    return { ...base, loadId: loadId || base.loadId };
+  }, [defaultValues, loadedValues, loadId]);
 
-  const initialValues = {
-    loadId: `SHP-${5000 + shipments.length + 1}`,
-    custRef: '',
-    coOwners: [] as string[],
-    stops: [
-      createNewStop(true),
-      createNewStop(true),
-    ],
-    itineraryConfirmed: false,
-    vehicleSpecs: {
-      'semi-trailer': [] as string[],
-      'road-train': [] as string[],
-      'triaxle': [] as string[],
-      'van': [] as string[],
-    } as Record<string, string[]>,
-    broadcastType: 'private' as 'private' | 'public',
-    selectedCarriers: ['krp', 'dntinos'] as string[],
-    targetPrice: '790',
-    trackingEmails: {} as Record<string, string[]>,
-    driverNotes: 'Driver must wear safety equipment on arrival.',
-    gpsRequired: true,
-    bulkMode: 'single' as 'single' | 'qty' | 'dates' | 'rec',
-    bulkQty: 5,
-    bulkDates: [
-      { date: '2026-06-21', qty: 3 },
-      { date: '2026-06-22', qty: 3 },
-    ] as { date: string; qty: number }[],
-    bulkRecQty: 5,
-    bulkRecType: 'weekly' as 'daily' | 'weekly' | 'monthly',
-    bulkRecOccurrences: 7,
-  };
-
-  const handleConfirmWizard = (values: typeof initialValues, { setSubmitting }: any) => {
+  const handleConfirmWizard = (values: WizardFormValues, { setSubmitting }: { setSubmitting: (v: boolean) => void }) => {
     const stops = values.stops;
     const originLoc = locations.find((l) => l.id === stops[0].locationId);
     const destLoc = locations.find((l) => l.id === stops[stops.length - 1].locationId);
 
     const customersMap = stops.flatMap((s) =>
-      s.lines.map((l: any) => ({
+      s.lines?.map((l) => ({
         name: l.customerName || 'Direct Customer',
         orders: l.orderId ? [l.orderId] : [],
-      }))
+      })) ?? []
     );
 
-    // Filter unique customer records
     const finalCustomers: { name: string; orders: string[] }[] = [];
     customersMap.forEach((c) => {
       const existing = finalCustomers.find((fc) => fc.name === c.name);
@@ -113,7 +90,7 @@ export const CreateShipmentWizard: React.FC = () => {
       id: values.loadId,
       date: stops[0].dateFrom
         ? new Date(stops[0].dateFrom).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        : new Date(stops[0].windowStart || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       status: 'pending',
       vis: values.broadcastType,
       origin: originLoc ? originLoc.city : 'Unknown',
@@ -121,10 +98,10 @@ export const CreateShipmentWizard: React.FC = () => {
       via:
         stops.length > 2
           ? stops
-            .slice(1, -1)
-            .map((s) => locations.find((l) => l.id === s.locationId)?.city || s.locationCity)
-            .filter(Boolean)
-            .join(', ')
+              .slice(1, -1)
+              .map((s) => locations.find((l) => l.id === s.locationId)?.city || s.locationCity)
+              .filter(Boolean)
+              .join(', ')
           : null,
       customer: finalCustomers,
       bids: 0,
@@ -135,28 +112,29 @@ export const CreateShipmentWizard: React.FC = () => {
       price_type: values.broadcastType === 'public' ? 'spot' : 'contract',
       updated: 'Just now',
       timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
-      tl_cur: 1, // Posted state
+      tl_cur: 1,
       stops: stops.map((s, idx) => ({
         id: idx + 1,
         type: idx === 0 ? ('pickup' as const) : ('delivery' as const),
-        location: s.locationId,
+        location: s.locationId || '',
         address: s.locationCity ? `${s.locationCity}, Greece` : '',
-        date: s.dateFrom || s.windowStart || '',
+        date: s.dateFrom || '',
         timeStart: s.timeFrom || '08:00',
         timeEnd: s.timeTo || '18:00',
-        customers: s.lines.filter((l: any) => l.productId).map((l: any) => ({
-          name: l.customerName || 'Direct Customer',
-          orders: [
-            {
-              id: l.orderId || l.orderRef || `ORD-${Date.now()}`,
-              products: l.productName || 'General Cargo',
-              qty: Number(l.qty) || 0,
-              qtyUnit: l.unit || 'Pallets',
-              weight: Number(l.weight) || 0,
-              weightUnit: l.wtUnit || 'kg',
-            },
-          ],
-        })),
+        customers:
+          s.lines?.filter((l) => l.productId).map((l) => ({
+            name: l.customerName || 'Direct Customer',
+            orders: [
+              {
+                id: l.orderId || l.orderRef || `ORD-${Date.now()}`,
+                products: l.productName || 'General Cargo',
+                qty: Number(l.qty) || 0,
+                qtyUnit: l.unit || 'Pallets',
+                weight: Number(l.weight) || 0,
+                weightUnit: l.wtUnit || 'kg',
+              },
+            ],
+          })) ?? [],
       })),
       driverNotes: values.driverNotes,
       negotiable: true,
@@ -168,9 +146,35 @@ export const CreateShipmentWizard: React.FC = () => {
     navigate('/shipments');
   };
 
+  const handleStepClick = (targetStep: number) => {
+    const requireId = targetStep >= 2;
+    const moved = goToStep(targetStep, requireId ? { requireId: true } : undefined);
+    if (!moved) {
+      window.requestAnimationFrame(() => {
+        stepNavBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        scrollToValidationAnchor('wizard-step-nav', { focus: false, highlightClass: 'wizard-validation-flash' });
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (stepNavigationError) {
+      window.requestAnimationFrame(() => {
+        stepNavBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  }, [stepNavigationError, validationRequest]);
+
+  if (isLoading || !draftLoaded) {
+    return (
+      <div className="animate-fade-in pt-5 px-7" style={{ color: 'var(--text-secondary)' }}>
+        {t('loading') || 'Loading...'}
+      </div>
+    );
+  }
+
   return (
     <div className="animate-fade-in pt-5 px-7">
-      {/* Page Header */}
       <div className="ph" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 className="ph-t" style={{ fontSize: '24px', fontWeight: 700 }}>
@@ -184,42 +188,62 @@ export const CreateShipmentWizard: React.FC = () => {
             {step === 3 && (t('vehiclePricingSub') || 'Choose vehicle type, target price, and tracking options.')}
           </p>
         </div>
-        {/* Portal Target for Header Controls */}
         <div id="wizard-header-portal" className="flex items-center gap-2 flex-wrap" />
       </div>
 
-      {/* Stepper Progress */}
       <nav className="stepper" aria-label="Progress steps">
-        <div className={`step ${step === 1 ? 'act' : ''} ${step > 1 ? 'done' : ''}`} onClick={() => setStep(1)}>
+        <div className={`step ${step === 1 ? 'act' : ''} ${step > 1 ? 'done' : ''}`} onClick={() => handleStepClick(1)}>
           <div className="sn">{step > 1 ? '✓' : '1'}</div>
           <span>Details</span>
         </div>
         <div className={`sl ${step > 1 ? 'done' : ''}`} />
 
-        <div className={`step ${step === 2 ? 'act' : ''} ${step > 2 ? 'done' : ''}`} onClick={() => setStep(2)}>
+        <div className={`step ${step === 2 ? 'act' : ''} ${step > 2 ? 'done' : ''}`} onClick={() => handleStepClick(2)}>
           <div className="sn">{step > 2 ? '✓' : '2'}</div>
           <span>Itinerary</span>
         </div>
         <div className={`sl ${step > 2 ? 'done' : ''}`} />
 
-        <div className={`step ${step === 3 ? 'act' : ''}`} onClick={() => setStep(3)}>
+        <div className={`step ${step === 3 ? 'act' : ''}`} onClick={() => handleStepClick(3)}>
           <div className="sn">3</div>
           <span>Vehicle & Pricing</span>
         </div>
       </nav>
 
-      {/* Formik Multi-step Wrapper */}
+      {stepNavigationError && (
+        <div
+          ref={stepNavBannerRef}
+          className="wizard-validation-banner"
+          role="alert"
+          data-validation-anchor="wizard-step-nav"
+        >
+          {t(stepNavigationError)}
+        </div>
+      )}
+
       <Formik
         initialValues={initialValues}
+        enableReinitialize
         validationSchema={validationSchema}
         onSubmit={handleConfirmWizard}
       >
-        {({ submitForm }) => (
+        {({ values, submitForm }) => (
           <Form>
             <div className="content" style={{ paddingBottom: '120px' }}>
-              {step === 1 && <Step1Details onNextStep={() => setStep(2)} />}
-              {step === 2 && <Step2Itinerary onBackStep={() => setStep(1)} onNextStep={() => setStep(3)} />}
-              {step === 3 && <Step3Pricing onBackStep={() => setStep(2)} onSubmit={submitForm} />}
+              {step === 1 && (
+                <Step1Details
+                  onSaveDraft={async () => {
+                    await saveStep1(values, 'partial');
+                  }}
+                  onContinue={async () => {
+                    await saveStep1(values, 'complete');
+                  }}
+                  isSaving={isSaving}
+                  validationRequest={validationRequest}
+                />
+              )}
+              {step === 2 && <Step2Itinerary onBackStep={() => goToStep(1)} onNextStep={() => goToStep(3, { requireId: true })} />}
+              {step === 3 && <Step3Pricing onBackStep={() => goToStep(2)} onSubmit={submitForm} />}
             </div>
           </Form>
         )}

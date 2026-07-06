@@ -1,0 +1,73 @@
+export interface ApiCargoLine {
+  id?: string;
+  productId?: string;
+  productName?: string;
+  customerId?: string;
+  customerName?: string;
+  orderId?: string;
+  orderRef?: string;
+  action?: 'pickup' | 'dropoff';
+  qty?: string | number;
+  unit?: string;
+  weight?: string | number;
+  wtUnit?: string;
+  mirrorOf?: string;
+}
+
+export interface ApiStop {
+  id?: string;
+  locationId?: string;
+  locationName?: string;
+  locationCompany?: string;
+  locationCity?: string;
+  locationCountry?: string;
+  dateFrom?: string;
+  timeFrom?: string;
+  dateTo?: string;
+  timeTo?: string;
+  expanded?: boolean;
+  lines?: ApiCargoLine[];
+  noteCarrier?: string;
+  noteInternal?: string;
+  contactName?: string;
+  contactPhone?: string;
+  appointmentMode?: 'fixed' | 'self_scheduling';
+  windowStart?: string;
+  windowEnd?: string;
+  allowedLoadingPoints?: string[];
+}
+
+export interface ApiWizardState {
+  stops?: ApiStop[];
+  custRef?: string;
+  coOwners?: string[];
+  loadId?: string;
+  itineraryConfirmed?: boolean;
+  vehicleSpecs?: Record<string, string[]>;
+  broadcastType?: 'private' | 'public';
+  selectedCarriers?: string[];
+  targetPrice?: string;
+  trackingEmails?: Record<string, string[]>;
+  driverNotes?: string;
+  gpsRequired?: boolean;
+}
+
+export interface ApiDraftShipment {
+  id: number;
+  auto_id: string;
+  wizard_step: number;
+  customer_reference: string | null;
+  wizard_state: ApiWizardState;
+  status: string;
+  updated_at?: string;
+}
+
+export interface SaveStepOnePayload {
+  mode: 'partial' | 'complete';
+  customer_reference?: string;
+  co_owners?: string[];
+  stops: ApiStop[];
+  timezone?: string;
+}
+
+export type SaveStepOneMode = SaveStepOnePayload['mode'];

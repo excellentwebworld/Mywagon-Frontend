@@ -1883,3 +1883,33 @@
 .sc-l { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); margin-bottom: 4px; }
 .sc-v { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary); letter-spacing: -0.3px; }
 .sc-v .u { font-size: 11px; font-weight: 500; color: var(--text-secondary); font-family: 'DM Sans', sans-serif; }
+
+/* ── Wizard validation ── */
+.wizard-validation-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  border: 1px solid #FCA5A5;
+  background: #FEF2F2;
+  color: #991B1B;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.wizard-validation-flash {
+  animation: wizardValidationFlash 1.2s ease;
+}
+
+@keyframes wizardValidationFlash {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45); }
+  50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.25); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+.wizard-field-invalid {
+  border-color: #DC2626 !important;
+  box-shadow: 0 0 0 1px #DC2626 !important;
+}
