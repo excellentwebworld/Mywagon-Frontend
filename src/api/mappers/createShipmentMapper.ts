@@ -10,6 +10,7 @@ export interface WizardFormValues {
   itineraryConfirmed: boolean;
   routeSummary: { totalDistKm: number; totalDriveMin: number } | null;
   vehicleSpecs: Record<string, string[]>;
+  vehicleSelectionConfirmed: boolean;
   broadcastType: 'private' | 'public';
   selectedCarriers: string[];
   targetPrice: string;
@@ -93,6 +94,8 @@ export function draftToFormValues(
         }
       : defaults.routeSummary,
     vehicleSpecs: state.vehicleSpecs ?? defaults.vehicleSpecs,
+    vehicleSelectionConfirmed:
+      state.vehicleSelectionConfirmed ?? defaults.vehicleSelectionConfirmed,
     broadcastType: state.broadcastType ?? defaults.broadcastType,
     selectedCarriers: state.selectedCarriers ?? defaults.selectedCarriers,
     targetPrice: state.targetPrice ?? defaults.targetPrice,
@@ -103,7 +106,10 @@ export function draftToFormValues(
 }
 
 export function formValuesToStepTwoPayload(
-  values: Pick<WizardFormValues, 'itineraryConfirmed' | 'routeSummary'>,
+  values: Pick<
+    WizardFormValues,
+    'itineraryConfirmed' | 'routeSummary' | 'vehicleSpecs' | 'vehicleSelectionConfirmed'
+  >,
   mode: SaveStepTwoPayload['mode']
 ): SaveStepTwoPayload {
   return {
@@ -115,6 +121,8 @@ export function formValuesToStepTwoPayload(
           total_drive_min: values.routeSummary.totalDriveMin,
         }
       : undefined,
+    vehicle_specs: values.vehicleSpecs,
+    vehicle_selection_confirmed: Boolean(values.vehicleSelectionConfirmed),
   };
 }
 
@@ -132,6 +140,7 @@ export function formValuesToWizardState(values: WizardFormValues): ApiWizardStat
         }
       : undefined,
     vehicleSpecs: values.vehicleSpecs,
+    vehicleSelectionConfirmed: values.vehicleSelectionConfirmed,
     broadcastType: values.broadcastType,
     selectedCarriers: values.selectedCarriers,
     targetPrice: values.targetPrice,

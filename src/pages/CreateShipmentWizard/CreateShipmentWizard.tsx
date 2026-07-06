@@ -297,7 +297,13 @@ export const CreateShipmentWizard: React.FC = () => {
                   onContinue={async (routeSummary) => {
                     setFieldValue('routeSummary', routeSummary);
                     await saveStep2(
-                      { ...values, routeSummary, itineraryConfirmed: values.itineraryConfirmed },
+                      {
+                        ...values,
+                        routeSummary,
+                        itineraryConfirmed: values.itineraryConfirmed,
+                        vehicleSpecs: values.vehicleSpecs,
+                        vehicleSelectionConfirmed: values.vehicleSelectionConfirmed,
+                      },
                       'complete',
                       routeSummary
                     );

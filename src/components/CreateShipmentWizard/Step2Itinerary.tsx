@@ -17,6 +17,7 @@ import { useRouteLegs } from './itinerary/useRouteLegs';
 import { enrichStops } from './itinerary/stopEnrichment';
 import { RouteMap } from './itinerary/RouteMap';
 import { ItineraryAiInsights } from './itinerary/ItineraryAiInsights';
+import { VehicleSelector } from './VehicleSelector';
 import {
   formatDurationMin,
   formatQtyWithUnit,
@@ -26,6 +27,7 @@ import {
   TRUCK_WEIGHT_CAP_KG,
 } from './itinerary/cargoUtils';
 import { formatAppointmentLabel, formatStopScheduleShort } from './itinerary/scheduleWarnings';
+import { hasVehicleSelection } from './vehicleTypes';
 
 const T = {
   sf: 'var(--surface)',
@@ -70,9 +72,11 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
   } = useItineraryStats(stops, locations, route.legs);
 
   const missingLocations = enrichedStops.some((s) => !s.locationId);
+  const vehicleSelected = hasVehicleSelection(values.vehicleSpecs);
+  const canContinue = values.itineraryConfirmed && vehicleSelected && !isSaving;
 
   const handleContinue = async () => {
-    if (!values.itineraryConfirmed) return;
+    if (!values.itineraryConfirmed || !vehicleSelected) return;
     await onContinue({
       totalDistKm: route.totalDistKm,
       totalDriveMin: route.totalDriveMin,
@@ -517,6 +521,14 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
         </div>
       </div>
 
+      <VehicleSelector />
+
+      {!vehicleSelected && values.itineraryConfirmed && (
+        <div className="wizard-validation-banner mt-4" role="alert">
+          {t('step2SelectVehicleRequired')}
+        </div>
+      )}
+
       {showAI && values.itineraryConfirmed && (
         <div ref={aiRef}>
           <ItineraryAiInsights
@@ -560,11 +572,11 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
           type="button"
           className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold cursor-pointer text-white border-none"
           style={{
-            background: values.itineraryConfirmed && !isSaving ? T.ac : T.bf,
-            cursor: values.itineraryConfirmed && !isSaving ? 'pointer' : 'not-allowed',
+            background: canContinue ? T.ac : T.bf,
+            cursor: canContinue ? 'pointer' : 'not-allowed',
             fontFamily: 'inherit',
           }}
-          disabled={!values.itineraryConfirmed || isSaving}
+          disabled={!canContinue}
           onClick={handleContinue}
         >
           {isSaving ? t('saving') : t('step2Continue')}

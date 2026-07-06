@@ -215,6 +215,7 @@
   "step2UniqueCustomers": "Μοναδικοί Πελάτες",
   "step2OrdersCount": "Αριθμός Παραγγελιών",
   "step2MissingLocations": "Λείπουν τοποθεσίες σε ορισμένες στάσεις.",
+  "step2SelectVehicleRequired": "Επιλέξτε τουλάχιστον έναν τύπο οχήματος.",
   "step2AiAnalysis": "Ανάλυση AI",
   "step2AiRouteAnalysis": "Ανάλυση Δρομολογίου AI",
   "step2TollEstimate": "Εκτίμηση Διοδίων",

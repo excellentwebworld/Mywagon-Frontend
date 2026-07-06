@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { formatVehicleSelectionSummary } from './vehicleTypes';
 import {
   ArrowLeft,
   Check,
@@ -53,7 +54,7 @@ interface Step3PricingProps {
 }
 
 export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit }) => {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const { locations, showToast } = useApp();
   const { values, setFieldValue, isSubmitting } = useFormikContext<any>();
   const stops = values.stops || [];
@@ -93,19 +94,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
 
   // Dynamic selected vehicles from Step 1 stops
   const selectedVehicleTypesStr = useMemo(() => {
-    const list: string[] = [];
-    stops.forEach((s: any) =>
-      s.lines.forEach((l: any) => {
-        if (l.productId) {
-          // recommended specs
-          list.push('Semi-Trailer');
-          list.push('Truck with Trailer');
-        }
-      })
-    );
-    const unique = [...new Set(list)];
-    return unique.length > 0 ? unique.join(', ') : 'Semi-Trailer, Truck with Trailer';
-  }, [stops]);
+    const locale = lang === 'el' ? 'el' : 'en';
+    const { types, specs } = formatVehicleSelectionSummary(values.vehicleSpecs || {}, locale);
+    if (types.length === 0) return '—';
+    const specPart = specs.length > 0 ? ` (${specs.join(', ')})` : '';
+    return types.join(', ') + specPart;
+  }, [values.vehicleSpecs, lang]);
 
   // 2. STATS & PRICING
   const totalPallets = useMemo(() => {

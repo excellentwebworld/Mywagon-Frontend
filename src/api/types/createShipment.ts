@@ -48,6 +48,7 @@ export interface ApiWizardState {
     total_drive_min?: number;
   };
   vehicleSpecs?: Record<string, string[]>;
+  vehicleSelectionConfirmed?: boolean;
   broadcastType?: 'private' | 'public';
   selectedCarriers?: string[];
   targetPrice?: string;
@@ -83,4 +84,6 @@ export interface SaveStepTwoPayload {
     total_dist_km: number;
     total_drive_min: number;
   };
+  vehicle_specs?: Record<string, string[]>;
+  vehicle_selection_confirmed?: boolean;
 }

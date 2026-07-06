@@ -215,6 +215,7 @@
   "step2UniqueCustomers": "Unique Customers",
   "step2OrdersCount": "Orders count",
   "step2MissingLocations": "Some stops are missing locations.",
+  "step2SelectVehicleRequired": "Please select at least one vehicle type.",
   "step2AiAnalysis": "AI Analysis",
   "step2AiRouteAnalysis": "AI Route Analysis",
   "step2TollEstimate": "Toll Estimate",

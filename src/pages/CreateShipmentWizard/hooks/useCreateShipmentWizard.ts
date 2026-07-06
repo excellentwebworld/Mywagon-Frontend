@@ -4,6 +4,7 @@ import { createShipmentService, ApiError } from '../../../api';
 import { draftToFormValues, formValuesToStepOnePayload, formValuesToStepTwoPayload } from '../../../api/mappers/createShipmentMapper';
 import type { WizardFormValues } from '../../../api/mappers/createShipmentMapper';
 import { buildDefaultWizardValues } from '../../../components/CreateShipmentWizard/types';
+import { hasVehicleSelection } from '../../../components/CreateShipmentWizard/vehicleTypes';
 
 function parseStep(value: string | null): number {
   const n = parseInt(value || '1', 10);
@@ -196,6 +197,11 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         throw new Error('Itinerary not confirmed');
       }
 
+      if (mode === 'complete' && !hasVehicleSelection(values.vehicleSpecs)) {
+        showToast(t('step2SelectVehicleRequired') || 'Please select at least one vehicle type.', 'error');
+        throw new Error('Vehicle not selected');
+      }
+
       setIsSaving(true);
       try {
         const id = await ensureDraftId();
@@ -203,6 +209,8 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
           {
             itineraryConfirmed: values.itineraryConfirmed,
             routeSummary: routeSummary ?? values.routeSummary,
+            vehicleSpecs: values.vehicleSpecs,
+            vehicleSelectionConfirmed: values.vehicleSelectionConfirmed,
           },
           mode
         );
