@@ -5,15 +5,41 @@ export const TRUCK_WEIGHT_CAP_KG = 28000;
 
 export function weightToKg(weight: string | number | undefined, wtUnit?: string): number {
   const w = parseFloat(String(weight ?? '')) || 0;
-  const unit = (wtUnit || '').toLowerCase();
-  if (unit === 't' || unit === 'ton' || unit === 'tons') return w * 1000;
-  if (unit === 'lb' || unit === 'lbs') return w * 0.4536;
+  const unit = (wtUnit || '').toLowerCase().trim();
+  if (unit === 't' || unit === 'ton' || unit === 'tons' || unit === 'tonne' || unit === 'tonnes') {
+    return w * 1000;
+  }
+  if (unit === 'lb' || unit === 'lbs' || unit === 'pound' || unit === 'pounds') {
+    return w * 0.453592;
+  }
   return w;
 }
 
 export function formatWeightKg(kg: number): string {
+  if (kg <= 0) return '0 kg';
   if (kg >= 1000) return `${(kg / 1000).toFixed(1)}t`;
-  return `${Math.round(kg)} kg`;
+  const rounded = Math.round(kg * 10) / 10;
+  return Number.isInteger(rounded) ? `${rounded} kg` : `${rounded.toFixed(1)} kg`;
+}
+
+export function formatQtyWithUnit(qty: number, unit?: string): string {
+  if (qty <= 0) return '—';
+  const u = (unit || '').trim();
+  return u ? `${qty} ${u}` : String(qty);
+}
+
+export function summarizeStopLines(stop: ApiStop): { qty: number; weightKg: number; unit: string } {
+  let qty = 0;
+  let weightKg = 0;
+  let unit = '';
+
+  (stop.lines || []).forEach((ln) => {
+    qty += parseFloat(String(ln.qty ?? '')) || 0;
+    weightKg += weightToKg(ln.weight, ln.wtUnit);
+    if (!unit && ln.unit) unit = ln.unit;
+  });
+
+  return { qty, weightKg, unit };
 }
 
 export function formatDurationMin(minutes: number): string {

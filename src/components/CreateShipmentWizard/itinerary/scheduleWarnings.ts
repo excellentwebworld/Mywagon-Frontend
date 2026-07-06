@@ -22,6 +22,18 @@ export function formatAppointmentLabel(stop: ApiStop): string {
   return label;
 }
 
+export function formatStopScheduleShort(stop: ApiStop): string {
+  if (!stop.dateFrom) return '—';
+  const datePart = stop.dateFrom.length >= 10 ? stop.dateFrom.slice(5) : stop.dateFrom;
+  if (stop.timeFrom && stop.timeTo) return `${datePart} · ${stop.timeFrom}–${stop.timeTo}`;
+  if (stop.timeFrom) return `${datePart} · ${stop.timeFrom}`;
+  if (stop.dateTo && stop.dateTo !== stop.dateFrom) {
+    const endPart = stop.dateTo.length >= 10 ? stop.dateTo.slice(5) : stop.dateTo;
+    return `${datePart} → ${endPart}`;
+  }
+  return datePart;
+}
+
 function stopEndDate(stop: ApiStop): Date | null {
   const date = stop.dateTo || stop.dateFrom;
   if (!date) return null;

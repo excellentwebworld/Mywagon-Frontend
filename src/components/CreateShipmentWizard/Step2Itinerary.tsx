@@ -20,11 +20,13 @@ import { RouteMap } from './itinerary/RouteMap';
 import { ItineraryAiInsights } from './itinerary/ItineraryAiInsights';
 import {
   formatDurationMin,
+  formatQtyWithUnit,
   formatWeightKg,
+  summarizeStopLines,
   TRUCK_WEIGHT_CAP_KG,
   weightToKg,
 } from './itinerary/cargoUtils';
-import { formatAppointmentLabel, getMockWeather } from './itinerary/scheduleWarnings';
+import { formatAppointmentLabel, formatStopScheduleShort, getMockWeather } from './itinerary/scheduleWarnings';
 
 const T = {
   sf: 'var(--surface)',
@@ -254,7 +256,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                               className="text-[9px] font-semibold"
                               style={{ color: rw > TRUCK_WEIGHT_CAP_KG ? '#DC2626' : T.t3 }}
                             >
-                              {t('step2OnTruck')}: {(rw / 1000).toFixed(1)}T
+                              {t('step2OnTruck')}: {formatWeightKg(rw)}
                             </span>
                             <div
                               className="flex-1 rounded-full overflow-hidden"
@@ -338,14 +340,8 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                   {enrichedStops.map((stop, si) => {
                     const drive = route.legs.find((d) => d.from === si);
                     const dw = driveWarnings.find((d) => d.from === si);
-                    const stopWeight = (stop.lines || []).reduce(
-                      (a: number, l: any) => a + weightToKg(l.weight, l.wtUnit),
-                      0
-                    );
-                    const stopQty = (stop.lines || []).reduce(
-                      (a: number, l: any) => a + (parseFloat(String(l.qty)) || 0),
-                      0
-                    );
+                    const onTruckKg = runningWeights[si] ?? 0;
+                    const stopActivity = summarizeStopLines(stop);
 
                     return (
                       <div key={stop.id || si} className="flex items-start shrink-0" style={{ flex: 1, minWidth: 90 }}>
@@ -361,7 +357,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                               {stop.resolvedCity || stop.resolvedName.split(' ')[0]}
                             </div>
                             <div className="text-[10px]" style={{ color: T.t3 }}>
-                              {stop.dateFrom?.slice(5)} · {stop.timeFrom || '—'}
+                              {formatStopScheduleShort(stop)}
                             </div>
                             <div
                               className="text-[10px] font-bold mt-0.5"
@@ -374,7 +370,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                                   : t('dropoff').toUpperCase()}
                             </div>
                             <div className="text-[10px]" style={{ color: T.t3 }}>
-                              {(stopWeight / 1000).toFixed(1)}T · {stopQty}u
+                              {formatWeightKg(onTruckKg)} · {formatQtyWithUnit(stopActivity.qty, stopActivity.unit)}
                             </div>
                           </div>
                         </div>
@@ -459,8 +455,8 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                           </div>
                         )}
                       </div>
-                      <div className="text-[10px] font-semibold text-right" style={{ color: T.t1, width: 75 }}>
-                        {f.qty} {f.unit || 'plt'} · {formatWeightKg(f.weightKg)}
+                      <div className="text-[10px] font-semibold text-right" style={{ color: T.t1, width: 110 }}>
+                        {formatQtyWithUnit(f.qty, f.unit)} · {formatWeightKg(f.weightKg)}
                       </div>
                     </div>
                   ))}
