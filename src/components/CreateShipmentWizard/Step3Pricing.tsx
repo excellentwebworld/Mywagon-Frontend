@@ -28,6 +28,7 @@ import { SearchableSelect } from '../ui/SearchableSelect';
 import { useCreateShipmentPartners } from '../../hooks/useCreateShipmentPartners';
 import { usePublicLoadQuota } from '../../hooks/usePublicLoadQuota';
 import { useTrackingEmailLookup } from '../../hooks/useTrackingEmailLookup';
+import { useStep3OrderDetails, EMPTY_STEP3_ORDERS } from '../../hooks/useStep3OrderDetails';
 import { useAiSuggestedPrice } from '../../hooks/useAiSuggestedPrice';
 import { matchContractLane } from '../../api/utils/matchContractLane';
 import type { Step3Carrier } from '../../api/mappers/mapPartnerToStep3Carrier';
@@ -37,7 +38,6 @@ import { computeTripTotals, formatDurationMin, formatWeightKg } from './itinerar
 import type { TrackingOrderItem } from './itinerary/buildTrackingGroups';
 import { useRouteLegs } from './itinerary/useRouteLegs';
 import { RouteMap } from './itinerary/RouteMap';
-import { erpOrdersService } from '../../api';
 import { CarrierListSkeleton } from '../skeletons/CarrierListSkeleton';
 
 const T = {
@@ -81,9 +81,36 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   const [trackingExpanded, setTrackingExpanded] = useState(true);
   const [carrierQuery, setCarrierQuery] = useState('');
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const orderValuePrefilledRef = useRef(false);
+  const trackingEmailsInitializedRef = useRef('');
   const { byCustomerId } = useTrackingEmailLookup();
-  const [byOrderId, setByOrderId] = useState<Record<string, string>>({});
-  const loadedOrderIdsRef = useRef<Set<string>>(new Set());
+
+  const orderIdsKey = useMemo(() => {
+    const ids = new Set<string>();
+    stops.forEach((s: any) => {
+      (s.lines || []).forEach((l: any) => {
+        if (l.orderId) ids.add(String(l.orderId));
+      });
+    });
+    return [...ids].sort().join(',');
+  }, [stops]);
+
+  const { data: step3Orders = EMPTY_STEP3_ORDERS } = useStep3OrderDetails(orderIdsKey);
+
+  const byOrderId = useMemo(() => {
+    const next: Record<string, string> = {};
+    step3Orders.forEach((order) => {
+      const email =
+        order.companyEntityId != null
+          ? byCustomerId[String(order.companyEntityId)]
+          : undefined;
+      if (email) {
+        next[order.id] = email;
+      }
+    });
+    return next;
+  }, [step3Orders, byCustomerId]);
 
   const emailLookup = useMemo(
     () => ({ byCustomerId, byOrderId }),
@@ -224,65 +251,26 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
     [stops, locations, emailLookup]
   );
 
-  const orderIdsKey = useMemo(() => {
-    const ids = new Set<string>();
-    stops.forEach((s: any) => {
-      (s.lines || []).forEach((l: any) => {
-        if (l.orderId) ids.add(String(l.orderId));
-      });
-    });
-    return [...ids].sort().join(',');
-  }, [stops]);
-
   useEffect(() => {
-    if (!orderIdsKey) return;
+    if (orderValuePrefilledRef.current || values.orderValue || step3Orders.length === 0) {
+      return;
+    }
 
-    const orderIds = orderIdsKey.split(',').filter(Boolean);
-    const pending = orderIds.filter((id) => !loadedOrderIdsRef.current.has(id));
-    if (pending.length === 0) return;
-
-    let cancelled = false;
-
-    Promise.all(pending.map((id) => erpOrdersService.getOrder(id)))
-      .then((orders) => {
-        if (cancelled) return;
-
-        const nextByOrderId: Record<string, string> = {};
-        orders.forEach((order) => {
-          loadedOrderIdsRef.current.add(order.id);
-          const email =
-            order.companyEntityId != null
-              ? byCustomerId[String(order.companyEntityId)]
-              : undefined;
-          if (email) {
-            nextByOrderId[order.id] = email;
-          }
-        });
-
-        setByOrderId((prev) => ({ ...prev, ...nextByOrderId }));
-
-        if (!values.orderValue) {
-          const sum = orders.reduce((acc, order) => acc + (order.orderValue ?? 0), 0);
-          if (sum > 0) {
-            setFieldValue('orderValue', String(Math.round(sum * 100) / 100));
-          }
-        }
-      })
-      .catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
-  }, [orderIdsKey, byCustomerId, values.orderValue, setFieldValue]);
+    const sum = step3Orders.reduce((acc, order) => acc + (order.orderValue ?? 0), 0);
+    if (sum > 0) {
+      orderValuePrefilledRef.current = true;
+      setFieldValue('orderValue', String(Math.round(sum * 100) / 100));
+    }
+  }, [step3Orders, values.orderValue, setFieldValue]);
 
   // Override status
   const isOverride = targetPriceVal !== calculatedPrice;
 
-  // Collapsible tracking groups state
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
-
   // Prefill default email lists per orderId from customer company data
   useEffect(() => {
+    const initKey = `${orderIdsKey}|${Object.keys(byCustomerId).length}`;
+    if (trackingEmailsInitializedRef.current === initKey) return;
+
     const nextEmails = { ...values.trackingEmails };
     let changed = false;
 
@@ -299,7 +287,9 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
     if (changed) {
       setFieldValue('trackingEmails', nextEmails);
     }
-  }, [trackingGroups, values.trackingEmails, setFieldValue]);
+
+    trackingEmailsInitializedRef.current = initKey;
+  }, [orderIdsKey, byCustomerId, trackingGroups, values.trackingEmails, setFieldValue]);
 
   // Tracking operations
   const addEmailField = (orderId: string) => {

@@ -3,5 +3,6 @@ export const wizardQueryKeys = {
   partners: ['create-shipment', 'partners'] as const,
   unlinkedOrders: ['create-shipment', 'unlinked-orders'] as const,
   trackingEmailLookup: ['create-shipment', 'tracking-email-lookup'] as const,
+  step3Orders: (orderIdsKey: string) => ['create-shipment', 'step3-orders', orderIdsKey] as const,
   publicQuota: (draftId: number | null) => ['create-shipment', 'public-quota', draftId] as const,
 };
