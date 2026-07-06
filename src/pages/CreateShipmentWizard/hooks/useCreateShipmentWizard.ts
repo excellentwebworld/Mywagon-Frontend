@@ -208,6 +208,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         const payload = formValuesToStepTwoPayload(
           {
             itineraryConfirmed: values.itineraryConfirmed,
+            itineraryConfirmSnapshot: values.itineraryConfirmSnapshot,
             routeSummary: routeSummary ?? values.routeSummary,
             vehicleSpecs: values.vehicleSpecs,
             vehicleSelectionConfirmed: values.vehicleSelectionConfirmed,

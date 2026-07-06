@@ -176,20 +176,23 @@
 /* ── Vehicle Selectors ── */
 .vg {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   align-items: start;
+  width: 100%;
 }
 
 @media (max-width: 768px) {
   .vg {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 .vc-wrap {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  width: 100%;
 }
 
 .vc {
@@ -201,6 +204,8 @@
   position: relative;
   transition: all 0.2s;
   background: var(--surface);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .vc:hover {
@@ -257,11 +262,19 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 .vs {
   font-size: 11px;
   color: var(--text-tertiary);
+  margin-top: 4px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* ── Nest Specs (scoped under .vnest to avoid sidebar .ns/.ni conflicts) ── */
@@ -273,6 +286,8 @@
   border-radius: 8px;
   background: var(--surface);
   margin-top: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .vnest.open {

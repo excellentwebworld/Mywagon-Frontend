@@ -3,6 +3,7 @@ import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatVehicleSelectionSummary } from './vehicleTypes';
+import { useVehicleTypes } from '../../hooks/useVehicleTypes';
 import {
   ArrowLeft,
   Check,
@@ -92,14 +93,16 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ onBackStep, onSubmit
     return contractCarrier?.contractLanes?.[0];
   }, [contractCarrier]);
 
-  // Dynamic selected vehicles from Step 1 stops
+  const { vehicleTypes } = useVehicleTypes();
+
+  // Dynamic selected vehicles from Step 2
   const selectedVehicleTypesStr = useMemo(() => {
     const locale = lang === 'el' ? 'el' : 'en';
-    const { types, specs } = formatVehicleSelectionSummary(values.vehicleSpecs || {}, locale);
+    const { types, specs } = formatVehicleSelectionSummary(values.vehicleSpecs || {}, locale, vehicleTypes);
     if (types.length === 0) return '—';
     const specPart = specs.length > 0 ? ` (${specs.join(', ')})` : '';
     return types.join(', ') + specPart;
-  }, [values.vehicleSpecs, lang]);
+  }, [values.vehicleSpecs, lang, vehicleTypes]);
 
   // 2. STATS & PRICING
   const totalPallets = useMemo(() => {

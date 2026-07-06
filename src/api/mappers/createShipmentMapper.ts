@@ -1,5 +1,6 @@
 import type { ApiStop, ApiWizardState, SaveStepOnePayload, SaveStepTwoPayload } from '../types/createShipment';
 import { createNewCargoLine, createNewStop } from '../../components/CreateShipmentWizard/types';
+import { computeItineraryFingerprint } from '../../components/CreateShipmentWizard/itineraryFingerprint';
 import { normalizeWeightUnit } from '../../constants/cargoUnits';
 
 export interface WizardFormValues {
@@ -8,6 +9,7 @@ export interface WizardFormValues {
   coOwners: string[];
   stops: ApiStop[];
   itineraryConfirmed: boolean;
+  itineraryConfirmSnapshot: string;
   routeSummary: { totalDistKm: number; totalDriveMin: number } | null;
   vehicleSpecs: Record<string, string[]>;
   vehicleSelectionConfirmed: boolean;
@@ -87,6 +89,9 @@ export function draftToFormValues(
     coOwners: state.coOwners ?? defaults.coOwners,
     stops,
     itineraryConfirmed: state.itineraryConfirmed ?? defaults.itineraryConfirmed,
+    itineraryConfirmSnapshot:
+      state.itineraryConfirmSnapshot ??
+      (state.itineraryConfirmed ? computeItineraryFingerprint(stops) : defaults.itineraryConfirmSnapshot),
     routeSummary: state.routeSummary
       ? {
           totalDistKm: Number(state.routeSummary.total_dist_km ?? 0),
@@ -108,13 +113,18 @@ export function draftToFormValues(
 export function formValuesToStepTwoPayload(
   values: Pick<
     WizardFormValues,
-    'itineraryConfirmed' | 'routeSummary' | 'vehicleSpecs' | 'vehicleSelectionConfirmed'
+    | 'itineraryConfirmed'
+    | 'itineraryConfirmSnapshot'
+    | 'routeSummary'
+    | 'vehicleSpecs'
+    | 'vehicleSelectionConfirmed'
   >,
   mode: SaveStepTwoPayload['mode']
 ): SaveStepTwoPayload {
   return {
     mode,
     itinerary_confirmed: Boolean(values.itineraryConfirmed),
+    itinerary_confirm_snapshot: values.itineraryConfirmSnapshot || undefined,
     route_summary: values.routeSummary
       ? {
           total_dist_km: values.routeSummary.totalDistKm,
@@ -133,6 +143,7 @@ export function formValuesToWizardState(values: WizardFormValues): ApiWizardStat
     coOwners: values.coOwners,
     loadId: values.loadId,
     itineraryConfirmed: values.itineraryConfirmed,
+    itineraryConfirmSnapshot: values.itineraryConfirmSnapshot,
     routeSummary: values.routeSummary
       ? {
           total_dist_km: values.routeSummary.totalDistKm,

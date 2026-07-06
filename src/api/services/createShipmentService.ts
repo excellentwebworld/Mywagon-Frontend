@@ -1,7 +1,12 @@
 import { apiDelete, apiGet, apiPost, apiPut } from '../client';
-import type { ApiDraftShipment, SaveStepOnePayload, SaveStepTwoPayload } from '../types/createShipment';
+import type { ApiDraftShipment, ApiVehicleType, SaveStepOnePayload, SaveStepTwoPayload } from '../types/createShipment';
 
 export const createShipmentService = {
+  async getVehicleTypes(): Promise<ApiVehicleType[]> {
+    const res = await apiGet<ApiVehicleType[]>('/create-shipment/reference/vehicle-types');
+    return res.data ?? [];
+  },
+
   async createDraft(): Promise<ApiDraftShipment> {
     const res = await apiPost<ApiDraftShipment>('/create-shipment/drafts');
     return res.data;

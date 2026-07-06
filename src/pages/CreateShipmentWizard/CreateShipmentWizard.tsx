@@ -55,6 +55,7 @@ export const CreateShipmentWizard: React.FC = () => {
   } = useCreateShipmentWizard(showToast, t);
 
   const stepNavBannerRef = useRef<HTMLDivElement>(null);
+  const resetItineraryConfirmationRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     refreshLocationsFromApi();
@@ -150,6 +151,9 @@ export const CreateShipmentWizard: React.FC = () => {
   };
 
   const handleStepClick = (targetStep: number) => {
+    if (targetStep === 1) {
+      resetItineraryConfirmationRef.current?.();
+    }
     const requireId = targetStep >= 2;
     const moved = goToStep(targetStep, requireId ? { requireId: true } : undefined);
     if (!moved) {
@@ -273,16 +277,38 @@ export const CreateShipmentWizard: React.FC = () => {
         validationSchema={validationSchema}
         onSubmit={handleConfirmWizard}
       >
-        {({ values, submitForm, setFieldValue }) => (
+        {({ values, submitForm, setFieldValue }) => {
+          resetItineraryConfirmationRef.current = () => {
+            setFieldValue('itineraryConfirmed', false);
+            setFieldValue('itineraryConfirmSnapshot', '');
+          };
+
+          return (
           <Form>
             <div className="content" style={{ paddingBottom: '120px' }}>
               {step === 1 && (
                 <Step1Details
                   onSaveDraft={async () => {
-                    await saveStep1(values, 'partial');
+                    resetItineraryConfirmationRef.current?.();
+                    await saveStep1(
+                      {
+                        ...values,
+                        itineraryConfirmed: false,
+                        itineraryConfirmSnapshot: '',
+                      },
+                      'partial'
+                    );
                   }}
                   onContinue={async () => {
-                    await saveStep1(values, 'complete');
+                    resetItineraryConfirmationRef.current?.();
+                    await saveStep1(
+                      {
+                        ...values,
+                        itineraryConfirmed: false,
+                        itineraryConfirmSnapshot: '',
+                      },
+                      'complete'
+                    );
                   }}
                   isSaving={isSaving}
                   validationRequest={validationRequest}
@@ -291,7 +317,7 @@ export const CreateShipmentWizard: React.FC = () => {
               {step === 2 && (
                 <Step2Itinerary
                   onBackStep={() => {
-                    setFieldValue('itineraryConfirmed', false);
+                    resetItineraryConfirmationRef.current?.();
                     goToStep(1);
                   }}
                   onSaveDraft={async () => {
@@ -299,6 +325,7 @@ export const CreateShipmentWizard: React.FC = () => {
                       {
                         ...values,
                         itineraryConfirmed: values.itineraryConfirmed,
+                        itineraryConfirmSnapshot: values.itineraryConfirmSnapshot,
                         vehicleSpecs: values.vehicleSpecs,
                         vehicleSelectionConfirmed: values.vehicleSelectionConfirmed,
                       },
@@ -308,12 +335,12 @@ export const CreateShipmentWizard: React.FC = () => {
                   }}
                   onContinue={async (routeSummary) => {
                     setFieldValue('routeSummary', routeSummary);
-                    setFieldValue('itineraryConfirmed', true);
                     await saveStep2(
                       {
                         ...values,
                         routeSummary,
-                        itineraryConfirmed: true,
+                        itineraryConfirmed: values.itineraryConfirmed,
+                        itineraryConfirmSnapshot: values.itineraryConfirmSnapshot,
                         vehicleSpecs: values.vehicleSpecs,
                         vehicleSelectionConfirmed: values.vehicleSelectionConfirmed,
                       },
@@ -327,7 +354,8 @@ export const CreateShipmentWizard: React.FC = () => {
               {step === 3 && <Step3Pricing onBackStep={() => goToStep(2)} onSubmit={submitForm} />}
             </div>
           </Form>
-        )}
+          );
+        }}
       </Formik>
     </div>
   );

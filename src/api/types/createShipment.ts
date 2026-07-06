@@ -43,6 +43,7 @@ export interface ApiWizardState {
   coOwners?: string[];
   loadId?: string;
   itineraryConfirmed?: boolean;
+  itineraryConfirmSnapshot?: string;
   routeSummary?: {
     total_dist_km?: number;
     total_drive_min?: number;
@@ -86,4 +87,26 @@ export interface SaveStepTwoPayload {
   };
   vehicle_specs?: Record<string, string[]>;
   vehicle_selection_confirmed?: boolean;
+  itinerary_confirm_snapshot?: string;
+}
+
+export interface ApiVehicleCategory {
+  id: number;
+  name_en: string;
+  name_el: string;
+}
+
+export interface ApiVehicleFeature {
+  id: number;
+  name_en: string;
+  name_el: string;
+  categories: ApiVehicleCategory[];
+}
+
+export interface ApiVehicleType {
+  id: number;
+  name_en: string;
+  name_el: string;
+  image?: string | null;
+  features: ApiVehicleFeature[];
 }

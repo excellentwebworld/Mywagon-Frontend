@@ -216,6 +216,8 @@
   "step2OrdersCount": "Αριθμός Παραγγελιών",
   "step2MissingLocations": "Λείπουν τοποθεσίες σε ορισμένες στάσεις.",
   "step2SelectVehicleRequired": "Επιλέξτε τουλάχιστον έναν τύπο οχήματος.",
+  "step2NoVehicleTypes": "Δεν έχουν ρυθμιστεί τύποι οχημάτων.",
+  "retry": "Επανάληψη",
   "step2ConfirmAndContinue": "Επιβεβαίωση & Συνέχεια",
   "step2SaveDraft": "Αποθήκευση πρόχειρου",
   "step2AutoSaveActive": "Αποθήκευση πρόχειρου κατά τη συνέχεια ή αποθήκευση.",

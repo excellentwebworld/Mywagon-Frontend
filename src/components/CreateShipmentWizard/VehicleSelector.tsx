@@ -2,16 +2,22 @@ import React, { useMemo, useState } from 'react';
 import { useFormikContext } from 'formik';
 import { Check, Truck } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useVehicleTypes } from '../../hooks/useVehicleTypes';
 import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
 import {
-  allItemsForType,
   formatVehicleSelectionSummary,
-  WIZARD_VEHICLE_TYPES,
+  iconKeyFromVehicleName,
   type WizardVehicleType,
 } from './vehicleTypes';
 
-function VehicleIcon({ formKey }: { formKey: string }) {
-  if (formKey === 'semi-trailer') {
+function VehicleIcon({ formKey, name, image }: { formKey: string; name: string; image?: string | null }) {
+  if (image) {
+    return <img src={image} alt={name} className="max-h-12 max-w-[72px] object-contain mx-auto" />;
+  }
+
+  const iconKey = iconKeyFromVehicleName(name) || formKey;
+
+  if (iconKey === 'semi-trailer') {
     return (
       <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.8">
         <rect x="2" y="20" width="42" height="22" rx="3" />
@@ -22,7 +28,7 @@ function VehicleIcon({ formKey }: { formKey: string }) {
       </svg>
     );
   }
-  if (formKey === 'road-train') {
+  if (iconKey === 'road-train') {
     return (
       <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.8">
         <rect x="2" y="20" width="42" height="22" rx="3" />
@@ -33,7 +39,7 @@ function VehicleIcon({ formKey }: { formKey: string }) {
       </svg>
     );
   }
-  if (formKey === 'triaxle') {
+  if (iconKey === 'triaxle') {
     return (
       <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.8">
         <rect x="2" y="22" width="38" height="18" rx="3" />
@@ -73,21 +79,16 @@ export const VehicleSelector: React.FC = () => {
   const { t, lang } = useTranslation();
   const { values, setFieldValue } = useFormikContext<WizardFormValues>();
   const vehicleSpecs = values.vehicleSpecs || {};
+  const { vehicleTypes, loading, error, refetch } = useVehicleTypes();
 
   const [cardExpanded, setCardExpanded] = useState(true);
-  const [openNests, setOpenNests] = useState<Record<string, boolean>>({
-    'semi-trailer': false,
-    'road-train': false,
-  });
-  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
-    'semi-trailer-dry': true,
-    'road-train-dry': true,
-  });
+  const [openNests, setOpenNests] = useState<Record<string, boolean>>({});
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
 
   const locale = lang === 'el' ? 'el' : 'en';
   const summary = useMemo(
-    () => formatVehicleSelectionSummary(vehicleSpecs, locale),
-    [vehicleSpecs, locale]
+    () => formatVehicleSelectionSummary(vehicleSpecs, locale, vehicleTypes),
+    [vehicleSpecs, locale, vehicleTypes]
   );
 
   const briefText = useMemo(() => {
@@ -105,17 +106,7 @@ export const VehicleSelector: React.FC = () => {
   const isTypeSelected = (formKey: string) => (vehicleSpecs[formKey]?.length ?? 0) > 0;
 
   const toggleVehicleCard = (vt: WizardVehicleType) => {
-    const nestOpen = openNests[vt.formKey];
-    if (nestOpen) {
-      setOpenNests((prev) => ({ ...prev, [vt.formKey]: false }));
-      return;
-    }
-
-    const selected = vehicleSpecs[vt.formKey] || [];
-    if (selected.length === 0) {
-      updateSpecs({ ...vehicleSpecs, [vt.formKey]: allItemsForType(vt) });
-    }
-    setOpenNests((prev) => ({ ...prev, [vt.formKey]: true }));
+    setOpenNests((prev) => ({ ...prev, [vt.formKey]: !prev[vt.formKey] }));
   };
 
   const deselectVehicle = (vt: WizardVehicleType, e: React.MouseEvent) => {
@@ -193,135 +184,172 @@ export const VehicleSelector: React.FC = () => {
 
       {cardExpanded && (
         <div className="cb">
-          <div className="vg">
-            {WIZARD_VEHICLE_TYPES.map((vt) => {
-              const selected = vehicleSpecs[vt.formKey] || [];
-              const selectedFlag = isTypeSelected(vt.formKey);
-              const nestOpen = openNests[vt.formKey] ?? false;
-              const displayName = locale === 'el' ? vt.nameEl : vt.name;
+          {loading && (
+            <div className="px-4 py-8 text-sm text-center" style={{ color: 'var(--text-secondary)' }}>
+              {t('loading') || 'Loading vehicle types…'}
+            </div>
+          )}
 
-              return (
-                <div key={vt.formKey} className="vc-wrap">
-                  <div
-                    className={`vc ${selectedFlag ? 'sel' : ''}`}
-                    onClick={() => toggleVehicleCard(vt)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        toggleVehicleCard(vt);
-                      }
-                    }}
-                  >
-                    {selectedFlag && (
+          {!loading && error && (
+            <div className="px-4 py-6 text-center">
+              <div className="text-sm mb-3" style={{ color: '#DC2626' }}>
+                {error}
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
+                style={{ border: '1px solid var(--border)', background: 'var(--surface-alt)', fontFamily: 'inherit' }}
+                onClick={() => refetch()}
+              >
+                {t('retry') || 'Retry'}
+              </button>
+            </div>
+          )}
+
+          {!loading && !error && vehicleTypes.length === 0 && (
+            <div className="px-4 py-8 text-sm text-center" style={{ color: 'var(--text-secondary)' }}>
+              {t('step2NoVehicleTypes') || 'No vehicle types are configured.'}
+            </div>
+          )}
+
+          {!loading && !error && vehicleTypes.length > 0 && (
+            <>
+              <div
+                className="vg"
+                style={{
+                  gridTemplateColumns: `repeat(${Math.min(Math.max(vehicleTypes.length, 1), 4)}, minmax(0, 1fr))`,
+                }}
+              >
+                {vehicleTypes.map((vt) => {
+                  const selected = vehicleSpecs[vt.formKey] || [];
+                  const selectedFlag = isTypeSelected(vt.formKey);
+                  const nestOpen = openNests[vt.formKey] ?? false;
+                  const displayName = locale === 'el' ? vt.nameEl : vt.name;
+
+                  return (
+                    <div key={vt.formKey} className="vc-wrap">
                       <div
-                        className="ck"
-                        title="Deselect"
-                        onClick={(e) => deselectVehicle(vt, e)}
+                        className={`vc ${selectedFlag ? 'sel' : ''}`}
+                        onClick={() => toggleVehicleCard(vt)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleVehicleCard(vt);
+                          }
+                        }}
                       >
-                        ✓
-                      </div>
-                    )}
-                    <div className="vi">
-                      <VehicleIcon formKey={vt.formKey} />
-                    </div>
-                    <div className="vn">{displayName}</div>
-                    <div className="vs">{vt.subtitle}</div>
-                  </div>
-
-                  <div className={`vnest ${nestOpen ? 'open' : ''}`}>
-                    {vt.categories.map((cat) => {
-                      const catKey = `${vt.formKey}-${cat.id}`;
-                      const catOpen = openCategories[catKey] ?? cat.id === 'dry';
-                      const catState = categoryCheckState(vt, cat.id, selected);
-                      const catLabel = locale === 'el' ? cat.labelEl : cat.label;
-
-                      return (
-                        <React.Fragment key={cat.id}>
+                        {selectedFlag && (
                           <div
-                            className="nc"
-                            onClick={(e) => toggleCategory(vt, cat.id, e)}
+                            className="ck"
+                            title="Deselect"
+                            onClick={(e) => deselectVehicle(vt, e)}
                           >
-                            <span
-                              className={`chev ${catOpen ? 'open' : ''}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenCategories((prev) => ({
-                                  ...prev,
-                                  [catKey]: !catOpen,
-                                }));
-                              }}
-                            >
-                              ▶
-                            </span>
-                            <div
-                              className={`cbx ${catState === 'all' ? 'on' : catState === 'partial' ? 'ind' : ''}`}
-                            >
-                              {catState === 'all' ? '✓' : catState === 'partial' ? '–' : ''}
-                            </div>
-                            <span>{catLabel}</span>
+                            ✓
                           </div>
-                          <div className={`ns ${catOpen ? 'open' : ''}`}>
-                            {cat.items.map((item) => {
-                              const itemOn = selected.includes(item.id);
-                              const itemLabel = locale === 'el' ? item.labelEl : item.label;
-                              return (
-                                <div
-                                  key={item.id}
-                                  className="ni"
-                                  onClick={(e) => toggleItem(vt, cat.id, item.id, e)}
+                        )}
+                        <div className="vi">
+                          <VehicleIcon formKey={vt.formKey} name={displayName} image={vt.image} />
+                        </div>
+                        <div className="vn">{displayName}</div>
+                        <div className="vs">{vt.subtitle}</div>
+                      </div>
+
+                      <div className={`vnest ${nestOpen ? 'open' : ''}`}>
+                        {vt.categories.map((cat) => {
+                          const catKey = `${vt.formKey}-${cat.id}`;
+                          const catOpen = openCategories[catKey] ?? false;
+                          const catState = categoryCheckState(vt, cat.id, selected);
+                          const catLabel = locale === 'el' ? cat.labelEl : cat.label;
+
+                          return (
+                            <React.Fragment key={cat.id}>
+                              <div
+                                className="nc"
+                                onClick={(e) => toggleCategory(vt, cat.id, e)}
+                              >
+                                <span
+                                  className={`chev ${catOpen ? 'open' : ''}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenCategories((prev) => ({
+                                      ...prev,
+                                      [catKey]: !catOpen,
+                                    }));
+                                  }}
                                 >
-                                  <div className={`cbx ${itemOn ? 'on' : ''}`}>
-                                    {itemOn ? '✓' : ''}
-                                  </div>
-                                  {itemLabel}
+                                  ▶
+                                </span>
+                                <div
+                                  className={`cbx ${catState === 'all' ? 'on' : catState === 'partial' ? 'ind' : ''}`}
+                                >
+                                  {catState === 'all' ? '✓' : catState === 'partial' ? '–' : ''}
                                 </div>
-                              );
-                            })}
-                          </div>
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
+                                <span>{catLabel}</span>
+                              </div>
+                              <div className={`ns ${catOpen ? 'open' : ''}`}>
+                                {cat.items.map((item) => {
+                                  const itemOn = selected.includes(item.id);
+                                  const itemLabel = locale === 'el' ? item.labelEl : item.label;
+                                  return (
+                                    <div
+                                      key={item.id}
+                                      className="ni"
+                                      onClick={(e) => toggleItem(vt, cat.id, item.id, e)}
+                                    >
+                                      <div className={`cbx ${itemOn ? 'on' : ''}`}>
+                                        {itemOn ? '✓' : ''}
+                                      </div>
+                                      {itemLabel}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="vreqs">
+                <div className="vr">
+                  <span>🚛 {t('vehicleType')}</span>
+                  <span className="vr-v">{summary.types.join(' | ') || '—'}</span>
                 </div>
-              );
-            })}
-          </div>
+                <div className="vr">
+                  <span>📦 {t('cargoSpecs')}</span>
+                  <span className="vr-v">
+                    {summary.specs.length > 0
+                      ? summary.specs.map((spec) => (
+                          <span key={spec} className="vt">
+                            {spec}
+                          </span>
+                        ))
+                      : '—'}
+                  </span>
+                </div>
+              </div>
 
-          <div className="vreqs">
-            <div className="vr">
-              <span>🚛 {t('vehicleType')}</span>
-              <span className="vr-v">{summary.types.join(' | ') || '—'}</span>
-            </div>
-            <div className="vr">
-              <span>📦 {t('cargoSpecs')}</span>
-              <span className="vr-v">
-                {summary.specs.length > 0
-                  ? summary.specs.map((spec) => (
-                      <span key={spec} className="vt">
-                        {spec}
-                      </span>
-                    ))
-                  : '—'}
-              </span>
-            </div>
-          </div>
-
-          <div className="veh-confirm">
-            <button
-              type="button"
-              className="btn btn-p btn-sm inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                confirmSelection();
-              }}
-              disabled={summary.types.length === 0}
-            >
-              <Check size={14} />
-              {t('confirmSelection')}
-            </button>
-          </div>
+              <div className="veh-confirm">
+                <button
+                  type="button"
+                  className="btn btn-p btn-sm inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    confirmSelection();
+                  }}
+                  disabled={summary.types.length === 0}
+                >
+                  <Check size={14} />
+                  {t('confirmSelection')}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -22,6 +22,7 @@ import {
 } from './itinerary/cargoUtils';
 import { buildOrdersCardData } from './itinerary/stopGrouping';
 import { formatAppointmentLabel } from './itinerary/scheduleWarnings';
+import { computeItineraryFingerprint } from './itineraryFingerprint';
 import { hasVehicleSelection } from './vehicleTypes';
 import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
 
@@ -83,6 +84,29 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
     await onSaveDraft();
   };
 
+  const confirmItinerary = () => {
+    const snapshot = computeItineraryFingerprint(stops);
+    setFieldValue('itineraryConfirmSnapshot', snapshot);
+    setFieldValue('itineraryConfirmed', true);
+  };
+
+  useEffect(() => {
+    if (!values.itineraryConfirmed) return;
+
+    const currentFingerprint = computeItineraryFingerprint(stops);
+    const snapshot = values.itineraryConfirmSnapshot;
+
+    if (!snapshot) {
+      setFieldValue('itineraryConfirmSnapshot', currentFingerprint);
+      return;
+    }
+
+    if (snapshot !== currentFingerprint) {
+      setFieldValue('itineraryConfirmed', false);
+      setFieldValue('itineraryConfirmSnapshot', '');
+    }
+  }, [stops, values.itineraryConfirmed, values.itineraryConfirmSnapshot, setFieldValue]);
+
   const showCustomerStats = totals.uniqueCustomers.size > 0;
 
   return (
@@ -96,7 +120,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
         </div>
       )}
 
-      {!vehicleSelected && !missingLocations && (
+      {!vehicleSelected && !missingLocations && values.itineraryConfirmed && (
         <div className="wizard-validation-banner mb-4" role="alert">
           {t('step2SelectVehicleRequired')}
         </div>
@@ -299,7 +323,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                   type="button"
                   className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer text-white border-none"
                   style={{ background: '#059669', fontFamily: 'inherit' }}
-                  onClick={() => setFieldValue('itineraryConfirmed', true)}
+                  onClick={confirmItinerary}
                 >
                   <Check size={13} /> {t('step2ConfirmItinerary')}
                 </button>
@@ -314,7 +338,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
             </div>
           </div>
 
-          <VehicleSelector />
+          {values.itineraryConfirmed && <VehicleSelector />}
         </div>
 
         <div className="right-panel">

@@ -216,6 +216,8 @@
   "step2OrdersCount": "Orders count",
   "step2MissingLocations": "Some stops are missing locations.",
   "step2SelectVehicleRequired": "Please select at least one vehicle type.",
+  "step2NoVehicleTypes": "No vehicle types are configured.",
+  "retry": "Retry",
   "step2ConfirmAndContinue": "Confirm & Continue",
   "step2SaveDraft": "Save Draft",
   "step2AutoSaveActive": "Draft saves when you continue or save draft.",
