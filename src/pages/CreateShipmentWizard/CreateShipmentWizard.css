@@ -1939,6 +1939,80 @@
   }
 }
 
+.wizard-location-preview-overlay {
+  position: fixed;
+  top: var(--topbar-h, 64px);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: calc(var(--z-topbar, 100) + 10);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.wizard-location-preview-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.wizard-location-preview-pane {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 380px;
+  max-width: 100%;
+  height: 100%;
+  background: var(--surface, var(--sf));
+  border-left: 1px solid var(--border, var(--bd));
+  animation: wizardSlideInRight 0.25s ease;
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.1);
+}
+
+.wizard-location-preview-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border, var(--bd));
+  background: var(--surface, var(--sf));
+}
+
+.wizard-location-preview-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, var(--t1));
+  line-height: 1.2;
+}
+
+.wizard-location-preview-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border, var(--bd));
+  background: var(--surface, var(--sf));
+  color: var(--text-tertiary, var(--t3));
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.wizard-location-preview-close:hover {
+  background: var(--surface-alt, var(--sa));
+  color: var(--text-primary, var(--t1));
+}
+
+.wizard-location-preview-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 .wizard-location-preview-pane .detail-pane {
   width: 100%;
   border-left: none;
@@ -1946,6 +2020,14 @@
 
 .wizard-location-preview-pane .detail-pane.open {
   width: 100%;
+}
+
+.wizard-location-preview-pane .dp-close-btn {
+  display: none;
+}
+
+.wizard-location-preview-pane .dp-hero {
+  padding-top: 16px;
 }
 
 .wizard-route-map,

@@ -36,6 +36,22 @@ import type { CreateLocationData, CompanyFormData } from '../../pages/AddressBoo
 import type { ApiCompanyLookup } from '../../api/types/addressBook';
 import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS } from '../../constants/cargoUnits';
 
+const clearOrderDependentCargoFields = () => {
+  const blank = createNewCargoLine();
+  return {
+    orderId: blank.orderId,
+    orderRef: blank.orderRef,
+    customerId: blank.customerId,
+    customerName: blank.customerName,
+    productId: blank.productId,
+    productName: blank.productName,
+    qty: blank.qty,
+    unit: blank.unit,
+    weight: blank.weight,
+    wtUnit: blank.wtUnit,
+  };
+};
+
 // Mocks imports
 import { MOCK_LOCATIONS as AB_LOCATIONS, DEFAULT_DIRECTORIES } from '../../mocks/addressBookData';
 import { PARTNERS } from '../../mocks/partnersMasterData';
@@ -628,6 +644,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const selOrdLine = useCallback(
     async (sid: string, lid: string, oid: string) => {
+      if (!oid) {
+        setLF(sid, lid, clearOrderDependentCargoFields());
+        return;
+      }
       const detail = await fetchOrderDetail(oid);
       if (detail) {
         setOrderDetailsById((prev) => ({ ...prev, [oid]: detail }));
@@ -664,16 +684,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const clearOrderLine = useCallback(
     (sid: string, lid: string) => {
-      setLF(sid, lid, {
-        orderId: '',
-        orderRef: '',
-        customerId: '',
-        customerName: '',
-        productId: '',
-        productName: '',
-        qty: '',
-        weight: '',
-      });
+      setLF(sid, lid, clearOrderDependentCargoFields());
     },
     [setLF]
   );
@@ -1719,7 +1730,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       iS={iS}
                       ordOpts={ordOpts}
                       onSelOrd={(v) => onSelOrd(ln.id, v)}
-                      onSetField={(f, v) => onSetField(ln.id, f, v)}
+                      onClearOrder={() => onClearOrder(ln.id)}
                       onNewOrd={() => onNewOrd(ln.id)}
                     />
                   </td>
@@ -1988,7 +1999,7 @@ interface OrderCellProps {
   iS: any;
   ordOpts: any[];
   onSelOrd: (val: string) => void;
-  onSetField: (field: string, val: any) => void;
+  onClearOrder: () => void;
   onNewOrd: () => void;
 }
 
@@ -1998,7 +2009,7 @@ const OrderCell: React.FC<OrderCellProps> = ({
   t,
   ordOpts,
   onSelOrd,
-  onSetField,
+  onClearOrder,
   onNewOrd,
 }) => {
   if (ln.orderRef) {
@@ -2014,10 +2025,7 @@ const OrderCell: React.FC<OrderCellProps> = ({
           type="button"
           className="border-none bg-transparent cursor-pointer p-0"
           style={{ color: T.t3 }}
-          onClick={() => {
-            onSetField('orderId', '');
-            onSetField('orderRef', '');
-          }}
+          onClick={onClearOrder}
         >
           <X size={10} />
         </button>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 import type { LocationItem } from '../../context/AppContext';
 import { LocationDetailPanel } from '../AddressBook/LocationDetailPanel';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
@@ -19,31 +20,40 @@ export const LocationPreviewOverlay: React.FC<LocationPreviewOverlayProps> = ({
   t,
   onCopy,
 }) => (
-  <div className="fixed inset-0 z-[60] flex justify-end" onClick={onClose}>
-    <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.2)' }} />
+  <div className="wizard-location-preview-overlay" onClick={onClose}>
+    <div className="wizard-location-preview-backdrop" />
     <div
-      className="relative h-full overflow-y-auto overflow-x-hidden wizard-location-preview-pane"
-      style={{
-        width: 380,
-        background: 'var(--surface)',
-        borderLeft: '1px solid var(--border)',
-        animation: 'wizardSlideInRight 0.25s ease',
-      }}
+      className="wizard-location-preview-pane"
       onClick={(e) => e.stopPropagation()}
     >
-      <LocationDetailPanel
-        selectedLoc={location}
-        setSelectedLoc={async () => {
-          onClose();
-        }}
-        detailLoading={false}
-        saving={false}
-        t={t}
-        handleCopy={onCopy}
-        openEditModal={noopAsync}
-        handleArchive={noopAsync}
-        handleRestore={noopAsync}
-      />
+      <header className="wizard-location-preview-header">
+        <span className="wizard-location-preview-title">
+          {t('location') ? `${t('location')} Details` : 'Location Details'}
+        </span>
+        <button
+          type="button"
+          className="wizard-location-preview-close"
+          onClick={onClose}
+          aria-label={t('close') || 'Close'}
+        >
+          <X size={16} />
+        </button>
+      </header>
+      <div className="wizard-location-preview-body">
+        <LocationDetailPanel
+          selectedLoc={location}
+          setSelectedLoc={async () => {
+            onClose();
+          }}
+          detailLoading={false}
+          saving={false}
+          t={t}
+          handleCopy={onCopy}
+          openEditModal={noopAsync}
+          handleArchive={noopAsync}
+          handleRestore={noopAsync}
+        />
+      </div>
     </div>
   </div>
 );
