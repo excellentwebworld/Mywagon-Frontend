@@ -75,6 +75,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   const [coOpen, setCoOpen] = useState(true);
   const [frOpen, setFrOpen] = useState(true);
   const [aiExpanded, setAiExpanded] = useState(false);
+  const [aiInsightsRequested, setAiInsightsRequested] = useState(false);
   const [trackingExpanded, setTrackingExpanded] = useState(true);
   const [carrierQuery, setCarrierQuery] = useState('');
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
@@ -126,16 +127,34 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
     return matchContractLane(contractCarrier?.contractLanes, pickupCity, deliveryCity);
   }, [contractCarrier, pickupCity, deliveryCity]);
 
-  const { data: aiPriceData, loading: aiPriceLoading, error: aiPriceError, denied: aiPriceDenied } =
-    useAiSuggestedPrice({
-      draftId,
-      enabled: !contract && Boolean(draftId),
-      onRecommendedPrice: (price) => {
-        if (!values.targetPrice) {
-          setFieldValue('targetPrice', String(price));
-        }
-      },
-    });
+  const {
+    data: aiPriceData,
+    loading: aiPriceLoading,
+    error: aiPriceError,
+    denied: aiPriceDenied,
+    fetchPrice: fetchAiSuggestedPrice,
+  } = useAiSuggestedPrice({
+    draftId,
+    onRecommendedPrice: (price) => {
+      if (!values.targetPrice) {
+        setFieldValue('targetPrice', String(price));
+      }
+    },
+  });
+
+  const handleAiInsightsClick = () => {
+    const nextExpanded = !aiExpanded;
+    setAiExpanded(nextExpanded);
+
+    if (!nextExpanded || contract || !draftId || aiPriceLoading) {
+      return;
+    }
+
+    setAiInsightsRequested(true);
+    if (!aiPriceData) {
+      void fetchAiSuggestedPrice();
+    }
+  };
 
   const { vehicleTypes } = useVehicleTypes();
 
@@ -886,26 +905,40 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
               </div>
 
               {/* Price calculation advice banner */}
-              <div className="bg-sky-50 text-sky-700 p-2.5 rounded-lg text-xs leading-relaxed">
-                ℹ{' '}
+              <div
+                className="price-hint bg-sky-50 text-sky-700 p-2.5 rounded-lg text-xs leading-relaxed"
+                aria-busy={aiPriceLoading && aiInsightsRequested}
+              >
                 {contract ? (
-                  contract.unit === 'per_pallet' || contract.unit === 'PER_PALLET' ? (
-                    <span>
-                      {t('contract') || 'Contract'}: <strong>€{contract.price} × {totalPallets} pallets = €{calculatedPrice}</strong> · {contract.origin}→{contract.destination}
-                    </span>
-                  ) : (
-                    <span>
-                      {t('contractPricePerLoad') || 'Contract price: per load'} <strong>€{calculatedPrice}</strong> · {contract.origin}→{contract.destination}
-                    </span>
-                  )
-                ) : calculatedPrice > 0 ? (
-                  <span>
-                    {t('spotPriceFromList') || 'Spot price from Price List: per load'} <strong>€{calculatedPrice}</strong> · {pickupCity || '—'}→{deliveryCity || '—'}
+                  <>
+                    ℹ{' '}
+                    {contract.unit === 'per_pallet' || contract.unit === 'PER_PALLET' ? (
+                      <span>
+                        {t('contract') || 'Contract'}: <strong>€{contract.price} × {totalPallets} pallets = €{calculatedPrice}</strong> · {contract.origin}→{contract.destination}
+                      </span>
+                    ) : (
+                      <span>
+                        {t('contractPricePerLoad') || 'Contract price: per load'} <strong>€{calculatedPrice}</strong> · {contract.origin}→{contract.destination}
+                      </span>
+                    )}
+                  </>
+                ) : aiPriceLoading && aiInsightsRequested ? (
+                  <span className="price-hint-loading">
+                    <span className="price-hint-spinner" aria-hidden="true" />
+                    <span>{t('aiSuggestedPriceLoading') || 'Generating AI suggested prices...'}</span>
                   </span>
-                ) : aiPriceLoading ? (
-                  <span>{t('aiSuggestedPriceLoading') || 'Generating AI suggested price...'}</span>
+                ) : calculatedPrice > 0 ? (
+                  <>
+                    ℹ{' '}
+                    <span>
+                      {t('spotPriceFromList') || 'Spot price from Price List: per load'} <strong>€{calculatedPrice}</strong> · {pickupCity || '—'}→{deliveryCity || '—'}
+                    </span>
+                  </>
                 ) : (
-                  <span>{t('step3EnterTargetPrice') || 'Enter a target price below, or open AI Insights for a suggested spot price.'}</span>
+                  <>
+                    ℹ{' '}
+                    <span>{t('step3EnterTargetPrice') || 'Enter a target price below, or open AI Insights for a suggested spot price.'}</span>
+                  </>
                 )}
               </div>
 
@@ -940,8 +973,9 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                 
                 <button
                   type="button"
-                  className="flex items-center gap-1 px-2 py-1 border rounded bg-white hover:bg-slate-50 text-[10px] font-bold text-indigo-700 cursor-pointer"
-                  onClick={() => setAiExpanded(!aiExpanded)}
+                  className="flex items-center gap-1 px-2 py-1 border rounded bg-white hover:bg-slate-50 text-[10px] font-bold text-indigo-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={Boolean(contract) || !draftId || (aiPriceLoading && aiInsightsRequested)}
+                  onClick={handleAiInsightsClick}
                 >
                   {t('aiInsights') || '✨ AI Insights'}
                 </button>

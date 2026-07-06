@@ -1,25 +1,26 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ApiError } from '../api/client';
 import { createShipmentService } from '../api/services/createShipmentService';
 import type { AiSuggestedPriceResult } from '../api/types/createShipment';
 
 interface UseAiSuggestedPriceOptions {
   draftId: number | null;
-  enabled: boolean;
   onRecommendedPrice?: (price: number) => void;
 }
 
-export function useAiSuggestedPrice({ draftId, enabled, onRecommendedPrice }: UseAiSuggestedPriceOptions) {
+export function useAiSuggestedPrice({ draftId, onRecommendedPrice }: UseAiSuggestedPriceOptions) {
   const [data, setData] = useState<AiSuggestedPriceResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [denied, setDenied] = useState<{ message: string; upgradeUrl?: string } | null>(null);
+  const inFlightRef = useRef(false);
 
   const fetchPrice = useCallback(async () => {
-    if (!draftId || !enabled) {
+    if (!draftId || inFlightRef.current) {
       return;
     }
 
+    inFlightRef.current = true;
     setLoading(true);
     setError(null);
     setDenied(null);
@@ -43,20 +44,10 @@ export function useAiSuggestedPrice({ draftId, enabled, onRecommendedPrice }: Us
       setError(err instanceof Error ? err.message : 'Failed to load AI suggested price.');
       setData(null);
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
     }
-  }, [draftId, enabled, onRecommendedPrice]);
+  }, [draftId, onRecommendedPrice]);
 
-  useEffect(() => {
-    if (!enabled || !draftId) {
-      setData(null);
-      setError(null);
-      setDenied(null);
-      return;
-    }
-
-    fetchPrice();
-  }, [draftId, enabled, fetchPrice]);
-
-  return { data, loading, error, denied, refetch: fetchPrice };
+  return { data, loading, error, denied, fetchPrice };
 }
