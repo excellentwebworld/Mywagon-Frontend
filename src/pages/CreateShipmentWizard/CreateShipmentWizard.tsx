@@ -12,6 +12,7 @@ import { useCreateShipmentWizard } from './hooks/useCreateShipmentWizard';
 import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
 import { scrollToValidationAnchor } from '../../components/CreateShipmentWizard/validation';
 import { Step1DetailsSkeleton } from '../../components/skeletons/Step1DetailsSkeleton';
+import { Step2ItinerarySkeleton } from '../../components/skeletons/Step2ItinerarySkeleton';
 import './CreateShipmentWizard.css';
 
 const validationSchema = Yup.object().shape({
@@ -48,6 +49,7 @@ export const CreateShipmentWizard: React.FC = () => {
     defaultValues,
     goToStep,
     saveStep1,
+    saveStep2,
     stepNavigationError,
     validationRequest,
   } = useCreateShipmentWizard(showToast, t);
@@ -206,6 +208,8 @@ export const CreateShipmentWizard: React.FC = () => {
         <div className="content" style={{ paddingBottom: '120px' }}>
           {step === 1 ? (
             <Step1DetailsSkeleton />
+          ) : step === 2 ? (
+            <Step2ItinerarySkeleton />
           ) : (
             <div className="py-12 text-center" style={{ color: 'var(--text-secondary)' }}>
               {t('loading') || 'Loading...'}
@@ -269,7 +273,7 @@ export const CreateShipmentWizard: React.FC = () => {
         validationSchema={validationSchema}
         onSubmit={handleConfirmWizard}
       >
-        {({ values, submitForm }) => (
+        {({ values, submitForm, setFieldValue }) => (
           <Form>
             <div className="content" style={{ paddingBottom: '120px' }}>
               {step === 1 && (
@@ -284,7 +288,23 @@ export const CreateShipmentWizard: React.FC = () => {
                   validationRequest={validationRequest}
                 />
               )}
-              {step === 2 && <Step2Itinerary onBackStep={() => goToStep(1)} onNextStep={() => goToStep(3, { requireId: true })} />}
+              {step === 2 && (
+                <Step2Itinerary
+                  onBackStep={() => {
+                    setFieldValue('itineraryConfirmed', false);
+                    goToStep(1);
+                  }}
+                  onContinue={async (routeSummary) => {
+                    setFieldValue('routeSummary', routeSummary);
+                    await saveStep2(
+                      { ...values, routeSummary, itineraryConfirmed: values.itineraryConfirmed },
+                      'complete',
+                      routeSummary
+                    );
+                  }}
+                  isSaving={isSaving}
+                />
+              )}
               {step === 3 && <Step3Pricing onBackStep={() => goToStep(2)} onSubmit={submitForm} />}
             </div>
           </Form>

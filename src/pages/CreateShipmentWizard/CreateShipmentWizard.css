@@ -1947,3 +1947,12 @@
 .wizard-location-preview-pane .detail-pane.open {
   width: 100%;
 }
+
+.wizard-route-map,
+.wizard-route-map-fallback {
+  width: 100%;
+}
+
+.wizard-step2-skeleton .react-loading-skeleton {
+  line-height: unset;
+}

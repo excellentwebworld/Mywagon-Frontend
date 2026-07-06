@@ -1,4 +1,4 @@
-import type { ApiStop, ApiWizardState, SaveStepOnePayload } from '../types/createShipment';
+import type { ApiStop, ApiWizardState, SaveStepOnePayload, SaveStepTwoPayload } from '../types/createShipment';
 import { createNewCargoLine, createNewStop } from '../../components/CreateShipmentWizard/types';
 
 export interface WizardFormValues {
@@ -7,6 +7,7 @@ export interface WizardFormValues {
   coOwners: string[];
   stops: ApiStop[];
   itineraryConfirmed: boolean;
+  routeSummary: { totalDistKm: number; totalDriveMin: number } | null;
   vehicleSpecs: Record<string, string[]>;
   broadcastType: 'private' | 'public';
   selectedCarriers: string[];
@@ -75,6 +76,12 @@ export function draftToFormValues(
     coOwners: state.coOwners ?? defaults.coOwners,
     stops,
     itineraryConfirmed: state.itineraryConfirmed ?? defaults.itineraryConfirmed,
+    routeSummary: state.routeSummary
+      ? {
+          totalDistKm: Number(state.routeSummary.total_dist_km ?? 0),
+          totalDriveMin: Number(state.routeSummary.total_drive_min ?? 0),
+        }
+      : defaults.routeSummary,
     vehicleSpecs: state.vehicleSpecs ?? defaults.vehicleSpecs,
     broadcastType: state.broadcastType ?? defaults.broadcastType,
     selectedCarriers: state.selectedCarriers ?? defaults.selectedCarriers,
@@ -85,6 +92,22 @@ export function draftToFormValues(
   };
 }
 
+export function formValuesToStepTwoPayload(
+  values: Pick<WizardFormValues, 'itineraryConfirmed' | 'routeSummary'>,
+  mode: SaveStepTwoPayload['mode']
+): SaveStepTwoPayload {
+  return {
+    mode,
+    itinerary_confirmed: Boolean(values.itineraryConfirmed),
+    route_summary: values.routeSummary
+      ? {
+          total_dist_km: values.routeSummary.totalDistKm,
+          total_drive_min: values.routeSummary.totalDriveMin,
+        }
+      : undefined,
+  };
+}
+
 export function formValuesToWizardState(values: WizardFormValues): ApiWizardState {
   return {
     stops: values.stops,
@@ -92,6 +115,12 @@ export function formValuesToWizardState(values: WizardFormValues): ApiWizardStat
     coOwners: values.coOwners,
     loadId: values.loadId,
     itineraryConfirmed: values.itineraryConfirmed,
+    routeSummary: values.routeSummary
+      ? {
+          total_dist_km: values.routeSummary.totalDistKm,
+          total_drive_min: values.routeSummary.totalDriveMin,
+        }
+      : undefined,
     vehicleSpecs: values.vehicleSpecs,
     broadcastType: values.broadcastType,
     selectedCarriers: values.selectedCarriers,

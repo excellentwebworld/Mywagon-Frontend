@@ -43,6 +43,10 @@ export interface ApiWizardState {
   coOwners?: string[];
   loadId?: string;
   itineraryConfirmed?: boolean;
+  routeSummary?: {
+    total_dist_km?: number;
+    total_drive_min?: number;
+  };
   vehicleSpecs?: Record<string, string[]>;
   broadcastType?: 'private' | 'public';
   selectedCarriers?: string[];
@@ -71,3 +75,12 @@ export interface SaveStepOnePayload {
 }
 
 export type SaveStepOneMode = SaveStepOnePayload['mode'];
+
+export interface SaveStepTwoPayload {
+  mode: 'partial' | 'complete';
+  itinerary_confirmed: boolean;
+  route_summary?: {
+    total_dist_km: number;
+    total_drive_min: number;
+  };
+}

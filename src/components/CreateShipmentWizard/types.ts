@@ -49,6 +49,7 @@ export function buildDefaultWizardValues(loadId = 'SHP-NEW') {
     coOwners: [] as string[],
     stops: [createNewStop(true), createNewStop(true)],
     itineraryConfirmed: false,
+    routeSummary: null as { totalDistKm: number; totalDriveMin: number } | null,
     vehicleSpecs: {
       'semi-trailer': [] as string[],
       'road-train': [] as string[],

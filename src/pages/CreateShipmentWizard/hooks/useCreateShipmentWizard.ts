@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { createShipmentService, ApiError } from '../../../api';
-import { draftToFormValues, formValuesToStepOnePayload } from '../../../api/mappers/createShipmentMapper';
+import { draftToFormValues, formValuesToStepOnePayload, formValuesToStepTwoPayload } from '../../../api/mappers/createShipmentMapper';
 import type { WizardFormValues } from '../../../api/mappers/createShipmentMapper';
 import { buildDefaultWizardValues } from '../../../components/CreateShipmentWizard/types';
 
@@ -185,6 +185,59 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     [ensureDraftId, showToast, syncUrl, t]
   );
 
+  const saveStep2 = useCallback(
+    async (
+      values: WizardFormValues,
+      mode: 'partial' | 'complete',
+      routeSummary?: { totalDistKm: number; totalDriveMin: number }
+    ) => {
+      if (mode === 'complete' && !values.itineraryConfirmed) {
+        showToast(t('step2ConfirmRequired') || 'Please confirm the itinerary first.', 'error');
+        throw new Error('Itinerary not confirmed');
+      }
+
+      setIsSaving(true);
+      try {
+        const id = await ensureDraftId();
+        const payload = formValuesToStepTwoPayload(
+          {
+            itineraryConfirmed: values.itineraryConfirmed,
+            routeSummary: routeSummary ?? values.routeSummary,
+          },
+          mode
+        );
+        const draft = await createShipmentService.saveStepTwo(id, payload);
+        setShipmentId(draft.id);
+        setLoadId(draft.auto_id);
+        if (mode === 'complete') {
+          setStepState(3);
+          syncUrl(3, draft.id);
+          setStepNavigationError(null);
+        } else {
+          syncUrl(2, draft.id);
+        }
+        showToast(
+          mode === 'complete'
+            ? t('step2SavedSuccess') || 'Step 2 saved successfully.'
+            : t('draftSavedSuccess') || 'Draft saved successfully.',
+          'success'
+        );
+        return draft;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message === 'Itinerary not confirmed') {
+          throw err;
+        }
+        const message =
+          err instanceof ApiError ? err.message : t('draftSaveFailed') || 'Failed to save draft.';
+        showToast(message, 'error');
+        throw err;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [ensureDraftId, showToast, syncUrl, t]
+  );
+
   return {
     step,
     shipmentId,
@@ -197,6 +250,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     defaultValues,
     goToStep,
     saveStep1,
+    saveStep2,
     setLoadId,
     stepNavigationError,
     validationRequest,

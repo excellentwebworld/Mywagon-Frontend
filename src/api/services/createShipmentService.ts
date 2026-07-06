@@ -1,5 +1,5 @@
 import { apiDelete, apiGet, apiPost, apiPut } from '../client';
-import type { ApiDraftShipment, SaveStepOnePayload } from '../types/createShipment';
+import type { ApiDraftShipment, SaveStepOnePayload, SaveStepTwoPayload } from '../types/createShipment';
 
 export const createShipmentService = {
   async createDraft(): Promise<ApiDraftShipment> {
@@ -14,6 +14,11 @@ export const createShipmentService = {
 
   async saveStepOne(id: number | string, payload: SaveStepOnePayload): Promise<ApiDraftShipment> {
     const res = await apiPut<ApiDraftShipment>(`/create-shipment/drafts/${id}/step-1`, payload);
+    return res.data;
+  },
+
+  async saveStepTwo(id: number | string, payload: SaveStepTwoPayload): Promise<ApiDraftShipment> {
+    const res = await apiPut<ApiDraftShipment>(`/create-shipment/drafts/${id}/step-2`, payload);
     return res.data;
   },
 

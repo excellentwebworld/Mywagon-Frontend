@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -6,22 +6,29 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  MapPin,
   Clock,
-  ChevronDown,
-  ChevronRight,
-  AlertTriangle,
-  Maximize2,
   LayoutList,
   BarChart3,
+  Maximize2,
   Sparkles,
+  AlertTriangle,
 } from 'lucide-react';
+import { useItineraryStats } from './itinerary/useItineraryStats';
+import { useRouteLegs } from './itinerary/useRouteLegs';
+import { enrichStops } from './itinerary/stopEnrichment';
+import { RouteMap } from './itinerary/RouteMap';
+import { ItineraryAiInsights } from './itinerary/ItineraryAiInsights';
+import {
+  formatDurationMin,
+  formatWeightKg,
+  TRUCK_WEIGHT_CAP_KG,
+  weightToKg,
+} from './itinerary/cargoUtils';
+import { formatAppointmentLabel, getMockWeather } from './itinerary/scheduleWarnings';
 
 const T = {
-  bg: 'var(--bg)',
   sf: 'var(--surface)',
   sa: 'var(--surface-alt)',
-  sh: 'var(--surface-hover)',
   bd: 'var(--border)',
   bf: 'var(--border-focus)',
   t1: 'var(--text-primary)',
@@ -29,30 +36,19 @@ const T = {
   t3: 'var(--text-tertiary)',
   ac: 'var(--accent)',
   al: 'var(--accent-light)',
-  ah: 'var(--accent-hover)',
-  ap: 'var(--accent-light)',
 };
-
-const fmtW = (kg: number) => (kg >= 1000 ? `${(kg / 1000).toFixed(1)}t` : `${Math.round(kg)} kg`);
-
-const DRIVE = [
-  { from: 0, to: 1, distKm: 215, durationMin: 165, label: '2h 45min' },
-  { from: 1, to: 2, distKm: 248, durationMin: 195, label: '3h 15min' },
-];
-
-const WEATHER_MOCK: Record<string, any> = {
-  'Ιωάννινα': { icon: '🌤', desc: 'Partly cloudy', tempC: 24, wind: 12, rain: 0 },
-  'Λαμία': { icon: '☀️', desc: 'Clear sky', tempC: 28, wind: 8, rain: 0 },
-  'Καλύβια': { icon: '🌧', desc: 'Light rain expected', tempC: 22, wind: 18, rain: 65, alert: true },
-};
-const getWeather = (city: string) => WEATHER_MOCK[city] || { icon: '☀️', desc: 'Clear', tempC: 25, wind: 10, rain: 0 };
 
 interface Step2ItineraryProps {
   onBackStep: () => void;
-  onNextStep: () => void;
+  onContinue: (routeSummary: { totalDistKm: number; totalDriveMin: number }) => Promise<void>;
+  isSaving?: boolean;
 }
 
-export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNextStep }) => {
+export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
+  onBackStep,
+  onContinue,
+  isSaving = false,
+}) => {
   const { t } = useTranslation();
   const { locations } = useApp();
   const { values, setFieldValue } = useFormikContext<any>();
@@ -61,116 +57,58 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
   const [leftView, setLeftView] = useState<'list' | 'timeline'>('list');
   const [fullMap, setFullMap] = useState(false);
   const [expandedStop, setExpandedStop] = useState<number | null>(null);
+  const [showAI, setShowAI] = useState(false);
+  const aiRef = useRef<HTMLDivElement>(null);
 
-  // Auto-calculate stats
-  const totalPlt = useMemo(() => {
-    let p = 0;
-    stops.forEach((s: any) =>
-      s.lines.forEach((l: any) => {
-        if (l.action === 'pickup') p += parseFloat(l.qty) || 0;
-      })
-    );
-    return p;
-  }, [stops]);
+  const enrichedStops = useMemo(() => enrichStops(stops, locations), [stops, locations]);
+  const route = useRouteLegs(enrichedStops);
+  const {
+    totals,
+    runningWeights,
+    cargoFlows,
+    weekendWarnings,
+    driveWarnings,
+  } = useItineraryStats(stops, locations, route.legs);
 
-  const totalWt = useMemo(() => {
-    let w = 0;
-    stops.forEach((s: any) =>
-      s.lines.forEach((l: any) => {
-        if (l.action === 'pickup') {
-          const wt = parseFloat(l.weight) || 0;
-          w += l.wtUnit === 't' ? wt * 1000 : l.wtUnit === 'lb' ? wt * 0.4536 : wt;
-        }
-      })
-    );
-    return w;
-  }, [stops]);
+  const missingLocations = enrichedStops.some((s) => !s.locationId);
 
-  const totalDist = DRIVE.reduce((a, d) => a + d.distKm, 0);
-  const totalDrive = DRIVE.reduce((a, d) => a + d.durationMin, 0);
-  
-  const uniqueCustomers = useMemo(() => {
-    const s = new Set<string>();
-    stops.forEach((st: any) => st.lines?.forEach((l: any) => l.customerName && s.add(l.customerName)));
-    return s;
-  }, [stops]);
-
-  const totalOrders = useMemo(() => {
-    const s = new Set<string>();
-    stops.forEach((st: any) => st.lines?.forEach((l: any) => l.orderId && s.add(l.orderId)));
-    return s.size;
-  }, [stops]);
-
-  // Drive time warnings
-  const driveWarnings = useMemo(() => {
-    return DRIVE.map((d) => {
-      const prev = stops[d.from];
-      const next = stops[d.to];
-      if (!prev || !next || !prev.dateTo || !next.dateFrom) return { ...d, level: 'ok' as const, msg: '' };
-      const prevEnd = new Date(`${prev.dateTo}T${prev.timeTo || '23:59'}`);
-      const nextStart = new Date(`${next.dateFrom}T${next.timeFrom || '00:00'}`);
-      const gapMin = (nextStart.getTime() - prevEnd.getTime()) / 60000;
-      if (d.durationMin > gapMin) {
-        return { ...d, level: 'red' as const, msg: `Drive ${d.label} exceeds ${Math.round(gapMin)}min gap` };
-      }
-      if (d.durationMin > gapMin * 0.8) {
-        return { ...d, level: 'amber' as const, msg: `Drive ${d.label} close to ${Math.round(gapMin)}min gap` };
-      }
-      return { ...d, level: 'ok' as const, msg: '' };
+  const handleContinue = async () => {
+    if (!values.itineraryConfirmed) return;
+    await onContinue({
+      totalDistKm: route.totalDistKm,
+      totalDriveMin: route.totalDriveMin,
     });
-  }, [stops]);
-
-  // Running weight on truck
-  const runningWeights = useMemo(() => {
-    let w = 0;
-    return stops.map((s: any) => {
-      s.lines.forEach((l: any) => {
-        const wt = parseFloat(l.weight) || 0;
-        const wk = l.wtUnit === 't' ? wt * 1000 : l.wtUnit === 'lb' ? wt * 0.4536 : wt;
-        w += l.action === 'pickup' ? wk : -wk;
-      });
-      return w;
-    });
-  }, [stops]);
-
-  // Weekend / holiday warnings
-  const weekendWarnings = useMemo(() => {
-    const hols = ['2026-01-01', '2026-01-06', '2026-03-25', '2026-05-01', '2026-08-15', '2026-10-28', '2026-12-25', '2026-12-26'];
-    return stops.map((s: any) => {
-      if (!s.dateFrom) return null;
-      const dow = new Date(s.dateFrom).getDay();
-      if (dow === 0) return 'Sunday — verify location is open';
-      if (dow === 6) return 'Saturday — check hours';
-      if (hols.includes(s.dateFrom)) return 'Public holiday — may be closed';
-      return null;
-    });
-  }, [stops]);
-
-  const getStopLocationName = (stop: any) => {
-    const loc = locations.find((l) => l.id === stop.locationId);
-    return loc ? loc.name : stop.locationName || 'Unknown Location';
   };
 
-  const getStopAddress = (stop: any) => {
-    const loc = locations.find((l) => l.id === stop.locationId);
-    return loc ? loc.address : stop.address || 'Address unselected';
+  const handleShowAi = () => {
+    setShowAI(true);
+    window.requestAnimationFrame(() => {
+      aiRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   };
 
   return (
     <div className="animate-fade-in pb-24">
-      {/* ═══ TWO-COLUMN LAYOUT ═══ */}
+      {missingLocations && (
+        <div className="wizard-validation-banner mb-4" role="alert">
+          {t('step2MissingLocations')}{' '}
+          <button type="button" className="underline font-semibold" onClick={onBackStep}>
+            {t('step2EditItinerary')}
+          </button>
+        </div>
+      )}
+
       <div className="flex gap-4 items-start flex-col lg:flex-row mt-4">
-        {/* LEFT COLUMN: Stops timeline or list */}
         <div className="flex-1 w-full min-w-0">
           <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${T.bd}`, background: T.sf }}>
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
               <div className="flex items-center gap-2">
                 <Clock size={16} style={{ color: T.t2 }} />
                 <span className="text-sm font-semibold" style={{ color: T.t1 }}>
-                  {leftView === 'list' ? 'Route Stops' : 'Route Timeline'}
+                  {leftView === 'list' ? t('step2RouteStops') : t('step2RouteTimeline')}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
                 <div className="inline-flex overflow-hidden rounded-md" style={{ border: `1px solid ${T.bd}` }}>
                   <button
                     type="button"
@@ -183,7 +121,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
                     onClick={() => setLeftView('list')}
                   >
                     <LayoutList size={11} style={{ display: 'inline', verticalAlign: '-1px', marginRight: 2 }} />
-                    Stops
+                    {t('step2Stops')}
                   </button>
                   <button
                     type="button"
@@ -196,7 +134,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
                     onClick={() => setLeftView('timeline')}
                   >
                     <BarChart3 size={11} style={{ display: 'inline', verticalAlign: '-1px', marginRight: 2 }} />
-                    Timeline
+                    {t('step2Timeline')}
                   </button>
                 </div>
                 <button
@@ -205,32 +143,31 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
                   style={{ background: T.al, color: T.ac, fontFamily: 'inherit' }}
                   onClick={onBackStep}
                 >
-                  Edit Itinerary
+                  {t('step2EditItinerary')}
                 </button>
               </div>
             </div>
 
             {leftView === 'list' ? (
-              /* Stop list view */
               <div className="px-4 py-3">
-                {stops.map((stop: any, si: number) => {
-                  const hasPickup = stop.lines.some((l: any) => l.action === 'pickup');
-                  const hasDropoff = stop.lines.some((l: any) => l.action === 'dropoff');
+                {enrichedStops.map((stop, si) => {
                   const dw = driveWarnings.find((d) => d.to === si);
                   const ww = weekendWarnings[si];
                   const isExp = expandedStop === si;
-                  const rw = runningWeights[si];
+                  const rw = runningWeights[si] || 0;
+                  const wx = getMockWeather(stop.resolvedCity, stop.locationId);
+                  const leg = route.legs.find((d) => d.to === si);
 
                   return (
-                    <div key={stop.id}>
+                    <div key={stop.id || si}>
                       {dw && dw.level !== 'ok' && (
                         <div
-                          className="flex items-center gap-2 py-1.5 ml-8 text-[10px]"
+                          className="flex items-center gap-2 py-1.5 ml-8 text-[10px] flex-wrap"
                           style={{ color: dw.level === 'red' ? '#DC2626' : '#D97706' }}
                         >
                           <AlertTriangle size={10} />
                           <span>
-                            Drive {DRIVE.find((d) => d.to === si)?.label} · {DRIVE.find((d) => d.to === si)?.distKm} km
+                            {leg ? `${leg.label} · ${leg.distKm} km` : dw.label}
                           </span>
                           <span className="font-semibold">{dw.msg}</span>
                         </div>
@@ -238,7 +175,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
                       <div
                         className="flex gap-3 pb-4"
                         style={{
-                          borderLeft: si < stops.length - 1 ? `2px solid ${T.ac}` : '2px solid transparent',
+                          borderLeft: si < enrichedStops.length - 1 ? `2px solid ${T.ac}` : '2px solid transparent',
                           marginLeft: 14,
                         }}
                       >
@@ -248,76 +185,91 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
                         >
                           {si + 1}
                         </div>
-                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedStop(isExp ? null : si)}>
+                        <div
+                          className="flex-1 min-w-0 cursor-pointer"
+                          onClick={() => setExpandedStop(isExp ? null : si)}
+                        >
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            {hasPickup && (
+                            {stop.hasPickup && (
                               <span
                                 className="text-[10px] font-bold px-2 py-0.5 rounded"
                                 style={{ background: '#DBEAFE', color: '#2563EB' }}
                               >
-                                PICKUP
+                                {t('pickup').toUpperCase()}
                               </span>
                             )}
-                            {hasDropoff && (
+                            {stop.hasDropoff && (
                               <span
                                 className="text-[10px] font-bold px-2 py-0.5 rounded"
                                 style={{ background: '#D1FAE5', color: '#059669' }}
                               >
-                                DROPOFF
+                                {t('dropoff').toUpperCase()}
                               </span>
                             )}
-                            {stop.appointmentMode === 'self_scheduling' ? (
-                              <>
-                                <span className="text-[10px]" style={{ color: T.t3 }}>
-                                  📅 {stop.windowStart} → {stop.windowEnd}
-                                </span>
-                                <span
-                                  className="text-[9px] font-bold px-1.5 py-0.5 rounded inline-flex items-center gap-1"
-                                  style={{ background: '#F3F0FF', color: '#5E3BEE', border: '1px solid #E0DBFF' }}
-                                >
-                                  Self-scheduling
-                                </span>
-                              </>
-                            ) : (
+                            {formatAppointmentLabel(stop) && (
                               <span className="text-[10px]" style={{ color: T.t3 }}>
-                                📅 {stop.dateFrom} · {stop.timeFrom}
-                                {stop.timeTo ? ` – ${stop.timeTo}` : ''}
+                                📅 {formatAppointmentLabel(stop)}
                               </span>
                             )}
-                            {(() => {
-                              const wx = getWeather(stop.locationCity);
-                              return (
-                                <span
-                                  className="text-[9px] px-1.5 py-0.5 rounded inline-flex items-center gap-1"
-                                  style={{ background: wx.alert ? '#FEF3C7' : T.sa, color: wx.alert ? '#D97706' : T.t3 }}
-                                >
-                                  {wx.icon} {wx.tempC}°C
-                                </span>
-                              );
-                            })()}
+                            <span
+                              className="text-[9px] px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+                              style={{
+                                background: wx.alert ? '#FEF3C7' : T.sa,
+                                color: wx.alert ? '#D97706' : T.t3,
+                              }}
+                            >
+                              {wx.icon} {wx.tempC}°C
+                              {wx.rain > 0 ? ` · ${wx.rain}% rain` : ''}
+                            </span>
                             {ww && (
-                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                              <span
+                                className="text-[9px] font-semibold px-1.5 py-0.5 rounded"
+                                style={{ background: '#FEF3C7', color: '#D97706' }}
+                              >
                                 ⚠ {ww}
                               </span>
                             )}
                           </div>
                           <div className="text-sm font-bold" style={{ color: T.t1 }}>
-                            {getStopLocationName(stop)}
+                            {stop.resolvedName}
                           </div>
                           <div className="text-[11px] mb-1" style={{ color: T.t3 }}>
-                            {getStopAddress(stop)}
+                            {stop.resolvedAddress || stop.resolvedCity}
                           </div>
-
+                          {stop.customers.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-1">
+                              {stop.customers.map((c, ci) => (
+                                <span
+                                  key={ci}
+                                  className="text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1"
+                                  style={{ background: '#F0FDF9', color: '#059669', border: '1px solid #A7F3D0' }}
+                                >
+                                  🏪 {c.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[9px] font-semibold" style={{ color: rw > 28000 ? '#DC2626' : T.t3 }}>
-                              On Truck: {(rw / 1000).toFixed(1)}T
+                            <span
+                              className="text-[9px] font-semibold"
+                              style={{ color: rw > TRUCK_WEIGHT_CAP_KG ? '#DC2626' : T.t3 }}
+                            >
+                              {t('step2OnTruck')}: {(rw / 1000).toFixed(1)}T
                             </span>
-                            <div className="flex-1 rounded-full overflow-hidden" style={{ height: 3, background: T.sa, maxWidth: 120 }}>
+                            <div
+                              className="flex-1 rounded-full overflow-hidden"
+                              style={{ height: 3, background: T.sa, maxWidth: 120 }}
+                            >
                               <div
                                 style={{
-                                  width: `${Math.min((rw / 28000) * 100, 100)}%`,
+                                  width: `${Math.min((rw / TRUCK_WEIGHT_CAP_KG) * 100, 100)}%`,
                                   height: '100%',
-                                  background: rw > 28000 ? '#DC2626' : rw > 20000 ? '#D97706' : '#059669',
+                                  background:
+                                    rw > TRUCK_WEIGHT_CAP_KG
+                                      ? '#DC2626'
+                                      : rw > 20000
+                                        ? '#D97706'
+                                        : '#059669',
                                   borderRadius: 2,
                                 }}
                               />
@@ -326,17 +278,19 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
                         </div>
                       </div>
 
-                      {/* Cargo rows dropdown on click stop */}
                       {isExp && (
                         <div className="ml-12 mb-3 p-3 rounded-lg" style={{ background: T.sa, border: `1px solid ${T.bd}` }}>
                           <div className="text-[10px] font-bold uppercase mb-2" style={{ color: T.t3 }}>
-                            Cargo at Stop
+                            {t('step2CargoAtStop')}
                           </div>
                           {(stop.lines || []).map((l: any, li: number) => (
                             <div
                               key={li}
-                              className="flex items-center gap-3 py-1.5 text-xs"
-                              style={{ borderBottom: li < stop.lines.length - 1 ? `0.5px solid ${T.bd}` : 'none' }}
+                              className="flex items-center gap-3 py-1.5 text-xs flex-wrap"
+                              style={{
+                                borderBottom:
+                                  li < (stop.lines?.length || 0) - 1 ? `0.5px solid ${T.bd}` : 'none',
+                              }}
                             >
                               <span
                                 className="text-[9px] font-bold px-1.5 py-0.5 rounded"
@@ -347,13 +301,15 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
                               >
                                 {l.action === 'pickup' ? '↑' : '↓'}
                               </span>
-                              <span className="font-medium flex-1" style={{ color: T.t1 }}>
-                                {l.productName}
+                              <span className="font-medium flex-1 min-w-[80px]" style={{ color: T.t1 }}>
+                                {l.productName || '—'}
                               </span>
                               <span style={{ color: T.t2 }}>
-                                {l.qty} {l.unit}
+                                {l.qty} {l.unit || ''}
                               </span>
-                              <span style={{ color: T.t3 }}>{fmtW(parseFloat(l.weight) || 0)}</span>
+                              <span style={{ color: T.t3 }}>
+                                {formatWeightKg(weightToKg(l.weight, l.wtUnit))}
+                              </span>
                               {l.customerName && (
                                 <span className="text-[10px]" style={{ color: '#059669' }}>
                                   🏪 {l.customerName}
@@ -368,41 +324,31 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
                 })}
               </div>
             ) : (
-              /* Horizontal Timeline View */
               <div className="px-4 py-6">
-                <div className="flex items-center justify-end gap-3 mb-4 text-[11px]">
+                <div className="flex items-center justify-end gap-3 mb-4 text-[11px] flex-wrap">
                   <span style={{ color: T.ac }}>
-                    ● Picked up:{' '}
-                    <strong>
-                      {stops
-                        .flatMap((s: any) => s.lines)
-                        .filter((l: any) => l.action === 'pickup')
-                        .reduce((sum: number, l: any) => sum + (parseFloat(l.qty) || 0), 0)}{' '}
-                      units
-                    </strong>
+                    ● {t('step2PickedUp')}: <strong>{formatWeightKg(totals.totalWeightKg)}</strong>
                   </span>
                   <span style={{ color: '#059669' }}>
-                    Dropped off:{' '}
-                    <strong>
-                      {stops
-                        .flatMap((s: any) => s.lines)
-                        .filter((l: any) => l.action === 'dropoff')
-                        .reduce((sum: number, l: any) => sum + (parseFloat(l.qty) || 0), 0)}{' '}
-                      units
-                    </strong>{' '}
-                    ●
+                    {t('step2DroppedOff')}: <strong>{formatWeightKg(totals.droppedWeightKg)}</strong> ●
                   </span>
                 </div>
 
-                <div className="flex items-start mb-6">
-                  {stops.map((stop: any, si: number) => {
-                    const hasPickup = stop.lines.some((l: any) => l.action === 'pickup');
-                    const hasDropoff = stop.lines.some((l: any) => l.action === 'dropoff');
-                    const drive = DRIVE.find((d) => d.from === si);
+                <div className="flex items-start mb-6 overflow-x-auto pb-2">
+                  {enrichedStops.map((stop, si) => {
+                    const drive = route.legs.find((d) => d.from === si);
                     const dw = driveWarnings.find((d) => d.from === si);
+                    const stopWeight = (stop.lines || []).reduce(
+                      (a: number, l: any) => a + weightToKg(l.weight, l.wtUnit),
+                      0
+                    );
+                    const stopQty = (stop.lines || []).reduce(
+                      (a: number, l: any) => a + (parseFloat(String(l.qty)) || 0),
+                      0
+                    );
 
                     return (
-                      <div key={stop.id} className="flex items-start" style={{ flex: 1 }}>
+                      <div key={stop.id || si} className="flex items-start shrink-0" style={{ flex: 1, minWidth: 90 }}>
                         <div className="flex flex-col items-center" style={{ flex: 1 }}>
                           <div
                             className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white"
@@ -412,34 +358,45 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
                           </div>
                           <div className="text-center mt-2">
                             <div className="text-xs font-bold" style={{ color: T.t1 }}>
-                              {stop.locationCity || getStopLocationName(stop).split(' ')[0]}
+                              {stop.resolvedCity || stop.resolvedName.split(' ')[0]}
                             </div>
-                            {stop.appointmentMode === 'self_scheduling' ? (
-                              <div className="text-[9px] font-bold px-1 py-0.5 rounded mt-0.5" style={{ background: '#F3F0FF', color: '#5E3BEE' }}>
-                                Self-Scheduling
-                              </div>
-                            ) : (
-                              <div className="text-[10px]" style={{ color: T.t3 }}>
-                                {stop.dateFrom?.slice(5)} · {stop.timeFrom}
-                              </div>
-                            )}
+                            <div className="text-[10px]" style={{ color: T.t3 }}>
+                              {stop.dateFrom?.slice(5)} · {stop.timeFrom || '—'}
+                            </div>
                             <div
                               className="text-[10px] font-bold mt-0.5"
-                              style={{ color: hasPickup ? '#2563EB' : '#059669' }}
+                              style={{ color: stop.hasPickup ? '#2563EB' : '#059669' }}
                             >
-                              {hasPickup ? 'PICKUP' : 'DROPOFF'}
+                              {stop.hasPickup && stop.hasDropoff
+                                ? `${t('pickup')}/${t('dropoff')}`
+                                : stop.hasPickup
+                                  ? t('pickup').toUpperCase()
+                                  : t('dropoff').toUpperCase()}
+                            </div>
+                            <div className="text-[10px]" style={{ color: T.t3 }}>
+                              {(stopWeight / 1000).toFixed(1)}T · {stopQty}u
                             </div>
                           </div>
                         </div>
-                        {si < stops.length - 1 && (
+                        {si < enrichedStops.length - 1 && (
                           <div className="flex flex-col items-center" style={{ minWidth: 70, paddingTop: 18 }}>
                             <div style={{ height: 3, background: T.ac, width: '100%', borderRadius: 2 }} />
                             {drive && (
                               <div
-                                className="text-[9px] font-semibold mt-1 px-1 py-0.5 rounded"
+                                className="text-[9px] font-semibold mt-1 px-1 py-0.5 rounded text-center"
                                 style={{
-                                  background: dw?.level === 'red' ? '#FEE2E2' : dw?.level === 'amber' ? '#FEF3C7' : T.sa,
-                                  color: dw?.level === 'red' ? '#DC2626' : dw?.level === 'amber' ? '#D97706' : T.t3,
+                                  background:
+                                    dw?.level === 'red'
+                                      ? '#FEE2E2'
+                                      : dw?.level === 'amber'
+                                        ? '#FEF3C7'
+                                        : T.sa,
+                                  color:
+                                    dw?.level === 'red'
+                                      ? '#DC2626'
+                                      : dw?.level === 'amber'
+                                        ? '#D97706'
+                                        : T.t3,
                                 }}
                               >
                                 {drive.label}
@@ -452,112 +409,103 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
                   })}
                 </div>
 
-                {/* Cargo flows */}
                 <div style={{ borderTop: `1px solid ${T.bd}`, paddingTop: 12 }}>
                   <div className="text-[10px] font-bold uppercase mb-3" style={{ color: T.t3 }}>
-                    Cargo Flows
+                    {t('step2CargoFlows')}
                   </div>
-                  {(() => {
-                    const flows: Record<string, any> = {};
-                    stops.forEach((s: any, si: number) =>
-                      s.lines.forEach((l: any) => {
-                        const key = `${l.customerName}|${l.productName}`;
-                        if (!flows[key]) {
-                          flows[key] = {
-                            customer: l.customerName,
-                            product: l.productName,
-                            pickup: -1,
-                            dropoff: -1,
-                            qty: 0,
-                            weight: 0,
-                          };
-                        }
-                        if (l.action === 'pickup') {
-                          flows[key].pickup = si;
-                          flows[key].qty = parseFloat(l.qty) || 0;
-                          flows[key].weight = parseFloat(l.weight) || 0;
-                        } else {
-                          flows[key].dropoff = si;
-                        }
-                      })
-                    );
-                    return Object.values(flows).map((f: any, fi: number) => (
-                      <div key={fi} className="flex items-center gap-3 mb-3">
-                        <div style={{ width: 120 }}>
-                          <div className="text-[10px] font-semibold truncate" style={{ color: '#059669' }}>
-                            🏪 {f.customer || 'No Customer'}
-                          </div>
-                          <div className="text-[9px] truncate" style={{ color: T.t3 }}>
-                            {f.product}
-                          </div>
+                  {cargoFlows.length === 0 && (
+                    <div className="text-xs" style={{ color: T.t3 }}>
+                      {t('step2NoCargoFlows')}
+                    </div>
+                  )}
+                  {cargoFlows.map((f, fi) => (
+                    <div key={fi} className="flex items-center gap-3 mb-3">
+                      <div style={{ width: 120 }}>
+                        <div className="text-[10px] font-semibold truncate" style={{ color: '#059669' }}>
+                          🏪 {f.customer || t('step2NoCustomer')}
                         </div>
-                        <div className="flex-1 relative" style={{ height: 18 }}>
-                          <div style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 2, background: T.sa, borderRadius: 1 }} />
-                          {f.pickup >= 0 && f.dropoff >= 0 && (
-                            <div
-                              style={{
-                                position: 'absolute',
-                                left: `${(f.pickup / (stops.length - 1)) * 100}%`,
-                                right: `${100 - (f.dropoff / (stops.length - 1)) * 100}%`,
-                                top: 3,
-                                height: 12,
-                                background: '#7C3AED',
-                                borderRadius: 6,
-                                opacity: 0.75,
-                              }}
-                            >
-                              <span className="text-[8px] font-bold text-white px-1.5">
-                                #{f.pickup + 1}→#{f.dropoff + 1}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-[10px] font-semibold text-right" style={{ color: T.t1, width: 75 }}>
-                          {f.qty} plt · {fmtW(f.weight)}
+                        <div className="text-[9px] truncate" style={{ color: T.t3 }}>
+                          {f.product}
                         </div>
                       </div>
-                    ));
-                  })()}
+                      <div className="flex-1 relative" style={{ height: 18 }}>
+                        <div
+                          style={{
+                            position: 'absolute',
+                            left: 0,
+                            right: 0,
+                            top: 8,
+                            height: 2,
+                            background: T.sa,
+                            borderRadius: 1,
+                          }}
+                        />
+                        {f.pickup >= 0 && f.dropoff >= 0 && enrichedStops.length > 1 && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              left: `${(f.pickup / (enrichedStops.length - 1)) * 100}%`,
+                              right: `${100 - (f.dropoff / (enrichedStops.length - 1)) * 100}%`,
+                              top: 3,
+                              height: 12,
+                              background: '#7C3AED',
+                              borderRadius: 6,
+                              opacity: 0.75,
+                            }}
+                          >
+                            <span className="text-[8px] font-bold text-white px-1.5">
+                              #{f.pickup + 1}→#{f.dropoff + 1}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-[10px] font-semibold text-right" style={{ color: T.t1, width: 75 }}>
+                        {f.qty} {f.unit || 'plt'} · {formatWeightKg(f.weightKg)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* Confirmation indicator */}
-            <div className="flex items-center justify-between px-4 py-2.5" style={{ borderTop: `1px solid ${T.bd}`, background: T.sa }}>
+            <div
+              className="flex items-center justify-between px-4 py-2.5 flex-wrap gap-2"
+              style={{ borderTop: `1px solid ${T.bd}`, background: T.sa }}
+            >
               <button
                 type="button"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
                 style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t2, fontFamily: 'inherit' }}
                 onClick={onBackStep}
               >
-                Go Back & Edit
+                {t('step2GoBackEdit')}
               </button>
               {!values.itineraryConfirmed ? (
                 <button
                   type="button"
                   className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer text-white border-none"
                   style={{ background: '#059669', fontFamily: 'inherit' }}
-                  onClick={() => {
-                    setFieldValue('itineraryConfirmed', true);
-                  }}
+                  onClick={() => setFieldValue('itineraryConfirmed', true)}
                 >
-                  <Check size={13} /> Confirm Itinerary
+                  <Check size={13} /> {t('step2ConfirmItinerary')}
                 </button>
               ) : (
                 <span className="inline-flex items-center gap-1.5 text-xs font-bold" style={{ color: '#059669' }}>
-                  <Check size={14} /> Itinerary Confirmed
+                  <Check size={14} /> {t('step2ItineraryConfirmed')}
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Map & Summary */}
         <div className="w-full lg:w-[360px] shrink-0" style={{ position: 'sticky', top: 16 }}>
           <div className="rounded-xl overflow-hidden mb-3" style={{ border: `1px solid ${T.bd}`, background: T.sf }}>
-            <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: `1px solid ${T.bd}` }}>
+            <div
+              className="flex items-center justify-between px-3 py-2"
+              style={{ borderBottom: `1px solid ${T.bd}` }}
+            >
               <span className="text-[11px] font-semibold" style={{ color: T.ac }}>
-                Google Maps Route
+                {t('step2MapTitle')}
               </span>
               <button
                 type="button"
@@ -568,29 +516,39 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
                 <Maximize2 size={13} />
               </button>
             </div>
-            <div className="flex flex-col items-center justify-center" style={{ height: fullMap ? 340 : 200, background: T.sa }}>
-              <MapPin size={36} style={{ color: T.t3, opacity: 0.3 }} />
-              <div className="text-xs mt-2 truncate max-w-[280px]" style={{ color: T.t3 }}>
-                {stops.map((s: any) => s.locationCity || getStopLocationName(s).split(' ')[0]).join(' → ')}
-              </div>
-            </div>
+            <RouteMap
+              stops={enrichedStops}
+              polylinePath={route.polylinePath}
+              expanded={fullMap}
+              loading={route.loading}
+              t={t}
+            />
           </div>
 
           <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${T.bd}`, background: T.sf }}>
             <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: `1px solid ${T.bd}` }}>
               <Sparkles size={14} style={{ color: T.t2 }} />
               <span className="text-sm font-semibold" style={{ color: T.t1 }}>
-                Trip Summary
+                {t('step2TripSummary')}
               </span>
             </div>
             <div className="grid grid-cols-2">
               {[
-                { label: 'Distance', value: `${totalDist} km` },
-                { label: 'Drive Time', value: `${Math.floor(totalDrive / 60)}h ${totalDrive % 60}min` },
-                { label: 'Stops Count', value: String(stops.length) },
-                { label: 'Total Cargo Weight', value: fmtW(totalWt) },
-                { label: 'Unique Customers', value: `${uniqueCustomers.size} 🏪` },
-                { label: 'Orders count', value: String(totalOrders) },
+                {
+                  label: t('step2Distance'),
+                  value: route.loading ? '…' : `${route.totalDistKm} km`,
+                },
+                {
+                  label: t('step2DriveTime'),
+                  value: route.loading ? '…' : formatDurationMin(route.totalDriveMin),
+                },
+                { label: t('step2StopsCount'), value: String(enrichedStops.length) },
+                { label: t('step2TotalWeight'), value: formatWeightKg(totals.totalWeightKg) },
+                {
+                  label: t('step2UniqueCustomers'),
+                  value: `${totals.uniqueCustomers.size} 🏪`,
+                },
+                { label: t('step2OrdersCount'), value: String(totals.orderCount) },
               ].map((s, i) => (
                 <div
                   key={i}
@@ -613,35 +571,62 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({ onBackStep, onNe
         </div>
       </div>
 
-      {/* Footer continue control */}
+      {showAI && values.itineraryConfirmed && (
+        <div ref={aiRef}>
+          <ItineraryAiInsights
+            totalDistKm={route.totalDistKm}
+            totalDriveMin={route.totalDriveMin}
+            totalWeightKg={totals.totalWeightKg}
+            totalPallets={totals.totalPallets}
+            enrichedStops={enrichedStops}
+            t={t}
+          />
+        </div>
+      )}
+
       <footer
         className="wizard-footer-bar fixed bottom-0 right-0 h-[72px] items-center justify-between px-6 z-40 flex"
         style={{ left: 'var(--sidebar-w, 240px)', background: T.sf, borderTop: `1px solid ${T.bd}` }}
       >
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer"
-          style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t2, fontFamily: 'inherit' }}
-          onClick={onBackStep}
-        >
-          <ArrowLeft size={14} /> Back
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer"
+            style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t2, fontFamily: 'inherit' }}
+            onClick={onBackStep}
+            disabled={isSaving}
+          >
+            <ArrowLeft size={14} /> {t('step2Back')}
+          </button>
+          {values.itineraryConfirmed && !showAI && (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer"
+              style={{ border: '1px solid #D97706', background: '#FEF3C7', color: '#D97706', fontFamily: 'inherit' }}
+              onClick={handleShowAi}
+            >
+              <Sparkles size={13} /> {t('step2AiAnalysis')}
+            </button>
+          )}
+        </div>
 
         <button
           type="button"
           className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold cursor-pointer text-white border-none"
           style={{
-            background: values.itineraryConfirmed ? T.ac : T.bf,
-            cursor: values.itineraryConfirmed ? 'pointer' : 'not-allowed',
+            background: values.itineraryConfirmed && !isSaving ? T.ac : T.bf,
+            cursor: values.itineraryConfirmed && !isSaving ? 'pointer' : 'not-allowed',
             fontFamily: 'inherit',
           }}
-          disabled={!values.itineraryConfirmed}
-          onClick={onNextStep}
+          disabled={!values.itineraryConfirmed || isSaving}
+          onClick={handleContinue}
         >
-          Continue
+          {isSaving ? t('saving') : t('step2Continue')}
           <ArrowRight size={14} />
         </button>
       </footer>
     </div>
   );
 };
+
+export default Step2Itinerary;
