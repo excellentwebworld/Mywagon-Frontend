@@ -54,6 +54,7 @@ export function sortConflictsForFocus(conflicts: Conflict[]): Conflict[] {
       D3: 22,
       D4: 23,
       D5: 24,
+      D7: 26,
       S1: 25,
       C1: 30,
       C2: 31,
@@ -90,6 +91,37 @@ export function translateResolution(conflict: Conflict, t: TranslateFn): string 
 
 export function getBlockersForAnchor(blockers: Conflict[], anchor: string): Conflict[] {
   return blockers.filter((conflict) => getConflictAnchor(conflict) === anchor);
+}
+
+/** Whole-wizard checks — used on Continue, not when collapsing a single stop with Done */
+const GLOBAL_STOP_DONE_EXCLUDED_CODES = new Set([
+  'X1',
+  'X2',
+  'X3',
+  'X4',
+  'L3',
+  'L5',
+  'C4',
+  'C5',
+  'C6',
+  'C7',
+  'C8',
+  'C9',
+  'O2',
+  'S4',
+]);
+
+/** Per-stop checks that depend on another stop's data */
+const CROSS_STOP_DONE_EXCLUDED_CODES = new Set(['D3', 'D5', 'L2']);
+
+export function getStopDoneBlockers(blockers: Conflict[], stopIndex: number): Conflict[] {
+  return blockers.filter(
+    (conflict) =>
+      conflict.stopIndex === stopIndex &&
+      conflict.severity === 'blocker' &&
+      !GLOBAL_STOP_DONE_EXCLUDED_CODES.has(conflict.code) &&
+      !CROSS_STOP_DONE_EXCLUDED_CODES.has(conflict.code)
+  );
 }
 
 export function scrollToValidationAnchor(

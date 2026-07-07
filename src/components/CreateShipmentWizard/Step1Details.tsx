@@ -59,6 +59,7 @@ import {
   focusFirstConflict,
   getBlockersForAnchor,
   getConflictAnchor,
+  getStopDoneBlockers,
   translateConflict,
   translateResolution,
 } from './validation';
@@ -261,51 +262,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       const updated = stops.map((s: any) =>
         s.id === sid ? (typeof up === 'function' ? up(s) : { ...s, ...up }) : s
       );
-      setFieldValue('stops', updated);
-    },
-    [stops, setFieldValue]
-  );
-
-  const toggleStop = useCallback(
-    (sid: string) => {
-      const idx = stops.findIndex((s: any) => s.id === sid);
-      const stop = stops[idx];
-      if (!stop) return;
-      const wasExpanded = stop.expanded;
-      let updated = stops.map((s: any) => (s.id === sid ? { ...s, expanded: !s.expanded } : s));
-
-      // Auto-mirror
-      if (wasExpanded && idx === 0 && updated.length >= 2) {
-        const s0 = updated[0];
-        const s1 = updated[1];
-        const pickups = s0.lines.filter((l: any) => l.action === 'pickup' && l.productId);
-        const manual = s1.lines.filter((l: any) => !l.mirrorOf);
-        const mirrored = pickups.map((pk: any) => {
-          const existing = s1.lines.find((l: any) => l.mirrorOf === pk.id);
-          return {
-            id: existing?.id || makeId('l'),
-            productId: pk.productId,
-            productName: pk.productName,
-            customerId: pk.customerId,
-            customerName: pk.customerName,
-            orderId: pk.orderId,
-            orderRef: pk.orderRef,
-            action: 'dropoff',
-            qty: pk.qty,
-            unit: pk.unit,
-            weight: pk.weight,
-            wtUnit: pk.wtUnit,
-            mirrorOf: pk.id,
-          };
-        });
-        const manualKept = mirrored.length > 0 ? manual.filter((l: any) => l.productId) : manual;
-        const newLines = [...mirrored, ...manualKept];
-        if (newLines.length > 0 || s1.lines.some((l: any) => l.mirrorOf)) {
-          updated = updated.map((s: any) =>
-            s.id === s1.id ? { ...s, lines: newLines.length ? newLines : [createNewCargoLine('dropoff')] } : s
-          );
-        }
-      }
       setFieldValue('stops', updated);
     },
     [stops, setFieldValue]
@@ -854,6 +810,29 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       uStop(stop.id, { expanded: true });
     },
     [stops, uStop]
+  );
+
+  const toggleStop = useCallback(
+    (sid: string) => {
+      const idx = stops.findIndex((s: any) => s.id === sid);
+      const stop = stops[idx];
+      if (!stop) return;
+
+      if (stop.expanded) {
+        setShowAll(true);
+        const stopBlockers = getStopDoneBlockers(blockers, idx);
+        if (stopBlockers.length > 0) {
+          focusFirstConflict(stopBlockers, expandStopForValidation);
+          return;
+        }
+      }
+
+      setFieldValue(
+        'stops',
+        stops.map((s: any) => (s.id === sid ? { ...s, expanded: !s.expanded } : s))
+      );
+    },
+    [blockers, expandStopForValidation, setFieldValue, stops]
   );
 
   const isFieldInvalid = useCallback(

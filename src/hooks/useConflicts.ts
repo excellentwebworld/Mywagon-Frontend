@@ -92,6 +92,10 @@ export default function useConflicts(stops: any[], options: any = {}) {
       if (!stop.dateFrom && stop.appointmentMode === 'fixed') {
         add('D1', 'blocker', si, -1, `Stop ${si + 1}: No FROM date set`, 'Set a date');
       }
+      // D7
+      if (!stop.timeFrom && stop.appointmentMode === 'fixed') {
+        add('D7', 'blocker', si, -1, `Stop ${si + 1}: No FROM time set`, 'Set a time');
+      }
       // D2
       if (stop.dateFrom && stop.appointmentMode === 'fixed') {
         const sd = new Date(stop.dateFrom);
