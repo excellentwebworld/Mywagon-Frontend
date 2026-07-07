@@ -313,6 +313,7 @@
   "validationConflictC2": "Stop {{stop}}, line {{line}}: Select a product.",
   "validationConflictC3": "Stop {{stop}}, line {{line}}: Enter a quantity greater than zero.",
   "validationConflictC10": "Stop {{stop}}, line {{line}}: Enter a weight greater than zero.",
+  "validationConflictO4": "Stop {{stop}}, line {{line}}: Select an order.",
   "validationConflictC5": "Stop {{stop}}, line {{line}}: Dropoff must happen after pickup.",
   "validationConflictC9": "Stop {{stop}}: Cargo weight balance is invalid.",
   "validationConflictS1": "Stop {{stop}}: Selected date falls in a blackout period.",

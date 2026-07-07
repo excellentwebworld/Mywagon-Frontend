@@ -313,6 +313,7 @@
   "validationConflictC2": "Στάση {{stop}}, γραμμή {{line}}: Επιλέξτε προϊόν.",
   "validationConflictC3": "Στάση {{stop}}, γραμμή {{line}}: Εισάγετε ποσότητα μεγαλύτερη από μηδέν.",
   "validationConflictC10": "Στάση {{stop}}, γραμμή {{line}}: Εισάγετε βάρος μεγαλύτερο από μηδέν.",
+  "validationConflictO4": "Στάση {{stop}}, γραμμή {{line}}: Επιλέξτε παραγγελία.",
   "validationConflictC5": "Στάση {{stop}}, γραμμή {{line}}: Το dropoff πρέπει να γίνει μετά το pickup.",
   "validationConflictC9": "Στάση {{stop}}: Μη έγκυρη ισορροπία βάρους φορτίου.",
   "validationConflictS1": "Στάση {{stop}}: Η ημερομηνία ανήκει σε περίοδο blackout.",

@@ -148,6 +148,16 @@ export default function useConflicts(stops: any[], options: any = {}) {
 
       // Per-line
       (stop.lines || []).forEach((ln: any, li: number) => {
+        if (!ln.orderId && !ln.orderRef) {
+          add(
+            'O4',
+            'blocker',
+            si,
+            li,
+            `Stop ${si + 1}, line ${li + 1}: Select an order`,
+            'Select an ERP order for this line'
+          );
+        }
         if (!ln.productId && !ln.qty) return;
         if (!ln.productId && (ln.qty || ln.weight)) {
           add('C2', 'blocker', si, li, `Stop ${si + 1}, line ${li + 1}: Qty set but no product`, 'Select a product');

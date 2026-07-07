@@ -25,11 +25,15 @@ export function getConflictAnchor(conflict: Conflict): string {
     return lineIndex >= 0 ? `stop-${stopIndex}-line-${lineIndex}-weight` : `stop-${stopIndex}-cargo`;
   }
 
+  if (code === 'O4' || code === 'O1') {
+    return lineIndex >= 0 ? `stop-${stopIndex}-line-${lineIndex}-order` : `stop-${stopIndex}-cargo`;
+  }
+
   if (code === 'C2' || code === 'C5') {
     return lineIndex >= 0 ? `stop-${stopIndex}-line-${lineIndex}-product` : `stop-${stopIndex}-cargo`;
   }
 
-  if (['C1', 'C4', 'C6', 'C7', 'C8', 'C9', 'O1', 'O2', 'O3', 'S4', 'X4'].includes(code)) {
+  if (['C1', 'C4', 'C6', 'C7', 'C8', 'C9', 'O2', 'O3', 'S4', 'X4'].includes(code)) {
     if (lineIndex >= 0) {
       return `stop-${stopIndex}-line-${lineIndex}-product`;
     }
@@ -57,6 +61,7 @@ export function sortConflictsForFocus(conflicts: Conflict[]): Conflict[] {
       D7: 26,
       S1: 25,
       C1: 30,
+      O4: 30,
       C2: 31,
       C3: 32,
       C10: 33,
@@ -107,7 +112,6 @@ const GLOBAL_STOP_DONE_EXCLUDED_CODES = new Set([
   'C7',
   'C8',
   'C9',
-  'O2',
   'S4',
 ]);
 

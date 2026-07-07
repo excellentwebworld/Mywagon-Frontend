@@ -797,6 +797,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const canContinue = blockers.length === 0;
   const [conflictPopup, setConflictPopup] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [validatingStopIndex, setValidatingStopIndex] = useState<number | null>(null);
 
   const conflictCount = useMemo(() => {
     if (!showAll) return 0;
@@ -812,39 +813,56 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     [stops, uStop]
   );
 
+  const showValidationForStop = useCallback(
+    (stopIndex: number) => showAll || validatingStopIndex === stopIndex,
+    [showAll, validatingStopIndex]
+  );
+
   const toggleStop = useCallback(
     (sid: string) => {
-      const idx = stops.findIndex((s: any) => s.id === sid);
-      const stop = stops[idx];
-      if (!stop) return;
-
-      if (stop.expanded) {
-        setShowAll(true);
-        const stopBlockers = getStopDoneBlockers(blockers, idx);
-        if (stopBlockers.length > 0) {
-          focusFirstConflict(stopBlockers, expandStopForValidation);
-          return;
-        }
-      }
-
       setFieldValue(
         'stops',
         stops.map((s: any) => (s.id === sid ? { ...s, expanded: !s.expanded } : s))
+      );
+    },
+    [setFieldValue, stops]
+  );
+
+  const handleStopDone = useCallback(
+    (sid: string) => {
+      const idx = stops.findIndex((s: any) => s.id === sid);
+      const stop = stops[idx];
+      if (!stop?.expanded) return;
+
+      setValidatingStopIndex(idx);
+      const stopBlockers = getStopDoneBlockers(blockers, idx);
+      if (stopBlockers.length > 0) {
+        focusFirstConflict(stopBlockers, expandStopForValidation);
+        return;
+      }
+
+      setValidatingStopIndex(null);
+      setFieldValue(
+        'stops',
+        stops.map((s: any) => (s.id === sid ? { ...s, expanded: false } : s))
       );
     },
     [blockers, expandStopForValidation, setFieldValue, stops]
   );
 
   const isFieldInvalid = useCallback(
-    (anchor: string) => showAll && getBlockersForAnchor(blockers, anchor).length > 0,
-    [blockers, showAll]
+    (anchor: string, stopIndex: number) =>
+      showValidationForStop(stopIndex) && getBlockersForAnchor(blockers, anchor).length > 0,
+    [blockers, showValidationForStop]
   );
 
-  const invalidFieldClass = (anchor: string) => (isFieldInvalid(anchor) ? 'wizard-field-invalid' : '');
+  const invalidFieldClass = (anchor: string, stopIndex: number) =>
+    isFieldInvalid(anchor, stopIndex) ? 'wizard-field-invalid' : '';
 
   useEffect(() => {
     if (!validationRequest) return;
     setShowAll(true);
+    setValidatingStopIndex(null);
     if (blockers.length > 0) {
       focusFirstConflict(blockers, expandStopForValidation);
     }
@@ -852,6 +870,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const handleContinue = useCallback(async () => {
     setShowAll(true);
+    setValidatingStopIndex(null);
     if (blockers.length > 0) {
       focusFirstConflict(blockers, expandStopForValidation);
       return;
@@ -888,10 +907,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const stopConflicts = useCallback(
     (idx: number) => {
-      if (!showAll) return [];
+      if (!showValidationForStop(idx)) return [];
       return allConflicts.filter((c) => c.stopIndex === idx);
     },
-    [allConflicts, showAll]
+    [allConflicts, showValidationForStop]
   );
 
   return (
@@ -1099,7 +1118,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                                 setMLoc(true);
                               }}
                               onPreview={(loc) => previewLocation(loc.id)}
-                              invalid={isFieldInvalid(`stop-${idx}-location`)}
+                              invalid={isFieldInvalid(`stop-${idx}-location`, idx)}
                             />
                           </div>
                           {stop.locationId && (
@@ -1116,7 +1135,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         </div>
                         <FieldValidationHint
                           conflicts={getBlockersForAnchor(blockers, `stop-${idx}-location`)}
-                          show={showAll}
+                          show={showValidationForStop(idx)}
                           t={t}
                         />
                       </div>
@@ -1136,12 +1155,12 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               value={stop.dateFrom}
                               onChange={(val) => uStop(stop.id, { dateFrom: val })}
                               min={todayStr}
-                              hasError={isFieldInvalid(`stop-${idx}-date`)}
+                              hasError={isFieldInvalid(`stop-${idx}-date`, idx)}
                               direction="auto"
                             />
                             <input
                               type="time"
-                              className={invalidFieldClass(`stop-${idx}-date`)}
+                              className={invalidFieldClass(`stop-${idx}-date`, idx)}
                               style={{ ...iS, width: 90 }}
                               value={stop.timeFrom}
                               onChange={(e) => uStop(stop.id, { timeFrom: e.target.value })}
@@ -1173,7 +1192,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                       </div>
                       <FieldValidationHint
                         conflicts={getBlockersForAnchor(blockers, `stop-${idx}-date`)}
-                        show={showAll}
+                        show={showValidationForStop(idx)}
                         t={t}
                       />
                     </div>
@@ -1208,7 +1227,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           setMOrd(true);
                         }}
                         getGoodsIndicators={getGoodsIndicators}
-                        showValidation={showAll}
+                        showValidation={showValidationForStop(idx)}
                         blockers={blockers}
                         stopIndex={idx}
                         orderLoadingLineId={orderLoadingLineId}
@@ -1222,7 +1241,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         type="button"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-none text-white"
                         style={{ background: '#2563EB', fontFamily: 'inherit' }}
-                        onClick={() => toggleStop(stop.id)}
+                        onClick={() => handleStopDone(stop.id)}
                       >
                         <Check size={14} /> Done
                       </button>
@@ -1622,7 +1641,6 @@ const CargoTable: React.FC<CargoTableProps> = ({
                   <td
                     style={tdS}
                     data-validation-anchor={`stop-${stopIndex}-line-${li}-order`}
-                    className={invalidClass(`stop-${stopIndex}-line-${li}-order`)}
                   >
                     <OrderCell
                       ln={ln}
@@ -1631,9 +1649,15 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       iS={iS}
                       ordOpts={ordOpts}
                       loading={ordersLoading || orderLoadingLineId === ln.id}
+                      hasError={isInvalid(`stop-${stopIndex}-line-${li}-order`)}
                       onSelOrd={(v) => onSelOrd(ln.id, v)}
                       onClearOrder={() => onClearOrder(ln.id)}
                       onNewOrd={() => onNewOrd(ln.id)}
+                    />
+                    <FieldValidationHint
+                      conflicts={getBlockersForAnchor(blockers, `stop-${stopIndex}-line-${li}-order`)}
+                      show={showValidation}
+                      t={t}
                     />
                   </td>
                   <td style={tdS}>
@@ -1907,6 +1931,7 @@ interface OrderCellProps {
   iS: any;
   ordOpts: any[];
   loading?: boolean;
+  hasError?: boolean;
   onSelOrd: (val: string) => void;
   onClearOrder: () => void;
   onNewOrd: () => void;
@@ -1918,6 +1943,7 @@ const OrderCell: React.FC<OrderCellProps> = ({
   t,
   ordOpts,
   loading = false,
+  hasError = false,
   onSelOrd,
   onClearOrder,
   onNewOrd,
@@ -1955,6 +1981,7 @@ const OrderCell: React.FC<OrderCellProps> = ({
       onChange={onSelOrd}
       options={ordOpts}
       placeholder="—"
+      hasError={hasError}
       footerAction={{
         label: `+ Create Order`,
         onClick: onNewOrd,
