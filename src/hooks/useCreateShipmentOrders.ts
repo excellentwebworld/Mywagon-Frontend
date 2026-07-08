@@ -30,19 +30,29 @@ export function useCreateShipmentOrders() {
 
   const orders = ordersQuery.data ?? [];
 
-  const fetchOrderDetail = useCallback(async (orderId: string): Promise<ErpOrder | null> => {
-    if (!orderId) return null;
-    const cached = detailCacheRef.current.get(orderId);
-    if (cached?.lines?.length) return cached;
-
-    try {
-      const mapped = await erpOrdersService.getOrder(orderId);
-      detailCacheRef.current.set(orderId, mapped);
-      return mapped;
-    } catch {
-      return null;
-    }
+  const invalidateOrderDetail = useCallback((orderId: string) => {
+    if (!orderId) return;
+    detailCacheRef.current.delete(orderId);
   }, []);
+
+  const fetchOrderDetail = useCallback(
+    async (orderId: string, options?: { force?: boolean }): Promise<ErpOrder | null> => {
+      if (!orderId) return null;
+      if (!options?.force) {
+        const cached = detailCacheRef.current.get(orderId);
+        if (cached?.lines?.length) return cached;
+      }
+
+      try {
+        const mapped = await erpOrdersService.getOrder(orderId);
+        detailCacheRef.current.set(orderId, mapped);
+        return mapped;
+      } catch {
+        return null;
+      }
+    },
+    []
+  );
 
   const getCachedOrder = useCallback((orderId: string) => {
     return detailCacheRef.current.get(orderId) ?? null;
@@ -87,6 +97,7 @@ export function useCreateShipmentOrders() {
           ? 'Failed to load orders'
           : null,
     fetchOrderDetail,
+    invalidateOrderDetail,
     getCachedOrder,
     getOrderValue,
     addOrder,

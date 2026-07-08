@@ -562,7 +562,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       }
       setOrderLoadingLineId(lid);
       try {
-        const detail = await fetchOrderDetail(oid);
+        const detail = await fetchOrderDetail(oid, { force: true });
         if (detail) {
           setOrderDetailsById((prev) => ({ ...prev, [oid]: detail }));
           setLF(sid, lid, {
@@ -698,61 +698,22 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           .find((s: any) => s.id === sid)
           ?.lines?.find((l: any) => l.id === lid);
 
-        // If the created product happens to map onto an existing order line, pull
-        // its quantity/weight; otherwise just auto-select the new product.
-        let orderLine: any = null;
+        let orderLine: import('../../pages/ErpOrders/types').ErpOrderLine | null = null;
         if (line?.orderId) {
-          const refreshed = await fetchOrderDetail(line.orderId);
-          if (refreshed) {
-            // Find and update the line that matches orderLineId, or fallback to matching by productName, or first unmapped line
-            let lineUpdated = false;
-            const updatedLines = refreshed.lines.map((ol) => {
-              if (lineUpdated) return ol;
-              const isMatch = line.orderLineId
-                ? String(ol.id) === String(line.orderLineId)
-                : (!ol.productSkuId && ol.productName === line.productName);
-              if (isMatch) {
-                lineUpdated = true;
-                orderLine = {
-                  ...ol,
-                  productSkuId: Number(created.id),
-                  sku: created.number || ol.sku,
-                };
-                return orderLine;
-              }
-              return ol;
-            });
-
-            let finalLines = updatedLines;
-            if (!lineUpdated) {
-              finalLines = refreshed.lines.map((ol) => {
-                if (!lineUpdated && !ol.productSkuId) {
-                  lineUpdated = true;
-                  orderLine = {
-                    ...ol,
-                    productSkuId: Number(created.id),
-                    sku: created.number || ol.sku,
-                  };
-                  return orderLine;
-                }
-                return ol;
-              });
-            }
-
-            const updatedOrder = {
-              ...refreshed,
-              lines: finalLines,
-            };
-
-            setOrderDetailsById((prev) => ({ ...prev, [line.orderId]: updatedOrder }));
-            addOrder(updatedOrder);
-          }
+          const linkedOrder = await erpOrdersService.linkProduct(line.orderId, {
+            product_sku_id: Number(created.id),
+            order_line_id: line.orderLineId ? Number(line.orderLineId) : null,
+            product_name: created.name,
+          });
+          setOrderDetailsById((prev) => ({ ...prev, [line.orderId]: linkedOrder }));
+          addOrder(linkedOrder);
+          orderLine = findOrderLineForProduct(linkedOrder, String(created.id));
         }
 
         setLF(sid, lid, {
           orderLineId: orderLine?.id ? String(orderLine.id) : line?.orderLineId || '',
           productId: String(created.id),
-          productName: created.name,
+          productName: orderLine?.productName || created.name,
           qty: orderLine?.quantity != null ? String(orderLine.quantity) : line?.qty || '',
           unit: orderLine?.unit || line?.unit || 'EUR Pallets',
           weight: orderLine?.weight != null ? String(orderLine.weight) : line?.weight || '',
@@ -767,7 +728,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     } finally {
       setSkuSaving(false);
     }
-  }, [addOrder, fetchOrderDetail, pCtx, refreshSkusFromApi, setLF, showToast, stops, t]);
+  }, [addOrder, pCtx, refreshSkusFromApi, setLF, showToast, stops, t]);
 
   const previewLocation = useCallback(
     (locId: string) => {

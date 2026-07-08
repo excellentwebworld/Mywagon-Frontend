@@ -78,6 +78,12 @@ export interface PaginatedErpOrdersResult {
   meta: ApiListMeta;
 }
 
+export interface LinkProductPayload {
+  product_sku_id: number;
+  order_line_id?: number | null;
+  product_name?: string | null;
+}
+
 export interface ErpOrderFormPayload {
   order_reference: string;
   erp_reference?: string | null;
