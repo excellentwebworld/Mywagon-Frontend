@@ -2014,6 +2014,12 @@
   box-shadow: 0 0 0 1px #DC2626 !important;
 }
 
+.wizard-table-field-cell {
+  position: relative;
+  vertical-align: top;
+  overflow: visible;
+}
+
 /* Fixed footer — must not use Tailwind `hidden md:flex` (app.css .hidden uses !important) */
 .wizard-footer-bar {
   display: flex !important;

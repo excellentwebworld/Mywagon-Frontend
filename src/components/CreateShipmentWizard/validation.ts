@@ -88,6 +88,14 @@ export function translateConflict(conflict: Conflict, t: TranslateFn): string {
   return translated && translated !== key ? translated : conflict.message;
 }
 
+/** Short single-line copy for inline field hints inside narrow table cells. */
+export function translateFieldConflict(conflict: Conflict, t: TranslateFn): string {
+  const fieldKey = `validationField${conflict.code}`;
+  const translated = t(fieldKey, { defaultValue: '' });
+  if (translated && translated !== fieldKey) return translated;
+  return translateConflict(conflict, t);
+}
+
 export function translateResolution(conflict: Conflict, t: TranslateFn): string {
   const key = `validationResolution${conflict.code}`;
   const translated = t(key, { defaultValue: conflict.resolution });

@@ -1,16 +1,26 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import type { Conflict } from '../../hooks/useConflicts';
-import { translateConflict } from './validation';
+import { translateConflict, translateFieldConflict } from './validation';
 
 interface FieldValidationHintProps {
   conflicts: Conflict[];
   show: boolean;
   t: (key: string, options?: Record<string, unknown>) => string;
+  compact?: boolean;
 }
 
-export const FieldValidationHint: React.FC<FieldValidationHintProps> = ({ conflicts, show, t }) => {
+export const FieldValidationHint: React.FC<FieldValidationHintProps> = ({
+  conflicts,
+  show,
+  t,
+  compact = false,
+}) => {
   if (!show || conflicts.length === 0) return null;
+
+  const message = compact
+    ? translateFieldConflict(conflicts[0], t)
+    : translateConflict(conflicts[0], t);
 
   return (
     <div
@@ -19,7 +29,7 @@ export const FieldValidationHint: React.FC<FieldValidationHintProps> = ({ confli
       style={{ color: '#DC2626' }}
     >
       <AlertTriangle size={10} className="shrink-0 mt-0.5" />
-      <span>{translateConflict(conflicts[0], t)}</span>
+      <span>{message}</span>
     </div>
   );
 };

@@ -1756,18 +1756,23 @@ const CargoTable: React.FC<CargoTableProps> = ({
                   <td
                     style={tdS}
                     data-validation-anchor={`stop-${stopIndex}-line-${li}-qty`}
-                    className={invalidClass(`stop-${stopIndex}-line-${li}-qty`)}
+                    className="wizard-table-field-cell"
                   >
                     <input
                       type="number"
                       step="1"
                       min="0"
                       placeholder="0"
-                      style={monoS}
+                      style={
+                        isInvalid(`stop-${stopIndex}-line-${li}-qty`)
+                          ? { ...monoS, border: '1px solid #DC2626', boxShadow: '0 0 0 1px #DC2626' }
+                          : monoS
+                      }
                       value={ln.qty}
                       onChange={(e) => onSetField(ln.id, 'qty', e.target.value)}
                     />
                     <FieldValidationHint
+                      compact
                       conflicts={[
                         ...getBlockersForAnchor(blockers, `stop-${stopIndex}-line-${li}-qty`),
                         ...getBlockersForAnchor(blockers, `stop-${stopIndex}-line-${li}-product`).filter(
@@ -1794,19 +1799,24 @@ const CargoTable: React.FC<CargoTableProps> = ({
                   <td
                     style={tdS}
                     data-validation-anchor={`stop-${stopIndex}-line-${li}-weight`}
-                    className={invalidClass(`stop-${stopIndex}-line-${li}-weight`)}
+                    className="wizard-table-field-cell"
                   >
                     <input
                       type="number"
                       step="1"
                       min="0"
                       placeholder="0"
-                      style={monoS}
+                      style={
+                        isInvalid(`stop-${stopIndex}-line-${li}-weight`)
+                          ? { ...monoS, border: '1px solid #DC2626', boxShadow: '0 0 0 1px #DC2626' }
+                          : monoS
+                      }
                       value={ln.weight}
                       onChange={(e) => onSetField(ln.id, 'weight', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, isLast)}
                     />
                     <FieldValidationHint
+                      compact
                       conflicts={getBlockersForAnchor(blockers, `stop-${stopIndex}-line-${li}-weight`)}
                       show={showValidation}
                       t={t}

@@ -182,7 +182,14 @@ export const SearchableSelect: React.FC<Props> = ({
         )}
       </div>
       {footerAction && (
-        <button type="button" className="searchable-select-footer" onClick={footerAction.onClick}>
+        <button
+          type="button"
+          className="searchable-select-footer"
+          onClick={() => {
+            footerAction.onClick();
+            setOpen(false);
+          }}
+        >
           {footerAction.label}
         </button>
       )}
