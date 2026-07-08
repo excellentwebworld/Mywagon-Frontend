@@ -690,19 +690,31 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         });
         setPCtx((p: any) => ({ ...p, orderFormTarget: null, orderFormLineIndex: null }));
       } else if (pCtx.pS && pCtx.pL) {
+        const sid = pCtx.pS;
+        const lid = pCtx.pL;
         const line = stops
-          .find((s: any) => s.id === pCtx.pS)
-          ?.lines?.find((l: any) => l.id === pCtx.pL);
+          .find((s: any) => s.id === sid)
+          ?.lines?.find((l: any) => l.id === lid);
+
+        // If the created product happens to map onto an existing order line, pull
+        // its quantity/weight; otherwise just auto-select the new product.
+        let orderLine = null;
         if (line?.orderId) {
           const refreshed = await fetchOrderDetail(line.orderId);
           if (refreshed) {
             setOrderDetailsById((prev) => ({ ...prev, [line.orderId]: refreshed }));
+            orderLine = findOrderLineForProduct(refreshed, String(created.id));
           }
-          showToast(
-            t('createLoadProductCreatedReselect') || 'Product created. Select it from the order lines.',
-            'info'
-          );
         }
+
+        setLF(sid, lid, {
+          productId: String(created.id),
+          productName: created.name,
+          qty: orderLine?.quantity != null ? String(orderLine.quantity) : line?.qty || '',
+          unit: orderLine?.unit || line?.unit || 'EUR Pallets',
+          weight: orderLine?.weight != null ? String(orderLine.weight) : line?.weight || '',
+          wtUnit: normalizeWeightUnit(orderLine?.weightUnit || line?.wtUnit),
+        });
         setPCtx((p: any) => ({ ...p, pS: null, pL: null }));
       }
       setMSku(false);
@@ -712,7 +724,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     } finally {
       setSkuSaving(false);
     }
-  }, [fetchOrderDetail, pCtx, refreshSkusFromApi, showToast, stops, t]);
+  }, [fetchOrderDetail, pCtx, refreshSkusFromApi, setLF, showToast, stops, t]);
 
   const previewLocation = useCallback(
     (locId: string) => {
@@ -1635,6 +1647,15 @@ const CargoTable: React.FC<CargoTableProps> = ({
                 label: opt.label,
                 sublabel: opt.sublabel,
               }));
+              // Ensure a selected product (e.g. one created at runtime that is not
+              // part of the order's mapped lines) still appears and stays displayed.
+              if (ln.productId && !productOpts.some((o) => o.value === String(ln.productId))) {
+                productOpts.push({
+                  value: String(ln.productId),
+                  label: ln.productName || 'Product',
+                  sublabel: undefined,
+                });
+              }
               const unmappedCount = countUnmappedOrderLines(orderDetail);
               return (
                 <tr key={ln.id} style={{ background: ln.mirrorOf ? T.sa : 'transparent' }}>
@@ -1694,13 +1715,9 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       onChange={(v) => onSelProd(ln.id, v)}
                       options={productOpts}
                       placeholder={
-                        ln.orderId
-                          ? productOpts.length
-                            ? t('selectProduct')
-                            : t('createLoadNoOrderProducts')
-                          : t('createLoadSelectOrderFirst')
+                        ln.orderId ? t('selectProduct') : t('createLoadSelectOrderFirst')
                       }
-                      disabled={!ln.orderId || productOpts.length === 0}
+                      disabled={!ln.orderId}
                       headerAction={
                         ln.orderId
                           ? {

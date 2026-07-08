@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Formik, Form, useFormikContext } from 'formik';
 import * as Yup from 'yup';
 import { SearchableSelect } from '../ui/SearchableSelect';
@@ -135,7 +136,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="modal-bg show">
       <Formik
         initialValues={form}
@@ -305,6 +306,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
           );
         }}
       </Formik>
-    </div>
+    </div>,
+    document.body
   );
 };
