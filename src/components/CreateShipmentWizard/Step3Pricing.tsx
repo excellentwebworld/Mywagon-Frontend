@@ -36,6 +36,12 @@ import { enrichStops } from './itinerary/stopEnrichment';
 import { buildStopSummaryLabels, buildTrackingGroups } from './itinerary/buildTrackingGroups';
 import { computeTripTotals, formatDurationMin, formatWeightKg } from './itinerary/cargoUtils';
 import type { TrackingOrderItem } from './itinerary/buildTrackingGroups';
+import {
+  extractTrackingOrderIds,
+  isUninitializedTrackingEmails,
+  normalizeTrackingEmails,
+  type WizardFormValues,
+} from '../../api/mappers/createShipmentMapper';
 import { useRouteLegs } from './itinerary/useRouteLegs';
 import { RouteMap } from './itinerary/RouteMap';
 import { CarrierListSkeleton } from '../skeletons/CarrierListSkeleton';
@@ -60,7 +66,7 @@ interface Step3PricingProps {
   draftId?: number | null;
   onBackStep: () => void;
   onSubmit: () => void;
-  onSaveDraft?: () => Promise<void>;
+  onSaveDraft?: (values: WizardFormValues) => Promise<void>;
   isSaving?: boolean;
 }
 
@@ -84,6 +90,16 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const orderValuePrefilledRef = useRef(false);
   const trackingEmailsInitializedRef = useRef('');
+  const trackingEmailsRepairRef = useRef('');
+  const trackingOrderIds = useMemo(() => extractTrackingOrderIds(stops), [stops]);
+
+  const trackingEmailsRecord = useMemo((): Record<string, string[]> => {
+    const raw = values.trackingEmails;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      return raw as Record<string, string[]>;
+    }
+    return normalizeTrackingEmails(raw, trackingOrderIds);
+  }, [values.trackingEmails, trackingOrderIds]);
   const { byCustomerId } = useTrackingEmailLookup();
 
   const orderIdsKey = useMemo(() => {
@@ -266,22 +282,50 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   // Override status
   const isOverride = targetPriceVal !== calculatedPrice;
 
+  // Repair wizard_state that was stored as a nested array (keys "0", "1", …).
+  useEffect(() => {
+    const repairKey = trackingOrderIds.join(',');
+    if (!repairKey || trackingEmailsRepairRef.current === repairKey) return;
+
+    const raw = values.trackingEmails;
+    const normalized = normalizeTrackingEmails(raw, trackingOrderIds);
+    const rawIsCorrupted =
+      Array.isArray(raw) ||
+      (raw &&
+        typeof raw === 'object' &&
+        Object.keys(raw).some((key) => /^\d+$/.test(key) && !trackingOrderIds.includes(key)));
+
+    if (rawIsCorrupted && JSON.stringify(normalized) !== JSON.stringify(raw)) {
+      setFieldValue('trackingEmails', normalized);
+    }
+
+    trackingEmailsRepairRef.current = repairKey;
+  }, [trackingOrderIds, values.trackingEmails, setFieldValue]);
+
+  const setTrackingEmailsForOrder = (orderId: string, emails: string[]) => {
+    setFieldValue('trackingEmails', {
+      ...trackingEmailsRecord,
+      [orderId]: emails,
+    });
+  };
+
   // Prefill default email lists per orderId from customer company data
   useEffect(() => {
-    const initKey = `${orderIdsKey}|${Object.keys(byCustomerId).length}`;
+    const initKey = `${orderIdsKey}|${Object.keys(byCustomerId).length}|${Object.keys(byOrderId).length}`;
     if (trackingEmailsInitializedRef.current === initKey) return;
 
-    const nextEmails = { ...values.trackingEmails };
+    const nextEmails = { ...trackingEmailsRecord };
     let changed = false;
 
     Object.values(trackingGroups.groups)
       .flat()
       .concat(trackingGroups.ungrouped)
       .forEach((order) => {
-        if (!nextEmails[order.orderId]) {
-          nextEmails[order.orderId] = order.defaultEmail ? [order.defaultEmail] : [''];
-          changed = true;
-        }
+        if (!isUninitializedTrackingEmails(nextEmails[order.orderId])) return;
+
+        const prefilled = order.defaultEmail ? [order.defaultEmail] : [''];
+        nextEmails[order.orderId] = prefilled;
+        changed = true;
       });
 
     if (changed) {
@@ -289,24 +333,24 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
     }
 
     trackingEmailsInitializedRef.current = initKey;
-  }, [orderIdsKey, byCustomerId, trackingGroups, values.trackingEmails, setFieldValue]);
+  }, [orderIdsKey, byCustomerId, byOrderId, trackingGroups, trackingEmailsRecord, setFieldValue]);
 
   // Tracking operations
   const addEmailField = (orderId: string) => {
-    const cur = values.trackingEmails[orderId] || [];
-    setFieldValue(`trackingEmails.${orderId}`, [...cur, '']);
+    const cur = trackingEmailsRecord[orderId] || [''];
+    setTrackingEmailsForOrder(orderId, [...cur, '']);
   };
 
   const updateEmailField = (orderId: string, emailIdx: number, val: string) => {
-    const cur = [...(values.trackingEmails[orderId] || [])];
+    const cur = [...(trackingEmailsRecord[orderId] || [''])];
     cur[emailIdx] = val;
-    setFieldValue(`trackingEmails.${orderId}`, cur);
+    setTrackingEmailsForOrder(orderId, cur);
   };
 
   const removeEmailField = (orderId: string, emailIdx: number) => {
-    const cur = values.trackingEmails[orderId] || [];
+    const cur = trackingEmailsRecord[orderId] || [''];
     const next = cur.filter((_: any, idx: number) => idx !== emailIdx);
-    setFieldValue(`trackingEmails.${orderId}`, next.length ? next : ['']);
+    setTrackingEmailsForOrder(orderId, next.length ? next : ['']);
   };
 
   // 5. CARRIERS SELECTION ACTION
@@ -324,7 +368,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   };
 
   const renderTrackingOrder = (o: TrackingOrderItem) => {
-    const emailList = values.trackingEmails[o.orderId] || [''];
+    const emailList = trackingEmailsRecord[o.orderId] || [''];
     return (
       <div key={o.orderId} className="pt-2 first:pt-0">
         <div className="text-xs font-bold font-mono text-indigo-600">
@@ -1123,7 +1167,9 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
           <button
             type="button"
             className="inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 cursor-pointer"
-            onClick={() => onSaveDraft?.()}
+            onClick={async () => {
+              await onSaveDraft?.({ ...values, trackingEmails: trackingEmailsRecord });
+            }}
             disabled={isSubmitting || isSaving}
           >
             <Save size={13} /> {t('saveDraft') || 'Save Draft'}
@@ -1137,7 +1183,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
               fontFamily: 'inherit',
             }}
             disabled={isSubmitting || isSaving || publicQuotaBlocked}
-            onClick={onSubmit}
+            onClick={() => onSubmit()}
           >
             {t('createLoadBtn') || 'Create Shipment'}
           </button>

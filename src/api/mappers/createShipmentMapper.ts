@@ -3,6 +3,93 @@ import { createNewCargoLine, createNewStop } from '../../components/CreateShipme
 import { computeItineraryFingerprint } from '../../components/CreateShipmentWizard/itineraryFingerprint';
 import { normalizeWeightUnit } from '../../constants/cargoUnits';
 
+export function isUninitializedTrackingEmails(emails: string[] | undefined): boolean {
+  if (!emails || emails.length === 0) return true;
+  return emails.every((email) => email.trim() === '');
+}
+
+/** Stable order of ERP order ids used by the Tracking Links UI. */
+export function extractTrackingOrderIds(stops: ApiStop[]): string[] {
+  const seen = new Set<string>();
+  const ids: string[] = [];
+
+  stops.forEach((stop) => {
+    (stop.lines || []).forEach((line) => {
+      if (!line.productId) return;
+      const orderId = line.orderId ? String(line.orderId) : line.orderRef;
+      if (!orderId || seen.has(orderId)) return;
+      seen.add(orderId);
+      ids.push(orderId);
+    });
+  });
+
+  return ids;
+}
+
+/**
+ * Wizard state may store tracking emails as a nested JSON array (PHP re-indexed keys).
+ * Remap those back to order-id keyed records the UI and publish flow expect.
+ */
+export function normalizeTrackingEmails(
+  raw: unknown,
+  orderIds: string[]
+): Record<string, string[]> {
+  const orderIdSet = new Set(orderIds);
+  const result: Record<string, string[]> = {};
+
+  const assignEmails = (orderId: string, emails: unknown) => {
+    if (!orderIdSet.has(orderId) || !Array.isArray(emails)) return;
+    // Preserve empty slots so "+ Add email" inputs stay visible while editing.
+    result[orderId] = emails.map((email) => String(email));
+  };
+
+  if (!raw || typeof raw !== 'object') {
+    return result;
+  }
+
+  if (Array.isArray(raw)) {
+    raw.forEach((emails, index) => {
+      const orderId = orderIds[index];
+      if (orderId) assignEmails(orderId, emails);
+    });
+    return result;
+  }
+
+  const entries = Object.entries(raw as Record<string, unknown>);
+
+  for (const [key, emails] of entries) {
+    if (orderIdSet.has(key)) {
+      assignEmails(key, emails);
+    }
+  }
+  if (Object.keys(result).length > 0) {
+    return result;
+  }
+
+  entries
+    .filter(([key, emails]) => /^\d+$/.test(key) && Array.isArray(emails))
+    .sort((a, b) => Number(a[0]) - Number(b[0]))
+    .forEach(([, emails], index) => {
+      const orderId = orderIds[index];
+      if (orderId) assignEmails(orderId, emails);
+    });
+
+  return result;
+}
+
+export function sanitizeTrackingEmails(
+  raw: Record<string, string[]> | undefined
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const [orderId, emails] of Object.entries(raw || {})) {
+    const cleaned = (emails || []).map((email) => email.trim()).filter(Boolean);
+    if (cleaned.length > 0) {
+      out[orderId] = cleaned;
+    }
+  }
+  return out;
+}
+
 export interface WizardFormValues {
   loadId: string;
   custRef: string;
@@ -103,7 +190,10 @@ export function draftToFormValues(
       .filter((id) => /^\d+$/.test(id)),
     targetPrice: state.targetPrice ?? defaults.targetPrice,
     negotiable: state.negotiable ?? defaults.negotiable,
-    trackingEmails: state.trackingEmails ?? defaults.trackingEmails,
+    trackingEmails: normalizeTrackingEmails(
+      state.trackingEmails ?? defaults.trackingEmails,
+      extractTrackingOrderIds(stops)
+    ),
     driverNotes: state.driverNotes ?? defaults.driverNotes,
     gpsRequired: state.gpsRequired ?? defaults.gpsRequired,
     orderValue: state.orderValue ?? defaults.orderValue,
@@ -113,6 +203,7 @@ export function draftToFormValues(
 export function formValuesToStepThreePayload(
   values: Pick<
     WizardFormValues,
+    | 'stops'
     | 'broadcastType'
     | 'selectedCarriers'
     | 'targetPrice'
@@ -130,6 +221,10 @@ export function formValuesToStepThreePayload(
     .filter((id) => !Number.isNaN(id) && id > 0);
 
   const orderValue = parseFloat(String(values.orderValue ?? ''));
+  const trackingOrderIds = extractTrackingOrderIds(values.stops || []);
+  const trackingEmails = sanitizeTrackingEmails(
+    normalizeTrackingEmails(values.trackingEmails, trackingOrderIds)
+  );
 
   return {
     mode,
@@ -137,7 +232,7 @@ export function formValuesToStepThreePayload(
     selected_carriers: selectedCarriers,
     target_price: Number.isNaN(targetPrice) ? undefined : targetPrice,
     negotiable: Boolean(values.negotiable),
-    tracking_emails: values.trackingEmails || {},
+    tracking_emails: trackingEmails,
     driver_notes: values.driverNotes || '',
     gps_required: Boolean(values.gpsRequired),
     bulk_mode: 'single',

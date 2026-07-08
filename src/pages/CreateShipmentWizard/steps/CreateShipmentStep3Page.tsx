@@ -6,7 +6,7 @@ import type { WizardFormValues } from '../../../api/mappers/createShipmentMapper
 import type { WizardOutletContext } from '../wizardOutletContext';
 
 export const CreateShipmentStep3Page: React.FC = () => {
-  const { values, submitForm } = useFormikContext<WizardFormValues>();
+  const { submitForm } = useFormikContext<WizardFormValues>();
   const { shipmentId, isSaving, goToStep, saveStep3 } = useOutletContext<WizardOutletContext>();
 
   return (
@@ -14,9 +14,9 @@ export const CreateShipmentStep3Page: React.FC = () => {
       draftId={shipmentId}
       onBackStep={() => goToStep(2)}
       onSubmit={submitForm}
-      onSaveDraft={async () => {
+      onSaveDraft={async (currentValues) => {
         try {
-          await saveStep3(values, 'partial');
+          await saveStep3(currentValues, 'partial');
         } catch {
           // saveStep3 already toasts errors
         }
