@@ -978,6 +978,31 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                 />
               </div>
 
+              <button
+                type="button"
+                className="ai-suggest-btn"
+                disabled={Boolean(contract) || !draftId || (aiPriceLoading && aiInsightsRequested)}
+                onClick={handleAiInsightsClick}
+              >
+                {aiPriceLoading && aiInsightsRequested ? (
+                  <>
+                    <span className="price-hint-spinner" aria-hidden="true" />
+                    <span>{t('aiSuggestedPriceLoading') || 'Generating AI suggested prices...'}</span>
+                  </>
+                ) : (
+                  <span className="ai-suggest-btn-inner">
+                    <span className="ai-suggest-btn-main">
+                      <Plus size={14} aria-hidden="true" />
+                      <span>{t('requestAiSuggestedPrice') || 'Request AI Suggested Price'}</span>
+                    </span>
+                    <span className="ai-suggest-btn-powered">
+                      <Sparkles size={10} aria-hidden="true" />
+                      <span>{t('poweredByAi') || 'Powered by AI'}</span>
+                    </span>
+                  </span>
+                )}
+              </button>
+
               {/* Stats calculations */}
               <div className="flex items-center justify-between text-xs text-slate-500">
                 <span>
@@ -988,15 +1013,6 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                   <strong>€{pricePerPallet}</strong> / pallet
                 </span>
                 <span className="text-slate-400">({totalPallets} pallets)</span>
-                
-                <button
-                  type="button"
-                  className="flex items-center gap-1 px-2 py-1 border rounded bg-white hover:bg-slate-50 text-[10px] font-bold text-indigo-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                  disabled={Boolean(contract) || !draftId || (aiPriceLoading && aiInsightsRequested)}
-                  onClick={handleAiInsightsClick}
-                >
-                  {t('aiInsights') || '✨ AI Insights'}
-                </button>
               </div>
 
               {/* Manual Override Warning */}

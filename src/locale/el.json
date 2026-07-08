@@ -1299,6 +1299,8 @@
   "order": "παραγγελία",
   "perLoad": "ανά φορτίο",
   "aiInsights": "✨ AI Insights",
+  "requestAiSuggestedPrice": "Αίτηση προτεινόμενης τιμής AI",
+  "poweredByAi": "Powered by AI",
   "deleteStopTitle": "Διαγραφή Στάσης",
   "deleteStopMsg": "Είστε βέβαιοι ότι θέλετε να διαγράψετε αυτή τη στάση και όλες τις γραμμές φορτίου της;",
   "deleteStopConfirm": "Διαγραφή",

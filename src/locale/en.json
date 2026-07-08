@@ -1299,6 +1299,8 @@
   "order": "order",
   "perLoad": "per load",
   "aiInsights": "✨ AI Insights",
+  "requestAiSuggestedPrice": "Request AI Suggested Price",
+  "poweredByAi": "Powered by AI",
   "deleteStopTitle": "Delete Stop",
   "deleteStopMsg": "Are you sure you want to delete this stop and all its cargo lines?",
   "deleteStopConfirm": "Delete",

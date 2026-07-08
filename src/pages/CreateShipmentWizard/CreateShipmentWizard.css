@@ -1747,6 +1747,55 @@
 }
 @keyframes price-hint-spin { to { transform: rotate(360deg); } }
 
+.ai-suggest-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.ai-suggest-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.ai-suggest-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ai-suggest-btn-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.ai-suggest-btn-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-suggest-btn-powered {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
 .ov-row { padding: 13px 20px; border-top: 1px solid var(--border); }
 .ov-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .ov-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
