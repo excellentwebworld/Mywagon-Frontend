@@ -52,6 +52,7 @@ export const LocationPreviewOverlay: React.FC<LocationPreviewOverlayProps> = ({
           openEditModal={noopAsync}
           handleArchive={noopAsync}
           handleRestore={noopAsync}
+          hideActions
         />
       </div>
     </div>
