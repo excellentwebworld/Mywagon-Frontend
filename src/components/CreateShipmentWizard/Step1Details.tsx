@@ -35,7 +35,8 @@ import { applyTemplate as applyAddressTemplate } from '../../pages/AddressBook/u
 import { EMPTY_CREATE_DATA, EMPTY_COMPANY_DATA } from '../../pages/AddressBook/types';
 import type { CreateLocationData, CompanyFormData } from '../../pages/AddressBook/types';
 import type { ApiCompanyLookup } from '../../api/types/addressBook';
-import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS, normalizeWeightUnit, weightToKg, formatWeightKgTotal } from '../../constants/cargoUnits';
+import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS, normalizeWeightUnit, formatWeightKgTotal } from '../../constants/cargoUnits';
+import { computeLoadBalance } from './itinerary/cargoUtils';
 
 const clearOrderDependentCargoFields = () => {
   const blank = createNewCargoLine();
@@ -761,41 +762,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   );
 
   // ═══ LOAD BALANCE + VALIDATION ═══
-  const bal = useMemo(() => {
-    let pkU = 0,
-      doU = 0,
-      pkW = 0,
-      doW = 0;
-    const byP: Record<string, any> = {};
-    stops.forEach((s: any) =>
-      s.lines.forEach((ln: any) => {
-        const q = parseFloat(ln.qty) || 0;
-        const wk = weightToKg(ln.weight, ln.wtUnit);
-        if (ln.action === 'pickup') {
-          pkU += q;
-          pkW += wk;
-        } else {
-          doU += q;
-          doW += wk;
-        }
-        const nm = ln.productName || '—';
-        if (!byP[nm]) byP[nm] = { pk: 0, do: 0, unit: ln.unit };
-        if (ln.action === 'pickup') byP[nm].pk += q;
-        else byP[nm].do += q;
-      })
-    );
-    const mx = Math.max(pkU, doU, 1);
-    return {
-      pkU,
-      doU,
-      pkW,
-      doW,
-      pkBar: (pkU / mx) * 50,
-      doBar: (doU / mx) * 50,
-      balanced: pkU > 0 && doU > 0 && pkU === doU,
-      byP,
-    };
-  }, [stops]);
+  const bal = useMemo(() => computeLoadBalance(stops), [stops]);
 
   const fmtW = (kg: number) => formatWeightKgTotal(kg);
 

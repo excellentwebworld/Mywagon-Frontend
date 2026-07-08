@@ -67,15 +67,17 @@ export function computeLoadBalance(stops: ApiStop[]): LoadBalance {
     })
   );
 
-  const mx = Math.max(pkU, doU, 1);
+  const mx = Math.max(pkW, doW, 1);
+  const qtyBalanced = pkU > 0 && doU > 0 && pkU === doU;
+  const weightBalanced = pkW > 0 && doW > 0 && Math.abs(pkW - doW) < 0.01;
   return {
     pkU,
     doU,
     pkW,
     doW,
-    pkBar: (pkU / mx) * 50,
-    doBar: (doU / mx) * 50,
-    balanced: pkU > 0 && doU > 0 && pkU === doU,
+    pkBar: (pkW / mx) * 50,
+    doBar: (doW / mx) * 50,
+    balanced: qtyBalanced && weightBalanced,
     byP,
   };
 }
