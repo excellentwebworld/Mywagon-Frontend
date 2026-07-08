@@ -395,6 +395,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
       const newLines = mo.lines.map((ln) => ({
         id: makeId('l'),
+        orderLineId: ln.id ? String(ln.id) : '',
         productId: ln.productSkuId ? String(ln.productSkuId) : '',
         productName: ln.productName || '',
         customerId: mo.companyEntityId ? String(mo.companyEntityId) : '',
@@ -658,6 +659,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       const orderLine = findOrderLineForProduct(order, skuId);
       if (orderLine) {
         setLF(sid, lid, {
+          orderLineId: orderLine.id ? String(orderLine.id) : '',
           productId: skuId,
           productName: orderLine.productName || '',
           qty: orderLine.quantity != null ? String(orderLine.quantity) : '',
@@ -698,16 +700,57 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
         // If the created product happens to map onto an existing order line, pull
         // its quantity/weight; otherwise just auto-select the new product.
-        let orderLine = null;
+        let orderLine: any = null;
         if (line?.orderId) {
           const refreshed = await fetchOrderDetail(line.orderId);
           if (refreshed) {
-            setOrderDetailsById((prev) => ({ ...prev, [line.orderId]: refreshed }));
-            orderLine = findOrderLineForProduct(refreshed, String(created.id));
+            // Find and update the line that matches orderLineId, or fallback to matching by productName, or first unmapped line
+            let lineUpdated = false;
+            const updatedLines = refreshed.lines.map((ol) => {
+              if (lineUpdated) return ol;
+              const isMatch = line.orderLineId
+                ? String(ol.id) === String(line.orderLineId)
+                : (!ol.productSkuId && ol.productName === line.productName);
+              if (isMatch) {
+                lineUpdated = true;
+                orderLine = {
+                  ...ol,
+                  productSkuId: Number(created.id),
+                  sku: created.number || ol.sku,
+                };
+                return orderLine;
+              }
+              return ol;
+            });
+
+            let finalLines = updatedLines;
+            if (!lineUpdated) {
+              finalLines = refreshed.lines.map((ol) => {
+                if (!lineUpdated && !ol.productSkuId) {
+                  lineUpdated = true;
+                  orderLine = {
+                    ...ol,
+                    productSkuId: Number(created.id),
+                    sku: created.number || ol.sku,
+                  };
+                  return orderLine;
+                }
+                return ol;
+              });
+            }
+
+            const updatedOrder = {
+              ...refreshed,
+              lines: finalLines,
+            };
+
+            setOrderDetailsById((prev) => ({ ...prev, [line.orderId]: updatedOrder }));
+            addOrder(updatedOrder);
           }
         }
 
         setLF(sid, lid, {
+          orderLineId: orderLine?.id ? String(orderLine.id) : line?.orderLineId || '',
           productId: String(created.id),
           productName: created.name,
           qty: orderLine?.quantity != null ? String(orderLine.quantity) : line?.qty || '',
@@ -724,7 +767,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     } finally {
       setSkuSaving(false);
     }
-  }, [fetchOrderDetail, pCtx, refreshSkusFromApi, setLF, showToast, stops, t]);
+  }, [addOrder, fetchOrderDetail, pCtx, refreshSkusFromApi, setLF, showToast, stops, t]);
 
   const previewLocation = useCallback(
     (locId: string) => {

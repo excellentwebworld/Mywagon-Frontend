@@ -2,6 +2,7 @@ const makeId = (prefix: string) => `${prefix}-${Math.random().toString(36).subst
 
 export const createNewCargoLine = (action: 'pickup' | 'dropoff' = 'pickup') => ({
   id: makeId('l'),
+  orderLineId: '',
   productId: '',
   productName: '',
   customerId: '',

@@ -1,5 +1,6 @@
 export interface ApiCargoLine {
   id?: string;
+  orderLineId?: string;
   productId?: string;
   productName?: string;
   customerId?: string;
