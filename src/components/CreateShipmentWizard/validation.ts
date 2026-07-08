@@ -33,7 +33,7 @@ export function getConflictAnchor(conflict: Conflict): string {
     return lineIndex >= 0 ? `stop-${stopIndex}-line-${lineIndex}-product` : `stop-${stopIndex}-cargo`;
   }
 
-  if (['C1', 'C4', 'C6', 'C7', 'C8', 'C9', 'O2', 'O3', 'S4', 'X4'].includes(code)) {
+  if (['C1', 'C4', 'C6', 'C7', 'C8', 'C9', 'C11', 'O2', 'O3', 'S4', 'X4'].includes(code)) {
     if (lineIndex >= 0) {
       return `stop-${stopIndex}-line-${lineIndex}-product`;
     }
@@ -46,7 +46,7 @@ export function getConflictAnchor(conflict: Conflict): string {
 export function sortConflictsForFocus(conflicts: Conflict[]): Conflict[] {
   const score = (c: Conflict) => {
     if (c.stopIndex < 0) {
-      return c.code === 'X1' ? 0 : 5;
+      return c.code === 'X1' ? 0 : c.code === 'C11' ? 2 : 5;
     }
 
     let value = c.stopIndex * 1000;
@@ -112,6 +112,7 @@ const GLOBAL_STOP_DONE_EXCLUDED_CODES = new Set([
   'C7',
   'C8',
   'C9',
+  'C11',
   'S4',
 ]);
 

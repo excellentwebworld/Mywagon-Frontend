@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { weightToKg } from '../constants/cargoUnits';
+import { formatWeightKgTotal, weightToKg } from '../constants/cargoUnits';
+import { computeLoadBalance } from '../components/CreateShipmentWizard/itinerary/cargoUtils';
 
 export interface Conflict {
   code: string;
@@ -326,6 +327,20 @@ export default function useConflicts(stops: any[], options: any = {}) {
         }
       })
     );
+
+    // C11 — Global load balance (qty + weight, unit-normalized)
+    const loadBal = computeLoadBalance(stops);
+    const hasPickupCargo = loadBal.pkU > 0 || loadBal.pkW > 0;
+    const hasDropoffCargo = loadBal.doU > 0 || loadBal.doW > 0;
+    if (hasPickupCargo && hasDropoffCargo && !loadBal.balanced) {
+      let message = 'Load is not balanced';
+      if (loadBal.pkU !== loadBal.doU) {
+        message = `Pickup qty (${loadBal.pkU}) does not match dropoff qty (${loadBal.doU})`;
+      } else if (Math.abs(loadBal.pkW - loadBal.doW) >= 0.01) {
+        message = `Pickup weight (${formatWeightKgTotal(loadBal.pkW)}) does not match dropoff weight (${formatWeightKgTotal(loadBal.doW)})`;
+      }
+      add('C11', 'blocker', -1, -1, message, 'Match pickup and dropoff quantities and weights');
+    }
 
     // C6 + C9 — Running weight
     let rw = 0;

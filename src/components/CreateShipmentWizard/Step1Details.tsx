@@ -1995,7 +1995,11 @@ interface LoadBalanceBarProps {
 const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({ bal, balExp, setBalExp, fmtW, T, t }) => {
   const hasData = bal.pkU > 0 || bal.doU > 0;
   return (
-    <div className="rounded-xl overflow-hidden mb-4" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+    <div
+      className="rounded-xl overflow-hidden mb-4"
+      data-validation-anchor="wizard-global"
+      style={{ background: T.sf, border: `1px solid ${T.bd}` }}
+    >
       <div
         className="flex items-center gap-3 px-4 py-2.5 cursor-pointer select-none"
         onClick={() => hasData && setBalExp(!balExp)}
