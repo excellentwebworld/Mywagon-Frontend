@@ -16,7 +16,9 @@ type Props = Pick<
   | 'openEditModal'
   | 'handleArchive'
   | 'handleRestore'
->;
+> & {
+  hideActions?: boolean;
+};
 
 function getRoleClass(role: LocationItem['role']) {
   if (role === 'pickup') return 'role-pickup';
@@ -40,6 +42,7 @@ export const LocationDetailPanel: React.FC<Props> = ({
   openEditModal,
   handleArchive,
   handleRestore,
+  hideActions = false,
 }) => {
   if (!selectedLoc) {
     return (
@@ -111,21 +114,23 @@ export const LocationDetailPanel: React.FC<Props> = ({
               · {l.geoVerified ? 'Verified' : 'Unverified'}
             </span>
           </div>
-          <div className="dp-actions">
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEditModal(l)} disabled={saving}>
-              Edit
-            </button>
-            {l.status === 'active' && (
-              <button type="button" className="btn btn-secondary btn-sm dp-archive-btn" onClick={() => handleArchive(l)} disabled={saving}>
-                Archive
+          {!hideActions && (
+            <div className="dp-actions">
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEditModal(l)} disabled={saving}>
+                Edit
               </button>
-            )}
-            {l.status === 'archived' && (
-              <button type="button" className="btn btn-secondary btn-sm dp-restore-btn" onClick={() => handleRestore(l)} disabled={saving}>
-                Restore
-              </button>
-            )}
-          </div>
+              {l.status === 'active' && (
+                <button type="button" className="btn btn-secondary btn-sm dp-archive-btn" onClick={() => handleArchive(l)} disabled={saving}>
+                  Archive
+                </button>
+              )}
+              {l.status === 'archived' && (
+                <button type="button" className="btn btn-secondary btn-sm dp-restore-btn" onClick={() => handleRestore(l)} disabled={saving}>
+                  Restore
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <DetailSection title="🗺️ Location Map" bodyClassName="dp-map-sec-body">
