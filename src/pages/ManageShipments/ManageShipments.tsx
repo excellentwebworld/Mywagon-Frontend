@@ -17,7 +17,7 @@ export const ManageShipments: React.FC = () => {
 
   return (
     <div className="mgmt-page">
-      <h1 className="pg-title">{m.t('manageShipments')}</h1>
+      <h1 className="pg-title">{m.t('shipmentsTitle') || 'Shipments'}</h1>
 
       {m.loading && <div style={{ marginBottom: 12, color: 'var(--text-secondary)' }}>{m.t('loading')}</div>}
       {m.error && <div style={{ marginBottom: 12, color: 'var(--danger)' }}>{m.error}</div>}

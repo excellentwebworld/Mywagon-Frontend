@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import type { FilterState } from '../../pages/ManageShipments/utils/listingUtils';
+import { useOutsideClick } from '../../hooks/useOutsideClick';
 
 interface FilterOption {
   value: string;
@@ -107,7 +108,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   t,
 }) => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const barRef = useRef<HTMLDivElement>(null);
+  const barRef = useOutsideClick<HTMLDivElement>(() => setOpenDropdown(null), openDropdown !== null);
 
   const toggleValue = (key: keyof FilterState, value: string) => {
     const current = filters[key];
@@ -139,7 +140,12 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               className={`f-pill ${hasActive ? 'has' : ''}`}
               onClick={() => setOpenDropdown(openDropdown === cfg.id ? null : cfg.id)}
             >
-              {t(cfg.labelKey)} ▾
+              {cfg.id === 'status' && (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4 }}>
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                </svg>
+              )}
+              {t(cfg.labelKey)}
             </button>
             {openDropdown === cfg.id && (
               <div className="f-dd show">
@@ -168,8 +174,18 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       <span className="f-clear" onClick={onClearAll} role="button" tabIndex={0}>
         {t('clearAll')}
       </span>
-      <button type="button" className="f-pill has">
-        💾 {t('saveView')}
+      <span className="sp" style={{ flex: 1 }} />
+      <button
+        type="button"
+        className="f-pill has"
+        style={{ borderColor: 'var(--accent)', color: 'var(--accent)', backgroundColor: 'var(--accent-light)' }}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4 }}>
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+          <polyline points="17 21 17 13 7 13 7 21" />
+          <polyline points="7 3 7 8 15 8" />
+        </svg>
+        {t('saveView')}
       </button>
     </div>
   );

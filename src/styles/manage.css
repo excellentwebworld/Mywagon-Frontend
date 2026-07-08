@@ -171,8 +171,10 @@
 /* ── Main table ── */
 .tbl-wrap {
   border: 1px solid var(--border); border-top: none;
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  border-radius: 0 !important;
   overflow-x: auto; background: var(--surface); position: relative; z-index: 1;
+  margin-left: 0px !important;
+  margin-right: 0px !important;
 }
 table.mgmt-t { width: 100%; border-collapse: collapse; min-width: 1000px; }
 .mgmt-t thead th {

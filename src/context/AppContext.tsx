@@ -150,6 +150,7 @@ export interface Shipment {
   id: string;
   autoId?: string;
   date: string;
+  ref?: string;
   status: 'pending' | 'upcoming' | 'in_progress' | 'awarded' | 'delivered' | 'cancelled';
   vis: 'private' | 'public' | 'fleet';
   origin: string;

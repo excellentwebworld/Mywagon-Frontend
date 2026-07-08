@@ -7,8 +7,8 @@
 /* ── Design Tokens ── */
 :root {
   /* Brand */
-  --accent:           #9B51E0;
-  --accent-hover:     #562C7C;
+  --accent:           #6C3AED;
+  --accent-hover:     #5B2BD4;
   --accent-light:     #EDE9FE;
   --accent-pale:      #F5F3FF;
   --brand-navy:       #1F1F41;
@@ -1518,7 +1518,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   border-color: var(--border-focus, #C8C8CF);
 }
 .date-picker.open .date-picker-trigger {
-  border-color: var(--accent, #9B51E0);
+  border-color: var(--accent, #6C3AED);
   box-shadow: 0 0 0 3px var(--accent-light, #EDE9FE);
 }
 .date-picker.has-error .date-picker-trigger {
@@ -1651,12 +1651,12 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   opacity: 0.5;
 }
 .date-picker-cell.selected {
-  background: var(--accent, #9B51E0) !important;
+  background: var(--accent, #6C3AED) !important;
   color: #FFF !important;
   font-weight: 600;
 }
 .date-picker-cell.today {
-  border: 1px solid var(--accent, #9B51E0);
+  border: 1px solid var(--accent, #6C3AED);
 }
 .date-picker-cell.disabled {
   color: var(--text-tertiary, #8E8E9A);
@@ -1677,7 +1677,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   background: transparent;
   font-size: 12px;
   font-weight: 600;
-  color: var(--accent, #9B51E0);
+  color: var(--accent, #6C3AED);
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;

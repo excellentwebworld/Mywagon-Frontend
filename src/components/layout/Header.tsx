@@ -137,20 +137,7 @@ export const Header: React.FC<HeaderProps> = ({
       )}
 
       {/* Page Title */}
-      {
-        isDashboard ?
-          <span className="tb-title">{getPageTitle()}</span>
-          :
-          <></>
-        // <div className='breadcrumb'>
-        //   <span>
-        //     {t('masterData')}
-        //   </span>{" "}
-        //   › <strong>
-        //     {getPageTitle()}
-        //   </strong>
-        // </div>
-      }
+      <span className="tb-title">{getPageTitle()}</span>
 
       {/* Quick period filter chips */}
       {showFilters && (

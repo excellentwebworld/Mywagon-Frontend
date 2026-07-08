@@ -40,7 +40,7 @@ function parsePrice(total: string | number | null | undefined): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-function mapStop(stop: ApiShipmentStop, index: number): ShipmentStop {
+function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | null): ShipmentStop {
   return {
     id: stop.id || index + 1,
     type: stop.type === 'pickup' ? 'pickup' : 'delivery',
@@ -52,7 +52,7 @@ function mapStop(stop: ApiShipmentStop, index: number): ShipmentStop {
     customers: stop.order_id
       ? [
           {
-            name: 'Customer',
+            name: customerName || 'Customer',
             orders: [
               {
                 id: stop.order_id,
@@ -76,12 +76,13 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     id: String(item.id),
     autoId: item.auto_id,
     date: formatDisplayDate(item.created_at),
+    ref: item.customer_reference || undefined,
     status: mapApiStatus(item.status),
     vis: item.type === 'public' ? 'public' : 'private',
     origin: item.origin || '—',
     dest: item.dest || '—',
     via: item.via ?? null,
-    customer: [],
+    customer: item.customer_reference ? [{ name: item.customer_reference, orders: [] }] : [],
     bids: item.bids_count ?? 0,
     best_bid: null,
     bid_exp: item.type === 'public' ? '12h' : null,
@@ -101,6 +102,6 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
   return {
     ...base,
     driverNotes: detail.note || undefined,
-    stops: (detail.stops || []).map(mapStop),
+    stops: (detail.stops || []).map((stop, idx) => mapStop(stop, idx, detail.customer_reference)),
   };
 }
