@@ -9,6 +9,7 @@ import {
   ShipmentTable,
   StatusTabs,
 } from '../../components/ManageShipments';
+import { KpiStripSkeleton } from '../../components/skeletons/ManageShipmentsSkeleton';
 import { useManageShipments } from './hooks/useManageShipments';
 import '../../styles/manage.css';
 
@@ -19,10 +20,13 @@ export const ManageShipments: React.FC = () => {
     <div className="mgmt-page">
       <h1 className="pg-title">{m.t('shipmentsTitle') || 'Shipments'}</h1>
 
-      {m.loading && <div style={{ marginBottom: 12, color: 'var(--text-secondary)' }}>{m.t('loading')}</div>}
       {m.error && <div style={{ marginBottom: 12, color: 'var(--danger)' }}>{m.error}</div>}
 
-      <KpiStrip counts={m.kpiCounts} activeKpi={m.activeKpi} onKpiClick={m.setActiveKpi} t={m.t} />
+      {m.loading ? (
+        <KpiStripSkeleton />
+      ) : (
+        <KpiStrip counts={m.kpiCounts} activeKpi={m.activeKpi} onKpiClick={m.setActiveKpi} t={m.t} />
+      )}
 
       <SavedViewsBar activeView={m.activeView} onViewChange={m.handleViewChange} t={m.t} />
 
@@ -50,6 +54,7 @@ export const ManageShipments: React.FC = () => {
 
       <div className="tbl-wrap">
         <ShipmentTable
+          loading={m.loading}
           shipments={m.pagination.items}
           selectedIds={m.selectedIds}
           expandedId={m.expandedId}

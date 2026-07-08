@@ -2,10 +2,14 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Shipment } from '../../context/AppContext';
 import { statusBadgeClass } from '../../pages/ManageShipments/utils/listingUtils';
+import { ListSkeleton } from '../skeletons/ListSkeleton';
 import { RowExpansionPending } from './RowExpansionPending';
 import { RowExpansionStatus } from './RowExpansionStatus';
 
+const TABLE_COL_COUNT = 11;
+
 interface ShipmentTableProps {
+  loading?: boolean;
   shipments: Shipment[];
   selectedIds: Set<string>;
   expandedId: string | null;
@@ -20,6 +24,7 @@ interface ShipmentTableProps {
 }
 
 export const ShipmentTable: React.FC<ShipmentTableProps> = ({
+  loading = false,
   shipments,
   selectedIds,
   expandedId,
@@ -55,12 +60,14 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
         </tr>
       </thead>
       <tbody>
-        {shipments.length === 0 ? (
+        {shipments.length === 0 && !loading ? (
           <tr>
-            <td colSpan={11} style={{ textAlign: 'center', padding: '40px 14px', color: 'var(--text-tertiary)' }}>
+            <td colSpan={TABLE_COL_COUNT} style={{ textAlign: 'center', padding: '40px 14px', color: 'var(--text-tertiary)' }}>
               {t('noShipmentsFound')}
             </td>
           </tr>
+        ) : shipments.length === 0 && loading ? (
+          <ListSkeleton type="table" rowCount={8} columnCount={TABLE_COL_COUNT} />
         ) : (
           shipments.map((s) => {
             const isExpanded = expandedId === s.id;

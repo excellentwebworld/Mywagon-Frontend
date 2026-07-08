@@ -20,6 +20,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useShipment } from '../../hooks/useShipments';
+import { ShipmentDetailSkeleton } from '../../components/skeletons/ShipmentDetailSkeleton';
 import { buildShipmentDetailViewModel } from './detailViewModel';
 import '../../styles/load-details.css';
 
@@ -67,11 +68,7 @@ export const ShipmentDetail: React.FC = () => {
   );
 
   if (loading) {
-    return (
-      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>
-        {t('loading')}
-      </div>
-    );
+    return <ShipmentDetailSkeleton t={t} />;
   }
 
   if (!shipment || !vm) {
