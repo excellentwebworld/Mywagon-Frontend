@@ -1696,6 +1696,37 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   padding: 7px 10px;
 }
 
+/* Reusable TimePicker — whole field opens native time picker */
+.time-picker {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+.time-picker input[type='time'] {
+  position: relative;
+  width: 100%;
+  cursor: pointer;
+  color-scheme: light;
+}
+.time-picker input[type='time']::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.time-picker input[type='time']::-moz-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
 /* General input error styling */
 .inp.has-error {
   border-color: var(--danger, #EF4444) !important;

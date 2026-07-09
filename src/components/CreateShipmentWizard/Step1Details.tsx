@@ -10,6 +10,7 @@ import {
 
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { DatePicker, getTodayDateString } from '../ui/DatePicker';
+import { TimePicker } from '../ui/TimePicker';
 import { LocationSelect } from './LocationSelect';
 import { LocationPreviewOverlay } from './LocationPreviewOverlay';
 import { createNewStop, createNewCargoLine } from './types';
@@ -1141,17 +1142,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               hasError={isFieldInvalid(`stop-${idx}-date`, idx)}
                               direction="auto"
                             />
-                            <input
-                              type="time"
+                            <TimePicker
                               className={invalidFieldClass(`stop-${idx}-date`, idx)}
                               style={{ ...iS, width: 90 }}
                               value={stop.timeFrom}
-                              onChange={(e) => uStop(stop.id, { timeFrom: e.target.value })}
-                              onClick={(e) => {
-                                try {
-                                  e.currentTarget.showPicker();
-                                } catch {}
-                              }}
+                              onChange={(val) => uStop(stop.id, { timeFrom: val })}
                             />
                           </div>
                         </div>
@@ -1169,16 +1164,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               min={stop.dateFrom || todayStr}
                               direction="auto"
                             />
-                            <input
-                              type="time"
+                            <TimePicker
                               style={{ ...iS, width: 90 }}
                               value={stop.timeTo}
-                              onChange={(e) => uStop(stop.id, { timeTo: e.target.value })}
-                              onClick={(e) => {
-                                try {
-                                  e.currentTarget.showPicker();
-                                } catch {}
-                              }}
+                              onChange={(val) => uStop(stop.id, { timeTo: val })}
                             />
                           </div>
                         </div>
