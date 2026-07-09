@@ -42,6 +42,13 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
   }, [query]);
 
   useEffect(() => {
+    if (!open) {
+      setQuery('');
+      setDebouncedQuery('');
+    }
+  }, [open]);
+
+  useEffect(() => {
     if (!open) return;
     const onDocClick = (e: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
@@ -93,6 +100,8 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
         style={{ color: 'inherit', font: 'inherit' }}
         onClick={() => {
           onChange(String(loc.id));
+          setQuery('');
+          setDebouncedQuery('');
           setOpen(false);
         }}
       >
