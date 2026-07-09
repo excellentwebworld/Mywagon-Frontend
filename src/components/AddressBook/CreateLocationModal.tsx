@@ -4,6 +4,7 @@ import type { LocationItem } from '../../context/AppContext';
 import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import {
+  validateCreateAll,
   validateCreateStep1,
   validateCreateStep2,
   validateCreateStep3,
@@ -99,17 +100,35 @@ export const CreateLocationModal: React.FC<Props> = ({
     { value: 'delivery', label: 'Drop-off only' },
   ];
 
+  const showValidationErrors = (errors: CreateFieldErrors) => {
+    setFieldErrors(errors);
+    const firstKey = Object.keys(errors)[0];
+    if (firstKey === 'companyEntity' || firstKey === 'type') setCreateStep(1);
+    else if (['name', 'address', 'city', 'postal', 'role'].includes(firstKey ?? '')) setCreateStep(2);
+    else setCreateStep(3);
+
+    window.setTimeout(() => {
+      if (modalRef.current) scrollToFirstModalError(modalRef.current, '.ab-modal-body');
+    }, 50);
+  };
+
   const goNext = (from: number, to: number, validate: () => CreateFieldErrors) => {
     const errors = validate();
     if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
-      window.setTimeout(() => {
-        if (modalRef.current) scrollToFirstModalError(modalRef.current, '.ab-modal-body');
-      }, 50);
+      showValidationErrors(errors);
       return;
     }
     setFieldErrors({});
     setCreateStep(to);
+  };
+
+  const handleSubmit = () => {
+    const errors = validateCreateAll(createData);
+    if (Object.keys(errors).length > 0) {
+      showValidationErrors(errors);
+      return;
+    }
+    void submitNewLocation();
   };
 
   const selectContext = (context: 'my' | 'customer') => {
@@ -383,14 +402,14 @@ export const CreateLocationModal: React.FC<Props> = ({
       <div className="mf-grid">
         <div className={`mf${fieldErrors.maxTruck ? ' has-error' : ''}`}>
           <label>
-            {t('abMaxTruckLength')}
+            {t('abMaxTruckLength')} <span className="req">*</span>
           </label>
           <input type="text" placeholder="e.g. 18.75m" value={createData.maxTruck} onChange={(e) => update({ maxTruck: e.target.value })} />
           <FormFieldError message={fieldErrors.maxTruck} />
         </div>
         <div className={`mf${fieldErrors.maxWeight ? ' has-error' : ''}`}>
           <label>
-            {t('abMaxWeight')}
+            {t('abMaxWeight')} <span className="req">*</span>
           </label>
           <input type="text" placeholder="e.g. 40T" value={createData.maxWeight} onChange={(e) => update({ maxWeight: e.target.value })} />
           <FormFieldError message={fieldErrors.maxWeight} />
@@ -606,7 +625,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           <button type="button" className="btn btn-secondary" onClick={closeCreateModal}>
             {t('abCancel')}
           </button>
-          <button type="button" className="btn btn-primary" onClick={submitNewLocation} disabled={saving}>
+          <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={saving}>
             {saving ? t('abCreating') : t('abCreateLocationBtn')}
           </button>
         </div>
