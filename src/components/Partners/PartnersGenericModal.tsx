@@ -2,6 +2,7 @@ import React from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { FormFieldError } from '../AddressBook/FormFieldError';
+import { ScrollToFormError } from '../ui/ScrollToFormError';
 import type { PartnersState } from '../../pages/Partners/hooks/usePartners';
 
 type Props = Pick<
@@ -90,6 +91,7 @@ export const PartnersGenericModal: React.FC<Props> = ({
         return (
           <div className="modal-backdrop open" onClick={handleOverlayClick} id="generic-modal">
             <Form className="modal modal-lg ptn-gm-modal" noValidate>
+              <ScrollToFormError />
               <div className="modal-header">
                 <h2>{t('addLaneTitle')}</h2>
                 <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeGenericModal} aria-label="Close">

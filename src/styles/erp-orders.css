@@ -2860,6 +2860,13 @@ select.inp {
   transition: transform 0.2s ease;
   overflow: hidden;
 }
+.modal.modal-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 800px;
+  max-height: min(90vh, 900px);
+}
 .modal-bg.show .modal {
   transform: translateY(0);
 }
@@ -2892,6 +2899,9 @@ select.inp {
   color: var(--text-primary, #121217);
 }
 .modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   padding: 20px;
 }
 .modal-body .field {

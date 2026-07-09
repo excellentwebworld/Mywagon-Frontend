@@ -12,6 +12,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { EMPTY_NEW_SKU, type NewSkuForm } from '../../pages/ProductMaster/types';
 import { ToggleField } from '../AddressBook';
 import { FormFieldError } from '../AddressBook/FormFieldError';
+import { ScrollToFormError } from '../ui/ScrollToFormError';
 import { productMasterService } from '../../api/services/productMasterService';
 import { mapReferenceToProductTypes } from '../../api/mappers/productMasterMapper';
 import type { ApiReferenceCategory } from '../../api/types/productMaster';
@@ -114,6 +115,7 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
         return (
           <div className="modal-bg show pm-sku-modal" onClick={onClose}>
             <Form className="modal modal-lg" onClick={(e) => e.stopPropagation()} noValidate>
+              <ScrollToFormError />
               <div className="modal-h">
                 <h3>{modalTitle}</h3>
                 <button type="button" className="modal-close" onClick={onClose}>

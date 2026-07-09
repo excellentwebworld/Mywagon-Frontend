@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { LocationItem } from '../../context/AppContext';
 import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES } from '../../pages/AddressBook/constants';
@@ -11,6 +11,7 @@ import {
 } from '../../pages/AddressBook/validation/locationCreateValidation';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { FormFieldError } from './FormFieldError';
+import { scrollToFirstModalError } from '../ui/scrollToModalError';
 import { GoogleMapAddressField } from './GoogleMapAddressField';
 import { LocationMapPreview } from './LocationMapPreview';
 import { ModalStepper } from './ModalStepper';
@@ -54,6 +55,7 @@ export const CreateLocationModal: React.FC<Props> = ({
   t,
 }) => {
   const [fieldErrors, setFieldErrors] = useState<CreateFieldErrors>({});
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -101,6 +103,9 @@ export const CreateLocationModal: React.FC<Props> = ({
     const errors = validate();
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
+      window.setTimeout(() => {
+        if (modalRef.current) scrollToFirstModalError(modalRef.current, '.ab-modal-body');
+      }, 50);
       return;
     }
     setFieldErrors({});
@@ -611,7 +616,7 @@ export const CreateLocationModal: React.FC<Props> = ({
 
   return createPortal(
     <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && closeCreateModal()}>
-      <div className="modal modal-form" onClick={(e) => e.stopPropagation()}>
+      <div ref={modalRef} className="modal modal-form" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{t('abNewLocation')}</h2>
           <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeCreateModal}>

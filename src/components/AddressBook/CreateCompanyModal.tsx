@@ -7,6 +7,7 @@ import type { CompanyFormData } from '../../pages/AddressBook/types';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { GoogleMapAddressField } from './GoogleMapAddressField';
 import { FormFieldError } from './FormFieldError';
+import { ScrollToFormError } from '../ui/ScrollToFormError';
 import { ApiError } from '../../api';
 
 type Props = Pick<
@@ -119,13 +120,15 @@ export const CreateCompanyModal: React.FC<Props> = ({
         setFieldTouched,
         isSubmitting,
         status,
+        submitCount,
       }) => {
         const showError = (field: keyof CompanyFormData) =>
-          Boolean(touched[field] && errors[field]);
+          Boolean((touched[field] || submitCount > 0) && errors[field]);
 
         return (
           <div className="modal-backdrop open ab-company-backdrop" onClick={(e) => e.target === e.currentTarget && closeCompanyModal()}>
             <Form className="modal modal-lg ab-company-modal" onClick={(e) => e.stopPropagation()} noValidate>
+              <ScrollToFormError modalBodySelector=".ab-company-body" />
               <div className="modal-header">
                 <h2>Create New Company</h2>
                 <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeCompanyModal}>

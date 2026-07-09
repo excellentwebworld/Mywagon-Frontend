@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Form, Formik, type FormikHelpers } from 'formik';
 import type { LocationItem } from '../../context/AppContext';
@@ -24,6 +24,8 @@ import {
 } from '../../pages/AddressBook/validation/locationFormUtils';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { FormFieldError } from './FormFieldError';
+import { ScrollToFormError } from '../ui/ScrollToFormError';
+import { scrollToFirstModalError } from '../ui/scrollToModalError';
 import { GoogleMapAddressField } from './GoogleMapAddressField';
 import { LocationMapPreview } from './LocationMapPreview';
 import { EDIT_MODAL_STEPS, ModalStepper } from './ModalStepper';
@@ -67,6 +69,13 @@ export const EditLocationModal: React.FC<Props> = ({
   const [editStep, setEditStep] = useState(1);
   const [stepErrors, setStepErrors] = useState<EditStepErrors>({});
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const modalRef = useRef<HTMLFormElement>(null);
+
+  const scrollToStepError = () => {
+    window.setTimeout(() => {
+      if (modalRef.current) scrollToFirstModalError(modalRef.current, '.ab-modal-body');
+    }, 50);
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -151,6 +160,7 @@ export const EditLocationModal: React.FC<Props> = ({
           const validationErrors = await validateEditStep(editStep, values);
           if (Object.keys(validationErrors).length > 0) {
             setStepErrors(validationErrors);
+            scrollToStepError();
             return;
           }
 
@@ -165,10 +175,12 @@ export const EditLocationModal: React.FC<Props> = ({
                 );
                 if (isDuplicate) {
                   setStepErrors({ name: DUPLICATE_LOCATION_MESSAGE });
+                  scrollToStepError();
                   return;
                 }
               } catch {
                 setStepErrors({ name: 'Could not verify location name. Please try again.' });
+                scrollToStepError();
                 return;
               }
             }
@@ -735,7 +747,8 @@ export const EditLocationModal: React.FC<Props> = ({
 
         return createPortal(
           <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && closeEditModal()}>
-            <Form className="modal modal-form" noValidate onClick={(e) => e.stopPropagation()}>
+            <Form ref={modalRef} className="modal modal-form" noValidate onClick={(e) => e.stopPropagation()}>
+              <ScrollToFormError modalBodySelector=".ab-modal-body" />
               <div className="modal-header ab-modal-header-sticky">
                 <h2>Edit Location — {editData.name}</h2>
                 <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeEditModal}>

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Formik, Form, useFormikContext } from 'formik';
+import { ScrollToFormError } from '../ui/ScrollToFormError';
 import * as Yup from 'yup';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { DatePicker, getTodayDateString } from '../ui/DatePicker';
@@ -37,29 +38,6 @@ const FormikStateSync: React.FC<{
   useEffect(() => {
     setForm(values);
   }, [values, setForm]);
-  return null;
-};
-
-// ScrollToError automatically scrolls the first validation error message/field into view.
-const ScrollToError: React.FC = () => {
-  const { errors, submitCount, isValidating } = useFormikContext<ErpOrderFormState>();
-
-  useEffect(() => {
-    if (submitCount > 0 && !isValidating && Object.keys(errors).length > 0) {
-      const timer = setTimeout(() => {
-        const errorEl = document.querySelector('.modal-body .has-error, .modal-body .field-error');
-        if (errorEl) {
-          errorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          const focusable = errorEl.tagName === 'INPUT' || errorEl.tagName === 'TEXTAREA' || errorEl.tagName === 'SELECT'
-            ? errorEl as HTMLElement
-            : errorEl.querySelector<HTMLElement>('input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled])');
-          focusable?.focus({ preventScroll: true });
-        }
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [submitCount, isValidating, errors]);
-
   return null;
 };
 
@@ -174,7 +152,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
           return (
             <Form className="modal modal-form" noValidate>
               <FormikStateSync setForm={setForm} />
-              <ScrollToError />
+              <ScrollToFormError />
 
               <div className="modal-hd">
                 <span>{isEdit ? t('erpOrdersEditOrder') : t('erpOrdersCreateOrder')}</span>
