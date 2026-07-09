@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Contact } from '../../context/AppContext';
 import { CONTACT_ROLES } from '../../pages/AddressBook/constants';
+import { sanitizePhoneInput } from '../../pages/AddressBook/validation/phoneValidation';
 
 interface ContactFormListProps {
   contacts: Contact[];
@@ -48,7 +49,13 @@ export const ContactFormList: React.FC<ContactFormListProps> = ({ contacts, onCh
             </div>
             <div className="mf">
               <label>Phone</label>
-              <input type="text" value={contact.phone} onChange={(e) => updateContact(i, 'phone', e.target.value)} />
+              <input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                value={contact.phone}
+                onChange={(e) => updateContact(i, 'phone', sanitizePhoneInput(e.target.value))}
+              />
             </div>
             <div className="mf">
               <label>Email</label>

@@ -4,6 +4,7 @@ import { Form, Formik, type FormikHelpers } from 'formik';
 import * as Yup from 'yup';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import type { CompanyFormData } from '../../pages/AddressBook/types';
+import { requiredPhoneSchema, sanitizePhoneInput } from '../../pages/AddressBook/validation/phoneValidation';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { GoogleMapAddressField } from './GoogleMapAddressField';
 import { FormFieldError } from './FormFieldError';
@@ -31,7 +32,7 @@ const companyValidationSchema = Yup.object().shape({
   name: Yup.string().trim().required('Company name is required.'),
   email: Yup.string().trim().email('Enter a valid email address.').required('Email is required.'),
   vat: Yup.string().trim().required('VAT number is required.'),
-  phone: Yup.string().trim().required('Phone is required.'),
+  phone: requiredPhoneSchema(),
   address: Yup.string().trim().required('Address is required.'),
   country: Yup.string().trim().required('Country is required. Please select an address suggestion.'),
   website: Yup.string().trim().required('Website is required.'),
@@ -199,10 +200,12 @@ export const CreateCompanyModal: React.FC<Props> = ({
                   <input
                     id="company-phone"
                     name="phone"
-                    type="text"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
                     placeholder="+30 210 ..."
                     value={values.phone}
-                    onChange={handleChange}
+                    onChange={(e) => setFieldValue('phone', sanitizePhoneInput(e.target.value))}
                     onBlur={handleBlur}
                   />
                   <FormFieldError message={showError('phone') ? errors.phone : undefined} />

@@ -3,6 +3,7 @@ import { DOCK_TYPES, FACILITY_TYPES } from '../constants';
 import { DUPLICATE_LOCATION_MESSAGE } from './locationDuplicateValidation';
 import { areTimeRangesValid } from './timeRangeValidation';
 import { coerceFormString } from './locationFormCoerce';
+import { optionalPhoneSchema } from './phoneValidation';
 
 const facilityValues = [...FACILITY_TYPES];
 
@@ -24,7 +25,7 @@ function validateTimeRanges(
 const contactSchema = Yup.object({
   name: Yup.string().trim().max(255),
   role: Yup.string().max(100),
-  phone: Yup.string().max(20),
+  phone: optionalPhoneSchema().max(20),
   email: Yup.string().email('Enter a valid contact email').max(50).nullable().transform((v) => v || ''),
 }).test('contact-name-required', 'Contact name is required', (value) => {
   if (!value) return true;
@@ -53,7 +54,7 @@ export const locationEditValidationSchema = Yup.object({
   lng: Yup.string()
     .required('Longitude is required')
     .test('valid-lng', 'Enter a valid longitude between -180 and 180', (v) => isValidCoordinate(v, -180, 180)),
-  phone: Yup.string().max(255),
+  phone: optionalPhoneSchema().max(255),
   email: Yup.string().email('Enter a valid email address').max(255).nullable().transform((v) => v || ''),
   role: Yup.string().oneOf(['both', 'pickup', 'delivery'], 'Select a valid role').required('Role is required'),
   type: Yup.string()
