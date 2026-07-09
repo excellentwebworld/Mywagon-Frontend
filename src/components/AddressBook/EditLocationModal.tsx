@@ -196,7 +196,10 @@ export const EditLocationModal: React.FC<Props> = ({
           clearStepErrors();
         };
 
-        const reviewValue = (value: string | undefined | null) => (value?.trim() ? value.trim() : '—');
+        const reviewValue = (value: any) => {
+          const str = String(value ?? '').trim();
+          return str ? str : '—';
+        };
 
         const roleLabel =
           ROLE_OPTIONS.find((r) => r.value === values.role)?.label ?? values.role ?? '—';
@@ -210,7 +213,8 @@ export const EditLocationModal: React.FC<Props> = ({
             ? values.timeRanges.map((tr) => `${tr.start_time} – ${tr.end_time}`).join(', ')
             : '—';
 
-        const loadTimeLabel = values.loadTime?.trim() ? `${values.loadTime.trim()} min` : '—';
+        const loadTimeStr = String(values.loadTime ?? '').trim();
+        const loadTimeLabel = loadTimeStr ? `${loadTimeStr} min` : '—';
 
         const renderStep1 = () => (
           <>

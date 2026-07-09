@@ -420,7 +420,10 @@ export const CreateLocationModal: React.FC<Props> = ({
   const roleLabel =
     roleOptions.find((r) => r.value === createData.role)?.label ?? createData.role ?? '—';
 
-  const reviewValue = (value: string | undefined | null) => (value?.trim() ? value.trim() : '—');
+  const reviewValue = (value: any) => {
+    const str = String(value ?? '').trim();
+    return str ? str : '—';
+  };
 
   const renderStep4 = () => {
     const contextLabel =
@@ -428,7 +431,7 @@ export const CreateLocationModal: React.FC<Props> = ({
         ? t('abMyCompany')
         : reviewValue(createData.company) === '—'
           ? t('abCustomerLocation')
-          : createData.company.trim();
+          : String(createData.company ?? '').trim();
 
     const locationAddress =
       [createData.address, createData.city, createData.postal, createData.region].filter(Boolean).join(', ') ||
@@ -439,7 +442,8 @@ export const CreateLocationModal: React.FC<Props> = ({
         ? createData.timeRanges.map((tr) => `${tr.start_time} – ${tr.end_time}`).join(', ')
         : '—';
 
-    const loadTimeLabel = createData.loadTime?.trim() ? `${createData.loadTime.trim()} min` : '—';
+    const loadTimeStr = String(createData.loadTime ?? '').trim();
+    const loadTimeLabel = loadTimeStr ? `${loadTimeStr} min` : '—';
 
     return (
       <>

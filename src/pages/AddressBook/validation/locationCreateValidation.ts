@@ -3,17 +3,18 @@ import { validateTimeRangesList } from './timeRangeValidation';
 
 export type CreateFieldErrors = Partial<Record<string, string>>;
 
-function isValidCoordinate(value: string | undefined, min: number, max: number): boolean {
-  if (!value?.trim()) return false;
-  const n = parseFloat(value);
+function isValidCoordinate(value: string | number | undefined, min: number, max: number): boolean {
+  const str = String(value ?? '').trim();
+  if (!str) return false;
+  const n = parseFloat(str);
   return Number.isFinite(n) && n >= min && n <= max;
 }
 
 export function validateCreateStep1(data: CreateLocationData): CreateFieldErrors {
   const errors: CreateFieldErrors = {};
-  if (!data.type?.trim()) errors.type = 'Location type is required';
+  if (!String(data.type ?? '').trim()) errors.type = 'Location type is required';
   if (data.context === 'customer') {
-    if (!data.companyEntityId && !data.company?.trim()) {
+    if (!data.companyEntityId && !String(data.company ?? '').trim()) {
       errors.companyEntity = 'Company / entity is required';
     }
   }
@@ -22,9 +23,9 @@ export function validateCreateStep1(data: CreateLocationData): CreateFieldErrors
 
 export function validateCreateStep2(data: CreateLocationData): CreateFieldErrors {
   const errors: CreateFieldErrors = {};
-  if (!data.name?.trim()) errors.name = 'Location name is required';
-  if (!data.address?.trim()) errors.address = 'Address is required';
-  if (!data.city?.trim()) errors.city = 'City is required';
+  if (!String(data.name ?? '').trim()) errors.name = 'Location name is required';
+  if (!String(data.address ?? '').trim()) errors.address = 'Address is required';
+  if (!String(data.city ?? '').trim()) errors.city = 'City is required';
   if (!isValidCoordinate(data.lat, -90, 90)) errors.address = errors.address ?? 'Select a valid address from suggestions';
   if (!isValidCoordinate(data.lng, -180, 180)) errors.address = errors.address ?? 'Select a valid address from suggestions';
   if (!data.role) errors.role = 'Location role is required';
@@ -33,8 +34,8 @@ export function validateCreateStep2(data: CreateLocationData): CreateFieldErrors
 
 export function validateCreateStep3(data: CreateLocationData): CreateFieldErrors {
   const errors: CreateFieldErrors = {};
-  if (!data.dock?.trim()) errors.dock = 'Dock type is required';
-  if (!data.loadTime?.trim()) errors.loadTime = 'Estimated loading/unloading time is required';
+  if (!String(data.dock ?? '').trim()) errors.dock = 'Dock type is required';
+  if (!String(data.loadTime ?? '').trim()) errors.loadTime = 'Estimated loading/unloading time is required';
   if (data.appt) {
     const timeRangeError = validateTimeRangesList(data.timeRanges);
     if (timeRangeError) errors.timeRanges = timeRangeError;

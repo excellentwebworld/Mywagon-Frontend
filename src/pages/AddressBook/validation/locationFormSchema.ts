@@ -5,9 +5,10 @@ import { areTimeRangesValid } from './timeRangeValidation';
 
 const facilityValues = [...FACILITY_TYPES];
 
-function isValidCoordinate(value: string | undefined, min: number, max: number): boolean {
-  if (value === undefined || value.trim() === '') return false;
-  const n = parseFloat(value);
+function isValidCoordinate(value: any, min: number, max: number): boolean {
+  const str = String(value ?? '').trim();
+  if (!str) return false;
+  const n = parseFloat(str);
   return Number.isFinite(n) && n >= min && n <= max;
 }
 
