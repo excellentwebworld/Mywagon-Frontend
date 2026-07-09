@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 
 type Props = {
   value: string;
@@ -9,6 +9,23 @@ type Props = {
   disabled?: boolean;
 };
 
+const COMPLETE_TIME = /^\d{2}:\d{2}$/;
+
+function closePicker(input: HTMLInputElement) {
+  requestAnimationFrame(() => {
+    const pickerInput = input as HTMLInputElement & { hidePicker?: () => void };
+    if (typeof pickerInput.hidePicker === 'function') {
+      try {
+        pickerInput.hidePicker();
+        return;
+      } catch {
+        // fall through to blur
+      }
+    }
+    input.blur();
+  });
+}
+
 export const TimePicker: React.FC<Props> = ({
   value,
   onChange,
@@ -18,6 +35,33 @@ export const TimePicker: React.FC<Props> = ({
   disabled = false,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
+
+  const scheduleClose = useCallback((input: HTMLInputElement) => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => {
+      if (COMPLETE_TIME.test(input.value)) closePicker(input);
+    }, 400);
+  }, []);
+
+  const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    onChange(input.value);
+    if (COMPLETE_TIME.test(input.value)) scheduleClose(input);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    onChange(input.value);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    if (COMPLETE_TIME.test(input.value)) closePicker(input);
+  };
 
   const openPicker = (e: React.PointerEvent<HTMLInputElement>) => {
     if (disabled) return;
@@ -45,7 +89,8 @@ export const TimePicker: React.FC<Props> = ({
         style={style}
         value={value}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
+        onInput={handleInput}
+        onChange={handleChange}
         onPointerDown={openPicker}
       />
       <span className="time-picker-icon" aria-hidden="true">
