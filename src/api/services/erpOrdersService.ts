@@ -15,7 +15,6 @@ import type {
   ApiErpOrderSummary,
   ApiErpOrdersImportResult,
   ErpOrderFormPayload,
-  LinkProductPayload,
   ListErpOrdersParams,
   PaginatedErpOrdersResult,
 } from '../types/erpOrders';
@@ -113,11 +112,6 @@ export const erpOrdersService = {
 
   async updateOrder(id: string, form: ErpOrderFormPayload): Promise<ErpOrder> {
     const res = await apiPut<ApiErpOrderDetail>(`/erp-orders/${id}`, formToPayload(form));
-    return mapApiDetailToOrder(res.data);
-  },
-
-  async linkProduct(id: string, payload: LinkProductPayload): Promise<ErpOrder> {
-    const res = await apiPost<ApiErpOrderDetail>(`/erp-orders/${id}/link-product`, payload);
     return mapApiDetailToOrder(res.data);
   },
 

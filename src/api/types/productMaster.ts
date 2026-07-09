@@ -50,6 +50,18 @@ export interface ApiSkuListItem {
   shipments_30: number;
   shipments_90: number;
   shipments_total: number;
+  linked_order_line?: ApiLinkedOrderLine | null;
+}
+
+export interface ApiLinkedOrderLine {
+  id: number;
+  erp_order_id: number;
+  product_sku_id: number;
+  product_name: string;
+  quantity?: number | null;
+  unit?: string | null;
+  weight?: number | null;
+  weight_unit?: string | null;
 }
 
 export interface ApiSkuDetail extends ApiSkuListItem {}
@@ -104,6 +116,24 @@ export interface StoreSkuPayload {
   hazardous?: boolean;
   stackable?: boolean;
   tags?: string;
+  erp_order_id?: number;
+  order_line_id?: number;
+}
+
+export interface CreateSkuOrderContext {
+  erpOrderId?: string;
+  orderLineId?: string;
+}
+
+export interface LinkedOrderLine {
+  id: string;
+  erpOrderId: string;
+  productSkuId: string;
+  productName: string;
+  quantity: number | null;
+  unit: string | null;
+  weight: number | null;
+  weightUnit: string | null;
 }
 
 export interface AiMappedProduct {

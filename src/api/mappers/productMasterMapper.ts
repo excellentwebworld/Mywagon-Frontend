@@ -5,6 +5,9 @@ import type {
   ApiSkuDetail,
   ApiSkuListItem,
   ApiTypeGridItem,
+  ApiLinkedOrderLine,
+  CreateSkuOrderContext,
+  LinkedOrderLine,
   ListSkusParams,
   StoreSkuPayload,
 } from '../types/productMaster';
@@ -162,8 +165,35 @@ export function facetToListParams(
   return params;
 }
 
-export function newSkuFormToPayload(form: NewSkuForm): StoreSkuPayload {
+export function mapApiLinkedOrderLine(line: ApiLinkedOrderLine): LinkedOrderLine {
   return {
+    id: String(line.id),
+    erpOrderId: String(line.erp_order_id),
+    productSkuId: String(line.product_sku_id),
+    productName: line.product_name,
+    quantity: line.quantity ?? null,
+    unit: line.unit ?? null,
+    weight: line.weight ?? null,
+    weightUnit: line.weight_unit ?? null,
+  };
+}
+
+export function mapApiSkuDetailToCreatedSku(item: ApiSkuDetail): SKU & { linkedOrderLine?: LinkedOrderLine } {
+  const sku = mapApiSkuToSku(item);
+  if (!item.linked_order_line) {
+    return sku;
+  }
+  return {
+    ...sku,
+    linkedOrderLine: mapApiLinkedOrderLine(item.linked_order_line),
+  };
+}
+
+export function newSkuFormToPayload(
+  form: NewSkuForm,
+  orderContext?: CreateSkuOrderContext
+): StoreSkuPayload {
+  const payload: StoreSkuPayload = {
     category_id: parseInt(form.catId, 10),
     type_id: parseInt(form.typeId, 10),
     sku_name: form.name.trim(),
@@ -177,4 +207,13 @@ export function newSkuFormToPayload(form: NewSkuForm): StoreSkuPayload {
     stackable: form.stackable,
     tags: form.tags || undefined,
   };
+
+  if (orderContext?.erpOrderId) {
+    payload.erp_order_id = parseInt(orderContext.erpOrderId, 10);
+    if (orderContext.orderLineId) {
+      payload.order_line_id = parseInt(orderContext.orderLineId, 10);
+    }
+  }
+
+  return payload;
 }

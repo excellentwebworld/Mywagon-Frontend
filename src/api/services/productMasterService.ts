@@ -2,6 +2,7 @@ import { apiGet, apiPost, apiPut, ApiError, AUTH_TOKEN_KEY } from '../client';
 import {
   facetToListParams,
   mapApiSkuToSku,
+  mapApiSkuDetailToCreatedSku,
   mapReferenceToCategories,
   mapReferenceToProductTypes,
   mapTypeGridToProductTypes,
@@ -19,8 +20,12 @@ import type {
   ApiReferenceCategory,
   ApiSkuDetail,
   ApiTypeGridItem,
+  CreateSkuOrderContext,
+  LinkedOrderLine,
   ListSkusParams,
 } from '../types/productMaster';
+
+export type CreatedSku = SKU & { linkedOrderLine?: LinkedOrderLine };
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
@@ -68,9 +73,9 @@ export const productMasterService = {
     return mapApiSkuToSku(res.data);
   },
 
-  async createSku(form: NewSkuForm): Promise<SKU> {
-    const res = await apiPost<ApiSkuDetail>('/product-master/skus', newSkuFormToPayload(form));
-    return mapApiSkuToSku(res.data);
+  async createSku(form: NewSkuForm, orderContext?: CreateSkuOrderContext): Promise<CreatedSku> {
+    const res = await apiPost<ApiSkuDetail>('/product-master/skus', newSkuFormToPayload(form, orderContext));
+    return mapApiSkuDetailToCreatedSku(res.data);
   },
 
   async updateSku(id: string, form: NewSkuForm): Promise<SKU> {

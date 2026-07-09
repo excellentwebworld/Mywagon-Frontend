@@ -832,7 +832,25 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     async (values: any) => {
       try {
         setSkuSaving(true);
-        const created = await productMasterService.createSku(values);
+
+        const cargoLine =
+          pCtx.pS && pCtx.pL
+            ? stops
+                .find((s: any) => s.id === pCtx.pS)
+                ?.lines?.find((l: any) => l.id === pCtx.pL)
+            : undefined;
+
+        const orderContext = cargoLine?.orderId
+          ? {
+              erpOrderId: cargoLine.orderId,
+              orderLineId: cargoLine.orderLineId || undefined,
+            }
+          : undefined;
+
+        const created = await productMasterService.createSku(
+          values,
+          orderContext,
+        );
         await refreshSkusFromApi(true);
 
         if (
@@ -855,43 +873,42 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
             orderFormTarget: null,
             orderFormLineIndex: null,
           }));
-        } else if (pCtx.pS && pCtx.pL) {
+        } else if (pCtx.pS && pCtx.pL && cargoLine) {
           const sid = pCtx.pS;
           const lid = pCtx.pL;
-          const line = stops
-            .find((s: any) => s.id === sid)
-            ?.lines?.find((l: any) => l.id === lid);
+          const linkedLine = created.linkedOrderLine;
 
-          // If the created product happens to map onto an existing order line, pull
-          // its quantity/weight; otherwise just auto-select the new product.
-          let orderLine = null;
-          if (line?.orderId) {
-            const refreshed = await fetchOrderDetail(line.orderId);
+          if (cargoLine.orderId) {
+            const refreshed = await fetchOrderDetail(cargoLine.orderId, {
+              force: true,
+            });
             if (refreshed) {
+              addOrder(refreshed);
               setOrderDetailsById((prev) => ({
                 ...prev,
-                [line.orderId]: refreshed,
+                [cargoLine.orderId]: refreshed,
               }));
-              orderLine = findOrderLineForProduct(
-                refreshed,
-                String(created.id),
-              );
             }
           }
 
           setLF(sid, lid, {
+            orderLineId: linkedLine
+              ? linkedLine.id
+              : cargoLine.orderLineId || "",
             productId: String(created.id),
-            productName: orderLine?.productName || created.name,
+            productName: linkedLine?.productName || created.name,
             qty:
-              orderLine?.quantity != null
-                ? String(orderLine.quantity)
-                : line?.qty || "",
-            unit: orderLine?.unit || line?.unit || "EUR Pallets",
+              linkedLine?.quantity != null
+                ? String(linkedLine.quantity)
+                : cargoLine.qty || "",
+            unit: linkedLine?.unit || cargoLine.unit || "EUR Pallets",
             weight:
-              orderLine?.weight != null
-                ? String(orderLine.weight)
-                : line?.weight || "",
-            wtUnit: normalizeWeightUnit(orderLine?.weightUnit || line?.wtUnit),
+              linkedLine?.weight != null
+                ? String(linkedLine.weight)
+                : cargoLine.weight || "",
+            wtUnit: normalizeWeightUnit(
+              linkedLine?.weightUnit || cargoLine.wtUnit,
+            ),
           });
           setPCtx((p: any) => ({ ...p, pS: null, pL: null }));
         }
@@ -909,7 +926,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         setSkuSaving(false);
       }
     },
-    [fetchOrderDetail, pCtx, refreshSkusFromApi, setLF, showToast, stops, t],
+    [addOrder, fetchOrderDetail, pCtx, refreshSkusFromApi, setLF, showToast, stops, t],
   );
 
   const previewLocation = useCallback(
