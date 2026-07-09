@@ -24,17 +24,8 @@ import { buildOrdersCardData, groupStopLinesByCustomer } from './itinerary/stopG
 import { formatAppointmentLabel } from './itinerary/scheduleWarnings';
 import { computeItineraryFingerprint } from './itineraryFingerprint';
 import { hasVehicleSelection } from './vehicleTypes';
-import { scrollToValidationAnchor } from './validation';
+import { scrollToStep2Validation } from './validation';
 import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
-
-function scrollToStep2Validation(anchor: string) {
-  window.requestAnimationFrame(() => {
-    scrollToValidationAnchor(anchor, {
-      focus: false,
-      highlightClass: 'wizard-validation-flash',
-    });
-  });
-}
 
 const T = {
   sf: 'var(--surface)',

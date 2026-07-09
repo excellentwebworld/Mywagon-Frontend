@@ -9,6 +9,7 @@ import {
   iconKeyFromVehicleName,
   type WizardVehicleType,
 } from './vehicleTypes';
+import { scrollToStep2Validation } from './validation';
 
 function VehicleIcon({ formKey, name, image }: { formKey: string; name: string; image?: string | null }) {
   if (image) {
@@ -147,7 +148,14 @@ export const VehicleSelector: React.FC = () => {
     setOpenCategories((prev) => ({ ...prev, [`${vt.formKey}-${categoryId}`]: true }));
   };
 
+  const canConfirm = summary.types.length > 0;
+
   const confirmSelection = () => {
+    if (!canConfirm) {
+      scrollToStep2Validation('step2-vehicle-required');
+      return;
+    }
+
     setFieldValue('vehicleSelectionConfirmed', true);
     setCardExpanded(false);
   };
@@ -337,12 +345,15 @@ export const VehicleSelector: React.FC = () => {
               <div className="veh-confirm">
                 <button
                   type="button"
-                  className="btn btn-p btn-sm inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer text-white border-none"
+                  style={{
+                    background: canConfirm ? 'var(--accent)' : 'var(--border-focus)',
+                    fontFamily: 'inherit',
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     confirmSelection();
                   }}
-                  disabled={summary.types.length === 0}
                 >
                   <Check size={14} />
                   {t('confirmSelection')}

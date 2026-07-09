@@ -137,6 +137,15 @@ export function getStopDoneBlockers(blockers: Conflict[], stopIndex: number): Co
   );
 }
 
+export function scrollToStep2Validation(anchor: string): void {
+  window.requestAnimationFrame(() => {
+    scrollToValidationAnchor(anchor, {
+      focus: false,
+      highlightClass: 'wizard-validation-flash',
+    });
+  });
+}
+
 export function scrollToValidationAnchor(
   anchor: string,
   options?: { focus?: boolean; highlightClass?: string }
