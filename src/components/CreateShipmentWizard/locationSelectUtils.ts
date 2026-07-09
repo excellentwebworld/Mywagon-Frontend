@@ -1,22 +1,14 @@
 import type { LocationItem } from '../../context/AppContext';
+import { getLocationSearchFields, matchesLocationSearchQuery } from '../../utils/locationSearchUtils';
 
 export type LocationTab = 'my' | 'customer';
 
 export function filterLocations(locations: LocationItem[], query: string, tab: LocationTab): LocationItem[] {
-  const normalizedQuery = query.trim().toLowerCase();
-
   return locations.filter((loc) => {
     if (tab === 'my' && loc.group !== 'my') return false;
     if (tab === 'customer' && loc.group !== 'customer') return false;
 
-    if (!normalizedQuery) return true;
-
-    const haystack = [loc.name, loc.company, loc.address, loc.city]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
-
-    return haystack.includes(normalizedQuery);
+    return matchesLocationSearchQuery(getLocationSearchFields(loc), query);
   });
 }
 

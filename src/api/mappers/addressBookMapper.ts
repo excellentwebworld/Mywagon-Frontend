@@ -72,6 +72,7 @@ export function mapListItemToLocation(item: ApiLocationListItem): LocationItem {
     custCode: '',
     phone: item.phone ?? '',
     email: item.email ?? '',
+    postalCode: item.postal_code ?? '',
     lastUsed: 'Never',
     usageHistoryCount: item.usage_history_count ?? 0,
     shipments30: 0,

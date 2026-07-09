@@ -1,5 +1,6 @@
 import type { ApiAddressBookSummary } from '../../../api/types/addressBook';
 import type { LocationItem } from '../../../context/AppContext';
+import { getLocationSearchFields, matchesLocationSearchQuery } from '../../../utils/locationSearchUtils';
 import { EMPTY_CREATE_DATA, type AddressBookSortField, type CreateLocationData, type DirectoryItem, type FilterKey } from '../types';
 
 export function getNodeCountFromSummary(
@@ -49,18 +50,11 @@ export function filterLocations(
     })
     .filter((l) => {
       if (!searchQuery) return true;
-      const q = searchQuery.toLowerCase();
       const contactStrings = l.contacts.map((c) => `${c.name} ${c.phone} ${c.email}`).join(' ');
       return (
-        l.name.toLowerCase().includes(q) ||
-        l.company.toLowerCase().includes(q) ||
-        l.city.toLowerCase().includes(q) ||
-        l.region.toLowerCase().includes(q) ||
-        l.address.toLowerCase().includes(q) ||
-        (l.code && l.code.toLowerCase().includes(q)) ||
-        (l.custCode && l.custCode.toLowerCase().includes(q)) ||
-        l.tags.some((tag) => tag.toLowerCase().includes(q)) ||
-        contactStrings.toLowerCase().includes(q)
+        matchesLocationSearchQuery(getLocationSearchFields(l), searchQuery) ||
+        matchesLocationSearchQuery([contactStrings], searchQuery) ||
+        l.tags.some((tag) => matchesLocationSearchQuery([tag], searchQuery))
       );
     })
     .filter((l) => {
