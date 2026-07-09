@@ -84,7 +84,13 @@ export const CreateLocationModal: React.FC<Props> = ({
 
   const update = (patch: Partial<typeof createData>) => {
     setCreateData({ ...createData, ...patch });
-    setFieldErrors({});
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(patch)) {
+        delete next[key];
+      }
+      return next;
+    });
   };
 
   const facilityOptions = FACILITY_TYPES.map((type) => ({
@@ -100,22 +106,26 @@ export const CreateLocationModal: React.FC<Props> = ({
     { value: 'delivery', label: 'Drop-off only' },
   ];
 
+  const scrollToErrors = () => {
+    window.setTimeout(() => {
+      if (modalRef.current) scrollToFirstModalError(modalRef.current, '.ab-modal-body');
+    }, 50);
+  };
+
   const showValidationErrors = (errors: CreateFieldErrors) => {
     setFieldErrors(errors);
     const firstKey = Object.keys(errors)[0];
     if (firstKey === 'companyEntity' || firstKey === 'type') setCreateStep(1);
     else if (['name', 'address', 'city', 'postal', 'role'].includes(firstKey ?? '')) setCreateStep(2);
     else setCreateStep(3);
-
-    window.setTimeout(() => {
-      if (modalRef.current) scrollToFirstModalError(modalRef.current, '.ab-modal-body');
-    }, 50);
+    scrollToErrors();
   };
 
-  const goNext = (from: number, to: number, validate: () => CreateFieldErrors) => {
+  const goNext = (to: number, validate: () => CreateFieldErrors) => {
     const errors = validate();
     if (Object.keys(errors).length > 0) {
-      showValidationErrors(errors);
+      setFieldErrors(errors);
+      scrollToErrors();
       return;
     }
     setFieldErrors({});
@@ -586,7 +596,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           <button type="button" className="btn btn-secondary" onClick={closeCreateModal}>
             {t('abCancel')}
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => goNext(1, 2, () => validateCreateStep1(createData))}>
+          <button type="button" className="btn btn-primary" onClick={() => goNext(2, () => validateCreateStep1(createData))}>
             {t('abNext')}
           </button>
         </>
@@ -598,7 +608,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           <button type="button" className="btn btn-secondary" onClick={() => setCreateStep(1)}>
             {t('abBack')}
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => goNext(2, 3, () => validateCreateStep2(createData))}>
+          <button type="button" className="btn btn-primary" onClick={() => goNext(3, () => validateCreateStep2(createData))}>
             {t('abNext')}
           </button>
         </>
@@ -610,7 +620,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           <button type="button" className="btn btn-secondary" onClick={() => setCreateStep(2)}>
             {t('abBack')}
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => goNext(3, 4, () => validateCreateStep3(createData))}>
+          <button type="button" className="btn btn-primary" onClick={() => goNext(4, () => validateCreateStep3(createData))}>
             {t('abReview')}
           </button>
         </>
