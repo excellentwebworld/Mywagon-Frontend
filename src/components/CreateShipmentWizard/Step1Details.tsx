@@ -1147,6 +1147,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               style={{ ...iS, width: 90 }}
                               value={stop.timeFrom}
                               onChange={(e) => uStop(stop.id, { timeFrom: e.target.value })}
+                              onClick={(e) => {
+                                try {
+                                  e.currentTarget.showPicker();
+                                } catch {}
+                              }}
                             />
                           </div>
                         </div>
@@ -1169,6 +1174,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               style={{ ...iS, width: 90 }}
                               value={stop.timeTo}
                               onChange={(e) => uStop(stop.id, { timeTo: e.target.value })}
+                              onClick={(e) => {
+                                try {
+                                  e.currentTarget.showPicker();
+                                } catch {}
+                              }}
                             />
                           </div>
                         </div>
