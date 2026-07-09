@@ -1,43 +1,83 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { useFormikContext } from 'formik';
-import { useApp, type LocationItem } from '../../context/AppContext';
-import { useTranslation } from '../../hooks/useTranslation';
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
+import { useFormikContext } from "formik";
+import { useApp, type LocationItem } from "../../context/AppContext";
+import { useTranslation } from "../../hooks/useTranslation";
 import {
-  MapPin, ChevronDown, ChevronRight, X, Plus, Save, ArrowRight,
-  ArrowDown, ArrowUp, FileText, Check, Trash2, Eye, Copy, Phone,
-  AlertTriangle, GripVertical,
-} from 'lucide-react';
+  MapPin,
+  ChevronDown,
+  ChevronRight,
+  X,
+  Plus,
+  Save,
+  ArrowRight,
+  ArrowDown,
+  ArrowUp,
+  FileText,
+  Check,
+  Trash2,
+  Eye,
+  Copy,
+  Phone,
+  AlertTriangle,
+  GripVertical,
+} from "lucide-react";
 
-import { SearchableSelect } from '../ui/SearchableSelect';
-import { DatePicker, getTodayDateString } from '../ui/DatePicker';
-import { TimePicker } from '../ui/TimePicker';
-import { LocationSelect } from './LocationSelect';
-import { LocationPreviewOverlay } from './LocationPreviewOverlay';
-import { createNewStop, createNewCargoLine } from './types';
+import { SearchableSelect } from "../ui/SearchableSelect";
+import { DatePicker, getTodayDateString } from "../ui/DatePicker";
+import { TimePicker } from "../ui/TimePicker";
+import { LocationSelect } from "./LocationSelect";
+import { LocationPreviewOverlay } from "./LocationPreviewOverlay";
+import { createNewStop, createNewCargoLine } from "./types";
 import {
   useCreateShipmentOrders,
   findOrderLineForProduct,
   getProductOptionsForCargoLine,
   countUnmappedOrderLines,
-} from '../../hooks/useCreateShipmentOrders';
-import { ConfirmationModal } from '../ui/ConfirmationModal';
-import { CreateLocationModal } from '../AddressBook/CreateLocationModal';
-import { CreateCompanyModal } from '../AddressBook/CreateCompanyModal';
-import { ProductMasterSkuModal } from '../ProductMaster/ProductMasterSkuModal';
-import { CreateEditOrderModal } from '../ErpOrders';
-import { useQueryClient } from '@tanstack/react-query';
-import { productMasterService, addressBookService, erpOrdersService, ApiError, getApiErrorMessage } from '../../api';
-import { EMPTY_ORDER_FORM } from '../../pages/ErpOrders/types';
-import type { ErpOrderFormState } from '../../pages/ErpOrders/types';
-import type { ApiErpOrderCustomer } from '../../api/types/erpOrders';
-import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from '../../pages/AddressBook/validation/locationDuplicateValidation';
-import { validateCreateAll } from '../../pages/AddressBook/validation/locationCreateValidation';
-import { applyTemplate as applyAddressTemplate } from '../../pages/AddressBook/utils/locationUtils';
-import { EMPTY_CREATE_DATA, EMPTY_COMPANY_DATA } from '../../pages/AddressBook/types';
-import type { CreateLocationData, CompanyFormData } from '../../pages/AddressBook/types';
-import type { ApiCompanyLookup } from '../../api/types/addressBook';
-import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS, normalizeWeightUnit, formatWeightKgTotal } from '../../constants/cargoUnits';
-import { computeLoadBalance } from './itinerary/cargoUtils';
+} from "../../hooks/useCreateShipmentOrders";
+import { ConfirmationModal } from "../ui/ConfirmationModal";
+import { CreateLocationModal } from "../AddressBook/CreateLocationModal";
+import { CreateCompanyModal } from "../AddressBook/CreateCompanyModal";
+import { ProductMasterSkuModal } from "../ProductMaster/ProductMasterSkuModal";
+import { CreateEditOrderModal } from "../ErpOrders";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  productMasterService,
+  addressBookService,
+  erpOrdersService,
+  ApiError,
+  getApiErrorMessage,
+} from "../../api";
+import { EMPTY_ORDER_FORM } from "../../pages/ErpOrders/types";
+import type { ErpOrderFormState } from "../../pages/ErpOrders/types";
+import type { ApiErpOrderCustomer } from "../../api/types/erpOrders";
+import {
+  checkLocationDuplicate,
+  DUPLICATE_LOCATION_MESSAGE,
+} from "../../pages/AddressBook/validation/locationDuplicateValidation";
+import { validateCreateAll } from "../../pages/AddressBook/validation/locationCreateValidation";
+import { applyTemplate as applyAddressTemplate } from "../../pages/AddressBook/utils/locationUtils";
+import {
+  EMPTY_CREATE_DATA,
+  EMPTY_COMPANY_DATA,
+} from "../../pages/AddressBook/types";
+import type {
+  CreateLocationData,
+  CompanyFormData,
+} from "../../pages/AddressBook/types";
+import type { ApiCompanyLookup } from "../../api/types/addressBook";
+import {
+  QTY_UNIT_OPTIONS,
+  WEIGHT_UNIT_OPTIONS,
+  normalizeWeightUnit,
+  formatWeightKgTotal,
+} from "../../constants/cargoUnits";
+import { computeLoadBalance } from "./itinerary/cargoUtils";
 
 const clearOrderDependentCargoFields = () => {
   const blank = createNewCargoLine();
@@ -55,8 +95,8 @@ const clearOrderDependentCargoFields = () => {
   };
 };
 
-import useConflicts from '../../hooks/useConflicts';
-import { FieldValidationHint } from './FieldValidationHint';
+import useConflicts from "../../hooks/useConflicts";
+import { FieldValidationHint } from "./FieldValidationHint";
 import {
   focusFirstConflict,
   getBlockersForAnchor,
@@ -64,26 +104,27 @@ import {
   getStopDoneBlockers,
   translateConflict,
   translateResolution,
-} from './validation';
+} from "./validation";
 
-const makeId = (prefix: string) => `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
+const makeId = (prefix: string) =>
+  `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
 
-export { createNewStop, createNewCargoLine } from './types';
+export { createNewStop, createNewCargoLine } from "./types";
 
 const T = {
-  bg: 'var(--bg)',
-  sf: 'var(--surface)',
-  sa: 'var(--surface-alt)',
-  sh: 'var(--surface-hover)',
-  bd: 'var(--border)',
-  bf: 'var(--border-focus)',
-  t1: 'var(--text-primary)',
-  t2: 'var(--text-secondary)',
-  t3: 'var(--text-tertiary)',
-  ac: 'var(--accent)',
-  al: 'var(--accent-light)',
-  ah: 'var(--accent-hover)',
-  ap: 'var(--accent-light)',
+  bg: "var(--bg)",
+  sf: "var(--surface)",
+  sa: "var(--surface-alt)",
+  sh: "var(--surface-hover)",
+  bd: "var(--border)",
+  bf: "var(--border-focus)",
+  t1: "var(--text-primary)",
+  t2: "var(--text-secondary)",
+  t3: "var(--text-tertiary)",
+  ac: "var(--accent)",
+  al: "var(--accent-light)",
+  ah: "var(--accent-hover)",
+  ap: "var(--accent-light)",
 };
 
 interface Step1DetailsProps {
@@ -102,8 +143,17 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const { t } = useTranslation();
   const { values, setFieldValue } = useFormikContext<any>();
   const stops = values.stops || [];
-  const { orderOptions, fetchOrderDetail, addOrder, orders: apiOrders, loading: ordersLoading, error: ordersError } = useCreateShipmentOrders();
-  const [orderDetailsById, setOrderDetailsById] = useState<Record<string, import('../../pages/ErpOrders/types').ErpOrder>>({});
+  const {
+    orderOptions,
+    fetchOrderDetail,
+    addOrder,
+    orders: apiOrders,
+    loading: ordersLoading,
+    error: ordersError,
+  } = useCreateShipmentOrders();
+  const [orderDetailsById, setOrderDetailsById] = useState<
+    Record<string, import("../../pages/ErpOrders/types").ErpOrder>
+  >({});
 
   // Modal Visibility states
   const [mLoc, setMLoc] = useState(false);
@@ -115,33 +165,46 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const [balExp, setBalExp] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [previewLoc, setPreviewLoc] = useState<any | null>(null);
-  const [orderLoadingLineId, setOrderLoadingLineId] = useState<string | null>(null);
+  const [orderLoadingLineId, setOrderLoadingLineId] = useState<string | null>(
+    null,
+  );
 
-  const { locations, skus, showToast, refreshLocationsFromApi, refreshSkusFromApi } = useApp();
+  const {
+    locations,
+    skus,
+    showToast,
+    refreshLocationsFromApi,
+    refreshSkusFromApi,
+  } = useApp();
   const queryClient = useQueryClient();
 
   // Local master data states
   const [abLocs, setAbLocs] = useState<any[]>(() =>
-    locations.filter((l) => l.status === 'active')
+    locations.filter((l) => l.status === "active"),
   );
   const [pmSkus, setPmSkus] = useState<any[]>(() =>
-    skus.filter((s) => s.active)
+    skus.filter((s) => s.active),
   );
 
   // Address Book Location Modal states
   const [createStep, setCreateStep] = useState(1);
-  const [createData, setCreateData] = useState<CreateLocationData>(EMPTY_CREATE_DATA);
-  const [companyQuery, setCompanyQuery] = useState('');
+  const [createData, setCreateData] =
+    useState<CreateLocationData>(EMPTY_CREATE_DATA);
+  const [companyQuery, setCompanyQuery] = useState("");
   const [apiCompanies, setApiCompanies] = useState<ApiCompanyLookup[]>([]);
-  const [potentialDuplicates, setPotentialDuplicates] = useState<LocationItem[]>([]);
+  const [potentialDuplicates, setPotentialDuplicates] = useState<
+    LocationItem[]
+  >([]);
   const [isCompanyOpen, setIsCompanyOpen] = useState(false);
-  const [companyData, setCompanyData] = useState<CompanyFormData>(EMPTY_COMPANY_DATA);
+  const [companyData, setCompanyData] =
+    useState<CompanyFormData>(EMPTY_COMPANY_DATA);
   const [savingLocation, setSavingLocation] = useState(false);
   const [companySaving, setCompanySaving] = useState(false);
   const [skuSaving, setSkuSaving] = useState(false);
 
   // ERP Order Modal states
-  const [erpOrderForm, setErpOrderForm] = useState<ErpOrderFormState>(EMPTY_ORDER_FORM);
+  const [erpOrderForm, setErpOrderForm] =
+    useState<ErpOrderFormState>(EMPTY_ORDER_FORM);
   const [erpOrderSaving, setErpOrderSaving] = useState(false);
   const [erpCompanies, setErpCompanies] = useState<ApiErpOrderCustomer[]>([]);
 
@@ -157,7 +220,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   useEffect(() => {
     if (locations.length > 0) {
-      setAbLocs(locations.filter((l) => l.status === 'active'));
+      setAbLocs(locations.filter((l) => l.status === "active"));
     }
   }, [locations]);
 
@@ -174,20 +237,22 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         if (line.orderId) ids.add(String(line.orderId));
       });
     });
-    return [...ids].sort().join(',');
+    return [...ids].sort().join(",");
   }, [stops]);
 
   useEffect(() => {
     if (!orderIdsFromStops) return;
 
     let cancelled = false;
-    const ids = orderIdsFromStops.split(',').filter(Boolean);
+    const ids = orderIdsFromStops.split(",").filter(Boolean);
 
     void (async () => {
       for (const orderId of ids) {
         const detail = await fetchOrderDetail(orderId);
         if (cancelled || !detail) continue;
-        setOrderDetailsById((prev) => (prev[orderId] ? prev : { ...prev, [orderId]: detail }));
+        setOrderDetailsById((prev) =>
+          prev[orderId] ? prev : { ...prev, [orderId]: detail },
+        );
       }
     })();
 
@@ -201,7 +266,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     const q = companyQuery.trim();
     const timer = setTimeout(() => {
       addressBookService
-        .listCompanies(q || undefined, 'my_locations')
+        .listCompanies(q || undefined, "my_locations")
         .then(setApiCompanies)
         .catch(() => setApiCompanies([]));
     }, 200);
@@ -227,8 +292,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           return;
         }
         const existing = await queryClient.fetchQuery({
-          queryKey: ['locationDetail', String(result.existing_id)],
-          queryFn: () => addressBookService.getLocation(String(result.existing_id)),
+          queryKey: ["locationDetail", String(result.existing_id)],
+          queryFn: () =>
+            addressBookService.getLocation(String(result.existing_id)),
         });
         if (!cancelled) setPotentialDuplicates([existing]);
       })
@@ -241,8 +307,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     };
   }, [createStep, createData, queryClient]);
 
-
-
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const todayStr = useMemo(() => getTodayDateString(), []);
 
@@ -251,49 +315,57 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     borderRadius: 6,
     background: T.sf,
     color: T.t1,
-    fontFamily: 'inherit',
+    fontFamily: "inherit",
     fontSize: 12,
-    padding: '6px 8px',
-    outline: 'none',
-    width: '100%',
+    padding: "6px 8px",
+    outline: "none",
+    width: "100%",
   };
 
   // ═══ STOP CRUD ═══
   const uStop = useCallback(
     (sid: string, up: any) => {
       const updated = stops.map((s: any) =>
-        s.id === sid ? (typeof up === 'function' ? up(s) : { ...s, ...up }) : s
+        s.id === sid ? (typeof up === "function" ? up(s) : { ...s, ...up }) : s,
       );
-      setFieldValue('stops', updated);
+      setFieldValue("stops", updated);
     },
-    [stops, setFieldValue]
+    [stops, setFieldValue],
   );
 
   const addStop = useCallback(() => {
-    setFieldValue('stops', [...stops, createNewStop(true)]);
+    setFieldValue("stops", [...stops, createNewStop(true)]);
   }, [stops, setFieldValue]);
 
   const delStop = useCallback(
     (sid: string) => {
       const n = stops.filter((s: any) => s.id !== sid);
       if (n.length < 2) return;
-      setFieldValue('stops', n);
+      setFieldValue("stops", n);
     },
-    [stops, setFieldValue]
+    [stops, setFieldValue],
   );
 
   const dupStop = useCallback(
     (sid: string) => {
       const src = stops.find((s: any) => s.id === sid);
       if (!src) return;
-      const ns = { ...JSON.parse(JSON.stringify(src)), id: makeId('s'), expanded: true };
-      ns.lines = ns.lines.map((l: any) => ({ ...l, id: makeId('l'), mirrorOf: '' }));
+      const ns = {
+        ...JSON.parse(JSON.stringify(src)),
+        id: makeId("s"),
+        expanded: true,
+      };
+      ns.lines = ns.lines.map((l: any) => ({
+        ...l,
+        id: makeId("l"),
+        mirrorOf: "",
+      }));
       const idx = stops.findIndex((s: any) => s.id === sid);
       const out = [...stops];
       out.splice(idx + 1, 0, ns);
-      setFieldValue('stops', out);
+      setFieldValue("stops", out);
     },
-    [stops, setFieldValue]
+    [stops, setFieldValue],
   );
 
   // Drag-to-reorder
@@ -302,7 +374,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const handleDragStart = useCallback((idx: number, e: React.DragEvent) => {
     setDraggingIdx(idx);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = "move";
   }, []);
 
   const handleDragEnd = useCallback(() => {
@@ -324,31 +396,49 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
       // Swap dates/times
       const [aDF, aTF, aDT, aTT] = [a.dateFrom, a.timeFrom, a.dateTo, a.timeTo];
-      out[dragIdx] = { ...a, dateFrom: b.dateFrom, timeFrom: b.timeFrom, dateTo: b.dateTo, timeTo: b.timeTo };
-      out[dropIdx] = { ...b, dateFrom: aDF, timeFrom: aTF, dateTo: aDT, timeTo: aTT };
+      out[dragIdx] = {
+        ...a,
+        dateFrom: b.dateFrom,
+        timeFrom: b.timeFrom,
+        dateTo: b.dateTo,
+        timeTo: b.timeTo,
+      };
+      out[dropIdx] = {
+        ...b,
+        dateFrom: aDF,
+        timeFrom: aTF,
+        dateTo: aDT,
+        timeTo: aTT,
+      };
 
       // Swap positions
       [out[dragIdx], out[dropIdx]] = [out[dropIdx], out[dragIdx]];
-      setFieldValue('stops', out);
+      setFieldValue("stops", out);
       setDraggingIdx(null);
       setDragOverIdx(null);
     },
-    [draggingIdx, stops, setFieldValue]
+    [draggingIdx, stops, setFieldValue],
   );
 
   // ═══ LINE CRUD ═══
   const addLine = useCallback(
-    (sid: string, action: 'pickup' | 'dropoff' = 'pickup') => {
-      uStop(sid, (s: any) => ({ ...s, lines: [...s.lines, createNewCargoLine(action)] }));
+    (sid: string, action: "pickup" | "dropoff" = "pickup") => {
+      uStop(sid, (s: any) => ({
+        ...s,
+        lines: [...s.lines, createNewCargoLine(action)],
+      }));
     },
-    [uStop]
+    [uStop],
   );
 
   const delLine = useCallback(
     (sid: string, lid: string) => {
-      uStop(sid, (s: any) => ({ ...s, lines: s.lines.filter((l: any) => l.id !== lid) }));
+      uStop(sid, (s: any) => ({
+        ...s,
+        lines: s.lines.filter((l: any) => l.id !== lid),
+      }));
     },
-    [uStop]
+    [uStop],
   );
 
   const dupLine = useCallback(
@@ -356,64 +446,77 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       uStop(sid, (s: any) => {
         const src = s.lines.find((l: any) => l.id === lid);
         if (!src) return s;
-        const nl = { ...src, id: makeId('l'), mirrorOf: '' };
+        const nl = { ...src, id: makeId("l"), mirrorOf: "" };
         const idx = s.lines.findIndex((l: any) => l.id === lid);
         const lines = [...s.lines];
         lines.splice(idx + 1, 0, nl);
         return { ...s, lines };
       });
     },
-    [uStop]
+    [uStop],
   );
 
   const setLF = useCallback(
-    (sid: string, lid: string, fieldOrUpdates: string | Record<string, any>, val?: any) => {
+    (
+      sid: string,
+      lid: string,
+      fieldOrUpdates: string | Record<string, any>,
+      val?: any,
+    ) => {
       uStop(sid, (s: any) => ({
         ...s,
         lines: s.lines.map((l: any) => {
           if (l.id !== lid) return l;
-          if (typeof fieldOrUpdates === 'string') {
+          if (typeof fieldOrUpdates === "string") {
             return { ...l, [fieldOrUpdates]: val };
           }
           return { ...l, ...fieldOrUpdates };
         }),
       }));
     },
-    [uStop]
+    [uStop],
   );
 
   const quickFill = useCallback(
     async (sid: string, orderId: string) => {
       const mo = orderDetailsById[orderId] || (await fetchOrderDetail(orderId));
       if (!mo) {
-        showToast(t('createLoadOrderLoadError') || 'Could not load order details.', 'error');
+        showToast(
+          t("createLoadOrderLoadError") || "Could not load order details.",
+          "error",
+        );
         return;
       }
       setOrderDetailsById((prev) => ({ ...prev, [orderId]: mo }));
       if (!mo.lines?.length) return;
 
       const stopIndex = stops.findIndex((s: any) => s.id === sid);
-      const defaultAction = stopIndex === stops.length - 1 && stops.length > 1 ? 'dropoff' : 'pickup';
+      const defaultAction =
+        stopIndex === stops.length - 1 && stops.length > 1
+          ? "dropoff"
+          : "pickup";
 
       const newLines = mo.lines.map((ln) => ({
-        id: makeId('l'),
-        orderLineId: ln.id ? String(ln.id) : '',
-        productId: ln.productSkuId ? String(ln.productSkuId) : '',
-        productName: ln.productName || '',
-        customerId: mo.companyEntityId ? String(mo.companyEntityId) : '',
-        customerName: mo.customerName || '',
+        id: makeId("l"),
+        productId: ln.productSkuId ? String(ln.productSkuId) : "",
+        productName: ln.productName || "",
+        customerId: mo.companyEntityId ? String(mo.companyEntityId) : "",
+        customerName: mo.customerName || "",
         orderId: mo.id,
         orderRef: mo.orderReference,
-        action: defaultAction as 'pickup' | 'dropoff',
-        qty: ln.quantity != null ? String(ln.quantity) : '',
-        unit: ln.unit || 'EUR Pallets',
-        weight: ln.weight != null ? String(ln.weight) : '',
+        action: defaultAction as "pickup" | "dropoff",
+        qty: ln.quantity != null ? String(ln.quantity) : "",
+        unit: ln.unit || "EUR Pallets",
+        weight: ln.weight != null ? String(ln.weight) : "",
         wtUnit: normalizeWeightUnit(ln.weightUnit),
-        mirrorOf: '',
+        mirrorOf: "",
       }));
-      uStop(sid, (s: any) => ({ ...s, lines: [...s.lines.filter((l: any) => l.productId), ...newLines] }));
+      uStop(sid, (s: any) => ({
+        ...s,
+        lines: [...s.lines.filter((l: any) => l.productId), ...newLines],
+      }));
     },
-    [fetchOrderDetail, orderDetailsById, showToast, stops, t, uStop]
+    [fetchOrderDetail, orderDetailsById, showToast, stops, t, uStop],
   );
 
   // ═══ OPTIONS ═══
@@ -427,9 +530,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           ...s,
           locationId: String(l.id),
           locationName: l.name,
-          locationCompany: l.company || '',
-          locationCity: l.city || '',
-          locationCountry: l.region || '',
+          locationCompany: l.company || "",
+          locationCity: l.city || "",
+          locationCountry: l.region || "",
         };
         if (l.noteCarrier) {
           updatedStop.noteCarrier = s.noteCarrier || l.noteCarrier;
@@ -441,7 +544,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         return updatedStop;
       });
     },
-    [uStop]
+    [uStop],
   );
 
   const selLoc = useCallback(
@@ -449,77 +552,90 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       const l = abLocs.find((x) => String(x.id) === String(lid));
       if (l) applyLocationToStop(sid, l);
     },
-    [abLocs, applyLocationToStop]
+    [abLocs, applyLocationToStop],
   );
 
-  const handleApplyCompany = useCallback(async (values: CompanyFormData) => {
-    try {
-      setCompanySaving(true);
-      const created = await addressBookService.createCompanyEntity({
-        name: values.name.trim(),
-        vat_number: values.vat.trim(),
-        address: values.address.trim(),
-        country: values.country.trim() || 'Greece',
-        phone: values.phone || undefined,
-        email: values.email || undefined,
-        website: values.website || undefined,
-        industry: values.industry || undefined,
-        primary_contact: values.contactPerson || undefined,
-      });
+  const handleApplyCompany = useCallback(
+    async (values: CompanyFormData) => {
+      try {
+        setCompanySaving(true);
+        const created = await addressBookService.createCompanyEntity({
+          name: values.name.trim(),
+          vat_number: values.vat.trim(),
+          address: values.address.trim(),
+          country: values.country.trim() || "Greece",
+          phone: values.phone || undefined,
+          email: values.email || undefined,
+          website: values.website || undefined,
+          industry: values.industry || undefined,
+          primary_contact: values.contactPerson || undefined,
+        });
 
-      setApiCompanies((prev) => [
-        ...prev,
-        {
-          company_name: created.name,
-          company_vat: created.vat_number || '',
-        },
-      ]);
-      setCreateData((prev) => ({
-        ...prev,
-        company: created.name,
-        companyVat: created.vat_number || '',
-      }));
-      setIsCompanyOpen(false);
-      showToast(t('erpOrdersCompanyCreated') || 'Company created successfully.', 'success');
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : (t('erpOrdersCompanyCreateError') || 'Failed to create company');
-      showToast(message, 'error');
-    } finally {
-      setCompanySaving(false);
-    }
-  }, [showToast, t]);
+        setApiCompanies((prev) => [
+          ...prev,
+          {
+            company_name: created.name,
+            company_vat: created.vat_number || "",
+          },
+        ]);
+        setCreateData((prev) => ({
+          ...prev,
+          company: created.name,
+          companyVat: created.vat_number || "",
+        }));
+        setIsCompanyOpen(false);
+        showToast(
+          t("erpOrdersCompanyCreated") || "Company created successfully.",
+          "success",
+        );
+      } catch (err) {
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : t("erpOrdersCompanyCreateError") || "Failed to create company";
+        showToast(message, "error");
+      } finally {
+        setCompanySaving(false);
+      }
+    },
+    [showToast, t],
+  );
 
   const submitNewLocation = useCallback(async () => {
     const payload: CreateLocationData = {
       ...createData,
       company:
-        createData.context === 'customer'
-          ? createData.company
-          : 'My Company',
+        createData.context === "customer" ? createData.company : "My Company",
       companyVat:
-        createData.context === 'customer' ? createData.companyVat : createData.companyVat || 'N/A',
+        createData.context === "customer"
+          ? createData.companyVat
+          : createData.companyVat || "N/A",
       contacts: [],
       amenityIds: [],
       equipment: [],
-      hours: '',
-      tags: '',
+      hours: "",
+      tags: "",
     };
 
     const errors = validateCreateAll(payload);
     if (Object.keys(errors).length > 0) {
       const firstKey = Object.keys(errors)[0];
-      showToast(errors[firstKey] ?? 'Please fix validation errors', 'error');
-      if (firstKey === 'companyEntity' || firstKey === 'type') setCreateStep(1);
-      else if (['name', 'address', 'city', 'postal', 'role'].includes(firstKey)) setCreateStep(2);
+      showToast(errors[firstKey] ?? "Please fix validation errors", "error");
+      if (firstKey === "companyEntity" || firstKey === "type") setCreateStep(1);
+      else if (["name", "address", "city", "postal", "role"].includes(firstKey))
+        setCreateStep(2);
       else setCreateStep(3);
       return;
     }
 
     try {
       setSavingLocation(true);
-      const isDuplicate = await checkLocationDuplicate(payload.name, payload.company);
+      const isDuplicate = await checkLocationDuplicate(
+        payload.name,
+        payload.company,
+      );
       if (isDuplicate) {
-        showToast(DUPLICATE_LOCATION_MESSAGE, 'error');
+        showToast(DUPLICATE_LOCATION_MESSAGE, "error");
         setCreateStep(4);
         return;
       }
@@ -534,10 +650,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         return [...prev, created];
       });
 
-      if (pCtx.orderFormTarget === 'origin') {
-        setErpOrderForm((f) => ({ ...f, originLocationId: Number(created.id) }));
+      if (pCtx.orderFormTarget === "origin") {
+        setErpOrderForm((f) => ({
+          ...f,
+          originLocationId: Number(created.id),
+        }));
         setPCtx((p: any) => ({ ...p, orderFormTarget: null }));
-      } else if (pCtx.orderFormTarget === 'dest') {
+      } else if (pCtx.orderFormTarget === "dest") {
         setErpOrderForm((f) => ({ ...f, destLocationId: Number(created.id) }));
         setPCtx((p: any) => ({ ...p, orderFormTarget: null }));
       } else if (pCtx.locS) {
@@ -547,14 +666,27 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
       void refreshLocationsFromApi(true);
       setMLoc(false);
-      showToast(t('erpOrdersLocationCreated') || 'Address created successfully.', 'success');
+      showToast(
+        t("erpOrdersLocationCreated") || "Address created successfully.",
+        "success",
+      );
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : (t('erpOrdersLocationCreateError') || 'Failed to create address.');
-      showToast(message, 'error');
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : t("erpOrdersLocationCreateError") || "Failed to create address.";
+      showToast(message, "error");
     } finally {
       setSavingLocation(false);
     }
-  }, [applyLocationToStop, createData, showToast, t, pCtx, refreshLocationsFromApi]);
+  }, [
+    applyLocationToStop,
+    createData,
+    showToast,
+    t,
+    pCtx,
+    refreshLocationsFromApi,
+  ]);
 
   const selOrdLine = useCallback(
     async (sid: string, lid: string, oid: string) => {
@@ -570,185 +702,230 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           setLF(sid, lid, {
             orderId: oid,
             orderRef: detail.orderReference,
-            customerName: detail.customerName || '',
-            customerId: detail.companyEntityId ? String(detail.companyEntityId) : '',
-            productId: '',
-            productName: '',
-            qty: '',
-            weight: '',
+            customerName: detail.customerName || "",
+            customerId: detail.companyEntityId
+              ? String(detail.companyEntityId)
+              : "",
+            productId: "",
+            productName: "",
+            qty: "",
+            weight: "",
           });
           return;
         }
-        showToast(t('createLoadOrderLoadError') || 'Could not load order details.', 'error');
+        showToast(
+          t("createLoadOrderLoadError") || "Could not load order details.",
+          "error",
+        );
         setLF(sid, lid, clearOrderDependentCargoFields());
       } finally {
         setOrderLoadingLineId(null);
       }
     },
-    [fetchOrderDetail, setLF, showToast, t]
+    [fetchOrderDetail, setLF, showToast, t],
   );
 
   const clearOrderLine = useCallback(
     (sid: string, lid: string) => {
       setLF(sid, lid, clearOrderDependentCargoFields());
     },
-    [setLF]
+    [setLF],
   );
 
-  const handleCreateOrder = useCallback(async (values: ErpOrderFormState) => {
-    try {
-      setErpOrderSaving(true);
+  const handleCreateOrder = useCallback(
+    async (values: ErpOrderFormState) => {
+      try {
+        setErpOrderSaving(true);
 
-      const payload = {
-        order_reference: values.orderReference,
-        erp_reference: values.erpReference || null,
-        company_entity_id: values.companyEntityId,
-        customer_name: values.customerName,
-        origin_location_id: values.originLocationId,
-        dest_location_id: values.destLocationId,
-        ship_date: values.shipDate || null,
-        delivery_date: values.deliveryDate,
-        notes: values.notes || null,
-        high_priority: values.highPriority,
-        lines: values.lines.map((l) => ({
-          product_sku_id: l.productSkuId,
-          product_name: l.productName,
-          quantity: l.quantity,
-          unit: l.unit,
-          weight: l.weight,
-          weight_unit: l.weightUnit,
-        })),
-      };
+        const payload = {
+          order_reference: values.orderReference,
+          erp_reference: values.erpReference || null,
+          company_entity_id: values.companyEntityId,
+          customer_name: values.customerName,
+          origin_location_id: values.originLocationId,
+          dest_location_id: values.destLocationId,
+          ship_date: values.shipDate || null,
+          delivery_date: values.deliveryDate,
+          notes: values.notes || null,
+          high_priority: values.highPriority,
+          lines: values.lines.map((l) => ({
+            product_sku_id: l.productSkuId,
+            product_name: l.productName,
+            quantity: l.quantity,
+            unit: l.unit,
+            weight: l.weight,
+            weight_unit: l.weightUnit,
+          })),
+        };
 
-      const created = await erpOrdersService.createOrder(payload);
+        const created = await erpOrdersService.createOrder(payload);
 
-      addOrder(created);
-      setOrderDetailsById((prev) => ({ ...prev, [created.id]: created }));
+        addOrder(created);
+        setOrderDetailsById((prev) => ({ ...prev, [created.id]: created }));
 
-      if (pCtx.ordS && pCtx.ordL) {
-        setLF(pCtx.ordS, pCtx.ordL, {
-          orderId: created.id,
-          orderRef: created.orderReference,
-          customerName: created.customerName,
-          customerId: created.companyEntityId ? String(created.companyEntityId) : '',
-          productId: '',
-          productName: '',
-          qty: '',
-          weight: '',
-        });
-        setPCtx((p: any) => ({ ...p, ordS: null, ordL: null }));
+        if (pCtx.ordS && pCtx.ordL) {
+          setLF(pCtx.ordS, pCtx.ordL, {
+            orderId: created.id,
+            orderRef: created.orderReference,
+            customerName: created.customerName,
+            customerId: created.companyEntityId
+              ? String(created.companyEntityId)
+              : "",
+            productId: "",
+            productName: "",
+            qty: "",
+            weight: "",
+          });
+          setPCtx((p: any) => ({ ...p, ordS: null, ordL: null }));
+        }
+
+        setMOrd(false);
+        setErpOrderForm(EMPTY_ORDER_FORM);
+        showToast(
+          t("erpOrdersCreateSuccess") || "Order created successfully.",
+          "success",
+        );
+      } catch (err) {
+        const message =
+          err instanceof ApiError
+            ? getApiErrorMessage(
+                err,
+                t("erpOrdersCreateError") || "Failed to create order",
+                t,
+              )
+            : t("erpOrdersCreateError") || "Failed to create order";
+        showToast(message, "error");
+      } finally {
+        setErpOrderSaving(false);
       }
-
-      setMOrd(false);
-      setErpOrderForm(EMPTY_ORDER_FORM);
-      showToast(t('erpOrdersCreateSuccess') || 'Order created successfully.', 'success');
-    } catch (err) {
-      const message =
-        err instanceof ApiError
-          ? getApiErrorMessage(err, t('erpOrdersCreateError') || 'Failed to create order', t)
-          : t('erpOrdersCreateError') || 'Failed to create order';
-      showToast(message, 'error');
-    } finally {
-      setErpOrderSaving(false);
-    }
-  }, [addOrder, pCtx, setLF, showToast, t]);
+    },
+    [addOrder, pCtx, setLF, showToast, t],
+  );
 
   const selProdLine = useCallback(
     async (sid: string, lid: string, skuId: string) => {
       const stop = stops.find((s: any) => s.id === sid);
       const line = stop?.lines?.find((l: any) => l.id === lid);
-      const order = line?.orderId ? orderDetailsById[line.orderId] || (await fetchOrderDetail(line.orderId)) : null;
+      const order = line?.orderId
+        ? orderDetailsById[line.orderId] ||
+          (await fetchOrderDetail(line.orderId))
+        : null;
       if (order && line?.orderId) {
         setOrderDetailsById((prev) => ({ ...prev, [line.orderId]: order }));
       }
       const orderLine = findOrderLineForProduct(order, skuId);
       if (orderLine) {
         setLF(sid, lid, {
-          orderLineId: orderLine.id ? String(orderLine.id) : '',
           productId: skuId,
-          productName: orderLine.productName || '',
-          qty: orderLine.quantity != null ? String(orderLine.quantity) : '',
-          unit: orderLine.unit || line?.unit || 'EUR Pallets',
-          weight: orderLine.weight != null ? String(orderLine.weight) : '',
+          productName: orderLine.productName || "",
+          qty: orderLine.quantity != null ? String(orderLine.quantity) : "",
+          unit: orderLine.unit || line?.unit || "EUR Pallets",
+          weight: orderLine.weight != null ? String(orderLine.weight) : "",
           wtUnit: normalizeWeightUnit(orderLine.weightUnit || line?.wtUnit),
         });
       }
     },
-    [fetchOrderDetail, orderDetailsById, setLF, stops]
+    [fetchOrderDetail, orderDetailsById, setLF, stops],
   );
 
-  const handleCreateSku = useCallback(async (values: any) => {
-    try {
-      setSkuSaving(true);
-      const created = await productMasterService.createSku(values);
-      await refreshSkusFromApi(true);
+  const handleCreateSku = useCallback(
+    async (values: any) => {
+      try {
+        setSkuSaving(true);
+        const created = await productMasterService.createSku(values);
+        await refreshSkusFromApi(true);
 
-      if (pCtx.orderFormTarget === 'product' && pCtx.orderFormLineIndex !== undefined) {
-        setErpOrderForm((f) => {
-          const lines = [...f.lines];
-          if (lines[pCtx.orderFormLineIndex]) {
-            lines[pCtx.orderFormLineIndex] = {
-              ...lines[pCtx.orderFormLineIndex],
-              productSkuId: Number(created.id),
-              productName: created.name,
-            };
-          }
-          return { ...f, lines };
-        });
-        setPCtx((p: any) => ({ ...p, orderFormTarget: null, orderFormLineIndex: null }));
-      } else if (pCtx.pS && pCtx.pL) {
-        const sid = pCtx.pS;
-        const lid = pCtx.pL;
-        const line = stops
-          .find((s: any) => s.id === sid)
-          ?.lines?.find((l: any) => l.id === lid);
-
-        let orderLine: import('../../pages/ErpOrders/types').ErpOrderLine | null = null;
-        if (line?.orderId) {
-          const linkedOrder = await erpOrdersService.linkProduct(line.orderId, {
-            product_sku_id: Number(created.id),
-            order_line_id: line.orderLineId ? Number(line.orderLineId) : null,
-            product_name: created.name,
+        if (
+          pCtx.orderFormTarget === "product" &&
+          pCtx.orderFormLineIndex !== undefined
+        ) {
+          setErpOrderForm((f) => {
+            const lines = [...f.lines];
+            if (lines[pCtx.orderFormLineIndex]) {
+              lines[pCtx.orderFormLineIndex] = {
+                ...lines[pCtx.orderFormLineIndex],
+                productSkuId: Number(created.id),
+                productName: created.name,
+              };
+            }
+            return { ...f, lines };
           });
-          setOrderDetailsById((prev) => ({ ...prev, [line.orderId]: linkedOrder }));
-          addOrder(linkedOrder);
-          orderLine = findOrderLineForProduct(linkedOrder, String(created.id));
-        }
+          setPCtx((p: any) => ({
+            ...p,
+            orderFormTarget: null,
+            orderFormLineIndex: null,
+          }));
+        } else if (pCtx.pS && pCtx.pL) {
+          const sid = pCtx.pS;
+          const lid = pCtx.pL;
+          const line = stops
+            .find((s: any) => s.id === sid)
+            ?.lines?.find((l: any) => l.id === lid);
 
-        setLF(sid, lid, {
-          orderLineId: orderLine?.id ? String(orderLine.id) : line?.orderLineId || '',
-          productId: String(created.id),
-          productName: orderLine?.productName || created.name,
-          qty: orderLine?.quantity != null ? String(orderLine.quantity) : line?.qty || '',
-          unit: orderLine?.unit || line?.unit || 'EUR Pallets',
-          weight: orderLine?.weight != null ? String(orderLine.weight) : line?.weight || '',
-          wtUnit: normalizeWeightUnit(orderLine?.weightUnit || line?.wtUnit),
-        });
-        setPCtx((p: any) => ({ ...p, pS: null, pL: null }));
+          // If the created product happens to map onto an existing order line, pull
+          // its quantity/weight; otherwise just auto-select the new product.
+          let orderLine = null;
+          if (line?.orderId) {
+            const refreshed = await fetchOrderDetail(line.orderId);
+            if (refreshed) {
+              setOrderDetailsById((prev) => ({
+                ...prev,
+                [line.orderId]: refreshed,
+              }));
+              orderLine = findOrderLineForProduct(
+                refreshed,
+                String(created.id),
+              );
+            }
+          }
+
+          setLF(sid, lid, {
+            productId: String(created.id),
+            productName: orderLine?.productName || created.name,
+            qty:
+              orderLine?.quantity != null
+                ? String(orderLine.quantity)
+                : line?.qty || "",
+            unit: orderLine?.unit || line?.unit || "EUR Pallets",
+            weight:
+              orderLine?.weight != null
+                ? String(orderLine.weight)
+                : line?.weight || "",
+            wtUnit: normalizeWeightUnit(orderLine?.weightUnit || line?.wtUnit),
+          });
+          setPCtx((p: any) => ({ ...p, pS: null, pL: null }));
+        }
+        setMSku(false);
+        showToast(
+          t("erpOrdersProductCreated") || "Product created successfully.",
+          "success",
+        );
+      } catch {
+        showToast(
+          t("erpOrdersProductCreateError") || "Failed to create product",
+          "error",
+        );
+      } finally {
+        setSkuSaving(false);
       }
-      setMSku(false);
-      showToast(t('erpOrdersProductCreated') || 'Product created successfully.', 'success');
-    } catch {
-      showToast(t('erpOrdersProductCreateError') || 'Failed to create product', 'error');
-    } finally {
-      setSkuSaving(false);
-    }
-  }, [addOrder, pCtx, refreshSkusFromApi, setLF, showToast, stops, t]);
+    },
+    [fetchOrderDetail, pCtx, refreshSkusFromApi, setLF, showToast, stops, t],
+  );
 
   const previewLocation = useCallback(
     (locId: string) => {
       const l = abLocs.find((x) => String(x.id) === String(locId));
       if (l) setPreviewLoc(l);
     },
-    [abLocs]
+    [abLocs],
   );
 
   const handlePreviewCopy = useCallback(
     (text: string, message: string) => {
       navigator.clipboard?.writeText(text);
-      showToast(message, 'success');
+      showToast(message, "success");
     },
-    [showToast]
+    [showToast],
   );
 
   // ═══ GOODS TYPE INDICATORS ═══
@@ -757,12 +934,25 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       const sku = pmSkus.find((s) => s.id === productId);
       if (!sku) return [];
       const ind = [];
-      if (sku.adrRequired) ind.push({ key: 'adr', label: 'ADR', color: '#DC2626', bg: '#FEE2E2' });
-      if (sku.tempRequired) ind.push({ key: 'temp', label: sku.tempValue || 'Temp', color: '#2563EB', bg: '#DBEAFE' });
-      if (!sku.stackable) ind.push({ key: 'frag', label: 'Fragile', color: '#D97706', bg: '#FEF3C7' });
+      if (sku.adrRequired)
+        ind.push({ key: "adr", label: "ADR", color: "#DC2626", bg: "#FEE2E2" });
+      if (sku.tempRequired)
+        ind.push({
+          key: "temp",
+          label: sku.tempValue || "Temp",
+          color: "#2563EB",
+          bg: "#DBEAFE",
+        });
+      if (!sku.stackable)
+        ind.push({
+          key: "frag",
+          label: "Fragile",
+          color: "#D97706",
+          bg: "#FEF3C7",
+        });
       return ind;
     },
-    [pmSkus]
+    [pmSkus],
   );
 
   // ═══ LOAD BALANCE + VALIDATION ═══
@@ -771,7 +961,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const fmtW = (kg: number) => formatWeightKgTotal(kg);
 
   // ═══ CONFLICT CHECKING ═══
-  const { blockers, warnings, all: allConflicts } = useConflicts(stops, {
+  const {
+    blockers,
+    warnings,
+    all: allConflicts,
+  } = useConflicts(stops, {
     locations: abLocs,
     loadingPoints: [],
     blackouts: [],
@@ -784,7 +978,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const canContinue = blockers.length === 0;
   const [conflictPopup, setConflictPopup] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  const [validatingStopIndex, setValidatingStopIndex] = useState<number | null>(null);
+  const [validatingStopIndex, setValidatingStopIndex] = useState<number | null>(
+    null,
+  );
 
   const conflictCount = useMemo(() => {
     if (!showAll) return 0;
@@ -797,22 +993,24 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       if (!stop || stop.expanded) return;
       uStop(stop.id, { expanded: true });
     },
-    [stops, uStop]
+    [stops, uStop],
   );
 
   const showValidationForStop = useCallback(
     (stopIndex: number) => showAll || validatingStopIndex === stopIndex,
-    [showAll, validatingStopIndex]
+    [showAll, validatingStopIndex],
   );
 
   const toggleStop = useCallback(
     (sid: string) => {
       setFieldValue(
-        'stops',
-        stops.map((s: any) => (s.id === sid ? { ...s, expanded: !s.expanded } : s))
+        "stops",
+        stops.map((s: any) =>
+          s.id === sid ? { ...s, expanded: !s.expanded } : s,
+        ),
       );
     },
-    [setFieldValue, stops]
+    [setFieldValue, stops],
   );
 
   const handleStopDone = useCallback(
@@ -830,21 +1028,22 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
       setValidatingStopIndex(null);
       setFieldValue(
-        'stops',
-        stops.map((s: any) => (s.id === sid ? { ...s, expanded: false } : s))
+        "stops",
+        stops.map((s: any) => (s.id === sid ? { ...s, expanded: false } : s)),
       );
     },
-    [blockers, expandStopForValidation, setFieldValue, stops]
+    [blockers, expandStopForValidation, setFieldValue, stops],
   );
 
   const isFieldInvalid = useCallback(
     (anchor: string, stopIndex: number) =>
-      showValidationForStop(stopIndex) && getBlockersForAnchor(blockers, anchor).length > 0,
-    [blockers, showValidationForStop]
+      showValidationForStop(stopIndex) &&
+      getBlockersForAnchor(blockers, anchor).length > 0,
+    [blockers, showValidationForStop],
   );
 
   const invalidFieldClass = (anchor: string, stopIndex: number) =>
-    isFieldInvalid(anchor, stopIndex) ? 'wizard-field-invalid' : '';
+    isFieldInvalid(anchor, stopIndex) ? "wizard-field-invalid" : "";
 
   useEffect(() => {
     if (!validationRequest) return;
@@ -897,25 +1096,38 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       if (!showValidationForStop(idx)) return [];
       return allConflicts.filter((c) => c.stopIndex === idx);
     },
-    [allConflicts, showValidationForStop]
+    [allConflicts, showValidationForStop],
   );
 
   return (
     <div className="pb-24">
       {ordersError && (
         <div className="wizard-validation-banner mb-4" role="alert">
-          {t('createLoadOrdersLoadError') || 'Could not load orders.'} {ordersError}
+          {t("createLoadOrdersLoadError") || "Could not load orders."}{" "}
+          {ordersError}
         </div>
       )}
 
-      <LoadBalanceBar bal={bal} balExp={balExp} setBalExp={setBalExp} fmtW={fmtW} T={T} t={t} />
-
+      <LoadBalanceBar
+        bal={bal}
+        balExp={balExp}
+        setBalExp={setBalExp}
+        fmtW={fmtW}
+        T={T}
+        t={t}
+      />
 
       {/* ═══ TIMELINE ═══ */}
       <div className="relative" style={{ paddingLeft: 18 }}>
         <div
           className="absolute top-0 bottom-0"
-          style={{ left: 37, width: 2, background: T.bd, borderRadius: 1, zIndex: 0 }}
+          style={{
+            left: 37,
+            width: 2,
+            background: T.bd,
+            borderRadius: 1,
+            zIndex: 0,
+          }}
         />
 
         {stops.map((stop: any, idx: number) => (
@@ -933,7 +1145,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           >
             <div className="flex gap-3 items-start">
               {/* Timeline node */}
-              <div className="shrink-0" style={{ position: 'relative', zIndex: 1 }}>
+              <div
+                className="shrink-0"
+                style={{ position: "relative", zIndex: 1 }}
+              >
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold cursor-grab"
                   draggable
@@ -941,7 +1156,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                   onDragEnd={handleDragEnd}
                   style={{
                     background: stop.expanded ? T.ac : T.sf,
-                    color: stop.expanded ? '#fff' : T.t3,
+                    color: stop.expanded ? "#fff" : T.t3,
                     border: `2px solid ${stop.expanded ? T.ac : T.bd}`,
                   }}
                   onClick={() => toggleStop(stop.id)}
@@ -958,7 +1173,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                     style={{
                       background: T.sf,
                       border: `1px solid ${T.bd}`,
-                      outline: dragOverIdx === idx ? `2px solid ${T.ac}` : 'none',
+                      outline:
+                        dragOverIdx === idx ? `2px solid ${T.ac}` : "none",
                     }}
                     onClick={() => toggleStop(stop.id)}
                   >
@@ -969,19 +1185,28 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         handleDragStart(idx, e);
                       }}
                       onDragEnd={handleDragEnd}
-                      style={{ cursor: 'grab', display: 'flex', flexShrink: 0 }}
+                      style={{ cursor: "grab", display: "flex", flexShrink: 0 }}
                     >
                       <GripVertical size={14} style={{ color: T.t3 }} />
                     </span>
                     <div className="flex-1 min-w-0">
                       {stop.locationName ? (
                         <div className="flex items-center gap-2 flex-wrap">
-                          <MapPin size={14} style={{ color: T.t3, flexShrink: 0 }} />
-                          <span className="text-sm font-semibold" style={{ color: T.t1 }}>
+                          <MapPin
+                            size={14}
+                            style={{ color: T.t3, flexShrink: 0 }}
+                          />
+                          <span
+                            className="text-sm font-semibold"
+                            style={{ color: T.t1 }}
+                          >
                             {stop.locationName}
                           </span>
                           {stop.locationCompany && (
-                            <span className="text-[11px]" style={{ color: T.t3 }}>
+                            <span
+                              className="text-[11px]"
+                              style={{ color: T.t3 }}
+                            >
                               {stop.locationCompany} · {stop.locationCity}
                             </span>
                           )}
@@ -990,14 +1215,18 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               key={tg}
                               className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0"
                               style={{
-                                background: tg === 'pickup' ? '#EFF6FF' : '#F3F0FF',
-                                color: tg === 'pickup' ? '#2563EB' : '#5E3BEE',
+                                background:
+                                  tg === "pickup" ? "#EFF6FF" : "#F3F0FF",
+                                color: tg === "pickup" ? "#2563EB" : "#5E3BEE",
                               }}
                             >
                               {t(tg) || tg}
                             </span>
                           ))}
-                          <span className="text-[11px] hidden sm:inline" style={{ color: T.t3 }}>
+                          <span
+                            className="text-[11px] hidden sm:inline"
+                            style={{ color: T.t3 }}
+                          >
                             {fmtStopBrief(stop, t)}
                           </span>
                         </div>
@@ -1020,7 +1249,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         <Trash2 size={14} />
                       </button>
                     )}
-                    <ChevronRight size={16} style={{ color: T.t3, flexShrink: 0 }} />
+                    <ChevronRight
+                      size={16}
+                      style={{ color: T.t3, flexShrink: 0 }}
+                    />
                   </div>
                 ) : (
                   /* Expanded Card */
@@ -1029,8 +1261,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                     style={{
                       background: T.sf,
                       border: `1px solid ${T.bd}`,
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-                      outline: dragOverIdx === idx ? `2px solid ${T.ac}` : 'none',
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                      outline:
+                        dragOverIdx === idx ? `2px solid ${T.ac}` : "none",
                     }}
                   >
                     {/* Header */}
@@ -1046,11 +1279,14 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           handleDragStart(idx, e);
                         }}
                         onDragEnd={handleDragEnd}
-                        style={{ cursor: 'grab', display: 'flex' }}
+                        style={{ cursor: "grab", display: "flex" }}
                       >
                         <GripVertical size={14} style={{ color: T.t3 }} />
                       </span>
-                      <span className="text-sm font-semibold" style={{ color: T.t1 }}>
+                      <span
+                        className="text-sm font-semibold"
+                        style={{ color: T.t1 }}
+                      >
                         Stop {idx + 1}
                       </span>
                       {getStopTags(stop).map((tg) => (
@@ -1058,8 +1294,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           key={tg}
                           className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0"
                           style={{
-                            background: tg === 'pickup' ? '#EFF6FF' : '#F3F0FF',
-                            color: tg === 'pickup' ? '#2563EB' : '#5E3BEE',
+                            background: tg === "pickup" ? "#EFF6FF" : "#F3F0FF",
+                            color: tg === "pickup" ? "#2563EB" : "#5E3BEE",
                           }}
                         >
                           {t(tg) || tg}
@@ -1075,14 +1311,23 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           {stop.contactName}
                         </span>
                       )}
-                      <ChevronDown size={16} style={{ color: T.t3, flexShrink: 0 }} />
+                      <ChevronDown
+                        size={16}
+                        style={{ color: T.t3, flexShrink: 0 }}
+                      />
                     </div>
 
                     {/* Location + Appointment */}
-                    <div className="p-4" style={{ borderBottom: `1px solid ${T.bd}` }}>
+                    <div
+                      className="p-4"
+                      style={{ borderBottom: `1px solid ${T.bd}` }}
+                    >
                       {/* Location Select */}
                       <div className="mb-3">
-                        <label className="block text-[11px] font-semibold mb-1 uppercase tracking-wide" style={{ color: T.t3 }}>
+                        <label
+                          className="block text-[11px] font-semibold mb-1 uppercase tracking-wide"
+                          style={{ color: T.t3 }}
+                        >
                           Location
                         </label>
                         <div
@@ -1099,21 +1344,31 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                                 setCreateStep(1);
                                 setCreateData({
                                   ...EMPTY_CREATE_DATA,
-                                  context: 'my',
-                                  role: idx === 0 ? 'pickup' : idx === stops.length - 1 ? 'delivery' : 'both',
+                                  context: "my",
+                                  role:
+                                    idx === 0
+                                      ? "pickup"
+                                      : idx === stops.length - 1
+                                        ? "delivery"
+                                        : "both",
                                 });
                                 setMLoc(true);
                               }}
                               onPreview={(loc) => previewLocation(loc.id)}
-                              invalid={isFieldInvalid(`stop-${idx}-location`, idx)}
+                              invalid={isFieldInvalid(
+                                `stop-${idx}-location`,
+                                idx,
+                              )}
                             />
                           </div>
                           {stop.locationId && (
                             <button
                               type="button"
                               className="w-7 h-7 rounded flex items-center justify-center cursor-pointer border-none shrink-0"
-                              style={{ background: 'transparent', color: T.t3 }}
-                              title={t('createLoadViewLocation') || 'View location'}
+                              style={{ background: "transparent", color: T.t3 }}
+                              title={
+                                t("createLoadViewLocation") || "View location"
+                              }
                               onClick={() => previewLocation(stop.locationId)}
                             >
                               <Eye size={15} />
@@ -1121,7 +1376,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           )}
                         </div>
                         <FieldValidationHint
-                          conflicts={getBlockersForAnchor(blockers, `stop-${idx}-location`)}
+                          conflicts={getBlockersForAnchor(
+                            blockers,
+                            `stop-${idx}-location`,
+                          )}
                           show={showValidationForStop(idx)}
                           t={t}
                         />
@@ -1133,29 +1391,42 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         data-validation-anchor={`stop-${idx}-date`}
                       >
                         <div>
-                          <label className="block text-[11px] font-semibold mb-1 uppercase tracking-wide" style={{ color: T.t3 }}>
+                          <label
+                            className="block text-[11px] font-semibold mb-1 uppercase tracking-wide"
+                            style={{ color: T.t3 }}
+                          >
                             From
                           </label>
                           <div className="flex gap-1 items-center">
                             <DatePicker
                               className="cs-stop-date-picker"
                               value={stop.dateFrom}
-                              onChange={(val) => uStop(stop.id, { dateFrom: val })}
+                              onChange={(val) =>
+                                uStop(stop.id, { dateFrom: val })
+                              }
                               min={todayStr}
                               hasError={isFieldInvalid(`stop-${idx}-date`, idx)}
                               direction="auto"
                             />
                             <TimePicker
-                              className={invalidFieldClass(`stop-${idx}-date`, idx)}
+                              className={invalidFieldClass(
+                                `stop-${idx}-date`,
+                                idx,
+                              )}
                               style={{ ...iS, width: 90 }}
                               value={stop.timeFrom}
-                              onChange={(val) => uStop(stop.id, { timeFrom: val })}
+                              onChange={(val) =>
+                                uStop(stop.id, { timeFrom: val })
+                              }
                             />
                           </div>
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5 mb-1">
-                            <label className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: T.t3 }}>
+                            <label
+                              className="text-[11px] font-semibold uppercase tracking-wide"
+                              style={{ color: T.t3 }}
+                            >
                               To (Optional)
                             </label>
                           </div>
@@ -1163,20 +1434,27 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                             <DatePicker
                               className="cs-stop-date-picker"
                               value={stop.dateTo}
-                              onChange={(val) => uStop(stop.id, { dateTo: val })}
+                              onChange={(val) =>
+                                uStop(stop.id, { dateTo: val })
+                              }
                               min={stop.dateFrom || todayStr}
                               direction="auto"
                             />
                             <TimePicker
                               style={{ ...iS, width: 90 }}
                               value={stop.timeTo}
-                              onChange={(val) => uStop(stop.id, { timeTo: val })}
+                              onChange={(val) =>
+                                uStop(stop.id, { timeTo: val })
+                              }
                             />
                           </div>
                         </div>
                       </div>
                       <FieldValidationHint
-                        conflicts={getBlockersForAnchor(blockers, `stop-${idx}-date`)}
+                        conflicts={getBlockersForAnchor(
+                          blockers,
+                          `stop-${idx}-date`,
+                        )}
                         show={showValidationForStop(idx)}
                         t={t}
                       />
@@ -1225,7 +1503,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                       <button
                         type="button"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-none text-white"
-                        style={{ background: '#2563EB', fontFamily: 'inherit' }}
+                        style={{ background: "#2563EB", fontFamily: "inherit" }}
                         onClick={() => handleStopDone(stop.id)}
                       >
                         <Check size={14} /> Done
@@ -1242,7 +1520,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         <button
                           type="button"
                           className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer border-none shrink-0 transition-colors"
-                          style={{ background: 'transparent', color: T.t3 }}
+                          style={{ background: "transparent", color: T.t3 }}
                           onClick={() => setDeleteConfirm(stop.id)}
                         >
                           <Trash2 size={15} />
@@ -1257,16 +1535,27 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         ))}
 
         {/* Add Stop Button */}
-        <div className="flex items-center gap-3 py-2 relative" style={{ zIndex: 1 }}>
+        <div
+          className="flex items-center gap-3 py-2 relative"
+          style={{ zIndex: 1 }}
+        >
           <button
             type="button"
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 cursor-pointer border-none transition-colors"
-            style={{ background: T.sf, border: `2px dashed ${T.bd}`, color: T.ac }}
+            style={{
+              background: T.sf,
+              border: `2px dashed ${T.bd}`,
+              color: T.ac,
+            }}
             onClick={addStop}
           >
             <Plus size={16} />
           </button>
-          <span className="text-xs font-semibold cursor-pointer" style={{ color: T.ac }} onClick={addStop}>
+          <span
+            className="text-xs font-semibold cursor-pointer"
+            style={{ color: T.ac }}
+            onClick={addStop}
+          >
             Add Stop
           </span>
         </div>
@@ -1275,21 +1564,34 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       {/* Footer controls mirroring BottomBar */}
       <footer
         className="wizard-footer-bar fixed bottom-0 right-0 h-[72px] items-center justify-between px-6 z-40 flex"
-        style={{ left: 'var(--sidebar-w, 240px)', background: T.sf, borderTop: `1px solid ${T.bd}` }}
+        style={{
+          left: "var(--sidebar-w, 240px)",
+          background: T.sf,
+          borderTop: `1px solid ${T.bd}`,
+        }}
       >
         <div className="flex items-center gap-3">
           <button
             type="button"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer"
-            style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.ac, fontFamily: 'inherit' }}
+            style={{
+              border: `1px solid ${T.bd}`,
+              background: T.sf,
+              color: T.ac,
+              fontFamily: "inherit",
+            }}
             onClick={handleSaveDraftClick}
             disabled={isSaving}
           >
-            <Save size={14} /> {isSaving ? (t('saving') || 'Saving...') : (t('saveDraft') || 'Save Draft')}
+            <Save size={14} />{" "}
+            {isSaving
+              ? t("saving") || "Saving..."
+              : t("saveDraft") || "Save Draft"}
           </button>
           {lastSaved && (
             <span className="text-[10px]" style={{ color: T.t3 }}>
-              {t('draftSavedAt') || 'Draft saved'} {lastSaved.toLocaleTimeString()}
+              {t("draftSavedAt") || "Draft saved"}{" "}
+              {lastSaved.toLocaleTimeString()}
             </span>
           )}
         </div>
@@ -1299,17 +1601,20 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
             className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold cursor-pointer text-white border-none"
             style={{
               background: canContinue ? T.ac : T.bf,
-              cursor: canContinue ? 'pointer' : 'not-allowed',
-              fontFamily: 'inherit',
+              cursor: canContinue ? "pointer" : "not-allowed",
+              fontFamily: "inherit",
             }}
             disabled={!canContinue || isSaving}
             onClick={handleContinue}
           >
-            {isSaving ? (t('saving') || 'Saving...') : t('continue')}
+            {isSaving ? t("saving") || "Saving..." : t("continue")}
             {conflictCount > 0 && (
               <span
                 className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
-                style={{ background: blockers.length > 0 ? '#DC2626' : '#D97706', color: '#fff' }}
+                style={{
+                  background: blockers.length > 0 ? "#DC2626" : "#D97706",
+                  color: "#fff",
+                }}
               >
                 {conflictCount}
               </span>
@@ -1354,7 +1659,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         filteredCompanies={filteredCompanies}
         setCompanyQuery={setCompanyQuery}
         setIsCompanyOpen={setIsCompanyOpen}
-        handleApplyTemplate={(tpl) => setCreateData((prev) => applyAddressTemplate(tpl, prev))}
+        handleApplyTemplate={(tpl) =>
+          setCreateData((prev) => applyAddressTemplate(tpl, prev))
+        }
         t={t}
       />
 
@@ -1382,27 +1689,31 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         locations={locations}
         skus={skus}
         onAddLocationOrigin={() => {
-          setPCtx((p: any) => ({ ...p, orderFormTarget: 'origin' }));
+          setPCtx((p: any) => ({ ...p, orderFormTarget: "origin" }));
           setCreateStep(1);
           setCreateData({
             ...EMPTY_CREATE_DATA,
-            context: 'my',
-            role: 'pickup',
+            context: "my",
+            role: "pickup",
           });
           setMLoc(true);
         }}
         onAddLocationDest={() => {
-          setPCtx((p: any) => ({ ...p, orderFormTarget: 'dest' }));
+          setPCtx((p: any) => ({ ...p, orderFormTarget: "dest" }));
           setCreateStep(1);
           setCreateData({
             ...EMPTY_CREATE_DATA,
-            context: 'my',
-            role: 'delivery',
+            context: "my",
+            role: "delivery",
           });
           setMLoc(true);
         }}
         onAddProduct={(index) => {
-          setPCtx((p: any) => ({ ...p, orderFormTarget: 'product', orderFormLineIndex: index }));
+          setPCtx((p: any) => ({
+            ...p,
+            orderFormTarget: "product",
+            orderFormLineIndex: index,
+          }));
           setMSku(true);
         }}
       />
@@ -1418,42 +1729,62 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       {conflictPopup && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.3)' }}
+          style={{ background: "rgba(0,0,0,0.3)" }}
           onClick={() => setConflictPopup(false)}
         >
           <div
             className="rounded-xl overflow-hidden"
-            style={{ width: 480, maxHeight: '80vh', background: T.sf, border: `1px solid ${T.bd}` }}
+            style={{
+              width: 480,
+              maxHeight: "80vh",
+              background: T.sf,
+              border: `1px solid ${T.bd}`,
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
+            <div
+              className="flex items-center justify-between px-5 py-3"
+              style={{ borderBottom: `1px solid ${T.bd}` }}
+            >
               <div className="flex items-center gap-2">
-                <AlertTriangle size={16} style={{ color: '#D97706' }} />
+                <AlertTriangle size={16} style={{ color: "#D97706" }} />
                 <span className="text-sm font-semibold" style={{ color: T.t1 }}>
-                  {t('validationWarningsTitle', { count: warnings.length })}
+                  {t("validationWarningsTitle", { count: warnings.length })}
                 </span>
               </div>
               <span className="text-[11px]" style={{ color: T.t3 }}>
-                {t('validationReviewBeforeProceed')}
+                {t("validationReviewBeforeProceed")}
               </span>
             </div>
             <div className="overflow-y-auto" style={{ maxHeight: 340 }}>
               {warnings.map((c, i) => (
-                <div key={i} className="flex items-start gap-3 px-5 py-3" style={{ borderBottom: `0.5px solid ${T.bd}` }}>
+                <div
+                  key={i}
+                  className="flex items-start gap-3 px-5 py-3"
+                  style={{ borderBottom: `0.5px solid ${T.bd}` }}
+                >
                   <span
                     className="text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 mt-0.5"
-                    style={{ background: '#FEF3C7', color: '#D97706' }}
+                    style={{ background: "#FEF3C7", color: "#D97706" }}
                   >
                     {c.code}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold" style={{ color: T.t1 }}>
+                    <div
+                      className="text-xs font-semibold"
+                      style={{ color: T.t1 }}
+                    >
                       {translateConflict(c, t)}
                     </div>
                     {c.stopIndex >= 0 && (
-                      <div className="text-[10px] mt-0.5" style={{ color: T.t3 }}>
+                      <div
+                        className="text-[10px] mt-0.5"
+                        style={{ color: T.t3 }}
+                      >
                         Stop {c.stopIndex + 1}
-                        {stops[c.stopIndex]?.locationName ? ` — ${stops[c.stopIndex].locationName}` : ''}
+                        {stops[c.stopIndex]?.locationName
+                          ? ` — ${stops[c.stopIndex].locationName}`
+                          : ""}
                       </div>
                     )}
                     <div className="text-[10px] mt-0.5" style={{ color: T.ac }}>
@@ -1463,22 +1794,30 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                 </div>
               ))}
             </div>
-            <div className="flex items-center justify-between px-5 py-3" style={{ borderTop: `1px solid ${T.bd}`, background: T.sa }}>
+            <div
+              className="flex items-center justify-between px-5 py-3"
+              style={{ borderTop: `1px solid ${T.bd}`, background: T.sa }}
+            >
               <button
                 type="button"
                 className="px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer border"
-                style={{ borderColor: T.bd, background: T.sf, color: T.t2, fontFamily: 'inherit' }}
+                style={{
+                  borderColor: T.bd,
+                  background: T.sf,
+                  color: T.t2,
+                  fontFamily: "inherit",
+                }}
                 onClick={() => setConflictPopup(false)}
               >
-                {t('validationGoBackAndFix')}
+                {t("validationGoBackAndFix")}
               </button>
               <button
                 type="button"
                 className="px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer text-white border-none"
-                style={{ background: T.ac, fontFamily: 'inherit' }}
+                style={{ background: T.ac, fontFamily: "inherit" }}
                 onClick={handleProceedAnyway}
               >
-                {t('validationProceedAnyway')} →
+                {t("validationProceedAnyway")} →
               </button>
             </div>
           </div>
@@ -1493,10 +1832,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
             setDeleteConfirm(null);
           }
         }}
-        title={t('deleteStopTitle') || 'Delete Stop'}
-        message={t('deleteStopMsg') || 'Are you sure you want to delete this stop and all its cargo lines?'}
-        confirmText={t('deleteStopConfirm') || 'Delete'}
-        cancelText={t('deleteStopCancel') || 'Cancel'}
+        title={t("deleteStopTitle") || "Delete Stop"}
+        message={
+          t("deleteStopMsg") ||
+          "Are you sure you want to delete this stop and all its cargo lines?"
+        }
+        confirmText={t("deleteStopConfirm") || "Delete"}
+        cancelText={t("deleteStopCancel") || "Cancel"}
         type="danger"
       />
     </div>
@@ -1512,7 +1854,10 @@ interface CargoTableProps {
   t: any;
   iS: any;
   ordOpts: any[];
-  orderDetailsById: Record<string, import('../../pages/ErpOrders/types').ErpOrder>;
+  orderDetailsById: Record<
+    string,
+    import("../../pages/ErpOrders/types").ErpOrder
+  >;
   onAddLine: () => void;
   onDelLine: (lid: string) => void;
   onDupLine: (lid: string) => void;
@@ -1526,7 +1871,7 @@ interface CargoTableProps {
   onQuickFillNew: () => void;
   getGoodsIndicators: (productId: string) => any[];
   showValidation?: boolean;
-  blockers?: import('../../hooks/useConflicts').Conflict[];
+  blockers?: import("../../hooks/useConflicts").Conflict[];
   stopIndex: number;
   orderLoadingLineId?: string | null;
   ordersLoading?: boolean;
@@ -1561,77 +1906,105 @@ const CargoTable: React.FC<CargoTableProps> = ({
     fontSize: 10,
     fontWeight: 600,
     color: T.t3,
-    textTransform: 'uppercase',
-    letterSpacing: '0.3px',
-    padding: '5px 3px',
+    textTransform: "uppercase",
+    letterSpacing: "0.3px",
+    padding: "5px 3px",
     borderBottom: `1px solid ${T.bd}`,
-    textAlign: 'left',
-    whiteSpace: 'nowrap',
+    textAlign: "left",
+    whiteSpace: "nowrap",
   };
-  const tdS: React.CSSProperties = { padding: '3px', borderBottom: `0.5px solid ${T.bd}`, verticalAlign: 'middle' };
+  const tdS: React.CSSProperties = {
+    padding: "3px",
+    borderBottom: `0.5px solid ${T.bd}`,
+    verticalAlign: "middle",
+  };
   const monoS = {
     ...iS,
     fontFamily: "'JetBrains Mono', monospace",
     fontWeight: 600,
     fontSize: 12,
-    textAlign: 'right' as const,
-    padding: '5px 6px',
+    textAlign: "right" as const,
+    padding: "5px 6px",
     width: 56,
   };
-  const selS = { ...iS, cursor: 'pointer', fontSize: 11, padding: '5px 4px', width: 72 };
+  const selS = {
+    ...iS,
+    cursor: "pointer",
+    fontSize: 11,
+    padding: "5px 4px",
+    width: 72,
+  };
   const [qfOpen, setQfOpen] = useState(false);
 
   const isInvalid = (anchor: string) =>
     showValidation && getBlockersForAnchor(blockers, anchor).length > 0;
 
-  const invalidClass = (anchor: string) => (isInvalid(anchor) ? 'wizard-field-invalid' : '');
+  const invalidClass = (anchor: string) =>
+    isInvalid(anchor) ? "wizard-field-invalid" : "";
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent, isLast: boolean) => {
-      if (e.key === 'Enter' && isLast) onAddLine();
+      if (e.key === "Enter" && isLast) onAddLine();
     },
-    [onAddLine]
+    [onAddLine],
   );
 
   return (
-    <div className="rounded-lg overflow-visible" style={{ border: `1px solid ${T.bd}` }}>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+    <div
+      className="rounded-lg overflow-visible"
+      style={{ border: `1px solid ${T.bd}` }}
+    >
+      <div style={{ overflowX: "auto" }}>
+        <table
+          style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}
+        >
           <thead>
             <tr>
-              <th style={{ ...thS, width: '12%' }}>{t('cargoColOrderId')}</th>
-              <th style={{ ...thS, width: '12%' }}>{t('cargoColCustomer')}</th>
-              <th style={{ ...thS, width: '20%' }}>{t('cargoColProduct')}</th>
-              <th style={{ ...thS, width: '11%', textAlign: 'center' }}>{t('cargoColAction')}</th>
-              <th style={{ ...thS, width: '7%' }}>{t('cargoColQty')}</th>
-              <th style={{ ...thS, width: '8%' }}>{t('cargoColUnit')}</th>
-              <th style={{ ...thS, width: '7%' }}>{t('cargoColWeight')}</th>
-              <th style={{ ...thS, width: '7%' }}>{t('cargoColWeightUnit')}</th>
-              <th style={{ ...thS, width: '3%' }}></th>
+              <th style={{ ...thS, width: "12%" }}>{t("cargoColOrderId")}</th>
+              <th style={{ ...thS, width: "12%" }}>{t("cargoColCustomer")}</th>
+              <th style={{ ...thS, width: "20%" }}>{t("cargoColProduct")}</th>
+              <th style={{ ...thS, width: "11%", textAlign: "center" }}>
+                {t("cargoColAction")}
+              </th>
+              <th style={{ ...thS, width: "7%" }}>{t("cargoColQty")}</th>
+              <th style={{ ...thS, width: "8%" }}>{t("cargoColUnit")}</th>
+              <th style={{ ...thS, width: "7%" }}>{t("cargoColWeight")}</th>
+              <th style={{ ...thS, width: "7%" }}>{t("cargoColWeightUnit")}</th>
+              <th style={{ ...thS, width: "3%" }}></th>
             </tr>
           </thead>
           <tbody>
             {(stop.lines || []).map((ln: any, li: number) => {
               const indicators = getGoodsIndicators(ln.productId);
               const isLast = li === stop.lines.length - 1;
-              const orderDetail = ln.orderId ? orderDetailsById[ln.orderId] : undefined;
-              const productOpts = getProductOptionsForCargoLine(orderDetail).map((opt) => ({
+              const orderDetail = ln.orderId
+                ? orderDetailsById[ln.orderId]
+                : undefined;
+              const productOpts = getProductOptionsForCargoLine(
+                orderDetail,
+              ).map((opt) => ({
                 value: opt.value,
                 label: opt.label,
                 sublabel: opt.sublabel,
               }));
               // Ensure a selected product (e.g. one created at runtime that is not
               // part of the order's mapped lines) still appears and stays displayed.
-              if (ln.productId && !productOpts.some((o) => o.value === String(ln.productId))) {
+              if (
+                ln.productId &&
+                !productOpts.some((o) => o.value === String(ln.productId))
+              ) {
                 productOpts.push({
                   value: String(ln.productId),
-                  label: ln.productName || 'Product',
+                  label: ln.productName || "Product",
                   sublabel: undefined,
                 });
               }
               const unmappedCount = countUnmappedOrderLines(orderDetail);
               return (
-                <tr key={ln.id} style={{ background: ln.mirrorOf ? T.sa : 'transparent' }}>
+                <tr
+                  key={ln.id}
+                  style={{ background: ln.mirrorOf ? T.sa : "transparent" }}
+                >
                   <td
                     style={tdS}
                     data-validation-anchor={`stop-${stopIndex}-line-${li}-order`}
@@ -1649,7 +2022,10 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       onNewOrd={() => onNewOrd(ln.id)}
                     />
                     <FieldValidationHint
-                      conflicts={getBlockersForAnchor(blockers, `stop-${stopIndex}-line-${li}-order`)}
+                      conflicts={getBlockersForAnchor(
+                        blockers,
+                        `stop-${stopIndex}-line-${li}-order`,
+                      )}
                       show={showValidation}
                       t={t}
                     />
@@ -1659,7 +2035,11 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       <div className="flex items-center gap-0.5">
                         <span
                           className="text-[11px] px-1.5 py-0.5 rounded truncate"
-                          style={{ background: T.sa, color: T.t1, maxWidth: 100 }}
+                          style={{
+                            background: T.sa,
+                            color: T.t1,
+                            maxWidth: 100,
+                          }}
                         >
                           {ln.customerName}
                         </span>
@@ -1674,21 +2054,25 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       </div>
                     ) : (
                       <span className="text-[10px]" style={{ color: T.t3 }}>
-                        {ln.orderId ? '—' : t('createLoadSelectOrderFirst')}
+                        {ln.orderId ? "—" : t("createLoadSelectOrderFirst")}
                       </span>
                     )}
                   </td>
                   <td
                     style={tdS}
                     data-validation-anchor={`stop-${stopIndex}-line-${li}-product`}
-                    className={invalidClass(`stop-${stopIndex}-line-${li}-product`)}
+                    className={invalidClass(
+                      `stop-${stopIndex}-line-${li}-product`,
+                    )}
                   >
                     <SearchableSelect
                       value={ln.productId}
                       onChange={(v) => onSelProd(ln.id, v)}
                       options={productOpts}
                       placeholder={
-                        ln.orderId ? t('selectProduct') : t('createLoadSelectOrderFirst')
+                        ln.orderId
+                          ? t("selectProduct")
+                          : t("createLoadSelectOrderFirst")
                       }
                       disabled={!ln.orderId}
                       headerAction={
@@ -1716,28 +2100,37 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       </div>
                     )}
                     {unmappedCount > 0 && productOpts.length === 0 && (
-                      <div className="text-[10px] mt-1" style={{ color: '#D97706' }}>
-                        {t('createLoadUnmappedOrderLines') ||
+                      <div
+                        className="text-[10px] mt-1"
+                        style={{ color: "#D97706" }}
+                      >
+                        {t("createLoadUnmappedOrderLines") ||
                           `${unmappedCount} order line(s) have no mapped product SKU.`}
                       </div>
                     )}
                     <FieldValidationHint
-                      conflicts={getBlockersForAnchor(blockers, `stop-${stopIndex}-line-${li}-product`)}
+                      conflicts={getBlockersForAnchor(
+                        blockers,
+                        `stop-${stopIndex}-line-${li}-product`,
+                      )}
                       show={showValidation}
                       t={t}
                     />
                   </td>
-                  <td style={{ ...tdS, textAlign: 'center' }}>
-                    <div className="inline-flex overflow-hidden rounded" style={{ border: `1px solid ${T.bd}` }}>
+                  <td style={{ ...tdS, textAlign: "center" }}>
+                    <div
+                      className="inline-flex overflow-hidden rounded"
+                      style={{ border: `1px solid ${T.bd}` }}
+                    >
                       <button
                         type="button"
                         className="py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none"
                         style={{
-                          background: ln.action === 'pickup' ? '#2563EB' : T.sf,
-                          color: ln.action === 'pickup' ? '#fff' : T.t3,
-                          fontFamily: 'inherit',
+                          background: ln.action === "pickup" ? "#2563EB" : T.sf,
+                          color: ln.action === "pickup" ? "#fff" : T.t3,
+                          fontFamily: "inherit",
                         }}
-                        onClick={() => onSetField(ln.id, 'action', 'pickup')}
+                        onClick={() => onSetField(ln.id, "action", "pickup")}
                       >
                         Pick
                       </button>
@@ -1745,11 +2138,12 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         type="button"
                         className="py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none"
                         style={{
-                          background: ln.action === 'dropoff' ? '#5E3BEE' : T.sf,
-                          color: ln.action === 'dropoff' ? '#fff' : T.t3,
-                          fontFamily: 'inherit',
+                          background:
+                            ln.action === "dropoff" ? "#5E3BEE" : T.sf,
+                          color: ln.action === "dropoff" ? "#fff" : T.t3,
+                          fontFamily: "inherit",
                         }}
-                        onClick={() => onSetField(ln.id, 'action', 'dropoff')}
+                        onClick={() => onSetField(ln.id, "action", "dropoff")}
                       >
                         Drop
                       </button>
@@ -1767,19 +2161,27 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       placeholder="0"
                       style={
                         isInvalid(`stop-${stopIndex}-line-${li}-qty`)
-                          ? { ...monoS, border: '1px solid #DC2626', boxShadow: '0 0 0 1px #DC2626' }
+                          ? {
+                              ...monoS,
+                              border: "1px solid #DC2626",
+                              boxShadow: "0 0 0 1px #DC2626",
+                            }
                           : monoS
                       }
                       value={ln.qty}
-                      onChange={(e) => onSetField(ln.id, 'qty', e.target.value)}
+                      onChange={(e) => onSetField(ln.id, "qty", e.target.value)}
                     />
                     <FieldValidationHint
                       compact
                       conflicts={[
-                        ...getBlockersForAnchor(blockers, `stop-${stopIndex}-line-${li}-qty`),
-                        ...getBlockersForAnchor(blockers, `stop-${stopIndex}-line-${li}-product`).filter(
-                          (c) => c.code === 'C2'
+                        ...getBlockersForAnchor(
+                          blockers,
+                          `stop-${stopIndex}-line-${li}-qty`,
                         ),
+                        ...getBlockersForAnchor(
+                          blockers,
+                          `stop-${stopIndex}-line-${li}-product`,
+                        ).filter((c) => c.code === "C2"),
                       ]}
                       show={showValidation}
                       t={t}
@@ -1789,7 +2191,9 @@ const CargoTable: React.FC<CargoTableProps> = ({
                     <select
                       style={{ ...selS, width: 105 }}
                       value={ln.unit}
-                      onChange={(e) => onSetField(ln.id, 'unit', e.target.value)}
+                      onChange={(e) =>
+                        onSetField(ln.id, "unit", e.target.value)
+                      }
                     >
                       {QTY_UNIT_OPTIONS.map((u) => (
                         <option key={u} value={u}>
@@ -1810,16 +2214,25 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       placeholder="0"
                       style={
                         isInvalid(`stop-${stopIndex}-line-${li}-weight`)
-                          ? { ...monoS, border: '1px solid #DC2626', boxShadow: '0 0 0 1px #DC2626' }
+                          ? {
+                              ...monoS,
+                              border: "1px solid #DC2626",
+                              boxShadow: "0 0 0 1px #DC2626",
+                            }
                           : monoS
                       }
                       value={ln.weight}
-                      onChange={(e) => onSetField(ln.id, 'weight', e.target.value)}
+                      onChange={(e) =>
+                        onSetField(ln.id, "weight", e.target.value)
+                      }
                       onKeyDown={(e) => handleKeyDown(e, isLast)}
                     />
                     <FieldValidationHint
                       compact
-                      conflicts={getBlockersForAnchor(blockers, `stop-${stopIndex}-line-${li}-weight`)}
+                      conflicts={getBlockersForAnchor(
+                        blockers,
+                        `stop-${stopIndex}-line-${li}-weight`,
+                      )}
                       show={showValidation}
                       t={t}
                     />
@@ -1828,7 +2241,9 @@ const CargoTable: React.FC<CargoTableProps> = ({
                     <select
                       style={{ ...selS, width: 75 }}
                       value={normalizeWeightUnit(ln.wtUnit)}
-                      onChange={(e) => onSetField(ln.id, 'wtUnit', e.target.value)}
+                      onChange={(e) =>
+                        onSetField(ln.id, "wtUnit", e.target.value)
+                      }
                     >
                       {WEIGHT_UNIT_OPTIONS.map((u) => (
                         <option key={u} value={u}>
@@ -1842,7 +2257,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       <button
                         type="button"
                         className="w-5 h-5 rounded flex items-center justify-center cursor-pointer border-none"
-                        style={{ background: 'transparent', color: T.t3 }}
+                        style={{ background: "transparent", color: T.t3 }}
                         onClick={() => onDupLine(ln.id)}
                       >
                         <Copy size={10} />
@@ -1850,7 +2265,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       <button
                         type="button"
                         className="w-5 h-5 rounded flex items-center justify-center cursor-pointer border-none"
-                        style={{ background: 'transparent', color: T.t3 }}
+                        style={{ background: "transparent", color: T.t3 }}
                         onClick={() => onDelLine(ln.id)}
                       >
                         <X size={11} />
@@ -1861,17 +2276,21 @@ const CargoTable: React.FC<CargoTableProps> = ({
               );
             })}
             <tr>
-              <td colSpan={9} style={{ padding: '4px 3px' }}>
+              <td colSpan={9} style={{ padding: "4px 3px" }}>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer border-none py-1 px-1"
-                    style={{ background: 'transparent', color: T.ac, fontFamily: 'inherit' }}
+                    style={{
+                      background: "transparent",
+                      color: T.ac,
+                      fontFamily: "inherit",
+                    }}
                     onClick={onAddLine}
                   >
                     <Plus size={14} /> Add Line
                   </button>
-                  <div style={{ width: qfOpen ? 220 : 'auto' }}>
+                  <div style={{ width: qfOpen ? 220 : "auto" }}>
                     {qfOpen ? (
                       <SearchableSelect
                         value=""
@@ -1894,7 +2313,11 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       <button
                         type="button"
                         className="flex items-center gap-1 text-[11px] font-semibold cursor-pointer border-none py-1 px-2 rounded"
-                        style={{ background: T.sa, color: T.t2, fontFamily: 'inherit' }}
+                        style={{
+                          background: T.sa,
+                          color: T.t2,
+                          fontFamily: "inherit",
+                        }}
                         onClick={() => setQfOpen(true)}
                       >
                         <FileText size={12} /> Quick Fill
@@ -1905,7 +2328,11 @@ const CargoTable: React.FC<CargoTableProps> = ({
                     <button
                       type="button"
                       className="text-[10px] cursor-pointer border-none"
-                      style={{ background: 'transparent', color: T.t3, fontFamily: 'inherit' }}
+                      style={{
+                        background: "transparent",
+                        color: T.t3,
+                        fontFamily: "inherit",
+                      }}
                       onClick={() => setQfOpen(false)}
                     >
                       ✕
@@ -1951,7 +2378,7 @@ const OrderCell: React.FC<OrderCellProps> = ({
   if (loading && !ln.orderRef) {
     return (
       <span className="text-[10px]" style={{ color: T.t3 }}>
-        {t('loading') || 'Loading...'}
+        {t("loading") || "Loading..."}
       </span>
     );
   }
@@ -1960,7 +2387,12 @@ const OrderCell: React.FC<OrderCellProps> = ({
       <div className="flex items-center gap-0.5">
         <span
           className="text-[11px] font-medium truncate px-1.5 py-0.5 rounded"
-          style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t1, maxWidth: 80 }}
+          style={{
+            background: T.sa,
+            border: `1px solid ${T.bd}`,
+            color: T.t1,
+            maxWidth: 80,
+          }}
         >
           {ln.orderRef}
         </span>
@@ -2004,7 +2436,14 @@ interface LoadBalanceBarProps {
   t: any;
 }
 
-const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({ bal, balExp, setBalExp, fmtW, T, t }) => {
+const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
+  bal,
+  balExp,
+  setBalExp,
+  fmtW,
+  T,
+  t,
+}) => {
   const hasData = bal.pkU > 0 || bal.doU > 0;
   return (
     <div
@@ -2020,33 +2459,65 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({ bal, balExp, setBalExp,
           Load Balance
         </span>
         <div className="flex-1 mx-1">
-          <div className="flex h-2 rounded-full overflow-hidden" style={{ background: T.sa }}>
+          <div
+            className="flex h-2 rounded-full overflow-hidden"
+            style={{ background: T.sa }}
+          >
             {hasData && (
               <>
-                <div style={{ width: '50%', display: 'flex', justifyContent: 'flex-end' }}>
+                <div
+                  style={{
+                    width: "50%",
+                    display: "flex",
+                    justifyContent: "flex-end",
+                  }}
+                >
                   <div
                     className="transition-all duration-500"
-                    style={{ width: `${bal.pkBar * 2}%`, background: '#2563EB', borderRadius: '4px 0 0 4px' }}
+                    style={{
+                      width: `${bal.pkBar * 2}%`,
+                      background: "#2563EB",
+                      borderRadius: "4px 0 0 4px",
+                    }}
                   />
                 </div>
-                <div style={{ width: '50%', display: 'flex', justifyContent: 'flex-start' }}>
+                <div
+                  style={{
+                    width: "50%",
+                    display: "flex",
+                    justifyContent: "flex-start",
+                  }}
+                >
                   <div
                     className="transition-all duration-500"
-                    style={{ width: `${bal.doBar * 2}%`, background: '#5E3BEE', borderRadius: '0 4px 4px 0' }}
+                    style={{
+                      width: `${bal.doBar * 2}%`,
+                      background: "#5E3BEE",
+                      borderRadius: "0 4px 4px 0",
+                    }}
                   />
                 </div>
               </>
             )}
           </div>
         </div>
-        <span className="text-[11px] font-bold px-2 py-0.5 rounded" style={{ background: '#EFF6FF', color: '#2563EB' }}>
+        <span
+          className="text-[11px] font-bold px-2 py-0.5 rounded"
+          style={{ background: "#EFF6FF", color: "#2563EB" }}
+        >
           ↑ {bal.pkU} · {fmtW(bal.pkW)}
         </span>
-        <span className="text-[11px] font-bold px-2 py-0.5 rounded" style={{ background: '#F3F0FF', color: '#5E3BEE' }}>
+        <span
+          className="text-[11px] font-bold px-2 py-0.5 rounded"
+          style={{ background: "#F3F0FF", color: "#5E3BEE" }}
+        >
           ↓ {bal.doU} · {fmtW(bal.doW)}
         </span>
         {bal.balanced && hasData && (
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: '#D1FAE5', color: '#059669' }}>
+          <span
+            className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+            style={{ background: "#D1FAE5", color: "#059669" }}
+          >
             ✓ Balanced
           </span>
         )}
@@ -2054,8 +2525,8 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({ bal, balExp, setBalExp,
           size={14}
           style={{
             color: T.t3,
-            transition: 'transform 0.2s',
-            transform: balExp ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: "transform 0.2s",
+            transform: balExp ? "rotate(180deg)" : "rotate(0deg)",
           }}
         />
       </div>
@@ -2063,24 +2534,36 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({ bal, balExp, setBalExp,
         <div className="px-4 pb-3" style={{ borderTop: `1px solid ${T.bd}` }}>
           <div className="mt-3 grid grid-cols-2 gap-4">
             <div>
-              <div className="flex items-center gap-1.5 mb-1 text-xs font-bold" style={{ color: '#2563EB' }}>
+              <div
+                className="flex items-center gap-1.5 mb-1 text-xs font-bold"
+                style={{ color: "#2563EB" }}
+              >
                 <ArrowUp size={13} />
                 Total Pickup
               </div>
               <div className="text-lg font-bold" style={{ color: T.t1 }}>
-                {bal.pkU} <span className="text-xs font-normal" style={{ color: T.t3 }}>units</span>
+                {bal.pkU}{" "}
+                <span className="text-xs font-normal" style={{ color: T.t3 }}>
+                  units
+                </span>
               </div>
               <div className="text-sm font-semibold" style={{ color: T.t2 }}>
                 {fmtW(bal.pkW)}
               </div>
             </div>
             <div>
-              <div className="flex items-center gap-1.5 mb-1 text-xs font-bold" style={{ color: '#5E3BEE' }}>
+              <div
+                className="flex items-center gap-1.5 mb-1 text-xs font-bold"
+                style={{ color: "#5E3BEE" }}
+              >
                 <ArrowDown size={13} />
                 Total Dropoff
               </div>
               <div className="text-lg font-bold" style={{ color: T.t1 }}>
-                {bal.doU} <span className="text-xs font-normal" style={{ color: T.t3 }}>units</span>
+                {bal.doU}{" "}
+                <span className="text-xs font-normal" style={{ color: T.t3 }}>
+                  units
+                </span>
               </div>
               <div className="text-sm font-semibold" style={{ color: T.t2 }}>
                 {fmtW(bal.doW)}
@@ -2088,8 +2571,14 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({ bal, balExp, setBalExp,
             </div>
           </div>
           {Object.keys(bal.byP).length > 0 && (
-            <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${T.bd}` }}>
-              <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: T.t3 }}>
+            <div
+              className="mt-3 pt-3"
+              style={{ borderTop: `1px solid ${T.bd}` }}
+            >
+              <div
+                className="text-[10px] font-bold uppercase tracking-wider mb-2"
+                style={{ color: T.t3 }}
+              >
                 Per Product
               </div>
               {Object.entries(bal.byP).map(([nm, v]: [string, any]) => (
@@ -2098,25 +2587,35 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({ bal, balExp, setBalExp,
                   className="flex items-center justify-between py-1 text-xs"
                   style={{ borderBottom: `1px solid ${T.bd}` }}
                 >
-                  <span className="truncate mr-2 font-medium" style={{ color: T.t1 }}>
+                  <span
+                    className="truncate mr-2 font-medium"
+                    style={{ color: T.t1 }}
+                  >
                     {nm}
                   </span>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span style={{ color: '#2563EB' }}>
+                    <span style={{ color: "#2563EB" }}>
                       ↑ {v.pk} {v.unit}
                     </span>
-                    <span style={{ color: '#5E3BEE' }}>
+                    <span style={{ color: "#5E3BEE" }}>
                       ↓ {v.do} {v.unit}
                     </span>
                     {v.pk > 0 && v.pk !== v.do && (
                       <span
                         className="text-[10px] font-bold px-1 rounded"
-                        style={{ background: '#FEF3C7', color: '#D97706' }}
+                        style={{ background: "#FEF3C7", color: "#D97706" }}
                       >
                         {v.pk - v.do > 0 ? `+${v.pk - v.do}` : v.pk - v.do}
                       </span>
                     )}
-                    {v.pk > 0 && v.pk === v.do && <span className="text-[10px]" style={{ color: '#059669' }}>✓</span>}
+                    {v.pk > 0 && v.pk === v.do && (
+                      <span
+                        className="text-[10px]"
+                        style={{ color: "#059669" }}
+                      >
+                        ✓
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -2135,12 +2634,12 @@ function getStopTags(stop: any) {
   let pk = false,
     d = false;
   (stop.lines || []).forEach((ln: any) => {
-    if (ln.action === 'pickup') pk = true;
-    if (ln.action === 'dropoff') d = true;
+    if (ln.action === "pickup") pk = true;
+    if (ln.action === "dropoff") d = true;
   });
   const tags = [];
-  if (pk) tags.push('pickup');
-  if (d) tags.push('dropoff');
+  if (pk) tags.push("pickup");
+  if (d) tags.push("dropoff");
   return tags;
 }
 
@@ -2148,7 +2647,7 @@ function fmtStopBrief(s: any, t: any) {
   const parts = [];
   const fmtD = (ds: string) => {
     const d = new Date(ds);
-    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
   };
   if (s.dateFrom) {
     let str = `From ${fmtD(s.dateFrom)}`;
@@ -2163,5 +2662,5 @@ function fmtStopBrief(s: any, t: any) {
   }
   const cargoCount = (s.lines || []).filter((l: any) => l.productId).length;
   if (cargoCount) parts.push(`${cargoCount} lines`);
-  return parts.join(' · ');
+  return parts.join(" · ");
 }
