@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { erpOrdersService, ApiError, addressBookService, productMasterService } from '../../../api';
+import { erpOrdersService, ApiError, getApiErrorMessage, addressBookService, productMasterService } from '../../../api';
 import { statusLabel, buildExportParams } from '../../../api/mappers/erpOrdersMapper';
 import type {
   ErpOrder,
@@ -114,13 +114,14 @@ export function useErpOrdersList() {
   const handleApiError = useCallback(
     (err: unknown, fallback: string) => {
       if (err instanceof ApiError) {
-        showToast(err.message, 'error');
-        return err.message;
+        const message = getApiErrorMessage(err, fallback, t);
+        showToast(message, 'error');
+        return message;
       }
       showToast(fallback, 'error');
       return fallback;
     },
-    [showToast]
+    [showToast, t]
   );
 
   const invalidateOrders = useCallback(() => {

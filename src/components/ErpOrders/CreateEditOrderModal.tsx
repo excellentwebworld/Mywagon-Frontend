@@ -10,10 +10,10 @@ import { OrderProductLinesEditor } from './OrderProductLinesEditor';
 import { FormFieldError } from '../AddressBook/FormFieldError';
 import type { ApiErpOrderCustomer } from '../../api/types/erpOrders';
 import type { LocationItem, SKU } from '../../context/AppContext';
-import type { ErpOrderFormState } from '../../pages/ErpOrders/types';
+import type { ErpOrderFormState, ErpOrderLine } from '../../pages/ErpOrders/types';
 
 type Props = {
-  t: (key: string) => string;
+  t: (key: string, options?: Record<string, string | number>) => string;
   isOpen: boolean;
   isEdit: boolean;
   form: ErpOrderFormState;
@@ -123,6 +123,18 @@ export const CreateEditOrderModal: React.FC<Props> = ({
             productSkuId: Yup.number().nullable(),
           })
         )
+        .test('line-weights', function validateLineWeights(lines) {
+          const orderLines = (lines ?? []) as ErpOrderLine[];
+          for (let i = 0; i < orderLines.length; i++) {
+            const weight = orderLines[i]?.weight;
+            if (weight != null && weight < 0) {
+              return this.createError({
+                message: String(t('erpOrdersLineWeightMin', { line: i + 1 })),
+              });
+            }
+          }
+          return true;
+        })
         .test(
           'unique-products',
           t('erpOrdersDuplicateProduct'),

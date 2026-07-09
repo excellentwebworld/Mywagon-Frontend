@@ -1705,8 +1705,23 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .time-picker input[type='time'] {
   position: relative;
   width: 100%;
+  padding-right: 28px;
   cursor: pointer;
   color-scheme: light;
+}
+.time-picker-icon {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary, #8E8E9A);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+.time-picker-icon svg {
+  width: 14px;
+  height: 14px;
 }
 .time-picker input[type='time']::-webkit-calendar-picker-indicator {
   position: absolute;

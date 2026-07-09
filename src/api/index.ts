@@ -1,4 +1,5 @@
 export { ApiError } from './client';
+export { getApiErrorMessage, formatApiValidationMessage } from './utils/formatApiValidationMessage';
 export { addressBookService } from './services/addressBookService';
 export { productMasterService } from './services/productMasterService';
 export { partnersService } from './services/partnersService';

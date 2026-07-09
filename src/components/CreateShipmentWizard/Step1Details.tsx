@@ -26,7 +26,7 @@ import { CreateCompanyModal } from '../AddressBook/CreateCompanyModal';
 import { ProductMasterSkuModal } from '../ProductMaster/ProductMasterSkuModal';
 import { CreateEditOrderModal } from '../ErpOrders';
 import { useQueryClient } from '@tanstack/react-query';
-import { productMasterService, addressBookService, erpOrdersService, ApiError } from '../../api';
+import { productMasterService, addressBookService, erpOrdersService, ApiError, getApiErrorMessage } from '../../api';
 import { EMPTY_ORDER_FORM } from '../../pages/ErpOrders/types';
 import type { ErpOrderFormState } from '../../pages/ErpOrders/types';
 import type { ApiErpOrderCustomer } from '../../api/types/erpOrders';
@@ -643,7 +643,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       setErpOrderForm(EMPTY_ORDER_FORM);
       showToast(t('erpOrdersCreateSuccess') || 'Order created successfully.', 'success');
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : (t('erpOrdersCreateError') || 'Failed to create order');
+      const message =
+        err instanceof ApiError
+          ? getApiErrorMessage(err, t('erpOrdersCreateError') || 'Failed to create order', t)
+          : t('erpOrdersCreateError') || 'Failed to create order';
       showToast(message, 'error');
     } finally {
       setErpOrderSaving(false);
