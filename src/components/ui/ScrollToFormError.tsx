@@ -7,21 +7,26 @@ type Props = {
 };
 
 export const ScrollToFormError: React.FC<Props> = ({ modalBodySelector = '.modal-body' }) => {
-  const { errors, submitCount, isValidating } = useFormikContext();
+  const { errors, submitCount, isValidating, isSubmitting } = useFormikContext();
   const formAnchorRef = useRef<HTMLSpanElement>(null);
+  const handledSubmitCountRef = useRef(0);
 
   useEffect(() => {
-    if (submitCount > 0 && !isValidating && Object.keys(errors).length > 0) {
-      const timer = window.setTimeout(() => {
-        const form = formAnchorRef.current?.closest('form');
-        if (form) {
-          scrollToFirstModalError(form, modalBodySelector);
-        }
-      }, 50);
+    if (submitCount === 0 || submitCount <= handledSubmitCountRef.current) return;
+    if (isValidating || isSubmitting) return;
+    if (Object.keys(errors).length === 0) return;
 
-      return () => window.clearTimeout(timer);
-    }
-  }, [submitCount, isValidating, errors, modalBodySelector]);
+    handledSubmitCountRef.current = submitCount;
+
+    const timer = window.setTimeout(() => {
+      const form = formAnchorRef.current?.closest('form');
+      if (form) {
+        scrollToFirstModalError(form, modalBodySelector);
+      }
+    }, 50);
+
+    return () => window.clearTimeout(timer);
+  }, [submitCount, isValidating, isSubmitting, errors, modalBodySelector]);
 
   return <span ref={formAnchorRef} aria-hidden="true" style={{ display: 'none' }} />;
 };
