@@ -651,6 +651,53 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   text-align: center;
 }
 
+/* Confirmation dialogs — centered message text across Shipper panel */
+.confirmation-modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.confirmation-modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  flex-shrink: 0;
+}
+
+.confirmation-modal-message {
+  width: 100%;
+  text-align: center;
+  color: var(--text-secondary, #5C5C6B);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.confirmation-modal-message h3,
+.confirmation-modal-message p,
+.confirmation-modal-message span {
+  text-align: center;
+}
+
+.confirmation-modal-message h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--text-primary, #121217);
+}
+
+.confirmation-modal-message p {
+  margin: 0;
+  color: var(--text-secondary, #5C5C6B);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
 .ab-company-backdrop { z-index: 400; }
 
 

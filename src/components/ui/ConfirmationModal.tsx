@@ -98,7 +98,10 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
   return createPortal(
     <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal modal-sm ${className || ''}`} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`modal modal-sm confirmation-modal ${className || ''}`.trim()}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
           <h2 style={{ color: titleColor }}>{title}</h2>
           <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={onClose} aria-label="Close">
@@ -107,22 +110,16 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             </svg>
           </button>
         </div>
-        <div className="modal-body modal-dialog-centered">
+        <div className="modal-body confirmation-modal-body">
           <div
+            className="confirmation-modal-icon"
             style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: 'var(--radius-md)',
               background: iconBg,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
             }}
           >
             {getIcon()}
           </div>
-          {message}
+          <div className="confirmation-modal-message">{message}</div>
         </div>
         <div className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={confirmLoading}>
