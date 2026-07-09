@@ -24,7 +24,17 @@ import { buildOrdersCardData, groupStopLinesByCustomer } from './itinerary/stopG
 import { formatAppointmentLabel } from './itinerary/scheduleWarnings';
 import { computeItineraryFingerprint } from './itineraryFingerprint';
 import { hasVehicleSelection } from './vehicleTypes';
+import { scrollToValidationAnchor } from './validation';
 import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
+
+function scrollToStep2Validation(anchor: string) {
+  window.requestAnimationFrame(() => {
+    scrollToValidationAnchor(anchor, {
+      focus: false,
+      highlightClass: 'wizard-validation-flash',
+    });
+  });
+}
 
 const T = {
   sf: 'var(--surface)',
@@ -76,11 +86,40 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
     !isSaving;
 
   const handleConfirmAndContinue = async () => {
-    if (!canContinue) return;
-    await onContinue({
-      totalDistKm: route.totalDistKm,
-      totalDriveMin: route.totalDriveMin,
-    });
+    if (isSaving) return;
+
+    if (missingLocations) {
+      scrollToStep2Validation('step2-missing-locations');
+      return;
+    }
+
+    if (!values.itineraryConfirmed) {
+      scrollToStep2Validation('step2-itinerary-confirm');
+      return;
+    }
+
+    if (!vehicleSelected) {
+      scrollToStep2Validation('step2-vehicle-required');
+      return;
+    }
+
+    if (!values.vehicleSelectionConfirmed) {
+      scrollToStep2Validation('step2-vehicle-selector');
+      return;
+    }
+
+    try {
+      await onContinue({
+        totalDistKm: route.totalDistKm,
+        totalDriveMin: route.totalDriveMin,
+      });
+    } catch {
+      if (!vehicleSelected) {
+        scrollToStep2Validation('step2-vehicle-required');
+      } else if (!values.itineraryConfirmed) {
+        scrollToStep2Validation('step2-itinerary-confirm');
+      }
+    }
   };
 
   const handleSaveDraft = async () => {
@@ -116,7 +155,11 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
   return (
     <div className="animate-fade-in pb-24">
       {missingLocations && (
-        <div className="wizard-validation-banner mb-4" role="alert">
+        <div
+          className="wizard-validation-banner mb-4"
+          role="alert"
+          data-validation-anchor="step2-missing-locations"
+        >
           {t('step2MissingLocations')}{' '}
           <button type="button" className="underline font-semibold" onClick={onBackStep}>
             {t('step2EditItinerary')}
@@ -125,7 +168,11 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
       )}
 
       {!vehicleSelected && !missingLocations && values.itineraryConfirmed && (
-        <div className="wizard-validation-banner mb-4" role="alert">
+        <div
+          className="wizard-validation-banner mb-4"
+          role="alert"
+          data-validation-anchor="step2-vehicle-required"
+        >
           {t('step2SelectVehicleRequired')}
         </div>
       )}
@@ -329,6 +376,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
             <div
               className="flex items-center justify-between px-4 py-2.5 flex-wrap gap-2"
               style={{ borderTop: `1px solid ${T.bd}`, background: T.sa }}
+              data-validation-anchor="step2-itinerary-confirm"
             >
               <button
                 type="button"
@@ -363,7 +411,11 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
             </div>
           </div>
 
-          {values.itineraryConfirmed && <VehicleSelector />}
+          {values.itineraryConfirmed && (
+            <div data-validation-anchor="step2-vehicle-selector">
+              <VehicleSelector />
+            </div>
+          )}
         </div>
 
         <div className="right-panel">
@@ -466,10 +518,10 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
             className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold cursor-pointer text-white border-none"
             style={{
               background: canContinue ? 'var(--accent)' : 'var(--border-focus)',
-              cursor: canContinue ? 'pointer' : 'not-allowed',
+              cursor: isSaving ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',
             }}
-            disabled={!canContinue}
+            disabled={isSaving}
             onClick={handleConfirmAndContinue}
           >
             {isSaving ? t('saving') : t('step2ConfirmAndContinue') || t('step2Continue')}
