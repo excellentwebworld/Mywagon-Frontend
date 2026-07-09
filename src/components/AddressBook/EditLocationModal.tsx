@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Form, Formik, type FormikHelpers } from 'formik';
 import type { LocationItem } from '../../context/AppContext';
 import { ApiError } from '../../api';
-import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES, TEMPLATE_ID_TO_FACILITY_TYPE } from '../../pages/AddressBook/constants';
+import { DOCK_TYPES, getQuickTemplateFacilityLabel, getQuickTemplateFacilityOptions, TEMPLATE_ID_TO_FACILITY_TYPE } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { applyTemplate, inferQuickTemplateFromType } from '../../pages/AddressBook/utils/locationUtils';
 import { EMPTY_CREATE_DATA } from '../../pages/AddressBook/types';
@@ -95,10 +95,9 @@ export const EditLocationModal: React.FC<Props> = ({
 
   if (!isEditOpen || !editData) return null;
 
-  const facilityOptions = FACILITY_TYPES.map((type) => ({
-    value: type,
-    label: FACILITY_TYPE_LABELS[type] ?? type,
-  }));
+  const locationContext = editData.group === 'customer' ? 'customer' : 'my';
+
+  const facilityOptions = getQuickTemplateFacilityOptions(t);
 
   const dockOptions = DOCK_TYPES.map((dock) => ({ value: dock, label: dock }));
 
@@ -230,9 +229,54 @@ export const EditLocationModal: React.FC<Props> = ({
         const loadTimeStr = String(values.loadTime ?? '').trim();
         const loadTimeLabel = loadTimeStr ? `${loadTimeStr} min` : '—';
 
+        const contextLabel =
+          locationContext === 'customer' ? t('abCustomerLocation') : t('abMyCompany');
+
+        const companyEntityOptions =
+          values.company || values.companyVat
+            ? [
+                {
+                  value: values.companyVat || values.company,
+                  label: values.company || values.companyVat,
+                  sublabel: values.companyVat ? `VAT: ${values.companyVat}` : undefined,
+                },
+              ]
+            : [];
+
         const renderStep1 = () => (
           <>
-            <div className={fieldClass(showError('type'))}>
+            <h4 className="ab-form-heading">{t('abBelongsTo')}</h4>
+            <div className="ctx-cards ctx-cards--readonly">
+              <div className={`ctx-card ${locationContext === 'my' ? 'selected' : ''}`}>
+                <div className="ico">🏢</div>
+                <div className="lbl">{t('abMyCompany')}</div>
+                <div className="sub">{t('abMyCompanySub')}</div>
+              </div>
+              <div className={`ctx-card ${locationContext === 'customer' ? 'selected' : ''}`}>
+                <div className="ico">🤝</div>
+                <div className="lbl">{t('abCustomerLocation')}</div>
+                <div className="sub">{t('abCustomerLocationSub')}</div>
+              </div>
+            </div>
+
+            {locationContext === 'customer' && (
+              <div className="mf ab-company-field mt-3">
+                <label>
+                  {t('abCompanyEntity')} <span className="req">*</span>
+                </label>
+                <SearchableSelect
+                  value={values.companyVat || values.company}
+                  options={companyEntityOptions}
+                  placeholder={t('abSearchExistingCompanies')}
+                  disabled
+                  onChange={() => {}}
+                  direction="down"
+                  className="company-entity-select"
+                />
+              </div>
+            )}
+
+            <div className={`mf${showError('type') ? ' has-error' : ''} mt-3`}>
               <label>
                 {t('abLocationType')} <span className="req">*</span>
               </label>
@@ -242,8 +286,9 @@ export const EditLocationModal: React.FC<Props> = ({
                 placeholder="— Select —"
                 hasError={showError('type')}
                 onChange={(val) => {
+                  const template = inferQuickTemplateFromType(val);
                   setFieldValue('type', val);
-                  setSelectedTemplate(inferQuickTemplateFromType(val));
+                  if (template) setSelectedTemplate(template);
                   clearStepErrors();
                 }}
                 direction="down"
@@ -252,14 +297,14 @@ export const EditLocationModal: React.FC<Props> = ({
               <FormFieldError message={errorMessage('type')} />
             </div>
 
-            <h4 className="ab-form-heading ab-form-heading-spaced">{t('Quick template')}</h4>
+            <h4 className="ab-form-heading ab-form-heading-spaced">{t('abQuickTemplate')}</h4>
             <div className="tpl-cards">
               {(
                 [
-                  { id: 'retail', icon: '🏪', label: t('Retail DC') || 'Retail DC' },
-                  { id: 'factory', icon: '🏭', label: t('Factory') || 'Factory' },
-                  { id: 'warehouse', icon: '📦', label: t('Warehouse') || 'Warehouse' },
-                  { id: 'store', icon: '🏬', label: t('Store') || 'Store' },
+                  { id: 'retail', icon: '🏪', label: t('abRetailDc') },
+                  { id: 'factory', icon: '🏭', label: t('abFactory') },
+                  { id: 'warehouse', icon: '📦', label: t('abWarehouse') },
+                  { id: 'store', icon: '🏬', label: t('abStore') },
                 ] as const
               ).map((tpl) => (
                 <div
@@ -582,56 +627,71 @@ export const EditLocationModal: React.FC<Props> = ({
 
         const renderStep4 = () => (
           <>
-            <h4 className="ab-form-heading">Review & Confirm</h4>
+            <h4 className="ab-form-heading">{t('abReviewConfirm')}</h4>
             <div className="review-box">
               <div className="review-row-grid">
                 <div className="review-row">
-                  <div className="review-label">Location Type</div>
-                  <div className="review-val">
-                    {FACILITY_TYPE_LABELS[values.type] ?? values.type ?? '—'}
-                  </div>
+                  <div className="review-label">{t('abContext')}</div>
+                  <div className="review-val">{contextLabel}</div>
                 </div>
                 <div className="review-row">
-                  <div className="review-label">Role</div>
-                  <div className="review-val">{roleLabel}</div>
+                  <div className="review-label">{t('abLocationType')}</div>
+                  <div className="review-val">
+                    {getQuickTemplateFacilityLabel(values.type, t) || '—'}
+                  </div>
                 </div>
               </div>
 
+              {locationContext === 'customer' && (
+                <div className="review-row">
+                  <div className="review-label">{t('abCompanyEntity')}</div>
+                  <div className="review-val">{reviewValue(values.company)}</div>
+                  {values.companyVat ? (
+                    <div className="review-sub">{`VAT: ${values.companyVat}`}</div>
+                  ) : null}
+                </div>
+              )}
+
               <div className="review-row">
-                <div className="review-label">Location</div>
+                <div className="review-label">{t('abLocation')}</div>
                 <div className="review-val review-val-lg">{reviewValue(values.name)}</div>
                 <div className="review-sub">{locationAddress}</div>
               </div>
 
               <div className="review-row-grid">
                 <div className="review-row">
-                  <div className="review-label">Internal Code</div>
+                  <div className="review-label">{t('abRole')}</div>
+                  <div className="review-val">{roleLabel}</div>
+                </div>
+                <div className="review-row">
+                  <div className="review-label">{t('abInternalCodeShort')}</div>
                   <div className="review-val">{reviewValue(values.code)}</div>
                 </div>
+              </div>
+
+              <div className="review-row-grid">
                 <div className="review-row">
-                  <div className="review-label">Dock Type</div>
+                  <div className="review-label">{t('abDockType')}</div>
                   <div className="review-val">{reviewValue(values.dock)}</div>
                 </div>
+                <div className="review-row">
+                  <div className="review-label">{t('abAppointmentRequiredCol')}</div>
+                  <div className="review-val">{values.appt ? t('abYes') : t('abNo')}</div>
+                </div>
+              </div>
+
+              <div className="review-row">
+                <div className="review-label">{t('abPreferredTimeRanges')}</div>
+                <div className="review-val">{preferredTimes}</div>
               </div>
 
               <div className="review-row-grid">
                 <div className="review-row">
-                  <div className="review-label">Appointment Required</div>
-                  <div className="review-val">{values.appt ? 'Yes' : 'No'}</div>
-                </div>
-                <div className="review-row">
-                  <div className="review-label">Preferred Time Ranges</div>
-                  <div className="review-val">{preferredTimes}</div>
-                </div>
-              </div>
-
-              <div className="review-row-grid">
-                <div className="review-row">
-                  <div className="review-label">Max Truck Length (m)</div>
+                  <div className="review-label">{t('abMaxTruckLength')}</div>
                   <div className="review-val">{reviewValue(values.maxTruck)}</div>
                 </div>
                 <div className="review-row">
-                  <div className="review-label">Max Weight (T)</div>
+                  <div className="review-label">{t('abMaxWeight')}</div>
                   <div className="review-val">{reviewValue(values.maxWeight)}</div>
                 </div>
               </div>

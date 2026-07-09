@@ -45,4 +45,4 @@ export const ModalStepper: React.FC<ModalStepperProps> = ({
   );
 };
 
-export const EDIT_MODAL_STEPS = ['Type', 'Address', 'Operations', 'Review'] as const;
+export const EDIT_MODAL_STEPS = ['Context', 'Address', 'Operations', 'Review'] as const;

@@ -755,6 +755,19 @@ table.ab-table { width: 100%; border-collapse: collapse; }
 .mf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 /* Context cards */
+.ctx-cards--readonly .ctx-card {
+  cursor: default;
+  pointer-events: none;
+}
+.ctx-cards--readonly .ctx-card:hover {
+  border-color: var(--border);
+  box-shadow: none;
+}
+.ctx-cards--readonly .ctx-card.selected:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
 .ctx-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .ctx-card {
   padding: 16px;
