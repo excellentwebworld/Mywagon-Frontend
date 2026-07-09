@@ -2,6 +2,7 @@ import * as Yup from 'yup';
 import { DOCK_TYPES, FACILITY_TYPES } from '../constants';
 import { DUPLICATE_LOCATION_MESSAGE } from './locationDuplicateValidation';
 import { areTimeRangesValid } from './timeRangeValidation';
+import { coerceFormString } from './locationFormCoerce';
 
 const facilityValues = [...FACILITY_TYPES];
 
@@ -61,13 +62,15 @@ export const locationEditValidationSchema = Yup.object({
   code: Yup.string().max(100),
   custCode: Yup.string().max(100),
   dock: Yup.string()
+    .transform((v) => coerceFormString(v))
     .trim()
     .required('Dock type is required')
     .max(50)
     .test('valid-dock', 'Select a valid dock type', (v) => DOCK_TYPES.includes(v as (typeof DOCK_TYPES)[number])),
-  maxTruck: Yup.string().trim(),
-  maxWeight: Yup.string().trim(),
+  maxTruck: Yup.string().transform((v) => coerceFormString(v)).trim(),
+  maxWeight: Yup.string().transform((v) => coerceFormString(v)).trim(),
   loadTime: Yup.string()
+    .transform((v) => coerceFormString(v))
     .required('Estimated loading/unloading time is required')
     .test('min-load-time', 'Must be at least 1 minute', (v) => {
       const n = parseInt(v ?? '', 10);

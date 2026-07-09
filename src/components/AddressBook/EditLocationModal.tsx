@@ -544,7 +544,7 @@ export const EditLocationModal: React.FC<Props> = ({
                 placeholder="e.g. 45"
                 value={values.loadTime}
                 onChange={(e) => {
-                  handleChange(e);
+                  setFieldValue('loadTime', e.target.value);
                   clearStepErrors();
                 }}
                 onBlur={handleBlur}

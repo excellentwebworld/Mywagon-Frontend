@@ -182,7 +182,7 @@ export function mapLocationToPayload(data: CreateLocationData): ApiLocationPaylo
     max_weight: data.maxWeight || null,
     adr_allowed: data.adr,
     pallet_exchange: data.palletExchange,
-    load_time_minutes: parseInt(data.loadTime, 10) || null,
+    load_time_minutes: parseInt(String(data.loadTime ?? ''), 10) || null,
   };
 }
 

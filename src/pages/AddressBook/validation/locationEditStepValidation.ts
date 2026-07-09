@@ -1,6 +1,7 @@
 import * as Yup from 'yup';
 import type { LocationFormValues } from './locationFormSchema';
 import { locationEditValidationSchema } from './locationFormSchema';
+import { normalizeLocationFormValues } from './locationFormUtils';
 
 export type EditStepErrors = Partial<Record<keyof LocationFormValues, string>>;
 
@@ -30,8 +31,10 @@ export async function validateEditStep(
   const fields = STEP_FIELDS[step];
   if (!fields?.length) return {};
 
+  const normalized = normalizeLocationFormValues(values);
+
   try {
-    await locationEditValidationSchema.pick(fields).validate(values, {
+    await locationEditValidationSchema.pick(fields).validate(normalized, {
       abortEarly: false,
     });
     return {};

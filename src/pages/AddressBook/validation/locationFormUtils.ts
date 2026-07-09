@@ -1,8 +1,31 @@
 import type { LocationItem } from '../../../context/AppContext';
 import type { LocationFormValues } from './locationFormSchema';
+import { coerceFormString } from './locationFormCoerce';
+
+/** Coerce form/API values to strings so `.trim()` and Yup string rules never throw. */
+export { coerceFormString } from './locationFormCoerce';
+
+export function normalizeLocationFormValues(values: LocationFormValues): LocationFormValues {
+  return {
+    ...values,
+    loadTime: coerceFormString(values.loadTime),
+    maxTruck: coerceFormString(values.maxTruck),
+    maxWeight: coerceFormString(values.maxWeight),
+    dock: coerceFormString(values.dock),
+    lat: coerceFormString(values.lat),
+    lng: coerceFormString(values.lng),
+    postalCode: coerceFormString(values.postalCode),
+    region: coerceFormString(values.region),
+    phone: coerceFormString(values.phone),
+    email: coerceFormString(values.email),
+    code: coerceFormString(values.code),
+    custCode: coerceFormString(values.custCode),
+    hours: coerceFormString(values.hours),
+  };
+}
 
 export function locationToFormValues(loc: LocationItem): LocationFormValues {
-  return {
+  return normalizeLocationFormValues({
     name: loc.name,
     company: loc.company,
     companyVat: loc.companyVat,
@@ -33,47 +56,48 @@ export function locationToFormValues(loc: LocationItem): LocationFormValues {
     amenityIds: loc.amenityIds ?? [],
     timeRanges: loc.timeRanges ?? [],
     contacts: loc.contacts ?? [],
-  };
+  });
 }
 
 export function formValuesToLocationItem(values: LocationFormValues, existing: LocationItem): LocationItem {
-  const loadTime = parseInt(values.loadTime, 10);
+  const normalized = normalizeLocationFormValues(values);
+  const loadTime = parseInt(normalized.loadTime, 10);
 
   return {
     ...existing,
-    name: values.name.trim(),
-    address: values.address.trim(),
-    city: values.city.trim(),
-    postalCode: values.postalCode?.trim() ?? '',
-    region: values.region?.trim() ?? '',
-    lat: parseFloat(values.lat) || 0,
-    lng: parseFloat(values.lng) || 0,
-    phone: values.phone?.trim() ?? '',
-    email: values.email?.trim() ?? '',
-    role: values.role,
-    type: values.type,
-    code: values.code?.trim() ?? '',
-    custCode: values.custCode?.trim() ?? '',
-    tags: values.tags
-      ? values.tags
+    name: normalized.name.trim(),
+    address: normalized.address.trim(),
+    city: normalized.city.trim(),
+    postalCode: normalized.postalCode.trim(),
+    region: normalized.region.trim(),
+    lat: parseFloat(normalized.lat) || 0,
+    lng: parseFloat(normalized.lng) || 0,
+    phone: normalized.phone.trim(),
+    email: normalized.email.trim(),
+    role: normalized.role,
+    type: normalized.type,
+    code: normalized.code.trim(),
+    custCode: normalized.custCode.trim(),
+    tags: normalized.tags
+      ? normalized.tags
           .split(',')
           .map((t) => t.trim())
           .filter(Boolean)
       : [],
-    appt: values.appt ?? false,
-    dock: values.dock.trim(),
-    hours: values.hours?.trim() ?? '',
-    maxTruck: values.maxTruck.trim(),
-    maxWeight: values.maxWeight.trim(),
-    adr: values.adr ?? false,
-    palletExchange: values.palletExchange ?? false,
+    appt: normalized.appt ?? false,
+    dock: normalized.dock.trim(),
+    hours: normalized.hours.trim(),
+    maxTruck: normalized.maxTruck.trim(),
+    maxWeight: normalized.maxWeight.trim(),
+    adr: normalized.adr ?? false,
+    palletExchange: normalized.palletExchange ?? false,
     loadTime: Number.isFinite(loadTime) && loadTime >= 1 ? loadTime : 1,
-    noteInternal: values.noteInternal ?? '',
-    noteCarrier: values.noteCarrier ?? '',
-    equipment: values.equipment ?? [],
-    amenityIds: values.amenityIds ?? [],
-    timeRanges: values.timeRanges ?? [],
-    contacts: (values.contacts ?? []).filter((c) => c.name.trim()),
+    noteInternal: normalized.noteInternal ?? '',
+    noteCarrier: normalized.noteCarrier ?? '',
+    equipment: normalized.equipment ?? [],
+    amenityIds: normalized.amenityIds ?? [],
+    timeRanges: normalized.timeRanges ?? [],
+    contacts: (normalized.contacts ?? []).filter((c) => c.name.trim()),
   };
 }
 
