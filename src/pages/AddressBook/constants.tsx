@@ -91,6 +91,40 @@ export const TEMPLATE_OPTIONS = [
   { id: 'store', icon: '🏬', label: 'Store' },
 ] as const;
 
+/** Facility types aligned with quick-template cards (Create Location step 1). */
+export const QUICK_TEMPLATE_FACILITY_TYPES = ['dc', 'plant', 'warehouse', 'store'] as const;
+
+export const TEMPLATE_ID_TO_FACILITY_TYPE: Record<
+  (typeof TEMPLATE_OPTIONS)[number]['id'],
+  (typeof QUICK_TEMPLATE_FACILITY_TYPES)[number]
+> = {
+  retail: 'dc',
+  factory: 'plant',
+  warehouse: 'warehouse',
+  store: 'store',
+};
+
+const QUICK_TEMPLATE_FACILITY_LABEL_KEYS: Record<(typeof QUICK_TEMPLATE_FACILITY_TYPES)[number], string> = {
+  dc: 'abRetailDc',
+  plant: 'abFactory',
+  warehouse: 'abWarehouse',
+  store: 'abStore',
+};
+
+export function getQuickTemplateFacilityLabel(type: string, t: (key: string) => string): string {
+  if ((QUICK_TEMPLATE_FACILITY_TYPES as readonly string[]).includes(type)) {
+    return t(QUICK_TEMPLATE_FACILITY_LABEL_KEYS[type as (typeof QUICK_TEMPLATE_FACILITY_TYPES)[number]]);
+  }
+  return FACILITY_TYPE_LABELS[type] ?? type;
+}
+
+export function getQuickTemplateFacilityOptions(t: (key: string) => string): { value: string; label: string }[] {
+  return QUICK_TEMPLATE_FACILITY_TYPES.map((type) => ({
+    value: type,
+    label: t(QUICK_TEMPLATE_FACILITY_LABEL_KEYS[type]),
+  }));
+}
+
 export const ICON_NAMES = ['folder', 'tag', 'star', 'truck', 'briefcase', 'users', 'home', 'archive'] as const;
 
 export const DIR_ICONS: Record<string, React.ReactNode> = {

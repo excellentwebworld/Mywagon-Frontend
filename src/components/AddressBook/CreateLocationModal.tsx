@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { LocationItem } from '../../context/AppContext';
-import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES } from '../../pages/AddressBook/constants';
+import { DOCK_TYPES, getQuickTemplateFacilityLabel, getQuickTemplateFacilityOptions } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
+import { inferQuickTemplateFromType } from '../../pages/AddressBook/utils/locationUtils';
 import {
   validateCreateAll,
   validateCreateStep1,
@@ -93,10 +94,7 @@ export const CreateLocationModal: React.FC<Props> = ({
     });
   };
 
-  const facilityOptions = FACILITY_TYPES.map((type) => ({
-    value: type,
-    label: FACILITY_TYPE_LABELS[type] ?? type,
-  }));
+  const facilityOptions = getQuickTemplateFacilityOptions(t);
 
   const dockOptions = DOCK_TYPES.map((dock) => ({ value: dock, label: dock }));
 
@@ -218,7 +216,13 @@ export const CreateLocationModal: React.FC<Props> = ({
           options={facilityOptions}
           placeholder="— Select —"
           hasError={Boolean(fieldErrors.type)}
-          onChange={(val) => update({ type: val })}
+          onChange={(val) => {
+            const template = inferQuickTemplateFromType(val);
+            update({
+              type: val,
+              ...(template ? { template } : {}),
+            });
+          }}
           direction="down"
           className="location-type-select"
         />
@@ -510,7 +514,7 @@ export const CreateLocationModal: React.FC<Props> = ({
             <div className="review-row">
               <div className="review-label">{t('abLocationType')}</div>
               <div className="review-val">
-                {FACILITY_TYPE_LABELS[createData.type] ?? createData.type ?? '—'}
+                {getQuickTemplateFacilityLabel(createData.type, t) || '—'}
               </div>
             </div>
           </div>

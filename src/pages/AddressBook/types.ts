@@ -92,7 +92,7 @@ export const EMPTY_CREATE_DATA: CreateLocationData = {
   phone: '',
   email: '',
   role: 'both',
-  type: 'warehouse',
+  type: 'dc',
   appt: false,
   hours: '',
   dock: '',

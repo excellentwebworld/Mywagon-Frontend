@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Form, Formik, type FormikHelpers } from 'formik';
 import type { LocationItem } from '../../context/AppContext';
 import { ApiError } from '../../api';
-import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES } from '../../pages/AddressBook/constants';
+import { DOCK_TYPES, FACILITY_TYPE_LABELS, FACILITY_TYPES, TEMPLATE_ID_TO_FACILITY_TYPE } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { applyTemplate, inferQuickTemplateFromType } from '../../pages/AddressBook/utils/locationUtils';
 import { EMPTY_CREATE_DATA } from '../../pages/AddressBook/types';
@@ -201,6 +201,8 @@ export const EditLocationModal: React.FC<Props> = ({
             maxWeight: values.maxWeight,
             appt: values.appt,
           });
+          const facilityType = TEMPLATE_ID_TO_FACILITY_TYPE[tpl as keyof typeof TEMPLATE_ID_TO_FACILITY_TYPE];
+          if (facilityType) setFieldValue('type', facilityType);
           setFieldValue('dock', patched.dock);
           setFieldValue('hours', patched.hours);
           if (patched.maxTruck) setFieldValue('maxTruck', patched.maxTruck);

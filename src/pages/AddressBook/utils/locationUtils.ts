@@ -1,6 +1,7 @@
 import type { ApiAddressBookSummary } from '../../../api/types/addressBook';
 import type { LocationItem } from '../../../context/AppContext';
 import { getLocationSearchFields, matchesLocationSearchQuery } from '../../../utils/locationSearchUtils';
+import { TEMPLATE_ID_TO_FACILITY_TYPE } from '../constants';
 import { EMPTY_CREATE_DATA, type AddressBookSortField, type CreateLocationData, type DirectoryItem, type FilterKey } from '../types';
 
 export function getNodeCountFromSummary(
@@ -115,7 +116,12 @@ export function findPotentialDuplicates(
 }
 
 export function applyTemplate(tpl: string, prev: CreateLocationData): CreateLocationData {
-  const base = { ...prev, template: tpl };
+  const facilityType = TEMPLATE_ID_TO_FACILITY_TYPE[tpl as keyof typeof TEMPLATE_ID_TO_FACILITY_TYPE];
+  const base = {
+    ...prev,
+    template: tpl,
+    ...(facilityType ? { type: facilityType } : {}),
+  };
   if (tpl === 'retail') {
     return { ...base, dock: 'Dock-level', hours: 'Mon-Fri 06:00–16:00' };
   }
