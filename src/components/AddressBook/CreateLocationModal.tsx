@@ -415,16 +415,12 @@ export const CreateLocationModal: React.FC<Props> = ({
 
       <div className="mf-grid">
         <div className={`mf${fieldErrors.maxTruck ? ' has-error' : ''}`}>
-          <label>
-            {t('abMaxTruckLength')} <span className="req">*</span>
-          </label>
+          <label>{t('abMaxTruckLength')}</label>
           <input type="text" placeholder="e.g. 18.75m" value={createData.maxTruck} onChange={(e) => update({ maxTruck: e.target.value })} />
           <FormFieldError message={fieldErrors.maxTruck} />
         </div>
         <div className={`mf${fieldErrors.maxWeight ? ' has-error' : ''}`}>
-          <label>
-            {t('abMaxWeight')} <span className="req">*</span>
-          </label>
+          <label>{t('abMaxWeight')}</label>
           <input type="text" placeholder="e.g. 40T" value={createData.maxWeight} onChange={(e) => update({ maxWeight: e.target.value })} />
           <FormFieldError message={fieldErrors.maxWeight} />
         </div>

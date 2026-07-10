@@ -71,11 +71,11 @@ export const locationEditValidationSchema = Yup.object({
   maxTruck: Yup.string()
     .transform((v) => coerceFormString(v))
     .trim()
-    .required('Max truck length is required'),
+    .max(20),
   maxWeight: Yup.string()
     .transform((v) => coerceFormString(v))
     .trim()
-    .required('Max weight is required'),
+    .max(20),
   loadTime: Yup.string()
     .transform((v) => coerceFormString(v))
     .required('Estimated loading/unloading time is required')
