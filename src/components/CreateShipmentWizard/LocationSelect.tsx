@@ -190,7 +190,7 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
                 >
                   {key === 'my'
                     ? t('abMyLocations') || 'My Locations'
-                    : t('abCustomerLocations') || 'Customer Locations'}
+                    : t('abCustomerLocations') || '3rd Party Locations'}
                 </button>
               ))}
             </div>
