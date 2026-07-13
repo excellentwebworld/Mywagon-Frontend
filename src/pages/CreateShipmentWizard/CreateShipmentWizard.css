@@ -1683,6 +1683,13 @@
 
 .carrier-list { max-height: 240px; overflow-y: auto; }
 
+/* Show ~5 carrier/driver rows, then scroll */
+.carrier-scroll-list {
+  max-height: 380px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .crow {
   display: flex;
   align-items: center;

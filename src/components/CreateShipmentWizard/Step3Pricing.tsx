@@ -34,7 +34,7 @@ import { matchContractLane } from '../../api/utils/matchContractLane';
 import type { Step3Carrier } from '../../api/mappers/mapPartnerToStep3Carrier';
 import { enrichStops } from './itinerary/stopEnrichment';
 import { buildStopSummaryLabels, buildTrackingGroups } from './itinerary/buildTrackingGroups';
-import { computeTripTotals, formatDurationMin, formatWeightKg } from './itinerary/cargoUtils';
+import { computeTripTotals, formatDurationMin, formatWeightKg, formatWeightDisplay } from './itinerary/cargoUtils';
 import type { TrackingOrderItem } from './itinerary/buildTrackingGroups';
 import {
   extractTrackingOrderIds,
@@ -44,7 +44,9 @@ import {
 } from '../../api/mappers/createShipmentMapper';
 import { useRouteLegs } from './itinerary/useRouteLegs';
 import { RouteMap } from './itinerary/RouteMap';
-import { pinColors } from './itinerary/stopColors';
+import { actionChipStyle, badgeStyle, pinColors } from './itinerary/stopColors';
+import { formatAppointmentLabel } from './itinerary/scheduleWarnings';
+import { groupStopLinesByCustomer } from './itinerary/stopGrouping';
 import { CarrierListSkeleton } from '../skeletons/CarrierListSkeleton';
 
 const T = {
@@ -562,7 +564,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                       partnersLoading ? (
                         <CarrierListSkeleton rows={4} />
                       ) : (
-                      <div className="divide-y">
+                      <div className="carrier-scroll-list divide-y">
                         {carrierCompanies.filter(matchesFilter).map((c) => {
                           const isSel = (values.selectedCarriers || []).includes(c.id);
                           return (
@@ -628,7 +630,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                       partnersLoading ? (
                         <CarrierListSkeleton rows={2} />
                       ) : (
-                      <div className="divide-y">
+                      <div className="carrier-scroll-list divide-y">
                         {freelancerDrivers.filter(matchesFilter).map((c) => {
                           const isSel = (values.selectedCarriers || []).includes(c.id);
                           return (
@@ -1129,12 +1131,22 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
               </button>
             </div>
 
-            {/* Route timeline list */}
+            {/* Route timeline list — details aligned with Step 2 */}
             <div className="p-4 space-y-4">
               {enrichedStops.map((stop, idx) => {
                 const isLast = idx === enrichedStops.length - 1;
                 const pin = pinColors(stop.hasPickup, stop.hasDropoff);
-                const { orderRefs, customers } = buildStopSummaryLabels(stops[idx], stop);
+                const apiStop = stops[idx];
+                const { orderRefs, customers } = buildStopSummaryLabels(apiStop, stop);
+                const appointment = formatAppointmentLabel(apiStop || stop);
+                const cargoGroups = apiStop ? groupStopLinesByCustomer(apiStop) : [];
+                const locationName =
+                  stop.resolvedName || stop.locationName || stop.resolvedCity || stop.locationCity || '—';
+                const locationAddress =
+                  stop.resolvedAddress ||
+                  (stop.resolvedCity && stop.resolvedCity !== locationName ? stop.resolvedCity : '') ||
+                  stop.locationCity ||
+                  '';
 
                 return (
                   <div key={stop.id || idx} className="flex gap-3 relative pb-4 last:pb-0">
@@ -1150,29 +1162,109 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                       <div className="absolute top-4 left-[4px] bottom-0 w-0.5 bg-slate-200" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-baseline gap-2">
-                        <span className="text-xs font-bold text-slate-800">
-                          {stop.resolvedCity || stop.resolvedName || stop.locationCity || stop.locationName || '—'}
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-400 truncate max-w-[45%]">
-                          {orderRefs}
-                        </span>
+                      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                        {stop.hasPickup && (
+                          <span
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                            style={badgeStyle('pickup')}
+                          >
+                            {t('pickup').toUpperCase()}
+                          </span>
+                        )}
+                        {stop.hasDropoff && (
+                          <span
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                            style={badgeStyle('dropoff')}
+                          >
+                            {t('dropoff').toUpperCase()}
+                          </span>
+                        )}
+                        {appointment && (
+                          <span className="text-[10px]" style={{ color: T.t3 }}>
+                            📅 {appointment}
+                          </span>
+                        )}
                       </div>
 
+                      <div className="flex justify-between items-baseline gap-2">
+                        <span className="text-xs font-bold" style={{ color: T.t1 }}>
+                          {locationName}
+                        </span>
+                        {orderRefs && orderRefs !== '—' && (
+                          <span className="text-[10px] font-mono truncate max-w-[40%]" style={{ color: T.t3 }}>
+                            {orderRefs}
+                          </span>
+                        )}
+                      </div>
+
+                      {locationAddress && (
+                        <div className="text-[10px] mt-0.5 leading-snug" style={{ color: T.t3 }}>
+                          {locationAddress}
+                        </div>
+                      )}
+
+                      {stop.resolvedCompany && (
+                        <div className="text-[10px] mt-0.5 truncate" style={{ color: T.t2 }}>
+                          {stop.resolvedCompany}
+                        </div>
+                      )}
+
                       {customers.length > 0 && (
-                        <div className="flex gap-1.5 flex-wrap mt-1">
+                        <div className="flex gap-1 flex-wrap mt-1.5">
                           {customers.slice(0, 2).map((name) => (
                             <span
                               key={name}
-                              className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-teal-200 bg-teal-50 text-teal-800"
+                              className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                              style={{
+                                background: '#F0FDF9',
+                                color: '#059669',
+                                border: '1px solid #A7F3D0',
+                              }}
                             >
                               🏪 {name}
                             </span>
                           ))}
                           {customers.length > 2 && (
-                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-slate-600">
+                            <span
+                              className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                              style={{ background: T.sa, color: T.t2, border: `1px solid ${T.bd}` }}
+                            >
                               +{customers.length - 2}
                             </span>
+                          )}
+                        </div>
+                      )}
+
+                      {cargoGroups.length > 0 && (
+                        <div
+                          className="mt-2 rounded-md px-2 py-1.5 space-y-1"
+                          style={{ background: T.sa, border: `1px solid ${T.bd}` }}
+                        >
+                          {cargoGroups.map((customerGroup, gi) =>
+                            customerGroup.orders.map((orderGroup, oi) =>
+                              orderGroup.lines.map((line, li) => (
+                                <div
+                                  key={`${gi}-${oi}-${li}`}
+                                  className="flex items-center gap-1.5 text-[10px] min-w-0"
+                                >
+                                  <span
+                                    className="text-[9px] font-bold px-1 py-0.5 rounded shrink-0"
+                                    style={actionChipStyle(line.action)}
+                                  >
+                                    {line.action === 'pickup' ? '↑' : '↓'}
+                                  </span>
+                                  <span className="font-medium truncate flex-1" style={{ color: T.t1 }}>
+                                    {line.productName || '—'}
+                                  </span>
+                                  <span className="shrink-0 tabular-nums" style={{ color: T.t2 }}>
+                                    {line.qty} {line.unit || ''}
+                                  </span>
+                                  <span className="shrink-0 tabular-nums" style={{ color: T.t3 }}>
+                                    {formatWeightDisplay(line.weight, line.wtUnit)}
+                                  </span>
+                                </div>
+                              ))
+                            )
                           )}
                         </div>
                       )}
