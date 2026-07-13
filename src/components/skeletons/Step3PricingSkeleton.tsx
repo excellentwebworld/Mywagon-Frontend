@@ -33,8 +33,8 @@ export const Step3PricingSkeleton: React.FC = () => (
             <Skeleton width={140} height={16} {...sk} />
           </div>
           <div className="p-5 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
-              {[0, 1, 2].map((i) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
+              {[0, 1].map((i) => (
                 <Skeleton key={i} height={96} borderRadius={12} {...sk} />
               ))}
             </div>
@@ -62,7 +62,7 @@ export const Step3PricingSkeleton: React.FC = () => (
       </div>
 
       {/* Right column — ~30% */}
-      <div className="space-y-4 lg:sticky lg:top-4">
+      <div className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pr-1">
         <div
           className="rounded-xl overflow-hidden"
           style={{ background: T.sf, border: `1px solid ${T.bd}` }}

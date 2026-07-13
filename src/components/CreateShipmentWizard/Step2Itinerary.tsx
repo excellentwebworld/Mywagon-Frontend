@@ -6,6 +6,8 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  ChevronDown,
+  ChevronRight,
   Clock,
   Save,
 } from 'lucide-react';
@@ -22,6 +24,7 @@ import {
 } from './itinerary/cargoUtils';
 import { buildOrdersCardData, groupStopLinesByCustomer } from './itinerary/stopGrouping';
 import { formatAppointmentLabel } from './itinerary/scheduleWarnings';
+import { actionChipStyle, badgeStyle, pinColors } from './itinerary/stopColors';
 import { computeItineraryFingerprint } from './itineraryFingerprint';
 import { hasVehicleSelection } from './vehicleTypes';
 import { scrollToStep2Validation } from './validation';
@@ -195,11 +198,12 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
               {enrichedStops.map((stop, si) => {
                 const isExp = expandedStop === si;
                 const rw = runningWeights[si] || 0;
+                const pin = pinColors(stop.hasPickup, stop.hasDropoff);
 
                 return (
                   <div key={stop.id || si}>
                     <div
-                      className="flex gap-3 pb-4"
+                      className="flex gap-3 pb-2"
                       style={{
                         borderLeft:
                           si < enrichedStops.length - 1 ? `2px solid ${T.ac}` : '2px solid transparent',
@@ -207,20 +211,22 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                       }}
                     >
                       <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 -ml-[15px]"
-                        style={{ background: '#059669' }}
+                        className="w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-bold shrink-0 -ml-[15px]"
+                        style={{
+                          background: pin.background,
+                          color: pin.color,
+                          boxShadow: '0px 3px 6px #00000029',
+                          border: stop.hasDropoff ? 'none' : '1px solid #E5E7EB',
+                        }}
                       >
                         {si + 1}
                       </div>
-                      <div
-                        className="flex-1 min-w-0 cursor-pointer"
-                        onClick={() => setExpandedStop(isExp ? null : si)}
-                      >
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           {stop.hasPickup && (
                             <span
                               className="text-[10px] font-bold px-2 py-0.5 rounded"
-                              style={{ background: '#DBEAFE', color: '#2563EB' }}
+                              style={badgeStyle('pickup')}
                             >
                               {t('pickup').toUpperCase()}
                             </span>
@@ -228,7 +234,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                           {stop.hasDropoff && (
                             <span
                               className="text-[10px] font-bold px-2 py-0.5 rounded"
-                              style={{ background: '#D1FAE5', color: '#059669' }}
+                              style={badgeStyle('dropoff')}
                             >
                               {t('dropoff').toUpperCase()}
                             </span>
@@ -296,6 +302,17 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                             />
                           </div>
                         </div>
+
+                        <button
+                          type="button"
+                          className="mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase cursor-pointer border-none bg-transparent p-0"
+                          style={{ color: T.t3, fontFamily: 'inherit' }}
+                          onClick={() => setExpandedStop(isExp ? null : si)}
+                          aria-expanded={isExp}
+                        >
+                          {isExp ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                          {t('step2CargoAtStop')}
+                        </button>
                       </div>
                     </div>
 
@@ -304,12 +321,6 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                         className="ml-12 mb-3 p-3 rounded-lg"
                         style={{ background: T.sa, border: `1px solid ${T.bd}` }}
                       >
-                        <div
-                          className="text-[10px] font-bold uppercase mb-2"
-                          style={{ color: T.t3 }}
-                        >
-                          {t('step2CargoAtStop')}
-                        </div>
                         {groupStopLinesByCustomer(stop).map((customerGroup, gi) => (
                           <div key={gi} className="mb-3 last:mb-0">
                             {customerGroup.name && (
@@ -335,10 +346,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                                   >
                                     <span
                                       className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                                      style={{
-                                        background: l.action === 'pickup' ? '#DBEAFE' : '#D1FAE5',
-                                        color: l.action === 'pickup' ? '#2563EB' : '#059669',
-                                      }}
+                                      style={actionChipStyle(l.action)}
                                     >
                                       {l.action === 'pickup' ? '↑' : '↓'}
                                     </span>

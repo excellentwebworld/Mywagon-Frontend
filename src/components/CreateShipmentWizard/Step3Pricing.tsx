@@ -6,7 +6,6 @@ import { formatVehicleSelectionSummary } from './vehicleTypes';
 import { useVehicleTypes } from '../../hooks/useVehicleTypes';
 import {
   ArrowLeft,
-  Check,
   Search,
   AlertTriangle,
   Info,
@@ -22,6 +21,7 @@ import {
   Save,
   Globe,
   Settings,
+  Navigation,
 } from 'lucide-react';
 
 import { SearchableSelect } from '../ui/SearchableSelect';
@@ -44,6 +44,7 @@ import {
 } from '../../api/mappers/createShipmentMapper';
 import { useRouteLegs } from './itinerary/useRouteLegs';
 import { RouteMap } from './itinerary/RouteMap';
+import { pinColors } from './itinerary/stopColors';
 import { CarrierListSkeleton } from '../skeletons/CarrierListSkeleton';
 
 const T = {
@@ -423,7 +424,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
     <div className="pb-24">
       {/* ═══ TWO COLUMN GRID MATCHING page3-vehicle-pricing.html ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start mt-4">
-        {/* LEFT COLUMN: Broadcast, Bulk Load, Tracking Links */}
+        {/* LEFT COLUMN: Broadcast, Tracking */}
         <div className="lg:col-span-2 space-y-4">
           
           {/* BROADCAST TYPE */}
@@ -433,7 +434,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
               <span className="font-semibold text-sm">{t('broadcastType') || 'Broadcast Type'}</span>
             </div>
             <div className="cb p-5">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 
                 {/* Private Network */}
                 <div
@@ -479,16 +480,6 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                   </div>
                   <div className="text-[11px] text-slate-400 mt-1">{t('publicMarketplaceDesc') || 'Publish to the entire carrier marketplace.'}</div>
                 </div>
-
-                {/* My Fleet (disabled) */}
-                <div className="border-2 p-4 rounded-xl opacity-50 bg-slate-100 cursor-not-allowed">
-                  <div className="text-2xl mb-2">🚛</div>
-                  <div className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                    {t('myFleet') || 'My Fleet'}
-                    <span className="text-[8px] font-bold px-1 rounded bg-slate-300 text-slate-600">SOON</span>
-                  </div>
-                  <div className="text-[11px] text-slate-400 mt-1">{t('myFleetDesc') || 'Assign the load to a driver of your own fleet.'}</div>
-                </div>
               </div>
 
               {values.broadcastType === 'public' && (
@@ -528,13 +519,6 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
               {/* Private network carriers search & accordion list */}
               {values.broadcastType === 'private' && (
                 <div className="mt-4 pt-4 border-t" style={{ borderColor: T.bd }}>
-                  <div className="bg-sky-50 text-sky-700 p-2.5 rounded-lg text-xs flex items-center gap-2 mb-3">
-                    <Check size={14} className="text-sky-600 shrink-0" />
-                    <span>
-                      {t('vehicleSelectionFromLoad') || 'Vehicle selection from load:'} <strong>{selectedVehicleTypesStr}</strong>
-                    </span>
-                  </div>
-
                   <input
                     type="text"
                     className="w-full px-3 py-2 border rounded-lg text-xs mb-3 outline-none"
@@ -712,7 +696,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
             </div>
           </div>
 
-          {/* TRACKING LINKS */}
+          {/* TRACKING */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
             <div
               className="ch flex items-center gap-2 px-5 py-4 border-b cursor-pointer select-none"
@@ -720,67 +704,104 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
               onClick={() => setTrackingExpanded(!trackingExpanded)}
             >
               <Smartphone size={18} style={{ color: T.t2 }} />
-              <span className="font-semibold text-sm">{t('trackingLinks') || 'Tracking Links'}</span>
+              <span className="font-semibold text-sm">{t('trackingLinks') || 'Tracking'}</span>
               <span className="text-xs text-slate-400 font-normal ml-auto flex items-center gap-1.5">
                 {t('sendTrackingLink') || 'Send tracking link to customers'}
                 <span className={`transform transition-transform ${trackingExpanded ? 'rotate-180' : ''}`}>▼</span>
               </span>
             </div>
 
-            {trackingExpanded && (
-              <div className="cb p-5 space-y-3">
-                {trackingGroups.isEmpty ? (
-                  <div className="text-xs text-slate-500 py-2">
-                    {t('trackingLinksEmpty') || 'Add cargo lines with linked orders in Step 1 to configure tracking links.'}
+            <div className="cb p-5 space-y-3">
+              {/* Live Navigation at top of Tracking — always visible */}
+              <div
+                className="flex items-center justify-between gap-3 p-3 rounded-lg border"
+                style={{ borderColor: T.bd, background: T.sa }}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: T.ap, color: T.ac }}
+                  >
+                    <Navigation size={18} aria-hidden="true" />
                   </div>
-                ) : (
-                  <>
-                    {Object.entries(trackingGroups.groups).map(([custName, orders]) => {
-                      const collapsed = collapsedGroups[custName] || false;
-                      return (
-                        <div key={custName} className="border rounded-lg overflow-hidden">
-                          <div
-                            className="flex items-center gap-2 px-3 py-2 cursor-pointer bg-teal-50 text-xs font-bold text-teal-800"
-                            onClick={() =>
-                              setCollapsedGroups((p) => ({ ...p, [custName]: !collapsed }))
-                            }
-                          >
-                            <span className={`transform transition-transform text-[9px] ${!collapsed ? 'rotate-90' : ''}`}>▶</span>
-                            <span>🏪</span>
-                            <span className="flex-1 truncate">{custName}</span>
-                            <span className="text-[10px] font-normal text-slate-500">
-                              {orders.length} {orders.length === 1 ? (t('order') || 'order') : (t('orders') || 'orders')}
-                            </span>
-                          </div>
-
-                          {!collapsed && (
-                            <div className="p-3 divide-y space-y-3">
-                              {orders.map((o) => renderTrackingOrder(o))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                    {trackingGroups.ungrouped.length > 0 && (
-                      <div className="border rounded-lg overflow-hidden">
-                        <div className="px-3 py-2 bg-slate-50 text-xs font-bold text-slate-700">
-                          {t('trackingUngroupedOrders') || 'Other orders'}
-                        </div>
-                        <div className="p-3 divide-y space-y-3">
-                          {trackingGroups.ungrouped.map((o) => renderTrackingOrder(o))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold" style={{ color: T.t1 }}>
+                      {t('liveNavigation') || 'Live Navigation'}
+                    </div>
+                    <div className="text-[11px]" style={{ color: T.t3 }}>
+                      {t('liveNavigationDesc') || 'Require live GPS navigation for this shipment'}
+                    </div>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={values.gpsRequired}
+                    onChange={(e) => setFieldValue('gpsRequired', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div
+                    className="w-9 h-5 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all after:border-gray-300"
+                    style={{ background: values.gpsRequired ? T.ac : '#E5E7EB' }}
+                  />
+                </label>
               </div>
-            )}
+
+              {trackingExpanded && (
+                <>
+                  {trackingGroups.isEmpty ? (
+                    <div className="text-xs text-slate-500 py-2">
+                      {t('trackingLinksEmpty') || 'Add cargo lines with linked orders in Step 1 to configure tracking links.'}
+                    </div>
+                  ) : (
+                    <>
+                      {Object.entries(trackingGroups.groups).map(([custName, orders]) => {
+                        const collapsed = collapsedGroups[custName] || false;
+                        return (
+                          <div key={custName} className="border rounded-lg overflow-hidden">
+                            <div
+                              className="flex items-center gap-2 px-3 py-2 cursor-pointer bg-teal-50 text-xs font-bold text-teal-800"
+                              onClick={() =>
+                                setCollapsedGroups((p) => ({ ...p, [custName]: !collapsed }))
+                              }
+                            >
+                              <span className={`transform transition-transform text-[9px] ${!collapsed ? 'rotate-90' : ''}`}>▶</span>
+                              <span>🏪</span>
+                              <span className="flex-1 truncate">{custName}</span>
+                              <span className="text-[10px] font-normal text-slate-500">
+                                {orders.length} {orders.length === 1 ? (t('order') || 'order') : (t('orders') || 'orders')}
+                              </span>
+                            </div>
+
+                            {!collapsed && (
+                              <div className="p-3 divide-y space-y-3">
+                                {orders.map((o) => renderTrackingOrder(o))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {trackingGroups.ungrouped.length > 0 && (
+                        <div className="border rounded-lg overflow-hidden">
+                          <div className="px-3 py-2 bg-slate-50 text-xs font-bold text-slate-700">
+                            {t('trackingUngroupedOrders') || 'Other orders'}
+                          </div>
+                          <div className="p-3 divide-y space-y-3">
+                            {trackingGroups.ungrouped.map((o) => renderTrackingOrder(o))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* RIGHT COLUMN (Sticky): Mini Map & Summary, Pricing & Driver Notes */}
-        <div className="space-y-4 lg:sticky lg:top-4">
+        {/* RIGHT COLUMN (Sticky + own scroll): Mini Map & Summary, Pricing & Driver Notes */}
+        <div className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pr-1">
           
           {/* MINI MAP & SUMMARY */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12, overflow: 'hidden' }}>
@@ -830,12 +851,19 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
             <div className="p-4 space-y-4">
               {enrichedStops.map((stop, idx) => {
                 const isLast = idx === enrichedStops.length - 1;
-                const dotColor = stop.hasPickup && !stop.hasDropoff ? 'bg-sky-500' : 'bg-emerald-500';
+                const pin = pinColors(stop.hasPickup, stop.hasDropoff);
                 const { orderRefs, customers } = buildStopSummaryLabels(stops[idx], stop);
 
                 return (
                   <div key={stop.id || idx} className="flex gap-3 relative pb-4 last:pb-0">
-                    <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${dotColor}`} />
+                    <div
+                      className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 border"
+                      style={{
+                        background: pin.background,
+                        borderColor: stop.hasDropoff ? '#000000' : '#E5E7EB',
+                        boxShadow: '0px 1px 3px #00000029',
+                      }}
+                    />
                     {!isLast && (
                       <div className="absolute top-4 left-[4px] bottom-0 w-0.5 bg-slate-200" />
                     )}
@@ -897,6 +925,16 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                 </div>
               ))}
             </div>
+
+            {/* Selected vehicle types */}
+            {selectedVehicleTypesStr && selectedVehicleTypesStr !== '—' && (
+              <div className="px-4 py-3 border-t" style={{ borderColor: T.bd }}>
+                <div className="text-[9px] font-bold text-slate-400 uppercase mb-1">
+                  {t('vehicleTypes') || t('vehicleType') || 'Vehicle types'}
+                </div>
+                <div className="text-xs font-semibold text-slate-800">{selectedVehicleTypesStr}</div>
+              </div>
+            )}
           </div>
 
           {/* PRICING */}
@@ -1141,31 +1179,13 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
         className="wizard-footer-bar fixed bottom-0 right-0 h-[72px] items-center justify-between px-6 z-40 flex"
         style={{ left: 'var(--sidebar-w, 240px)', background: T.sf, borderTop: `1px solid ${T.bd}` }}
       >
-        {/* Cost & Live Navigation */}
+        {/* Total cost */}
         <div className="flex items-center gap-4 flex-wrap">
           <div className="text-xs flex items-center gap-1.5" style={{ color: T.t2 }}>
             {t('totalCost') || 'Total cost'}:
             <strong className="text-lg font-bold font-mono" style={{ color: T.t1 }}>
               {targetPriceVal > 0 ? `€${targetPriceVal.toLocaleString()}` : '—'}
             </strong>
-          </div>
-          
-          <div className="h-7 w-px" style={{ background: T.bd }} />
-          
-          <div className="flex items-center gap-2 text-xs" style={{ color: T.t2 }}>
-            <span>{t('liveNavigation') || 'Live navigation'}</span>
-            <label className="relative inline-flex items-center cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={values.gpsRequired}
-                onChange={(e) => setFieldValue('gpsRequired', e.target.checked)}
-                className="sr-only peer"
-              />
-              <div
-                className="w-9 h-5 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all after:border-gray-300"
-                style={{ background: values.gpsRequired ? T.ac : '#E5E7EB' }}
-              />
-            </label>
           </div>
         </div>
 

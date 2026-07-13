@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { MapPin } from 'lucide-react';
 import { loadGoogleMaps } from '../../AddressBook/GoogleMapAddressField';
+import { numberedMarkerIconUrl } from './stopColors';
 import type { EnrichedStop } from './types';
 
 interface RouteMapProps {
@@ -29,6 +30,9 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
   const pathSignature = polylinePath.map((p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join('|');
+  const stopMarkerSignature = stops
+    .map((s, i) => `${i}:${s.lat},${s.lng},${s.hasPickup ? 1 : 0},${s.hasDropoff ? 1 : 0}`)
+    .join('|');
 
   const label =
     routeLabel ||
@@ -59,16 +63,26 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         });
 
         const addStopMarkers = () => {
+          // Preserve original stop index for numbering even if some lack coords
           markers = stops
-            .filter((s) => s.lat != null && s.lng != null)
-            .map((s, idx) =>
-              new google.maps.Marker({
-                position: { lat: s.lat as number, lng: s.lng as number },
+            .map((s, idx) => ({ stop: s, idx }))
+            .filter(({ stop }) => stop.lat != null && stop.lng != null)
+            .map(({ stop, idx }) => {
+              const isDropoff = !!stop.hasDropoff;
+              const iconUrl = numberedMarkerIconUrl(idx + 1, !!stop.hasPickup, isDropoff);
+              const size = idx + 1 >= 10 ? 32 : 28;
+              return new google.maps.Marker({
+                position: { lat: stop.lat as number, lng: stop.lng as number },
                 map,
-                label: { text: String(idx + 1), color: '#fff', fontWeight: '700' },
-                title: s.resolvedName,
-              })
-            );
+                icon: {
+                  url: iconUrl,
+                  scaledSize: new google.maps.Size(size, 28),
+                  anchor: new google.maps.Point(size / 2, 14),
+                },
+                title: stop.resolvedName,
+                zIndex: isDropoff ? 2 : 1,
+              });
+            });
         };
 
         if (directionsResult && google.maps.DirectionsRenderer) {
@@ -113,7 +127,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       if (polyline) polyline.setMap(null);
       markers.forEach((m) => m.setMap(null));
     };
-  }, [mapsKey, pathSignature, directionsResult, stops, mapType]);
+  }, [mapsKey, pathSignature, stopMarkerSignature, directionsResult, stops, mapType]);
 
   const height = heightProp ?? (expanded ? 340 : 300);
 
