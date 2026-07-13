@@ -31,6 +31,7 @@ import {
 import { SearchableSelect } from "../ui/SearchableSelect";
 import { DatePicker, getTodayDateString } from "../ui/DatePicker";
 import { TimePicker } from "../ui/TimePicker";
+import { formatDisplayDate, formatDisplayTime } from "../../utils/dateDisplay";
 import { LocationSelect } from "./LocationSelect";
 import { LocationPreviewOverlay } from "./LocationPreviewOverlay";
 import { createNewStop, createNewCargoLine } from "./types";
@@ -2662,18 +2663,14 @@ function getStopTags(stop: any) {
 
 function fmtStopBrief(s: any, t: any) {
   const parts = [];
-  const fmtD = (ds: string) => {
-    const d = new Date(ds);
-    return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-  };
   if (s.dateFrom) {
-    let str = `From ${fmtD(s.dateFrom)}`;
-    if (s.timeFrom) str += `, ${s.timeFrom}`;
+    let str = `From ${formatDisplayDate(s.dateFrom)}`;
+    if (s.timeFrom) str += `, ${formatDisplayTime(s.timeFrom)}`;
     if (s.dateTo) {
-      str += ` To ${fmtD(s.dateTo)}`;
-      if (s.timeTo) str += `, ${s.timeTo}`;
+      str += ` To ${formatDisplayDate(s.dateTo)}`;
+      if (s.timeTo) str += `, ${formatDisplayTime(s.timeTo)}`;
     } else if (s.timeTo) {
-      str += ` To ${s.timeTo}`;
+      str += ` To ${formatDisplayTime(s.timeTo)}`;
     }
     parts.push(str);
   }

@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { formatDisplayDate } from '../../utils/dateDisplay';
 
 /** Returns today's date as YYYY-MM-DD (local timezone). */
 export function getTodayDateString(): string {
@@ -25,7 +26,7 @@ type Props = {
 export const DatePicker: React.FC<Props> = ({
   value,
   onChange,
-  placeholder = 'dd-mm-yyyy',
+  placeholder = 'dd/mm/yyyy',
   disabled = false,
   hasError = false,
   className = '',
@@ -165,20 +166,7 @@ export const DatePicker: React.FC<Props> = ({
     return `${y}-${monthStr}-${dayStr}`;
   };
 
-  const formatDateForDisplay = (dateStr: string) => {
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return dateStr;
-    const [y, m, d] = parts;
-    const dateObj = new Date(Number(y), Number(m) - 1, Number(d));
-    if (isNaN(dateObj.getTime())) return dateStr;
-    // Format based on active language (Greek uses DD/MM/YYYY, EN can be customized or localized)
-    return dateObj.toLocaleDateString(lang, {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
+  const formatDateForDisplay = (dateStr: string) => formatDisplayDate(dateStr);
 
   // Generate calendar days (Monday-first)
   const generateDays = () => {

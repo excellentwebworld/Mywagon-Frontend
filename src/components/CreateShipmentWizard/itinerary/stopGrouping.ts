@@ -1,5 +1,6 @@
 import type { ApiStop } from '../../../api/types/createShipment';
 import { weightToKg } from '../../../constants/cargoUnits';
+import { formatDisplayDate, formatDisplayTime } from '../../../utils/dateDisplay';
 import type { EnrichedStop } from './types';
 
 export interface CustomerOrderGroup {
@@ -134,17 +135,11 @@ export function getStopBadgeType(stop: EnrichedStop): 'pickup' | 'delivery' {
 
 export function formatStopDateTime(stop: ApiStop): string {
   if (!stop.dateFrom) return '—';
-  const parts: string[] = [];
-  const d = stop.dateFrom.split('-');
-  if (d.length === 3) {
-    parts.push(`${d[2]}/${d[1]}/${d[0]}`);
-  } else {
-    parts.push(stop.dateFrom);
-  }
+  const parts: string[] = [formatDisplayDate(stop.dateFrom)];
   if (stop.timeFrom) {
-    parts.push(stop.timeFrom);
+    parts.push(formatDisplayTime(stop.timeFrom));
     if (stop.timeTo) {
-      parts.push(`– ${stop.timeTo}`);
+      parts.push(`– ${formatDisplayTime(stop.timeTo)}`);
     }
   }
   return parts.join(' · ');

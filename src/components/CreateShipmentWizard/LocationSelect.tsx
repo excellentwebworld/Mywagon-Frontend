@@ -45,8 +45,13 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
     if (!open) {
       setQuery('');
       setDebouncedQuery('');
+      setExpandedCompanies(new Set());
     }
   }, [open]);
+
+  useEffect(() => {
+    setExpandedCompanies(new Set());
+  }, [tab]);
 
   useEffect(() => {
     if (!open) return;
@@ -75,12 +80,27 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
     [filtered, tab]
   );
 
+  const groups = tab === 'my' ? myGroups : customerGroups;
   const searchActive = debouncedQuery.trim().length > 0;
 
-  const isCompanyExpanded = (company: string) => searchActive || expandedCompanies.has(company);
+  // While searching: seed expand Set with visible company keys so matches show open.
+  // Re-seed when the query changes; still allow per-group toggle afterward.
+  useEffect(() => {
+    if (!searchActive) return;
+    setExpandedCompanies(new Set(groups.map((g) => g.company)));
+    // groups intentionally omitted — re-seed on query/tab change only
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed from latest groups for this query
+  }, [searchActive, debouncedQuery, tab]);
+
+  // When search is cleared, collapse all groups again.
+  useEffect(() => {
+    if (searchActive) return;
+    setExpandedCompanies(new Set());
+  }, [searchActive]);
+
+  const isCompanyExpanded = (company: string) => expandedCompanies.has(company);
 
   const toggleCompany = (company: string) => {
-    if (searchActive) return;
     setExpandedCompanies((prev) => {
       const next = new Set(prev);
       if (next.has(company)) next.delete(company);
@@ -131,8 +151,6 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
       )}
     </div>
   );
-
-  const groups = tab === 'my' ? myGroups : customerGroups;
 
   return (
     <div className="relative" ref={rootRef}>

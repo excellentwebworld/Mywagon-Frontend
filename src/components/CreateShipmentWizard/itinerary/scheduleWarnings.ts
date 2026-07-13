@@ -1,6 +1,7 @@
 import type { ApiStop } from '../../../api/types/createShipment';
 import type { DriveGapLevel, DriveGapWarning, MockWeather, RouteLeg } from './types';
 import { formatDurationMin } from './cargoUtils';
+import { formatDisplayDate, formatDisplayTime } from '../../../utils/dateDisplay';
 
 const DEFAULT_HOLIDAYS = [
   '2026-01-01',
@@ -15,21 +16,22 @@ const DEFAULT_HOLIDAYS = [
 
 export function formatAppointmentLabel(stop: ApiStop): string {
   if (!stop.dateFrom) return '';
-  let label = stop.dateFrom;
-  if (stop.timeFrom) label += ` · ${stop.timeFrom}`;
-  if (stop.timeTo) label += ` – ${stop.timeTo}`;
-  else if (stop.dateTo && stop.dateTo !== stop.dateFrom) label += ` → ${stop.dateTo}`;
+  let label = formatDisplayDate(stop.dateFrom);
+  if (stop.timeFrom) label += ` · ${formatDisplayTime(stop.timeFrom)}`;
+  if (stop.timeTo) label += ` – ${formatDisplayTime(stop.timeTo)}`;
+  else if (stop.dateTo && stop.dateTo !== stop.dateFrom) label += ` → ${formatDisplayDate(stop.dateTo)}`;
   return label;
 }
 
 export function formatStopScheduleShort(stop: ApiStop): string {
   if (!stop.dateFrom) return '—';
-  const datePart = stop.dateFrom.length >= 10 ? stop.dateFrom.slice(5) : stop.dateFrom;
-  if (stop.timeFrom && stop.timeTo) return `${datePart} · ${stop.timeFrom}–${stop.timeTo}`;
-  if (stop.timeFrom) return `${datePart} · ${stop.timeFrom}`;
+  const datePart = formatDisplayDate(stop.dateFrom);
+  if (stop.timeFrom && stop.timeTo) {
+    return `${datePart} · ${formatDisplayTime(stop.timeFrom)}–${formatDisplayTime(stop.timeTo)}`;
+  }
+  if (stop.timeFrom) return `${datePart} · ${formatDisplayTime(stop.timeFrom)}`;
   if (stop.dateTo && stop.dateTo !== stop.dateFrom) {
-    const endPart = stop.dateTo.length >= 10 ? stop.dateTo.slice(5) : stop.dateTo;
-    return `${datePart} → ${endPart}`;
+    return `${datePart} → ${formatDisplayDate(stop.dateTo)}`;
   }
   return datePart;
 }
