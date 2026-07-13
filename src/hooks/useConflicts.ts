@@ -25,7 +25,21 @@ export default function useConflicts(stops: any[], options: any = {}) {
     orderDetailsById = {},
     templates = [],
     rules = [],
+    t,
   } = options;
+
+  const tr = (key: string, params?: Record<string, string | number>, fallback?: string) => {
+    if (typeof t === 'function') {
+      const translated = params ? t(key, params) : t(key);
+      if (translated && translated !== key) return String(translated);
+    }
+    if (fallback) {
+      return fallback.replace(/\{\{(\w+)\}\}/g, (_, name: string) =>
+        params && params[name] != null ? String(params[name]) : `{{${name}}}`
+      );
+    }
+    return key;
+  };
 
   return useMemo(() => {
     const conflicts: Conflict[] = [];
@@ -418,21 +432,42 @@ export default function useConflicts(stops: any[], options: any = {}) {
           'blocker',
           -1,
           -1,
-          `${alloc.orderRef} · ${alloc.productName}: pickup unit (${alloc.pickupUnit || '—'}) must match order unit (${alloc.orderUnit || '—'})`,
-          'Use the same qty unit as the order line'
+          tr(
+            'createLoadC12UnitMismatch',
+            {
+              orderRef: alloc.orderRef,
+              productName: alloc.productName,
+              pickupUnit: alloc.pickupUnit || '—',
+              orderUnit: alloc.orderUnit || '—',
+            },
+            `${alloc.orderRef} · ${alloc.productName}: pickup unit (${alloc.pickupUnit || '—'}) must match order unit (${alloc.orderUnit || '—'})`
+          ),
+          tr('createLoadC12UnitMismatchFix', undefined, 'Use the same qty unit as the order line')
         );
         return;
       }
       if (alloc.pickupSum !== alloc.orderQty) {
         const delta = Math.abs(alloc.pickupSum - alloc.orderQty);
-        const dir = alloc.pickupSum > alloc.orderQty ? 'over' : 'under';
+        const dirKey = alloc.pickupSum > alloc.orderQty ? 'createLoadC12Over' : 'createLoadC12Under';
+        const dir = tr(dirKey, undefined, alloc.pickupSum > alloc.orderQty ? 'over' : 'under');
         add(
           'C12',
           'blocker',
           -1,
           -1,
-          `${alloc.orderRef} · ${alloc.productName}: pickup ${formatQtyWithUnit(alloc.pickupSum, alloc.orderUnit)} vs order ${formatQtyWithUnit(alloc.orderQty, alloc.orderUnit)} (${delta} ${dir})`,
-          'Split pickups so totals equal the order qty and unit'
+          tr(
+            'createLoadC12QtyMismatch',
+            {
+              orderRef: alloc.orderRef,
+              productName: alloc.productName,
+              pickupQty: formatQtyWithUnit(alloc.pickupSum, alloc.orderUnit),
+              orderQty: formatQtyWithUnit(alloc.orderQty, alloc.orderUnit),
+              delta,
+              direction: dir,
+            },
+            `${alloc.orderRef} · ${alloc.productName}: pickup ${formatQtyWithUnit(alloc.pickupSum, alloc.orderUnit)} vs order ${formatQtyWithUnit(alloc.orderQty, alloc.orderUnit)} (${delta} ${dir})`
+          ),
+          tr('createLoadC12QtyMismatchFix', undefined, 'Split pickups so totals equal the order qty and unit')
         );
       }
     });
@@ -561,7 +596,7 @@ export default function useConflicts(stops: any[], options: any = {}) {
       hasBlockers: blockers.length > 0,
       total: conflicts.length,
     };
-  }, [stops, locations, loadingPoints, blackouts, products, orders, orderDetailsById, templates, rules]);
+  }, [stops, locations, loadingPoints, blackouts, products, orders, orderDetailsById, templates, rules, t]);
 }
 
 function empty() {

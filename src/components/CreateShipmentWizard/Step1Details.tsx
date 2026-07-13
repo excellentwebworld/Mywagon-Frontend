@@ -1014,6 +1014,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     orderDetailsById,
     templates: [],
     rules: [],
+    t,
   });
 
   const canContinue = blockers.length === 0;
