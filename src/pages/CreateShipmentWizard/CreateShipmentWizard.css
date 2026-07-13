@@ -2144,3 +2144,79 @@
 .wizard-step3-skeleton .react-loading-skeleton {
   line-height: unset;
 }
+
+/* ── Step 3: independent left/right scroll (summary stays put) ── */
+@media (min-width: 1024px) {
+  .main-content:has(.wizard-shell--step3) {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .page-body:has(.wizard-shell--step3) {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .wizard-shell--step3 {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .wizard-shell--step3 > .ph,
+  .wizard-shell--step3 > .stepper,
+  .wizard-shell--step3 > .wizard-validation-banner {
+    flex-shrink: 0;
+  }
+
+  .wizard-shell--step3 .wizard-shell-form,
+  .wizard-shell--step3 .content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 0 !important;
+  }
+
+  .wizard-step3 {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .wizard-step3-columns {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+    overflow: hidden;
+    margin-top: 0;
+    padding-top: 1rem;
+  }
+
+  .wizard-step3-left,
+  .wizard-step3-right {
+    min-height: 0;
+    max-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: 96px; /* clear fixed footer */
+    padding-right: 4px;
+  }
+
+  .wizard-step3-right {
+    align-self: stretch;
+  }
+}

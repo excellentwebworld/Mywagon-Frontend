@@ -15,13 +15,10 @@ const sk = {
 };
 
 export const Step3PricingSkeleton: React.FC = () => (
-  <div
-    className="pb-24 wizard-step3-skeleton animate-fade-in mt-4"
-    aria-busy="true"
-  >
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+  <div className="wizard-step3 wizard-step3-skeleton pb-24 lg:pb-0" aria-busy="true">
+    <div className="wizard-step3-columns grid grid-cols-1 lg:grid-cols-3 lg:items-stretch gap-6 items-start mt-4">
       {/* Left column — Broadcast, Tracking, Vehicle, Pricing, Driver Notes */}
-      <div className="lg:col-span-2 space-y-4">
+      <div className="wizard-step3-left lg:col-span-2 space-y-4">
         <div
           className="rounded-xl overflow-hidden"
           style={{ background: T.sf, border: `1px solid ${T.bd}` }}
@@ -136,8 +133,8 @@ export const Step3PricingSkeleton: React.FC = () => (
         </div>
       </div>
 
-      {/* Right column — sticky map + locations + counts */}
-      <div className="space-y-4 lg:sticky lg:top-[calc(var(--topbar-h,64px)+1rem)] lg:self-start lg:max-h-[calc(100dvh-var(--topbar-h,64px)-5.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
+      {/* Right column — map + locations + counts */}
+      <div className="wizard-step3-right space-y-4">
         <div
           className="rounded-xl overflow-hidden"
           style={{ background: T.sf, border: `1px solid ${T.bd}` }}

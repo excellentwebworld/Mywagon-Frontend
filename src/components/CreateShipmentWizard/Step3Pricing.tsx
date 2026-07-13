@@ -437,11 +437,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   };
 
   return (
-    <div className="pb-24">
+    <div className="wizard-step3 pb-24 lg:pb-0">
       {/* ═══ TWO COLUMN GRID MATCHING page3-vehicle-pricing.html ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start mt-4">
+      <div className="wizard-step3-columns grid grid-cols-1 lg:grid-cols-3 lg:items-stretch gap-6 items-start mt-4">
         {/* LEFT COLUMN: Broadcast, Tracking, Vehicle, Pricing, Driver Notes */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="wizard-step3-left lg:col-span-2 space-y-4">
           
           {/* BROADCAST TYPE */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
@@ -1082,9 +1082,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
           </div>
         </div>
 
-        {/* RIGHT COLUMN (Sticky): Map, route locations, counts only.
-            Sticks while left scrolls; own overflow when taller than viewport. */}
-        <div className="space-y-4 lg:sticky lg:top-[calc(var(--topbar-h,64px)+1rem)] lg:self-start lg:max-h-[calc(100dvh-var(--topbar-h,64px)-5.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
+        {/* RIGHT COLUMN: Map + summary — independent scroll; stays visible while left scrolls */}
+        <div className="wizard-step3-right space-y-4">
           
           {/* MINI MAP & SUMMARY */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12, overflow: 'hidden' }}>

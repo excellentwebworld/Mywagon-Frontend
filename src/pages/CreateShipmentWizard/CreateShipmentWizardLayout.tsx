@@ -197,9 +197,9 @@ export const CreateShipmentWizardLayout: React.FC = () => {
 
   if (isLoading || !draftLoaded) {
     return (
-      <div className="animate-fade-in pt-5 px-7">
+      <div className={`animate-fade-in pt-5 px-7${step === 3 ? ' wizard-shell wizard-shell--step3' : ''}`}>
         {header}
-        <div className="content" style={{ paddingBottom: '120px' }}>
+        <div className="content" style={{ paddingBottom: step === 3 ? undefined : '120px' }}>
           <StepSkeleton step={step} />
         </div>
       </div>
@@ -207,7 +207,7 @@ export const CreateShipmentWizardLayout: React.FC = () => {
   }
 
   return (
-    <div className="animate-fade-in pt-5 px-7">
+    <div className={`animate-fade-in pt-5 px-7${step === 3 ? ' wizard-shell wizard-shell--step3' : ''}`}>
       {header}
 
       <Formik
@@ -224,8 +224,11 @@ export const CreateShipmentWizardLayout: React.FC = () => {
           };
 
           return (
-            <Form>
-              <div className="content" style={{ paddingBottom: '120px' }}>
+            <Form className={step === 3 ? 'wizard-shell-form' : undefined}>
+              <div
+                className="content"
+                style={{ paddingBottom: step === 3 ? undefined : '120px' }}
+              >
                 <Outlet context={outletContext} />
               </div>
             </Form>
