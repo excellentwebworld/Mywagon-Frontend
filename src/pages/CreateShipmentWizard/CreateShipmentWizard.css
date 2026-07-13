@@ -2147,6 +2147,65 @@
   width: 100%;
 }
 
+/* Marker InfoWindow — matches Laravel shipper .map-tooltip */
+.wizard-map-tooltip {
+  padding: 6px 4px;
+  color: #1f1f41;
+  font-size: 12px;
+  font-family: inherit;
+  max-width: 260px;
+  line-height: 1.35;
+}
+
+.wizard-map-tooltip-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.wizard-map-tooltip-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.wizard-map-tooltip p {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f1f41;
+}
+
+.wizard-map-tooltip-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #121217;
+  margin-bottom: 2px;
+}
+
+.wizard-map-tooltip span {
+  display: block;
+  font-size: 12px;
+  color: #5e5e6e;
+  padding-top: 2px;
+}
+
+.wizard-map-tooltip-company {
+  font-size: 11px;
+  color: #8e8e9a;
+  margin-top: 4px;
+}
+
+.wizard-route-map .gm-style-iw-d {
+  overflow: hidden !important;
+}
+
+.wizard-route-map .gm-style-iw-c {
+  padding: 10px 12px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+}
+
 .wizard-step2-skeleton .react-loading-skeleton,
 .wizard-step3-skeleton .react-loading-skeleton {
   line-height: unset;

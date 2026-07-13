@@ -264,6 +264,8 @@
   "pickup": "Pickup",
   "delivery": "Delivery",
   "dropoff": "Dropoff",
+  "pickupLocation": "Pickup Location",
+  "dropoffLocation": "Drop-off Location",
   "addStop": "+ Add stop",
   "saveDraft": "Save Draft",
   "draftSavedSuccess": "Draft saved successfully.",
