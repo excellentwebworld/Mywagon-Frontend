@@ -863,41 +863,36 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
 
           {/* PRICING */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
-            <div className="ch flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: T.bd }}>
+            <div className="ch flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor: T.bd }}>
               <span className="font-semibold text-sm">{t('pricing') || 'Pricing'}</span>
-            </div>
-            <div className="cb p-4 space-y-4">
-              
-              {/* Contract vs Spot Badge */}
-              <div
-                className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-md ${
+              <span
+                className={`ml-auto inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded ${
                   contract ? 'bg-violet-100 text-indigo-700' : 'bg-amber-100 text-amber-800'
                 }`}
               >
                 ⚡{' '}
-                <span>
-                  {contract
-                    ? `${t('contractPrice') || 'Contract price'} · ${contractCarrier?.name}`
-                    : t('spotPriceList') || 'Spot price · Price List'}
-                </span>
-              </div>
-
-              {/* Price calculation advice banner */}
+                {contract
+                  ? `${t('contractPrice') || 'Contract'} · ${contractCarrier?.name}`
+                  : t('spotPriceList') || 'Spot · Price List'}
+              </span>
+            </div>
+            <div className="cb p-3 space-y-3">
+              {/* Compact price hint */}
               <div
-                className="price-hint bg-sky-50 text-sky-700 p-2.5 rounded-lg text-xs"
+                className="price-hint price-hint--compact bg-sky-50 text-sky-700 px-2.5 py-1.5 rounded-md text-[11px]"
                 aria-busy={aiPriceLoading && aiInsightsRequested}
               >
                 {contract ? (
                   <>
-                    <Info size={14} className="price-hint-icon shrink-0" aria-hidden="true" />
+                    <Info size={13} className="price-hint-icon shrink-0" aria-hidden="true" />
                     <span className="price-hint-copy">
                       {contract.unit === 'per_pallet' || contract.unit === 'PER_PALLET' ? (
                         <>
-                          {t('contract') || 'Contract'}: <strong>€{contract.price} × {totalPallets} pallets = €{calculatedPrice}</strong> · {contract.origin}→{contract.destination}
+                          {t('contract') || 'Contract'}: <strong>€{contract.price} × {totalPallets} = €{calculatedPrice}</strong>
                         </>
                       ) : (
                         <>
-                          {t('contractPricePerLoad') || 'Contract price: per load'} <strong>€{calculatedPrice}</strong> · {contract.origin}→{contract.destination}
+                          {t('contractPricePerLoad') || 'Contract'}: <strong>€{calculatedPrice}</strong>
                         </>
                       )}
                     </span>
@@ -909,88 +904,86 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                   </span>
                 ) : calculatedPrice > 0 ? (
                   <>
-                    <Info size={14} className="price-hint-icon shrink-0" aria-hidden="true" />
+                    <Info size={13} className="price-hint-icon shrink-0" aria-hidden="true" />
                     <span className="price-hint-copy">
-                      {t('spotPriceFromList') || 'Spot price from Price List: per load'} <strong>€{calculatedPrice}</strong> · {pickupCity || '—'}→{deliveryCity || '—'}
+                      {t('spotPriceFromList') || 'Price list'}: <strong>€{calculatedPrice}</strong>
+                      <span className="text-sky-600/80"> · {pickupCity || '—'}→{deliveryCity || '—'}</span>
                     </span>
                   </>
                 ) : (
                   <>
-                    <Info size={14} className="price-hint-icon shrink-0" aria-hidden="true" />
-                    <span className="price-hint-copy">{t('step3EnterTargetPrice') || 'Enter a target price below, or open AI Insights for a suggested spot price.'}</span>
+                    <Info size={13} className="price-hint-icon shrink-0" aria-hidden="true" />
+                    <span className="price-hint-copy">
+                      {t('step3EnterTargetPrice') || 'Enter a target price, or request an AI suggestion.'}
+                    </span>
                   </>
                 )}
               </div>
 
-              {/* Input + compact AI action */}
-              <div className="space-y-2.5">
+              {/* Target price + AI */}
+              <div className="flex items-center gap-2">
                 <div
-                  className="flex items-center border-2 rounded-xl px-3 py-2"
+                  className="flex items-center flex-1 min-w-0 border rounded-lg px-2.5 py-1.5"
                   style={{ borderColor: targetPriceVal > 0 ? T.ac : T.bd, background: T.sa }}
                 >
-                  <span className="text-xl font-bold mr-2" style={{ color: T.t3 }}>€</span>
+                  <span className="text-sm font-bold mr-1.5" style={{ color: T.t3 }}>€</span>
                   <input
                     type="number"
                     min={0}
                     step="0.01"
-                    className="w-full bg-transparent text-right text-2xl font-bold font-mono outline-none"
+                    className="w-full bg-transparent text-right text-lg font-bold font-mono outline-none"
                     style={{ color: T.t1 }}
                     placeholder="0.00"
                     value={values.targetPrice || ''}
                     onChange={(e) => setFieldValue('targetPrice', e.target.value)}
                   />
                 </div>
-
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
-                    <span>
-                      <strong>€{pricePerKm}</strong> / km
-                    </span>
-                    <span className="text-slate-300">·</span>
-                    <span className="text-indigo-700 font-semibold">
-                      <strong>€{pricePerPallet}</strong> / pallet
-                    </span>
-                    <span className="text-slate-400">({totalPallets} pallets)</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="ai-suggest-btn"
-                    disabled={Boolean(contract) || !draftId || (aiPriceLoading && aiInsightsRequested)}
-                    onClick={handleAiInsightsClick}
-                  >
-                    {aiPriceLoading && aiInsightsRequested ? (
-                      <>
-                        <span className="price-hint-spinner" aria-hidden="true" />
-                        <span>{t('aiSuggestedPriceLoading') || 'Generating...'}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles size={13} aria-hidden="true" />
-                        <span>{t('requestAiSuggestedPrice') || 'Request AI Suggested Price'}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="ai-suggest-btn shrink-0"
+                  disabled={Boolean(contract) || !draftId || (aiPriceLoading && aiInsightsRequested)}
+                  onClick={handleAiInsightsClick}
+                >
+                  {aiPriceLoading && aiInsightsRequested ? (
+                    <>
+                      <span className="price-hint-spinner" aria-hidden="true" />
+                      <span>{t('aiSuggestedPriceLoading') || 'Generating...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={13} aria-hidden="true" />
+                      <span>{t('requestAiSuggestedPrice') || 'AI Price'}</span>
+                    </>
+                  )}
+                </button>
               </div>
 
-              {/* Manual Override Warning */}
+              <div className="flex items-center gap-2 text-[11px] text-slate-500 flex-wrap">
+                <span>
+                  <strong>€{pricePerKm}</strong> / km
+                </span>
+                <span className="text-slate-300">·</span>
+                <span className="text-indigo-700 font-semibold">
+                  <strong>€{pricePerPallet}</strong> / pallet
+                </span>
+                <span className="text-slate-400">({totalPallets})</span>
+              </div>
+
               {isOverride && (
-                <div className="flex items-center justify-between bg-amber-50 text-amber-800 p-2.5 rounded-lg text-xs mt-2">
-                  <span>{t('manualOverride') || 'Manual override —'}</span>
+                <div className="flex items-center justify-between bg-amber-50 text-amber-800 px-2.5 py-1.5 rounded-md text-[11px]">
+                  <span>{t('manualOverride') || 'Manual override'}</span>
                   <button
                     type="button"
                     className="bg-transparent border-none cursor-pointer font-bold text-amber-900 underline"
                     onClick={() => setFieldValue('targetPrice', String(calculatedPrice))}
                   >
-                    {t('resetToPriceList') || 'Reset to Price List'}
+                    {t('resetToPriceList') || 'Reset'}
                   </button>
                 </div>
               )}
 
-              {/* AI Insights Panel */}
               {aiExpanded && (
-                <div className="bg-violet-50 text-indigo-950 p-4 rounded-lg text-xs space-y-2 border border-violet-100">
+                <div className="bg-violet-50 text-indigo-950 p-3 rounded-lg text-[11px] space-y-1.5 border border-violet-100">
                   {aiPriceLoading ? (
                     <div>{t('aiSuggestedPriceLoading') || 'Generating AI suggested prices...'}</div>
                   ) : aiPriceDenied ? (
@@ -1009,20 +1002,20 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                     <div>{t('aiSuggestedPriceFailed') || 'Unable to generate AI suggested prices.'}</div>
                   ) : aiPriceData ? (
                     <>
-                      <h4 className="font-bold text-slate-900">
-                        📊 {t('laneAnalysis') || 'Lane Analysis'}: {pickupCity || '—'} → {deliveryCity || '—'}
+                      <h4 className="font-bold text-slate-900 text-xs">
+                        {t('laneAnalysis') || 'Lane Analysis'}: {pickupCity || '—'} → {deliveryCity || '—'}
                       </h4>
                       <div>
-                        {t('aiSuggestedPriceMarket') || 'Market price'}: {aiPriceData.formatted?.market_price || `€${aiPriceData.market_price}`}
+                        {t('aiSuggestedPriceMarket') || 'Market'}: {aiPriceData.formatted?.market_price || `€${aiPriceData.market_price}`}
                       </div>
                       <div>
-                        {t('aiSuggestedPriceAttractive') || 'Attractive price'}: {aiPriceData.formatted?.attractive_price || `€${aiPriceData.attractive_price}`}
+                        {t('aiSuggestedPriceAttractive') || 'Attractive'}: {aiPriceData.formatted?.attractive_price || `€${aiPriceData.attractive_price}`}
                       </div>
                       <div>
-                        {t('aiSuggestedPriceConservative') || 'Conservative price'}: {aiPriceData.formatted?.conservative_price || `€${aiPriceData.conservative_price}`}
+                        {t('aiSuggestedPriceConservative') || 'Conservative'}: {aiPriceData.formatted?.conservative_price || `€${aiPriceData.conservative_price}`}
                       </div>
-                      <div className="p-2 rounded bg-violet-100 text-indigo-700 font-medium">
-                        {t('aiSuggestedPriceRecommended') || 'Recommended price'}: {aiPriceData.formatted?.recommended_price || `€${aiPriceData.recommended_price}`}
+                      <div className="p-1.5 rounded bg-violet-100 text-indigo-700 font-medium">
+                        {t('aiSuggestedPriceRecommended') || 'Recommended'}: {aiPriceData.formatted?.recommended_price || `€${aiPriceData.recommended_price}`}
                       </div>
                     </>
                   ) : (
@@ -1032,29 +1025,33 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
               )}
             </div>
 
-            <div className="ov-row">
-              <div>
-                <div className="ov-title">{t('orderValue') || 'Order Value'}</div>
-                <div className="ov-sub">{t('orderValueOptional') || 'Optional'}</div>
-              </div>
-              <div className="ov-input-wrap">
-                <span className="ov-sym">€</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className="ov-input"
-                  placeholder={t('orderValuePlaceholder') || 'Optional'}
-                  value={values.orderValue || ''}
-                  maxLength={11}
-                  onChange={(e) => setFieldValue('orderValue', e.target.value.replace(/[^0-9.,]/g, ''))}
-                />
+            <div className="ov-row ov-row--compact">
+              <div className="ov-row-main">
+                <div className="ov-copy">
+                  <div className="ov-title">
+                    {t('orderValue') || 'Order Value'}{' '}
+                    <span className="ov-sub-inline">({t('orderValueOptional') || 'Optional'})</span>
+                  </div>
+                </div>
+                <div className="ov-input-wrap">
+                  <span className="ov-sym">€</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="ov-input"
+                    placeholder={t('orderValuePlaceholder') || 'Optional'}
+                    value={values.orderValue || ''}
+                    maxLength={11}
+                    onChange={(e) => setFieldValue('orderValue', e.target.value.replace(/[^0-9.,]/g, ''))}
+                  />
+                </div>
               </div>
               <p className="ov-hint">
-                {t('orderValueHint') || 'Enter here for your own records the market value of the goods being shipped in this load. This information will not be shared with your transporter.'}
+                {t('orderValueHint') || 'For your records only — not shared with the transporter.'}
               </p>
             </div>
 
-            <div className="neg-row">
+            <div className="neg-row neg-row--compact">
               <div className="neg-copy">
                 <div className="neg-title">{t('negotiablePrice') || 'Negotiable price'}</div>
                 <div className="neg-sub">{t('negotiableSub') || 'Carriers can submit counteroffers'}</div>

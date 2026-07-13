@@ -1761,7 +1761,9 @@
 .override-warn button { margin-left: auto; font-size: 12px; color: var(--accent); border: none; background: none; cursor: pointer; font-weight: 600; }
 
 .price-hint { min-height: 42px; display: flex; align-items: flex-start; gap: 8px; }
+.price-hint--compact { min-height: 0; align-items: center; gap: 6px; }
 .price-hint-icon { margin-top: 1px; color: #0284c7; flex-shrink: 0; }
+.price-hint--compact .price-hint-icon { margin-top: 0; }
 .price-hint-copy { flex: 1; min-width: 0; line-height: 1.45; }
 .price-hint-loading { display: flex; align-items: center; gap: 8px; width: 100%; }
 .price-hint-spinner {
@@ -1824,15 +1826,37 @@
 }
 
 .ov-row { padding: 13px 20px; border-top: 1px solid var(--border); }
+.ov-row--compact { padding: 10px 14px; }
+.ov-row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ov-copy { flex: 1; min-width: 120px; }
 .ov-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .ov-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
-.ov-input-wrap { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); margin-top: 10px; }
+.ov-sub-inline { font-size: 11px; font-weight: 500; color: var(--text-tertiary); }
+.ov-input-wrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+  margin-top: 0;
+  min-width: 140px;
+  max-width: 200px;
+  width: 100%;
+}
 .ov-input-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
-.ov-sym { padding: 0 12px; font-size: 14px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
-.ov-input { flex: 1; min-width: 0; border: none; outline: none; padding: 10px 12px 10px 0; font-size: 14px; font-weight: 600; background: transparent; color: var(--text-primary); }
-.ov-hint { font-size: 11px; color: var(--text-tertiary); font-style: italic; margin-top: 8px; line-height: 1.45; }
+.ov-sym { padding: 0 10px; font-size: 13px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+.ov-input { flex: 1; min-width: 0; border: none; outline: none; padding: 7px 10px 7px 0; font-size: 13px; font-weight: 600; background: transparent; color: var(--text-primary); }
+.ov-hint { font-size: 10px; color: var(--text-tertiary); font-style: italic; margin-top: 6px; line-height: 1.4; }
 
 .neg-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 20px; border-top: 1px solid var(--border); }
+.neg-row--compact { padding: 10px 14px; gap: 12px; }
 .neg-copy { flex: 1; min-width: 0; }
 .neg-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .neg-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
