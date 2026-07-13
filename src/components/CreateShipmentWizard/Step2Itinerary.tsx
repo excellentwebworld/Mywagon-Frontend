@@ -61,6 +61,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
   const stops = values.stops || [];
 
   const [expandedStop, setExpandedStop] = useState<number | null>(null);
+  const [activeStopIndex, setActiveStopIndex] = useState<number | null>(null);
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
   const [showVehicleRequired, setShowVehicleRequired] = useState(false);
 
@@ -83,6 +84,15 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
   useEffect(() => {
     if (vehicleSelected) setShowVehicleRequired(false);
   }, [vehicleSelected]);
+
+  const selectStop = (index: number) => {
+    setActiveStopIndex(index);
+    window.requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-wizard-stop="${index}"]`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  };
 
   const handleConfirmAndContinue = async () => {
     if (isSaving) return;
@@ -212,26 +222,52 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                 const pin = pinColors(stop.hasPickup, stop.hasDropoff);
 
                 return (
-                  <div key={stop.id || si}>
-                    <div
-                      className="flex gap-3 pb-2"
-                      style={{
-                        borderLeft:
-                          si < enrichedStops.length - 1 ? `2px solid ${T.ac}` : '2px solid transparent',
-                        marginLeft: 14,
-                      }}
-                    >
+                  <div
+                    key={stop.id || si}
+                    data-wizard-stop={si}
+                    className={`wizard-stop-item relative${activeStopIndex === si ? ' is-active' : ''}`}
+                    onClick={() => selectStop(si)}
+                  >
+                    {/* Connector to next stop — grows/shrinks with cargo expand/collapse */}
+                    {si < enrichedStops.length - 1 && (
                       <div
-                        className="w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-bold shrink-0 -ml-[15px]"
+                        aria-hidden
+                        className="wizard-stop-connector"
+                        style={{
+                          position: 'absolute',
+                          left: 17,
+                          top: 28,
+                          bottom: 0,
+                          width: 2,
+                          background: T.ac,
+                          pointerEvents: 'none',
+                          zIndex: 0,
+                        }}
+                      />
+                    )}
+                    <div className="flex gap-3 pb-2 relative" style={{ marginLeft: 14, zIndex: 1 }}>
+                      <button
+                        type="button"
+                        className="wizard-stop-num w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-bold shrink-0 -ml-[15px] border-none cursor-pointer"
                         style={{
                           background: pin.background,
                           color: pin.color,
-                          boxShadow: '0px 3px 6px #00000029',
-                          border: stop.hasDropoff ? 'none' : '1px solid #E5E7EB',
+                          boxShadow:
+                            activeStopIndex === si
+                              ? '0 0 0 3px var(--accent-light), 0px 3px 6px #00000029'
+                              : '0px 3px 6px #00000029',
+                          outline: stop.hasDropoff ? 'none' : '1px solid #E5E7EB',
+                          fontFamily: 'inherit',
+                        }}
+                        aria-label={`${t('step2RouteStops') || 'Stop'} ${si + 1}`}
+                        aria-pressed={activeStopIndex === si}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selectStop(si);
                         }}
                       >
                         {si + 1}
-                      </div>
+                      </button>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           {stop.hasPickup && (
@@ -318,7 +354,10 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                           type="button"
                           className="mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase cursor-pointer border-none bg-transparent p-0"
                           style={{ color: T.t3, fontFamily: 'inherit' }}
-                          onClick={() => setExpandedStop(isExp ? null : si)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedStop(isExp ? null : si);
+                          }}
                           aria-expanded={isExp}
                         >
                           {isExp ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -329,8 +368,9 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
 
                     {isExp && (
                       <div
-                        className="ml-12 mb-3 p-3 rounded-lg"
-                        style={{ background: T.sa, border: `1px solid ${T.bd}` }}
+                        className="ml-12 mb-3 p-3 rounded-lg relative"
+                        style={{ background: T.sa, border: `1px solid ${T.bd}`, zIndex: 1 }}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {groupStopLinesByCustomer(stop).map((customerGroup, gi) => (
                           <div key={gi} className="mb-3 last:mb-0">
@@ -452,6 +492,8 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
               directionsResult={route.directionsResult}
               loading={route.loading}
               mapType={mapType}
+              activeStopIndex={activeStopIndex}
+              onStopSelect={selectStop}
               t={t}
             />
           </div>

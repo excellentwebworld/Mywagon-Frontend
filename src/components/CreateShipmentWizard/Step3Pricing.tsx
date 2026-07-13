@@ -90,6 +90,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   const [trackingExpanded, setTrackingExpanded] = useState(true);
   const [carrierQuery, setCarrierQuery] = useState('');
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
+  const [activeStopIndex, setActiveStopIndex] = useState<number | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const orderValuePrefilledRef = useRef(false);
   const trackingEmailsInitializedRef = useRef('');
@@ -206,6 +207,15 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
     if (!aiPriceData) {
       void fetchAiSuggestedPrice();
     }
+  };
+
+  const selectStop = (index: number) => {
+    setActiveStopIndex(index);
+    window.requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-wizard-stop="${index}"]`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
   };
 
   const { vehicleTypes } = useVehicleTypes();
@@ -1116,6 +1126,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                 routeLabel={routeLabel}
                 mapType={mapType}
                 height={200}
+                activeStopIndex={activeStopIndex}
+                onStopSelect={selectStop}
                 t={t}
               />
             </div>
@@ -1142,24 +1154,56 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                 const cargoGroups = apiStop ? groupStopLinesByCustomer(apiStop) : [];
                 const locationName =
                   stop.resolvedName || stop.locationName || stop.resolvedCity || stop.locationCity || '—';
-                const locationAddress =
+                const locationAddress = (
                   stop.resolvedAddress ||
                   (stop.resolvedCity && stop.resolvedCity !== locationName ? stop.resolvedCity : '') ||
-                  stop.locationCity ||
-                  '';
+                  ''
+                ).trim();
+                const showAddress =
+                  !!locationAddress &&
+                  locationAddress !== locationName &&
+                  !locationName.startsWith(locationAddress) &&
+                  !locationAddress.startsWith(locationName);
+                const company = (stop.resolvedCompany || '').trim();
+                const showCompany =
+                  !!company &&
+                  company !== locationName &&
+                  company !== locationAddress &&
+                  !locationName.toLowerCase().includes(company.toLowerCase());
 
                 return (
-                  <div key={stop.id || idx} className="flex gap-3 relative pb-4 last:pb-0">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 border"
+                  <div
+                    key={stop.id || idx}
+                    data-wizard-stop={idx}
+                    className={`wizard-stop-item flex gap-3 relative pb-4 last:pb-0${
+                      activeStopIndex === idx ? ' is-active' : ''
+                    }`}
+                    onClick={() => selectStop(idx)}
+                  >
+                    <button
+                      type="button"
+                      className="wizard-stop-num w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 border-none cursor-pointer relative z-[1]"
                       style={{
                         background: pin.background,
-                        borderColor: stop.hasDropoff ? '#000000' : '#E5E7EB',
-                        boxShadow: '0px 1px 3px #00000029',
+                        color: pin.color,
+                        boxShadow:
+                          activeStopIndex === idx
+                            ? '0 0 0 3px var(--accent-light), 0px 1px 3px #00000029'
+                            : '0px 1px 3px #00000029',
+                        outline: stop.hasDropoff ? 'none' : '1px solid #E5E7EB',
+                        fontFamily: 'inherit',
                       }}
-                    />
+                      aria-label={`${t('summary') || 'Stop'} ${idx + 1}`}
+                      aria-pressed={activeStopIndex === idx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        selectStop(idx);
+                      }}
+                    >
+                      {idx + 1}
+                    </button>
                     {!isLast && (
-                      <div className="absolute top-4 left-[4px] bottom-0 w-0.5 bg-slate-200" />
+                      <div className="absolute top-7 left-[11px] bottom-0 w-0.5 bg-slate-200" />
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1 flex-wrap">
@@ -1197,15 +1241,15 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                         )}
                       </div>
 
-                      {locationAddress && (
+                      {showAddress && (
                         <div className="text-[10px] mt-0.5 leading-snug" style={{ color: T.t3 }}>
                           {locationAddress}
                         </div>
                       )}
 
-                      {stop.resolvedCompany && (
+                      {showCompany && (
                         <div className="text-[10px] mt-0.5 truncate" style={{ color: T.t2 }}>
-                          {stop.resolvedCompany}
+                          {company}
                         </div>
                       )}
 

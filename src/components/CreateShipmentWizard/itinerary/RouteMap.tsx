@@ -13,6 +13,10 @@ interface RouteMapProps {
   routeLabel?: string;
   mapType?: 'roadmap' | 'satellite';
   height?: number;
+  /** Highlight / open this stop’s marker (0-based). */
+  activeStopIndex?: number | null;
+  /** Fired when a numbered map marker is clicked. */
+  onStopSelect?: (index: number) => void;
   t: (key: string, params?: Record<string, unknown>) => string;
 }
 
@@ -25,32 +29,44 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+function normalizeLabel(value: string): string {
+  return value
+    .trim()
+    .replace(/,+\s*$/g, '')
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+function isRedundantLabel(candidate: string, ...against: string[]): boolean {
+  const c = normalizeLabel(candidate);
+  if (!c) return true;
+  return against.some((other) => {
+    const o = normalizeLabel(other);
+    if (!o) return false;
+    return c === o || o.includes(c) || c.includes(o);
+  });
+}
+
+/** Laravel-style map tooltip: type label + primary address (+ optional distinct place name). */
 function buildStopInfoContent(
   stop: EnrichedStop,
   t: RouteMapProps['t']
 ): string {
-  const isDropoffPrimary = !!stop.hasDropoff;
   const pickupTitle = t('pickupLocation') || 'Pickup Location';
   const dropoffTitle = t('dropoffLocation') || 'Drop-off Location';
 
   let title: string;
-  let iconColor: string;
-  let iconPath: string;
+  let kindClass: string;
 
   if (stop.hasPickup && stop.hasDropoff) {
     title = `${pickupTitle} / ${dropoffTitle}`;
-    iconColor = '#111827';
-    iconPath =
-      'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z';
-  } else if (isDropoffPrimary) {
+    kindClass = 'is-mixed';
+  } else if (stop.hasDropoff) {
     title = dropoffTitle;
-    iconColor = '#DC2626';
-    iconPath = 'M14.4 6 14 4H5v17h2v-7h5.6l.4 2h7V6z';
+    kindClass = 'is-dropoff';
   } else {
     title = pickupTitle;
-    iconColor = '#059669';
-    iconPath =
-      'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z';
+    kindClass = 'is-pickup';
   }
 
   const name = (stop.resolvedName || stop.locationName || '').trim();
@@ -62,18 +78,21 @@ function buildStopInfoContent(
     '—'
   ).trim();
   const company = (stop.resolvedCompany || '').trim();
-  const showName = name && name !== address;
 
-  return `<div class="wizard-map-tooltip">
-    <div class="wizard-map-tooltip-head">
-      <svg class="wizard-map-tooltip-icon" width="14" height="14" viewBox="0 0 24 24" fill="${iconColor}" aria-hidden="true">
-        <path d="${iconPath}"/>
-      </svg>
-      <p>${escapeHtml(title)}</p>
-    </div>
-    ${showName ? `<div class="wizard-map-tooltip-name">${escapeHtml(name)}</div>` : ''}
-    <span>${escapeHtml(address)}</span>
-    ${company ? `<div class="wizard-map-tooltip-company">${escapeHtml(company)}</div>` : ''}
+  // Prefer a meaningful place/business name only when it isn't the same as the address/city.
+  const placeName =
+    name && !isRedundantLabel(name, address)
+      ? name
+      : company && !isRedundantLabel(company, address, name)
+        ? company
+        : '';
+
+  const primaryLine = address || name || company || '—';
+
+  return `<div class="wizard-map-tooltip ${kindClass}">
+    <div class="wizard-map-tooltip-title">${escapeHtml(title)}</div>
+    ${placeName ? `<div class="wizard-map-tooltip-place">${escapeHtml(placeName)}</div>` : ''}
+    <div class="wizard-map-tooltip-address">${escapeHtml(primaryLine)}</div>
   </div>`;
 }
 
@@ -86,9 +105,17 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   routeLabel,
   mapType = 'roadmap',
   height: heightProp,
+  activeStopIndex = null,
+  onStopSelect,
   t,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const markersByIndexRef = useRef<Record<number, any>>({});
+  const infoWindowsByIndexRef = useRef<Record<number, any>>({});
+  const mapRef = useRef<any>(null);
+  const onStopSelectRef = useRef(onStopSelect);
+  onStopSelectRef.current = onStopSelect;
+
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
   const pathSignature = polylinePath.map((p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join('|');
   const stopMarkerSignature = stops
@@ -131,10 +158,14 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           streetViewControl: false,
           fullscreenControl: false,
         });
+        mapRef.current = map;
 
         mapClickListener = map.addListener('click', closeAllInfoWindows);
 
         const addStopMarkers = () => {
+          markersByIndexRef.current = {};
+          infoWindowsByIndexRef.current = {};
+
           markers = stops
             .map((s, idx) => ({ stop: s, idx }))
             .filter(({ stop }) => stop.lat != null && stop.lng != null)
@@ -150,24 +181,29 @@ export const RouteMap: React.FC<RouteMapProps> = ({
                   scaledSize: new google.maps.Size(size, 28),
                   anchor: new google.maps.Point(size / 2, 14),
                 },
-                // Keep a plain fallback for accessibility; rich details use InfoWindow
                 title: '',
                 zIndex: isDropoff ? 2 : 1,
               });
 
               const infoWindow = new google.maps.InfoWindow({
                 content: buildStopInfoContent(stop, t),
-                maxWidth: 280,
+                maxWidth: 260,
+                headerDisabled: true,
+                disableAutoPan: false,
               });
               infoWindows.push(infoWindow);
+              markersByIndexRef.current[idx] = marker;
+              infoWindowsByIndexRef.current[idx] = infoWindow;
 
               const openInfo = () => {
                 closeAllInfoWindows();
                 infoWindow.open({ anchor: marker, map });
               };
 
-              marker.addListener('mouseover', openInfo);
-              marker.addListener('click', openInfo);
+              marker.addListener('click', () => {
+                openInfo();
+                onStopSelectRef.current?.(idx);
+              });
 
               return marker;
             });
@@ -218,8 +254,29 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       if (renderer) renderer.setMap(null);
       if (polyline) polyline.setMap(null);
       markers.forEach((m) => m.setMap(null));
+      markersByIndexRef.current = {};
+      infoWindowsByIndexRef.current = {};
+      mapRef.current = null;
     };
   }, [mapsKey, pathSignature, stopMarkerSignature, directionsResult, stops, mapType, t]);
+
+  // Sync list → map: open info + bounce the selected stop marker
+  useEffect(() => {
+    const google = (window as any).google;
+    if (!google?.maps || activeStopIndex == null) return;
+
+    const marker = markersByIndexRef.current[activeStopIndex];
+    const infoWindow = infoWindowsByIndexRef.current[activeStopIndex];
+    const map = mapRef.current;
+    if (!marker || !infoWindow || !map) return;
+
+    Object.values(infoWindowsByIndexRef.current).forEach((iw: any) => iw.close());
+    infoWindow.open({ anchor: marker, map });
+
+    marker.setAnimation(google.maps.Animation.BOUNCE);
+    const timer = window.setTimeout(() => marker.setAnimation(null), 1400);
+    return () => window.clearTimeout(timer);
+  }, [activeStopIndex]);
 
   const height = heightProp ?? (expanded ? 340 : 300);
 

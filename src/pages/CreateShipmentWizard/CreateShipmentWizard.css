@@ -1688,6 +1688,27 @@
   max-height: 380px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c4c0d4 transparent;
+}
+
+.carrier-scroll-list::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.carrier-scroll-list::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 99px;
+}
+
+.carrier-scroll-list::-webkit-scrollbar-thumb {
+  background: #c4c0d4;
+  border-radius: 99px;
+}
+
+.carrier-scroll-list::-webkit-scrollbar-thumb:hover {
+  background: #a39ebd;
 }
 
 .crow {
@@ -2147,63 +2168,96 @@
   width: 100%;
 }
 
-/* Marker InfoWindow — matches Laravel shipper .map-tooltip */
+/* Marker InfoWindow — compact Laravel-style tooltip */
 .wizard-map-tooltip {
-  padding: 6px 4px;
+  padding: 2px 0;
   color: #1f1f41;
   font-size: 12px;
   font-family: inherit;
-  max-width: 260px;
-  line-height: 1.35;
+  max-width: 240px;
+  line-height: 1.4;
+  min-width: 140px;
 }
 
-.wizard-map-tooltip-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.wizard-map-tooltip-icon {
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.wizard-map-tooltip p {
-  margin: 0;
+.wizard-map-tooltip-title {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
+  color: #1f1f41;
+  margin: 0 0 4px;
+}
+
+.wizard-map-tooltip.is-pickup .wizard-map-tooltip-title {
+  color: #059669;
+}
+
+.wizard-map-tooltip.is-dropoff .wizard-map-tooltip-title {
+  color: #111827;
+}
+
+.wizard-map-tooltip.is-mixed .wizard-map-tooltip-title {
   color: #1f1f41;
 }
 
-.wizard-map-tooltip-name {
+.wizard-map-tooltip-place {
   font-size: 12px;
   font-weight: 600;
   color: #121217;
   margin-bottom: 2px;
 }
 
-.wizard-map-tooltip span {
-  display: block;
+.wizard-map-tooltip-address {
   font-size: 12px;
+  font-weight: 400;
   color: #5e5e6e;
-  padding-top: 2px;
-}
-
-.wizard-map-tooltip-company {
-  font-size: 11px;
-  color: #8e8e9a;
-  margin-top: 4px;
 }
 
 .wizard-route-map .gm-style-iw-d {
-  overflow: hidden !important;
+  overflow: visible !important;
+  max-height: none !important;
 }
 
 .wizard-route-map .gm-style-iw-c {
   padding: 10px 12px !important;
   border-radius: 8px !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+  border: 1px solid #1f1f41 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
+  max-width: min(260px, 70vw) !important;
+}
+
+.wizard-route-map .gm-style-iw-chr,
+.wizard-route-map button.gm-ui-hover-effect {
+  display: none !important;
+}
+
+.wizard-route-map .gm-style-iw-tc::after,
+.wizard-route-map .gm-style-iw-t::after {
+  background: #fff !important;
+}
+
+/* Stop number ↔ list highlight (Step 2 & 3) */
+.wizard-stop-item {
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin: 0 0 4px;
+  cursor: pointer;
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.wizard-stop-item.is-active {
+  background: var(--accent-pale, #f5f3ff);
+  box-shadow: inset 3px 0 0 0 var(--accent, #6c3aed);
+}
+
+.wizard-stop-num {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.wizard-stop-num:hover {
+  transform: scale(1.08);
+}
+
+.wizard-stop-item.is-active .wizard-stop-num {
+  transform: scale(1.06);
 }
 
 .wizard-step2-skeleton .react-loading-skeleton,
@@ -2294,5 +2348,35 @@
 
   .wizard-step3-right {
     align-self: stretch;
+  }
+
+  /* Soft muted scrollbars for Step 3 columns */
+  .wizard-step3-left,
+  .wizard-step3-right {
+    scrollbar-width: thin;
+    scrollbar-color: #c4c0d4 transparent;
+  }
+
+  .wizard-step3-left::-webkit-scrollbar,
+  .wizard-step3-right::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .wizard-step3-left::-webkit-scrollbar-track,
+  .wizard-step3-right::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 99px;
+  }
+
+  .wizard-step3-left::-webkit-scrollbar-thumb,
+  .wizard-step3-right::-webkit-scrollbar-thumb {
+    background: #c4c0d4;
+    border-radius: 99px;
+  }
+
+  .wizard-step3-left::-webkit-scrollbar-thumb:hover,
+  .wizard-step3-right::-webkit-scrollbar-thumb:hover {
+    background: #a39ebd;
   }
 }
