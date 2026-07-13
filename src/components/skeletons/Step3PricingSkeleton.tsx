@@ -20,7 +20,7 @@ export const Step3PricingSkeleton: React.FC = () => (
     aria-busy="true"
   >
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-      {/* Left column — ~70% */}
+      {/* Left column — Broadcast, Tracking, Vehicle, Pricing, Driver Notes */}
       <div className="lg:col-span-2 space-y-4">
         <div
           className="rounded-xl overflow-hidden"
@@ -59,53 +59,30 @@ export const Step3PricingSkeleton: React.FC = () => (
             <Skeleton height={88} borderRadius={8} {...sk} />
           </div>
         </div>
-      </div>
 
-      {/* Right column — ~30% */}
-      <div className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pr-1">
         <div
           className="rounded-xl overflow-hidden"
           style={{ background: T.sf, border: `1px solid ${T.bd}` }}
         >
-          <Skeleton height={200} {...sk} />
           <div
-            className="px-4 py-3 flex items-center justify-between"
+            className="px-5 py-4"
             style={{ borderBottom: `1px solid ${T.bd}` }}
           >
-            <Skeleton width={70} height={14} {...sk} />
-            <Skeleton width={48} height={24} borderRadius={6} {...sk} />
+            <Skeleton width={110} height={16} {...sk} />
           </div>
-          <div className="p-4 space-y-4">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="flex gap-3">
-                <Skeleton circle width={10} height={10} {...sk} />
-                <div className="flex-1">
-                  <Skeleton width="55%" height={12} {...sk} />
-                  <Skeleton
-                    width="35%"
-                    height={10}
-                    {...sk}
-                    style={{ marginTop: 6 }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-          <div
-            className="grid grid-cols-2 gap-px bg-slate-200 border-t"
-            style={{ borderColor: T.bd }}
-          >
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="bg-white p-3">
-                <Skeleton width={50} height={9} {...sk} />
-                <Skeleton
-                  width={64}
-                  height={16}
-                  {...sk}
-                  style={{ marginTop: 6 }}
-                />
-              </div>
-            ))}
+          <div className="p-5 space-y-3">
+            <Skeleton width={72} height={12} {...sk} />
+            <div className="flex flex-wrap gap-1.5">
+              {[56, 72, 64, 80].map((w) => (
+                <Skeleton key={w} width={w} height={24} borderRadius={6} {...sk} />
+              ))}
+            </div>
+            <Skeleton width={100} height={12} {...sk} />
+            <div className="flex flex-wrap gap-1.5">
+              {[68, 60, 76].map((w) => (
+                <Skeleton key={w} width={w} height={24} borderRadius={6} {...sk} />
+              ))}
+            </div>
           </div>
         </div>
 
@@ -155,6 +132,55 @@ export const Step3PricingSkeleton: React.FC = () => (
           </div>
           <div className="p-4">
             <Skeleton height={72} borderRadius={8} {...sk} />
+          </div>
+        </div>
+      </div>
+
+      {/* Right column — sticky map + locations + counts */}
+      <div className="space-y-4 lg:sticky lg:top-[calc(var(--topbar-h,64px)+1rem)] lg:self-start lg:max-h-[calc(100dvh-var(--topbar-h,64px)-5.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
+        <div
+          className="rounded-xl overflow-hidden"
+          style={{ background: T.sf, border: `1px solid ${T.bd}` }}
+        >
+          <Skeleton height={200} {...sk} />
+          <div
+            className="px-4 py-3 flex items-center justify-between"
+            style={{ borderBottom: `1px solid ${T.bd}` }}
+          >
+            <Skeleton width={70} height={14} {...sk} />
+            <Skeleton width={48} height={24} borderRadius={6} {...sk} />
+          </div>
+          <div className="p-4 space-y-4">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton circle width={10} height={10} {...sk} />
+                <div className="flex-1">
+                  <Skeleton width="55%" height={12} {...sk} />
+                  <Skeleton
+                    width="35%"
+                    height={10}
+                    {...sk}
+                    style={{ marginTop: 6 }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div
+            className="grid grid-cols-2 gap-px bg-slate-200 border-t"
+            style={{ borderColor: T.bd }}
+          >
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="bg-white p-3">
+                <Skeleton width={50} height={9} {...sk} />
+                <Skeleton
+                  width={64}
+                  height={16}
+                  {...sk}
+                  style={{ marginTop: 6 }}
+                />
+              </div>
+            ))}
           </div>
         </div>
       </div>

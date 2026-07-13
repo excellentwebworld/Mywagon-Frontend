@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import { formatVehicleSelectionSummary } from './vehicleTypes';
+import { formatVehicleSelectionSummary, findSpecLabel } from './vehicleTypes';
 import { useVehicleTypes } from '../../hooks/useVehicleTypes';
 import {
   ArrowLeft,
@@ -22,6 +22,7 @@ import {
   Globe,
   Settings,
   Navigation,
+  Truck,
 } from 'lucide-react';
 
 import { SearchableSelect } from '../ui/SearchableSelect';
@@ -208,14 +209,30 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
 
   const { vehicleTypes } = useVehicleTypes();
 
+  const locale = lang === 'el' ? 'el' : 'en';
+
   // Dynamic selected vehicles from Step 2
   const selectedVehicleTypesStr = useMemo(() => {
-    const locale = lang === 'el' ? 'el' : 'en';
     const { types, specs } = formatVehicleSelectionSummary(values.vehicleSpecs || {}, locale, vehicleTypes);
     if (types.length === 0) return '—';
     const specPart = specs.length > 0 ? ` (${specs.join(', ')})` : '';
     return types.join(', ') + specPart;
-  }, [values.vehicleSpecs, lang, vehicleTypes]);
+  }, [values.vehicleSpecs, locale, vehicleTypes]);
+
+  const selectedVehicleGroups = useMemo(() => {
+    const specs = values.vehicleSpecs || {};
+    return vehicleTypes
+      .map((vt) => {
+        const selected = specs[vt.formKey] || [];
+        if (selected.length === 0) return null;
+        return {
+          key: vt.formKey,
+          name: locale === 'el' ? vt.nameEl : vt.name,
+          specs: selected.map((id) => findSpecLabel(vehicleTypes, vt, id, locale)),
+        };
+      })
+      .filter((g): g is NonNullable<typeof g> => g != null);
+  }, [values.vehicleSpecs, locale, vehicleTypes]);
 
   const totalPallets = tripTotals.totalPallets;
   const totalWeightKg = tripTotals.totalWeightKg;
@@ -424,7 +441,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
     <div className="pb-24">
       {/* ═══ TWO COLUMN GRID MATCHING page3-vehicle-pricing.html ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start mt-4">
-        {/* LEFT COLUMN: Broadcast, Tracking */}
+        {/* LEFT COLUMN: Broadcast, Tracking, Vehicle, Pricing, Driver Notes */}
         <div className="lg:col-span-2 space-y-4">
           
           {/* BROADCAST TYPE */}
@@ -798,144 +815,40 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
               )}
             </div>
           </div>
-        </div>
 
-        {/* RIGHT COLUMN (Sticky + own scroll): Mini Map & Summary, Pricing & Driver Notes */}
-        <div className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pr-1">
-          
-          {/* MINI MAP & SUMMARY */}
-          <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12, overflow: 'hidden' }}>
-            <div className="relative">
-              <div className="absolute top-2 left-2 z-10 flex rounded-md overflow-hidden border bg-white shadow-sm" style={{ borderColor: T.bd }}>
-                <button
-                  type="button"
-                  className={`px-2.5 py-1 text-[10px] font-semibold ${mapType === 'roadmap' ? 'text-white' : ''}`}
-                  style={{ background: mapType === 'roadmap' ? T.ac : 'transparent', color: mapType === 'roadmap' ? '#fff' : T.t2 }}
-                  onClick={() => setMapType('roadmap')}
-                >
-                  {t('map') || 'Map'}
-                </button>
-                <button
-                  type="button"
-                  className={`px-2.5 py-1 text-[10px] font-semibold ${mapType === 'satellite' ? 'text-white' : ''}`}
-                  style={{ background: mapType === 'satellite' ? T.ac : 'transparent', color: mapType === 'satellite' ? '#fff' : T.t2 }}
-                  onClick={() => setMapType('satellite')}
-                >
-                  {t('satellite') || 'Satellite'}
-                </button>
+          {/* VEHICLE / TRUCK INFO */}
+          {selectedVehicleGroups.length > 0 && (
+            <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+              <div className="ch flex items-center gap-2 px-5 py-4 border-b" style={{ borderColor: T.bd }}>
+                <Truck size={18} style={{ color: T.t2 }} />
+                <span className="font-semibold text-sm">{t('vehicleTypes') || t('vehicleType') || 'Vehicle types'}</span>
               </div>
-              <RouteMap
-                stops={enrichedStops}
-                polylinePath={route.polylinePath}
-                directionsResult={route.directionsResult}
-                loading={route.loading}
-                routeLabel={routeLabel}
-                mapType={mapType}
-                height={200}
-                t={t}
-              />
-            </div>
-
-            <div className="ch flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: T.bd }}>
-              <span className="font-semibold text-sm">{t('summary') || 'Summary'}</span>
-              <button
-                type="button"
-                className="ml-auto px-2.5 py-1 text-[11px] font-semibold border rounded bg-white hover:bg-slate-50 cursor-pointer"
-                onClick={onBackStep}
-              >
-                ✏ {t('edit') || 'Edit'}
-              </button>
-            </div>
-
-            {/* Route timeline list */}
-            <div className="p-4 space-y-4">
-              {enrichedStops.map((stop, idx) => {
-                const isLast = idx === enrichedStops.length - 1;
-                const pin = pinColors(stop.hasPickup, stop.hasDropoff);
-                const { orderRefs, customers } = buildStopSummaryLabels(stops[idx], stop);
-
-                return (
-                  <div key={stop.id || idx} className="flex gap-3 relative pb-4 last:pb-0">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 border"
-                      style={{
-                        background: pin.background,
-                        borderColor: stop.hasDropoff ? '#000000' : '#E5E7EB',
-                        boxShadow: '0px 1px 3px #00000029',
-                      }}
-                    />
-                    {!isLast && (
-                      <div className="absolute top-4 left-[4px] bottom-0 w-0.5 bg-slate-200" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-baseline gap-2">
-                        <span className="text-xs font-bold text-slate-800">
-                          {stop.resolvedCity || stop.resolvedName || stop.locationCity || stop.locationName || '—'}
+              <div className="cb p-5 space-y-4">
+                {selectedVehicleGroups.map((group) => (
+                  <div key={group.key}>
+                    <div className="text-xs font-semibold mb-2" style={{ color: T.t1 }}>
+                      {group.name}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {group.specs.map((spec) => (
+                        <span
+                          key={`${group.key}-${spec}`}
+                          className="inline-flex items-center px-2.5 py-1 text-[11px] font-medium rounded-md"
+                          style={{
+                            background: T.sa,
+                            color: T.t1,
+                            border: `1px solid ${T.bd}`,
+                          }}
+                        >
+                          {spec}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400 truncate max-w-[45%]">
-                          {orderRefs}
-                        </span>
-                      </div>
-
-                      {customers.length > 0 && (
-                        <div className="flex gap-1.5 flex-wrap mt-1">
-                          {customers.slice(0, 2).map((name) => (
-                            <span
-                              key={name}
-                              className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-teal-200 bg-teal-50 text-teal-800"
-                            >
-                              🏪 {name}
-                            </span>
-                          ))}
-                          {customers.length > 2 && (
-                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-slate-600">
-                              +{customers.length - 2}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      ))}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Summary statistics grid */}
-            <div className="grid grid-cols-2 bg-slate-200 gap-px border-t" style={{ borderColor: T.bd }}>
-              {[
-                { label: t('distance') || 'Distance', value: displayKm > 0 ? String(Math.round(displayKm)) : '—', unit: displayKm > 0 ? 'km' : '' },
-                { label: t('time') || 'Time', value: formattedDriveTime !== '—' ? formattedDriveTime : '—', unit: '' },
-                { label: t('stops') || 'Stops', value: String(stops.length), unit: '' },
-                { label: t('weight') || 'Weight', value: formattedWeight, unit: '' },
-                { label: t('customers') || 'Customers', value: customerCount > 0 ? String(customerCount) : '—', unit: '' },
-                { label: t('orders') || 'Orders', value: orderCount > 0 ? String(orderCount) : '—', unit: '' },
-              ].map((st, sidx) => (
-                <div key={sidx} className="bg-white p-3">
-                  <div className="text-[9px] font-bold text-slate-400 uppercase">
-                    {st.label}
-                  </div>
-                  <div className="text-base font-bold text-slate-800 mt-0.5">
-                    {st.value}{' '}
-                    {st.unit && (
-                      <span className="text-xs font-normal text-slate-400">
-                        {st.unit}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Selected vehicle types */}
-            {selectedVehicleTypesStr && selectedVehicleTypesStr !== '—' && (
-              <div className="px-4 py-3 border-t" style={{ borderColor: T.bd }}>
-                <div className="text-[9px] font-bold text-slate-400 uppercase mb-1">
-                  {t('vehicleTypes') || t('vehicleType') || 'Vehicle types'}
-                </div>
-                <div className="text-xs font-semibold text-slate-800">{selectedVehicleTypesStr}</div>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* PRICING */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
@@ -1169,6 +1082,135 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
               <div className="text-right text-[10px] text-slate-400 mt-1">
                 {(values.driverNotes || '').length} / 500
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN (Sticky): Map, route locations, counts only.
+            Sticks while left scrolls; own overflow when taller than viewport. */}
+        <div className="space-y-4 lg:sticky lg:top-[calc(var(--topbar-h,64px)+1rem)] lg:self-start lg:max-h-[calc(100dvh-var(--topbar-h,64px)-5.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
+          
+          {/* MINI MAP & SUMMARY */}
+          <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12, overflow: 'hidden' }}>
+            <div className="relative">
+              <div className="absolute top-2 left-2 z-10 flex rounded-md overflow-hidden border bg-white shadow-sm" style={{ borderColor: T.bd }}>
+                <button
+                  type="button"
+                  className={`px-2.5 py-1 text-[10px] font-semibold ${mapType === 'roadmap' ? 'text-white' : ''}`}
+                  style={{ background: mapType === 'roadmap' ? T.ac : 'transparent', color: mapType === 'roadmap' ? '#fff' : T.t2 }}
+                  onClick={() => setMapType('roadmap')}
+                >
+                  {t('map') || 'Map'}
+                </button>
+                <button
+                  type="button"
+                  className={`px-2.5 py-1 text-[10px] font-semibold ${mapType === 'satellite' ? 'text-white' : ''}`}
+                  style={{ background: mapType === 'satellite' ? T.ac : 'transparent', color: mapType === 'satellite' ? '#fff' : T.t2 }}
+                  onClick={() => setMapType('satellite')}
+                >
+                  {t('satellite') || 'Satellite'}
+                </button>
+              </div>
+              <RouteMap
+                stops={enrichedStops}
+                polylinePath={route.polylinePath}
+                directionsResult={route.directionsResult}
+                loading={route.loading}
+                routeLabel={routeLabel}
+                mapType={mapType}
+                height={200}
+                t={t}
+              />
+            </div>
+
+            <div className="ch flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: T.bd }}>
+              <span className="font-semibold text-sm">{t('summary') || 'Summary'}</span>
+              <button
+                type="button"
+                className="ml-auto px-2.5 py-1 text-[11px] font-semibold border rounded bg-white hover:bg-slate-50 cursor-pointer"
+                onClick={onBackStep}
+              >
+                ✏ {t('edit') || 'Edit'}
+              </button>
+            </div>
+
+            {/* Route timeline list */}
+            <div className="p-4 space-y-4">
+              {enrichedStops.map((stop, idx) => {
+                const isLast = idx === enrichedStops.length - 1;
+                const pin = pinColors(stop.hasPickup, stop.hasDropoff);
+                const { orderRefs, customers } = buildStopSummaryLabels(stops[idx], stop);
+
+                return (
+                  <div key={stop.id || idx} className="flex gap-3 relative pb-4 last:pb-0">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 border"
+                      style={{
+                        background: pin.background,
+                        borderColor: stop.hasDropoff ? '#000000' : '#E5E7EB',
+                        boxShadow: '0px 1px 3px #00000029',
+                      }}
+                    />
+                    {!isLast && (
+                      <div className="absolute top-4 left-[4px] bottom-0 w-0.5 bg-slate-200" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline gap-2">
+                        <span className="text-xs font-bold text-slate-800">
+                          {stop.resolvedCity || stop.resolvedName || stop.locationCity || stop.locationName || '—'}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400 truncate max-w-[45%]">
+                          {orderRefs}
+                        </span>
+                      </div>
+
+                      {customers.length > 0 && (
+                        <div className="flex gap-1.5 flex-wrap mt-1">
+                          {customers.slice(0, 2).map((name) => (
+                            <span
+                              key={name}
+                              className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-teal-200 bg-teal-50 text-teal-800"
+                            >
+                              🏪 {name}
+                            </span>
+                          ))}
+                          {customers.length > 2 && (
+                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-slate-600">
+                              +{customers.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Summary statistics grid */}
+            <div className="grid grid-cols-2 bg-slate-200 gap-px border-t" style={{ borderColor: T.bd }}>
+              {[
+                { label: t('distance') || 'Distance', value: displayKm > 0 ? String(Math.round(displayKm)) : '—', unit: displayKm > 0 ? 'km' : '' },
+                { label: t('time') || 'Time', value: formattedDriveTime !== '—' ? formattedDriveTime : '—', unit: '' },
+                { label: t('stops') || 'Stops', value: String(stops.length), unit: '' },
+                { label: t('weight') || 'Weight', value: formattedWeight, unit: '' },
+                { label: t('customers') || 'Customers', value: customerCount > 0 ? String(customerCount) : '—', unit: '' },
+                { label: t('orders') || 'Orders', value: orderCount > 0 ? String(orderCount) : '—', unit: '' },
+              ].map((st, sidx) => (
+                <div key={sidx} className="bg-white p-3">
+                  <div className="text-[9px] font-bold text-slate-400 uppercase">
+                    {st.label}
+                  </div>
+                  <div className="text-base font-bold text-slate-800 mt-0.5">
+                    {st.value}{' '}
+                    {st.unit && (
+                      <span className="text-xs font-normal text-slate-400">
+                        {st.unit}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
