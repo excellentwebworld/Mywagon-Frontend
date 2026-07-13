@@ -16,7 +16,7 @@ const sk = {
 
 export const Step3PricingSkeleton: React.FC = () => (
   <div className="wizard-step3 wizard-step3-skeleton pb-24 lg:pb-0" aria-busy="true">
-    <div className="wizard-step3-columns grid grid-cols-1 lg:grid-cols-3 lg:items-stretch gap-6 items-start mt-4">
+    <div className="wizard-step3-columns grid grid-cols-1 lg:grid-cols-3 lg:items-stretch gap-6 items-start mt-0">
       {/* Left column — Broadcast, Tracking, Vehicle, Pricing, Driver Notes */}
       <div className="wizard-step3-left lg:col-span-2 space-y-4">
         <div

@@ -439,7 +439,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   return (
     <div className="wizard-step3 pb-24 lg:pb-0">
       {/* ═══ TWO COLUMN GRID MATCHING page3-vehicle-pricing.html ═══ */}
-      <div className="wizard-step3-columns grid grid-cols-1 lg:grid-cols-3 lg:items-stretch gap-6 items-start mt-4">
+      <div className="wizard-step3-columns grid grid-cols-1 lg:grid-cols-3 lg:items-stretch gap-6 items-start mt-0">
         {/* LEFT COLUMN: Broadcast, Tracking, Vehicle, Pricing, Driver Notes */}
         <div className="wizard-step3-left lg:col-span-2 space-y-4">
           

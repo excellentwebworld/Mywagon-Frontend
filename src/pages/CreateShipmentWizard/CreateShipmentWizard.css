@@ -2171,8 +2171,18 @@
     overflow: hidden;
   }
 
-  .wizard-shell--step3 > .ph,
-  .wizard-shell--step3 > .stepper,
+  .wizard-shell--step3 > .stepper {
+    flex-shrink: 0;
+    padding-top: 8px;
+    padding-bottom: 12px;
+    margin-bottom: 0 !important;
+  }
+
+  .wizard-shell--step3 > .ph {
+    flex-shrink: 0;
+    margin-bottom: 8px !important;
+  }
+
   .wizard-shell--step3 > .wizard-validation-banner {
     flex-shrink: 0;
   }
@@ -2201,8 +2211,8 @@
     min-height: 0;
     align-items: stretch;
     overflow: hidden;
-    margin-top: 0;
-    padding-top: 1rem;
+    margin-top: 0 !important;
+    padding-top: 0;
   }
 
   .wizard-step3-left,
