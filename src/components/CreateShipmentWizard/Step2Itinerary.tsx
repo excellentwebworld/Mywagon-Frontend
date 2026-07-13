@@ -62,6 +62,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
 
   const [expandedStop, setExpandedStop] = useState<number | null>(null);
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
+  const [showVehicleRequired, setShowVehicleRequired] = useState(false);
 
   const { enrichedStops, totals, runningWeights } = useItineraryStats(stops, locations);
   const route = useRouteLegs(enrichedStops);
@@ -79,6 +80,10 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
     values.itineraryConfirmed &&
     !isSaving;
 
+  useEffect(() => {
+    if (vehicleSelected) setShowVehicleRequired(false);
+  }, [vehicleSelected]);
+
   const handleConfirmAndContinue = async () => {
     if (isSaving) return;
 
@@ -93,6 +98,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
     }
 
     if (!vehicleSelected) {
+      setShowVehicleRequired(true);
       scrollToStep2Validation('step2-vehicle-required');
       return;
     }
@@ -109,6 +115,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
       });
     } catch {
       if (!vehicleSelected) {
+        setShowVehicleRequired(true);
         scrollToStep2Validation('step2-vehicle-required');
       } else if (!values.itineraryConfirmed) {
         scrollToStep2Validation('step2-itinerary-confirm');
@@ -125,6 +132,10 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
     const snapshot = computeItineraryFingerprint(stops);
     setFieldValue('itineraryConfirmSnapshot', snapshot);
     setFieldValue('itineraryConfirmed', true);
+    // Wait for VehicleSelector to mount, then scroll into view
+    window.setTimeout(() => {
+      scrollToStep2Validation('step2-vehicle-selector');
+    }, 80);
   };
 
   useEffect(() => {
@@ -161,7 +172,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
         </div>
       )}
 
-      {!vehicleSelected && !missingLocations && values.itineraryConfirmed && (
+      {showVehicleRequired && !vehicleSelected && !missingLocations && values.itineraryConfirmed && (
         <div
           className="wizard-validation-banner mb-4"
           role="alert"
