@@ -15,7 +15,6 @@ import {
   Smartphone,
   Star,
   Users,
-  Plus,
   X,
   FileText,
   Save,
@@ -911,59 +910,56 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                 )}
               </div>
 
-              {/* Input */}
-              <div
-                className="flex items-center border-2 rounded-xl px-3 py-2"
-                style={{ borderColor: targetPriceVal > 0 ? T.ac : T.bd, background: T.sa }}
-              >
-                <span className="text-xl font-bold mr-2" style={{ color: T.t3 }}>€</span>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  className="w-full bg-transparent text-right text-2xl font-bold font-mono outline-none"
-                  style={{ color: T.t1 }}
-                  placeholder="0.00"
-                  value={values.targetPrice || ''}
-                  onChange={(e) => setFieldValue('targetPrice', e.target.value)}
-                />
-              </div>
+              {/* Input + compact AI action */}
+              <div className="space-y-2.5">
+                <div
+                  className="flex items-center border-2 rounded-xl px-3 py-2"
+                  style={{ borderColor: targetPriceVal > 0 ? T.ac : T.bd, background: T.sa }}
+                >
+                  <span className="text-xl font-bold mr-2" style={{ color: T.t3 }}>€</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className="w-full bg-transparent text-right text-2xl font-bold font-mono outline-none"
+                    style={{ color: T.t1 }}
+                    placeholder="0.00"
+                    value={values.targetPrice || ''}
+                    onChange={(e) => setFieldValue('targetPrice', e.target.value)}
+                  />
+                </div>
 
-              <button
-                type="button"
-                className="ai-suggest-btn"
-                disabled={Boolean(contract) || !draftId || (aiPriceLoading && aiInsightsRequested)}
-                onClick={handleAiInsightsClick}
-              >
-                {aiPriceLoading && aiInsightsRequested ? (
-                  <>
-                    <span className="price-hint-spinner" aria-hidden="true" />
-                    <span>{t('aiSuggestedPriceLoading') || 'Generating AI suggested prices...'}</span>
-                  </>
-                ) : (
-                  <span className="ai-suggest-btn-inner">
-                    <span className="ai-suggest-btn-main">
-                      <Plus size={14} aria-hidden="true" />
-                      <span>{t('requestAiSuggestedPrice') || 'Request AI Suggested Price'}</span>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+                    <span>
+                      <strong>€{pricePerKm}</strong> / km
                     </span>
-                    <span className="ai-suggest-btn-powered">
-                      <Sparkles size={10} aria-hidden="true" />
-                      <span>{t('poweredByAi') || 'Powered by AI'}</span>
+                    <span className="text-slate-300">·</span>
+                    <span className="text-indigo-700 font-semibold">
+                      <strong>€{pricePerPallet}</strong> / pallet
                     </span>
-                  </span>
-                )}
-              </button>
+                    <span className="text-slate-400">({totalPallets} pallets)</span>
+                  </div>
 
-              {/* Stats calculations */}
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>
-                  <strong>€{pricePerKm}</strong> / km
-                </span>
-                <span>·</span>
-                <span className="text-indigo-700 font-semibold">
-                  <strong>€{pricePerPallet}</strong> / pallet
-                </span>
-                <span className="text-slate-400">({totalPallets} pallets)</span>
+                  <button
+                    type="button"
+                    className="ai-suggest-btn"
+                    disabled={Boolean(contract) || !draftId || (aiPriceLoading && aiInsightsRequested)}
+                    onClick={handleAiInsightsClick}
+                  >
+                    {aiPriceLoading && aiInsightsRequested ? (
+                      <>
+                        <span className="price-hint-spinner" aria-hidden="true" />
+                        <span>{t('aiSuggestedPriceLoading') || 'Generating...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={13} aria-hidden="true" />
+                        <span>{t('requestAiSuggestedPrice') || 'Request AI Suggested Price'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Manual Override Warning */}

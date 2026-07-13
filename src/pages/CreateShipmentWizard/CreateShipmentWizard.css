@@ -1748,52 +1748,51 @@
 @keyframes price-hint-spin { to { transform: rotate(360deg); } }
 
 .ai-suggest-btn {
-  width: 100%;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
+  gap: 6px;
+  width: auto;
+  max-width: 100%;
+  padding: 6px 12px;
   border-radius: 8px;
-  border: none;
-  background: var(--accent);
-  color: #fff;
-  font-size: 13px;
+  border: 1px solid var(--accent);
+  background: var(--accent-pale, #F5F3FF);
+  color: var(--accent);
+  font-size: 12px;
   font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s;
 }
 
 .ai-suggest-btn:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }
 
 .ai-suggest-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
 .ai-suggest-btn-inner {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
 }
 
 .ai-suggest-btn-main {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .ai-suggest-btn-powered {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 500;
-  opacity: 0.85;
+  display: none;
 }
 
 .ov-row { padding: 13px 20px; border-top: 1px solid var(--border); }
