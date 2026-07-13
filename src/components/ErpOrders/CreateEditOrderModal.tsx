@@ -121,8 +121,82 @@ export const CreateEditOrderModal: React.FC<Props> = ({
         .of(
           Yup.object().shape({
             productSkuId: Yup.number().nullable(),
+            quantity: Yup.number().nullable(),
+            unit: Yup.string().nullable(),
+            weight: Yup.number().nullable(),
+            weightUnit: Yup.string().nullable(),
           })
         )
+        .test('at-least-one-complete-product', function validateCompleteProduct(lines) {
+          const orderLines = (lines ?? []) as ErpOrderLine[];
+
+          const isComplete = (line: ErpOrderLine) =>
+            line.productSkuId != null &&
+            line.quantity != null &&
+            Number(line.quantity) > 0 &&
+            Boolean(String(line.unit || '').trim()) &&
+            line.weight != null &&
+            Number(line.weight) >= 0 &&
+            Boolean(String(line.weightUnit || '').trim());
+
+          const isBlank = (line: ErpOrderLine) =>
+            line.productSkuId == null &&
+            line.quantity == null &&
+            line.weight == null &&
+            !String(line.productName || '').trim();
+
+          if (!orderLines.some(isComplete)) {
+            return this.createError({
+              message: String(t('erpOrdersProductLineRequired')),
+            });
+          }
+
+          for (let i = 0; i < orderLines.length; i++) {
+            const line = orderLines[i];
+            if (isBlank(line) || isComplete(line)) continue;
+
+            if (line.productSkuId == null) {
+              return this.createError({
+                message: String(
+                  t('erpOrdersLineFieldLabel', {
+                    line: i + 1,
+                    field: t('erpOrdersSelectProduct'),
+                  })
+                ),
+              });
+            }
+            if (line.quantity == null || Number(line.quantity) <= 0) {
+              return this.createError({
+                message: String(
+                  t('erpOrdersFieldRequired', { field: `${t('qty')} (line ${i + 1})` })
+                ),
+              });
+            }
+            if (!String(line.unit || '').trim()) {
+              return this.createError({
+                message: String(
+                  t('erpOrdersFieldRequired', { field: `${t('unit') || 'Unit'} (line ${i + 1})` })
+                ),
+              });
+            }
+            if (line.weight == null || Number(line.weight) < 0) {
+              return this.createError({
+                message: String(t('erpOrdersLineWeightMin', { line: i + 1 })),
+              });
+            }
+            if (!String(line.weightUnit || '').trim()) {
+              return this.createError({
+                message: String(
+                  t('erpOrdersFieldRequired', {
+                    field: `${t('weight')} unit (line ${i + 1})`,
+                  })
+                ),
+              });
+            }
+          }
+
+          return true;
+        })
         .test('line-weights', function validateLineWeights(lines) {
           const orderLines = (lines ?? []) as ErpOrderLine[];
           for (let i = 0; i < orderLines.length; i++) {

@@ -92,7 +92,9 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
 
   return (
     <div className="erp-product-lines">
-      <div className="field-l">{t('erpOrdersProducts')}</div>
+      <div className="field-l">
+        {t('erpOrdersProducts')} <span className="req">*</span>
+      </div>
       {lines.map((line, index) => (
         <div key={index} className="erp-product-line">
           <SearchableSelect

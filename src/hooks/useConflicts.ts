@@ -1,6 +1,10 @@
 import { useMemo } from 'react';
 import { formatWeightKgTotal, weightToKg } from '../constants/cargoUnits';
-import { computeLoadBalance } from '../components/CreateShipmentWizard/itinerary/cargoUtils';
+import {
+  computeLoadBalance,
+  computeOrderPickupAllocations,
+  formatQtyWithUnit,
+} from '../components/CreateShipmentWizard/itinerary/cargoUtils';
 
 export interface Conflict {
   code: string;
@@ -18,6 +22,7 @@ export default function useConflicts(stops: any[], options: any = {}) {
     blackouts = [],
     products = [],
     orders = [],
+    orderDetailsById = {},
     templates = [],
     rules = [],
   } = options;
@@ -255,20 +260,24 @@ export default function useConflicts(stops: any[], options: any = {}) {
       );
     }
 
-    // ═══ C4 — SKU-level balance ═══
+    // ═══ C4 — SKU + unit balance (qty and unit must both match) ═══
     const skuP: Record<string, number> = {};
     const skuD: Record<string, number> = {};
     const skuN: Record<string, string> = {};
+    const skuU: Record<string, string> = {};
     stops.forEach((s) =>
       (s.lines || []).forEach((l: any) => {
         if (!l.productId || !l.qty) return;
         const q = parseFloat(l.qty) || 0;
+        const unit = (l.unit || '').trim() || '—';
+        const key = `${l.productId}||${unit.toLowerCase()}`;
         if (l.action === 'pickup') {
-          skuP[l.productId] = (skuP[l.productId] || 0) + q;
+          skuP[key] = (skuP[key] || 0) + q;
         } else {
-          skuD[l.productId] = (skuD[l.productId] || 0) + q;
+          skuD[key] = (skuD[key] || 0) + q;
         }
-        skuN[l.productId] = l.productName;
+        skuN[key] = l.productName || l.productId;
+        skuU[key] = unit;
       })
     );
     const allSkus = new Set([...Object.keys(skuP), ...Object.keys(skuD)]);
@@ -276,20 +285,64 @@ export default function useConflicts(stops: any[], options: any = {}) {
       const p = skuP[id] || 0;
       const d = skuD[id] || 0;
       const nm = skuN[id] || id;
+      const unit = skuU[id] || '';
       if (p > 0 && d > 0 && p !== d) {
         add(
           'C4',
           'warning',
           -1,
           -1,
-          `${nm}: ${p} picked up vs ${d} dropped off (${Math.abs(p - d)} ${
+          `${nm}: ${formatQtyWithUnit(p, unit)} picked up vs ${formatQtyWithUnit(d, unit)} dropped off (${Math.abs(p - d)} ${
             p > d ? 'remain on truck' : 'over-delivered'
           })`,
-          'Match pickup and dropoff per SKU'
+          'Match pickup and dropoff qty and unit per SKU'
         );
       }
       if (p > 0 && d === 0) {
-        add('X4', 'warning', -1, -1, `${nm}: ${p} picked up but never dropped off`, 'Add a dropoff for this product');
+        add(
+          'X4',
+          'warning',
+          -1,
+          -1,
+          `${nm}: ${formatQtyWithUnit(p, unit)} picked up but never dropped off`,
+          'Add a dropoff for this product with the same unit'
+        );
+      }
+    });
+
+    // Same product with different units on pickup vs dropoff
+    const productUnitsPk: Record<string, Set<string>> = {};
+    const productUnitsDo: Record<string, Set<string>> = {};
+    const productNames: Record<string, string> = {};
+    stops.forEach((s) =>
+      (s.lines || []).forEach((l: any) => {
+        if (!l.productId) return;
+        const unit = (l.unit || '').trim().toLowerCase();
+        if (!unit) return;
+        productNames[l.productId] = l.productName || l.productId;
+        if (l.action === 'pickup') {
+          if (!productUnitsPk[l.productId]) productUnitsPk[l.productId] = new Set();
+          productUnitsPk[l.productId].add(unit);
+        } else {
+          if (!productUnitsDo[l.productId]) productUnitsDo[l.productId] = new Set();
+          productUnitsDo[l.productId].add(unit);
+        }
+      })
+    );
+    Object.keys(productNames).forEach((pid) => {
+      const pkUnits = productUnitsPk[pid] || new Set();
+      const doUnits = productUnitsDo[pid] || new Set();
+      if (pkUnits.size === 0 || doUnits.size === 0) return;
+      const overlap = [...pkUnits].some((u) => doUnits.has(u));
+      if (!overlap) {
+        add(
+          'C4',
+          'blocker',
+          -1,
+          -1,
+          `${productNames[pid]}: pickup unit(s) [${[...pkUnits].join(', ')}] do not match dropoff unit(s) [${[...doUnits].join(', ')}]`,
+          'Use the same qty unit for pickup and dropoff'
+        );
       }
     });
 
@@ -328,19 +381,61 @@ export default function useConflicts(stops: any[], options: any = {}) {
       })
     );
 
-    // C11 — Global load balance (qty + weight, unit-normalized)
+    // C11 — Global load balance (qty+unit buckets + weight)
     const loadBal = computeLoadBalance(stops);
     const hasPickupCargo = loadBal.pkU > 0 || loadBal.pkW > 0;
     const hasDropoffCargo = loadBal.doU > 0 || loadBal.doW > 0;
     if (hasPickupCargo && hasDropoffCargo && !loadBal.balanced) {
+      const unitMismatches = Object.entries(loadBal.byUnit || {}).filter(
+        ([, v]) => v.pk !== v.do && (v.pk > 0 || v.do > 0)
+      );
       let message = 'Load is not balanced';
-      if (loadBal.pkU !== loadBal.doU) {
-        message = `Pickup qty (${loadBal.pkU}) does not match dropoff qty (${loadBal.doU})`;
+      if (unitMismatches.length > 0) {
+        const parts = unitMismatches.map(
+          ([unit, v]) =>
+            `${unit}: pickup ${formatQtyWithUnit(v.pk, unit)} vs dropoff ${formatQtyWithUnit(v.do, unit)}`
+        );
+        message = `Load qty/unit not balanced — ${parts.join('; ')}`;
       } else if (Math.abs(loadBal.pkW - loadBal.doW) >= 0.01) {
         message = `Pickup weight (${formatWeightKgTotal(loadBal.pkW)}) does not match dropoff weight (${formatWeightKgTotal(loadBal.doW)})`;
       }
-      add('C11', 'blocker', -1, -1, message, 'Match pickup and dropoff quantities and weights');
+      add('C11', 'blocker', -1, -1, message, 'Match pickup and dropoff quantities, units, and weights');
     }
+
+    // C12 — Order product pickups must equal order qty + unit
+    const orderDetails =
+      orderDetailsById && Object.keys(orderDetailsById).length > 0
+        ? orderDetailsById
+        : Object.fromEntries(
+            (orders || [])
+              .filter((o: any) => o?.id && o?.lines?.length)
+              .map((o: any) => [String(o.id), o])
+          );
+    computeOrderPickupAllocations(stops, orderDetails).forEach((alloc) => {
+      if (alloc.unitMismatch) {
+        add(
+          'C12',
+          'blocker',
+          -1,
+          -1,
+          `${alloc.orderRef} · ${alloc.productName}: pickup unit (${alloc.pickupUnit || '—'}) must match order unit (${alloc.orderUnit || '—'})`,
+          'Use the same qty unit as the order line'
+        );
+        return;
+      }
+      if (alloc.pickupSum !== alloc.orderQty) {
+        const delta = Math.abs(alloc.pickupSum - alloc.orderQty);
+        const dir = alloc.pickupSum > alloc.orderQty ? 'over' : 'under';
+        add(
+          'C12',
+          'blocker',
+          -1,
+          -1,
+          `${alloc.orderRef} · ${alloc.productName}: pickup ${formatQtyWithUnit(alloc.pickupSum, alloc.orderUnit)} vs order ${formatQtyWithUnit(alloc.orderQty, alloc.orderUnit)} (${delta} ${dir})`,
+          'Split pickups so totals equal the order qty and unit'
+        );
+      }
+    });
 
     // C6 + C9 — Running weight
     let rw = 0;
@@ -466,7 +561,7 @@ export default function useConflicts(stops: any[], options: any = {}) {
       hasBlockers: blockers.length > 0,
       total: conflicts.length,
     };
-  }, [stops, locations, loadingPoints, blackouts, products, orders, templates, rules]);
+  }, [stops, locations, loadingPoints, blackouts, products, orders, orderDetailsById, templates, rules]);
 }
 
 function empty() {

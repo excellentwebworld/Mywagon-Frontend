@@ -8,6 +8,7 @@ export const createNewCargoLine = (action: 'pickup' | 'dropoff' = 'pickup') => (
   customerName: '',
   orderId: '',
   orderRef: '',
+  orderLineId: '',
   action,
   qty: '',
   unit: 'EUR Pallets',

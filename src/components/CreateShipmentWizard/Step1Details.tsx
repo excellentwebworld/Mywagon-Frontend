@@ -78,7 +78,7 @@ import {
   normalizeWeightUnit,
   formatWeightKgTotal,
 } from "../../constants/cargoUnits";
-import { computeLoadBalance } from "./itinerary/cargoUtils";
+import { computeLoadBalance, getPickupAllocatedQty, formatQtyWithUnit } from "./itinerary/cargoUtils";
 
 const clearOrderDependentCargoFields = () => {
   const blank = createNewCargoLine();
@@ -505,6 +505,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         customerName: mo.customerName || "",
         orderId: mo.id,
         orderRef: mo.orderReference,
+        orderLineId: ln.id != null ? String(ln.id) : "",
         action: defaultAction as "pickup" | "dropoff",
         qty: ln.quantity != null ? String(ln.quantity) : "",
         unit: ln.unit || "EUR Pallets",
@@ -816,12 +817,33 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       }
       const orderLine = findOrderLineForProduct(order, skuId);
       if (orderLine) {
+        const orderQty = orderLine.quantity != null ? Number(orderLine.quantity) : 0;
+        const orderUnit = orderLine.unit || line?.unit || "EUR Pallets";
+        const allocated = line?.orderId
+          ? getPickupAllocatedQty(stops, String(line.orderId), skuId, {
+              excludeLineId: lid,
+              unit: orderUnit,
+            })
+          : 0;
+        const remaining = Math.max(0, orderQty - allocated);
+        const orderWeight =
+          orderLine.weight != null ? Number(orderLine.weight) : null;
+        let weight = "";
+        if (orderWeight != null && orderQty > 0) {
+          weight = String(
+            Math.round((orderWeight * (remaining / orderQty)) * 1000) / 1000,
+          );
+        } else if (orderWeight != null && remaining === orderQty) {
+          weight = String(orderWeight);
+        }
+
         setLF(sid, lid, {
           productId: skuId,
           productName: orderLine.productName || "",
-          qty: orderLine.quantity != null ? String(orderLine.quantity) : "",
-          unit: orderLine.unit || line?.unit || "EUR Pallets",
-          weight: orderLine.weight != null ? String(orderLine.weight) : "",
+          orderLineId: orderLine.id != null ? String(orderLine.id) : "",
+          qty: orderLine.quantity != null ? String(remaining) : "",
+          unit: orderUnit,
+          weight,
           wtUnit: normalizeWeightUnit(orderLine.weightUnit || line?.wtUnit),
         });
       }
@@ -989,6 +1011,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     blackouts: [],
     products: pmSkus,
     orders: apiOrders,
+    orderDetailsById,
     templates: [],
     rules: [],
   });
@@ -1487,6 +1510,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         iS={iS}
                         ordOpts={ordOpts}
                         orderDetailsById={orderDetailsById}
+                        allStops={stops}
                         onClearOrder={(lid) => clearOrderLine(stop.id, lid)}
                         onAddLine={() => addLine(stop.id)}
                         onDelLine={(lid) => delLine(stop.id, lid)}
@@ -1876,6 +1900,7 @@ interface CargoTableProps {
     string,
     import("../../pages/ErpOrders/types").ErpOrder
   >;
+  allStops: any[];
   onAddLine: () => void;
   onDelLine: (lid: string) => void;
   onDupLine: (lid: string) => void;
@@ -1902,6 +1927,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
   iS,
   ordOpts,
   orderDetailsById,
+  allStops,
   onAddLine,
   onDelLine,
   onDupLine,
@@ -2189,6 +2215,37 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       value={ln.qty}
                       onChange={(e) => onSetField(ln.id, "qty", e.target.value)}
                     />
+                    {(() => {
+                      if (ln.action !== "pickup" || !ln.orderId || !ln.productId) return null;
+                      const order = orderDetailsById[ln.orderId];
+                      const orderLine = findOrderLineForProduct(order, ln.productId);
+                      if (!orderLine || orderLine.quantity == null) return null;
+                      const orderQty = Number(orderLine.quantity) || 0;
+                      if (orderQty <= 0) return null;
+                      const orderUnit = orderLine.unit || ln.unit || "";
+                      const allocated = getPickupAllocatedQty(
+                        allStops,
+                        String(ln.orderId),
+                        String(ln.productId),
+                        { unit: orderUnit },
+                      );
+                      return (
+                        <div
+                          className="text-[9px] mt-0.5"
+                          style={{
+                            color:
+                              allocated === orderQty
+                                ? "#059669"
+                                : allocated > orderQty
+                                  ? "#DC2626"
+                                  : T.t3,
+                          }}
+                        >
+                          {formatQtyWithUnit(allocated, orderUnit)} /{" "}
+                          {formatQtyWithUnit(orderQty, orderUnit)}
+                        </div>
+                      );
+                    })()}
                     <FieldValidationHint
                       compact
                       conflicts={[
@@ -2599,7 +2656,9 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
               >
                 Per Product
               </div>
-              {Object.entries(bal.byP).map(([nm, v]: [string, any]) => (
+              {Object.entries(bal.byP).map(([nm, v]: [string, any]) => {
+                const label = nm.includes("||") ? nm.split("||")[0] : nm;
+                return (
                 <div
                   key={nm}
                   className="flex items-center justify-between py-1 text-xs"
@@ -2609,7 +2668,13 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
                     className="truncate mr-2 font-medium"
                     style={{ color: T.t1 }}
                   >
-                    {nm}
+                    {label}
+                    {v.unit ? (
+                      <span className="font-normal" style={{ color: T.t3 }}>
+                        {" "}
+                        ({v.unit})
+                      </span>
+                    ) : null}
                   </span>
                   <div className="flex items-center gap-3 shrink-0">
                     <span style={{ color: "#2563EB" }}>
@@ -2636,7 +2701,8 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

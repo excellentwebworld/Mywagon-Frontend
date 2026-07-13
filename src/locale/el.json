@@ -114,6 +114,7 @@
   "erpOrdersAddProduct": "Προσθήκη προϊόντος",
   "erpOrdersAddProductLine": "Προσθήκη γραμμής προϊόντος",
   "erpOrdersProducts": "Προϊόντα",
+  "erpOrdersProductLineRequired": "Προσθέστε τουλάχιστον ένα προϊόν με συμπληρωμένα προϊόν, ποσότητα, μονάδα και βάρος.",
   "erpOrdersAddAddressHint": "Ανοίξτε το Address Book για νέα διεύθυνση και ανανεώστε τη φόρμα.",
   "erpOrdersAddProductHint": "Ανοίξτε το Product Master για νέο SKU και ανανεώστε τη φόρμα.",
   "erpOrdersLocationNameRequired": "Απαιτείται όνομα διεύθυνσης.",

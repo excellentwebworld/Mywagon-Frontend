@@ -114,6 +114,7 @@
   "erpOrdersAddProduct": "Add product",
   "erpOrdersAddProductLine": "Add product line",
   "erpOrdersProducts": "Products",
+  "erpOrdersProductLineRequired": "Add at least one product with product, quantity, unit, and weight filled.",
   "erpOrdersAddAddressHint": "Open Address Book to add a new location, then refresh this form.",
   "erpOrdersAddProductHint": "Open Product Master to add a new SKU, then refresh this form.",
   "erpOrdersLocationNameRequired": "Location name is required.",

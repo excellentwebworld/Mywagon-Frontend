@@ -6,6 +6,7 @@ export interface ApiCargoLine {
   customerName?: string;
   orderId?: string;
   orderRef?: string;
+  orderLineId?: string | number;
   action?: 'pickup' | 'dropoff';
   qty?: string | number;
   unit?: string;

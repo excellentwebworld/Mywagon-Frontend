@@ -48,27 +48,43 @@ export function computeLoadBalance(stops: ApiStop[]): LoadBalance {
   let pkW = 0;
   let doW = 0;
   const byP: LoadBalance['byP'] = {};
+  const byUnit: Record<string, { pk: number; do: number }> = {};
 
   stops.forEach((s) =>
     (s.lines || []).forEach((ln) => {
       const q = parseFloat(String(ln.qty ?? '')) || 0;
       const wk = weightToKg(ln.weight, ln.wtUnit);
+      const unitKey = normalizeQtyUnit(ln.unit) || '—';
+      if (!byUnit[unitKey]) byUnit[unitKey] = { pk: 0, do: 0 };
+
       if (ln.action === 'pickup') {
         pkU += q;
         pkW += wk;
+        byUnit[unitKey].pk += q;
       } else {
         doU += q;
         doW += wk;
+        byUnit[unitKey].do += q;
       }
       const nm = ln.productName || '—';
-      if (!byP[nm]) byP[nm] = { pk: 0, do: 0, unit: ln.unit };
-      if (ln.action === 'pickup') byP[nm].pk += q;
-      else byP[nm].do += q;
+      const prodKey = `${nm}||${unitKey}`;
+      if (!byP[prodKey]) byP[prodKey] = { pk: 0, do: 0, unit: ln.unit };
+      if (ln.action === 'pickup') byP[prodKey].pk += q;
+      else byP[prodKey].do += q;
     })
   );
 
   const mx = Math.max(pkW, doW, 1);
-  const qtyBalanced = pkU > 0 && doU > 0 && pkU === doU;
+  // Qty is balanced only when every unit bucket matches pickup ↔ dropoff
+  const unitKeys = Object.keys(byUnit);
+  const hasQty = unitKeys.some((k) => byUnit[k].pk > 0 || byUnit[k].do > 0);
+  const qtyBalanced =
+    hasQty &&
+    unitKeys.every((k) => {
+      const { pk, do: d } = byUnit[k];
+      if (pk === 0 && d === 0) return true;
+      return pk > 0 && d > 0 && pk === d;
+    });
   const weightBalanced = pkW > 0 && doW > 0 && Math.abs(pkW - doW) < 0.01;
   return {
     pkU,
@@ -79,7 +95,134 @@ export function computeLoadBalance(stops: ApiStop[]): LoadBalance {
     doBar: (doW / mx) * 50,
     balanced: qtyBalanced && weightBalanced,
     byP,
+    byUnit,
   };
+}
+
+/** Normalize qty unit for comparison (trim; case-insensitive). */
+export function normalizeQtyUnit(unit?: string | null): string {
+  return (unit || '').trim();
+}
+
+export function qtyUnitsMatch(a?: string | null, b?: string | null): boolean {
+  const na = normalizeQtyUnit(a).toLowerCase();
+  const nb = normalizeQtyUnit(b).toLowerCase();
+  if (!na && !nb) return true;
+  return na === nb;
+}
+
+/**
+ * Sum pickup qty for the same order + product across stops.
+ * When `unit` is provided, only lines with that unit are included.
+ */
+export function getPickupAllocatedQty(
+  stops: ApiStop[],
+  orderId: string,
+  productId: string,
+  options?: { excludeLineId?: string; unit?: string }
+): number {
+  if (!orderId || !productId) return 0;
+  const wantUnit = options?.unit != null ? normalizeQtyUnit(options.unit) : null;
+  let sum = 0;
+  stops.forEach((s) =>
+    (s.lines || []).forEach((ln) => {
+      if (ln.action !== 'pickup') return;
+      if (String(ln.orderId || '') !== String(orderId)) return;
+      if (String(ln.productId || '') !== String(productId)) return;
+      if (options?.excludeLineId && String(ln.id) === String(options.excludeLineId)) return;
+      if (wantUnit != null && !qtyUnitsMatch(ln.unit, wantUnit)) return;
+      sum += parseFloat(String(ln.qty ?? '')) || 0;
+    })
+  );
+  return sum;
+}
+
+export interface OrderPickupAllocation {
+  orderId: string;
+  productId: string;
+  productName: string;
+  orderRef: string;
+  orderQty: number;
+  orderUnit: string;
+  pickupSum: number;
+  pickupUnit: string;
+  unitMismatch: boolean;
+}
+
+/** Build pickup allocations vs order line qty+unit for conflict checks. */
+export function computeOrderPickupAllocations(
+  stops: ApiStop[],
+  orderDetailsById: Record<string, { orderReference?: string; lines?: Array<{
+    id?: number;
+    productSkuId?: number | null;
+    productName?: string;
+    quantity?: number | null;
+    unit?: string;
+  }> }>
+): OrderPickupAllocation[] {
+  type Acc = {
+    orderId: string;
+    productId: string;
+    productName: string;
+    orderRef: string;
+    pickupSum: number;
+    units: Set<string>;
+  };
+  const map = new Map<string, Acc>();
+
+  stops.forEach((s) =>
+    (s.lines || []).forEach((ln) => {
+      if (ln.action !== 'pickup' || !ln.orderId || !ln.productId) return;
+      const key = `${ln.orderId}||${ln.productId}`;
+      let acc = map.get(key);
+      if (!acc) {
+        acc = {
+          orderId: String(ln.orderId),
+          productId: String(ln.productId),
+          productName: ln.productName || '',
+          orderRef: ln.orderRef || '',
+          pickupSum: 0,
+          units: new Set(),
+        };
+        map.set(key, acc);
+      }
+      acc.pickupSum += parseFloat(String(ln.qty ?? '')) || 0;
+      if (ln.unit) acc.units.add(normalizeQtyUnit(ln.unit));
+      if (ln.productName) acc.productName = ln.productName;
+      if (ln.orderRef) acc.orderRef = ln.orderRef;
+    })
+  );
+
+  const results: OrderPickupAllocation[] = [];
+  map.forEach((acc) => {
+    const order = orderDetailsById[acc.orderId];
+    const orderLine = order?.lines?.find(
+      (line) => String(line.productSkuId) === String(acc.productId)
+    );
+    if (!orderLine || orderLine.quantity == null) return;
+    const orderQty = Number(orderLine.quantity) || 0;
+    if (orderQty <= 0) return;
+    const orderUnit = normalizeQtyUnit(orderLine.unit);
+    const pickupUnits = [...acc.units];
+    const pickupUnit = pickupUnits[0] || '';
+    const unitMismatch =
+      pickupUnits.length > 1 ||
+      (pickupUnit !== '' && orderUnit !== '' && !qtyUnitsMatch(pickupUnit, orderUnit));
+
+    results.push({
+      orderId: acc.orderId,
+      productId: acc.productId,
+      productName: acc.productName || orderLine.productName || acc.productId,
+      orderRef: acc.orderRef || order?.orderReference || acc.orderId,
+      orderQty,
+      orderUnit,
+      pickupSum: acc.pickupSum,
+      pickupUnit,
+      unitMismatch,
+    });
+  });
+
+  return results;
 }
 
 export function computeTripTotals(stops: ApiStop[]): TripTotals {

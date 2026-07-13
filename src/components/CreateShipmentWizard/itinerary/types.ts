@@ -24,6 +24,7 @@ export interface LoadBalance {
   doBar: number;
   balanced: boolean;
   byP: Record<string, { pk: number; do: number; unit?: string }>;
+  byUnit?: Record<string, { pk: number; do: number }>;
 }
 
 export interface TripTotals {
