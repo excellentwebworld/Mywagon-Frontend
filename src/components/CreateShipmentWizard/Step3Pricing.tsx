@@ -239,7 +239,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
         return {
           key: vt.formKey,
           name: locale === 'el' ? vt.nameEl : vt.name,
-          specs: selected.map((id) => findSpecLabel(vehicleTypes, vt, id, locale)),
+          specs: selected.map((id: string) => findSpecLabel(vehicleTypes, vt, id, locale)),
         };
       })
       .filter((g): g is NonNullable<typeof g> => g != null);
@@ -841,7 +841,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                       {group.name}
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {group.specs.map((spec) => (
+                      {group.specs.map((spec: string) => (
                         <span
                           key={`${group.key}-${spec}`}
                           className="inline-flex items-center px-2.5 py-1 text-[11px] font-medium rounded-md"
@@ -1290,7 +1290,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                                 >
                                   <span
                                     className="text-[9px] font-bold px-1 py-0.5 rounded shrink-0"
-                                    style={actionChipStyle(line.action)}
+                                    style={actionChipStyle(line.action ?? 'pickup')}
                                   >
                                     {line.action === 'pickup' ? '↑' : '↓'}
                                   </span>

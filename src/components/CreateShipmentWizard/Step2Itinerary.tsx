@@ -397,7 +397,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                                   >
                                     <span
                                       className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                                      style={actionChipStyle(l.action)}
+                                      style={actionChipStyle(l.action ?? 'pickup')}
                                     >
                                       {l.action === 'pickup' ? '↑' : '↓'}
                                     </span>
