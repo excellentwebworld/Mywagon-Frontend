@@ -394,7 +394,7 @@ export default function useConflicts(stops: any[], options: any = {}) {
     const ors = prodLines.filter((l) => l.orderId).map((l) => l.orderId);
     const dups = ors.filter((v, i, a) => a.indexOf(v) !== i);
     if (dups.length) {
-      add('O2', 'warning', -1, -1, `Duplicate order ref: ${[...new Set(dups)].join(', ')}`, 'Verify intentional');
+      // add('O2', 'warning', -1, -1, `Duplicate order ref: ${[...new Set(dups)].join(', ')}`, 'Verify intentional');
     }
 
     // O3 — Order already shipped
