@@ -1441,6 +1441,7 @@
   "driverNotesPlaceholder": "e.g. Driver must wear safety equipment on arrival...",
   "createLoadsBtn": "Create {{count}} Shipments",
   "createLoadBtn": "Create Shipment",
+  "creatingShipment": "Creating…",
   "privateNetworkDesc": "Send only to your partner carriers.",
   "publicMarketplaceDesc": "Publish to the entire carrier marketplace.",
   "myFleetDesc": "Assign the load to a driver of your own fleet.",

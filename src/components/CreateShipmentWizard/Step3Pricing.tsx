@@ -22,6 +22,7 @@ import {
   Settings,
   Navigation,
   Truck,
+  Loader2,
 } from 'lucide-react';
 
 import { SearchableSelect } from '../ui/SearchableSelect';
@@ -1541,15 +1542,23 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
 
           <button
             type="button"
-            className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold cursor-pointer text-white border-none"
+            className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold cursor-pointer text-white border-none disabled:opacity-70 disabled:cursor-not-allowed"
             style={{
               background: T.ac,
               fontFamily: 'inherit',
             }}
             disabled={isSubmitting || isSaving || publicQuotaBlocked}
+            aria-busy={isSubmitting}
             onClick={() => onSubmit()}
           >
-            {t('createLoadBtn') || 'Create Shipment'}
+            {isSubmitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" aria-hidden />
+                {t('creatingShipment') || 'Creating…'}
+              </>
+            ) : (
+              t('createLoadBtn') || 'Create Shipment'
+            )}
           </button>
         </div>
       </footer>
