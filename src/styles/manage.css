@@ -417,6 +417,39 @@
   margin-left: 0px !important;
   margin-right: 0px !important;
 }
+
+.tbl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 14px;
+  text-align: center;
+}
+
+.tbl-empty-msg {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.tbl-empty-cta {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--accent);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.tbl-empty-cta:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
 table.mgmt-t {
   width: 100%;
   border-collapse: collapse;

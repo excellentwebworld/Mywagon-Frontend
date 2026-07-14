@@ -71,11 +71,14 @@ export const ManageShipments: React.FC = () => {
               expandedId={m.expandedId}
               detailLoadingIds={m.detailLoadingIds}
               resolveShipment={m.mergedShipment}
+              emptyReason={
+                !m.tabSupported ? 'unsupported' : m.filtersActive ? 'filters' : 'default'
+              }
+              onClearFilters={m.handleClearAllFilters}
               onSelectAll={m.handleSelectAll}
               onSelectRow={m.handleSelectRow}
               onToggleExpand={m.handleToggleExpand}
               onCopyId={m.handleCopyId}
-              onAward={m.handleAward}
               onDelete={m.handleDeleteRequest}
               onEdit={m.handleEdit}
               onViewNewTab={m.handleViewNewTab}

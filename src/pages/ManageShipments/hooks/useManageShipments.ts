@@ -27,14 +27,14 @@ const PER_PAGE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
 
 export function useManageShipments() {
-  const { updateShipment, carriers, showToast } = useApp();
+  const { carriers, showToast } = useApp();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [direction, setDirectionState] = useState<LoadsDirection>('outbound');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [activeKpi, setActiveKpiState] = useState<KpiKey | null>('needs_action');
+  const [activeKpi, setActiveKpiState] = useState<KpiKey | null>(null);
   const [activeTab, setActiveTabState] = useState<StatusTabKey>('active');
   const [sortKey, setSortKey] = useState<SortKey>('');
   const [page, setPage] = useState(1);
@@ -58,6 +58,7 @@ export function useManageShipments() {
 
   const setDirection = useCallback((next: LoadsDirection) => {
     setDirectionState(next);
+    setPage(1);
     if (next === 'inbound') {
       setExpandedId(null);
       setSelectedIds(new Set());
@@ -76,6 +77,10 @@ export function useManageShipments() {
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [activeTab, activeKpi, appliedFilters, debouncedSearch, page]);
 
   const filterParams = useMemo(() => filtersToApiParams(appliedFilters), [appliedFilters]);
   const tabSupported = statusTabHasApiSupport(activeTab);
@@ -244,21 +249,6 @@ export function useManageShipments() {
     [showToast, t]
   );
 
-  const handleAward = useCallback(
-    (s: Shipment, carrierName: string, bidPrice: number) => {
-      updateShipment({
-        ...s,
-        status: 'awarded',
-        carrier: carrierName,
-        price: bidPrice,
-        updated: 'Just now',
-        tl_cur: 3,
-      });
-      showToast(t('awardedTo', { name: carrierName }), 'success');
-    },
-    [updateShipment, showToast, t]
-  );
-
   const handleDeleteRequest = useCallback((s: Shipment) => {
     setCancelTarget(s);
   }, []);
@@ -298,11 +288,22 @@ export function useManageShipments() {
 
   const handleBulkAction = useCallback(
     (action: string) => {
-      showToast(`${action}: ${selectedIds.size}`, 'info');
-      if (action === 'invite') setIsInviteOpen(true);
-      else setSelectedIds(new Set());
+      if (action === 'invite') {
+        setIsInviteOpen(true);
+        return;
+      }
+      const toastKey =
+        action === 'cancel'
+          ? 'bulkCancelComingSoon'
+          : action === 'extend'
+            ? 'bulkExtendComingSoon'
+            : action === 'export'
+              ? 'bulkExportComingSoon'
+              : 'responsesComingSoon';
+      showToast(t(toastKey), 'info');
+      setSelectedIds(new Set());
     },
-    [selectedIds, showToast]
+    [showToast, t]
   );
 
   const handleToggleInviteCarrier = useCallback((name: string) => {
@@ -346,6 +347,7 @@ export function useManageShipments() {
     direction,
     setDirection,
     isOutbound,
+    tabSupported,
     shipments,
     loading,
     error,
@@ -369,7 +371,6 @@ export function useManageShipments() {
     handleSelectRow,
     handleToggleExpand,
     handleCopyId,
-    handleAward,
     handleDeleteRequest,
     handleCancelled,
     handleEditBlocked,

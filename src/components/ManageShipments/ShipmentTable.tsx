@@ -21,11 +21,12 @@ interface ShipmentTableProps {
   expandedId: string | null;
   detailLoadingIds?: Set<string>;
   resolveShipment?: (s: Shipment) => Shipment;
+  emptyReason?: 'default' | 'filters' | 'unsupported';
+  onClearFilters?: () => void;
   onSelectAll: (checked: boolean) => void;
   onSelectRow: (id: string, checked: boolean) => void;
   onToggleExpand: (id: string) => void;
   onCopyId: (id: string) => void;
-  onAward: (s: Shipment, carrier: string, price: number) => void;
   onDelete: (s: Shipment) => void;
   onEdit: (s: Shipment) => void;
   onViewNewTab: (s: Shipment) => void;
@@ -41,11 +42,12 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
   expandedId,
   detailLoadingIds,
   resolveShipment,
+  emptyReason = 'default',
+  onClearFilters,
   onSelectAll,
   onSelectRow,
   onToggleExpand,
   onCopyId,
-  onAward: _onAward,
   onDelete,
   onEdit,
   onViewNewTab,
@@ -55,6 +57,13 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
 }) => {
   const navigate = useNavigate();
   const allSelected = shipments.length > 0 && selectedIds.size === shipments.length;
+
+  const emptyMessage =
+    emptyReason === 'unsupported'
+      ? t('statusTabUnsupported')
+      : emptyReason === 'filters'
+        ? t('noShipmentsWithFilters')
+        : t('noShipmentsFound');
 
   return (
     <table className="mgmt-t">
@@ -79,8 +88,15 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
       <tbody>
         {shipments.length === 0 && !loading ? (
           <tr>
-            <td colSpan={TABLE_COL_COUNT} style={{ textAlign: 'center', padding: '40px 14px', color: 'var(--text-tertiary)' }}>
-              {t('noShipmentsFound')}
+            <td colSpan={TABLE_COL_COUNT}>
+              <div className="tbl-empty">
+                <p className="tbl-empty-msg">{emptyMessage}</p>
+                {emptyReason === 'filters' && onClearFilters ? (
+                  <button type="button" className="tbl-empty-cta" onClick={onClearFilters}>
+                    {t('clearAllFilters')}
+                  </button>
+                ) : null}
+              </div>
             </td>
           </tr>
         ) : shipments.length === 0 && loading ? (

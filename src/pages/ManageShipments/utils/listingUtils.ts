@@ -411,19 +411,6 @@ export function statusBadgeClass(status: Shipment['status'], atRisk?: boolean): 
   }
 }
 
-export const TIMELINE_STEPS = [
-  'Created',
-  'Posted',
-  'Bids',
-  'Awarded',
-  'Dispatched',
-  'Picked up',
-  'In transit',
-  'Delivered',
-  'POD',
-  'Invoiced',
-];
-
 /** Build load-specific progress steps from itinerary stops. */
 export function buildStopTimelineSteps(
   shipment: Shipment,
@@ -470,25 +457,4 @@ export function formatStatValue(
   if (value === null || value === undefined || value === '') return '—';
   const text = typeof value === 'number' ? value.toLocaleString() : String(value);
   return suffix ? `${text} ${suffix}` : text;
-}
-
-export function timelineCurrentIndex(status: Shipment['status']): number {
-  switch (status) {
-    case 'pending':
-      return 2;
-    case 'awarded':
-      return 3;
-    case 'upcoming':
-      return 4;
-    case 'past_due':
-      return 5;
-    case 'in_progress':
-      return 6;
-    case 'delivered':
-      return 8;
-    case 'cancelled':
-      return 0;
-    default:
-      return 2;
-  }
 }
