@@ -7,7 +7,7 @@ interface InviteCarrierModalProps {
   query: string;
   selected: Set<string>;
   onQueryChange: (q: string) => void;
-  onToggle: (name: string) => void;
+  onToggle: (id: string) => void;
   onClose: () => void;
   onSend: () => void;
   t: (key: string) => string;
@@ -46,12 +46,12 @@ export const InviteCarrierModal: React.FC<InviteCarrierModalProps> = ({
             onChange={(e) => onQueryChange(e.target.value)}
           />
           {filtered.map((c) => {
-            const isSelected = selected.has(c.name);
+            const isSelected = selected.has(c.id);
             return (
               <div
                 key={c.id}
                 className={`inv-carrier ${isSelected ? 'selected' : ''}`}
-                onClick={() => onToggle(c.name)}
+                onClick={() => onToggle(c.id)}
                 role="button"
                 tabIndex={0}
               >

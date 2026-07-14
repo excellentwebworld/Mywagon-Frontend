@@ -20,6 +20,8 @@ import '../../styles/manage.css';
 
 export const ManageShipments: React.FC = () => {
   const m = useManageShipments();
+  const showInboundEmpty =
+    !m.isOutbound && !m.loading && m.pagination.total === 0 && !m.filtersActive;
 
   return (
     <div className="mgmt-page">
@@ -27,10 +29,12 @@ export const ManageShipments: React.FC = () => {
 
       <LoadsDirectionToggle direction={m.direction} onChange={m.setDirection} t={m.t} />
 
-      {m.isOutbound ? (
-        <>
-          {m.error && <div style={{ marginBottom: 12, color: 'var(--danger)' }}>{m.error}</div>}
+      {m.error && <div style={{ marginBottom: 12, color: 'var(--danger)' }}>{m.error}</div>}
 
+      {showInboundEmpty ? (
+        <InboundLoadsEmptyState t={m.t} />
+      ) : (
+        <>
           {m.loading && m.pagination.total === 0 ? (
             <KpiStripSkeleton />
           ) : (
@@ -71,9 +75,7 @@ export const ManageShipments: React.FC = () => {
               expandedId={m.expandedId}
               detailLoadingIds={m.detailLoadingIds}
               resolveShipment={m.mergedShipment}
-              emptyReason={
-                !m.tabSupported ? 'unsupported' : m.filtersActive ? 'filters' : 'default'
-              }
+              emptyReason={m.filtersActive ? 'filters' : 'default'}
               onClearFilters={m.handleClearAllFilters}
               onSelectAll={m.handleSelectAll}
               onSelectRow={m.handleSelectRow}
@@ -82,7 +84,13 @@ export const ManageShipments: React.FC = () => {
               onDelete={m.handleDeleteRequest}
               onEdit={m.handleEdit}
               onViewNewTab={m.handleViewNewTab}
-              onStubAction={m.handleStubAction}
+              onMessage={m.handleMessage}
+              onAcceptOffer={m.handleAcceptOffer}
+              onRejectOffer={m.handleRejectOffer}
+              onCounterOffer={m.handleCounterOffer}
+              onRemindInvitee={m.handleRemindInvitee}
+              onRemoveInvitee={m.handleRemoveInvitee}
+              onInviteMore={m.handleInviteMore}
               onEditBlocked={m.handleEditBlocked}
               t={m.t}
             />
@@ -142,8 +150,6 @@ export const ManageShipments: React.FC = () => {
             t={m.t}
           />
         </>
-      ) : (
-        <InboundLoadsEmptyState t={m.t} />
       )}
     </div>
   );

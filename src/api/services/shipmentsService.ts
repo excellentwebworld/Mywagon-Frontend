@@ -1,4 +1,4 @@
-import { apiGet, apiPost, AUTH_TOKEN_KEY, ApiError } from '../client';
+import { apiGet, apiPost, apiDelete, AUTH_TOKEN_KEY, ApiError } from '../client';
 import { mapApiDetailToShipment, mapApiListItemToShipment } from '../mappers/shipmentsMapper';
 import type {
   ApiCancelReasonsPayload,
@@ -55,6 +55,12 @@ function toQuery(params: ListShipmentsParams): Record<string, string | number> {
   assign('bid_state', params.bid_state);
   assign('customer', params.customer);
   assign('trip_mode', params.trip_mode);
+  assign('direction', params.direction);
+  if (params.ids?.length) {
+    params.ids.forEach((id, i) => {
+      query[`ids[${i}]`] = id;
+    });
+  }
 
   return query;
 }
@@ -149,5 +155,45 @@ export const shipmentsService = {
     body: { cancel_reason_id: number; cancel_notes?: string }
   ): Promise<void> {
     await apiPost(`/shipments/${id}/cancel`, body);
+  },
+
+  async acceptOffer(shipmentId: string | number, offerId: string): Promise<void> {
+    await apiPost(`/shipments/${shipmentId}/offers/${offerId}/accept`);
+  },
+
+  async rejectOffer(shipmentId: string | number, offerId: string): Promise<void> {
+    await apiPost(`/shipments/${shipmentId}/offers/${offerId}/reject`);
+  },
+
+  async counterOffer(
+    shipmentId: string | number,
+    offerId: string,
+    body: { amount: number; notes?: string }
+  ): Promise<void> {
+    await apiPost(`/shipments/${shipmentId}/offers/${offerId}/counter`, body);
+  },
+
+  async invitePartners(shipmentId: string | number, partnerIds: number[]): Promise<void> {
+    await apiPost(`/shipments/${shipmentId}/invites`, { partner_ids: partnerIds });
+  },
+
+  async remindInvite(shipmentId: string | number, partnerId: number): Promise<void> {
+    await apiPost(`/shipments/${shipmentId}/invites/${partnerId}/remind`);
+  },
+
+  async removeInvite(shipmentId: string | number, partnerId: number): Promise<void> {
+    await apiDelete(`/shipments/${shipmentId}/invites/${partnerId}`);
+  },
+
+  async bulkCancel(body: {
+    ids: number[];
+    cancel_reason_id: number;
+    cancel_notes?: string;
+  }): Promise<void> {
+    await apiPost('/shipments/bulk-cancel', body);
+  },
+
+  async bulkExtendBid(ids: number[], hours = 24): Promise<void> {
+    await apiPost('/shipments/bulk-extend-bid', { ids, hours });
   },
 };

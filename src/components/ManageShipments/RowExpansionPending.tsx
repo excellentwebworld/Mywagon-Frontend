@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Shipment } from '../../context/AppContext';
 import {
   buildStopTimelineSteps,
@@ -14,7 +14,13 @@ interface RowExpansionPendingProps {
   onEdit: () => void;
   onViewNewTab: () => void;
   onCancel: () => void;
-  onStubAction: (key: string) => void;
+  onMessage: () => void;
+  onAcceptOffer: (offerId: string) => void;
+  onRejectOffer: (offerId: string) => void;
+  onCounterOffer: (offerId: string, amount: number) => void;
+  onRemindInvitee: (inviteeId: number) => void;
+  onRemoveInvitee: (inviteeId: number) => void;
+  onInviteMore: () => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
 
@@ -82,21 +88,11 @@ function OrdersBlock({ shipment, t }: { shipment: Shipment; t: RowExpansionPendi
               <span className="cust-name">{c.name}</span>
             </div>
             <div className="exp-cust-body open">
-              {(c.orders || []).length > 0 ? (
-                (c.orders as string[]).map((o) => (
-                  <div key={o} className="ord">
-                    <span className="ord-id">{o}</span>
-                  </div>
-                ))
-              ) : shipment.orderIds?.length ? (
-                shipment.orderIds.map((id) => (
-                  <div key={id} className="ord">
-                    <span className="ord-id">{id}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="sub">—</div>
-              )}
+              {(c.orders.length ? c.orders : ['—']).map((o, oi) => (
+                <div key={oi} className="ord">
+                  <span className="ord-id">{typeof o === 'string' ? o : String(o)}</span>
+                </div>
+              ))}
             </div>
           </div>
         ))}
@@ -107,87 +103,174 @@ function OrdersBlock({ shipment, t }: { shipment: Shipment; t: RowExpansionPendi
   return <div className="sub">{t('noOrdersMapped')}</div>;
 }
 
+function OfferRow({
+  offer,
+  onAccept,
+  onReject,
+  onCounter,
+  t,
+}: {
+  offer: NonNullable<Shipment['offers']>[number];
+  onAccept: () => void;
+  onReject: () => void;
+  onCounter: (amount: number) => void;
+  t: RowExpansionPendingProps['t'];
+}) {
+  const [counterOpen, setCounterOpen] = useState(false);
+  const prefill = offer.price != null ? Math.round(offer.price * 0.95 * 100) / 100 : 0;
+  const [amount, setAmount] = useState(String(prefill || ''));
+
+  return (
+    <div className="bid-row">
+      <div className="bid-top">
+        <span className="carrier-av">{offer.initials || offer.name.substring(0, 2).toUpperCase()}</span>
+        <span className="bid-name">{offer.name}</span>
+        {offer.rating != null && <span className="bid-rating">★ {offer.rating.toFixed(1)}</span>}
+        <span className="bid-role">{offer.role === 'freelancer' ? t('freelancer') : t('company')}</span>
+        {offer.price != null && <span className="bid-price">{formatEuro(offer.price)}</span>}
+      </div>
+      {offer.respondedAt && (
+        <div className="bid-meta">
+          {t('respondedAgo', { time: new Date(offer.respondedAt).toLocaleString() })}
+        </div>
+      )}
+      {offer.counter && (
+        <div className="co-line">
+          <span className="co-strike">{formatEuro(offer.counter.theirs)}</span>
+          <span>→</span>
+          <span>{formatEuro(offer.counter.yours)}</span>
+          <span className={`co-pct ${offer.counter.dir === 'up' ? 'up' : 'down'}`}>
+            {offer.counter.pct > 0 ? '+' : ''}
+            {offer.counter.pct}%
+          </span>
+          <button type="button" className="bid-accept" onClick={onAccept}>
+            {t('accept')}
+          </button>
+          <button type="button" className="bid-counter" onClick={() => setCounterOpen(true)}>
+            {t('counter')}
+          </button>
+          <button type="button" className="bid-reject bid-reject-danger" onClick={onReject}>
+            ✕
+          </button>
+        </div>
+      )}
+      <div className="bid-acts">
+        <button type="button" className="bid-accept" onClick={onAccept}>
+          {t('accept')}
+        </button>
+        <button type="button" className="bid-reject bid-reject-danger" onClick={onReject}>
+          {t('reject')}
+        </button>
+        <button type="button" className="bid-counter" onClick={() => setCounterOpen((v) => !v)}>
+          {t('counter')}
+        </button>
+      </div>
+      {counterOpen && (
+        <div className="counter-form open">
+          <span>€</span>
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+          <button
+            type="button"
+            className="bid-accept"
+            onClick={() => {
+              const n = Number(amount);
+              if (!Number.isFinite(n) || n < 0) return;
+              onCounter(n);
+              setCounterOpen(false);
+            }}
+          >
+            {t('send')}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
   shipment,
   detailLoading = false,
   onEdit,
   onViewNewTab,
   onCancel,
-  onStubAction,
+  onMessage,
+  onAcceptOffer,
+  onRejectOffer,
+  onCounterOffer,
+  onRemindInvitee,
+  onRemoveInvitee,
+  onInviteMore,
   t,
 }) => {
+  const isPublic = shipment.channel === 'public' || shipment.vis === 'public';
   const steps = buildStopTimelineSteps(shipment, t);
-  const cur = stopTimelineCurrentIndex(shipment.status, steps.length);
-  const channel = shipment.channel || (shipment.vis === 'public' ? 'public' : 'private');
-  const isPublic = channel === 'public';
-  const received = shipment.bidsReceived ?? shipment.bids ?? 0;
+  const current = stopTimelineCurrentIndex(shipment.status, steps.length);
+  const offers = shipment.offers ?? [];
+  const invitees = shipment.invitees ?? [];
 
   return (
     <div className="exp-inner">
       <div>
         <div className="exp-section">
           <h4>{t('progress')}</h4>
-          {detailLoading ? (
+          {detailLoading && !shipment.stops?.length ? (
             <div className="sub">{t('loading')}</div>
           ) : (
-            <div className="tl">
-              {steps.map((lbl, idx) => (
-                <React.Fragment key={`${lbl}-${idx}`}>
-                  <div className="tl-step">
-                    <div className={`tl-dot ${idx < cur ? 'done' : idx === cur ? 'cur' : ''}`} />
-                    <div className="tl-label">{lbl}</div>
-                  </div>
-                  {idx < steps.length - 1 && <div className={`tl-line ${idx < cur ? 'done' : ''}`} />}
-                </React.Fragment>
+            <div className="tl tl-big">
+              {steps.map((label, idx) => (
+                <div key={`${label}-${idx}`} className={`tl-s ${idx <= current ? 'done' : ''}`}>
+                  <div className="tl-dot" />
+                  <div className="tl-lbl">{label}</div>
+                </div>
               ))}
             </div>
           )}
         </div>
 
-        <div className="exp-section" style={{ marginTop: 16 }}>
+        <div className="exp-section">
           <h4>{t('orders')}</h4>
           <OrdersBlock shipment={shipment} t={t} />
+          <ItineraryPreview shipment={shipment} t={t} />
         </div>
 
-        <ItineraryPreview
-          stops={shipment.stops}
-          origin={shipment.origin}
-          dest={shipment.dest}
-          pickDt={shipment.pickDt}
-          delDt={shipment.delDt}
-          t={t}
-        />
-
-        <div className="exp-stats-grid" style={{ marginTop: 16 }}>
+        <div className="exp-stats">
           <div className="exp-stat">
+            <div className="exp-stat-v">{shipment.stopCount ?? 2}</div>
             <div className="exp-stat-l">{t('stops')}</div>
-            <div className="exp-stat-v">{formatStatValue(shipment.stopCount ?? shipment.stops?.length)}</div>
           </div>
           <div className="exp-stat">
-            <div className="exp-stat-l">{t('weight')}</div>
             <div className="exp-stat-v">
               {formatStatValue(shipment.totalWeight, shipment.weightUnit)}
             </div>
+            <div className="exp-stat-l">{t('weight')}</div>
           </div>
           <div className="exp-stat">
-            <div className="exp-stat-l">{t('quantity')}</div>
             <div className="exp-stat-v">{formatStatValue(shipment.totalQty, shipment.qtyUnit)}</div>
+            <div className="exp-stat-l">{t('quantity')}</div>
           </div>
           <div className="exp-stat">
+            <div className="exp-stat-v">
+              {shipment.journeyDistanceKm != null ? `${shipment.journeyDistanceKm} km` : '—'}
+            </div>
             <div className="exp-stat-l">{t('tripLength')}</div>
-            <div className="exp-stat-v">
-              {formatStatValue(shipment.journeyDistanceKm, shipment.journeyDistanceKm != null ? 'km' : null)}
-            </div>
           </div>
           <div className="exp-stat">
+            <div className="exp-stat-v">
+              {shipment.cargoValue != null ? formatEuro(shipment.cargoValue) : '—'}
+            </div>
             <div className="exp-stat-l">{t('cargoValue')}</div>
-            <div className="exp-stat-v">{formatEuro(shipment.cargoValue) ?? '—'}</div>
           </div>
           <div className="exp-stat">
-            <div className="exp-stat-l">{t('truckTypes')}</div>
             <div className="exp-stat-v">
-              {shipment.truckTypes?.length ? shipment.truckTypes.join(', ') : '—'}
+              {(shipment.truckTypes || []).length ? shipment.truckTypes!.join(', ') : '—'}
             </div>
+            <div className="exp-stat-l">{t('truckTypes')}</div>
           </div>
         </div>
       </div>
@@ -195,37 +278,29 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
       <div>
         <div className="exp-section">
           <h4>
-            {t('responses')} ({received})
+            {t('responses')} ({offers.length})
           </h4>
-          {received > 0 ? (
-            <div className="bid-row">
-              <div className="bid-top">
-                <span className="bid-name">{t('offersPendingDetail')}</span>
-                {shipment.best_bid != null && <span className="bid-price">€{shipment.best_bid}</span>}
-              </div>
-              <div className="bid-meta">{t('bidsReceivedCount', { count: received })}</div>
-              <div className="bid-acts">
-                <button type="button" className="bid-accept" onClick={() => onStubAction('responsesComingSoon')}>
-                  {t('accept')}
-                </button>
-                <button
-                  type="button"
-                  className="bid-reject bid-reject-danger"
-                  onClick={() => onStubAction('responsesComingSoon')}
-                >
-                  {t('reject')}
-                </button>
-                <button type="button" className="bid-counter" onClick={() => onStubAction('responsesComingSoon')}>
-                  {t('counter')}
-                </button>
-                <button type="button" className="bid-chat" onClick={() => onStubAction('responsesComingSoon')}>
-                  {t('chat')}
-                </button>
-              </div>
-            </div>
+          {offers.length > 0 ? (
+            offers.map((offer) => (
+              <OfferRow
+                key={offer.id}
+                offer={offer}
+                onAccept={() => onAcceptOffer(offer.id)}
+                onReject={() => onRejectOffer(offer.id)}
+                onCounter={(amount) => onCounterOffer(offer.id, amount)}
+                t={t}
+              />
+            ))
           ) : (
             <div className="sub" style={{ padding: '8px 0' }}>
               {t('noBidsYet')}
+            </div>
+          )}
+          {offers.length > 0 && (
+            <div className="bid-acts" style={{ marginTop: 8 }}>
+              <button type="button" className="bid-chat" onClick={onMessage}>
+                {t('chat')}
+              </button>
             </div>
           )}
         </div>
@@ -236,18 +311,34 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
           <div className="exp-section">
             <h4>{t('invitedTransporters')}</h4>
             <div className="inv-section open">
-              {(shipment.invited ?? 0) > 0 ? (
-                <div className="inv-row">
-                  <span className="inv-name">{t('invitedCount', { count: shipment.invited })}</span>
-                  <span className="inv-acts">
-                    <button type="button" className="inv-btn" onClick={() => onStubAction('remindComingSoon')}>
-                      {t('remind')}
-                    </button>
-                  </span>
-                </div>
+              {invitees.length > 0 ? (
+                invitees.map((inv) => (
+                  <div key={inv.id} className="inv-row">
+                    <span className="carrier-av">{inv.initials || inv.name.substring(0, 2).toUpperCase()}</span>
+                    <span className="inv-name">{inv.name}</span>
+                    {inv.invitedAt && (
+                      <span className="sub">
+                        {t('invitedAgo', {
+                          time: new Date(inv.invitedAt).toLocaleString(),
+                        })}
+                      </span>
+                    )}
+                    <span className="inv-acts">
+                      <button type="button" className="inv-btn" onClick={() => onRemindInvitee(inv.id)}>
+                        {t('remind')}
+                      </button>
+                      <button type="button" className="inv-btn" onClick={() => onRemoveInvitee(inv.id)}>
+                        {t('remove')}
+                      </button>
+                    </span>
+                  </div>
+                ))
               ) : (
                 <div className="sub">{t('noInvitedTransporters')}</div>
               )}
+              <button type="button" className="f-pill" style={{ marginTop: 8 }} onClick={onInviteMore}>
+                {t('inviteMoreCarriers')}
+              </button>
             </div>
           </div>
         )}
@@ -260,6 +351,9 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
             </button>
             <button type="button" className="f-pill" onClick={onViewNewTab}>
               {t('rowActionView')}
+            </button>
+            <button type="button" className="f-pill" onClick={onMessage}>
+              {t('message') || t('chat')}
             </button>
             <button type="button" className="f-pill" onClick={onCancel}>
               {t('rowActionDelete')}

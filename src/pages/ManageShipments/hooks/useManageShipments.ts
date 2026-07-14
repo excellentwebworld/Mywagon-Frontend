@@ -89,8 +89,9 @@ export function useManageShipments() {
     return {
       ...filterParams,
       ...(debouncedSearch ? { search: debouncedSearch } : {}),
+      direction: isOutbound ? 'outbound' : 'inbound',
     };
-  }, [filterParams, debouncedSearch]);
+  }, [filterParams, debouncedSearch, isOutbound]);
 
   const listParams = useMemo((): ListShipmentsParams => {
     const status = statusTabToApiStatus(activeTab);
@@ -107,9 +108,9 @@ export function useManageShipments() {
   const { shipments, meta, summary, loading, error } = useShipmentsList(
     listParams,
     summaryParams,
-    isOutbound && tabSupported,
+    tabSupported,
     refreshKey,
-    isOutbound
+    true
   );
 
   const kpiCounts = summary.kpis;
@@ -279,6 +280,19 @@ export function useManageShipments() {
     window.open(`/shipments/${s.id}`, '_blank', 'noopener,noreferrer');
   }, []);
 
+  const [inviteTargetId, setInviteTargetId] = useState<string | null>(null);
+
+  const refreshAfterMutation = useCallback((shipmentId?: string) => {
+    if (shipmentId) {
+      setDetailCache((cache) => {
+        const next = { ...cache };
+        delete next[shipmentId];
+        return next;
+      });
+    }
+    setRefreshKey((k) => k + 1);
+  }, []);
+
   const handleStubAction = useCallback(
     (key: string) => {
       showToast(t(key), 'info');
@@ -286,44 +300,157 @@ export function useManageShipments() {
     [showToast, t]
   );
 
-  const handleBulkAction = useCallback(
-    (action: string) => {
-      if (action === 'invite') {
-        setIsInviteOpen(true);
-        return;
+  const handleMessage = useCallback((s: Shipment) => {
+    window.open(`/shipments/${s.id}`, '_blank', 'noopener,noreferrer');
+  }, []);
+
+  const handleAcceptOffer = useCallback(
+    async (s: Shipment, offerId: string) => {
+      try {
+        await shipmentsService.acceptOffer(s.id, offerId);
+        showToast(t('offerAccepted') || 'Offer accepted', 'success');
+        refreshAfterMutation(s.id);
+      } catch (err: unknown) {
+        showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
       }
-      const toastKey =
-        action === 'cancel'
-          ? 'bulkCancelComingSoon'
-          : action === 'extend'
-            ? 'bulkExtendComingSoon'
-            : action === 'export'
-              ? 'bulkExportComingSoon'
-              : 'responsesComingSoon';
-      showToast(t(toastKey), 'info');
-      setSelectedIds(new Set());
+    },
+    [refreshAfterMutation, showToast, t]
+  );
+
+  const handleRejectOffer = useCallback(
+    async (s: Shipment, offerId: string) => {
+      try {
+        await shipmentsService.rejectOffer(s.id, offerId);
+        showToast(t('offerRejected') || 'Offer rejected', 'success');
+        refreshAfterMutation(s.id);
+      } catch (err: unknown) {
+        showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
+      }
+    },
+    [refreshAfterMutation, showToast, t]
+  );
+
+  const handleCounterOffer = useCallback(
+    async (s: Shipment, offerId: string, amount: number) => {
+      try {
+        await shipmentsService.counterOffer(s.id, offerId, { amount });
+        showToast(t('counterSent') || 'Counter-offer sent', 'success');
+        refreshAfterMutation(s.id);
+      } catch (err: unknown) {
+        showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
+      }
+    },
+    [refreshAfterMutation, showToast, t]
+  );
+
+  const handleRemindInvitee = useCallback(
+    async (s: Shipment, inviteeId: number) => {
+      try {
+        await shipmentsService.remindInvite(s.id, inviteeId);
+        showToast(t('remindSent') || 'Reminder sent', 'success');
+      } catch (err: unknown) {
+        showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
+      }
     },
     [showToast, t]
   );
 
-  const handleToggleInviteCarrier = useCallback((name: string) => {
-    setInvitedCarriers((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
+  const handleRemoveInvitee = useCallback(
+    async (s: Shipment, inviteeId: number) => {
+      try {
+        await shipmentsService.removeInvite(s.id, inviteeId);
+        showToast(t('inviteRemoved') || 'Invite removed', 'success');
+        refreshAfterMutation(s.id);
+      } catch (err: unknown) {
+        showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
+      }
+    },
+    [refreshAfterMutation, showToast, t]
+  );
+
+  const handleInviteMore = useCallback((s: Shipment) => {
+    setInviteTargetId(s.id);
+    setIsInviteOpen(true);
   }, []);
 
-  const handleSendInvites = useCallback(() => {
+  const handleBulkAction = useCallback(
+    async (action: string) => {
+      const ids = Array.from(selectedIds).map((id) => Number(id)).filter((n) => Number.isFinite(n));
+      if (ids.length === 0) return;
+
+      if (action === 'invite') {
+        const first = pagination.items.find((s) => selectedIds.has(s.id) && s.channel !== 'public');
+        if (!first) {
+          showToast(t('invitePrivateOnly') || 'Select a private load to invite transporters', 'warning');
+          return;
+        }
+        setInviteTargetId(first.id);
+        setIsInviteOpen(true);
+        return;
+      }
+
+      try {
+        if (action === 'extend') {
+          await shipmentsService.bulkExtendBid(ids, 24);
+          showToast(t('bidExtended') || 'Bid time extended by 24 hours', 'success');
+        } else if (action === 'export') {
+          await shipmentsService.exportShipments({ ...summaryParams, ids });
+        } else if (action === 'cancel') {
+          const firstId = ids[0];
+          const reasons = await shipmentsService.cancelReasons(firstId);
+          const reason = reasons.reasons[0];
+          if (!reason) {
+            showToast(t('cancelNoReasons') || 'No cancel reasons available', 'warning');
+            return;
+          }
+          await shipmentsService.bulkCancel({
+            ids,
+            cancel_reason_id: reason.id,
+          });
+          showToast(t('bulkCancelled') || 'Selected shipments cancelled', 'success');
+        }
+        setSelectedIds(new Set());
+        setRefreshKey((k) => k + 1);
+      } catch (err: unknown) {
+        showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
+      }
+    },
+    [pagination.items, selectedIds, showToast, summaryParams, t]
+  );
+
+  const handleSendInvites = useCallback(async () => {
     if (invitedCarriers.size === 0) {
       showToast(t('selectAtLeastOneCarrier'), 'warning');
       return;
     }
-    showToast(t('invitesSent', { count: invitedCarriers.size }), 'success');
-    setIsInviteOpen(false);
-    setInvitedCarriers(new Set());
-  }, [invitedCarriers, showToast, t]);
+    const targetId = inviteTargetId || Array.from(selectedIds)[0];
+    if (!targetId) {
+      showToast(t('somethingWentWrong') || 'No shipment selected', 'warning');
+      return;
+    }
+    const partnerIds = Array.from(invitedCarriers)
+      .map((id) => Number(id))
+      .filter((n) => Number.isFinite(n));
+    try {
+      await shipmentsService.invitePartners(targetId, partnerIds);
+      showToast(t('invitesSent', { count: partnerIds.length }), 'success');
+      setIsInviteOpen(false);
+      setInvitedCarriers(new Set());
+      setInviteTargetId(null);
+      refreshAfterMutation(String(targetId));
+    } catch (err: unknown) {
+      showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
+    }
+  }, [inviteTargetId, invitedCarriers, refreshAfterMutation, selectedIds, showToast, t]);
+
+  const handleToggleInviteCarrier = useCallback((id: string) => {
+    setInvitedCarriers((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   const handleExport = useCallback(async () => {
     setExporting(true);
@@ -376,6 +503,13 @@ export function useManageShipments() {
     handleEditBlocked,
     handleEdit,
     handleViewNewTab,
+    handleMessage,
+    handleAcceptOffer,
+    handleRejectOffer,
+    handleCounterOffer,
+    handleRemindInvitee,
+    handleRemoveInvitee,
+    handleInviteMore,
     handleStubAction,
     cancelTarget,
     setCancelTarget,

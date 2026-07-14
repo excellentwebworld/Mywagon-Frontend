@@ -30,7 +30,13 @@ interface ShipmentTableProps {
   onDelete: (s: Shipment) => void;
   onEdit: (s: Shipment) => void;
   onViewNewTab: (s: Shipment) => void;
-  onStubAction: (key: string) => void;
+  onMessage: (s: Shipment) => void;
+  onAcceptOffer: (s: Shipment, offerId: string) => void;
+  onRejectOffer: (s: Shipment, offerId: string) => void;
+  onCounterOffer: (s: Shipment, offerId: string, amount: number) => void;
+  onRemindInvitee: (s: Shipment, inviteeId: number) => void;
+  onRemoveInvitee: (s: Shipment, inviteeId: number) => void;
+  onInviteMore: (s: Shipment) => void;
   onEditBlocked?: () => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
@@ -51,7 +57,13 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
   onDelete,
   onEdit,
   onViewNewTab,
-  onStubAction,
+  onMessage,
+  onAcceptOffer,
+  onRejectOffer,
+  onCounterOffer,
+  onRemindInvitee,
+  onRemoveInvitee,
+  onInviteMore,
   onEditBlocked,
   t,
 }) => {
@@ -279,7 +291,13 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                           onEdit={() => onEdit(s)}
                           onViewNewTab={() => onViewNewTab(s)}
                           onCancel={() => onDelete(s)}
-                          onStubAction={onStubAction}
+                          onMessage={() => onMessage(s)}
+                          onAcceptOffer={(offerId) => onAcceptOffer(s, offerId)}
+                          onRejectOffer={(offerId) => onRejectOffer(s, offerId)}
+                          onCounterOffer={(offerId, amount) => onCounterOffer(s, offerId, amount)}
+                          onRemindInvitee={(inviteeId) => onRemindInvitee(s, inviteeId)}
+                          onRemoveInvitee={(inviteeId) => onRemoveInvitee(s, inviteeId)}
+                          onInviteMore={() => onInviteMore(s)}
                           t={t}
                         />
                       ) : (

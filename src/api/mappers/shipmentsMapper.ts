@@ -20,6 +20,8 @@ function mapApiStatus(status: string): Shipment['status'] {
       return 'cancelled';
     case 'awarded':
       return 'awarded';
+    case 'draft':
+      return 'pending';
     default:
       return 'pending';
   }
@@ -189,7 +191,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
 
   return {
     ...base,
-    invited: detail.partners_count ?? base.invited,
+    invited: detail.invitees?.length ?? detail.partners_count ?? base.invited,
     customer: customers,
     orderIds: detail.order_ids?.length ? detail.order_ids : base.orderIds,
     ordersCount: detail.order_ids?.length || base.ordersCount,
@@ -204,5 +206,23 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     totalQty: detail.total_qty ?? null,
     weightUnit: detail.weight_unit ?? null,
     qtyUnit: detail.qty_unit ?? null,
+    offers: (detail.offers || []).map((o) => ({
+      id: o.id,
+      type: o.type,
+      name: o.name,
+      initials: o.initials,
+      rating: o.rating,
+      role: o.role,
+      price: o.price,
+      respondedAt: o.responded_at,
+      counter: o.counter ?? null,
+    })),
+    invitees: (detail.invitees || []).map((i) => ({
+      id: i.id,
+      name: i.name,
+      initials: i.initials,
+      invitedAt: i.invited_at,
+      status: i.status,
+    })),
   };
 }

@@ -203,6 +203,24 @@ export interface Shipment {
   negotiable?: boolean;
   navigation?: boolean;
   counter?: { yours: number; theirs: number; pct: string; dir: 'up' | 'down' };
+  offers?: Array<{
+    id: string;
+    type: 'bid' | 'interest';
+    name: string;
+    initials?: string;
+    rating?: number | null;
+    role?: string;
+    price?: number | null;
+    respondedAt?: string | null;
+    counter?: { yours: number; theirs: number; pct: number; dir: 'up' | 'down' } | null;
+  }>;
+  invitees?: Array<{
+    id: number;
+    name: string;
+    initials?: string;
+    invitedAt?: string | null;
+    status?: string;
+  }>;
 }
 
 export interface Carrier {

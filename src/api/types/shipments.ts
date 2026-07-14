@@ -96,6 +96,31 @@ export interface ApiShipmentStop {
   sort_order?: number;
 }
 
+export interface ApiShipmentOffer {
+  id: string;
+  type: 'bid' | 'interest';
+  name: string;
+  initials?: string;
+  rating?: number | null;
+  role?: 'company' | 'freelancer' | string;
+  price?: number | null;
+  responded_at?: string | null;
+  counter?: {
+    yours: number;
+    theirs: number;
+    pct: number;
+    dir: 'up' | 'down';
+  } | null;
+}
+
+export interface ApiShipmentInvitee {
+  id: number;
+  name: string;
+  initials?: string;
+  invited_at?: string | null;
+  status?: string;
+}
+
 export interface ApiShipmentDetail extends ApiShipmentListItem {
   note?: string | null;
   journey_distance?: string | number | null;
@@ -109,6 +134,9 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
   total_qty?: number | null;
   weight_unit?: string | null;
   qty_unit?: string | null;
+  offers?: ApiShipmentOffer[];
+  invitees?: ApiShipmentInvitee[];
+  bid_window_ends_at?: string | null;
 }
 
 export interface ListShipmentsParams {
@@ -141,6 +169,8 @@ export interface ListShipmentsParams {
   bid_state?: 'has_interest' | 'no_interest';
   customer?: string;
   trip_mode?: 'direct' | 'multiple';
+  direction?: 'outbound' | 'inbound';
+  ids?: number[];
 }
 
 export interface ApiShipmentsSummary {

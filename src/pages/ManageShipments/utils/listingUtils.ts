@@ -95,7 +95,7 @@ export const DEFAULT_FILTERS: ShipmentsFilterState = {
 };
 
 export function statusTabHasApiSupport(tab: StatusTabKey): boolean {
-  return tab !== 'drafts' && tab !== 'partially_paid';
+  return true;
 }
 
 export function statusTabToApiStatus(tab: StatusTabKey): string | string[] | undefined {
@@ -116,6 +116,10 @@ export function statusTabToApiStatus(tab: StatusTabKey): string | string[] | und
       return ['fullfilled', 'partially_fullfilled'];
     case 'cancelled':
       return 'canceled';
+    case 'drafts':
+      return 'draft';
+    case 'partially_paid':
+      return 'partially_paid';
     default:
       return undefined;
   }
@@ -140,8 +144,9 @@ export function countForStatusTab(statuses: Record<string, number>, tab: StatusT
     case 'cancelled':
       return statuses.canceled ?? 0;
     case 'drafts':
+      return statuses.drafts ?? 0;
     case 'partially_paid':
-      return 0;
+      return statuses.partially_paid ?? 0;
     default:
       return 0;
   }
