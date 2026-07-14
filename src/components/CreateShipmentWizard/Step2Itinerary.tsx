@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -15,6 +15,7 @@ import { useItineraryStats } from './itinerary/useItineraryStats';
 import { useRouteLegs } from './itinerary/useRouteLegs';
 import { RouteMap } from './itinerary/RouteMap';
 import { VehicleSelector } from './VehicleSelector';
+import { computeFitCargoTotals } from './vehicleCapacity';
 import {
   formatDurationMin,
   formatWeightDisplay,
@@ -69,6 +70,8 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
 
   const { enrichedStops, totals, runningWeights } = useItineraryStats(stops, locations);
   const route = useRouteLegs(enrichedStops);
+  const fitCargo = useMemo(() => computeFitCargoTotals(stops), [stops]);
+
 
   const missingLocations = enrichedStops.some((s) => !s.locationId);
   const vehicleSelected = hasVehicleSelection(values.vehicleSpecs);
@@ -464,7 +467,11 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
 
           {values.itineraryConfirmed && (
             <div data-validation-anchor="step2-vehicle-selector">
-              <VehicleSelector />
+              <VehicleSelector
+                totalPallets={fitCargo.totalPallets}
+                totalWeightKg={fitCargo.totalWeightKg}
+              />
+
             </div>
           )}
         </div>

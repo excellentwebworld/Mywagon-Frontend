@@ -1152,6 +1152,10 @@
   "productCreated": "Προϊόν {{name}} δημιουργήθηκε",
   "cargoSpecs": "Προδιαγραφές φορτίου",
   "confirmSelection": "Επιβεβαίωση Επιλογής",
+  "vehicleFitFits": "ΧΩΡΑΕΙ",
+  "vehicleFitTooSmall": "ΠΟΛΥ ΜΙΚΡΟ",
+  "vehicleFitCapacity": "≤ {{plt}} παλέτες · {{tons}} T",
+
   "stopNumber": "Στάση",
   "location": "Τοποθεσία",
   "appointment": "Ραντεβού",

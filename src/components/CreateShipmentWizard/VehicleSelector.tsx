@@ -12,6 +12,7 @@ import {
   formatVehicleSelectionSummary,
   type WizardVehicleType,
 } from './vehicleTypes';
+import { assessVehicleTypeFit } from './vehicleCapacity';
 import { scrollToStep2Validation } from './validation';
 
 function VehicleIcon() {
@@ -32,7 +33,15 @@ function categoryCheckState(
   return 'partial';
 }
 
-export const VehicleSelector: React.FC = () => {
+export interface VehicleSelectorProps {
+  totalPallets: number;
+  totalWeightKg: number;
+}
+
+export const VehicleSelector: React.FC<VehicleSelectorProps> = ({
+  totalPallets,
+  totalWeightKg,
+}) => {
   const { t, lang } = useTranslation();
   const { values, setFieldValue } = useFormikContext<WizardFormValues>();
   const vehicleSpecs = values.vehicleSpecs || {};
@@ -206,6 +215,9 @@ export const VehicleSelector: React.FC = () => {
                   const selectedFlag = isTypeSelected(vt.formKey);
                   const nestOpen = openNests[vt.formKey] ?? false;
                   const displayName = locale === 'el' ? vt.nameEl : vt.name;
+                  const fit = assessVehicleTypeFit(vt, totalPallets, totalWeightKg);
+                  const fitColor = fit.status === 'fits' ? '#059669' : '#DC2626';
+                  const maxTons = Math.round(fit.maxWeightKg / 1000);
 
                   return (
                     <div key={vt.formKey} className="vc-wrap">
@@ -235,6 +247,30 @@ export const VehicleSelector: React.FC = () => {
                         </div>
                         <div className="vn">{displayName}</div>
                         <div className="vs">{vt.subtitle}</div>
+                        {fit.show && (
+                          <div className="vc-fit">
+                            <div className="vc-fit-cap">
+                              {t('vehicleFitCapacity', {
+                                plt: fit.maxPallets,
+                                tons: maxTons,
+                              })}
+                            </div>
+                            <div className="vc-fit-label" style={{ color: fitColor }}>
+                              {fit.status === 'fits'
+                                ? t('vehicleFitFits')
+                                : t('vehicleFitTooSmall')}
+                            </div>
+                            <div className="vc-fit-bar">
+                              <div
+                                className="vc-fit-bar__fill"
+                                style={{
+                                  width: `${fit.barPct}%`,
+                                  background: fitColor,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className={`vnest ${nestOpen ? 'open' : ''}`}>
