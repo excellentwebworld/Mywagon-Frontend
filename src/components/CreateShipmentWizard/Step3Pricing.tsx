@@ -189,12 +189,14 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   } = useAiSuggestedPrice({
     draftId,
     onRecommendedPrice: (price) => {
-      if (!values.targetPrice) {
-        setFieldValue('targetPrice', String(price));
-      }
+      setFieldValue('targetPrice', String(price));
     },
   });
 
+  const applyAiSuggestedPrice = (price: number) => {
+    if (!(price > 0)) return;
+    setFieldValue('targetPrice', String(price));
+  };
   const handleAiInsightsClick = () => {
     const nextExpanded = !aiExpanded;
     setAiExpanded(nextExpanded);
@@ -985,43 +987,135 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
               )}
 
               {aiExpanded && (
-                <div className="bg-violet-50 text-indigo-950 p-3 rounded-lg text-[11px] space-y-1.5 border border-violet-100">
+                <div className="rounded-lg border border-violet-100 bg-violet-50/60 p-3">
                   {aiPriceLoading ? (
-                    <div>{t('aiSuggestedPriceLoading') || 'Generating AI suggested prices...'}</div>
+                    <div className="text-[11px] text-indigo-900">
+                      {t('aiSuggestedPriceLoading') || 'Generating AI suggested prices...'}
+                    </div>
                   ) : aiPriceDenied ? (
-                    <div>
+                    <div className="text-[11px] text-indigo-900">
                       {aiPriceDenied.message}
                       {aiPriceDenied.upgradeUrl && (
                         <>
                           {' '}
-                          <a href={aiPriceDenied.upgradeUrl} className="font-bold underline" target="_blank" rel="noreferrer">
+                          <a
+                            href={aiPriceDenied.upgradeUrl}
+                            className="font-bold underline"
+                            target="_blank"
+                            rel="noreferrer"
+                          >
                             {t('publicQuotaUpgrade') || 'Upgrade plan'}
                           </a>
                         </>
                       )}
                     </div>
                   ) : aiPriceError ? (
-                    <div>{t('aiSuggestedPriceFailed') || 'Unable to generate AI suggested prices.'}</div>
+                    <div className="text-[11px] text-indigo-900">
+                      {t('aiSuggestedPriceFailed') || 'Unable to generate AI suggested prices.'}
+                    </div>
                   ) : aiPriceData ? (
                     <>
-                      <h4 className="font-bold text-slate-900 text-xs">
-                        {t('laneAnalysis') || 'Lane Analysis'}: {pickupCity || '—'} → {deliveryCity || '—'}
-                      </h4>
-                      <div>
-                        {t('aiSuggestedPriceMarket') || 'Market'}: {aiPriceData.formatted?.market_price || `€${aiPriceData.market_price}`}
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span
+                          className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0"
+                          style={{
+                            background: 'linear-gradient(135deg,#7B2FF7,#9B51E0)',
+                          }}
+                        >
+                          <Sparkles size={11} color="#fff" aria-hidden />
+                        </span>
+                        <span className="text-xs font-semibold" style={{ color: '#2D1B69' }}>
+                          {t('aiSuggestedPrices') || 'AI Suggested Prices'}
+                        </span>
                       </div>
-                      <div>
-                        {t('aiSuggestedPriceAttractive') || 'Attractive'}: {aiPriceData.formatted?.attractive_price || `€${aiPriceData.attractive_price}`}
-                      </div>
-                      <div>
-                        {t('aiSuggestedPriceConservative') || 'Conservative'}: {aiPriceData.formatted?.conservative_price || `€${aiPriceData.conservative_price}`}
-                      </div>
-                      <div className="p-1.5 rounded bg-violet-100 text-indigo-700 font-medium">
-                        {t('aiSuggestedPriceRecommended') || 'Recommended'}: {aiPriceData.formatted?.recommended_price || `€${aiPriceData.recommended_price}`}
+                      <div className="grid grid-cols-3 gap-2 pt-3">
+                        {(
+                          [
+                            {
+                              key: 'market_price' as const,
+                              label: t('aiSuggestedPriceMarketShort') || 'Market',
+                              price: aiPriceData.market_price,
+                              formatted:
+                                aiPriceData.formatted?.market_price ||
+                                `€${aiPriceData.market_price}`,
+                              iconColor: '#9B51E0',
+                              bestMatch: true,
+                            },
+                            {
+                              key: 'attractive_price' as const,
+                              label: t('aiSuggestedPriceAttractiveShort') || 'Attractive',
+                              price: aiPriceData.attractive_price,
+                              formatted:
+                                aiPriceData.formatted?.attractive_price ||
+                                `€${aiPriceData.attractive_price}`,
+                              iconColor: '#10b981',
+                              bestMatch: false,
+                            },
+                            {
+                              key: 'conservative_price' as const,
+                              label: t('aiSuggestedPriceConservativeShort') || 'Conservative',
+                              price: aiPriceData.conservative_price,
+                              formatted:
+                                aiPriceData.formatted?.conservative_price ||
+                                `€${aiPriceData.conservative_price}`,
+                              iconColor: '#6b7280',
+                              bestMatch: false,
+                            },
+                          ] as const
+                        ).map((opt) => {
+                          const selected =
+                            Math.abs(targetPriceVal - (opt.price || 0)) < 0.005 &&
+                            (opt.price || 0) > 0;
+                          return (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              className="relative flex flex-col items-start text-left rounded-[10px] px-2 pt-2.5 pb-2 cursor-pointer border-2 bg-white"
+                              style={{
+                                borderColor: selected ? '#9B51E0' : '#e5e7eb',
+                                background: selected
+                                  ? 'rgba(155,81,224,0.08)'
+                                  : '#fff',
+                                fontFamily: 'inherit',
+                              }}
+                              onClick={() => applyAiSuggestedPrice(opt.price)}
+                            >
+                              {opt.bestMatch && (
+                                <span
+                                  className="absolute -top-2.5 left-1.5 text-[9px] font-semibold text-white px-1.5 rounded-full leading-[1.7] whitespace-nowrap"
+                                  style={{ background: '#9B51E0' }}
+                                >
+                                  ★ {t('aiSuggestedPriceBestMatch') || 'Best Match'}
+                                </span>
+                              )}
+                              <div
+                                className={`flex items-center gap-1 mb-1 ${opt.bestMatch ? 'mt-1' : ''}`}
+                              >
+                                <Star
+                                  size={10}
+                                  fill={opt.iconColor}
+                                  color={opt.iconColor}
+                                  aria-hidden
+                                />
+                                <span className="text-[10px] font-medium text-slate-500">
+                                  {opt.label}
+                                </span>
+                              </div>
+                              <div
+                                className="text-xs font-bold tabular-nums"
+                                style={{ color: '#2D1B69' }}
+                              >
+                                {opt.formatted}
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </>
                   ) : (
-                    <div>{t('aiSuggestedPriceFailed') || 'Unable to generate AI suggested prices.'}</div>
+                    <div className="text-[11px] text-indigo-900">
+                      {t('aiSuggestedPriceFailed') || 'Unable to generate AI suggested prices.'}
+                    </div>
                   )}
                 </div>
               )}

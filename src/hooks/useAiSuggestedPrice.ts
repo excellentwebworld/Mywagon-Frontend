@@ -28,7 +28,9 @@ export function useAiSuggestedPrice({ draftId, onRecommendedPrice }: UseAiSugges
     try {
       const result = await createShipmentService.fetchAiSuggestedPrice(draftId);
       setData(result);
-      if (result.recommended_price > 0) {
+      if (result.market_price > 0) {
+        onRecommendedPrice?.(result.market_price);
+      } else if (result.recommended_price > 0) {
         onRecommendedPrice?.(result.recommended_price);
       }
     } catch (err: unknown) {
