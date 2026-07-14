@@ -1,15 +1,7 @@
-/** Display helpers: device locale first, European en-GB + 24h fallback. */
+/** Display helpers: European dd/mm/yyyy + 24h time (matches DatePicker placeholders). */
 
 export function getPreferredDateLocale(): string {
-  try {
-    return (
-      (typeof navigator !== 'undefined' && navigator.language) ||
-      Intl.DateTimeFormat().resolvedOptions().locale ||
-      'en-GB'
-    );
-  } catch {
-    return 'en-GB';
-  }
+  return 'en-GB';
 }
 
 function parseYmd(ymd: string): Date | null {
@@ -26,15 +18,14 @@ function parseYmd(ymd: string): Date | null {
   return date;
 }
 
-/** Format YYYY-MM-DD for display using device locale (fallback en-GB → DD/MM/YYYY). */
+/** Format YYYY-MM-DD for display as dd/mm/yyyy. */
 export function formatDisplayDate(ymd: string): string {
   const date = parseYmd(ymd);
   if (!date) return ymd || '';
-  return date.toLocaleDateString(getPreferredDateLocale(), {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = String(date.getFullYear());
+  return `${dd}/${mm}/${yyyy}`;
 }
 
 /**
@@ -50,7 +41,7 @@ export function formatDisplayTime(hm: string): string {
   }
   const parsed = new Date(`1970-01-01T${trimmed}`);
   if (Number.isNaN(parsed.getTime())) return trimmed;
-  return parsed.toLocaleTimeString(getPreferredDateLocale(), {
+  return parsed.toLocaleTimeString('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,

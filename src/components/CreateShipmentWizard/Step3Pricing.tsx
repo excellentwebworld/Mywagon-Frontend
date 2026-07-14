@@ -456,7 +456,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
     <div className="wizard-step3 pb-24 lg:pb-0">
       {/* ═══ TWO COLUMN GRID MATCHING page3-vehicle-pricing.html ═══ */}
       <div className="wizard-step3-columns grid grid-cols-1 lg:grid-cols-3 lg:items-stretch gap-6 items-start mt-0">
-        {/* LEFT COLUMN: Broadcast, Tracking, Vehicle, Pricing, Driver Notes */}
+        {/* LEFT COLUMN: Broadcast, Tracking, Pricing, Driver Notes */}
         <div className="wizard-step3-left lg:col-span-2 space-y-4">
           
           {/* BROADCAST TYPE */}
@@ -831,40 +831,6 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
             </div>
           </div>
 
-          {/* VEHICLE / TRUCK INFO */}
-          {selectedVehicleGroups.length > 0 && (
-            <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
-              <div className="ch flex items-center gap-2 px-5 py-4 border-b" style={{ borderColor: T.bd }}>
-                <Truck size={18} style={{ color: T.t2 }} />
-                <span className="font-semibold text-sm">{t('vehicleTypes') || t('vehicleType') || 'Vehicle types'}</span>
-              </div>
-              <div className="cb p-5 space-y-4">
-                {selectedVehicleGroups.map((group) => (
-                  <div key={group.key}>
-                    <div className="text-xs font-semibold mb-2" style={{ color: T.t1 }}>
-                      {group.name}
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {group.specs.map((spec: string) => (
-                        <span
-                          key={`${group.key}-${spec}`}
-                          className="inline-flex items-center px-2.5 py-1 text-[11px] font-medium rounded-md"
-                          style={{
-                            background: T.sa,
-                            color: T.t1,
-                            border: `1px solid ${T.bd}`,
-                          }}
-                        >
-                          {spec}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* PRICING */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
             <div className="ch flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor: T.bd }}>
@@ -1224,6 +1190,41 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                 t={t}
               />
             </div>
+
+            {selectedVehicleGroups.length > 0 && (
+              <div className="px-4 py-3 border-b" style={{ borderColor: T.bd }}>
+                <div className="flex items-center gap-2 mb-2.5">
+                  <Truck size={16} style={{ color: T.t2 }} />
+                  <span className="font-semibold text-sm">
+                    {t('vehicleTypes') || t('vehicleType') || 'Vehicle types'}
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {selectedVehicleGroups.map((group) => (
+                    <div key={group.key}>
+                      <div className="text-[11px] font-semibold mb-1.5" style={{ color: T.t1 }}>
+                        {group.name}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {group.specs.map((spec: string) => (
+                          <span
+                            key={`${group.key}-${spec}`}
+                            className="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-md"
+                            style={{
+                              background: T.sa,
+                              color: T.t1,
+                              border: `1px solid ${T.bd}`,
+                            }}
+                          >
+                            {spec}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="ch flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: T.bd }}>
               <span className="font-semibold text-sm">{t('summary') || 'Summary'}</span>
