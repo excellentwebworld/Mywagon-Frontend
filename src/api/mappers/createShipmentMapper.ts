@@ -3,15 +3,74 @@ import { createNewCargoLine, createNewStop } from '../../components/CreateShipme
 import { computeItineraryFingerprint } from '../../components/CreateShipmentWizard/itineraryFingerprint';
 import { normalizeQtyUnit, normalizeWeightUnit } from '../../constants/cargoUnits';
 
-/** Coerce draft vehicleSpecs keys/ids to strings so lookup by formKey always matches. */
-export function normalizeVehicleSpecs(raw: unknown): Record<string, string[]> {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+/** Coerce draft vehicleSpecs so lookup by formKey always matches.
+ * PHP/Laravel often re-indexes numeric object keys into a list of arrays —
+ * rematch those using the vehicle-type catalog when available.
+ */
+export function normalizeVehicleSpecs(
+  raw: unknown,
+  vehicleTypes?: Array<{ formKey: string; categories: Array<{ items: Array<{ id: string }> }> }>
+): Record<string, string[]> {
+  if (!raw || typeof raw !== 'object') return {};
+
+  const rematchFromGroups = (groups: unknown[]): Record<string, string[]> => {
+    if (!vehicleTypes?.length) {
+      const orphaned: Record<string, string[]> = {};
+      groups.forEach((ids, i) => {
+        if (!Array.isArray(ids) || ids.length === 0) return;
+        orphaned[`__orphan_${i}`] = ids.map(String);
+      });
+      return orphaned;
+    }
+
+    const out: Record<string, string[]> = {};
+    groups.forEach((ids) => {
+      if (!Array.isArray(ids) || ids.length === 0) return;
+      const idStrs = ids.map(String);
+      let best: { formKey: string; matched: string[]; score: number } | null = null;
+      vehicleTypes.forEach((vt) => {
+        const typeItems = new Set(
+          vt.categories.flatMap((cat) => cat.items.map((item) => String(item.id)))
+        );
+        const matched = idStrs.filter((id) => typeItems.has(id));
+        if (matched.length === 0) return;
+        if (!best || matched.length > best.score) {
+          best = { formKey: vt.formKey, matched, score: matched.length };
+        }
+      });
+      if (!best) return;
+      const prev = out[best.formKey] || [];
+      out[best.formKey] = [...new Set([...prev, ...best.matched])];
+    });
+    return out;
+  };
+
+  if (Array.isArray(raw)) {
+    return rematchFromGroups(raw);
+  }
+
   const out: Record<string, string[]> = {};
   Object.entries(raw as Record<string, unknown>).forEach(([key, value]) => {
     if (!Array.isArray(value)) return;
     out[String(key)] = value.map((id) => String(id));
   });
+
+  const keys = Object.keys(out);
+  const isSequential =
+    keys.length > 0 && keys.every((k, i) => k === String(i) || k.startsWith('__orphan_'));
+  if (isSequential) {
+    return rematchFromGroups(keys.map((k) => out[k]));
+  }
+
   return out;
+}
+
+/** True when specs still need rematching against the vehicle-type catalog. */
+export function vehicleSpecsNeedRematch(specs: Record<string, string[]> | undefined): boolean {
+  if (!specs) return false;
+  const keys = Object.keys(specs);
+  if (keys.length === 0) return false;
+  return keys.every((k, i) => k === String(i) || k.startsWith('__orphan_'));
 }
 
 export function isUninitializedTrackingEmails(emails: string[] | undefined): boolean {
@@ -259,12 +318,13 @@ export function formValuesToStepThreePayload(
   };
 
   // Re-assert vehicles when present so Step 3 Save Draft keeps Step 2 selection.
-  // Omit when empty so a wiped client form cannot clear persisted vehicleSpecs.
+  // Always attach vehicle_specs when selection exists (backend merges; omits empty wipe).
   const vehicleSpecs = normalizeVehicleSpecs(values.vehicleSpecs);
   const hasVehicles = Object.values(vehicleSpecs).some((ids) => ids.length > 0);
   if (hasVehicles) {
     payload.vehicle_specs = vehicleSpecs;
-    payload.vehicle_selection_confirmed = Boolean(values.vehicleSelectionConfirmed);
+    payload.vehicle_selection_confirmed =
+      values.vehicleSelectionConfirmed !== false;
   }
 
   return payload;

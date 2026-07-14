@@ -59,7 +59,7 @@ export function buildDefaultWizardValues(loadId = 'SHP-NEW') {
     targetPrice: '',
     negotiable: true,
     trackingEmails: {} as Record<string, string[]>,
-    driverNotes: 'Driver must wear safety equipment on arrival.',
+    driverNotes: '',
     gpsRequired: true,
     orderValue: '',
   };

@@ -1,9 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useFormikContext } from 'formik';
 import { Check, Truck } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useVehicleTypes } from '../../hooks/useVehicleTypes';
-import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
+import {
+  normalizeVehicleSpecs,
+  vehicleSpecsNeedRematch,
+  type WizardFormValues,
+} from '../../api/mappers/createShipmentMapper';
 import {
   formatVehicleSelectionSummary,
   type WizardVehicleType,
@@ -43,6 +47,18 @@ export const VehicleSelector: React.FC = () => {
     () => formatVehicleSelectionSummary(vehicleSpecs, locale, vehicleTypes),
     [vehicleSpecs, locale, vehicleTypes]
   );
+
+  // PHP may return vehicleSpecs as a list; rematch category ids → truck type keys.
+  useEffect(() => {
+    if (!vehicleTypes.length || !vehicleSpecsNeedRematch(vehicleSpecs)) return;
+    const rematched = normalizeVehicleSpecs(
+      Object.keys(vehicleSpecs).map((k) => vehicleSpecs[k]),
+      vehicleTypes
+    );
+    if (Object.keys(rematched).length === 0) return;
+    if (vehicleSpecsNeedRematch(rematched)) return;
+    setFieldValue('vehicleSpecs', rematched);
+  }, [vehicleTypes, vehicleSpecs, setFieldValue]);
 
   const briefText = useMemo(() => {
     if (summary.types.length === 0) return '';

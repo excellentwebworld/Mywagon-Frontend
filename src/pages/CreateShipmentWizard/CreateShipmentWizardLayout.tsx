@@ -74,6 +74,7 @@ export const CreateShipmentWizardLayout: React.FC = () => {
     publishShipment,
     stepNavigationError,
     validationRequest,
+    formikEpoch,
   } = useCreateShipmentWizard(showToast, t);
 
   useWizardMasterData();
@@ -211,9 +212,8 @@ export const CreateShipmentWizardLayout: React.FC = () => {
       {header}
 
       <Formik
-        // Remount only after a draft snapshot exists (or stay on new-draft). Never remount
-        // solely because shipmentId appeared — that would wipe in-progress form state.
-        key={loadedValues ? `draft-${shipmentId ?? 'loaded'}` : 'new-draft'}
+        // Epoch bumps only on intentional draft switch / fresh create — never on Save Draft.
+        key={`create-shipment-formik-${formikEpoch}`}
         initialValues={initialValues}
         enableReinitialize={false}
         validationSchema={validationSchema}

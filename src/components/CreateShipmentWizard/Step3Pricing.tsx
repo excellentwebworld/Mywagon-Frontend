@@ -41,6 +41,8 @@ import {
   extractTrackingOrderIds,
   isUninitializedTrackingEmails,
   normalizeTrackingEmails,
+  normalizeVehicleSpecs,
+  vehicleSpecsNeedRematch,
   type WizardFormValues,
 } from '../../api/mappers/createShipmentMapper';
 import { useRouteLegs } from './itinerary/useRouteLegs';
@@ -225,6 +227,18 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   const { vehicleTypes, loading: vehicleTypesLoading } = useVehicleTypes();
 
   const locale = lang === 'el' ? 'el' : 'en';
+
+  // Rematch PHP list-shaped vehicleSpecs → truck-type formKeys once catalog loads.
+  useEffect(() => {
+    const specs = values.vehicleSpecs || {};
+    if (!vehicleTypes.length || !vehicleSpecsNeedRematch(specs)) return;
+    const rematched = normalizeVehicleSpecs(
+      Object.keys(specs).map((k) => specs[k]),
+      vehicleTypes
+    );
+    if (Object.keys(rematched).length === 0 || vehicleSpecsNeedRematch(rematched)) return;
+    setFieldValue('vehicleSpecs', rematched);
+  }, [vehicleTypes, values.vehicleSpecs, setFieldValue]);
 
   // Dynamic selected vehicles from Step 2
   const selectedVehicleTypesStr = useMemo(() => {

@@ -18,6 +18,40 @@ function buildWizardStepPath(step: number, draftId: number | null): string {
   return `${base}?id=${draftId}`;
 }
 
+/** Prefer API snapshot, but never drop Step 1/2 fields the live form already had. */
+function mergeDraftSnapshot(
+  next: WizardFormValues,
+  preserve?: WizardFormValues | null
+): WizardFormValues {
+  if (!preserve) return next;
+
+  const nextHasVehicles = hasVehicleSelection(next.vehicleSpecs);
+  const preserveHasVehicles = hasVehicleSelection(preserve.vehicleSpecs);
+  const nextHasStops = Array.isArray(next.stops) && next.stops.length >= 2;
+  const preserveHasStops = Array.isArray(preserve.stops) && preserve.stops.length >= 2;
+
+  return {
+    ...next,
+    stops: nextHasStops ? next.stops : preserveHasStops ? preserve.stops : next.stops,
+    custRef: next.custRef || preserve.custRef,
+    coOwners: next.coOwners?.length ? next.coOwners : preserve.coOwners,
+    itineraryConfirmed: next.itineraryConfirmed || preserve.itineraryConfirmed,
+    itineraryConfirmSnapshot:
+      next.itineraryConfirmSnapshot || preserve.itineraryConfirmSnapshot,
+    routeSummary: next.routeSummary ?? preserve.routeSummary,
+    vehicleSpecs: nextHasVehicles
+      ? next.vehicleSpecs
+      : preserveHasVehicles
+        ? preserve.vehicleSpecs
+        : next.vehicleSpecs,
+    vehicleSelectionConfirmed: nextHasVehicles
+      ? next.vehicleSelectionConfirmed
+      : preserveHasVehicles
+        ? preserve.vehicleSelectionConfirmed
+        : next.vehicleSelectionConfirmed,
+  };
+}
+
 export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success' | 'error' | 'info') => void, t: (key: string) => string) {
   const navigate = useNavigate();
   const stepMatch = useMatch('/shipments/create/step/:stepNumber');
@@ -36,6 +70,8 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   const [loadedValues, setLoadedValues] = useState<WizardFormValues | null>(null);
   const [stepNavigationError, setStepNavigationError] = useState<string | null>(null);
   const [validationRequest, setValidationRequest] = useState(0);
+  /** Bump only when resetting to a blank create — remounts Formik without wiping mid-save. */
+  const [formikEpoch, setFormikEpoch] = useState(0);
 
   const defaultValues = useMemo(() => buildDefaultWizardValues(), []);
   const loadedDraftIdRef = useRef<string | null>(null);
@@ -45,19 +81,28 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   showToastRef.current = showToast;
   tRef.current = t;
 
-  /** Keep Formik remount snapshot in sync after saves (esp. vehicleSpecs from Step 2/3). */
+  /**
+   * Soft-update draft metadata after saves.
+   * Always merge so Step 3 Save Draft cannot wipe Step 1/2 (vehicleSpecs, stops).
+   */
   const applyDraftSnapshot = useCallback(
-    (draft: { id: number; auto_id: string; customer_reference?: string | null; wizard_state?: unknown }) => {
+    (
+      draft: { id: number; auto_id: string; customer_reference?: string | null; wizard_state?: unknown },
+      preservedValues?: WizardFormValues | null
+    ) => {
       setShipmentId(draft.id);
       setLoadId(draft.auto_id);
-      setLoadedValues(draftToFormValues(draft, defaultValues));
       loadedDraftIdRef.current = String(draft.id);
+      setLoadedValues((prev) =>
+        mergeDraftSnapshot(draftToFormValues(draft, defaultValues), preservedValues ?? prev)
+      );
     },
     [defaultValues]
   );
 
   const syncUrl = useCallback(
     (nextStep: number, nextId: number | null) => {
+      if (!nextId) return;
       navigate(buildWizardStepPath(nextStep, nextId), { replace: true });
     },
     [navigate]
@@ -69,28 +114,36 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setStepNavigationError('validationCompleteStep1First');
         setValidationRequest((count) => count + 1);
         if (step !== 1) {
-          syncUrl(1, shipmentId);
+          navigate(buildWizardStepPath(1, null), { replace: true });
         }
         return false;
       }
       setStepNavigationError(null);
-      syncUrl(nextStep, shipmentId);
+      navigate(buildWizardStepPath(nextStep, shipmentId), { replace: true });
       return true;
     },
-    [shipmentId, step, syncUrl]
+    [navigate, shipmentId, step]
   );
 
   useEffect(() => {
     const urlId = searchParams.get('id');
-    setShipmentId(urlId ? parseInt(urlId, 10) || null : null);
+    // Keep an in-progress shipmentId if URL briefly loses ?id= (avoids Formik remount wipe).
+    if (!urlId) return;
+    const parsed = parseInt(urlId, 10) || null;
+    if (parsed) setShipmentId(parsed);
   }, [searchParams]);
 
   useEffect(() => {
     if (!draftUrlId) {
+      const leavingDraft = loadedDraftIdRef.current != null;
       loadedDraftIdRef.current = null;
       setDraftLoaded(true);
       setLoadedValues(null);
       setIsLoading(false);
+      if (leavingDraft) {
+        setShipmentId(null);
+        setFormikEpoch((n) => n + 1);
+      }
       return;
     }
 
@@ -144,9 +197,9 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     setShipmentId(draft.id);
     setLoadId(draft.auto_id);
     loadedDraftIdRef.current = String(draft.id);
-    syncUrl(step, draft.id);
+    navigate(buildWizardStepPath(step, draft.id), { replace: true });
     return draft.id;
-  }, [shipmentId, step, syncUrl]);
+  }, [navigate, shipmentId, step]);
 
   const saveStep1 = useCallback(
     async (values: WizardFormValues, mode: 'partial' | 'complete') => {
@@ -155,7 +208,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         const id = await ensureDraftId();
         const payload = formValuesToStepOnePayload(values, mode);
         const draft = await createShipmentService.saveStepOne(id, payload);
-        applyDraftSnapshot(draft);
+        applyDraftSnapshot(draft, values);
         if (mode === 'complete') {
           syncUrl(2, draft.id);
           setStepNavigationError(null);
@@ -201,18 +254,22 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       setIsSaving(true);
       try {
         const id = await ensureDraftId();
+        const valuesWithRoute = {
+          ...values,
+          routeSummary: routeSummary ?? values.routeSummary,
+        };
         const payload = formValuesToStepTwoPayload(
           {
-            itineraryConfirmed: values.itineraryConfirmed,
-            itineraryConfirmSnapshot: values.itineraryConfirmSnapshot,
-            routeSummary: routeSummary ?? values.routeSummary,
-            vehicleSpecs: values.vehicleSpecs,
-            vehicleSelectionConfirmed: values.vehicleSelectionConfirmed,
+            itineraryConfirmed: valuesWithRoute.itineraryConfirmed,
+            itineraryConfirmSnapshot: valuesWithRoute.itineraryConfirmSnapshot,
+            routeSummary: valuesWithRoute.routeSummary,
+            vehicleSpecs: valuesWithRoute.vehicleSpecs,
+            vehicleSelectionConfirmed: valuesWithRoute.vehicleSelectionConfirmed,
           },
           mode
         );
         const draft = await createShipmentService.saveStepTwo(id, payload);
-        applyDraftSnapshot(draft);
+        applyDraftSnapshot(draft, valuesWithRoute);
         if (mode === 'complete') {
           syncUrl(3, draft.id);
           setStepNavigationError(null);
@@ -263,7 +320,8 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         const id = await ensureDraftId();
         const payload = formValuesToStepThreePayload(values, mode);
         const draft = await createShipmentService.saveStepThree(id, payload);
-        applyDraftSnapshot(draft);
+        // Preserve Step 1/2 vehicle + stops from the live form (never wipe on Step 3 save).
+        applyDraftSnapshot(draft, values);
         syncUrl(3, draft.id);
         showToast(
           mode === 'complete'
@@ -339,5 +397,6 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     setLoadId,
     stepNavigationError,
     validationRequest,
+    formikEpoch,
   };
 }
