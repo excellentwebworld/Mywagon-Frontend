@@ -486,7 +486,7 @@ export function useErpOrdersCreateLoad() {
                   qty: remaining,
                   unit: p.unit,
                   weight: p.weight ? (parseFloat(p.weight as string) / parseFloat(p.qty as any) * remaining).toFixed(1) : '',
-                  wtUnit: p.wtUnit || 'Kg'
+                  wtUnit: p.wtUnit || 'Kgs'
                 });
               }
             }

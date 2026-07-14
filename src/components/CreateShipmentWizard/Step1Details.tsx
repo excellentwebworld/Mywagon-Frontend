@@ -77,15 +77,24 @@ import {
   WEIGHT_UNIT_OPTIONS,
   normalizeQtyUnit,
   normalizeWeightUnit,
+  formatWeightDisplay,
   formatWeightKgTotal,
+  convertWeightValue,
 } from "../../constants/cargoUnits";
-import { computeLoadBalance, getPickupAllocatedQty, formatQtyWithUnit } from "./itinerary/cargoUtils";
+import {
+  computeLoadBalance,
+  getPickupAllocatedQty,
+  getPickupAllocatedWeight,
+  formatQtyWithUnit,
+  proportionOrderWeight,
+} from "./itinerary/cargoUtils";
 
 const clearOrderDependentCargoFields = () => {
   const blank = createNewCargoLine();
   return {
     orderId: blank.orderId,
     orderRef: blank.orderRef,
+    orderLineId: blank.orderLineId,
     customerId: blank.customerId,
     customerName: blank.customerName,
     productId: blank.productId,
@@ -512,6 +521,90 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     [setFieldValue, setLF, stops],
   );
 
+  /** Keep order+product lines on every stop on the same weight unit; convert magnitudes. */
+  const setLineWtUnit = useCallback(
+    (sid: string, lid: string, wtUnit: string) => {
+      const nextUnit = normalizeWeightUnit(wtUnit);
+      const source = stops
+        .find((s: any) => s.id === sid)
+        ?.lines?.find((l: any) => l.id === lid);
+      const orderId = source?.orderId ? String(source.orderId) : "";
+      const productId = source?.productId ? String(source.productId) : "";
+
+      const applyWtUnit = (l: any) => {
+        const fromUnit = normalizeWeightUnit(l.wtUnit);
+        if (fromUnit === nextUnit) return { ...l, wtUnit: nextUnit };
+        const hasWeight =
+          l.weight != null && String(l.weight).trim() !== "";
+        return {
+          ...l,
+          wtUnit: nextUnit,
+          weight: hasWeight
+            ? String(convertWeightValue(l.weight, fromUnit, nextUnit))
+            : l.weight,
+        };
+      };
+
+      if (!orderId || !productId) {
+        uStop(sid, (s: any) => ({
+          ...s,
+          lines: (s.lines || []).map((l: any) =>
+            String(l.id) === String(lid) ? applyWtUnit(l) : l,
+          ),
+        }));
+        return;
+      }
+
+      const updated = stops.map((s: any) => ({
+        ...s,
+        lines: (s.lines || []).map((l: any) => {
+          if (String(l.id) === String(lid)) return applyWtUnit(l);
+          if (
+            String(l.orderId || "") === orderId &&
+            String(l.productId || "") === productId
+          ) {
+            return applyWtUnit(l);
+          }
+          return l;
+        }),
+      }));
+      setFieldValue("stops", updated);
+    },
+    [setFieldValue, stops, uStop],
+  );
+
+  /** Recompute proportional weight from the order line when qty changes. */
+  const setLineQty = useCallback(
+    (sid: string, lid: string, qty: string) => {
+      const source = stops
+        .find((s: any) => s.id === sid)
+        ?.lines?.find((l: any) => l.id === lid);
+      if (!source?.orderId || !source?.productId) {
+        setLF(sid, lid, "qty", qty);
+        return;
+      }
+      const order = orderDetailsById[source.orderId];
+      const orderLine = findOrderLineForProduct(order, source.productId);
+      const orderQty =
+        orderLine?.quantity != null ? Number(orderLine.quantity) : 0;
+      const orderWeight =
+        orderLine?.weight != null ? Number(orderLine.weight) : null;
+      if (orderWeight == null || !(orderQty > 0)) {
+        setLF(sid, lid, "qty", qty);
+        return;
+      }
+      setLF(sid, lid, {
+        qty,
+        weight: proportionOrderWeight(
+          orderWeight,
+          orderQty,
+          parseFloat(qty) || 0,
+        ),
+      });
+    },
+    [orderDetailsById, setLF, stops],
+  );
+
   const quickFill = useCallback(
     async (sid: string, orderId: string) => {
       const mo = orderDetailsById[orderId] || (await fetchOrderDetail(orderId));
@@ -735,17 +828,15 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         const detail = await fetchOrderDetail(oid, { force: true });
         if (detail) {
           setOrderDetailsById((prev) => ({ ...prev, [oid]: detail }));
+          const blank = clearOrderDependentCargoFields();
           setLF(sid, lid, {
+            ...blank,
             orderId: oid,
             orderRef: detail.orderReference,
             customerName: detail.customerName || "",
             customerId: detail.companyEntityId
               ? String(detail.companyEntityId)
               : "",
-            productId: "",
-            productName: "",
-            qty: "",
-            weight: "",
           });
           return;
         }
@@ -854,6 +945,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         const orderQty = orderLine.quantity != null ? Number(orderLine.quantity) : 0;
         const orderUnit =
           normalizeQtyUnit(orderLine.unit || line?.unit) || "EUR Pallets";
+        const orderWtUnit = normalizeWeightUnit(
+          orderLine.weightUnit || line?.wtUnit,
+        );
         const allocated = line?.orderId
           ? getPickupAllocatedQty(stops, String(line.orderId), skuId, {
               excludeLineId: lid,
@@ -863,27 +957,45 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         const remaining = Math.max(0, orderQty - allocated);
         const orderWeight =
           orderLine.weight != null ? Number(orderLine.weight) : null;
-        let weight = "";
-        if (orderWeight != null && orderQty > 0) {
-          weight = String(
-            Math.round((orderWeight * (remaining / orderQty)) * 1000) / 1000,
-          );
-        } else if (orderWeight != null && remaining === orderQty) {
-          weight = String(orderWeight);
-        }
+        const weight =
+          proportionOrderWeight(orderWeight, orderQty, remaining) ||
+          (orderWeight != null && remaining === orderQty
+            ? String(orderWeight)
+            : "");
 
-        setLF(sid, lid, {
+        const patch = {
           productId: skuId,
           productName: orderLine.productName || "",
           orderLineId: orderLine.id != null ? String(orderLine.id) : "",
           qty: orderLine.quantity != null ? String(remaining) : "",
           unit: orderUnit,
           weight,
-          wtUnit: normalizeWeightUnit(orderLine.weightUnit || line?.wtUnit),
-        });
+          wtUnit: orderWtUnit,
+        };
+
+        const orderId = line?.orderId ? String(line.orderId) : "";
+        if (orderId) {
+          const updated = stops.map((s: any) => ({
+            ...s,
+            lines: (s.lines || []).map((l: any) => {
+              if (String(l.id) === String(lid)) return { ...l, ...patch };
+              if (
+                String(l.orderId || "") === orderId &&
+                String(l.productId || "") === String(skuId)
+              ) {
+                return { ...l, unit: orderUnit, wtUnit: orderWtUnit };
+              }
+              return l;
+            }),
+          }));
+          setFieldValue("stops", updated);
+          return;
+        }
+
+        setLF(sid, lid, patch);
       }
     },
-    [fetchOrderDetail, orderDetailsById, setLF, stops],
+    [fetchOrderDetail, orderDetailsById, setFieldValue, setLF, stops],
   );
 
   const handleCreateSku = useCallback(
@@ -1556,6 +1668,14 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         onSetField={(lid, f, v) => {
                           if (f === "unit") {
                             setLineUnit(stop.id, lid, v);
+                            return;
+                          }
+                          if (f === "wtUnit") {
+                            setLineWtUnit(stop.id, lid, v);
+                            return;
+                          }
+                          if (f === "qty") {
+                            setLineQty(stop.id, lid, v);
                             return;
                           }
                           setLF(stop.id, lid, f, v);
@@ -2347,6 +2467,51 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       }
                       onKeyDown={(e) => handleKeyDown(e, isLast)}
                     />
+                    {(() => {
+                      if (ln.action !== "pickup" || !ln.orderId || !ln.productId)
+                        return null;
+                      const order = orderDetailsById[ln.orderId];
+                      const orderLine = findOrderLineForProduct(
+                        order,
+                        ln.productId,
+                      );
+                      if (!orderLine || orderLine.weight == null) return null;
+                      const orderWeight = Number(orderLine.weight) || 0;
+                      if (orderWeight <= 0) return null;
+                      const displayWtUnit = normalizeWeightUnit(
+                        ln.wtUnit || orderLine.weightUnit,
+                      );
+                      const orderWeightDisplay = convertWeightValue(
+                        orderWeight,
+                        orderLine.weightUnit,
+                        displayWtUnit,
+                      );
+                      const allocated = getPickupAllocatedWeight(
+                        allStops,
+                        String(ln.orderId),
+                        String(ln.productId),
+                        { displayUnit: displayWtUnit },
+                      );
+                      return (
+                        <div
+                          className="text-[9px] mt-0.5"
+                          style={{
+                            color:
+                              Math.abs(allocated - orderWeightDisplay) < 0.01
+                                ? "#059669"
+                                : allocated > orderWeightDisplay
+                                  ? "#DC2626"
+                                  : T.t3,
+                          }}
+                        >
+                          {formatWeightDisplay(allocated, displayWtUnit)} /{" "}
+                          {formatWeightDisplay(
+                            orderWeightDisplay,
+                            displayWtUnit,
+                          )}
+                        </div>
+                      );
+                    })()}
                     <FieldValidationHint
                       compact
                       conflicts={getBlockersForAnchor(

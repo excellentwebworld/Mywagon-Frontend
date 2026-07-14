@@ -6,60 +6,12 @@ import { useVehicleTypes } from '../../hooks/useVehicleTypes';
 import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
 import {
   formatVehicleSelectionSummary,
-  iconKeyFromVehicleName,
   type WizardVehicleType,
 } from './vehicleTypes';
 import { scrollToStep2Validation } from './validation';
 
-function VehicleIcon({ formKey, name, image }: { formKey: string; name: string; image?: string | null }) {
-  if (image) {
-    return <img src={image} alt={name} className="max-h-12 max-w-[72px] object-contain mx-auto" />;
-  }
-
-  const iconKey = iconKeyFromVehicleName(name) || formKey;
-
-  if (iconKey === 'semi-trailer') {
-    return (
-      <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <rect x="2" y="20" width="42" height="22" rx="3" />
-        <path d="M44 28h10l6 8v6H44V28z" />
-        <circle cx="14" cy="46" r="5" />
-        <circle cx="52" cy="46" r="5" />
-        <path d="M6 20V16a2 2 0 0 1 2-2h32a2 2 0 0 1 2 2v4" opacity="0.5" />
-      </svg>
-    );
-  }
-  if (iconKey === 'road-train') {
-    return (
-      <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <rect x="2" y="20" width="42" height="22" rx="3" />
-        <path d="M44 28h10l6 8v6H44V28z" />
-        <circle cx="14" cy="46" r="5" />
-        <circle cx="52" cy="46" r="5" />
-        <path d="M10 26v10M20 26v10M30 26v10" strokeDasharray="2 2" opacity="0.4" />
-      </svg>
-    );
-  }
-  if (iconKey === 'triaxle') {
-    return (
-      <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <rect x="2" y="22" width="38" height="18" rx="3" />
-        <path d="M40 28h10l6 6v6H40V28z" />
-        <circle cx="12" cy="44" r="5" />
-        <circle cx="24" cy="44" r="5" />
-        <circle cx="50" cy="44" r="5" />
-      </svg>
-    );
-  }
-  return (
-    <svg width="48" height="48" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <rect x="6" y="22" width="48" height="20" rx="4" />
-      <path d="M42 22V18a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v4" />
-      <circle cx="16" cy="46" r="5" />
-      <circle cx="46" cy="46" r="5" />
-      <rect x="42" y="24" width="12" height="10" rx="2" opacity="0.3" />
-    </svg>
-  );
+function VehicleIcon() {
+  return <Truck size={22} strokeWidth={2} aria-hidden />;
 }
 
 function categoryCheckState(
@@ -166,8 +118,8 @@ export const VehicleSelector: React.FC = () => {
 
   return (
     <div
-      className="rounded-xl overflow-hidden mt-4"
-      style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}
+      className="rounded-xl mt-4"
+      style={{ border: '1px solid var(--border)', background: 'var(--surface)', overflow: 'visible' }}
     >
       <div
         className={`ch ${cardExpanded ? '' : 'ch-collapsed'}`}
@@ -258,7 +210,7 @@ export const VehicleSelector: React.FC = () => {
                           </div>
                         )}
                         <div className="vi">
-                          <VehicleIcon formKey={vt.formKey} name={displayName} image={vt.image} />
+                          <VehicleIcon />
                         </div>
                         <div className="vn">{displayName}</div>
                         <div className="vs">{vt.subtitle}</div>

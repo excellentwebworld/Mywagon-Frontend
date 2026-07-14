@@ -34,7 +34,7 @@ import { matchContractLane } from '../../api/utils/matchContractLane';
 import type { Step3Carrier } from '../../api/mappers/mapPartnerToStep3Carrier';
 import { enrichStops } from './itinerary/stopEnrichment';
 import { buildStopSummaryLabels, buildTrackingGroups } from './itinerary/buildTrackingGroups';
-import { computeTripTotals, formatDurationMin, formatWeightKg, formatWeightDisplay } from './itinerary/cargoUtils';
+import { computeTripTotals, formatDurationMin, formatWeightKg, formatWeightDisplay, formatTripQtySummary, formatQtyWithUnit, normalizeQtyUnit } from './itinerary/cargoUtils';
 import type { TrackingOrderItem } from './itinerary/buildTrackingGroups';
 import {
   extractTrackingOrderIds,
@@ -261,6 +261,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
     () => (totalWeightKg > 0 ? formatWeightKg(totalWeightKg) : '—'),
     [totalWeightKg]
   );
+
+  const formattedQty = useMemo(() => formatTripQtySummary(stops), [stops]);
 
   const totalKm = values.routeSummary?.totalDistKm || 0;
   const displayKm = route.totalDistKm > 0 ? route.totalDistKm : totalKm;
@@ -1298,7 +1300,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                                     {line.productName || '—'}
                                   </span>
                                   <span className="shrink-0 tabular-nums" style={{ color: T.t2 }}>
-                                    {line.qty} {line.unit || ''}
+                                    {formatQtyWithUnit(
+                                      parseFloat(String(line.qty ?? '')) || 0,
+                                      normalizeQtyUnit(line.unit) || line.unit,
+                                    )}
                                   </span>
                                   <span className="shrink-0 tabular-nums" style={{ color: T.t3 }}>
                                     {formatWeightDisplay(line.weight, line.wtUnit)}
@@ -1321,6 +1326,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                 { label: t('distance') || 'Distance', value: displayKm > 0 ? String(Math.round(displayKm)) : '—', unit: displayKm > 0 ? 'km' : '' },
                 { label: t('time') || 'Time', value: formattedDriveTime !== '—' ? formattedDriveTime : '—', unit: '' },
                 { label: t('stops') || 'Stops', value: String(stops.length), unit: '' },
+                { label: t('quantity') || 'Quantity', value: formattedQty, unit: '' },
                 { label: t('weight') || 'Weight', value: formattedWeight, unit: '' },
                 { label: t('customers') || 'Customers', value: customerCount > 0 ? String(customerCount) : '—', unit: '' },
                 { label: t('orders') || 'Orders', value: orderCount > 0 ? String(orderCount) : '—', unit: '' },

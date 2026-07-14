@@ -2,6 +2,7 @@ import type { ApiStop } from '../../../api/types/createShipment';
 import {
   formatWeightDisplay,
   formatWeightKgTotal,
+  kgToWeightUnit,
   normalizeQtyUnit,
   weightToKg,
 } from '../../../constants/cargoUnits';
@@ -10,7 +11,9 @@ import type { CargoFlow, LoadBalance, TripTotals } from './types';
 export const TRUCK_WEIGHT_CAP_KG = 28000;
 
 export {
+  convertWeightValue,
   formatWeightDisplay,
+  kgToWeightUnit,
   normalizeQtyUnit,
   normalizeWeightUnit,
   weightToKg,
@@ -138,6 +141,44 @@ export function getPickupAllocatedQty(
   return sum;
 }
 
+/**
+ * Sum pickup weight (kg) for the same order + product across stops.
+ * Pass `displayUnit` to return the magnitude in that wizard weight unit.
+ */
+export function getPickupAllocatedWeight(
+  stops: ApiStop[],
+  orderId: string,
+  productId: string,
+  options?: { excludeLineId?: string; displayUnit?: string }
+): number {
+  if (!orderId || !productId) return 0;
+  let sumKg = 0;
+  stops.forEach((s) =>
+    (s.lines || []).forEach((ln) => {
+      if (ln.action !== 'pickup') return;
+      if (String(ln.orderId || '') !== String(orderId)) return;
+      if (String(ln.productId || '') !== String(productId)) return;
+      if (options?.excludeLineId && String(ln.id) === String(options.excludeLineId)) return;
+      sumKg += weightToKg(ln.weight, ln.wtUnit);
+    })
+  );
+  if (options?.displayUnit != null) {
+    return kgToWeightUnit(sumKg, options.displayUnit);
+  }
+  return sumKg;
+}
+
+/** Proportion order-line weight to a cargo line qty (same formula as product select). */
+export function proportionOrderWeight(
+  orderWeight: number | null | undefined,
+  orderQty: number,
+  lineQty: number,
+): string {
+  if (orderWeight == null || !(orderQty > 0)) return '';
+  const qty = Number(lineQty) || 0;
+  return String(Math.round((orderWeight * (qty / orderQty)) * 1000) / 1000);
+}
+
 export interface OrderPickupAllocation {
   orderId: string;
   productId: string;
@@ -249,6 +290,27 @@ export function computeTripTotals(stops: ApiStop[]): TripTotals {
   );
 
   return { totalPallets, totalWeightKg, droppedWeightKg, uniqueCustomers, orderCount: orderIds.size };
+}
+
+/**
+ * Summarize pickup qty by canonical unit for trip summary tiles
+ * (e.g. "60 EUR Pallets" or "50 EUR Pallets · 10 Boxes").
+ */
+export function formatTripQtySummary(stops: ApiStop[]): string {
+  const byUnit: Record<string, number> = {};
+  stops.forEach((s) =>
+    (s.lines || []).forEach((ln) => {
+      if (ln.action !== 'pickup') return;
+      const q = parseFloat(String(ln.qty ?? '')) || 0;
+      if (q <= 0) return;
+      const unit = normalizeQtyUnit(ln.unit) || '—';
+      byUnit[unit] = (byUnit[unit] || 0) + q;
+    })
+  );
+  const parts = Object.entries(byUnit)
+    .filter(([, qty]) => qty > 0)
+    .map(([unit, qty]) => formatQtyWithUnit(qty, unit === '—' ? '' : unit));
+  return parts.length > 0 ? parts.join(' · ') : '—';
 }
 
 export function computeRunningWeights(stops: ApiStop[]): number[] {

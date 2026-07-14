@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -14,15 +14,17 @@ import {
 import { useItineraryStats } from './itinerary/useItineraryStats';
 import { useRouteLegs } from './itinerary/useRouteLegs';
 import { RouteMap } from './itinerary/RouteMap';
-import { OrdersCard } from './itinerary/OrdersCard';
 import { VehicleSelector } from './VehicleSelector';
 import {
   formatDurationMin,
   formatWeightDisplay,
   formatWeightKg,
+  formatTripQtySummary,
+  formatQtyWithUnit,
+  normalizeQtyUnit,
   TRUCK_WEIGHT_CAP_KG,
 } from './itinerary/cargoUtils';
-import { buildOrdersCardData, groupStopLinesByCustomer } from './itinerary/stopGrouping';
+import { groupStopLinesByCustomer } from './itinerary/stopGrouping';
 import { formatAppointmentLabel } from './itinerary/scheduleWarnings';
 import { actionChipStyle, badgeStyle, pinColors } from './itinerary/stopColors';
 import { computeItineraryFingerprint } from './itineraryFingerprint';
@@ -67,10 +69,6 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
 
   const { enrichedStops, totals, runningWeights } = useItineraryStats(stops, locations);
   const route = useRouteLegs(enrichedStops);
-  const ordersCardData = useMemo(
-    () => buildOrdersCardData(stops, enrichedStops),
-    [stops, enrichedStops]
-  );
 
   const missingLocations = enrichedStops.some((s) => !s.locationId);
   const vehicleSelected = hasVehicleSelection(values.vehicleSpecs);
@@ -405,7 +403,10 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                                       {l.productName || '—'}
                                     </span>
                                     <span style={{ color: T.t2 }}>
-                                      {l.qty} {l.unit || ''}
+                                      {formatQtyWithUnit(
+                                        parseFloat(String(l.qty ?? '')) || 0,
+                                        normalizeQtyUnit(l.unit) || l.unit,
+                                      )}
                                     </span>
                                     <span style={{ color: T.t3 }}>
                                       {formatWeightDisplay(l.weight, l.wtUnit)}
@@ -514,6 +515,10 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                   value: route.loading ? '…' : formatDurationMin(route.totalDriveMin),
                 },
                 { label: t('step2StopsCount'), value: String(enrichedStops.length) },
+                {
+                  label: t('quantity') || t('qty') || 'Quantity',
+                  value: formatTripQtySummary(stops),
+                },
                 { label: t('step2TotalWeight'), value: formatWeightKg(totals.totalWeightKg) },
                 ...(showCustomerStats
                   ? [
@@ -532,8 +537,6 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
               ))}
             </div>
           </div>
-
-          <OrdersCard groups={ordersCardData} t={t} />
         </div>
       </div>
 

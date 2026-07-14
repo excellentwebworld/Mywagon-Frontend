@@ -74,6 +74,27 @@ export function weightToKg(weight: string | number | undefined, wtUnit?: string 
   return w;
 }
 
+/** Convert a weight magnitude between wizard weight units (Kgs ↔ Tonnes). */
+export function convertWeightValue(
+  weight: string | number | undefined,
+  fromUnit?: string | null,
+  toUnit?: string | null,
+): number {
+  const kg = weightToKg(weight, fromUnit);
+  if (normalizeWeightUnit(toUnit) === 'Tonnes') {
+    return Math.round((kg / 1000) * 1000) / 1000;
+  }
+  return Math.round(kg * 1000) / 1000;
+}
+
+/** Convert kg total into a display magnitude for the given wizard weight unit. */
+export function kgToWeightUnit(kg: number, wtUnit?: string | null): number {
+  if (normalizeWeightUnit(wtUnit) === 'Tonnes') {
+    return Math.round((kg / 1000) * 1000) / 1000;
+  }
+  return Math.round(kg * 1000) / 1000;
+}
+
 export function formatWeightDisplay(weight: string | number | undefined, wtUnit?: string | null): string {
   const w = parseFloat(String(weight ?? '')) || 0;
   const unit = normalizeWeightUnit(wtUnit);

@@ -429,12 +429,17 @@ body {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  align-items: start;
+  align-items: stretch;
+  padding: 4px;
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 .vc-wrap {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  overflow: visible;
 }
 
 .vc {
@@ -444,13 +449,18 @@ body {
   text-align: center;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 .vc:hover {
   border-color: var(--bf);
   box-shadow: var(--sm);
-  transform: translateY(-2px);
 }
 
 .vc.sel {
@@ -486,16 +496,21 @@ body {
 }
 
 .vi {
-  height: 48px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--t3);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  background: transparent;
+  flex-shrink: 0;
 }
 
 .vc.sel .vi {
   color: var(--ac);
+  background: color-mix(in srgb, var(--ac) 16%, transparent);
 }
 
 .vn {
@@ -506,6 +521,11 @@ body {
 .vs {
   font-size: 11px;
   color: var(--t3);
+  margin-top: 4px;
+  line-height: 1.35;
+  min-height: calc(1.35em * 3);
+  width: 100%;
+  flex: 1;
 }
 
 /* ── Vehicle Nested ── */
