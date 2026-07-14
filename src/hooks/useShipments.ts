@@ -52,13 +52,15 @@ const EMPTY_SUMMARY: ApiShipmentsSummary = {
 
 /**
  * Server-driven shipments list + summary.
- * When `listEnabled` is false (unsupported tabs), summary still loads for KPI/status counts.
+ * When `listEnabled` is false (unsupported tabs), summary still loads for KPI/status counts
+ * unless `summaryEnabled` is also false (e.g. inbound direction with no API yet).
  */
 export function useShipmentsList(
   listParams: ListShipmentsParams,
   summaryParams: Omit<ListShipmentsParams, 'page' | 'per_page'>,
   listEnabled = true,
-  refreshKey = 0
+  refreshKey = 0,
+  summaryEnabled = true
 ) {
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [meta, setMeta] = useState<ApiListMeta>({
@@ -79,19 +81,35 @@ export function useShipmentsList(
     setLoading(true);
     setError(null);
 
+    const emptyList = {
+      shipments: [] as Shipment[],
+      meta: {
+        current_page: 1,
+        per_page: listParams.per_page ?? 10,
+        total: 0,
+        last_page: 1,
+      },
+    };
+
+    if (!listEnabled && !summaryEnabled) {
+      setShipments([]);
+      setMeta(emptyList.meta);
+      setSummary(EMPTY_SUMMARY);
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     const listPromise = listEnabled
       ? shipmentsService.listMapped(listParams)
-      : Promise.resolve({
-          shipments: [] as Shipment[],
-          meta: {
-            current_page: 1,
-            per_page: listParams.per_page ?? 10,
-            total: 0,
-            last_page: 1,
-          },
-        });
+      : Promise.resolve(emptyList);
 
-    Promise.all([listPromise, shipmentsService.summary(summaryParams)])
+    const summaryPromise = summaryEnabled
+      ? shipmentsService.summary(summaryParams)
+      : Promise.resolve(EMPTY_SUMMARY);
+
+    Promise.all([listPromise, summaryPromise])
       .then(([listResult, summaryResult]) => {
         if (cancelled) return;
         setShipments(listResult.shipments);
@@ -112,7 +130,7 @@ export function useShipmentsList(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- key-based sync
-  }, [listEnabled, listKey, summaryKey, refreshKey]);
+  }, [listEnabled, summaryEnabled, listKey, summaryKey, refreshKey]);
 
   return { shipments, meta, summary, loading, error };
 }

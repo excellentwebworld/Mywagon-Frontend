@@ -6,6 +6,7 @@ import { useApp } from '../../../context/AppContext';
 import type { Shipment } from '../../../context/AppContext';
 import { useShipmentsList } from '../../../hooks/useShipments';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { LoadsDirection } from '../../../components/ManageShipments/LoadsDirectionToggle';
 import {
   buildFilterChips,
   clearFilterChip,
@@ -30,6 +31,7 @@ export function useManageShipments() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  const [direction, setDirectionState] = useState<LoadsDirection>('outbound');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeKpi, setActiveKpiState] = useState<KpiKey | null>('needs_action');
@@ -51,6 +53,20 @@ export function useManageShipments() {
   const [exporting, setExporting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [cancelTarget, setCancelTarget] = useState<Shipment | null>(null);
+
+  const isOutbound = direction === 'outbound';
+
+  const setDirection = useCallback((next: LoadsDirection) => {
+    setDirectionState(next);
+    if (next === 'inbound') {
+      setExpandedId(null);
+      setSelectedIds(new Set());
+      setIsFilterOpen(false);
+      setIsSortOpen(false);
+      setIsInviteOpen(false);
+      setCancelTarget(null);
+    }
+  }, []);
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebouncedSearch(searchQuery.trim()), SEARCH_DEBOUNCE_MS);
@@ -86,8 +102,9 @@ export function useManageShipments() {
   const { shipments, meta, summary, loading, error } = useShipmentsList(
     listParams,
     summaryParams,
-    tabSupported,
-    refreshKey
+    isOutbound && tabSupported,
+    refreshKey,
+    isOutbound
   );
 
   const kpiCounts = summary.kpis;
@@ -326,6 +343,9 @@ export function useManageShipments() {
 
   return {
     t,
+    direction,
+    setDirection,
+    isOutbound,
     shipments,
     loading,
     error,
