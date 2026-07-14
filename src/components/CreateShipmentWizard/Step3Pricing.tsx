@@ -48,6 +48,7 @@ import { actionChipStyle, badgeStyle, pinColors } from './itinerary/stopColors';
 import { formatAppointmentLabel } from './itinerary/scheduleWarnings';
 import { groupStopLinesByCustomer } from './itinerary/stopGrouping';
 import { CarrierListSkeleton } from '../skeletons/CarrierListSkeleton';
+import { RhsVehicleTypesSkeleton } from '../skeletons/RhsVehicleTypesSkeleton';
 
 const T = {
   bg: 'var(--bg)',
@@ -220,7 +221,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
     });
   };
 
-  const { vehicleTypes } = useVehicleTypes();
+  const { vehicleTypes, loading: vehicleTypesLoading } = useVehicleTypes();
 
   const locale = lang === 'el' ? 'el' : 'en';
 
@@ -231,6 +232,13 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
     const specPart = specs.length > 0 ? ` (${specs.join(', ')})` : '';
     return types.join(', ') + specPart;
   }, [values.vehicleSpecs, locale, vehicleTypes]);
+
+  const hasVehicleSelection = useMemo(() => {
+    const specs = values.vehicleSpecs || {};
+    return Object.values(specs).some(
+      (ids) => Array.isArray(ids) && ids.length > 0,
+    );
+  }, [values.vehicleSpecs]);
 
   const selectedVehicleGroups = useMemo(() => {
     const specs = values.vehicleSpecs || {};
@@ -1194,7 +1202,9 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
               />
             </div>
 
-            {selectedVehicleGroups.length > 0 && (
+            {vehicleTypesLoading && hasVehicleSelection ? (
+              <RhsVehicleTypesSkeleton />
+            ) : selectedVehicleGroups.length > 0 ? (
               <div className="csw-rhs-veh border-b" style={{ borderColor: T.bd }}>
                 <div className="ch flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: T.bd }}>
                   <Truck size={16} style={{ color: T.ac }} />
@@ -1227,7 +1237,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                   ))}
                 </div>
               </div>
-            )}
+            ) : null}
 
             <div className="ch flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: T.bd }}>
               <span className="font-semibold text-sm">{t('summary') || 'Summary'}</span>

@@ -2,6 +2,7 @@ import React from "react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { CarrierAccordionsSkeleton } from "./CarrierListSkeleton";
+import { RhsVehicleTypesSkeleton } from "./RhsVehicleTypesSkeleton";
 
 const T = {
   sf: "var(--surface)",
@@ -17,7 +18,7 @@ const sk = {
 export const Step3PricingSkeleton: React.FC = () => (
   <div className="wizard-step3 wizard-step3-skeleton pb-24 lg:pb-0" aria-busy="true">
     <div className="wizard-step3-columns grid grid-cols-1 lg:grid-cols-3 lg:items-stretch gap-6 items-start mt-0">
-      {/* Left column — Broadcast, Tracking, Vehicle, Pricing, Driver Notes */}
+      {/* Left column — Broadcast, Tracking, Pricing, Driver Notes */}
       <div className="wizard-step3-left lg:col-span-2 space-y-4">
         <div
           className="rounded-xl overflow-hidden"
@@ -54,32 +55,6 @@ export const Step3PricingSkeleton: React.FC = () => (
           <div className="p-5 space-y-3">
             <Skeleton height={40} borderRadius={8} {...sk} />
             <Skeleton height={88} borderRadius={8} {...sk} />
-          </div>
-        </div>
-
-        <div
-          className="rounded-xl overflow-hidden"
-          style={{ background: T.sf, border: `1px solid ${T.bd}` }}
-        >
-          <div
-            className="px-5 py-4"
-            style={{ borderBottom: `1px solid ${T.bd}` }}
-          >
-            <Skeleton width={110} height={16} {...sk} />
-          </div>
-          <div className="p-5 space-y-3">
-            <Skeleton width={72} height={12} {...sk} />
-            <div className="flex flex-wrap gap-1.5">
-              {[56, 72, 64, 80].map((w) => (
-                <Skeleton key={w} width={w} height={24} borderRadius={6} {...sk} />
-              ))}
-            </div>
-            <Skeleton width={100} height={12} {...sk} />
-            <div className="flex flex-wrap gap-1.5">
-              {[68, 60, 76].map((w) => (
-                <Skeleton key={w} width={w} height={24} borderRadius={6} {...sk} />
-              ))}
-            </div>
           </div>
         </div>
 
@@ -133,13 +108,16 @@ export const Step3PricingSkeleton: React.FC = () => (
         </div>
       </div>
 
-      {/* Right column — map + locations + counts */}
+      {/* Right column — map + vehicle types + summary + counts */}
       <div className="wizard-step3-right space-y-4">
         <div
           className="rounded-xl overflow-hidden"
           style={{ background: T.sf, border: `1px solid ${T.bd}` }}
         >
           <Skeleton height={200} {...sk} />
+
+          <RhsVehicleTypesSkeleton />
+
           <div
             className="px-4 py-3 flex items-center justify-between"
             style={{ borderBottom: `1px solid ${T.bd}` }}
