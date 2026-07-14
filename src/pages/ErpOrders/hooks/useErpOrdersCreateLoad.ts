@@ -563,9 +563,9 @@ export function useErpOrdersCreateLoad() {
               productName: l.name,
               action: 'pickup',
               qty: l.qty,
-              unit: l.uom === 'pallets' ? 'Pallets' : l.uom === 'kg' ? 'Kg' : l.uom === 'cases' ? 'Boxes' : l.uom === 'bags' ? 'Kg' : l.uom === 'drums' ? 'Pieces' : 'Pallets',
+              unit: l.uom === 'pallets' ? 'EUR Pallets' : l.uom === 'kg' ? 'Kgs' : l.uom === 'cases' ? 'Boxes' : l.uom === 'bags' ? 'Kgs' : l.uom === 'drums' ? 'Units' : 'EUR Pallets',
               weight: l.lw,
-              wtUnit: 'Kg'
+              wtUnit: 'Kgs'
             };
           });
           return { id: oid, ref: o.id, expanded: true, products: stopProducts };
@@ -610,9 +610,9 @@ export function useErpOrdersCreateLoad() {
               productName: l.name,
               action: 'dropoff',
               qty: l.qty,
-              unit: l.uom === 'pallets' ? 'Pallets' : l.uom === 'kg' ? 'Kg' : l.uom === 'cases' ? 'Boxes' : l.uom === 'bags' ? 'Kg' : l.uom === 'drums' ? 'Pieces' : 'Pallets',
+              unit: l.uom === 'pallets' ? 'EUR Pallets' : l.uom === 'kg' ? 'Kgs' : l.uom === 'cases' ? 'Boxes' : l.uom === 'bags' ? 'Kgs' : l.uom === 'drums' ? 'Units' : 'EUR Pallets',
               weight: l.lw,
-              wtUnit: 'Kg'
+              wtUnit: 'Kgs'
             };
           });
           return { id: oid, ref: o.id, expanded: true, products: stopProducts };
@@ -870,7 +870,7 @@ export function useErpOrdersCreateLoad() {
                     ...o,
                     products: [
                       ...o.products,
-                      { id: pid, productId: null, productName: '', action: defAction, qty: 0, unit: 'Pallets', weight: '', wtUnit: 'Kg' }
+                      { id: pid, productId: null, productName: '', action: defAction, qty: 0, unit: 'EUR Pallets', weight: '', wtUnit: 'Kgs' }
                     ]
                   };
                 })
@@ -901,7 +901,7 @@ export function useErpOrdersCreateLoad() {
                 ...o,
                 products: [
                   ...o.products,
-                  { id: pid, productId: null, productName: '', action: defAction, qty: 0, unit: 'Pallets', weight: '', wtUnit: 'Kg' }
+                  { id: pid, productId: null, productName: '', action: defAction, qty: 0, unit: 'EUR Pallets', weight: '', wtUnit: 'Kgs' }
                 ]
               };
             })

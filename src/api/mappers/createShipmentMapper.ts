@@ -1,7 +1,7 @@
 import type { ApiStop, ApiWizardState, SaveStepOnePayload, SaveStepThreePayload, SaveStepTwoPayload } from '../types/createShipment';
 import { createNewCargoLine, createNewStop } from '../../components/CreateShipmentWizard/types';
 import { computeItineraryFingerprint } from '../../components/CreateShipmentWizard/itineraryFingerprint';
-import { normalizeWeightUnit } from '../../constants/cargoUnits';
+import { normalizeQtyUnit, normalizeWeightUnit } from '../../constants/cargoUnits';
 
 export function isUninitializedTrackingEmails(emails: string[] | undefined): boolean {
   if (!emails || emails.length === 0) return true;
@@ -126,6 +126,7 @@ export function formValuesToStepOnePayload(
     ...stop,
     lines: (stop.lines || []).map((line) => ({
       ...line,
+      unit: normalizeQtyUnit(line.unit) || line.unit || 'EUR Pallets',
       wtUnit: normalizeWeightUnit(line.wtUnit),
     })),
   }));
@@ -159,6 +160,7 @@ export function draftToFormValues(
               ? stop.lines.map((line) => ({
                   ...createNewCargoLine(),
                   ...line,
+                  unit: normalizeQtyUnit(line.unit) || line.unit || 'EUR Pallets',
                   wtUnit: normalizeWeightUnit(line.wtUnit),
                 }))
               : [createNewCargoLine()],

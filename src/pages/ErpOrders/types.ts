@@ -71,9 +71,9 @@ export const EMPTY_ORDER_LINE: ErpOrderLine = {
   productSkuId: null,
   productName: '',
   quantity: null,
-  unit: 'Pallets',
+  unit: 'EUR Pallets',
   weight: null,
-  weightUnit: 'Kg',
+  weightUnit: 'Kgs',
 };
 
 export const EMPTY_ORDER_FORM: ErpOrderFormState = {

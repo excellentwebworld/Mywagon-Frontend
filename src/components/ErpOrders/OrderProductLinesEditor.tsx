@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS, normalizeWeightUnit } from '../../constants/cargoUnits';
+import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS, normalizeQtyUnit, normalizeWeightUnit } from '../../constants/cargoUnits';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import type { SKU } from '../../context/AppContext';
 import type { ErpOrderLine, ErpOrderFormState } from '../../pages/ErpOrders/types';
@@ -122,7 +122,11 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
             value={line.quantity ?? ''}
             onChange={(e) => updateLine(index, { quantity: e.target.value ? Number(e.target.value) : null })}
           />
-          <select className="inp" value={line.unit} onChange={(e) => updateLine(index, { unit: e.target.value })}>
+          <select
+            className="inp"
+            value={normalizeQtyUnit(line.unit) || line.unit}
+            onChange={(e) => updateLine(index, { unit: e.target.value })}
+          >
             {allowEmptySelects && <option value="">—</option>}
             {QTY_UNIT_OPTIONS.map((u) => (
               <option key={u} value={u}>

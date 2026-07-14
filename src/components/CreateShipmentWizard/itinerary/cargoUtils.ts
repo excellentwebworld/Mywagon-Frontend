@@ -2,13 +2,19 @@ import type { ApiStop } from '../../../api/types/createShipment';
 import {
   formatWeightDisplay,
   formatWeightKgTotal,
+  normalizeQtyUnit,
   weightToKg,
 } from '../../../constants/cargoUnits';
 import type { CargoFlow, LoadBalance, TripTotals } from './types';
 
 export const TRUCK_WEIGHT_CAP_KG = 28000;
 
-export { formatWeightDisplay, normalizeWeightUnit, weightToKg } from '../../../constants/cargoUnits';
+export {
+  formatWeightDisplay,
+  normalizeQtyUnit,
+  normalizeWeightUnit,
+  weightToKg,
+} from '../../../constants/cargoUnits';
 
 export function formatWeightKg(kg: number): string {
   return formatWeightKgTotal(kg);
@@ -16,7 +22,7 @@ export function formatWeightKg(kg: number): string {
 
 export function formatQtyWithUnit(qty: number, unit?: string): string {
   if (qty <= 0) return '—';
-  const u = (unit || '').trim();
+  const u = normalizeQtyUnit(unit);
   return u ? `${qty} ${u}` : String(qty);
 }
 
@@ -28,7 +34,7 @@ export function summarizeStopLines(stop: ApiStop): { qty: number; weightKg: numb
   (stop.lines || []).forEach((ln) => {
     qty += parseFloat(String(ln.qty ?? '')) || 0;
     weightKg += weightToKg(ln.weight, ln.wtUnit);
-    if (!unit && ln.unit) unit = ln.unit;
+    if (!unit && ln.unit) unit = normalizeQtyUnit(ln.unit) || ln.unit;
   });
 
   return { qty, weightKg, unit };
@@ -68,7 +74,7 @@ export function computeLoadBalance(stops: ApiStop[]): LoadBalance {
       }
       const nm = ln.productName || '—';
       const prodKey = `${nm}||${unitKey}`;
-      if (!byP[prodKey]) byP[prodKey] = { pk: 0, do: 0, unit: ln.unit };
+      if (!byP[prodKey]) byP[prodKey] = { pk: 0, do: 0, unit: unitKey };
       if (ln.action === 'pickup') byP[prodKey].pk += q;
       else byP[prodKey].do += q;
     })
@@ -99,14 +105,9 @@ export function computeLoadBalance(stops: ApiStop[]): LoadBalance {
   };
 }
 
-/** Normalize qty unit for comparison (trim; case-insensitive). */
-export function normalizeQtyUnit(unit?: string | null): string {
-  return (unit || '').trim();
-}
-
 export function qtyUnitsMatch(a?: string | null, b?: string | null): boolean {
-  const na = normalizeQtyUnit(a).toLowerCase();
-  const nb = normalizeQtyUnit(b).toLowerCase();
+  const na = normalizeQtyUnit(a);
+  const nb = normalizeQtyUnit(b);
   if (!na && !nb) return true;
   return na === nb;
 }
@@ -276,14 +277,14 @@ export function buildCargoFlows(stops: ApiStop[]): CargoFlow[] {
           dropoff: -1,
           qty: 0,
           weightKg: 0,
-          unit: ln.unit,
+          unit: normalizeQtyUnit(ln.unit),
         };
       }
       if (ln.action === 'pickup') {
         flows[key].pickup = si;
         flows[key].qty = parseFloat(String(ln.qty ?? '')) || 0;
         flows[key].weightKg = weightToKg(ln.weight, ln.wtUnit);
-        flows[key].unit = ln.unit;
+        flows[key].unit = normalizeQtyUnit(ln.unit);
       } else if (ln.action === 'dropoff') {
         flows[key].dropoff = si;
       }

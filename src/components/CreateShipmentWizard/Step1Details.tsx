@@ -75,6 +75,7 @@ import type { ApiCompanyLookup } from "../../api/types/addressBook";
 import {
   QTY_UNIT_OPTIONS,
   WEIGHT_UNIT_OPTIONS,
+  normalizeQtyUnit,
   normalizeWeightUnit,
   formatWeightKgTotal,
 } from "../../constants/cargoUnits";
@@ -478,6 +479,39 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     [uStop],
   );
 
+  /** Keep order+product lines on every stop on the same qty unit (load balance end-to-end). */
+  const setLineUnit = useCallback(
+    (sid: string, lid: string, unit: string) => {
+      const nextUnit = normalizeQtyUnit(unit) || unit || "EUR Pallets";
+      const source = stops
+        .find((s: any) => s.id === sid)
+        ?.lines?.find((l: any) => l.id === lid);
+      const orderId = source?.orderId ? String(source.orderId) : "";
+      const productId = source?.productId ? String(source.productId) : "";
+
+      if (!orderId || !productId) {
+        setLF(sid, lid, "unit", nextUnit);
+        return;
+      }
+
+      const updated = stops.map((s: any) => ({
+        ...s,
+        lines: (s.lines || []).map((l: any) => {
+          if (String(l.id) === String(lid)) return { ...l, unit: nextUnit };
+          if (
+            String(l.orderId || "") === orderId &&
+            String(l.productId || "") === productId
+          ) {
+            return { ...l, unit: nextUnit };
+          }
+          return l;
+        }),
+      }));
+      setFieldValue("stops", updated);
+    },
+    [setFieldValue, setLF, stops],
+  );
+
   const quickFill = useCallback(
     async (sid: string, orderId: string) => {
       const mo = orderDetailsById[orderId] || (await fetchOrderDetail(orderId));
@@ -508,7 +542,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         orderLineId: ln.id != null ? String(ln.id) : "",
         action: defaultAction as "pickup" | "dropoff",
         qty: ln.quantity != null ? String(ln.quantity) : "",
-        unit: ln.unit || "EUR Pallets",
+        unit: normalizeQtyUnit(ln.unit) || "EUR Pallets",
         weight: ln.weight != null ? String(ln.weight) : "",
         wtUnit: normalizeWeightUnit(ln.weightUnit),
         mirrorOf: "",
@@ -818,7 +852,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       const orderLine = findOrderLineForProduct(order, skuId);
       if (orderLine) {
         const orderQty = orderLine.quantity != null ? Number(orderLine.quantity) : 0;
-        const orderUnit = orderLine.unit || line?.unit || "EUR Pallets";
+        const orderUnit =
+          normalizeQtyUnit(orderLine.unit || line?.unit) || "EUR Pallets";
         const allocated = line?.orderId
           ? getPickupAllocatedQty(stops, String(line.orderId), skuId, {
               excludeLineId: lid,
@@ -924,7 +959,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
               linkedLine?.quantity != null
                 ? String(linkedLine.quantity)
                 : cargoLine.qty || "",
-            unit: linkedLine?.unit || cargoLine.unit || "EUR Pallets",
+            unit:
+              normalizeQtyUnit(linkedLine?.unit || cargoLine.unit) ||
+              "EUR Pallets",
             weight:
               linkedLine?.weight != null
                 ? String(linkedLine.weight)
@@ -1516,7 +1553,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         onAddLine={() => addLine(stop.id)}
                         onDelLine={(lid) => delLine(stop.id, lid)}
                         onDupLine={(lid) => dupLine(stop.id, lid)}
-                        onSetField={(lid, f, v) => setLF(stop.id, lid, f, v)}
+                        onSetField={(lid, f, v) => {
+                          if (f === "unit") {
+                            setLineUnit(stop.id, lid, v);
+                            return;
+                          }
+                          setLF(stop.id, lid, f, v);
+                        }}
                         onSelProd={(lid, sk) => selProdLine(stop.id, lid, sk)}
                         onSelOrd={(lid, oid) => selOrdLine(stop.id, lid, oid)}
                         onNewProd={(lid) => {
@@ -2223,12 +2266,13 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       if (!orderLine || orderLine.quantity == null) return null;
                       const orderQty = Number(orderLine.quantity) || 0;
                       if (orderQty <= 0) return null;
-                      const orderUnit = orderLine.unit || ln.unit || "";
+                      const displayUnit =
+                        normalizeQtyUnit(ln.unit || orderLine.unit) || "";
                       const allocated = getPickupAllocatedQty(
                         allStops,
                         String(ln.orderId),
                         String(ln.productId),
-                        { unit: orderUnit },
+                        { unit: displayUnit },
                       );
                       return (
                         <div
@@ -2242,8 +2286,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                                   : T.t3,
                           }}
                         >
-                          {formatQtyWithUnit(allocated, orderUnit)} /{" "}
-                          {formatQtyWithUnit(orderQty, orderUnit)}
+                          {formatQtyWithUnit(allocated, displayUnit)} /{" "}
+                          {formatQtyWithUnit(orderQty, displayUnit)}
                         </div>
                       );
                     })()}
@@ -2266,7 +2310,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                   <td style={tdS}>
                     <select
                       style={{ ...selS, width: 105 }}
-                      value={ln.unit}
+                      value={normalizeQtyUnit(ln.unit) || ln.unit || "EUR Pallets"}
                       onChange={(e) =>
                         onSetField(ln.id, "unit", e.target.value)
                       }

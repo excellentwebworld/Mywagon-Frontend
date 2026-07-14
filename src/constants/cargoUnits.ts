@@ -4,6 +4,55 @@ export const WEIGHT_UNIT_OPTIONS = ['Tonnes', 'Kgs'] as const;
 export type QtyUnit = (typeof QTY_UNIT_OPTIONS)[number];
 export type WeightUnit = (typeof WEIGHT_UNIT_OPTIONS)[number];
 
+const QTY_UNIT_ALIASES: Record<string, QtyUnit> = {
+  pallet: 'EUR Pallets',
+  pallets: 'EUR Pallets',
+  'eur pallet': 'EUR Pallets',
+  'eur pallets': 'EUR Pallets',
+  'euro pallet': 'EUR Pallets',
+  'euro pallets': 'EUR Pallets',
+  epal: 'EUR Pallets',
+  epals: 'EUR Pallets',
+  'us pallet': 'US Pallets',
+  'us pallets': 'US Pallets',
+  'american pallet': 'US Pallets',
+  'american pallets': 'US Pallets',
+  box: 'Boxes',
+  boxes: 'Boxes',
+  case: 'Boxes',
+  cases: 'Boxes',
+  unit: 'Units',
+  units: 'Units',
+  piece: 'Units',
+  pieces: 'Units',
+  'big bag': 'Big Bags',
+  'big bags': 'Big Bags',
+  bigbag: 'Big Bags',
+  bigbags: 'Big Bags',
+};
+
+function qtyUnitLookupKey(unit: string): string {
+  return unit.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Normalize ERP / legacy qty units to wizard options.
+ * Bare "Pallets" maps to "EUR Pallets" so load balance and allocation stay aligned.
+ */
+export function normalizeQtyUnit(unit?: string | null): string {
+  const raw = (unit || '').trim();
+  if (!raw) return '';
+  const key = qtyUnitLookupKey(raw);
+  const exact = QTY_UNIT_OPTIONS.find((opt) => qtyUnitLookupKey(opt) === key);
+  if (exact) return exact;
+  if (QTY_UNIT_ALIASES[key]) return QTY_UNIT_ALIASES[key];
+  if (key.includes('us') && key.includes('pallet')) return 'US Pallets';
+  if (key.includes('pallet')) return 'EUR Pallets';
+  if (key.includes('box') || key.includes('case')) return 'Boxes';
+  if (key.includes('bag')) return 'Big Bags';
+  return raw;
+}
+
 /** Normalize ERP / legacy values to wizard weight unit options (same as Create ERP Order). */
 export function normalizeWeightUnit(unit?: string | null): WeightUnit {
   const u = (unit || '').toLowerCase().trim();
