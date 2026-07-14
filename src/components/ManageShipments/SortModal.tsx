@@ -29,43 +29,49 @@ export const SortModal: React.FC<SortModalProps> = ({ open, sortKey, onClose, on
   if (!open) return null;
 
   return createPortal(
-    <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal modal-form" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <div className="modal-header">
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{t('sort')}</h3>
+    <div className="mgmt-pop-bg open" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div
+        className="mgmt-pop mgmt-pop--sort"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mgmt-sort-title"
+      >
+        <div className="mgmt-pop-h">
+          <div>
+            <h3 id="mgmt-sort-title">{t('sort')}</h3>
+            <p className="mgmt-pop-sub">{t('sortModalSubtitle') || 'Choose how shipments are ordered'}</p>
+          </div>
           <button type="button" className="modal-close" onClick={onClose} aria-label={t('cancel')}>
             ✕
           </button>
         </div>
-        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {SORT_OPTIONS.map((opt) => (
-            <label
-              key={opt.value}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                cursor: 'pointer',
-                background: draft === opt.value ? 'var(--accent-light)' : 'var(--surface)',
-              }}
-            >
-              <input
-                type="radio"
-                name="shipment-sort"
-                checked={draft === opt.value}
-                onChange={() => setDraft(opt.value)}
-              />
-              <span style={{ fontSize: 13 }}>{t(opt.labelKey)}</span>
-            </label>
-          ))}
+
+        <div className="mgmt-pop-body mgmt-pop-body--compact">
+          <div className="mgmt-sort-list" role="radiogroup" aria-label={t('sort')}>
+            {SORT_OPTIONS.map((opt) => {
+              const active = draft === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  className={`mgmt-sort-item${active ? ' act' : ''}`}
+                  onClick={() => setDraft(opt.value)}
+                >
+                  <span className="mgmt-sort-label">{t(opt.labelKey)}</span>
+                  <span className={`mgmt-sort-radio${active ? ' act' : ''}`} aria-hidden />
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+
+        <div className="mgmt-pop-ft">
           <button
             type="button"
-            className="f-pill"
+            className="btn btn-ghost"
             onClick={() => {
               setDraft('');
               onApply('');
@@ -74,17 +80,21 @@ export const SortModal: React.FC<SortModalProps> = ({ open, sortKey, onClose, on
           >
             {t('sortReset')}
           </button>
-          <button
-            type="button"
-            className="btn-cta"
-            style={{ padding: '8px 16px', fontSize: 13 }}
-            onClick={() => {
-              onApply(draft);
-              onClose();
-            }}
-          >
-            {t('sortApply')}
-          </button>
+          <div className="mgmt-pop-ft-actions">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              {t('cancel')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                onApply(draft);
+                onClose();
+              }}
+            >
+              {t('sortApply')}
+            </button>
+          </div>
         </div>
       </div>
     </div>,

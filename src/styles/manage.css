@@ -1753,3 +1753,433 @@ table.mgmt-t {
     flex-wrap: nowrap;
   }
 }
+
+/* ── Filter / Sort popups ── */
+.mgmt-pop-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 320;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+.mgmt-pop-bg.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.mgmt-pop {
+  width: 100%;
+  max-height: min(90vh, 760px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg, 0 20px 50px rgba(15, 23, 42, 0.16));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: mgmt-fade-up 0.2s ease;
+}
+
+.mgmt-pop--filter {
+  max-width: 560px;
+}
+
+.mgmt-pop--sort {
+  max-width: 400px;
+}
+
+.mgmt-pop-h {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--surface);
+}
+
+.mgmt-pop-h h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.15px;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.mgmt-pop-sub {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  line-height: 1.35;
+}
+
+.mgmt-pop-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 18px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overscroll-behavior: contain;
+}
+
+.mgmt-pop-body--compact {
+  padding-top: 8px;
+  gap: 0;
+}
+
+.mgmt-pop-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mgmt-pop-sec:last-of-type {
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+
+.mgmt-pop-sec-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.mgmt-pop-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mgmt-pop-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.mgmt-pop-input {
+  width: 100%;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 8px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: border-color 0.12s, box-shadow 0.12s;
+  box-sizing: border-box;
+}
+
+select.mgmt-pop-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+.mgmt-pop-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.mgmt-pop-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--surface-alt);
+}
+
+.mgmt-pop-input--sm {
+  width: auto;
+  min-width: 104px;
+  padding: 5px 28px 5px 8px;
+  font-size: 12px;
+}
+
+.mgmt-pop-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.mgmt-pop-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.mgmt-pop-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.mgmt-pop-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 104px;
+  overflow-y: auto;
+  padding: 1px;
+}
+
+.mgmt-seg {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface);
+  max-width: 100%;
+}
+
+.mgmt-seg--wrap {
+  flex-wrap: wrap;
+  overflow: visible;
+  border: none;
+  background: transparent;
+  gap: 6px;
+}
+
+.mgmt-seg--wrap .mgmt-seg-btn {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.mgmt-seg--wrap .mgmt-seg-btn + .mgmt-seg-btn {
+  border-left: 1px solid var(--border);
+}
+
+.mgmt-seg--wrap .mgmt-seg-btn.act {
+  border-color: var(--accent);
+}
+
+.mgmt-seg-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  padding: 7px 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.mgmt-seg-btn + .mgmt-seg-btn {
+  border-left: 1px solid var(--border);
+}
+
+.mgmt-seg-btn:hover {
+  color: var(--text-primary);
+  background: var(--surface-alt);
+}
+
+.mgmt-seg-btn.act {
+  color: var(--accent);
+  background: var(--accent-light);
+  font-weight: 600;
+}
+
+.mgmt-pop-chips .mgmt-seg-btn {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 11px;
+}
+
+.mgmt-pop-chips .mgmt-seg-btn + .mgmt-seg-btn {
+  border-left: 1px solid var(--border);
+}
+
+.mgmt-pop-chips .mgmt-seg-btn.act {
+  border-color: var(--accent);
+}
+
+.mgmt-loc-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mgmt-loc-radius {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.mgmt-loc-clear {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.mgmt-loc-clear:hover {
+  text-decoration: underline;
+}
+
+.mgmt-pop-ft {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-alt, var(--surface));
+  flex-shrink: 0;
+}
+
+.mgmt-pop-ft-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.mgmt-pop-ft .btn-ghost {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.mgmt-pop-ft .btn-ghost:hover {
+  color: var(--danger, #dc2626);
+  background: transparent;
+}
+
+.mgmt-sort-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mgmt-sort-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.mgmt-sort-item:hover {
+  background: var(--surface-alt);
+}
+
+.mgmt-sort-item.act {
+  background: var(--accent-light);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.mgmt-sort-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.mgmt-sort-item.act .mgmt-sort-label {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.mgmt-sort-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+  position: relative;
+  background: var(--surface);
+}
+
+.mgmt-sort-radio.act {
+  border-color: var(--accent);
+}
+
+.mgmt-sort-radio.act::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .mgmt-pop-bg {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .mgmt-pop {
+    max-height: min(92vh, 100%);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .mgmt-pop-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mgmt-pop--filter,
+  .mgmt-pop--sort {
+    max-width: 100%;
+  }
+
+  .mgmt-seg:not(.mgmt-seg--wrap) {
+    width: 100%;
+  }
+
+  .mgmt-seg:not(.mgmt-seg--wrap) .mgmt-seg-btn {
+    flex: 1;
+    text-align: center;
+  }
+
+  .mgmt-pop-ft {
+    flex-wrap: wrap;
+  }
+}

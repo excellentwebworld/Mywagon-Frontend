@@ -71,14 +71,14 @@ export const FilterLocationField: React.FC<Props> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <label htmlFor={id} style={{ fontSize: 12, fontWeight: 600 }}>
+    <div className="mgmt-pop-field">
+      <label htmlFor={id} className="mgmt-pop-label">
         {label}
       </label>
       <input
         id={id}
         ref={inputRef}
-        className="ab-input"
+        className="mgmt-pop-input"
         value={address}
         onChange={(e) => {
           onAddressChange(e.target.value);
@@ -90,14 +90,14 @@ export const FilterLocationField: React.FC<Props> = ({
         placeholder={t('filterLocationPlaceholder')}
         autoComplete="off"
       />
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
-          {t('filterRadius')}
+      <div className="mgmt-loc-meta">
+        <label className="mgmt-loc-radius">
+          <span>{t('filterRadius')}</span>
           <select
+            className="mgmt-pop-input mgmt-pop-input--sm"
             value={radius ?? ''}
             onChange={(e) => onRadiusChange(e.target.value ? Number(e.target.value) : null)}
             disabled={lat == null || lng == null}
-            style={{ fontSize: 12, padding: '4px 6px' }}
           >
             <option value="">{t('filterRadiusSelect')}</option>
             <option value="50">50 km</option>
@@ -105,7 +105,7 @@ export const FilterLocationField: React.FC<Props> = ({
           </select>
         </label>
         {(address || lat != null) && (
-          <button type="button" className="f-pill" style={{ fontSize: 11, padding: '2px 8px' }} onClick={clear}>
+          <button type="button" className="mgmt-loc-clear" onClick={clear}>
             {t('clear')}
           </button>
         )}
