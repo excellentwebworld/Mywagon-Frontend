@@ -233,41 +233,21 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
               </div>
             )}
 
-            {tab === 'my' &&
-              groups.map((group) => (
-                <div key={group.company}>
-                  {group.locations.length > 1 && (
-                    <button
-                      type="button"
-                      className="w-full flex items-center gap-1 px-3 py-1.5 text-[10px] font-semibold"
-                      style={{ color: 'var(--text-secondary)', background: 'var(--surface-alt)' }}
-                      onClick={() => toggleCompany(group.company)}
-                    >
-                      {isCompanyExpanded(group.company) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                      {group.company}
-                    </button>
-                  )}
-                  {(group.locations.length === 1 || isCompanyExpanded(group.company)) &&
-                    group.locations.map(renderLocationRow)}
-                </div>
-              ))}
-
-            {tab === 'customer' &&
-              groups.map((group) => (
-                <div key={group.company}>
-                  <button
-                    type="button"
-                    className="w-full flex items-center gap-1 px-3 py-1.5 text-[10px] font-semibold"
-                    style={{ color: 'var(--text-secondary)', background: 'var(--surface-alt)' }}
-                    onClick={() => toggleCompany(group.company)}
-                  >
-                    {isCompanyExpanded(group.company) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                    {group.company}
-                    <span className="ml-auto opacity-70">{group.locations.length}</span>
-                  </button>
-                  {isCompanyExpanded(group.company) && group.locations.map(renderLocationRow)}
-                </div>
-              ))}
+            {groups.map((group) => (
+              <div key={group.company}>
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-1 px-3 py-1.5 text-[10px] font-semibold"
+                  style={{ color: 'var(--text-secondary)', background: 'var(--surface-alt)' }}
+                  onClick={() => toggleCompany(group.company)}
+                >
+                  {isCompanyExpanded(group.company) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  {group.company}
+                  <span className="ml-auto opacity-70">{group.locations.length}</span>
+                </button>
+                {isCompanyExpanded(group.company) && group.locations.map(renderLocationRow)}
+              </div>
+            ))}
           </div>
         </div>
       )}
