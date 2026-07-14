@@ -190,7 +190,15 @@ export interface Shipment {
   orderIds?: string[];
   pickDtIso?: string | null;
   delDtIso?: string | null;
-  stops?: ShipmentStop[]; // Wizard created stop details
+  stops?: ShipmentStop[];
+  journeyDistanceKm?: number | null;
+  journeyTime?: string | number | null;
+  cargoValue?: number | null;
+  truckTypes?: string[];
+  totalWeight?: number | null;
+  totalQty?: number | null;
+  weightUnit?: string | null;
+  qtyUnit?: string | null;
   driverNotes?: string;
   negotiable?: boolean;
   navigation?: boolean;

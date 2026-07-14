@@ -63,13 +63,17 @@ export const ManageShipments: React.FC = () => {
           shipments={m.pagination.items}
           selectedIds={m.selectedIds}
           expandedId={m.expandedId}
+          detailLoadingIds={m.detailLoadingIds}
+          resolveShipment={m.mergedShipment}
           onSelectAll={m.handleSelectAll}
           onSelectRow={m.handleSelectRow}
           onToggleExpand={m.handleToggleExpand}
           onCopyId={m.handleCopyId}
           onAward={m.handleAward}
-          onInvite={() => m.setIsInviteOpen(true)}
           onDelete={m.handleDeleteRequest}
+          onEdit={m.handleEdit}
+          onViewNewTab={m.handleViewNewTab}
+          onStubAction={m.handleStubAction}
           onEditBlocked={m.handleEditBlocked}
           t={m.t}
         />

@@ -73,6 +73,7 @@ function mapCustomers(item: ApiShipmentListItem): Shipment['customer'] {
 }
 
 function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | null): ShipmentStop {
+  const name = stop.company_name || customerName || 'Customer';
   return {
     id: stop.id || index + 1,
     type: stop.type === 'pickup' ? 'pickup' : 'delivery',
@@ -84,21 +85,37 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
     customers: stop.order_id
       ? [
           {
-            name: customerName || 'Customer',
+            name,
             orders: [
               {
                 id: stop.order_id,
-                products: stop.product_name || 'General Cargo',
+                products: stop.product_name || '—',
                 qty: parseFloat(String(stop.qty ?? 0)) || 0,
-                qtyUnit: 'Units',
+                qtyUnit: String(stop.qty_unit ?? 'Units'),
                 weight: parseFloat(String(stop.weight ?? 0)) || 0,
-                weightUnit: 'kg',
+                weightUnit: String(stop.weight_unit ?? 'kg'),
               },
             ],
           },
         ]
       : [],
   };
+}
+
+function customersFromStops(detail: ApiShipmentDetail): Shipment['customer'] {
+  const stops = detail.stops || [];
+  const byName = new Map<string, string[]>();
+  stops.forEach((stop) => {
+    if (!stop.order_id) return;
+    const name = stop.company_name || detail.customer_reference || 'Customer';
+    const list = byName.get(name) || [];
+    if (!list.includes(stop.order_id)) list.push(stop.order_id);
+    byName.set(name, list);
+  });
+  if (byName.size === 0 && Array.isArray(detail.customers) && detail.customers.length > 0) {
+    return detail.customers.map((name) => ({ name, orders: [] as string[] }));
+  }
+  return Array.from(byName.entries()).map(([name, orders]) => ({ name, orders }));
 }
 
 export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
@@ -158,18 +175,34 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
 
 export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
   const base = mapApiListItemToShipment(detail);
+  const stopCustomers = customersFromStops(detail);
   const customers =
-    base.customer.length > 0
-      ? base.customer
-      : detail.customer_reference
-        ? [{ name: detail.customer_reference, orders: [] }]
-        : [];
+    stopCustomers.length > 0
+      ? stopCustomers
+      : base.customer.length > 0
+        ? base.customer
+        : detail.customer_reference
+          ? [{ name: detail.customer_reference, orders: [] as string[] }]
+          : [];
+
+  const journeyKm = parsePrice(detail.journey_distance);
 
   return {
     ...base,
     invited: detail.partners_count ?? base.invited,
     customer: customers,
+    orderIds: detail.order_ids?.length ? detail.order_ids : base.orderIds,
+    ordersCount: detail.order_ids?.length || base.ordersCount,
+    stopCount: detail.stop_count ?? detail.stops?.length ?? base.stopCount,
     driverNotes: detail.note || undefined,
     stops: (detail.stops || []).map((stop, idx) => mapStop(stop, idx, detail.customer_reference)),
+    journeyDistanceKm: journeyKm,
+    journeyTime: detail.journey_time ?? null,
+    cargoValue: detail.cargo_value ?? null,
+    truckTypes: detail.truck_types ?? [],
+    totalWeight: detail.total_weight ?? null,
+    totalQty: detail.total_qty ?? null,
+    weightUnit: detail.weight_unit ?? null,
+    qtyUnit: detail.qty_unit ?? null,
   };
 }

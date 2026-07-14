@@ -89,7 +89,10 @@ export interface ApiShipmentStop {
   order_id?: string | null;
   product_name?: string | null;
   qty?: string | number | null;
+  qty_unit?: string | number | null;
   weight?: string | number | null;
+  weight_unit?: string | number | null;
+  company_name?: string | null;
   sort_order?: number;
 }
 
@@ -100,6 +103,12 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
   tracking_required_by_shipper?: boolean;
   stops?: ApiShipmentStop[];
   partners_count?: number;
+  cargo_value?: number | null;
+  truck_types?: string[];
+  total_weight?: number | null;
+  total_qty?: number | null;
+  weight_unit?: string | null;
+  qty_unit?: string | null;
 }
 
 export interface ListShipmentsParams {

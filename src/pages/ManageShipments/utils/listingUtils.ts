@@ -424,6 +424,54 @@ export const TIMELINE_STEPS = [
   'Invoiced',
 ];
 
+/** Build load-specific progress steps from itinerary stops. */
+export function buildStopTimelineSteps(
+  shipment: Shipment,
+  t: (key: string, opts?: Record<string, unknown>) => string
+): string[] {
+  const stops = shipment.stops;
+  if (!stops || stops.length === 0) {
+    return [t('pickup'), t('delivery')];
+  }
+  return stops.map((stop, idx) => {
+    const label = stop.location || (stop.type === 'pickup' ? t('pickup') : t('delivery'));
+    if (stop.type === 'pickup' && idx === 0) return `${t('pickup')}: ${label}`;
+    if (stop.type === 'delivery' && idx === stops.length - 1) return `${t('delivery')}: ${label}`;
+    return label;
+  });
+}
+
+export function stopTimelineCurrentIndex(status: Shipment['status'], stepCount: number): number {
+  if (stepCount <= 0) return 0;
+  const last = stepCount - 1;
+  switch (status) {
+    case 'pending':
+    case 'awarded':
+      return 0;
+    case 'upcoming':
+      return Math.min(1, last);
+    case 'past_due':
+      return Math.min(1, last);
+    case 'in_progress':
+      return Math.max(0, Math.min(Math.floor(last / 2) + 1, last));
+    case 'delivered':
+      return last;
+    case 'cancelled':
+      return 0;
+    default:
+      return 0;
+  }
+}
+
+export function formatStatValue(
+  value: number | string | null | undefined,
+  suffix?: string | null
+): string {
+  if (value === null || value === undefined || value === '') return '—';
+  const text = typeof value === 'number' ? value.toLocaleString() : String(value);
+  return suffix ? `${text} ${suffix}` : text;
+}
+
 export function timelineCurrentIndex(status: Shipment['status']): number {
   switch (status) {
     case 'pending':

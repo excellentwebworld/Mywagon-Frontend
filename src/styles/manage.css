@@ -885,6 +885,78 @@ table.mgmt-t {
   border-color: var(--danger);
   color: var(--danger);
 }
+.bid-reject-danger {
+  background: var(--danger) !important;
+  color: #fff !important;
+  border-color: var(--danger) !important;
+}
+.bid-chat {
+  padding: 5px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+.bid-chat:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.exp-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+.exp-stat {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--surface);
+}
+.exp-stat-l {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+.exp-stat-v {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.itinerary-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.itinerary-list li {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--surface-alt);
+}
+.itinerary-toggle {
+  margin-top: 8px;
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
 .bid-counter {
   padding: 5px 14px;
   border-radius: 6px;

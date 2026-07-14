@@ -7,6 +7,7 @@ export { StatusTabs } from './StatusTabs';
 export { ShipmentTable } from './ShipmentTable';
 export { RowExpansionPending } from './RowExpansionPending';
 export { RowExpansionStatus } from './RowExpansionStatus';
+export { ItineraryPreview } from './ItineraryPreview';
 export { RowActionsMenu } from './RowActionsMenu';
 export { CancelShipmentModal } from './CancelShipmentModal';
 export { Pagination } from './Pagination';

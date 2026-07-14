@@ -19,13 +19,17 @@ interface ShipmentTableProps {
   shipments: Shipment[];
   selectedIds: Set<string>;
   expandedId: string | null;
+  detailLoadingIds?: Set<string>;
+  resolveShipment?: (s: Shipment) => Shipment;
   onSelectAll: (checked: boolean) => void;
   onSelectRow: (id: string, checked: boolean) => void;
   onToggleExpand: (id: string) => void;
   onCopyId: (id: string) => void;
   onAward: (s: Shipment, carrier: string, price: number) => void;
-  onInvite: () => void;
   onDelete: (s: Shipment) => void;
+  onEdit: (s: Shipment) => void;
+  onViewNewTab: (s: Shipment) => void;
+  onStubAction: (key: string) => void;
   onEditBlocked?: () => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
@@ -35,13 +39,17 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
   shipments,
   selectedIds,
   expandedId,
+  detailLoadingIds,
+  resolveShipment,
   onSelectAll,
   onSelectRow,
   onToggleExpand,
   onCopyId,
-  onAward,
-  onInvite,
+  onAward: _onAward,
   onDelete,
+  onEdit,
+  onViewNewTab,
+  onStubAction,
   onEditBlocked,
   t,
 }) => {
@@ -78,7 +86,8 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
         ) : shipments.length === 0 && loading ? (
           <ListSkeleton type="table" rowCount={8} columnCount={TABLE_COL_COUNT} />
         ) : (
-          shipments.map((s) => {
+          shipments.map((row) => {
+            const s = resolveShipment ? resolveShipment(row) : row;
             const isExpanded = expandedId === s.id;
             const isPending = s.status === 'pending';
             const badgeClass = statusBadgeClass(s.status, s.at_risk);
@@ -89,6 +98,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
             const agreed = formatEuro(s.agreedPrice);
             const pickLabel = s.pickDt || s.date;
             const delLabel = s.delDt;
+            const detailLoading = detailLoadingIds?.has(s.id) ?? false;
 
             return (
               <React.Fragment key={s.id}>
@@ -249,15 +259,20 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                       {isPending ? (
                         <RowExpansionPending
                           shipment={s}
-                          onAward={(carrier, price) => onAward(s, carrier, price)}
-                          onInvite={onInvite}
-                          onView={() => navigate(`/shipments/${s.id}`)}
+                          detailLoading={detailLoading}
+                          onEdit={() => onEdit(s)}
+                          onViewNewTab={() => onViewNewTab(s)}
+                          onCancel={() => onDelete(s)}
+                          onStubAction={onStubAction}
                           t={t}
                         />
                       ) : (
                         <RowExpansionStatus
                           shipment={s}
-                          onView={() => navigate(`/shipments/${s.id}`)}
+                          detailLoading={detailLoading}
+                          onEdit={() => onEdit(s)}
+                          onViewNewTab={() => onViewNewTab(s)}
+                          onCancel={() => onDelete(s)}
                           t={t}
                         />
                       )}

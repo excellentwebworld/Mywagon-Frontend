@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ApiError, shipmentsService } from '../../../api';
 import type { ListShipmentsParams } from '../../../api/types/shipments';
 import { useApp } from '../../../context/AppContext';
@@ -10,6 +11,7 @@ import {
   clearFilterChip,
   DEFAULT_FILTERS,
   filtersToApiParams,
+  isShipmentEditable,
   statusTabHasApiSupport,
   statusTabToApiStatus,
   validateFilterRanges,
@@ -26,6 +28,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 export function useManageShipments() {
   const { updateShipment, carriers, showToast } = useApp();
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -38,6 +41,8 @@ export function useManageShipments() {
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [detailCache, setDetailCache] = useState<Record<string, Shipment>>({});
+  const [detailLoadingIds, setDetailLoadingIds] = useState<Set<string>>(new Set());
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteQuery, setInviteQuery] = useState('');
   const [invitedCarriers, setInvitedCarriers] = useState<Set<string>>(new Set());
@@ -163,8 +168,56 @@ export function useManageShipments() {
   }, []);
 
   const handleToggleExpand = useCallback((id: string) => {
-    setExpandedId((prev) => (prev === id ? null : id));
+    setExpandedId((prev) => {
+      const next = prev === id ? null : id;
+      if (next) {
+        setDetailCache((cache) => {
+          if (cache[next]) return cache;
+          setDetailLoadingIds((loadingSet) => {
+            if (loadingSet.has(next)) return loadingSet;
+            return new Set(loadingSet).add(next);
+          });
+          void shipmentsService
+            .getMapped(next)
+            .then((detail) => {
+              setDetailCache((c) => ({ ...c, [next]: detail }));
+            })
+            .catch(() => undefined)
+            .finally(() => {
+              setDetailLoadingIds((loadingSet) => {
+                const copy = new Set(loadingSet);
+                copy.delete(next);
+                return copy;
+              });
+            });
+          return cache;
+        });
+      }
+      return next;
+    });
   }, []);
+
+  const mergedShipment = useCallback(
+    (s: Shipment): Shipment => {
+      const detail = detailCache[s.id];
+      if (!detail) return s;
+      return {
+        ...s,
+        ...detail,
+        bids: Math.max(s.bids || 0, detail.bids || 0),
+        bidsReceived: s.bidsReceived ?? detail.bidsReceived,
+        bidsSent: s.bidsSent ?? detail.bidsSent,
+        best_bid: s.best_bid ?? detail.best_bid,
+        carrier: s.carrier ?? detail.carrier,
+        carrier_init: s.carrier_init ?? detail.carrier_init,
+        quotedPrice: s.quotedPrice ?? detail.quotedPrice,
+        agreedPrice: s.agreedPrice ?? detail.agreedPrice,
+        channel: s.channel ?? detail.channel,
+        invited: detail.invited ?? s.invited,
+      };
+    },
+    [detailCache]
+  );
 
   const handleCopyId = useCallback(
     (id: string) => {
@@ -189,13 +242,6 @@ export function useManageShipments() {
     [updateShipment, showToast, t]
   );
 
-  const handleClone = useCallback(
-    (id: string) => {
-      showToast(t('shipmentCloned', { id }), 'success');
-    },
-    [showToast, t]
-  );
-
   const handleDeleteRequest = useCallback((s: Shipment) => {
     setCancelTarget(s);
   }, []);
@@ -204,11 +250,34 @@ export function useManageShipments() {
     showToast(t('shipmentCancelled'), 'success');
     setRefreshKey((k) => k + 1);
     setCancelTarget(null);
+    setExpandedId(null);
   }, [showToast, t]);
 
   const handleEditBlocked = useCallback(() => {
     showToast(t('editNotAllowed'), 'warning');
   }, [showToast, t]);
+
+  const handleEdit = useCallback(
+    (s: Shipment) => {
+      if (!isShipmentEditable(s.status)) {
+        handleEditBlocked();
+        return;
+      }
+      navigate(`/shipments/create?id=${s.id}`);
+    },
+    [handleEditBlocked, navigate]
+  );
+
+  const handleViewNewTab = useCallback((s: Shipment) => {
+    window.open(`/shipments/${s.id}`, '_blank', 'noopener,noreferrer');
+  }, []);
+
+  const handleStubAction = useCallback(
+    (key: string) => {
+      showToast(t(key), 'info');
+    },
+    [showToast, t]
+  );
 
   const handleBulkAction = useCallback(
     (action: string) => {
@@ -274,15 +343,19 @@ export function useManageShipments() {
     setPage,
     selectedIds,
     expandedId,
+    detailLoadingIds,
+    mergedShipment,
     handleSelectAll,
     handleSelectRow,
     handleToggleExpand,
     handleCopyId,
     handleAward,
-    handleClone,
     handleDeleteRequest,
     handleCancelled,
     handleEditBlocked,
+    handleEdit,
+    handleViewNewTab,
+    handleStubAction,
     cancelTarget,
     setCancelTarget,
     handleBulkAction,
