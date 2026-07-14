@@ -1,6 +1,7 @@
 export { KpiStrip } from './KpiStrip';
-export { SavedViewsBar } from './SavedViewsBar';
-export { FilterBar } from './FilterBar';
+export { ListToolbar } from './ListToolbar';
+export { FilterPlaceholderModal } from './FilterPlaceholderModal';
+export { SortModal } from './SortModal';
 export { StatusTabs } from './StatusTabs';
 export { ShipmentTable } from './ShipmentTable';
 export { RowExpansionPending } from './RowExpansionPending';

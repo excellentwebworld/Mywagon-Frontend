@@ -213,6 +213,8 @@ function milestoneIndexForStatus(status: Shipment['status']): number {
       return 3;
     case 'upcoming':
       return 4;
+    case 'past_due':
+      return 5;
     case 'in_progress':
       return 7;
     case 'delivered':

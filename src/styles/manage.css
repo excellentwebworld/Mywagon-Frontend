@@ -108,95 +108,7 @@
   background: var(--accent);
 }
 
-/* ── Saved Views bar ── */
-.views-bar {
-  display: flex;
-  align-items: stretch;
-  margin-bottom: 12px;
-  border-bottom: 2px solid var(--border);
-  position: relative;
-}
-.sv-tab {
-  padding: 10px 18px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  border: none;
-  background: none;
-  font-family: inherit;
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  transition: color 0.12s;
-}
-.sv-tab:hover {
-  color: var(--text-primary);
-}
-.sv-tab.act {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-.sv-tab.act::after {
-  content: "";
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--accent);
-  border-radius: 2px 2px 0 0;
-}
-.sv-tab .sv-x {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  margin-left: 2px;
-  border-radius: 50%;
-  width: 16px;
-  height: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.12s;
-}
-.sv-tab .sv-x:hover {
-  background: var(--danger-bg);
-  color: var(--danger);
-}
-.sv-add {
-  padding: 10px 16px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  border: none;
-  background: none;
-  font-family: inherit;
-  white-space: nowrap;
-  transition: color 0.12s;
-}
-.sv-add:hover {
-  color: var(--accent);
-}
-.sv-all {
-  padding: 10px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent);
-  cursor: pointer;
-  border: none;
-  background: none;
-  font-family: inherit;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  white-space: nowrap;
-  margin-left: auto;
-}
-
-/* ── Filter bar ── */
+/* ── Filter / list toolbar ── */
 .fbar {
   display: flex;
   align-items: center;
@@ -206,6 +118,9 @@
   position: relative;
   z-index: 40;
   overflow: visible;
+}
+.list-toolbar .f-search {
+  width: min(320px, 100%);
 }
 .f-tabs {
   display: flex;

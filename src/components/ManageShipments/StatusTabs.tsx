@@ -14,6 +14,7 @@ const TABS: { key: StatusTabKey; labelKey: string; warnCount?: boolean }[] = [
   { key: 'pending', labelKey: 'tabPending' },
   { key: 'scheduled', labelKey: 'tabScheduled' },
   { key: 'upcoming', labelKey: 'tabUpcoming' },
+  { key: 'past_due', labelKey: 'tabPastDue' },
   { key: 'in_progress', labelKey: 'tabInProgress' },
   { key: 'drafts', labelKey: 'tabDrafts' },
   { key: 'completed', labelKey: 'tabCompleted' },
@@ -32,6 +33,7 @@ export const StatusTabs: React.FC<StatusTabsProps> = ({ shipments, activeTab, on
           onClick={() => onTabChange(tab.key)}
           role="button"
           tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && onTabChange(tab.key)}
         >
           {t(tab.labelKey)}
           <span className={`cnt ${tab.warnCount && activeTab === tab.key ? 'cw' : ''}`}>{count}</span>

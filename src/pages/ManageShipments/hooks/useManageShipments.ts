@@ -8,8 +8,8 @@ import {
   DEFAULT_FILTERS,
   filterShipments,
   paginate,
-  type FilterState,
   type KpiKey,
+  type SortKey,
   type StatusTabKey,
 } from '../utils/listingUtils';
 
@@ -23,14 +23,15 @@ export function useManageShipments() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeKpi, setActiveKpi] = useState<KpiKey | null>('action');
   const [activeTab, setActiveTab] = useState<StatusTabKey>('active');
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const [activeView, setActiveView] = useState('workQueue');
+  const [sortKey, setSortKey] = useState<SortKey>('');
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteQuery, setInviteQuery] = useState('');
   const [invitedCarriers, setInvitedCarriers] = useState<Set<string>>(new Set());
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
 
   const kpiCounts = useMemo(() => computeKpiCounts(shipments), [shipments]);
 
@@ -40,38 +41,13 @@ export function useManageShipments() {
         searchQuery,
         activeKpi,
         activeTab,
-        filters,
+        filters: DEFAULT_FILTERS,
+        sortKey,
       }),
-    [shipments, searchQuery, activeKpi, activeTab, filters]
+    [shipments, searchQuery, activeKpi, activeTab, sortKey]
   );
 
   const pagination = useMemo(() => paginate(filtered, page, PER_PAGE), [filtered, page]);
-
-  const handleViewChange = useCallback((view: string) => {
-    setActiveView(view);
-    if (view === 'delivered') {
-      setActiveTab('completed');
-      setFilters((prev) => ({ ...prev, status: ['delivered'] }));
-    } else {
-      setActiveTab('active');
-      setFilters(DEFAULT_FILTERS);
-      setActiveKpi(view === 'workQueue' ? 'action' : null);
-    }
-    setPage(1);
-  }, []);
-
-  const handleFilterChange = useCallback((key: keyof FilterState, values: string[]) => {
-    setFilters((prev) => ({ ...prev, [key]: values }));
-    setPage(1);
-  }, []);
-
-  const handleClearAll = useCallback(() => {
-    setSearchQuery('');
-    setActiveKpi(null);
-    setActiveTab('active');
-    setFilters(DEFAULT_FILTERS);
-    setPage(1);
-  }, []);
 
   const handleSelectAll = useCallback(
     (checked: boolean) => {
@@ -155,6 +131,15 @@ export function useManageShipments() {
     setInvitedCarriers(new Set());
   }, [invitedCarriers, showToast, t]);
 
+  const handleExport = useCallback(() => {
+    showToast(t('exportComingSoon'), 'info');
+  }, [showToast, t]);
+
+  const handleApplySort = useCallback((key: SortKey) => {
+    setSortKey(key);
+    setPage(1);
+  }, []);
+
   return {
     t,
     shipments,
@@ -166,11 +151,7 @@ export function useManageShipments() {
     setActiveKpi,
     activeTab,
     setActiveTab,
-    filters,
-    activeView,
-    handleViewChange,
-    handleFilterChange,
-    handleClearAll,
+    sortKey,
     kpiCounts,
     pagination,
     page,
@@ -193,5 +174,11 @@ export function useManageShipments() {
     handleSendInvites,
     carriers,
     clearSelection: () => setSelectedIds(new Set()),
+    isFilterOpen,
+    setIsFilterOpen,
+    isSortOpen,
+    setIsSortOpen,
+    handleExport,
+    handleApplySort,
   };
 }

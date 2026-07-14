@@ -1,12 +1,13 @@
 import React from 'react';
 import {
   BulkBar,
-  FilterBar,
+  FilterPlaceholderModal,
   InviteCarrierModal,
   KpiStrip,
+  ListToolbar,
   Pagination,
-  SavedViewsBar,
   ShipmentTable,
+  SortModal,
   StatusTabs,
 } from '../../components/ManageShipments';
 import { KpiStripSkeleton } from '../../components/skeletons/ManageShipmentsSkeleton';
@@ -28,17 +29,16 @@ export const ManageShipments: React.FC = () => {
         <KpiStrip counts={m.kpiCounts} activeKpi={m.activeKpi} onKpiClick={m.setActiveKpi} t={m.t} />
       )}
 
-      <SavedViewsBar activeView={m.activeView} onViewChange={m.handleViewChange} t={m.t} />
-
-      <FilterBar
+      <ListToolbar
         searchQuery={m.searchQuery}
         onSearchChange={(v) => {
           m.setSearchQuery(v);
           m.setPage(1);
         }}
-        filters={m.filters}
-        onFilterChange={m.handleFilterChange}
-        onClearAll={m.handleClearAll}
+        onOpenFilter={() => m.setIsFilterOpen(true)}
+        onOpenSort={() => m.setIsSortOpen(true)}
+        onExport={m.handleExport}
+        sortActive={Boolean(m.sortKey)}
         t={m.t}
       />
 
@@ -96,6 +96,16 @@ export const ManageShipments: React.FC = () => {
         onToggle={m.handleToggleInviteCarrier}
         onClose={() => m.setIsInviteOpen(false)}
         onSend={m.handleSendInvites}
+        t={m.t}
+      />
+
+      <FilterPlaceholderModal open={m.isFilterOpen} onClose={() => m.setIsFilterOpen(false)} t={m.t} />
+
+      <SortModal
+        open={m.isSortOpen}
+        sortKey={m.sortKey}
+        onClose={() => m.setIsSortOpen(false)}
+        onApply={m.handleApplySort}
         t={m.t}
       />
     </div>

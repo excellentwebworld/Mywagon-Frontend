@@ -9,7 +9,7 @@ function mapApiStatus(status: string): Shipment['status'] {
     case 'on_trip':
       return 'in_progress';
     case 'past_due':
-      return 'in_progress';
+      return 'past_due';
     case 'fullfilled':
     case 'partially_fullfilled':
       return 'delivered';
@@ -133,7 +133,7 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     price_type: item.negotiable ? 'spot' : 'contract',
     updated: formatRelativeTime(item.updated_at),
     timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
-    tl_cur: status === 'pending' ? 2 : status === 'upcoming' ? 4 : status === 'in_progress' ? 6 : 2,
+    tl_cur: status === 'pending' ? 2 : status === 'upcoming' ? 4 : status === 'past_due' ? 5 : status === 'in_progress' ? 6 : 2,
     at_risk: atRisk,
     riskReason: item.risk_reason ?? (atRisk ? 'Delayed' : null),
     negotiable: item.negotiable ?? true,
