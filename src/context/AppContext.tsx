@@ -175,6 +175,21 @@ export interface Shipment {
   tl_cur: number;
   at_risk?: boolean;
   riskReason?: string | null;
+  needsAction?: boolean;
+  awaitingResponse?: boolean;
+  pickupToday?: boolean;
+  awaitingPod?: boolean;
+  bidsReceived?: number;
+  bidsSent?: number;
+  quotedPrice?: number | null;
+  agreedPrice?: number | null;
+  paymentStatus?: 'paid' | 'payment_pending' | null;
+  channel?: 'private' | 'public';
+  shipmentType?: 'direct' | 'multiple' | string | null;
+  intermediateStops?: number;
+  orderIds?: string[];
+  pickDtIso?: string | null;
+  delDtIso?: string | null;
   stops?: ShipmentStop[]; // Wizard created stop details
   driverNotes?: string;
   negotiable?: boolean;

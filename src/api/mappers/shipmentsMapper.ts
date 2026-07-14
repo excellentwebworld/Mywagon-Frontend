@@ -102,10 +102,11 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
 }
 
 export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
-  const price = parsePrice(item.total);
+  const quoted = item.quoted_price ?? parsePrice(item.total);
   const viaStops = splitViaStops(item.via, item.via_stops);
   const status = mapApiStatus(item.status);
-  const atRisk = Boolean(item.at_risk) || item.status === 'past_due';
+  const flags = item.flags;
+  const atRisk = Boolean(flags?.at_risk ?? item.at_risk) || item.status === 'past_due';
 
   return {
     id: String(item.id),
@@ -113,29 +114,44 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     date: item.pickup_at || formatDisplayDate(item.created_at),
     pickDt: item.pickup_at ?? null,
     delDt: item.delivery_at ?? null,
+    pickDtIso: item.pickup_at_iso ?? null,
+    delDtIso: item.delivery_at_iso ?? null,
     ref: item.customer_reference || undefined,
     status,
-    vis: item.type === 'public' ? 'public' : 'private',
+    vis: (item.channel || item.type) === 'public' ? 'public' : 'private',
+    channel: (item.channel || item.type) === 'public' ? 'public' : 'private',
+    shipmentType: item.shipment_type ?? null,
     origin: item.origin || '—',
     dest: item.dest || '—',
     via: viaStops.length ? viaStops.join(', ') : item.via ?? null,
     viaStops,
     stopCount: item.stop_count ?? (viaStops.length > 0 ? viaStops.length + 2 : 2),
+    intermediateStops: item.intermediate_stops ?? Math.max((item.stop_count ?? 2) - 2, 0),
     ordersCount: item.orders_count ?? (item.customer_reference ? 1 : 0),
+    orderIds: item.order_ids ?? [],
     invited: item.invited_count ?? 0,
     customer: mapCustomers(item),
     bids: item.bids_count ?? 0,
+    bidsReceived: item.bids_received ?? 0,
+    bidsSent: item.bids_sent ?? 0,
     best_bid: item.best_bid ?? null,
     bid_exp: null,
     carrier: item.carrier?.name ?? null,
     carrier_init: item.carrier?.initials,
-    price,
+    price: quoted,
+    quotedPrice: quoted,
+    agreedPrice: item.agreed_price ?? null,
     price_type: item.negotiable ? 'spot' : 'contract',
+    paymentStatus: item.payment_status ?? null,
     updated: formatRelativeTime(item.updated_at),
     timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
     tl_cur: status === 'pending' ? 2 : status === 'upcoming' ? 4 : status === 'past_due' ? 5 : status === 'in_progress' ? 6 : 2,
     at_risk: atRisk,
-    riskReason: item.risk_reason ?? (atRisk ? 'Delayed' : null),
+    riskReason: item.risk_reason ?? (atRisk ? 'Pickup overdue without transporter' : null),
+    needsAction: Boolean(flags?.needs_action ?? item.needs_action),
+    awaitingResponse: Boolean(flags?.awaiting_response ?? item.awaiting_response),
+    pickupToday: Boolean(flags?.pickup_today ?? item.pickup_today),
+    awaitingPod: Boolean(flags?.awaiting_pod ?? item.awaiting_pod),
     negotiable: item.negotiable ?? true,
   };
 }
