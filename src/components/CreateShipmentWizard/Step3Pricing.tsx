@@ -1192,34 +1192,34 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
             </div>
 
             {selectedVehicleGroups.length > 0 && (
-              <div className="px-4 py-3 border-b" style={{ borderColor: T.bd }}>
-                <div className="flex items-center gap-2 mb-2.5">
-                  <Truck size={16} style={{ color: T.t2 }} />
+              <div className="csw-rhs-veh border-b" style={{ borderColor: T.bd }}>
+                <div className="ch flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: T.bd }}>
+                  <Truck size={16} style={{ color: T.ac }} />
                   <span className="font-semibold text-sm">
                     {t('vehicleTypes') || t('vehicleType') || 'Vehicle types'}
                   </span>
                 </div>
-                <div className="space-y-3">
+                <div className="px-4 py-3 space-y-2.5">
                   {selectedVehicleGroups.map((group) => (
-                    <div key={group.key}>
-                      <div className="text-[11px] font-semibold mb-1.5" style={{ color: T.t1 }}>
-                        {group.name}
+                    <div key={group.key} className="csw-rhs-veh__card">
+                      <div className="csw-rhs-veh__check" aria-hidden>
+                        ✓
                       </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {group.specs.map((spec: string) => (
-                          <span
-                            key={`${group.key}-${spec}`}
-                            className="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-md"
-                            style={{
-                              background: T.sa,
-                              color: T.t1,
-                              border: `1px solid ${T.bd}`,
-                            }}
-                          >
-                            {spec}
-                          </span>
-                        ))}
+                      <div className="csw-rhs-veh__head">
+                        <div className="csw-rhs-veh__ico">
+                          <Truck size={16} strokeWidth={2} />
+                        </div>
+                        <div className="csw-rhs-veh__name">{group.name}</div>
                       </div>
+                      {group.specs.length > 0 && (
+                        <div className="csw-rhs-veh__specs">
+                          {group.specs.map((spec: string) => (
+                            <span key={`${group.key}-${spec}`} className="csw-rhs-veh__chip">
+                              {spec}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
