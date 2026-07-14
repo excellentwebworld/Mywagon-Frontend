@@ -23,6 +23,12 @@ interface ShipmentTableProps {
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
 
+function orderCount(s: Shipment): number {
+  if (s.ordersCount && s.ordersCount > 0) return s.ordersCount;
+  const fromCustomers = s.customer.reduce((n, c) => n + (c.orders?.length || 0), 0);
+  return fromCustomers || (s.ref ? 1 : 0);
+}
+
 export const ShipmentTable: React.FC<ShipmentTableProps> = ({
   loading = false,
   shipments,
@@ -73,6 +79,15 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
             const isExpanded = expandedId === s.id;
             const isPending = s.status === 'pending';
             const badgeClass = statusBadgeClass(s.status, s.at_risk);
+            const viaStops = s.viaStops?.length
+              ? s.viaStops
+              : s.via
+                ? s.via.split(',').map((v) => v.trim()).filter(Boolean)
+                : [];
+            const stopCount = s.stopCount ?? (viaStops.length > 0 ? viaStops.length + 2 : undefined);
+            const pickDt = s.pickDt || s.date;
+            const delDt = s.delDt;
+            const bidLabel = s.bids === 1 ? t('bid') : t('bids');
 
             return (
               <React.Fragment key={s.id}>
@@ -104,7 +119,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                     <div className="sub">
                       {s.ref ? (
                         <>
-                          {s.ref} · {t('orders')}: {s.customer.reduce((n, c) => n + (c.orders?.length || 0), 0) || 1}
+                          {s.ref} · {t('orders')}: {orderCount(s)}
                         </>
                       ) : (
                         '—'
@@ -115,21 +130,30 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                     <div className="lane">
                       {s.origin} <span className="arr">→</span> {s.dest}
                     </div>
-                    {s.via && (
+                    {viaStops.length > 0 && (
                       <div className="lane-stops">
-                        <span className="lane-via">{s.via}</span>
-                        {s.stops && s.stops.length > 0 && (
+                        {viaStops.map((stop, idx) => (
+                          <React.Fragment key={`${s.id}-via-${idx}`}>
+                            {idx > 0 && <span className="arr">→</span>}
+                            <span className="lane-via">{stop}</span>
+                          </React.Fragment>
+                        ))}
+                        {stopCount !== undefined && (
                           <span className="badge badge-gray" style={{ fontSize: 9, padding: '1px 5px' }}>
-                            {s.stops.length} {t('stops').toLowerCase()}
+                            {stopCount} {t('stops').toLowerCase()}
                           </span>
                         )}
                       </div>
                     )}
                     <div className="sub">
-                      🔵 {s.date}
-                      {s.stops && s.stops.length > 1 && s.stops[s.stops.length - 1]?.date && (
-                        <> · 🟢 {s.stops[s.stops.length - 1].date}</>
+                      {pickDt && <>🔵 {pickDt}</>}
+                      {delDt && (
+                        <>
+                          {' '}
+                          · 🟢 {delDt}
+                        </>
                       )}
+                      {!pickDt && !delDt && '—'}
                     </div>
                   </td>
                   <td>
@@ -159,23 +183,27 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                         <br />
                         <span className="badge badge-danger" style={{ marginTop: 4 }}>
                           <span className="bdot" />
-                          {t('atRiskLate')}
+                          {s.riskReason || t('atRiskLate')}
                         </span>
                       </>
                     )}
                   </td>
                   <td>
                     <span className={`vis vis-${s.vis === 'public' ? 'pub' : 'priv'}`}>{t(s.vis)}</span>
-                    {s.vis === 'private' && <div className="sub">{t('invited')}: 5</div>}
+                    {s.vis === 'private' && (
+                      <div className="sub">
+                        {t('invited')}: {s.invited ?? 0}
+                      </div>
+                    )}
                   </td>
                   <td>
                     {isPending ? (
                       s.bids > 0 ? (
                         <div className="bids-cell">
                           <span className="bids-ct">
-                            {s.bids} {t('bids')}
+                            {s.bids} {bidLabel}
                           </span>
-                          {s.best_bid && (
+                          {s.best_bid != null && (
                             <span className="bids-best">
                               {' '}
                               · {t('best')} €{s.best_bid}
@@ -190,7 +218,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                           {s.counter && (
                             <>
                               <br />
-                              <span className="co-badge-tbl co-up">
+                              <span className={`co-badge-tbl ${s.counter.dir === 'up' ? 'co-up' : 'co-down'}`}>
                                 ↩ {s.counter.pct} (€{s.counter.theirs})
                               </span>
                             </>
@@ -211,27 +239,23 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                         </span>
                         {s.carrier}
                       </div>
-                    ) : isPending ? (
+                    ) : (
                       <span className="uncov">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                          <line x1="12" y1="9" x2="12" y2="13" />
-                          <line x1="12" y1="17" x2="12.01" y2="17" />
                         </svg>
                         {t('uncoveredLabel')}
                       </span>
-                    ) : (
-                      <span className="sub">—</span>
                     )}
                   </td>
                   <td>
-                    {isPending || s.price == null ? (
+                    {s.price == null ? (
                       <span className="sub">—</span>
                     ) : (
                       <>
-                        <span className="price">€ {s.price}</span>
+                        <span className="price">€ {s.price.toLocaleString()}</span>
                         <span className={s.price_type === 'contract' ? 'chip-cont' : 'chip-spot'}>
-                          {s.price_type === 'contract' ? 'CONTRACT' : 'SPOT'}
+                          {s.price_type === 'contract' ? t('contract') : t('spot')}
                         </span>
                       </>
                     )}

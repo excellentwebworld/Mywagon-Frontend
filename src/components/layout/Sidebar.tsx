@@ -110,7 +110,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <path d="M9 12h6M9 16h4" />
             </svg>
             <span>{t("navManageShipments")}</span>
-            <span className="nb">5</span>
           </Link>
 
           <a href="#search" className="ni" title={t("truckAvailability")}>
@@ -126,9 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <path d="m21 21-4.35-4.35" />
             </svg>
             <span>{t("truckAvailability")}</span>
-            {/* <span className="nb" style={{ background: "#0EA5E9" }}>
-              BETA
-            </span> */}
+            <span className="nb">BETA</span>
           </a>
 
           <div className="ns">{t("navRegistry")}</div>

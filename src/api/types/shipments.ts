@@ -1,3 +1,8 @@
+export interface ApiShipmentListCarrier {
+  name: string;
+  initials: string;
+}
+
 export interface ApiShipmentListItem {
   id: number;
   auto_id: string;
@@ -8,10 +13,21 @@ export interface ApiShipmentListItem {
   origin?: string | null;
   dest?: string | null;
   via?: string | null;
+  via_stops?: string[];
+  stop_count?: number;
+  pickup_at?: string | null;
+  delivery_at?: string | null;
+  customers?: string[];
+  orders_count?: number;
   updated_at?: string | null;
   created_at?: string | null;
   bids_count?: number;
+  best_bid?: number | null;
+  invited_count?: number;
+  carrier?: ApiShipmentListCarrier | null;
   negotiable?: boolean;
+  at_risk?: boolean;
+  risk_reason?: string | null;
 }
 
 export interface ApiShipmentStop {

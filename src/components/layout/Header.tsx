@@ -72,6 +72,8 @@ export const Header: React.FC<HeaderProps> = ({
   const showFilters = isDashboard;
   const showSearch = isDashboard;
   const showCta = !isMaster && location.pathname !== '/shipments/create';
+  const isShipmentsList =
+    location.pathname === '/shipments' || location.pathname === '/shipments/';
 
   // Breadcrumbs title mapping
   const getPageTitle = () => {
@@ -220,6 +222,38 @@ export const Header: React.FC<HeaderProps> = ({
             EL
           </button>
         </div>
+
+        {isShipmentsList && (
+          <>
+            <button
+              type="button"
+              className="tb-btn"
+              onClick={() => showToast(t('export'), 'info')}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span>{t('export')}</span>
+            </button>
+            <button
+              type="button"
+              className="tb-btn"
+              onClick={() => showToast(t('sort'), 'info')}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="4" y1="21" x2="4" y2="14" />
+                <line x1="4" y1="10" x2="4" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12" y2="3" />
+                <line x1="20" y1="21" x2="20" y2="16" />
+                <line x1="20" y1="12" x2="20" y2="3" />
+              </svg>
+              <span>{t('sort')}</span>
+            </button>
+          </>
+        )}
 
         {/* Notifications Dropdown */}
         <div ref={notifRef} className="dropdown" style={{ position: 'relative' }}>
@@ -465,7 +499,7 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <path d="M12 5v14M5 12h14" />
             </svg>
-            {t('createShipment')}
+            {isShipmentsList ? t('newShipment') : t('createShipment')}
           </button>
         )}
       </div>

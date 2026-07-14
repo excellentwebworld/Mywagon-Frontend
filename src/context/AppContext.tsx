@@ -150,12 +150,18 @@ export interface Shipment {
   id: string;
   autoId?: string;
   date: string;
+  pickDt?: string | null;
+  delDt?: string | null;
   ref?: string;
   status: 'pending' | 'upcoming' | 'in_progress' | 'awarded' | 'delivered' | 'cancelled';
   vis: 'private' | 'public' | 'fleet';
   origin: string;
   dest: string;
   via: string | null;
+  viaStops?: string[];
+  stopCount?: number;
+  ordersCount?: number;
+  invited?: number;
   customer: { name: string; orders: string[] }[];
   bids: number;
   best_bid: number | null;
@@ -168,6 +174,7 @@ export interface Shipment {
   timeline: string[];
   tl_cur: number;
   at_risk?: boolean;
+  riskReason?: string | null;
   stops?: ShipmentStop[]; // Wizard created stop details
   driverNotes?: string;
   negotiable?: boolean;
