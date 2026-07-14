@@ -292,6 +292,27 @@ export function computeTripTotals(stops: ApiStop[]): TripTotals {
   return { totalPallets, totalWeightKg, droppedWeightKg, uniqueCustomers, orderCount: orderIds.size };
 }
 
+/**
+ * Summarize pickup qty by canonical unit for trip summary tiles
+ * (e.g. "60 EUR Pallets" or "50 EUR Pallets · 10 Boxes").
+ */
+export function formatTripQtySummary(stops: ApiStop[]): string {
+  const byUnit: Record<string, number> = {};
+  stops.forEach((s) =>
+    (s.lines || []).forEach((ln) => {
+      if (ln.action !== 'pickup') return;
+      const q = parseFloat(String(ln.qty ?? '')) || 0;
+      if (q <= 0) return;
+      const unit = normalizeQtyUnit(ln.unit) || '—';
+      byUnit[unit] = (byUnit[unit] || 0) + q;
+    })
+  );
+  const parts = Object.entries(byUnit)
+    .filter(([, qty]) => qty > 0)
+    .map(([unit, qty]) => formatQtyWithUnit(qty, unit === '—' ? '' : unit));
+  return parts.length > 0 ? parts.join(' · ') : '—';
+}
+
 export function computeRunningWeights(stops: ApiStop[]): number[] {
   let w = 0;
   return stops.map((s) => {

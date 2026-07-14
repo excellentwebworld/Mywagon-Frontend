@@ -19,6 +19,9 @@ import {
   formatDurationMin,
   formatWeightDisplay,
   formatWeightKg,
+  formatTripQtySummary,
+  formatQtyWithUnit,
+  normalizeQtyUnit,
   TRUCK_WEIGHT_CAP_KG,
 } from './itinerary/cargoUtils';
 import { groupStopLinesByCustomer } from './itinerary/stopGrouping';
@@ -400,7 +403,10 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                                       {l.productName || '—'}
                                     </span>
                                     <span style={{ color: T.t2 }}>
-                                      {l.qty} {l.unit || ''}
+                                      {formatQtyWithUnit(
+                                        parseFloat(String(l.qty ?? '')) || 0,
+                                        normalizeQtyUnit(l.unit) || l.unit,
+                                      )}
                                     </span>
                                     <span style={{ color: T.t3 }}>
                                       {formatWeightDisplay(l.weight, l.wtUnit)}
@@ -509,6 +515,10 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                   value: route.loading ? '…' : formatDurationMin(route.totalDriveMin),
                 },
                 { label: t('step2StopsCount'), value: String(enrichedStops.length) },
+                {
+                  label: t('quantity') || t('qty') || 'Quantity',
+                  value: formatTripQtySummary(stops),
+                },
                 { label: t('step2TotalWeight'), value: formatWeightKg(totals.totalWeightKg) },
                 ...(showCustomerStats
                   ? [

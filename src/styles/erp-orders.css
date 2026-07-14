@@ -1545,11 +1545,15 @@ table.t tbody td {
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   align-items: stretch;
+  padding: 4px;
+  box-sizing: border-box;
+  overflow: visible;
 }
 .vc-wrap {
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: visible;
 }
 .vc {
   border: 2px solid var(--border, #E4E4E8);
@@ -1558,18 +1562,18 @@ table.t tbody td {
   text-align: center;
   cursor: pointer;
   position: relative;
-  transition: all .2s;
+  transition: border-color .2s, box-shadow .2s, background .2s;
   background: var(--surface, #FFF);
   height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   box-sizing: border-box;
+  overflow: visible;
 }
 .vc:hover {
   border-color: var(--border-focus, #C8C8CF);
   box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
 }
 .vc.sel {
   border-color: var(--accent, #6C3AED);
@@ -1599,15 +1603,20 @@ table.t tbody td {
   background: var(--danger, #EF4444);
 }
 .vi {
-  height: 48px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-tertiary, #8E8E9A);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  background: transparent;
+  flex-shrink: 0;
 }
 .vc.sel .vi {
   color: var(--accent, #6C3AED);
+  background: color-mix(in srgb, var(--accent, #6C3AED) 16%, transparent);
 }
 .vn {
   font-size: 13px;
