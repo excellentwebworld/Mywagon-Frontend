@@ -139,6 +139,26 @@ export interface ApiShipmentsSummary {
   statuses: Record<string, number>;
 }
 
+export interface ApiCancelReason {
+  id: number;
+  reason: string;
+  is_other: boolean;
+}
+
+export interface ApiCancelReasonsPayload {
+  reasons: ApiCancelReason[];
+  cancellation_charge: {
+    charge: number;
+    flag: boolean;
+    message: string;
+  };
+  shipment: {
+    id: number;
+    auto_id: string;
+    status: string;
+  };
+}
+
 export interface PaginatedShipmentsResult {
   items: ApiShipmentListItem[];
   meta: {

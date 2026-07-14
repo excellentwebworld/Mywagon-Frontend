@@ -366,6 +366,32 @@ export function clearFilterChip(filters: ShipmentsFilterState, key: FilterChipKe
   }
 }
 
+export function formatEuro(value: number | null | undefined): string | null {
+  if (value == null || Number.isNaN(value)) return null;
+  return `€ ${value.toLocaleString()}`;
+}
+
+export function shipmentOrderSublabel(s: Shipment, t: (key: string) => string): string {
+  const ids = s.orderIds?.filter(Boolean) ?? [];
+  if (ids.length === 1) return ids[0];
+  const count = s.ordersCount ?? ids.length;
+  if (count > 1) return `${t('orders')}: ${count}`;
+  return '—';
+}
+
+export function laneMidLabel(
+  s: Shipment,
+  t: (key: string, opts?: Record<string, unknown>) => string
+): string {
+  const stops = s.intermediateStops ?? Math.max((s.stopCount ?? 2) - 2, 0);
+  if (s.shipmentType === 'direct' || stops <= 0) return t('directTrip');
+  return t('intermediateStopsCount', { count: stops });
+}
+
+export function isShipmentEditable(status: Shipment['status']): boolean {
+  return status !== 'delivered' && status !== 'cancelled';
+}
+
 export function statusBadgeClass(status: Shipment['status'], atRisk?: boolean): string {
   if (atRisk || status === 'past_due') return 'badge-danger';
   switch (status) {

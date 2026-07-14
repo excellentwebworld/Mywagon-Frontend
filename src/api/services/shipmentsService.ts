@@ -1,6 +1,7 @@
-import { apiGet, AUTH_TOKEN_KEY, ApiError } from '../client';
+import { apiGet, apiPost, AUTH_TOKEN_KEY, ApiError } from '../client';
 import { mapApiDetailToShipment, mapApiListItemToShipment } from '../mappers/shipmentsMapper';
 import type {
+  ApiCancelReasonsPayload,
   ApiShipmentDetail,
   ApiShipmentListItem,
   ApiShipmentsSummary,
@@ -130,5 +131,23 @@ export const shipmentsService = {
   async getMapped(id: string | number): Promise<Shipment> {
     const detail = await this.get(id);
     return mapApiDetailToShipment(detail);
+  },
+
+  async cancelReasons(id: string | number): Promise<ApiCancelReasonsPayload> {
+    const res = await apiGet<ApiCancelReasonsPayload>(`/shipments/${id}/cancel-reasons`);
+    return (
+      res.data ?? {
+        reasons: [],
+        cancellation_charge: { charge: 0, flag: false, message: '' },
+        shipment: { id: Number(id), auto_id: String(id), status: '' },
+      }
+    );
+  },
+
+  async cancel(
+    id: string | number,
+    body: { cancel_reason_id: number; cancel_notes?: string }
+  ): Promise<void> {
+    await apiPost(`/shipments/${id}/cancel`, body);
   },
 };

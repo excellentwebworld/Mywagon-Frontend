@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   BulkBar,
+  CancelShipmentModal,
   FilterChips,
   FilterModal,
   InviteCarrierModal,
@@ -68,7 +69,8 @@ export const ManageShipments: React.FC = () => {
           onCopyId={m.handleCopyId}
           onAward={m.handleAward}
           onInvite={() => m.setIsInviteOpen(true)}
-          onClone={m.handleClone}
+          onDelete={m.handleDeleteRequest}
+          onEditBlocked={m.handleEditBlocked}
           t={m.t}
         />
         <Pagination
@@ -116,6 +118,14 @@ export const ManageShipments: React.FC = () => {
         sortKey={m.sortKey}
         onClose={() => m.setIsSortOpen(false)}
         onApply={m.handleApplySort}
+        t={m.t}
+      />
+
+      <CancelShipmentModal
+        open={Boolean(m.cancelTarget)}
+        shipment={m.cancelTarget}
+        onClose={() => m.setCancelTarget(null)}
+        onCancelled={m.handleCancelled}
         t={m.t}
       />
     </div>

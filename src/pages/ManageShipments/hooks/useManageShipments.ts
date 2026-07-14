@@ -44,6 +44,8 @@ export function useManageShipments() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [cancelTarget, setCancelTarget] = useState<Shipment | null>(null);
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebouncedSearch(searchQuery.trim()), SEARCH_DEBOUNCE_MS);
@@ -79,7 +81,8 @@ export function useManageShipments() {
   const { shipments, meta, summary, loading, error } = useShipmentsList(
     listParams,
     summaryParams,
-    tabSupported
+    tabSupported,
+    refreshKey
   );
 
   const kpiCounts = summary.kpis;
@@ -193,6 +196,20 @@ export function useManageShipments() {
     [showToast, t]
   );
 
+  const handleDeleteRequest = useCallback((s: Shipment) => {
+    setCancelTarget(s);
+  }, []);
+
+  const handleCancelled = useCallback(() => {
+    showToast(t('shipmentCancelled'), 'success');
+    setRefreshKey((k) => k + 1);
+    setCancelTarget(null);
+  }, [showToast, t]);
+
+  const handleEditBlocked = useCallback(() => {
+    showToast(t('editNotAllowed'), 'warning');
+  }, [showToast, t]);
+
   const handleBulkAction = useCallback(
     (action: string) => {
       showToast(`${action}: ${selectedIds.size}`, 'info');
@@ -266,6 +283,11 @@ export function useManageShipments() {
     handleCopyId,
     handleAward,
     handleClone,
+    handleDeleteRequest,
+    handleCancelled,
+    handleEditBlocked,
+    cancelTarget,
+    setCancelTarget,
     handleBulkAction,
     isInviteOpen,
     setIsInviteOpen,

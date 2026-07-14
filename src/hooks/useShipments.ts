@@ -57,7 +57,8 @@ const EMPTY_SUMMARY: ApiShipmentsSummary = {
 export function useShipmentsList(
   listParams: ListShipmentsParams,
   summaryParams: Omit<ListShipmentsParams, 'page' | 'per_page'>,
-  listEnabled = true
+  listEnabled = true,
+  refreshKey = 0
 ) {
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [meta, setMeta] = useState<ApiListMeta>({
@@ -111,7 +112,7 @@ export function useShipmentsList(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- key-based sync
-  }, [listEnabled, listKey, summaryKey]);
+  }, [listEnabled, listKey, summaryKey, refreshKey]);
 
   return { shipments, meta, summary, loading, error };
 }

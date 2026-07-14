@@ -401,6 +401,79 @@ table.mgmt-t {
   margin: 0 3px;
 }
 
+.lane-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 140px;
+}
+.lane-line {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+.lane-place {
+  color: var(--text-primary);
+}
+.lane-when {
+  font-weight: 400;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+.lane-mid {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.payment-subtag {
+  margin-top: 4px;
+  display: inline-flex;
+}
+
+.agreed-price {
+  font-weight: 600;
+}
+
+.bids-sent {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.row-actions-menu {
+  position: fixed;
+  z-index: 1200;
+  min-width: 148px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.row-actions-menu button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+.row-actions-menu button:hover {
+  background: var(--surface-alt);
+}
+.row-actions-menu button.is-danger {
+  color: var(--danger);
+}
+.row-actions-menu button.is-disabled {
+  opacity: 0.55;
+}
+
 .vis {
   font-size: 10px;
   font-weight: 600;
