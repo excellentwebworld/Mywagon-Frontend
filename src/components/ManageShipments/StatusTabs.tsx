@@ -1,9 +1,8 @@
 import React from 'react';
-import type { Shipment } from '../../context/AppContext';
-import { countByStatusTab, type StatusTabKey } from '../../pages/ManageShipments/utils/listingUtils';
+import { countForStatusTab, type StatusTabKey } from '../../pages/ManageShipments/utils/listingUtils';
 
 interface StatusTabsProps {
-  shipments: Shipment[];
+  statusCounts: Record<string, number>;
   activeTab: StatusTabKey;
   onTabChange: (tab: StatusTabKey) => void;
   t: (key: string) => string;
@@ -22,10 +21,10 @@ const TABS: { key: StatusTabKey; labelKey: string; warnCount?: boolean }[] = [
   { key: 'cancelled', labelKey: 'tabCancelled' },
 ];
 
-export const StatusTabs: React.FC<StatusTabsProps> = ({ shipments, activeTab, onTabChange, t }) => (
+export const StatusTabs: React.FC<StatusTabsProps> = ({ statusCounts, activeTab, onTabChange, t }) => (
   <div className="stabs">
     {TABS.map((tab) => {
-      const count = countByStatusTab(shipments, tab.key);
+      const count = countForStatusTab(statusCounts, tab.key);
       return (
         <div
           key={tab.key}

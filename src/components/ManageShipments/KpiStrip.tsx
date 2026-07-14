@@ -1,22 +1,19 @@
 import React from 'react';
-import type { KpiKey } from '../../pages/ManageShipments/utils/listingUtils';
+import type { ShipmentKpiKey } from '../../api/types/shipments';
 
 interface KpiStripProps {
-  counts: Record<KpiKey, number>;
-  activeKpi: KpiKey | null;
-  onKpiClick: (key: KpiKey | null) => void;
+  counts: Record<ShipmentKpiKey, number>;
+  activeKpi: ShipmentKpiKey | null;
+  onKpiClick: (key: ShipmentKpiKey | null) => void;
   t: (key: string) => string;
 }
 
-const KPI_CONFIG: { key: KpiKey; labelKey: string; color: string }[] = [
-  { key: 'action', labelKey: 'needsActionLabel', color: 'c-warn' },
-  { key: 'bids', labelKey: 'pendingHasBids', color: 'c-acc' },
-  { key: 'uncov', labelKey: 'uncoveredLabel', color: 'c-err' },
-  { key: 'expiring', labelKey: 'expiringBids', color: 'c-warn' },
-  { key: 'risk', labelKey: 'atRiskLate', color: 'c-err' },
-  { key: 'pickup24', labelKey: 'pickup24h', color: 'c-info' },
-  { key: 'pod', labelKey: 'awaitingPod', color: '' },
-  { key: 'invoice', labelKey: 'invoiceIssues', color: '' },
+const KPI_CONFIG: { key: ShipmentKpiKey; labelKey: string; color: string }[] = [
+  { key: 'needs_action', labelKey: 'needsActionLabel', color: 'c-warn' },
+  { key: 'awaiting_response', labelKey: 'awaitingResponse', color: 'c-acc' },
+  { key: 'at_risk', labelKey: 'atRiskLate', color: 'c-err' },
+  { key: 'pickup_today', labelKey: 'pickupToday', color: 'c-info' },
+  { key: 'awaiting_pod', labelKey: 'awaitingPod', color: '' },
 ];
 
 export const KpiStrip: React.FC<KpiStripProps> = ({ counts, activeKpi, onKpiClick, t }) => (
@@ -30,7 +27,7 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ counts, activeKpi, onKpiClic
         tabIndex={0}
         onKeyDown={(e) => e.key === 'Enter' && onKpiClick(activeKpi === kpi.key ? null : kpi.key)}
       >
-        <div className="mgmt-kpi-v">{counts[kpi.key]}</div>
+        <div className="mgmt-kpi-v">{counts[kpi.key] ?? 0}</div>
         <div className="mgmt-kpi-l">{t(kpi.labelKey)}</div>
       </div>
     ))}

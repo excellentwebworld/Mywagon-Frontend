@@ -7,6 +7,8 @@ interface ListToolbarProps {
   onOpenSort: () => void;
   onExport: () => void;
   sortActive?: boolean;
+  filterActive?: boolean;
+  exporting?: boolean;
   t: (key: string) => string;
 }
 
@@ -17,6 +19,8 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
   onOpenSort,
   onExport,
   sortActive = false,
+  filterActive = false,
+  exporting = false,
   t,
 }) => (
   <div className="fbar list-toolbar a d2">
@@ -34,7 +38,7 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
       />
     </div>
 
-    <button type="button" className="f-pill" onClick={onOpenFilter}>
+    <button type="button" className={`f-pill ${filterActive ? 'has' : ''}`} onClick={onOpenFilter}>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
       </svg>
@@ -53,13 +57,13 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
       {t('sort')}
     </button>
 
-    <button type="button" className="f-pill" onClick={onExport}>
+    <button type="button" className="f-pill" onClick={onExport} disabled={exporting}>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
         <polyline points="7 10 12 15 17 10" />
         <line x1="12" y1="15" x2="12" y2="3" />
       </svg>
-      {t('export')}
+      {exporting ? t('exporting') : t('export')}
     </button>
   </div>
 );

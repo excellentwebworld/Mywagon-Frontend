@@ -1,6 +1,7 @@
 export { KpiStrip } from './KpiStrip';
 export { ListToolbar } from './ListToolbar';
-export { FilterPlaceholderModal } from './FilterPlaceholderModal';
+export { FilterModal } from './FilterModal';
+export { FilterChips } from './FilterChips';
 export { SortModal } from './SortModal';
 export { StatusTabs } from './StatusTabs';
 export { ShipmentTable } from './ShipmentTable';

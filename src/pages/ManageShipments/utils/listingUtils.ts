@@ -1,14 +1,7 @@
 import type { Shipment } from '../../../context/AppContext';
+import type { ListShipmentsParams, ShipmentKpiKey, ShipmentSortKey } from '../../../api/types/shipments';
 
-export type KpiKey =
-  | 'action'
-  | 'bids'
-  | 'uncov'
-  | 'expiring'
-  | 'risk'
-  | 'pickup24'
-  | 'pod'
-  | 'invoice';
+export type KpiKey = ShipmentKpiKey;
 
 export type StatusTabKey =
   | 'active'
@@ -22,20 +15,7 @@ export type StatusTabKey =
   | 'partially_paid'
   | 'cancelled';
 
-export type SortKey =
-  | ''
-  | 'carrier_asc'
-  | 'carrier_desc'
-  | 'pickup_city_asc'
-  | 'pickup_city_desc'
-  | 'delivery_city_asc'
-  | 'delivery_city_desc'
-  | 'earliest_first_pickup_time'
-  | 'latest_first_pickup_time'
-  | 'earliest_posting_date'
-  | 'latest_posting_date'
-  | 'price_asc'
-  | 'price_desc';
+export type SortKey = '' | ShipmentSortKey;
 
 export const SORT_OPTIONS: { value: SortKey; labelKey: string }[] = [
   { value: 'carrier_asc', labelKey: 'sortCarrierAsc' },
@@ -52,196 +32,338 @@ export const SORT_OPTIONS: { value: SortKey; labelKey: string }[] = [
   { value: 'price_desc', labelKey: 'sortPriceDesc' },
 ];
 
-export interface FilterState {
-  status: string[];
-  bidState: string[];
-  visibility: string[];
-  facility: string[];
-  customer: string[];
-  dateRange: string[];
-  exceptions: string[];
-}
-
-export const DEFAULT_FILTERS: FilterState = {
-  status: [],
-  bidState: [],
-  visibility: [],
-  facility: [],
-  customer: [],
-  dateRange: [],
-  exceptions: [],
+export const EMPTY_KPI_COUNTS: Record<ShipmentKpiKey, number> = {
+  needs_action: 0,
+  awaiting_response: 0,
+  at_risk: 0,
+  pickup_today: 0,
+  awaiting_pod: 0,
 };
 
-export function computeKpiCounts(shipments: Shipment[]) {
-  return {
-    action: shipments.filter((s) => s.status === 'pending').length,
-    bids: shipments.filter((s) => s.status === 'pending' && s.bids > 0).length,
-    uncov: shipments.filter((s) => !s.carrier).length,
-    expiring: shipments.filter((s) => s.status === 'pending' && Boolean(s.bid_exp)).length,
-    risk: shipments.filter((s) => s.at_risk).length,
-    pickup24: shipments.filter((s) => s.status === 'upcoming' || s.status === 'in_progress').length,
-    pod: shipments.filter((s) => s.status === 'delivered').length,
-    invoice: 0,
-  };
+export interface ShipmentsFilterState {
+  carrier_name: string;
+  product_type: string[];
+  channel: 'all' | 'private' | 'public';
+  pickup_address: string;
+  pickup_lat: number | null;
+  pickup_lng: number | null;
+  pickup_radius: number | null;
+  dropoff_address: string;
+  dropoff_lat: number | null;
+  dropoff_lng: number | null;
+  dropoff_radius: number | null;
+  trip_km_min: string;
+  trip_km_max: string;
+  price_min: string;
+  price_max: string;
+  pickup_from: string;
+  pickup_to: string;
+  dropoff_from: string;
+  dropoff_to: string;
+  posted_from: string;
+  posted_to: string;
+  bid_state: '' | 'has_interest' | 'no_interest';
+  customer: string;
+  trip_mode: '' | 'direct' | 'multiple';
 }
 
-export function matchesKpi(shipment: Shipment, kpi: KpiKey | null): boolean {
-  if (!kpi) return true;
-  switch (kpi) {
-    case 'action':
-      return shipment.status === 'pending';
-    case 'bids':
-      return shipment.status === 'pending' && shipment.bids > 0;
-    case 'uncov':
-      return !shipment.carrier;
-    case 'expiring':
-      return shipment.status === 'pending' && Boolean(shipment.bid_exp);
-    case 'risk':
-      return Boolean(shipment.at_risk);
-    case 'pickup24':
-      return shipment.status === 'upcoming' || shipment.status === 'in_progress';
-    case 'pod':
-      return shipment.status === 'delivered';
-    case 'invoice':
-      return false;
-    default:
-      return true;
-  }
+export const DEFAULT_FILTERS: ShipmentsFilterState = {
+  carrier_name: '',
+  product_type: [],
+  channel: 'all',
+  pickup_address: '',
+  pickup_lat: null,
+  pickup_lng: null,
+  pickup_radius: null,
+  dropoff_address: '',
+  dropoff_lat: null,
+  dropoff_lng: null,
+  dropoff_radius: null,
+  trip_km_min: '',
+  trip_km_max: '',
+  price_min: '',
+  price_max: '',
+  pickup_from: '',
+  pickup_to: '',
+  dropoff_from: '',
+  dropoff_to: '',
+  posted_from: '',
+  posted_to: '',
+  bid_state: '',
+  customer: '',
+  trip_mode: '',
+};
+
+export function statusTabHasApiSupport(tab: StatusTabKey): boolean {
+  return tab !== 'drafts' && tab !== 'partially_paid';
 }
 
-export function matchesStatusTab(shipment: Shipment, tab: StatusTabKey): boolean {
+export function statusTabToApiStatus(tab: StatusTabKey): string | string[] | undefined {
   switch (tab) {
     case 'active':
-      return shipment.status !== 'cancelled' && shipment.status !== 'delivered';
+      return 'active';
     case 'pending':
-      return shipment.status === 'pending';
+      return 'pending';
     case 'scheduled':
-      return shipment.status === 'upcoming';
+      return 'scheduled';
     case 'upcoming':
-      return shipment.status === 'upcoming';
+      return ['scheduled', 'ready'];
     case 'past_due':
-      return shipment.status === 'past_due';
+      return 'past_due';
     case 'in_progress':
-      return shipment.status === 'in_progress';
-    case 'drafts':
-      return false;
+      return 'on_trip';
     case 'completed':
-      return shipment.status === 'delivered';
-    case 'partially_paid':
-      return false;
+      return ['fullfilled', 'partially_fullfilled'];
     case 'cancelled':
-      return shipment.status === 'cancelled';
+      return 'canceled';
     default:
-      return true;
+      return undefined;
   }
 }
 
-export function countByStatusTab(shipments: Shipment[], tab: StatusTabKey): number {
-  return shipments.filter((s) => matchesStatusTab(s, tab)).length;
-}
-
-function matchesSearch(shipment: Shipment, query: string): boolean {
-  if (!query.trim()) return true;
-  const q = query.toLowerCase();
-  const customerMatches = shipment.customer.some((c) => c.name.toLowerCase().includes(q));
-  const carrierMatches = shipment.carrier?.toLowerCase().includes(q);
-  return (
-    (shipment.autoId || shipment.id).toLowerCase().includes(q) ||
-    shipment.origin.toLowerCase().includes(q) ||
-    shipment.dest.toLowerCase().includes(q) ||
-    Boolean(customerMatches) ||
-    Boolean(carrierMatches)
-  );
-}
-
-function matchesFilters(shipment: Shipment, filters: FilterState): boolean {
-  if (filters.status.length && !filters.status.includes(shipment.status)) return false;
-  if (filters.visibility.length && !filters.visibility.includes(shipment.vis)) return false;
-  if (filters.bidState.includes('has_bids') && !(shipment.bids > 0)) return false;
-  if (filters.bidState.includes('no_bids') && shipment.bids > 0) return false;
-  if (filters.bidState.includes('expiring') && !shipment.bid_exp) return false;
-  if (filters.bidState.includes('has_counter') && !shipment.counter) return false;
-  if (filters.exceptions.includes('at_risk') && !shipment.at_risk) return false;
-  if (filters.exceptions.includes('uncovered') && shipment.carrier) return false;
-  if (filters.customer.length) {
-    const names = shipment.customer.map((c) => c.name);
-    if (!filters.customer.some((name) => names.includes(name))) return false;
+export function countForStatusTab(statuses: Record<string, number>, tab: StatusTabKey): number {
+  switch (tab) {
+    case 'active':
+      return statuses.active ?? 0;
+    case 'pending':
+      return statuses.pending ?? 0;
+    case 'scheduled':
+      return statuses.scheduled ?? 0;
+    case 'upcoming':
+      return (statuses.scheduled ?? 0) + (statuses.ready ?? 0);
+    case 'past_due':
+      return statuses.past_due ?? 0;
+    case 'in_progress':
+      return statuses.on_trip ?? 0;
+    case 'completed':
+      return (statuses.fullfilled ?? 0) + (statuses.partially_fullfilled ?? 0);
+    case 'cancelled':
+      return statuses.canceled ?? 0;
+    case 'drafts':
+    case 'partially_paid':
+      return 0;
+    default:
+      return 0;
   }
-  return true;
 }
 
-function compareText(a: string | null | undefined, b: string | null | undefined): number {
-  return (a || '').localeCompare(b || '', undefined, { sensitivity: 'base' });
+function toOptionalNumber(value: string): number | undefined {
+  if (value.trim() === '') return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
 }
 
-function pickupSortValue(s: Shipment): string {
-  return s.pickDt || s.date || '';
-}
+/** Filters used for both list and summary (excludes status, kpi, sort, page). */
+export function filtersToApiParams(filters: ShipmentsFilterState): Omit<ListShipmentsParams, 'page' | 'per_page' | 'status' | 'kpi' | 'sort' | 'search'> {
+  const params: Omit<ListShipmentsParams, 'page' | 'per_page' | 'status' | 'kpi' | 'sort' | 'search'> = {};
 
-export function sortShipments(shipments: Shipment[], sortKey: SortKey): Shipment[] {
-  if (!sortKey) return shipments;
-  const sorted = [...shipments];
-  sorted.sort((a, b) => {
-    switch (sortKey) {
-      case 'carrier_asc':
-        return compareText(a.carrier, b.carrier);
-      case 'carrier_desc':
-        return compareText(b.carrier, a.carrier);
-      case 'pickup_city_asc':
-        return compareText(a.origin, b.origin);
-      case 'pickup_city_desc':
-        return compareText(b.origin, a.origin);
-      case 'delivery_city_asc':
-        return compareText(a.dest, b.dest);
-      case 'delivery_city_desc':
-        return compareText(b.dest, a.dest);
-      case 'earliest_first_pickup_time':
-        return compareText(pickupSortValue(a), pickupSortValue(b));
-      case 'latest_first_pickup_time':
-        return compareText(pickupSortValue(b), pickupSortValue(a));
-      case 'earliest_posting_date':
-        return compareText(a.date, b.date) || compareText(a.id, b.id);
-      case 'latest_posting_date':
-        return compareText(b.date, a.date) || compareText(b.id, a.id);
-      case 'price_asc':
-        return (a.price ?? Number.POSITIVE_INFINITY) - (b.price ?? Number.POSITIVE_INFINITY);
-      case 'price_desc':
-        return (b.price ?? Number.NEGATIVE_INFINITY) - (a.price ?? Number.NEGATIVE_INFINITY);
-      default:
-        return 0;
-    }
-  });
-  return sorted;
-}
+  if (filters.carrier_name.trim()) params.carrier_name = filters.carrier_name.trim();
+  if (filters.product_type.length) params.product_type = filters.product_type;
+  if (filters.channel !== 'all') params.channel = filters.channel;
 
-export function filterShipments(
-  shipments: Shipment[],
-  opts: {
-    searchQuery: string;
-    activeKpi: KpiKey | null;
-    activeTab: StatusTabKey;
-    filters: FilterState;
-    sortKey?: SortKey;
+  if (filters.pickup_lat != null && filters.pickup_lng != null) {
+    params.pickup_lat = filters.pickup_lat;
+    params.pickup_lng = filters.pickup_lng;
+    params.pickup_radius = filters.pickup_radius ?? 50;
   }
-): Shipment[] {
-  const filtered = shipments
-    .filter((s) => matchesSearch(s, opts.searchQuery))
-    .filter((s) => matchesStatusTab(s, opts.activeTab))
-    .filter((s) => matchesKpi(s, opts.activeKpi))
-    .filter((s) => matchesFilters(s, opts.filters));
-  return sortShipments(filtered, opts.sortKey || '');
+  if (filters.dropoff_lat != null && filters.dropoff_lng != null) {
+    params.dropoff_lat = filters.dropoff_lat;
+    params.dropoff_lng = filters.dropoff_lng;
+    params.dropoff_radius = filters.dropoff_radius ?? 50;
+  }
+
+  const tripMin = toOptionalNumber(filters.trip_km_min);
+  const tripMax = toOptionalNumber(filters.trip_km_max);
+  if (tripMin !== undefined) params.trip_km_min = tripMin;
+  if (tripMax !== undefined) params.trip_km_max = tripMax;
+
+  const priceMin = toOptionalNumber(filters.price_min);
+  const priceMax = toOptionalNumber(filters.price_max);
+  if (priceMin !== undefined) params.price_min = priceMin;
+  if (priceMax !== undefined) params.price_max = priceMax;
+
+  if (filters.pickup_from) params.pickup_from = filters.pickup_from;
+  if (filters.pickup_to) params.pickup_to = filters.pickup_to;
+  if (filters.dropoff_from) params.dropoff_from = filters.dropoff_from;
+  if (filters.dropoff_to) params.dropoff_to = filters.dropoff_to;
+  if (filters.posted_from) params.posted_from = filters.posted_from;
+  if (filters.posted_to) params.posted_to = filters.posted_to;
+
+  if (filters.bid_state) params.bid_state = filters.bid_state;
+  if (filters.customer.trim()) params.customer = filters.customer.trim();
+  if (filters.trip_mode) params.trip_mode = filters.trip_mode;
+
+  return params;
 }
 
-export function paginate<T>(items: T[], page: number, perPage: number) {
-  const totalPages = Math.max(1, Math.ceil(items.length / perPage));
-  const safePage = Math.min(Math.max(1, page), totalPages);
-  const start = (safePage - 1) * perPage;
-  return {
-    items: items.slice(start, start + perPage),
-    page: safePage,
-    totalPages,
-    total: items.length,
-  };
+export function validateFilterRanges(filters: ShipmentsFilterState): string | null {
+  const tripMin = toOptionalNumber(filters.trip_km_min);
+  const tripMax = toOptionalNumber(filters.trip_km_max);
+  if (tripMin !== undefined && tripMax !== undefined && tripMin > tripMax) {
+    return 'filterTripKmRangeError';
+  }
+  const priceMin = toOptionalNumber(filters.price_min);
+  const priceMax = toOptionalNumber(filters.price_max);
+  if (priceMin !== undefined && priceMax !== undefined && priceMin > priceMax) {
+    return 'filterPriceRangeError';
+  }
+  return null;
+}
+
+export function hasActiveFilters(filters: ShipmentsFilterState): boolean {
+  return Object.keys(filtersToApiParams(filters)).length > 0;
+}
+
+export type FilterChipKey =
+  | 'carrier_name'
+  | 'product_type'
+  | 'channel'
+  | 'pickup'
+  | 'dropoff'
+  | 'trip_km'
+  | 'price'
+  | 'pickup_dates'
+  | 'dropoff_dates'
+  | 'posted_dates'
+  | 'bid_state'
+  | 'customer'
+  | 'trip_mode';
+
+export interface FilterChip {
+  key: FilterChipKey;
+  label: string;
+}
+
+export function buildFilterChips(
+  filters: ShipmentsFilterState,
+  t: (key: string) => string,
+  productTypeNames: Record<string, string> = {}
+): FilterChip[] {
+  const chips: FilterChip[] = [];
+
+  if (filters.carrier_name.trim()) {
+    chips.push({ key: 'carrier_name', label: `${t('filterCarrierName')}: ${filters.carrier_name.trim()}` });
+  }
+  if (filters.product_type.length) {
+    const names = filters.product_type.map((id) => productTypeNames[id] || id).join(', ');
+    chips.push({ key: 'product_type', label: `${t('filterProductType')}: ${names}` });
+  }
+  if (filters.channel !== 'all') {
+    chips.push({
+      key: 'channel',
+      label: `${t('filterChannel')}: ${filters.channel === 'private' ? t('filterChannelPrivate') : t('filterChannelPublic')}`,
+    });
+  }
+  if (filters.pickup_lat != null && filters.pickup_lng != null) {
+    const place = filters.pickup_address || `${filters.pickup_lat}, ${filters.pickup_lng}`;
+    chips.push({
+      key: 'pickup',
+      label: `${t('filterPickupLocation')}: ${place} (${filters.pickup_radius ?? 50} km)`,
+    });
+  }
+  if (filters.dropoff_lat != null && filters.dropoff_lng != null) {
+    const place = filters.dropoff_address || `${filters.dropoff_lat}, ${filters.dropoff_lng}`;
+    chips.push({
+      key: 'dropoff',
+      label: `${t('filterDropoffLocation')}: ${place} (${filters.dropoff_radius ?? 50} km)`,
+    });
+  }
+  if (filters.trip_km_min || filters.trip_km_max) {
+    chips.push({
+      key: 'trip_km',
+      label: `${t('filterTripLength')}: ${filters.trip_km_min || '…'}–${filters.trip_km_max || '…'} km`,
+    });
+  }
+  if (filters.price_min || filters.price_max) {
+    chips.push({
+      key: 'price',
+      label: `${t('filterPrice')}: €${filters.price_min || '…'}–€${filters.price_max || '…'}`,
+    });
+  }
+  if (filters.pickup_from || filters.pickup_to) {
+    chips.push({
+      key: 'pickup_dates',
+      label: `${t('filterPickupDate')}: ${filters.pickup_from || '…'} → ${filters.pickup_to || '…'}`,
+    });
+  }
+  if (filters.dropoff_from || filters.dropoff_to) {
+    chips.push({
+      key: 'dropoff_dates',
+      label: `${t('filterDropoffDate')}: ${filters.dropoff_from || '…'} → ${filters.dropoff_to || '…'}`,
+    });
+  }
+  if (filters.posted_from || filters.posted_to) {
+    chips.push({
+      key: 'posted_dates',
+      label: `${t('filterPostedDate')}: ${filters.posted_from || '…'} → ${filters.posted_to || '…'}`,
+    });
+  }
+  if (filters.bid_state) {
+    chips.push({
+      key: 'bid_state',
+      label: `${t('filterBidInterestState')}: ${
+        filters.bid_state === 'has_interest' ? t('filterHasInterest') : t('filterNoInterest')
+      }`,
+    });
+  }
+  if (filters.customer.trim()) {
+    chips.push({ key: 'customer', label: `${t('filterCustomer')}: ${filters.customer.trim()}` });
+  }
+  if (filters.trip_mode) {
+    chips.push({
+      key: 'trip_mode',
+      label: `${t('filterTripMode')}: ${
+        filters.trip_mode === 'direct' ? t('filterTripDirect') : t('filterTripMultiple')
+      }`,
+    });
+  }
+
+  return chips;
+}
+
+export function clearFilterChip(filters: ShipmentsFilterState, key: FilterChipKey): ShipmentsFilterState {
+  switch (key) {
+    case 'carrier_name':
+      return { ...filters, carrier_name: '' };
+    case 'product_type':
+      return { ...filters, product_type: [] };
+    case 'channel':
+      return { ...filters, channel: 'all' };
+    case 'pickup':
+      return {
+        ...filters,
+        pickup_address: '',
+        pickup_lat: null,
+        pickup_lng: null,
+        pickup_radius: null,
+      };
+    case 'dropoff':
+      return {
+        ...filters,
+        dropoff_address: '',
+        dropoff_lat: null,
+        dropoff_lng: null,
+        dropoff_radius: null,
+      };
+    case 'trip_km':
+      return { ...filters, trip_km_min: '', trip_km_max: '' };
+    case 'price':
+      return { ...filters, price_min: '', price_max: '' };
+    case 'pickup_dates':
+      return { ...filters, pickup_from: '', pickup_to: '' };
+    case 'dropoff_dates':
+      return { ...filters, dropoff_from: '', dropoff_to: '' };
+    case 'posted_dates':
+      return { ...filters, posted_from: '', posted_to: '' };
+    case 'bid_state':
+      return { ...filters, bid_state: '' };
+    case 'customer':
+      return { ...filters, customer: '' };
+    case 'trip_mode':
+      return { ...filters, trip_mode: '' };
+    default:
+      return filters;
+  }
 }
 
 export function statusBadgeClass(status: Shipment['status'], atRisk?: boolean): string {

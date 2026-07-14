@@ -1,30 +1,41 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ApiError, shipmentsService } from '../../../api';
+import type { ListShipmentsParams } from '../../../api/types/shipments';
 import { useApp } from '../../../context/AppContext';
 import type { Shipment } from '../../../context/AppContext';
 import { useShipmentsList } from '../../../hooks/useShipments';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
-  computeKpiCounts,
+  buildFilterChips,
+  clearFilterChip,
   DEFAULT_FILTERS,
-  filterShipments,
-  paginate,
+  filtersToApiParams,
+  statusTabHasApiSupport,
+  statusTabToApiStatus,
+  validateFilterRanges,
+  type FilterChipKey,
   type KpiKey,
+  type ShipmentsFilterState,
   type SortKey,
   type StatusTabKey,
 } from '../utils/listingUtils';
 
 const PER_PAGE = 10;
+const SEARCH_DEBOUNCE_MS = 300;
 
 export function useManageShipments() {
   const { updateShipment, carriers, showToast } = useApp();
-  const { shipments, loading, error } = useShipmentsList();
   const { t } = useTranslation();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeKpi, setActiveKpi] = useState<KpiKey | null>('action');
-  const [activeTab, setActiveTab] = useState<StatusTabKey>('active');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [activeKpi, setActiveKpiState] = useState<KpiKey | null>('needs_action');
+  const [activeTab, setActiveTabState] = useState<StatusTabKey>('active');
   const [sortKey, setSortKey] = useState<SortKey>('');
   const [page, setPage] = useState(1);
+  const [appliedFilters, setAppliedFilters] = useState<ShipmentsFilterState>(DEFAULT_FILTERS);
+  const [productTypeNames, setProductTypeNames] = useState<Record<string, string>>({});
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -32,22 +43,101 @@ export function useManageShipments() {
   const [invitedCarriers, setInvitedCarriers] = useState<Set<string>>(new Set());
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
-  const kpiCounts = useMemo(() => computeKpiCounts(shipments), [shipments]);
+  useEffect(() => {
+    const handle = window.setTimeout(() => setDebouncedSearch(searchQuery.trim()), SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(handle);
+  }, [searchQuery]);
 
-  const filtered = useMemo(
-    () =>
-      filterShipments(shipments, {
-        searchQuery,
-        activeKpi,
-        activeTab,
-        filters: DEFAULT_FILTERS,
-        sortKey,
-      }),
-    [shipments, searchQuery, activeKpi, activeTab, sortKey]
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
+  const filterParams = useMemo(() => filtersToApiParams(appliedFilters), [appliedFilters]);
+  const tabSupported = statusTabHasApiSupport(activeTab);
+
+  const summaryParams = useMemo((): Omit<ListShipmentsParams, 'page' | 'per_page'> => {
+    return {
+      ...filterParams,
+      ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    };
+  }, [filterParams, debouncedSearch]);
+
+  const listParams = useMemo((): ListShipmentsParams => {
+    const status = statusTabToApiStatus(activeTab);
+    return {
+      ...summaryParams,
+      page,
+      per_page: PER_PAGE,
+      ...(activeKpi ? { kpi: activeKpi } : {}),
+      ...(status !== undefined ? { status } : {}),
+      ...(sortKey ? { sort: sortKey } : {}),
+    };
+  }, [summaryParams, page, activeKpi, activeTab, sortKey]);
+
+  const { shipments, meta, summary, loading, error } = useShipmentsList(
+    listParams,
+    summaryParams,
+    tabSupported
   );
 
-  const pagination = useMemo(() => paginate(filtered, page, PER_PAGE), [filtered, page]);
+  const kpiCounts = summary.kpis;
+  const statusCounts = summary.statuses;
+
+  const pagination = useMemo(
+    () => ({
+      items: shipments,
+      page: meta.current_page,
+      totalPages: Math.max(1, meta.last_page ?? 1),
+      total: meta.total,
+    }),
+    [shipments, meta]
+  );
+
+  const filterChips = useMemo(
+    () => buildFilterChips(appliedFilters, t, productTypeNames),
+    [appliedFilters, t, productTypeNames]
+  );
+
+  const setActiveKpi = useCallback((key: KpiKey | null) => {
+    setActiveKpiState(key);
+    setPage(1);
+  }, []);
+
+  const setActiveTab = useCallback((tab: StatusTabKey) => {
+    setActiveTabState(tab);
+    setPage(1);
+  }, []);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+  }, []);
+
+  const handleApplyFilters = useCallback(
+    (next: ShipmentsFilterState, names?: Record<string, string>) => {
+      const rangeError = validateFilterRanges(next);
+      if (rangeError) {
+        showToast(t(rangeError), 'warning');
+        return false;
+      }
+      setAppliedFilters(next);
+      if (names) setProductTypeNames(names);
+      setPage(1);
+      return true;
+    },
+    [showToast, t]
+  );
+
+  const handleClearFilterChip = useCallback((key: FilterChipKey) => {
+    setAppliedFilters((prev) => clearFilterChip(prev, key));
+    setPage(1);
+  }, []);
+
+  const handleClearAllFilters = useCallback(() => {
+    setAppliedFilters(DEFAULT_FILTERS);
+    setPage(1);
+  }, []);
 
   const handleSelectAll = useCallback(
     (checked: boolean) => {
@@ -131,9 +221,20 @@ export function useManageShipments() {
     setInvitedCarriers(new Set());
   }, [invitedCarriers, showToast, t]);
 
-  const handleExport = useCallback(() => {
-    showToast(t('exportComingSoon'), 'info');
-  }, [showToast, t]);
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      await shipmentsService.exportShipments({
+        ...listParams,
+        page: undefined,
+        per_page: undefined,
+      });
+    } catch (err: unknown) {
+      showToast(err instanceof ApiError ? err.message : t('exportFailed'), 'error');
+    } finally {
+      setExporting(false);
+    }
+  }, [listParams, showToast, t]);
 
   const handleApplySort = useCallback((key: SortKey) => {
     setSortKey(key);
@@ -146,13 +247,14 @@ export function useManageShipments() {
     loading,
     error,
     searchQuery,
-    setSearchQuery,
+    setSearchQuery: handleSearchChange,
     activeKpi,
     setActiveKpi,
     activeTab,
     setActiveTab,
     sortKey,
     kpiCounts,
+    statusCounts,
     pagination,
     page,
     setPage,
@@ -179,6 +281,13 @@ export function useManageShipments() {
     isSortOpen,
     setIsSortOpen,
     handleExport,
+    exporting,
     handleApplySort,
+    appliedFilters,
+    handleApplyFilters,
+    filterChips,
+    handleClearFilterChip,
+    handleClearAllFilters,
+    filtersActive: filterChips.length > 0,
   };
 }

@@ -1,7 +1,8 @@
 import React from 'react';
 import {
   BulkBar,
-  FilterPlaceholderModal,
+  FilterChips,
+  FilterModal,
   InviteCarrierModal,
   KpiStrip,
   ListToolbar,
@@ -23,7 +24,7 @@ export const ManageShipments: React.FC = () => {
 
       {m.error && <div style={{ marginBottom: 12, color: 'var(--danger)' }}>{m.error}</div>}
 
-      {m.loading ? (
+      {m.loading && m.pagination.total === 0 ? (
         <KpiStripSkeleton />
       ) : (
         <KpiStrip counts={m.kpiCounts} activeKpi={m.activeKpi} onKpiClick={m.setActiveKpi} t={m.t} />
@@ -31,24 +32,27 @@ export const ManageShipments: React.FC = () => {
 
       <ListToolbar
         searchQuery={m.searchQuery}
-        onSearchChange={(v) => {
-          m.setSearchQuery(v);
-          m.setPage(1);
-        }}
+        onSearchChange={m.setSearchQuery}
         onOpenFilter={() => m.setIsFilterOpen(true)}
         onOpenSort={() => m.setIsSortOpen(true)}
         onExport={m.handleExport}
         sortActive={Boolean(m.sortKey)}
+        filterActive={m.filtersActive}
+        exporting={m.exporting}
         t={m.t}
       />
 
       <StatusTabs
-        shipments={m.shipments}
+        statusCounts={m.statusCounts}
         activeTab={m.activeTab}
-        onTabChange={(tab) => {
-          m.setActiveTab(tab);
-          m.setPage(1);
-        }}
+        onTabChange={m.setActiveTab}
+        t={m.t}
+      />
+
+      <FilterChips
+        chips={m.filterChips}
+        onClearChip={m.handleClearFilterChip}
+        onClearAll={m.handleClearAllFilters}
         t={m.t}
       />
 
@@ -99,7 +103,13 @@ export const ManageShipments: React.FC = () => {
         t={m.t}
       />
 
-      <FilterPlaceholderModal open={m.isFilterOpen} onClose={() => m.setIsFilterOpen(false)} t={m.t} />
+      <FilterModal
+        open={m.isFilterOpen}
+        filters={m.appliedFilters}
+        onClose={() => m.setIsFilterOpen(false)}
+        onApply={m.handleApplyFilters}
+        t={m.t}
+      />
 
       <SortModal
         open={m.isSortOpen}
