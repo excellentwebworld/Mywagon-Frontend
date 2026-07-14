@@ -104,6 +104,8 @@ export interface SaveStepThreePayload {
   gps_required?: boolean;
   bulk_mode?: 'single';
   order_value?: number;
+  vehicle_specs?: Record<string, string[]>;
+  vehicle_selection_confirmed?: boolean;
 }
 
 export interface PublishShipmentResponse {

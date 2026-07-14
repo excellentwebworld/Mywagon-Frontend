@@ -8,7 +8,8 @@ let vehicleTypesInflight: Promise<WizardVehicleType[]> | null = null;
 let vehicleTypesCache: WizardVehicleType[] | null = null;
 
 async function loadVehicleTypes(): Promise<WizardVehicleType[]> {
-  if (vehicleTypesCache) return vehicleTypesCache;
+  // Empty array is truthy — only skip refetch when we have a real cached result.
+  if (vehicleTypesCache !== null) return vehicleTypesCache;
   if (vehicleTypesInflight) return vehicleTypesInflight;
 
   vehicleTypesInflight = createShipmentService

@@ -242,7 +242,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
 
   const selectedVehicleGroups = useMemo(() => {
     const specs = values.vehicleSpecs || {};
-    return vehicleTypes
+    const fromCatalog = vehicleTypes
       .map((vt) => {
         const selected = specs[vt.formKey] || [];
         if (selected.length === 0) return null;
@@ -253,6 +253,16 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
         };
       })
       .filter((g): g is NonNullable<typeof g> => g != null);
+
+    // Fallback if catalog has not loaded / keys mismatch — still show selection from Formik
+    if (fromCatalog.length > 0) return fromCatalog;
+    return Object.entries(specs)
+      .filter(([, ids]) => Array.isArray(ids) && ids.length > 0)
+      .map(([key, ids]) => ({
+        key,
+        name: key,
+        specs: (ids as string[]).map(String),
+      }));
   }, [values.vehicleSpecs, locale, vehicleTypes]);
 
   const totalPallets = tripTotals.totalPallets;

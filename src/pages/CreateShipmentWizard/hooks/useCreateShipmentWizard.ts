@@ -45,6 +45,17 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   showToastRef.current = showToast;
   tRef.current = t;
 
+  /** Keep Formik remount snapshot in sync after saves (esp. vehicleSpecs from Step 2/3). */
+  const applyDraftSnapshot = useCallback(
+    (draft: { id: number; auto_id: string; customer_reference?: string | null; wizard_state?: unknown }) => {
+      setShipmentId(draft.id);
+      setLoadId(draft.auto_id);
+      setLoadedValues(draftToFormValues(draft, defaultValues));
+      loadedDraftIdRef.current = String(draft.id);
+    },
+    [defaultValues]
+  );
+
   const syncUrl = useCallback(
     (nextStep: number, nextId: number | null) => {
       navigate(buildWizardStepPath(nextStep, nextId), { replace: true });
@@ -129,8 +140,10 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   const ensureDraftId = useCallback(async (): Promise<number> => {
     if (shipmentId) return shipmentId;
     const draft = await createShipmentService.createDraft();
+    // Do not hydrate Formik from an empty create — live form state must stay intact.
     setShipmentId(draft.id);
     setLoadId(draft.auto_id);
+    loadedDraftIdRef.current = String(draft.id);
     syncUrl(step, draft.id);
     return draft.id;
   }, [shipmentId, step, syncUrl]);
@@ -142,8 +155,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         const id = await ensureDraftId();
         const payload = formValuesToStepOnePayload(values, mode);
         const draft = await createShipmentService.saveStepOne(id, payload);
-        setShipmentId(draft.id);
-        setLoadId(draft.auto_id);
+        applyDraftSnapshot(draft);
         if (mode === 'complete') {
           syncUrl(2, draft.id);
           setStepNavigationError(null);
@@ -167,7 +179,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setIsSaving(false);
       }
     },
-    [ensureDraftId, showToast, syncUrl, t]
+    [applyDraftSnapshot, ensureDraftId, showToast, syncUrl, t]
   );
 
   const saveStep2 = useCallback(
@@ -200,8 +212,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
           mode
         );
         const draft = await createShipmentService.saveStepTwo(id, payload);
-        setShipmentId(draft.id);
-        setLoadId(draft.auto_id);
+        applyDraftSnapshot(draft);
         if (mode === 'complete') {
           syncUrl(3, draft.id);
           setStepNavigationError(null);
@@ -230,7 +241,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setIsSaving(false);
       }
     },
-    [ensureDraftId, showToast, syncUrl, t]
+    [applyDraftSnapshot, ensureDraftId, showToast, syncUrl, t]
   );
 
   const saveStep3 = useCallback(
@@ -252,8 +263,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         const id = await ensureDraftId();
         const payload = formValuesToStepThreePayload(values, mode);
         const draft = await createShipmentService.saveStepThree(id, payload);
-        setShipmentId(draft.id);
-        setLoadId(draft.auto_id);
+        applyDraftSnapshot(draft);
         syncUrl(3, draft.id);
         showToast(
           mode === 'complete'
@@ -274,7 +284,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setIsSaving(false);
       }
     },
-    [ensureDraftId, showToast, syncUrl, t]
+    [applyDraftSnapshot, ensureDraftId, showToast, syncUrl, t]
   );
 
   const publishShipment = useCallback(

@@ -3,6 +3,17 @@ import { createNewCargoLine, createNewStop } from '../../components/CreateShipme
 import { computeItineraryFingerprint } from '../../components/CreateShipmentWizard/itineraryFingerprint';
 import { normalizeQtyUnit, normalizeWeightUnit } from '../../constants/cargoUnits';
 
+/** Coerce draft vehicleSpecs keys/ids to strings so lookup by formKey always matches. */
+export function normalizeVehicleSpecs(raw: unknown): Record<string, string[]> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out: Record<string, string[]> = {};
+  Object.entries(raw as Record<string, unknown>).forEach(([key, value]) => {
+    if (!Array.isArray(value)) return;
+    out[String(key)] = value.map((id) => String(id));
+  });
+  return out;
+}
+
 export function isUninitializedTrackingEmails(emails: string[] | undefined): boolean {
   if (!emails || emails.length === 0) return true;
   return emails.every((email) => email.trim() === '');
@@ -183,7 +194,11 @@ export function draftToFormValues(
           totalDriveMin: Number(state.routeSummary.total_drive_min ?? 0),
         }
       : defaults.routeSummary,
-    vehicleSpecs: state.vehicleSpecs ?? defaults.vehicleSpecs,
+    vehicleSpecs: (() => {
+      const stateRecord = state as ApiWizardState & { vehicle_specs?: unknown };
+      const raw = stateRecord.vehicleSpecs ?? stateRecord.vehicle_specs;
+      return raw != null ? normalizeVehicleSpecs(raw) : defaults.vehicleSpecs;
+    })(),
     vehicleSelectionConfirmed:
       state.vehicleSelectionConfirmed ?? defaults.vehicleSelectionConfirmed,
     broadcastType: state.broadcastType ?? defaults.broadcastType,
@@ -214,6 +229,8 @@ export function formValuesToStepThreePayload(
     | 'driverNotes'
     | 'gpsRequired'
     | 'orderValue'
+    | 'vehicleSpecs'
+    | 'vehicleSelectionConfirmed'
   >,
   mode: SaveStepThreePayload['mode']
 ): SaveStepThreePayload {
@@ -228,7 +245,7 @@ export function formValuesToStepThreePayload(
     normalizeTrackingEmails(values.trackingEmails, trackingOrderIds)
   );
 
-  return {
+  const payload: SaveStepThreePayload = {
     mode,
     broadcast_type: values.broadcastType,
     selected_carriers: selectedCarriers,
@@ -240,6 +257,17 @@ export function formValuesToStepThreePayload(
     bulk_mode: 'single',
     order_value: Number.isNaN(orderValue) || orderValue <= 0 ? undefined : orderValue,
   };
+
+  // Re-assert vehicles when present so Step 3 Save Draft keeps Step 2 selection.
+  // Omit when empty so a wiped client form cannot clear persisted vehicleSpecs.
+  const vehicleSpecs = normalizeVehicleSpecs(values.vehicleSpecs);
+  const hasVehicles = Object.values(vehicleSpecs).some((ids) => ids.length > 0);
+  if (hasVehicles) {
+    payload.vehicle_specs = vehicleSpecs;
+    payload.vehicle_selection_confirmed = Boolean(values.vehicleSelectionConfirmed);
+  }
+
+  return payload;
 }
 
 export function formValuesToStepTwoPayload(
@@ -263,7 +291,7 @@ export function formValuesToStepTwoPayload(
           total_drive_min: values.routeSummary.totalDriveMin,
         }
       : undefined,
-    vehicle_specs: values.vehicleSpecs,
+    vehicle_specs: normalizeVehicleSpecs(values.vehicleSpecs),
     vehicle_selection_confirmed: Boolean(values.vehicleSelectionConfirmed),
   };
 }

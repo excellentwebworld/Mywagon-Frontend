@@ -211,7 +211,9 @@ export const CreateShipmentWizardLayout: React.FC = () => {
       {header}
 
       <Formik
-        key={loadedValues ? String(shipmentId ?? 'draft') : 'new-draft'}
+        // Remount only after a draft snapshot exists (or stay on new-draft). Never remount
+        // solely because shipmentId appeared — that would wipe in-progress form state.
+        key={loadedValues ? `draft-${shipmentId ?? 'loaded'}` : 'new-draft'}
         initialValues={initialValues}
         enableReinitialize={false}
         validationSchema={validationSchema}
