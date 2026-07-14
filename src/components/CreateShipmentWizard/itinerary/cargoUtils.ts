@@ -2,6 +2,7 @@ import type { ApiStop } from '../../../api/types/createShipment';
 import {
   formatWeightDisplay,
   formatWeightKgTotal,
+  kgToWeightUnit,
   normalizeQtyUnit,
   weightToKg,
 } from '../../../constants/cargoUnits';
@@ -10,7 +11,9 @@ import type { CargoFlow, LoadBalance, TripTotals } from './types';
 export const TRUCK_WEIGHT_CAP_KG = 28000;
 
 export {
+  convertWeightValue,
   formatWeightDisplay,
+  kgToWeightUnit,
   normalizeQtyUnit,
   normalizeWeightUnit,
   weightToKg,
@@ -136,6 +139,44 @@ export function getPickupAllocatedQty(
     })
   );
   return sum;
+}
+
+/**
+ * Sum pickup weight (kg) for the same order + product across stops.
+ * Pass `displayUnit` to return the magnitude in that wizard weight unit.
+ */
+export function getPickupAllocatedWeight(
+  stops: ApiStop[],
+  orderId: string,
+  productId: string,
+  options?: { excludeLineId?: string; displayUnit?: string }
+): number {
+  if (!orderId || !productId) return 0;
+  let sumKg = 0;
+  stops.forEach((s) =>
+    (s.lines || []).forEach((ln) => {
+      if (ln.action !== 'pickup') return;
+      if (String(ln.orderId || '') !== String(orderId)) return;
+      if (String(ln.productId || '') !== String(productId)) return;
+      if (options?.excludeLineId && String(ln.id) === String(options.excludeLineId)) return;
+      sumKg += weightToKg(ln.weight, ln.wtUnit);
+    })
+  );
+  if (options?.displayUnit != null) {
+    return kgToWeightUnit(sumKg, options.displayUnit);
+  }
+  return sumKg;
+}
+
+/** Proportion order-line weight to a cargo line qty (same formula as product select). */
+export function proportionOrderWeight(
+  orderWeight: number | null | undefined,
+  orderQty: number,
+  lineQty: number,
+): string {
+  if (orderWeight == null || !(orderQty > 0)) return '';
+  const qty = Number(lineQty) || 0;
+  return String(Math.round((orderWeight * (qty / orderQty)) * 1000) / 1000);
 }
 
 export interface OrderPickupAllocation {
