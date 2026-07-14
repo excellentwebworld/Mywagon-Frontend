@@ -286,6 +286,15 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                   <FormFieldError message={showError('customerName') ? errors.customerName : undefined} />
                 </div>
 
+                <OrderProductLinesEditor
+                  t={t}
+                  lines={values.lines}
+                  skus={skus}
+                  onChange={(lines) => setFieldValue('lines', lines)}
+                  onAddProduct={onAddProduct}
+                />
+                <FormFieldError message={showError('lines') ? (errors.lines as string) : undefined} />
+
                 <div className="field-row">
                   <div className="field">
                     <label className="field-l">{t('erpOrdersShipDate')}</label>
@@ -371,15 +380,6 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                     onChange={(e) => setFieldValue('notes', e.target.value)}
                   />
                 </div>
-
-                <OrderProductLinesEditor
-                  t={t}
-                  lines={values.lines}
-                  skus={skus}
-                  onChange={(lines) => setFieldValue('lines', lines)}
-                  onAddProduct={onAddProduct}
-                />
-                <FormFieldError message={showError('lines') ? (errors.lines as string) : undefined} />
               </div>
 
               <div className="modal-footer">
