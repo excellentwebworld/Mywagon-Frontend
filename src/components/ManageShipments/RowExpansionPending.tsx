@@ -236,7 +236,14 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
         <div className="exp-section">
           <h4>{t('orders')}</h4>
           <OrdersBlock shipment={shipment} t={t} />
-          <ItineraryPreview shipment={shipment} t={t} />
+          <ItineraryPreview
+            stops={shipment.stops}
+            origin={shipment.origin}
+            dest={shipment.dest}
+            pickDt={shipment.pickDt}
+            delDt={shipment.delDt}
+            t={t}
+          />
         </div>
 
         <div className="exp-stats">
