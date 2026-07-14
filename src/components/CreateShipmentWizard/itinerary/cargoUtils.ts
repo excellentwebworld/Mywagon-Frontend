@@ -1,5 +1,6 @@
 import type { ApiStop } from '../../../api/types/createShipment';
 import {
+  convertWeightValue,
   formatWeightDisplay,
   formatWeightKgTotal,
   kgToWeightUnit,
@@ -168,15 +169,20 @@ export function getPickupAllocatedWeight(
   return sumKg;
 }
 
-/** Proportion order-line weight to a cargo line qty (same formula as product select). */
-export function proportionOrderWeight(
+/**
+ * Absolute remaining order weight in the display unit:
+ * max(0, orderWeight − alreadyAllocatedInDisplayUnit).
+ */
+export function remainingOrderWeight(
   orderWeight: number | null | undefined,
-  orderQty: number,
-  lineQty: number,
+  orderWtUnit: string | null | undefined,
+  allocatedInDisplayUnit: number,
+  displayUnit: string,
 ): string {
-  if (orderWeight == null || !(orderQty > 0)) return '';
-  const qty = Number(lineQty) || 0;
-  return String(Math.round((orderWeight * (qty / orderQty)) * 1000) / 1000);
+  if (orderWeight == null) return '';
+  const orderInDisplay = convertWeightValue(orderWeight, orderWtUnit, displayUnit);
+  const remaining = Math.max(0, orderInDisplay - (allocatedInDisplayUnit || 0));
+  return String(Math.round(remaining * 1000) / 1000);
 }
 
 export interface OrderPickupAllocation {

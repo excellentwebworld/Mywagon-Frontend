@@ -86,7 +86,7 @@ import {
   getPickupAllocatedQty,
   getPickupAllocatedWeight,
   formatQtyWithUnit,
-  proportionOrderWeight,
+  remainingOrderWeight,
 } from "./itinerary/cargoUtils";
 
 const clearOrderDependentCargoFields = () => {
@@ -573,36 +573,12 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     [setFieldValue, stops, uStop],
   );
 
-  /** Recompute proportional weight from the order line when qty changes. */
+  /** Qty edits stay independent of weight (no auto-ratio). */
   const setLineQty = useCallback(
     (sid: string, lid: string, qty: string) => {
-      const source = stops
-        .find((s: any) => s.id === sid)
-        ?.lines?.find((l: any) => l.id === lid);
-      if (!source?.orderId || !source?.productId) {
-        setLF(sid, lid, "qty", qty);
-        return;
-      }
-      const order = orderDetailsById[source.orderId];
-      const orderLine = findOrderLineForProduct(order, source.productId);
-      const orderQty =
-        orderLine?.quantity != null ? Number(orderLine.quantity) : 0;
-      const orderWeight =
-        orderLine?.weight != null ? Number(orderLine.weight) : null;
-      if (orderWeight == null || !(orderQty > 0)) {
-        setLF(sid, lid, "qty", qty);
-        return;
-      }
-      setLF(sid, lid, {
-        qty,
-        weight: proportionOrderWeight(
-          orderWeight,
-          orderQty,
-          parseFloat(qty) || 0,
-        ),
-      });
+      setLF(sid, lid, "qty", qty);
     },
-    [orderDetailsById, setLF, stops],
+    [setLF],
   );
 
   const quickFill = useCallback(
@@ -948,26 +924,61 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         const orderWtUnit = normalizeWeightUnit(
           orderLine.weightUnit || line?.wtUnit,
         );
-        const allocated = line?.orderId
-          ? getPickupAllocatedQty(stops, String(line.orderId), skuId, {
-              excludeLineId: lid,
-              unit: orderUnit,
-            })
-          : 0;
-        const remaining = Math.max(0, orderQty - allocated);
+        const orderIdStr = line?.orderId ? String(line.orderId) : "";
         const orderWeight =
           orderLine.weight != null ? Number(orderLine.weight) : null;
-        const weight =
-          proportionOrderWeight(orderWeight, orderQty, remaining) ||
-          (orderWeight != null && remaining === orderQty
-            ? String(orderWeight)
-            : "");
+        const isDropoff = line?.action === "dropoff";
+
+        let qty = "";
+        let weight = "";
+
+        if (isDropoff) {
+          // Prefill from pickup totals for the same order + product
+          const pickupQty = orderIdStr
+            ? getPickupAllocatedQty(stops, orderIdStr, skuId, { unit: orderUnit })
+            : 0;
+          const pickupWeight = orderIdStr
+            ? getPickupAllocatedWeight(stops, orderIdStr, skuId, {
+                displayUnit: orderWtUnit,
+              })
+            : 0;
+          qty =
+            orderLine.quantity != null || pickupQty > 0
+              ? String(pickupQty)
+              : "";
+          weight =
+            orderWeight != null || pickupWeight > 0
+              ? String(Math.round(pickupWeight * 1000) / 1000)
+              : "";
+        } else {
+          // Pickup: absolute remaining qty + weight (order − allocated)
+          const allocatedQty = orderIdStr
+            ? getPickupAllocatedQty(stops, orderIdStr, skuId, {
+                excludeLineId: lid,
+                unit: orderUnit,
+              })
+            : 0;
+          const remainingQty = Math.max(0, orderQty - allocatedQty);
+          const allocatedWeight = orderIdStr
+            ? getPickupAllocatedWeight(stops, orderIdStr, skuId, {
+                excludeLineId: lid,
+                displayUnit: orderWtUnit,
+              })
+            : 0;
+          qty = orderLine.quantity != null ? String(remainingQty) : "";
+          weight = remainingOrderWeight(
+            orderWeight,
+            orderLine.weightUnit,
+            allocatedWeight,
+            orderWtUnit,
+          );
+        }
 
         const patch = {
           productId: skuId,
           productName: orderLine.productName || "",
           orderLineId: orderLine.id != null ? String(orderLine.id) : "",
-          qty: orderLine.quantity != null ? String(remaining) : "",
+          qty,
           unit: orderUnit,
           weight,
           wtUnit: orderWtUnit,

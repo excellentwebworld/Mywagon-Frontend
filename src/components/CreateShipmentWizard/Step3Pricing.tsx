@@ -1132,6 +1132,9 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
             <div className="ch flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: T.bd }}>
               <span className="font-semibold text-sm">{t('driverNotes') || 'Driver Notes'}</span>
+              <span className="ov-sub-inline text-xs font-normal" style={{ color: T.t3 }}>
+                ({t('orderValueOptional') || 'Optional'})
+              </span>
             </div>
             <div className="cb p-4">
               <textarea
