@@ -516,10 +516,10 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                 },
                 { label: t('step2StopsCount'), value: String(enrichedStops.length) },
                 {
-                  label: t('quantity') || t('qty') || 'Quantity',
-                  value: formatTripQtySummary(stops),
+                  label: t('step2TotalWeight'),
+                  value: formatWeightKg(totals.totalWeightKg),
+                  sub: formatTripQtySummary(stops),
                 },
-                { label: t('step2TotalWeight'), value: formatWeightKg(totals.totalWeightKg) },
                 ...(showCustomerStats
                   ? [
                       {
@@ -533,6 +533,11 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                 <div key={i} className="ts-cell">
                   <div className="ts-label">{s.label}</div>
                   <div className="ts-val">{s.value}</div>
+                  {'sub' in s && s.sub && s.sub !== '—' ? (
+                    <div className="text-[11px] font-semibold mt-0.5" style={{ color: T.t2 }}>
+                      {s.sub}
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>

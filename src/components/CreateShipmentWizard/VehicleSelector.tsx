@@ -59,7 +59,12 @@ export const VehicleSelector: React.FC = () => {
   const isTypeSelected = (formKey: string) => (vehicleSpecs[formKey]?.length ?? 0) > 0;
 
   const toggleVehicleCard = (vt: WizardVehicleType) => {
-    setOpenNests((prev) => ({ ...prev, [vt.formKey]: !prev[vt.formKey] }));
+    setOpenNests((prev) => {
+      const willOpen = !prev[vt.formKey];
+      // Accordion: only one vehicle nest open at a time
+      if (!willOpen) return { ...prev, [vt.formKey]: false };
+      return { [vt.formKey]: true };
+    });
   };
 
   const deselectVehicle = (vt: WizardVehicleType, e: React.MouseEvent) => {

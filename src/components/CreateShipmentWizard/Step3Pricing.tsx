@@ -1323,13 +1323,42 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
             {/* Summary statistics grid */}
             <div className="grid grid-cols-2 bg-slate-200 gap-px border-t" style={{ borderColor: T.bd }}>
               {[
-                { label: t('distance') || 'Distance', value: displayKm > 0 ? String(Math.round(displayKm)) : '—', unit: displayKm > 0 ? 'km' : '' },
-                { label: t('time') || 'Time', value: formattedDriveTime !== '—' ? formattedDriveTime : '—', unit: '' },
-                { label: t('stops') || 'Stops', value: String(stops.length), unit: '' },
-                { label: t('quantity') || 'Quantity', value: formattedQty, unit: '' },
-                { label: t('weight') || 'Weight', value: formattedWeight, unit: '' },
-                { label: t('customers') || 'Customers', value: customerCount > 0 ? String(customerCount) : '—', unit: '' },
-                { label: t('orders') || 'Orders', value: orderCount > 0 ? String(orderCount) : '—', unit: '' },
+                {
+                  label: t('distance') || 'Distance',
+                  value: displayKm > 0 ? String(Math.round(displayKm)) : '—',
+                  unit: displayKm > 0 ? 'km' : '',
+                  sub: '',
+                },
+                {
+                  label: t('time') || 'Time',
+                  value: formattedDriveTime !== '—' ? formattedDriveTime : '—',
+                  unit: '',
+                  sub: '',
+                },
+                {
+                  label: t('stops') || 'Stops',
+                  value: String(stops.length),
+                  unit: '',
+                  sub: '',
+                },
+                {
+                  label: t('weight') || 'Weight',
+                  value: formattedWeight,
+                  unit: '',
+                  sub: formattedQty !== '—' ? formattedQty : '',
+                },
+                {
+                  label: t('customers') || 'Customers',
+                  value: customerCount > 0 ? String(customerCount) : '—',
+                  unit: '',
+                  sub: '',
+                },
+                {
+                  label: t('orders') || 'Orders',
+                  value: orderCount > 0 ? String(orderCount) : '—',
+                  unit: '',
+                  sub: '',
+                },
               ].map((st, sidx) => (
                 <div key={sidx} className="bg-white p-3">
                   <div className="text-[9px] font-bold text-slate-400 uppercase">
@@ -1343,6 +1372,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
                       </span>
                     )}
                   </div>
+                  {st.sub ? (
+                    <div className="text-[11px] font-semibold text-slate-500 mt-0.5 tabular-nums">
+                      {st.sub}
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>

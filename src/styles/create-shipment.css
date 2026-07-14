@@ -429,7 +429,7 @@ body {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  align-items: stretch;
+  align-items: start;
   padding: 4px;
   box-sizing: border-box;
   overflow: visible;
@@ -438,7 +438,7 @@ body {
 .vc-wrap {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: auto;
   overflow: visible;
 }
 
@@ -451,6 +451,7 @@ body {
   position: relative;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   height: 100%;
+  min-height: 148px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -537,13 +538,15 @@ body {
   border-radius: var(--rs);
   background: var(--sf);
   margin-top: 0;
+  flex-shrink: 0;
 }
 
 .vnest.open {
-  max-height: 500px;
+  max-height: 2000px;
   margin-top: 8px;
   border-color: var(--bd);
   padding: 4px 0;
+  overflow: visible;
 }
 
 .vnest-label {
@@ -588,7 +591,8 @@ body {
 }
 
 .vnest .ns.open {
-  max-height: 300px;
+  max-height: 800px;
+  overflow: visible;
 }
 
 .vnest .ni {

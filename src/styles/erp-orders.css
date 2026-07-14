@@ -1544,7 +1544,7 @@ table.t tbody td {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  align-items: stretch;
+  align-items: start;
   padding: 4px;
   box-sizing: border-box;
   overflow: visible;
@@ -1552,7 +1552,7 @@ table.t tbody td {
 .vc-wrap {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: auto;
   overflow: visible;
 }
 .vc {
@@ -1565,6 +1565,7 @@ table.t tbody td {
   transition: border-color .2s, box-shadow .2s, background .2s;
   background: var(--surface, #FFF);
   height: 100%;
+  min-height: 148px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1634,12 +1635,14 @@ table.t tbody td {
   border-radius: var(--radius-sm, 8px);
   background: var(--surface, #FFF);
   margin-top: 0;
+  flex-shrink: 0;
 }
 .vnest.open {
-  max-height: 500px;
+  max-height: 2000px;
   margin-top: 8px;
   border-color: var(--border, #E4E4E8);
   padding: 4px 0;
+  overflow: visible;
 }
 .nc {
   display: flex;
@@ -1669,7 +1672,8 @@ table.t tbody td {
   transition: max-height .25s ease;
 }
 .vnest .ns.open {
-  max-height: 300px;
+  max-height: 800px;
+  overflow: visible;
 }
 .ni-cb {
   display: flex;
