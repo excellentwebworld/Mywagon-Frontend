@@ -1544,11 +1544,12 @@ table.t tbody td {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  align-items: start;
+  align-items: stretch;
 }
 .vc-wrap {
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 .vc {
   border: 2px solid var(--border, #E4E4E8);
@@ -1559,6 +1560,11 @@ table.t tbody td {
   position: relative;
   transition: all .2s;
   background: var(--surface, #FFF);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
 }
 .vc:hover {
   border-color: var(--border-focus, #C8C8CF);
