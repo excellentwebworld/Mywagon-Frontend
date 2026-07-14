@@ -1781,14 +1781,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  align-self: stretch;
   gap: 6px;
   width: auto;
   max-width: 100%;
-  padding: 6px 12px;
+  padding: 6px 16px;
   border-radius: 8px;
-  border: 1px solid var(--accent);
-  background: var(--accent-pale, #F5F3FF);
-  color: var(--accent);
+  border: none;
+  background: linear-gradient(135deg, #9b51e0, #4e5cdb);
+  color: #fff;
   font-size: 12px;
   font-weight: 600;
   line-height: 1.2;
@@ -1799,9 +1800,8 @@
 }
 
 .ai-suggest-btn:hover:not(:disabled) {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
+  background: linear-gradient(135deg, #4e5cdb, #9b51e0);
+  opacity: 0.95;
 }
 
 .ai-suggest-btn:disabled {
