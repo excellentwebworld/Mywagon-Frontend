@@ -241,11 +241,8 @@ export function useManageShipments() {
   const handleExport = useCallback(async () => {
     setExporting(true);
     try {
-      await shipmentsService.exportShipments({
-        ...listParams,
-        page: undefined,
-        per_page: undefined,
-      });
+      const { page: _page, per_page: _perPage, ...exportParams } = listParams;
+      await shipmentsService.exportShipments(exportParams);
     } catch (err: unknown) {
       showToast(err instanceof ApiError ? err.message : t('exportFailed'), 'error');
     } finally {

@@ -39,8 +39,9 @@ export function normalizeVehicleSpecs(
         }
       });
       if (!best) return;
-      const prev = out[best.formKey] || [];
-      out[best.formKey] = [...new Set([...prev, ...best.matched])];
+      const selected = best as { formKey: string; matched: string[]; score: number };
+      const prev = out[selected.formKey] || [];
+      out[selected.formKey] = [...new Set([...prev, ...selected.matched])];
     });
     return out;
   };
