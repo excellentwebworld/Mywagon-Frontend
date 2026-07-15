@@ -118,7 +118,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
             const s = resolveShipment ? resolveShipment(row) : row;
             const isExpanded = expandedId === s.id;
             const isPending = s.status === 'pending';
-            const badgeClass = statusBadgeClass(s.status, s.at_risk);
+            const badgeClass = statusBadgeClass(s.status);
             const channel = s.channel || (s.vis === 'public' ? 'public' : 'private');
             const received = s.bidsReceived ?? 0;
             const sent = s.bidsSent ?? 0;
@@ -214,15 +214,6 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                         <span className="badge badge-warning payment-subtag">
                           <span className="bdot" />
                           {t('paymentPending')}
-                        </span>
-                      </>
-                    )}
-                    {s.at_risk && (
-                      <>
-                        <br />
-                        <span className="badge badge-danger" style={{ marginTop: 4 }}>
-                          <span className="bdot" />
-                          {s.riskReason || t('atRiskLate')}
                         </span>
                       </>
                     )}
