@@ -17,7 +17,15 @@ export interface SearchCriteria {
   pickupCity: string;
   pickupDate: string;
   dropoffCity: string;
+  /** @deprecated Prefer truckTypeIds from API vehicle types */
   vehicleType: string;
+  pickupLat?: number | null;
+  pickupLng?: number | null;
+  pickupRadius?: number;
+  dropoffLat?: number | null;
+  dropoffLng?: number | null;
+  dropoffRadius?: number;
+  truckTypeIds: number[];
 }
 
 export interface AvailableTruck {
@@ -28,6 +36,8 @@ export interface AvailableTruck {
   startTm: string;
   endDt: string;
   endTm: string;
+  /** ISO start for server-aligned filtering / display */
+  startAt?: string | null;
   pickup: string;
   radius: number;
   dest: string;
@@ -43,6 +53,7 @@ export interface AvailableTruck {
   type: ProviderType;
   preferred: boolean;
   price: number | null;
+  priceBlurred?: boolean;
   currency: string;
   posted: string;
   recurring: boolean;
@@ -57,15 +68,19 @@ export interface AvailableTruck {
   destLat?: number | null;
   destLng?: number | null;
   hasBids?: boolean;
+  bidsCount?: number | null;
+  bestBid?: number | null;
   loadMatchScore?: number;
 }
 
 export interface PendingShipment {
+  id?: number;
   sid: string;
   lane: string;
   pickup: string;
   weight: string;
   stops: number;
+  exactMatch?: boolean;
 }
 
 export type DrawerMode = 'pending' | 'new';

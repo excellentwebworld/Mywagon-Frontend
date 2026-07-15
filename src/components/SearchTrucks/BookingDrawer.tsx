@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import type {
   AvailableTruck,
   BookingDraft,
@@ -14,12 +14,15 @@ interface BookingDrawerProps {
   onModeChange: (mode: DrawerMode) => void;
   truck: AvailableTruck | null;
   pending: PendingShipment[];
+  pendingLoading?: boolean;
+  confirming?: boolean;
   selectedPendingIdx: number | null;
   onSelectPending: (idx: number) => void;
   draft: BookingDraft | null;
   onDraftChange: (patch: Partial<BookingDraft>) => void;
   onClose: () => void;
   onConfirm: () => void;
+  onGoCreateShipment?: () => void;
   t: (key: string) => string;
 }
 
@@ -31,25 +34,31 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
   onModeChange,
   truck,
   pending,
+  pendingLoading,
+  confirming,
   selectedPendingIdx,
   onSelectPending,
   draft,
   onDraftChange,
   onClose,
   onConfirm,
+  onGoCreateShipment,
   t,
 }) => {
-  const matchDistance = useMemo(
-    () => (selectedPendingIdx != null ? 10 + ((selectedPendingIdx + 1) * 7) % 40 : 0),
-    [selectedPendingIdx]
-  );
+  const selectedPending =
+    selectedPendingIdx != null ? pending[selectedPendingIdx] : null;
+
+  const canNextFromStep1 =
+    mode === 'new' || (mode === 'pending' && selectedPendingIdx != null);
 
   if (!open || !truck || !draft) return null;
 
   const shipLabel =
-    mode === 'pending' && selectedPendingIdx != null
-      ? `${pending[selectedPendingIdx].sid} — ${pending[selectedPendingIdx].lane}`
+    mode === 'pending' && selectedPending
+      ? `${selectedPending.sid} — ${selectedPending.lane}`
       : t('satNewShipmentDraft');
+
+  const showPrice = truck.price != null && !truck.priceBlurred;
 
   return (
     <div
@@ -110,12 +119,14 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
 
               {mode === 'pending' ? (
                 <>
-                  {pending.length === 0 ? (
+                  {pendingLoading ? (
+                    <div className="sat-empty">{t('satLoadingPending')}</div>
+                  ) : pending.length === 0 ? (
                     <div className="sat-empty">{t('satNoPending')}</div>
                   ) : (
                     pending.map((p, pi) => (
                       <div
-                        key={p.sid}
+                        key={p.id ?? p.sid}
                         className={`sat-pend-row ${selectedPendingIdx === pi ? 'sel' : ''}`}
                         onClick={() => onSelectPending(pi)}
                         role="button"
@@ -124,7 +135,14 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                       >
                         <div className="sat-pend-radio" />
                         <div>
-                          <div className="sat-pend-sid">{p.sid}</div>
+                          <div className="sat-pend-sid">
+                            {p.sid}
+                            {p.exactMatch ? (
+                              <span className="sat-bg sat-bg-ok" style={{ marginLeft: 8, fontSize: 10 }}>
+                                {t('satExactMatch')}
+                              </span>
+                            ) : null}
+                          </div>
                           <div className="sat-pend-lane">
                             {p.lane} · {p.pickup} · {p.weight} · {p.stops} {t('satStops')}
                           </div>
@@ -133,7 +151,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                     ))
                   )}
 
-                  {selectedPendingIdx != null && (
+                  {selectedPending && (
                     <div style={{ marginTop: 14 }}>
                       <h4
                         style={{
@@ -146,12 +164,6 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                         {t('satMatchScore')}
                       </h4>
                       <div className="sat-match-grid">
-                        <div className="sat-match-item">
-                          <div className="label">{t('satPickupDistance')}</div>
-                          <div className="val" style={{ color: 'var(--success)' }}>
-                            ~{matchDistance} km ✅
-                          </div>
-                        </div>
                         <div className="sat-match-item">
                           <div className="label">{t('satCapacityFit')}</div>
                           <div className="val" style={{ color: 'var(--success)' }}>
@@ -168,6 +180,17 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                             {t('satWithinWindow')} ✅
                           </div>
                         </div>
+                        <div className="sat-match-item">
+                          <div className="label">{t('satExactMatch')}</div>
+                          <div
+                            className="val"
+                            style={{
+                              color: selectedPending.exactMatch ? 'var(--success)' : 'var(--text-tertiary)',
+                            }}
+                          >
+                            {selectedPending.exactMatch ? '✅' : '—'}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -175,84 +198,23 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
               ) : (
                 <>
                   <div className="sat-info-banner">
-                    ℹ️ <strong>{t('satSameAsCreate')}</strong> — {t('satDrawerFormHint')}
+                    ℹ️ <strong>{t('satSameAsCreate')}</strong> — {t('satCreateNewHint')}
                   </div>
-                  <div className="sat-field">
-                    <label>{t('satPickupLocation')} *</label>
-                    <input
-                      type="text"
-                      value={draft.newPickup}
-                      onChange={(e) => onDraftChange({ newPickup: e.target.value })}
-                      placeholder="e.g. Ioannina"
-                    />
+                  <div className="sat-truck-preview">
+                    <strong>{truck.carrier}</strong> · {truck.truckType}
+                    <br />
+                    <span className="sat-muted">
+                      {truck.pickup} → {truck.dest} · {truck.startDt} {truck.startTm}
+                    </span>
                   </div>
-                  <div className="sat-field">
-                    <label>{t('satPickupDateTime')}</label>
-                    <input
-                      type="text"
-                      value={draft.newPickupDt}
-                      onChange={(e) => onDraftChange({ newPickupDt: e.target.value })}
-                      placeholder="DD/MM/YYYY HH:MM"
-                    />
-                  </div>
-                  <div className="sat-field">
-                    <label>{t('satDeliveryLocation')}</label>
-                    <input
-                      type="text"
-                      value={draft.newDelivery}
-                      onChange={(e) => onDraftChange({ newDelivery: e.target.value })}
-                      placeholder="e.g. Athens"
-                    />
-                  </div>
-                  <div className="sat-field">
-                    <label>{t('satDeliveryDateTime')}</label>
-                    <input
-                      type="text"
-                      value={draft.newDeliveryDt}
-                      onChange={(e) => onDraftChange({ newDeliveryDt: e.target.value })}
-                      placeholder="DD/MM/YYYY HH:MM"
-                    />
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    <div className="sat-field">
-                      <label>{t('satColEquipment')}</label>
-                      <input type="text" value={truck.truckType} readOnly />
-                    </div>
-                    <div className="sat-field">
-                      <label>{t('satWeightPallets')}</label>
-                      <input
-                        type="text"
-                        value={draft.newWeight}
-                        onChange={(e) => onDraftChange({ newWeight: e.target.value })}
-                        placeholder="e.g. 13T / 30 pallets"
-                      />
-                    </div>
-                  </div>
-                  <div className="sat-field">
-                    <label>{t('satNotes')}</label>
-                    <textarea
-                      value={draft.newNotes}
-                      onChange={(e) => onDraftChange({ newNotes: e.target.value })}
-                      placeholder={t('satNotesPlaceholder')}
-                    />
-                  </div>
-                  <label
-                    style={{
-                      fontSize: 12,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      color: 'var(--text-secondary)',
-                      cursor: 'pointer',
-                    }}
+                  <button
+                    type="button"
+                    className="sat-btn sat-btn-pr sat-btn-block"
+                    style={{ marginTop: 14 }}
+                    onClick={() => onGoCreateShipment?.()}
                   >
-                    <input
-                      type="checkbox"
-                      checked={draft.saveAsDraft}
-                      onChange={(e) => onDraftChange({ saveAsDraft: e.target.checked })}
-                    />
-                    {t('satSaveAsDraft')}
-                  </label>
+                    {t('satContinueToCreateShipment')} →
+                  </button>
                 </>
               )}
             </>
@@ -268,7 +230,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                 </span>
               </div>
 
-              {truck.price != null ? (
+              {showPrice ? (
                 <>
                   <div style={{ marginBottom: 14 }}>
                     <span className="sat-muted">{t('satStartingPrice')}</span>
@@ -280,7 +242,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                         color: 'var(--accent)',
                       }}
                     >
-                      € {truck.price.toLocaleString()}
+                      € {truck.price!.toLocaleString()}
                     </div>
                   </div>
                   <div style={{ marginBottom: 14 }}>
@@ -323,7 +285,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                   onChange={(e) =>
                     onDraftChange({ offerPrice: e.target.value, acceptStartingPrice: false })
                   }
-                  placeholder={truck.price != null ? String(truck.price) : ''}
+                  placeholder={showPrice ? String(truck.price) : ''}
                 />
               </div>
               <div className="sat-field">
@@ -334,44 +296,6 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                   placeholder={t('satTermsNotesPlaceholder')}
                 />
               </div>
-              <div className="sat-field">
-                <label>{t('satTripPreference')}</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <input
-                      type="radio"
-                      name="tripPref"
-                      checked={draft.tripPref === 'Multi-stop OK'}
-                      onChange={() => onDraftChange({ tripPref: 'Multi-stop OK' })}
-                    />
-                    Multi-stop OK
-                  </label>
-                  <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <input
-                      type="radio"
-                      name="tripPref"
-                      checked={draft.tripPref === 'Direct only'}
-                      onChange={() => onDraftChange({ tripPref: 'Direct only' })}
-                    />
-                    Direct only
-                  </label>
-                </div>
-              </div>
-              {truck.recurring && truck.occurrences.length > 0 && (
-                <div className="sat-field">
-                  <label>{t('satSelectOccurrence')}</label>
-                  <select
-                    value={draft.occurrence}
-                    onChange={(e) => onDraftChange({ occurrence: e.target.value })}
-                  >
-                    {truck.occurrences.map((o) => (
-                      <option key={o} value={o}>
-                        📅 {o}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
             </>
           )}
 
@@ -421,10 +345,6 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                   € {draft.offerPrice || '—'}
                 </span>
               </div>
-              <div className="sat-sum-row">
-                <span>{t('satColTrip')}</span>
-                <span className="val">{draft.tripPref}</span>
-              </div>
             </div>
           )}
         </div>
@@ -435,9 +355,24 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
               <button type="button" className="sat-btn" onClick={onClose}>
                 {t('cancel')}
               </button>
-              <button type="button" className="sat-btn sat-btn-pr" onClick={() => onStepChange(2)}>
-                {t('satNext')} →
-              </button>
+              {mode === 'new' ? (
+                <button
+                  type="button"
+                  className="sat-btn sat-btn-pr"
+                  onClick={() => onGoCreateShipment?.()}
+                >
+                  {t('satContinueToCreateShipment')} →
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="sat-btn sat-btn-pr"
+                  disabled={!canNextFromStep1}
+                  onClick={() => onStepChange(2)}
+                >
+                  {t('satNext')} →
+                </button>
+              )}
             </>
           )}
           {step === 2 && (
@@ -455,8 +390,13 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
               <button type="button" className="sat-btn" onClick={() => onStepChange(2)}>
                 ← {t('satBack')}
               </button>
-              <button type="button" className="sat-btn sat-btn-pr" onClick={onConfirm}>
-                ✅ {t('satConfirmSend')}
+              <button
+                type="button"
+                className="sat-btn sat-btn-pr"
+                disabled={confirming}
+                onClick={onConfirm}
+              >
+                {confirming ? t('satSending') : `✅ ${t('satConfirmSend')}`}
               </button>
             </>
           )}

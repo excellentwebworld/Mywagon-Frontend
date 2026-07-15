@@ -1716,5 +1716,21 @@
   "satExpandMap": "Expand map",
   "satCollapseMap": "Collapse map",
   "satShowList": "Show list",
-  "satMapUnavailable": "Map unavailable — set VITE_GOOGLE_MAPS_KEY"
+  "satMapUnavailable": "Map unavailable — set VITE_GOOGLE_MAPS_KEY",
+  "satPremium": "Premium",
+  "satUpgradePlan": "Upgrade your plan to use this filter",
+  "satLoading": "Loading availabilities…",
+  "satLoadError": "Failed to load availabilities",
+  "satLoadingPending": "Loading pending shipments…",
+  "satPendingLoadError": "Failed to load pending shipments",
+  "satLoadingVehicleTypes": "Loading vehicle types…",
+  "satVehicleType": "Vehicle type",
+  "satBidsCount": "{{count}} bids",
+  "satExactMatch": "Exact match",
+  "satCreateNewHint": "Continue to Create Shipment with this availability prefilled.",
+  "satContinueToCreateShipment": "Continue to Create Shipment",
+  "satCreateNavigateError": "Could not start create shipment",
+  "satSelectPendingFirst": "Select a pending shipment first",
+  "satBidError": "Failed to send booking request",
+  "satSending": "Sending…"
 }

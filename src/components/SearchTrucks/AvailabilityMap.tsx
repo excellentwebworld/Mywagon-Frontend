@@ -23,7 +23,6 @@ function createPriceOverlay(
   opts: {
     isActive: boolean;
     isHovered: boolean;
-    dimmed: boolean;
     onClick: () => void;
   }
 ) {
@@ -37,7 +36,6 @@ function createPriceOverlay(
       truck.vis === 'private' ? 'private' : '',
       opts.isActive ? 'active' : '',
       opts.isHovered ? 'hovered' : '',
-      opts.dimmed ? 'dimmed' : '',
     ]
       .filter(Boolean)
       .join(' ');
@@ -45,8 +43,9 @@ function createPriceOverlay(
     div.style.cursor = 'pointer';
     div.style.zIndex = opts.isActive || opts.isHovered ? '25' : '10';
 
-    const label = truck.price != null ? `€ ${truck.price.toLocaleString()}` : 'Offer';
-    const priceClass = truck.price == null ? 'no-price' : '';
+    const showPrice = truck.price != null && !truck.priceBlurred;
+    const label = showPrice ? `€ ${truck.price!.toLocaleString()}` : 'Offer';
+    const priceClass = showPrice ? '' : 'no-price';
     div.innerHTML = `<div class="sat-mm-pin"><div class="sat-mm-price ${priceClass}">${label}</div><div class="sat-mm-tail"></div></div>`;
     div.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -151,13 +150,17 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
     const bounds = new maps.LatLngBounds();
     let hasBounds = false;
 
-    trucks.forEach((truck) => {
+    // Spec v2: when a truck is selected, hide other pickup pins (do not dim).
+    const visibleTrucks = hasSelection
+      ? trucks.filter((truck) => truck.id === selectedId)
+      : trucks;
+
+    visibleTrucks.forEach((truck) => {
       const isActive = truck.id === selectedId;
       const isHovered = truck.id === hoveredId;
       const overlay = createPriceOverlay(maps, map, truck, {
         isActive,
         isHovered,
-        dimmed: hasSelection && !isActive,
         onClick: () => onSelect(truck.id),
       });
       overlaysRef.current.push(overlay);
@@ -246,23 +249,31 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
               {trucks.length} {t('satResults')}
             </div>
             <div className="sat-map-fake-pins">
-              {trucks.slice(0, 8).map((truck) => (
-                <button
-                  key={truck.id}
-                  type="button"
-                  className={`sat-map-marker ${truck.vis === 'private' ? 'private' : ''} ${
-                    selectedId === truck.id ? 'active' : ''
-                  } ${hoveredId === truck.id ? 'hovered' : ''}`}
-                  style={{ position: 'relative', transform: 'none', margin: 4 }}
-                  onClick={() => onSelect(truck.id)}
-                >
-                  <div className="sat-mm-pin">
-                    <div className={`sat-mm-price ${truck.price == null ? 'no-price' : ''}`}>
-                      {truck.price != null ? `€ ${truck.price.toLocaleString()}` : 'Offer'}
-                    </div>
-                  </div>
-                </button>
-              ))}
+              {(selectedId
+                ? trucks.filter((truck) => truck.id === selectedId)
+                : trucks
+              )
+                .slice(0, 8)
+                .map((truck) => {
+                  const showPrice = truck.price != null && !truck.priceBlurred;
+                  return (
+                    <button
+                      key={truck.id}
+                      type="button"
+                      className={`sat-map-marker ${truck.vis === 'private' ? 'private' : ''} ${
+                        selectedId === truck.id ? 'active' : ''
+                      } ${hoveredId === truck.id ? 'hovered' : ''}`}
+                      style={{ position: 'relative', transform: 'none', margin: 4 }}
+                      onClick={() => onSelect(truck.id)}
+                    >
+                      <div className="sat-mm-pin">
+                        <div className={`sat-mm-price ${showPrice ? '' : 'no-price'}`}>
+                          {showPrice ? `€ ${truck.price!.toLocaleString()}` : 'Offer'}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
             </div>
           </div>
         )}

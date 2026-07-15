@@ -66,7 +66,7 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
         className={`sat-chip ${quickFilters.has(chip.key) ? 'has' : ''} ${chip.premium ? 'premium' : ''}`}
         onClick={() => onToggleFilter(chip.key)}
       >
-        {chip.premium && <span className="sat-chip-prem">Premium</span>}
+        {chip.premium && <span className="sat-chip-prem">{t('satPremium')}</span>}
         {t(chip.labelKey)}
       </button>
     ))}

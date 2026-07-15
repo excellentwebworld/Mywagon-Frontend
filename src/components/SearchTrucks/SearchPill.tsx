@@ -1,5 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { loadGoogleMaps } from '../AddressBook/GoogleMapAddressField';
+import { useVehicleTypes } from '../../hooks/useVehicleTypes';
+import { useTranslation } from '../../hooks/useTranslation';
 import type { SearchCriteria } from '../../pages/SearchTrucks/types';
 
 interface SearchPillProps {
@@ -9,21 +11,14 @@ interface SearchPillProps {
   t: (key: string) => string;
 }
 
-const VEHICLE_OPTIONS = [
-  'Semi-Trailer',
-  'Box Truck',
-  'Curtainside',
-  'Refrigerated',
-  'Flatbed',
-  'Tail lift',
-];
-
 export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSearch, t }) => {
   const [expanded, setExpanded] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const pickupRef = useRef<HTMLInputElement>(null);
   const dropoffRef = useRef<HTMLInputElement>(null);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
+  const { vehicleTypes, loading: vehicleTypesLoading } = useVehicleTypes();
+  const { lang } = useTranslation();
 
   useEffect(() => {
     if (!expanded) return;
@@ -48,11 +43,11 @@ export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSe
         if (disposed || !window.google?.maps?.places) return;
         const bind = (
           input: HTMLInputElement | null,
-          field: 'pickupCity' | 'dropoffCity'
+          field: 'pickup' | 'dropoff'
         ) => {
           if (!input) return;
           const ac = new window.google!.maps.places.Autocomplete(input, {
-            fields: ['formatted_address', 'name', 'address_components'],
+            fields: ['formatted_address', 'name', 'address_components', 'geometry'],
             componentRestrictions: { country: 'gr' },
           });
           ac.addListener('place_changed', () => {
@@ -64,11 +59,29 @@ export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSe
               place.name ||
               place.formatted_address ||
               '';
-            onChange({ ...criteriaRef.current, [field]: city });
+            const lat = place.geometry?.location?.lat?.();
+            const lng = place.geometry?.location?.lng?.();
+            if (field === 'pickup') {
+              onChange({
+                ...criteriaRef.current,
+                pickupCity: city,
+                pickupLat: lat ?? null,
+                pickupLng: lng ?? null,
+                pickupRadius: criteriaRef.current.pickupRadius ?? 50,
+              });
+            } else {
+              onChange({
+                ...criteriaRef.current,
+                dropoffCity: city,
+                dropoffLat: lat ?? null,
+                dropoffLng: lng ?? null,
+                dropoffRadius: criteriaRef.current.dropoffRadius ?? 50,
+              });
+            }
           });
         };
-        bind(pickupRef.current, 'pickupCity');
-        bind(dropoffRef.current, 'dropoffCity');
+        bind(pickupRef.current, 'pickup');
+        bind(dropoffRef.current, 'dropoff');
       })
       .catch(() => undefined);
 
@@ -79,6 +92,32 @@ export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSe
 
   const handleSearch = () => {
     if (onSearch()) setExpanded(false);
+  };
+
+  const vehicleLabel = useMemo(() => {
+    if (criteria.truckTypeIds.length === 0) {
+      return criteria.vehicleType || t('satPillVehiclePh');
+    }
+    const names = criteria.truckTypeIds
+      .map((id) => {
+        const vt = vehicleTypes.find((x) => x.formKey === String(id));
+        if (!vt) return null;
+        return lang === 'el' ? vt.nameEl : vt.name;
+      })
+      .filter(Boolean) as string[];
+    if (names.length === 0) return t('satPillVehiclePh');
+    if (names.length === 1) return names[0];
+    return `${names[0]} +${names.length - 1}`;
+  }, [criteria.truckTypeIds, criteria.vehicleType, vehicleTypes, lang, t]);
+
+  const toggleType = (id: number) => {
+    const has = criteria.truckTypeIds.includes(id);
+    const truckTypeIds = has
+      ? criteria.truckTypeIds.filter((x) => x !== id)
+      : [...criteria.truckTypeIds, id];
+    const first = vehicleTypes.find((x) => x.formKey === String(truckTypeIds[0]));
+    const vehicleType = first ? (lang === 'el' ? first.nameEl : first.name) : '';
+    onChange({ ...criteria, truckTypeIds, vehicleType });
   };
 
   return (
@@ -125,9 +164,7 @@ export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSe
           }}
         >
           <span className="sat-pill-label">{t('satPillVehicle')}</span>
-          <span className="sat-pill-value">
-            {criteria.vehicleType || t('satPillVehiclePh')}
-          </span>
+          <span className="sat-pill-value">{vehicleLabel}</span>
         </button>
         <button
           type="button"
@@ -155,7 +192,14 @@ export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSe
                 ref={pickupRef}
                 type="text"
                 value={criteria.pickupCity}
-                onChange={(e) => onChange({ ...criteria, pickupCity: e.target.value })}
+                onChange={(e) =>
+                  onChange({
+                    ...criteria,
+                    pickupCity: e.target.value,
+                    pickupLat: null,
+                    pickupLng: null,
+                  })
+                }
                 placeholder={t('satPillPickupCityPh')}
                 autoComplete="off"
               />
@@ -174,24 +218,41 @@ export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSe
                 ref={dropoffRef}
                 type="text"
                 value={criteria.dropoffCity}
-                onChange={(e) => onChange({ ...criteria, dropoffCity: e.target.value })}
+                onChange={(e) =>
+                  onChange({
+                    ...criteria,
+                    dropoffCity: e.target.value,
+                    dropoffLat: null,
+                    dropoffLng: null,
+                  })
+                }
                 placeholder={t('satPillDropoffPh')}
                 autoComplete="off"
               />
             </div>
-            <div className="sat-field">
+            <div className="sat-field sat-field--types">
               <label>{t('satPillVehicle')} *</label>
-              <select
-                value={criteria.vehicleType}
-                onChange={(e) => onChange({ ...criteria, vehicleType: e.target.value })}
-              >
-                <option value="">{t('satPillVehiclePh')}</option>
-                {VEHICLE_OPTIONS.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
+              {vehicleTypesLoading ? (
+                <div className="sat-muted">{t('satLoadingVehicleTypes')}</div>
+              ) : (
+                <div className="sat-type-checks">
+                  {vehicleTypes.map((vt) => {
+                    const id = Number(vt.formKey);
+                    const checked = criteria.truckTypeIds.includes(id);
+                    const label = lang === 'el' ? vt.nameEl : vt.name;
+                    return (
+                      <label key={vt.formKey} className="sat-type-check">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleType(id)}
+                        />
+                        <span>{label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
           <div className="sat-pill-panel-ft">

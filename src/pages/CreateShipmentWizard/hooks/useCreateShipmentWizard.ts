@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMatch, useNavigate, useSearchParams } from 'react-router-dom';
-import { createShipmentService, ApiError } from '../../../api';
+import { createShipmentService, ApiError, SAT_PREFILL_KEY } from '../../../api';
+import type { ApiProceedResult } from '../../../api/types/availabilities';
 import { draftToFormValues, formValuesToStepOnePayload, formValuesToStepThreePayload, formValuesToStepTwoPayload } from '../../../api/mappers/createShipmentMapper';
 import type { WizardFormValues } from '../../../api/mappers/createShipmentMapper';
-import { buildDefaultWizardValues } from '../../../components/CreateShipmentWizard/types';
+import { buildDefaultWizardValues, createNewStop } from '../../../components/CreateShipmentWizard/types';
 import { hasVehicleSelection } from '../../../components/CreateShipmentWizard/vehicleTypes';
 
 function parseStep(value: string | undefined | null): number {
@@ -133,17 +134,63 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     if (parsed) setShipmentId(parsed);
   }, [searchParams]);
 
+  /** Prefill Step 1 from Search Trucks availability proceed payload. */
+  useEffect(() => {
+    const availabilityId = searchParams.get('availability_id');
+    if (!availabilityId || draftUrlId) return;
+
+    let raw: string | null = null;
+    try {
+      raw = sessionStorage.getItem(SAT_PREFILL_KEY);
+    } catch {
+      return;
+    }
+    if (!raw) return;
+
+    try {
+      const payload = JSON.parse(raw) as ApiProceedResult;
+      if (String(payload.availability_id) !== availabilityId) return;
+      const prefill = payload.prefill;
+      if (!prefill) return;
+
+      const pickup = createNewStop(true);
+      pickup.locationCity = prefill.pickup_city || '';
+      pickup.locationName = prefill.pickup_address || prefill.pickup_city || '';
+      if (prefill.start_date_time) {
+        const [datePart, timePart = ''] = prefill.start_date_time.replace('T', ' ').split(' ');
+        const [y, m, d] = (datePart || '').split('-');
+        if (y && m && d) pickup.dateFrom = `${d}/${m}/${y}`;
+        pickup.timeFrom = (timePart || '').slice(0, 5);
+      }
+
+      const delivery = createNewStop(true);
+      delivery.locationCity = prefill.dropoff_city || '';
+      delivery.locationName = prefill.dropoff_address || prefill.dropoff_city || '';
+
+      setLoadedValues({
+        ...defaultValues,
+        stops: [pickup, delivery],
+        targetPrice: prefill.price != null ? String(prefill.price) : '',
+      });
+      setFormikEpoch((n) => n + 1);
+      sessionStorage.removeItem(SAT_PREFILL_KEY);
+    } catch {
+      // ignore invalid prefill
+    }
+  }, [searchParams, draftUrlId, defaultValues]);
+
   useEffect(() => {
     if (!draftUrlId) {
       const leavingDraft = loadedDraftIdRef.current != null;
       loadedDraftIdRef.current = null;
       setDraftLoaded(true);
-      setLoadedValues(null);
-      setIsLoading(false);
+      // Do not clear loadedValues when arriving from availability prefill.
       if (leavingDraft) {
+        setLoadedValues(null);
         setShipmentId(null);
         setFormikEpoch((n) => n + 1);
       }
+      setIsLoading(false);
       return;
     }
 

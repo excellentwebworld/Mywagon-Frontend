@@ -8,7 +8,7 @@ interface AvailabilityCardProps {
   onHover: (id: string | null) => void;
   onSelect: (id: string) => void;
   onBook: (truck: AvailableTruck, mode?: DrawerMode, occurrence?: string) => void;
-  t: (key: string) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
   cardRef?: (el: HTMLDivElement | null) => void;
 }
 
@@ -69,11 +69,18 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
 
     <div className="sat-card-meta">
       <span>
+        <span className="sat-muted">{t('satVehicleType')}: </span>
         {truck.truckType}
         <span className="sat-muted">
           {' '}
           · {truck.specs} · {truck.capacity}
         </span>
+        {truck.bidsCount != null && truck.bidsCount > 0 && (
+          <span className="sat-muted">
+            {' '}
+            · {t('satBidsCount', { count: truck.bidsCount })}
+          </span>
+        )}
       </span>
       <span className={`sat-bg ${truck.trip === 'Direct only' ? 'sat-bg-wr' : 'sat-bg-ok'}`}>
         {truck.trip}
@@ -96,10 +103,12 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
         </div>
       </div>
       <div className="sat-card-actions">
-        {truck.price != null ? (
+        {truck.price != null && !truck.priceBlurred ? (
           <span className="sat-price">€ {truck.price.toLocaleString()}</span>
         ) : (
-          <span className="sat-offer-b">{t('satOfferBased')}</span>
+          <span className={`sat-offer-b ${truck.priceBlurred ? 'sat-price-blurred' : ''}`}>
+            {t('satOfferBased')}
+          </span>
         )}
         <button
           type="button"

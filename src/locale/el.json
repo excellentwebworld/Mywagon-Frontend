@@ -1716,5 +1716,21 @@
   "satExpandMap": "Μεγέθυνση χάρτη",
   "satCollapseMap": "Σύμπτυξη χάρτη",
   "satShowList": "Εμφάνιση λίστας",
-  "satMapUnavailable": "Ο χάρτης δεν είναι διαθέσιμος — ορίστε VITE_GOOGLE_MAPS_KEY"
+  "satMapUnavailable": "Ο χάρτης δεν είναι διαθέσιμος — ορίστε VITE_GOOGLE_MAPS_KEY",
+  "satPremium": "Premium",
+  "satUpgradePlan": "Αναβαθμίστε το πλάνο σας για αυτό το φίλτρο",
+  "satLoading": "Φόρτωση διαθεσιμοτήτων…",
+  "satLoadError": "Αποτυχία φόρτωσης διαθεσιμοτήτων",
+  "satLoadingPending": "Φόρτωση εκκρεμών αποστολών…",
+  "satPendingLoadError": "Αποτυχία φόρτωσης εκκρεμών αποστολών",
+  "satLoadingVehicleTypes": "Φόρτωση τύπων οχημάτων…",
+  "satVehicleType": "Τύπος οχήματος",
+  "satBidsCount": "{{count}} προσφορές",
+  "satExactMatch": "Ακριβής αντιστοιχία",
+  "satCreateNewHint": "Συνεχίστε στη Δημιουργία Αποστολής με προ-συμπληρωμένα στοιχεία.",
+  "satContinueToCreateShipment": "Συνέχεια στη Δημιουργία Αποστολής",
+  "satCreateNavigateError": "Δεν ήταν δυνατή η έναρξη δημιουργίας αποστολής",
+  "satSelectPendingFirst": "Επιλέξτε πρώτα μια εκκρεμή αποστολή",
+  "satBidError": "Αποτυχία αποστολής αιτήματος",
+  "satSending": "Αποστολή…"
 }

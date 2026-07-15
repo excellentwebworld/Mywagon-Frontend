@@ -1247,3 +1247,53 @@
     padding: 10px 14px;
   }
 }
+
+.sat-subscription-banner,
+.sat-error-banner {
+  margin: 0 20px 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.sat-subscription-banner {
+  background: #fff4e5;
+  color: #8a4b08;
+  border: 1px solid #f0c36d;
+}
+.sat-error-banner {
+  background: #fdecea;
+  color: #8a1f11;
+  border: 1px solid #f5c2c0;
+}
+.sat-loading {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+.sat-type-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.sat-type-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.sat-field--types {
+  grid-column: 1 / -1;
+}
+.sat-price-blurred {
+  filter: blur(3px);
+  user-select: none;
+}
+.sat-btn-block {
+  width: 100%;
+}

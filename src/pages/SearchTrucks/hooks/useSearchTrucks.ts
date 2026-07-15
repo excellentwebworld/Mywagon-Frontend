@@ -1,4 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { ApiError, availabilitiesService, SAT_PREFILL_KEY } from '../../../api';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { MOCK_PENDING, MOCK_TRUCKS } from '../mockData';
@@ -6,16 +9,17 @@ import type {
   AvailableTruck,
   BookingDraft,
   DrawerMode,
+  PendingShipment,
   QuickFilterKey,
   SearchCriteria,
   SortKey,
   VisibilityFilter,
 } from '../types';
 
-const PER_PAGE = 8;
+const PER_PAGE = 12;
 const LOAD_MATCH_THRESHOLD = 70;
-/** Demo "today" aligned with mock start dates */
-const DEMO_TODAY = '21/02/2026';
+const SEARCH_DEBOUNCE_MS = 300;
+const USE_MOCK = import.meta.env.VITE_USE_SEARCH_TRUCKS_MOCK === 'true';
 
 function parsePostedMinutes(posted: string): number {
   const m = posted.match(/^(\d+)m/);
@@ -26,6 +30,10 @@ function parsePostedMinutes(posted: string): number {
 }
 
 function parseStartKey(t: AvailableTruck): number {
+  if (t.startAt) {
+    const d = new Date(t.startAt.replace(' ', 'T'));
+    if (!Number.isNaN(d.getTime())) return d.getTime();
+  }
   const [d, mo, y] = t.startDt.split('/').map(Number);
   const [hh, mm] = t.startTm.split(':').map(Number);
   return new Date(y, mo - 1, d, hh, mm).getTime();
@@ -70,22 +78,124 @@ function createDraft(truck: AvailableTruck): BookingDraft {
   };
 }
 
-const emptyCriteria = (): SearchCriteria => ({
+export const emptyCriteria = (): SearchCriteria => ({
   pickupCity: '',
   pickupDate: '',
   dropoffCity: '',
   vehicleType: '',
+  pickupLat: null,
+  pickupLng: null,
+  pickupRadius: 50,
+  dropoffLat: null,
+  dropoffLng: null,
+  dropoffRadius: 50,
+  truckTypeIds: [],
 });
+
+function filterMockTrucks(
+  trucks: AvailableTruck[],
+  opts: {
+    visibility: VisibilityFilter;
+    quickFilters: Set<QuickFilterKey>;
+    appliedCriteria: SearchCriteria;
+    searchQuery: string;
+    groupRecurring: boolean;
+    sortKey: SortKey;
+  }
+): AvailableTruck[] {
+  let data = [...trucks];
+  const { visibility, quickFilters, appliedCriteria: ac, searchQuery, groupRecurring, sortKey } =
+    opts;
+
+  if (visibility === 'public') data = data.filter((x) => x.vis === 'public');
+  if (visibility === 'private') data = data.filter((x) => x.vis === 'private');
+
+  if (quickFilters.has('today')) {
+    const today = new Date();
+    const key = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+    data = data.filter((x) => x.startDt === key);
+  }
+  if (quickFilters.has('soon8h')) {
+    const until = Date.now() + 8 * 60 * 60 * 1000;
+    data = data.filter((x) => {
+      const start = parseStartKey(x);
+      return start >= Date.now() && start <= until;
+    });
+  }
+  if (quickFilters.has('has_bids')) data = data.filter((x) => Boolean(x.hasBids));
+  if (quickFilters.has('load_match')) {
+    data = data.filter((x) => (x.loadMatchScore ?? 0) >= LOAD_MATCH_THRESHOLD);
+  }
+
+  if (ac.pickupCity.trim()) {
+    const q = ac.pickupCity.trim().toLowerCase();
+    data = data.filter((x) => x.pickup.toLowerCase().includes(q));
+  }
+  if (ac.dropoffCity.trim()) {
+    const q = ac.dropoffCity.trim().toLowerCase();
+    data = data.filter((x) => x.dest.toLowerCase().includes(q) || x.dest === 'Any');
+  }
+  if (ac.vehicleType.trim() || ac.truckTypeIds.length) {
+    const q = ac.vehicleType.trim().toLowerCase();
+    data = data.filter(
+      (x) =>
+        (!q || x.truckType.toLowerCase().includes(q) || x.specs.toLowerCase().includes(q))
+    );
+  }
+
+  const q = searchQuery.trim().toLowerCase();
+  if (q) {
+    data = data.filter(
+      (x) =>
+        x.carrier.toLowerCase().includes(q) ||
+        x.pickup.toLowerCase().includes(q) ||
+        x.dest.toLowerCase().includes(q) ||
+        x.truckType.toLowerCase().includes(q) ||
+        x.specs.toLowerCase().includes(q) ||
+        x.id.toLowerCase().includes(q)
+    );
+  }
+
+  if (!groupRecurring) data = expandUngrouped(data);
+
+  data.sort((a, b) => {
+    switch (sortKey) {
+      case 'soonest_start':
+        return parseStartKey(a) - parseStartKey(b);
+      case 'lowest_price':
+        return (a.price ?? Number.POSITIVE_INFINITY) - (b.price ?? Number.POSITIVE_INFINITY);
+      case 'highest_rating':
+        return b.rating - a.rating;
+      case 'freshest':
+        return parsePostedMinutes(a.posted) - parsePostedMinutes(b.posted);
+      default: {
+        const score = (t: AvailableTruck) =>
+          (t.vis === 'private' ? 100 : 0) +
+          (t.preferred ? 50 : 0) +
+          t.rating * 10 +
+          (t.loadMatchScore ?? 0);
+        return score(b) - score(a);
+      }
+    }
+  });
+
+  return data;
+}
 
 export function useSearchTrucks() {
   const { t } = useTranslation();
   const { showToast } = useApp();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const [trucks, setTrucks] = useState<AvailableTruck[]>(() =>
+  const [mockTrucks, setMockTrucks] = useState<AvailableTruck[]>(() =>
     MOCK_TRUCKS.map((x) => ({ ...x }))
   );
+  const [bidSentIds, setBidSentIds] = useState<Set<string>>(new Set());
+
   const [visibility, setVisibility] = useState<VisibilityFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [quickFilters, setQuickFilters] = useState<Set<QuickFilterKey>>(new Set());
   const [criteria, setCriteria] = useState<SearchCriteria>(emptyCriteria);
   const [appliedCriteria, setAppliedCriteria] = useState<SearchCriteria>(emptyCriteria);
@@ -104,105 +214,120 @@ export function useSearchTrucks() {
   const [selectedTruck, setSelectedTruck] = useState<AvailableTruck | null>(null);
   const [selectedPendingIdx, setSelectedPendingIdx] = useState<number | null>(null);
   const [draft, setDraft] = useState<BookingDraft | null>(null);
+  const [pending, setPending] = useState<PendingShipment[]>(USE_MOCK ? MOCK_PENDING : []);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
-  const pending = MOCK_PENDING;
+  const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = useMemo(() => {
-    let data = [...trucks];
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    if (visibility === 'public') data = data.filter((x) => x.vis === 'public');
-    if (visibility === 'private') data = data.filter((x) => x.vis === 'private');
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [searchQuery]);
 
-    if (quickFilters.has('today')) {
-      data = data.filter((x) => x.startDt === DEMO_TODAY);
-    }
-    if (quickFilters.has('soon8h')) {
-      data = data.filter((x) => parsePostedMinutes(x.posted) <= 120 || x.startTm <= '08:00');
-    }
-    if (quickFilters.has('has_bids')) {
-      data = data.filter((x) => Boolean(x.hasBids));
-    }
-    if (quickFilters.has('load_match')) {
-      data = data.filter((x) => (x.loadMatchScore ?? 0) >= LOAD_MATCH_THRESHOLD);
-    }
+  const quickFilterKey = useMemo(
+    () => Array.from(quickFilters).sort().join(','),
+    [quickFilters]
+  );
 
-    const ac = appliedCriteria;
-    if (ac.pickupCity.trim()) {
-      const q = ac.pickupCity.trim().toLowerCase();
-      data = data.filter((x) => x.pickup.toLowerCase().includes(q));
-    }
-    if (ac.dropoffCity.trim()) {
-      const q = ac.dropoffCity.trim().toLowerCase();
-      data = data.filter(
-        (x) => x.dest.toLowerCase().includes(q) || x.dest === 'Any'
-      );
-    }
-    if (ac.vehicleType.trim()) {
-      const q = ac.vehicleType.trim().toLowerCase();
-      data = data.filter(
-        (x) =>
-          x.truckType.toLowerCase().includes(q) ||
-          x.specs.toLowerCase().includes(q)
-      );
-    }
-    if (ac.pickupDate.trim()) {
-      // Mock: loose match — keep all if date set for demo UX
-    }
-
-    const q = searchQuery.trim().toLowerCase();
-    if (q) {
-      data = data.filter(
-        (x) =>
-          x.carrier.toLowerCase().includes(q) ||
-          x.pickup.toLowerCase().includes(q) ||
-          x.dest.toLowerCase().includes(q) ||
-          x.truckType.toLowerCase().includes(q) ||
-          x.specs.toLowerCase().includes(q) ||
-          x.id.toLowerCase().includes(q)
-      );
-    }
-
-    if (!groupRecurring) data = expandUngrouped(data);
-
-    data.sort((a, b) => {
-      switch (sortKey) {
-        case 'soonest_start':
-          return parseStartKey(a) - parseStartKey(b);
-        case 'lowest_price':
-          return (a.price ?? Number.POSITIVE_INFINITY) - (b.price ?? Number.POSITIVE_INFINITY);
-        case 'highest_rating':
-          return b.rating - a.rating;
-        case 'freshest':
-          return parsePostedMinutes(a.posted) - parsePostedMinutes(b.posted);
-        default: {
-          const score = (t: AvailableTruck) =>
-            (t.vis === 'private' ? 100 : 0) +
-            (t.preferred ? 50 : 0) +
-            t.rating * 10 +
-            (t.loadMatchScore ?? 0);
-          return score(b) - score(a);
+  const listQuery = useQuery({
+    queryKey: [
+      'availabilities',
+      page,
+      visibility,
+      debouncedSearch,
+      sortKey,
+      appliedCriteria,
+      quickFilterKey,
+    ],
+    enabled: !USE_MOCK,
+    queryFn: async () => {
+      try {
+        const result = await availabilitiesService.listMapped({
+          page,
+          perPage: PER_PAGE,
+          visibility,
+          search: debouncedSearch,
+          sort: sortKey,
+          criteria: appliedCriteria,
+          quickFilters,
+        });
+        setSubscriptionBlocked(false);
+        setError(null);
+        return result;
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 403) {
+          const premiumActive =
+            quickFilters.has('has_bids') || quickFilters.has('load_match');
+          if (premiumActive) {
+            setQuickFilters((prev) => {
+              const next = new Set(prev);
+              next.delete('has_bids');
+              next.delete('load_match');
+              return next;
+            });
+            showToast(err.message || t('satUpgradePlan'), 'error');
+          } else {
+            setSubscriptionBlocked(true);
+            setError(err.message);
+          }
+        } else if (err instanceof ApiError) {
+          setError(err.message);
+        } else {
+          setError(t('satLoadError') || 'Failed to load availabilities');
         }
+        throw err;
       }
-    });
+    },
+  });
 
-    return data;
+  const mockFiltered = useMemo(() => {
+    if (!USE_MOCK) return [];
+    return filterMockTrucks(mockTrucks, {
+      visibility,
+      quickFilters,
+      appliedCriteria,
+      searchQuery: debouncedSearch,
+      groupRecurring,
+      sortKey,
+    });
   }, [
-    trucks,
+    mockTrucks,
     visibility,
     quickFilters,
     appliedCriteria,
-    searchQuery,
+    debouncedSearch,
     groupRecurring,
     sortKey,
   ]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const liveTrucks = useMemo(() => {
+    const items = listQuery.data?.trucks ?? [];
+    return items.map((x) => (bidSentIds.has(x.id) ? { ...x, bidSent: true } : x));
+  }, [listQuery.data?.trucks, bidSentIds]);
+
+  const filtered = USE_MOCK ? mockFiltered : liveTrucks;
+
+  const totalFromApi = listQuery.data?.meta.total ?? 0;
+  const totalPages = USE_MOCK
+    ? Math.max(1, Math.ceil(filtered.length / PER_PAGE))
+    : Math.max(1, listQuery.data?.meta.last_page ?? 1);
 
   useEffect(() => {
     if (page > totalPages) setPage(1);
   }, [page, totalPages]);
 
   const pageItems = useMemo(() => {
+    if (!USE_MOCK) return filtered;
     const start = (page - 1) * PER_PAGE;
     return filtered.slice(start, start + PER_PAGE);
   }, [filtered, page]);
@@ -211,6 +336,8 @@ export function useSearchTrucks() {
     () => filtered.find((x) => x.id === selectedId) ?? null,
     [filtered, selectedId]
   );
+
+  const mapTrucks = USE_MOCK ? filtered : pageItems;
 
   const toggleQuickFilter = useCallback((key: QuickFilterKey) => {
     setQuickFilters((prev) => {
@@ -224,6 +351,7 @@ export function useSearchTrucks() {
 
   const clearFilters = useCallback(() => {
     setSearchQuery('');
+    setDebouncedSearch('');
     setVisibility('all');
     setQuickFilters(new Set());
     setCriteria(emptyCriteria());
@@ -242,7 +370,7 @@ export function useSearchTrucks() {
       showToast(t('satPickupDateRequired') || 'Pickup date is required', 'warning');
       return false;
     }
-    if (!criteria.vehicleType.trim()) {
+    if (!criteria.vehicleType.trim() && criteria.truckTypeIds.length === 0) {
       showToast(t('satVehicleTypeRequired') || 'Vehicle type is required', 'warning');
       return false;
     }
@@ -257,6 +385,31 @@ export function useSearchTrucks() {
     setSelectedId(id);
   }, []);
 
+  const loadPendingMatches = useCallback(
+    async (truck: AvailableTruck) => {
+      if (USE_MOCK) {
+        setPending(MOCK_PENDING);
+        return;
+      }
+      setPendingLoading(true);
+      try {
+        await availabilitiesService.proceed(Number(truck.id), 'pending_matches');
+        const matches = await availabilitiesService.pendingMatches(Number(truck.id));
+        setPending(matches);
+      } catch (err) {
+        setPending([]);
+        const msg =
+          err instanceof ApiError
+            ? err.message
+            : t('satPendingLoadError') || 'Failed to load pending shipments';
+        showToast(msg, 'error');
+      } finally {
+        setPendingLoading(false);
+      }
+    },
+    [showToast, t]
+  );
+
   const openDrawer = useCallback(
     (truck: AvailableTruck, mode: DrawerMode = 'pending', occurrence?: string) => {
       setSelectedTruck(truck);
@@ -267,8 +420,11 @@ export function useSearchTrucks() {
       if (occurrence) d.occurrence = occurrence;
       setDraft(d);
       setDrawerOpen(true);
+      if (mode === 'pending') {
+        void loadPendingMatches(truck);
+      }
     },
-    []
+    [loadPendingMatches]
   );
 
   const closeDrawer = useCallback(() => {
@@ -277,25 +433,131 @@ export function useSearchTrucks() {
     setDraft(null);
     setSelectedPendingIdx(null);
     setDrawerStep(1);
+    setPending(USE_MOCK ? MOCK_PENDING : []);
   }, []);
 
   const updateDraft = useCallback((patch: Partial<BookingDraft>) => {
     setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
   }, []);
 
-  const confirmBooking = useCallback(() => {
+  const setDrawerModeAndLoad = useCallback(
+    (mode: DrawerMode) => {
+      setDrawerMode(mode);
+      setSelectedPendingIdx(null);
+      if (mode === 'pending' && selectedTruck) {
+        void loadPendingMatches(selectedTruck);
+      }
+      if (mode === 'new') {
+        // keep pending as-is; create path uses navigate on confirm/CTA
+      }
+    },
+    [loadPendingMatches, selectedTruck]
+  );
+
+  const goToCreateShipment = useCallback(async () => {
     if (!selectedTruck) return;
-    const rootId = selectedTruck.id.replace(/-\d+$/, '');
-    setTrucks((prev) =>
-      prev.map((x) => (x.id === rootId || x.id === selectedTruck.id ? { ...x, bidSent: true } : x))
-    );
-    closeDrawer();
-    showToast(
-      t('satOfferSent', { carrier: selectedTruck.carrier }) ||
-        `Offer sent to ${selectedTruck.carrier}!`,
-      'success'
-    );
-  }, [selectedTruck, closeDrawer, showToast, t]);
+    if (USE_MOCK) {
+      navigate(`/shipments/create/step/1?availability_id=${selectedTruck.id}`);
+      closeDrawer();
+      return;
+    }
+    try {
+      const result = await availabilitiesService.proceed(
+        Number(selectedTruck.id),
+        'create_shipment'
+      );
+      sessionStorage.setItem(SAT_PREFILL_KEY, JSON.stringify(result));
+      navigate(`/shipments/create/step/1?availability_id=${selectedTruck.id}`);
+      closeDrawer();
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : t('satCreateNavigateError') || 'Could not start create shipment';
+      showToast(msg, 'error');
+    }
+  }, [selectedTruck, navigate, closeDrawer, showToast, t]);
+
+  const placeBidMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedTruck || !draft) throw new Error('missing draft');
+      if (selectedPendingIdx == null || !pending[selectedPendingIdx]) {
+        throw new ApiError(t('satSelectPendingFirst') || 'Select a pending shipment', 422);
+      }
+      const shipment = pending[selectedPendingIdx];
+      const shipmentId = shipment.id;
+      if (!shipmentId) throw new ApiError('Invalid shipment', 422);
+
+      return availabilitiesService.placeBid(Number(selectedTruck.id), {
+        shipment_id: shipmentId,
+        quote: draft.offerPrice || undefined,
+        notes: draft.notes || undefined,
+      });
+    },
+    onSuccess: () => {
+      if (!selectedTruck) return;
+      setBidSentIds((prev) => new Set(prev).add(selectedTruck.id));
+      if (USE_MOCK) {
+        setMockTrucks((prev) =>
+          prev.map((x) => (x.id === selectedTruck.id ? { ...x, bidSent: true } : x))
+        );
+      }
+      void queryClient.invalidateQueries({ queryKey: ['availabilities'] });
+      closeDrawer();
+      showToast(
+        t('satOfferSent', { carrier: selectedTruck.carrier }) ||
+          `Offer sent to ${selectedTruck.carrier}!`,
+        'success'
+      );
+    },
+    onError: (err) => {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : t('satBidError') || 'Failed to send booking request';
+      showToast(msg, 'error');
+    },
+  });
+
+  const confirmBooking = useCallback(async () => {
+    if (!selectedTruck) return;
+
+    if (drawerMode === 'new') {
+      await goToCreateShipment();
+      return;
+    }
+
+    if (USE_MOCK) {
+      const rootId = selectedTruck.id.replace(/-\d+$/, '');
+      setMockTrucks((prev) =>
+        prev.map((x) =>
+          x.id === rootId || x.id === selectedTruck.id ? { ...x, bidSent: true } : x
+        )
+      );
+      closeDrawer();
+      showToast(
+        t('satOfferSent', { carrier: selectedTruck.carrier }) ||
+          `Offer sent to ${selectedTruck.carrier}!`,
+        'success'
+      );
+      return;
+    }
+
+    setConfirming(true);
+    try {
+      await placeBidMutation.mutateAsync();
+    } finally {
+      setConfirming(false);
+    }
+  }, [
+    selectedTruck,
+    drawerMode,
+    goToCreateShipment,
+    placeBidMutation,
+    closeDrawer,
+    showToast,
+    t,
+  ]);
 
   const handleExport = useCallback(() => {
     const header = [
@@ -365,12 +627,20 @@ export function useSearchTrucks() {
   return {
     t,
     pending,
+    pendingLoading,
+    confirming: confirming || placeBidMutation.isPending,
     filtered,
     pageItems,
+    mapTrucks,
     page,
     setPage,
     totalPages,
     perPage: PER_PAGE,
+    total: USE_MOCK ? filtered.length : totalFromApi,
+    loading: !USE_MOCK && listQuery.isLoading,
+    fetching: !USE_MOCK && listQuery.isFetching,
+    error,
+    subscriptionBlocked,
     visibility,
     setVisibility: (v: VisibilityFilter) => {
       setVisibility(v);
@@ -379,7 +649,6 @@ export function useSearchTrucks() {
     searchQuery,
     setSearchQuery: (v: string) => {
       setSearchQuery(v);
-      setPage(1);
     },
     quickFilters,
     toggleQuickFilter,
@@ -389,7 +658,10 @@ export function useSearchTrucks() {
     applySearch,
     clearFilters,
     sortKey,
-    setSortKey,
+    setSortKey: (v: SortKey) => {
+      setSortKey(v);
+      setPage(1);
+    },
     groupRecurring,
     handleToggleGroup,
     hoveredId,
@@ -405,7 +677,7 @@ export function useSearchTrucks() {
     drawerStep,
     setDrawerStep,
     drawerMode,
-    setDrawerMode,
+    setDrawerMode: setDrawerModeAndLoad,
     selectedTruck,
     selectedPendingIdx,
     setSelectedPendingIdx,
@@ -414,6 +686,8 @@ export function useSearchTrucks() {
     openDrawer,
     closeDrawer,
     confirmBooking,
+    goToCreateShipment,
     handleExport,
+    useMock: USE_MOCK,
   };
 }

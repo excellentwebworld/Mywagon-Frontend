@@ -47,7 +47,7 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
               </div>
             </div>
             <div style={{ marginLeft: 'auto' }}>
-              {truck.price != null ? (
+              {truck.price != null && !truck.priceBlurred ? (
                 <span className="sat-price" style={{ fontSize: 20 }}>
                   € {truck.price.toLocaleString()}
                 </span>
