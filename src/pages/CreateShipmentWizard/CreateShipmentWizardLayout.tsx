@@ -8,6 +8,7 @@ import { scrollToValidationAnchor } from '../../components/CreateShipmentWizard/
 import { Step1DetailsSkeleton } from '../../components/skeletons/Step1DetailsSkeleton';
 import { Step2ItinerarySkeleton } from '../../components/skeletons/Step2ItinerarySkeleton';
 import { Step3PricingSkeleton } from '../../components/skeletons/Step3PricingSkeleton';
+import { AvailabilityContextBar } from '../../components/CreateShipmentWizard/AvailabilityContextBar';
 import { useCreateShipmentWizard } from './hooks/useCreateShipmentWizard';
 import { useWizardMasterData } from './hooks/useWizardMasterData';
 import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
@@ -61,6 +62,7 @@ export const CreateShipmentWizardLayout: React.FC = () => {
   const {
     step,
     shipmentId,
+    availabilityId,
     loadId,
     isLoading,
     isSaving,
@@ -182,6 +184,10 @@ export const CreateShipmentWizardLayout: React.FC = () => {
           <span>Vehicle & Pricing</span>
         </div>
       </nav>
+
+      {availabilityId != null && (
+        <AvailabilityContextBar availabilityId={availabilityId} t={t} />
+      )}
 
       {stepNavigationError && (
         <div

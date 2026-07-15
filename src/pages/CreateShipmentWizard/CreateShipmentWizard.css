@@ -2178,6 +2178,235 @@
 .sc-v { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary); letter-spacing: -0.3px; }
 .sc-v .u { font-size: 11px; font-weight: 500; color: var(--text-secondary); font-family: 'DM Sans', sans-serif; }
 
+/* ── Sticky SAT availability context ── */
+.wizard-availability-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 12px 14px;
+  margin: 0 0 16px;
+  border-radius: 10px;
+  border: 1px solid #DDD6FE;
+  background: #F5F3FF;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+.wizard-availability-bar__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.wizard-availability-bar__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.wizard-availability-bar__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #C4B5FD;
+  color: #5B21B6;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.wizard-availability-bar__id {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.wizard-availability-bar__vis {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: var(--text-tertiary);
+}
+.wizard-availability-bar__vis--private {
+  color: #7C3AED;
+}
+.wizard-availability-bar__preferred {
+  font-size: 11px;
+  font-weight: 700;
+  color: #047857;
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.wizard-availability-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.wizard-availability-bar__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #C4B5FD;
+  background: #fff;
+  color: #5B21B6;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.2;
+}
+.wizard-availability-bar__toggle:hover {
+  background: #F5F3FF;
+}
+.wizard-availability-bar__chevron {
+  font-size: 11px;
+  line-height: 1;
+}
+.wizard-availability-bar__link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.wizard-availability-bar__link:hover {
+  text-decoration: underline;
+}
+.wizard-availability-bar__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.wizard-availability-bar__provider {
+  font-weight: 700;
+}
+.wizard-availability-bar__lane {
+  font-weight: 600;
+}
+.wizard-availability-bar__meta {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.wizard-availability-bar__loading {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.wizard-availability-bar__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 2px;
+}
+.wizard-availability-bar__sk-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wizard-availability-bar__sk-chip,
+.wizard-availability-bar__sk-line {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e9e4ff 0%, #f6f3ff 50%, #e9e4ff 100%);
+  background-size: 200% 100%;
+  animation: wizard-avail-shimmer 1.2s ease-in-out infinite;
+}
+.wizard-availability-bar__sk-chip {
+  width: 132px;
+  height: 22px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.wizard-availability-bar__sk-chip--soft {
+  width: 56px;
+  height: 18px;
+}
+.wizard-availability-bar__sk-line {
+  height: 12px;
+}
+.wizard-availability-bar__sk-line--sm {
+  width: 48px;
+  height: 14px;
+}
+.wizard-availability-bar__sk-line--md {
+  width: 55%;
+  max-width: 280px;
+}
+.wizard-availability-bar__sk-line--lg {
+  width: 72%;
+  max-width: 420px;
+  height: 14px;
+}
+@keyframes wizard-avail-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+.wizard-availability-bar__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #DDD6FE;
+}
+.wizard-availability-bar__cell {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.wizard-availability-bar__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.wizard-availability-bar__value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+  word-break: break-word;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.wizard-availability-bar__value--muted {
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.wizard-availability-bar__sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+@media (max-width: 1100px) {
+  .wizard-availability-bar__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 720px) {
+  .wizard-availability-bar__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .wizard-availability-bar__actions {
+    justify-content: flex-start;
+  }
+  .wizard-availability-bar__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── Wizard validation ── */
 .wizard-validation-banner {
   display: flex;

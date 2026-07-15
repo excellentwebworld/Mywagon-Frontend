@@ -24,10 +24,15 @@ function parseStep(value: string | undefined | null): number {
   return n;
 }
 
-function buildWizardStepPath(step: number, draftId: number | null): string {
+function buildWizardStepPath(
+  step: number,
+  draftId: number | null,
+  availabilityId?: number | null
+): string {
   const base = `/shipments/create/step/${step}`;
-  if (!draftId) return base;
-  return `${base}?id=${draftId}`;
+  if (draftId) return `${base}?id=${draftId}`;
+  if (availabilityId) return `${base}?availability_id=${availabilityId}`;
+  return base;
 }
 
 type SatGeoPending = {
@@ -176,15 +181,15 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setStepNavigationError('validationCompleteStep1First');
         setValidationRequest((count) => count + 1);
         if (step !== 1) {
-          navigate(buildWizardStepPath(1, null), { replace: true });
+          navigate(buildWizardStepPath(1, null, availabilityId), { replace: true });
         }
         return false;
       }
       setStepNavigationError(null);
-      navigate(buildWizardStepPath(nextStep, shipmentId), { replace: true });
+      navigate(buildWizardStepPath(nextStep, shipmentId, availabilityId), { replace: true });
       return true;
     },
-    [navigate, shipmentId, step]
+    [availabilityId, navigate, shipmentId, step]
   );
 
   useEffect(() => {
@@ -334,6 +339,10 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       if (leavingDraft) {
         setLoadedValues(null);
         setShipmentId(null);
+        const availStillInUrl = searchParams.get('availability_id');
+        if (!availStillInUrl) {
+          setAvailabilityId(null);
+        }
         setFormikEpoch((n) => n + 1);
       }
       setIsLoading(false);
@@ -360,6 +369,8 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         const stateAvail = draft.wizard_state?.availability_id;
         if (typeof stateAvail === 'number' && stateAvail > 0) {
           setAvailabilityId(stateAvail);
+        } else {
+          setAvailabilityId(null);
         }
         setLoadedValues(mapped);
         setDraftLoaded(true);
@@ -374,7 +385,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setLoadError(message);
         showToastRef.current(message, 'error');
         setDraftLoaded(true);
-        navigate(buildWizardStepPath(1, null), { replace: true });
+        navigate(buildWizardStepPath(1, null, availabilityId), { replace: true });
       })
       .finally(() => {
         if (!cancelled) {
@@ -385,7 +396,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     return () => {
       cancelled = true;
     };
-  }, [draftUrlId, defaultValues, navigate]);
+  }, [draftUrlId, defaultValues, navigate, searchParams]);
 
   const ensureDraftId = useCallback(async (): Promise<number> => {
     if (shipmentId) return shipmentId;
@@ -581,6 +592,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   return {
     step,
     shipmentId,
+    availabilityId,
     loadId,
     isLoading,
     loadError,

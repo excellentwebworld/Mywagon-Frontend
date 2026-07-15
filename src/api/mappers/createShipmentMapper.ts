@@ -1,4 +1,10 @@
-import type { ApiStop, ApiWizardState, SaveStepOnePayload, SaveStepThreePayload, SaveStepTwoPayload } from '../types/createShipment';
+import type {
+  ApiStop,
+  ApiWizardState,
+  SaveStepOnePayload,
+  SaveStepThreePayload,
+  SaveStepTwoPayload,
+} from '../types/createShipment';
 import { createNewCargoLine, createNewStop } from '../../components/CreateShipmentWizard/types';
 import { computeItineraryFingerprint } from '../../components/CreateShipmentWizard/itineraryFingerprint';
 import { normalizeQtyUnit, normalizeWeightUnit } from '../../constants/cargoUnits';
