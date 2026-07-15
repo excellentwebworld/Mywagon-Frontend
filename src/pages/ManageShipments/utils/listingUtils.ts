@@ -467,6 +467,157 @@ export function buildStopTimelineSteps(
   });
 }
 
+export type LaravelProgressState = 'done' | 'cur' | 'pending' | 'success' | 'skip';
+
+export type LaravelProgressStep = {
+  id: string;
+  label: string;
+  state: LaravelProgressState;
+};
+
+/** Laravel Load Details–style progress steps (status + stops; no location-log timestamps). */
+export function buildLaravelProgressSteps(
+  shipment: Shipment,
+  t: (key: string, opts?: Record<string, unknown>) => string
+): LaravelProgressStep[] {
+  const steps: LaravelProgressStep[] = [];
+  const isPrivate = (shipment.channel || shipment.vis) !== 'public';
+  const status = shipment.status;
+
+  steps.push({ id: 'created', label: t('tlCreated'), state: 'done' });
+
+  if (status === 'canceled' || status === 'cancelled') {
+    steps.push({
+      id: 'canceled',
+      label: t(status === 'cancelled' ? 'cancelled' : 'canceled'),
+      state: 'pending',
+    });
+    return steps;
+  }
+
+  if (status === 'pending' || status === 'draft') {
+    const hasOffers =
+      (shipment.offers?.length ?? 0) > 0 ||
+      (shipment.bidsReceived ?? 0) > 0 ||
+      (shipment.bids ?? 0) > 0;
+    const hasInvitees =
+      (shipment.invitees?.length ?? 0) > 0 || (shipment.invited ?? 0) > 0;
+
+    let pendingLabel = t('waitingForBid');
+    if (hasOffers) {
+      pendingLabel = t('pendingOnShipperAcceptance');
+    } else if (isPrivate || hasInvitees) {
+      pendingLabel = t('pendingOnCarrierAcceptance');
+    }
+    steps.push({ id: 'waiting', label: pendingLabel, state: 'cur' });
+    return steps;
+  }
+
+  steps.push({
+    id: 'accepted',
+    label: isPrivate ? t('privateShipmentAccepted') : t('publicShipmentAccepted'),
+    state: 'done',
+  });
+
+  const carrierLabel = shipment.carrier
+    ? `${t('carrierLabel')}: ${shipment.carrier}`
+    : t('carrierAssigned');
+
+  const beforeTrip =
+    status === 'scheduled' ||
+    status === 'ready' ||
+    status === 'upcoming' ||
+    status === 'past_due' ||
+    status === 'awarded';
+
+  if (beforeTrip) {
+    steps.push({ id: 'carrier', label: carrierLabel, state: 'cur' });
+    return steps;
+  }
+
+  steps.push({ id: 'carrier', label: carrierLabel, state: 'done' });
+
+  const fulfilledLike =
+    status === 'fullfilled' ||
+    status === 'partially_fullfilled' ||
+    status === 'delivered' ||
+    status === 'not_fullfilled';
+  const onTrip = status === 'on_trip' || status === 'in_progress';
+
+  steps.push({
+    id: 'start_trip',
+    label: t('startTrip'),
+    state: onTrip || fulfilledLike ? 'done' : 'cur',
+  });
+
+  const stops =
+    shipment.stops && shipment.stops.length > 0
+      ? shipment.stops.map((s) => ({
+          type: s.type,
+          location:
+            s.location || (s.type === 'pickup' ? shipment.origin : shipment.dest) || '—',
+        }))
+      : [
+          { type: 'pickup' as const, location: shipment.origin || '—' },
+          { type: 'delivery' as const, location: shipment.dest || '—' },
+        ];
+
+  stops.forEach((stop, idx) => {
+    const loc = stop.location;
+    const isLast = idx === stops.length - 1;
+
+    let arrivalState: LaravelProgressState = 'done';
+    if (onTrip && isLast) arrivalState = 'cur';
+    if (status === 'not_fullfilled') arrivalState = 'pending';
+
+    steps.push({
+      id: `arrival-${idx}`,
+      label: `${t('arrival')} - ${loc}`,
+      state: arrivalState,
+    });
+
+    const actionLabel = stop.type === 'pickup' ? t('pickup') : t('delivery');
+    let actionState: LaravelProgressState = 'done';
+    if (onTrip && isLast) {
+      steps[steps.length - 1].state = 'done';
+      actionState = 'cur';
+    }
+    if (status === 'not_fullfilled') actionState = 'pending';
+
+    steps.push({
+      id: `stop-action-${idx}`,
+      label: `${actionLabel} - ${loc}`,
+      state: actionState,
+    });
+  });
+
+  if (fulfilledLike) {
+    if (status !== 'not_fullfilled') {
+      steps.forEach((s) => {
+        if (
+          s.id.startsWith('arrival-') ||
+          s.id.startsWith('stop-action-') ||
+          s.id === 'start_trip'
+        ) {
+          s.state = 'done';
+        }
+      });
+    }
+
+    if (shipment.paymentStatus === 'paid') {
+      steps.push({ id: 'payment', label: t('paymentSuccessful'), state: 'success' });
+    } else {
+      steps.push({
+        id: 'payment',
+        label: t('paymentPending'),
+        state: status === 'not_fullfilled' ? 'pending' : 'cur',
+      });
+    }
+  }
+
+  return steps;
+}
+
 /** HTML mock lifecycle steps (Created → Invoiced). */
 export const LIFECYCLE_STEP_KEYS = [
   'tl_created',

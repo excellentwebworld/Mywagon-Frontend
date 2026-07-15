@@ -5,6 +5,7 @@ import {
   statusBadgeClass,
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { ExpHeading } from './ExpHeading';
+import { ItineraryPreview } from './ItineraryPreview';
 import {
   OrdersBlock,
   ProgressTimeline,
@@ -95,6 +96,14 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
           {ordersMeta.label}
         </ExpHeading>
         <OrdersBlock shipment={shipment} t={t} />
+        <ItineraryPreview
+          stops={shipment.stops}
+          origin={shipment.origin}
+          dest={shipment.dest}
+          pickDt={shipment.pickDt}
+          delDt={shipment.delDt}
+          t={t}
+        />
       </div>
 
       <div className="exp-section exp-qa-col">

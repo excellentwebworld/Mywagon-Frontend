@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { ShipmentStop } from '../../context/AppContext';
+import { ExpHeading } from './ExpHeading';
 
 interface ItineraryPreviewProps {
   stops?: ShipmentStop[];
@@ -36,8 +37,10 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
   const visible = collapsible && !expanded ? lines.slice(0, 2) : lines;
 
   return (
-    <div className="exp-section itinerary-preview" style={{ marginTop: 16 }}>
-      <h4>{t('itinerary')}</h4>
+    <div className="itinerary-preview">
+      <ExpHeading icon="itinerary" className="exp-h-gap">
+        {t('itinerary')}
+      </ExpHeading>
       <ul className="itinerary-list">
         {visible.map((line, idx) => (
           <li key={`${line}-${idx}`}>{line}</li>

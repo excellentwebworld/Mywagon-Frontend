@@ -967,6 +967,12 @@
 .tl-dot.skip {
   background: var(--border);
 }
+.tl-dot.pending {
+  background: #fda4af;
+}
+.tl-dot.success {
+  background: var(--success);
+}
 .tl-dot:hover {
   transform: scale(1.5);
 }
@@ -1098,7 +1104,7 @@
   border-radius: var(--radius-sm);
   background: var(--surface);
   flex: 1;
-  min-width: 140px;
+  min-width: 120px;
 }
 .sd-item .sd-label {
   font-size: 10px;

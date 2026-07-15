@@ -1,6 +1,6 @@
 import React, { type ReactNode } from 'react';
 
-type IconName = 'progress' | 'orders' | 'responses' | 'invited' | 'qa' | 'carrier';
+type IconName = 'progress' | 'orders' | 'responses' | 'invited' | 'qa' | 'carrier' | 'itinerary';
 
 const icons: Record<IconName, ReactNode> = {
   progress: (
@@ -38,6 +38,12 @@ const icons: Record<IconName, ReactNode> = {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  itinerary: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
     </svg>
   ),
 };

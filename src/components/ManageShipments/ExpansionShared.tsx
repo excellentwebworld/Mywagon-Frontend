@@ -1,54 +1,45 @@
 import React, { useState, type ReactNode } from 'react';
 import type { Shipment } from '../../context/AppContext';
 import {
-  buildLifecycleTimelineSteps,
-  buildStopTimelineSteps,
+  buildLaravelProgressSteps,
+  formatEuro,
   formatStatValue,
-  lifecycleTimelineCurrentIndex,
-  stopTimelineCurrentIndex,
 } from '../../pages/ManageShipments/utils/listingUtils';
 
 export type ExpTranslate = (key: string, opts?: Record<string, unknown>) => string;
 
+/** Progress bar — Laravel Load Details step sequence/logic. */
 export function ProgressTimeline({
   shipment,
   t,
   enlarged = false,
   loading = false,
-  /** HTML mock uses fixed lifecycle steps for manage expansion. */
-  mode = 'lifecycle',
 }: {
   shipment: Shipment;
   t: ExpTranslate;
   enlarged?: boolean;
   loading?: boolean;
-  mode?: 'lifecycle' | 'stops';
 }) {
-  const steps =
-    mode === 'lifecycle'
-      ? buildLifecycleTimelineSteps(t)
-      : buildStopTimelineSteps(shipment, t);
-  const cur =
-    mode === 'lifecycle'
-      ? lifecycleTimelineCurrentIndex(shipment.status)
-      : stopTimelineCurrentIndex(shipment.status, steps.length);
+  const steps = buildLaravelProgressSteps(shipment, t);
 
-  if (loading && mode === 'stops' && !shipment.stops?.length) {
+  if (loading && !shipment.stops?.length && shipment.status !== 'pending') {
     return <div className="sub">{t('loading')}</div>;
   }
 
   const timeline = (
     <div className="tl">
-      {steps.map((label, idx) => (
-        <React.Fragment key={`${label}-${idx}`}>
+      {steps.map((step, idx) => (
+        <React.Fragment key={`${step.id}-${idx}`}>
           <div className="tl-step">
-            <div
-              className={`tl-dot ${idx < cur ? 'done' : idx === cur ? 'cur' : 'skip'}`}
-            />
-            <div className="tl-label">{label}</div>
+            <div className={`tl-dot ${step.state}`} />
+            <div className="tl-label">{step.label}</div>
           </div>
           {idx < steps.length - 1 && (
-            <div className={`tl-line ${idx < cur ? 'done' : ''}`} />
+            <div
+              className={`tl-line ${
+                step.state === 'done' || step.state === 'success' ? 'done' : ''
+              }`}
+            />
           )}
         </React.Fragment>
       ))}
@@ -218,52 +209,64 @@ export function CompactLoadMeta({ shipment, t }: { shipment: Shipment; t: ExpTra
   const stops = shipment.stopCount ?? Math.max(shipment.stops?.length ?? 0, 2);
   const weight = formatStatValue(shipment.totalWeight, shipment.weightUnit);
   const qty = formatStatValue(shipment.totalQty, shipment.qtyUnit);
+  const tripKm =
+    shipment.journeyDistanceKm != null && Number.isFinite(shipment.journeyDistanceKm)
+      ? `${shipment.journeyDistanceKm.toLocaleString()} km`
+      : '—';
+  const cargo =
+    shipment.cargoValue != null && Number.isFinite(shipment.cargoValue)
+      ? formatEuro(shipment.cargoValue) || '—'
+      : '—';
+  const trucks =
+    shipment.truckTypes && shipment.truckTypes.length > 0
+      ? shipment.truckTypes.join(', ')
+      : '—';
+
   return (
     <div className="exp-meta">
-      {t('stops')}: {stops} · {t('weight')}: {weight} · {t('pallets')}: {qty}
+      {t('stops')}: {stops} · {t('weight')}: {weight} · {t('pallets')}: {qty} ·{' '}
+      {t('tripLength')}: {tripKm} · {t('cargoValue')}: {cargo} · {t('truckTypes')}: {trucks}
     </div>
   );
 }
 
 export function StatusDetailGrid({ shipment, t }: { shipment: Shipment; t: ExpTranslate }) {
-  const stops = shipment.stopCount ?? Math.max(shipment.stops?.length ?? 0, 2);
-  const via =
-    shipment.viaStops && shipment.viaStops.length > 0
-      ? ` — ${shipment.viaStops.join(' → ')}`
-      : '';
   const weight = formatStatValue(shipment.totalWeight, shipment.weightUnit);
   const qty = formatStatValue(shipment.totalQty, shipment.qtyUnit);
+  const tripKm =
+    shipment.journeyDistanceKm != null && Number.isFinite(shipment.journeyDistanceKm)
+      ? `${shipment.journeyDistanceKm.toLocaleString()} km`
+      : '—';
+  const cargo =
+    shipment.cargoValue != null && Number.isFinite(shipment.cargoValue)
+      ? formatEuro(shipment.cargoValue) || '—'
+      : '—';
+  const trucks =
+    shipment.truckTypes && shipment.truckTypes.length > 0
+      ? shipment.truckTypes.join(', ')
+      : '—';
 
   return (
     <div className="status-detail">
       <div className="sd-item">
-        <div className="sd-label">{t('pickup')}</div>
-        <div className="sd-val">
-          <span className="sd-dot sd-dot-pick" aria-hidden />
-          {shipment.pickDt || '—'}
-        </div>
+        <div className="sd-label">{t('weight')}</div>
+        <div className="sd-val">{weight}</div>
       </div>
       <div className="sd-item">
-        <div className="sd-label">{t('delivery')}</div>
-        <div className="sd-val">
-          <span className="sd-dot sd-dot-del" aria-hidden />
-          {shipment.delDt || '—'}
-        </div>
+        <div className="sd-label">{t('tripLength')}</div>
+        <div className="sd-val">{tripKm}</div>
       </div>
       <div className="sd-item">
-        <div className="sd-label">{t('stops')}</div>
-        <div className="sd-val">
-          {stops} {t('stops').toLowerCase()}
-          {via}
-        </div>
+        <div className="sd-label">{t('truckTypes')}</div>
+        <div className="sd-val">{trucks}</div>
       </div>
       <div className="sd-item">
-        <div className="sd-label">
-          {t('weight')} / {t('pallets')}
-        </div>
-        <div className="sd-val">
-          {weight} · {qty}
-        </div>
+        <div className="sd-label">{t('quantity')}</div>
+        <div className="sd-val">{qty}</div>
+      </div>
+      <div className="sd-item">
+        <div className="sd-label">{t('cargoValue')}</div>
+        <div className="sd-val">{cargo}</div>
       </div>
     </div>
   );

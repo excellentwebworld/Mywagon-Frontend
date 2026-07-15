@@ -5,6 +5,7 @@ import {
   formatRelativeAgo,
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { ExpHeading } from './ExpHeading';
+import { ItineraryPreview } from './ItineraryPreview';
 import {
   CompactLoadMeta,
   OrdersBlock,
@@ -34,12 +35,14 @@ function OfferRow({
   onAccept,
   onReject,
   onCounter,
+  onMessage,
   t,
 }: {
   offer: NonNullable<Shipment['offers']>[number];
   onAccept: () => void;
   onReject: () => void;
   onCounter: (amount: number) => void;
+  onMessage: () => void;
   t: RowExpansionPendingProps['t'];
 }) {
   const [counterOpen, setCounterOpen] = useState(false);
@@ -90,8 +93,11 @@ function OfferRow({
             <button type="button" className="co-cnt" onClick={() => setCounterOpen(true)}>
               ↩ {t('counter')}
             </button>
-            <button type="button" className="co-no" onClick={onReject}>
+            <button type="button" className="co-no bid-reject-danger" onClick={onReject}>
               ✕
+            </button>
+            <button type="button" className="bid-chat" onClick={onMessage}>
+              {t('chat')}
             </button>
           </div>
         </div>
@@ -100,11 +106,18 @@ function OfferRow({
           <button type="button" className="bid-accept" onClick={onAccept}>
             {t('accept')}
           </button>
-          <button type="button" className="bid-reject" onClick={onReject}>
+          <button
+            type="button"
+            className={`bid-reject${hasCounter ? ' bid-reject-danger' : ''}`}
+            onClick={onReject}
+          >
             {t('reject')}
           </button>
           <button type="button" className="bid-counter" onClick={() => setCounterOpen((v) => !v)}>
             {t('counter')}
+          </button>
+          <button type="button" className="bid-chat" onClick={onMessage}>
+            {t('chat')}
           </button>
         </div>
       )}
@@ -143,6 +156,7 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
   onEdit,
   onViewNewTab,
   onCancel,
+  onMessage,
   onAcceptOffer,
   onRejectOffer,
   onCounterOffer,
@@ -170,6 +184,14 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
           {ordersMeta.label}
         </ExpHeading>
         <OrdersBlock shipment={shipment} t={t} />
+        <ItineraryPreview
+          stops={shipment.stops}
+          origin={shipment.origin}
+          dest={shipment.dest}
+          pickDt={shipment.pickDt}
+          delDt={shipment.delDt}
+          t={t}
+        />
         <CompactLoadMeta shipment={shipment} t={t} />
         {shipment.at_risk && shipment.riskReason && (
           <div className="exp-risk">
@@ -194,6 +216,7 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
               onAccept={() => onAcceptOffer(offer.id)}
               onReject={() => onRejectOffer(offer.id)}
               onCounter={(amount) => onCounterOffer(offer.id, amount)}
+              onMessage={() => onMessage(offer.id)}
               t={t}
             />
           ))
