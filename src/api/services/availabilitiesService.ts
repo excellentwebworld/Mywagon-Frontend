@@ -47,6 +47,7 @@ function toQueryString(params: ListAvailabilitiesParams): string {
   set('dropoff_lng', params.dropoff_lng);
   set('dropoff_radius', params.dropoff_radius);
   set('pickup_date', params.pickup_date);
+  set('dropoff_date', params.dropoff_date);
   set('available_today', params.available_today);
   set('starting_within_hours', params.starting_within_hours);
   set('has_bids', params.has_bids);

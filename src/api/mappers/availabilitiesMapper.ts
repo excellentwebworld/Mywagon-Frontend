@@ -157,6 +157,9 @@ export function buildListParams(input: {
   const pickupDate = toApiPickupDate(criteria.pickupDate);
   if (pickupDate) params.pickup_date = pickupDate;
 
+  const dropoffDate = toApiPickupDate(criteria.dropoffDate || '');
+  if (dropoffDate) params.dropoff_date = dropoffDate;
+
   const bounds = criteria.mapBounds;
   if (
     bounds &&

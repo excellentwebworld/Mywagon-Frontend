@@ -24,6 +24,7 @@ export interface SearchCriteria {
   pickupCity: string;
   pickupDate: string;
   dropoffCity: string;
+  dropoffDate: string;
   /** @deprecated Prefer truckTypeIds from API vehicle types */
   vehicleType: string;
   pickupLat?: number | null;

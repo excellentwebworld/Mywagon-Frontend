@@ -103,6 +103,7 @@ export const emptyCriteria = (): SearchCriteria => ({
   pickupCity: '',
   pickupDate: '',
   dropoffCity: '',
+  dropoffDate: '',
   vehicleType: '',
   pickupLat: null,
   pickupLng: null,
@@ -157,6 +158,13 @@ function filterMockTrucks(
   if (ac.dropoffCity.trim()) {
     const q = ac.dropoffCity.trim().toLowerCase();
     data = data.filter((x) => x.dest.toLowerCase().includes(q) || x.dest === 'Any');
+  }
+  if (ac.dropoffDate?.trim()) {
+    const apiDrop = ac.dropoffDate.trim();
+    // Accept YYYY-MM-DD in criteria; mock endDt is DD/MM/YYYY
+    const m = apiDrop.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const displayKey = m ? `${m[3]}/${m[2]}/${m[1]}` : apiDrop;
+    data = data.filter((x) => x.endDt === displayKey || x.endDt === apiDrop);
   }
   if (ac.vehicleType.trim() || ac.truckTypeIds.length) {
     const q = ac.vehicleType.trim().toLowerCase();

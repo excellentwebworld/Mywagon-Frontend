@@ -119,6 +119,7 @@ export interface ListAvailabilitiesParams {
   dropoff_lng?: number;
   dropoff_radius?: number;
   pickup_date?: string;
+  dropoff_date?: string;
   truck_type_ids?: number[];
   truck_category_ids?: number[];
   available_today?: boolean;
