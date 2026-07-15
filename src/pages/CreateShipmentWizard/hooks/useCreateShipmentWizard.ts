@@ -2,10 +2,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMatch, useNavigate, useSearchParams } from 'react-router-dom';
 import { createShipmentService, ApiError, SAT_PREFILL_KEY } from '../../../api';
 import type { ApiProceedResult } from '../../../api/types/availabilities';
-import { draftToFormValues, formValuesToStepOnePayload, formValuesToStepThreePayload, formValuesToStepTwoPayload } from '../../../api/mappers/createShipmentMapper';
+import {
+  draftToFormValues,
+  formValuesToStepOnePayload,
+  formValuesToStepThreePayload,
+  formValuesToStepTwoPayload,
+} from '../../../api/mappers/createShipmentMapper';
 import type { WizardFormValues } from '../../../api/mappers/createShipmentMapper';
 import { buildDefaultWizardValues, createNewStop } from '../../../components/CreateShipmentWizard/types';
 import { hasVehicleSelection } from '../../../components/CreateShipmentWizard/vehicleTypes';
+import { useApp, type LocationItem } from '../../../context/AppContext';
+import { useVehicleTypes } from '../../../hooks/useVehicleTypes';
+import {
+  buildVehicleSpecsFromPrefill,
+  resolveStopLocationFromCoords,
+} from './satPrefill';
 
 function parseStep(value: string | undefined | null): number {
   const n = parseInt(value || '1', 10);
@@ -18,6 +29,18 @@ function buildWizardStepPath(step: number, draftId: number | null): string {
   if (!draftId) return base;
   return `${base}?id=${draftId}`;
 }
+
+type SatGeoPending = {
+  pickupLat: number | null;
+  pickupLng: number | null;
+  dropoffLat: number | null;
+  dropoffLng: number | null;
+};
+
+type SatVehiclePending = {
+  truck_type_id?: number | null;
+  truck_type: string | null;
+};
 
 /** Prefer API snapshot, but never drop Step 1/2 fields the live form already had. */
 function mergeDraftSnapshot(
@@ -53,11 +76,41 @@ function mergeDraftSnapshot(
   };
 }
 
+function applySatLocationsToStops(
+  stops: WizardFormValues['stops'],
+  locations: LocationItem[],
+  geo: SatGeoPending
+): { stops: WizardFormValues['stops']; changed: boolean } {
+  const active = locations.filter((l) => l.status === 'active');
+  if (!active.length || !stops?.length) {
+    return { stops, changed: false };
+  }
+
+  let changed = false;
+  const next = stops.map((stop, index) => {
+    if (stop.locationId) return stop;
+    const resolved =
+      index === 0
+        ? resolveStopLocationFromCoords(stop, active, geo.pickupLat, geo.pickupLng)
+        : index === 1
+          ? resolveStopLocationFromCoords(stop, active, geo.dropoffLat, geo.dropoffLng)
+          : stop;
+    if (resolved.locationId && resolved.locationId !== stop.locationId) {
+      changed = true;
+    }
+    return resolved;
+  });
+
+  return { stops: next, changed };
+}
+
 export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success' | 'error' | 'info') => void, t: (key: string) => string) {
   const navigate = useNavigate();
   const stepMatch = useMatch('/shipments/create/step/:stepNumber');
   const [searchParams] = useSearchParams();
   const step = parseStep(stepMatch?.params.stepNumber);
+  const { locations, refreshLocationsFromApi } = useApp();
+  const { vehicleTypes } = useVehicleTypes();
 
   const draftUrlId = searchParams.get('id');
   const [shipmentId, setShipmentId] = useState<number | null>(() =>
@@ -82,6 +135,10 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   const loadedDraftIdRef = useRef<string | null>(null);
   const showToastRef = useRef(showToast);
   const tRef = useRef(t);
+  const satGeoRef = useRef<SatGeoPending | null>(null);
+  const satVehicleRef = useRef<SatVehiclePending | null>(null);
+  const satLocationsAppliedRef = useRef(false);
+  const satVehicleAppliedRef = useRef(false);
 
   showToastRef.current = showToast;
   tRef.current = t;
@@ -171,18 +228,102 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       delivery.locationCity = prefill.dropoff_city || '';
       delivery.locationName = prefill.dropoff_address || prefill.dropoff_city || '';
 
+      const geo: SatGeoPending = {
+        pickupLat: prefill.pickup_lat,
+        pickupLng: prefill.pickup_lng,
+        dropoffLat: prefill.dropoff_lat,
+        dropoffLng: prefill.dropoff_lng,
+      };
+      satGeoRef.current = geo;
+      satVehicleRef.current = {
+        truck_type_id: prefill.truck_type_id ?? null,
+        truck_type: prefill.truck_type,
+      };
+      satLocationsAppliedRef.current = false;
+      satVehicleAppliedRef.current = false;
+
+      const { stops: resolvedStops } = applySatLocationsToStops(
+        [pickup, delivery],
+        locations,
+        geo
+      );
+      if (resolvedStops.some((s) => s.locationId)) {
+        satLocationsAppliedRef.current = true;
+      }
+
+      const vehicleSpecs =
+        buildVehicleSpecsFromPrefill(satVehicleRef.current, vehicleTypes) ??
+        defaultValues.vehicleSpecs;
+      if (hasVehicleSelection(vehicleSpecs)) {
+        satVehicleAppliedRef.current = true;
+      }
+
       setAvailabilityId(Number(payload.availability_id));
       setLoadedValues({
         ...defaultValues,
-        stops: [pickup, delivery],
+        stops: resolvedStops,
         targetPrice: prefill.price != null ? String(prefill.price) : '',
+        vehicleSpecs,
+        vehicleSelectionConfirmed: false,
       });
       setFormikEpoch((n) => n + 1);
       sessionStorage.removeItem(SAT_PREFILL_KEY);
+      void refreshLocationsFromApi();
     } catch {
       // ignore invalid prefill
     }
+    // Intentionally only on navigation into create with availability_id — not on every locations tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, draftUrlId, defaultValues]);
+
+  /** Late AddressBook hydrate: bind locationId once coords matches appear. */
+  useEffect(() => {
+    if (!availabilityId || draftUrlId || satLocationsAppliedRef.current) return;
+    const geo = satGeoRef.current;
+    if (!geo) return;
+    if (!locations.some((l) => l.status === 'active')) return;
+
+    let changed = false;
+    setLoadedValues((prev) => {
+      if (!prev?.stops?.length) return prev;
+      const resolved = applySatLocationsToStops(prev.stops, locations, geo);
+      if (!resolved.changed) return prev;
+      changed = true;
+      satLocationsAppliedRef.current = true;
+      return { ...prev, stops: resolved.stops };
+    });
+    if (changed) {
+      setFormikEpoch((n) => n + 1);
+    }
+  }, [availabilityId, draftUrlId, locations]);
+
+  /** Late vehicle catalog: seed Step 2 vehicleSpecs from proceed truck_type_id / name. */
+  useEffect(() => {
+    if (!availabilityId || draftUrlId || satVehicleAppliedRef.current) return;
+    const pending = satVehicleRef.current;
+    if (!pending || !vehicleTypes.length) return;
+
+    const specs = buildVehicleSpecsFromPrefill(pending, vehicleTypes);
+    if (!specs) {
+      satVehicleAppliedRef.current = true;
+      return;
+    }
+
+    let changed = false;
+    setLoadedValues((prev) => {
+      if (!prev) return prev;
+      if (hasVehicleSelection(prev.vehicleSpecs)) {
+        satVehicleAppliedRef.current = true;
+        return prev;
+      }
+      changed = true;
+      satVehicleAppliedRef.current = true;
+      return { ...prev, vehicleSpecs: specs, vehicleSelectionConfirmed: false };
+    });
+    if (changed) {
+      setFormikEpoch((n) => n + 1);
+    }
+  }, [availabilityId, draftUrlId, vehicleTypes]);
 
   useEffect(() => {
     if (!draftUrlId) {

@@ -26,6 +26,7 @@
 - [x] **Phase F:** Cargo category filter — `truck_category_ids[]` + VehicleSelector-depth tree in SearchPill
 - [x] **Phase G:** Create Shipment `availability_id` on draft `wizard_state`; publish creates Blade-parity availability bid
 - [x] **Phase H:** Server CSV export `GET /availabilities/export` (cap 5000); live FE uses blob download; mock keeps client CSV
+- [x] **Prefill polish:** Proceed `truck_type_id`; Step 1 AddressBook `locationId` from lat/lng; Step 2 `vehicleSpecs` seed
 
 ## Map key
 
@@ -50,5 +51,10 @@ Uses `VITE_GOOGLE_MAPS_KEY` via `loadGoogleMaps`. Without key, placeholder with 
 
 ## Follow-ups (optional)
 
-- Auto-resolve availability prefill lat/lng into AddressBook `locationId` on Step 1
-- Map `truck_type` name → Step 2 vehicleSpecs formKey when catalog match is unambiguous
+_(none — SAT → Create Shipment locationId + vehicleSpecs prefill complete)_
+
+## Prefill notes
+
+- Proceed `prefill` includes `truck_type_id` (int) plus display `truck_type`.
+- Create Shipment Step 1 resolves AddressBook `locationId` via nearest match (≤150 m) to proceed lat/lng.
+- Step 2 `vehicleSpecs` seeded from `truck_type_id` (all category items for that type) when the vehicle catalog is ready.

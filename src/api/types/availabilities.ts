@@ -74,6 +74,7 @@ export interface ApiAvailabilityPrefill {
   start_date_time: string | null;
   end_date_time: string | null;
   truck_type: string | null;
+  truck_type_id?: number | null;
   provider_name: string | null;
   availability_reach: string | null;
   price: number | null;
