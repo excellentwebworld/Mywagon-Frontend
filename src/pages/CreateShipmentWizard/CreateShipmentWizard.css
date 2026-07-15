@@ -330,7 +330,7 @@
 }
 
 
-/* ── Nest Specs (scoped under .vnest to avoid sidebar .ns/.ni conflicts) ── */
+/* ── Nest Specs (unique class names — do not reuse sidebar .ns / .ni) ── */
 .vnest {
   max-height: 0;
   overflow: hidden;
@@ -381,7 +381,7 @@
   transform: rotate(90deg);
 }
 
-.vnest .ns {
+.vnest .vnest-sub {
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.25s ease;
@@ -392,14 +392,16 @@
   text-transform: none;
   letter-spacing: normal;
   color: inherit;
+  white-space: normal;
+  text-overflow: unset;
 }
 
-.vnest .ns.open {
+.vnest .vnest-sub.open {
   max-height: 800px;
   overflow: visible;
 }
 
-.vnest .ni {
+.vnest .ni-cb {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -413,9 +415,22 @@
   text-decoration: none;
 }
 
-.vnest .ni:hover {
+.vnest .ni-cb__label {
+  color: inherit;
+  text-decoration: none;
+}
+
+.vnest .ni-cb.on {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.vnest .ni-cb:hover {
   background: var(--surface-hover);
-  color: var(--text-secondary);
+}
+
+.vnest .ni-cb.on:hover {
+  color: var(--text-primary);
 }
 
 /* ── Checkboxes ── */

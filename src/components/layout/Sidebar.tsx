@@ -112,7 +112,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>{t("navManageShipments")}</span>
           </Link>
 
-          <a href="#search" className="ni" title={t("truckAvailability")}>
+          <Link
+            to="/search-trucks"
+            onClick={onCloseMobile}
+            className={`ni ${isLinkActive("/search-trucks") ? "active" : ""}`}
+            title={t("truckAvailability")}
+          >
             <svg
               width="18"
               height="18"
@@ -126,7 +131,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </svg>
             <span>{t("truckAvailability")}</span>
             <span className="nb">BETA</span>
-          </a>
+          </Link>
 
           <div className="ns">{t("navRegistry")}</div>
 

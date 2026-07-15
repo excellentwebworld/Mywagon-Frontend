@@ -1,0 +1,1 @@
+export { SearchTrucks } from './SearchTrucks';

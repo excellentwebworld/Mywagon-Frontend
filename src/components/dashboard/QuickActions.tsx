@@ -30,7 +30,7 @@ export const QuickActions: React.FC = () => {
         </div>
       </div>
 
-      <div className="qa-card" onClick={() => navigate('/shipments')} style={{ flex: 1, cursor: 'pointer' }}>
+      <div className="qa-card" onClick={() => navigate('/search-trucks')} style={{ flex: 1, cursor: 'pointer' }}>
         <div className="qa-icon" style={{ background: 'var(--info-bg)' }}>🔍</div>
         <div>
           <div className="qa-label" style={{ fontWeight: 600 }}>{t('qaSearchTrucks')}</div>

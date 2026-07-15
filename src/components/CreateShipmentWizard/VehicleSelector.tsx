@@ -305,20 +305,20 @@ export const VehicleSelector: React.FC<VehicleSelectorProps> = ({
                                 </div>
                                 <span>{catLabel}</span>
                               </div>
-                              <div className={`ns ${catOpen ? 'open' : ''}`}>
+                              <div className={`vnest-sub ${catOpen ? 'open' : ''}`}>
                                 {cat.items.map((item) => {
                                   const itemOn = selected.includes(item.id);
                                   const itemLabel = locale === 'el' ? item.labelEl : item.label;
                                   return (
                                     <div
                                       key={item.id}
-                                      className="ni"
+                                      className={`ni-cb ${itemOn ? 'on' : ''}`}
                                       onClick={(e) => toggleItem(vt, cat.id, item.id, e)}
                                     >
                                       <div className={`cbx ${itemOn ? 'on' : ''}`}>
                                         {itemOn ? '✓' : ''}
                                       </div>
-                                      {itemLabel}
+                                      <span className="ni-cb__label">{itemLabel}</span>
                                     </div>
                                   );
                                 })}

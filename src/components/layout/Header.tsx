@@ -81,6 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
     if (path.startsWith('/dashboard')) return t('dashboard');
     if (path.startsWith('/shipments/create')) return t('createShipment');
     if (path.startsWith('/shipments')) return t('manageShipments');
+    if (path.startsWith('/search-trucks')) return t('satPageTitle') || t('searchTrucks');
     if (path.startsWith('/address-book')) return t('addressBook');
     if (path.startsWith('/products')) return t('products');
     if (path.startsWith('/partners')) return t('partners');
