@@ -25,6 +25,8 @@ interface AvailabilityListProps {
   onClearFilters: () => void;
   mapExpanded: boolean;
   onCollapseMap: () => void;
+  loading?: boolean;
+  subscriptionBlocked?: boolean;
   t: (key: string) => string;
 }
 
@@ -58,6 +60,8 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
   onClearFilters,
   mapExpanded,
   onCollapseMap,
+  loading = false,
+  subscriptionBlocked = false,
   t,
 }) => {
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -113,7 +117,21 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
       </div>
 
       <div className="sat-list-scroll">
-        {trucks.length === 0 ? (
+        {loading ? (
+          <div className="sat-skeleton-list" aria-busy="true" aria-label={t('satLoading')}>
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} className="sat-skeleton-card">
+                <div className="sat-skeleton-line sat-skeleton-line--lg" />
+                <div className="sat-skeleton-line" />
+                <div className="sat-skeleton-line sat-skeleton-line--sm" />
+              </div>
+            ))}
+          </div>
+        ) : subscriptionBlocked ? (
+          <div className="sat-empty sat-empty--blocked">
+            <div>{t('satUpgradeBody')}</div>
+          </div>
+        ) : trucks.length === 0 ? (
           <div className="sat-empty">
             <div style={{ marginBottom: 8 }}>{t('satNoResults')}</div>
             <button type="button" className="sat-f-clear" onClick={onClearFilters}>

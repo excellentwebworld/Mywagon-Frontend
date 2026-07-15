@@ -49,13 +49,28 @@ export class ApiError extends Error {
   status: number;
   fieldErrors?: Record<string, string[]>;
   data?: unknown;
+  /** Present on some subscription 403 bodies (e.g. availabilities). */
+  upgradeUrl?: string;
 
-  constructor(message: string, status: number, fieldErrors?: Record<string, string[]>, data?: unknown) {
+  constructor(
+    message: string,
+    status: number,
+    fieldErrors?: Record<string, string[]>,
+    data?: unknown,
+    upgradeUrl?: string
+  ) {
     super(message);
     this.status = status;
     this.fieldErrors = fieldErrors;
     this.data = data;
+    this.upgradeUrl = upgradeUrl;
   }
+}
+
+function extractUpgradeUrl(body: unknown): string | undefined {
+  if (!body || typeof body !== 'object') return undefined;
+  const url = (body as { upgrade_url?: unknown }).upgrade_url;
+  return typeof url === 'string' && url.length > 0 ? url : undefined;
 }
 
 function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
@@ -88,14 +103,15 @@ export async function apiRequest<T>(
       headers: options.headers,
     });
 
-    const data = response.data as ApiResponse<T> & { status?: boolean };
+    const data = response.data as ApiResponse<T> & { status?: boolean; upgrade_url?: string };
     if (data && typeof data === 'object') {
       if (data.success === false) {
         throw new ApiError(
           data.message || 'Request failed',
           response.status,
           (data as { errors?: Record<string, string[]> }).errors,
-          data.data
+          data.data,
+          extractUpgradeUrl(data)
         );
       }
       // Laravel global Handler returns some 404s as HTTP 200 with status:false.
@@ -106,12 +122,13 @@ export async function apiRequest<T>(
 
     return data;
   } catch (err: any) {
+    if (err instanceof ApiError) throw err;
     if (axios.isAxiosError(err)) {
       const status = err.response?.status || 500;
       const data = err.response?.data;
       const message = data?.message || err.message;
       const fieldErrors = data?.errors as Record<string, string[]> | undefined;
-      throw new ApiError(message, status, fieldErrors, data?.data);
+      throw new ApiError(message, status, fieldErrors, data?.data, extractUpgradeUrl(data));
     }
     throw err;
   }

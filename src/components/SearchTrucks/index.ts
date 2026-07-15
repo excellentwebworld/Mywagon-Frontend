@@ -5,3 +5,4 @@ export { AvailabilityList } from './AvailabilityList';
 export { AvailabilityDetailPanel } from './AvailabilityDetailPanel';
 export { AvailabilityMap } from './AvailabilityMap';
 export { BookingDrawer } from './BookingDrawer';
+export { SubscriptionGateModal } from './SubscriptionGateModal';

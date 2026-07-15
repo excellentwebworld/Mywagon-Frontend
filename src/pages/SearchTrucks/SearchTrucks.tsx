@@ -5,6 +5,7 @@ import {
   BookingDrawer,
   QuickFilterBar,
   SearchPill,
+  SubscriptionGateModal,
 } from '../../components/SearchTrucks';
 import { useApp } from '../../context/AppContext';
 import '../../styles/search-trucks.css';
@@ -16,15 +17,26 @@ export const SearchTrucks: React.FC = () => {
 
   return (
     <div className="sat-page">
-      {m.subscriptionBlocked && m.error && (
+      {m.subscriptionBlocked && (
         <div className="sat-subscription-banner" role="alert">
-          {m.error}
+          <span className="sat-subscription-banner__text">{m.error || m.t('satUpgradeBody')}</span>
+          <a
+            className="sat-btn sat-btn-sm sat-btn-pr"
+            href={m.upgradeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {m.t('satUpgradeNow')}
+          </a>
         </div>
       )}
 
       {m.error && !m.subscriptionBlocked && !m.loading && (
         <div className="sat-error-banner" role="alert">
-          {m.error}
+          <span>{m.error}</span>
+          <button type="button" className="sat-btn sat-btn-sm" onClick={m.retryLoad}>
+            {m.t('satRetry')}
+          </button>
         </div>
       )}
 
@@ -35,7 +47,12 @@ export const SearchTrucks: React.FC = () => {
             BETA
           </span>
           <div className="sat-page-actions">
-            <button type="button" className="sat-btn sat-btn-sm" onClick={m.handleExport}>
+            <button
+              type="button"
+              className="sat-btn sat-btn-sm"
+              onClick={m.handleExport}
+              disabled={m.subscriptionBlocked || m.loading}
+            >
               📥 {m.t('satExport')}
             </button>
           </div>
@@ -62,52 +79,51 @@ export const SearchTrucks: React.FC = () => {
         />
       </div>
 
-      {m.loading ? (
-        <div className="sat-loading">{m.t('satLoading')}</div>
-      ) : (
-        <div className="sat-split">
-          <AvailabilityList
-            trucks={m.pageItems}
-            total={m.total}
-            page={m.page}
-            totalPages={m.totalPages}
-            perPage={m.perPage}
-            sortKey={m.sortKey}
-            onSortChange={m.setSortKey}
-            groupRecurring={m.groupRecurring}
-            onToggleGroup={m.handleToggleGroup}
-            hoveredId={m.hoveredId}
-            selectedId={m.selectedId}
-            selectedTruck={m.selectedTruckInList}
-            onHover={m.setHoveredId}
-            onSelect={m.selectTruck}
-            onBook={m.openDrawer}
-            onPageChange={m.setPage}
-            onMessage={(carrier) =>
-              showToast(m.t('satMessageSent', { carrier }) || `Message sent to ${carrier}`, 'success')
-            }
-            onProfile={() => showToast(m.t('satViewingProfile') || 'Viewing profile', 'info')}
-            onClearFilters={m.clearFilters}
-            mapExpanded={m.mapExpanded}
-            onCollapseMap={() => m.setMapExpanded(false)}
-            t={m.t}
-          />
+      <div className={`sat-split ${m.subscriptionBlocked ? 'sat-split--blocked' : ''}`}>
+        <AvailabilityList
+          trucks={m.pageItems}
+          total={m.subscriptionBlocked ? 0 : m.total}
+          page={m.page}
+          totalPages={m.totalPages}
+          perPage={m.perPage}
+          sortKey={m.sortKey}
+          onSortChange={m.setSortKey}
+          groupRecurring={m.groupRecurring}
+          onToggleGroup={m.handleToggleGroup}
+          hoveredId={m.hoveredId}
+          selectedId={m.selectedId}
+          selectedTruck={m.selectedTruckInList}
+          onHover={m.setHoveredId}
+          onSelect={m.selectTruck}
+          onBook={m.openDrawer}
+          onPageChange={m.setPage}
+          onMessage={(carrier) =>
+            showToast(m.t('satMessageSent', { carrier }) || `Message sent to ${carrier}`, 'success')
+          }
+          onProfile={() => showToast(m.t('satViewingProfile') || 'Viewing profile', 'info')}
+          onClearFilters={m.clearFilters}
+          mapExpanded={m.mapExpanded}
+          onCollapseMap={() => m.setMapExpanded(false)}
+          loading={m.loading}
+          subscriptionBlocked={m.subscriptionBlocked}
+          t={m.t}
+        />
 
-          <AvailabilityMap
-            trucks={m.mapTrucks}
-            hoveredId={m.hoveredId}
-            selectedId={m.selectedId}
-            mapExpanded={m.mapExpanded}
-            onSelect={m.selectTruck}
-            onToggleExpand={() => m.setMapExpanded(!m.mapExpanded)}
-            t={m.t}
-          />
-        </div>
-      )}
+        <AvailabilityMap
+          trucks={m.subscriptionBlocked ? [] : m.mapTrucks}
+          hoveredId={m.hoveredId}
+          selectedId={m.selectedId}
+          mapExpanded={m.mapExpanded}
+          onSelect={m.selectTruck}
+          onToggleExpand={() => m.setMapExpanded(!m.mapExpanded)}
+          loading={m.loading}
+          t={m.t}
+        />
+      </div>
 
       {m.mobileMapOpen && (
         <AvailabilityMap
-          trucks={m.mapTrucks}
+          trucks={m.subscriptionBlocked ? [] : m.mapTrucks}
           hoveredId={m.hoveredId}
           selectedId={m.selectedId}
           mapExpanded
@@ -115,6 +131,7 @@ export const SearchTrucks: React.FC = () => {
           onToggleExpand={() => m.setMobileMapOpen(false)}
           onCloseMobile={() => m.setMobileMapOpen(false)}
           isMobileOverlay
+          loading={m.loading}
           t={m.t}
         />
       )}
@@ -136,6 +153,13 @@ export const SearchTrucks: React.FC = () => {
         onClose={m.closeDrawer}
         onConfirm={() => void m.confirmBooking()}
         onGoCreateShipment={() => void m.goToCreateShipment()}
+        t={m.t}
+      />
+
+      <SubscriptionGateModal
+        open={m.gateModalOpen && m.subscriptionBlocked}
+        upgradeUrl={m.upgradeUrl}
+        onRemindLater={m.dismissGateReminder}
         t={m.t}
       />
     </div>

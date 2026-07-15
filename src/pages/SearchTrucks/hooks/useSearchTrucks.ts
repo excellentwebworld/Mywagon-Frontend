@@ -20,6 +20,18 @@ const PER_PAGE = 12;
 const LOAD_MATCH_THRESHOLD = 70;
 const SEARCH_DEBOUNCE_MS = 300;
 const USE_MOCK = import.meta.env.VITE_USE_SEARCH_TRUCKS_MOCK === 'true';
+const GATE_REMIND_SESSION_KEY = 'sat_subscription_gate_dismissed';
+
+function defaultSubscriptionUpgradeUrl(): string {
+  const base =
+    (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '') ?? '';
+  return `${base}/shipper/subscription/plan`;
+}
+
+function resolveUpgradeUrl(fromApi?: string): string {
+  if (fromApi && fromApi.length > 0) return fromApi;
+  return defaultSubscriptionUpgradeUrl();
+}
 
 function parsePostedMinutes(posted: string): number {
   const m = posted.match(/^(\d+)m/);
@@ -220,6 +232,8 @@ export function useSearchTrucks() {
 
   const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [upgradeUrl, setUpgradeUrl] = useState(defaultSubscriptionUpgradeUrl);
+  const [gateModalOpen, setGateModalOpen] = useState(false);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -277,12 +291,23 @@ export function useSearchTrucks() {
             });
             showToast(err.message || t('satUpgradePlan'), 'error');
           } else {
+            const url = resolveUpgradeUrl(err.upgradeUrl);
+            setUpgradeUrl(url);
             setSubscriptionBlocked(true);
             setError(err.message);
+            try {
+              if (sessionStorage.getItem(GATE_REMIND_SESSION_KEY) !== '1') {
+                setGateModalOpen(true);
+              }
+            } catch {
+              setGateModalOpen(true);
+            }
           }
         } else if (err instanceof ApiError) {
+          setSubscriptionBlocked(false);
           setError(err.message);
         } else {
+          setSubscriptionBlocked(false);
           setError(t('satLoadError') || 'Failed to load availabilities');
         }
         throw err;
@@ -559,7 +584,33 @@ export function useSearchTrucks() {
     t,
   ]);
 
+  const dismissGateReminder = useCallback(() => {
+    try {
+      sessionStorage.setItem(GATE_REMIND_SESSION_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+    setGateModalOpen(false);
+  }, []);
+
+  const retryLoad = useCallback(() => {
+    setError(null);
+    void listQuery.refetch();
+  }, [listQuery]);
+
   const handleExport = useCallback(() => {
+    if (subscriptionBlocked) {
+      showToast(t('satUpgradeBody') || t('satUpgradePlan'), 'error');
+      return;
+    }
+    if (!USE_MOCK && listQuery.isLoading) {
+      showToast(t('satLoading'), 'info');
+      return;
+    }
+    if (filtered.length === 0) {
+      showToast(t('satExportEmpty') || 'Nothing to export', 'info');
+      return;
+    }
     const header = [
       'ID',
       'Visibility',
@@ -595,7 +646,7 @@ export function useSearchTrucks() {
     a.click();
     URL.revokeObjectURL(url);
     showToast(t('satExported') || 'Exported CSV', 'success');
-  }, [filtered, showToast, t]);
+  }, [filtered, subscriptionBlocked, listQuery.isLoading, showToast, t]);
 
   const handleToggleGroup = useCallback(() => {
     setGroupRecurring((prev) => {
@@ -641,6 +692,10 @@ export function useSearchTrucks() {
     fetching: !USE_MOCK && listQuery.isFetching,
     error,
     subscriptionBlocked,
+    upgradeUrl,
+    gateModalOpen,
+    dismissGateReminder,
+    retryLoad,
     visibility,
     setVisibility: (v: VisibilityFilter) => {
       setVisibility(v);
@@ -691,3 +746,4 @@ export function useSearchTrucks() {
     useMock: USE_MOCK,
   };
 }
+

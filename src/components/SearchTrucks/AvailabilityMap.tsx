@@ -11,6 +11,7 @@ interface AvailabilityMapProps {
   onToggleExpand: () => void;
   onCloseMobile?: () => void;
   isMobileOverlay?: boolean;
+  loading?: boolean;
   t: (key: string) => string;
 }
 
@@ -77,6 +78,7 @@ function createPriceOverlay(
 }
 
 export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
+  loading = false,
   trucks,
   hoveredId,
   selectedId,
@@ -215,7 +217,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
       <div className="sat-map-toolbar">
         <span className="sat-map-title">🗺️ {t('satTrucksMap')}</span>
         <span className="sat-map-count">
-          {trucks.length} {t('satResults')}
+          {loading ? '…' : trucks.length} {t('satResults')}
         </span>
         {isMobileOverlay && onCloseMobile ? (
           <button type="button" className="sat-map-ctrl" onClick={onCloseMobile} aria-label={t('close')}>
@@ -248,34 +250,42 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
             <div className="sat-muted" style={{ marginTop: 8 }}>
               {trucks.length} {t('satResults')}
             </div>
-            <div className="sat-map-fake-pins">
-              {(selectedId
-                ? trucks.filter((truck) => truck.id === selectedId)
-                : trucks
-              )
-                .slice(0, 8)
-                .map((truck) => {
-                  const showPrice = truck.price != null && !truck.priceBlurred;
-                  return (
-                    <button
-                      key={truck.id}
-                      type="button"
-                      className={`sat-map-marker ${truck.vis === 'private' ? 'private' : ''} ${
-                        selectedId === truck.id ? 'active' : ''
-                      } ${hoveredId === truck.id ? 'hovered' : ''}`}
-                      style={{ position: 'relative', transform: 'none', margin: 4 }}
-                      onClick={() => onSelect(truck.id)}
-                    >
-                      <div className="sat-mm-pin">
-                        <div className={`sat-mm-price ${showPrice ? '' : 'no-price'}`}>
-                          {showPrice ? `€ ${truck.price!.toLocaleString()}` : 'Offer'}
+            {!loading && (
+              <div className="sat-map-fake-pins">
+                {(selectedId
+                  ? trucks.filter((truck) => truck.id === selectedId)
+                  : trucks
+                )
+                  .slice(0, 8)
+                  .map((truck) => {
+                    const showPrice = truck.price != null && !truck.priceBlurred;
+                    return (
+                      <button
+                        key={truck.id}
+                        type="button"
+                        className={`sat-map-marker ${truck.vis === 'private' ? 'private' : ''} ${
+                          selectedId === truck.id ? 'active' : ''
+                        } ${hoveredId === truck.id ? 'hovered' : ''}`}
+                        style={{ position: 'relative', transform: 'none', margin: 4 }}
+                        onClick={() => onSelect(truck.id)}
+                      >
+                        <div className="sat-mm-pin">
+                          <div className={`sat-mm-price ${showPrice ? '' : 'no-price'}`}>
+                            {showPrice ? `€ ${truck.price!.toLocaleString()}` : 'Offer'}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  );
-                })}
-            </div>
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
           </div>
+        )}
+        {loading && (
+          <div className="sat-map-skeleton" aria-busy="true" aria-label={t('satLoading')} />
+        )}
+        {!loading && trucks.length === 0 && (
+          <div className="sat-map-empty-hint">{t('satMapEmpty')}</div>
         )}
       </div>
     </div>

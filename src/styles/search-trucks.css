@@ -1254,11 +1254,20 @@
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .sat-subscription-banner {
   background: #fff4e5;
   color: #8a4b08;
   border: 1px solid #f0c36d;
+}
+.sat-subscription-banner__text {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .sat-error-banner {
   background: #fdecea;
@@ -1270,6 +1279,123 @@
   text-align: center;
   color: var(--text-tertiary);
   font-size: 14px;
+}
+.sat-split--blocked {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.sat-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0 12px;
+}
+.sat-skeleton-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: var(--surface);
+}
+.sat-skeleton-line {
+  height: 10px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eceff3 0%, #f6f8fb 50%, #eceff3 100%);
+  background-size: 200% 100%;
+  animation: sat-shimmer 1.2s ease-in-out infinite;
+  margin-bottom: 8px;
+}
+.sat-skeleton-line:last-child {
+  margin-bottom: 0;
+}
+.sat-skeleton-line--lg {
+  width: 72%;
+  height: 12px;
+}
+.sat-skeleton-line--sm {
+  width: 42%;
+}
+@keyframes sat-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+.sat-map-skeleton {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #e8ecf1 0%, #f4f7fa 50%, #e8ecf1 100%);
+  background-size: 200% 100%;
+  animation: sat-shimmer 1.2s ease-in-out infinite;
+}
+.sat-map-empty-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 4;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-secondary);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.sat-empty--blocked {
+  color: var(--text-secondary);
+}
+.sat-gate-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.sat-gate-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+}
+.sat-gate-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: min(440px, 100%);
+  background: var(--surface, #fff);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+  border: 1px solid var(--border);
+}
+.sat-gate-modal__body {
+  padding: 28px 28px 8px;
+  text-align: center;
+}
+.sat-gate-modal__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.sat-gate-modal__copy {
+  margin: 12px auto 0;
+  max-width: 32ch;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+.sat-gate-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 28px 28px;
+}
+.sat-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+a.sat-btn {
+  text-decoration: none;
 }
 .sat-type-checks {
   display: flex;
