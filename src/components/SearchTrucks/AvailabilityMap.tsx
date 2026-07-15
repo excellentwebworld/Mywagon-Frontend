@@ -15,7 +15,12 @@ interface AvailabilityMapProps {
   t: (key: string) => string;
 }
 
-type AnyMaps = typeof window extends { google?: { maps: infer M } } ? M : any;
+// Window google.maps typings in this repo only declare Places Autocomplete.
+type AnyMaps = any;
+
+function mapsApi(): AnyMaps | undefined {
+  return (window as any).google?.maps as AnyMaps | undefined;
+}
 
 function createPriceOverlay(
   maps: AnyMaps,
@@ -103,9 +108,10 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
 
     loadGoogleMaps(apiKey)
       .then(() => {
-        if (cancelled || !containerRef.current || !window.google?.maps) return;
+        const maps = mapsApi();
+        if (cancelled || !containerRef.current || !maps) return;
         if (!mapRef.current) {
-          mapRef.current = new window.google.maps.Map(containerRef.current, {
+          mapRef.current = new maps.Map(containerRef.current, {
             center: { lat: 39.07, lng: 21.82 },
             zoom: 7,
             mapTypeControl: false,
@@ -118,8 +124,8 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
         }
         // Ensure map paints into the fixed column height after layout
         requestAnimationFrame(() => {
-          if (mapRef.current && window.google?.maps?.event) {
-            window.google.maps.event.trigger(mapRef.current, 'resize');
+          if (mapRef.current && maps.event) {
+            maps.event.trigger(mapRef.current, 'resize');
           }
         });
       })
@@ -131,15 +137,16 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   }, [apiKey]);
 
   useEffect(() => {
-    if (!mapRef.current || !window.google?.maps?.event) return;
+    const maps = mapsApi();
+    if (!mapRef.current || !maps?.event) return;
     const id = window.setTimeout(() => {
-      window.google?.maps?.event?.trigger(mapRef.current, 'resize');
+      maps.event.trigger(mapRef.current, 'resize');
     }, 50);
     return () => window.clearTimeout(id);
   }, [mapExpanded, isMobileOverlay]);
 
   useEffect(() => {
-    const maps = window.google?.maps as AnyMaps | undefined;
+    const maps = mapsApi();
     const map = mapRef.current;
     if (!maps || !map || !readyRef.current) return;
 
