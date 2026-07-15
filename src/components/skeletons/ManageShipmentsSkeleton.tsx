@@ -26,7 +26,7 @@ interface RowExpansionSkeletonProps {
   variant?: 'pending' | 'status';
 }
 
-/** Skeleton matching Manage Shipments row expansion while detail API loads. */
+/** Skeleton matching Manage Shipments PDS row expansion while detail API loads. */
 export const RowExpansionSkeleton: React.FC<RowExpansionSkeletonProps> = ({
   variant = 'pending',
 }) => (
@@ -35,18 +35,31 @@ export const RowExpansionSkeleton: React.FC<RowExpansionSkeletonProps> = ({
     aria-busy="true"
     aria-hidden="true"
   >
-    <div>
-      <div className="exp-section">
-        <h4>
-          <Skeleton width={72} height={12} baseColor={T.sa} highlightColor={T.sf} />
-        </h4>
-        <div className="tl tl-big" style={{ gap: 12, marginBottom: 16 }}>
-          {Array.from({ length: 3 }).map((_, idx) => (
-            <div key={idx} className="tl-s" style={{ alignItems: 'center', minWidth: 70 }}>
-              <Skeleton circle width={14} height={14} baseColor={T.sa} highlightColor={T.sf} />
+    <div className="exp-section">
+      <h4>
+        <Skeleton width={72} height={12} baseColor={T.sa} highlightColor={T.sf} />
+      </h4>
+      <div className={variant === 'status' ? 'tl-big' : undefined} style={{ marginBottom: 12 }}>
+        <div className="tl" style={{ gap: 0 }}>
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <React.Fragment key={idx}>
+              <div className="tl-step">
+                <Skeleton circle width={14} height={14} baseColor={T.sa} highlightColor={T.sf} />
+              </div>
+              {idx < 3 && <div className="tl-line" style={{ opacity: 0.4 }} />}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+
+      {variant === 'status' && (
+        <div className="status-detail" style={{ marginTop: 8 }}>
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div key={idx} className="sd-item">
+              <Skeleton width={48} height={10} baseColor={T.sa} highlightColor={T.sf} />
               <Skeleton
-                width={64}
-                height={11}
+                width={80}
+                height={14}
                 style={{ marginTop: 6 }}
                 baseColor={T.sa}
                 highlightColor={T.sf}
@@ -54,72 +67,45 @@ export const RowExpansionSkeleton: React.FC<RowExpansionSkeletonProps> = ({
             </div>
           ))}
         </div>
-      </div>
+      )}
 
-      <div className="exp-section">
-        <h4>
-          <Skeleton width={64} height={12} baseColor={T.sa} highlightColor={T.sf} />
-        </h4>
-        {Array.from({ length: 2 }).map((_, idx) => (
-          <div key={idx} style={{ marginBottom: 10 }}>
-            <Skeleton width={120} height={22} borderRadius={99} baseColor={T.sa} highlightColor={T.sf} />
-            <Skeleton
-              width="80%"
-              height={12}
-              style={{ marginTop: 6 }}
-              baseColor={T.sa}
-              highlightColor={T.sf}
-            />
-          </div>
-        ))}
-      </div>
-
-      <div className="exp-section">
-        <h4>
-          <Skeleton width={80} height={12} baseColor={T.sa} highlightColor={T.sf} />
-        </h4>
-        <Skeleton height={28} style={{ marginBottom: 6 }} baseColor={T.sa} highlightColor={T.sf} />
-        <Skeleton height={28} style={{ marginBottom: 8 }} baseColor={T.sa} highlightColor={T.sf} />
-        <Skeleton width={120} height={12} baseColor={T.sa} highlightColor={T.sf} />
-      </div>
-
-      <div className="exp-stats-grid" style={{ marginTop: 12 }}>
-        {Array.from({ length: variant === 'status' ? 5 : 3 }).map((_, idx) => (
-          <div key={idx} className="exp-stat" style={{ padding: '8px 0' }}>
-            <Skeleton width={40} height={18} baseColor={T.sa} highlightColor={T.sf} />
-            <Skeleton
-              width={56}
-              height={10}
-              style={{ marginTop: 4 }}
-              baseColor={T.sa}
-              highlightColor={T.sf}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-
-    {variant === 'pending' && (
-      <div>
-        <div className="exp-section">
-          <h4>
-            <Skeleton width={100} height={12} baseColor={T.sa} highlightColor={T.sf} />
-          </h4>
-          <Skeleton width="90%" height={14} baseColor={T.sa} highlightColor={T.sf} />
+      <h4 style={{ marginTop: 12 }}>
+        <Skeleton width={100} height={12} baseColor={T.sa} highlightColor={T.sf} />
+      </h4>
+      {Array.from({ length: 2 }).map((_, idx) => (
+        <div key={idx} style={{ marginBottom: 8 }}>
           <Skeleton
-            width="70%"
-            height={14}
-            style={{ marginTop: 8 }}
+            width="100%"
+            height={28}
+            borderRadius={6}
             baseColor={T.sa}
             highlightColor={T.sf}
           />
         </div>
+      ))}
+      {variant === 'pending' && (
+        <Skeleton
+          width={180}
+          height={12}
+          style={{ marginTop: 4 }}
+          baseColor={T.sa}
+          highlightColor={T.sf}
+        />
+      )}
+    </div>
+
+    {variant === 'pending' && (
+      <div className="exp-section">
+        <h4>
+          <Skeleton width={110} height={12} baseColor={T.sa} highlightColor={T.sf} />
+        </h4>
+        <Skeleton height={72} borderRadius={8} baseColor={T.sa} highlightColor={T.sf} />
       </div>
     )}
 
-    <div>
+    <div className="exp-section">
       {variant === 'pending' && (
-        <div className="exp-section">
+        <>
           <h4>
             <Skeleton width={140} height={12} baseColor={T.sa} highlightColor={T.sf} />
           </h4>
@@ -128,40 +114,20 @@ export const RowExpansionSkeleton: React.FC<RowExpansionSkeletonProps> = ({
               key={idx}
               style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}
             >
-              <Skeleton circle width={28} height={28} baseColor={T.sa} highlightColor={T.sf} />
-              <div style={{ flex: 1 }}>
-                <Skeleton width="60%" height={12} baseColor={T.sa} highlightColor={T.sf} />
-                <Skeleton
-                  width="40%"
-                  height={10}
-                  style={{ marginTop: 4 }}
-                  baseColor={T.sa}
-                  highlightColor={T.sf}
-                />
-              </div>
-              <Skeleton width={52} height={24} borderRadius={6} baseColor={T.sa} highlightColor={T.sf} />
+              <Skeleton circle width={24} height={24} baseColor={T.sa} highlightColor={T.sf} />
+              <Skeleton width="55%" height={12} baseColor={T.sa} highlightColor={T.sf} />
+              <Skeleton width={52} height={22} borderRadius={6} baseColor={T.sa} highlightColor={T.sf} />
             </div>
           ))}
-          <Skeleton
-            width={160}
-            height={30}
-            borderRadius={8}
-            style={{ marginTop: 8 }}
-            baseColor={T.sa}
-            highlightColor={T.sf}
-          />
-        </div>
+        </>
       )}
-
-      <div className="exp-section" style={{ marginTop: variant === 'pending' ? 16 : 0 }}>
-        <h4>
-          <Skeleton width={110} height={12} baseColor={T.sa} highlightColor={T.sf} />
-        </h4>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Skeleton width={64} height={30} borderRadius={8} baseColor={T.sa} highlightColor={T.sf} />
-          <Skeleton width={64} height={30} borderRadius={8} baseColor={T.sa} highlightColor={T.sf} />
-          <Skeleton width={64} height={30} borderRadius={8} baseColor={T.sa} highlightColor={T.sf} />
-        </div>
+      <h4 style={{ marginTop: variant === 'pending' ? 16 : 0 }}>
+        <Skeleton width={100} height={12} baseColor={T.sa} highlightColor={T.sf} />
+      </h4>
+      <div className="qa-row">
+        <Skeleton height={30} borderRadius={8} baseColor={T.sa} highlightColor={T.sf} />
+        <Skeleton height={30} borderRadius={8} baseColor={T.sa} highlightColor={T.sf} />
+        <Skeleton height={30} borderRadius={8} baseColor={T.sa} highlightColor={T.sf} />
       </div>
     </div>
   </div>

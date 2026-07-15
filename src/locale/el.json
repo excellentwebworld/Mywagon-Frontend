@@ -1023,6 +1023,7 @@
   "invitedCount": "{{count}} προσκεκλημένοι",
   "noInvitedTransporters": "Δεν υπάρχουν προσκεκλημένοι",
   "assignedTransporter": "Ανατεθειμένος Μεταφορέας",
+  "assigned": "Ανατέθηκε",
   "offersPendingDetail": "Υπάρχουν προσφορές που απαιτούν απάντηση",
   "responsesComingSoon": "Οι ενέργειες προσφορών θα είναι διαθέσιμες σύντομα.",
   "chat": "Συνομιλία",

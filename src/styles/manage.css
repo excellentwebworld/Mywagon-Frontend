@@ -1001,6 +1001,21 @@ table.mgmt-t {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sd-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sd-dot-pick {
+  background: #3b82f6;
+}
+.sd-dot-del {
+  background: #10b981;
 }
 
 /* ── Orders list ── */
@@ -1418,6 +1433,44 @@ table.mgmt-t {
   white-space: nowrap;
   font-size: 11px;
   padding: 6px 8px;
+}
+.qa-row .qa-danger {
+  border-color: var(--error, #ef4444);
+  color: var(--error, #ef4444);
+}
+.qa-row .qa-danger:hover {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.exp-meta {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+.exp-cust-meta {
+  color: var(--cu-c);
+  font-size: 10px;
+  font-weight: 500;
+  margin-left: 4px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.carrier-empty {
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  font-size: 13px;
+  text-align: center;
+}
+
+.inv-more {
+  margin-top: 10px;
+  width: 100%;
+  justify-content: center;
 }
 
 /* ── Customer theme ── */

@@ -1023,6 +1023,7 @@
   "invitedCount": "{{count}} invited",
   "noInvitedTransporters": "No invited transporters",
   "assignedTransporter": "Assigned Transporter",
+  "assigned": "Assigned",
   "offersPendingDetail": "Offers require your response",
   "responsesComingSoon": "Bid actions will be available once negotiation APIs ship.",
   "chat": "Chat",
