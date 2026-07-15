@@ -3,25 +3,31 @@ import type { Shipment, ShipmentStop } from '../../context/AppContext';
 
 function mapApiStatus(status: string): Shipment['status'] {
   switch (status) {
+    case 'pending':
+      return 'pending';
     case 'scheduled':
+      return 'scheduled';
     case 'ready':
-      return 'upcoming';
-    case 'on_trip':
-      return 'in_progress';
+      return 'ready';
     case 'past_due':
       return 'past_due';
+    case 'on_trip':
+      return 'on_trip';
+    case 'draft':
+      return 'draft';
     case 'fullfilled':
+      return 'fullfilled';
     case 'partially_fullfilled':
-      return 'delivered';
+      return 'partially_fullfilled';
+    case 'not_fullfilled':
+      return 'not_fullfilled';
     case 'canceled':
     case 'cancelled':
     case 'rejected':
     case 'expired':
-      return 'cancelled';
+      return 'canceled';
     case 'awarded':
       return 'awarded';
-    case 'draft':
-      return 'pending';
     default:
       return 'pending';
   }
@@ -164,7 +170,18 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     paymentStatus: item.payment_status ?? null,
     updated: formatRelativeTime(item.updated_at),
     timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
-    tl_cur: status === 'pending' ? 2 : status === 'upcoming' ? 4 : status === 'past_due' ? 5 : status === 'in_progress' ? 6 : 2,
+    tl_cur:
+      status === 'pending' || status === 'draft'
+        ? 2
+        : status === 'scheduled' || status === 'ready' || status === 'upcoming'
+          ? 4
+          : status === 'past_due'
+            ? 5
+            : status === 'on_trip' || status === 'in_progress'
+              ? 6
+              : status === 'fullfilled' || status === 'partially_fullfilled' || status === 'delivered'
+                ? 7
+                : 2,
     at_risk: atRisk,
     riskReason: item.risk_reason ?? (atRisk ? 'Pickup overdue without transporter' : null),
     needsAction: Boolean(flags?.needs_action ?? item.needs_action),

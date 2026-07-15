@@ -153,7 +153,7 @@ export interface Shipment {
   pickDt?: string | null;
   delDt?: string | null;
   ref?: string;
-  status: 'pending' | 'upcoming' | 'in_progress' | 'past_due' | 'awarded' | 'delivered' | 'cancelled';
+  status: 'pending' | 'scheduled' | 'ready' | 'upcoming' | 'on_trip' | 'in_progress' | 'past_due' | 'draft' | 'awarded' | 'fullfilled' | 'partially_fullfilled' | 'not_fullfilled' | 'delivered' | 'canceled' | 'cancelled';
   vis: 'private' | 'public' | 'fleet';
   origin: string;
   dest: string;

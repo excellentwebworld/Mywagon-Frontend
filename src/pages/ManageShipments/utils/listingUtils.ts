@@ -7,12 +7,13 @@ export type StatusTabKey =
   | 'active'
   | 'pending'
   | 'scheduled'
-  | 'upcoming'
+  | 'ready'
   | 'past_due'
-  | 'in_progress'
+  | 'on_trip'
   | 'drafts'
-  | 'completed'
-  | 'partially_paid'
+  | 'fullfilled'
+  | 'partially_fullfilled'
+  | 'unfulfilled'
   | 'cancelled';
 
 export type SortKey = '' | ShipmentSortKey;
@@ -106,20 +107,22 @@ export function statusTabToApiStatus(tab: StatusTabKey): string | string[] | und
       return 'pending';
     case 'scheduled':
       return 'scheduled';
-    case 'upcoming':
-      return ['scheduled', 'ready'];
+    case 'ready':
+      return 'ready';
     case 'past_due':
       return 'past_due';
-    case 'in_progress':
+    case 'on_trip':
       return 'on_trip';
-    case 'completed':
-      return ['fullfilled', 'partially_fullfilled'];
+    case 'fullfilled':
+      return 'fullfilled';
+    case 'partially_fullfilled':
+      return 'partially_fullfilled';
+    case 'unfulfilled':
+      return 'not_fullfilled';
     case 'cancelled':
-      return 'canceled';
+      return ['canceled', 'rejected', 'expired'];
     case 'drafts':
       return 'draft';
-    case 'partially_paid':
-      return 'partially_paid';
     default:
       return undefined;
   }
@@ -133,20 +136,22 @@ export function countForStatusTab(statuses: Record<string, number>, tab: StatusT
       return statuses.pending ?? 0;
     case 'scheduled':
       return statuses.scheduled ?? 0;
-    case 'upcoming':
-      return (statuses.scheduled ?? 0) + (statuses.ready ?? 0);
+    case 'ready':
+      return statuses.ready ?? 0;
     case 'past_due':
       return statuses.past_due ?? 0;
-    case 'in_progress':
+    case 'on_trip':
       return statuses.on_trip ?? 0;
-    case 'completed':
-      return (statuses.fullfilled ?? 0) + (statuses.partially_fullfilled ?? 0);
+    case 'fullfilled':
+      return statuses.fullfilled ?? 0;
+    case 'partially_fullfilled':
+      return statuses.partially_fullfilled ?? 0;
+    case 'unfulfilled':
+      return statuses.unfulfilled ?? statuses.not_fullfilled ?? 0;
     case 'cancelled':
       return statuses.canceled ?? 0;
     case 'drafts':
       return statuses.drafts ?? 0;
-    case 'partially_paid':
-      return statuses.partially_paid ?? 0;
     default:
       return 0;
   }
@@ -394,7 +399,14 @@ export function laneMidLabel(
 }
 
 export function isShipmentEditable(status: Shipment['status']): boolean {
-  return status !== 'delivered' && status !== 'cancelled';
+  return (
+    status !== 'delivered' &&
+    status !== 'fullfilled' &&
+    status !== 'partially_fullfilled' &&
+    status !== 'not_fullfilled' &&
+    status !== 'cancelled' &&
+    status !== 'canceled'
+  );
 }
 
 export function statusBadgeClass(status: Shipment['status'], atRisk?: boolean): string {
@@ -402,13 +414,21 @@ export function statusBadgeClass(status: Shipment['status'], atRisk?: boolean): 
   switch (status) {
     case 'pending':
       return 'badge-warning';
+    case 'scheduled':
+    case 'ready':
     case 'upcoming':
       return 'badge-accent';
+    case 'on_trip':
     case 'in_progress':
       return 'badge-info';
+    case 'fullfilled':
+    case 'partially_fullfilled':
     case 'awarded':
     case 'delivered':
       return 'badge-success';
+    case 'not_fullfilled':
+    case 'draft':
+    case 'canceled':
     case 'cancelled':
       return 'badge-gray';
     default:
@@ -438,16 +458,23 @@ export function stopTimelineCurrentIndex(status: Shipment['status'], stepCount: 
   const last = stepCount - 1;
   switch (status) {
     case 'pending':
+    case 'draft':
     case 'awarded':
       return 0;
+    case 'scheduled':
+    case 'ready':
     case 'upcoming':
-      return Math.min(1, last);
     case 'past_due':
       return Math.min(1, last);
+    case 'on_trip':
     case 'in_progress':
       return Math.max(0, Math.min(Math.floor(last / 2) + 1, last));
+    case 'fullfilled':
+    case 'partially_fullfilled':
     case 'delivered':
       return last;
+    case 'not_fullfilled':
+    case 'canceled':
     case 'cancelled':
       return 0;
     default:

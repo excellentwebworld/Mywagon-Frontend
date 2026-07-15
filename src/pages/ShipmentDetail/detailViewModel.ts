@@ -208,17 +208,25 @@ function buildDefaultStops(shipment: Shipment): ShipmentStop[] {
 function milestoneIndexForStatus(status: Shipment['status']): number {
   switch (status) {
     case 'pending':
+    case 'draft':
       return 2;
     case 'awarded':
       return 3;
+    case 'scheduled':
+    case 'ready':
     case 'upcoming':
       return 4;
     case 'past_due':
       return 5;
+    case 'on_trip':
     case 'in_progress':
       return 7;
+    case 'fullfilled':
+    case 'partially_fullfilled':
     case 'delivered':
       return 9;
+    case 'not_fullfilled':
+    case 'canceled':
     case 'cancelled':
       return 0;
     default:
