@@ -4,6 +4,7 @@ import {
   formatEuro,
   statusBadgeClass,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { ExpHeading } from './ExpHeading';
 import {
   OrdersBlock,
   ProgressTimeline,
@@ -30,17 +31,19 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
   t,
 }) => {
   const ordersMeta = ordersHeaderMeta(shipment, t);
+  const priceType = shipment.price_type === 'contract' ? 'contract' : 'spot';
+  const priceLabel = formatEuro(shipment.agreedPrice ?? shipment.quotedPrice);
 
   return (
     <div className="exp-inner exp-status-only">
       <div className="exp-section">
-        <h4>
+        <ExpHeading icon="progress">
           {t('progress')} —{' '}
           <span className={`badge ${statusBadgeClass(shipment.status)}`}>
             <span className="bdot" />
             {t(shipment.status)}
           </span>
-        </h4>
+        </ExpHeading>
         <ProgressTimeline
           shipment={shipment}
           t={t}
@@ -50,7 +53,18 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
 
         <StatusDetailGrid shipment={shipment} t={t} />
 
-        <h4 style={{ marginTop: 8 }}>{t('assignedTransporter')}</h4>
+        {shipment.at_risk && shipment.riskReason && (
+          <div className="exp-risk">
+            <span className="badge badge-danger" style={{ fontSize: 12, padding: '6px 12px' }}>
+              <span className="bdot" />
+              {shipment.riskReason}
+            </span>
+          </div>
+        )}
+
+        <ExpHeading icon="carrier" className="exp-h-gap">
+          {t('assignedTransporter')}
+        </ExpHeading>
         {shipment.carrier ? (
           <div className="carrier-card">
             <div className="cc-av">
@@ -65,21 +79,26 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
               )}
             </div>
             <div className="cc-price">
-              <span className="price">
-                {formatEuro(shipment.agreedPrice ?? shipment.quotedPrice) ?? '—'}
-              </span>
+              {priceLabel && <span className="price">{priceLabel}</span>}
+              {priceLabel && (
+                <span className={priceType === 'spot' ? 'chip-spot' : 'chip-cont'}>
+                  {t(priceType)}
+                </span>
+              )}
             </div>
           </div>
         ) : (
           <div className="carrier-empty">{t('noCarrierAssigned')}</div>
         )}
 
-        <h4 style={{ marginTop: 12 }}>{ordersMeta.label}</h4>
+        <ExpHeading icon="orders" className="exp-h-gap">
+          {ordersMeta.label}
+        </ExpHeading>
         <OrdersBlock shipment={shipment} t={t} />
       </div>
 
-      <div className="exp-section">
-        <h4>{t('quickActions')}</h4>
+      <div className="exp-section exp-qa-col">
+        <ExpHeading icon="qa">{t('quickActions')}</ExpHeading>
         <QuickActions onEdit={onEdit} onCancel={onCancel} t={t} />
       </div>
     </div>

@@ -281,11 +281,20 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                       <span className="sub">—</span>
                     )}
                   </td>
-                  <td>
+                  <td className="col-status">
                     <span className={`badge ${badgeClass}`}>
                       <span className="bdot" />
                       {t(s.status)}
                     </span>
+                    {s.at_risk && s.riskReason && s.status !== 'pending' && (
+                      <>
+                        <br />
+                        <span className="badge badge-danger risk-subtag">
+                          <span className="bdot" />
+                          {s.riskReason}
+                        </span>
+                      </>
+                    )}
                     {s.paymentStatus === 'paid' && (
                       <>
                         <br />
@@ -305,7 +314,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                       </>
                     )}
                   </td>
-                  <td>
+                  <td className="col-vis">
                     <span className={`vis vis-${channel === 'public' ? 'pub' : 'priv'}`}>
                       {channel === 'public' ? t('public') : t('private')}
                     </span>

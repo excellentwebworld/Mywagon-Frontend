@@ -4,6 +4,7 @@ import {
   formatEuro,
   formatRelativeAgo,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { ExpHeading } from './ExpHeading';
 import {
   CompactLoadMeta,
   OrdersBlock,
@@ -55,9 +56,7 @@ function OfferRow({
             {offer.initials || offer.name.substring(0, 2).toUpperCase()}
           </span>
           {offer.name}
-          {offer.rating != null && (
-            <span className="star">★ {offer.rating.toFixed(1)}</span>
-          )}
+          {offer.rating != null && <span className="star">★ {offer.rating.toFixed(1)}</span>}
           <span className="badge badge-gray" style={{ fontSize: 9 }}>
             {roleLabel}
           </span>
@@ -161,22 +160,30 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
 
   return (
     <div className="exp-inner">
-      {/* Col 1 — Progress + Orders + compact meta (HTML) */}
       <div className="exp-section">
-        <h4>{t('progress')}</h4>
+        <ExpHeading icon="progress">{t('progress')}</ExpHeading>
         <ProgressTimeline shipment={shipment} t={t} loading={detailLoading} />
 
-        <h4 style={{ marginTop: 12 }}>{ordersMeta.label}</h4>
+        <ExpHeading icon="orders" className="exp-h-gap">
+          {ordersMeta.label}
+        </ExpHeading>
         <OrdersBlock shipment={shipment} t={t} />
         <CompactLoadMeta shipment={shipment} t={t} />
+        {shipment.at_risk && shipment.riskReason && (
+          <div className="exp-risk">
+            <span className="badge badge-danger">
+              <span className="bdot" />
+              {shipment.riskReason}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Col 2 — Responses */}
       <div className="exp-section">
-        <h4>
+        <ExpHeading icon="responses">
           {t('responses')} ({offers.length}
           {bidLabel ? ` ${bidLabel}` : ''})
-        </h4>
+        </ExpHeading>
         {offers.length > 0 ? (
           offers.map((offer) => (
             <OfferRow
@@ -195,63 +202,47 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
         )}
       </div>
 
-      {/* Col 3 — Invited carriers (private + public) + Quick Actions */}
       <div className="exp-section">
-        <h4
+        <ExpHeading
+          icon="invited"
           className="inv-toggle-h"
-          role="button"
-          tabIndex={0}
           onClick={() => setInvOpen((v) => !v)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setInvOpen((v) => !v);
-            }
-          }}
         >
           <span className={`cust-chev${invOpen ? ' open' : ''}`}>▶</span>
-          {t('invitedTransporters')} ({invitedCount})
-        </h4>
+          {t('invitedCarriers')} ({invitedCount})
+        </ExpHeading>
         <div className={`inv-section${invOpen ? ' open' : ''}`}>
-          {invitees.length > 0
-            ? invitees.map((inv) => (
-                <div key={inv.id} className="inv-row">
-                  <span className="inv-name">
-                    <span className="carrier-av" style={{ width: 20, height: 20, fontSize: 8 }}>
-                      {inv.initials || inv.name.substring(0, 2).toUpperCase()}
-                    </span>
-                    {inv.name}
-                  </span>
-                  {inv.invitedAt && (
-                    <span className="ago">
-                      {t('invitedAgo', { time: formatRelativeAgo(inv.invitedAt) })}
-                    </span>
-                  )}
-                  <div className="inv-acts">
-                    <button
-                      type="button"
-                      className="inv-btn"
-                      onClick={() => onRemindInvitee(inv.id)}
-                    >
-                      {t('remind')}
-                    </button>
-                    <button
-                      type="button"
-                      className="inv-btn"
-                      onClick={() => onRemoveInvitee(inv.id)}
-                    >
-                      {t('remove')}
-                    </button>
-                  </div>
-                </div>
-              ))
-            : null}
+          {invitees.map((inv) => (
+            <div key={inv.id} className="inv-row">
+              <span className="inv-name">
+                <span className="carrier-av" style={{ width: 20, height: 20, fontSize: 8 }}>
+                  {inv.initials || inv.name.substring(0, 2).toUpperCase()}
+                </span>
+                {inv.name}
+              </span>
+              {inv.invitedAt && (
+                <span className="ago">
+                  {t('invitedAgo', { time: formatRelativeAgo(inv.invitedAt) })}
+                </span>
+              )}
+              <div className="inv-acts">
+                <button type="button" className="inv-btn" onClick={() => onRemindInvitee(inv.id)}>
+                  {t('remind')}
+                </button>
+                <button type="button" className="inv-btn" onClick={() => onRemoveInvitee(inv.id)}>
+                  {t('remove')}
+                </button>
+              </div>
+            </div>
+          ))}
           <button type="button" className="f-pill inv-more" onClick={onInviteMore}>
             {t('inviteMoreCarriers')}
           </button>
         </div>
 
-        <h4 style={{ marginTop: 16 }}>{t('quickActions')}</h4>
+        <ExpHeading icon="qa" className="exp-h-gap-lg">
+          {t('quickActions')}
+        </ExpHeading>
         <QuickActions onEdit={onEdit} onCancel={onCancel} t={t} />
       </div>
     </div>

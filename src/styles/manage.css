@@ -724,6 +724,7 @@ table.mgmt-t {
   letter-spacing: 0.3px;
   padding: 2px 8px;
   border-radius: 4px;
+  white-space: nowrap;
 }
 .vis-priv {
   background: var(--surface-alt);
@@ -863,6 +864,36 @@ table.mgmt-t {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+.exp-section h4 svg {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+.exp-h-gap {
+  margin-top: 12px !important;
+}
+.exp-h-gap-lg {
+  margin-top: 16px !important;
+}
+.exp-risk {
+  margin-top: 10px;
+}
+.exp-qa-col {
+  align-self: start;
+}
+
+.mgmt-t .col-status,
+.mgmt-t .col-vis {
+  white-space: normal;
+  vertical-align: top;
+}
+.mgmt-t .col-vis .vis {
+  display: inline-block;
+  max-width: 100%;
+}
+.risk-subtag {
+  margin-top: 4px;
+  display: inline-flex;
 }
 
 /* ── Timeline ── */
