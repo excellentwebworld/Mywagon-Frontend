@@ -108,7 +108,7 @@ function OfferRow({
           </button>
           <button
             type="button"
-            className={`bid-reject${hasCounter ? ' bid-reject-danger' : ''}`}
+            className="bid-reject bid-reject-danger"
             onClick={onReject}
           >
             {t('reject')}

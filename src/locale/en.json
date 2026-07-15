@@ -7,8 +7,6 @@
   "shipmentsTitle": "Shipments",
   "outboundLoads": "Outbound Loads",
   "inboundLoads": "Inbound Loads",
-  "inboundEmptyTitle": "Inbound loads coming soon",
-  "inboundEmptyBody": "Monitoring inbound shipments from suppliers and other senders isn’t available yet. Outbound loads continue to work as usual.",
   "searchTrucks": "Search Trucks",
   "addressBook": "Address Book",
   "abSubtitle": "Manage locations, contacts and operational profiles",
