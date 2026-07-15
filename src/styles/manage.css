@@ -17,7 +17,8 @@
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
-  overflow-x: hidden;
+  /* Must not use overflow-x:hidden — it clips .tbl-wrap’s scrollbar (and fights ERP .tbl-wrap). */
+  overflow-x: visible;
 }
 
 .mgmt-page .pg-title {
@@ -424,8 +425,10 @@
   color: #92400e;
 }
 
-/* ── Main table ── */
-.tbl-block {
+/* ── Main table ──
+   Scoped under .mgmt-page so ERP Orders’ global `.tbl-wrap { overflow: hidden }`
+   cannot kill horizontal scroll after navigating between pages. */
+.mgmt-page .tbl-block {
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
@@ -435,29 +438,39 @@
   max-width: 100%;
   position: relative;
   z-index: 1;
+  overflow: hidden;
 }
 
-.tbl-wrap {
-  display: block;
+.mgmt-page .tbl-wrap {
+  display: block !important;
+  flex: none !important;
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  overflow-x: auto;
-  overflow-y: visible;
+  min-height: 0;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   background: var(--surface);
   position: relative;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 var(--surface-alt);
 }
 
-.tbl-wrap::-webkit-scrollbar {
-  height: 10px;
+.mgmt-page .tbl-wrap::-webkit-scrollbar {
+  height: 12px;
 }
-.tbl-wrap::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+.mgmt-page .tbl-wrap::-webkit-scrollbar-thumb {
+  background: #94a3b8;
   border-radius: 99px;
+  border: 2px solid var(--surface-alt);
 }
-.tbl-wrap::-webkit-scrollbar-track {
+.mgmt-page .tbl-wrap::-webkit-scrollbar-track {
   background: var(--surface-alt);
 }
 
@@ -493,12 +506,18 @@
   text-decoration: underline;
 }
 
-table.mgmt-t {
+.mgmt-page table.mgmt-t {
   display: table;
   width: 100%;
   min-width: 1480px;
   border-collapse: collapse;
   table-layout: auto;
+}
+
+/* Keep pagination full-width of the table (scrolls with it, like HTML mock). */
+.mgmt-page .tbl-wrap > .pag {
+  min-width: 1480px;
+  box-sizing: border-box;
 }
 
 .mgmt-t tbody tr.exp .exp-inner {
