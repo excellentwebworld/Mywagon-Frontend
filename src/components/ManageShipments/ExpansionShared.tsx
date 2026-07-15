@@ -26,22 +26,27 @@ export function ProgressTimeline({
     return <div className="sub">{t('loading')}</div>;
   }
 
+  if (steps.length === 0) {
+    return null;
+  }
+
   const timeline = (
-    <div className="tl">
-      {steps.map((step, idx) => (
-        <React.Fragment key={`${step.id}-${idx}`}>
-          <div className="tl-step">
-            <div className={`tl-dot ${step.state}`} />
-            <div className="tl-label">{step.label}</div>
+    <div className={`tl${enlarged ? ' tl-enlarged' : ''}`} role="list">
+      <div className="tl-track" aria-hidden />
+      {steps.map((step) => (
+        <div
+          key={step.id}
+          className={`tl-step tl-step--${step.state}`}
+          role="listitem"
+          tabIndex={0}
+          aria-label={[step.label, step.sub].filter(Boolean).join(', ')}
+        >
+          <div className={`tl-dot ${step.state}`} />
+          <div className="tl-tip" role="tooltip">
+            <div className={`tl-tip-label tl-tip-label--${step.state}`}>{step.label}</div>
+            {step.sub ? <div className="tl-tip-sub">{step.sub}</div> : null}
           </div>
-          {idx < steps.length - 1 && (
-            <div
-              className={`tl-line ${
-                step.state === 'done' || step.state === 'success' ? 'done' : ''
-              }`}
-            />
-          )}
-        </React.Fragment>
+        </div>
       ))}
     </div>
   );

@@ -473,82 +473,39 @@ export type LaravelProgressStep = {
   id: string;
   label: string;
   state: LaravelProgressState;
+  /** Optional secondary line (date / time), like Laravel Load Details. */
+  sub?: string;
 };
 
-/** Laravel Load Details–style progress steps (status + stops; no location-log timestamps). */
+/** Full Laravel-style progress: all milestone dots for this load; states by status. */
 export function buildLaravelProgressSteps(
   shipment: Shipment,
   t: (key: string, opts?: Record<string, unknown>) => string
 ): LaravelProgressStep[] {
-  const steps: LaravelProgressStep[] = [];
   const isPrivate = (shipment.channel || shipment.vis) !== 'public';
   const status = shipment.status;
 
-  steps.push({ id: 'created', label: t('tlCreated'), state: 'done' });
+  const hasOffers =
+    (shipment.offers?.length ?? 0) > 0 ||
+    (shipment.bidsReceived ?? 0) > 0 ||
+    (shipment.bids ?? 0) > 0;
+  const hasInvitees =
+    (shipment.invitees?.length ?? 0) > 0 || (shipment.invited ?? 0) > 0;
 
-  if (status === 'canceled' || status === 'cancelled') {
-    steps.push({
-      id: 'canceled',
-      label: t(status === 'cancelled' ? 'cancelled' : 'canceled'),
-      state: 'pending',
-    });
-    return steps;
+  let waitingLabel = t('waitingForBid');
+  if (hasOffers) {
+    waitingLabel = t('pendingOnShipperAcceptance');
+  } else if (isPrivate || hasInvitees) {
+    waitingLabel = t('pendingOnCarrierAcceptance');
   }
 
-  if (status === 'pending' || status === 'draft') {
-    const hasOffers =
-      (shipment.offers?.length ?? 0) > 0 ||
-      (shipment.bidsReceived ?? 0) > 0 ||
-      (shipment.bids ?? 0) > 0;
-    const hasInvitees =
-      (shipment.invitees?.length ?? 0) > 0 || (shipment.invited ?? 0) > 0;
-
-    let pendingLabel = t('waitingForBid');
-    if (hasOffers) {
-      pendingLabel = t('pendingOnShipperAcceptance');
-    } else if (isPrivate || hasInvitees) {
-      pendingLabel = t('pendingOnCarrierAcceptance');
-    }
-    steps.push({ id: 'waiting', label: pendingLabel, state: 'cur' });
-    return steps;
-  }
-
-  steps.push({
-    id: 'accepted',
-    label: isPrivate ? t('privateShipmentAccepted') : t('publicShipmentAccepted'),
-    state: 'done',
-  });
+  const acceptedLabel = isPrivate
+    ? t('privateShipmentAccepted')
+    : t('publicShipmentAccepted');
 
   const carrierLabel = shipment.carrier
     ? `${t('carrierLabel')}: ${shipment.carrier}`
     : t('carrierAssigned');
-
-  const beforeTrip =
-    status === 'scheduled' ||
-    status === 'ready' ||
-    status === 'upcoming' ||
-    status === 'past_due' ||
-    status === 'awarded';
-
-  if (beforeTrip) {
-    steps.push({ id: 'carrier', label: carrierLabel, state: 'cur' });
-    return steps;
-  }
-
-  steps.push({ id: 'carrier', label: carrierLabel, state: 'done' });
-
-  const fulfilledLike =
-    status === 'fullfilled' ||
-    status === 'partially_fullfilled' ||
-    status === 'delivered' ||
-    status === 'not_fullfilled';
-  const onTrip = status === 'on_trip' || status === 'in_progress';
-
-  steps.push({
-    id: 'start_trip',
-    label: t('startTrip'),
-    state: onTrip || fulfilledLike ? 'done' : 'cur',
-  });
 
   const stops =
     shipment.stops && shipment.stops.length > 0
@@ -562,58 +519,126 @@ export function buildLaravelProgressSteps(
           { type: 'delivery' as const, location: shipment.dest || '—' },
         ];
 
+  const isPending = status === 'pending' || status === 'draft';
+  const isCanceled = status === 'canceled' || status === 'cancelled';
+  const beforeTrip =
+    status === 'scheduled' ||
+    status === 'ready' ||
+    status === 'upcoming' ||
+    status === 'past_due' ||
+    status === 'awarded';
+  const onTrip = status === 'on_trip' || status === 'in_progress';
+  const fulfilledLike =
+    status === 'fullfilled' ||
+    status === 'partially_fullfilled' ||
+    status === 'delivered' ||
+    status === 'not_fullfilled';
+  const pastAcceptance = !isPending && !isCanceled;
+
+  const steps: LaravelProgressStep[] = [
+    {
+      id: 'created',
+      label: t('tlCreated'),
+      state: 'done',
+      sub: shipment.date || shipment.updated || undefined,
+    },
+  ];
+
+  if (isCanceled) {
+    steps.push({
+      id: 'canceled',
+      label: t(status === 'cancelled' ? 'cancelled' : 'canceled'),
+      state: 'pending',
+    });
+    // Still show remaining pipeline as skipped so all dots are visible
+    steps.push(
+      { id: 'carrier', label: carrierLabel, state: 'skip' },
+      { id: 'start_trip', label: t('startTrip'), state: 'skip' }
+    );
+    stops.forEach((stop, idx) => {
+      const loc = stop.location;
+      steps.push({
+        id: `arrival-${idx}`,
+        label: `${t('arrival')} - ${loc}`,
+        state: 'skip',
+      });
+      steps.push({
+        id: `stop-action-${idx}`,
+        label: `${stop.type === 'pickup' ? t('pickup') : t('delivery')} - ${loc}`,
+        state: 'skip',
+      });
+    });
+    steps.push({ id: 'payment', label: t('paymentPending'), state: 'skip' });
+    return steps;
+  }
+
+  // Acceptance / waiting slot (single position in the pipeline)
+  if (isPending) {
+    steps.push({ id: 'waiting', label: waitingLabel, state: 'cur' });
+  } else {
+    steps.push({ id: 'accepted', label: acceptedLabel, state: 'done' });
+  }
+
+  // Carrier
+  let carrierState: LaravelProgressState = 'skip';
+  if (pastAcceptance) {
+    carrierState = beforeTrip ? 'cur' : 'done';
+  }
+  steps.push({ id: 'carrier', label: carrierLabel, state: carrierState });
+
+  // Start trip
+  let startState: LaravelProgressState = 'skip';
+  if (onTrip || fulfilledLike) startState = 'done';
+  else if (pastAcceptance && !beforeTrip) startState = 'cur';
+  steps.push({ id: 'start_trip', label: t('startTrip'), state: startState });
+
+  // Per-stop arrival + pickup/delivery
   stops.forEach((stop, idx) => {
     const loc = stop.location;
     const isLast = idx === stops.length - 1;
+    let arrivalState: LaravelProgressState = 'skip';
+    let actionState: LaravelProgressState = 'skip';
 
-    let arrivalState: LaravelProgressState = 'done';
-    if (onTrip && isLast) arrivalState = 'cur';
-    if (status === 'not_fullfilled') arrivalState = 'pending';
+    if (fulfilledLike && status !== 'not_fullfilled') {
+      arrivalState = 'done';
+      actionState = 'done';
+    } else if (status === 'not_fullfilled') {
+      arrivalState = 'pending';
+      actionState = 'pending';
+    } else if (onTrip) {
+      if (isLast) {
+        arrivalState = 'done';
+        actionState = 'cur';
+      } else {
+        arrivalState = 'done';
+        actionState = 'done';
+      }
+    }
 
     steps.push({
       id: `arrival-${idx}`,
       label: `${t('arrival')} - ${loc}`,
       state: arrivalState,
     });
-
-    const actionLabel = stop.type === 'pickup' ? t('pickup') : t('delivery');
-    let actionState: LaravelProgressState = 'done';
-    if (onTrip && isLast) {
-      steps[steps.length - 1].state = 'done';
-      actionState = 'cur';
-    }
-    if (status === 'not_fullfilled') actionState = 'pending';
-
     steps.push({
       id: `stop-action-${idx}`,
-      label: `${actionLabel} - ${loc}`,
+      label: `${stop.type === 'pickup' ? t('pickup') : t('delivery')} - ${loc}`,
       state: actionState,
     });
   });
 
+  // Payment
+  let paymentState: LaravelProgressState = 'skip';
+  let paymentLabel = t('paymentPending');
   if (fulfilledLike) {
-    if (status !== 'not_fullfilled') {
-      steps.forEach((s) => {
-        if (
-          s.id.startsWith('arrival-') ||
-          s.id.startsWith('stop-action-') ||
-          s.id === 'start_trip'
-        ) {
-          s.state = 'done';
-        }
-      });
-    }
-
     if (shipment.paymentStatus === 'paid') {
-      steps.push({ id: 'payment', label: t('paymentSuccessful'), state: 'success' });
+      paymentState = 'success';
+      paymentLabel = t('paymentSuccessful');
     } else {
-      steps.push({
-        id: 'payment',
-        label: t('paymentPending'),
-        state: status === 'not_fullfilled' ? 'pending' : 'cur',
-      });
+      paymentState = status === 'not_fullfilled' ? 'pending' : 'cur';
     }
   }
+  steps.push({ id: 'payment', label: paymentLabel, state: paymentState });
 
   return steps;
 }
