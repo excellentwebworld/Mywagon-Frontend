@@ -115,6 +115,12 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
           readyRef.current = true;
           setTick((n) => n + 1);
         }
+        // Ensure map paints into the fixed column height after layout
+        requestAnimationFrame(() => {
+          if (mapRef.current && window.google?.maps?.event) {
+            window.google.maps.event.trigger(mapRef.current, 'resize');
+          }
+        });
       })
       .catch(() => undefined);
 
@@ -122,6 +128,14 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
       cancelled = true;
     };
   }, [apiKey]);
+
+  useEffect(() => {
+    if (!mapRef.current || !window.google?.maps?.event) return;
+    const id = window.setTimeout(() => {
+      window.google?.maps?.event?.trigger(mapRef.current, 'resize');
+    }, 50);
+    return () => window.clearTimeout(id);
+  }, [mapExpanded, isMobileOverlay]);
 
   useEffect(() => {
     const maps = window.google?.maps as AnyMaps | undefined;
