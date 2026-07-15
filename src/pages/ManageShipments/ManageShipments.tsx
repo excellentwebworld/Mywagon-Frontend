@@ -95,15 +95,15 @@ export const ManageShipments: React.FC = () => {
                 onEditBlocked={m.handleEditBlocked}
                 t={m.t}
               />
-              <Pagination
-                page={m.pagination.page}
-                totalPages={m.pagination.totalPages}
-                total={m.pagination.total}
-                perPage={10}
-                onPageChange={m.setPage}
-                t={m.t}
-              />
             </div>
+            <Pagination
+              page={m.pagination.page}
+              totalPages={m.pagination.totalPages}
+              total={m.pagination.total}
+              perPage={10}
+              onPageChange={m.setPage}
+              t={m.t}
+            />
           </div>
 
           <BulkBar

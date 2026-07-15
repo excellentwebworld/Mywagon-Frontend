@@ -514,10 +514,14 @@
   table-layout: auto;
 }
 
-/* Keep pagination full-width of the table (scrolls with it, like HTML mock). */
-.mgmt-page .tbl-wrap > .pag {
-  min-width: 1480px;
-  box-sizing: border-box;
+/* Pagination stays outside horizontal scroll so buttons aren’t clipped off-screen. */
+.mgmt-page .tbl-block > .pag {
+  width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--surface);
 }
 
 .mgmt-t tbody tr.exp .exp-inner {
@@ -1806,14 +1810,20 @@
   justify-content: space-between;
   padding: 12px 16px;
   border-top: 1px solid var(--border);
+  box-sizing: border-box;
 }
 .pag-info {
   font-size: 12px;
   color: var(--text-tertiary);
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .pag-btns {
   display: flex;
   gap: 4px;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .pg-btn {
   width: 32px;
