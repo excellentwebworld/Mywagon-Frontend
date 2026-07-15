@@ -269,20 +269,25 @@ a { color: inherit; text-decoration: none; }
    ════════════════════════════════════════ */
 .main-content {
   margin-left: var(--sidebar-w);
+  width: calc(100% - var(--sidebar-w));
   min-height: 100vh;
   min-height: 100dvh;
   min-width: 0;
-  max-width: 100%;
   flex: 1;
   overflow-x: hidden;
-  transition: margin-left .25s cubic-bezier(.4,0,.2,1);
+  transition: margin-left .25s cubic-bezier(.4,0,.2,1), width .25s cubic-bezier(.4,0,.2,1);
+  box-sizing: border-box;
 }
-.main-content.expanded { margin-left: var(--sidebar-collapsed); }
+.main-content.expanded {
+  margin-left: var(--sidebar-collapsed);
+  width: calc(100% - var(--sidebar-collapsed));
+}
 .page-body {
   overflow-y: auto;
   overflow-x: hidden;
   min-width: 0;
   max-width: 100%;
+  box-sizing: border-box;
 }
 .dashboard-page {
   padding: 20px 28px 40px;
