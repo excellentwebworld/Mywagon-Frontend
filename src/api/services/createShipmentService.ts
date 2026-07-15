@@ -14,8 +14,8 @@ export const createShipmentService = {
     return res.data ?? [];
   },
 
-  async createDraft(): Promise<ApiDraftShipment> {
-    const res = await apiPost<ApiDraftShipment>('/create-shipment/drafts');
+  async createDraft(body?: { availability_id?: number }): Promise<ApiDraftShipment> {
+    const res = await apiPost<ApiDraftShipment>('/create-shipment/drafts', body ?? {});
     return res.data;
   },
 

@@ -841,6 +841,7 @@
 .sat-map-toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 10px 12px;
   background: var(--surface);
@@ -1396,6 +1397,53 @@
 }
 a.sat-btn {
   text-decoration: none;
+}
+.sat-map-bounds-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #eef6ff;
+  color: #1d4f91;
+  border: 1px solid #c7ddf7;
+}
+.sat-map-search-area {
+  margin-left: 4px;
+}
+.sat-cargo-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.sat-cargo-type {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sat-cargo-expand {
+  margin-left: 8px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.sat-cargo-cats {
+  margin-left: 22px;
+  padding: 6px 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sat-cargo-cat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
 }
 .sat-type-checks {
   display: flex;

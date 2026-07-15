@@ -42,6 +42,8 @@ export interface ApiWizardState {
   stops?: ApiStop[];
   custRef?: string;
   coOwners?: string[];
+  /** Set when draft started from Search Available Trucks */
+  availability_id?: number;
   loadId?: string;
   itineraryConfirmed?: boolean;
   itineraryConfirmSnapshot?: string;
@@ -77,6 +79,7 @@ export interface SaveStepOnePayload {
   co_owners?: string[];
   stops: ApiStop[];
   timezone?: string;
+  availability_id?: number;
 }
 
 export type SaveStepOneMode = SaveStepOnePayload['mode'];

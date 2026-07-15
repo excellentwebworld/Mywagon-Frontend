@@ -117,6 +117,10 @@ export const SearchTrucks: React.FC = () => {
           onSelect={m.selectTruck}
           onToggleExpand={() => m.setMapExpanded(!m.mapExpanded)}
           loading={m.loading}
+          mapBoundsActive={m.mapBoundsActive}
+          mapBoundsDirty={m.mapBoundsDirty}
+          onMapBoundsDirty={() => m.setMapBoundsDirty(true)}
+          onSearchThisArea={m.applyMapBoundsSearch}
           t={m.t}
         />
       </div>
@@ -132,6 +136,10 @@ export const SearchTrucks: React.FC = () => {
           onCloseMobile={() => m.setMobileMapOpen(false)}
           isMobileOverlay
           loading={m.loading}
+          mapBoundsActive={m.mapBoundsActive}
+          mapBoundsDirty={m.mapBoundsDirty}
+          onMapBoundsDirty={() => m.setMapBoundsDirty(true)}
+          onSearchThisArea={m.applyMapBoundsSearch}
           t={m.t}
         />
       )}

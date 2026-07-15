@@ -9,6 +9,7 @@ import type {
   AvailableTruck,
   BookingDraft,
   DrawerMode,
+  MapPickupBounds,
   PendingShipment,
   QuickFilterKey,
   SearchCriteria,
@@ -102,6 +103,8 @@ export const emptyCriteria = (): SearchCriteria => ({
   dropoffLng: null,
   dropoffRadius: 50,
   truckTypeIds: [],
+  vehicleSpecs: {},
+  mapBounds: null,
 });
 
 function filterMockTrucks(
@@ -234,6 +237,7 @@ export function useSearchTrucks() {
   const [error, setError] = useState<string | null>(null);
   const [upgradeUrl, setUpgradeUrl] = useState(defaultSubscriptionUpgradeUrl);
   const [gateModalOpen, setGateModalOpen] = useState(false);
+  const [mapBoundsDirty, setMapBoundsDirty] = useState(false);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -382,6 +386,7 @@ export function useSearchTrucks() {
     setCriteria(emptyCriteria());
     setAppliedCriteria(emptyCriteria());
     setSelectedId(null);
+    setMapBoundsDirty(false);
     setPage(1);
     showToast(t('satFiltersCleared') || 'Filters cleared', 'info');
   }, [showToast, t]);
@@ -395,16 +400,36 @@ export function useSearchTrucks() {
       showToast(t('satPickupDateRequired') || 'Pickup date is required', 'warning');
       return false;
     }
-    if (!criteria.vehicleType.trim() && criteria.truckTypeIds.length === 0) {
+    const hasCargo =
+      criteria.truckTypeIds.length > 0 ||
+      Object.values(criteria.vehicleSpecs || {}).some((ids) => ids.length > 0);
+    if (!criteria.vehicleType.trim() && !hasCargo) {
       showToast(t('satVehicleTypeRequired') || 'Vehicle type is required', 'warning');
       return false;
     }
-    setAppliedCriteria({ ...criteria });
+    // Pill search is authority: clear map bounds mode.
+    const next = { ...criteria, mapBounds: null };
+    setCriteria(next);
+    setAppliedCriteria(next);
+    setMapBoundsDirty(false);
     setPage(1);
     setSelectedId(null);
     showToast(t('satSearchApplied') || 'Search applied', 'success');
     return true;
   }, [criteria, showToast, t]);
+
+  const applyMapBoundsSearch = useCallback(
+    (bounds: MapPickupBounds) => {
+      const next = { ...appliedCriteria, mapBounds: bounds };
+      setCriteria((prev) => ({ ...prev, mapBounds: bounds }));
+      setAppliedCriteria(next);
+      setMapBoundsDirty(false);
+      setPage(1);
+      setSelectedId(null);
+      showToast(t('satSearchApplied') || 'Search applied', 'success');
+    },
+    [appliedCriteria, showToast, t]
+  );
 
   const selectTruck = useCallback((id: string | null) => {
     setSelectedId(id);
@@ -598,7 +623,7 @@ export function useSearchTrucks() {
     void listQuery.refetch();
   }, [listQuery]);
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
     if (subscriptionBlocked) {
       showToast(t('satUpgradeBody') || t('satUpgradePlan'), 'error');
       return;
@@ -607,6 +632,25 @@ export function useSearchTrucks() {
       showToast(t('satLoading'), 'info');
       return;
     }
+
+    if (!USE_MOCK) {
+      try {
+        await availabilitiesService.exportCsv({
+          visibility,
+          search: debouncedSearch,
+          sort: sortKey,
+          criteria: appliedCriteria,
+          quickFilters,
+        });
+        showToast(t('satExported') || 'Exported CSV', 'success');
+      } catch (err) {
+        const message =
+          err instanceof ApiError ? err.message : t('satLoadError') || 'Export failed';
+        showToast(message, 'error');
+      }
+      return;
+    }
+
     if (filtered.length === 0) {
       showToast(t('satExportEmpty') || 'Nothing to export', 'info');
       return;
@@ -646,7 +690,18 @@ export function useSearchTrucks() {
     a.click();
     URL.revokeObjectURL(url);
     showToast(t('satExported') || 'Exported CSV', 'success');
-  }, [filtered, subscriptionBlocked, listQuery.isLoading, showToast, t]);
+  }, [
+    filtered,
+    subscriptionBlocked,
+    listQuery.isLoading,
+    visibility,
+    debouncedSearch,
+    sortKey,
+    appliedCriteria,
+    quickFilters,
+    showToast,
+    t,
+  ]);
 
   const handleToggleGroup = useCallback(() => {
     setGroupRecurring((prev) => {
@@ -696,6 +751,10 @@ export function useSearchTrucks() {
     gateModalOpen,
     dismissGateReminder,
     retryLoad,
+    mapBoundsDirty,
+    setMapBoundsDirty,
+    applyMapBoundsSearch,
+    mapBoundsActive: Boolean(appliedCriteria.mapBounds),
     visibility,
     setVisibility: (v: VisibilityFilter) => {
       setVisibility(v);

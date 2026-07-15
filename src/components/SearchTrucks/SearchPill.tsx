@@ -3,6 +3,7 @@ import { loadGoogleMaps } from '../AddressBook/GoogleMapAddressField';
 import { useVehicleTypes } from '../../hooks/useVehicleTypes';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { SearchCriteria } from '../../pages/SearchTrucks/types';
+import { SearchVehicleCargoPicker } from './SearchVehicleCargoPicker';
 
 interface SearchPillProps {
   criteria: SearchCriteria;
@@ -95,10 +96,16 @@ export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSe
   };
 
   const vehicleLabel = useMemo(() => {
-    if (criteria.truckTypeIds.length === 0) {
+    const selectedIds =
+      criteria.truckTypeIds.length > 0
+        ? criteria.truckTypeIds
+        : Object.keys(criteria.vehicleSpecs || {})
+            .filter((k) => (criteria.vehicleSpecs[k]?.length ?? 0) > 0)
+            .map(Number);
+    if (selectedIds.length === 0) {
       return criteria.vehicleType || t('satPillVehiclePh');
     }
-    const names = criteria.truckTypeIds
+    const names = selectedIds
       .map((id) => {
         const vt = vehicleTypes.find((x) => x.formKey === String(id));
         if (!vt) return null;
@@ -108,17 +115,14 @@ export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSe
     if (names.length === 0) return t('satPillVehiclePh');
     if (names.length === 1) return names[0];
     return `${names[0]} +${names.length - 1}`;
-  }, [criteria.truckTypeIds, criteria.vehicleType, vehicleTypes, lang, t]);
-
-  const toggleType = (id: number) => {
-    const has = criteria.truckTypeIds.includes(id);
-    const truckTypeIds = has
-      ? criteria.truckTypeIds.filter((x) => x !== id)
-      : [...criteria.truckTypeIds, id];
-    const first = vehicleTypes.find((x) => x.formKey === String(truckTypeIds[0]));
-    const vehicleType = first ? (lang === 'el' ? first.nameEl : first.name) : '';
-    onChange({ ...criteria, truckTypeIds, vehicleType });
-  };
+  }, [
+    criteria.truckTypeIds,
+    criteria.vehicleSpecs,
+    criteria.vehicleType,
+    vehicleTypes,
+    lang,
+    t,
+  ]);
 
   return (
     <div className="sat-pill-wrap" ref={panelRef}>
@@ -235,23 +239,12 @@ export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSe
               {vehicleTypesLoading ? (
                 <div className="sat-muted">{t('satLoadingVehicleTypes')}</div>
               ) : (
-                <div className="sat-type-checks">
-                  {vehicleTypes.map((vt) => {
-                    const id = Number(vt.formKey);
-                    const checked = criteria.truckTypeIds.includes(id);
-                    const label = lang === 'el' ? vt.nameEl : vt.name;
-                    return (
-                      <label key={vt.formKey} className="sat-type-check">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleType(id)}
-                        />
-                        <span>{label}</span>
-                      </label>
-                    );
-                  })}
-                </div>
+                <SearchVehicleCargoPicker
+                  vehicleSpecs={criteria.vehicleSpecs || {}}
+                  truckTypeIds={criteria.truckTypeIds}
+                  onChange={(next) => onChange({ ...criteria, ...next })}
+                  t={t}
+                />
               )}
             </div>
           </div>

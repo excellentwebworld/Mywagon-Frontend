@@ -63,6 +63,10 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   const [shipmentId, setShipmentId] = useState<number | null>(() =>
     draftUrlId ? parseInt(draftUrlId, 10) || null : null
   );
+  const [availabilityId, setAvailabilityId] = useState<number | null>(() => {
+    const raw = searchParams.get('availability_id');
+    return raw && /^\d+$/.test(raw) ? parseInt(raw, 10) : null;
+  });
   const [loadId, setLoadId] = useState<string>(() => buildDefaultWizardValues().loadId);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -136,8 +140,8 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
 
   /** Prefill Step 1 from Search Trucks availability proceed payload. */
   useEffect(() => {
-    const availabilityId = searchParams.get('availability_id');
-    if (!availabilityId || draftUrlId) return;
+    const availParam = searchParams.get('availability_id');
+    if (!availParam || draftUrlId) return;
 
     let raw: string | null = null;
     try {
@@ -149,7 +153,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
 
     try {
       const payload = JSON.parse(raw) as ApiProceedResult;
-      if (String(payload.availability_id) !== availabilityId) return;
+      if (String(payload.availability_id) !== availParam) return;
       const prefill = payload.prefill;
       if (!prefill) return;
 
@@ -167,6 +171,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       delivery.locationCity = prefill.dropoff_city || '';
       delivery.locationName = prefill.dropoff_address || prefill.dropoff_city || '';
 
+      setAvailabilityId(Number(payload.availability_id));
       setLoadedValues({
         ...defaultValues,
         stops: [pickup, delivery],
@@ -211,6 +216,10 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         loadedDraftIdRef.current = draftUrlId;
         setShipmentId(draft.id);
         setLoadId(draft.auto_id);
+        const stateAvail = draft.wizard_state?.availability_id;
+        if (typeof stateAvail === 'number' && stateAvail > 0) {
+          setAvailabilityId(stateAvail);
+        }
         setLoadedValues(mapped);
         setDraftLoaded(true);
       })
@@ -239,21 +248,23 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
 
   const ensureDraftId = useCallback(async (): Promise<number> => {
     if (shipmentId) return shipmentId;
-    const draft = await createShipmentService.createDraft();
+    const draft = await createShipmentService.createDraft(
+      availabilityId ? { availability_id: availabilityId } : undefined
+    );
     // Do not hydrate Formik from an empty create — live form state must stay intact.
     setShipmentId(draft.id);
     setLoadId(draft.auto_id);
     loadedDraftIdRef.current = String(draft.id);
     navigate(buildWizardStepPath(step, draft.id), { replace: true });
     return draft.id;
-  }, [navigate, shipmentId, step]);
+  }, [availabilityId, navigate, shipmentId, step]);
 
   const saveStep1 = useCallback(
     async (values: WizardFormValues, mode: 'partial' | 'complete') => {
       setIsSaving(true);
       try {
         const id = await ensureDraftId();
-        const payload = formValuesToStepOnePayload(values, mode);
+        const payload = formValuesToStepOnePayload(values, mode, availabilityId);
         const draft = await createShipmentService.saveStepOne(id, payload);
         applyDraftSnapshot(draft, values);
         if (mode === 'complete') {
@@ -279,7 +290,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setIsSaving(false);
       }
     },
-    [applyDraftSnapshot, ensureDraftId, showToast, syncUrl, t]
+    [applyDraftSnapshot, availabilityId, ensureDraftId, showToast, syncUrl, t]
   );
 
   const saveStep2 = useCallback(

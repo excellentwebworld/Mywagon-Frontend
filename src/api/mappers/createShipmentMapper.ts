@@ -191,7 +191,8 @@ function browserTimezone(): string {
 
 export function formValuesToStepOnePayload(
   values: Pick<WizardFormValues, 'stops' | 'custRef' | 'coOwners'>,
-  mode: SaveStepOnePayload['mode']
+  mode: SaveStepOnePayload['mode'],
+  availabilityId?: number | null
 ): SaveStepOnePayload {
   const stops = (values.stops || []).map((stop) => ({
     ...stop,
@@ -208,6 +209,7 @@ export function formValuesToStepOnePayload(
     co_owners: values.coOwners || [],
     stops,
     timezone: browserTimezone(),
+    ...(availabilityId ? { availability_id: availabilityId } : {}),
   };
 }
 

@@ -109,12 +109,17 @@ export interface ListAvailabilitiesParams {
   pickup_lat?: number;
   pickup_lng?: number;
   pickup_radius?: number;
+  pickup_ne_lat?: number;
+  pickup_ne_lng?: number;
+  pickup_sw_lat?: number;
+  pickup_sw_lng?: number;
   dropoff_city?: string;
   dropoff_lat?: number;
   dropoff_lng?: number;
   dropoff_radius?: number;
   pickup_date?: string;
   truck_type_ids?: number[];
+  truck_category_ids?: number[];
   available_today?: boolean;
   starting_within_hours?: number;
   has_bids?: boolean;

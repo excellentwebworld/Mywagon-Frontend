@@ -157,7 +157,19 @@ export function buildListParams(input: {
   const pickupDate = toApiPickupDate(criteria.pickupDate);
   if (pickupDate) params.pickup_date = pickupDate;
 
-  if (criteria.pickupLat != null && criteria.pickupLng != null) {
+  const bounds = criteria.mapBounds;
+  if (
+    bounds &&
+    Number.isFinite(bounds.neLat) &&
+    Number.isFinite(bounds.neLng) &&
+    Number.isFinite(bounds.swLat) &&
+    Number.isFinite(bounds.swLng)
+  ) {
+    params.pickup_ne_lat = bounds.neLat;
+    params.pickup_ne_lng = bounds.neLng;
+    params.pickup_sw_lat = bounds.swLat;
+    params.pickup_sw_lng = bounds.swLng;
+  } else if (criteria.pickupLat != null && criteria.pickupLng != null) {
     params.pickup_lat = criteria.pickupLat;
     params.pickup_lng = criteria.pickupLng;
     params.pickup_radius = criteria.pickupRadius ?? 50;
@@ -168,8 +180,24 @@ export function buildListParams(input: {
     params.dropoff_radius = criteria.dropoffRadius ?? 50;
   }
 
-  if (criteria.truckTypeIds?.length) {
-    params.truck_type_ids = criteria.truckTypeIds;
+  const typeIdsFromSpecs = Object.keys(criteria.vehicleSpecs || {})
+    .filter((k) => (criteria.vehicleSpecs[k]?.length ?? 0) > 0)
+    .map((k) => Number(k))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  const truckTypeIds =
+    typeIdsFromSpecs.length > 0
+      ? Array.from(new Set([...criteria.truckTypeIds, ...typeIdsFromSpecs]))
+      : criteria.truckTypeIds;
+  if (truckTypeIds?.length) {
+    params.truck_type_ids = truckTypeIds;
+  }
+
+  const categoryIds = Object.values(criteria.vehicleSpecs || {})
+    .flat()
+    .map((id) => Number(id))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  if (categoryIds.length) {
+    params.truck_category_ids = Array.from(new Set(categoryIds));
   }
 
   if (quickFilters.has('today')) params.available_today = true;

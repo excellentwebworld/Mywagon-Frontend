@@ -13,6 +13,13 @@ export type TripType = 'Multi-stop OK' | 'Direct only';
 
 export type QuickFilterKey = 'today' | 'soon8h' | 'has_bids' | 'load_match';
 
+export interface MapPickupBounds {
+  neLat: number;
+  neLng: number;
+  swLat: number;
+  swLng: number;
+}
+
 export interface SearchCriteria {
   pickupCity: string;
   pickupDate: string;
@@ -26,6 +33,10 @@ export interface SearchCriteria {
   dropoffLng?: number | null;
   dropoffRadius?: number;
   truckTypeIds: number[];
+  /** VehicleSelector-shaped cargo category selection: type formKey → category item ids */
+  vehicleSpecs: Record<string, string[]>;
+  /** Active map viewport search; when set, overrides pickup center+radius */
+  mapBounds?: MapPickupBounds | null;
 }
 
 export interface AvailableTruck {

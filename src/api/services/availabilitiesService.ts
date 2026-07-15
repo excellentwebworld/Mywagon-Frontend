@@ -1,4 +1,6 @@
-import { apiGet, apiPost } from '../client';
+import { ApiError, apiGet, apiPost, AUTH_TOKEN_KEY } from '../client';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 import { buildListParams, mapListItemToTruck, mapPendingMatch } from '../mappers/availabilitiesMapper';
 import type {
   ApiAvailabilityDetail,
@@ -36,6 +38,10 @@ function toQueryString(params: ListAvailabilitiesParams): string {
   set('pickup_lat', params.pickup_lat);
   set('pickup_lng', params.pickup_lng);
   set('pickup_radius', params.pickup_radius);
+  set('pickup_ne_lat', params.pickup_ne_lat);
+  set('pickup_ne_lng', params.pickup_ne_lng);
+  set('pickup_sw_lat', params.pickup_sw_lat);
+  set('pickup_sw_lng', params.pickup_sw_lng);
   set('dropoff_city', params.dropoff_city);
   set('dropoff_lat', params.dropoff_lat);
   set('dropoff_lng', params.dropoff_lng);
@@ -48,6 +54,9 @@ function toQueryString(params: ListAvailabilitiesParams): string {
 
   (params.truck_type_ids ?? []).forEach((id) => {
     search.append('truck_type_ids[]', String(id));
+  });
+  (params.truck_category_ids ?? []).forEach((id) => {
+    search.append('truck_category_ids[]', String(id));
   });
 
   const qs = search.toString();
@@ -106,5 +115,45 @@ export const availabilitiesService = {
   ): Promise<ApiPlaceBidResult> {
     const res = await apiPost<ApiPlaceBidResult>(`/availabilities/${availabilityId}/bids`, body);
     return res.data;
+  },
+
+  async exportCsv(input: {
+    visibility: VisibilityFilter;
+    search: string;
+    sort: SortKey;
+    criteria: SearchCriteria;
+    quickFilters: Set<QuickFilterKey>;
+  }): Promise<void> {
+    const params = buildListParams({
+      page: 1,
+      perPage: 12,
+      ...input,
+    });
+    delete params.page;
+    delete params.per_page;
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const response = await fetch(`${API_BASE}/availabilities/export${toQueryString(params)}`, {
+      headers: {
+        Accept: 'text/csv',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!response.ok) {
+      let message = 'Export failed';
+      try {
+        const body = await response.json();
+        if (body?.message) message = body.message;
+      } catch {
+        /* ignore */
+      }
+      throw new ApiError(message, response.status);
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `available-trucks_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   },
 };

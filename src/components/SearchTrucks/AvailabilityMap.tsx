@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { loadGoogleMaps } from '../AddressBook/GoogleMapAddressField';
-import type { AvailableTruck } from '../../pages/SearchTrucks/types';
+import type { AvailableTruck, MapPickupBounds } from '../../pages/SearchTrucks/types';
 
 interface AvailabilityMapProps {
   trucks: AvailableTruck[];
@@ -12,6 +12,10 @@ interface AvailabilityMapProps {
   onCloseMobile?: () => void;
   isMobileOverlay?: boolean;
   loading?: boolean;
+  mapBoundsActive?: boolean;
+  mapBoundsDirty?: boolean;
+  onMapBoundsDirty?: () => void;
+  onSearchThisArea?: (bounds: MapPickupBounds) => void;
   t: (key: string) => string;
 }
 
@@ -92,6 +96,10 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   onToggleExpand,
   onCloseMobile,
   isMobileOverlay,
+  mapBoundsActive = false,
+  mapBoundsDirty = false,
+  onMapBoundsDirty,
+  onSearchThisArea,
   t,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -99,6 +107,9 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   const overlaysRef = useRef<any[]>([]);
   const destObjectsRef = useRef<any[]>([]);
   const readyRef = useRef(false);
+  const skipNextIdleDirty = useRef(true);
+  const dirtyCbRef = useRef(onMapBoundsDirty);
+  dirtyCbRef.current = onMapBoundsDirty;
   const [, setTick] = React.useState(0);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
 
@@ -118,6 +129,14 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
             streetViewControl: false,
             fullscreenControl: false,
             clickableIcons: false,
+          });
+          skipNextIdleDirty.current = true;
+          maps.event.addListener(mapRef.current, 'idle', () => {
+            if (skipNextIdleDirty.current) {
+              skipNextIdleDirty.current = false;
+              return;
+            }
+            dirtyCbRef.current?.();
           });
           readyRef.current = true;
           setTick((n) => n + 1);
@@ -207,12 +226,15 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
         const focusBounds = new maps.LatLngBounds();
         focusBounds.extend({ lat: selected.pickupLat, lng: selected.pickupLng });
         focusBounds.extend({ lat: selected.destLat, lng: selected.destLng });
+        skipNextIdleDirty.current = true;
         map.fitBounds(focusBounds, 80);
       } else {
+        skipNextIdleDirty.current = true;
         map.setCenter({ lat: selected.pickupLat, lng: selected.pickupLng });
         map.setZoom(10);
       }
     } else if (hasBounds) {
+      skipNextIdleDirty.current = true;
       map.fitBounds(bounds, 48);
     }
   }, [trucks, hoveredId, selectedId, onSelect, apiKey]);
@@ -226,6 +248,32 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
         <span className="sat-map-count">
           {loading ? '…' : trucks.length} {t('satResults')}
         </span>
+        {mapBoundsActive && (
+          <span className="sat-map-bounds-chip">{t('satMapBoundsActive')}</span>
+        )}
+        {mapBoundsDirty && onSearchThisArea && (
+          <button
+            type="button"
+            className="sat-btn sat-btn-sm sat-btn-pr sat-map-search-area"
+            onClick={() => {
+              const maps = mapsApi();
+              const map = mapRef.current;
+              const b = map?.getBounds?.();
+              if (!maps || !b) return;
+              const ne = b.getNorthEast();
+              const sw = b.getSouthWest();
+              onSearchThisArea({
+                neLat: ne.lat(),
+                neLng: ne.lng(),
+                swLat: sw.lat(),
+                swLng: sw.lng(),
+              });
+              skipNextIdleDirty.current = true;
+            }}
+          >
+            {t('satSearchThisArea')}
+          </button>
+        )}
         {isMobileOverlay && onCloseMobile ? (
           <button type="button" className="sat-map-ctrl" onClick={onCloseMobile} aria-label={t('close')}>
             ✕
