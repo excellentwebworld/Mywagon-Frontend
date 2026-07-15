@@ -67,33 +67,35 @@ export const ManageShipments: React.FC = () => {
             t={m.t}
           />
 
-          <div className="tbl-wrap">
-            <ShipmentTable
-              loading={m.loading}
-              shipments={m.pagination.items}
-              selectedIds={m.selectedIds}
-              expandedId={m.expandedId}
-              detailLoadingIds={m.detailLoadingIds}
-              resolveShipment={m.mergedShipment}
-              emptyReason={m.filtersActive ? 'filters' : 'default'}
-              onClearFilters={m.handleClearAllFilters}
-              onSelectAll={m.handleSelectAll}
-              onSelectRow={m.handleSelectRow}
-              onToggleExpand={m.handleToggleExpand}
-              onCopyId={m.handleCopyId}
-              onDelete={m.handleDeleteRequest}
-              onEdit={m.handleEdit}
-              onViewNewTab={m.handleViewNewTab}
-              onMessage={m.handleMessage}
-              onAcceptOffer={m.handleAcceptOffer}
-              onRejectOffer={m.handleRejectOffer}
-              onCounterOffer={m.handleCounterOffer}
-              onRemindInvitee={m.handleRemindInvitee}
-              onRemoveInvitee={m.handleRemoveInvitee}
-              onInviteMore={m.handleInviteMore}
-              onEditBlocked={m.handleEditBlocked}
-              t={m.t}
-            />
+          <div className="tbl-block">
+            <div className="tbl-wrap">
+              <ShipmentTable
+                loading={m.loading}
+                shipments={m.pagination.items}
+                selectedIds={m.selectedIds}
+                expandedId={m.expandedId}
+                detailLoadingIds={m.detailLoadingIds}
+                resolveShipment={m.mergedShipment}
+                emptyReason={m.filtersActive ? 'filters' : 'default'}
+                onClearFilters={m.handleClearAllFilters}
+                onSelectAll={m.handleSelectAll}
+                onSelectRow={m.handleSelectRow}
+                onToggleExpand={m.handleToggleExpand}
+                onCopyId={m.handleCopyId}
+                onDelete={m.handleDeleteRequest}
+                onEdit={m.handleEdit}
+                onViewNewTab={m.handleViewNewTab}
+                onMessage={m.handleMessage}
+                onAcceptOffer={m.handleAcceptOffer}
+                onRejectOffer={m.handleRejectOffer}
+                onCounterOffer={m.handleCounterOffer}
+                onRemindInvitee={m.handleRemindInvitee}
+                onRemoveInvitee={m.handleRemoveInvitee}
+                onInviteMore={m.handleInviteMore}
+                onEditBlocked={m.handleEditBlocked}
+                t={m.t}
+              />
+            </div>
             <Pagination
               page={m.pagination.page}
               totalPages={m.pagination.totalPages}

@@ -272,11 +272,18 @@ a { color: inherit; text-decoration: none; }
   min-height: 100vh;
   min-height: 100dvh;
   min-width: 0;
+  max-width: 100%;
   flex: 1;
+  overflow-x: hidden;
   transition: margin-left .25s cubic-bezier(.4,0,.2,1);
 }
 .main-content.expanded { margin-left: var(--sidebar-collapsed); }
-.page-body { overflow-y: auto; min-width: 0; }
+.page-body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
+  max-width: 100%;
+}
 .dashboard-page {
   padding: 20px 28px 40px;
   min-width: 0;

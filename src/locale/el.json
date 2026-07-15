@@ -1002,6 +1002,7 @@
   "quotedPriceCol": "Τιμή προσφοράς",
   "agreedPriceCol": "Συμφωνημένη τιμή",
   "lastUpdateCol": "Τελ. Ενημέρωση",
+  "actionsCol": "Ενέργειες",
   "laneAt": "στις",
   "directTrip": "Άμεση διαδρομή",
   "intermediateStopsCount": "{{count}} ενδιάμεσες στάσεις",

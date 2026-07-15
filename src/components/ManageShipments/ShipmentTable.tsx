@@ -93,8 +93,8 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
           <th>{t('transporterCol')}</th>
           <th>{t('quotedPriceCol')}</th>
           <th>{t('agreedPriceCol')}</th>
-          <th>{t('lastUpdateCol')}</th>
-          <th></th>
+          <th className="col-last-update">{t('lastUpdateCol')}</th>
+          <th className="col-actions">{t('actionsCol')}</th>
         </tr>
       </thead>
       <tbody>
@@ -255,10 +255,10 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                   <td>
                     {agreed ? <span className="price agreed-price">{agreed}</span> : <span className="sub">—</span>}
                   </td>
-                  <td>
+                  <td className="col-last-update">
                     <span className="ago">{s.updated}</span>
                   </td>
-                  <td onClick={(e) => e.stopPropagation()}>
+                  <td className="col-actions" onClick={(e) => e.stopPropagation()}>
                     <div className="acts">
                       <RowActionsMenu
                         shipment={s}

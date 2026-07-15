@@ -14,6 +14,10 @@
 .mgmt-page {
   padding: 20px 28px 40px;
   animation: fadeIn 0.3s ease;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .mgmt-page .pg-title {
@@ -360,12 +364,16 @@
   display: flex;
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
   background: var(--surface);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   border: 1px solid var(--border);
   border-bottom: none;
   position: relative;
   z-index: 1;
+  max-width: 100%;
 }
 .stab {
   padding: 12px 18px;
@@ -406,16 +414,41 @@
 }
 
 /* ── Main table ── */
-.tbl-wrap {
+.tbl-block {
   border: 1px solid var(--border);
   border-top: none;
-  border-radius: 0 !important;
-  overflow-x: auto;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   background: var(--surface);
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   position: relative;
   z-index: 1;
-  margin-left: 0px !important;
-  margin-right: 0px !important;
+}
+
+.tbl-wrap {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: scroll;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+  background: var(--surface);
+  position: relative;
+}
+
+.tbl-wrap::-webkit-scrollbar {
+  height: 10px;
+}
+.tbl-wrap::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 99px;
+}
+.tbl-wrap::-webkit-scrollbar-track {
+  background: var(--surface-alt);
 }
 
 .tbl-empty {
@@ -451,9 +484,72 @@
 }
 
 table.mgmt-t {
-  width: 100%;
+  display: table;
+  width: 1480px;
+  min-width: 1480px;
+  max-width: none;
   border-collapse: collapse;
-  min-width: 1000px;
+  table-layout: fixed;
+}
+
+.mgmt-t tbody tr.exp .exp-inner {
+  max-width: min(100vw - 80px, 1100px);
+}
+
+.mgmt-t thead th,
+.mgmt-t tbody td {
+  white-space: nowrap;
+}
+
+/* Lane can wrap; give it room */
+.mgmt-t thead th:nth-child(3),
+.mgmt-t tbody td:nth-child(3) {
+  white-space: normal;
+  min-width: 200px;
+  width: 220px;
+}
+
+.mgmt-t thead th:nth-child(2),
+.mgmt-t tbody td:nth-child(2) {
+  min-width: 120px;
+  width: 130px;
+}
+
+.mgmt-t .col-last-update,
+.mgmt-t .col-actions {
+  position: sticky;
+  z-index: 3;
+  background: var(--surface);
+  box-shadow: -6px 0 8px -6px rgba(15, 23, 42, 0.18);
+}
+
+.mgmt-t thead .col-last-update,
+.mgmt-t thead .col-actions {
+  background: var(--surface-alt);
+  z-index: 4;
+}
+
+.mgmt-t tbody tr:hover .col-last-update,
+.mgmt-t tbody tr:hover .col-actions {
+  background: #fafafd;
+}
+
+.mgmt-t tbody tr.expanded .col-last-update,
+.mgmt-t tbody tr.expanded .col-actions {
+  background: var(--accent-light);
+}
+
+.mgmt-t .col-actions {
+  right: 0;
+  min-width: 56px;
+  width: 56px;
+  text-align: center;
+}
+
+.mgmt-t .col-last-update {
+  right: 56px;
+  min-width: 100px;
+  width: 110px;
 }
 .mgmt-t thead th {
   padding: 10px 12px;
@@ -1746,11 +1842,40 @@ table.mgmt-t {
   }
 }
 @media (max-width: 900px) {
+  .mgmt-page {
+    padding: 16px 16px 32px;
+  }
   .f-search {
     width: 200px;
+    max-width: 100%;
   }
   .mgmt-kpi-s {
     flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 640px) {
+  .mgmt-page {
+    padding: 12px 12px 28px;
+  }
+  .list-toolbar,
+  .fbar {
+    flex-wrap: wrap;
+  }
+  .mgmt-t thead th,
+  .mgmt-t tbody td {
+    padding: 10px 8px;
+  }
+  .mgmt-t .col-actions {
+    min-width: 48px;
+    width: 48px;
+  }
+  .mgmt-t .col-last-update {
+    right: 48px;
+    min-width: 88px;
+    width: 96px;
   }
 }
 

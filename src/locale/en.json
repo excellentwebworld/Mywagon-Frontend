@@ -1002,6 +1002,7 @@
   "quotedPriceCol": "Quoted price",
   "agreedPriceCol": "Agreed price",
   "lastUpdateCol": "Last Update",
+  "actionsCol": "Actions",
   "laneAt": "at",
   "directTrip": "Direct trip",
   "intermediateStopsCount": "{{count}} intermediate stops",
