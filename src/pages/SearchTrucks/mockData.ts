@@ -1,4 +1,15 @@
 import type { AvailableTruck, PendingShipment } from './types';
+import { CITY_COORDS } from './types';
+
+function coords(city: string) {
+  return CITY_COORDS[city] ?? { lat: 39.07, lng: 21.82 };
+}
+
+function destCoords(dest: string) {
+  if (!dest || dest === 'Any') return { destLat: null as number | null, destLng: null as number | null };
+  const c = coords(dest);
+  return { destLat: c.lat, destLng: c.lng };
+}
 
 /** INTEGRATION POINT: Replace with API call */
 export const MOCK_TRUCKS: AvailableTruck[] = [
@@ -33,6 +44,11 @@ export const MOCK_TRUCKS: AvailableTruck[] = [
     onTimePickup: 94,
     cancellationRate: 3,
     avgResponseMin: 18,
+    pickupLat: coords('Ioannina').lat,
+    pickupLng: coords('Ioannina').lng,
+    ...destCoords('Athens'),
+    hasBids: true,
+    loadMatchScore: 88,
   },
   {
     id: 'AV-002',
@@ -65,6 +81,11 @@ export const MOCK_TRUCKS: AvailableTruck[] = [
     onTimePickup: 97,
     cancellationRate: 1,
     avgResponseMin: 12,
+    pickupLat: coords('Thessaloniki').lat,
+    pickupLng: coords('Thessaloniki').lng,
+    ...destCoords('Any'),
+    hasBids: false,
+    loadMatchScore: 62,
   },
   {
     id: 'AV-003',
@@ -97,6 +118,11 @@ export const MOCK_TRUCKS: AvailableTruck[] = [
     onTimePickup: 99,
     cancellationRate: 0,
     avgResponseMin: 8,
+    pickupLat: coords('Ioannina').lat + 0.02,
+    pickupLng: coords('Ioannina').lng + 0.02,
+    ...destCoords('Patras'),
+    hasBids: false,
+    loadMatchScore: 75,
   },
   {
     id: 'AV-004',
@@ -129,6 +155,11 @@ export const MOCK_TRUCKS: AvailableTruck[] = [
     onTimePickup: 88,
     cancellationRate: 5,
     avgResponseMin: 25,
+    pickupLat: coords('Athens').lat,
+    pickupLng: coords('Athens').lng,
+    ...destCoords('Thessaloniki'),
+    hasBids: true,
+    loadMatchScore: 55,
   },
   {
     id: 'AV-005',
@@ -161,6 +192,11 @@ export const MOCK_TRUCKS: AvailableTruck[] = [
     onTimePickup: 92,
     cancellationRate: 2,
     avgResponseMin: 15,
+    pickupLat: coords('Larissa').lat,
+    pickupLng: coords('Larissa').lng,
+    ...destCoords('Any'),
+    hasBids: false,
+    loadMatchScore: 80,
   },
   {
     id: 'AV-006',
@@ -193,6 +229,11 @@ export const MOCK_TRUCKS: AvailableTruck[] = [
     onTimePickup: 96,
     cancellationRate: 2,
     avgResponseMin: 10,
+    pickupLat: coords('Patras').lat,
+    pickupLng: coords('Patras').lng,
+    ...destCoords('Ioannina'),
+    hasBids: true,
+    loadMatchScore: 91,
   },
   {
     id: 'AV-007',
@@ -225,6 +266,11 @@ export const MOCK_TRUCKS: AvailableTruck[] = [
     onTimePickup: 90,
     cancellationRate: 4,
     avgResponseMin: 22,
+    pickupLat: coords('Heraklion').lat,
+    pickupLng: coords('Heraklion').lng,
+    ...destCoords('Athens'),
+    hasBids: false,
+    loadMatchScore: 40,
   },
   {
     id: 'AV-008',
@@ -257,6 +303,11 @@ export const MOCK_TRUCKS: AvailableTruck[] = [
     onTimePickup: 95,
     cancellationRate: 1,
     avgResponseMin: 14,
+    pickupLat: coords('Volos').lat,
+    pickupLng: coords('Volos').lng,
+    ...destCoords('Any'),
+    hasBids: true,
+    loadMatchScore: 72,
   },
 ];
 

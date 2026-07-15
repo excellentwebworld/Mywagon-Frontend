@@ -6,13 +6,16 @@ import type {
   AvailableTruck,
   BookingDraft,
   DrawerMode,
-  FilterPillKey,
-  KpiFilter,
+  QuickFilterKey,
+  SearchCriteria,
   SortKey,
-  VisibilityTab,
+  VisibilityFilter,
 } from '../types';
 
 const PER_PAGE = 8;
+const LOAD_MATCH_THRESHOLD = 70;
+/** Demo "today" aligned with mock start dates */
+const DEMO_TODAY = '21/02/2026';
 
 function parsePostedMinutes(posted: string): number {
   const m = posted.match(/^(\d+)m/);
@@ -42,8 +45,6 @@ function expandUngrouped(trucks: AvailableTruck[]): AvailableTruck[] {
         recurring: false,
         occurrences: [],
         recurrenceLabel: '',
-        posted: t.posted,
-        // Keep original display window loosely; label via start from occurrence string if possible
         startDt: occ.includes(' ') ? `${occ.split(' ')[0]}/2026` : t.startDt,
         startTm: occ.includes(' ') ? occ.split(' ')[1] : t.startTm,
       });
@@ -69,6 +70,13 @@ function createDraft(truck: AvailableTruck): BookingDraft {
   };
 }
 
+const emptyCriteria = (): SearchCriteria => ({
+  pickupCity: '',
+  pickupDate: '',
+  dropoffCity: '',
+  vehicleType: '',
+});
+
 export function useSearchTrucks() {
   const { t } = useTranslation();
   const { showToast } = useApp();
@@ -76,14 +84,19 @@ export function useSearchTrucks() {
   const [trucks, setTrucks] = useState<AvailableTruck[]>(() =>
     MOCK_TRUCKS.map((x) => ({ ...x }))
   );
-  const [activeTab, setActiveTab] = useState<VisibilityTab>('all');
-  const [activeKpi, setActiveKpi] = useState<KpiFilter>(null);
+  const [visibility, setVisibility] = useState<VisibilityFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activePills, setActivePills] = useState<Set<FilterPillKey>>(new Set());
+  const [quickFilters, setQuickFilters] = useState<Set<QuickFilterKey>>(new Set());
+  const [criteria, setCriteria] = useState<SearchCriteria>(emptyCriteria);
+  const [appliedCriteria, setAppliedCriteria] = useState<SearchCriteria>(emptyCriteria);
   const [sortKey, setSortKey] = useState<SortKey>('best_match');
   const [groupRecurring, setGroupRecurring] = useState(true);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mapExpanded, setMapExpanded] = useState(false);
+  const [mobileMapOpen, setMobileMapOpen] = useState(false);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerStep, setDrawerStep] = useState(1);
@@ -94,34 +107,47 @@ export function useSearchTrucks() {
 
   const pending = MOCK_PENDING;
 
-  const kpiCounts = useMemo(() => {
-    const privateCount = trucks.filter((x) => x.vis === 'private').length;
-    const todayCount = trucks.filter((x) => x.startDt === '21/02/2026').length;
-    const soonCount = trucks.filter(
-      (x) => parsePostedMinutes(x.posted) <= 60 || x.startTm <= '08:00'
-    ).length;
-    const priceCount = trucks.filter((x) => x.price != null).length;
-    return {
-      all: trucks.length,
-      private: privateCount,
-      today: todayCount,
-      soon: soonCount,
-      price: priceCount,
-    };
-  }, [trucks]);
-
   const filtered = useMemo(() => {
     let data = [...trucks];
 
-    if (activeTab === 'public') data = data.filter((x) => x.vis === 'public');
-    if (activeTab === 'private') data = data.filter((x) => x.vis === 'private');
+    if (visibility === 'public') data = data.filter((x) => x.vis === 'public');
+    if (visibility === 'private') data = data.filter((x) => x.vis === 'private');
 
-    if (activeKpi === 'private') data = data.filter((x) => x.vis === 'private');
-    if (activeKpi === 'today') data = data.filter((x) => x.startDt === '21/02/2026');
-    if (activeKpi === 'soon') {
-      data = data.filter((x) => parsePostedMinutes(x.posted) <= 60 || x.startTm <= '08:00');
+    if (quickFilters.has('today')) {
+      data = data.filter((x) => x.startDt === DEMO_TODAY);
     }
-    if (activeKpi === 'price') data = data.filter((x) => x.price != null);
+    if (quickFilters.has('soon8h')) {
+      data = data.filter((x) => parsePostedMinutes(x.posted) <= 120 || x.startTm <= '08:00');
+    }
+    if (quickFilters.has('has_bids')) {
+      data = data.filter((x) => Boolean(x.hasBids));
+    }
+    if (quickFilters.has('load_match')) {
+      data = data.filter((x) => (x.loadMatchScore ?? 0) >= LOAD_MATCH_THRESHOLD);
+    }
+
+    const ac = appliedCriteria;
+    if (ac.pickupCity.trim()) {
+      const q = ac.pickupCity.trim().toLowerCase();
+      data = data.filter((x) => x.pickup.toLowerCase().includes(q));
+    }
+    if (ac.dropoffCity.trim()) {
+      const q = ac.dropoffCity.trim().toLowerCase();
+      data = data.filter(
+        (x) => x.dest.toLowerCase().includes(q) || x.dest === 'Any'
+      );
+    }
+    if (ac.vehicleType.trim()) {
+      const q = ac.vehicleType.trim().toLowerCase();
+      data = data.filter(
+        (x) =>
+          x.truckType.toLowerCase().includes(q) ||
+          x.specs.toLowerCase().includes(q)
+      );
+    }
+    if (ac.pickupDate.trim()) {
+      // Mock: loose match — keep all if date set for demo UX
+    }
 
     const q = searchQuery.trim().toLowerCase();
     if (q) {
@@ -136,9 +162,7 @@ export function useSearchTrucks() {
       );
     }
 
-    if (!groupRecurring) {
-      data = expandUngrouped(data);
-    }
+    if (!groupRecurring) data = expandUngrouped(data);
 
     data.sort((a, b) => {
       switch (sortKey) {
@@ -150,16 +174,27 @@ export function useSearchTrucks() {
           return b.rating - a.rating;
         case 'freshest':
           return parsePostedMinutes(a.posted) - parsePostedMinutes(b.posted);
-        default:
-          // Best match: private + preferred + rating
+        default: {
           const score = (t: AvailableTruck) =>
-            (t.vis === 'private' ? 100 : 0) + (t.preferred ? 50 : 0) + t.rating * 10;
+            (t.vis === 'private' ? 100 : 0) +
+            (t.preferred ? 50 : 0) +
+            t.rating * 10 +
+            (t.loadMatchScore ?? 0);
           return score(b) - score(a);
+        }
       }
     });
 
     return data;
-  }, [trucks, activeTab, activeKpi, searchQuery, groupRecurring, sortKey]);
+  }, [
+    trucks,
+    visibility,
+    quickFilters,
+    appliedCriteria,
+    searchQuery,
+    groupRecurring,
+    sortKey,
+  ]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
 
@@ -172,41 +207,54 @@ export function useSearchTrucks() {
     return filtered.slice(start, start + PER_PAGE);
   }, [filtered, page]);
 
-  const togglePill = useCallback((key: FilterPillKey) => {
-    setActivePills((prev) => {
+  const selectedTruckInList = useMemo(
+    () => filtered.find((x) => x.id === selectedId) ?? null,
+    [filtered, selectedId]
+  );
+
+  const toggleQuickFilter = useCallback((key: QuickFilterKey) => {
+    setQuickFilters((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
     });
+    setPage(1);
   }, []);
 
   const clearFilters = useCallback(() => {
     setSearchQuery('');
-    setActiveTab('all');
-    setActiveKpi(null);
-    setActivePills(new Set());
-    setExpandedId(null);
+    setVisibility('all');
+    setQuickFilters(new Set());
+    setCriteria(emptyCriteria());
+    setAppliedCriteria(emptyCriteria());
+    setSelectedId(null);
     setPage(1);
     showToast(t('satFiltersCleared') || 'Filters cleared', 'info');
   }, [showToast, t]);
 
-  const handleTabChange = useCallback((tab: VisibilityTab) => {
-    setActiveTab(tab);
-    setExpandedId(null);
+  const applySearch = useCallback(() => {
+    if (!criteria.pickupCity.trim()) {
+      showToast(t('satPickupCityRequired') || 'Pickup city is required', 'warning');
+      return false;
+    }
+    if (!criteria.pickupDate.trim()) {
+      showToast(t('satPickupDateRequired') || 'Pickup date is required', 'warning');
+      return false;
+    }
+    if (!criteria.vehicleType.trim()) {
+      showToast(t('satVehicleTypeRequired') || 'Vehicle type is required', 'warning');
+      return false;
+    }
+    setAppliedCriteria({ ...criteria });
     setPage(1);
-  }, []);
+    setSelectedId(null);
+    showToast(t('satSearchApplied') || 'Search applied', 'success');
+    return true;
+  }, [criteria, showToast, t]);
 
-  const handleKpiClick = useCallback((key: KpiFilter) => {
-    setActiveKpi((prev) => (prev === key ? null : key));
-    if (key === 'private') setActiveTab('private');
-    else if (key === 'all' || key === null) setActiveTab('all');
-    setExpandedId(null);
-    setPage(1);
-  }, []);
-
-  const handleToggleExpand = useCallback((id: string) => {
-    setExpandedId((prev) => (prev === id ? null : id));
+  const selectTruck = useCallback((id: string | null) => {
+    setSelectedId(id);
   }, []);
 
   const openDrawer = useCallback(
@@ -256,7 +304,7 @@ export function useSearchTrucks() {
       'Available',
       'Pickup',
       'Destination',
-      'Equipment',
+      'Vehicle Type',
       'Trip',
       'Carrier',
       'Price',
@@ -287,10 +335,6 @@ export function useSearchTrucks() {
     showToast(t('satExported') || 'Exported CSV', 'success');
   }, [filtered, showToast, t]);
 
-  const handleSavedViews = useCallback(() => {
-    showToast(t('satSavedViewsSoon') || 'Saved views coming soon', 'info');
-  }, [showToast, t]);
-
   const handleToggleGroup = useCallback(() => {
     setGroupRecurring((prev) => {
       const next = !prev;
@@ -302,49 +346,61 @@ export function useSearchTrucks() {
       );
       return next;
     });
-    setExpandedId(null);
     setPage(1);
   }, [showToast, t]);
 
   useEffect(() => {
-    if (!drawerOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeDrawer();
+      if (e.key === 'Escape') {
+        if (drawerOpen) closeDrawer();
+        else if (selectedId) setSelectedId(null);
+        else if (mobileMapOpen) setMobileMapOpen(false);
+        else if (mapExpanded) setMapExpanded(false);
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [drawerOpen, closeDrawer]);
+  }, [drawerOpen, closeDrawer, selectedId, mobileMapOpen, mapExpanded]);
 
   return {
     t,
-    trucks,
     pending,
-    kpiCounts,
     filtered,
     pageItems,
     page,
     setPage,
     totalPages,
     perPage: PER_PAGE,
-    activeTab,
-    handleTabChange,
-    activeKpi,
-    handleKpiClick,
+    visibility,
+    setVisibility: (v: VisibilityFilter) => {
+      setVisibility(v);
+      setPage(1);
+    },
     searchQuery,
     setSearchQuery: (v: string) => {
       setSearchQuery(v);
-      setExpandedId(null);
       setPage(1);
     },
-    activePills,
-    togglePill,
+    quickFilters,
+    toggleQuickFilter,
+    criteria,
+    setCriteria,
+    appliedCriteria,
+    applySearch,
     clearFilters,
     sortKey,
     setSortKey,
     groupRecurring,
     handleToggleGroup,
-    expandedId,
-    handleToggleExpand,
+    hoveredId,
+    setHoveredId,
+    selectedId,
+    selectTruck,
+    selectedTruckInList,
+    mapExpanded,
+    setMapExpanded,
+    mobileMapOpen,
+    setMobileMapOpen,
     drawerOpen,
     drawerStep,
     setDrawerStep,
@@ -359,6 +415,5 @@ export function useSearchTrucks() {
     closeDrawer,
     confirmBooking,
     handleExport,
-    handleSavedViews,
   };
 }

@@ -1,6 +1,7 @@
-export { KpiStrip } from './KpiStrip';
-export { FilterBar } from './FilterBar';
-export { SortControls } from './SortControls';
-export { ResultsTable } from './ResultsTable';
-export { ExpansionPanel } from './ExpansionPanel';
+export { SearchPill } from './SearchPill';
+export { QuickFilterBar } from './QuickFilterBar';
+export { AvailabilityCard } from './AvailabilityCard';
+export { AvailabilityList } from './AvailabilityList';
+export { AvailabilityDetailPanel } from './AvailabilityDetailPanel';
+export { AvailabilityMap } from './AvailabilityMap';
 export { BookingDrawer } from './BookingDrawer';
