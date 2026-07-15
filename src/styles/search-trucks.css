@@ -1297,23 +1297,122 @@
   padding: 14px 16px;
   background: var(--surface);
 }
+.sat-skeleton-card--rich {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sat-skeleton-card__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sat-skeleton-chip {
+  width: 64px;
+  height: 22px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #eceff3 0%, #f6f8fb 50%, #eceff3 100%);
+  background-size: 200% 100%;
+  animation: sat-shimmer 1.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.sat-skeleton-card__route {
+  display: grid;
+  grid-template-columns: 1fr 24px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+.sat-skeleton-card__col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.sat-skeleton-arrow {
+  width: 16px;
+  height: 10px;
+  border-radius: 4px;
+  justify-self: center;
+  background: linear-gradient(90deg, #eceff3 0%, #f6f8fb 50%, #eceff3 100%);
+  background-size: 200% 100%;
+  animation: sat-shimmer 1.2s ease-in-out infinite;
+}
+.sat-skeleton-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 2px;
+}
+.sat-skeleton-card__carrier {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.sat-skeleton-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, #eceff3 0%, #f6f8fb 50%, #eceff3 100%);
+  background-size: 200% 100%;
+  animation: sat-shimmer 1.2s ease-in-out infinite;
+}
+.sat-skeleton-card__cta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.sat-skeleton-btn {
+  width: 88px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #eceff3 0%, #f6f8fb 50%, #eceff3 100%);
+  background-size: 200% 100%;
+  animation: sat-shimmer 1.2s ease-in-out infinite;
+}
 .sat-skeleton-line {
   height: 10px;
   border-radius: 6px;
   background: linear-gradient(90deg, #eceff3 0%, #f6f8fb 50%, #eceff3 100%);
   background-size: 200% 100%;
   animation: sat-shimmer 1.2s ease-in-out infinite;
-  margin-bottom: 8px;
-}
-.sat-skeleton-line:last-child {
   margin-bottom: 0;
+  width: 100%;
 }
 .sat-skeleton-line--lg {
   width: 72%;
   height: 12px;
 }
+.sat-skeleton-line--md {
+  width: 56%;
+}
 .sat-skeleton-line--sm {
   width: 42%;
+}
+.sat-skeleton-line--price {
+  width: 64px;
+  height: 14px;
+}
+.sat-infinite-sentinel {
+  height: 1px;
+  width: 100%;
+  pointer-events: none;
+}
+.sat-infinite-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0 16px;
+}
+.sat-infinite-loading__label {
+  text-align: center;
+  font-size: 12px;
+  padding-top: 2px;
 }
 @keyframes sat-shimmer {
   0% { background-position: 100% 0; }

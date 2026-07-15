@@ -83,9 +83,6 @@ export const SearchTrucks: React.FC = () => {
         <AvailabilityList
           trucks={m.pageItems}
           total={m.subscriptionBlocked ? 0 : m.total}
-          page={m.page}
-          totalPages={m.totalPages}
-          perPage={m.perPage}
           sortKey={m.sortKey}
           onSortChange={m.setSortKey}
           groupRecurring={m.groupRecurring}
@@ -96,7 +93,6 @@ export const SearchTrucks: React.FC = () => {
           onHover={m.setHoveredId}
           onSelect={m.selectTruck}
           onBook={m.openDrawer}
-          onPageChange={m.setPage}
           onMessage={(carrier) =>
             showToast(m.t('satMessageSent', { carrier }) || `Message sent to ${carrier}`, 'success')
           }
@@ -105,6 +101,9 @@ export const SearchTrucks: React.FC = () => {
           mapExpanded={m.mapExpanded}
           onCollapseMap={() => m.setMapExpanded(false)}
           loading={m.loading}
+          fetchingMore={m.fetchingMore}
+          hasNextPage={m.hasNextPage}
+          onLoadMore={m.fetchNextPage}
           subscriptionBlocked={m.subscriptionBlocked}
           t={m.t}
         />
@@ -116,7 +115,9 @@ export const SearchTrucks: React.FC = () => {
           mapExpanded={m.mapExpanded}
           onSelect={m.selectTruck}
           onToggleExpand={() => m.setMapExpanded(!m.mapExpanded)}
-          loading={m.loading}
+          loading={m.mapLoading}
+          pinCount={m.mapPinCount}
+          pinsCapped={m.mapPinsCapped}
           mapBoundsActive={m.mapBoundsActive}
           mapBoundsDirty={m.mapBoundsDirty}
           onMapBoundsDirty={() => m.setMapBoundsDirty(true)}
@@ -135,7 +136,9 @@ export const SearchTrucks: React.FC = () => {
           onToggleExpand={() => m.setMobileMapOpen(false)}
           onCloseMobile={() => m.setMobileMapOpen(false)}
           isMobileOverlay
-          loading={m.loading}
+          loading={m.mapLoading}
+          pinCount={m.mapPinCount}
+          pinsCapped={m.mapPinsCapped}
           mapBoundsActive={m.mapBoundsActive}
           mapBoundsDirty={m.mapBoundsDirty}
           onMapBoundsDirty={() => m.setMapBoundsDirty(true)}

@@ -1730,6 +1730,8 @@
   "satMapBoundsActive": "Περιοχή χάρτη",
   "satCargoSpecs": "Προδιαγραφές φορτίου",
   "satLoading": "Φόρτωση διαθεσιμοτήτων…",
+  "satLoadingMore": "Φόρτωση περισσότερων…",
+  "satMapPinCap": "Εμφάνιση των πρώτων 500 στον χάρτη",
   "satLoadError": "Αποτυχία φόρτωσης διαθεσιμοτήτων",
   "satLoadingPending": "Φόρτωση εκκρεμών αποστολών…",
   "satPendingLoadError": "Αποτυχία φόρτωσης εκκρεμών αποστολών",

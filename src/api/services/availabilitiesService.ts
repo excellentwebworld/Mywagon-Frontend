@@ -91,6 +91,48 @@ export const availabilitiesService = {
     };
   },
 
+  /** Walk pages at per_page=100 for map pins (hard cap). */
+  async listAllMappedForMap(
+    input: {
+      visibility: VisibilityFilter;
+      search: string;
+      sort: SortKey;
+      criteria: SearchCriteria;
+      quickFilters: Set<QuickFilterKey>;
+    },
+    options?: { perPage?: number; maxPins?: number }
+  ): Promise<{ trucks: AvailableTruck[]; meta: ApiListMeta; capped: boolean }> {
+    const perPage = options?.perPage ?? 100;
+    const maxPins = options?.maxPins ?? 500;
+    const trucks: AvailableTruck[] = [];
+    let page = 1;
+    let meta: ApiListMeta = {
+      current_page: 1,
+      per_page: perPage,
+      total: 0,
+      last_page: 1,
+    };
+
+    while (trucks.length < maxPins) {
+      const result = await this.listMapped({
+        ...input,
+        page,
+        perPage,
+      });
+      meta = result.meta;
+      for (const truck of result.trucks) {
+        trucks.push(truck);
+        if (trucks.length >= maxPins) break;
+      }
+      if (page >= (result.meta.last_page || 1)) break;
+      if (result.trucks.length === 0) break;
+      page += 1;
+    }
+
+    const capped = trucks.length >= maxPins && trucks.length < (meta.total || 0);
+    return { trucks, meta, capped };
+  },
+
   async get(id: number): Promise<ApiAvailabilityDetail> {
     const res = await apiGet<ApiAvailabilityDetail>(`/availabilities/${id}`);
     return res.data;

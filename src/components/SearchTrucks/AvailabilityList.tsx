@@ -6,9 +6,6 @@ import { AvailabilityDetailPanel } from './AvailabilityDetailPanel';
 interface AvailabilityListProps {
   trucks: AvailableTruck[];
   total: number;
-  page: number;
-  totalPages: number;
-  perPage: number;
   sortKey: SortKey;
   onSortChange: (key: SortKey) => void;
   groupRecurring: boolean;
@@ -19,13 +16,15 @@ interface AvailabilityListProps {
   onHover: (id: string | null) => void;
   onSelect: (id: string | null) => void;
   onBook: (truck: AvailableTruck, mode?: DrawerMode, occurrence?: string) => void;
-  onPageChange: (page: number) => void;
   onMessage: (carrier: string) => void;
   onProfile: () => void;
   onClearFilters: () => void;
   mapExpanded: boolean;
   onCollapseMap: () => void;
   loading?: boolean;
+  fetchingMore?: boolean;
+  hasNextPage?: boolean;
+  onLoadMore?: () => void;
   subscriptionBlocked?: boolean;
   t: (key: string) => string;
 }
@@ -38,12 +37,46 @@ const SORT_OPTIONS: { key: SortKey; labelKey: string }[] = [
   { key: 'freshest', labelKey: 'satSortFreshest' },
 ];
 
+function RichSkeletonCard() {
+  return (
+    <div className="sat-skeleton-card sat-skeleton-card--rich" aria-hidden>
+      <div className="sat-skeleton-card__top">
+        <div className="sat-skeleton-chip" />
+        <div className="sat-skeleton-line sat-skeleton-line--sm" />
+      </div>
+      <div className="sat-skeleton-card__route">
+        <div className="sat-skeleton-card__col">
+          <div className="sat-skeleton-line sat-skeleton-line--lg" />
+          <div className="sat-skeleton-line sat-skeleton-line--sm" />
+        </div>
+        <div className="sat-skeleton-arrow" />
+        <div className="sat-skeleton-card__col">
+          <div className="sat-skeleton-line sat-skeleton-line--lg" />
+          <div className="sat-skeleton-line sat-skeleton-line--sm" />
+        </div>
+      </div>
+      <div className="sat-skeleton-line" />
+      <div className="sat-skeleton-line sat-skeleton-line--md" />
+      <div className="sat-skeleton-card__footer">
+        <div className="sat-skeleton-card__carrier">
+          <div className="sat-skeleton-avatar" />
+          <div className="sat-skeleton-card__col">
+            <div className="sat-skeleton-line sat-skeleton-line--md" />
+            <div className="sat-skeleton-line sat-skeleton-line--sm" />
+          </div>
+        </div>
+        <div className="sat-skeleton-card__cta">
+          <div className="sat-skeleton-line sat-skeleton-line--price" />
+          <div className="sat-skeleton-btn" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const AvailabilityList: React.FC<AvailabilityListProps> = ({
   trucks,
   total,
-  page,
-  totalPages,
-  perPage,
   sortKey,
   onSortChange,
   groupRecurring,
@@ -54,25 +87,43 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
   onHover,
   onSelect,
   onBook,
-  onPageChange,
   onMessage,
   onProfile,
   onClearFilters,
   mapExpanded,
   onCollapseMap,
   loading = false,
+  fetchingMore = false,
+  hasNextPage = false,
+  onLoadMore,
   subscriptionBlocked = false,
   t,
 }) => {
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const start = total === 0 ? 0 : (page - 1) * perPage + 1;
-  const end = Math.min(page * perPage, total);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!selectedId) return;
     const el = cardRefs.current[selectedId];
     el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [selectedId]);
+
+  useEffect(() => {
+    if (!onLoadMore || !hasNextPage || loading || subscriptionBlocked) return;
+    const node = sentinelRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          onLoadMore();
+        }
+      },
+      { root: node.parentElement, rootMargin: '120px', threshold: 0 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [onLoadMore, hasNextPage, loading, subscriptionBlocked, trucks.length]);
 
   if (mapExpanded) {
     return (
@@ -88,7 +139,7 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
     <div className="sat-list-col">
       <div className="sat-list-toolbar">
         <div className="sat-list-count">
-          {total} {t('satResults')}
+          {loading ? '…' : total} {t('satResults')}
         </div>
         <div className="sat-sort-row" style={{ marginBottom: 0 }}>
           <span className="sat-muted">{t('satSort')}:</span>
@@ -119,12 +170,8 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
       <div className="sat-list-scroll">
         {loading ? (
           <div className="sat-skeleton-list" aria-busy="true" aria-label={t('satLoading')}>
-            {Array.from({ length: 6 }, (_, i) => (
-              <div key={i} className="sat-skeleton-card">
-                <div className="sat-skeleton-line sat-skeleton-line--lg" />
-                <div className="sat-skeleton-line" />
-                <div className="sat-skeleton-line sat-skeleton-line--sm" />
-              </div>
+            {Array.from({ length: 5 }, (_, i) => (
+              <RichSkeletonCard key={i} />
             ))}
           </div>
         ) : subscriptionBlocked ? (
@@ -139,59 +186,33 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
             </button>
           </div>
         ) : (
-          trucks.map((truck) => (
-            <AvailabilityCard
-              key={truck.id}
-              truck={truck}
-              selected={selectedId === truck.id}
-              hovered={hoveredId === truck.id}
-              onHover={onHover}
-              onSelect={(id) => onSelect(id)}
-              onBook={onBook}
-              t={t}
-              cardRef={(el) => {
-                cardRefs.current[truck.id] = el;
-              }}
-            />
-          ))
+          <>
+            {trucks.map((truck) => (
+              <AvailabilityCard
+                key={truck.id}
+                truck={truck}
+                selected={selectedId === truck.id}
+                hovered={hoveredId === truck.id}
+                onHover={onHover}
+                onSelect={(id) => onSelect(id)}
+                onBook={onBook}
+                t={t}
+                cardRef={(el) => {
+                  cardRefs.current[truck.id] = el;
+                }}
+              />
+            ))}
+            <div ref={sentinelRef} className="sat-infinite-sentinel" aria-hidden />
+            {fetchingMore && (
+              <div className="sat-infinite-loading" aria-busy="true">
+                <RichSkeletonCard />
+                <RichSkeletonCard />
+                <div className="sat-muted sat-infinite-loading__label">{t('satLoadingMore')}</div>
+              </div>
+            )}
+          </>
         )}
       </div>
-
-      {total > 0 && (
-        <div className="sat-pag">
-          <div className="sat-pag-info">
-            {t('showing')} {start}–{end} {t('of')} {total}
-          </div>
-          <div className="sat-pag-btns">
-            <button
-              type="button"
-              className="sat-pg-btn"
-              disabled={page <= 1}
-              onClick={() => onPageChange(page - 1)}
-            >
-              ‹
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                type="button"
-                className={`sat-pg-btn ${page === p ? 'act' : ''}`}
-                onClick={() => onPageChange(p)}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="sat-pg-btn"
-              disabled={page >= totalPages}
-              onClick={() => onPageChange(page + 1)}
-            >
-              ›
-            </button>
-          </div>
-        </div>
-      )}
 
       {selectedTruck && (
         <AvailabilityDetailPanel

@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, availabilitiesService, SAT_PREFILL_KEY } from '../../../api';
 import { useApp } from '../../../context/AppContext';
@@ -18,6 +24,8 @@ import type {
 } from '../types';
 
 const PER_PAGE = 12;
+const MAP_PER_PAGE = 100;
+const MAP_PIN_CAP = 500;
 const LOAD_MATCH_THRESHOLD = 70;
 const SEARCH_DEBOUNCE_MS = 300;
 const USE_MOCK = import.meta.env.VITE_USE_SEARCH_TRUCKS_MOCK === 'true';
@@ -216,7 +224,7 @@ export function useSearchTrucks() {
   const [appliedCriteria, setAppliedCriteria] = useState<SearchCriteria>(emptyCriteria);
   const [sortKey, setSortKey] = useState<SortKey>('best_match');
   const [groupRecurring, setGroupRecurring] = useState(true);
-  const [page, setPage] = useState(1);
+  const [mockVisibleCount, setMockVisibleCount] = useState(PER_PAGE);
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -245,7 +253,6 @@ export function useSearchTrucks() {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     searchDebounceRef.current = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-      setPage(1);
     }, SEARCH_DEBOUNCE_MS);
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
@@ -257,10 +264,47 @@ export function useSearchTrucks() {
     [quickFilters]
   );
 
-  const listQuery = useQuery({
+  const handleListQueryError = useCallback(
+    (err: unknown) => {
+      if (err instanceof ApiError && err.status === 403) {
+        const premiumActive =
+          quickFilters.has('has_bids') || quickFilters.has('load_match');
+        if (premiumActive) {
+          setQuickFilters((prev) => {
+            const next = new Set(prev);
+            next.delete('has_bids');
+            next.delete('load_match');
+            return next;
+          });
+          showToast(err.message || t('satUpgradePlan'), 'error');
+        } else {
+          const url = resolveUpgradeUrl(err.upgradeUrl);
+          setUpgradeUrl(url);
+          setSubscriptionBlocked(true);
+          setError(err.message);
+          try {
+            if (sessionStorage.getItem(GATE_REMIND_SESSION_KEY) !== '1') {
+              setGateModalOpen(true);
+            }
+          } catch {
+            setGateModalOpen(true);
+          }
+        }
+      } else if (err instanceof ApiError) {
+        setSubscriptionBlocked(false);
+        setError(err.message);
+      } else {
+        setSubscriptionBlocked(false);
+        setError(t('satLoadError') || 'Failed to load availabilities');
+      }
+    },
+    [quickFilters, showToast, t]
+  );
+
+  const listQuery = useInfiniteQuery({
     queryKey: [
       'availabilities',
-      page,
+      'list',
       visibility,
       debouncedSearch,
       sortKey,
@@ -268,10 +312,11 @@ export function useSearchTrucks() {
       quickFilterKey,
     ],
     enabled: !USE_MOCK,
-    queryFn: async () => {
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }) => {
       try {
         const result = await availabilitiesService.listMapped({
-          page,
+          page: pageParam,
           perPage: PER_PAGE,
           visibility,
           search: debouncedSearch,
@@ -283,37 +328,44 @@ export function useSearchTrucks() {
         setError(null);
         return result;
       } catch (err) {
-        if (err instanceof ApiError && err.status === 403) {
-          const premiumActive =
-            quickFilters.has('has_bids') || quickFilters.has('load_match');
-          if (premiumActive) {
-            setQuickFilters((prev) => {
-              const next = new Set(prev);
-              next.delete('has_bids');
-              next.delete('load_match');
-              return next;
-            });
-            showToast(err.message || t('satUpgradePlan'), 'error');
-          } else {
-            const url = resolveUpgradeUrl(err.upgradeUrl);
-            setUpgradeUrl(url);
-            setSubscriptionBlocked(true);
-            setError(err.message);
-            try {
-              if (sessionStorage.getItem(GATE_REMIND_SESSION_KEY) !== '1') {
-                setGateModalOpen(true);
-              }
-            } catch {
-              setGateModalOpen(true);
-            }
-          }
-        } else if (err instanceof ApiError) {
-          setSubscriptionBlocked(false);
-          setError(err.message);
-        } else {
-          setSubscriptionBlocked(false);
-          setError(t('satLoadError') || 'Failed to load availabilities');
-        }
+        handleListQueryError(err);
+        throw err;
+      }
+    },
+    getNextPageParam: (last) => {
+      const current = last.meta.current_page ?? 1;
+      const lastPage = last.meta.last_page ?? 1;
+      return current < lastPage ? current + 1 : undefined;
+    },
+  });
+
+  const mapQuery = useQuery({
+    queryKey: [
+      'availabilities',
+      'map',
+      visibility,
+      debouncedSearch,
+      sortKey,
+      appliedCriteria,
+      quickFilterKey,
+    ],
+    enabled: !USE_MOCK && !subscriptionBlocked,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      try {
+        const result = await availabilitiesService.listAllMappedForMap(
+          {
+            visibility,
+            search: debouncedSearch,
+            sort: sortKey,
+            criteria: appliedCriteria,
+            quickFilters,
+          },
+          { perPage: MAP_PER_PAGE, maxPins: MAP_PIN_CAP }
+        );
+        return result;
+      } catch (err) {
+        handleListQueryError(err);
         throw err;
       }
     },
@@ -339,34 +391,69 @@ export function useSearchTrucks() {
     sortKey,
   ]);
 
+  useEffect(() => {
+    if (!USE_MOCK) return;
+    setMockVisibleCount(PER_PAGE);
+  }, [
+    visibility,
+    debouncedSearch,
+    sortKey,
+    appliedCriteria,
+    quickFilterKey,
+    groupRecurring,
+  ]);
+
   const liveTrucks = useMemo(() => {
-    const items = listQuery.data?.trucks ?? [];
+    const pages = listQuery.data?.pages ?? [];
+    const items = pages.flatMap((p) => p.trucks);
     return items.map((x) => (bidSentIds.has(x.id) ? { ...x, bidSent: true } : x));
-  }, [listQuery.data?.trucks, bidSentIds]);
+  }, [listQuery.data?.pages, bidSentIds]);
 
   const filtered = USE_MOCK ? mockFiltered : liveTrucks;
 
-  const totalFromApi = listQuery.data?.meta.total ?? 0;
-  const totalPages = USE_MOCK
-    ? Math.max(1, Math.ceil(filtered.length / PER_PAGE))
-    : Math.max(1, listQuery.data?.meta.last_page ?? 1);
-
-  useEffect(() => {
-    if (page > totalPages) setPage(1);
-  }, [page, totalPages]);
+  const totalFromApi = listQuery.data?.pages[0]?.meta.total ?? 0;
 
   const pageItems = useMemo(() => {
     if (!USE_MOCK) return filtered;
-    const start = (page - 1) * PER_PAGE;
-    return filtered.slice(start, start + PER_PAGE);
-  }, [filtered, page]);
+    return filtered.slice(0, mockVisibleCount);
+  }, [filtered, mockVisibleCount]);
+
+  const liveMapTrucks = useMemo(() => {
+    const items = mapQuery.data?.trucks ?? [];
+    return items.map((x) => (bidSentIds.has(x.id) ? { ...x, bidSent: true } : x));
+  }, [mapQuery.data?.trucks, bidSentIds]);
+
+  const mapTrucks = USE_MOCK ? filtered : liveMapTrucks;
+  const mapPinsCapped = USE_MOCK ? false : Boolean(mapQuery.data?.capped);
+  const mapPinCount = USE_MOCK
+    ? filtered.length
+    : mapPinsCapped
+      ? mapTrucks.length
+      : (mapQuery.data?.meta.total ?? mapTrucks.length);
 
   const selectedTruckInList = useMemo(
-    () => filtered.find((x) => x.id === selectedId) ?? null,
-    [filtered, selectedId]
+    () =>
+      pageItems.find((x) => x.id === selectedId) ??
+      mapTrucks.find((x) => x.id === selectedId) ??
+      null,
+    [pageItems, mapTrucks, selectedId]
   );
 
-  const mapTrucks = USE_MOCK ? filtered : pageItems;
+  const hasNextPage = USE_MOCK
+    ? mockVisibleCount < filtered.length
+    : Boolean(listQuery.hasNextPage);
+
+  const fetchingMore = USE_MOCK ? false : listQuery.isFetchingNextPage;
+
+  const fetchNextPage = useCallback(() => {
+    if (USE_MOCK) {
+      setMockVisibleCount((prev) => Math.min(prev + PER_PAGE, mockFiltered.length));
+      return;
+    }
+    if (listQuery.hasNextPage && !listQuery.isFetchingNextPage) {
+      void listQuery.fetchNextPage();
+    }
+  }, [listQuery, mockFiltered.length]);
 
   const toggleQuickFilter = useCallback((key: QuickFilterKey) => {
     setQuickFilters((prev) => {
@@ -375,7 +462,6 @@ export function useSearchTrucks() {
       else next.add(key);
       return next;
     });
-    setPage(1);
   }, []);
 
   const clearFilters = useCallback(() => {
@@ -387,7 +473,6 @@ export function useSearchTrucks() {
     setAppliedCriteria(emptyCriteria());
     setSelectedId(null);
     setMapBoundsDirty(false);
-    setPage(1);
     showToast(t('satFiltersCleared') || 'Filters cleared', 'info');
   }, [showToast, t]);
 
@@ -412,7 +497,6 @@ export function useSearchTrucks() {
     setCriteria(next);
     setAppliedCriteria(next);
     setMapBoundsDirty(false);
-    setPage(1);
     setSelectedId(null);
     showToast(t('satSearchApplied') || 'Search applied', 'success');
     return true;
@@ -424,7 +508,6 @@ export function useSearchTrucks() {
       setCriteria((prev) => ({ ...prev, mapBounds: bounds }));
       setAppliedCriteria(next);
       setMapBoundsDirty(false);
-      setPage(1);
       setSelectedId(null);
       showToast(t('satSearchApplied') || 'Search applied', 'success');
     },
@@ -621,7 +704,8 @@ export function useSearchTrucks() {
   const retryLoad = useCallback(() => {
     setError(null);
     void listQuery.refetch();
-  }, [listQuery]);
+    void mapQuery.refetch();
+  }, [listQuery, mapQuery]);
 
   const handleExport = useCallback(async () => {
     if (subscriptionBlocked) {
@@ -714,7 +798,6 @@ export function useSearchTrucks() {
       );
       return next;
     });
-    setPage(1);
   }, [showToast, t]);
 
   useEffect(() => {
@@ -738,10 +821,12 @@ export function useSearchTrucks() {
     filtered,
     pageItems,
     mapTrucks,
-    page,
-    setPage,
-    totalPages,
-    perPage: PER_PAGE,
+    mapPinCount,
+    mapPinsCapped,
+    mapLoading: !USE_MOCK && mapQuery.isLoading,
+    hasNextPage,
+    fetchingMore,
+    fetchNextPage,
     total: USE_MOCK ? filtered.length : totalFromApi,
     loading: !USE_MOCK && listQuery.isLoading,
     fetching: !USE_MOCK && listQuery.isFetching,
@@ -756,10 +841,7 @@ export function useSearchTrucks() {
     applyMapBoundsSearch,
     mapBoundsActive: Boolean(appliedCriteria.mapBounds),
     visibility,
-    setVisibility: (v: VisibilityFilter) => {
-      setVisibility(v);
-      setPage(1);
-    },
+    setVisibility,
     searchQuery,
     setSearchQuery: (v: string) => {
       setSearchQuery(v);
@@ -772,10 +854,7 @@ export function useSearchTrucks() {
     applySearch,
     clearFilters,
     sortKey,
-    setSortKey: (v: SortKey) => {
-      setSortKey(v);
-      setPage(1);
-    },
+    setSortKey,
     groupRecurring,
     handleToggleGroup,
     hoveredId,

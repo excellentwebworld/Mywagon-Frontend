@@ -1730,6 +1730,8 @@
   "satMapBoundsActive": "Map area",
   "satCargoSpecs": "Cargo specs",
   "satLoading": "Loading availabilities…",
+  "satLoadingMore": "Loading more…",
+  "satMapPinCap": "Showing first 500 on map",
   "satLoadError": "Failed to load availabilities",
   "satLoadingPending": "Loading pending shipments…",
   "satPendingLoadError": "Failed to load pending shipments",

@@ -12,6 +12,8 @@ interface AvailabilityMapProps {
   onCloseMobile?: () => void;
   isMobileOverlay?: boolean;
   loading?: boolean;
+  pinCount?: number;
+  pinsCapped?: boolean;
   mapBoundsActive?: boolean;
   mapBoundsDirty?: boolean;
   onMapBoundsDirty?: () => void;
@@ -88,6 +90,8 @@ function createPriceOverlay(
 
 export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   loading = false,
+  pinCount,
+  pinsCapped = false,
   trucks,
   hoveredId,
   selectedId,
@@ -102,6 +106,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   onSearchThisArea,
   t,
 }) => {
+  const displayedCount = pinCount ?? trucks.length;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const overlaysRef = useRef<any[]>([]);
@@ -246,7 +251,8 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
       <div className="sat-map-toolbar">
         <span className="sat-map-title">🗺️ {t('satTrucksMap')}</span>
         <span className="sat-map-count">
-          {loading ? '…' : trucks.length} {t('satResults')}
+          {loading ? '…' : displayedCount} {t('satResults')}
+          {!loading && pinsCapped ? ` · ${t('satMapPinCap')}` : ''}
         </span>
         {mapBoundsActive && (
           <span className="sat-map-bounds-chip">{t('satMapBoundsActive')}</span>

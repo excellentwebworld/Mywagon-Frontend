@@ -22,6 +22,9 @@
 - [x] **Phase D:** Module entitlement gate — BE `upgrade_url` on availabilities 403; modal + banner Upgrade Now CTA
 - [x] **Phase D:** Skeleton list/map loading; empty vs error+Retry; blocked state distinct from “no results”
 - [x] **Phase D:** Client CSV export hardened (blocked / loading / empty guards; current page/result set only)
+- [x] **UX:** Card-shaped list skeletons + append loading while infinite-scrolling
+- [x] **UX:** Infinite scroll list (`useInfiniteQuery`, page size 12); page-number pagination removed
+- [x] **UX:** Map pins from separate all-pages query (`per_page=100`, hard cap 500); not limited to current list window
 - [x] **Phase E:** Map-bounds search — `pickup_ne/sw_lat/lng` API + “Search this area” CTA (bounds override pill radius)
 - [x] **Phase F:** Cargo category filter — `truck_category_ids[]` + VehicleSelector-depth tree in SearchPill
 - [x] **Phase G:** Create Shipment `availability_id` on draft `wizard_state`; publish creates Blade-parity availability bid
@@ -35,19 +38,27 @@ Uses `VITE_GOOGLE_MAPS_KEY` via `loadGoogleMaps`. Without key, placeholder with 
 ## Export note
 
 - **Live:** CSV from `GET /api/shipper/v1/availabilities/export` with current filters (no pagination; max 5000 rows).
-- **Mock:** Client CSV of the current in-memory result set.
+- **Mock:** Client CSV of the full filtered in-memory result set.
+
+## List & map data
+
+- **List:** Infinite scroll; toolbar shows `meta.total`. Scroll sentinel loads next page of 12.
+- **Map:** Separate filter query walks pages at 100 until done or 500 pins; optional `satMapPinCap` when truncated.
+- **Mock:** List appends slices of 12; map shows the full filtered mock set.
 
 ## Manual smoke checklist
 
 1. User **without** `search_available_trucks` → subscription modal + banner; **Upgrade Now** opens shipper subscription plan.
 2. Entitled user → list/map load; empty state if no trucks (not the upgrade empty copy).
-3. Select pin → other pins hide; destination shows when lane has dest.
-4. Chip Starting &lt;8h / Has Bids (premium toast + chip clear if denied).
-5. Book pending → bid created; appears on Manage Shipment.
-6. Create new → wizard opens with prefill; after publish, availability invitation bid exists.
-7. Pan map → **Search this area** refreshes results for viewport; pill Search clears bounds mode.
-8. Select cargo category under a truck type → list filters via categories.
-9. Export CSV downloads full filtered set (live) or current mock page.
+3. First paint shows card-shaped list skeletons; map shimmer until map query resolves (not on list append).
+4. Scroll list past page 1 without page buttons; total count stays correct; map pin count can exceed loaded list rows.
+5. Select pin → other pins hide; destination shows when lane has dest.
+6. Chip Starting &lt;8h / Has Bids (premium toast + chip clear if denied).
+7. Book pending → bid created; appears on Manage Shipment.
+8. Create new → wizard opens with prefill; after publish, availability invitation bid exists.
+9. Pan map → **Search this area** refreshes results for viewport; pill Search clears bounds mode.
+10. Select cargo category under a truck type → list filters via categories.
+11. Export CSV downloads full filtered set (live) or full filtered mock set.
 
 ## Follow-ups (optional)
 
