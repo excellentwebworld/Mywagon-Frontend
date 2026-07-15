@@ -14,7 +14,7 @@ interface RowExpansionPendingProps {
   onEdit: () => void;
   onViewNewTab: () => void;
   onCancel: () => void;
-  onMessage: () => void;
+  onMessage: (offerId?: string) => void;
   onAcceptOffer: (offerId: string) => void;
   onRejectOffer: (offerId: string) => void;
   onCounterOffer: (offerId: string, amount: number) => void;
@@ -108,12 +108,14 @@ function OfferRow({
   onAccept,
   onReject,
   onCounter,
+  onChat,
   t,
 }: {
   offer: NonNullable<Shipment['offers']>[number];
   onAccept: () => void;
   onReject: () => void;
   onCounter: (amount: number) => void;
+  onChat: () => void;
   t: RowExpansionPendingProps['t'];
 }) {
   const [counterOpen, setCounterOpen] = useState(false);
@@ -163,6 +165,9 @@ function OfferRow({
         </button>
         <button type="button" className="bid-counter" onClick={() => setCounterOpen((v) => !v)}>
           {t('counter')}
+        </button>
+        <button type="button" className="bid-chat" onClick={onChat}>
+          {t('chat')}
         </button>
       </div>
       {counterOpen && (
@@ -295,19 +300,13 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
                 onAccept={() => onAcceptOffer(offer.id)}
                 onReject={() => onRejectOffer(offer.id)}
                 onCounter={(amount) => onCounterOffer(offer.id, amount)}
+                onChat={() => onMessage(offer.id)}
                 t={t}
               />
             ))
           ) : (
             <div className="sub" style={{ padding: '8px 0' }}>
               {t('noBidsYet')}
-            </div>
-          )}
-          {offers.length > 0 && (
-            <div className="bid-acts" style={{ marginTop: 8 }}>
-              <button type="button" className="bid-chat" onClick={onMessage}>
-                {t('chat')}
-              </button>
             </div>
           )}
         </div>
@@ -358,9 +357,6 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
             </button>
             <button type="button" className="f-pill" onClick={onViewNewTab}>
               {t('rowActionView')}
-            </button>
-            <button type="button" className="f-pill" onClick={onMessage}>
-              {t('message') || t('chat')}
             </button>
             <button type="button" className="f-pill" onClick={onCancel}>
               {t('rowActionDelete')}

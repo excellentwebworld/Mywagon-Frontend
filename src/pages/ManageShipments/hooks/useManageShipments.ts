@@ -300,8 +300,9 @@ export function useManageShipments() {
     [showToast, t]
   );
 
-  const handleMessage = useCallback((s: Shipment) => {
-    window.open(`/shipments/${s.id}`, '_blank', 'noopener,noreferrer');
+  const handleMessage = useCallback((s: Shipment, offerId?: string) => {
+    const q = offerId ? `?offer=${encodeURIComponent(offerId)}` : '';
+    window.open(`/shipments/${s.id}${q}`, '_blank', 'noopener,noreferrer');
   }, []);
 
   const handleAcceptOffer = useCallback(

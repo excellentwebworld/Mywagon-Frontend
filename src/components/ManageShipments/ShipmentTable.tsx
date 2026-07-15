@@ -30,7 +30,7 @@ interface ShipmentTableProps {
   onDelete: (s: Shipment) => void;
   onEdit: (s: Shipment) => void;
   onViewNewTab: (s: Shipment) => void;
-  onMessage: (s: Shipment) => void;
+  onMessage: (s: Shipment, offerId?: string) => void;
   onAcceptOffer: (s: Shipment, offerId: string) => void;
   onRejectOffer: (s: Shipment, offerId: string) => void;
   onCounterOffer: (s: Shipment, offerId: string, amount: number) => void;
@@ -282,7 +282,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                           onEdit={() => onEdit(s)}
                           onViewNewTab={() => onViewNewTab(s)}
                           onCancel={() => onDelete(s)}
-                          onMessage={() => onMessage(s)}
+                          onMessage={(offerId) => onMessage(s, offerId)}
                           onAcceptOffer={(offerId) => onAcceptOffer(s, offerId)}
                           onRejectOffer={(offerId) => onRejectOffer(s, offerId)}
                           onCounterOffer={(offerId, amount) => onCounterOffer(s, offerId, amount)}

@@ -35,7 +35,7 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
         <div className="exp-section">
           <h4>
             {t('progress')} —{' '}
-            <span className={`badge ${statusBadgeClass(shipment.status, shipment.at_risk)}`}>
+            <span className={`badge ${statusBadgeClass(shipment.status)}`}>
               <span className="bdot" />
               {t(shipment.status)}
             </span>
@@ -83,13 +83,6 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
             <div className="sd-val">{formatEuro(shipment.cargoValue) ?? '—'}</div>
           </div>
         </div>
-
-        {shipment.at_risk && (
-          <span className="badge badge-danger" style={{ marginBottom: 12 }}>
-            <span className="bdot" />
-            {t('atRiskLate')}
-          </span>
-        )}
 
         <div className="exp-section" style={{ marginTop: 8 }}>
           <h4>{t('assignedTransporter')}</h4>
