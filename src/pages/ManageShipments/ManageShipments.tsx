@@ -35,7 +35,7 @@ export const ManageShipments: React.FC = () => {
         <InboundLoadsEmptyState t={m.t} />
       ) : (
         <>
-          {m.loading && m.pagination.total === 0 ? (
+          {m.loading ? (
             <KpiStripSkeleton />
           ) : (
             <KpiStrip counts={m.kpiCounts} activeKpi={m.activeKpi} onKpiClick={m.setActiveKpi} t={m.t} />

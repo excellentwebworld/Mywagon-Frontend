@@ -47,8 +47,22 @@ export const ListSkeleton: React.FC<ListSkeletonProps> = ({
         <tr key={rIdx}>
           {Array.from({ length: columnCount }).map((_, cIdx) => (
             <td key={cIdx}>
-              {/* Vary the width slightly to make it look realistic */}
-              <Skeleton width={cIdx === 0 ? 120 : cIdx === 1 ? 80 : 60} />
+              <Skeleton
+                width={
+                  cIdx === 0
+                    ? 18
+                    : cIdx === 1
+                      ? 100
+                      : cIdx === 2
+                        ? 160
+                        : cIdx === 3
+                          ? 90
+                          : cIdx === 6
+                            ? 80
+                            : 60
+                }
+                height={cIdx === 2 ? 36 : 14}
+              />
             </td>
           ))}
         </tr>

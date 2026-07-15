@@ -8,6 +8,7 @@ import {
   statusBadgeClass,
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { ListSkeleton } from '../skeletons/ListSkeleton';
+import { RowExpansionSkeleton } from '../skeletons/ManageShipmentsSkeleton';
 import { RowActionsMenu } from './RowActionsMenu';
 import { RowExpansionPending } from './RowExpansionPending';
 import { RowExpansionStatus } from './RowExpansionStatus';
@@ -98,7 +99,9 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
         </tr>
       </thead>
       <tbody>
-        {shipments.length === 0 && !loading ? (
+        {loading ? (
+          <ListSkeleton type="table" rowCount={8} columnCount={TABLE_COL_COUNT} />
+        ) : shipments.length === 0 ? (
           <tr>
             <td colSpan={TABLE_COL_COUNT}>
               <div className="tbl-empty">
@@ -111,8 +114,6 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
               </div>
             </td>
           </tr>
-        ) : shipments.length === 0 && loading ? (
-          <ListSkeleton type="table" rowCount={8} columnCount={TABLE_COL_COUNT} />
         ) : (
           shipments.map((row) => {
             const s = resolveShipment ? resolveShipment(row) : row;
@@ -275,10 +276,12 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                 {isExpanded && (
                   <tr className="exp open">
                     <td colSpan={TABLE_COL_COUNT}>
-                      {isPending ? (
+                      {detailLoading ? (
+                        <RowExpansionSkeleton variant={isPending ? 'pending' : 'status'} />
+                      ) : isPending ? (
                         <RowExpansionPending
                           shipment={s}
-                          detailLoading={detailLoading}
+                          detailLoading={false}
                           onEdit={() => onEdit(s)}
                           onViewNewTab={() => onViewNewTab(s)}
                           onCancel={() => onDelete(s)}
@@ -294,7 +297,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                       ) : (
                         <RowExpansionStatus
                           shipment={s}
-                          detailLoading={detailLoading}
+                          detailLoading={false}
                           onEdit={() => onEdit(s)}
                           onViewNewTab={() => onViewNewTab(s)}
                           onCancel={() => onDelete(s)}
