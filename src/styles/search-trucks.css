@@ -979,6 +979,50 @@
   margin-top: -1px;
 }
 
+.sat-map-endpoint {
+  pointer-events: none;
+  filter: drop-shadow(0 1px 3px rgba(15, 23, 42, 0.18));
+}
+.sat-map-endpoint__chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  max-width: 180px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--border);
+  line-height: 1.2;
+}
+.sat-map-endpoint__kind {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.sat-map-endpoint__place {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+.sat-map-endpoint--pickup .sat-map-endpoint__chip {
+  border-color: #0f766e;
+}
+.sat-map-endpoint--pickup .sat-map-endpoint__kind {
+  color: #0f766e;
+}
+.sat-map-endpoint--dropoff .sat-map-endpoint__chip {
+  border-color: #be123c;
+}
+.sat-map-endpoint--dropoff .sat-map-endpoint__kind {
+  color: #be123c;
+}
+
 .sat-map-marker.private .sat-mm-tail {
   border-top-color: #7C3AED;
 }

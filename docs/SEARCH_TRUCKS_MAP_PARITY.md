@@ -7,7 +7,7 @@
 - [x] KPI strip removed
 - [x] 60/40 split: AvailabilityCard list + Google Map
 - [x] Price / Offer OverlayView pins; private styling; hover/select sync
-- [x] Dest pin + polyline when selected lane has destination
+- [x] Dest pin + **road** polyline via Google Directions (straight-line fallback if Directions fails); Pickup / Dropoff endpoint labels on selected route
 - [x] List-side detail overlay (not covering map)
 - [x] Map expand / collapse; mobile map overlay
 - [x] Booking drawer preserved

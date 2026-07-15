@@ -1726,6 +1726,8 @@
   "satRetry": "Επανάληψη",
   "satExportEmpty": "Δεν υπάρχουν αποτελέσματα για εξαγωγή",
   "satMapEmpty": "Δεν υπάρχουν φορτηγά στον χάρτη για αυτή την αναζήτηση",
+  "satMapPickup": "Παραλαβή",
+  "satMapDropoff": "Παράδοση",
   "satSearchThisArea": "Αναζήτηση σε αυτή την περιοχή",
   "satMapBoundsActive": "Περιοχή χάρτη",
   "satCargoSpecs": "Προδιαγραφές φορτίου",

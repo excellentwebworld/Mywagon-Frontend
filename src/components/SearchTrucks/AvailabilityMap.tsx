@@ -88,6 +88,59 @@ function createPriceOverlay(
   return overlay;
 }
 
+function createRouteEndpointLabel(
+  maps: AnyMaps,
+  map: unknown,
+  opts: {
+    lat: number;
+    lng: number;
+    kind: 'pickup' | 'dropoff';
+    kindLabel: string;
+    placeLabel: string;
+    anchor: 'above' | 'below';
+  }
+) {
+  const overlay = new maps.OverlayView();
+  let div: HTMLDivElement | null = null;
+
+  overlay.onAdd = () => {
+    div = document.createElement('div');
+    div.className = [
+      'sat-map-endpoint',
+      `sat-map-endpoint--${opts.kind}`,
+      opts.anchor === 'below' ? 'sat-map-endpoint--below' : 'sat-map-endpoint--above',
+    ].join(' ');
+    div.style.position = 'absolute';
+    div.style.zIndex = opts.kind === 'dropoff' ? '22' : '18';
+    div.title = `${opts.kindLabel}: ${opts.placeLabel}`;
+    const place = opts.placeLabel
+      ? `<span class="sat-map-endpoint__place">${opts.placeLabel}</span>`
+      : '';
+    div.innerHTML = `<div class="sat-map-endpoint__chip"><span class="sat-map-endpoint__kind">${opts.kindLabel}</span>${place}</div>`;
+    overlay.getPanes()?.overlayMouseTarget.appendChild(div);
+  };
+
+  overlay.draw = () => {
+    if (!div) return;
+    const projection = overlay.getProjection();
+    if (!projection) return;
+    const pos = projection.fromLatLngToDivPixel(new maps.LatLng(opts.lat, opts.lng));
+    if (!pos) return;
+    div.style.left = `${pos.x}px`;
+    div.style.top = `${pos.y}px`;
+    div.style.transform =
+      opts.anchor === 'below' ? 'translate(-50%, 10px)' : 'translate(-50%, -100%)';
+  };
+
+  overlay.onRemove = () => {
+    div?.remove();
+    div = null;
+  };
+
+  overlay.setMap(map);
+  return overlay;
+}
+
 export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   loading = false,
   pinCount,
@@ -176,8 +229,6 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
 
     overlaysRef.current.forEach((o) => o.setMap(null));
     overlaysRef.current = [];
-    destObjectsRef.current.forEach((o) => o.setMap(null));
-    destObjectsRef.current = [];
 
     const hasSelection = Boolean(selectedId);
     const bounds = new maps.LatLngBounds();
@@ -202,20 +253,82 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
     });
 
     const selected = trucks.find((x) => x.id === selectedId);
-    if (selected?.destLat != null && selected.destLng != null) {
-      const destMarker = new maps.Marker({
-        position: { lat: selected.destLat, lng: selected.destLng },
-        map,
-        title: selected.dest,
-        label: { text: 'D', color: '#fff', fontWeight: '700' },
-      });
-      destObjectsRef.current.push(destMarker);
+    const hasDest = selected?.destLat != null && selected.destLng != null;
 
+    // Viewport for unselected / pickup-only; dest selection handled by route effect.
+    if (hasSelection && selected && !hasDest) {
+      skipNextIdleDirty.current = true;
+      map.setCenter({ lat: selected.pickupLat, lng: selected.pickupLng });
+      map.setZoom(10);
+    } else if (!hasSelection && hasBounds) {
+      skipNextIdleDirty.current = true;
+      map.fitBounds(bounds, 48);
+    }
+  }, [trucks, hoveredId, selectedId, onSelect, apiKey]);
+
+  const selectedRoute = React.useMemo(() => {
+    const selected = trucks.find((x) => x.id === selectedId);
+    if (!selected || selected.destLat == null || selected.destLng == null) return null;
+    return {
+      id: selected.id,
+      pickup: selected.pickup,
+      dest: selected.dest,
+      pickupLat: selected.pickupLat,
+      pickupLng: selected.pickupLng,
+      destLat: selected.destLat,
+      destLng: selected.destLng,
+    };
+  }, [trucks, selectedId]);
+
+  useEffect(() => {
+    const maps = mapsApi();
+    const map = mapRef.current;
+    if (!maps || !map || !readyRef.current) return;
+
+    destObjectsRef.current.forEach((o) => {
+      if (typeof o.setMap === 'function') o.setMap(null);
+    });
+    destObjectsRef.current = [];
+
+    if (!selectedRoute) return;
+
+    const origin = { lat: selectedRoute.pickupLat, lng: selectedRoute.pickupLng };
+    const destination = { lat: selectedRoute.destLat, lng: selectedRoute.destLng };
+    let cancelled = false;
+
+    const pickupLabel = createRouteEndpointLabel(maps, map, {
+      lat: origin.lat,
+      lng: origin.lng,
+      kind: 'pickup',
+      kindLabel: t('satMapPickup'),
+      placeLabel: selectedRoute.pickup,
+      anchor: 'below',
+    });
+    destObjectsRef.current.push(pickupLabel);
+
+    const dropoffLabel = createRouteEndpointLabel(maps, map, {
+      lat: destination.lat,
+      lng: destination.lng,
+      kind: 'dropoff',
+      kindLabel: t('satMapDropoff'),
+      placeLabel: selectedRoute.dest,
+      anchor: 'above',
+    });
+    destObjectsRef.current.push(dropoffLabel);
+
+    const fitPickupAndDest = () => {
+      const focusBounds = new maps.LatLngBounds();
+      focusBounds.extend(origin);
+      focusBounds.extend(destination);
+      skipNextIdleDirty.current = true;
+      map.fitBounds(focusBounds, 80);
+    };
+    fitPickupAndDest();
+
+    const drawStraightFallback = () => {
+      if (cancelled) return;
       const line = new maps.Polyline({
-        path: [
-          { lat: selected.pickupLat, lng: selected.pickupLng },
-          { lat: selected.destLat, lng: selected.destLng },
-        ],
+        path: [origin, destination],
         geodesic: true,
         strokeColor: '#6C3AED',
         strokeOpacity: 0.65,
@@ -223,26 +336,64 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
         map,
       });
       destObjectsRef.current.push(line);
-      bounds.extend({ lat: selected.destLat, lng: selected.destLng });
+    };
+
+    if (typeof maps.DirectionsService === 'function') {
+      const service = new maps.DirectionsService();
+      service.route(
+        {
+          origin,
+          destination,
+          travelMode: maps.TravelMode?.DRIVING ?? 'DRIVING',
+        },
+        (result: any, status: string) => {
+          if (cancelled) return;
+          if (status === 'OK' && result?.routes?.[0]) {
+            const renderer = new maps.DirectionsRenderer({
+              map,
+              suppressMarkers: true,
+              preserveViewport: true,
+              polylineOptions: {
+                strokeColor: '#6C3AED',
+                strokeOpacity: 0.85,
+                strokeWeight: 4,
+              },
+            });
+            renderer.setDirections(result);
+            destObjectsRef.current.push(renderer);
+
+            const routeBounds = result.routes[0].bounds;
+            if (routeBounds) {
+              skipNextIdleDirty.current = true;
+              map.fitBounds(routeBounds, 80);
+            }
+          } else {
+            drawStraightFallback();
+          }
+        }
+      );
+    } else {
+      drawStraightFallback();
     }
 
-    if (hasSelection && selected) {
-      if (selected.destLat != null && selected.destLng != null) {
-        const focusBounds = new maps.LatLngBounds();
-        focusBounds.extend({ lat: selected.pickupLat, lng: selected.pickupLng });
-        focusBounds.extend({ lat: selected.destLat, lng: selected.destLng });
-        skipNextIdleDirty.current = true;
-        map.fitBounds(focusBounds, 80);
-      } else {
-        skipNextIdleDirty.current = true;
-        map.setCenter({ lat: selected.pickupLat, lng: selected.pickupLng });
-        map.setZoom(10);
-      }
-    } else if (hasBounds) {
-      skipNextIdleDirty.current = true;
-      map.fitBounds(bounds, 48);
-    }
-  }, [trucks, hoveredId, selectedId, onSelect, apiKey]);
+    return () => {
+      cancelled = true;
+      destObjectsRef.current.forEach((o) => {
+        if (typeof o.setMap === 'function') o.setMap(null);
+      });
+      destObjectsRef.current = [];
+    };
+  }, [
+    apiKey,
+    t,
+    selectedRoute?.id,
+    selectedRoute?.pickup,
+    selectedRoute?.dest,
+    selectedRoute?.pickupLat,
+    selectedRoute?.pickupLng,
+    selectedRoute?.destLat,
+    selectedRoute?.destLng,
+  ]);
 
   return (
     <div
