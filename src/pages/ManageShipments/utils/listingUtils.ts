@@ -151,7 +151,7 @@ export function countForStatusTab(statuses: Record<string, number>, tab: StatusT
     case 'cancelled':
       return statuses.canceled ?? 0;
     case 'drafts':
-      return statuses.drafts ?? 0;
+      return statuses.drafts ?? statuses.draft ?? 0;
     default:
       return 0;
   }

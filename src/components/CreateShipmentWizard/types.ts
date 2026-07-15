@@ -43,7 +43,7 @@ export const createNewStop = (expanded = true) => ({
 export type CargoLine = ReturnType<typeof createNewCargoLine>;
 export type Stop = ReturnType<typeof createNewStop>;
 
-export function buildDefaultWizardValues(loadId = 'SHP-NEW') {
+export function buildDefaultWizardValues(loadId = 'SID-NEW') {
   return {
     loadId,
     custRef: '',
