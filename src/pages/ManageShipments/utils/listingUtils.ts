@@ -389,14 +389,18 @@ export function shipmentOrderSublabel(s: Shipment, t: (key: string) => string): 
   return '—';
 }
 
-/** HTML-style SID secondary line: `REF · ORDERS: N` */
+/** PDS SID secondary line: single order ID, or order count when multiple. */
 export function shipmentIdSublabel(s: Shipment, t: (key: string) => string): string {
-  const orderCount = s.ordersCount ?? s.orderIds?.length ?? 0;
-  const ordersPart = `${t('orders').toUpperCase()}: ${orderCount || (s.ref ? 1 : 0)}`;
-  if (s.ref) return `${s.ref} · ${ordersPart}`;
   const ids = s.orderIds?.filter(Boolean) ?? [];
-  if (ids.length === 1) return `${ids[0]} · ${ordersPart}`;
-  return ordersPart;
+  const orderCount = s.ordersCount ?? ids.length;
+  if (orderCount === 1) {
+    if (ids.length === 1) return ids[0];
+    if (s.ref) return s.ref;
+  }
+  if (orderCount > 1) {
+    return `${orderCount} ${t('orders').toLowerCase()}`;
+  }
+  return s.ref || '';
 }
 
 export function laneMidLabel(

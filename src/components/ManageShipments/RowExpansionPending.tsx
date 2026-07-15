@@ -141,6 +141,7 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
   shipment,
   detailLoading = false,
   onEdit,
+  onViewNewTab,
   onCancel,
   onAcceptOffer,
   onRejectOffer,
@@ -157,6 +158,7 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
   const ordersMeta = ordersHeaderMeta(shipment, t);
   const bidLabel =
     offers.length === 1 ? t('bid') : offers.length > 1 ? t('bids') : '';
+  const isPublic = (shipment.channel || shipment.vis) === 'public';
 
   return (
     <div className="exp-inner">
@@ -203,47 +205,51 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
       </div>
 
       <div className="exp-section">
-        <ExpHeading
-          icon="invited"
-          className="inv-toggle-h"
-          onClick={() => setInvOpen((v) => !v)}
-        >
-          <span className={`cust-chev${invOpen ? ' open' : ''}`}>▶</span>
-          {t('invitedCarriers')} ({invitedCount})
-        </ExpHeading>
-        <div className={`inv-section${invOpen ? ' open' : ''}`}>
-          {invitees.map((inv) => (
-            <div key={inv.id} className="inv-row">
-              <span className="inv-name">
-                <span className="carrier-av" style={{ width: 20, height: 20, fontSize: 8 }}>
-                  {inv.initials || inv.name.substring(0, 2).toUpperCase()}
-                </span>
-                {inv.name}
-              </span>
-              {inv.invitedAt && (
-                <span className="ago">
-                  {t('invitedAgo', { time: formatRelativeAgo(inv.invitedAt) })}
-                </span>
-              )}
-              <div className="inv-acts">
-                <button type="button" className="inv-btn" onClick={() => onRemindInvitee(inv.id)}>
-                  {t('remind')}
-                </button>
-                <button type="button" className="inv-btn" onClick={() => onRemoveInvitee(inv.id)}>
-                  {t('remove')}
-                </button>
-              </div>
+        {!isPublic && (
+          <>
+            <ExpHeading
+              icon="invited"
+              className="inv-toggle-h"
+              onClick={() => setInvOpen((v) => !v)}
+            >
+              <span className={`cust-chev${invOpen ? ' open' : ''}`}>▶</span>
+              {t('invitedTransporters')} ({invitedCount})
+            </ExpHeading>
+            <div className={`inv-section${invOpen ? ' open' : ''}`}>
+              {invitees.map((inv) => (
+                <div key={inv.id} className="inv-row">
+                  <span className="inv-name">
+                    <span className="carrier-av" style={{ width: 20, height: 20, fontSize: 8 }}>
+                      {inv.initials || inv.name.substring(0, 2).toUpperCase()}
+                    </span>
+                    {inv.name}
+                  </span>
+                  {inv.invitedAt && (
+                    <span className="ago">
+                      {t('invitedAgo', { time: formatRelativeAgo(inv.invitedAt) })}
+                    </span>
+                  )}
+                  <div className="inv-acts">
+                    <button type="button" className="inv-btn" onClick={() => onRemindInvitee(inv.id)}>
+                      {t('remind')}
+                    </button>
+                    <button type="button" className="inv-btn" onClick={() => onRemoveInvitee(inv.id)}>
+                      {t('remove')}
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button type="button" className="f-pill inv-more" onClick={onInviteMore}>
+                {t('inviteMoreCarriers')}
+              </button>
             </div>
-          ))}
-          <button type="button" className="f-pill inv-more" onClick={onInviteMore}>
-            {t('inviteMoreCarriers')}
-          </button>
-        </div>
+          </>
+        )}
 
         <ExpHeading icon="qa" className="exp-h-gap-lg">
           {t('quickActions')}
         </ExpHeading>
-        <QuickActions onEdit={onEdit} onCancel={onCancel} t={t} />
+        <QuickActions onEdit={onEdit} onView={onViewNewTab} onCancel={onCancel} t={t} />
       </div>
     </div>
   );

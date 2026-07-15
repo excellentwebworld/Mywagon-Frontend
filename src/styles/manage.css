@@ -632,8 +632,18 @@
 }
 
 .lane-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 180px;
   max-width: 320px;
+}
+
+.lane-cell .lane {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: normal;
 }
 
 .lane-stack {

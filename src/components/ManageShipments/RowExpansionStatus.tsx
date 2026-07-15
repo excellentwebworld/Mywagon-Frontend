@@ -26,7 +26,7 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
   shipment,
   detailLoading = false,
   onEdit,
-  onViewNewTab: _onViewNewTab,
+  onViewNewTab,
   onCancel,
   t,
 }) => {
@@ -99,7 +99,7 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
 
       <div className="exp-section exp-qa-col">
         <ExpHeading icon="qa">{t('quickActions')}</ExpHeading>
-        <QuickActions onEdit={onEdit} onCancel={onCancel} t={t} />
+        <QuickActions onEdit={onEdit} onView={onViewNewTab} onCancel={onCancel} t={t} />
       </div>
     </div>
   );

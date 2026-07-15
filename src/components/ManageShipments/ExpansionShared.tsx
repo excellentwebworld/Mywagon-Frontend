@@ -271,11 +271,12 @@ export function StatusDetailGrid({ shipment, t }: { shipment: Shipment; t: ExpTr
 
 export function QuickActions({
   onEdit,
+  onView,
   onCancel,
   t,
 }: {
   onEdit: () => void;
-  onView?: () => void;
+  onView: () => void;
   onCancel: () => void;
   t: ExpTranslate;
 }) {
@@ -284,14 +285,11 @@ export function QuickActions({
       <button type="button" className="f-pill" onClick={onEdit}>
         ✏️ {t('edit')}
       </button>
-      <button type="button" className="f-pill" disabled title={t('clone')}>
-        📄 {t('clone')}
+      <button type="button" className="f-pill" onClick={onView}>
+        👁 {t('viewDetails')}
       </button>
       <button type="button" className="f-pill qa-danger" onClick={onCancel}>
         ❌ {t('cancel')}
-      </button>
-      <button type="button" className="f-pill" disabled title={t('message')}>
-        💬 {t('message')}
       </button>
     </div>
   );
