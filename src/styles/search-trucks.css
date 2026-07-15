@@ -235,14 +235,14 @@
   left: 50%;
   top: calc(100% + 10px);
   transform: translateX(-50%);
-  width: min(420px, calc(100vw - 32px));
-  max-height: min(360px, 50vh);
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(440px, 60vh);
   overflow: auto;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  box-shadow: var(--shadow-lg, 0 12px 40px rgba(0, 0, 0, 0.14));
-  padding: 16px;
+  border-radius: 24px;
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(108, 58, 237, 0.06);
+  padding: 16px 16px 18px;
   z-index: 60;
   animation: satPillPop 0.16s ease;
 }
@@ -265,6 +265,10 @@
   letter-spacing: 0.4px;
   margin-bottom: 10px;
   color: var(--text-primary);
+}
+
+.sat-pill-popover--vehicle .sat-pill-popover-title {
+  margin-bottom: 4px;
 }
 
 /* ── Airbnb-style place suggestions (MYVAGON theme) ── */
@@ -1838,59 +1842,210 @@ a.sat-btn {
 .sat-map-search-area {
   margin-left: 4px;
 }
-.sat-cargo-picker {
+/* ── Vehicle type picker (Airbnb-style cards, MYVAGON theme) ── */
+.sat-veh-picker {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.sat-veh-picker-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  max-height: 220px;
-  overflow-y: auto;
-}
-.sat-cargo-type {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.sat-cargo-expand {
-  margin-left: 8px;
-  border: none;
-  background: transparent;
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-}
-.sat-cargo-cats {
-  margin-left: 22px;
-  padding: 6px 0 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.sat-cargo-cat-label {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
   color: var(--text-tertiary);
-  margin-bottom: 4px;
+  font-weight: 500;
 }
-.sat-type-checks {
+
+.sat-veh-picker-count {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sat-veh-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sat-veh-card-wrap {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  max-height: 140px;
-  overflow-y: auto;
-  padding: 4px 0;
+  flex-direction: column;
+  gap: 6px;
+  grid-column: span 1;
 }
-.sat-type-check {
+
+.sat-veh-card-wrap.is-open {
+  grid-column: 1 / -1;
+}
+
+.sat-veh-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  min-height: 96px;
+  padding: 14px 14px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s, box-shadow 0.14s;
+}
+
+.sat-veh-card:hover {
+  border-color: var(--border-focus, #C8C8CF);
+  background: var(--surface-alt, #F7F7F8);
+}
+
+.sat-veh-card.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-light, #EDE9FE);
+  box-shadow: 0 0 0 3px rgba(108, 58, 237, 0.12);
+}
+
+.sat-veh-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
+  justify-content: center;
 }
+
+.sat-veh-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-alt, #F1F1F4);
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.sat-veh-card.is-selected .sat-veh-icon {
+  background: #fff;
+  color: var(--accent);
+}
+
+.sat-veh-name {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.2px;
+  color: var(--text-primary);
+  line-height: 1.3;
+  padding-right: 20px;
+}
+
+.sat-veh-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.35;
+}
+
+.sat-veh-spec-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  background: var(--surface-alt, #F1F1F4);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sat-veh-spec-toggle svg {
+  transition: transform 0.15s ease;
+}
+
+.sat-veh-spec-toggle.is-open svg {
+  transform: rotate(180deg);
+}
+
+.sat-veh-specs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  border-radius: 14px;
+  background: var(--surface-alt, #F7F7F8);
+  border: 1px solid var(--border);
+}
+
+.sat-veh-cat-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.35px;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+}
+
+.sat-veh-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sat-veh-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.sat-veh-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sat-veh-chip.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 .sat-field--types {
   grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .sat-veh-grid {
+    grid-template-columns: 1fr;
+  }
+  .sat-veh-card-wrap.is-open {
+    grid-column: auto;
+  }
 }
 .sat-price-blurred {
   filter: blur(3px);

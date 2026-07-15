@@ -411,7 +411,10 @@ export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSe
       )}
 
       {expanded && activeSeg === 'vehicle' && (
-        <div className="sat-pill-popover" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="sat-pill-popover sat-pill-popover--vehicle"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="sat-pill-popover-title">{t('satPillVehicle')} *</div>
           {vehicleTypesLoading ? (
             <div className="sat-muted">{t('satLoadingVehicleTypes')}</div>

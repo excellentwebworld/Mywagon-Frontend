@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
+import { AlertCircle, CheckCircle, Info, X } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { useApp } from '../../context/AppContext';
 import { DESKTOP_SIDEBAR_QUERY, useMediaQuery } from '../../hooks/useMediaQuery';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
+
+const TOAST_ICON = {
+  success: CheckCircle,
+  error: AlertCircle,
+  warning: AlertCircle,
+  info: Info,
+} as const;
 
 export const AppLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -18,7 +26,7 @@ export const AppLayout: React.FC = () => {
   });
   const isDesktop = useMediaQuery(DESKTOP_SIDEBAR_QUERY);
   const isSidebarCollapsed = sidebarCollapsed && isDesktop;
-  const { toast } = useApp();
+  const { toast, hideToast } = useApp();
 
   useEffect(() => {
     try {
@@ -46,6 +54,7 @@ export const AppLayout: React.FC = () => {
   }, [isDesktop, mobileMenuOpen]);
 
   const toggleSidebarCollapse = () => setSidebarCollapsed((prev) => !prev);
+  const ToastIcon = TOAST_ICON[toast.type] || Info;
 
   return (
     <div className="app-layout" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -69,17 +78,22 @@ export const AppLayout: React.FC = () => {
         </main>
       </div>
 
-      {/* Global Toast Notification */}
+      {/* Global Toast Notification — dismissible (matches Web Panel React toast UX) */}
       {toast.show && (
-        <div className="toast-container">
+        <div className="toast-container" role="status" aria-live="polite">
           <div className={`toast ${toast.type} show`}>
-            <span className="toast-icon">
-              {toast.type === 'success' && '✓'}
-              {toast.type === 'error' && '✕'}
-              {toast.type === 'warning' && '⚠'}
-              {toast.type === 'info' && 'ℹ'}
+            <span className="toast-icon" aria-hidden>
+              <ToastIcon size={18} strokeWidth={2} />
             </span>
             <span className="toast-text">{toast.message}</span>
+            <button
+              type="button"
+              className="toast-close"
+              aria-label="Close"
+              onClick={hideToast}
+            >
+              <X size={14} strokeWidth={2.5} />
+            </button>
           </div>
         </div>
       )}

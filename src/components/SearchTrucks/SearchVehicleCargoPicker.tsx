@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Check, ChevronDown, Truck } from 'lucide-react';
 import { useVehicleTypes } from '../../hooks/useVehicleTypes';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { WizardVehicleType } from '../CreateShipmentWizard/vehicleTypes';
@@ -28,6 +29,14 @@ export const SearchVehicleCargoPicker: React.FC<SearchVehicleCargoPickerProps> =
     return <div className="sat-muted">{t('satLoadingVehicleTypes')}</div>;
   }
 
+  if (vehicleTypes.length === 0) {
+    return (
+      <div className="sat-muted">
+        {t('step2NoVehicleTypes') || 'No vehicle types are configured.'}
+      </div>
+    );
+  }
+
   const emit = (nextSpecs: Record<string, string[]>, nextTypeIds: number[]) => {
     const first = vehicleTypes.find((x) => nextTypeIds.includes(Number(x.formKey)));
     onChange({
@@ -39,7 +48,7 @@ export const SearchVehicleCargoPicker: React.FC<SearchVehicleCargoPickerProps> =
 
   const toggleType = (vt: WizardVehicleType) => {
     const id = Number(vt.formKey);
-    const has = truckTypeIds.includes(id);
+    const has = truckTypeIds.includes(id) || (vehicleSpecs[vt.formKey]?.length ?? 0) > 0;
     const nextTypeIds = has
       ? truckTypeIds.filter((x) => x !== id)
       : [...truckTypeIds, id];
@@ -67,60 +76,99 @@ export const SearchVehicleCargoPicker: React.FC<SearchVehicleCargoPickerProps> =
     emit(nextSpecs, nextTypeIds);
   };
 
+  const selectedCount = vehicleTypes.filter(
+    (vt) =>
+      truckTypeIds.includes(Number(vt.formKey)) ||
+      (vehicleSpecs[vt.formKey]?.length ?? 0) > 0
+  ).length;
+
   return (
-    <div className="sat-cargo-picker">
-      {vehicleTypes.map((vt) => {
-        const id = Number(vt.formKey);
-        const checked = truckTypeIds.includes(id) || (vehicleSpecs[vt.formKey]?.length ?? 0) > 0;
-        const label = lang === 'el' ? vt.nameEl : vt.name;
-        const expanded = openType === vt.formKey && checked;
-        return (
-          <div key={vt.formKey} className="sat-cargo-type">
-            <label className="sat-type-check">
-              <input type="checkbox" checked={checked} onChange={() => toggleType(vt)} />
-              <span>{label}</span>
+    <div className="sat-veh-picker">
+      <div className="sat-veh-picker-hint">
+        {t('selectOneOrMoreTypes') || 'Select one or more types'}
+        {selectedCount > 0 ? (
+          <span className="sat-veh-picker-count">
+            {selectedCount} {t('selected') || 'selected'}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="sat-veh-grid">
+        {vehicleTypes.map((vt) => {
+          const id = Number(vt.formKey);
+          const checked =
+            truckTypeIds.includes(id) || (vehicleSpecs[vt.formKey]?.length ?? 0) > 0;
+          const label = lang === 'el' ? vt.nameEl : vt.name;
+          const expanded = openType === vt.formKey && checked;
+          const specCount = vehicleSpecs[vt.formKey]?.length ?? 0;
+
+          return (
+            <div key={vt.formKey} className={`sat-veh-card-wrap${expanded ? ' is-open' : ''}`}>
+              <button
+                type="button"
+                className={`sat-veh-card${checked ? ' is-selected' : ''}`}
+                onClick={() => toggleType(vt)}
+                aria-pressed={checked}
+              >
+                {checked && (
+                  <span className="sat-veh-check" aria-hidden>
+                    <Check size={12} strokeWidth={3} />
+                  </span>
+                )}
+                <span className="sat-veh-icon" aria-hidden>
+                  <Truck size={22} strokeWidth={2} />
+                </span>
+                <span className="sat-veh-name">{label}</span>
+                {vt.subtitle ? <span className="sat-veh-sub">{vt.subtitle}</span> : null}
+              </button>
+
               {checked && vt.categories.length > 0 && (
                 <button
                   type="button"
-                  className="sat-cargo-expand"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setOpenType(expanded ? null : vt.formKey);
-                  }}
+                  className={`sat-veh-spec-toggle${expanded ? ' is-open' : ''}`}
+                  onClick={() => setOpenType(expanded ? null : vt.formKey)}
                 >
-                  {expanded ? '▾' : '▸'} {t('satCargoSpecs')}
+                  <span>
+                    {t('satCargoSpecs') || 'Cargo specs'}
+                    {specCount > 0 ? ` · ${specCount}` : ''}
+                  </span>
+                  <ChevronDown size={14} strokeWidth={2.5} />
                 </button>
               )}
-            </label>
-            {expanded && (
-              <div className="sat-cargo-cats">
-                {vt.categories.map((cat) => (
-                  <div key={cat.id} className="sat-cargo-cat">
-                    <div className="sat-cargo-cat-label">
-                      {lang === 'el' ? cat.labelEl : cat.label}
+
+              {expanded && (
+                <div className="sat-veh-specs">
+                  {vt.categories.map((cat) => (
+                    <div key={cat.id} className="sat-veh-cat">
+                      <div className="sat-veh-cat-label">
+                        {lang === 'el' ? cat.labelEl : cat.label}
+                      </div>
+                      <div className="sat-veh-chips">
+                        {cat.items.map((item) => {
+                          const itemChecked = (vehicleSpecs[vt.formKey] ?? []).includes(
+                            item.id
+                          );
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              className={`sat-veh-chip${itemChecked ? ' is-on' : ''}`}
+                              onClick={() => toggleItem(vt, item.id)}
+                              aria-pressed={itemChecked}
+                            >
+                              {lang === 'el' ? item.labelEl : item.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div className="sat-type-checks">
-                      {cat.items.map((item) => {
-                        const itemChecked = (vehicleSpecs[vt.formKey] ?? []).includes(item.id);
-                        return (
-                          <label key={item.id} className="sat-type-check">
-                            <input
-                              type="checkbox"
-                              checked={itemChecked}
-                              onChange={() => toggleItem(vt, item.id)}
-                            />
-                            <span>{lang === 'el' ? item.labelEl : item.label}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

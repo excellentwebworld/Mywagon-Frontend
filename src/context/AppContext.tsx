@@ -412,7 +412,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       hideToast();
     }, duration);
     return () => clearTimeout(timer);
-  }, [toast.show, toast.key, toast.type]);
+  }, [toast.show, toast.key, toast.type, hideToast]);
 
   // Locations State
   const [locations, setLocations] = useState<LocationItem[]>([]);
