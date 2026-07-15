@@ -1592,7 +1592,7 @@
   "satTabAll": "Όλα",
   "satTabPublic": "Δημόσια",
   "satTabPrivate": "Ιδιωτικά",
-  "satSearchPlaceholder": "Αναζήτηση μεταφορέα, πόλης, τύπου...",
+  "satSearchPlaceholder": "Αναζήτηση ID, μεταφορέα, πόλης, τύπου...",
   "satFilterStart": "Έναρξη: Όλα",
   "satFilterPickup": "Παραλαβή: Όλα",
   "satFilterDest": "Προορισμός: Όλα",

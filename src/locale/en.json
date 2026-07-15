@@ -1592,7 +1592,7 @@
   "satTabAll": "All",
   "satTabPublic": "Public",
   "satTabPrivate": "Private",
-  "satSearchPlaceholder": "Search carrier, city, truck type...",
+  "satSearchPlaceholder": "Search ID, carrier, city, truck type...",
   "satFilterStart": "Start: Any",
   "satFilterPickup": "Pickup: Any",
   "satFilterDest": "Dest: Any",
