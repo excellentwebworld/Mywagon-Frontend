@@ -71,16 +71,19 @@ export function OrdersBlock({ shipment, t }: { shipment: Shipment; t: ExpTransla
         {Array.from(byCustomer.entries()).map(([name, rows]) => (
           <div key={name} className="exp-cust-group">
             <div className="exp-cust-head">
+              <span aria-hidden>🏪</span>
               <span className="cust-name">{name}</span>
               <span className="cust-count">
-                {rows.length} {rows.length === 1 ? t('ordersWord') : t('orders').toLowerCase()}
+                {rows.length} {rows.length === 1 ? t('order') : t('orders').toLowerCase()}
               </span>
             </div>
             <div className="exp-cust-body open">
               {rows.map((o) => (
                 <div key={`${o.id}-${o.products}`} className="ord">
                   <span className="ord-id">{o.id}</span>
-                  {o.products ? ` · ${o.products}` : ''}
+                  {o.products ? (
+                    <span style={{ color: 'var(--text-tertiary)' }}> · {o.products}</span>
+                  ) : null}
                   {(o.qty > 0 || o.weight > 0) && (
                     <span className="sub">
                       {' '}
@@ -104,10 +107,11 @@ export function OrdersBlock({ shipment, t }: { shipment: Shipment; t: ExpTransla
         {shipment.customer.map((c, idx) => (
           <div key={idx} className="exp-cust-group">
             <div className="exp-cust-head">
+              <span aria-hidden>🏪</span>
               <span className="cust-name">{c.name}</span>
               <span className="cust-count">
                 {(c.orders as string[])?.length || 0}{' '}
-                {(c.orders as string[])?.length === 1 ? t('ordersWord') : t('orders').toLowerCase()}
+                {(c.orders as string[])?.length === 1 ? t('order') : t('orders').toLowerCase()}
               </span>
             </div>
             {(c.orders as string[])?.length > 0 && (
@@ -236,13 +240,16 @@ export function QuickActions({
   return (
     <div className="qa-row">
       <button type="button" className="f-pill" onClick={onEdit}>
-        {t('rowActionEdit')}
+        {t('edit')}
       </button>
       <button type="button" className="f-pill" onClick={onView}>
         {t('rowActionView')}
       </button>
       <button type="button" className="f-pill qa-danger" onClick={onCancel}>
         {t('cancel')}
+      </button>
+      <button type="button" className="f-pill" disabled title={t('message')}>
+        {t('message')}
       </button>
     </div>
   );

@@ -1441,6 +1441,21 @@ table.mgmt-t {
 .qa-row .qa-danger:hover {
   background: rgba(239, 68, 68, 0.06);
 }
+.qa-row .f-pill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.inv-toggle-h {
+  cursor: pointer;
+  user-select: none;
+}
+.inv-toggle-h .cust-chev {
+  display: inline-block;
+  margin-right: 4px;
+  font-size: 9px;
+}
 
 .exp-meta {
   margin-top: 10px;

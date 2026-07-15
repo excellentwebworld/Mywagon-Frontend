@@ -490,3 +490,19 @@ export function formatStatValue(
   const text = typeof value === 'number' ? value.toLocaleString() : String(value);
   return suffix ? `${text} ${suffix}` : text;
 }
+
+/** Compact relative time like HTML mock ("2h ago", "1d ago"). */
+export function formatRelativeAgo(isoOrDate: string | Date | null | undefined): string {
+  if (!isoOrDate) return '';
+  const ts = typeof isoOrDate === 'string' ? Date.parse(isoOrDate) : isoOrDate.getTime();
+  if (!Number.isFinite(ts)) return String(isoOrDate);
+  const sec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hrs = Math.floor(min / 60);
+  if (hrs < 48) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 14) return `${days}d ago`;
+  return new Date(ts).toLocaleDateString();
+}
