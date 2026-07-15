@@ -600,10 +600,17 @@ table.mgmt-t {
 }
 .lane {
   font-weight: 500;
+  font-size: 13px;
+  line-height: 1.35;
 }
 .lane .arr {
   color: var(--text-tertiary);
   margin: 0 3px;
+}
+
+.lane-cell {
+  min-width: 180px;
+  max-width: 320px;
 }
 
 .lane-stack {
@@ -629,6 +636,37 @@ table.mgmt-t {
   font-size: 11px;
   color: var(--text-secondary);
   font-weight: 500;
+}
+
+.lane-dates {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 3px;
+}
+.lane-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.lane-dot-pick {
+  background: #3b82f6;
+}
+.lane-dot-del {
+  background: #10b981;
+}
+.lane-date-sep {
+  color: var(--text-tertiary);
+}
+.lane-stop-badge {
+  font-size: 9px !important;
+  padding: 1px 5px !important;
+  margin-left: 4px;
 }
 
 .payment-subtag {
@@ -772,6 +810,7 @@ table.mgmt-t {
 .acts {
   display: flex;
   gap: 3px;
+  align-items: center;
 }
 .act-btn {
   width: 28px;
@@ -786,10 +825,14 @@ table.mgmt-t {
   justify-content: center;
   transition: all 0.1s;
 }
-.act-btn:hover {
+.act-btn:hover:not(:disabled) {
   background: var(--surface-alt);
   border-color: var(--border);
   color: var(--text-primary);
+}
+.act-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* ── Row expansion ── */
@@ -828,6 +871,7 @@ table.mgmt-t {
   align-items: center;
   gap: 0;
   margin-bottom: 16px;
+  min-height: 28px;
 }
 .tl-step {
   display: flex;
@@ -855,6 +899,9 @@ table.mgmt-t {
 .tl-dot.cur {
   background: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-light);
+}
+.tl-dot.skip {
+  background: var(--border);
 }
 .tl-dot:hover {
   transform: scale(1.5);
@@ -1574,6 +1621,7 @@ table.mgmt-t {
 }
 .exp-cust-body.open {
   max-height: 400px;
+  margin-top: 2px;
 }
 .exp-cust-body .ord {
   border-left: 2px solid var(--cu-bd);

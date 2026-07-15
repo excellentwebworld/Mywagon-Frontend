@@ -389,6 +389,16 @@ export function shipmentOrderSublabel(s: Shipment, t: (key: string) => string): 
   return '—';
 }
 
+/** HTML-style SID secondary line: `REF · ORDERS: N` */
+export function shipmentIdSublabel(s: Shipment, t: (key: string) => string): string {
+  const orderCount = s.ordersCount ?? s.orderIds?.length ?? 0;
+  const ordersPart = `${t('orders').toUpperCase()}: ${orderCount || (s.ref ? 1 : 0)}`;
+  if (s.ref) return `${s.ref} · ${ordersPart}`;
+  const ids = s.orderIds?.filter(Boolean) ?? [];
+  if (ids.length === 1) return `${ids[0]} · ${ordersPart}`;
+  return ordersPart;
+}
+
 export function laneMidLabel(
   s: Shipment,
   t: (key: string, opts?: Record<string, unknown>) => string
@@ -451,6 +461,56 @@ export function buildStopTimelineSteps(
     if (stop.type === 'delivery' && idx === stops.length - 1) return `${t('delivery')}: ${label}`;
     return label;
   });
+}
+
+/** HTML mock lifecycle steps (Created → Invoiced). */
+export const LIFECYCLE_STEP_KEYS = [
+  'tl_created',
+  'tl_posted',
+  'tl_bids',
+  'tl_awarded',
+  'tl_dispatched',
+  'tl_pickedup',
+  'tl_transit',
+  'tl_delivered',
+  'tl_pod',
+  'tl_invoiced',
+] as const;
+
+export function buildLifecycleTimelineSteps(
+  t: (key: string, opts?: Record<string, unknown>) => string
+): string[] {
+  return LIFECYCLE_STEP_KEYS.map((key) => t(key));
+}
+
+/** Current index for HTML lifecycle timeline (matches manage-shipments.html). */
+export function lifecycleTimelineCurrentIndex(status: Shipment['status']): number {
+  switch (status) {
+    case 'draft':
+      return 0;
+    case 'pending':
+      return 2;
+    case 'awarded':
+      return 3;
+    case 'scheduled':
+    case 'ready':
+    case 'upcoming':
+    case 'past_due':
+      return 4;
+    case 'on_trip':
+    case 'in_progress':
+      return 6;
+    case 'fullfilled':
+    case 'partially_fullfilled':
+    case 'delivered':
+      return 8;
+    case 'not_fullfilled':
+    case 'canceled':
+    case 'cancelled':
+      return 0;
+    default:
+      return 2;
+  }
 }
 
 export function stopTimelineCurrentIndex(status: Shipment['status'], stepCount: number): number {

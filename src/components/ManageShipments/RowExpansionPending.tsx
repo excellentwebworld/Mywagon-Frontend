@@ -142,7 +142,6 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
   shipment,
   detailLoading = false,
   onEdit,
-  onViewNewTab,
   onCancel,
   onAcceptOffer,
   onRejectOffer,
@@ -253,7 +252,7 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
         </div>
 
         <h4 style={{ marginTop: 16 }}>{t('quickActions')}</h4>
-        <QuickActions onEdit={onEdit} onView={onViewNewTab} onCancel={onCancel} t={t} />
+        <QuickActions onEdit={onEdit} onCancel={onCancel} t={t} />
       </div>
     </div>
   );

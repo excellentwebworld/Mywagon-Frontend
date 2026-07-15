@@ -1,8 +1,10 @@
-import React, { type ReactNode } from 'react';
+import React, { useState, type ReactNode } from 'react';
 import type { Shipment } from '../../context/AppContext';
 import {
+  buildLifecycleTimelineSteps,
   buildStopTimelineSteps,
   formatStatValue,
+  lifecycleTimelineCurrentIndex,
   stopTimelineCurrentIndex,
 } from '../../pages/ManageShipments/utils/listingUtils';
 
@@ -13,16 +15,25 @@ export function ProgressTimeline({
   t,
   enlarged = false,
   loading = false,
+  /** HTML mock uses fixed lifecycle steps for manage expansion. */
+  mode = 'lifecycle',
 }: {
   shipment: Shipment;
   t: ExpTranslate;
   enlarged?: boolean;
   loading?: boolean;
+  mode?: 'lifecycle' | 'stops';
 }) {
-  const steps = buildStopTimelineSteps(shipment, t);
-  const cur = stopTimelineCurrentIndex(shipment.status, steps.length);
+  const steps =
+    mode === 'lifecycle'
+      ? buildLifecycleTimelineSteps(t)
+      : buildStopTimelineSteps(shipment, t);
+  const cur =
+    mode === 'lifecycle'
+      ? lifecycleTimelineCurrentIndex(shipment.status)
+      : stopTimelineCurrentIndex(shipment.status, steps.length);
 
-  if (loading && !shipment.stops?.length) {
+  if (loading && mode === 'stops' && !shipment.stops?.length) {
     return <div className="sub">{t('loading')}</div>;
   }
 
@@ -31,16 +42,87 @@ export function ProgressTimeline({
       {steps.map((label, idx) => (
         <React.Fragment key={`${label}-${idx}`}>
           <div className="tl-step">
-            <div className={`tl-dot ${idx < cur ? 'done' : idx === cur ? 'cur' : ''}`} />
+            <div
+              className={`tl-dot ${idx < cur ? 'done' : idx === cur ? 'cur' : 'skip'}`}
+            />
             <div className="tl-label">{label}</div>
           </div>
-          {idx < steps.length - 1 && <div className={`tl-line ${idx < cur ? 'done' : ''}`} />}
+          {idx < steps.length - 1 && (
+            <div className={`tl-line ${idx < cur ? 'done' : ''}`} />
+          )}
         </React.Fragment>
       ))}
     </div>
   );
 
   return enlarged ? <div className="tl-big">{timeline}</div> : timeline;
+}
+
+type OrderRow = {
+  customer: string;
+  id: string;
+  products?: string;
+  qty?: number;
+  qtyUnit?: string;
+  weight?: number;
+  weightUnit?: string;
+};
+
+function CustomerOrderGroup({
+  name,
+  rows,
+  t,
+}: {
+  name: string;
+  rows: OrderRow[];
+  t: ExpTranslate;
+}) {
+  const [open, setOpen] = useState(false);
+  const count = rows.length;
+  const countLabel = `${count} ${count === 1 ? t('order') : t('orders').toLowerCase()}`;
+
+  return (
+    <div className="exp-cust-group">
+      <div
+        className="exp-cust-head"
+        role="button"
+        tabIndex={0}
+        onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
+        aria-expanded={open}
+      >
+        <span className={`cust-chev${open ? ' open' : ''}`}>▶</span>
+        <span aria-hidden>🏪</span>
+        <span className="cust-name">{name}</span>
+        <span className="cust-count">{countLabel}</span>
+      </div>
+      <div className={`exp-cust-body${open ? ' open' : ''}`}>
+        {rows.map((o) => (
+          <div key={`${o.id}-${o.products ?? ''}`} className="ord">
+            <span className="ord-id">{o.id}</span>
+            {o.products ? (
+              <span style={{ color: 'var(--text-tertiary)' }}> · {o.products}</span>
+            ) : name ? (
+              <span style={{ color: 'var(--text-tertiary)' }}> · {name}</span>
+            ) : null}
+            {(o.qty || 0) > 0 || (o.weight || 0) > 0 ? (
+              <span className="sub">
+                {' '}
+                ({(o.qty || 0) > 0 ? `${o.qty} ${o.qtyUnit}` : ''}
+                {(o.qty || 0) > 0 && (o.weight || 0) > 0 ? ', ' : ''}
+                {(o.weight || 0) > 0 ? `${o.weight} ${o.weightUnit}` : ''})
+              </span>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function OrdersBlock({ shipment, t }: { shipment: Shipment; t: ExpTranslate }) {
@@ -60,7 +142,7 @@ export function OrdersBlock({ shipment, t }: { shipment: Shipment; t: ExpTransla
     ) ?? [];
 
   if (fromStops.length > 0) {
-    const byCustomer = new Map<string, typeof fromStops>();
+    const byCustomer = new Map<string, OrderRow[]>();
     fromStops.forEach((row) => {
       const list = byCustomer.get(row.customer) || [];
       list.push(row);
@@ -69,33 +151,7 @@ export function OrdersBlock({ shipment, t }: { shipment: Shipment; t: ExpTransla
     return (
       <>
         {Array.from(byCustomer.entries()).map(([name, rows]) => (
-          <div key={name} className="exp-cust-group">
-            <div className="exp-cust-head">
-              <span aria-hidden>🏪</span>
-              <span className="cust-name">{name}</span>
-              <span className="cust-count">
-                {rows.length} {rows.length === 1 ? t('order') : t('orders').toLowerCase()}
-              </span>
-            </div>
-            <div className="exp-cust-body open">
-              {rows.map((o) => (
-                <div key={`${o.id}-${o.products}`} className="ord">
-                  <span className="ord-id">{o.id}</span>
-                  {o.products ? (
-                    <span style={{ color: 'var(--text-tertiary)' }}> · {o.products}</span>
-                  ) : null}
-                  {(o.qty > 0 || o.weight > 0) && (
-                    <span className="sub">
-                      {' '}
-                      ({o.qty > 0 ? `${o.qty} ${o.qtyUnit}` : ''}
-                      {o.qty > 0 && o.weight > 0 ? ', ' : ''}
-                      {o.weight > 0 ? `${o.weight} ${o.weightUnit}` : ''})
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <CustomerOrderGroup key={name} name={name} rows={rows} t={t} />
         ))}
       </>
     );
@@ -105,25 +161,12 @@ export function OrdersBlock({ shipment, t }: { shipment: Shipment; t: ExpTransla
     return (
       <>
         {shipment.customer.map((c, idx) => (
-          <div key={idx} className="exp-cust-group">
-            <div className="exp-cust-head">
-              <span aria-hidden>🏪</span>
-              <span className="cust-name">{c.name}</span>
-              <span className="cust-count">
-                {(c.orders as string[])?.length || 0}{' '}
-                {(c.orders as string[])?.length === 1 ? t('order') : t('orders').toLowerCase()}
-              </span>
-            </div>
-            {(c.orders as string[])?.length > 0 && (
-              <div className="exp-cust-body open">
-                {(c.orders as string[]).map((o) => (
-                  <div key={o} className="ord">
-                    <span className="ord-id">{o}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <CustomerOrderGroup
+            key={idx}
+            name={c.name}
+            rows={(c.orders as string[]).map((id) => ({ customer: c.name, id }))}
+            t={t}
+          />
         ))}
       </>
     );
@@ -162,7 +205,7 @@ export function ordersHeaderMeta(shipment: Shipment, t: ExpTranslate): {
         {t('orders')} ({orderCount})
         {customerCount > 0 && (
           <span className="exp-cust-meta">
-            {customerCount}{' '}
+            🏪 {customerCount}{' '}
             {customerCount === 1 ? t('customer') : t('customers')}
           </span>
         )}
@@ -228,28 +271,27 @@ export function StatusDetailGrid({ shipment, t }: { shipment: Shipment; t: ExpTr
 
 export function QuickActions({
   onEdit,
-  onView,
   onCancel,
   t,
 }: {
   onEdit: () => void;
-  onView: () => void;
+  onView?: () => void;
   onCancel: () => void;
   t: ExpTranslate;
 }) {
   return (
     <div className="qa-row">
       <button type="button" className="f-pill" onClick={onEdit}>
-        {t('edit')}
+        ✏️ {t('edit')}
       </button>
-      <button type="button" className="f-pill" onClick={onView}>
-        {t('rowActionView')}
+      <button type="button" className="f-pill" disabled title={t('clone')}>
+        📄 {t('clone')}
       </button>
       <button type="button" className="f-pill qa-danger" onClick={onCancel}>
-        {t('cancel')}
+        ❌ {t('cancel')}
       </button>
       <button type="button" className="f-pill" disabled title={t('message')}>
-        {t('message')}
+        💬 {t('message')}
       </button>
     </div>
   );

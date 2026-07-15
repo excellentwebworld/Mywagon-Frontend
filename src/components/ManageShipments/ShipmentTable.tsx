@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Shipment } from '../../context/AppContext';
 import {
   formatEuro,
-  laneMidLabel,
-  shipmentOrderSublabel,
+  shipmentIdSublabel,
   statusBadgeClass,
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { ListSkeleton } from '../skeletons/ListSkeleton';
@@ -40,6 +39,116 @@ interface ShipmentTableProps {
   onInviteMore: (s: Shipment) => void;
   onEditBlocked?: () => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
+}
+
+function LaneCell({
+  shipment: s,
+  t,
+}: {
+  shipment: Shipment;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}) {
+  const via = s.viaStops?.filter(Boolean) ?? [];
+  const stopCount = s.stopCount ?? (via.length > 0 ? via.length + 2 : 2);
+  const pickLabel = s.pickDt || s.date;
+  const delLabel = s.delDt;
+
+  return (
+    <div className="lane-cell">
+      <div className="lane">
+        {s.origin} <span className="arr">→</span> {s.dest}
+      </div>
+      {via.length > 0 && (
+        <div className="lane-stops">
+          {via.map((v, i) => (
+            <React.Fragment key={`${v}-${i}`}>
+              {i > 0 && <span className="arr">→</span>}
+              <span className="lane-via">{v}</span>
+            </React.Fragment>
+          ))}
+          <span className="badge badge-gray lane-stop-badge">
+            {stopCount} {t('stops').toLowerCase()}
+          </span>
+        </div>
+      )}
+      <div className="sub lane-dates">
+        {pickLabel && (
+          <>
+            <span className="lane-dot lane-dot-pick" aria-hidden />
+            {pickLabel}
+          </>
+        )}
+        {pickLabel && delLabel && <span className="lane-date-sep"> · </span>}
+        {delLabel && (
+          <>
+            <span className="lane-dot lane-dot-del" aria-hidden />
+            {delLabel}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BidsCell({
+  shipment: s,
+  t,
+}: {
+  shipment: Shipment;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}) {
+  const isPending = s.status === 'pending';
+  if (!isPending) {
+    return <span className="sub">—</span>;
+  }
+
+  const offerCount = s.offers?.length ?? s.bidsReceived ?? s.bids ?? 0;
+  const offerPrices =
+    s.offers
+      ?.map((o) => o.price)
+      .filter((p): p is number => p != null && Number.isFinite(p)) ?? [];
+  const bestFromOffers = offerPrices.length ? Math.min(...offerPrices) : null;
+  const best = bestFromOffers ?? s.best_bid ?? null;
+  const counterOffer = s.offers?.find((o) => o.counter)?.counter;
+  const received = s.bidsReceived ?? 0;
+  const sent = s.bidsSent ?? 0;
+
+  if (offerCount <= 0 && received <= 0 && sent <= 0) {
+    return <span className="sub">{t('noBids')}</span>;
+  }
+
+  const bidCount = offerCount > 0 ? offerCount : received;
+  const bidWord = bidCount === 1 ? t('bid') : t('bids');
+
+  return (
+    <div className="bids-cell">
+      {bidCount > 0 ? (
+        <div>
+          <span className="bids-ct">
+            {bidCount} {bidWord}
+          </span>
+          {best != null && (
+            <>
+              {' '}
+              · <span className="bids-best">{t('best')} {formatEuro(best)}</span>
+            </>
+          )}
+        </div>
+      ) : null}
+      {sent > 0 && <div className="bids-sent">{t('bidsSentCount', { count: sent })}</div>}
+      {s.bid_exp && (
+        <div className="bids-exp">
+          ⏱ {t('expires')} {s.bid_exp}
+        </div>
+      )}
+      {counterOffer && (
+        <span className={`co-badge-tbl ${counterOffer.dir === 'up' ? 'co-up' : 'co-down'}`}>
+          ↩ {counterOffer.pct > 0 ? '+' : ''}
+          {Math.round(counterOffer.pct)}% ({formatEuro(counterOffer.theirs)})
+        </span>
+      )}
+    </div>
+  );
 }
 
 export const ShipmentTable: React.FC<ShipmentTableProps> = ({
@@ -121,13 +230,10 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
             const isPending = s.status === 'pending';
             const badgeClass = statusBadgeClass(s.status);
             const channel = s.channel || (s.vis === 'public' ? 'public' : 'private');
-            const received = s.bidsReceived ?? 0;
-            const sent = s.bidsSent ?? 0;
             const quoted = formatEuro(s.quotedPrice ?? s.price);
             const agreed = formatEuro(s.agreedPrice);
-            const pickLabel = s.pickDt || s.date;
-            const delLabel = s.delDt;
             const detailLoading = detailLoadingIds?.has(s.id) ?? false;
+            const priceType = s.price_type === 'contract' ? 'contract' : 'spot';
 
             return (
               <React.Fragment key={s.id}>
@@ -153,30 +259,10 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                         📋
                       </span>
                     </div>
-                    <div className="sub">{shipmentOrderSublabel(s, t)}</div>
+                    <div className="sub">{shipmentIdSublabel(s, t)}</div>
                   </td>
                   <td>
-                    <div className="lane-stack">
-                      <div className="lane-line">
-                        <span className="lane-place">{s.origin}</span>
-                        {pickLabel && (
-                          <span className="lane-when">
-                            {' '}
-                            {t('laneAt')} {pickLabel}
-                          </span>
-                        )}
-                      </div>
-                      <div className="lane-mid">{laneMidLabel(s, t)}</div>
-                      <div className="lane-line">
-                        <span className="lane-place">{s.dest}</span>
-                        {delLabel && (
-                          <span className="lane-when">
-                            {' '}
-                            {t('laneAt')} {delLabel}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                    <LaneCell shipment={s} t={t} />
                   </td>
                   <td>
                     {s.customer.length ? (
@@ -221,22 +307,16 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                   </td>
                   <td>
                     <span className={`vis vis-${channel === 'public' ? 'pub' : 'priv'}`}>
-                      {channel === 'public' ? t('publicChannel') : t('privateChannel')}
+                      {channel === 'public' ? t('public') : t('private')}
                     </span>
+                    {channel === 'private' && (
+                      <div className="sub">
+                        {t('invited')}: {s.invited ?? 0}
+                      </div>
+                    )}
                   </td>
                   <td>
-                    {received > 0 || sent > 0 ? (
-                      <div className="bids-cell">
-                        {received > 0 && (
-                          <div className="bids-ct">{t('bidsReceivedCount', { count: received })}</div>
-                        )}
-                        {sent > 0 && (
-                          <div className="bids-sent">{t('bidsSentCount', { count: sent })}</div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="sub">—</span>
-                    )}
+                    <BidsCell shipment={s} t={t} />
                   </td>
                   <td>
                     {s.carrier ? (
@@ -246,25 +326,74 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                         </span>
                         {s.carrier}
                       </div>
+                    ) : isPending ? (
+                      <span className="uncov">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                        </svg>
+                        {t('uncovered')}
+                      </span>
                     ) : (
                       <span className="sub">—</span>
                     )}
                   </td>
                   <td>
-                    {quoted ? <span className="price">{quoted}</span> : <span className="sub">—</span>}
+                    {quoted ? (
+                      <>
+                        <span className="price">{quoted}</span>
+                        <span className={priceType === 'spot' ? 'chip-spot' : 'chip-cont'}>
+                          {t(priceType)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="sub">—</span>
+                    )}
                   </td>
                   <td>
-                    {agreed ? <span className="price agreed-price">{agreed}</span> : <span className="sub">—</span>}
+                    {agreed ? (
+                      <>
+                        <span className="price agreed-price">{agreed}</span>
+                        {s.carrier && (
+                          <span className={priceType === 'spot' ? 'chip-spot' : 'chip-cont'}>
+                            {t(priceType)}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="sub">—</span>
+                    )}
                   </td>
                   <td className="col-last-update">
                     <span className="ago">{s.updated}</span>
                   </td>
                   <td className="col-actions" onClick={(e) => e.stopPropagation()}>
                     <div className="acts">
+                      <button
+                        type="button"
+                        className="act-btn"
+                        title={t('rowActionView')}
+                        onClick={() => onViewNewTab(s)}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        className="act-btn"
+                        title={t('clone')}
+                        disabled
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" />
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                      </button>
                       <RowActionsMenu
                         shipment={s}
                         onView={() => navigate(`/shipments/${s.id}`)}
-                        onEdit={() => navigate(`/shipments/create?id=${s.id}`)}
+                        onEdit={() => onEdit(s)}
                         onDelete={() => onDelete(s)}
                         onEditBlocked={onEditBlocked}
                         t={t}
