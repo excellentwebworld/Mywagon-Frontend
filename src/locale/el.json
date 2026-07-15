@@ -1287,7 +1287,7 @@
   "confirmSelection": "Επιβεβαίωση Επιλογής",
   "vehicleFitFits": "ΧΩΡΑΕΙ",
   "vehicleFitTooSmall": "ΠΟΛΥ ΜΙΚΡΟ",
-  "vehicleFitCapacity": "≤ {{plt}} παλέτες · {{tons}} T",
+  "vehicleFitCapacity": "≤ {{tons}} T",
   "stopNumber": "Στάση",
   "location": "Τοποθεσία",
   "appointment": "Ραντεβού",

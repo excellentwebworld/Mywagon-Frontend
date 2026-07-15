@@ -1287,7 +1287,7 @@
   "confirmSelection": "Confirm Selection",
   "vehicleFitFits": "FITS",
   "vehicleFitTooSmall": "TOO SMALL",
-  "vehicleFitCapacity": "≤ {{plt}} plt · {{tons}} T",
+  "vehicleFitCapacity": "≤ {{tons}} T",
   "stopNumber": "Stop",
   "location": "Location",
   "appointment": "Appointment",

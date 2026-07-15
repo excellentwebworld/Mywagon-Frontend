@@ -34,12 +34,10 @@ function categoryCheckState(
 }
 
 export interface VehicleSelectorProps {
-  totalPallets: number;
   totalWeightKg: number;
 }
 
 export const VehicleSelector: React.FC<VehicleSelectorProps> = ({
-  totalPallets,
   totalWeightKg,
 }) => {
   const { t, lang } = useTranslation();
@@ -215,7 +213,7 @@ export const VehicleSelector: React.FC<VehicleSelectorProps> = ({
                   const selectedFlag = isTypeSelected(vt.formKey);
                   const nestOpen = openNests[vt.formKey] ?? false;
                   const displayName = locale === 'el' ? vt.nameEl : vt.name;
-                  const fit = assessVehicleTypeFit(vt, totalPallets, totalWeightKg);
+                  const fit = assessVehicleTypeFit(vt, totalWeightKg);
                   const fitColor = fit.status === 'fits' ? '#059669' : '#DC2626';
                   const maxTons = Math.round(fit.maxWeightKg / 1000);
 
@@ -250,10 +248,7 @@ export const VehicleSelector: React.FC<VehicleSelectorProps> = ({
                         {fit.show && (
                           <div className="vc-fit">
                             <div className="vc-fit-cap">
-                              {t('vehicleFitCapacity', {
-                                plt: fit.maxPallets,
-                                tons: maxTons,
-                              })}
+                              {t('vehicleFitCapacity', { tons: maxTons })}
                             </div>
                             <div className="vc-fit-label" style={{ color: fitColor }}>
                               {fit.status === 'fits'

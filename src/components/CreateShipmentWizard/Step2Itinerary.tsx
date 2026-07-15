@@ -467,10 +467,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
 
           {values.itineraryConfirmed && (
             <div data-validation-anchor="step2-vehicle-selector">
-              <VehicleSelector
-                totalPallets={fitCargo.totalPallets}
-                totalWeightKg={fitCargo.totalWeightKg}
-              />
+              <VehicleSelector totalWeightKg={fitCargo.totalWeightKg} />
 
             </div>
           )}

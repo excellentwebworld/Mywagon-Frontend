@@ -1,15 +1,16 @@
 import type { ApiStop } from '../../api/types/createShipment';
-import { normalizeQtyUnit, weightToKg } from '../../constants/cargoUnits';
+import { weightToKg } from '../../constants/cargoUnits';
 import type { WizardVehicleType } from './vehicleTypes';
 
 export type VehicleCapacityClass = 'semi' | 'road-train' | 'rigid' | 'van';
 
 export interface VehicleCapacity {
+  /** Kept for capacity map / future pallet assessment. Not used in fit logic. */
   maxPallets: number;
   maxWeightKg: number;
 }
 
-/** Client-specified limits (PDS-928). */
+/** Client-specified limits (PDS-928). Fit assessment currently uses weight only. */
 export const VEHICLE_CAPACITY_BY_CLASS: Record<VehicleCapacityClass, VehicleCapacity> = {
   semi: { maxPallets: 33, maxWeightKg: 24000 },
   'road-train': { maxPallets: 33, maxWeightKg: 24000 },
@@ -25,41 +26,26 @@ export interface VehicleFitAssessment {
   utilPct: number;
   /** Bar fill width clamped to 0–100. */
   barPct: number;
-  /** False when there is no cargo to assess. */
+  /** False when there is no weight to assess. */
   show: boolean;
   maxPallets: number;
   maxWeightKg: number;
 }
 
-function isPalletUnit(unit?: string | null): boolean {
-  const normalized = normalizeQtyUnit(unit).toLowerCase();
-  return normalized.includes('pallet');
-}
-
-/**
- * Cargo inputs for fit assessment:
- * - pallets: sum of pickup qty only for pallet-like units
- * - weight: all pickup weight in kg
- */
+/** Pickup weight total (kg) for weight-only fit assessment. */
 export function computeFitCargoTotals(stops: ApiStop[]): {
-  totalPallets: number;
   totalWeightKg: number;
 } {
-  let totalPallets = 0;
   let totalWeightKg = 0;
 
   stops.forEach((s) =>
     (s.lines || []).forEach((ln) => {
       if (ln.action !== 'pickup') return;
-      const q = parseFloat(String(ln.qty ?? '')) || 0;
       totalWeightKg += weightToKg(ln.weight, ln.wtUnit);
-      if (isPalletUnit(ln.unit)) {
-        totalPallets += q;
-      }
     })
   );
 
-  return { totalPallets, totalWeightKg };
+  return { totalWeightKg };
 }
 
 /** Map API vehicle type name → capacity class (EN + EL heuristics). */
@@ -93,18 +79,14 @@ export function resolveVehicleCapacity(vt: Pick<WizardVehicleType, 'name' | 'nam
 }
 
 export function assessVehicleFit(input: {
-  totalPallets: number;
   totalWeightKg: number;
-  maxPallets: number;
   maxWeightKg: number;
+  maxPallets?: number;
 }): VehicleFitAssessment {
-  const { totalPallets, totalWeightKg, maxPallets, maxWeightKg } = input;
-  const show = totalPallets > 0 || totalWeightKg > 0;
+  const { totalWeightKg, maxWeightKg, maxPallets = 0 } = input;
+  const show = totalWeightKg > 0;
 
-  const pFit = maxPallets > 0 && totalPallets > 0 ? totalPallets / maxPallets : 0;
-  const wFit = maxWeightKg > 0 && totalWeightKg > 0 ? totalWeightKg / maxWeightKg : 0;
-  // When only weight (or only pallets) is present, assess on that axis alone.
-  const util = Math.max(pFit, wFit);
+  const util = maxWeightKg > 0 && totalWeightKg > 0 ? totalWeightKg / maxWeightKg : 0;
   const utilPct = Math.round(util * 100);
   const tooSmall = util > 1;
 
@@ -120,14 +102,12 @@ export function assessVehicleFit(input: {
 
 export function assessVehicleTypeFit(
   vt: Pick<WizardVehicleType, 'name' | 'nameEl'>,
-  totalPallets: number,
   totalWeightKg: number
 ): VehicleFitAssessment {
   const capacity = resolveVehicleCapacity(vt);
   return assessVehicleFit({
-    totalPallets,
     totalWeightKg,
-    maxPallets: capacity.maxPallets,
     maxWeightKg: capacity.maxWeightKg,
+    maxPallets: capacity.maxPallets,
   });
 }
