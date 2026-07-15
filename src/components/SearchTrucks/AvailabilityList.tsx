@@ -25,6 +25,7 @@ interface AvailabilityListProps {
   fetchingMore?: boolean;
   hasNextPage?: boolean;
   onLoadMore?: () => void;
+  creatingShipment?: boolean;
   subscriptionBlocked?: boolean;
   t: (key: string) => string;
 }
@@ -96,6 +97,7 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
   fetchingMore = false,
   hasNextPage = false,
   onLoadMore,
+  creatingShipment = false,
   subscriptionBlocked = false,
   t,
 }) => {
@@ -221,6 +223,7 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
           onBook={onBook}
           onMessage={onMessage}
           onProfile={onProfile}
+          creatingShipment={creatingShipment}
           t={t}
         />
       )}

@@ -927,6 +927,113 @@
   padding: 20px 18px 24px;
 }
 
+/* Detail panel create-shipment skeleton */
+.sat-detail-skeleton .sat-sk-line,
+.sat-detail-skeleton .sat-sk-avatar,
+.sat-detail-skeleton .sat-sk-btn,
+.sat-detail-skeleton .sat-sk-chip,
+.sat-detail-skeleton .sat-sk-arrow {
+  background: linear-gradient(90deg, #eceff3 0%, #f6f8fb 50%, #eceff3 100%);
+  background-size: 200% 100%;
+  animation: sat-shimmer 1.2s ease-in-out infinite;
+  border-radius: 6px;
+}
+.sat-sk-line {
+  height: 10px;
+  width: 100%;
+}
+.sat-sk-line--section {
+  width: 42%;
+  height: 12px;
+  margin-bottom: 14px;
+}
+.sat-sk-line--lg { width: 78%; height: 12px; }
+.sat-sk-line--md { width: 62%; }
+.sat-sk-line--sm { width: 44%; }
+.sat-sk-line--xs { width: 36px; height: 10px; }
+.sat-sk-line--label { width: 48%; }
+.sat-sk-line--price { width: 72px; height: 18px; margin-left: auto; flex-shrink: 0; }
+.sat-sk-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sat-detail-sk-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.sat-detail-sk-profile-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sat-detail-sk-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.sat-detail-sk-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.sat-sk-btn {
+  height: 32px;
+  border-radius: 8px;
+}
+.sat-sk-btn--sm { width: 88px; }
+.sat-sk-btn--block {
+  width: 100%;
+  height: 40px;
+  margin-top: 8px;
+}
+.sat-sk-btn--outline {
+  opacity: 0.85;
+}
+.sat-detail-sk-route {
+  display: grid;
+  grid-template-columns: 1fr 20px 1fr;
+  gap: 8px;
+  align-items: center;
+  margin: 16px 0 12px;
+}
+.sat-detail-sk-stop {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sat-sk-arrow {
+  width: 16px;
+  height: 10px;
+  justify-self: center;
+}
+.sat-detail-sk-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.sat-sk-chip {
+  height: 24px;
+  width: 128px;
+  border-radius: 999px;
+}
+.sat-sk-chip--sm { width: 72px; }
+.sat-sk-chip--md { width: 96px; }
+.sat-detail-sk-hint {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
 .sat-exp-section h4 {
   font-size: 12px;
   font-weight: 600;

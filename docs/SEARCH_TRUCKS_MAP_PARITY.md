@@ -29,6 +29,7 @@
 - [x] **Phase F:** Cargo category filter — `truck_category_ids[]` + VehicleSelector-depth tree in SearchPill
 - [x] **Phase G:** Create Shipment `availability_id` on draft `wizard_state`; publish creates Blade-parity availability bid
 - [x] **UX:** Sticky “Creating from availability” bar on Create Shipment steps 1–3; loads details via `GET /availabilities/{id}` (id in `wizard_state`)
+- [x] **UX:** “Create new shipment” from SAT skips booking drawer → Create Shipment with `availability_id` directly; drawer kept for pending-bid only
 - [x] **Phase H:** Server CSV export `GET /availabilities/export` (cap 5000); live FE uses blob download; mock keeps client CSV
 - [x] **Prefill polish:** Proceed `truck_type_id`; Step 1 AddressBook `locationId` from lat/lng; Step 2 `vehicleSpecs` seed
 

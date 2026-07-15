@@ -22,7 +22,6 @@ interface BookingDrawerProps {
   onDraftChange: (patch: Partial<BookingDraft>) => void;
   onClose: () => void;
   onConfirm: () => void;
-  onGoCreateShipment?: () => void;
   t: (key: string) => string;
 }
 
@@ -30,7 +29,6 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
   open,
   step,
   onStepChange,
-  mode,
   onModeChange,
   truck,
   pending,
@@ -42,21 +40,18 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
   onDraftChange,
   onClose,
   onConfirm,
-  onGoCreateShipment,
   t,
 }) => {
   const selectedPending =
     selectedPendingIdx != null ? pending[selectedPendingIdx] : null;
 
-  const canNextFromStep1 =
-    mode === 'new' || (mode === 'pending' && selectedPendingIdx != null);
+  const canNextFromStep1 = selectedPendingIdx != null;
 
   if (!open || !truck || !draft) return null;
 
-  const shipLabel =
-    mode === 'pending' && selectedPending
-      ? `${selectedPending.sid} — ${selectedPending.lane}`
-      : t('satNewShipmentDraft');
+  const shipLabel = selectedPending
+    ? `${selectedPending.sid} — ${selectedPending.lane}`
+    : t('satNewShipmentDraft');
 
   const showPrice = truck.price != null && !truck.priceBlurred;
 
@@ -101,7 +96,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
               <div className="sat-f-tabs" style={{ marginBottom: 14, width: '100%' }}>
                 <button
                   type="button"
-                  className={`sat-f-tab ${mode === 'pending' ? 'act' : ''}`}
+                  className="sat-f-tab act"
                   style={{ flex: 1 }}
                   onClick={() => onModeChange('pending')}
                 >
@@ -109,7 +104,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                 </button>
                 <button
                   type="button"
-                  className={`sat-f-tab ${mode === 'new' ? 'act' : ''}`}
+                  className="sat-f-tab"
                   style={{ flex: 1 }}
                   onClick={() => onModeChange('new')}
                 >
@@ -117,105 +112,80 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                 </button>
               </div>
 
-              {mode === 'pending' ? (
-                <>
-                  {pendingLoading ? (
-                    <div className="sat-empty">{t('satLoadingPending')}</div>
-                  ) : pending.length === 0 ? (
-                    <div className="sat-empty">{t('satNoPending')}</div>
-                  ) : (
-                    pending.map((p, pi) => (
-                      <div
-                        key={p.id ?? p.sid}
-                        className={`sat-pend-row ${selectedPendingIdx === pi ? 'sel' : ''}`}
-                        onClick={() => onSelectPending(pi)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => e.key === 'Enter' && onSelectPending(pi)}
-                      >
-                        <div className="sat-pend-radio" />
-                        <div>
-                          <div className="sat-pend-sid">
-                            {p.sid}
-                            {p.exactMatch ? (
-                              <span className="sat-bg sat-bg-ok" style={{ marginLeft: 8, fontSize: 10 }}>
-                                {t('satExactMatch')}
-                              </span>
-                            ) : null}
-                          </div>
-                          <div className="sat-pend-lane">
-                            {p.lane} · {p.pickup} · {p.weight} · {p.stops} {t('satStops')}
-                          </div>
-                        </div>
+              {pendingLoading ? (
+                <div className="sat-empty">{t('satLoadingPending')}</div>
+              ) : pending.length === 0 ? (
+                <div className="sat-empty">{t('satNoPending')}</div>
+              ) : (
+                pending.map((p, pi) => (
+                  <div
+                    key={p.id ?? p.sid}
+                    className={`sat-pend-row ${selectedPendingIdx === pi ? 'sel' : ''}`}
+                    onClick={() => onSelectPending(pi)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && onSelectPending(pi)}
+                  >
+                    <div className="sat-pend-radio" />
+                    <div>
+                      <div className="sat-pend-sid">
+                        {p.sid}
+                        {p.exactMatch ? (
+                          <span className="sat-bg sat-bg-ok" style={{ marginLeft: 8, fontSize: 10 }}>
+                            {t('satExactMatch')}
+                          </span>
+                        ) : null}
                       </div>
-                    ))
-                  )}
-
-                  {selectedPending && (
-                    <div style={{ marginTop: 14 }}>
-                      <h4
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: 'var(--text-tertiary)',
-                          marginBottom: 8,
-                        }}
-                      >
-                        {t('satMatchScore')}
-                      </h4>
-                      <div className="sat-match-grid">
-                        <div className="sat-match-item">
-                          <div className="label">{t('satCapacityFit')}</div>
-                          <div className="val" style={{ color: 'var(--success)' }}>
-                            {truck.capacity} ✅
-                          </div>
-                        </div>
-                        <div className="sat-match-item">
-                          <div className="label">{t('satTripPreference')}</div>
-                          <div className="val">{truck.trip}</div>
-                        </div>
-                        <div className="sat-match-item">
-                          <div className="label">{t('satTimingFit')}</div>
-                          <div className="val" style={{ color: 'var(--success)' }}>
-                            {t('satWithinWindow')} ✅
-                          </div>
-                        </div>
-                        <div className="sat-match-item">
-                          <div className="label">{t('satExactMatch')}</div>
-                          <div
-                            className="val"
-                            style={{
-                              color: selectedPending.exactMatch ? 'var(--success)' : 'var(--text-tertiary)',
-                            }}
-                          >
-                            {selectedPending.exactMatch ? '✅' : '—'}
-                          </div>
-                        </div>
+                      <div className="sat-pend-lane">
+                        {p.lane} · {p.pickup} · {p.weight} · {p.stops} {t('satStops')}
                       </div>
                     </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div className="sat-info-banner">
-                    ℹ️ <strong>{t('satSameAsCreate')}</strong> — {t('satCreateNewHint')}
                   </div>
-                  <div className="sat-truck-preview">
-                    <strong>{truck.carrier}</strong> · {truck.truckType}
-                    <br />
-                    <span className="sat-muted">
-                      {truck.pickup} → {truck.dest} · {truck.startDt} {truck.startTm}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    className="sat-btn sat-btn-pr sat-btn-block"
-                    style={{ marginTop: 14 }}
-                    onClick={() => onGoCreateShipment?.()}
+                ))
+              )}
+
+              {selectedPending && (
+                <div style={{ marginTop: 14 }}>
+                  <h4
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--text-tertiary)',
+                      marginBottom: 8,
+                    }}
                   >
-                    {t('satContinueToCreateShipment')} →
-                  </button>
-                </>
+                    {t('satMatchScore')}
+                  </h4>
+                  <div className="sat-match-grid">
+                    <div className="sat-match-item">
+                      <div className="label">{t('satCapacityFit')}</div>
+                      <div className="val" style={{ color: 'var(--success)' }}>
+                        {truck.capacity} ✅
+                      </div>
+                    </div>
+                    <div className="sat-match-item">
+                      <div className="label">{t('satTripPreference')}</div>
+                      <div className="val">{truck.trip}</div>
+                    </div>
+                    <div className="sat-match-item">
+                      <div className="label">{t('satTimingFit')}</div>
+                      <div className="val" style={{ color: 'var(--success)' }}>
+                        {t('satWithinWindow')} ✅
+                      </div>
+                    </div>
+                    <div className="sat-match-item">
+                      <div className="label">{t('satExactMatch')}</div>
+                      <div
+                        className="val"
+                        style={{
+                          color: selectedPending.exactMatch ? 'var(--success)' : 'var(--text-tertiary)',
+                        }}
+                      >
+                        {selectedPending.exactMatch ? '✅' : '—'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
             </>
           )}
@@ -355,24 +325,14 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
               <button type="button" className="sat-btn" onClick={onClose}>
                 {t('cancel')}
               </button>
-              {mode === 'new' ? (
-                <button
-                  type="button"
-                  className="sat-btn sat-btn-pr"
-                  onClick={() => onGoCreateShipment?.()}
-                >
-                  {t('satContinueToCreateShipment')} →
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="sat-btn sat-btn-pr"
-                  disabled={!canNextFromStep1}
-                  onClick={() => onStepChange(2)}
-                >
-                  {t('satNext')} →
-                </button>
-              )}
+              <button
+                type="button"
+                className="sat-btn sat-btn-pr"
+                disabled={!canNextFromStep1}
+                onClick={() => onStepChange(2)}
+              >
+                {t('satNext')} →
+              </button>
             </>
           )}
           {step === 2 && (

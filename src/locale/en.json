@@ -199,6 +199,7 @@
   "availabilityContextUnavailable": "Availability details unavailable — linkage kept for publish",
   "availabilityExpandDetails": "Show details",
   "availabilityCollapseDetails": "Hide details",
+  "satCreatingShipment": "Opening Create Shipment…",
   "satEndDateTime": "Available until",
   "satDestination": "Destination",
   "satCargoCategories": "Cargo / specs",

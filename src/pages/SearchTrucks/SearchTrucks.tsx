@@ -104,6 +104,9 @@ export const SearchTrucks: React.FC = () => {
           fetchingMore={m.fetchingMore}
           hasNextPage={m.hasNextPage}
           onLoadMore={m.fetchNextPage}
+          creatingShipment={Boolean(
+            m.creatingShipment && m.creatingShipmentId && m.selectedId === m.creatingShipmentId
+          )}
           subscriptionBlocked={m.subscriptionBlocked}
           t={m.t}
         />
@@ -163,7 +166,6 @@ export const SearchTrucks: React.FC = () => {
         onDraftChange={m.updateDraft}
         onClose={m.closeDrawer}
         onConfirm={() => void m.confirmBooking()}
-        onGoCreateShipment={() => void m.goToCreateShipment()}
         t={m.t}
       />
 

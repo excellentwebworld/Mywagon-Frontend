@@ -199,6 +199,7 @@
   "availabilityContextUnavailable": "Τα στοιχεία διαθεσιμότητας δεν είναι διαθέσιμα — η σύνδεση διατηρείται για δημοσίευση",
   "availabilityExpandDetails": "Εμφάνιση λεπτομερειών",
   "availabilityCollapseDetails": "Απόκρυψη λεπτομερειών",
+  "satCreatingShipment": "Άνοιγμα Δημιουργίας Αποστολής…",
   "satEndDateTime": "Διαθέσιμο έως",
   "satDestination": "Προορισμός",
   "satCargoCategories": "Φορτίο / προδιαγραφές",

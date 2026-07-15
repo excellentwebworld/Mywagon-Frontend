@@ -248,6 +248,7 @@ export function useSearchTrucks() {
   const [pending, setPending] = useState<PendingShipment[]>(USE_MOCK ? MOCK_PENDING : []);
   const [pendingLoading, setPendingLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [creatingShipmentId, setCreatingShipmentId] = useState<string | null>(null);
 
   const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -551,21 +552,52 @@ export function useSearchTrucks() {
     [showToast, t]
   );
 
+  const goToCreateShipment = useCallback(
+    async (truck: AvailableTruck) => {
+      setCreatingShipmentId(truck.id);
+      try {
+        if (USE_MOCK) {
+          navigate(`/shipments/create/step/1?availability_id=${truck.id}`);
+          return;
+        }
+        const result = await availabilitiesService.proceed(
+          Number(truck.id),
+          'create_shipment'
+        );
+        sessionStorage.setItem(SAT_PREFILL_KEY, JSON.stringify(result));
+        navigate(`/shipments/create/step/1?availability_id=${truck.id}`);
+      } catch (err) {
+        const msg =
+          err instanceof ApiError
+            ? err.message
+            : t('satCreateNavigateError') || 'Could not start create shipment';
+        showToast(msg, 'error');
+        setCreatingShipmentId(null);
+      }
+      // Keep loading state on success until create-shipment route unmounts this page.
+    },
+    [navigate, showToast, t]
+  );
+
   const openDrawer = useCallback(
     (truck: AvailableTruck, mode: DrawerMode = 'pending', occurrence?: string) => {
+      // Create-new skips the booking drawer — Create Shipment sticky bar holds context.
+      if (mode === 'new') {
+        void goToCreateShipment(truck);
+        return;
+      }
+
       setSelectedTruck(truck);
       setDrawerStep(1);
-      setDrawerMode(mode);
+      setDrawerMode('pending');
       setSelectedPendingIdx(null);
       const d = createDraft(truck);
       if (occurrence) d.occurrence = occurrence;
       setDraft(d);
       setDrawerOpen(true);
-      if (mode === 'pending') {
-        void loadPendingMatches(truck);
-      }
+      void loadPendingMatches(truck);
     },
-    [loadPendingMatches]
+    [goToCreateShipment, loadPendingMatches]
   );
 
   const closeDrawer = useCallback(() => {
@@ -583,41 +615,20 @@ export function useSearchTrucks() {
 
   const setDrawerModeAndLoad = useCallback(
     (mode: DrawerMode) => {
-      setDrawerMode(mode);
+      if (mode === 'new' && selectedTruck) {
+        const truck = selectedTruck;
+        closeDrawer();
+        void goToCreateShipment(truck);
+        return;
+      }
+      setDrawerMode('pending');
       setSelectedPendingIdx(null);
-      if (mode === 'pending' && selectedTruck) {
+      if (selectedTruck) {
         void loadPendingMatches(selectedTruck);
       }
-      if (mode === 'new') {
-        // keep pending as-is; create path uses navigate on confirm/CTA
-      }
     },
-    [loadPendingMatches, selectedTruck]
+    [closeDrawer, goToCreateShipment, loadPendingMatches, selectedTruck]
   );
-
-  const goToCreateShipment = useCallback(async () => {
-    if (!selectedTruck) return;
-    if (USE_MOCK) {
-      navigate(`/shipments/create/step/1?availability_id=${selectedTruck.id}`);
-      closeDrawer();
-      return;
-    }
-    try {
-      const result = await availabilitiesService.proceed(
-        Number(selectedTruck.id),
-        'create_shipment'
-      );
-      sessionStorage.setItem(SAT_PREFILL_KEY, JSON.stringify(result));
-      navigate(`/shipments/create/step/1?availability_id=${selectedTruck.id}`);
-      closeDrawer();
-    } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.message
-          : t('satCreateNavigateError') || 'Could not start create shipment';
-      showToast(msg, 'error');
-    }
-  }, [selectedTruck, navigate, closeDrawer, showToast, t]);
 
   const placeBidMutation = useMutation({
     mutationFn: async () => {
@@ -663,11 +674,6 @@ export function useSearchTrucks() {
   const confirmBooking = useCallback(async () => {
     if (!selectedTruck) return;
 
-    if (drawerMode === 'new') {
-      await goToCreateShipment();
-      return;
-    }
-
     if (USE_MOCK) {
       const rootId = selectedTruck.id.replace(/-\d+$/, '');
       setMockTrucks((prev) =>
@@ -690,15 +696,7 @@ export function useSearchTrucks() {
     } finally {
       setConfirming(false);
     }
-  }, [
-    selectedTruck,
-    drawerMode,
-    goToCreateShipment,
-    placeBidMutation,
-    closeDrawer,
-    showToast,
-    t,
-  ]);
+  }, [selectedTruck, placeBidMutation, closeDrawer, showToast, t]);
 
   const dismissGateReminder = useCallback(() => {
     try {
@@ -826,6 +824,8 @@ export function useSearchTrucks() {
     pending,
     pendingLoading,
     confirming: confirming || placeBidMutation.isPending,
+    creatingShipment: Boolean(creatingShipmentId),
+    creatingShipmentId,
     filtered,
     pageItems,
     mapTrucks,

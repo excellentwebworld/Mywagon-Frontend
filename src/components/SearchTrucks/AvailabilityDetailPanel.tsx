@@ -7,7 +7,101 @@ interface AvailabilityDetailPanelProps {
   onBook: (truck: AvailableTruck, mode?: DrawerMode, occurrence?: string) => void;
   onMessage: (carrier: string) => void;
   onProfile: () => void;
+  creatingShipment?: boolean;
   t: (key: string) => string;
+}
+
+function DetailPanelSkeleton({
+  onClose,
+  t,
+}: {
+  onClose: () => void;
+  t: (key: string) => string;
+}) {
+  return (
+    <div
+      className="sat-detail-overlay"
+      role="status"
+      aria-busy="true"
+      aria-label={t('satCreatingShipment') || 'Opening Create Shipment…'}
+    >
+      <button type="button" className="sat-detail-close" onClick={onClose} aria-label={t('close')}>
+        ✕
+      </button>
+
+      <div className="sat-detail-scroll sat-detail-skeleton">
+        <div className="sat-exp-section">
+          <div className="sat-sk-line sat-sk-line--section" />
+          <div className="sat-detail-sk-profile">
+            <div className="sat-sk-avatar" />
+            <div className="sat-detail-sk-profile-text">
+              <div className="sat-sk-line sat-sk-line--md" />
+              <div className="sat-sk-line sat-sk-line--sm" />
+            </div>
+            <div className="sat-sk-line sat-sk-line--price" />
+          </div>
+          <div className="sat-detail-sk-stat">
+            <div className="sat-sk-line sat-sk-line--label" />
+            <div className="sat-sk-line sat-sk-line--xs" />
+          </div>
+          <div className="sat-detail-sk-stat">
+            <div className="sat-sk-line sat-sk-line--label" />
+            <div className="sat-sk-line sat-sk-line--xs" />
+          </div>
+          <div className="sat-detail-sk-stat">
+            <div className="sat-sk-line sat-sk-line--label" />
+            <div className="sat-sk-line sat-sk-line--xs" />
+          </div>
+          <div className="sat-detail-sk-actions">
+            <div className="sat-sk-btn sat-sk-btn--sm" />
+            <div className="sat-sk-btn sat-sk-btn--sm" />
+          </div>
+        </div>
+
+        <div className="sat-detail-sk-route">
+          <div className="sat-detail-sk-stop">
+            <div className="sat-sk-line sat-sk-line--xs" />
+            <div className="sat-sk-line sat-sk-line--md" />
+            <div className="sat-sk-line sat-sk-line--sm" />
+          </div>
+          <div className="sat-sk-arrow" />
+          <div className="sat-detail-sk-stop">
+            <div className="sat-sk-line sat-sk-line--xs" />
+            <div className="sat-sk-line sat-sk-line--md" />
+            <div className="sat-sk-line sat-sk-line--sm" />
+          </div>
+        </div>
+
+        <div className="sat-detail-sk-chips">
+          <div className="sat-sk-chip" />
+          <div className="sat-sk-chip sat-sk-chip--sm" />
+          <div className="sat-sk-chip sat-sk-chip--md" />
+        </div>
+
+        <div className="sat-exp-section" style={{ marginTop: 14 }}>
+          <div className="sat-sk-line sat-sk-line--section" />
+          <div className="sat-detail-sk-stat">
+            <div className="sat-sk-line sat-sk-line--label" />
+            <div className="sat-sk-line sat-sk-line--xs" />
+          </div>
+          <div className="sat-detail-sk-stat">
+            <div className="sat-sk-line sat-sk-line--label" />
+            <div className="sat-sk-line sat-sk-line--xs" />
+          </div>
+          <div className="sat-detail-sk-stat">
+            <div className="sat-sk-line sat-sk-line--label" />
+            <div className="sat-sk-line sat-sk-line--xs" />
+          </div>
+        </div>
+
+        <div className="sat-sk-btn sat-sk-btn--block" style={{ marginTop: 14 }} />
+        <div className="sat-sk-btn sat-sk-btn--block sat-sk-btn--outline" />
+        <div className="sat-detail-sk-hint">
+          {t('satCreatingShipment') || 'Opening Create Shipment…'}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = ({
@@ -16,8 +110,13 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
   onBook,
   onMessage,
   onProfile,
+  creatingShipment = false,
   t,
 }) => {
+  if (creatingShipment) {
+    return <DetailPanelSkeleton onClose={onClose} t={t} />;
+  }
+
   const preferredTag = truck.preferred ? (
     <span className="sat-bg sat-bg-ac" style={{ fontSize: 9, marginLeft: 4 }}>
       {t('satPreferred')}
@@ -114,7 +213,11 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
             {truck.occurrences.map((occ) => (
               <div key={occ} className="sat-occ-item">
                 <span>📅 {occ}</span>
-                <button type="button" onClick={() => onBook(truck, 'pending', occ)}>
+                <button
+                  type="button"
+                  disabled={creatingShipment}
+                  onClick={() => onBook(truck, 'pending', occ)}
+                >
                   {t('satBookThis')}
                 </button>
               </div>
@@ -138,10 +241,21 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
           </div>
         )}
 
-        <button type="button" className="sat-btn sat-btn-pr sat-btn-block" style={{ marginTop: 14 }} onClick={() => onBook(truck, 'pending')}>
+        <button
+          type="button"
+          className="sat-btn sat-btn-pr sat-btn-block"
+          style={{ marginTop: 14 }}
+          disabled={creatingShipment}
+          onClick={() => onBook(truck, 'pending')}
+        >
           📋 {t('satBookPending')}
         </button>
-        <button type="button" className="sat-btn sat-btn-block" onClick={() => onBook(truck, 'new')}>
+        <button
+          type="button"
+          className="sat-btn sat-btn-block"
+          disabled={creatingShipment}
+          onClick={() => onBook(truck, 'new')}
+        >
           + {t('satCreateNewForThis')}
         </button>
       </div>
