@@ -53,12 +53,15 @@ export const ManageShipments: React.FC = () => {
       <StatusTabs
         statusCounts={m.statusCounts}
         activeTab={m.activeTab}
+        kpiActive={Boolean(m.activeKpi)}
         onTabChange={m.setActiveTab}
         t={m.t}
       />
 
       <FilterChips
         chips={m.filterChips}
+        kpiChip={m.kpiChip}
+        onClearKpi={() => m.setActiveKpi(null)}
         onClearChip={m.handleClearFilterChip}
         onClearAll={m.handleClearAllFilters}
         t={m.t}

@@ -14,6 +14,7 @@ import {
   DEFAULT_FILTERS,
   filtersToApiParams,
   isShipmentEditable,
+  kpiLabelKey,
   statusTabHasApiSupport,
   statusTabToApiStatus,
   validateFilterRanges,
@@ -68,6 +69,7 @@ export function useManageShipments() {
   const setDirection = useCallback((next: LoadsDirection) => {
     setDirectionState(next);
     setPage(1);
+    setActiveKpiState(null);
     if (next === 'inbound') {
       setExpandedId(null);
       setSelectedIds(new Set());
@@ -99,17 +101,18 @@ export function useManageShipments() {
     return {
       ...filterParams,
       ...(debouncedSearch ? { search: debouncedSearch } : {}),
+      ...(activeKpi ? { kpi: activeKpi } : {}),
       direction: isOutbound ? 'outbound' : 'inbound',
     };
-  }, [filterParams, debouncedSearch, isOutbound]);
+  }, [filterParams, debouncedSearch, activeKpi, isOutbound]);
 
   const listParams = useMemo((): ListShipmentsParams => {
-    const status = statusTabToApiStatus(activeTab);
+    // KPI quick filters take precedence over the status tab (matches work-queue behavior).
+    const status = activeKpi ? undefined : statusTabToApiStatus(activeTab);
     return {
       ...summaryParams,
       page,
       per_page: PER_PAGE,
-      ...(activeKpi ? { kpi: activeKpi } : {}),
       ...(status !== undefined ? { status } : {}),
       ...(sortKey ? { sort: sortKey } : {}),
     };
@@ -141,13 +144,20 @@ export function useManageShipments() {
     [appliedFilters, t, productTypeNames]
   );
 
+  const kpiChip = useMemo(
+    () => (activeKpi ? { label: t(kpiLabelKey(activeKpi)) } : null),
+    [activeKpi, t]
+  );
+
   const setActiveKpi = useCallback((key: KpiKey | null) => {
     setActiveKpiState(key);
     setPage(1);
+    setExpandedId(null);
   }, []);
 
   const setActiveTab = useCallback((tab: StatusTabKey) => {
     setActiveTabState(tab);
+    setActiveKpiState(null);
     setPage(1);
   }, []);
 
@@ -177,6 +187,7 @@ export function useManageShipments() {
 
   const handleClearAllFilters = useCallback(() => {
     setAppliedFilters(DEFAULT_FILTERS);
+    setActiveKpiState(null);
     setPage(1);
   }, []);
 
@@ -624,6 +635,7 @@ export function useManageShipments() {
     filterChips,
     handleClearFilterChip,
     handleClearAllFilters,
-    filtersActive: filterChips.length > 0,
+    kpiChip,
+    filtersActive: filterChips.length > 0 || Boolean(activeKpi),
   };
 }

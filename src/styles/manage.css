@@ -102,11 +102,51 @@
   transform: translateY(-1px);
 }
 .mgmt-kpi.act {
+  z-index: 1;
+}
+.mgmt-kpi.c-warn.act {
+  border-color: var(--warning);
+  background: rgba(245, 158, 11, 0.06);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+}
+.mgmt-kpi.c-warn.act::after {
+  background: var(--warning);
+}
+.mgmt-kpi.c-err.act {
+  border-color: var(--danger);
+  background: rgba(239, 68, 68, 0.06);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16);
+}
+.mgmt-kpi.c-err.act::after {
+  background: var(--danger);
+}
+.mgmt-kpi.c-info.act {
+  border-color: var(--info);
+  background: rgba(59, 130, 246, 0.06);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+}
+.mgmt-kpi.c-info.act::after {
+  background: var(--info);
+}
+.mgmt-kpi.c-acc.act {
   border-color: var(--accent);
+  background: var(--accent-light);
   box-shadow: 0 0 0 3px var(--accent-light);
 }
-.mgmt-kpi.act::after {
+.mgmt-kpi.c-acc.act::after {
   background: var(--accent);
+}
+.mgmt-kpi.act:not(.c-warn):not(.c-err):not(.c-info):not(.c-acc) {
+  border-color: var(--border-focus);
+  background: var(--surface-alt);
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.2);
+}
+.mgmt-kpi.act:not(.c-warn):not(.c-err):not(.c-info):not(.c-acc)::after {
+  background: var(--text-tertiary);
+}
+.mgmt-kpi.act .mgmt-kpi-l {
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 .mgmt-kpi-v {
   font-family: "JetBrains Mono", monospace;

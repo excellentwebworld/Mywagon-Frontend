@@ -41,6 +41,18 @@ export const EMPTY_KPI_COUNTS: Record<ShipmentKpiKey, number> = {
   awaiting_pod: 0,
 };
 
+const KPI_LABEL_KEYS: Record<ShipmentKpiKey, string> = {
+  needs_action: 'needsActionLabel',
+  awaiting_response: 'awaitingResponse',
+  at_risk: 'atRiskLate',
+  pickup_today: 'pickupToday',
+  awaiting_pod: 'awaitingPod',
+};
+
+export function kpiLabelKey(kpi: KpiKey): string {
+  return KPI_LABEL_KEYS[kpi];
+}
+
 export interface ShipmentsFilterState {
   carrier_name: string;
   product_type: string[];
