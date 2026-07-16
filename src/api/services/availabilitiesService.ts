@@ -52,6 +52,14 @@ function toQueryString(params: ListAvailabilitiesParams): string {
   set('starting_within_hours', params.starting_within_hours);
   set('has_bids', params.has_bids);
   set('load_match', params.load_match);
+  set('trip_type', params.trip_type);
+  set('available_from_start', params.available_from_start);
+  set('available_from_end', params.available_from_end);
+  set('min_price', params.min_price);
+  set('max_price', params.max_price);
+  (params.provider_names ?? []).forEach((name) => {
+    search.append('provider_names[]', name);
+  });
 
   (params.truck_type_ids ?? []).forEach((id) => {
     search.append('truck_type_ids[]', String(id));

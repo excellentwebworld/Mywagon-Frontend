@@ -3,12 +3,26 @@ import { createPortal } from 'react-dom';
 import type { SortKey } from '../../pages/SearchTrucks/types';
 
 export const SAT_SORT_OPTIONS: { key: SortKey; labelKey: string }[] = [
-  { key: 'best_match', labelKey: 'satSortBestMatch' },
-  { key: 'soonest_start', labelKey: 'satSortSoonest' },
-  { key: 'lowest_price', labelKey: 'satSortLowestPrice' },
-  { key: 'highest_rating', labelKey: 'satSortHighestRating' },
-  { key: 'freshest', labelKey: 'satSortFreshest' },
+  { key: 'truck_asc', labelKey: 'satSortTruckAsc' },
+  { key: 'truck_desc', labelKey: 'satSortTruckDesc' },
+  { key: 'availability_asc', labelKey: 'satSortAvailableEarliest' },
+  { key: 'availability_desc', labelKey: 'satSortAvailableLatest' },
+  { key: 'earliest_posting_date', labelKey: 'satSortEarliestPosting' },
+  { key: 'latest_posting_date', labelKey: 'satSortLatestPosting' },
+  { key: 'pickup_asc', labelKey: 'satSortPickupAsc' },
+  { key: 'pickup_desc', labelKey: 'satSortPickupDesc' },
+  { key: 'dropoff_asc', labelKey: 'satSortDropoffAsc' },
+  { key: 'dropoff_desc', labelKey: 'satSortDropoffDesc' },
+  { key: 'carrier_asc', labelKey: 'satSortCarrierAsc' },
+  { key: 'carrier_desc', labelKey: 'satSortCarrierDesc' },
+  { key: 'price_asc', labelKey: 'satSortPriceAsc' },
+  { key: 'price_desc', labelKey: 'satSortPriceDesc' },
 ];
+
+export function satSortLabelKey(sortKey: SortKey): string {
+  if (!sortKey) return 'satSortAvailableEarliest';
+  return SAT_SORT_OPTIONS.find((o) => o.key === sortKey)?.labelKey ?? 'satSortAvailableEarliest';
+}
 
 interface SatSortModalProps {
   open: boolean;
@@ -58,9 +72,6 @@ export const SatSortModal: React.FC<SatSortModalProps> = ({
         <div className="sat-pop-h">
           <div>
             <h3 id="sat-sort-title">{t('satSort') || 'Sort'}</h3>
-            <p className="sat-pop-sub">
-              {t('satSortModalSubtitle') || 'Choose how availabilities are ordered'}
-            </p>
           </div>
           <button type="button" className="sat-pop-close" onClick={onClose} aria-label={t('close')}>
             ✕
@@ -93,8 +104,8 @@ export const SatSortModal: React.FC<SatSortModalProps> = ({
             type="button"
             className="sat-btn"
             onClick={() => {
-              setDraft('best_match');
-              onApply('best_match');
+              setDraft('');
+              onApply('');
               onClose();
             }}
           >

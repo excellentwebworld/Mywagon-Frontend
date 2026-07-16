@@ -133,6 +133,11 @@ export interface ListAvailabilitiesParams {
   has_bids?: boolean;
   load_match?: boolean;
   trip_type?: 'multi_stop' | 'direct';
+  available_from_start?: string;
+  available_from_end?: string;
+  provider_names?: string[];
+  min_price?: number;
+  max_price?: number;
 }
 
 export interface PaginatedAvailabilitiesResult {

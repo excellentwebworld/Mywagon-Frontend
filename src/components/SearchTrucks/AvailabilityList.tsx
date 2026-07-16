@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import type { AvailableTruck, DrawerMode, SortKey } from '../../pages/SearchTrucks/types';
 import { AvailabilityCard } from './AvailabilityCard';
 import { AvailabilityDetailPanel } from './AvailabilityDetailPanel';
-import { SAT_SORT_OPTIONS } from './SatSortModal';
+import { satSortLabelKey } from './SatSortModal';
 
 interface AvailabilityListProps {
   trucks: AvailableTruck[];
@@ -135,11 +135,7 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
         {onOpenSort ? (
           <button type="button" className="sat-sort-pill" onClick={onOpenSort}>
             <span className="sat-muted">{t('satSort')}:</span>
-            <strong>
-              {t(
-                SAT_SORT_OPTIONS.find((o) => o.key === sortKey)?.labelKey || 'satSortBestMatch'
-              )}
-            </strong>
+            <strong>{t(satSortLabelKey(sortKey))}</strong>
           </button>
         ) : null}
       </div>

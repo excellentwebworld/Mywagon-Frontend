@@ -1,11 +1,22 @@
 export type VisibilityFilter = 'all' | 'public' | 'private';
 
+/** Laravel Search Available Trucks sort_filter values; '' = default (soonest availability). */
 export type SortKey =
-  | 'best_match'
-  | 'soonest_start'
-  | 'lowest_price'
-  | 'highest_rating'
-  | 'freshest';
+  | ''
+  | 'truck_asc'
+  | 'truck_desc'
+  | 'availability_asc'
+  | 'availability_desc'
+  | 'earliest_posting_date'
+  | 'latest_posting_date'
+  | 'pickup_asc'
+  | 'pickup_desc'
+  | 'dropoff_asc'
+  | 'dropoff_desc'
+  | 'carrier_asc'
+  | 'carrier_desc'
+  | 'price_asc'
+  | 'price_desc';
 
 export type ProviderType = 'Carrier' | 'Freelancer';
 
@@ -40,8 +51,18 @@ export interface SearchCriteria {
   vehicleSpecs: Record<string, string[]>;
   /** Active map viewport search; when set, overrides pickup center+radius */
   mapBounds?: MapPickupBounds | null;
-  /** Laravel-style trip preference filter */
+  /** Laravel-style trip preference filter (derived from stops checkboxes when applied) */
   tripType?: TripFilter;
+  /** Filter modal — available-from date range on start_date_time */
+  availableFromStart?: string;
+  availableFromEnd?: string;
+  /** Filter modal — stops checkboxes (Laravel default: multi on, direct off) */
+  stopsMulti?: boolean;
+  stopsDirect?: boolean;
+  /** Filter modal — carrier/freelancer names from partner picker */
+  providerNames?: string[];
+  minPrice?: string;
+  maxPrice?: string;
 }
 
 export interface AvailableTruck {

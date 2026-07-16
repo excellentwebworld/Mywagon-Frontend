@@ -10,6 +10,7 @@ import {
   SearchPill,
   SubscriptionGateModal,
 } from '../../components/SearchTrucks';
+import { tripTypeToStops } from '../../components/SearchTrucks/SatFilterModal';
 import type { SatFilterDraft } from '../../components/SearchTrucks/SatFilterModal';
 import { useApp } from '../../context/AppContext';
 import '../../styles/search-trucks.css';
@@ -48,21 +49,41 @@ export const SearchTrucks: React.FC = () => {
     [m.t, navigate, showToast]
   );
 
-  const filterDraft = useMemo<SatFilterDraft>(
-    () => ({
+  const filterDraft = useMemo<SatFilterDraft>(() => {
+    const stops = tripTypeToStops(m.criteria.tripType);
+    return {
+      truckTypeIds: m.criteria.truckTypeIds ?? [],
+      availableFromStart: m.criteria.availableFromStart ?? '',
+      availableFromEnd: m.criteria.availableFromEnd ?? '',
+      pickupCity: m.criteria.pickupCity ?? '',
+      pickupLat: m.criteria.pickupLat ?? null,
+      pickupLng: m.criteria.pickupLng ?? null,
       pickupRadius: m.criteria.pickupRadius ?? 50,
+      dropoffCity: m.criteria.dropoffCity ?? '',
+      dropoffLat: m.criteria.dropoffLat ?? null,
+      dropoffLng: m.criteria.dropoffLng ?? null,
       dropoffRadius: m.criteria.dropoffRadius ?? 50,
-      tripType: m.criteria.tripType ?? 'any',
+      stopsMulti: m.criteria.stopsMulti ?? stops.stopsMulti,
+      stopsDirect: m.criteria.stopsDirect ?? stops.stopsDirect,
+      providerNames: m.criteria.providerNames ?? [],
+      minPrice: m.criteria.minPrice ?? '',
+      maxPrice: m.criteria.maxPrice ?? '',
       quickFilters: Array.from(m.quickFilters),
-    }),
-    [m.criteria.dropoffRadius, m.criteria.pickupRadius, m.criteria.tripType, m.quickFilters]
-  );
+    };
+  }, [m.criteria, m.quickFilters]);
 
   const filterActiveCount = useMemo(() => {
     let n = m.quickFilters.size;
-    if ((m.appliedCriteria.tripType ?? 'any') !== 'any') n += 1;
-    if ((m.appliedCriteria.pickupRadius ?? 50) !== 50) n += 1;
-    if ((m.appliedCriteria.dropoffRadius ?? 50) !== 50) n += 1;
+    const ac = m.appliedCriteria;
+    if (ac.truckTypeIds?.length) n += 1;
+    if (ac.availableFromStart?.trim()) n += 1;
+    if (ac.availableFromEnd?.trim()) n += 1;
+    if ((ac.tripType ?? 'any') !== 'any') n += 1;
+    if ((ac.pickupRadius ?? 50) !== 50) n += 1;
+    if ((ac.dropoffRadius ?? 50) !== 50) n += 1;
+    if (ac.providerNames?.length) n += 1;
+    if (ac.minPrice?.trim()) n += 1;
+    if (ac.maxPrice?.trim()) n += 1;
     return n;
   }, [m.appliedCriteria, m.quickFilters]);
 
@@ -127,7 +148,7 @@ export const SearchTrucks: React.FC = () => {
           onOpenFilter={() => setFilterOpen(true)}
           onOpenSort={() => setSortOpen(true)}
           filterActiveCount={filterActiveCount}
-          sortActive={m.sortKey !== 'best_match'}
+          sortActive={Boolean(m.sortKey)}
           showMobileMapBtn
           onOpenMobileMap={() => m.setMobileMapOpen(true)}
           t={m.t}

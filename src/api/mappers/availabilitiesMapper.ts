@@ -218,5 +218,19 @@ export function buildListParams(input: {
     params.trip_type = criteria.tripType;
   }
 
+  const availStart = toApiPickupDate(criteria.availableFromStart || '');
+  if (availStart) params.available_from_start = availStart;
+  const availEnd = toApiPickupDate(criteria.availableFromEnd || '');
+  if (availEnd) params.available_from_end = availEnd;
+
+  if (criteria.providerNames?.length) {
+    params.provider_names = criteria.providerNames;
+  }
+
+  const minPrice = parseFloat(criteria.minPrice || '');
+  if (Number.isFinite(minPrice)) params.min_price = minPrice;
+  const maxPrice = parseFloat(criteria.maxPrice || '');
+  if (Number.isFinite(maxPrice)) params.max_price = maxPrice;
+
   return params;
 }

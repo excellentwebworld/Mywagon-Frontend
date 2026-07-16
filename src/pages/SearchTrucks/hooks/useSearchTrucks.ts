@@ -10,6 +10,8 @@ import { useNavigate } from 'react-router-dom';
 import { ApiError, availabilitiesService, SAT_PREFILL_KEY } from '../../../api';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { SatFilterDraft } from '../../../components/SearchTrucks/SatFilterModal';
+import { resolveTripType } from '../../../components/SearchTrucks/SatFilterModal';
 import { MOCK_PENDING, MOCK_TRUCKS } from '../mockData';
 import type {
   AvailableTruck,
@@ -115,6 +117,13 @@ export const emptyCriteria = (): SearchCriteria => ({
   vehicleSpecs: {},
   mapBounds: null,
   tripType: 'any',
+  availableFromStart: '',
+  availableFromEnd: '',
+  stopsMulti: true,
+  stopsDirect: false,
+  providerNames: [],
+  minPrice: '',
+  maxPrice: '',
 });
 
 function filterMockTrucks(
@@ -190,26 +199,70 @@ function filterMockTrucks(
   if (ac.tripType === 'multi_stop') data = data.filter((x) => x.multiStop);
   else if (ac.tripType === 'direct') data = data.filter((x) => !x.multiStop);
 
+  if (ac.availableFromStart?.trim()) {
+    const start = new Date(ac.availableFromStart).getTime();
+    data = data.filter((x) => {
+      const t = x.startAt ? new Date(x.startAt).getTime() : parseStartKey(x);
+      return t >= start;
+    });
+  }
+  if (ac.availableFromEnd?.trim()) {
+    const end = new Date(ac.availableFromEnd).getTime();
+    data = data.filter((x) => {
+      const t = x.startAt ? new Date(x.startAt).getTime() : parseStartKey(x);
+      return t <= end;
+    });
+  }
+
+  if (ac.providerNames?.length) {
+    const names = ac.providerNames.map((n) => n.toLowerCase());
+    data = data.filter((x) => names.some((n) => x.carrier.toLowerCase().includes(n)));
+  }
+
+  const minP = parseFloat(ac.minPrice || '');
+  if (Number.isFinite(minP)) {
+    data = data.filter((x) => x.price == null || x.price >= minP);
+  }
+  const maxP = parseFloat(ac.maxPrice || '');
+  if (Number.isFinite(maxP)) {
+    data = data.filter((x) => x.price == null || x.price <= maxP);
+  }
+
   // Recurring entries stay grouped (UI toggle removed).
 
   data.sort((a, b) => {
     switch (sortKey) {
-      case 'soonest_start':
+      case 'truck_asc':
+        return a.truckType.localeCompare(b.truckType);
+      case 'truck_desc':
+        return b.truckType.localeCompare(a.truckType);
+      case 'availability_desc':
+        return parseStartKey(b) - parseStartKey(a);
+      case 'availability_asc':
+      case '':
         return parseStartKey(a) - parseStartKey(b);
-      case 'lowest_price':
-        return (a.price ?? Number.POSITIVE_INFINITY) - (b.price ?? Number.POSITIVE_INFINITY);
-      case 'highest_rating':
-        return b.rating - a.rating;
-      case 'freshest':
+      case 'earliest_posting_date':
         return parsePostedMinutes(a.posted) - parsePostedMinutes(b.posted);
-      default: {
-        const score = (t: AvailableTruck) =>
-          (t.vis === 'private' ? 100 : 0) +
-          (t.preferred ? 50 : 0) +
-          t.rating * 10 +
-          (t.loadMatchScore ?? 0);
-        return score(b) - score(a);
-      }
+      case 'latest_posting_date':
+        return parsePostedMinutes(b.posted) - parsePostedMinutes(a.posted);
+      case 'pickup_asc':
+        return a.pickup.localeCompare(b.pickup);
+      case 'pickup_desc':
+        return b.pickup.localeCompare(a.pickup);
+      case 'dropoff_asc':
+        return a.dest.localeCompare(b.dest);
+      case 'dropoff_desc':
+        return b.dest.localeCompare(a.dest);
+      case 'carrier_asc':
+        return a.carrier.localeCompare(b.carrier);
+      case 'carrier_desc':
+        return b.carrier.localeCompare(a.carrier);
+      case 'price_asc':
+        return (a.price ?? Number.POSITIVE_INFINITY) - (b.price ?? Number.POSITIVE_INFINITY);
+      case 'price_desc':
+        return (b.price ?? Number.NEGATIVE_INFINITY) - (a.price ?? Number.NEGATIVE_INFINITY);
+      default:
+        return parseStartKey(a) - parseStartKey(b);
     }
   });
 
@@ -233,7 +286,7 @@ export function useSearchTrucks() {
   const [quickFilters, setQuickFilters] = useState<Set<QuickFilterKey>>(new Set());
   const [criteria, setCriteria] = useState<SearchCriteria>(emptyCriteria);
   const [appliedCriteria, setAppliedCriteria] = useState<SearchCriteria>(emptyCriteria);
-  const [sortKey, setSortKey] = useState<SortKey>('best_match');
+  const [sortKey, setSortKey] = useState<SortKey>('');
   const [mockVisibleCount, setMockVisibleCount] = useState(PER_PAGE);
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -491,32 +544,47 @@ export function useSearchTrucks() {
     showToast(t('satFiltersCleared') || 'Filters cleared', 'info');
   }, [showToast, t]);
 
-  const applyPanelFilters = useCallback(
-    (draft: {
-      pickupRadius: number;
-      dropoffRadius: number;
-      tripType: SearchCriteria['tripType'];
-      quickFilters: QuickFilterKey[];
-    }) => {
-      const nextQuick = new Set(draft.quickFilters);
-      setQuickFilters(nextQuick);
-      const patch = {
-        pickupRadius: draft.pickupRadius,
-        dropoffRadius: draft.dropoffRadius,
-        tripType: draft.tripType ?? 'any',
-      };
-      setCriteria((prev) => ({ ...prev, ...patch }));
-      setAppliedCriteria((prev) => ({ ...prev, ...patch }));
-      setSelectedId(null);
-    },
-    []
-  );
+  const applyPanelFilters = useCallback((draft: SatFilterDraft) => {
+    const nextQuick = new Set(draft.quickFilters);
+    setQuickFilters(nextQuick);
+    const tripType = resolveTripType(draft.stopsMulti, draft.stopsDirect);
+    const patch: Partial<SearchCriteria> = {
+      truckTypeIds: draft.truckTypeIds,
+      availableFromStart: draft.availableFromStart,
+      availableFromEnd: draft.availableFromEnd,
+      pickupCity: draft.pickupCity,
+      pickupLat: draft.pickupLat,
+      pickupLng: draft.pickupLng,
+      pickupRadius: draft.pickupRadius,
+      dropoffCity: draft.dropoffCity,
+      dropoffLat: draft.dropoffLat,
+      dropoffLng: draft.dropoffLng,
+      dropoffRadius: draft.dropoffRadius,
+      stopsMulti: draft.stopsMulti,
+      stopsDirect: draft.stopsDirect,
+      tripType,
+      providerNames: draft.providerNames,
+      minPrice: draft.minPrice,
+      maxPrice: draft.maxPrice,
+    };
+    setCriteria((prev) => ({ ...prev, ...patch }));
+    setAppliedCriteria((prev) => ({ ...prev, ...patch }));
+    setSelectedId(null);
+  }, []);
 
   const resetPanelFilters = useCallback(() => {
-    const patch = {
+    const patch: Partial<SearchCriteria> = {
+      truckTypeIds: [],
+      availableFromStart: '',
+      availableFromEnd: '',
       pickupRadius: 50,
       dropoffRadius: 50,
-      tripType: 'any' as const,
+      stopsMulti: true,
+      stopsDirect: false,
+      tripType: 'any',
+      providerNames: [],
+      minPrice: '',
+      maxPrice: '',
     };
     setQuickFilters(new Set());
     setCriteria((prev) => ({ ...prev, ...patch }));
