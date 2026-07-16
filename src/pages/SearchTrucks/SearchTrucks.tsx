@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   AvailabilityList,
   AvailabilityMap,
@@ -10,10 +11,37 @@ import {
 import { useApp } from '../../context/AppContext';
 import '../../styles/search-trucks.css';
 import { useSearchTrucks } from './hooks/useSearchTrucks';
+import type { AvailableTruck } from './types';
 
 export const SearchTrucks: React.FC = () => {
   const m = useSearchTrucks();
   const { showToast } = useApp();
+  const navigate = useNavigate();
+
+  const openProviderProfile = useCallback(
+    (truck: AvailableTruck) => {
+      if (truck.partnerId) {
+        navigate(`/partners?partner_id=${truck.partnerId}`);
+        return;
+      }
+      const q = truck.carrier?.trim();
+      if (q && q !== '—') {
+        navigate(`/partners?search=${encodeURIComponent(q)}`);
+        showToast(
+          m.t('satProfileNotPartnerSearch') ||
+            'Provider is not linked as a partner yet — showing matching partners.',
+          'info'
+        );
+        return;
+      }
+      navigate('/partners');
+      showToast(
+        m.t('satProfileNotPartner') || 'This provider is not in your partners yet.',
+        'info'
+      );
+    },
+    [m.t, navigate, showToast]
+  );
 
   return (
     <div className="sat-page">
@@ -96,7 +124,7 @@ export const SearchTrucks: React.FC = () => {
           onMessage={(carrier) =>
             showToast(m.t('satMessageSent', { carrier }) || `Message sent to ${carrier}`, 'success')
           }
-          onProfile={() => showToast(m.t('satViewingProfile') || 'Viewing profile', 'info')}
+          onProfile={openProviderProfile}
           onClearFilters={m.clearFilters}
           mapExpanded={m.mapExpanded}
           onCollapseMap={() => m.setMapExpanded(false)}

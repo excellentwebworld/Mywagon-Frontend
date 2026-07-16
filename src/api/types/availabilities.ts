@@ -4,6 +4,8 @@ import type { QuickFilterKey, SortKey, VisibilityFilter } from '../../pages/Sear
 export interface ApiAvailabilityProvider {
   type: 'carrier' | 'freelancer';
   id?: number | null;
+  /** Shipper↔provider partners.id when a relationship exists */
+  partner_id?: number | null;
   name: string;
   initials: string;
   rating: number;
@@ -11,7 +13,6 @@ export interface ApiAvailabilityProvider {
   /** Detail only — null when unknown / no history */
   on_time_delivery_pct?: number | null;
   cancellation_rate_pct?: number | null;
-  avg_response_min?: number | null;
 }
 
 export interface ApiAvailabilityListItem {

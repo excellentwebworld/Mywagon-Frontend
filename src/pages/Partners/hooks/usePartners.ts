@@ -65,7 +65,10 @@ export function usePartners() {
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
   const [openFilterDropdown, setOpenFilterDropdown] = useState('');
 
-  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(() => {
+    const fromUrl = searchParams.get('partner_id');
+    return fromUrl && /^\d+$/.test(fromUrl) ? fromUrl : null;
+  });
   const [openSections, setOpenSections] = useState<OpenSections>(EMPTY_SECTIONS);
 
   const currentPage = parseInt(searchParams.get('page') || '1', 10) || 1;
@@ -108,6 +111,11 @@ export function usePartners() {
     const q = searchParams.get('search') || '';
     setSearchQuery(q);
     setDebouncedSearch(q);
+
+    const partnerFromUrl = searchParams.get('partner_id');
+    setSelectedPartnerId(
+      partnerFromUrl && /^\d+$/.test(partnerFromUrl) ? partnerFromUrl : null
+    );
   }, [searchParams]);
 
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -259,6 +267,14 @@ export function usePartners() {
     mutationFn: (id: string) => partnersService.decline(id),
     onSuccess: () => {
       invalidatePartners();
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('partner_id');
+          return next;
+        },
+        { replace: true }
+      );
       setSelectedPartnerId(null);
       showToast(t('partnerDeclined'));
     },
@@ -269,6 +285,14 @@ export function usePartners() {
     mutationFn: (id: string) => partnersService.delete(id),
     onSuccess: () => {
       invalidatePartners();
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('partner_id');
+          return next;
+        },
+        { replace: true }
+      );
       setSelectedPartnerId(null);
       showToast(t('partnerRemoved'));
     },
@@ -323,11 +347,24 @@ export function usePartners() {
     onError: (err) => handleApiError(err, t('actionFailed')),
   });
 
+  const clearPartnerSelection = useCallback(() => {
+    setSelectedPartnerId(null);
+    setSearchParams(
+      (prev) => {
+        if (!prev.get('partner_id')) return prev;
+        const next = new URLSearchParams(prev);
+        next.delete('partner_id');
+        return next;
+      },
+      { replace: true }
+    );
+  }, [setSearchParams]);
+
   const selectFacet = useCallback((filter: FacetFilter) => {
     setFacetFilter((prev) => (prev === filter ? 'all' : filter));
     setKpiFilter('');
-    setSelectedPartnerId(null);
-  }, []);
+    clearPartnerSelection();
+  }, [clearPartnerSelection]);
 
   const selectKpi = useCallback((key: KpiFilter) => {
     const next = kpiFilter === key ? '' : key;
@@ -335,8 +372,8 @@ export function usePartners() {
     const facet = kpiToFacet(next);
     if (facet) setFacetFilter(facet);
     else if (next === '') setFacetFilter('all');
-    setSelectedPartnerId(null);
-  }, [kpiFilter]);
+    clearPartnerSelection();
+  }, [clearPartnerSelection, kpiFilter]);
 
   const toggleFilterDropdown = useCallback((key: string) => {
     setOpenFilterDropdown((prev) => (prev === key ? '' : key));
@@ -348,8 +385,8 @@ export function usePartners() {
 
   const applyFilters = useCallback((filters: ActiveFilters) => {
     setActiveFilters(filters);
-    setSelectedPartnerId(null);
-  }, []);
+    clearPartnerSelection();
+  }, [clearPartnerSelection]);
 
   const clearAllFilters = useCallback(() => {
     setSearchQuery('');
@@ -357,16 +394,26 @@ export function usePartners() {
     setFacetFilter('all');
     setActiveFilters(EMPTY_FILTERS);
     setOpenFilterDropdown('');
-    setSelectedPartnerId(null);
+    clearPartnerSelection();
     showToast(t('partnerFiltersCleared'));
-  }, [showToast, t]);
+  }, [clearPartnerSelection, showToast, t]);
 
   const openDetailPanel = useCallback((p: Partner) => {
     setSelectedPartnerId(p.id);
     setOpenSections(EMPTY_SECTIONS);
-  }, []);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('partner_id', p.id);
+        return next;
+      },
+      { replace: true }
+    );
+  }, [setSearchParams]);
 
-  const closeDetailPanel = useCallback(() => setSelectedPartnerId(null), []);
+  const closeDetailPanel = useCallback(() => {
+    clearPartnerSelection();
+  }, [clearPartnerSelection]);
 
   const toggleSection = useCallback((key: keyof OpenSections) => {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));

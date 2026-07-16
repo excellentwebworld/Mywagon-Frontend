@@ -17,7 +17,7 @@ interface AvailabilityListProps {
   onSelect: (id: string | null) => void;
   onBook: (truck: AvailableTruck, mode?: DrawerMode, occurrence?: string) => void;
   onMessage: (carrier: string) => void;
-  onProfile: () => void;
+  onProfile: (truck: AvailableTruck) => void;
   onClearFilters: () => void;
   mapExpanded: boolean;
   onCollapseMap: () => void;

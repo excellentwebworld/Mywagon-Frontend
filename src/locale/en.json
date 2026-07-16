@@ -1650,6 +1650,8 @@
   "satOnTimePickup": "On-time pickup",
   "satOnTimeDelivery": "On-time delivery",
   "satActionComingSoon": "Coming soon",
+  "satProfileNotPartner": "This provider is not in your partners yet.",
+  "satProfileNotPartnerSearch": "Provider is not linked as a partner yet — showing matching partners.",
   "satCancellationRate": "Cancellation rate",
   "satAvgResponse": "Avg response",
   "satMessage": "Message",

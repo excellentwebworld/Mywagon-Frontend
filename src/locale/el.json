@@ -1650,6 +1650,8 @@
   "satOnTimePickup": "Έγκαιρη παραλαβή",
   "satOnTimeDelivery": "Έγκαιρη παράδοση",
   "satActionComingSoon": "Σύντομα διαθέσιμο",
+  "satProfileNotPartner": "Αυτός ο πάροχος δεν είναι ακόμη στους συνεργάτες σας.",
+  "satProfileNotPartnerSearch": "Ο πάροχος δεν είναι συνδεδεμένος ως συνεργάτης — εμφάνιση αντιστοιχιών.",
   "satCancellationRate": "Ποσοστό ακύρωσης",
   "satAvgResponse": "Μέσος χρόνος απάντησης",
   "satMessage": "Μήνυμα",

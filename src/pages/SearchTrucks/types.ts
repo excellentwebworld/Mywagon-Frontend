@@ -67,6 +67,8 @@ export interface AvailableTruck {
   type: ProviderType;
   preferred: boolean;
   providerId?: number | null;
+  /** partners.id when this provider is linked to the shipper */
+  partnerId?: number | null;
   price: number | null;
   priceBlurred?: boolean;
   currency: string;
@@ -78,7 +80,6 @@ export interface AvailableTruck {
   /** On-time delivery % from provider history; null = unknown */
   onTimeDeliveryPct?: number | null;
   cancellationRate?: number | null;
-  avgResponseMin?: number | null;
   pickupLat: number;
   pickupLng: number;
   destLat?: number | null;

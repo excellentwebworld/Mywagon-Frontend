@@ -9,17 +9,13 @@ interface AvailabilityDetailPanelProps {
   onClose: () => void;
   onBook: (truck: AvailableTruck, mode?: DrawerMode, occurrence?: string) => void;
   onMessage: (carrier: string) => void;
-  onProfile: () => void;
+  onProfile: (truck: AvailableTruck) => void;
   creatingShipment?: boolean;
   t: (key: string) => string;
 }
 
 function formatStatPct(value: number | null | undefined): string {
   return value == null ? '—' : `${value}%`;
-}
-
-function formatStatMin(value: number | null | undefined): string {
-  return value == null ? '—' : `${value} min`;
 }
 
 function DetailPanelSkeleton({
@@ -173,10 +169,6 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
     </span>
   ) : null;
 
-  const onTimeValue = statsLoading ? '…' : formatStatPct(detailTruck.onTimeDeliveryPct);
-  const cancelValue = statsLoading ? '…' : formatStatPct(detailTruck.cancellationRate);
-  const responseValue = statsLoading ? '…' : formatStatMin(detailTruck.avgResponseMin);
-
   return (
     <div className="sat-detail-overlay" role="dialog" aria-modal="true" aria-label={t('satProviderProfile')}>
       <button type="button" className="sat-detail-close" onClick={onClose} aria-label={t('close')}>
@@ -209,28 +201,45 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
               )}
             </div>
           </div>
-          <div className="sat-exp-stat">
-            <span>{t('satOnTimeDelivery') || t('satOnTimePickup')}</span>
-            <span
-              style={{
-                color:
-                  detailTruck.onTimeDeliveryPct != null && !statsLoading
-                    ? 'var(--success)'
-                    : 'var(--text-tertiary)',
-              }}
-            >
-              {onTimeValue}
-            </span>
-          </div>
-          <div className="sat-exp-stat">
-            <span>{t('satCancellationRate')}</span>
-            <span style={{ color: cancelValue === '—' || statsLoading ? 'var(--text-tertiary)' : undefined }}>
-              {cancelValue}
-            </span>
-          </div>
-          <div className="sat-exp-stat">
-            <span>{t('satAvgResponse')}</span>
-            <span style={{ color: 'var(--text-tertiary)' }}>{responseValue}</span>
+          <div
+            className="sat-exp-stats"
+            aria-busy={statsLoading || undefined}
+            aria-live="polite"
+          >
+            <div className="sat-exp-stat">
+              <span>{t('satOnTimeDelivery') || t('satOnTimePickup')}</span>
+              {statsLoading ? (
+                <span className="sat-exp-stat-skel" aria-hidden />
+              ) : (
+                <span
+                  style={{
+                    color:
+                      detailTruck.onTimeDeliveryPct != null
+                        ? 'var(--success)'
+                        : 'var(--text-tertiary)',
+                  }}
+                >
+                  {formatStatPct(detailTruck.onTimeDeliveryPct)}
+                </span>
+              )}
+            </div>
+            <div className="sat-exp-stat">
+              <span>{t('satCancellationRate')}</span>
+              {statsLoading ? (
+                <span className="sat-exp-stat-skel" aria-hidden />
+              ) : (
+                <span
+                  style={{
+                    color:
+                      detailTruck.cancellationRate == null
+                        ? 'var(--text-tertiary)'
+                        : undefined,
+                  }}
+                >
+                  {formatStatPct(detailTruck.cancellationRate)}
+                </span>
+              )}
+            </div>
           </div>
           <div className="sat-exp-actions">
             <button
@@ -245,9 +254,8 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
             <button
               type="button"
               className="sat-btn sat-btn-sm"
-              disabled
-              title={t('satActionComingSoon') || 'Coming soon'}
-              onClick={onProfile}
+              disabled={statsLoading}
+              onClick={() => onProfile(detailTruck)}
             >
               👤 {t('satProfile')}
             </button>
