@@ -86,6 +86,10 @@ function BidsCell({
   shipment: Shipment;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
+  if (s.status === 'draft') {
+    return <span className="sub">—</span>;
+  }
+
   if (s.status !== 'pending') {
     return <span className="sub">—</span>;
   }

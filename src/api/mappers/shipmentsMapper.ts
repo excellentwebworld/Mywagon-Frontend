@@ -120,7 +120,7 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
   return {
     id: String(item.id),
     autoId: item.auto_id,
-    date: item.pickup_at || formatDisplayDate(item.created_at),
+    date: item.pickup_at || (status === 'draft' ? '' : formatDisplayDate(item.created_at)),
     pickDt: item.pickup_at ?? null,
     delDt: item.delivery_at ?? null,
     pickDtIso: item.pickup_at_iso ?? null,
