@@ -245,8 +245,15 @@ export function useSearchTrucks() {
   const [selectedTruck, setSelectedTruck] = useState<AvailableTruck | null>(null);
   const [selectedPendingIdx, setSelectedPendingIdx] = useState<number | null>(null);
   const [draft, setDraft] = useState<BookingDraft | null>(null);
-  const [pending, setPending] = useState<PendingShipment[]>(USE_MOCK ? MOCK_PENDING : []);
+  const [pending, setPending] = useState<PendingShipment[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
+  const [pendingFetchingMore, setPendingFetchingMore] = useState(false);
+  const [pendingPage, setPendingPage] = useState(1);
+  const [pendingHasMore, setPendingHasMore] = useState(false);
+  const [pendingTotal, setPendingTotal] = useState(0);
+  const [pendingSearch, setPendingSearch] = useState('');
+  const pendingTruckIdRef = useRef<string | null>(null);
+  const pendingReqSeqRef = useRef(0);
   const [confirming, setConfirming] = useState(false);
   const [creatingShipmentId, setCreatingShipmentId] = useState<string | null>(null);
 
@@ -527,30 +534,116 @@ export function useSearchTrucks() {
     setSelectedId(id);
   }, []);
 
+  const PENDING_PAGE_SIZE = 10;
+
   const loadPendingMatches = useCallback(
-    async (truck: AvailableTruck) => {
-      if (USE_MOCK) {
-        setPending(MOCK_PENDING);
-        return;
-      }
-      setPendingLoading(true);
-      try {
-        await availabilitiesService.proceed(Number(truck.id), 'pending_matches');
-        const matches = await availabilitiesService.pendingMatches(Number(truck.id));
-        setPending(matches);
-      } catch (err) {
+    async (
+      truck: AvailableTruck,
+      opts: {
+        page?: number;
+        append?: boolean;
+        search?: string;
+      } = {}
+    ) => {
+      const page = opts.page ?? 1;
+      const append = Boolean(opts.append);
+      const search = opts.search ?? pendingSearch;
+      const reqId = ++pendingReqSeqRef.current;
+      pendingTruckIdRef.current = truck.id;
+
+      if (append) setPendingFetchingMore(true);
+      else {
+        setPendingLoading(true);
         setPending([]);
+        setSelectedPendingIdx(null);
+        setPendingPage(1);
+        setPendingHasMore(false);
+      }
+
+      try {
+        if (USE_MOCK) {
+          await new Promise((r) => setTimeout(r, append ? 280 : 400));
+          if (reqId !== pendingReqSeqRef.current || pendingTruckIdRef.current !== truck.id) return;
+
+          const q = search.trim().toLowerCase();
+          const filtered = MOCK_PENDING.filter((p) => {
+            if (!q) return true;
+            return `${p.sid} ${p.lane} ${p.pickup} ${p.weight}`.toLowerCase().includes(q);
+          });
+          const start = (page - 1) * PENDING_PAGE_SIZE;
+          const slice = filtered.slice(start, start + PENDING_PAGE_SIZE);
+          setPending((prev) => (append ? [...prev, ...slice] : slice));
+          setPendingPage(page);
+          setPendingTotal(filtered.length);
+          setPendingHasMore(start + slice.length < filtered.length);
+          return;
+        }
+
+        if (!append) {
+          await availabilitiesService.proceed(Number(truck.id), 'pending_matches');
+        }
+        const result = await availabilitiesService.pendingMatches(Number(truck.id), {
+          page,
+          perPage: PENDING_PAGE_SIZE,
+          search,
+          filter: 'all',
+        });
+        if (reqId !== pendingReqSeqRef.current || pendingTruckIdRef.current !== truck.id) return;
+
+        setPending((prev) => (append ? [...prev, ...result.items] : result.items));
+        setPendingPage(result.meta.current_page);
+        setPendingTotal(result.meta.total);
+        setPendingHasMore(
+          result.meta.current_page < (result.meta.last_page ?? result.meta.current_page)
+        );
+      } catch (err) {
+        if (reqId !== pendingReqSeqRef.current) return;
+        if (!append) setPending([]);
+        setPendingHasMore(false);
         const msg =
           err instanceof ApiError
             ? err.message
             : t('satPendingLoadError') || 'Failed to load pending shipments';
         showToast(msg, 'error');
       } finally {
-        setPendingLoading(false);
+        if (reqId === pendingReqSeqRef.current) {
+          setPendingLoading(false);
+          setPendingFetchingMore(false);
+        }
       }
     },
-    [showToast, t]
+    [pendingSearch, showToast, t]
   );
+
+  const setPendingSearchQuery = useCallback(
+    (search: string) => {
+      setPendingSearch(search);
+      if (!selectedTruck) return;
+      void loadPendingMatches(selectedTruck, {
+        page: 1,
+        append: false,
+        search,
+      });
+    },
+    [loadPendingMatches, selectedTruck]
+  );
+
+  const fetchMorePending = useCallback(() => {
+    if (!selectedTruck || pendingLoading || pendingFetchingMore || !pendingHasMore) return;
+    void loadPendingMatches(selectedTruck, {
+      page: pendingPage + 1,
+      append: true,
+      search: pendingSearch,
+    });
+  }, [
+    loadPendingMatches,
+    pendingFetchingMore,
+    pendingHasMore,
+    pendingLoading,
+    pendingPage,
+    pendingSearch,
+    selectedTruck,
+  ]);
 
   const goToCreateShipment = useCallback(
     async (truck: AvailableTruck) => {
@@ -591,11 +684,12 @@ export function useSearchTrucks() {
       setDrawerStep(1);
       setDrawerMode('pending');
       setSelectedPendingIdx(null);
+      setPendingSearch('');
       const d = createDraft(truck);
       if (occurrence) d.occurrence = occurrence;
       setDraft(d);
       setDrawerOpen(true);
-      void loadPendingMatches(truck);
+      void loadPendingMatches(truck, { page: 1, append: false, search: '' });
     },
     [goToCreateShipment, loadPendingMatches]
   );
@@ -606,7 +700,11 @@ export function useSearchTrucks() {
     setDraft(null);
     setSelectedPendingIdx(null);
     setDrawerStep(1);
-    setPending(USE_MOCK ? MOCK_PENDING : []);
+    setPending([]);
+    setPendingSearch('');
+    setPendingHasMore(false);
+    setPendingTotal(0);
+    pendingTruckIdRef.current = null;
   }, []);
 
   const updateDraft = useCallback((patch: Partial<BookingDraft>) => {
@@ -623,8 +721,13 @@ export function useSearchTrucks() {
       }
       setDrawerMode('pending');
       setSelectedPendingIdx(null);
+      setPendingSearch('');
       if (selectedTruck) {
-        void loadPendingMatches(selectedTruck);
+        void loadPendingMatches(selectedTruck, {
+          page: 1,
+          append: false,
+          search: '',
+        });
       }
     },
     [closeDrawer, goToCreateShipment, loadPendingMatches, selectedTruck]
@@ -823,6 +926,12 @@ export function useSearchTrucks() {
     t,
     pending,
     pendingLoading,
+    pendingFetchingMore,
+    pendingHasMore,
+    pendingTotal,
+    pendingSearch,
+    setPendingSearchQuery,
+    fetchMorePending,
     confirming: confirming || placeBidMutation.isPending,
     creatingShipment: Boolean(creatingShipmentId),
     creatingShipmentId,

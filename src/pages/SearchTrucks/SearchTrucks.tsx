@@ -154,11 +154,15 @@ export const SearchTrucks: React.FC = () => {
         open={m.drawerOpen}
         step={m.drawerStep}
         onStepChange={m.setDrawerStep}
-        mode={m.drawerMode}
-        onModeChange={m.setDrawerMode}
         truck={m.selectedTruck}
         pending={m.pending}
         pendingLoading={m.pendingLoading}
+        pendingFetchingMore={m.pendingFetchingMore}
+        pendingHasMore={m.pendingHasMore}
+        pendingTotal={m.pendingTotal}
+        pendingSearch={m.pendingSearch}
+        onPendingSearchChange={m.setPendingSearchQuery}
+        onLoadMorePending={m.fetchMorePending}
         confirming={m.confirming}
         selectedPendingIdx={m.selectedPendingIdx}
         onSelectPending={m.setSelectedPendingIdx}

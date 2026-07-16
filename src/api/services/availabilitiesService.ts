@@ -147,9 +147,31 @@ export const availabilitiesService = {
     return res.data;
   },
 
-  async pendingMatches(id: number): Promise<PendingShipment[]> {
-    const res = await apiGet<ApiPendingMatch[]>(`/availabilities/${id}/pending-matches`);
-    return (res.data ?? []).map(mapPendingMatch);
+  async pendingMatches(
+    id: number,
+    input: {
+      page?: number;
+      perPage?: number;
+      search?: string;
+      filter?: 'all' | 'exact' | 'multi';
+    } = {}
+  ): Promise<{ items: PendingShipment[]; meta: ApiListMeta & { counts?: Record<string, number> } }> {
+    const res = await apiGet<ApiPendingMatch[]>(`/availabilities/${id}/pending-matches`, {
+      page: input.page ?? 1,
+      per_page: input.perPage ?? 10,
+      search: input.search?.trim() || undefined,
+      filter: input.filter && input.filter !== 'all' ? input.filter : undefined,
+    });
+    const meta = res.meta ?? {
+      current_page: input.page ?? 1,
+      per_page: input.perPage ?? 10,
+      total: (res.data ?? []).length,
+      last_page: 1,
+    };
+    return {
+      items: (res.data ?? []).map(mapPendingMatch),
+      meta,
+    };
   },
 
   async placeBid(

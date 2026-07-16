@@ -1,20 +1,58 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type {
   AvailableTruck,
   BookingDraft,
-  DrawerMode,
   PendingShipment,
 } from '../../pages/SearchTrucks/types';
+
+function pendingKey(p: PendingShipment): string {
+  return String(p.id ?? p.sid);
+}
+
+function PendingCardSkeleton({ variant = 0 }: { variant?: number }) {
+  const sidW = ['42%', '36%', '48%'][variant % 3];
+  const laneW = ['92%', '78%', '86%'][variant % 3];
+  const lane2W = ['64%', '54%', '70%'][variant % 3];
+  return (
+    <div className="sat-pend-row sat-pend-row--skel" aria-hidden>
+      <div className="sat-pend-skel-radio" />
+      <div className="sat-pend-main">
+        <div className="sat-pend-skel-sid" style={{ width: sidW }} />
+        <div className="sat-pend-skel-lane" style={{ width: laneW }} />
+        <div className="sat-pend-skel-lane sat-pend-skel-lane--2" style={{ width: lane2W }} />
+        <div className="sat-pend-meta sat-pend-meta--skel">
+          <span className="sat-pend-skel-chip" style={{ width: 56 }} />
+          <span className="sat-pend-skel-chip" style={{ width: 72 }} />
+          <span className="sat-pend-skel-chip" style={{ width: 64 }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PendingListSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <div className="sat-pend-skel" role="status" aria-busy="true">
+      {Array.from({ length: rows }, (_, i) => (
+        <PendingCardSkeleton key={i} variant={i} />
+      ))}
+    </div>
+  );
+}
 
 interface BookingDrawerProps {
   open: boolean;
   step: number;
   onStepChange: (step: number) => void;
-  mode: DrawerMode;
-  onModeChange: (mode: DrawerMode) => void;
   truck: AvailableTruck | null;
   pending: PendingShipment[];
   pendingLoading?: boolean;
+  pendingFetchingMore?: boolean;
+  pendingHasMore?: boolean;
+  pendingTotal?: number;
+  pendingSearch?: string;
+  onPendingSearchChange?: (search: string) => void;
+  onLoadMorePending?: () => void;
   confirming?: boolean;
   selectedPendingIdx: number | null;
   onSelectPending: (idx: number) => void;
@@ -29,10 +67,15 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
   open,
   step,
   onStepChange,
-  onModeChange,
   truck,
   pending,
   pendingLoading,
+  pendingFetchingMore,
+  pendingHasMore,
+  pendingTotal = 0,
+  pendingSearch = '',
+  onPendingSearchChange,
+  onLoadMorePending,
   confirming,
   selectedPendingIdx,
   onSelectPending,
@@ -42,16 +85,59 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
   onConfirm,
   t,
 }) => {
+  const [searchInput, setSearchInput] = useState(pendingSearch);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const selectedPending =
     selectedPendingIdx != null ? pending[selectedPendingIdx] : null;
 
   const canNextFromStep1 = selectedPendingIdx != null;
 
+  useEffect(() => {
+    if (!open) return;
+    setSearchInput(pendingSearch);
+  }, [open, truck?.id, pendingSearch]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      if (searchInput === pendingSearch) return;
+      onPendingSearchChange?.(searchInput);
+    }, 300);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [searchInput, open, onPendingSearchChange, pendingSearch]);
+
+  useEffect(() => {
+    const root = listRef.current;
+    const sentinel = sentinelRef.current;
+    if (!root || !sentinel || !pendingHasMore || pendingLoading || pendingFetchingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) onLoadMorePending?.();
+      },
+      { root, rootMargin: '120px', threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [
+    pendingHasMore,
+    pendingLoading,
+    pendingFetchingMore,
+    onLoadMorePending,
+    pending.length,
+  ]);
+
   if (!open || !truck || !draft) return null;
 
   const shipLabel = selectedPending
     ? `${selectedPending.sid} — ${selectedPending.lane}`
-    : t('satNewShipmentDraft');
+    : '—';
 
   const showPrice = truck.price != null && !truck.priceBlurred;
 
@@ -65,97 +151,154 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
     >
       <div className="sat-drawer" role="dialog" aria-modal="true" aria-labelledby="sat-drawer-title">
         <div className="sat-drawer-h">
-          <h3 id="sat-drawer-title">
-            {t('satBook')}: {truck.carrier} · {truck.truckType}
-          </h3>
+          <div>
+            <p className="sat-drawer-kicker">{t('satBookPending')}</p>
+            <h3 id="sat-drawer-title">
+              {truck.carrier} · {truck.truckType}
+            </h3>
+          </div>
           <button type="button" className="sat-drawer-close" onClick={onClose} aria-label={t('close')}>
             ✕
           </button>
         </div>
 
-        <div className="sat-stepper">
-          <div className={`sat-step ${step === 1 ? 'act' : ''} ${step > 1 ? 'done' : ''}`}>
-            <div className="sat-step-num">{step > 1 ? '✓' : '1'}</div>
-            {t('satStepChoose')}
-          </div>
-          <div className={`sat-step-line ${step > 1 ? 'done' : ''}`} />
-          <div className={`sat-step ${step === 2 ? 'act' : ''} ${step > 2 ? 'done' : ''}`}>
-            <div className="sat-step-num">{step > 2 ? '✓' : '2'}</div>
-            {t('satStepTerms')}
-          </div>
-          <div className={`sat-step-line ${step > 2 ? 'done' : ''}`} />
-          <div className={`sat-step ${step === 3 ? 'act' : ''}`}>
-            <div className="sat-step-num">3</div>
-            {t('satStepConfirm')}
-          </div>
-        </div>
+        <nav className="sat-stepper" aria-label={t('satBook')}>
+          {(
+            [
+              { n: 1, label: t('satStepChoose') },
+              { n: 2, label: t('satStepTerms') },
+              { n: 3, label: t('satStepConfirm') },
+            ] as const
+          ).map((s, i, arr) => {
+            const done = step > s.n;
+            const act = step === s.n;
+            return (
+              <React.Fragment key={s.n}>
+                <button
+                  type="button"
+                  className={`sat-step ${act ? 'act' : ''} ${done ? 'done' : ''}`}
+                  disabled={!done && !act}
+                  onClick={() => done && onStepChange(s.n)}
+                  aria-current={act ? 'step' : undefined}
+                >
+                  <span className="sat-step-num">{done ? '✓' : s.n}</span>
+                  <span className="sat-step-label">{s.label}</span>
+                </button>
+                {i < arr.length - 1 ? (
+                  <div className={`sat-step-line ${step > s.n ? 'done' : ''} ${step === s.n ? 'act' : ''}`} />
+                ) : null}
+              </React.Fragment>
+            );
+          })}
+        </nav>
 
-        <div className="sat-drawer-body">
+        <div className={`sat-drawer-body ${step === 1 ? 'sat-drawer-body--pend' : ''}`}>
           {step === 1 && (
-            <>
-              <div className="sat-f-tabs" style={{ marginBottom: 14, width: '100%' }}>
-                <button
-                  type="button"
-                  className="sat-f-tab act"
-                  style={{ flex: 1 }}
-                  onClick={() => onModeChange('pending')}
-                >
-                  {t('satUsePending')}
-                </button>
-                <button
-                  type="button"
-                  className="sat-f-tab"
-                  style={{ flex: 1 }}
-                  onClick={() => onModeChange('new')}
-                >
-                  {t('satCreateNewShipment')}
-                </button>
+            <div className="sat-pend-panel">
+              <div className="sat-pend-toolbar">
+                <div className="sat-pend-toolbar-row">
+                  <label className="sat-pend-search">
+                    <span className="sat-pend-search-icon" aria-hidden>
+                      ⌕
+                    </span>
+                    <input
+                      type="search"
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      placeholder={t('satPendingSearchPh') || 'Search by ID, route, city…'}
+                      aria-label={t('satPendingSearch') || 'Search pending shipments'}
+                    />
+                  </label>
+                  <div className="sat-pend-count" aria-live="polite">
+                    {pendingLoading ? '…' : pendingTotal}
+                    <span>{t('satPendingCountLabel') || 'shipments'}</span>
+                  </div>
+                </div>
               </div>
 
-              {pendingLoading ? (
-                <div className="sat-empty">{t('satLoadingPending')}</div>
-              ) : pending.length === 0 ? (
-                <div className="sat-empty">{t('satNoPending')}</div>
-              ) : (
-                pending.map((p, pi) => (
-                  <div
-                    key={p.id ?? p.sid}
-                    className={`sat-pend-row ${selectedPendingIdx === pi ? 'sel' : ''}`}
-                    onClick={() => onSelectPending(pi)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && onSelectPending(pi)}
-                  >
-                    <div className="sat-pend-radio" />
-                    <div>
-                      <div className="sat-pend-sid">
-                        {p.sid}
-                        {p.exactMatch ? (
-                          <span className="sat-bg sat-bg-ok" style={{ marginLeft: 8, fontSize: 10 }}>
-                            {t('satExactMatch')}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="sat-pend-lane">
-                        {p.lane} · {p.pickup} · {p.weight} · {p.stops} {t('satStops')}
-                      </div>
+              <div className="sat-pend-list-wrap">
+                <div
+                  ref={listRef}
+                  className="sat-pend-list"
+                  role="listbox"
+                  aria-label={t('satStepChoose')}
+                  aria-busy={pendingLoading || pendingFetchingMore || undefined}
+                >
+                  {pendingLoading ? (
+                    <PendingListSkeleton rows={6} />
+                  ) : pending.length === 0 ? (
+                    <div className="sat-empty sat-pend-empty">
+                      {pendingTotal === 0 && !pendingSearch
+                        ? t('satNoPending') || 'No matching pending shipments for this availability.'
+                        : t('satPendingNoFilterResults') ||
+                          'No shipments match your search or filters.'}
                     </div>
-                  </div>
-                ))
-              )}
+                  ) : (
+                    <>
+                      {pending.map((p, idx) => {
+                        const selected = selectedPendingIdx === idx;
+                        return (
+                          <div
+                            key={pendingKey(p)}
+                            className={`sat-pend-row ${selected ? 'sel' : ''}`}
+                            onClick={() => onSelectPending(idx)}
+                            role="option"
+                            aria-selected={selected}
+                            tabIndex={0}
+                            onKeyDown={(e) => e.key === 'Enter' && onSelectPending(idx)}
+                          >
+                            <div className="sat-pend-radio" />
+                            <div className="sat-pend-main">
+                              <div className="sat-pend-sid">
+                                {p.sid}
+                                {p.exactMatch ? (
+                                  <span className="sat-bg sat-bg-ok">{t('satExactMatch')}</span>
+                                ) : null}
+                              </div>
+                              <div className="sat-pend-lane">{p.lane}</div>
+                              <div className="sat-pend-meta">
+                                <span>{p.pickup}</span>
+                                <span>{p.weight}</span>
+                                <span>
+                                  {p.stops} {t('satStops')}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
 
-              {selectedPending && (
-                <div style={{ marginTop: 14 }}>
-                  <h4
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: 'var(--text-tertiary)',
-                      marginBottom: 8,
-                    }}
-                  >
-                    {t('satMatchScore')}
-                  </h4>
+                      {pendingFetchingMore ? (
+                        <div
+                          className="sat-pend-append"
+                          role="status"
+                          aria-live="polite"
+                          aria-label={t('satPendingLoadingMore') || 'Loading more…'}
+                        >
+                          <PendingCardSkeleton variant={pending.length} />
+                        </div>
+                      ) : null}
+
+                      {!pendingHasMore && !pendingFetchingMore && pending.length > 0 ? (
+                        <p className="sat-pend-end">
+                          {(t('satPendingEndCount') || '{{count}} shipments shown').replace(
+                            '{{count}}',
+                            String(pendingTotal)
+                          )}
+                        </p>
+                      ) : null}
+
+                      {pendingHasMore ? (
+                        <div ref={sentinelRef} className="sat-pend-sentinel-hit" aria-hidden />
+                      ) : null}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {selectedPending && !pendingLoading ? (
+                <div className="sat-pend-match">
+                  <h4>{t('satMatchScore')}</h4>
                   <div className="sat-match-grid">
                     <div className="sat-match-item">
                       <div className="label">{t('satCapacityFit')}</div>
@@ -186,8 +329,8 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                     </div>
                   </div>
                 </div>
-              )}
-            </>
+              ) : null}
+            </div>
           )}
 
           {step === 2 && (

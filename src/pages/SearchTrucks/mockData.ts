@@ -313,7 +313,19 @@ export const MOCK_TRUCKS: AvailableTruck[] = [
 
 /** INTEGRATION POINT: Replace with API call */
 export const MOCK_PENDING: PendingShipment[] = [
-  { sid: 'SID-81225', lane: 'Ioannina → Sklavenitis', pickup: '22/02/2026', weight: '13T', stops: 2 },
-  { sid: 'SID-79998', lane: 'Ioannina → THE MART', pickup: '23/02/2026', weight: '24T', stops: 3 },
-  { sid: 'SID-102245', lane: 'Ioannina → Acharnes', pickup: '21/02/2026', weight: '18T', stops: 2 },
+  { id: 1, sid: 'SID-81225', lane: 'Ioannina → Sklavenitis', pickup: '22/02/2026', weight: '€ 1,200', stops: 2, exactMatch: true },
+  { id: 2, sid: 'SID-79998', lane: 'Ioannina → THE MART', pickup: '23/02/2026', weight: '€ 2,400', stops: 3 },
+  { id: 3, sid: 'SID-102245', lane: 'Ioannina → Acharnes', pickup: '21/02/2026', weight: '€ 1,800', stops: 2, exactMatch: true },
+  { id: 4, sid: 'SID-48783', lane: 'Bhadaj Circle, Ahmedabad → Gota Chokdi Flyover', pickup: 'Athens', weight: '€ 150,000', stops: 4 },
+  { id: 5, sid: 'SID-40703', lane: 'Athina → Piraeus Port', pickup: 'Athens', weight: '€ 980', stops: 1 },
+  { id: 6, sid: 'SID-39112', lane: 'Thessaloniki → Larissa', pickup: 'Theo', weight: '€ 640', stops: 2 },
+  { id: 7, sid: 'SID-38801', lane: 'Patras → Athens Hub', pickup: 'Patras', weight: '€ 1,050', stops: 3 },
+  { id: 8, sid: 'SID-37554', lane: 'Volos → Larissa DC', pickup: 'Volos', weight: '€ 420', stops: 1 },
+  { id: 9, sid: 'SID-36002', lane: 'Heraklion → Chania', pickup: 'Crete', weight: '€ 780', stops: 2, exactMatch: true },
+  { id: 10, sid: 'SID-35110', lane: 'Kavala → Serres', pickup: 'Kavala', weight: '€ 510', stops: 1 },
+  { id: 11, sid: 'SID-34440', lane: 'Ioannina → Thessaloniki Hub', pickup: '22/02/2026', weight: '€ 1,560', stops: 4 },
+  { id: 12, sid: 'SID-33091', lane: 'Athens North → Corinth', pickup: 'Athens', weight: '€ 390', stops: 2 },
+  { id: 13, sid: 'SID-32108', lane: 'Alexandroupoli → Kavala Depot', pickup: 'Alex', weight: '€ 720', stops: 3 },
+  { id: 14, sid: 'SID-31055', lane: 'Lamia → Domokos', pickup: 'Lamia', weight: '€ 280', stops: 1 },
+  { id: 15, sid: 'SID-29970', lane: 'Trikala → Karditsa', pickup: 'Trikala', weight: '€ 310', stops: 2 },
 ];
