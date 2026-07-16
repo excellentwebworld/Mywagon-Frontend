@@ -1648,6 +1648,8 @@
   "satResults": "αποτελέσματα",
   "satProviderProfile": "Προφίλ Παρόχου",
   "satOnTimePickup": "Έγκαιρη παραλαβή",
+  "satOnTimeDelivery": "Έγκαιρη παράδοση",
+  "satActionComingSoon": "Σύντομα διαθέσιμο",
   "satCancellationRate": "Ποσοστό ακύρωσης",
   "satAvgResponse": "Μέσος χρόνος απάντησης",
   "satMessage": "Μήνυμα",

@@ -4,6 +4,7 @@ import type {
   BookingDraft,
   PendingShipment,
 } from '../../pages/SearchTrucks/types';
+import { currencySymbol, formatMoney } from '../../pages/SearchTrucks/utils/money';
 
 function pendingKey(p: PendingShipment): string {
   return String(p.id ?? p.sid);
@@ -355,7 +356,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                         color: 'var(--accent)',
                       }}
                     >
-                      € {truck.price!.toLocaleString()}
+                      {formatMoney(truck.price, truck.currency)}
                     </div>
                   </div>
                   <div style={{ marginBottom: 14 }}>
@@ -371,7 +372,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                           })
                         }
                       />
-                      {t('satAcceptStarting')} (€ {truck.price})
+                      {t('satAcceptStarting')} ({formatMoney(truck.price, truck.currency)})
                     </label>
                     <label className="sat-price-opt">
                       <input
@@ -455,7 +456,9 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                     fontSize: 15,
                   }}
                 >
-                  € {draft.offerPrice || '—'}
+                  {draft.offerPrice
+                    ? `${currencySymbol(truck.currency)} ${draft.offerPrice}`
+                    : '—'}
                 </span>
               </div>
             </div>

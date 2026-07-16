@@ -13,6 +13,7 @@ import type {
   VisibilityFilter,
   QuickFilterKey,
 } from '../../pages/SearchTrucks/types';
+import { formatMoney } from '../../pages/SearchTrucks/utils/money';
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
@@ -98,11 +99,13 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
     capVal,
     capUnit,
     trip: mapTrip(item.trip_type),
+    multiStop: item.trip_type === 'multi_stop',
     carrier: item.provider?.name || '—',
     initials: item.provider?.initials || '?',
     rating: item.provider?.rating ?? 0,
     type: mapProviderType(item.provider?.type || 'freelancer'),
     preferred: Boolean(item.provider?.preferred),
+    providerId: item.provider?.id ?? null,
     price: item.price_blurred ? null : item.price,
     priceBlurred: Boolean(item.price_blurred),
     currency: item.currency || 'EUR',
@@ -110,6 +113,9 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
     recurring: Boolean(item.recurring),
     occurrences: [],
     recurrenceLabel: '',
+    onTimeDeliveryPct: item.provider?.on_time_delivery_pct ?? null,
+    cancellationRate: item.provider?.cancellation_rate_pct ?? null,
+    avgResponseMin: item.provider?.avg_response_min ?? null,
     pickupLat: item.pickup_lat ?? 0,
     pickupLng: item.pickup_lng ?? 0,
     destLat: item.dropoff_lat,
@@ -127,7 +133,7 @@ export function mapPendingMatch(item: ApiPendingMatch): PendingShipment {
     sid: item.load_id || `SHP-${item.id}`,
     lane: item.lane,
     pickup: item.pickup_city || '—',
-    weight: item.total != null ? `€ ${item.total}` : '—',
+    weight: item.total != null ? formatMoney(item.total, 'EUR') : '—',
     stops: item.stops_count ?? 0,
     exactMatch: item.exact_match,
   };

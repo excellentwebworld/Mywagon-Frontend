@@ -59,11 +59,14 @@ export interface AvailableTruck {
   capVal: number;
   capUnit: string;
   trip: TripType;
+  /** True when availability accepts multi-stop (from API trip_type) */
+  multiStop: boolean;
   carrier: string;
   initials: string;
   rating: number;
   type: ProviderType;
   preferred: boolean;
+  providerId?: number | null;
   price: number | null;
   priceBlurred?: boolean;
   currency: string;
@@ -72,9 +75,10 @@ export interface AvailableTruck {
   occurrences: string[];
   recurrenceLabel: string;
   bidSent?: boolean;
-  onTimePickup?: number;
-  cancellationRate?: number;
-  avgResponseMin?: number;
+  /** On-time delivery % from provider history; null = unknown */
+  onTimeDeliveryPct?: number | null;
+  cancellationRate?: number | null;
+  avgResponseMin?: number | null;
   pickupLat: number;
   pickupLng: number;
   destLat?: number | null;

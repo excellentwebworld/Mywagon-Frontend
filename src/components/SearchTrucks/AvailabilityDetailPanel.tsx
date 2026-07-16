@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { availabilitiesService } from '../../api';
+import { mapListItemToTruck } from '../../api/mappers/availabilitiesMapper';
 import type { AvailableTruck, DrawerMode } from '../../pages/SearchTrucks/types';
+import { formatMoney } from '../../pages/SearchTrucks/utils/money';
 
 interface AvailabilityDetailPanelProps {
   truck: AvailableTruck;
@@ -9,6 +12,14 @@ interface AvailabilityDetailPanelProps {
   onProfile: () => void;
   creatingShipment?: boolean;
   t: (key: string) => string;
+}
+
+function formatStatPct(value: number | null | undefined): string {
+  return value == null ? '—' : `${value}%`;
+}
+
+function formatStatMin(value: number | null | undefined): string {
+  return value == null ? '—' : `${value} min`;
 }
 
 function DetailPanelSkeleton({
@@ -113,15 +124,58 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
   creatingShipment = false,
   t,
 }) => {
+  const [detailTruck, setDetailTruck] = useState<AvailableTruck>(truck);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    setDetailTruck(truck);
+    setStatsLoading(true);
+    let cancelled = false;
+    const id = Number(truck.id);
+    if (!Number.isFinite(id)) {
+      setStatsLoading(false);
+      return;
+    }
+
+    availabilitiesService
+      .get(id)
+      .then((detail) => {
+        if (cancelled) return;
+        const mapped = mapListItemToTruck(detail);
+        setDetailTruck((prev) => ({
+          ...prev,
+          ...mapped,
+          // Keep list-only UX fields that detail may not enrich.
+          bidSent: prev.bidSent,
+          occurrences: prev.occurrences?.length ? prev.occurrences : mapped.occurrences,
+          recurrenceLabel: prev.recurrenceLabel || mapped.recurrenceLabel,
+        }));
+      })
+      .catch(() => {
+        /* keep list snapshot; stats stay unknown (—) */
+      })
+      .finally(() => {
+        if (!cancelled) setStatsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [truck.id]);
+
   if (creatingShipment) {
     return <DetailPanelSkeleton onClose={onClose} t={t} />;
   }
 
-  const preferredTag = truck.preferred ? (
+  const preferredTag = detailTruck.preferred ? (
     <span className="sat-bg sat-bg-ac" style={{ fontSize: 9, marginLeft: 4 }}>
       {t('satPreferred')}
     </span>
   ) : null;
+
+  const onTimeValue = statsLoading ? '…' : formatStatPct(detailTruck.onTimeDeliveryPct);
+  const cancelValue = statsLoading ? '…' : formatStatPct(detailTruck.cancellationRate);
+  const responseValue = statsLoading ? '…' : formatStatMin(detailTruck.avgResponseMin);
 
   return (
     <div className="sat-detail-overlay" role="dialog" aria-modal="true" aria-label={t('satProviderProfile')}>
@@ -134,21 +188,21 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
           <h4>🚛 {t('satProviderProfile')}</h4>
           <div className="sat-cr-cell" style={{ marginBottom: 10 }}>
             <div className="sat-cr-av" style={{ width: 40, height: 40, fontSize: 14 }}>
-              {truck.initials}
+              {detailTruck.initials}
             </div>
             <div>
               <div className="sat-cr-name" style={{ fontSize: 15 }}>
-                {truck.carrier}
+                {detailTruck.carrier}
               </div>
               <div className="sat-cr-rate">
-                ★ {truck.rating.toFixed(1)} · {truck.type}
+                ★ {detailTruck.rating.toFixed(1)} · {detailTruck.type}
                 {preferredTag}
               </div>
             </div>
             <div style={{ marginLeft: 'auto' }}>
-              {truck.price != null && !truck.priceBlurred ? (
+              {detailTruck.price != null && !detailTruck.priceBlurred ? (
                 <span className="sat-price" style={{ fontSize: 20 }}>
-                  € {truck.price.toLocaleString()}
+                  {formatMoney(detailTruck.price, detailTruck.currency)}
                 </span>
               ) : (
                 <span className="sat-offer-b">{t('satOfferBased')}</span>
@@ -156,22 +210,45 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
             </div>
           </div>
           <div className="sat-exp-stat">
-            <span>{t('satOnTimePickup')}</span>
-            <span style={{ color: 'var(--success)' }}>{truck.onTimePickup ?? 94}%</span>
+            <span>{t('satOnTimeDelivery') || t('satOnTimePickup')}</span>
+            <span
+              style={{
+                color:
+                  detailTruck.onTimeDeliveryPct != null && !statsLoading
+                    ? 'var(--success)'
+                    : 'var(--text-tertiary)',
+              }}
+            >
+              {onTimeValue}
+            </span>
           </div>
           <div className="sat-exp-stat">
             <span>{t('satCancellationRate')}</span>
-            <span>{truck.cancellationRate ?? 3}%</span>
+            <span style={{ color: cancelValue === '—' || statsLoading ? 'var(--text-tertiary)' : undefined }}>
+              {cancelValue}
+            </span>
           </div>
           <div className="sat-exp-stat">
             <span>{t('satAvgResponse')}</span>
-            <span>{truck.avgResponseMin ?? 18} min</span>
+            <span style={{ color: 'var(--text-tertiary)' }}>{responseValue}</span>
           </div>
           <div className="sat-exp-actions">
-            <button type="button" className="sat-btn sat-btn-sm" onClick={() => onMessage(truck.carrier)}>
+            <button
+              type="button"
+              className="sat-btn sat-btn-sm"
+              disabled
+              title={t('satActionComingSoon') || 'Coming soon'}
+              onClick={() => onMessage(detailTruck.carrier)}
+            >
               💬 {t('satMessage')}
             </button>
-            <button type="button" className="sat-btn sat-btn-sm" onClick={onProfile}>
+            <button
+              type="button"
+              className="sat-btn sat-btn-sm"
+              disabled
+              title={t('satActionComingSoon') || 'Coming soon'}
+              onClick={onProfile}
+            >
               👤 {t('satProfile')}
             </button>
           </div>
@@ -180,43 +257,43 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
         <div className="sat-mp-route">
           <div className="sat-mp-stop">
             <div className="sat-mp-stop-label">{t('satColPickup')}</div>
-            <div className="sat-mp-stop-city">{truck.pickup}</div>
+            <div className="sat-mp-stop-city">{detailTruck.pickup}</div>
             <div className="sat-mp-stop-dt">
-              {truck.startDt} {truck.startTm}
+              {detailTruck.startDt} {detailTruck.startTm}
             </div>
           </div>
           <span className="sat-card-arrow">→</span>
           <div className="sat-mp-stop">
             <div className="sat-mp-stop-label">{t('satColDest')}</div>
             <div className="sat-mp-stop-city">
-              {truck.dest === 'Any' ? t('satAnyDirection') : truck.dest}
+              {detailTruck.dest === 'Any' ? t('satAnyDirection') : detailTruck.dest}
             </div>
             <div className="sat-mp-stop-dt">
-              {truck.endDt} {truck.endTm}
+              {detailTruck.endDt} {detailTruck.endTm}
             </div>
           </div>
         </div>
 
         <div className="sat-mp-chips">
           <span className="sat-mp-chip">
-            {truck.truckType} · {truck.specs}
+            {detailTruck.truckType} · {detailTruck.specs}
           </span>
-          <span className="sat-mp-chip">{truck.capacity}</span>
-          <span className="sat-mp-chip">{truck.trip}</span>
+          <span className="sat-mp-chip">{detailTruck.capacity}</span>
+          <span className="sat-mp-chip">{detailTruck.trip}</span>
         </div>
 
-        {truck.recurring && truck.occurrences.length > 0 ? (
+        {detailTruck.recurring && detailTruck.occurrences.length > 0 ? (
           <div className="sat-exp-section" style={{ marginTop: 14 }}>
             <h4>
-              🔁 {t('satOccurrences')} ({truck.occurrences.length})
+              🔁 {t('satOccurrences')} ({detailTruck.occurrences.length})
             </h4>
-            {truck.occurrences.map((occ) => (
+            {detailTruck.occurrences.map((occ) => (
               <div key={occ} className="sat-occ-item">
                 <span>📅 {occ}</span>
                 <button
                   type="button"
                   disabled={creatingShipment}
-                  onClick={() => onBook(truck, 'pending', occ)}
+                  onClick={() => onBook(detailTruck, 'pending', occ)}
                 >
                   {t('satBookThis')}
                 </button>
@@ -228,15 +305,15 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
             <h4>ℹ️ {t('satCompatibility')}</h4>
             <div className="sat-exp-stat">
               <span>{t('satMultiStop')}</span>
-              <span>{truck.trip === 'Multi-stop OK' ? '✅ Yes' : '❌ No'}</span>
+              <span>{detailTruck.multiStop ? `✅ ${t('yes') || 'Yes'}` : `❌ ${t('no') || 'No'}`}</span>
             </div>
             <div className="sat-exp-stat">
               <span>{t('satCapacity')}</span>
-              <span>{truck.capacity}</span>
+              <span>{detailTruck.capacity}</span>
             </div>
             <div className="sat-exp-stat">
               <span>{t('satRadiusFromPickup')}</span>
-              <span>{truck.radius} km</span>
+              <span>{detailTruck.radius} km</span>
             </div>
           </div>
         )}
@@ -246,7 +323,7 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
           className="sat-btn sat-btn-pr sat-btn-block"
           style={{ marginTop: 14 }}
           disabled={creatingShipment}
-          onClick={() => onBook(truck, 'pending')}
+          onClick={() => onBook(detailTruck, 'pending')}
         >
           📋 {t('satBookPending')}
         </button>
@@ -254,7 +331,7 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
           type="button"
           className="sat-btn sat-btn-block"
           disabled={creatingShipment}
-          onClick={() => onBook(truck, 'new')}
+          onClick={() => onBook(detailTruck, 'new')}
         >
           + {t('satCreateNewForThis')}
         </button>

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { loadGoogleMaps } from '../AddressBook/GoogleMapAddressField';
 import type { AvailableTruck, MapPickupBounds } from '../../pages/SearchTrucks/types';
+import { formatMoney } from '../../pages/SearchTrucks/utils/money';
 
 interface AvailabilityMapProps {
   trucks: AvailableTruck[];
@@ -56,7 +57,7 @@ function createPriceOverlay(
     div.style.zIndex = opts.isActive || opts.isHovered ? '25' : '10';
 
     const showPrice = truck.price != null && !truck.priceBlurred;
-    const label = showPrice ? `€ ${truck.price!.toLocaleString()}` : 'Offer';
+    const label = showPrice ? formatMoney(truck.price, truck.currency) : 'Offer';
     const priceClass = showPrice ? '' : 'no-price';
     div.innerHTML = `<div class="sat-mm-pin"><div class="sat-mm-price ${priceClass}">${label}</div><div class="sat-mm-tail"></div></div>`;
     div.addEventListener('click', (e) => {
@@ -483,7 +484,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
                       >
                         <div className="sat-mm-pin">
                           <div className={`sat-mm-price ${showPrice ? '' : 'no-price'}`}>
-                            {showPrice ? `€ ${truck.price!.toLocaleString()}` : 'Offer'}
+                            {showPrice ? formatMoney(truck.price, truck.currency) : 'Offer'}
                           </div>
                         </div>
                       </button>

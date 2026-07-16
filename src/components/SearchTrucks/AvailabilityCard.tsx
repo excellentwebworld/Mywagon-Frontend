@@ -1,5 +1,6 @@
 import React from 'react';
 import type { AvailableTruck, DrawerMode } from '../../pages/SearchTrucks/types';
+import { formatMoney } from '../../pages/SearchTrucks/utils/money';
 
 interface AvailabilityCardProps {
   truck: AvailableTruck;
@@ -104,7 +105,7 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
       </div>
       <div className="sat-card-actions">
         {truck.price != null && !truck.priceBlurred ? (
-          <span className="sat-price">€ {truck.price.toLocaleString()}</span>
+          <span className="sat-price">{formatMoney(truck.price, truck.currency)}</span>
         ) : (
           <span className={`sat-offer-b ${truck.priceBlurred ? 'sat-price-blurred' : ''}`}>
             {t('satOfferBased')}

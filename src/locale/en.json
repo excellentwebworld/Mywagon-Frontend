@@ -1648,6 +1648,8 @@
   "satResults": "results",
   "satProviderProfile": "Provider Profile",
   "satOnTimePickup": "On-time pickup",
+  "satOnTimeDelivery": "On-time delivery",
+  "satActionComingSoon": "Coming soon",
   "satCancellationRate": "Cancellation rate",
   "satAvgResponse": "Avg response",
   "satMessage": "Message",
