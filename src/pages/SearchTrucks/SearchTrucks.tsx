@@ -1,13 +1,16 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AvailabilityList,
   AvailabilityMap,
   BookingDrawer,
   QuickFilterBar,
+  SatFilterModal,
+  SatSortModal,
   SearchPill,
   SubscriptionGateModal,
 } from '../../components/SearchTrucks';
+import type { SatFilterDraft } from '../../components/SearchTrucks/SatFilterModal';
 import { useApp } from '../../context/AppContext';
 import '../../styles/search-trucks.css';
 import { useSearchTrucks } from './hooks/useSearchTrucks';
@@ -17,6 +20,8 @@ export const SearchTrucks: React.FC = () => {
   const m = useSearchTrucks();
   const { showToast } = useApp();
   const navigate = useNavigate();
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
 
   const openProviderProfile = useCallback(
     (truck: AvailableTruck) => {
@@ -42,6 +47,24 @@ export const SearchTrucks: React.FC = () => {
     },
     [m.t, navigate, showToast]
   );
+
+  const filterDraft = useMemo<SatFilterDraft>(
+    () => ({
+      pickupRadius: m.criteria.pickupRadius ?? 50,
+      dropoffRadius: m.criteria.dropoffRadius ?? 50,
+      tripType: m.criteria.tripType ?? 'any',
+      quickFilters: Array.from(m.quickFilters),
+    }),
+    [m.criteria.dropoffRadius, m.criteria.pickupRadius, m.criteria.tripType, m.quickFilters]
+  );
+
+  const filterActiveCount = useMemo(() => {
+    let n = m.quickFilters.size;
+    if ((m.appliedCriteria.tripType ?? 'any') !== 'any') n += 1;
+    if ((m.appliedCriteria.pickupRadius ?? 50) !== 50) n += 1;
+    if ((m.appliedCriteria.dropoffRadius ?? 50) !== 50) n += 1;
+    return n;
+  }, [m.appliedCriteria, m.quickFilters]);
 
   return (
     <div className="sat-page">
@@ -101,6 +124,10 @@ export const SearchTrucks: React.FC = () => {
           quickFilters={m.quickFilters}
           onToggleFilter={m.toggleQuickFilter}
           onClearAll={m.clearFilters}
+          onOpenFilter={() => setFilterOpen(true)}
+          onOpenSort={() => setSortOpen(true)}
+          filterActiveCount={filterActiveCount}
+          sortActive={m.sortKey !== 'best_match'}
           showMobileMapBtn
           onOpenMobileMap={() => m.setMobileMapOpen(true)}
           t={m.t}
@@ -112,9 +139,7 @@ export const SearchTrucks: React.FC = () => {
           trucks={m.pageItems}
           total={m.subscriptionBlocked ? 0 : m.total}
           sortKey={m.sortKey}
-          onSortChange={m.setSortKey}
-          groupRecurring={m.groupRecurring}
-          onToggleGroup={m.handleToggleGroup}
+          onOpenSort={() => setSortOpen(true)}
           hoveredId={m.hoveredId}
           selectedId={m.selectedId}
           selectedTruck={m.selectedTruckInList}
@@ -205,6 +230,23 @@ export const SearchTrucks: React.FC = () => {
         open={m.gateModalOpen && m.subscriptionBlocked}
         upgradeUrl={m.upgradeUrl}
         onRemindLater={m.dismissGateReminder}
+        t={m.t}
+      />
+
+      <SatFilterModal
+        open={filterOpen}
+        draft={filterDraft}
+        onClose={() => setFilterOpen(false)}
+        onApply={m.applyPanelFilters}
+        onReset={m.resetPanelFilters}
+        t={m.t}
+      />
+
+      <SatSortModal
+        open={sortOpen}
+        sortKey={m.sortKey}
+        onClose={() => setSortOpen(false)}
+        onApply={m.setSortKey}
         t={m.t}
       />
     </div>

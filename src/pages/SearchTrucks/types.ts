@@ -13,6 +13,8 @@ export type TripType = 'Multi-stop OK' | 'Direct only';
 
 export type QuickFilterKey = 'today' | 'soon8h' | 'has_bids' | 'load_match';
 
+export type TripFilter = 'any' | 'multi_stop' | 'direct';
+
 export interface MapPickupBounds {
   neLat: number;
   neLng: number;
@@ -38,6 +40,8 @@ export interface SearchCriteria {
   vehicleSpecs: Record<string, string[]>;
   /** Active map viewport search; when set, overrides pickup center+radius */
   mapBounds?: MapPickupBounds | null;
+  /** Laravel-style trip preference filter */
+  tripType?: TripFilter;
 }
 
 export interface AvailableTruck {

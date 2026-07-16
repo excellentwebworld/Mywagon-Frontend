@@ -7,3 +7,5 @@ export { AvailabilityMap } from './AvailabilityMap';
 export { BookingDrawer } from './BookingDrawer';
 export { SubscriptionGateModal } from './SubscriptionGateModal';
 export { SearchVehicleCargoPicker } from './SearchVehicleCargoPicker';
+export { SatFilterModal } from './SatFilterModal';
+export { SatSortModal } from './SatSortModal';

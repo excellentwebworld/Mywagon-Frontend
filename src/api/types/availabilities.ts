@@ -132,6 +132,7 @@ export interface ListAvailabilitiesParams {
   starting_within_hours?: number;
   has_bids?: boolean;
   load_match?: boolean;
+  trip_type?: 'multi_stop' | 'direct';
 }
 
 export interface PaginatedAvailabilitiesResult {

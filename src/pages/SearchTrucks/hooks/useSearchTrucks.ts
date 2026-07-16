@@ -114,6 +114,7 @@ export const emptyCriteria = (): SearchCriteria => ({
   truckTypeIds: [],
   vehicleSpecs: {},
   mapBounds: null,
+  tripType: 'any',
 });
 
 function filterMockTrucks(
@@ -123,12 +124,11 @@ function filterMockTrucks(
     quickFilters: Set<QuickFilterKey>;
     appliedCriteria: SearchCriteria;
     searchQuery: string;
-    groupRecurring: boolean;
     sortKey: SortKey;
   }
 ): AvailableTruck[] {
   let data = [...trucks];
-  const { visibility, quickFilters, appliedCriteria: ac, searchQuery, groupRecurring, sortKey } =
+  const { visibility, quickFilters, appliedCriteria: ac, searchQuery, sortKey } =
     opts;
 
   if (visibility === 'public') data = data.filter((x) => x.vis === 'public');
@@ -187,7 +187,10 @@ function filterMockTrucks(
     );
   }
 
-  if (!groupRecurring) data = expandUngrouped(data);
+  if (ac.tripType === 'multi_stop') data = data.filter((x) => x.multiStop);
+  else if (ac.tripType === 'direct') data = data.filter((x) => !x.multiStop);
+
+  // Recurring entries stay grouped (UI toggle removed).
 
   data.sort((a, b) => {
     switch (sortKey) {
@@ -231,7 +234,6 @@ export function useSearchTrucks() {
   const [criteria, setCriteria] = useState<SearchCriteria>(emptyCriteria);
   const [appliedCriteria, setAppliedCriteria] = useState<SearchCriteria>(emptyCriteria);
   const [sortKey, setSortKey] = useState<SortKey>('best_match');
-  const [groupRecurring, setGroupRecurring] = useState(true);
   const [mockVisibleCount, setMockVisibleCount] = useState(PER_PAGE);
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -394,7 +396,6 @@ export function useSearchTrucks() {
       quickFilters,
       appliedCriteria,
       searchQuery: debouncedSearch,
-      groupRecurring,
       sortKey,
     });
   }, [
@@ -403,7 +404,6 @@ export function useSearchTrucks() {
     quickFilters,
     appliedCriteria,
     debouncedSearch,
-    groupRecurring,
     sortKey,
   ]);
 
@@ -415,8 +415,7 @@ export function useSearchTrucks() {
     debouncedSearch,
     sortKey,
     appliedCriteria,
-    quickFilterKey,
-    groupRecurring,
+    quickFilters,
   ]);
 
   const liveTrucks = useMemo(() => {
@@ -491,6 +490,39 @@ export function useSearchTrucks() {
     setMapBoundsDirty(false);
     showToast(t('satFiltersCleared') || 'Filters cleared', 'info');
   }, [showToast, t]);
+
+  const applyPanelFilters = useCallback(
+    (draft: {
+      pickupRadius: number;
+      dropoffRadius: number;
+      tripType: SearchCriteria['tripType'];
+      quickFilters: QuickFilterKey[];
+    }) => {
+      const nextQuick = new Set(draft.quickFilters);
+      setQuickFilters(nextQuick);
+      const patch = {
+        pickupRadius: draft.pickupRadius,
+        dropoffRadius: draft.dropoffRadius,
+        tripType: draft.tripType ?? 'any',
+      };
+      setCriteria((prev) => ({ ...prev, ...patch }));
+      setAppliedCriteria((prev) => ({ ...prev, ...patch }));
+      setSelectedId(null);
+    },
+    []
+  );
+
+  const resetPanelFilters = useCallback(() => {
+    const patch = {
+      pickupRadius: 50,
+      dropoffRadius: 50,
+      tripType: 'any' as const,
+    };
+    setQuickFilters(new Set());
+    setCriteria((prev) => ({ ...prev, ...patch }));
+    setAppliedCriteria((prev) => ({ ...prev, ...patch }));
+    setSelectedId(null);
+  }, []);
 
   const applySearch = useCallback(() => {
     if (!criteria.pickupCity.trim()) {
@@ -896,19 +928,6 @@ export function useSearchTrucks() {
     t,
   ]);
 
-  const handleToggleGroup = useCallback(() => {
-    setGroupRecurring((prev) => {
-      const next = !prev;
-      showToast(
-        next
-          ? t('satGroupedOn') || 'Recurring entries grouped'
-          : t('satGroupedOff') || 'Showing individual occurrences',
-        'info'
-      );
-      return next;
-    });
-  }, [showToast, t]);
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -969,11 +988,11 @@ export function useSearchTrucks() {
     setCriteria,
     appliedCriteria,
     applySearch,
+    applyPanelFilters,
+    resetPanelFilters,
     clearFilters,
     sortKey,
     setSortKey,
-    groupRecurring,
-    handleToggleGroup,
     hoveredId,
     setHoveredId,
     selectedId,

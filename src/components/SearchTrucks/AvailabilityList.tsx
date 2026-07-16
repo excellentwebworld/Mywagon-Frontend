@@ -2,14 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import type { AvailableTruck, DrawerMode, SortKey } from '../../pages/SearchTrucks/types';
 import { AvailabilityCard } from './AvailabilityCard';
 import { AvailabilityDetailPanel } from './AvailabilityDetailPanel';
+import { SAT_SORT_OPTIONS } from './SatSortModal';
 
 interface AvailabilityListProps {
   trucks: AvailableTruck[];
   total: number;
   sortKey: SortKey;
-  onSortChange: (key: SortKey) => void;
-  groupRecurring: boolean;
-  onToggleGroup: () => void;
+  onOpenSort?: () => void;
   hoveredId: string | null;
   selectedId: string | null;
   selectedTruck: AvailableTruck | null;
@@ -29,14 +28,6 @@ interface AvailabilityListProps {
   subscriptionBlocked?: boolean;
   t: (key: string) => string;
 }
-
-const SORT_OPTIONS: { key: SortKey; labelKey: string }[] = [
-  { key: 'best_match', labelKey: 'satSortBestMatch' },
-  { key: 'soonest_start', labelKey: 'satSortSoonest' },
-  { key: 'lowest_price', labelKey: 'satSortLowestPrice' },
-  { key: 'highest_rating', labelKey: 'satSortHighestRating' },
-  { key: 'freshest', labelKey: 'satSortFreshest' },
-];
 
 function RichSkeletonCard() {
   return (
@@ -79,9 +70,7 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
   trucks,
   total,
   sortKey,
-  onSortChange,
-  groupRecurring,
-  onToggleGroup,
+  onOpenSort,
   hoveredId,
   selectedId,
   selectedTruck,
@@ -143,30 +132,16 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
         <div className="sat-list-count">
           {loading ? '…' : total} {t('satResults')}
         </div>
-        <div className="sat-sort-row" style={{ marginBottom: 0 }}>
-          <span className="sat-muted">{t('satSort')}:</span>
-          <select
-            value={sortKey}
-            onChange={(e) => onSortChange(e.target.value as SortKey)}
-            aria-label={t('satSort')}
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.key} value={opt.key}>
-                {t(opt.labelKey)}
-              </option>
-            ))}
-          </select>
-          <div className="sat-toggle-wrap">
-            <span>{t('satGroupRecurring')}</span>
-            <button
-              type="button"
-              className={`sat-toggle ${groupRecurring ? 'on' : ''}`}
-              onClick={onToggleGroup}
-              aria-pressed={groupRecurring}
-              aria-label={t('satGroupRecurring')}
-            />
-          </div>
-        </div>
+        {onOpenSort ? (
+          <button type="button" className="sat-sort-pill" onClick={onOpenSort}>
+            <span className="sat-muted">{t('satSort')}:</span>
+            <strong>
+              {t(
+                SAT_SORT_OPTIONS.find((o) => o.key === sortKey)?.labelKey || 'satSortBestMatch'
+              )}
+            </strong>
+          </button>
+        ) : null}
       </div>
 
       <div className="sat-list-scroll">

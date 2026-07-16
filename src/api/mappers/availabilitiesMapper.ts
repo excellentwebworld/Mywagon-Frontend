@@ -214,5 +214,9 @@ export function buildListParams(input: {
   if (quickFilters.has('has_bids')) params.has_bids = true;
   if (quickFilters.has('load_match')) params.load_match = true;
 
+  if (criteria.tripType === 'multi_stop' || criteria.tripType === 'direct') {
+    params.trip_type = criteria.tripType;
+  }
+
   return params;
 }

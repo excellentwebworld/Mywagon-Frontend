@@ -9,6 +9,10 @@ interface QuickFilterBarProps {
   quickFilters: Set<QuickFilterKey>;
   onToggleFilter: (key: QuickFilterKey) => void;
   onClearAll: () => void;
+  onOpenFilter?: () => void;
+  onOpenSort?: () => void;
+  filterActiveCount?: number;
+  sortActive?: boolean;
   onOpenMobileMap?: () => void;
   showMobileMapBtn?: boolean;
   t: (key: string) => string;
@@ -29,6 +33,10 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
   quickFilters,
   onToggleFilter,
   onClearAll,
+  onOpenFilter,
+  onOpenSort,
+  filterActiveCount = 0,
+  sortActive = false,
   onOpenMobileMap,
   showMobileMapBtn,
   t,
@@ -74,6 +82,41 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
     <button type="button" className="sat-f-clear" onClick={onClearAll}>
       {t('satClearAll')}
     </button>
+
+    <div className="sat-filter-sort-actions">
+      {onOpenFilter ? (
+        <button
+          type="button"
+          className={`sat-f-pill${filterActiveCount > 0 ? ' has' : ''}`}
+          onClick={onOpenFilter}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+          </svg>
+          {t('satFilter') || 'Filter'}
+          {filterActiveCount > 0 ? (
+            <span className="sat-f-pill-badge">{filterActiveCount}</span>
+          ) : null}
+        </button>
+      ) : null}
+      {onOpenSort ? (
+        <button
+          type="button"
+          className={`sat-f-pill${sortActive ? ' has' : ''}`}
+          onClick={onOpenSort}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <line x1="4" y1="21" x2="4" y2="14" />
+            <line x1="4" y1="10" x2="4" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12" y2="3" />
+            <line x1="20" y1="21" x2="20" y2="16" />
+            <line x1="20" y1="12" x2="20" y2="3" />
+          </svg>
+          {t('satSort') || 'Sort'}
+        </button>
+      ) : null}
+    </div>
 
     {showMobileMapBtn && onOpenMobileMap && (
       <button type="button" className="sat-mobile-map-btn" onClick={onOpenMobileMap}>
