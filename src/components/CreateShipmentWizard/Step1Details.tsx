@@ -83,6 +83,7 @@ import {
 } from "../../constants/cargoUnits";
 import {
   computeLoadBalance,
+  computeCargoLineQtyWeight,
   getPickupAllocatedQty,
   getPickupAllocatedWeight,
   formatQtyWithUnit,
@@ -581,6 +582,62 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     [setLF],
   );
 
+  const setLineAction = useCallback(
+    async (sid: string, lid: string, action: "pickup" | "dropoff") => {
+      const stop = stops.find((s: any) => s.id === sid);
+      const line = stop?.lines?.find((l: any) => l.id === lid);
+      if (!line?.orderId || !line?.productId) {
+        setLF(sid, lid, "action", action);
+        return;
+      }
+
+      const order =
+        orderDetailsById[line.orderId] ||
+        (await fetchOrderDetail(line.orderId));
+      if (!order) {
+        setLF(sid, lid, "action", action);
+        return;
+      }
+      setOrderDetailsById((prev) => ({ ...prev, [line.orderId]: order }));
+
+      const orderLine = findOrderLineForProduct(order, line.productId);
+      if (!orderLine) {
+        setLF(sid, lid, "action", action);
+        return;
+      }
+
+      const orderId = String(line.orderId);
+      const productId = String(line.productId);
+      const { qty, weight, unit, wtUnit } = computeCargoLineQtyWeight({
+        stops,
+        lineId: lid,
+        orderId,
+        productId,
+        action,
+        orderLine,
+        lineUnit: line.unit,
+        lineWtUnit: line.wtUnit,
+      });
+
+      const patch = { action, qty, weight, unit, wtUnit };
+      const updated = stops.map((s: any) => ({
+        ...s,
+        lines: (s.lines || []).map((l: any) => {
+          if (String(l.id) === String(lid)) return { ...l, ...patch };
+          if (
+            String(l.orderId || "") === orderId &&
+            String(l.productId || "") === productId
+          ) {
+            return { ...l, unit, wtUnit };
+          }
+          return l;
+        }),
+      }));
+      setFieldValue("stops", updated);
+    },
+    [fetchOrderDetail, orderDetailsById, setFieldValue, setLF, stops],
+  );
+
   const quickFill = useCallback(
     async (sid: string, orderId: string) => {
       const mo = orderDetailsById[orderId] || (await fetchOrderDetail(orderId));
@@ -918,61 +975,18 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       }
       const orderLine = findOrderLineForProduct(order, skuId);
       if (orderLine) {
-        const orderQty = orderLine.quantity != null ? Number(orderLine.quantity) : 0;
-        const orderUnit =
-          normalizeQtyUnit(orderLine.unit || line?.unit) || "EUR Pallets";
-        const orderWtUnit = normalizeWeightUnit(
-          orderLine.weightUnit || line?.wtUnit,
-        );
-        const orderIdStr = line?.orderId ? String(line.orderId) : "";
-        const orderWeight =
-          orderLine.weight != null ? Number(orderLine.weight) : null;
         const isDropoff = line?.action === "dropoff";
-
-        let qty = "";
-        let weight = "";
-
-        if (isDropoff) {
-          // Prefill from pickup totals for the same order + product
-          const pickupQty = orderIdStr
-            ? getPickupAllocatedQty(stops, orderIdStr, skuId, { unit: orderUnit })
-            : 0;
-          const pickupWeight = orderIdStr
-            ? getPickupAllocatedWeight(stops, orderIdStr, skuId, {
-                displayUnit: orderWtUnit,
-              })
-            : 0;
-          qty =
-            orderLine.quantity != null || pickupQty > 0
-              ? String(pickupQty)
-              : "";
-          weight =
-            orderWeight != null || pickupWeight > 0
-              ? String(Math.round(pickupWeight * 1000) / 1000)
-              : "";
-        } else {
-          // Pickup: absolute remaining qty + weight (order − allocated)
-          const allocatedQty = orderIdStr
-            ? getPickupAllocatedQty(stops, orderIdStr, skuId, {
-                excludeLineId: lid,
-                unit: orderUnit,
-              })
-            : 0;
-          const remainingQty = Math.max(0, orderQty - allocatedQty);
-          const allocatedWeight = orderIdStr
-            ? getPickupAllocatedWeight(stops, orderIdStr, skuId, {
-                excludeLineId: lid,
-                displayUnit: orderWtUnit,
-              })
-            : 0;
-          qty = orderLine.quantity != null ? String(remainingQty) : "";
-          weight = remainingOrderWeight(
-            orderWeight,
-            orderLine.weightUnit,
-            allocatedWeight,
-            orderWtUnit,
-          );
-        }
+        const { qty, weight, unit: orderUnit, wtUnit: orderWtUnit } =
+          computeCargoLineQtyWeight({
+            stops,
+            lineId: lid,
+            orderId: line?.orderId ? String(line.orderId) : "",
+            productId: skuId,
+            action: isDropoff ? "dropoff" : "pickup",
+            orderLine,
+            lineUnit: line?.unit,
+            lineWtUnit: line?.wtUnit,
+          });
 
         const patch = {
           productId: skuId,
@@ -1687,6 +1701,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           }
                           if (f === "qty") {
                             setLineQty(stop.id, lid, v);
+                            return;
+                          }
+                          if (f === "action") {
+                            setLineAction(stop.id, lid, v);
                             return;
                           }
                           setLF(stop.id, lid, f, v);

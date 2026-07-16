@@ -5,6 +5,7 @@ import {
   formatWeightKgTotal,
   kgToWeightUnit,
   normalizeQtyUnit,
+  normalizeWeightUnit,
   weightToKg,
 } from '../../../constants/cargoUnits';
 import type { CargoFlow, LoadBalance, TripTotals } from './types';
@@ -183,6 +184,85 @@ export function remainingOrderWeight(
   const orderInDisplay = convertWeightValue(orderWeight, orderWtUnit, displayUnit);
   const remaining = Math.max(0, orderInDisplay - (allocatedInDisplayUnit || 0));
   return String(Math.round(remaining * 1000) / 1000);
+}
+
+export interface CargoLinePrefillInput {
+  stops: ApiStop[];
+  lineId: string;
+  orderId: string;
+  productId: string;
+  action: 'pickup' | 'dropoff';
+  orderLine: {
+    quantity?: number | null;
+    unit?: string | null;
+    weight?: number | null;
+    weightUnit?: string | null;
+  };
+  lineUnit?: string;
+  lineWtUnit?: string;
+}
+
+/** Compute qty/weight prefill for a cargo line based on action and existing pickup allocations. */
+export function computeCargoLineQtyWeight({
+  stops,
+  lineId,
+  orderId,
+  productId,
+  action,
+  orderLine,
+  lineUnit,
+  lineWtUnit,
+}: CargoLinePrefillInput): {
+  qty: string;
+  weight: string;
+  unit: string;
+  wtUnit: string;
+} {
+  const orderQty = orderLine.quantity != null ? Number(orderLine.quantity) : 0;
+  const orderUnit = normalizeQtyUnit(orderLine.unit || lineUnit) || 'EUR Pallets';
+  const orderWtUnit = normalizeWeightUnit(orderLine.weightUnit || lineWtUnit);
+  const orderWeight = orderLine.weight != null ? Number(orderLine.weight) : null;
+  const orderIdStr = String(orderId);
+  const isDropoff = action === 'dropoff';
+
+  let qty = '';
+  let weight = '';
+
+  if (isDropoff) {
+    const pickupQty = getPickupAllocatedQty(stops, orderIdStr, productId, {
+      unit: orderUnit,
+      excludeLineId: lineId,
+    });
+    const pickupWeight = getPickupAllocatedWeight(stops, orderIdStr, productId, {
+      displayUnit: orderWtUnit,
+      excludeLineId: lineId,
+    });
+    qty =
+      orderLine.quantity != null || pickupQty > 0 ? String(pickupQty) : '';
+    weight =
+      orderWeight != null || pickupWeight > 0
+        ? String(Math.round(pickupWeight * 1000) / 1000)
+        : '';
+  } else {
+    const allocatedQty = getPickupAllocatedQty(stops, orderIdStr, productId, {
+      excludeLineId: lineId,
+      unit: orderUnit,
+    });
+    const remainingQty = Math.max(0, orderQty - allocatedQty);
+    const allocatedWeight = getPickupAllocatedWeight(stops, orderIdStr, productId, {
+      excludeLineId: lineId,
+      displayUnit: orderWtUnit,
+    });
+    qty = orderLine.quantity != null ? String(remainingQty) : '';
+    weight = remainingOrderWeight(
+      orderWeight,
+      orderLine.weightUnit,
+      allocatedWeight,
+      orderWtUnit,
+    );
+  }
+
+  return { qty, weight, unit: orderUnit, wtUnit: orderWtUnit };
 }
 
 export interface OrderPickupAllocation {
