@@ -46,7 +46,9 @@ function OfferRow({
   t: RowExpansionPendingProps['t'];
 }) {
   const [counterOpen, setCounterOpen] = useState(false);
-  const prefill = offer.price != null ? Math.round(offer.price * 0.95 * 100) / 100 : 0;
+  // Prefill counter at 95% of the offer price as a starting negotiation point.
+  const COUNTER_OFFER_PREFILL_RATIO = 0.95;
+  const prefill = offer.price != null ? Math.round(offer.price * COUNTER_OFFER_PREFILL_RATIO * 100) / 100 : 0;
   const [amount, setAmount] = useState(String(prefill || ''));
   const hasCounter = Boolean(offer.counter);
   const roleLabel = offer.role === 'freelancer' ? t('freelancer') : t('company');
@@ -70,7 +72,7 @@ function OfferRow({
 
       {offer.respondedAt && (
         <div className="bid-meta">
-          {t('respondedAgo', { time: formatRelativeAgo(offer.respondedAt) })}
+          {t('respondedAgo', { time: formatRelativeAgo(offer.respondedAt, t) })}
         </div>
       )}
 
@@ -193,11 +195,11 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
           t={t}
         />
         <CompactLoadMeta shipment={shipment} t={t} />
-        {shipment.at_risk && shipment.riskReason && (
+        {shipment.at_risk && (
           <div className="exp-risk">
             <span className="badge badge-danger">
               <span className="bdot" />
-              {shipment.riskReason}
+              {shipment.riskReason || t('riskPickupOverdue')}
             </span>
           </div>
         )}
@@ -249,7 +251,7 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
                   </span>
                   {inv.invitedAt && (
                     <span className="ago">
-                      {t('invitedAgo', { time: formatRelativeAgo(inv.invitedAt) })}
+                      {t('invitedAgo', { time: formatRelativeAgo(inv.invitedAt, t) })}
                     </span>
                   )}
                   <div className="inv-acts">

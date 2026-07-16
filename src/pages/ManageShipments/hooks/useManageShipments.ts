@@ -4,6 +4,7 @@ import { ApiError, shipmentsService } from '../../../api';
 import type { ListShipmentsParams } from '../../../api/types/shipments';
 import { useApp } from '../../../context/AppContext';
 import type { Shipment } from '../../../context/AppContext';
+import { useCreateShipmentPartners } from '../../../hooks/useCreateShipmentPartners';
 import { useShipmentsList } from '../../../hooks/useShipments';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { LoadsDirection } from '../../../components/ManageShipments/LoadsDirectionToggle';
@@ -23,13 +24,20 @@ import {
   type StatusTabKey,
 } from '../utils/listingUtils';
 
-const PER_PAGE = 10;
+export const PER_PAGE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
+/** Hours added when bulk-extending bid windows. */
+export const EXTEND_BID_HOURS = 24;
 
 export function useManageShipments() {
-  const { carriers, showToast } = useApp();
+  const { showToast } = useApp();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const {
+    carriersList: invitePartners,
+    loading: invitePartnersLoading,
+    error: invitePartnersError,
+  } = useCreateShipmentPartners();
 
   const [direction, setDirectionState] = useState<LoadsDirection>('outbound');
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,6 +61,7 @@ export function useManageShipments() {
   const [exporting, setExporting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [cancelTarget, setCancelTarget] = useState<Shipment | null>(null);
+  const [bulkCancelIds, setBulkCancelIds] = useState<number[] | null>(null);
 
   const isOutbound = direction === 'outbound';
 
@@ -66,6 +75,7 @@ export function useManageShipments() {
       setIsSortOpen(false);
       setIsInviteOpen(false);
       setCancelTarget(null);
+      setBulkCancelIds(null);
     }
   }, []);
 
@@ -293,13 +303,6 @@ export function useManageShipments() {
     setRefreshKey((k) => k + 1);
   }, []);
 
-  const handleStubAction = useCallback(
-    (key: string) => {
-      showToast(t(key), 'info');
-    },
-    [showToast, t]
-  );
-
   const handleMessage = useCallback((s: Shipment, offerId?: string) => {
     const q = offerId ? `?offer=${encodeURIComponent(offerId)}` : '';
     window.open(`/shipments/${s.id}${q}`, '_blank', 'noopener,noreferrer');
@@ -392,26 +395,19 @@ export function useManageShipments() {
 
       try {
         if (action === 'extend') {
-          await shipmentsService.bulkExtendBid(ids, 24);
-          showToast(t('bidExtended') || 'Bid time extended by 24 hours', 'success');
+          await shipmentsService.bulkExtendBid(ids, EXTEND_BID_HOURS);
+          showToast(t('bidExtended', { hours: EXTEND_BID_HOURS }) || `Bid time extended by ${EXTEND_BID_HOURS} hours`, 'success');
         } else if (action === 'export') {
           await shipmentsService.exportShipments({ ...summaryParams, ids });
+          setSelectedIds(new Set());
+          setRefreshKey((k) => k + 1);
         } else if (action === 'cancel') {
-          const firstId = ids[0];
-          const reasons = await shipmentsService.cancelReasons(firstId);
-          const reason = reasons.reasons[0];
-          if (!reason) {
-            showToast(t('cancelNoReasons') || 'No cancel reasons available', 'warning');
-            return;
-          }
-          await shipmentsService.bulkCancel({
-            ids,
-            cancel_reason_id: reason.id,
-          });
-          showToast(t('bulkCancelled') || 'Selected shipments cancelled', 'success');
+          setBulkCancelIds(ids);
         }
-        setSelectedIds(new Set());
-        setRefreshKey((k) => k + 1);
+        if (action === 'extend') {
+          setSelectedIds(new Set());
+          setRefreshKey((k) => k + 1);
+        }
       } catch (err: unknown) {
         showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
       }
@@ -431,7 +427,11 @@ export function useManageShipments() {
     }
     const partnerIds = Array.from(invitedCarriers)
       .map((id) => Number(id))
-      .filter((n) => Number.isFinite(n));
+      .filter((n) => Number.isFinite(n) && n > 0);
+    if (partnerIds.length === 0) {
+      showToast(t('selectAtLeastOneCarrier'), 'warning');
+      return;
+    }
     try {
       await shipmentsService.invitePartners(targetId, partnerIds);
       showToast(t('invitesSent', { count: partnerIds.length }), 'success');
@@ -451,6 +451,13 @@ export function useManageShipments() {
       else next.add(id);
       return next;
     });
+  }, []);
+
+  const handleBulkCancelled = useCallback(() => {
+    setBulkCancelIds(null);
+    setSelectedIds(new Set());
+    setCancelTarget(null);
+    setRefreshKey((k) => k + 1);
   }, []);
 
   const handleExport = useCallback(async () => {
@@ -511,9 +518,11 @@ export function useManageShipments() {
     handleRemindInvitee,
     handleRemoveInvitee,
     handleInviteMore,
-    handleStubAction,
     cancelTarget,
     setCancelTarget,
+    bulkCancelIds,
+    setBulkCancelIds,
+    handleBulkCancelled,
     handleBulkAction,
     isInviteOpen,
     setIsInviteOpen,
@@ -522,7 +531,10 @@ export function useManageShipments() {
     invitedCarriers,
     handleToggleInviteCarrier,
     handleSendInvites,
-    carriers,
+    invitePartners,
+    invitePartnersLoading,
+    invitePartnersError,
+    perPage: PER_PAGE,
     clearSelection: () => setSelectedIds(new Set()),
     isFilterOpen,
     setIsFilterOpen,

@@ -149,7 +149,7 @@ export function countForStatusTab(statuses: Record<string, number>, tab: StatusT
     case 'unfulfilled':
       return statuses.unfulfilled ?? statuses.not_fullfilled ?? 0;
     case 'cancelled':
-      return statuses.canceled ?? 0;
+      return (statuses.canceled ?? 0) + (statuses.rejected ?? 0) + (statuses.expired ?? 0);
     case 'drafts':
       return statuses.drafts ?? statuses.draft ?? 0;
     default:
@@ -450,23 +450,6 @@ export function statusBadgeClass(status: Shipment['status'], atRisk?: boolean): 
   }
 }
 
-/** Build load-specific progress steps from itinerary stops. */
-export function buildStopTimelineSteps(
-  shipment: Shipment,
-  t: (key: string, opts?: Record<string, unknown>) => string
-): string[] {
-  const stops = shipment.stops;
-  if (!stops || stops.length === 0) {
-    return [t('pickup'), t('delivery')];
-  }
-  return stops.map((stop, idx) => {
-    const label = stop.location || (stop.type === 'pickup' ? t('pickup') : t('delivery'));
-    if (stop.type === 'pickup' && idx === 0) return `${t('pickup')}: ${label}`;
-    if (stop.type === 'delivery' && idx === stops.length - 1) return `${t('delivery')}: ${label}`;
-    return label;
-  });
-}
-
 export type LaravelProgressState = 'done' | 'cur' | 'pending' | 'success' | 'skip';
 
 export type LaravelProgressStep = {
@@ -540,7 +523,7 @@ export function buildLaravelProgressSteps(
       id: 'created',
       label: t('tlCreated'),
       state: 'done',
-      sub: shipment.date || shipment.updated || undefined,
+      sub: shipment.date || undefined,
     },
   ];
 
@@ -643,85 +626,6 @@ export function buildLaravelProgressSteps(
   return steps;
 }
 
-/** HTML mock lifecycle steps (Created → Invoiced). */
-export const LIFECYCLE_STEP_KEYS = [
-  'tl_created',
-  'tl_posted',
-  'tl_bids',
-  'tl_awarded',
-  'tl_dispatched',
-  'tl_pickedup',
-  'tl_transit',
-  'tl_delivered',
-  'tl_pod',
-  'tl_invoiced',
-] as const;
-
-export function buildLifecycleTimelineSteps(
-  t: (key: string, opts?: Record<string, unknown>) => string
-): string[] {
-  return LIFECYCLE_STEP_KEYS.map((key) => t(key));
-}
-
-/** Current index for HTML lifecycle timeline (matches manage-shipments.html). */
-export function lifecycleTimelineCurrentIndex(status: Shipment['status']): number {
-  switch (status) {
-    case 'draft':
-      return 0;
-    case 'pending':
-      return 2;
-    case 'awarded':
-      return 3;
-    case 'scheduled':
-    case 'ready':
-    case 'upcoming':
-    case 'past_due':
-      return 4;
-    case 'on_trip':
-    case 'in_progress':
-      return 6;
-    case 'fullfilled':
-    case 'partially_fullfilled':
-    case 'delivered':
-      return 8;
-    case 'not_fullfilled':
-    case 'canceled':
-    case 'cancelled':
-      return 0;
-    default:
-      return 2;
-  }
-}
-
-export function stopTimelineCurrentIndex(status: Shipment['status'], stepCount: number): number {
-  if (stepCount <= 0) return 0;
-  const last = stepCount - 1;
-  switch (status) {
-    case 'pending':
-    case 'draft':
-    case 'awarded':
-      return 0;
-    case 'scheduled':
-    case 'ready':
-    case 'upcoming':
-    case 'past_due':
-      return Math.min(1, last);
-    case 'on_trip':
-    case 'in_progress':
-      return Math.max(0, Math.min(Math.floor(last / 2) + 1, last));
-    case 'fullfilled':
-    case 'partially_fullfilled':
-    case 'delivered':
-      return last;
-    case 'not_fullfilled':
-    case 'canceled':
-    case 'cancelled':
-      return 0;
-    default:
-      return 0;
-  }
-}
-
 export function formatStatValue(
   value: number | string | null | undefined,
   suffix?: string | null
@@ -731,18 +635,29 @@ export function formatStatValue(
   return suffix ? `${text} ${suffix}` : text;
 }
 
-/** Compact relative time like HTML mock ("2h ago", "1d ago"). */
-export function formatRelativeAgo(isoOrDate: string | Date | null | undefined): string {
+/** Compact relative time for list/expansion (i18n via `t`). */
+export function formatRelativeAgo(
+  isoOrDate: string | Date | null | undefined,
+  t?: (key: string, opts?: Record<string, unknown>) => string
+): string {
   if (!isoOrDate) return '';
   const ts = typeof isoOrDate === 'string' ? Date.parse(isoOrDate) : isoOrDate.getTime();
-  if (!Number.isFinite(ts)) return String(isoOrDate);
+  if (!Number.isFinite(ts)) return typeof isoOrDate === 'string' ? isoOrDate : '';
   const sec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-  if (sec < 60) return `${sec}s ago`;
+  const tr = t ?? ((key: string, opts?: Record<string, unknown>) => {
+    if (key === 'justNow') return 'Just now';
+    if (key === 'relativeSeconds') return `${opts?.count ?? 0}s ago`;
+    if (key === 'relativeMinutes') return `${opts?.count ?? 0}m ago`;
+    if (key === 'relativeHours') return `${opts?.count ?? 0}h ago`;
+    if (key === 'relativeDays') return `${opts?.count ?? 0}d ago`;
+    return key;
+  });
+  if (sec < 60) return tr('justNow');
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
+  if (min < 60) return tr('relativeMinutes', { count: min });
   const hrs = Math.floor(min / 60);
-  if (hrs < 48) return `${hrs}h ago`;
+  if (hrs < 48) return tr('relativeHours', { count: hrs });
   const days = Math.floor(hrs / 24);
-  if (days < 14) return `${days}d ago`;
+  if (days < 14) return tr('relativeDays', { count: days });
   return new Date(ts).toLocaleDateString();
 }

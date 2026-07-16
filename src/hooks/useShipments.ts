@@ -31,7 +31,7 @@ export function useShipment(id?: string) {
       .catch((err: unknown) => {
         if (cancelled) return;
         setShipment(null);
-        setError(err instanceof ApiError ? err.message : 'Failed to load shipment.');
+        setError(err instanceof ApiError ? err.message : 'loadShipmentFailed');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -120,7 +120,7 @@ export function useShipmentsList(
         if (cancelled) return;
         setShipments([]);
         setSummary(EMPTY_SUMMARY);
-        setError(err instanceof ApiError ? err.message : 'Failed to load shipments.');
+        setError(err instanceof ApiError ? err.message : 'loadShipmentsFailed');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

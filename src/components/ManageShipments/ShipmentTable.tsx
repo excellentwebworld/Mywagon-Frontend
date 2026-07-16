@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Shipment } from '../../context/AppContext';
 import {
   formatEuro,
+  formatRelativeAgo,
   laneMidLabel,
   shipmentIdSublabel,
   statusBadgeClass,
@@ -239,12 +240,12 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                       <span className="bdot" />
                       {t(s.status)}
                     </span>
-                    {s.at_risk && s.riskReason && s.status !== 'pending' && (
+                    {s.at_risk && s.status !== 'pending' && (
                       <>
                         <br />
                         <span className="badge badge-danger risk-subtag">
                           <span className="bdot" />
-                          {s.riskReason}
+                          {s.riskReason || t('riskPickupOverdue')}
                         </span>
                       </>
                     )}
@@ -319,7 +320,9 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                     )}
                   </td>
                   <td className="col-last-update">
-                    <span className="ago">{s.updated}</span>
+                    <span className="ago">
+                      {formatRelativeAgo(s.updatedAt || s.updated, t) || '—'}
+                    </span>
                   </td>
                   <td className="col-actions" onClick={(e) => e.stopPropagation()}>
                     <div className="acts">

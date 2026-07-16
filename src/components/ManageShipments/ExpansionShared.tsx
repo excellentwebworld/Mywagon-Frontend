@@ -291,13 +291,13 @@ export function QuickActions({
   return (
     <div className="qa-row">
       <button type="button" className="f-pill" onClick={onEdit}>
-        ✏️ {t('edit')}
+        {t('edit')}
       </button>
       <button type="button" className="f-pill" onClick={onView}>
-        👁 {t('viewDetails')}
+        {t('viewDetails')}
       </button>
       <button type="button" className="f-pill qa-danger" onClick={onCancel}>
-        ❌ {t('cancel')}
+        {t('cancel')}
       </button>
     </div>
   );

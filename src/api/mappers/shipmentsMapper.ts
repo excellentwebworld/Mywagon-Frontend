@@ -33,22 +33,6 @@ function mapApiStatus(status: string): Shipment['status'] {
   }
 }
 
-function formatRelativeTime(value?: string | null): string {
-  if (!value) return 'Just now';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Just now';
-
-  const diffMs = Date.now() - date.getTime();
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
 function formatDisplayDate(value?: string | null): string {
   if (!value) return '';
   const date = new Date(value);
@@ -81,27 +65,27 @@ function mapCustomers(item: ApiShipmentListItem): Shipment['customer'] {
 }
 
 function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | null): ShipmentStop {
-  const name = stop.company_name || customerName || 'Customer';
+  const name = stop.company_name || customerName || '';
   return {
     id: stop.id || index + 1,
     type: stop.type === 'pickup' ? 'pickup' : 'delivery',
-    location: stop.location || stop.city || 'Location',
+    location: stop.location || stop.city || '—',
     address: stop.address || stop.city || '',
     date: stop.date || '',
-    timeStart: stop.time_start || '08:00',
-    timeEnd: stop.time_end || '18:00',
+    timeStart: stop.time_start || '',
+    timeEnd: stop.time_end || '',
     customers: stop.order_id
       ? [
           {
-            name,
+            name: name || '—',
             orders: [
               {
                 id: stop.order_id,
                 products: stop.product_name || '—',
                 qty: parseFloat(String(stop.qty ?? 0)) || 0,
-                qtyUnit: String(stop.qty_unit ?? 'Units'),
+                qtyUnit: String(stop.qty_unit ?? ''),
                 weight: parseFloat(String(stop.weight ?? 0)) || 0,
-                weightUnit: String(stop.weight_unit ?? 'kg'),
+                weightUnit: String(stop.weight_unit ?? ''),
               },
             ],
           },
@@ -115,7 +99,7 @@ function customersFromStops(detail: ApiShipmentDetail): Shipment['customer'] {
   const byName = new Map<string, string[]>();
   stops.forEach((stop) => {
     if (!stop.order_id) return;
-    const name = stop.company_name || detail.customer_reference || 'Customer';
+    const name = stop.company_name || detail.customer_reference || '—';
     const list = byName.get(name) || [];
     if (!list.includes(stop.order_id)) list.push(stop.order_id);
     byName.set(name, list);
@@ -168,7 +152,8 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     agreedPrice: item.agreed_price ?? null,
     price_type: item.negotiable ? 'spot' : 'contract',
     paymentStatus: item.payment_status ?? null,
-    updated: formatRelativeTime(item.updated_at),
+    updated: item.updated_at ?? '',
+    updatedAt: item.updated_at ?? null,
     timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
     tl_cur:
       status === 'pending' || status === 'draft'
@@ -183,7 +168,7 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
                 ? 7
                 : 2,
     at_risk: atRisk,
-    riskReason: item.risk_reason ?? (atRisk ? 'Pickup overdue without transporter' : null),
+    riskReason: item.risk_reason ?? null,
     needsAction: Boolean(flags?.needs_action ?? item.needs_action),
     awaitingResponse: Boolean(flags?.awaiting_response ?? item.awaiting_response),
     pickupToday: Boolean(flags?.pickup_today ?? item.pickup_today),

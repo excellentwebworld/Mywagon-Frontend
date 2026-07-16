@@ -1,14 +1,30 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { shipmentsService } from '../../api';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 
 export const QuickActions: React.FC = () => {
-  const { shipments, showToast } = useApp();
+  const { showToast } = useApp();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [needsAction, setNeedsAction] = useState(0);
 
-  const pendingBids = shipments.filter(s => s.status === 'pending').length;
+  useEffect(() => {
+    let cancelled = false;
+    shipmentsService
+      .summary({ direction: 'outbound' })
+      .then((data) => {
+        if (cancelled) return;
+        setNeedsAction(data.kpis?.needs_action ?? data.statuses?.pending ?? 0);
+      })
+      .catch(() => {
+        if (!cancelled) setNeedsAction(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="quick-actions" style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
@@ -24,7 +40,7 @@ export const QuickActions: React.FC = () => {
         <div className="qa-icon" style={{ background: 'var(--warning-bg)' }}>⚠️</div>
         <div>
           <div className="qa-label" style={{ fontWeight: 600 }}>
-            {pendingBids} {t('qaNeedsAction')}
+            {needsAction} {t('qaNeedsAction')}
           </div>
           <div className="qa-sub" style={{ fontSize: '11px', opacity: 0.6 }}>{t('qaNeedsActionSub')}</div>
         </div>

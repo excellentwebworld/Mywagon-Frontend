@@ -190,6 +190,8 @@ export interface Shipment {
   orderIds?: string[];
   pickDtIso?: string | null;
   delDtIso?: string | null;
+  /** ISO timestamp for last update; format in UI via formatRelativeAgo(..., t). */
+  updatedAt?: string | null;
   stops?: ShipmentStop[];
   journeyDistanceKm?: number | null;
   journeyTime?: string | number | null;
@@ -619,108 +621,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  // Shipments State
-  const [shipments, setShipments] = useState<Shipment[]>([
-    {
-      id: 'SHP-5012', date: 'Apr 25', status: 'pending', vis: 'private',
-      origin: 'Ioannina', dest: 'Athens', via: null,
-      customer: [{ name: 'Alpha Foods Ltd', orders: ['ORD-1101', 'ORD-1102', 'ORD-1103'] }],
-      bids: 3, best_bid: 820, bid_exp: '2h 14m', carrier: null,
-      price: null, price_type: 'spot', updated: '8m ago',
-      timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
-      tl_cur: 2,
-    },
-    {
-      id: 'SHP-5011', date: 'Apr 25', status: 'pending', vis: 'public',
-      origin: 'Thessaloniki', dest: 'Larissa', via: null,
-      customer: [{ name: 'Beta Distributors', orders: ['ORD-2201', 'ORD-2202'] }],
-      bids: 1, best_bid: 340, bid_exp: '5h 30m', carrier: null,
-      counter: { yours: 340, theirs: 390, pct: '+15%', dir: 'up' },
-      price: null, price_type: 'spot', updated: '22m ago',
-      timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
-      tl_cur: 2,
-    },
-    {
-      id: 'SHP-5010', date: 'Apr 24', status: 'pending', vis: 'private',
-      origin: 'Athens', dest: 'Patras', via: null,
-      customer: [
-        { name: 'Alpha Foods Ltd', orders: ['ORD-1099'] },
-        { name: 'Gamma Logistics', orders: ['ORD-3305', 'ORD-3306'] },
-      ],
-      bids: 0, best_bid: null, bid_exp: null, carrier: null,
-      price: null, price_type: 'spot', updated: '1h ago',
-      timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
-      tl_cur: 1,
-    },
-    {
-      id: 'SHP-5009', date: 'Apr 24', status: 'upcoming', vis: 'private',
-      origin: 'Volos', dest: 'Thessaloniki', via: 'Larissa',
-      customer: [{ name: 'Beta Distributors', orders: ['ORD-2199', 'ORD-2200'] }],
-      bids: 2, best_bid: 560, bid_exp: null, carrier: 'KRP Transport S.A',
-      carrier_init: 'KR',
-      price: 560, price_type: 'contract', updated: '3h ago',
-      timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
-      tl_cur: 3,
-    },
-    {
-      id: 'SHP-5008', date: 'Apr 23', status: 'in_progress', vis: 'private',
-      origin: 'Athens', dest: 'Thessaloniki', via: null,
-      customer: [{ name: 'Alpha Foods Ltd', orders: ['ORD-1095', 'ORD-1096', 'ORD-1097', 'ORD-1098'] }],
-      bids: 4, best_bid: null, bid_exp: null, carrier: 'Transmed Logistics',
-      carrier_init: 'TM',
-      price: 950, price_type: 'spot', updated: '5h ago',
-      timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
-      tl_cur: 5,
-    },
-    {
-      id: 'SHP-5007', date: 'Apr 23', status: 'in_progress', vis: 'public',
-      origin: 'Patras', dest: 'Athens', via: null,
-      customer: [{ name: 'Gamma Logistics', orders: ['ORD-3302', 'ORD-3303', 'ORD-3304'] }],
-      bids: 2, best_bid: null, bid_exp: null, carrier: 'Giorgos Pantazis',
-      carrier_init: 'GP',
-      price: 420, price_type: 'spot', updated: '6h ago', at_risk: true,
-      timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
-      tl_cur: 4,
-    },
-    {
-      id: 'SHP-5006', date: 'Apr 23', status: 'in_progress', vis: 'private',
-      origin: 'Ioannina', dest: 'Volos', via: 'Trikala',
-      customer: [{ name: 'Alpha Foods Ltd', orders: ['ORD-1093', 'ORD-1094'] }],
-      bids: 3, best_bid: null, bid_exp: null, carrier: 'Hellenic Transport',
-      carrier_init: 'EM',
-      price: 680, price_type: 'contract', updated: 'Yesterday',
-      timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
-      tl_cur: 5,
-    },
-    {
-      id: 'SHP-5005', date: 'Apr 22', status: 'pending', vis: 'public',
-      origin: 'Heraklion', dest: 'Piraeus', via: null,
-      customer: [{ name: 'Beta Distributors', orders: ['ORD-2197', 'ORD-2198'] }],
-      bids: 0, best_bid: null, bid_exp: null, carrier: null,
-      price: null, price_type: 'spot', updated: 'Yesterday',
-      timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
-      tl_cur: 1,
-    },
-    {
-      id: 'SHP-5004', date: 'Apr 22', status: 'pending', vis: 'private',
-      origin: 'Thessaloniki', dest: 'Ioannina', via: null,
-      customer: [{ name: 'Gamma Logistics', orders: ['ORD-3300', 'ORD-3301'] }],
-      bids: 5, best_bid: 710, bid_exp: '45m', carrier: null,
-      price: null, price_type: 'spot', updated: '2d ago',
-      timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
-      tl_cur: 2,
-    },
-    {
-      id: 'SHP-5003', date: 'Apr 21', status: 'upcoming', vis: 'private',
-      origin: 'Athens', dest: 'Heraklion', via: 'Piraeus',
-      customer: [{ name: 'Alpha Foods Ltd', orders: ['ORD-1091', 'ORD-1092'] }],
-      bids: 1, best_bid: 1100, bid_exp: null, carrier: 'Aegean Cargo',
-      carrier_init: 'AC',
-      price: 1100, price_type: 'contract', updated: '2d ago',
-      timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],
-      tl_cur: 3,
-    },
-  ]);
+  // Shipments State — list data comes from API (Manage Shipments); no demo seed.
+  const [shipments, setShipments] = useState<Shipment[]>([]);
 
   const addShipment = (shp: Shipment) => {
     setShipments((prev) => [shp, ...prev]);

@@ -26,7 +26,11 @@ export const ManageShipments: React.FC = () => {
 
       <LoadsDirectionToggle direction={m.direction} onChange={m.setDirection} t={m.t} />
 
-      {m.error && <div style={{ marginBottom: 12, color: 'var(--danger)' }}>{m.error}</div>}
+      {m.error && (
+        <div style={{ marginBottom: 12, color: 'var(--danger)' }}>
+          {m.t(m.error) !== m.error ? m.t(m.error) : m.error}
+        </div>
+      )}
 
       {m.loading ? (
         <KpiStripSkeleton />
@@ -93,7 +97,7 @@ export const ManageShipments: React.FC = () => {
           page={m.pagination.page}
           totalPages={m.pagination.totalPages}
           total={m.pagination.total}
-          perPage={10}
+          perPage={m.perPage}
           onPageChange={m.setPage}
           t={m.t}
         />
@@ -111,7 +115,9 @@ export const ManageShipments: React.FC = () => {
 
       <InviteCarrierModal
         open={m.isInviteOpen}
-        carriers={m.carriers}
+        carriers={m.invitePartners}
+        loading={m.invitePartnersLoading}
+        error={m.invitePartnersError}
         query={m.inviteQuery}
         selected={m.invitedCarriers}
         onQueryChange={m.setInviteQuery}
@@ -138,10 +144,14 @@ export const ManageShipments: React.FC = () => {
       />
 
       <CancelShipmentModal
-        open={Boolean(m.cancelTarget)}
+        open={Boolean(m.cancelTarget) || Boolean(m.bulkCancelIds?.length)}
         shipment={m.cancelTarget}
-        onClose={() => m.setCancelTarget(null)}
-        onCancelled={m.handleCancelled}
+        shipmentIds={m.bulkCancelIds}
+        onClose={() => {
+          m.setCancelTarget(null);
+          m.setBulkCancelIds(null);
+        }}
+        onCancelled={m.bulkCancelIds?.length ? m.handleBulkCancelled : m.handleCancelled}
         t={m.t}
       />
     </div>

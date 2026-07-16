@@ -2,6 +2,7 @@ import React from 'react';
 import type { Shipment } from '../../context/AppContext';
 import {
   formatEuro,
+  formatRelativeAgo,
   statusBadgeClass,
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { ExpHeading } from './ExpHeading';
@@ -54,11 +55,11 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
 
         <StatusDetailGrid shipment={shipment} t={t} />
 
-        {shipment.at_risk && shipment.riskReason && (
+        {shipment.at_risk && (
           <div className="exp-risk">
             <span className="badge badge-danger" style={{ fontSize: 12, padding: '6px 12px' }}>
               <span className="bdot" />
-              {shipment.riskReason}
+              {shipment.riskReason || t('riskPickupOverdue')}
             </span>
           </div>
         )}
@@ -73,9 +74,9 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
             </div>
             <div className="cc-info">
               <div className="cc-name">{shipment.carrier}</div>
-              {shipment.updated && (
+              {(shipment.updatedAt || shipment.updated) && (
                 <div className="cc-meta">
-                  {t('assigned')} · {shipment.updated}
+                  {t('assigned')} · {formatRelativeAgo(shipment.updatedAt || shipment.updated, t)}
                 </div>
               )}
             </div>

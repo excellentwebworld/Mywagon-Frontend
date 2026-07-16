@@ -6,7 +6,10 @@ import type { Shipment } from '../../context/AppContext';
 
 interface CancelShipmentModalProps {
   open: boolean;
+  /** Single-shipment cancel target. Ignored when `shipmentIds` is set. */
   shipment: Shipment | null;
+  /** Bulk cancel: numeric shipment ids. When set, modal runs in bulk mode. */
+  shipmentIds?: number[] | null;
   onClose: () => void;
   onCancelled: () => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
@@ -15,10 +18,15 @@ interface CancelShipmentModalProps {
 export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
   open,
   shipment,
+  shipmentIds = null,
   onClose,
   onCancelled,
   t,
 }) => {
+  const isBulk = Boolean(shipmentIds && shipmentIds.length > 0);
+  const reasonSourceId = isBulk ? shipmentIds![0] : shipment?.id;
+  const count = isBulk ? shipmentIds!.length : 1;
+
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +36,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
-    if (!open || !shipment) return;
+    if (!open || reasonSourceId == null) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -38,7 +46,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
     setChargeMessage('');
 
     shipmentsService
-      .cancelReasons(shipment.id)
+      .cancelReasons(reasonSourceId)
       .then((data: ApiCancelReasonsPayload) => {
         if (cancelled) return;
         setReasons(data.reasons ?? []);
@@ -57,7 +65,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [open, shipment, t]);
+  }, [open, reasonSourceId, t]);
 
   useEffect(() => {
     if (!open) return;
@@ -68,7 +76,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  if (!open || !shipment) return null;
+  if (!open || reasonSourceId == null) return null;
 
   const selected = reasons.find((r) => r.id === reasonId);
   const needsNotes = Boolean(selected?.is_other);
@@ -85,10 +93,21 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
     setSubmitting(true);
     setError(null);
     try {
-      await shipmentsService.cancel(shipment.id, {
-        cancel_reason_id: reasonId,
-        cancel_notes: notes.trim() || undefined,
-      });
+      if (isBulk && shipmentIds) {
+        await shipmentsService.bulkCancel({
+          ids: shipmentIds,
+          cancel_reason_id: reasonId,
+          cancel_notes: notes.trim() || undefined,
+        });
+      } else if (shipment) {
+        await shipmentsService.cancel(shipment.id, {
+          cancel_reason_id: reasonId,
+          cancel_notes: notes.trim() || undefined,
+        });
+      } else {
+        setError(t('cancelFailed'));
+        return;
+      }
       onCancelled();
       onClose();
     } catch (err: unknown) {
@@ -97,6 +116,11 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
       setSubmitting(false);
     }
   };
+
+  const title = isBulk ? t('bulkCancelTitle') || t('cancelShipmentTitle') : t('cancelShipmentTitle');
+  const intro = isBulk
+    ? t('bulkCancelIntro', { count }) || `Cancel ${count} selected shipments?`
+    : t('cancelShipmentIntro', { id: shipment?.autoId || shipment?.id || '' });
 
   return createPortal(
     <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -108,15 +132,13 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
         aria-modal="true"
       >
         <div className="modal-header">
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{t('cancelShipmentTitle')}</h3>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{title}</h3>
           <button type="button" className="modal-close" onClick={onClose} aria-label={t('cancel')}>
             ✕
           </button>
         </div>
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
-            {t('cancelShipmentIntro', { id: shipment.autoId || shipment.id })}
-          </p>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>{intro}</p>
           {loading ? (
             <p style={{ margin: 0, fontSize: 13 }}>{t('loading')}</p>
           ) : (
