@@ -22,6 +22,8 @@ interface InviteCarrierModalProps {
   error?: string | null;
   query: string;
   selected: Set<string>;
+  /** Already invited on this shipment — shown selected and locked. */
+  alreadyInvitedIds?: Set<string>;
   onQueryChange: (q: string) => void;
   onToggle: (id: string) => void;
   onClose: () => void;
@@ -36,6 +38,7 @@ export const InviteCarrierModal: React.FC<InviteCarrierModalProps> = ({
   error = null,
   query,
   selected,
+  alreadyInvitedIds = new Set(),
   onQueryChange,
   onToggle,
   onClose,
@@ -53,6 +56,8 @@ export const InviteCarrierModal: React.FC<InviteCarrierModalProps> = ({
           typeLabel(c.type, t).toLowerCase().includes(q)
       )
     : carriers;
+
+  const newSelectedCount = Array.from(selected).filter((id) => !alreadyInvitedIds.has(id)).length;
 
   return (
     <div className="inv-modal-bg show">
@@ -81,20 +86,23 @@ export const InviteCarrierModal: React.FC<InviteCarrierModalProps> = ({
             <div className="sub">{t('noPartnersFound') || t('noResults') || 'No transporters found'}</div>
           ) : (
             filtered.map((c) => {
-              const isSelected = selected.has(c.id);
+              const isAlready = alreadyInvitedIds.has(c.id);
+              const isSelected = selected.has(c.id) || isAlready;
               return (
                 <div
                   key={c.id}
-                  className={`inv-carrier ${isSelected ? 'selected' : ''}`}
-                  onClick={() => onToggle(c.id)}
+                  className={`inv-carrier ${isSelected ? 'selected' : ''}${isAlready ? ' inv-carrier--locked' : ''}`}
+                  onClick={() => !isAlready && onToggle(c.id)}
                   onKeyDown={(e) => {
+                    if (isAlready) return;
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
                       onToggle(c.id);
                     }
                   }}
                   role="button"
-                  tabIndex={0}
+                  tabIndex={isAlready ? -1 : 0}
+                  aria-disabled={isAlready}
                 >
                   <div className="ic-av">{initials(c.name)}</div>
                   <div className="ic-info">
@@ -103,6 +111,7 @@ export const InviteCarrierModal: React.FC<InviteCarrierModalProps> = ({
                       {typeLabel(c.type, t)}
                       {c.region ? ` · ${c.region}` : ''}
                       {c.rating != null ? ` · ★ ${c.rating}` : ''}
+                      {isAlready ? ` · ${t('alreadyInvited') || 'Already invited'}` : ''}
                     </div>
                   </div>
                   <div className="ic-check">{isSelected ? '✓' : ''}</div>
@@ -113,7 +122,10 @@ export const InviteCarrierModal: React.FC<InviteCarrierModalProps> = ({
         </div>
         <div className="inv-modal-foot">
           <span style={{ marginRight: 'auto', fontSize: 12, color: 'var(--text-tertiary)' }}>
-            {selected.size} {t('selected')}
+            {newSelectedCount} {t('selected')}
+            {alreadyInvitedIds.size > 0
+              ? ` · ${alreadyInvitedIds.size} ${t('alreadyInvited') || 'already invited'}`
+              : ''}
           </span>
           <button type="button" className="btn btn-secondary" onClick={onClose}>
             {t('cancel')}
@@ -122,7 +134,7 @@ export const InviteCarrierModal: React.FC<InviteCarrierModalProps> = ({
             type="button"
             className="btn btn-primary"
             onClick={onSend}
-            disabled={loading || selected.size === 0}
+            disabled={loading || newSelectedCount === 0}
           >
             {t('sendInvitations')}
           </button>

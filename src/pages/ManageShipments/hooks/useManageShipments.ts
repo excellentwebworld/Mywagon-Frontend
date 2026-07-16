@@ -115,7 +115,7 @@ export function useManageShipments() {
     };
   }, [summaryParams, page, activeKpi, activeTab, sortKey]);
 
-  const { shipments, meta, summary, loading, error } = useShipmentsList(
+  const { shipments, meta, summary, loading, error, patchShipment } = useShipmentsList(
     listParams,
     summaryParams,
     tabSupported,
@@ -264,12 +264,17 @@ export function useManageShipments() {
     setCancelTarget(s);
   }, []);
 
+  /** Full list refresh (silent if already loaded) — for cancel / extend / accept that changes tab membership. */
+  const refreshList = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+  }, []);
+
   const handleCancelled = useCallback(() => {
     showToast(t('shipmentCancelled'), 'success');
-    setRefreshKey((k) => k + 1);
     setCancelTarget(null);
     setExpandedId(null);
-  }, [showToast, t]);
+    refreshList();
+  }, [refreshList, showToast, t]);
 
   const handleEditBlocked = useCallback(() => {
     showToast(t('editNotAllowed'), 'warning');
@@ -291,17 +296,47 @@ export function useManageShipments() {
   }, []);
 
   const [inviteTargetId, setInviteTargetId] = useState<string | null>(null);
+  /** Partner ids already invited on the target shipment (auto-selected & locked in modal). */
+  const [alreadyInvitedPartnerIds, setAlreadyInvitedPartnerIds] = useState<Set<string>>(new Set());
 
-  const refreshAfterMutation = useCallback((shipmentId?: string) => {
-    if (shipmentId) {
-      setDetailCache((cache) => {
-        const next = { ...cache };
-        delete next[shipmentId];
-        return next;
-      });
-    }
-    setRefreshKey((k) => k + 1);
-  }, []);
+  /** Reload only the expanded row detail + patch list fields — no full-table skeleton. */
+  const refreshShipmentDetail = useCallback(
+    async (shipmentId: string) => {
+      setDetailLoadingIds((loadingSet) => new Set(loadingSet).add(shipmentId));
+      try {
+        const detail = await shipmentsService.getMapped(shipmentId);
+        setDetailCache((c) => ({ ...c, [shipmentId]: detail }));
+        patchShipment(shipmentId, {
+          invited: detail.invited,
+          bids: detail.bids,
+          bidsReceived: detail.bidsReceived,
+          bidsSent: detail.bidsSent,
+          best_bid: detail.best_bid,
+          carrier: detail.carrier,
+          carrier_init: detail.carrier_init,
+          status: detail.status,
+          quotedPrice: detail.quotedPrice,
+          agreedPrice: detail.agreedPrice,
+          price: detail.price,
+          at_risk: detail.at_risk,
+          riskReason: detail.riskReason,
+          needsAction: detail.needsAction,
+          awaitingResponse: detail.awaitingResponse,
+          offers: detail.offers,
+          invitees: detail.invitees,
+        });
+      } catch {
+        // Keep existing expansion data on failure
+      } finally {
+        setDetailLoadingIds((loadingSet) => {
+          const copy = new Set(loadingSet);
+          copy.delete(shipmentId);
+          return copy;
+        });
+      }
+    },
+    [patchShipment]
+  );
 
   const handleMessage = useCallback((s: Shipment, offerId?: string) => {
     const q = offerId ? `?offer=${encodeURIComponent(offerId)}` : '';
@@ -313,12 +348,13 @@ export function useManageShipments() {
       try {
         await shipmentsService.acceptOffer(s.id, offerId);
         showToast(t('offerAccepted') || 'Offer accepted', 'success');
-        refreshAfterMutation(s.id);
+        await refreshShipmentDetail(s.id);
+        refreshList();
       } catch (err: unknown) {
         showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
       }
     },
-    [refreshAfterMutation, showToast, t]
+    [refreshList, refreshShipmentDetail, showToast, t]
   );
 
   const handleRejectOffer = useCallback(
@@ -326,12 +362,12 @@ export function useManageShipments() {
       try {
         await shipmentsService.rejectOffer(s.id, offerId);
         showToast(t('offerRejected') || 'Offer rejected', 'success');
-        refreshAfterMutation(s.id);
+        await refreshShipmentDetail(s.id);
       } catch (err: unknown) {
         showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
       }
     },
-    [refreshAfterMutation, showToast, t]
+    [refreshShipmentDetail, showToast, t]
   );
 
   const handleCounterOffer = useCallback(
@@ -339,12 +375,12 @@ export function useManageShipments() {
       try {
         await shipmentsService.counterOffer(s.id, offerId, { amount });
         showToast(t('counterSent') || 'Counter-offer sent', 'success');
-        refreshAfterMutation(s.id);
+        await refreshShipmentDetail(s.id);
       } catch (err: unknown) {
         showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
       }
     },
-    [refreshAfterMutation, showToast, t]
+    [refreshShipmentDetail, showToast, t]
   );
 
   const handleRemindInvitee = useCallback(
@@ -364,18 +400,33 @@ export function useManageShipments() {
       try {
         await shipmentsService.removeInvite(s.id, inviteeId);
         showToast(t('inviteRemoved') || 'Invite removed', 'success');
-        refreshAfterMutation(s.id);
+        await refreshShipmentDetail(s.id);
       } catch (err: unknown) {
         showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
       }
     },
-    [refreshAfterMutation, showToast, t]
+    [refreshShipmentDetail, showToast, t]
   );
 
-  const handleInviteMore = useCallback((s: Shipment) => {
-    setInviteTargetId(s.id);
-    setIsInviteOpen(true);
-  }, []);
+  const handleInviteMore = useCallback(
+    (s: Shipment) => {
+      setInviteTargetId(s.id);
+      const invitedNames = new Set(
+        (s.invitees ?? []).map((inv) => inv.name.trim().toLowerCase()).filter(Boolean)
+      );
+      // Invitee.id is shipment_partner row id; partners list uses Partner.id — match by name.
+      const already = new Set(
+        invitePartners
+          .filter((p) => invitedNames.has(p.name.trim().toLowerCase()))
+          .map((p) => p.id)
+      );
+      setAlreadyInvitedPartnerIds(already);
+      setInvitedCarriers(new Set(already));
+      setInviteQuery('');
+      setIsInviteOpen(true);
+    },
+    [invitePartners]
+  );
 
   const handleBulkAction = useCallback(
     async (action: string) => {
@@ -388,7 +439,19 @@ export function useManageShipments() {
           showToast(t('invitePrivateOnly') || 'Select a private load to invite transporters', 'warning');
           return;
         }
+        const merged = mergedShipment(first);
         setInviteTargetId(first.id);
+        const invitedNames = new Set(
+          (merged.invitees ?? []).map((inv) => inv.name.trim().toLowerCase()).filter(Boolean)
+        );
+        const already = new Set(
+          invitePartners
+            .filter((p) => invitedNames.has(p.name.trim().toLowerCase()))
+            .map((p) => p.id)
+        );
+        setAlreadyInvitedPartnerIds(already);
+        setInvitedCarriers(new Set(already));
+        setInviteQuery('');
         setIsInviteOpen(true);
         return;
       }
@@ -397,26 +460,28 @@ export function useManageShipments() {
         if (action === 'extend') {
           await shipmentsService.bulkExtendBid(ids, EXTEND_BID_HOURS);
           showToast(t('bidExtended', { hours: EXTEND_BID_HOURS }) || `Bid time extended by ${EXTEND_BID_HOURS} hours`, 'success');
+          setSelectedIds(new Set());
+          refreshList();
         } else if (action === 'export') {
           await shipmentsService.exportShipments({ ...summaryParams, ids });
           setSelectedIds(new Set());
-          setRefreshKey((k) => k + 1);
         } else if (action === 'cancel') {
           setBulkCancelIds(ids);
-        }
-        if (action === 'extend') {
-          setSelectedIds(new Set());
-          setRefreshKey((k) => k + 1);
         }
       } catch (err: unknown) {
         showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
       }
     },
-    [pagination.items, selectedIds, showToast, summaryParams, t]
+    [invitePartners, mergedShipment, pagination.items, refreshList, selectedIds, showToast, summaryParams, t]
   );
 
   const handleSendInvites = useCallback(async () => {
-    if (invitedCarriers.size === 0) {
+    const newPartnerIds = Array.from(invitedCarriers)
+      .filter((id) => !alreadyInvitedPartnerIds.has(id))
+      .map((id) => Number(id))
+      .filter((n) => Number.isFinite(n) && n > 0);
+
+    if (newPartnerIds.length === 0) {
       showToast(t('selectAtLeastOneCarrier'), 'warning');
       return;
     }
@@ -425,40 +490,50 @@ export function useManageShipments() {
       showToast(t('somethingWentWrong') || 'No shipment selected', 'warning');
       return;
     }
-    const partnerIds = Array.from(invitedCarriers)
-      .map((id) => Number(id))
-      .filter((n) => Number.isFinite(n) && n > 0);
-    if (partnerIds.length === 0) {
-      showToast(t('selectAtLeastOneCarrier'), 'warning');
-      return;
-    }
     try {
-      await shipmentsService.invitePartners(targetId, partnerIds);
-      showToast(t('invitesSent', { count: partnerIds.length }), 'success');
+      await shipmentsService.invitePartners(targetId, newPartnerIds);
+      showToast(t('invitesSent', { count: newPartnerIds.length }), 'success');
       setIsInviteOpen(false);
       setInvitedCarriers(new Set());
+      setAlreadyInvitedPartnerIds(new Set());
       setInviteTargetId(null);
-      refreshAfterMutation(String(targetId));
+      setInviteQuery('');
+      // Keep row expanded; refresh only its detail
+      setExpandedId(String(targetId));
+      await refreshShipmentDetail(String(targetId));
     } catch (err: unknown) {
       showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
     }
-  }, [inviteTargetId, invitedCarriers, refreshAfterMutation, selectedIds, showToast, t]);
+  }, [
+    alreadyInvitedPartnerIds,
+    inviteTargetId,
+    invitedCarriers,
+    refreshShipmentDetail,
+    selectedIds,
+    showToast,
+    t,
+  ]);
 
-  const handleToggleInviteCarrier = useCallback((id: string) => {
-    setInvitedCarriers((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+  const handleToggleInviteCarrier = useCallback(
+    (id: string) => {
+      if (alreadyInvitedPartnerIds.has(id)) return;
+      setInvitedCarriers((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+    },
+    [alreadyInvitedPartnerIds]
+  );
 
   const handleBulkCancelled = useCallback(() => {
     setBulkCancelIds(null);
     setSelectedIds(new Set());
     setCancelTarget(null);
-    setRefreshKey((k) => k + 1);
-  }, []);
+    setExpandedId(null);
+    refreshList();
+  }, [refreshList]);
 
   const handleExport = useCallback(async () => {
     setExporting(true);
@@ -529,6 +604,7 @@ export function useManageShipments() {
     inviteQuery,
     setInviteQuery,
     invitedCarriers,
+    alreadyInvitedPartnerIds,
     handleToggleInviteCarrier,
     handleSendInvites,
     invitePartners,

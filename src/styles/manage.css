@@ -1993,6 +1993,13 @@
   border-color: var(--accent);
   background: var(--accent-light);
 }
+.inv-carrier--locked {
+  opacity: 0.75;
+  cursor: default;
+}
+.inv-carrier--locked:hover {
+  background: var(--surface-alt, var(--surface));
+}
 .inv-carrier .ic-av {
   width: 32px;
   height: 32px;

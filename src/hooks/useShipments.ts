@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { ApiError, shipmentsService } from '../api';
 import type { ApiShipmentsSummary, ListShipmentsParams } from '../api/types/shipments';
 import type { Shipment } from '../context/AppContext';
@@ -72,13 +72,22 @@ export function useShipmentsList(
   const [summary, setSummary] = useState<ApiShipmentsSummary>(EMPTY_SUMMARY);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
 
   const listKey = JSON.stringify(listParams);
   const summaryKey = JSON.stringify(summaryParams);
 
+  // Full skeleton only when query params change — not when refreshKey alone bumps.
+  useEffect(() => {
+    hasLoadedOnce.current = false;
+  }, [listKey, summaryKey, listEnabled, summaryEnabled]);
+
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    const softRefresh = hasLoadedOnce.current;
+    if (!softRefresh) {
+      setLoading(true);
+    }
     setError(null);
 
     const emptyList = {
@@ -115,6 +124,7 @@ export function useShipmentsList(
         setShipments(listResult.shipments);
         setMeta(listResult.meta);
         setSummary(summaryResult);
+        hasLoadedOnce.current = true;
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -132,5 +142,9 @@ export function useShipmentsList(
     // eslint-disable-next-line react-hooks/exhaustive-deps -- key-based sync
   }, [listEnabled, summaryEnabled, listKey, summaryKey, refreshKey]);
 
-  return { shipments, meta, summary, loading, error };
+  const patchShipment = useCallback((id: string, patch: Partial<Shipment>) => {
+    setShipments((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  }, []);
+
+  return { shipments, meta, summary, loading, error, patchShipment };
 }
