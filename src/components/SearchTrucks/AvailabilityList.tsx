@@ -26,6 +26,8 @@ interface AvailabilityListProps {
   onLoadMore?: () => void;
   creatingShipment?: boolean;
   subscriptionBlocked?: boolean;
+  /** Hide list-side detail when map hosts the bottom sheet (mobile overlay) */
+  hideDetailPanel?: boolean;
   t: (key: string) => string;
 }
 
@@ -88,6 +90,7 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
   onLoadMore,
   creatingShipment = false,
   subscriptionBlocked = false,
+  hideDetailPanel = false,
   t,
 }) => {
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -187,7 +190,7 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
         )}
       </div>
 
-      {selectedTruck && (
+      {selectedTruck && !hideDetailPanel && (
         <AvailabilityDetailPanel
           truck={selectedTruck}
           onClose={() => onSelect(null)}

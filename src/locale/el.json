@@ -1798,6 +1798,8 @@
   "satTrucksMap": "Χάρτης φορτηγών",
   "satMap": "Χάρτης",
   "satExpandMap": "Μεγέθυνση χάρτη",
+  "satSheetExpand": "Επέκταση λεπτομερειών",
+  "satSheetCollapse": "Σύμπτυξη λεπτομερειών",
   "satCollapseMap": "Σύμπτυξη χάρτη",
   "satShowList": "Εμφάνιση λίστας",
   "satMapUnavailable": "Ο χάρτης δεν είναι διαθέσιμος — ορίστε VITE_GOOGLE_MAPS_KEY",

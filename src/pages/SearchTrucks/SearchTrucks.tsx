@@ -182,6 +182,7 @@ export const SearchTrucks: React.FC = () => {
             m.creatingShipment && m.creatingShipmentId && m.selectedId === m.creatingShipmentId
           )}
           subscriptionBlocked={m.subscriptionBlocked}
+          hideDetailPanel={m.mobileMapOpen}
           t={m.t}
         />
 
@@ -199,6 +200,16 @@ export const SearchTrucks: React.FC = () => {
           mapBoundsDirty={m.mapBoundsDirty}
           onMapBoundsDirty={() => m.setMapBoundsDirty(true)}
           onSearchThisArea={m.applyMapBoundsSearch}
+          selectedTruck={m.mapExpanded ? m.selectedTruckInList : null}
+          onBook={m.openDrawer}
+          onMessage={(carrier) =>
+            showToast(m.t('satMessageSent', { carrier }) || `Message sent to ${carrier}`, 'success')
+          }
+          onProfile={openProviderProfile}
+          creatingShipment={Boolean(
+            m.creatingShipment && m.creatingShipmentId && m.selectedId === m.creatingShipmentId
+          )}
+          onClearSelection={() => m.selectTruck(null)}
           t={m.t}
         />
       </div>
@@ -220,6 +231,16 @@ export const SearchTrucks: React.FC = () => {
           mapBoundsDirty={m.mapBoundsDirty}
           onMapBoundsDirty={() => m.setMapBoundsDirty(true)}
           onSearchThisArea={m.applyMapBoundsSearch}
+          selectedTruck={m.selectedTruckInList}
+          onBook={m.openDrawer}
+          onMessage={(carrier) =>
+            showToast(m.t('satMessageSent', { carrier }) || `Message sent to ${carrier}`, 'success')
+          }
+          onProfile={openProviderProfile}
+          creatingShipment={Boolean(
+            m.creatingShipment && m.creatingShipmentId && m.selectedId === m.creatingShipmentId
+          )}
+          onClearSelection={() => m.selectTruck(null)}
           t={m.t}
         />
       )}

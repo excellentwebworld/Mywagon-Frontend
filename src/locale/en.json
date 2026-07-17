@@ -1798,6 +1798,8 @@
   "satTrucksMap": "Trucks Map",
   "satMap": "Map",
   "satExpandMap": "Expand map",
+  "satSheetExpand": "Expand details",
+  "satSheetCollapse": "Collapse details",
   "satCollapseMap": "Collapse map",
   "satShowList": "Show list",
   "satMapUnavailable": "Map unavailable — set VITE_GOOGLE_MAPS_KEY",

@@ -1,14 +1,15 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { loadGoogleMaps } from '../AddressBook/GoogleMapAddressField';
-import type { AvailableTruck, MapPickupBounds } from '../../pages/SearchTrucks/types';
+import type { AvailableTruck, DrawerMode, MapPickupBounds } from '../../pages/SearchTrucks/types';
 import { formatMoney } from '../../pages/SearchTrucks/utils/money';
+import { AvailabilityDetailPanel } from './AvailabilityDetailPanel';
 
 interface AvailabilityMapProps {
   trucks: AvailableTruck[];
   hoveredId: string | null;
   selectedId: string | null;
   mapExpanded: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string | null) => void;
   onToggleExpand: () => void;
   onCloseMobile?: () => void;
   isMobileOverlay?: boolean;
@@ -19,6 +20,13 @@ interface AvailabilityMapProps {
   mapBoundsDirty?: boolean;
   onMapBoundsDirty?: () => void;
   onSearchThisArea?: (bounds: MapPickupBounds) => void;
+  /** Selected truck for bottom details sheet (expanded / mobile map only) */
+  selectedTruck?: AvailableTruck | null;
+  onBook?: (truck: AvailableTruck, mode?: DrawerMode, occurrence?: string) => void;
+  onMessage?: (carrier: string) => void;
+  onProfile?: (truck: AvailableTruck) => void;
+  creatingShipment?: boolean;
+  onClearSelection?: () => void;
   t: (key: string) => string;
 }
 
@@ -142,6 +150,16 @@ function createRouteEndpointLabel(
   return overlay;
 }
 
+function routeFitPadding(sheetOpen: boolean, sheetExpanded: boolean) {
+  if (!sheetOpen) return 80;
+  return {
+    top: 56,
+    right: 48,
+    left: 48,
+    bottom: sheetExpanded ? 360 : 168,
+  };
+}
+
 export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   loading = false,
   pinCount,
@@ -158,6 +176,12 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   mapBoundsDirty = false,
   onMapBoundsDirty,
   onSearchThisArea,
+  selectedTruck = null,
+  onBook,
+  onMessage,
+  onProfile,
+  creatingShipment = false,
+  onClearSelection,
   t,
 }) => {
   const displayedCount = pinCount ?? trucks.length;
@@ -165,12 +189,23 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   const mapRef = useRef<any>(null);
   const overlaysRef = useRef<any[]>([]);
   const destObjectsRef = useRef<any[]>([]);
+  const routeBoundsRef = useRef<any>(null);
   const readyRef = useRef(false);
   const skipNextIdleDirty = useRef(true);
   const dirtyCbRef = useRef(onMapBoundsDirty);
   dirtyCbRef.current = onMapBoundsDirty;
-  const [, setTick] = React.useState(0);
+  const [, setTick] = useState(0);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
+
+  const showSheet =
+    Boolean(selectedTruck) &&
+    Boolean(onBook && onMessage && onProfile && onClearSelection) &&
+    (mapExpanded || Boolean(isMobileOverlay));
+
+  useEffect(() => {
+    setSheetExpanded(false);
+  }, [selectedTruck?.id]);
 
   useEffect(() => {
     if (!apiKey || !containerRef.current) return;
@@ -200,7 +235,6 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
           readyRef.current = true;
           setTick((n) => n + 1);
         }
-        // Ensure map paints into the fixed column height after layout
         requestAnimationFrame(() => {
           if (mapRef.current && maps.event) {
             maps.event.trigger(mapRef.current, 'resize');
@@ -221,7 +255,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
       maps.event.trigger(mapRef.current, 'resize');
     }, 50);
     return () => window.clearTimeout(id);
-  }, [mapExpanded, isMobileOverlay]);
+  }, [mapExpanded, isMobileOverlay, showSheet, sheetExpanded]);
 
   useEffect(() => {
     const maps = mapsApi();
@@ -235,7 +269,6 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
     const bounds = new maps.LatLngBounds();
     let hasBounds = false;
 
-    // Spec v2: when a truck is selected, hide other pickup pins (do not dim).
     const visibleTrucks = hasSelection
       ? trucks.filter((truck) => truck.id === selectedId)
       : trucks;
@@ -256,7 +289,6 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
     const selected = trucks.find((x) => x.id === selectedId);
     const hasDest = selected?.destLat != null && selected.destLng != null;
 
-    // Viewport for unselected / pickup-only; dest selection handled by route effect.
     if (hasSelection && selected && !hasDest) {
       skipNextIdleDirty.current = true;
       map.setCenter({ lat: selected.pickupLat, lng: selected.pickupLng });
@@ -290,6 +322,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
       if (typeof o.setMap === 'function') o.setMap(null);
     });
     destObjectsRef.current = [];
+    routeBoundsRef.current = null;
 
     if (!selectedRoute) return;
 
@@ -317,12 +350,15 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
     });
     destObjectsRef.current.push(dropoffLabel);
 
+    const padding = () => routeFitPadding(showSheet, sheetExpanded);
+
     const fitPickupAndDest = () => {
       const focusBounds = new maps.LatLngBounds();
       focusBounds.extend(origin);
       focusBounds.extend(destination);
+      routeBoundsRef.current = focusBounds;
       skipNextIdleDirty.current = true;
-      map.fitBounds(focusBounds, 80);
+      map.fitBounds(focusBounds, padding());
     };
     fitPickupAndDest();
 
@@ -365,8 +401,9 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
 
             const routeBounds = result.routes[0].bounds;
             if (routeBounds) {
+              routeBoundsRef.current = routeBounds;
               skipNextIdleDirty.current = true;
-              map.fitBounds(routeBounds, 80);
+              map.fitBounds(routeBounds, padding());
             }
           } else {
             drawStraightFallback();
@@ -383,6 +420,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
         if (typeof o.setMap === 'function') o.setMap(null);
       });
       destObjectsRef.current = [];
+      routeBoundsRef.current = null;
     };
   }, [
     apiKey,
@@ -396,9 +434,25 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
     selectedRoute?.destLng,
   ]);
 
+  // Re-fit when sheet opens/expands without rebuilding the route.
+  useEffect(() => {
+    const map = mapRef.current;
+    const bounds = routeBoundsRef.current;
+    if (!map || !bounds || !selectedRoute) return;
+    skipNextIdleDirty.current = true;
+    map.fitBounds(bounds, routeFitPadding(showSheet, sheetExpanded));
+  }, [showSheet, sheetExpanded, selectedRoute?.id]);
+
+  const destLabel =
+    selectedTruck?.dest === 'Any'
+      ? t('satAnyDirection')
+      : selectedTruck?.dest ?? '';
+
   return (
     <div
-      className={`sat-map-col ${mapExpanded ? 'expanded' : ''} ${isMobileOverlay ? 'mobile-overlay' : ''}`}
+      className={`sat-map-col ${mapExpanded ? 'expanded' : ''} ${isMobileOverlay ? 'mobile-overlay' : ''}${
+        showSheet ? ' sat-map-col--sheet' : ''
+      }`}
     >
       <div className="sat-map-toolbar">
         <span className="sat-map-title">🗺️ {t('satTrucksMap')}</span>
@@ -500,6 +554,99 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
         {!loading && trucks.length === 0 && (
           <div className="sat-map-empty-hint">{t('satMapEmpty')}</div>
         )}
+
+        {showSheet && selectedTruck && onBook && onMessage && onProfile && onClearSelection ? (
+          <div
+            className={`sat-map-sheet${sheetExpanded ? ' sat-map-sheet--expanded' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('satProviderProfile')}
+          >
+            <button
+              type="button"
+              className="sat-map-sheet__handle"
+              onClick={() => setSheetExpanded((v) => !v)}
+              aria-expanded={sheetExpanded}
+              aria-label={
+                sheetExpanded
+                  ? t('satSheetCollapse') || 'Collapse details'
+                  : t('satSheetExpand') || 'Expand details'
+              }
+            >
+              <span className="sat-map-sheet__grip" aria-hidden />
+            </button>
+
+            <div className="sat-map-sheet__peek">
+              <div className="sat-map-sheet__peek-main">
+                <div className="sat-map-sheet__carrier">
+                  <div className="sat-cr-av sat-map-sheet__av">{selectedTruck.initials}</div>
+                  <div className="sat-map-sheet__carrier-text">
+                    <div className="sat-map-sheet__name">{selectedTruck.carrier}</div>
+                    <div className="sat-map-sheet__meta">
+                      ★ {selectedTruck.rating.toFixed(1)} · {selectedTruck.type}
+                    </div>
+                  </div>
+                </div>
+                <div className="sat-map-sheet__route">
+                  {selectedTruck.pickup} → {destLabel}
+                </div>
+              </div>
+              <div className="sat-map-sheet__peek-actions">
+                <div className="sat-map-sheet__price">
+                  {selectedTruck.price != null && !selectedTruck.priceBlurred ? (
+                    <span className="sat-price">{formatMoney(selectedTruck.price, selectedTruck.currency)}</span>
+                  ) : (
+                    <span className="sat-offer-b">{t('satOfferBased')}</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="sat-btn sat-btn-pr sat-btn-sm"
+                  disabled={creatingShipment}
+                  onClick={() => onBook(selectedTruck, 'pending')}
+                >
+                  {t('satBookBid')}
+                </button>
+                <button
+                  type="button"
+                  className="sat-map-sheet__toggle"
+                  onClick={() => setSheetExpanded((v) => !v)}
+                  aria-label={
+                    sheetExpanded
+                      ? t('satSheetCollapse') || 'Collapse details'
+                      : t('satSheetExpand') || 'Expand details'
+                  }
+                >
+                  {sheetExpanded ? '▾' : '▴'}
+                </button>
+                <button
+                  type="button"
+                  className="sat-map-sheet__close"
+                  onClick={onClearSelection}
+                  aria-label={t('close')}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {sheetExpanded ? (
+              <div className="sat-map-sheet__body">
+                <AvailabilityDetailPanel
+                  truck={selectedTruck}
+                  onClose={onClearSelection}
+                  onBook={onBook}
+                  onMessage={onMessage}
+                  onProfile={onProfile}
+                  creatingShipment={creatingShipment}
+                  variant="sheet"
+                  hideHeader
+                  t={t}
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );
