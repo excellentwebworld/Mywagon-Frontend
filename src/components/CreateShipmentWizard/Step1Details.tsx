@@ -2426,7 +2426,9 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       return (
                         <div
                           className="text-[9px] mt-0.5"
+                          title={`${formatQtyWithUnit(allocated, displayUnit)} / ${formatQtyWithUnit(orderQty, displayUnit)}`}
                           style={{
+                            whiteSpace: "nowrap",
                             color:
                               allocated === orderQty
                                 ? "#059669"
@@ -2435,8 +2437,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                                   : T.t3,
                           }}
                         >
-                          {formatQtyWithUnit(allocated, displayUnit)} /{" "}
-                          {formatQtyWithUnit(orderQty, displayUnit)}
+                          {formatQtyWithUnit(allocated)} /{" "}
+                          {formatQtyWithUnit(orderQty)}
                         </div>
                       );
                     })()}
