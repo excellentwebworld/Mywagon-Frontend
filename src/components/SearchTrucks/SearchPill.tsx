@@ -11,7 +11,7 @@ import {
 import { SearchVehicleCargoPicker } from './SearchVehicleCargoPicker';
 import { usePlaceSuggestions } from './usePlaceSuggestions';
 
-type SegmentKey = 'pickupCity' | 'pickupDate' | 'vehicle' | 'dropoffCity' | 'dropoffDate';
+type SegmentKey = 'pickupCity' | 'pickupDate' | 'vehicle' | 'dropoffCity';
 
 interface SearchPillProps {
   criteria: SearchCriteria;
@@ -116,7 +116,7 @@ export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSe
     }
     clearSuggestions();
     setActiveSuggestIdx(-1);
-    setActiveSeg(field === 'pickup' ? 'pickupDate' : 'dropoffDate');
+    setActiveSeg(field === 'pickup' ? 'pickupDate' : null);
   };
 
   const handleCityKeyDown = (
@@ -356,24 +356,6 @@ export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSe
                   </button>
                 ) : null}
               </div>
-            </div>
-            <span className="sat-pill-divider" />
-            <div
-              className={segClass('dropoffDate')}
-              onClick={(e) => { e.stopPropagation(); setActiveSeg('dropoffDate'); }}
-            >
-              <span className="sat-pill-label">{t('satPillDropoffDate')}</span>
-              <DatePicker
-                className="sat-pill-date-picker"
-                value={criteria.dropoffDate}
-                onChange={(val) => {
-                  setActiveSeg('dropoffDate');
-                  onChange({ ...criteria, dropoffDate: val });
-                }}
-                placeholder={t('satPillDropoffDatePh')}
-                min={criteria.pickupDate || todayStr}
-                direction="auto"
-              />
             </div>
           </>
         )}

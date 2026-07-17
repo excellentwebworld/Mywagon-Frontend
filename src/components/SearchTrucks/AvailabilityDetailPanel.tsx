@@ -276,9 +276,6 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
             <div className="sat-mp-stop-city">
               {detailTruck.dest === 'Any' ? t('satAnyDirection') : detailTruck.dest}
             </div>
-            <div className="sat-mp-stop-dt">
-              {detailTruck.endDt} {detailTruck.endTm}
-            </div>
           </div>
         </div>
 
