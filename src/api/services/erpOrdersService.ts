@@ -21,6 +21,8 @@ import type {
 import type { ErpOrder, ErpOrderKpiFilter, ErpOrderSortField } from '../../pages/ErpOrders/types';
 import type { ApiListMeta } from '../types/addressBook';
 
+import { getBrowserTimezone } from '../../utils/timezone';
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
 function exportParamsToQuery(params: Omit<ListErpOrdersParams, 'page' | 'per_page'>): URLSearchParams {
@@ -33,14 +35,6 @@ function exportParamsToQuery(params: Omit<ListErpOrdersParams, 'page' | 'per_pag
   if (params.sort_dir) query.set('sort_dir', params.sort_dir);
   if (params.timezone) query.set('timezone', params.timezone);
   return query;
-}
-
-function browserTimezone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone;
-  } catch {
-    return 'UTC';
-  }
 }
 
 export const erpOrdersService = {
@@ -136,7 +130,7 @@ export const erpOrdersService = {
 
   async exportOrders(params: Omit<ListErpOrdersParams, 'page' | 'per_page'>): Promise<void> {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
-    const clientTimezone = params.timezone ?? browserTimezone();
+    const clientTimezone = params.timezone ?? getBrowserTimezone();
     const exportQuery = exportParamsToQuery({
       ...params,
       timezone: clientTimezone,

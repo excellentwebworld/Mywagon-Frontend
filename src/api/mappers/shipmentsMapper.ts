@@ -1,5 +1,10 @@
 import type { ApiShipmentDetail, ApiShipmentListItem, ApiShipmentStop } from '../types/shipments';
 import type { Shipment, ShipmentStop } from '../../context/AppContext';
+import {
+  formatUtcToDisplayDate,
+  formatUtcToDisplayDateTime,
+  utcToLocalParts,
+} from '../../utils/timezone';
 
 function mapApiStatus(status: string): Shipment['status'] {
   switch (status) {
@@ -33,11 +38,9 @@ function mapApiStatus(status: string): Shipment['status'] {
   }
 }
 
-function formatDisplayDate(value?: string | null): string {
+function formatCreatedDisplay(value?: string | null): string {
   if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return formatUtcToDisplayDate(value);
 }
 
 function parsePrice(total: string | number | null | undefined): number | null {
@@ -64,16 +67,30 @@ function mapCustomers(item: ApiShipmentListItem): Shipment['customer'] {
   return [];
 }
 
+/** Combine API UTC wall-clock date+time parts into an instant string for conversion. */
+function stopUtcInstant(date?: string | null, time?: string | null): string | null {
+  if (!date) return null;
+  const t = (time || '00:00').trim() || '00:00';
+  return `${date.trim()} ${t.length === 5 ? `${t}:00` : t}`;
+}
+
 function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | null): ShipmentStop {
   const name = stop.company_name || customerName || '';
+  const fromInstant = stopUtcInstant(stop.date, stop.time_start);
+  const toInstant = stopUtcInstant(stop.date, stop.time_end || stop.time_start);
+  const fromLocal = fromInstant
+    ? utcToLocalParts(fromInstant)
+    : { date: stop.date || '', time: stop.time_start || '' };
+  const toLocal = toInstant ? utcToLocalParts(toInstant) : { date: '', time: stop.time_end || '' };
+
   return {
     id: stop.id || index + 1,
     type: stop.type === 'pickup' ? 'pickup' : 'delivery',
     location: stop.location || stop.city || '—',
     address: stop.address || stop.city || '',
-    date: stop.date || '',
-    timeStart: stop.time_start || '',
-    timeEnd: stop.time_end || '',
+    date: fromLocal.date || stop.date || '',
+    timeStart: fromLocal.time || stop.time_start || '',
+    timeEnd: toLocal.time || stop.time_end || '',
     customers: stop.order_id
       ? [
           {
@@ -110,6 +127,14 @@ function customersFromStops(detail: ApiShipmentDetail): Shipment['customer'] {
   return Array.from(byName.entries()).map(([name, orders]) => ({ name, orders }));
 }
 
+function scheduleLabel(iso?: string | null, fallback?: string | null): string | null {
+  if (iso) {
+    const formatted = formatUtcToDisplayDateTime(iso);
+    if (formatted) return formatted;
+  }
+  return fallback ?? null;
+}
+
 export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
   const quoted = item.quoted_price ?? parsePrice(item.total);
   const viaStops = splitViaStops(item.via, item.via_stops);
@@ -120,9 +145,11 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
   return {
     id: String(item.id),
     autoId: item.auto_id,
-    date: item.pickup_at || (status === 'draft' ? '' : formatDisplayDate(item.created_at)),
-    pickDt: item.pickup_at ?? null,
-    delDt: item.delivery_at ?? null,
+    date:
+      scheduleLabel(item.pickup_at_iso, item.pickup_at) ||
+      (status === 'draft' ? '' : formatCreatedDisplay(item.created_at)),
+    pickDt: scheduleLabel(item.pickup_at_iso, item.pickup_at),
+    delDt: scheduleLabel(item.delivery_at_iso, item.delivery_at),
     pickDtIso: item.pickup_at_iso ?? null,
     delDtIso: item.delivery_at_iso ?? null,
     ref: item.customer_reference || undefined,

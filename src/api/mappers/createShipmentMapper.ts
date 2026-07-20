@@ -8,6 +8,7 @@ import type {
 import { createNewCargoLine, createNewStop } from '../../components/CreateShipmentWizard/types';
 import { computeItineraryFingerprint } from '../../components/CreateShipmentWizard/itineraryFingerprint';
 import { normalizeQtyUnit, normalizeWeightUnit } from '../../constants/cargoUnits';
+import { getBrowserTimezone } from '../../utils/timezone';
 
 /** Coerce draft vehicleSpecs so lookup by formKey always matches.
  * PHP/Laravel often re-indexes numeric object keys into a list of arrays —
@@ -187,14 +188,6 @@ export interface WizardFormValues {
   orderValue: string;
 }
 
-function browserTimezone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone;
-  } catch {
-    return 'UTC';
-  }
-}
-
 export function formValuesToStepOnePayload(
   values: Pick<WizardFormValues, 'stops' | 'custRef' | 'coOwners'>,
   mode: SaveStepOnePayload['mode'],
@@ -214,7 +207,7 @@ export function formValuesToStepOnePayload(
     customer_reference: values.custRef || '',
     co_owners: values.coOwners || [],
     stops,
-    timezone: browserTimezone(),
+    timezone: getBrowserTimezone(),
     ...(availabilityId ? { availability_id: availabilityId } : {}),
   };
 }

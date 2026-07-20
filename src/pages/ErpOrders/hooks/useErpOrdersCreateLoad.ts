@@ -16,6 +16,7 @@ import type {
   CreateLoadState,
   ViewMode
 } from '../types';
+import { toCalendarYmd } from '../../../utils/timezone';
 
 // Helper utilities for generating mock data
 function rnd(a: number, b: number): number {
@@ -539,7 +540,7 @@ export function useErpOrdersCreateLoad() {
     });
 
     const stopsList: Stop[] = [];
-    const fmtISO = (d: Date) => d.toISOString().split('T')[0];
+    const fmtISO = (d: Date) => toCalendarYmd(d);
 
     // Build Pickup stops from unique origins
     Object.entries(byO).forEach(([loc, ords]) => {

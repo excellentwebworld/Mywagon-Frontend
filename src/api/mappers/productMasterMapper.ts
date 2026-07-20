@@ -1,5 +1,5 @@
 import type { Category, ProductType, SKU } from '../../context/AppContext';
-import { formatErpLastUpdate } from '../../pages/ErpOrders/erpDateTimeUtils';
+import { formatErpLastUpdate } from '../../utils/timezone';
 import type {
   ApiReferenceCategory,
   ApiSkuDetail,

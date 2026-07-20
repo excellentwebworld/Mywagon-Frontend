@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { ApiResponse } from './types/addressBook';
+import { getBrowserTimezone } from '../utils/timezone';
 
 export const AUTH_TOKEN_KEY = 'shipper_auth_token';
 
@@ -29,6 +30,7 @@ axiosInstance.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  config.headers['X-Client-Timezone'] = getBrowserTimezone();
   return config;
 });
 

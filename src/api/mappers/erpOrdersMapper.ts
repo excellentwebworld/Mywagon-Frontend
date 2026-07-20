@@ -8,7 +8,7 @@ import type {
 } from '../types/erpOrders';
 import type { ErpOrder, ErpOrderLine, ErpOrderSortField } from '../../pages/ErpOrders/types';
 import { normalizeQtyUnit, normalizeWeightUnit } from '../../constants/cargoUnits';
-import { getBrowserTimezone } from '../../pages/ErpOrders/erpDateTimeUtils';
+import { getBrowserTimezone } from '../../utils/timezone';
 
 const STATUS_LABELS: Record<ErpOrderStatus, string> = {
   unplanned: 'Unplanned',

@@ -1,7 +1,15 @@
 import type { ErpOrder } from './types';
-import { formatErpLastUpdate } from './erpDateTimeUtils';
+import {
+  calendarDaysFromToday,
+  formatCalendarDate,
+  formatErpLastUpdate,
+} from '../../utils/timezone';
 
-export { formatErpLastUpdate, getBrowserTimezone, parseUtcIsoDate } from './erpDateTimeUtils';
+export {
+  formatErpLastUpdate,
+  getBrowserTimezone,
+  parseUtcIsoDate,
+} from '../../utils/timezone';
 
 export const ERP_SOURCE_STYLE = {
   icon: '📥',
@@ -12,13 +20,7 @@ export const ERP_SOURCE_STYLE = {
 } as const;
 
 export function daysFromToday(iso: string): number | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  d.setHours(0, 0, 0, 0);
-  return Math.round((d.getTime() - today.getTime()) / 86400000);
+  return calendarDaysFromToday(iso);
 }
 
 export type UrgencyKind = 'today' | 'tomorrow' | 'in2' | 'in3';
@@ -38,9 +40,12 @@ export function getShipUrgency(
 
 export function formatShipDate(d: string): string {
   if (!d) return '—';
-  const parsed = new Date(d);
-  if (Number.isNaN(parsed.getTime())) return d;
-  return parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const m = d.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    const local = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return local.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  return formatCalendarDate(d);
 }
 
 export function formatDateTime(d: string): string {

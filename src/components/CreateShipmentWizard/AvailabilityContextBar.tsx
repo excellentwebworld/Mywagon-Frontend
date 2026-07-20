@@ -2,6 +2,7 @@ import React, { useEffect, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { availabilitiesService } from '../../api';
 import type { ApiAvailabilityDetail } from '../../api/types/availabilities';
+import { formatUtcToDisplayDateTime, parseUtcInstant } from '../../utils/timezone';
 
 interface AvailabilityContextBarProps {
   availabilityId: number;
@@ -10,12 +11,31 @@ interface AvailabilityContextBarProps {
 
 function formatDateTime(dt: string | null | undefined): string {
   if (!dt) return '—';
-  const normalized = dt.replace('T', ' ').trim();
-  const [datePart, timePart = ''] = normalized.split(' ');
-  const [y, m, d] = (datePart || '').split('-');
-  if (!y || !m || !d) return normalized;
-  const time = (timePart || '').slice(0, 5);
-  return time ? `${d}/${m}/${y} ${time}` : `${d}/${m}/${y}`;
+  const formatted = formatUtcToDisplayDateTime(dt);
+  if (formatted && formatted !== dt) {
+    // Prefer full dd/mm/yyyy HH:mm for context bar
+    const parsed = parseUtcInstant(dt);
+    if (parsed) {
+      const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).formatToParts(parsed);
+      const day = parts.find((p) => p.type === 'day')?.value;
+      const month = parts.find((p) => p.type === 'month')?.value;
+      const year = parts.find((p) => p.type === 'year')?.value;
+      const hour = parts.find((p) => p.type === 'hour')?.value;
+      const minute = parts.find((p) => p.type === 'minute')?.value;
+      if (day && month && year && hour != null && minute != null) {
+        return `${day}/${month}/${year} ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+      }
+    }
+  }
+  return formatted || '—';
 }
 
 function formatCoords(lat: number | null | undefined, lng: number | null | undefined): string | null {
@@ -324,7 +344,7 @@ export const AvailabilityContextBar: React.FC<AvailabilityContextBarProps> = ({
                 label={t('satPostedAt') || 'Posted'}
                 value={
                   detail.posted_at
-                    ? new Date(detail.posted_at).toLocaleString()
+                    ? formatUtcToDisplayDateTime(detail.posted_at)
                     : null
                 }
               />

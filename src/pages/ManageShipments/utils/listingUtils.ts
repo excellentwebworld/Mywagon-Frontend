@@ -1,6 +1,14 @@
 import type { Shipment } from '../../../context/AppContext';
 import type { ListShipmentsParams, ShipmentKpiKey, ShipmentSortKey } from '../../../api/types/shipments';
+import { localDateTimeLocalToUtcIso, parseUtcInstant } from '../../../utils/timezone';
 
+/** Convert datetime-local filter values to UTC ISO for the API. */
+function toUtcFilterParam(value: string): string | undefined {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return undefined;
+  const iso = localDateTimeLocalToUtcIso(trimmed);
+  return iso || undefined;
+}
 export type KpiKey = ShipmentKpiKey;
 
 export type StatusTabKey =
@@ -204,12 +212,18 @@ export function filtersToApiParams(filters: ShipmentsFilterState): Omit<ListShip
   if (priceMin !== undefined) params.price_min = priceMin;
   if (priceMax !== undefined) params.price_max = priceMax;
 
-  if (filters.pickup_from) params.pickup_from = filters.pickup_from;
-  if (filters.pickup_to) params.pickup_to = filters.pickup_to;
-  if (filters.dropoff_from) params.dropoff_from = filters.dropoff_from;
-  if (filters.dropoff_to) params.dropoff_to = filters.dropoff_to;
-  if (filters.posted_from) params.posted_from = filters.posted_from;
-  if (filters.posted_to) params.posted_to = filters.posted_to;
+  const pickupFrom = toUtcFilterParam(filters.pickup_from);
+  const pickupTo = toUtcFilterParam(filters.pickup_to);
+  const dropoffFrom = toUtcFilterParam(filters.dropoff_from);
+  const dropoffTo = toUtcFilterParam(filters.dropoff_to);
+  const postedFrom = toUtcFilterParam(filters.posted_from);
+  const postedTo = toUtcFilterParam(filters.posted_to);
+  if (pickupFrom) params.pickup_from = pickupFrom;
+  if (pickupTo) params.pickup_to = pickupTo;
+  if (dropoffFrom) params.dropoff_from = dropoffFrom;
+  if (dropoffTo) params.dropoff_to = dropoffTo;
+  if (postedFrom) params.posted_from = postedFrom;
+  if (postedTo) params.posted_to = postedTo;
 
   if (filters.bid_state) params.bid_state = filters.bid_state;
   if (filters.customer.trim()) params.customer = filters.customer.trim();
@@ -653,7 +667,10 @@ export function formatRelativeAgo(
   t?: (key: string, opts?: Record<string, unknown>) => string
 ): string {
   if (!isoOrDate) return '';
-  const ts = typeof isoOrDate === 'string' ? Date.parse(isoOrDate) : isoOrDate.getTime();
+  const ts =
+    typeof isoOrDate === 'string'
+      ? (parseUtcInstant(isoOrDate)?.getTime() ?? Date.parse(isoOrDate))
+      : isoOrDate.getTime();
   if (!Number.isFinite(ts)) return typeof isoOrDate === 'string' ? isoOrDate : '';
   const sec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
   const tr = t ?? ((key: string, opts?: Record<string, unknown>) => {

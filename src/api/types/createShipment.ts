@@ -42,6 +42,8 @@ export interface ApiWizardState {
   stops?: ApiStop[];
   custRef?: string;
   coOwners?: string[];
+  /** Browser IANA timezone used when materializing stop datetimes to UTC */
+  timezone?: string;
   /** Set when draft started from Search Available Trucks */
   availability_id?: number;
   loadId?: string;

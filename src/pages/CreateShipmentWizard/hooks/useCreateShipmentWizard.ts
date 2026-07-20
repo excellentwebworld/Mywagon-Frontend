@@ -17,6 +17,7 @@ import {
   buildVehicleSpecsFromPrefill,
   resolveStopLocationFromCoords,
 } from './satPrefill';
+import { utcToLocalParts } from '../../../utils/timezone';
 
 function parseStep(value: string | undefined | null): number {
   const n = parseInt(value || '1', 10);
@@ -223,10 +224,9 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       pickup.locationCity = prefill.pickup_city || '';
       pickup.locationName = prefill.pickup_address || prefill.pickup_city || '';
       if (prefill.start_date_time) {
-        const [datePart, timePart = ''] = prefill.start_date_time.replace('T', ' ').split(' ');
-        const [y, m, d] = (datePart || '').split('-');
-        if (y && m && d) pickup.dateFrom = `${d}/${m}/${y}`;
-        pickup.timeFrom = (timePart || '').slice(0, 5);
+        const { date, time } = utcToLocalParts(prefill.start_date_time);
+        if (date) pickup.dateFrom = date;
+        if (time) pickup.timeFrom = time;
       }
 
       const delivery = createNewStop(true);

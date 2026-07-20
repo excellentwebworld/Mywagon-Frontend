@@ -1,5 +1,5 @@
 import type { Contact, LocationItem } from '../../context/AppContext';
-import { formatErpLastUpdate } from '../../pages/ErpOrders/erpDateTimeUtils';
+import { formatErpLastUpdate, parseUtcInstant } from '../../utils/timezone';
 import type { CreateLocationData, AddressBookSortField } from '../../pages/AddressBook/types';
 import { normalizeFacilityType } from '../../pages/AddressBook/constants';
 import type {
@@ -17,7 +17,8 @@ function parseCoord(value: string | null | undefined, fallback = 0): number {
 
 function formatLastUsed(iso: string | null): string {
   if (!iso) return 'Never';
-  const date = new Date(iso);
+  const date = parseUtcInstant(iso);
+  if (!date) return 'Never';
   const diffMs = Date.now() - date.getTime();
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   if (days <= 0) return 'Today';

@@ -14,6 +14,7 @@ import type {
   QuickFilterKey,
 } from '../../pages/SearchTrucks/types';
 import { formatMoney } from '../../pages/SearchTrucks/utils/money';
+import { formatUtcToDisplayDate, formatUtcToDisplayTime, parseUtcInstant } from '../../utils/timezone';
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
@@ -21,28 +22,28 @@ function pad2(n: number): string {
 
 function splitDateTime(iso: string | null): { date: string; time: string } {
   if (!iso) return { date: '—', time: '' };
-  const d = new Date(iso.replace(' ', 'T'));
-  if (Number.isNaN(d.getTime())) {
-    const [datePart, timePart = ''] = iso.split(/[T ]/);
-    const [y, m, day] = datePart.split('-');
-    if (y && m && day) {
-      return {
-        date: `${day}/${m}/${y}`,
-        time: timePart.slice(0, 5),
-      };
-    }
-    return { date: iso, time: '' };
+  const parsed = parseUtcInstant(iso);
+  if (parsed) {
+    return {
+      date: formatUtcToDisplayDate(iso),
+      time: formatUtcToDisplayTime(iso),
+    };
   }
-  return {
-    date: `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`,
-    time: `${pad2(d.getHours())}:${pad2(d.getMinutes())}`,
-  };
+  const [datePart, timePart = ''] = iso.split(/[T ]/);
+  const [y, m, day] = datePart.split('-');
+  if (y && m && day) {
+    return {
+      date: `${day}/${m}/${y}`,
+      time: timePart.slice(0, 5),
+    };
+  }
+  return { date: iso, time: '' };
 }
 
 function relativePosted(postedAt: string | null): string {
   if (!postedAt) return '—';
-  const d = new Date(postedAt.replace(' ', 'T'));
-  if (Number.isNaN(d.getTime())) return '—';
+  const d = parseUtcInstant(postedAt);
+  if (!d) return '—';
   const mins = Math.max(0, Math.floor((Date.now() - d.getTime()) / 60000));
   if (mins < 60) return `${mins}m`;
   const hours = Math.floor(mins / 60);

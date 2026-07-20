@@ -5,7 +5,7 @@ import type {
   ApiPartnerSummary,
   ListPartnersParams,
 } from '../types/partners';
-import { formatErpLastUpdate } from '../../pages/ErpOrders/erpDateTimeUtils';
+import { formatErpLastUpdate } from '../../utils/timezone';
 import type { FacetFilter, KpiFilter, Partner, ContractLane, PartnerStatus, PartnerType, PartnersSortField } from '../../pages/Partners/types';
 
 const STATUS_MAP: Record<string, PartnerStatus> = {
