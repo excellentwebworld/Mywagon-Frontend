@@ -49,6 +49,7 @@
   "erpOrdersResync": "Επανασυγχρονισμός",
   "erpOrdersResyncTriggered": "Συγχρονισμός για {{id}}",
   "erpOrdersSelectAtLeastOne": "Επιλέξτε τουλάχιστον μία παραγγελία",
+  "erpOrdersCreateLoadOnlyUnplanned": "Η Δημιουργία Φορτίου λειτουργεί μόνο με μη προγραμματισμένες παραγγελίες που δεν συνδέονται ήδη με φορτίο. Αποεπιλέξτε τις προγραμματισμένες παραγγελίες και δοκιμάστε ξανά.",
   "erpOrdersCreateLoadSoon": "Η ροή Δημιουργίας Φορτίου έρχεται σύντομα",
   "erpOrdersExportSoon": "Η εξαγωγή έρχεται σύντομα",
   "erpOrdersExported": "Η εξαγωγή παραγγελιών ERP ολοκληρώθηκε",

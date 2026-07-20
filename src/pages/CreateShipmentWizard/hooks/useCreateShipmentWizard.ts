@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMatch, useNavigate, useSearchParams } from 'react-router-dom';
-import { createShipmentService, ApiError, SAT_PREFILL_KEY } from '../../../api';
+import { useQueryClient } from '@tanstack/react-query';
+import { createShipmentService, erpOrdersService, ApiError, SAT_PREFILL_KEY } from '../../../api';
 import type { ApiProceedResult } from '../../../api/types/availabilities';
 import {
   draftToFormValues,
@@ -13,10 +14,18 @@ import { buildDefaultWizardValues, createNewStop } from '../../../components/Cre
 import { hasVehicleSelection } from '../../../components/CreateShipmentWizard/vehicleTypes';
 import { useApp, type LocationItem } from '../../../context/AppContext';
 import { useVehicleTypes } from '../../../hooks/useVehicleTypes';
+import type { ErpOrder } from '../../ErpOrders/types';
 import {
   buildVehicleSpecsFromPrefill,
   resolveStopLocationFromCoords,
 } from './satPrefill';
+import {
+  ERP_ORDERS_PREFILL_KEY,
+  buildStopsFromErpOrders,
+  isOrderEligibleForCreateLoad,
+  type ErpOrdersPrefillPayload,
+} from './erpOrdersPrefill';
+import { wizardQueryKeys } from './wizardQueryKeys';
 import { utcToLocalParts } from '../../../utils/timezone';
 
 function parseStep(value: string | undefined | null): number {
@@ -117,6 +126,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   const step = parseStep(stepMatch?.params.stepNumber);
   const { locations, refreshLocationsFromApi } = useApp();
   const { vehicleTypes } = useVehicleTypes();
+  const queryClient = useQueryClient();
 
   const draftUrlId = searchParams.get('id');
   const [shipmentId, setShipmentId] = useState<number | null>(() =>
@@ -278,6 +288,98 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       // ignore invalid prefill
     }
     // Intentionally only on navigation into create with availability_id — not on every locations tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, draftUrlId, defaultValues]);
+
+  /** Prefill Step 1 from ERP Orders Create Load selection. */
+  useEffect(() => {
+    const erpParam = searchParams.get('erp_orders');
+    if (!erpParam || draftUrlId) return;
+
+    let raw: string | null = null;
+    try {
+      raw = sessionStorage.getItem(ERP_ORDERS_PREFILL_KEY);
+    } catch {
+      return;
+    }
+    if (!raw) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const payload = JSON.parse(raw) as ErpOrdersPrefillPayload;
+        const orderIds = Array.isArray(payload.orderIds)
+          ? payload.orderIds.map(String).filter(Boolean)
+          : [];
+        if (!orderIds.length) {
+          sessionStorage.removeItem(ERP_ORDERS_PREFILL_KEY);
+          return;
+        }
+
+        const details = await Promise.all(
+          orderIds.map(async (id) => {
+            try {
+              return await erpOrdersService.getOrder(id);
+            } catch {
+              return null;
+            }
+          })
+        );
+        if (cancelled) return;
+
+        const orders = details.filter(
+          (order): order is ErpOrder =>
+            !!order && isOrderEligibleForCreateLoad(order)
+        );
+
+        if (!orders.length) {
+          showToastRef.current(
+            tRef.current('createLoadOrderLoadError') ||
+              'Could not load order details.',
+            'error'
+          );
+          sessionStorage.removeItem(ERP_ORDERS_PREFILL_KEY);
+          return;
+        }
+
+        queryClient.setQueryData<ErpOrder[]>(wizardQueryKeys.unlinkedOrders, (prev) => {
+          const list = prev ?? [];
+          const next = [...list];
+          for (const order of orders) {
+            if (!next.some((o) => o.id === order.id)) next.unshift(order);
+          }
+          return next;
+        });
+
+        const stops = buildStopsFromErpOrders(orders, locations);
+        setLoadedValues({
+          ...defaultValues,
+          stops,
+        });
+        setFormikEpoch((n) => n + 1);
+        sessionStorage.removeItem(ERP_ORDERS_PREFILL_KEY);
+        void refreshLocationsFromApi();
+      } catch {
+        if (!cancelled) {
+          showToastRef.current(
+            tRef.current('createLoadOrderLoadError') ||
+              'Could not load order details.',
+            'error'
+          );
+          try {
+            sessionStorage.removeItem(ERP_ORDERS_PREFILL_KEY);
+          } catch {
+            // ignore
+          }
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally only on navigation into create with erp_orders — not on every locations tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, draftUrlId, defaultValues]);
 

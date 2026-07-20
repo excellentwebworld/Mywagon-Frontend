@@ -28,8 +28,6 @@ import { addressBookService } from '../../api';
 import type { ApiCompanyLookup } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import type { LocationItem } from '../../context/AppContext';
-import { ErpOrdersDeferredViews } from './ErpOrdersDeferredViews';
-import type { ViewMode } from './types';
 import { EMPTY_ORDER_LINE } from './types';
 import type { SKU } from '../../context/AppContext';
 
@@ -38,7 +36,6 @@ type LocationTarget = 'origin' | 'dest';
 export const ErpOrders: React.FC = () => {
   const state = useErpOrdersList();
   const { showToast } = useApp();
-  const [viewMode, setViewMode] = useState<ViewMode>('orders');
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [locationTarget, setLocationTarget] = useState<LocationTarget>('origin');
   const [skuModalOpen, setSkuModalOpen] = useState(false);
@@ -113,17 +110,14 @@ export const ErpOrders: React.FC = () => {
         else if (state.isFormOpen) state.closeForm();
         else if (state.isAiWizardOpen) state.closeAiWizard();
         else if (state.selectedOrderId) state.closeDrawer();
-        else if (viewMode !== 'orders') setViewMode('orders');
       }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [state, viewMode, locationModalOpen, skuModalOpen]);
+  }, [state, locationModalOpen, skuModalOpen]);
 
   const handleCreateLoad = (singleOrderId?: string) => {
-    if (state.goToCreateLoad(singleOrderId)) {
-      setViewMode('create');
-    }
+    void state.goToCreateLoad(singleOrderId);
   };
 
   const handleLocationCreated = useCallback((locationId: number) => {
@@ -281,10 +275,6 @@ export const ErpOrders: React.FC = () => {
       setSkuSaving(false);
     }
   };
-
-  if (viewMode !== 'orders') {
-    return <ErpOrdersDeferredViews viewMode={viewMode} setViewMode={setViewMode} />;
-  }
 
   return (
     <div className="erp-wrap">

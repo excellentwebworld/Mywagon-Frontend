@@ -17,7 +17,7 @@ Reference: [PDS-909](https://myvagon.atlassian.net/browse/PDS-909), [PDS-910](ht
 | AI Import | 4-step wizard with preview edit + upsert on same Order ID | `OrdersAiWizardModal`, `OrdersAiWizardPreviewPanel` | Done |
 | Loaders | Table overlay + global on mutations | `useSyncGlobalLoader` | Done |
 | i18n | en + el keys | `locale/en.json`, `locale/el.json` | Done |
-| Create Load / Itinerary | Deferred | `ErpOrdersDeferredViews` stub | Deferred |
+| Create Load / Itinerary | Navigates to Create Shipment with selected unplanned orders prefilled | `goToCreateLoad` → `/shipments/create/step/1?erp_orders=1` | Done |
 | Export | Stub toast | `handleExport` | Deferred |
 
 ## Staging QA script

@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { erpOrdersService, ApiError, getApiErrorMessage, addressBookService, productMasterService } from '../../../api';
 import { statusLabel, buildExportParams } from '../../../api/mappers/erpOrdersMapper';
+import {
+  ERP_ORDERS_PREFILL_KEY,
+  isOrderEligibleForCreateLoad,
+} from '../../CreateShipmentWizard/hooks/erpOrdersPrefill';
 import type {
   ErpOrder,
   ErpOrderFormState,
@@ -29,6 +33,7 @@ export function useErpOrdersList() {
   const { t } = useTranslation();
   const { showToast } = useApp();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -359,20 +364,65 @@ export function useErpOrdersList() {
   }, []);
 
   const goToCreateLoad = useCallback(
-    (singleOrderId?: string): boolean => {
-      if (singleOrderId) {
-        setSelectedIds(new Set([singleOrderId]));
-        setSelectedOrderId(null);
-        return true;
-      }
-      if (selectedIds.size === 0) {
+    async (singleOrderId?: string): Promise<boolean> => {
+      const ids = singleOrderId ? [singleOrderId] : Array.from(selectedIds);
+      if (ids.length === 0) {
         showToast(t('erpOrdersSelectAtLeastOne'), 'warning');
         return false;
       }
+
+      const byId = new Map(orders.map((o) => [o.id, o]));
+      const resolved: ErpOrder[] = [];
+      const missing: string[] = [];
+
+      for (const id of ids) {
+        const found = byId.get(id);
+        if (found) resolved.push(found);
+        else missing.push(id);
+      }
+
+      if (missing.length) {
+        const fetched = await Promise.all(
+          missing.map(async (id) => {
+            try {
+              return await erpOrdersService.getOrder(id);
+            } catch {
+              return null;
+            }
+          })
+        );
+        for (const order of fetched) {
+          if (order) resolved.push(order);
+        }
+      }
+
+      if (
+        resolved.length !== ids.length ||
+        resolved.some((order) => !isOrderEligibleForCreateLoad(order))
+      ) {
+        showToast(t('erpOrdersCreateLoadOnlyUnplanned'), 'warning');
+        return false;
+      }
+
+      if (singleOrderId) {
+        setSelectedIds(new Set([singleOrderId]));
+      }
       setSelectedOrderId(null);
+
+      try {
+        sessionStorage.setItem(
+          ERP_ORDERS_PREFILL_KEY,
+          JSON.stringify({ orderIds: ids })
+        );
+      } catch {
+        showToast(t('erpOrdersCreateLoadOnlyUnplanned'), 'warning');
+        return false;
+      }
+
+      navigate('/shipments/create/step/1?erp_orders=1');
       return true;
     },
-    [selectedIds.size, showToast, t]
+    [selectedIds, orders, showToast, t, navigate]
   );
 
   const handleExport = useCallback(async () => {

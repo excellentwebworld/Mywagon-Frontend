@@ -41,7 +41,6 @@ export const ErpOrdersHeader: React.FC<Props> = ({
         <ExportIcon />
         {exporting ? t('erpOrdersExporting') : t('erpOrdersExport')}
       </button>
-      {/* Create Load — temporarily hidden */}
       <button
         type="button"
         className="btn"

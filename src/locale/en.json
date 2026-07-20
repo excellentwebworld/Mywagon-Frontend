@@ -49,6 +49,7 @@
   "erpOrdersResync": "Re-sync",
   "erpOrdersResyncTriggered": "Sync triggered for {{id}}",
   "erpOrdersSelectAtLeastOne": "Select at least one order",
+  "erpOrdersCreateLoadOnlyUnplanned": "Create Load only works with unplanned orders that are not already linked to a load. Deselect planned orders and try again.",
   "erpOrdersCreateLoadSoon": "Create Load workflow is coming soon",
   "erpOrdersExportSoon": "Export is coming soon",
   "erpOrdersExported": "ERP orders exported",

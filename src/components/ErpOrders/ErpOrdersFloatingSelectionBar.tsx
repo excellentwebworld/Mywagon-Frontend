@@ -22,7 +22,6 @@ export const ErpOrdersFloatingSelectionBar: React.FC<Props> = ({
         {t('erpOrdersNSelected', { n: selectedCount })}
       </span>
       <span className="erp-float-sel-divider" />
-      {/* Create Load — temporarily hidden */}
       <button type="button" className="btn btn-p btn-sm" onClick={_onCreateLoad}>
         <PlusIcon />
         {t('erpOrdersCreateLoad')}
