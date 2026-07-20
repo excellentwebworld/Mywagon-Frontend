@@ -422,6 +422,22 @@
   color: #92400e;
 }
 
+/* Active filter chips — bridge status tabs and table as one card */
+.mgmt-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 14px;
+  margin: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+  max-width: 100%;
+}
+
 /* ── Main table ──
    Scoped under .mgmt-page so ERP Orders’ global `.tbl-wrap { overflow: hidden }`
    cannot kill horizontal scroll after navigating between pages. */
@@ -507,7 +523,8 @@
   display: table;
   width: 100%;
   min-width: 1480px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   table-layout: auto;
 }
 
@@ -550,6 +567,21 @@
   padding-left: 12px;
   padding-right: 16px;
   text-align: center;
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: var(--surface);
+  box-shadow: -6px 0 10px -6px rgba(15, 23, 42, 0.14);
+}
+.mgmt-t thead th.col-actions {
+  z-index: 3;
+  background: var(--surface-alt);
+}
+.mgmt-t tbody tr:hover .col-actions {
+  background: #fafafd;
+}
+.mgmt-t tbody tr.expanded .col-actions {
+  background: var(--accent-light);
 }
 
 .mgmt-t .col-last-update {

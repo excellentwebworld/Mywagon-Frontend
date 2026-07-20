@@ -21,10 +21,7 @@ export const FilterChips: React.FC<FilterChipsProps> = ({
   if (chips.length === 0 && !kpiChip) return null;
 
   return (
-    <div
-      className="a d2"
-      style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 10 }}
-    >
+    <div className="mgmt-filter-chips a d2">
       {kpiChip && (
         <button
           type="button"
