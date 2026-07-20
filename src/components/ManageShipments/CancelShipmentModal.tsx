@@ -122,17 +122,22 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
     ? t('bulkCancelIntro', { count }) || `Cancel ${count} selected shipments?`
     : t('cancelShipmentIntro', { id: shipment?.autoId || shipment?.id || '' });
 
+  const canSubmit =
+    !loading && !submitting && reasons.length > 0 && reasonId != null && (!needsNotes || Boolean(notes.trim()));
+
   return createPortal(
     <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div
-        className="modal modal-form"
-        style={{ maxWidth: 440 }}
+        className="modal modal-sm"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
+        aria-labelledby="cancel-shipment-title"
       >
         <div className="modal-header">
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{title}</h3>
+          <h2 id="cancel-shipment-title" style={{ color: 'var(--danger)' }}>
+            {title}
+          </h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label={t('cancel')}>
             ✕
           </button>
@@ -194,15 +199,14 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
           )}
           {error && <p style={{ margin: 0, fontSize: 12, color: 'var(--danger)' }}>{error}</p>}
         </div>
-        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button type="button" className="f-pill" onClick={onClose} disabled={submitting}>
+        <div className="modal-footer">
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={submitting}>
             {t('cancel')}
           </button>
           <button
             type="button"
-            className="btn-cta"
-            style={{ padding: '8px 16px', fontSize: 13 }}
-            disabled={loading || submitting || reasons.length === 0}
+            className="btn btn-danger"
+            disabled={!canSubmit}
             onClick={handleSubmit}
           >
             {submitting ? t('cancelling') : t('cancelShipmentConfirm')}
