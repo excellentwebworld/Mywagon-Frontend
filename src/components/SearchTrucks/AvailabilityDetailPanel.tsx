@@ -327,7 +327,9 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
         <div className="sat-mp-route">
           <div className="sat-mp-stop">
             <div className="sat-mp-stop-label">{t('satColPickup')}</div>
-            <div className="sat-mp-stop-city">{detailTruck.pickup}</div>
+            <div className="sat-mp-stop-city">
+              {detailTruck.pickupAddress || detailTruck.pickup}
+            </div>
             <div className="sat-mp-stop-dt">
               {detailTruck.startDt} {detailTruck.startTm}
             </div>
@@ -336,7 +338,9 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
           <div className="sat-mp-stop">
             <div className="sat-mp-stop-label">{t('satColDest')}</div>
             <div className="sat-mp-stop-city">
-              {detailTruck.dest === 'Any' ? t('satAnyDirection') : detailTruck.dest}
+              {(detailTruck.destAddress || detailTruck.dest) === 'Any'
+                ? t('satAnyDirection')
+                : detailTruck.destAddress || detailTruck.dest}
             </div>
           </div>
         </div>

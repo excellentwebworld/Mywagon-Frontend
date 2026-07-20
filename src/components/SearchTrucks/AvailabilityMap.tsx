@@ -304,8 +304,8 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
     if (!selected || selected.destLat == null || selected.destLng == null) return null;
     return {
       id: selected.id,
-      pickup: selected.pickup,
-      dest: selected.dest,
+      pickup: selected.pickupAddress || selected.pickup,
+      dest: selected.destAddress || selected.dest,
       pickupLat: selected.pickupLat,
       pickupLng: selected.pickupLng,
       destLat: selected.destLat,
@@ -444,9 +444,9 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   }, [showSheet, sheetExpanded, selectedRoute?.id]);
 
   const destLabel =
-    selectedTruck?.dest === 'Any'
+    (selectedTruck?.destAddress || selectedTruck?.dest) === 'Any'
       ? t('satAnyDirection')
-      : selectedTruck?.dest ?? '';
+      : selectedTruck?.destAddress || selectedTruck?.dest || '';
 
   return (
     <div
@@ -588,7 +588,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
                   </div>
                 </div>
                 <div className="sat-map-sheet__route">
-                  {selectedTruck.pickup} → {destLabel}
+                  {selectedTruck.pickupAddress || selectedTruck.pickup} → {destLabel}
                 </div>
               </div>
               <div className="sat-map-sheet__peek-actions">

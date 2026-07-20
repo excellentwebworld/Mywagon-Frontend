@@ -1134,7 +1134,12 @@
   letter-spacing: 0.4px;
   color: var(--text-tertiary);
 }
-.sat-mp-stop-city { font-size: 14px; font-weight: 600; }
+.sat-mp-stop-city {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  word-break: break-word;
+}
 .sat-mp-stop-dt {
   font-size: 11px;
   color: var(--text-tertiary);
@@ -1386,9 +1391,11 @@
   font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
-  white-space: nowrap;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .sat-map-sheet__peek-actions {

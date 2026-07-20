@@ -75,9 +75,13 @@ export interface AvailableTruck {
   endTm: string;
   /** ISO start for server-aligned filtering / display */
   startAt?: string | null;
+  /** City/short label for cards & compact UI */
   pickup: string;
   radius: number;
   dest: string;
+  /** Full street address when available (detail panel / map) */
+  pickupAddress?: string;
+  destAddress?: string;
   truckType: string;
   specs: string;
   capacity: string;

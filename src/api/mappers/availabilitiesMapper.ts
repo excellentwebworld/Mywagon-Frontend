@@ -75,8 +75,14 @@ export function toApiPickupDate(raw: string): string | undefined {
 export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruck {
   const start = splitDateTime(item.start_date_time);
   const end = splitDateTime(item.end_date_time);
-  const pickup = item.pickup_city || item.pickup_address || '—';
-  const dest = item.dropoff_city || item.dropoff_address || 'Any';
+  const pickupCity = (item.pickup_city || '').trim();
+  const pickupAddr = (item.pickup_address || '').trim();
+  const dropoffCity = (item.dropoff_city || '').trim();
+  const dropoffAddr = (item.dropoff_address || '').trim();
+  const pickup = pickupCity || pickupAddr || '—';
+  const dest = dropoffCity || dropoffAddr || 'Any';
+  const pickupAddress = pickupAddr || pickupCity || '—';
+  const destAddress = dropoffAddr || dropoffCity || 'Any';
   const specs = (item.cargo_categories ?? []).join(' · ');
   const capVal = item.capacity_qty ?? 0;
   const capUnit = item.capacity_unit ?? '';
@@ -92,8 +98,10 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
     endTm: end.time || '23:59',
     startAt: item.start_date_time,
     pickup,
+    pickupAddress,
     radius: item.pickup_radius ?? 0,
     dest,
+    destAddress,
     truckType: item.truck_type || '—',
     specs,
     capacity,
