@@ -73,6 +73,7 @@ export const ProductMaster: React.FC = () => {
           catName={pm.catName}
           loadTypeDetail={pm.loadTypeDetail}
           clearSelection={pm.clearSelection}
+          loading={pm.loading}
         />
 
         <ProductList
