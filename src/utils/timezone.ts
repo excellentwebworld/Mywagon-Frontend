@@ -10,7 +10,11 @@ export const ERP_LAST_UPDATE_FORMAT = 'd M, H:i';
 
 export function getBrowserTimezone(): string {
   try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    // Some environments still report legacy IANA aliases (e.g. Asia/Calcutta).
+    // Prefer the canonical identifier so strict validators / docs stay consistent.
+    if (tz === 'Asia/Calcutta') return 'Asia/Kolkata';
+    return tz;
   } catch {
     return 'UTC';
   }
