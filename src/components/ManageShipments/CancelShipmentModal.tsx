@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { ApiError, shipmentsService } from '../../api';
 import type { ApiCancelReason, ApiCancelReasonsPayload } from '../../api/types/shipments';
 import type { Shipment } from '../../context/AppContext';
+import { CancelReasonsSkeleton } from '../skeletons/CancelReasonsSkeleton';
 
 interface CancelShipmentModalProps {
   open: boolean;
@@ -145,7 +146,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>{intro}</p>
           {loading ? (
-            <p style={{ margin: 0, fontSize: 13 }}>{t('loading')}</p>
+            <CancelReasonsSkeleton />
           ) : (
             <>
               {chargeMessage && (
