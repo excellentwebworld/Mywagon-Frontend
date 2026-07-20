@@ -113,7 +113,8 @@ export const AvailabilityContextBar: React.FC<AvailabilityContextBarProps> = ({
     };
   }, [availabilityId]);
 
-  const showPrice = detail && detail.price != null && !detail.price_blurred;
+  // TEMP: ignore price_blurred — always show direct pricing.
+  const showPrice = detail && detail.price != null;
   const priceValue = showPrice
     ? `€ ${Number(detail!.price).toLocaleString()}`
     : detail
