@@ -4,6 +4,7 @@ import {
   buildLaravelProgressSteps,
   formatEuro,
   formatStatValue,
+  itineraryStopCount,
 } from '../../pages/ManageShipments/utils/listingUtils';
 
 export type ExpTranslate = (key: string, opts?: Record<string, unknown>) => string;
@@ -211,7 +212,7 @@ export function ordersHeaderMeta(shipment: Shipment, t: ExpTranslate): {
 }
 
 export function CompactLoadMeta({ shipment, t }: { shipment: Shipment; t: ExpTranslate }) {
-  const stops = shipment.stopCount ?? Math.max(shipment.stops?.length ?? 0, 2);
+  const stops = itineraryStopCount(shipment);
   const weight = formatStatValue(shipment.totalWeight, shipment.weightUnit);
   const qty = formatStatValue(shipment.totalQty, shipment.qtyUnit);
   const tripKm =

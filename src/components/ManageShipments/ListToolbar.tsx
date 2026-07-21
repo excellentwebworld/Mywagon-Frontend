@@ -42,7 +42,6 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
           type="button"
           className="f-search-clear"
           onClick={() => onSearchChange('')}
-          title={t('clearSearch') || t('clear')}
           aria-label={t('clearSearch') || t('clear')}
         >
           <X size={14} strokeWidth={2.25} aria-hidden />

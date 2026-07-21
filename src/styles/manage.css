@@ -278,24 +278,38 @@
 }
 .f-search-clear {
   position: absolute;
-  right: 6px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   padding: 0;
-  border: none;
-  border-radius: 6px;
+  margin: 0;
+  border: 0;
+  border-radius: 50%;
   background: transparent;
   color: var(--text-tertiary);
   cursor: pointer;
+  line-height: 1;
+  box-shadow: none;
+  appearance: none;
+  -webkit-appearance: none;
 }
 .f-search-clear:hover {
-  background: var(--surface-alt, #f0f0f3);
+  background: rgba(18, 18, 23, 0.06);
   color: var(--text-primary);
+}
+.f-search-clear:focus {
+  outline: none;
+  background: transparent;
+}
+.f-search-clear:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  background: rgba(18, 18, 23, 0.06);
 }
 
 .f-pill {

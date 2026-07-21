@@ -5,6 +5,7 @@ import {
   formatUtcToDisplayDateTime,
   utcToLocalParts,
 } from '../../utils/timezone';
+import { groupItineraryStops } from '../../pages/ManageShipments/utils/listingUtils';
 
 function mapApiStatus(status: string): Shipment['status'] {
   switch (status) {
@@ -238,6 +239,18 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
           : [];
 
   const journeyKm = parsePrice(detail.journey_distance);
+  const mappedStops = (detail.stops || []).map((stop, idx) =>
+    mapStop(stop, idx, detail.customer_reference)
+  );
+  const physicalStopCount =
+    mappedStops.length > 0
+      ? groupItineraryStops(mappedStops, {
+          origin: base.origin,
+          dest: base.dest,
+          pickDt: base.pickDt,
+          delDt: base.delDt,
+        }).length
+      : detail.stop_count ?? base.stopCount ?? 2;
 
   return {
     ...base,
@@ -245,9 +258,10 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     customer: customers,
     orderIds: detail.order_ids?.length ? detail.order_ids : base.orderIds,
     ordersCount: detail.order_ids?.length || base.ordersCount,
-    stopCount: detail.stop_count ?? detail.stops?.length ?? base.stopCount,
+    stopCount: physicalStopCount,
+    intermediateStops: Math.max(physicalStopCount - 2, 0),
     driverNotes: detail.note || undefined,
-    stops: (detail.stops || []).map((stop, idx) => mapStop(stop, idx, detail.customer_reference)),
+    stops: mappedStops,
     journeyDistanceKm: journeyKm,
     journeyTime: detail.journey_time ?? null,
     cargoValue: detail.cargo_value ?? null,
