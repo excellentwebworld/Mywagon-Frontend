@@ -237,8 +237,8 @@ export function useManageShipments() {
           bidsReceived: detail.bidsReceived,
           bidsSent: detail.bidsSent,
           best_bid: detail.best_bid,
-          carrier: detail.carrier,
-          carrier_init: detail.carrier_init,
+          // Never wipe list transporter with a null detail payload.
+          ...(detail.carrier ? { carrier: detail.carrier, carrier_init: detail.carrier_init } : {}),
           status: detail.status,
           quotedPrice: detail.quotedPrice,
           agreedPrice: detail.agreedPrice,
@@ -250,6 +250,8 @@ export function useManageShipments() {
           offers: detail.offers,
           invitees: detail.invitees,
           stops: detail.stops,
+          stopCount: detail.stopCount,
+          intermediateStops: detail.intermediateStops,
         });
       } catch {
         // Keep existing expansion data on failure
@@ -310,12 +312,13 @@ export function useManageShipments() {
         ...s,
         ...detail,
         // Prefer fresh detail over list-row snapshot for bid/offer fields.
+        // Keep list transporter when detail omits carrier (do not wipe with null).
         bids: detail.bids ?? s.bids,
         bidsReceived: detail.bidsReceived ?? s.bidsReceived,
         bidsSent: detail.bidsSent ?? s.bidsSent,
         best_bid: detail.best_bid ?? s.best_bid,
-        carrier: detail.carrier ?? s.carrier,
-        carrier_init: detail.carrier_init ?? s.carrier_init,
+        carrier: detail.carrier || s.carrier,
+        carrier_init: detail.carrier_init || s.carrier_init,
         quotedPrice: detail.quotedPrice ?? s.quotedPrice,
         agreedPrice: detail.agreedPrice ?? s.agreedPrice,
         channel: detail.channel ?? s.channel,
@@ -323,6 +326,8 @@ export function useManageShipments() {
         offers: detail.offers ?? s.offers,
         invitees: detail.invitees ?? s.invitees,
         stops: detail.stops ?? s.stops,
+        stopCount: detail.stopCount ?? s.stopCount,
+        intermediateStops: detail.intermediateStops ?? s.intermediateStops,
       };
     },
     [detailCache]
