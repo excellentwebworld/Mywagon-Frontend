@@ -317,17 +317,6 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                         {t('satWithinWindow')} ✅
                       </div>
                     </div>
-                    <div className="sat-match-item">
-                      <div className="label">{t('satExactMatch')}</div>
-                      <div
-                        className="val"
-                        style={{
-                          color: selectedPending.exactMatch ? 'var(--success)' : 'var(--text-tertiary)',
-                        }}
-                      >
-                        {selectedPending.exactMatch ? '✅' : '—'}
-                      </div>
-                    </div>
                   </div>
                 </div>
               ) : null}
