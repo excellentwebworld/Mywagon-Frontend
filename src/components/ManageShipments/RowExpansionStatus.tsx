@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Shipment } from '../../context/AppContext';
 import {
   formatEuro,
@@ -35,9 +35,20 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
   onCancel,
   t,
 }) => {
+  const [qaBusy, setQaBusy] = useState<'edit' | 'view' | 'cancel' | null>(null);
   const ordersMeta = ordersHeaderMeta(shipment, t);
   const priceType = shipment.price_type === 'contract' ? 'contract' : 'spot';
   const priceLabel = formatEuro(shipment.agreedPrice ?? shipment.quotedPrice);
+
+  const runQa = (key: NonNullable<typeof qaBusy>, fn: () => void) => {
+    if (qaBusy) return;
+    setQaBusy(key);
+    try {
+      fn();
+    } finally {
+      window.setTimeout(() => setQaBusy(null), 400);
+    }
+  };
 
   return (
     <div className={`exp-inner exp-status-only${detailLoading ? ' is-refreshing' : ''}`}>
@@ -117,7 +128,13 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
 
       <div className="exp-section exp-qa-col">
         <ExpHeading icon="qa">{t('quickActions')}</ExpHeading>
-        <QuickActions onEdit={onEdit} onView={onViewNewTab} onCancel={onCancel} t={t} />
+        <QuickActions
+          busy={qaBusy}
+          onEdit={() => runQa('edit', onEdit)}
+          onView={() => runQa('view', onViewNewTab)}
+          onCancel={() => runQa('cancel', onCancel)}
+          t={t}
+        />
       </div>
     </div>
   );

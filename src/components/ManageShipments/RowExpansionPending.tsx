@@ -15,6 +15,8 @@ import {
   ordersHeaderMeta,
 } from './ExpansionShared';
 
+type ExpTranslate = (key: string, opts?: Record<string, unknown>) => string;
+
 interface RowExpansionPendingProps {
   shipment: Shipment;
   detailLoading?: boolean;
@@ -22,14 +24,18 @@ interface RowExpansionPendingProps {
   onEdit: () => void;
   onViewNewTab: () => void;
   onCancel: () => void;
-  onMessage: (offerId?: string) => void;
-  onAcceptOffer: (offerId: string) => void;
-  onRejectOffer: (offerId: string) => void;
-  onCounterOffer: (offerId: string, amount: number) => void;
-  onRemindInvitee: (inviteeId: number) => void;
-  onRemoveInvitee: (inviteeId: number) => void;
+  onMessage: (offerId?: string) => void | Promise<void>;
+  onAcceptOffer: (offerId: string) => void | Promise<void>;
+  onRejectOffer: (offerId: string) => void | Promise<void>;
+  onCounterOffer: (offerId: string, amount: number) => void | Promise<void>;
+  onRemindInvitee: (inviteeId: number) => void | Promise<void>;
+  onRemoveInvitee: (inviteeId: number) => void | Promise<void>;
   onInviteMore: () => void;
-  t: (key: string, opts?: Record<string, unknown>) => string;
+  t: ExpTranslate;
+}
+
+function ExpBtnSpin() {
+  return <span className="exp-btn-spin" aria-hidden />;
 }
 
 function OfferRow({
@@ -41,22 +47,34 @@ function OfferRow({
   t,
 }: {
   offer: NonNullable<Shipment['offers']>[number];
-  onAccept: () => void;
-  onReject: () => void;
-  onCounter: (amount: number) => void;
-  onMessage: () => void;
-  t: RowExpansionPendingProps['t'];
+  onAccept: () => void | Promise<void>;
+  onReject: () => void | Promise<void>;
+  onCounter: (amount: number) => void | Promise<void>;
+  onMessage: () => void | Promise<void>;
+  t: ExpTranslate;
 }) {
   const [counterOpen, setCounterOpen] = useState(false);
+  const [busy, setBusy] = useState<'accept' | 'reject' | 'counter' | 'chat' | 'send' | null>(null);
   // Prefill counter at 95% of the offer price as a starting negotiation point.
   const COUNTER_OFFER_PREFILL_RATIO = 0.95;
   const prefill = offer.price != null ? Math.round(offer.price * COUNTER_OFFER_PREFILL_RATIO * 100) / 100 : 0;
   const [amount, setAmount] = useState(String(prefill || ''));
   const hasCounter = Boolean(offer.counter);
   const roleLabel = offer.role === 'freelancer' ? t('freelancer') : t('company');
+  const locked = busy != null;
+
+  const run = async (key: NonNullable<typeof busy>, fn: () => void | Promise<void>) => {
+    if (busy) return;
+    setBusy(key);
+    try {
+      await fn();
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
-    <div className="bid-row">
+    <div className={`bid-row${locked ? ' is-busy' : ''}`}>
       <div className="bid-top">
         <div className="bid-name">
           <span className="carrier-av" style={{ width: 24, height: 24, fontSize: 10 }}>
@@ -91,36 +109,77 @@ function OfferRow({
             {offer.counter.pct}%
           </span>
           <div className="co-acts-inline">
-            <button type="button" className="co-ok" onClick={onAccept}>
+            <button
+              type="button"
+              className="co-ok"
+              disabled={locked}
+              onClick={() => void run('accept', onAccept)}
+            >
+              {busy === 'accept' ? <ExpBtnSpin /> : null}
               ✓ {t('accept')}
             </button>
-            <button type="button" className="co-cnt" onClick={() => setCounterOpen(true)}>
+            <button
+              type="button"
+              className="co-cnt"
+              disabled={locked}
+              onClick={() => setCounterOpen(true)}
+            >
               ↩ {t('counter')}
             </button>
-            <button type="button" className="co-no bid-reject-danger" onClick={onReject}>
-              ✕
+            <button
+              type="button"
+              className="co-no bid-reject-danger"
+              disabled={locked}
+              onClick={() => void run('reject', onReject)}
+            >
+              {busy === 'reject' ? <ExpBtnSpin /> : '✕'}
             </button>
-            <button type="button" className="bid-chat" onClick={onMessage}>
+            <button
+              type="button"
+              className="bid-chat"
+              disabled={locked}
+              onClick={() => void run('chat', onMessage)}
+            >
+              {busy === 'chat' ? <ExpBtnSpin /> : null}
               {t('chat')}
             </button>
           </div>
         </div>
       ) : (
         <div className="bid-acts">
-          <button type="button" className="bid-accept" onClick={onAccept}>
+          <button
+            type="button"
+            className="bid-accept"
+            disabled={locked}
+            onClick={() => void run('accept', onAccept)}
+          >
+            {busy === 'accept' ? <ExpBtnSpin /> : null}
             {t('accept')}
           </button>
           <button
             type="button"
             className="bid-reject bid-reject-danger"
-            onClick={onReject}
+            disabled={locked}
+            onClick={() => void run('reject', onReject)}
           >
+            {busy === 'reject' ? <ExpBtnSpin /> : null}
             {t('reject')}
           </button>
-          <button type="button" className="bid-counter" onClick={() => setCounterOpen((v) => !v)}>
+          <button
+            type="button"
+            className="bid-counter"
+            disabled={locked}
+            onClick={() => setCounterOpen((v) => !v)}
+          >
             {t('counter')}
           </button>
-          <button type="button" className="bid-chat" onClick={onMessage}>
+          <button
+            type="button"
+            className="bid-chat"
+            disabled={locked}
+            onClick={() => void run('chat', onMessage)}
+          >
+            {busy === 'chat' ? <ExpBtnSpin /> : null}
             {t('chat')}
           </button>
         </div>
@@ -134,18 +193,23 @@ function OfferRow({
             min={0}
             step="0.01"
             value={amount}
+            disabled={locked}
             onChange={(e) => setAmount(e.target.value)}
           />
           <button
             type="button"
             className="bid-accept"
+            disabled={locked}
             onClick={() => {
               const n = Number(amount);
               if (!Number.isFinite(n) || n < 0) return;
-              onCounter(n);
-              setCounterOpen(false);
+              void run('send', async () => {
+                await onCounter(n);
+                setCounterOpen(false);
+              });
             }}
           >
+            {busy === 'send' ? <ExpBtnSpin /> : null}
             {t('send')}
           </button>
         </div>
@@ -171,6 +235,8 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
   t,
 }) => {
   const [invOpen, setInvOpen] = useState(true);
+  const [inviteBusy, setInviteBusy] = useState<string | null>(null);
+  const [qaBusy, setQaBusy] = useState<'edit' | 'view' | 'cancel' | null>(null);
   const offers = shipment.offers ?? [];
   const invitees = shipment.invitees ?? [];
   const invitedCount = invitees.length || shipment.invited || 0;
@@ -178,6 +244,27 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
   const bidLabel =
     offers.length === 1 ? t('bid') : offers.length > 1 ? t('bids') : '';
   const isPublic = (shipment.channel || shipment.vis) === 'public';
+
+  const runInvite = async (key: string, fn: () => void | Promise<void>) => {
+    if (inviteBusy) return;
+    setInviteBusy(key);
+    try {
+      await fn();
+    } finally {
+      setInviteBusy(null);
+    }
+  };
+
+  const runQa = (key: NonNullable<typeof qaBusy>, fn: () => void) => {
+    if (qaBusy) return;
+    setQaBusy(key);
+    try {
+      fn();
+    } finally {
+      // Sync navigation / modal open — clear on next frame so the spinner is visible.
+      window.setTimeout(() => setQaBusy(null), 400);
+    }
+  };
 
   return (
     <div className={`exp-inner${detailLoading ? ' is-refreshing' : ''}`}>
@@ -249,30 +336,52 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
               {t('invitedTransporters')} ({invitedCount})
             </ExpHeading>
             <div className={`inv-section${invOpen ? ' open' : ''}`}>
-              {invitees.map((inv) => (
-                <div key={inv.id} className="inv-row">
-                  <span className="inv-name">
-                    <span className="carrier-av" style={{ width: 20, height: 20, fontSize: 8 }}>
-                      {inv.initials || inv.name.substring(0, 2).toUpperCase()}
+              {invitees.map((inv) => {
+                const remindKey = `remind-${inv.id}`;
+                const removeKey = `remove-${inv.id}`;
+                const rowBusy = inviteBusy === remindKey || inviteBusy === removeKey;
+                return (
+                  <div key={inv.id} className={`inv-row${rowBusy ? ' is-busy' : ''}`}>
+                    <span className="inv-name">
+                      <span className="carrier-av" style={{ width: 20, height: 20, fontSize: 8 }}>
+                        {inv.initials || inv.name.substring(0, 2).toUpperCase()}
+                      </span>
+                      {inv.name}
                     </span>
-                    {inv.name}
-                  </span>
-                  {inv.invitedAt && (
-                    <span className="ago">
-                      {t('invitedAgo', { time: formatRelativeAgo(inv.invitedAt, t) })}
-                    </span>
-                  )}
-                  <div className="inv-acts">
-                    <button type="button" className="inv-btn" onClick={() => onRemindInvitee(inv.id)}>
-                      {t('remind')}
-                    </button>
-                    <button type="button" className="inv-btn" onClick={() => onRemoveInvitee(inv.id)}>
-                      {t('remove')}
-                    </button>
+                    {inv.invitedAt && (
+                      <span className="ago">
+                        {t('invitedAgo', { time: formatRelativeAgo(inv.invitedAt, t) })}
+                      </span>
+                    )}
+                    <div className="inv-acts">
+                      <button
+                        type="button"
+                        className="inv-btn"
+                        disabled={inviteBusy != null}
+                        onClick={() => void runInvite(remindKey, () => onRemindInvitee(inv.id))}
+                      >
+                        {inviteBusy === remindKey ? <ExpBtnSpin /> : null}
+                        {t('remind')}
+                      </button>
+                      <button
+                        type="button"
+                        className="inv-btn"
+                        disabled={inviteBusy != null}
+                        onClick={() => void runInvite(removeKey, () => onRemoveInvitee(inv.id))}
+                      >
+                        {inviteBusy === removeKey ? <ExpBtnSpin /> : null}
+                        {t('remove')}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-              <button type="button" className="f-pill inv-more" onClick={onInviteMore}>
+                );
+              })}
+              <button
+                type="button"
+                className="f-pill inv-more"
+                disabled={inviteBusy != null}
+                onClick={onInviteMore}
+              >
                 {t('inviteMoreCarriers')}
               </button>
             </div>
@@ -282,7 +391,13 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
         <ExpHeading icon="qa" className="exp-h-gap-lg">
           {t('quickActions')}
         </ExpHeading>
-        <QuickActions onEdit={onEdit} onView={onViewNewTab} onCancel={onCancel} t={t} />
+        <QuickActions
+          busy={qaBusy}
+          onEdit={() => runQa('edit', onEdit)}
+          onView={() => runQa('view', onViewNewTab)}
+          onCancel={() => runQa('cancel', onCancel)}
+          t={t}
+        />
       </div>
     </div>
   );
