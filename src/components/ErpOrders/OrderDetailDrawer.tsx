@@ -10,7 +10,6 @@ import {
   formatShipDate,
   getOrderListTotals,
   getShipUrgency,
-  shouldSuggestSplit,
 } from '../../pages/ErpOrders/erpOrderUiUtils';
 
 const ST_CLS: Record<string, string> = {
@@ -221,11 +220,6 @@ export const OrderDetailDrawer: React.FC<Props> = ({
             */}
                 <div className="
                 ">
-                  {shouldSuggestSplit(order) && (
-                    <button type="button" className="btn btn-sm erp-order-drawer-action" disabled>
-                      ✂️ {t('erpOrdersSuggestSplit')}
-                    </button>
-                  )}
                   {order.canEdit && (
                     <button type="button" className="btn btn-md erp-order-drawer-action" onClick={() => onEdit(order)}>
                       {t('edit')}
