@@ -55,7 +55,7 @@ export const Step2ItinerarySkeleton: React.FC = () => (
     </div>
     <footer
       className="wizard-footer-bar fixed bottom-0 right-0 h-[72px] items-center justify-between px-6 z-40 flex"
-      style={{ left: 'var(--sidebar-w, 240px)', background: T.sf, borderTop: `1px solid ${T.bd}` }}
+      style={{ background: T.sf, borderTop: `1px solid ${T.bd}` }}
     >
       <Skeleton width={100} height={36} borderRadius={8} baseColor={T.sa} highlightColor={T.sf} />
       <Skeleton width={120} height={36} borderRadius={8} baseColor={T.sa} highlightColor={T.sf} />

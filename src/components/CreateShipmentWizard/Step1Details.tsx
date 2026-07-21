@@ -1800,7 +1800,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       <footer
         className="wizard-footer-bar fixed bottom-0 right-0 h-[72px] items-center justify-between px-6 z-40 flex"
         style={{
-          left: "var(--sidebar-w, 240px)",
           background: T.sf,
           borderTop: `1px solid ${T.bd}`,
         }}

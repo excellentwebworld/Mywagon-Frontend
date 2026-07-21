@@ -2446,6 +2446,21 @@
 /* Fixed footer — must not use Tailwind `hidden md:flex` (app.css .hidden uses !important) */
 .wizard-footer-bar {
   display: flex !important;
+  left: var(--sidebar-w, 240px);
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Match .main-content.expanded when the sidebar is collapsed */
+.main-content.expanded .wizard-footer-bar {
+  left: var(--sidebar-collapsed, 72px);
+}
+
+/* Overlay sidebar ≤1024px — main content is full width */
+@media (max-width: 1024px) {
+  .wizard-footer-bar,
+  .main-content.expanded .wizard-footer-bar {
+    left: 0;
+  }
 }
 
 @media (max-width: 767px) {

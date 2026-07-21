@@ -551,7 +551,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
 
       <footer
         className="wizard-footer-bar fixed bottom-0 right-0 h-[72px] items-center justify-between px-6 z-40 flex"
-        style={{ left: 'var(--sidebar-w, 240px)', background: 'var(--surface)', borderTop: '1px solid var(--border)' }}
+        style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)' }}
       >
         <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
           <Save size={14} />

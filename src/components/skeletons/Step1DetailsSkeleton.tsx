@@ -147,7 +147,7 @@ export const Step1DetailsSkeleton: React.FC = () => (
 
     <footer
       className="wizard-footer-bar fixed bottom-0 right-0 h-[72px] items-center justify-between px-6 z-40 flex"
-      style={{ left: 'var(--sidebar-w, 240px)', background: T.sf, borderTop: `1px solid ${T.bd}` }}
+      style={{ background: T.sf, borderTop: `1px solid ${T.bd}` }}
     >
       <Skeleton width={120} height={36} borderRadius={8} baseColor={T.sa} highlightColor={T.sf} />
       <Skeleton width={132} height={36} borderRadius={8} baseColor={T.sa} highlightColor={T.sf} />
