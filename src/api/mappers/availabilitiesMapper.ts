@@ -52,6 +52,14 @@ function relativePosted(postedAt: string | null): string {
   return `${days}d`;
 }
 
+/** Real map point (rejects null and 0,0 Null Island placeholders). */
+function isRealMapCoord(lat: number | null | undefined, lng: number | null | undefined): boolean {
+  if (lat == null || lng == null) return false;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  if (lat === 0 && lng === 0) return false;
+  return true;
+}
+
 function mapTrip(tripType: ApiAvailabilityListItem['trip_type']): TripType {
   return tripType === 'multi_stop' ? 'Multi-stop OK' : 'Direct only';
 }
@@ -81,13 +89,22 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
   const dropoffAddr = (item.dropoff_address || '').trim();
   // Prefer full street address (parity with Laravel SearchAvailabilityDataTable).
   const pickupAddress = pickupAddr || pickupCity || '—';
-  const destAddress = dropoffAddr || dropoffCity || 'Any';
+  const hasDropoffPlace = Boolean(dropoffAddr || dropoffCity);
+  const destAddress = hasDropoffPlace ? dropoffAddr || dropoffCity : 'Any';
   const pickup = pickupAddress;
   const dest = destAddress;
   const specs = (item.cargo_categories ?? []).join(' · ');
   const capVal = item.capacity_qty ?? 0;
   const capUnit = item.capacity_unit ?? '';
   const capacity = capVal ? `${capVal}${capUnit ? ` ${capUnit}` : ''}` : '—';
+
+  // Any-direction rows often store 0,0 (Null Island) — never treat as a real dropoff pin.
+  const destLat = hasDropoffPlace && isRealMapCoord(item.dropoff_lat, item.dropoff_lng)
+    ? item.dropoff_lat
+    : null;
+  const destLng = hasDropoffPlace && isRealMapCoord(item.dropoff_lat, item.dropoff_lng)
+    ? item.dropoff_lng
+    : null;
 
   return {
     id: String(item.id),
@@ -128,8 +145,8 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
     cancellationRate: item.provider?.cancellation_rate_pct ?? null,
     pickupLat: item.pickup_lat ?? 0,
     pickupLng: item.pickup_lng ?? 0,
-    destLat: item.dropoff_lat,
-    destLng: item.dropoff_lng,
+    destLat,
+    destLng,
     hasBids: item.has_bids ?? undefined,
     bidsCount: item.bids_count,
     bestBid: item.best_bid,

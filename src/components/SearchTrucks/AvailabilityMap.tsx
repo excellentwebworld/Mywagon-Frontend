@@ -301,11 +301,15 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
 
   const selectedRoute = React.useMemo(() => {
     const selected = trucks.find((x) => x.id === selectedId);
-    if (!selected || selected.destLat == null || selected.destLng == null) return null;
+    if (!selected) return null;
+    const dest = (selected.destAddress || selected.dest || '').trim();
+    if (!dest || dest === 'Any') return null;
+    if (selected.destLat == null || selected.destLng == null) return null;
+    if (selected.destLat === 0 && selected.destLng === 0) return null;
     return {
       id: selected.id,
       pickup: selected.pickupAddress || selected.pickup,
-      dest: selected.destAddress || selected.dest,
+      dest,
       pickupLat: selected.pickupLat,
       pickupLng: selected.pickupLng,
       destLat: selected.destLat,
