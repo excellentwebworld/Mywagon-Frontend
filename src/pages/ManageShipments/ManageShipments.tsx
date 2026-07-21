@@ -75,12 +75,15 @@ export const ManageShipments: React.FC = () => {
             selectedIds={m.selectedIds}
             expandedId={m.expandedId}
             detailLoadingIds={m.detailLoadingIds}
+            detailRefreshingIds={m.detailRefreshingIds}
+            isDetailCached={m.isDetailCached}
             resolveShipment={m.mergedShipment}
             emptyReason={m.filtersActive ? 'filters' : 'default'}
             onClearFilters={m.handleClearAllFilters}
             onSelectAll={m.handleSelectAll}
             onSelectRow={m.handleSelectRow}
             onToggleExpand={m.handleToggleExpand}
+            onRefreshDetail={m.handleRefreshExpanded}
             onCopyId={m.handleCopyId}
             onDelete={m.handleDeleteRequest}
             onEdit={m.handleEdit}

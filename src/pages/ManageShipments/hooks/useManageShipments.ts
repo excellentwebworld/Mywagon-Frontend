@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, shipmentsService } from '../../../api';
 import type { ListShipmentsParams } from '../../../api/types/shipments';
@@ -53,7 +53,12 @@ export function useManageShipments() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [detailCache, setDetailCache] = useState<Record<string, Shipment>>({});
+  /** First-load only — drives expansion skeleton. */
   const [detailLoadingIds, setDetailLoadingIds] = useState<Set<string>>(new Set());
+  /** Background refetch while cached panel stays visible. */
+  const [detailRefreshingIds, setDetailRefreshingIds] = useState<Set<string>>(new Set());
+  const detailCacheRef = useRef(detailCache);
+  detailCacheRef.current = detailCache;
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteQuery, setInviteQuery] = useState('');
   const [invitedCarriers, setInvitedCarriers] = useState<Set<string>>(new Set());
@@ -211,35 +216,91 @@ export function useManageShipments() {
     });
   }, []);
 
-  const handleToggleExpand = useCallback((id: string) => {
-    setExpandedId((prev) => {
-      const next = prev === id ? null : id;
-      if (next) {
-        setDetailCache((cache) => {
-          if (cache[next]) return cache;
-          setDetailLoadingIds((loadingSet) => {
-            if (loadingSet.has(next)) return loadingSet;
-            return new Set(loadingSet).add(next);
-          });
-          void shipmentsService
-            .getMapped(next)
-            .then((detail) => {
-              setDetailCache((c) => ({ ...c, [next]: detail }));
-            })
-            .catch(() => undefined)
-            .finally(() => {
-              setDetailLoadingIds((loadingSet) => {
-                const copy = new Set(loadingSet);
-                copy.delete(next);
-                return copy;
-              });
-            });
-          return cache;
-        });
+  /** Reload expansion detail. With cache → background update; without → blocking skeleton. */
+  const refreshShipmentDetail = useCallback(
+    async (shipmentId: string, opts?: { background?: boolean }) => {
+      const hasCache = Boolean(detailCacheRef.current[shipmentId]);
+      const background = opts?.background ?? hasCache;
+
+      if (background) {
+        setDetailRefreshingIds((ids) => new Set(ids).add(shipmentId));
+      } else {
+        setDetailLoadingIds((ids) => new Set(ids).add(shipmentId));
       }
-      return next;
-    });
-  }, []);
+
+      try {
+        const detail = await shipmentsService.getMapped(shipmentId);
+        setDetailCache((c) => ({ ...c, [shipmentId]: detail }));
+        patchShipment(shipmentId, {
+          invited: detail.invited,
+          bids: detail.bids,
+          bidsReceived: detail.bidsReceived,
+          bidsSent: detail.bidsSent,
+          best_bid: detail.best_bid,
+          carrier: detail.carrier,
+          carrier_init: detail.carrier_init,
+          status: detail.status,
+          quotedPrice: detail.quotedPrice,
+          agreedPrice: detail.agreedPrice,
+          price: detail.price,
+          at_risk: detail.at_risk,
+          riskReason: detail.riskReason,
+          needsAction: detail.needsAction,
+          awaitingResponse: detail.awaitingResponse,
+          offers: detail.offers,
+          invitees: detail.invitees,
+          stops: detail.stops,
+        });
+      } catch {
+        // Keep existing expansion data on failure
+      } finally {
+        if (background) {
+          setDetailRefreshingIds((ids) => {
+            const copy = new Set(ids);
+            copy.delete(shipmentId);
+            return copy;
+          });
+        } else {
+          setDetailLoadingIds((ids) => {
+            const copy = new Set(ids);
+            copy.delete(shipmentId);
+            return copy;
+          });
+        }
+      }
+    },
+    [patchShipment]
+  );
+
+  const handleToggleExpand = useCallback(
+    (id: string) => {
+      setExpandedId((prev) => {
+        const next = prev === id ? null : id;
+        if (next) {
+          const hasCache = Boolean(detailCacheRef.current[next]);
+          // Cached → show immediately, refetch in background. Cold → skeleton then fill.
+          void refreshShipmentDetail(next, { background: hasCache });
+        }
+        return next;
+      });
+    },
+    [refreshShipmentDetail]
+  );
+
+  const handleRefreshExpanded = useCallback(
+    (id: string) => {
+      const hasCache = Boolean(detailCacheRef.current[id]);
+      void refreshShipmentDetail(id, { background: hasCache });
+    },
+    [refreshShipmentDetail]
+  );
+
+  const isDetailCached = useCallback((id: string) => Boolean(detailCache[id]), [detailCache]);
+
+  const isDetailBusy = useCallback(
+    (id: string) => detailLoadingIds.has(id) || detailRefreshingIds.has(id),
+    [detailLoadingIds, detailRefreshingIds]
+  );
 
   const mergedShipment = useCallback(
     (s: Shipment): Shipment => {
@@ -248,16 +309,20 @@ export function useManageShipments() {
       return {
         ...s,
         ...detail,
-        bids: Math.max(s.bids || 0, detail.bids || 0),
-        bidsReceived: s.bidsReceived ?? detail.bidsReceived,
-        bidsSent: s.bidsSent ?? detail.bidsSent,
-        best_bid: s.best_bid ?? detail.best_bid,
-        carrier: s.carrier ?? detail.carrier,
-        carrier_init: s.carrier_init ?? detail.carrier_init,
-        quotedPrice: s.quotedPrice ?? detail.quotedPrice,
-        agreedPrice: s.agreedPrice ?? detail.agreedPrice,
-        channel: s.channel ?? detail.channel,
+        // Prefer fresh detail over list-row snapshot for bid/offer fields.
+        bids: detail.bids ?? s.bids,
+        bidsReceived: detail.bidsReceived ?? s.bidsReceived,
+        bidsSent: detail.bidsSent ?? s.bidsSent,
+        best_bid: detail.best_bid ?? s.best_bid,
+        carrier: detail.carrier ?? s.carrier,
+        carrier_init: detail.carrier_init ?? s.carrier_init,
+        quotedPrice: detail.quotedPrice ?? s.quotedPrice,
+        agreedPrice: detail.agreedPrice ?? s.agreedPrice,
+        channel: detail.channel ?? s.channel,
         invited: detail.invited ?? s.invited,
+        offers: detail.offers ?? s.offers,
+        invitees: detail.invitees ?? s.invitees,
+        stops: detail.stops ?? s.stops,
       };
     },
     [detailCache]
@@ -309,45 +374,6 @@ export function useManageShipments() {
   const [inviteTargetId, setInviteTargetId] = useState<string | null>(null);
   /** Partner ids already invited on the target shipment (auto-selected & locked in modal). */
   const [alreadyInvitedPartnerIds, setAlreadyInvitedPartnerIds] = useState<Set<string>>(new Set());
-
-  /** Reload only the expanded row detail + patch list fields — no full-table skeleton. */
-  const refreshShipmentDetail = useCallback(
-    async (shipmentId: string) => {
-      setDetailLoadingIds((loadingSet) => new Set(loadingSet).add(shipmentId));
-      try {
-        const detail = await shipmentsService.getMapped(shipmentId);
-        setDetailCache((c) => ({ ...c, [shipmentId]: detail }));
-        patchShipment(shipmentId, {
-          invited: detail.invited,
-          bids: detail.bids,
-          bidsReceived: detail.bidsReceived,
-          bidsSent: detail.bidsSent,
-          best_bid: detail.best_bid,
-          carrier: detail.carrier,
-          carrier_init: detail.carrier_init,
-          status: detail.status,
-          quotedPrice: detail.quotedPrice,
-          agreedPrice: detail.agreedPrice,
-          price: detail.price,
-          at_risk: detail.at_risk,
-          riskReason: detail.riskReason,
-          needsAction: detail.needsAction,
-          awaitingResponse: detail.awaitingResponse,
-          offers: detail.offers,
-          invitees: detail.invitees,
-        });
-      } catch {
-        // Keep existing expansion data on failure
-      } finally {
-        setDetailLoadingIds((loadingSet) => {
-          const copy = new Set(loadingSet);
-          copy.delete(shipmentId);
-          return copy;
-        });
-      }
-    },
-    [patchShipment]
-  );
 
   const handleMessage = useCallback((s: Shipment, offerId?: string) => {
     const q = offerId ? `?offer=${encodeURIComponent(offerId)}` : '';
@@ -587,10 +613,14 @@ export function useManageShipments() {
     selectedIds,
     expandedId,
     detailLoadingIds,
+    detailRefreshingIds,
+    isDetailCached,
+    isDetailBusy,
     mergedShipment,
     handleSelectAll,
     handleSelectRow,
     handleToggleExpand,
+    handleRefreshExpanded,
     handleCopyId,
     handleDeleteRequest,
     handleCancelled,

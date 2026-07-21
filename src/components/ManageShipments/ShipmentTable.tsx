@@ -22,12 +22,15 @@ interface ShipmentTableProps {
   selectedIds: Set<string>;
   expandedId: string | null;
   detailLoadingIds?: Set<string>;
+  detailRefreshingIds?: Set<string>;
+  isDetailCached?: (id: string) => boolean;
   resolveShipment?: (s: Shipment) => Shipment;
   emptyReason?: 'default' | 'filters' | 'unsupported';
   onClearFilters?: () => void;
   onSelectAll: (checked: boolean) => void;
   onSelectRow: (id: string, checked: boolean) => void;
   onToggleExpand: (id: string) => void;
+  onRefreshDetail?: (id: string) => void;
   onCopyId: (id: string) => void;
   onDelete: (s: Shipment) => void;
   onEdit: (s: Shipment) => void;
@@ -115,12 +118,15 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
   selectedIds,
   expandedId,
   detailLoadingIds,
+  detailRefreshingIds,
+  isDetailCached,
   resolveShipment,
   emptyReason = 'default',
   onClearFilters,
   onSelectAll,
   onSelectRow,
   onToggleExpand,
+  onRefreshDetail,
   onCopyId,
   onDelete,
   onEdit,
@@ -191,6 +197,11 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
             const quoted = formatEuro(s.quotedPrice ?? s.price);
             const agreed = formatEuro(s.agreedPrice);
             const detailLoading = detailLoadingIds?.has(s.id) ?? false;
+            const detailRefreshing = detailRefreshingIds?.has(s.id) ?? false;
+            const hasCachedDetail = isDetailCached?.(s.id) ?? false;
+            // Skeleton only on cold open; cached open keeps content and refreshes in background.
+            const showSkeleton = detailLoading && !hasCachedDetail;
+            const detailBusy = detailLoading || detailRefreshing;
             const priceType = s.price_type === 'contract' ? 'contract' : 'spot';
 
             return (
@@ -345,12 +356,15 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                 {isExpanded && (
                   <tr className="exp open">
                     <td colSpan={TABLE_COL_COUNT}>
-                      {detailLoading ? (
+                      {showSkeleton ? (
                         <RowExpansionSkeleton variant={isPending ? 'pending' : 'status'} />
                       ) : isPending ? (
                         <RowExpansionPending
                           shipment={s}
-                          detailLoading={false}
+                          detailLoading={detailBusy}
+                          onRefresh={
+                            onRefreshDetail ? () => onRefreshDetail(s.id) : undefined
+                          }
                           onEdit={() => onEdit(s)}
                           onViewNewTab={() => onViewNewTab(s)}
                           onCancel={() => onDelete(s)}
@@ -366,7 +380,10 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                       ) : (
                         <RowExpansionStatus
                           shipment={s}
-                          detailLoading={false}
+                          detailLoading={detailBusy}
+                          onRefresh={
+                            onRefreshDetail ? () => onRefreshDetail(s.id) : undefined
+                          }
                           onEdit={() => onEdit(s)}
                           onViewNewTab={() => onViewNewTab(s)}
                           onCancel={() => onDelete(s)}

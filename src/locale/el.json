@@ -1177,6 +1177,8 @@
   "noShipmentsWithFilters": "Κανένα φορτίο δεν αντιστοιχεί στα φίλτρα σας.",
   "statusTabUnsupported": "Αυτή η προβολή κατάστασης δεν είναι ακόμη διαθέσιμη.",
   "progress": "Πρόοδος",
+  "refresh": "Ανανέωση",
+  "refreshDetails": "Ανανέωση τελευταίων στοιχείων",
   "tlCreated": "Δημιουργία",
   "waitingForBid": "Αναμονή προσφοράς",
   "pendingOnCarrierAcceptance": "Αναμονή αποδοχής μεταφορέα",

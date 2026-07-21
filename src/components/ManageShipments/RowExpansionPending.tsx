@@ -5,6 +5,7 @@ import {
   formatRelativeAgo,
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { ExpHeading } from './ExpHeading';
+import { ExpRefreshButton } from './ExpRefreshButton';
 import { ItineraryPreview } from './ItineraryPreview';
 import {
   CompactLoadMeta,
@@ -17,6 +18,7 @@ import {
 interface RowExpansionPendingProps {
   shipment: Shipment;
   detailLoading?: boolean;
+  onRefresh?: () => void;
   onEdit: () => void;
   onViewNewTab: () => void;
   onCancel: () => void;
@@ -155,6 +157,7 @@ function OfferRow({
 export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
   shipment,
   detailLoading = false,
+  onRefresh,
   onEdit,
   onViewNewTab,
   onCancel,
@@ -177,10 +180,15 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
   const isPublic = (shipment.channel || shipment.vis) === 'public';
 
   return (
-    <div className="exp-inner">
+    <div className={`exp-inner${detailLoading ? ' is-refreshing' : ''}`}>
       <div className="exp-section">
-        <ExpHeading icon="progress">{t('progress')}</ExpHeading>
-        <ProgressTimeline shipment={shipment} t={t} loading={detailLoading} />
+        <div className="exp-section-head">
+          <ExpHeading icon="progress">{t('progress')}</ExpHeading>
+          {onRefresh ? (
+            <ExpRefreshButton loading={detailLoading} onRefresh={onRefresh} t={t} />
+          ) : null}
+        </div>
+        <ProgressTimeline shipment={shipment} t={t} loading={false} />
 
         <ExpHeading icon="orders" className="exp-h-gap">
           {ordersMeta.label}

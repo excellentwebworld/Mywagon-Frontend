@@ -1177,6 +1177,8 @@
   "noShipmentsWithFilters": "No shipments match your filters.",
   "statusTabUnsupported": "This status view is not available yet.",
   "progress": "Progress",
+  "refresh": "Refresh",
+  "refreshDetails": "Refresh latest details",
   "tlCreated": "Created",
   "waitingForBid": "Waiting for Bid",
   "pendingOnCarrierAcceptance": "Pending on Carrier acceptance",

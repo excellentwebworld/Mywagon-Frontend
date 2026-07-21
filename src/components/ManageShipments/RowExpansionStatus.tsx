@@ -6,6 +6,7 @@ import {
   statusBadgeClass,
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { ExpHeading } from './ExpHeading';
+import { ExpRefreshButton } from './ExpRefreshButton';
 import { ItineraryPreview } from './ItineraryPreview';
 import {
   OrdersBlock,
@@ -18,6 +19,7 @@ import {
 interface RowExpansionStatusProps {
   shipment: Shipment;
   detailLoading?: boolean;
+  onRefresh?: () => void;
   onEdit: () => void;
   onViewNewTab: () => void;
   onCancel: () => void;
@@ -27,6 +29,7 @@ interface RowExpansionStatusProps {
 export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
   shipment,
   detailLoading = false,
+  onRefresh,
   onEdit,
   onViewNewTab,
   onCancel,
@@ -37,20 +40,25 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
   const priceLabel = formatEuro(shipment.agreedPrice ?? shipment.quotedPrice);
 
   return (
-    <div className="exp-inner exp-status-only">
+    <div className={`exp-inner exp-status-only${detailLoading ? ' is-refreshing' : ''}`}>
       <div className="exp-section">
-        <ExpHeading icon="progress">
-          {t('progress')} —{' '}
-          <span className={`badge ${statusBadgeClass(shipment.status)}`}>
-            <span className="bdot" />
-            {t(shipment.status)}
-          </span>
-        </ExpHeading>
+        <div className="exp-section-head">
+          <ExpHeading icon="progress">
+            {t('progress')} —{' '}
+            <span className={`badge ${statusBadgeClass(shipment.status)}`}>
+              <span className="bdot" />
+              {t(shipment.status)}
+            </span>
+          </ExpHeading>
+          {onRefresh ? (
+            <ExpRefreshButton loading={detailLoading} onRefresh={onRefresh} t={t} />
+          ) : null}
+        </div>
         <ProgressTimeline
           shipment={shipment}
           t={t}
           enlarged
-          loading={detailLoading}
+          loading={false}
         />
 
         <StatusDetailGrid shipment={shipment} t={t} />
