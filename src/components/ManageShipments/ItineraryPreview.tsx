@@ -1,5 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import type { ShipmentCustomerOrder, ShipmentStop } from '../../context/AppContext';
+import type { ShipmentStop } from '../../context/AppContext';
+import {
+  groupItineraryStops,
+  type ItineraryStopGroup,
+} from '../../pages/ManageShipments/utils/listingUtils';
 import { ExpHeading } from './ExpHeading';
 
 interface ItineraryPreviewProps {
@@ -10,28 +14,6 @@ interface ItineraryPreviewProps {
   delDt?: string | null;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
-
-type CargoLine = {
-  customerName: string;
-  orderId: string;
-  products: string;
-  qty: number;
-  qtyUnit: string;
-  weight: number;
-  weightUnit: string;
-};
-
-type GroupedStop = {
-  key: string;
-  type: 'pickup' | 'delivery';
-  location: string;
-  address: string;
-  date: string;
-  timeStart: string;
-  timeEnd: string;
-  customers: string[];
-  lines: CargoLine[];
-};
 
 function formatWhen(date?: string, timeStart?: string): string {
   return [date, timeStart].filter(Boolean).join(' · ');
@@ -55,7 +37,10 @@ function truncate(text: string, max = 42): string {
   return `${value.slice(0, max - 1)}…`;
 }
 
-function cargoSummary(lines: CargoLine[], t: ItineraryPreviewProps['t']): string {
+function cargoSummary(
+  lines: ItineraryStopGroup['lines'],
+  t: ItineraryPreviewProps['t']
+): string {
   if (lines.length === 0) return '';
   const totalQty = lines.reduce((sum, line) => sum + (line.qty || 0), 0);
   const totalWeight = lines.reduce((sum, line) => sum + (line.weight || 0), 0);
@@ -69,93 +54,6 @@ function cargoSummary(lines: CargoLine[], t: ItineraryPreviewProps['t']): string
   return parts.join(' · ');
 }
 
-function cargoFromStop(stop: ShipmentStop): CargoLine[] {
-  const lines: CargoLine[] = [];
-  (stop.customers || []).forEach((customer) => {
-    (customer.orders || []).forEach((order: ShipmentCustomerOrder) => {
-      if (!order.products && !order.qty && !order.weight && !order.id) return;
-      lines.push({
-        customerName: customer.name || '',
-        orderId: order.id || '',
-        products: order.products || '—',
-        qty: order.qty || 0,
-        qtyUnit: order.qtyUnit || '',
-        weight: order.weight || 0,
-        weightUnit: order.weightUnit || '',
-      });
-    });
-  });
-  return lines;
-}
-
-/** Group consecutive same location+type+schedule rows into one physical stop. */
-function groupStops(stops: ShipmentStop[]): GroupedStop[] {
-  const groups: GroupedStop[] = [];
-
-  stops.forEach((stop) => {
-    const key = [stop.type, stop.location, stop.date, stop.timeStart].join('|');
-    const last = groups[groups.length - 1];
-    const lines = cargoFromStop(stop);
-    const customers = (stop.customers || [])
-      .map((c) => c.name)
-      .filter((name) => name && name !== '—');
-
-    if (last && last.key === key) {
-      lines.forEach((line) => last.lines.push(line));
-      customers.forEach((name) => {
-        if (!last.customers.includes(name)) last.customers.push(name);
-      });
-      return;
-    }
-
-    groups.push({
-      key,
-      type: stop.type,
-      location: stop.location || '—',
-      address: stop.address || '',
-      date: stop.date || '',
-      timeStart: stop.timeStart || '',
-      timeEnd: stop.timeEnd || '',
-      customers: [...customers],
-      lines,
-    });
-  });
-
-  return groups;
-}
-
-function fallbackGroups(
-  origin?: string,
-  dest?: string,
-  pickDt?: string | null,
-  delDt?: string | null
-): GroupedStop[] {
-  return [
-    {
-      key: 'origin',
-      type: 'pickup',
-      location: origin || '—',
-      address: '',
-      date: pickDt || '',
-      timeStart: '',
-      timeEnd: '',
-      customers: [],
-      lines: [],
-    },
-    {
-      key: 'dest',
-      type: 'delivery',
-      location: dest || '—',
-      address: '',
-      date: delDt || '',
-      timeStart: '',
-      timeEnd: '',
-      customers: [],
-      lines: [],
-    },
-  ];
-}
-
 export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
   stops,
   origin,
@@ -167,10 +65,10 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [openCargo, setOpenCargo] = useState<Record<string, boolean>>({});
 
-  const groups = useMemo(() => {
-    if (stops && stops.length > 0) return groupStops(stops);
-    return fallbackGroups(origin, dest, pickDt, delDt);
-  }, [stops, origin, dest, pickDt, delDt]);
+  const groups = useMemo(
+    () => groupItineraryStops(stops, { origin, dest, pickDt, delDt }),
+    [stops, origin, dest, pickDt, delDt]
+  );
 
   const collapsible = groups.length > 2;
   const visible = collapsible && !expanded ? groups.slice(0, 2) : groups;

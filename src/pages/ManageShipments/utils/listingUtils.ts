@@ -486,7 +486,107 @@ export type LaravelProgressStep = {
   sub?: string;
 };
 
-/** Full Laravel-style progress: all milestone dots for this load; states by status. */
+export type ItineraryStopGroup = {
+  key: string;
+  type: 'pickup' | 'delivery';
+  location: string;
+  address: string;
+  date: string;
+  timeStart: string;
+  timeEnd: string;
+  customers: string[];
+  lines: Array<{
+    customerName: string;
+    orderId: string;
+    products: string;
+    qty: number;
+    qtyUnit: string;
+    weight: number;
+    weightUnit: string;
+  }>;
+};
+
+/** Group consecutive same location+type+schedule rows into physical itinerary stops. */
+export function groupItineraryStops(
+  stops: Shipment['stops'],
+  fallback?: { origin?: string; dest?: string; pickDt?: string | null; delDt?: string | null }
+): ItineraryStopGroup[] {
+  if (!stops || stops.length === 0) {
+    return [
+      {
+        key: 'origin',
+        type: 'pickup',
+        location: fallback?.origin || '—',
+        address: '',
+        date: fallback?.pickDt || '',
+        timeStart: '',
+        timeEnd: '',
+        customers: [],
+        lines: [],
+      },
+      {
+        key: 'dest',
+        type: 'delivery',
+        location: fallback?.dest || '—',
+        address: '',
+        date: fallback?.delDt || '',
+        timeStart: '',
+        timeEnd: '',
+        customers: [],
+        lines: [],
+      },
+    ];
+  }
+
+  const groups: ItineraryStopGroup[] = [];
+
+  stops.forEach((stop) => {
+    const key = [stop.type, stop.location, stop.date, stop.timeStart].join('|');
+    const last = groups[groups.length - 1];
+    const lines: ItineraryStopGroup['lines'] = [];
+    (stop.customers || []).forEach((customer) => {
+      (customer.orders || []).forEach((order) => {
+        if (!order.products && !order.qty && !order.weight && !order.id) return;
+        lines.push({
+          customerName: customer.name || '',
+          orderId: order.id || '',
+          products: order.products || '—',
+          qty: order.qty || 0,
+          qtyUnit: order.qtyUnit || '',
+          weight: order.weight || 0,
+          weightUnit: order.weightUnit || '',
+        });
+      });
+    });
+    const customers = (stop.customers || [])
+      .map((c) => c.name)
+      .filter((name) => name && name !== '—');
+
+    if (last && last.key === key) {
+      lines.forEach((line) => last.lines.push(line));
+      customers.forEach((name) => {
+        if (!last.customers.includes(name)) last.customers.push(name);
+      });
+      return;
+    }
+
+    groups.push({
+      key,
+      type: stop.type,
+      location: stop.location || '—',
+      address: stop.address || '',
+      date: stop.date || '',
+      timeStart: stop.timeStart || '',
+      timeEnd: stop.timeEnd || '',
+      customers: [...customers],
+      lines,
+    });
+  });
+
+  return groups;
+}
+
+/** Progress dots aligned to physical itinerary stops (same grouping as Itinerary panel). */
 export function buildLaravelProgressSteps(
   shipment: Shipment,
   t: (key: string, opts?: Record<string, unknown>) => string
@@ -516,17 +616,12 @@ export function buildLaravelProgressSteps(
     ? `${t('carrierLabel')}: ${shipment.carrier}`
     : t('carrierAssigned');
 
-  const stops =
-    shipment.stops && shipment.stops.length > 0
-      ? shipment.stops.map((s) => ({
-          type: s.type,
-          location:
-            s.location || (s.type === 'pickup' ? shipment.origin : shipment.dest) || '—',
-        }))
-      : [
-          { type: 'pickup' as const, location: shipment.origin || '—' },
-          { type: 'delivery' as const, location: shipment.dest || '—' },
-        ];
+  const itineraryStops = groupItineraryStops(shipment.stops, {
+    origin: shipment.origin,
+    dest: shipment.dest,
+    pickDt: shipment.pickDt,
+    delDt: shipment.delDt,
+  });
 
   const isPending = status === 'pending' || status === 'draft';
   const isCanceled = status === 'canceled' || status === 'cancelled';
@@ -553,90 +648,59 @@ export function buildLaravelProgressSteps(
     },
   ];
 
+  const pushItinerarySteps = (stateForIndex: (idx: number) => LaravelProgressState) => {
+    itineraryStops.forEach((stop, idx) => {
+      const when = [stop.date, stop.timeStart].filter(Boolean).join(' · ');
+      steps.push({
+        id: `itin-${idx}`,
+        label: `${stop.type === 'pickup' ? t('pickup') : t('delivery')} · ${stop.location}`,
+        state: stateForIndex(idx),
+        sub: when || undefined,
+      });
+    });
+  };
+
   if (isCanceled) {
     steps.push({
       id: 'canceled',
       label: t(status === 'cancelled' ? 'cancelled' : 'canceled'),
       state: 'pending',
     });
-    // Still show remaining pipeline as skipped so all dots are visible
-    steps.push(
-      { id: 'carrier', label: carrierLabel, state: 'skip' },
-      { id: 'start_trip', label: t('startTrip'), state: 'skip' }
-    );
-    stops.forEach((stop, idx) => {
-      const loc = stop.location;
-      steps.push({
-        id: `arrival-${idx}`,
-        label: `${t('arrival')} - ${loc}`,
-        state: 'skip',
-      });
-      steps.push({
-        id: `stop-action-${idx}`,
-        label: `${stop.type === 'pickup' ? t('pickup') : t('delivery')} - ${loc}`,
-        state: 'skip',
-      });
-    });
-    steps.push({ id: 'payment', label: t('paymentPending'), state: 'skip' });
+    pushItinerarySteps(() => 'skip');
     return steps;
   }
 
-  // Acceptance / waiting slot (single position in the pipeline)
   if (isPending) {
     steps.push({ id: 'waiting', label: waitingLabel, state: 'cur' });
-  } else {
-    steps.push({ id: 'accepted', label: acceptedLabel, state: 'done' });
+    pushItinerarySteps(() => 'skip');
+    return steps;
   }
 
-  // Carrier
+  steps.push({ id: 'accepted', label: acceptedLabel, state: 'done' });
+
   let carrierState: LaravelProgressState = 'skip';
   if (pastAcceptance) {
     carrierState = beforeTrip ? 'cur' : 'done';
   }
   steps.push({ id: 'carrier', label: carrierLabel, state: carrierState });
 
-  // Start trip
   let startState: LaravelProgressState = 'skip';
   if (onTrip || fulfilledLike) startState = 'done';
-  else if (pastAcceptance && !beforeTrip) startState = 'cur';
+  else if (beforeTrip) startState = 'skip';
+  else if (pastAcceptance) startState = 'cur';
   steps.push({ id: 'start_trip', label: t('startTrip'), state: startState });
 
-  // Per-stop arrival + pickup/delivery
-  stops.forEach((stop, idx) => {
-    const loc = stop.location;
-    const isLast = idx === stops.length - 1;
-    let arrivalState: LaravelProgressState = 'skip';
-    let actionState: LaravelProgressState = 'skip';
-
-    if (fulfilledLike && status !== 'not_fullfilled') {
-      arrivalState = 'done';
-      actionState = 'done';
-    } else if (status === 'not_fullfilled') {
-      arrivalState = 'pending';
-      actionState = 'pending';
-    } else if (onTrip) {
-      if (isLast) {
-        arrivalState = 'done';
-        actionState = 'cur';
-      } else {
-        arrivalState = 'done';
-        actionState = 'done';
-      }
+  pushItinerarySteps((idx) => {
+    const isLast = idx === itineraryStops.length - 1;
+    if (fulfilledLike && status !== 'not_fullfilled') return 'done';
+    if (status === 'not_fullfilled') return 'pending';
+    if (onTrip) {
+      if (isLast) return 'cur';
+      return 'done';
     }
-
-    steps.push({
-      id: `arrival-${idx}`,
-      label: `${t('arrival')} - ${loc}`,
-      state: arrivalState,
-    });
-    steps.push({
-      id: `stop-action-${idx}`,
-      label: `${stop.type === 'pickup' ? t('pickup') : t('delivery')} - ${loc}`,
-      state: actionState,
-    });
+    return 'skip';
   });
 
-  // Payment
   let paymentState: LaravelProgressState = 'skip';
   let paymentLabel = t('paymentPending');
   if (fulfilledLike) {
