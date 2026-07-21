@@ -712,6 +712,45 @@
   min-width: 0;
 }
 
+.sat-card-body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+
+.sat-card-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sat-card-side {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  text-align: right;
+  max-width: 42%;
+}
+
+.sat-card-side__price {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.sat-card-side__cap {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.sat-card-side__id {
+  font-size: 11px;
+}
+
 .sat-card-route {
   display: flex;
   align-items: baseline;
@@ -743,6 +782,22 @@
 .sat-card-radius {
   margin-top: 2px;
   font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .sat-card-body {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .sat-card-side {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    max-width: 100%;
+    text-align: left;
+    width: 100%;
+  }
 }
 
 .sat-card-meta {

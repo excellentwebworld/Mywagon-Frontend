@@ -44,48 +44,65 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
         <span className="sat-bdot" />
         {truck.vis === 'private' ? t('satPrivate') : t('satPublic')}
       </span>
-      <span className="sat-muted">{truck.posted}</span>
+      <span className="sat-muted sat-card-posted">{truck.posted}</span>
     </div>
 
-    <div className="sat-card-route-block">
-      <div className="sat-card-route">
-        <span className="sat-card-city">{truck.pickup}</span>
-        <span className="sat-card-arrow" aria-hidden>
-          →
-        </span>
-        <span className="sat-card-city sat-card-city--dest">
-          {truck.dest === 'Any' ? t('satAnyDirection') : truck.dest}
-        </span>
-      </div>
-      <div className="sat-muted sat-card-radius">+ {truck.radius}km</div>
-    </div>
+    <div className="sat-card-body">
+      <div className="sat-card-main">
+        <div className="sat-card-route-block">
+          <div className="sat-card-route">
+            <span className="sat-card-city">{truck.pickup}</span>
+            <span className="sat-card-arrow" aria-hidden>
+              →
+            </span>
+            <span className="sat-card-city sat-card-city--dest">
+              {truck.dest === 'Any' ? t('satAnyDirection') : truck.dest}
+            </span>
+          </div>
+          <div className="sat-muted sat-card-radius">+ {truck.radius}km</div>
+        </div>
 
-    <div className="sat-card-meta">
-      <strong>{truck.startDt}</strong>
-      <span className="sat-muted">
-        {truck.startTm} – {truck.endTm}
-      </span>
-      {truck.recurring && <span className="sat-grp-badge">🔁 {truck.recurrenceLabel}</span>}
-    </div>
-
-    <div className="sat-card-meta">
-      <span>
-        <span className="sat-muted">{t('satVehicleType')}: </span>
-        {truck.truckType}
-        <span className="sat-muted">
-          {' '}
-          · {truck.specs} · {truck.capacity}
-        </span>
-        {truck.bidsCount != null && truck.bidsCount > 0 && (
+        <div className="sat-card-meta">
+          <strong>{truck.startDt}</strong>
           <span className="sat-muted">
-            {' '}
-            · {t('satBidsCount', { count: truck.bidsCount })}
+            {truck.startTm} – {truck.endTm}
+          </span>
+          {truck.recurring && <span className="sat-grp-badge">🔁 {truck.recurrenceLabel}</span>}
+        </div>
+
+        <div className="sat-card-meta sat-card-meta--vehicle">
+          <span>
+            <span className="sat-muted">{t('satVehicleType')}: </span>
+            {truck.truckType}
+            {truck.specs ? <span className="sat-muted"> · {truck.specs}</span> : null}
+            {truck.bidsCount != null && truck.bidsCount > 0 && (
+              <span className="sat-muted">
+                {' '}
+                · {t('satBidsCount', { count: truck.bidsCount })}
+              </span>
+            )}
+          </span>
+        </div>
+      </div>
+
+      <div className="sat-card-side">
+        {truck.price != null && !truck.priceBlurred ? (
+          <span className="sat-price sat-card-side__price">
+            {formatMoney(truck.price, truck.currency)}
+          </span>
+        ) : (
+          <span className={`sat-offer-b ${truck.priceBlurred ? 'sat-price-blurred' : ''}`}>
+            {t('satOfferBased')}
           </span>
         )}
-      </span>
-      <span className={`sat-bg ${truck.trip === 'Direct only' ? 'sat-bg-wr' : 'sat-bg-ok'}`}>
-        {truck.trip}
-      </span>
+        {truck.capacity && truck.capacity !== '—' ? (
+          <span className="sat-card-side__cap">{truck.capacity}</span>
+        ) : null}
+        <span className={`sat-bg ${truck.trip === 'Direct only' ? 'sat-bg-wr' : 'sat-bg-ok'}`}>
+          {truck.trip}
+        </span>
+        <span className="sat-muted sat-card-side__id">#{truck.label || truck.id}</span>
+      </div>
     </div>
 
     <div className="sat-card-footer">
@@ -104,13 +121,6 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
         </div>
       </div>
       <div className="sat-card-actions">
-        {truck.price != null && !truck.priceBlurred ? (
-          <span className="sat-price">{formatMoney(truck.price, truck.currency)}</span>
-        ) : (
-          <span className={`sat-offer-b ${truck.priceBlurred ? 'sat-price-blurred' : ''}`}>
-            {t('satOfferBased')}
-          </span>
-        )}
         <button
           type="button"
           className={`sat-bid-btn ${truck.bidSent ? 'sent' : ''}`}
