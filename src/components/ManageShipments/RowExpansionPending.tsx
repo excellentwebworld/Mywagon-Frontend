@@ -290,7 +290,7 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
           t={t}
         />
         <CompactLoadMeta shipment={shipment} t={t} />
-        {shipment.at_risk && (
+        {shipment.at_risk && !shipment.carrier && (
           <div className="exp-risk">
             <span className="badge badge-danger">
               <span className="bdot" />

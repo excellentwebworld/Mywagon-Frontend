@@ -74,7 +74,7 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
 
         <StatusDetailGrid shipment={shipment} t={t} />
 
-        {shipment.at_risk && (
+        {shipment.at_risk && !shipment.carrier && (
           <div className="exp-risk">
             <span className="badge badge-danger" style={{ fontSize: 12, padding: '6px 12px' }}>
               <span className="bdot" />

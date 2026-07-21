@@ -162,7 +162,8 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
   const viaStops = splitViaStops(item.via, item.via_stops);
   const status = mapApiStatus(item.status);
   const flags = item.flags;
-  const atRisk = Boolean(flags?.at_risk ?? item.at_risk) || item.status === 'past_due';
+  // Trust API at_risk only — do not mark every past_due as "without transporter".
+  const atRisk = Boolean(flags?.at_risk ?? item.at_risk);
 
   return {
     id: String(item.id),
