@@ -57,7 +57,7 @@ export const AppLayout: React.FC = () => {
   const ToastIcon = TOAST_ICON[toast.type] || Info;
 
   return (
-    <div className="app-layout" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="app-layout">
       <Sidebar
         collapsed={isSidebarCollapsed}
         onToggleCollapse={toggleSidebarCollapse}
