@@ -260,17 +260,42 @@
   font-family: inherit;
   background: var(--surface);
 }
+.f-search.has-value input {
+  padding-right: 36px;
+}
 .f-search input:focus {
   border-color: var(--accent);
   outline: none;
   box-shadow: 0 0 0 3px var(--accent-light);
 }
-.f-search svg {
+.f-search > svg {
   position: absolute;
   left: 10px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-tertiary);
+  pointer-events: none;
+}
+.f-search-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.f-search-clear:hover {
+  background: var(--surface-alt, #f0f0f3);
+  color: var(--text-primary);
 }
 
 .f-pill {

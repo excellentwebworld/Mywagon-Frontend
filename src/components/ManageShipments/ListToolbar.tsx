@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 
 interface ListToolbarProps {
   searchQuery: string;
@@ -24,8 +25,8 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
   t,
 }) => (
   <div className="fbar list-toolbar a d2">
-    <div className="f-search">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <div className={`f-search${searchQuery ? ' has-value' : ''}`}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
         <circle cx="11" cy="11" r="8" />
         <path d="m21 21-4.35-4.35" />
       </svg>
@@ -36,6 +37,17 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
         onChange={(e) => onSearchChange(e.target.value)}
         aria-label={t('searchShipmentsPlaceholder')}
       />
+      {searchQuery ? (
+        <button
+          type="button"
+          className="f-search-clear"
+          onClick={() => onSearchChange('')}
+          title={t('clearSearch') || t('clear')}
+          aria-label={t('clearSearch') || t('clear')}
+        >
+          <X size={14} strokeWidth={2.25} aria-hidden />
+        </button>
+      ) : null}
     </div>
 
     <button type="button" className={`f-pill ${filterActive ? 'has' : ''}`} onClick={onOpenFilter}>

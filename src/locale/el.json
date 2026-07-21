@@ -1101,6 +1101,7 @@
   "filterPriceRangeError": "Η ελάχ. τιμή πρέπει να είναι ≤ της μέγ.",
   "clearAllFilters": "Καθαρισμός όλων",
   "clear": "Καθαρισμός",
+  "clearSearch": "Καθαρισμός αναζήτησης",
   "exporting": "Εξαγωγή…",
   "exportFailed": "Η εξαγωγή απέτυχε",
   "workQueue": "Ουρά Εργασίας",

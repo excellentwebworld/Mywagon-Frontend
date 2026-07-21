@@ -1101,6 +1101,7 @@
   "filterPriceRangeError": "Price lower bound must be ≤ upper bound",
   "clearAllFilters": "Clear all",
   "clear": "Clear",
+  "clearSearch": "Clear search",
   "exporting": "Exporting…",
   "exportFailed": "Export failed",
   "workQueue": "Work Queue",
