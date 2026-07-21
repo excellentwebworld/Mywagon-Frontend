@@ -1395,6 +1395,268 @@
   color: var(--text-primary);
 }
 
+.itinerary-toggle {
+  margin-top: 8px;
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Compact timeline itinerary (create-shipment inspired) */
+.itin-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 6px;
+  border-radius: 99px;
+  background: var(--surface-alt);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+}
+.itin-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.itin-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+.itin-rail {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.itin-pin {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  z-index: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.itin-pin-pick {
+  background: #fff;
+  color: #111;
+  border: 1px solid #e5e7eb;
+}
+.itin-pin-drop {
+  background: #111;
+  color: #fff;
+}
+.itin-rail-line {
+  flex: 1;
+  width: 2px;
+  min-height: 12px;
+  margin: 2px 0 0;
+  background: var(--border);
+}
+.itin-content {
+  min-width: 0;
+  padding-bottom: 8px;
+}
+.itin-head {
+  width: 100%;
+  text-align: left;
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 7px 10px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.itin-head:disabled {
+  cursor: default;
+}
+.itin-head:not(:disabled):hover {
+  border-color: var(--border-focus);
+  background: var(--surface-alt);
+}
+.itin-row.open .itin-head {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+  background: var(--surface-alt);
+}
+.itin-head-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.itin-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  line-height: 1.4;
+}
+.itin-badge-pick {
+  background: #fff;
+  color: #111;
+  border: 1px solid #e5e7eb;
+}
+.itin-badge-drop {
+  background: #111;
+  color: #fff;
+}
+.itin-when {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itin-chev {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+.itin-loc {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itin-addr {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itin-head-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 4px;
+}
+.itin-cust-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: #f0fdf9;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.itin-cust-more {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.itin-summary {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-left: auto;
+  white-space: nowrap;
+}
+.itin-cargo {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background: var(--surface);
+  padding: 4px 8px 6px;
+}
+.itin-cargo-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: start;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+.itin-cargo-row:last-child {
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+.itin-action {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  margin-top: 1px;
+}
+.itin-action.pick {
+  background: #fff;
+  color: #111;
+  border: 1px solid #e5e7eb;
+}
+.itin-action.drop {
+  background: #111;
+  color: #fff;
+}
+.itin-cargo-main {
+  min-width: 0;
+}
+.itin-product {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itin-cargo-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 1px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+.itin-order {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-secondary);
+}
+.itin-cargo-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  line-height: 1.25;
+}
+
+/* Legacy list styles kept for safety */
 .itinerary-list {
   list-style: none;
   margin: 0;
@@ -1410,218 +1672,6 @@
   padding: 6px 8px;
   border-radius: 6px;
   background: var(--surface-alt);
-}
-.itinerary-toggle {
-  margin-top: 8px;
-  appearance: none;
-  border: none;
-  background: transparent;
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-}
-
-/* Create-shipment style itinerary in row expansion */
-.itin-stops {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.itin-stop {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  overflow: hidden;
-}
-.itin-stop-main {
-  display: flex;
-  gap: 10px;
-  padding: 10px 12px;
-}
-.itin-pin {
-  width: 26px;
-  height: 26px;
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
-}
-.itin-pin-pick {
-  background: #fff;
-  color: #111;
-  border: 1px solid #e5e7eb;
-}
-.itin-pin-drop {
-  background: #111;
-  color: #fff;
-}
-.itin-stop-body {
-  min-width: 0;
-  flex: 1;
-}
-.itin-stop-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-.itin-badge {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-.itin-badge-pick {
-  background: #fff;
-  color: #111;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-.itin-badge-drop {
-  background: #111;
-  color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
-}
-.itin-when {
-  font-size: 11px;
-  color: var(--text-tertiary);
-}
-.itin-loc {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.3;
-}
-.itin-addr {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  margin-top: 2px;
-}
-.itin-custs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 6px;
-}
-.itin-cust-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 99px;
-  background: #f0fdf9;
-  color: #059669;
-  border: 1px solid #a7f3d0;
-}
-.itin-cust-more {
-  font-size: 10px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 99px;
-  background: var(--surface-alt);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-}
-.itin-cargo-toggle {
-  margin-top: 8px;
-  appearance: none;
-  border: none;
-  background: transparent;
-  color: var(--text-tertiary);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  cursor: pointer;
-  padding: 0;
-  font-family: inherit;
-}
-.itin-cargo-toggle:hover {
-  color: var(--text-secondary);
-}
-.itin-cargo {
-  margin: 0 12px 10px 36px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-}
-.itin-cargo-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border);
-}
-.itin-cargo-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-.itin-cargo-row:first-child {
-  padding-top: 0;
-}
-.itin-action {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-.itin-action.pick {
-  background: #fff;
-  color: #111;
-  border: 1px solid #e5e7eb;
-}
-.itin-action.drop {
-  background: #111;
-  color: #fff;
-}
-.itin-cargo-main {
-  min-width: 0;
-  flex: 1;
-}
-.itin-product {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-primary);
-  line-height: 1.3;
-}
-.itin-cargo-sub {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 2px;
-  font-size: 10px;
-  color: var(--text-tertiary);
-}
-.itin-order {
-  font-family: 'JetBrains Mono', monospace;
-  color: var(--text-secondary);
-}
-.itin-cargo-stats {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  font-size: 11px;
-  color: var(--text-secondary);
-  white-space: nowrap;
 }
 .bid-counter {
   padding: 5px 14px;
