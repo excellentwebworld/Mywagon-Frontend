@@ -433,13 +433,14 @@ export function laneMidLabel(
   s: Shipment,
   t: (key: string, opts?: Record<string, unknown>) => string
 ): string {
+  // Always derive from physical itinerary stops — ignore stale shipment_type on the row.
   const physicalStops = itineraryStopCount(s);
   const intermediate = Math.max(physicalStops - 2, 0);
-  if (s.shipmentType === 'direct' || intermediate <= 0) return t('directTrip');
+  if (intermediate <= 0) return t('directTrip');
   return t('intermediateStopsCount', { count: intermediate });
 }
 
-/** Physical itinerary stops (grouped), falling back to API stop_count. */
+/** Physical itinerary stops (grouped), falling back to API counts. */
 export function itineraryStopCount(s: Shipment): number {
   if (s.stops && s.stops.length > 0) {
     return groupItineraryStops(s.stops, {
@@ -449,9 +450,14 @@ export function itineraryStopCount(s: Shipment): number {
       delDt: s.delDt,
     }).length;
   }
+  if (s.intermediateStops != null && s.intermediateStops > 0) {
+    return s.intermediateStops + 2;
+  }
+  if (s.viaStops && s.viaStops.length > 0) {
+    return s.viaStops.length + 2;
+  }
   if (s.stopCount != null && s.stopCount > 0) return s.stopCount;
-  const intermediate = s.intermediateStops ?? 0;
-  return Math.max(intermediate + 2, 2);
+  return 2;
 }
 
 export function isShipmentEditable(status: Shipment['status']): boolean {

@@ -178,7 +178,10 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     status,
     vis: (item.channel || item.type) === 'public' ? 'public' : 'private',
     channel: (item.channel || item.type) === 'public' ? 'public' : 'private',
-    shipmentType: item.shipment_type ?? null,
+    shipmentType:
+      (item.intermediate_stops ?? 0) > 0 || (item.stop_count ?? 0) > 2
+        ? 'multiple'
+        : item.shipment_type ?? null,
     origin: item.origin || '—',
     dest: item.dest || '—',
     via: viaStops.length ? viaStops.join(', ') : item.via ?? null,
