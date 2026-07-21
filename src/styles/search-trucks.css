@@ -1258,10 +1258,6 @@
   font-size: 12px;
   color: var(--text-tertiary);
 }
-  font-size: 11px;
-  color: var(--text-tertiary);
-  font-family: 'JetBrains Mono', monospace;
-}
 
 .sat-mp-chips {
   display: flex;
