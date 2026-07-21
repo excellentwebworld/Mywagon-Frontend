@@ -91,23 +91,24 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
     date: fromLocal.date || stop.date || '',
     timeStart: fromLocal.time || stop.time_start || '',
     timeEnd: toLocal.time || stop.time_end || '',
-    customers: stop.order_id
-      ? [
-          {
-            name: name || '—',
-            orders: [
-              {
-                id: stop.order_id,
-                products: stop.product_name || '—',
-                qty: parseFloat(String(stop.qty ?? 0)) || 0,
-                qtyUnit: String(stop.qty_unit ?? ''),
-                weight: parseFloat(String(stop.weight ?? 0)) || 0,
-                weightUnit: String(stop.weight_unit ?? ''),
-              },
-            ],
-          },
-        ]
-      : [],
+    customers:
+      stop.order_id || stop.product_name || stop.qty || stop.weight || name
+        ? [
+            {
+              name: name || '—',
+              orders: [
+                {
+                  id: stop.order_id || '',
+                  products: stop.product_name || '—',
+                  qty: parseFloat(String(stop.qty ?? 0)) || 0,
+                  qtyUnit: String(stop.qty_unit ?? ''),
+                  weight: parseFloat(String(stop.weight ?? 0)) || 0,
+                  weightUnit: String(stop.weight_unit ?? ''),
+                },
+              ],
+            },
+          ]
+        : [],
   };
 }
 
