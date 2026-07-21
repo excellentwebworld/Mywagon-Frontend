@@ -679,9 +679,8 @@ export function useSearchTrucks() {
           return;
         }
 
-        if (!append) {
-          await availabilitiesService.proceed(Number(truck.id), 'pending_matches');
-        }
+        // Skip unused proceed() — it duplicated work and blocked the drawer open.
+        // Pending list is loaded directly via pending-matches.
         const result = await availabilitiesService.pendingMatches(Number(truck.id), {
           page,
           perPage: PENDING_PAGE_SIZE,

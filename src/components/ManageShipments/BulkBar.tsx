@@ -3,8 +3,6 @@ import React from 'react';
 interface BulkBarProps {
   count: number;
   onCancel: () => void;
-  onInvite: () => void;
-  onExtend: () => void;
   onExport: () => void;
   onClose: () => void;
   t: (key: string) => string;
@@ -13,8 +11,6 @@ interface BulkBarProps {
 export const BulkBar: React.FC<BulkBarProps> = ({
   count,
   onCancel,
-  onInvite,
-  onExtend,
   onExport,
   onClose,
   t,
@@ -28,12 +24,6 @@ export const BulkBar: React.FC<BulkBarProps> = ({
       </span>
       <button type="button" className="bulk-btn" onClick={onCancel}>
         {t('cancelSelected')}
-      </button>
-      <button type="button" className="bulk-btn" onClick={onInvite}>
-        {t('inviteCarriers')}
-      </button>
-      <button type="button" className="bulk-btn" onClick={onExtend}>
-        {t('extendBidTime')}
       </button>
       <button type="button" className="bulk-btn" onClick={onExport}>
         {t('exportSelected')}

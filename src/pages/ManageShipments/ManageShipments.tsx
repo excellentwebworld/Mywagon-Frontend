@@ -112,8 +112,6 @@ export const ManageShipments: React.FC = () => {
       <BulkBar
         count={m.selectedIds.size}
         onCancel={() => m.handleBulkAction('cancel')}
-        onInvite={() => m.handleBulkAction('invite')}
-        onExtend={() => m.handleBulkAction('extend')}
         onExport={() => m.handleBulkAction('export')}
         onClose={m.clearSelection}
         t={m.t}
