@@ -34,11 +34,31 @@
   margin-bottom: 10px;
 }
 
+.sat-page-title-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .sat-page-title-row h1 {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.3px;
   margin: 0;
+  line-height: 1.2;
+}
+
+.sat-beta-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  background: var(--accent);
+  color: #fff;
+  padding: 3px 7px;
+  border-radius: 99px;
 }
 
 .sat-page-actions {
@@ -1193,13 +1213,24 @@
   font-family: inherit;
 }
 
+.sat-mp-route-block {
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+  min-width: 0;
+}
+
 .sat-mp-route {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 0;
-  border-top: 1px solid var(--border);
-  margin-top: 12px;
+}
+
+.sat-mp-route--oneline {
+  align-items: baseline;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-width: 0;
 }
 
 .sat-mp-stop { flex: 1; min-width: 0; }
@@ -1214,9 +1245,19 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 1.35;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.sat-mp-route--oneline .sat-mp-stop-city--dest {
+  flex: 1 1 auto;
 }
 .sat-mp-stop-dt {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
   font-size: 11px;
   color: var(--text-tertiary);
   font-family: 'JetBrains Mono', monospace;

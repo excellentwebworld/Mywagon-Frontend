@@ -114,10 +114,10 @@ export const SearchTrucks: React.FC = () => {
 
       <div className="sat-page-top">
         <div className="sat-page-title-row">
-          <h1>{m.t('satPageTitle')}</h1>
-          <span className="nb" style={{ background: 'var(--accent)', fontSize: 10 }}>
-            BETA
-          </span>
+          <div className="sat-page-title-group">
+            <h1>{m.t('satPageTitle')}</h1>
+            <span className="sat-beta-badge">BETA</span>
+          </div>
           <div className="sat-page-actions">
             <button
               type="button"
