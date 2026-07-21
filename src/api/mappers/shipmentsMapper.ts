@@ -49,6 +49,26 @@ function parsePrice(total: string | number | null | undefined): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+/**
+ * Drop "interest" rows when the same transporter already has a pending bid.
+ * Backend can emit both after a private bid flips the partner to interested.
+ */
+function dedupeShipmentOffers(
+  offers: NonNullable<Shipment['offers']>
+): NonNullable<Shipment['offers']> {
+  const bidderNames = new Set(
+    offers
+      .filter((o) => o.type === 'bid')
+      .map((o) => o.name.trim().toLowerCase())
+      .filter(Boolean)
+  );
+  return offers.filter((o) => {
+    if (o.type !== 'interest') return true;
+    const key = o.name.trim().toLowerCase();
+    return !key || !bidderNames.has(key);
+  });
+}
+
 function splitViaStops(via?: string | null, viaStops?: string[]): string[] {
   if (Array.isArray(viaStops) && viaStops.length > 0) {
     return viaStops.filter(Boolean);
@@ -236,17 +256,19 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     totalQty: detail.total_qty ?? null,
     weightUnit: detail.weight_unit ?? null,
     qtyUnit: detail.qty_unit ?? null,
-    offers: (detail.offers || []).map((o) => ({
-      id: o.id,
-      type: o.type,
-      name: o.name,
-      initials: o.initials,
-      rating: o.rating,
-      role: o.role,
-      price: o.price,
-      respondedAt: o.responded_at,
-      counter: o.counter ?? null,
-    })),
+    offers: dedupeShipmentOffers(
+      (detail.offers || []).map((o) => ({
+        id: o.id,
+        type: o.type,
+        name: o.name,
+        initials: o.initials,
+        rating: o.rating,
+        role: o.role,
+        price: o.price,
+        respondedAt: o.responded_at,
+        counter: o.counter ?? null,
+      }))
+    ),
     invitees: (detail.invitees || []).map((i) => ({
       id: i.id,
       name: i.name,
