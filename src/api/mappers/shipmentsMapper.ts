@@ -162,8 +162,9 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
   const viaStops = splitViaStops(item.via, item.via_stops);
   const status = mapApiStatus(item.status);
   const flags = item.flags;
-  // Trust API at_risk only — do not mark every past_due as "without transporter".
-  const atRisk = Boolean(flags?.at_risk ?? item.at_risk);
+  // Only set when API sends the field — missing detail at_risk must not become false and wipe list.
+  const atRiskRaw = flags?.at_risk ?? item.at_risk;
+  const atRisk = atRiskRaw == null ? undefined : Boolean(atRiskRaw);
 
   return {
     id: String(item.id),
@@ -264,6 +265,8 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     ordersCount: detail.order_ids?.length || base.ordersCount,
     stopCount: physicalStopCount,
     intermediateStops: Math.max(physicalStopCount - 2, 0),
+    at_risk: detail.at_risk ?? base.at_risk,
+    riskReason: detail.risk_reason ?? base.riskReason,
     driverNotes: detail.note || undefined,
     stops: mappedStops,
     journeyDistanceKm: journeyKm,

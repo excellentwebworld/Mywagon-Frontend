@@ -243,8 +243,10 @@ export function useManageShipments() {
           quotedPrice: detail.quotedPrice,
           agreedPrice: detail.agreedPrice,
           price: detail.price,
-          at_risk: detail.at_risk,
-          riskReason: detail.riskReason,
+          // Keep list at-risk when detail omits it; otherwise apply authoritative detail flag.
+          ...(detail.at_risk != null
+            ? { at_risk: detail.at_risk, riskReason: detail.riskReason ?? null }
+            : {}),
           needsAction: detail.needsAction,
           awaitingResponse: detail.awaitingResponse,
           offers: detail.offers,
@@ -328,6 +330,8 @@ export function useManageShipments() {
         stops: detail.stops ?? s.stops,
         stopCount: detail.stopCount ?? s.stopCount,
         intermediateStops: detail.intermediateStops ?? s.intermediateStops,
+        at_risk: detail.at_risk ?? s.at_risk,
+        riskReason: detail.riskReason ?? s.riskReason,
       };
     },
     [detailCache]
