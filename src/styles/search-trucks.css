@@ -782,14 +782,18 @@
 .sat-card-city {
   font-size: 15px;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.35;
   min-width: 0;
+  flex: 1 1 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  word-break: break-word;
 }
 
 .sat-card-city--dest {
-  flex: 1 1 auto;
+  flex: 1 1 0;
 }
 
 .sat-card-arrow {
@@ -1245,13 +1249,11 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 1.35;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   min-width: 0;
+  word-break: break-word;
 }
-.sat-mp-route--oneline .sat-mp-stop-city--dest {
-  flex: 1 1 auto;
+.sat-mp-route--oneline .sat-mp-stop-city {
+  flex: 1 1 0;
 }
 .sat-mp-stop-dt {
   margin-top: 4px;

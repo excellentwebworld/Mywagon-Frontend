@@ -159,8 +159,6 @@ export const SearchTrucks: React.FC = () => {
         <AvailabilityList
           trucks={m.pageItems}
           total={m.subscriptionBlocked ? 0 : m.total}
-          sortKey={m.sortKey}
-          onOpenSort={() => setSortOpen(true)}
           hoveredId={m.hoveredId}
           selectedId={m.selectedId}
           selectedTruck={m.selectedTruckInList}

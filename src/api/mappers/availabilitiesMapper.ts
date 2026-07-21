@@ -79,10 +79,11 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
   const pickupAddr = (item.pickup_address || '').trim();
   const dropoffCity = (item.dropoff_city || '').trim();
   const dropoffAddr = (item.dropoff_address || '').trim();
-  const pickup = pickupCity || pickupAddr || '—';
-  const dest = dropoffCity || dropoffAddr || 'Any';
+  // Prefer full street address (parity with Laravel SearchAvailabilityDataTable).
   const pickupAddress = pickupAddr || pickupCity || '—';
   const destAddress = dropoffAddr || dropoffCity || 'Any';
+  const pickup = pickupAddress;
+  const dest = destAddress;
   const specs = (item.cargo_categories ?? []).join(' · ');
   const capVal = item.capacity_qty ?? 0;
   const capUnit = item.capacity_unit ?? '';

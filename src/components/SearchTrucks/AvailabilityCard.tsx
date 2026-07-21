@@ -51,12 +51,14 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
       <div className="sat-card-main">
         <div className="sat-card-route-block">
           <div className="sat-card-route">
-            <span className="sat-card-city">{truck.pickup}</span>
+            <span className="sat-card-city">{truck.pickupAddress || truck.pickup}</span>
             <span className="sat-card-arrow" aria-hidden>
               →
             </span>
             <span className="sat-card-city sat-card-city--dest">
-              {truck.dest === 'Any' ? t('satAnyDirection') : truck.dest}
+              {(truck.destAddress || truck.dest) === 'Any'
+                ? t('satAnyDirection')
+                : truck.destAddress || truck.dest}
             </span>
           </div>
           <div className="sat-muted sat-card-radius">+ {truck.radius}km</div>

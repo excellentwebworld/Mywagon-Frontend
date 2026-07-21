@@ -1,14 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import type { AvailableTruck, DrawerMode, SortKey } from '../../pages/SearchTrucks/types';
+import type { AvailableTruck, DrawerMode } from '../../pages/SearchTrucks/types';
 import { AvailabilityCard } from './AvailabilityCard';
 import { AvailabilityDetailPanel } from './AvailabilityDetailPanel';
-import { satSortLabelKey } from './SatSortModal';
 
 interface AvailabilityListProps {
   trucks: AvailableTruck[];
   total: number;
-  sortKey: SortKey;
-  onOpenSort?: () => void;
   hoveredId: string | null;
   selectedId: string | null;
   selectedTruck: AvailableTruck | null;
@@ -71,8 +68,6 @@ function RichSkeletonCard() {
 export const AvailabilityList: React.FC<AvailabilityListProps> = ({
   trucks,
   total,
-  sortKey,
-  onOpenSort,
   hoveredId,
   selectedId,
   selectedTruck,
@@ -135,12 +130,6 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
         <div className="sat-list-count">
           {loading ? '…' : total} {t('satResults')}
         </div>
-        {onOpenSort ? (
-          <button type="button" className="sat-sort-pill" onClick={onOpenSort}>
-            <span className="sat-muted">{t('satSort')}:</span>
-            <strong>{t(satSortLabelKey(sortKey))}</strong>
-          </button>
-        ) : null}
       </div>
 
       <div className="sat-list-scroll">
