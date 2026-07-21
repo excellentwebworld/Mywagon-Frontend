@@ -372,6 +372,8 @@ export function useManageShipments() {
   }, []);
 
   const [inviteTargetId, setInviteTargetId] = useState<string | null>(null);
+  /** When bulk-inviting, send the same partners to every id in this list. */
+  const [inviteTargetIds, setInviteTargetIds] = useState<string[]>([]);
   /** Partner ids already invited on the target shipment (auto-selected & locked in modal). */
   const [alreadyInvitedPartnerIds, setAlreadyInvitedPartnerIds] = useState<Set<string>>(new Set());
 
@@ -448,6 +450,7 @@ export function useManageShipments() {
   const handleInviteMore = useCallback(
     (s: Shipment) => {
       setInviteTargetId(s.id);
+      setInviteTargetIds([s.id]);
       const invitedNames = new Set(
         (s.invitees ?? []).map((inv) => inv.name.trim().toLowerCase()).filter(Boolean)
       );
@@ -465,29 +468,34 @@ export function useManageShipments() {
     [invitePartners]
   );
 
+  const closeInviteModal = useCallback(() => {
+    setIsInviteOpen(false);
+    setInviteQuery('');
+    setInvitedCarriers(new Set());
+    setAlreadyInvitedPartnerIds(new Set());
+    setInviteTargetId(null);
+    setInviteTargetIds([]);
+  }, []);
+
   const handleBulkAction = useCallback(
     async (action: string) => {
       const ids = Array.from(selectedIds).map((id) => Number(id)).filter((n) => Number.isFinite(n));
       if (ids.length === 0) return;
 
       if (action === 'invite') {
-        const first = pagination.items.find((s) => selectedIds.has(s.id) && s.channel !== 'public');
-        if (!first) {
+        const privateLoads = pagination.items.filter(
+          (s) => selectedIds.has(s.id) && (s.channel || s.vis) !== 'public'
+        );
+        if (privateLoads.length === 0) {
           showToast(t('invitePrivateOnly') || 'Select a private load to invite transporters', 'warning');
           return;
         }
-        const merged = mergedShipment(first);
-        setInviteTargetId(first.id);
-        const invitedNames = new Set(
-          (merged.invitees ?? []).map((inv) => inv.name.trim().toLowerCase()).filter(Boolean)
-        );
-        const already = new Set(
-          invitePartners
-            .filter((p) => invitedNames.has(p.name.trim().toLowerCase()))
-            .map((p) => p.id)
-        );
-        setAlreadyInvitedPartnerIds(already);
-        setInvitedCarriers(new Set(already));
+        const targetIds = privateLoads.map((s) => s.id);
+        setInviteTargetId(targetIds[0] ?? null);
+        setInviteTargetIds(targetIds);
+        // Bulk: don't lock "already invited" — partners differ per load; API skips duplicates.
+        setAlreadyInvitedPartnerIds(new Set());
+        setInvitedCarriers(new Set());
         setInviteQuery('');
         setIsInviteOpen(true);
         return;
@@ -509,7 +517,7 @@ export function useManageShipments() {
         showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
       }
     },
-    [invitePartners, mergedShipment, pagination.items, refreshList, selectedIds, showToast, summaryParams, t]
+    [pagination.items, refreshList, selectedIds, showToast, summaryParams, t]
   );
 
   const handleSendInvites = useCallback(async () => {
@@ -522,29 +530,65 @@ export function useManageShipments() {
       showToast(t('selectAtLeastOneCarrier'), 'warning');
       return;
     }
-    const targetId = inviteTargetId || Array.from(selectedIds)[0];
-    if (!targetId) {
+
+    const targets =
+      inviteTargetIds.length > 0
+        ? inviteTargetIds
+        : inviteTargetId
+          ? [inviteTargetId]
+          : Array.from(selectedIds).slice(0, 1);
+
+    if (targets.length === 0) {
       showToast(t('somethingWentWrong') || 'No shipment selected', 'warning');
       return;
     }
+
     try {
-      await shipmentsService.invitePartners(targetId, newPartnerIds);
-      showToast(t('invitesSent', { count: newPartnerIds.length }), 'success');
-      setIsInviteOpen(false);
-      setInvitedCarriers(new Set());
-      setAlreadyInvitedPartnerIds(new Set());
-      setInviteTargetId(null);
-      setInviteQuery('');
-      // Keep row expanded; refresh only its detail
-      setExpandedId(String(targetId));
-      await refreshShipmentDetail(String(targetId));
+      let ok = 0;
+      let failed = 0;
+      for (const shipmentId of targets) {
+        try {
+          await shipmentsService.invitePartners(shipmentId, newPartnerIds);
+          ok += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+
+      if (ok === 0) {
+        showToast(t('somethingWentWrong') || 'Failed to send invites', 'error');
+        return;
+      }
+
+      if (targets.length > 1) {
+        showToast(
+          t('invitesSentBulk', {
+            carriers: newPartnerIds.length,
+            loads: ok,
+          }) ||
+            `Sent invites to ${newPartnerIds.length} transporter(s) on ${ok} private load(s)`,
+          failed > 0 ? 'warning' : 'success'
+        );
+        setSelectedIds(new Set());
+        closeInviteModal();
+        refreshList();
+      } else {
+        const targetId = targets[0];
+        showToast(t('invitesSent', { count: newPartnerIds.length }), 'success');
+        closeInviteModal();
+        setExpandedId(String(targetId));
+        await refreshShipmentDetail(String(targetId));
+      }
     } catch (err: unknown) {
       showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
     }
   }, [
     alreadyInvitedPartnerIds,
+    closeInviteModal,
     inviteTargetId,
+    inviteTargetIds,
     invitedCarriers,
+    refreshList,
     refreshShipmentDetail,
     selectedIds,
     showToast,
@@ -642,6 +686,8 @@ export function useManageShipments() {
     handleBulkAction,
     isInviteOpen,
     setIsInviteOpen,
+    closeInviteModal,
+    inviteTargetIds,
     inviteQuery,
     setInviteQuery,
     invitedCarriers,

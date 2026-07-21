@@ -1172,6 +1172,8 @@
   "sendInvitations": "Send Invitations",
   "selectAtLeastOneCarrier": "Select at least one transporter",
   "invitesSent": "Sent invites to {{count}} transporter(s)",
+  "inviteBulkHint": "Selected transporters will be invited to {{count}} private loads",
+  "invitesSentBulk": "Sent invites to {{carriers}} transporter(s) on {{loads}} private load(s)",
   "bulkExtendComingSoon": "Extend bid time will be available soon.",
   "bulkExportComingSoon": "Export selected will be available soon.",
   "noShipmentsWithFilters": "No shipments match your filters.",

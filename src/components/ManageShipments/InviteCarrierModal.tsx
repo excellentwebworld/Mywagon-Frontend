@@ -24,11 +24,13 @@ interface InviteCarrierModalProps {
   selected: Set<string>;
   /** Already invited on this shipment — shown selected and locked. */
   alreadyInvitedIds?: Set<string>;
+  /** When > 1, invites are applied to every selected private load. */
+  targetLoadCount?: number;
   onQueryChange: (q: string) => void;
   onToggle: (id: string) => void;
   onClose: () => void;
   onSend: () => void;
-  t: (key: string) => string;
+  t: (key: string, opts?: Record<string, unknown>) => string;
 }
 
 export const InviteCarrierModal: React.FC<InviteCarrierModalProps> = ({
@@ -39,6 +41,7 @@ export const InviteCarrierModal: React.FC<InviteCarrierModalProps> = ({
   query,
   selected,
   alreadyInvitedIds = new Set(),
+  targetLoadCount = 1,
   onQueryChange,
   onToggle,
   onClose,
@@ -58,12 +61,21 @@ export const InviteCarrierModal: React.FC<InviteCarrierModalProps> = ({
     : carriers;
 
   const newSelectedCount = Array.from(selected).filter((id) => !alreadyInvitedIds.has(id)).length;
+  const isBulk = targetLoadCount > 1;
 
   return (
     <div className="inv-modal-bg show">
       <div className="inv-modal">
         <div className="inv-modal-h">
-          <h3>{t('inviteCarriers')}</h3>
+          <div>
+            <h3>{t('inviteCarriers')}</h3>
+            {isBulk ? (
+              <p className="inv-modal-sub">
+                {t('inviteBulkHint', { count: targetLoadCount }) ||
+                  `Selected transporters will be invited to ${targetLoadCount} private loads`}
+              </p>
+            ) : null}
+          </div>
           <button type="button" className="bulk-close" onClick={onClose} aria-label={t('cancel')}>
             ✕
           </button>

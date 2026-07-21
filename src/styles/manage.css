@@ -2325,14 +2325,22 @@
 }
 .inv-modal-h {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
 }
 .inv-modal-h h3 {
   font-size: 16px;
   font-weight: 700;
+}
+.inv-modal-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  line-height: 1.4;
 }
 .inv-modal-body {
   padding: 16px 20px;

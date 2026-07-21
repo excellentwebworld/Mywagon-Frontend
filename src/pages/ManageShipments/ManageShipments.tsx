@@ -127,12 +127,10 @@ export const ManageShipments: React.FC = () => {
         query={m.inviteQuery}
         selected={m.invitedCarriers}
         alreadyInvitedIds={m.alreadyInvitedPartnerIds}
+        targetLoadCount={m.inviteTargetIds.length || 1}
         onQueryChange={m.setInviteQuery}
         onToggle={m.handleToggleInviteCarrier}
-        onClose={() => {
-          m.setIsInviteOpen(false);
-          m.setInviteQuery('');
-        }}
+        onClose={m.closeInviteModal}
         onSend={m.handleSendInvites}
         t={m.t}
       />
