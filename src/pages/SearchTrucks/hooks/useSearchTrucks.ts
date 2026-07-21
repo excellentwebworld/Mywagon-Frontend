@@ -480,6 +480,18 @@ export function useSearchTrucks() {
   const filtered = USE_MOCK ? mockFiltered : liveTrucks;
 
   const totalFromApi = listQuery.data?.pages[0]?.meta.total ?? 0;
+  const canViewBidsCount =
+    USE_MOCK || listQuery.data?.pages[0]?.meta.capabilities?.can_view_bids_count !== false;
+
+  useEffect(() => {
+    if (canViewBidsCount) return;
+    setQuickFilters((prev) => {
+      if (!prev.has('has_bids')) return prev;
+      const next = new Set(prev);
+      next.delete('has_bids');
+      return next;
+    });
+  }, [canViewBidsCount]);
 
   const pageItems = useMemo(() => {
     if (!USE_MOCK) return filtered;
@@ -1051,6 +1063,7 @@ export function useSearchTrucks() {
     },
     quickFilters,
     toggleQuickFilter,
+    canViewBidsCount,
     criteria,
     setCriteria,
     appliedCriteria,

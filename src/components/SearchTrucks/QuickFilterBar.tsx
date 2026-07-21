@@ -13,15 +13,17 @@ interface QuickFilterBarProps {
   onOpenSort?: () => void;
   filterActiveCount?: number;
   sortActive?: boolean;
+  /** Hide Has Bids chip when subscription lacks View If Posted Truck Received Bids */
+  canViewBidsCount?: boolean;
   onOpenMobileMap?: () => void;
   showMobileMapBtn?: boolean;
   t: (key: string) => string;
 }
 
-const CHIPS: { key: QuickFilterKey; labelKey: string; premium?: boolean }[] = [
+const CHIPS: { key: QuickFilterKey; labelKey: string; premium?: boolean; requiresBidsCount?: boolean }[] = [
   { key: 'today', labelKey: 'satChipToday' },
   { key: 'soon8h', labelKey: 'satChipSoon8h' },
-  { key: 'has_bids', labelKey: 'satChipHasBids', premium: true },
+  { key: 'has_bids', labelKey: 'satChipHasBids', premium: true, requiresBidsCount: true },
   { key: 'load_match', labelKey: 'satChipLoadMatch', premium: true },
 ];
 
@@ -37,6 +39,7 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
   onOpenSort,
   filterActiveCount = 0,
   sortActive = false,
+  canViewBidsCount = true,
   onOpenMobileMap,
   showMobileMapBtn,
   t,
@@ -67,7 +70,7 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
       />
     </div>
 
-    {CHIPS.map((chip) => (
+    {CHIPS.filter((chip) => !chip.requiresBidsCount || canViewBidsCount).map((chip) => (
       <button
         key={chip.key}
         type="button"

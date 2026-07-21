@@ -149,6 +149,7 @@ export const SearchTrucks: React.FC = () => {
           onOpenSort={() => setSortOpen(true)}
           filterActiveCount={filterActiveCount}
           sortActive={Boolean(m.sortKey)}
+          canViewBidsCount={m.canViewBidsCount}
           showMobileMapBtn
           onOpenMobileMap={() => m.setMobileMapOpen(true)}
           t={m.t}

@@ -10,6 +10,11 @@ export interface ApiListMeta {
   per_page: number;
   total: number;
   last_page?: number;
+  capabilities?: {
+    can_view_quotes?: boolean;
+    can_view_bids_count?: boolean;
+    can_view_best_bid?: boolean;
+  };
 }
 
 export interface ApiLocationListItem {

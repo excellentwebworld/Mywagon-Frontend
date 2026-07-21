@@ -113,8 +113,7 @@ export const AvailabilityContextBar: React.FC<AvailabilityContextBarProps> = ({
     };
   }, [availabilityId]);
 
-  // TEMP: ignore price_blurred — always show direct pricing.
-  const showPrice = detail && detail.price != null;
+  const showPrice = detail && detail.price != null && !detail.price_blurred;
   const priceValue = showPrice
     ? `€ ${Number(detail!.price).toLocaleString()}`
     : detail
@@ -328,11 +327,15 @@ export const AvailabilityContextBar: React.FC<AvailabilityContextBarProps> = ({
                 }
               />
 
-              <DetailCell
-                label={t('satPendingBidsLabel') || 'Pending bids'}
-                value={bidsCount}
-              />
-              <DetailCell label={t('satBestBid') || 'Best bid'} value={bestBid} />
+              {bidsCount != null ? (
+                <DetailCell
+                  label={t('satPendingBidsLabel') || 'Pending bids'}
+                  value={bidsCount}
+                />
+              ) : null}
+              {bestBid != null ? (
+                <DetailCell label={t('satBestBid') || 'Best bid'} value={bestBid} />
+              ) : null}
               <DetailCell
                 label={t('satLoadMatch') || 'Load match'}
                 value={

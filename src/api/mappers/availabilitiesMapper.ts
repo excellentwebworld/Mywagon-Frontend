@@ -117,9 +117,8 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
     preferred: Boolean(item.provider?.preferred),
     providerId: item.provider?.id ?? null,
     partnerId: item.provider?.partner_id ?? null,
-    // TEMP: ignore price_blurred — always show direct pricing in SAT UI.
-    price: item.price ?? null,
-    priceBlurred: false,
+    price: item.price_blurred ? null : item.price ?? null,
+    priceBlurred: Boolean(item.price_blurred),
     currency: item.currency || 'EUR',
     posted: relativePosted(item.posted_at),
     recurring: Boolean(item.recurring),
