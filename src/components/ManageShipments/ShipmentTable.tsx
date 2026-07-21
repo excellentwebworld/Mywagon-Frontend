@@ -255,15 +255,6 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                       <span className="bdot" />
                       {t(s.status)}
                     </span>
-                    {s.at_risk && !s.carrier && (
-                      <>
-                        <br />
-                        <span className="badge badge-danger risk-subtag">
-                          <span className="bdot" />
-                          {s.riskReason || t('riskPickupOverdue')}
-                        </span>
-                      </>
-                    )}
                     {s.paymentStatus === 'paid' && (
                       <>
                         <br />
