@@ -130,44 +130,38 @@ function CustomerOrderGroup({
 
 function ExpandIcon({ expand }: { expand: boolean }) {
   return expand ? (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
       <polyline points="6 9 12 15 18 9" />
     </svg>
   ) : (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
       <polyline points="18 15 12 9 6 15" />
     </svg>
   );
 }
 
+/** Single toggle: chevron down = expand all, up = collapse all. */
 export function ExpandCollapseButtons({
-  onExpand,
-  onCollapse,
+  expanded,
+  onToggle,
   t,
 }: {
-  onExpand: () => void;
-  onCollapse: () => void;
+  expanded: boolean;
+  onToggle: () => void;
   t: ExpTranslate;
 }) {
+  const label = expanded ? t('collapseAll') : t('expandAll');
   return (
     <div className="exp-toggle-all">
       <button
         type="button"
         className="exp-toggle-btn exp-toggle-btn--icon"
-        onClick={onExpand}
-        title={t('expandAll')}
-        aria-label={t('expandAll')}
+        onClick={onToggle}
+        title={label}
+        aria-label={label}
+        aria-expanded={expanded}
       >
-        <ExpandIcon expand />
-      </button>
-      <button
-        type="button"
-        className="exp-toggle-btn exp-toggle-btn--icon"
-        onClick={onCollapse}
-        title={t('collapseAll')}
-        aria-label={t('collapseAll')}
-      >
-        <ExpandIcon expand={false} />
+        <ExpandIcon expand={!expanded} />
       </button>
     </div>
   );
@@ -220,17 +214,12 @@ export function OrdersBlock({
   })();
 
   const isOpen = (name: string) => Boolean(openMap[name]);
-  const expandAll = () => {
+  const allExpanded = groups.length > 0 && groups.every(([name]) => openMap[name]);
+  const toggleAll = () => {
     const next: Record<string, boolean> = {};
+    const open = !allExpanded;
     groups.forEach(([name]) => {
-      next[name] = true;
-    });
-    setOpenMap(next);
-  };
-  const collapseAll = () => {
-    const next: Record<string, boolean> = {};
-    groups.forEach(([name]) => {
-      next[name] = false;
+      next[name] = open;
     });
     setOpenMap(next);
   };
@@ -264,7 +253,9 @@ export function OrdersBlock({
         <ExpHeading icon="orders" className="exp-h-gap">
           {meta.label}
         </ExpHeading>
-        {canToggle ? <ExpandCollapseButtons onExpand={expandAll} onCollapse={collapseAll} t={t} /> : null}
+        {canToggle ? (
+          <ExpandCollapseButtons expanded={allExpanded} onToggle={toggleAll} t={t} />
+        ) : null}
       </div>
       {list}
     </div>

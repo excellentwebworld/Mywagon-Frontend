@@ -161,20 +161,22 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
   const visible = collapsible && !expanded ? groups.slice(0, 2) : groups;
   const cargoKeys = groups.filter((g) => g.lines.length > 0).map((g) => g.key);
   const canToggleCargo = cargoKeys.length > 0;
+  const allCargoExpanded =
+    cargoKeys.length > 0 && cargoKeys.every((key) => Boolean(openCargo[key]));
 
-  const expandAllCargo = () => {
+  const toggleAllCargo = () => {
+    if (allCargoExpanded) {
+      const next: Record<string, boolean> = {};
+      cargoKeys.forEach((key) => {
+        next[key] = false;
+      });
+      setOpenCargo(next);
+      return;
+    }
     setExpanded(true);
     const next: Record<string, boolean> = {};
     cargoKeys.forEach((key) => {
       next[key] = true;
-    });
-    setOpenCargo(next);
-  };
-
-  const collapseAllCargo = () => {
-    const next: Record<string, boolean> = {};
-    cargoKeys.forEach((key) => {
-      next[key] = false;
     });
     setOpenCargo(next);
   };
@@ -187,7 +189,11 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
           {groups.length > 0 && <span className="itin-count">{groups.length}</span>}
         </ExpHeading>
         {canToggleCargo ? (
-          <ExpandCollapseButtons onExpand={expandAllCargo} onCollapse={collapseAllCargo} t={t} />
+          <ExpandCollapseButtons
+            expanded={allCargoExpanded}
+            onToggle={toggleAllCargo}
+            t={t}
+          />
         ) : null}
       </div>
 
