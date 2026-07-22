@@ -61,9 +61,19 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
               {t(shipment.status)}
             </span>
           </ExpHeading>
-          {onRefresh ? (
-            <ExpRefreshButton loading={detailLoading} onRefresh={onRefresh} t={t} />
-          ) : null}
+          <div className="exp-head-actions">
+            {onRefresh ? (
+              <ExpRefreshButton loading={detailLoading} onRefresh={onRefresh} t={t} />
+            ) : null}
+            <QuickActions
+              shipment={shipment}
+              busy={qaBusy}
+              onEdit={() => runQa('edit', onEdit)}
+              onView={() => runQa('view', onViewNewTab)}
+              onCancel={() => runQa('cancel', onCancel)}
+              t={t}
+            />
+          </div>
         </div>
         <ProgressTimeline
           shipment={shipment}
@@ -113,18 +123,6 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
           dest={shipment.dest}
           pickDt={shipment.pickDt}
           delDt={shipment.delDt}
-          t={t}
-        />
-      </div>
-
-      <div className="exp-section exp-qa-col">
-        <ExpHeading icon="qa">{t('quickActions')}</ExpHeading>
-        <QuickActions
-          shipment={shipment}
-          busy={qaBusy}
-          onEdit={() => runQa('edit', onEdit)}
-          onView={() => runQa('view', onViewNewTab)}
-          onCancel={() => runQa('cancel', onCancel)}
           t={t}
         />
       </div>
