@@ -126,6 +126,7 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
               dest={shipment.dest}
               pickDt={shipment.pickDt}
               delDt={shipment.delDt}
+              shipmentStatus={shipment.status}
               t={t}
             />
           </div>

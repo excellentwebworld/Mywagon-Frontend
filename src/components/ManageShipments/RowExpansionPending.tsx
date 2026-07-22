@@ -287,6 +287,7 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
           dest={shipment.dest}
           pickDt={shipment.pickDt}
           delDt={shipment.delDt}
+          shipmentStatus={shipment.status}
           t={t}
         />
         <CompactLoadMeta shipment={shipment} t={t} />

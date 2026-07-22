@@ -549,10 +549,12 @@ export type ItineraryStopGroup = {
 /** Driver ShipmentLocationStatus codes (ConstantUtil). */
 const LOC_PENDING = 0;
 const LOC_UNABLE_START = 2;
+const LOC_ARRIVED = 3;
 const LOC_UNABLE_REACH = 4;
 const LOC_COMPLETE_STOP = 5;
 const LOC_UNABLE_STOP = 6;
 const LOC_COMPLETE_SHIPMENT = 7;
+const LOC_UNABLE_SHIPMENT = 8;
 
 function locationStatusCode(status?: string | number | null): number {
   const n = Number(status);
@@ -617,10 +619,16 @@ export function productLineVisual(
 ): ProductLineVisual {
   const code = locationStatusCode(status);
   const podCode = String(pod ?? '0');
-  if (Number(unableStatus) === 1 || code === LOC_UNABLE_REACH || code === LOC_UNABLE_STOP) {
+  if (
+    Number(unableStatus) === 1 ||
+    code === LOC_UNABLE_START ||
+    code === LOC_UNABLE_REACH ||
+    code === LOC_UNABLE_STOP ||
+    code === LOC_UNABLE_SHIPMENT
+  ) {
     return 'failed';
   }
-  if (code === LOC_COMPLETE_STOP) {
+  if (code === LOC_COMPLETE_STOP || code === LOC_COMPLETE_SHIPMENT) {
     if (type === 'delivery') {
       if (podCode === '1') return 'done-pod';
       if (podCode === '3') return 'failed';
@@ -628,6 +636,98 @@ export function productLineVisual(
     return 'done';
   }
   return 'default';
+}
+
+/** Driver ItineraryListAdapter stop card / rail state. */
+export type ItineraryStopVisual = 'pending' | 'current' | 'arrived' | 'done' | 'failed';
+
+function primaryStopStatus(group: ItineraryStopGroup): {
+  code: number;
+  pod: string;
+  unable: number;
+} {
+  const active = group.lines.find(
+    (line) => !isLocationLinePast(group.type, line.locationStatus, line.pod, line.unableStatus)
+  );
+  const line = active || group.lines[0];
+  return {
+    code: locationStatusCode(line?.locationStatus ?? group.locationStatus),
+    pod: String(line?.pod ?? group.pod ?? '0'),
+    unable: Number(line?.unableStatus ?? group.unableStatus ?? 0) || 0,
+  };
+}
+
+export function itineraryStopVisual(
+  group: ItineraryStopGroup,
+  index: number,
+  currentIndex: number,
+  shipmentStatus?: Shipment['status'] | string
+): ItineraryStopVisual {
+  const onTrip =
+    shipmentStatus === 'on_trip' ||
+    shipmentStatus === 'in_progress';
+  const fulfilledLike =
+    shipmentStatus === 'fullfilled' ||
+    shipmentStatus === 'partially_fullfilled' ||
+    shipmentStatus === 'delivered' ||
+    shipmentStatus === 'not_fullfilled';
+
+  const { code, pod, unable } = primaryStopStatus(group);
+  const lineFailed = group.lines.some(
+    (line) => productLineVisual(group.type, line.locationStatus, line.pod, line.unableStatus) === 'failed'
+  );
+
+  if (
+    lineFailed ||
+    unable === 1 ||
+    code === LOC_UNABLE_START ||
+    code === LOC_UNABLE_REACH ||
+    code === LOC_UNABLE_STOP ||
+    code === LOC_UNABLE_SHIPMENT ||
+    (code === LOC_COMPLETE_STOP && group.type === 'delivery' && pod === '3')
+  ) {
+    return 'failed';
+  }
+
+  if (code === LOC_COMPLETE_STOP || code === LOC_COMPLETE_SHIPMENT) {
+    return 'done';
+  }
+
+  if (code === LOC_ARRIVED) {
+    return 'arrived';
+  }
+
+  if (fulfilledLike) {
+    return isItineraryGroupPast(group) ? 'done' : 'pending';
+  }
+
+  if (onTrip) {
+    if (index < currentIndex) return 'done';
+    if (index === currentIndex) {
+      return code === LOC_ARRIVED ? 'arrived' : 'current';
+    }
+    return 'pending';
+  }
+
+  return 'pending';
+}
+
+/** Rail segment below a stop: solid when stop is past (driver filled purple). */
+export function itineraryRailFilled(
+  stopVisual: ItineraryStopVisual,
+  index: number,
+  currentIndex: number,
+  shipmentStatus?: Shipment['status'] | string
+): boolean {
+  const onTrip = shipmentStatus === 'on_trip' || shipmentStatus === 'in_progress';
+  const fulfilledLike =
+    shipmentStatus === 'fullfilled' ||
+    shipmentStatus === 'partially_fullfilled' ||
+    shipmentStatus === 'delivered';
+  if (fulfilledLike) return stopVisual === 'done' || stopVisual === 'failed';
+  if (!onTrip) return false;
+  if (stopVisual === 'done' || stopVisual === 'failed') return true;
+  return index < currentIndex;
 }
 
 /** Group consecutive same location+type+schedule rows into physical itinerary stops. */

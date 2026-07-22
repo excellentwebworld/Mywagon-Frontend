@@ -1,9 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import type { ShipmentStop } from '../../context/AppContext';
+import type { Shipment, ShipmentStop } from '../../context/AppContext';
 import {
+  findCurrentItineraryIndex,
   groupItineraryStops,
+  itineraryRailFilled,
+  itineraryStopVisual,
   productLineVisual,
   type ItineraryStopGroup,
+  type ItineraryStopVisual,
+  type ProductLineVisual,
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { ExpHeading } from './ExpHeading';
 
@@ -13,6 +18,7 @@ interface ItineraryPreviewProps {
   dest?: string;
   pickDt?: string | null;
   delDt?: string | null;
+  shipmentStatus?: Shipment['status'] | string;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
 
@@ -55,7 +61,36 @@ function cargoSummary(
   return parts.join(' · ');
 }
 
-function ProductStatusTick({ visual }: { visual: ReturnType<typeof productLineVisual> }) {
+function showTripStatus(shipmentStatus?: string): boolean {
+  return (
+    shipmentStatus === 'on_trip' ||
+    shipmentStatus === 'in_progress' ||
+    shipmentStatus === 'fullfilled' ||
+    shipmentStatus === 'partially_fullfilled' ||
+    shipmentStatus === 'delivered' ||
+    shipmentStatus === 'not_fullfilled'
+  );
+}
+
+function StopStatusIcon({ visual }: { visual: ItineraryStopVisual }) {
+  if (visual === 'done') {
+    return (
+      <span className="itin-stop-tick itin-stop-tick--ok" aria-hidden title="Complete">
+        ✓
+      </span>
+    );
+  }
+  if (visual === 'failed') {
+    return (
+      <span className="itin-stop-tick itin-stop-tick--fail" aria-hidden title="Unable">
+        ✕
+      </span>
+    );
+  }
+  return null;
+}
+
+function ProductStatusTick({ visual }: { visual: ProductLineVisual }) {
   if (visual === 'default') return null;
   if (visual === 'failed') {
     return (
@@ -78,12 +113,36 @@ function ProductStatusTick({ visual }: { visual: ReturnType<typeof productLineVi
   );
 }
 
+function PodChip({
+  type,
+  pod,
+  visual,
+}: {
+  type: 'pickup' | 'delivery';
+  pod?: string;
+  visual: ProductLineVisual | ItineraryStopVisual;
+}) {
+  if (type !== 'delivery') return null;
+  const podCode = String(pod ?? '0');
+  if (podCode === '1' || visual === 'done-pod') {
+    return <span className="itin-pod-chip itin-pod-chip--ok">POD</span>;
+  }
+  if (podCode === '3' || (visual === 'failed' && podCode === '3')) {
+    return <span className="itin-pod-chip itin-pod-chip--fail">POD</span>;
+  }
+  if (podCode === '2') {
+    return <span className="itin-pod-chip itin-pod-chip--later">POD later</span>;
+  }
+  return null;
+}
+
 export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
   stops,
   origin,
   dest,
   pickDt,
   delDt,
+  shipmentStatus,
   t,
 }) => {
   const [expanded, setExpanded] = useState(false);
@@ -93,6 +152,9 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
     () => groupItineraryStops(stops, { origin, dest, pickDt, delDt }),
     [stops, origin, dest, pickDt, delDt]
   );
+
+  const tripLive = showTripStatus(shipmentStatus);
+  const currentIndex = tripLive ? findCurrentItineraryIndex(groups) : -1;
 
   const collapsible = groups.length > 2;
   const visible = collapsible && !expanded ? groups.slice(0, 2) : groups;
@@ -108,34 +170,47 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
         {visible.map((stop, idx) => {
           const displayNumber = idx + 1;
           const when = formatWhen(stop.date, stop.timeStart);
-          const cargoOpen = Boolean(openCargo[stop.key]);
           const hasCargo = stop.lines.length > 0;
+          const cargoOpen = hasCargo && (openCargo[stop.key] ?? tripLive);
           const isPickup = stop.type === 'pickup';
           const summary = cargoSummary(stop.lines, t);
+          const stopVisual = itineraryStopVisual(stop, idx, currentIndex, shipmentStatus);
+          const railFilled = itineraryRailFilled(stopVisual, idx, currentIndex, shipmentStatus);
           const showAddress =
             stop.address &&
             stop.address !== stop.location &&
             !stop.location.toLowerCase().includes(stop.address.toLowerCase()) &&
             !stop.address.toLowerCase().includes(stop.location.toLowerCase());
+          const hasNext = idx < visible.length - 1 || (collapsible && !expanded);
 
           return (
-            <div key={`${stop.key}-${idx}`} className={`itin-row${cargoOpen ? ' open' : ''}`}>
+            <div
+              key={`${stop.key}-${idx}`}
+              className={`itin-row itin-row--${stopVisual}${cargoOpen ? ' open' : ''}`}
+            >
               <div className="itin-rail" aria-hidden>
-                <span className={`itin-pin ${isPickup ? 'itin-pin-pick' : 'itin-pin-drop'}`}>
+                <span
+                  className={`itin-pin ${isPickup ? 'itin-pin-pick' : 'itin-pin-drop'} itin-pin--${stopVisual}`}
+                >
                   {displayNumber}
                 </span>
-                {idx < visible.length - 1 || (collapsible && !expanded) ? (
-                  <span className="itin-rail-line" />
+                {hasNext ? (
+                  <span
+                    className={`itin-rail-line${railFilled ? ' itin-rail-line--filled' : ' itin-rail-line--dashed'}`}
+                  />
                 ) : null}
               </div>
 
               <div className="itin-content">
                 <button
                   type="button"
-                  className="itin-head"
+                  className={`itin-head itin-head--${stopVisual}`}
                   onClick={() => {
                     if (!hasCargo) return;
-                    setOpenCargo((prev) => ({ ...prev, [stop.key]: !cargoOpen }));
+                    setOpenCargo((prev) => ({
+                      ...prev,
+                      [stop.key]: !(prev[stop.key] ?? tripLive),
+                    }));
                   }}
                   disabled={!hasCargo}
                 >
@@ -144,6 +219,8 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
                       {isPickup ? t('pickup') : t('delivery')}
                     </span>
                     {when ? <span className="itin-when">{when}</span> : null}
+                    <StopStatusIcon visual={stopVisual} />
+                    <PodChip type={stop.type} pod={stop.pod} visual={stopVisual} />
                     {hasCargo ? (
                       <span className="itin-chev" aria-hidden>
                         {cargoOpen ? '▾' : '▸'}
@@ -166,7 +243,7 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
                 </button>
 
                 {hasCargo && cargoOpen && (
-                  <div className="itin-cargo">
+                  <div className={`itin-cargo itin-cargo--${stopVisual}`}>
                     {stop.lines.map((line, li) => {
                       const qtyLabel = formatQty(line.qty, line.qtyUnit);
                       const weightLabel = formatWeight(line.weight, line.weightUnit);
@@ -198,6 +275,7 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
                           <div className="itin-cargo-stats">
                             {qtyLabel ? <span>{qtyLabel}</span> : null}
                             {weightLabel ? <span>{weightLabel}</span> : null}
+                            <PodChip type={stop.type} pod={line.pod} visual={visual} />
                             <ProductStatusTick visual={visual} />
                           </div>
                         </div>
