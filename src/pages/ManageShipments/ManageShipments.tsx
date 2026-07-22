@@ -53,7 +53,6 @@ export const ManageShipments: React.FC = () => {
       <StatusTabs
         statusCounts={m.statusCounts}
         activeTab={m.activeTab}
-        kpiActive={Boolean(m.activeKpi)}
         onTabChange={m.setActiveTab}
         t={m.t}
       />

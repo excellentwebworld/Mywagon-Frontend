@@ -4,7 +4,6 @@ import { countForStatusTab, type StatusTabKey } from '../../pages/ManageShipment
 interface StatusTabsProps {
   statusCounts: Record<string, number>;
   activeTab: StatusTabKey;
-  kpiActive?: boolean;
   onTabChange: (tab: StatusTabKey) => void;
   t: (key: string) => string;
 }
@@ -27,17 +26,16 @@ const TABS: { key: StatusTabKey; labelKey: string; warnCount?: boolean }[] = [
 export const StatusTabs: React.FC<StatusTabsProps> = ({
   statusCounts,
   activeTab,
-  kpiActive = false,
   onTabChange,
   t,
 }) => (
-  <div className={`stabs${kpiActive ? ' stabs-kpi-active' : ''}`}>
+  <div className="stabs">
     {TABS.map((tab) => {
       const count = countForStatusTab(statusCounts, tab.key);
       return (
         <div
           key={tab.key}
-          className={`stab ${!kpiActive && activeTab === tab.key ? 'act' : ''}`}
+          className={`stab ${activeTab === tab.key ? 'act' : ''}`}
           onClick={() => onTabChange(tab.key)}
           role="button"
           tabIndex={0}

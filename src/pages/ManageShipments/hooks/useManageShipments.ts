@@ -45,7 +45,19 @@ export function useManageShipments() {
   const [direction, setDirectionState] = useState<LoadsDirection>('outbound');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [activeKpi, setActiveKpiState] = useState<KpiKey | null>(null);
+  const [activeKpi, setActiveKpiState] = useState<KpiKey | null>(() => {
+    const raw = searchParams.get('kpi');
+    if (
+      raw === 'needs_action' ||
+      raw === 'awaiting_response' ||
+      raw === 'at_risk' ||
+      raw === 'pickup_today' ||
+      raw === 'awaiting_pod'
+    ) {
+      return raw;
+    }
+    return null;
+  });
   const [activeTab, setActiveTabState] = useState<StatusTabKey>(() =>
     parseStatusTabParam(searchParams.get('status'))
   );
@@ -75,20 +87,31 @@ export function useManageShipments() {
 
   const isOutbound = direction === 'outbound';
 
-  const setDirection = useCallback((next: LoadsDirection) => {
-    setDirectionState(next);
-    setPage(1);
-    setActiveKpiState(null);
-    if (next === 'inbound') {
-      setExpandedId(null);
-      setSelectedIds(new Set());
-      setIsFilterOpen(false);
-      setIsSortOpen(false);
-      setIsInviteOpen(false);
-      setCancelTarget(null);
-      setBulkCancelIds(null);
-    }
-  }, []);
+  const setDirection = useCallback(
+    (next: LoadsDirection) => {
+      setDirectionState(next);
+      setPage(1);
+      setActiveKpiState(null);
+      setSearchParams(
+        (prev) => {
+          const nextParams = new URLSearchParams(prev);
+          nextParams.delete('kpi');
+          return nextParams;
+        },
+        { replace: true }
+      );
+      if (next === 'inbound') {
+        setExpandedId(null);
+        setSelectedIds(new Set());
+        setIsFilterOpen(false);
+        setIsSortOpen(false);
+        setIsInviteOpen(false);
+        setCancelTarget(null);
+        setBulkCancelIds(null);
+      }
+    },
+    [setSearchParams]
+  );
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebouncedSearch(searchQuery.trim()), SEARCH_DEBOUNCE_MS);
@@ -116,8 +139,7 @@ export function useManageShipments() {
   }, [filterParams, debouncedSearch, activeKpi, isOutbound]);
 
   const listParams = useMemo((): ListShipmentsParams => {
-    // KPI quick filters take precedence over the status tab (matches work-queue behavior).
-    const status = activeKpi ? undefined : statusTabToApiStatus(activeTab);
+    const status = statusTabToApiStatus(activeTab);
     return {
       ...summaryParams,
       page,
@@ -125,7 +147,7 @@ export function useManageShipments() {
       ...(status !== undefined ? { status } : {}),
       ...(sortKey ? { sort: sortKey } : {}),
     };
-  }, [summaryParams, page, activeKpi, activeTab, sortKey]);
+  }, [summaryParams, page, activeTab, sortKey]);
 
   const { shipments, meta, summary, loading, error, patchShipment } = useShipmentsList(
     listParams,
@@ -158,16 +180,27 @@ export function useManageShipments() {
     [activeKpi, t]
   );
 
-  const setActiveKpi = useCallback((key: KpiKey | null) => {
-    setActiveKpiState(key);
-    setPage(1);
-    setExpandedId(null);
-  }, []);
+  const setActiveKpi = useCallback(
+    (key: KpiKey | null) => {
+      setActiveKpiState(key);
+      setPage(1);
+      setExpandedId(null);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (!key) next.delete('kpi');
+          else next.set('kpi', key);
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
 
   const setActiveTab = useCallback(
     (tab: StatusTabKey) => {
       setActiveTabState(tab);
-      setActiveKpiState(null);
       setPage(1);
       setSearchParams(
         (prev) => {
@@ -182,10 +215,21 @@ export function useManageShipments() {
     [setSearchParams]
   );
 
-  // Keep tab in sync with URL (reload, back/forward, shared links)
+  // Keep tab + KPI in sync with URL (reload, back/forward, shared links)
   useEffect(() => {
     const fromUrl = parseStatusTabParam(searchParams.get('status'));
     setActiveTabState((prev) => (prev === fromUrl ? prev : fromUrl));
+
+    const kpiRaw = searchParams.get('kpi');
+    const kpiFromUrl: KpiKey | null =
+      kpiRaw === 'needs_action' ||
+      kpiRaw === 'awaiting_response' ||
+      kpiRaw === 'at_risk' ||
+      kpiRaw === 'pickup_today' ||
+      kpiRaw === 'awaiting_pod'
+        ? kpiRaw
+        : null;
+    setActiveKpiState((prev) => (prev === kpiFromUrl ? prev : kpiFromUrl));
   }, [searchParams]);
 
   const handleSearchChange = useCallback((value: string) => {
@@ -214,9 +258,9 @@ export function useManageShipments() {
 
   const handleClearAllFilters = useCallback(() => {
     setAppliedFilters(DEFAULT_FILTERS);
-    setActiveKpiState(null);
     setPage(1);
-  }, []);
+    setActiveKpi(null);
+  }, [setActiveKpi]);
 
   const handleSelectAll = useCallback(
     (checked: boolean) => {
