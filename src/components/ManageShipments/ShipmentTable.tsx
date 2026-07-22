@@ -278,7 +278,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                     <span className={`vis vis-${channel === 'public' ? 'pub' : 'priv'}`}>
                       {channel === 'public' ? t('public') : t('private')}
                     </span>
-                    {channel === 'private' && (
+                    {channel === 'private' && s.status === 'pending' && (
                       <div className="sub">
                         {t('invited')}: {s.invited ?? 0}
                       </div>
