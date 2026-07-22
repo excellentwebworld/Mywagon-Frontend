@@ -326,6 +326,15 @@ export const AvailabilityContextBar: React.FC<AvailabilityContextBarProps> = ({
                   detail.pickup_radius != null ? `${detail.pickup_radius} km` : null
                 }
               />
+              <DetailCell
+                label={t('satDropoffRadius') || 'Dropoff radius'}
+                value={
+                  (detail.dropoff_address || detail.dropoff_city) &&
+                  detail.dropoff_radius != null
+                    ? `${detail.dropoff_radius} km`
+                    : null
+                }
+              />
 
               {bidsCount != null ? (
                 <DetailCell

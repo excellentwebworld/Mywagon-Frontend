@@ -78,6 +78,8 @@ export interface AvailableTruck {
   /** Full street address when available, else city */
   pickup: string;
   radius: number;
+  /** Dropoff radius (km); only meaningful when dest is a real location */
+  destRadius?: number | null;
   dest: string;
   /** Full street address when available (same preference as pickup/dest) */
   pickupAddress?: string;

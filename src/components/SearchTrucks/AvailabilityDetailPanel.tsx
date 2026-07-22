@@ -385,6 +385,13 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
               <span>{t('satRadiusFromPickup')}</span>
               <span>{detailTruck.radius} km</span>
             </div>
+            {(detailTruck.destAddress || detailTruck.dest) !== 'Any' &&
+            detailTruck.destRadius != null ? (
+              <div className="sat-exp-stat">
+                <span>{t('satDropoffRadius') || 'Dropoff radius'}</span>
+                <span>{detailTruck.destRadius} km</span>
+              </div>
+            ) : null}
           </div>
         )}
 

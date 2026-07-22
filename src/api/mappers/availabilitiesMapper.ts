@@ -105,6 +105,10 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
   const destLng = hasDropoffPlace && isRealMapCoord(item.dropoff_lat, item.dropoff_lng)
     ? item.dropoff_lng
     : null;
+  const destRadius =
+    hasDropoffPlace && item.dropoff_radius != null && Number(item.dropoff_radius) > 0
+      ? Number(item.dropoff_radius)
+      : null;
 
   return {
     id: String(item.id),
@@ -118,6 +122,7 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
     pickup,
     pickupAddress,
     radius: item.pickup_radius ?? 0,
+    destRadius,
     dest,
     destAddress,
     truckType: item.truck_type || '—',

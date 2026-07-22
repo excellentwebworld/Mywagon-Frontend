@@ -61,7 +61,15 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
                 : truck.destAddress || truck.dest}
             </span>
           </div>
-          <div className="sat-muted sat-card-radius">+ {truck.radius}km</div>
+          <div className="sat-card-radii">
+            <span className="sat-muted sat-card-radius">+ {truck.radius}km</span>
+            <span className="sat-card-arrow sat-card-arrow--spacer" aria-hidden />
+            <span className="sat-muted sat-card-radius sat-card-radius--dest">
+              {(truck.destAddress || truck.dest) !== 'Any' && truck.destRadius != null
+                ? `+ ${truck.destRadius}km`
+                : ''}
+            </span>
+          </div>
         </div>
 
         <div className="sat-card-meta">

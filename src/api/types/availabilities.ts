@@ -30,6 +30,7 @@ export interface ApiAvailabilityListItem {
   dropoff_address: string | null;
   dropoff_lat: number | null;
   dropoff_lng: number | null;
+  dropoff_radius: number | null;
   truck_type: string | null;
   cargo_categories: string[];
   capacity_qty: number | null;

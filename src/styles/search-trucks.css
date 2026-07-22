@@ -803,9 +803,26 @@
   line-height: 1;
 }
 
-.sat-card-radius {
+.sat-card-radii {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
   margin-top: 2px;
+}
+
+.sat-card-radius {
   font-size: 12px;
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.sat-card-radius--dest {
+  flex: 1 1 0;
+}
+
+.sat-card-arrow--spacer {
+  visibility: hidden;
 }
 
 @media (max-width: 640px) {
