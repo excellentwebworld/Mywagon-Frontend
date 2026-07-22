@@ -13,7 +13,6 @@ import {
   ProgressTimeline,
   QuickActions,
   StatusDetailGrid,
-  ordersHeaderMeta,
 } from './ExpansionShared';
 
 interface RowExpansionStatusProps {
@@ -36,7 +35,6 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
   t,
 }) => {
   const [qaBusy, setQaBusy] = useState<'edit' | 'view' | 'cancel' | null>(null);
-  const ordersMeta = ordersHeaderMeta(shipment, t);
   const priceType = shipment.price_type === 'contract' ? 'contract' : 'spot';
   const priceLabel = formatEuro(shipment.agreedPrice ?? shipment.quotedPrice);
 
@@ -113,10 +111,7 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
               <div className="carrier-empty">{t('noCarrierAssigned')}</div>
             )}
 
-            <ExpHeading icon="orders" className="exp-h-gap">
-              {ordersMeta.label}
-            </ExpHeading>
-            <OrdersBlock shipment={shipment} t={t} />
+            <OrdersBlock shipment={shipment} t={t} showHeading />
           </div>
 
           <div className="exp-below-right">

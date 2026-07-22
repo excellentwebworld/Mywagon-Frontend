@@ -12,7 +12,6 @@ import {
   OrdersBlock,
   ProgressTimeline,
   QuickActions,
-  ordersHeaderMeta,
 } from './ExpansionShared';
 
 type ExpTranslate = (key: string, opts?: Record<string, unknown>) => string;
@@ -240,7 +239,6 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
   const offers = shipment.offers ?? [];
   const invitees = shipment.invitees ?? [];
   const invitedCount = invitees.length || shipment.invited || 0;
-  const ordersMeta = ordersHeaderMeta(shipment, t);
   const bidLabel =
     offers.length === 1 ? t('bid') : offers.length > 1 ? t('bids') : '';
   const isPublic = (shipment.channel || shipment.vis) === 'public';
@@ -277,10 +275,7 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
         </div>
         <ProgressTimeline shipment={shipment} t={t} loading={false} />
 
-        <ExpHeading icon="orders" className="exp-h-gap">
-          {ordersMeta.label}
-        </ExpHeading>
-        <OrdersBlock shipment={shipment} t={t} />
+        <OrdersBlock shipment={shipment} t={t} showHeading />
         <ItineraryPreview
           stops={shipment.stops}
           origin={shipment.origin}

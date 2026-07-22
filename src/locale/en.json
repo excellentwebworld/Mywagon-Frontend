@@ -1032,6 +1032,8 @@
   "rowActionDelete": "Delete",
   "showAllStops": "Show all stops ({{count}})",
   "hideStops": "Hide stops",
+  "expandAll": "Expand all",
+  "collapseAll": "Collapse all",
   "quantity": "Quantity",
   "tripLength": "Trip length",
   "cargoValue": "Cargo value",

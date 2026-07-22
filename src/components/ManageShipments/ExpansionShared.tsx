@@ -8,6 +8,7 @@ import {
   isShipmentEditable,
   itineraryStopCount,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { ExpHeading } from './ExpHeading';
 
 export type ExpTranslate = (key: string, opts?: Record<string, unknown>) => string;
 
@@ -70,13 +71,16 @@ type OrderRow = {
 function CustomerOrderGroup({
   name,
   rows,
+  open,
+  onToggle,
   t,
 }: {
   name: string;
   rows: OrderRow[];
+  open: boolean;
+  onToggle: () => void;
   t: ExpTranslate;
 }) {
-  const [open, setOpen] = useState(false);
   const count = rows.length;
   const countLabel = `${count} ${count === 1 ? t('order') : t('orders').toLowerCase()}`;
 
@@ -86,11 +90,11 @@ function CustomerOrderGroup({
         className="exp-cust-head"
         role="button"
         tabIndex={0}
-        onClick={() => setOpen((v) => !v)}
+        onClick={onToggle}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            setOpen((v) => !v);
+            onToggle();
           }
         }}
         aria-expanded={open}
@@ -124,7 +128,39 @@ function CustomerOrderGroup({
   );
 }
 
-export function OrdersBlock({ shipment, t }: { shipment: Shipment; t: ExpTranslate }) {
+function ExpandCollapseButtons({
+  onExpand,
+  onCollapse,
+  t,
+}: {
+  onExpand: () => void;
+  onCollapse: () => void;
+  t: ExpTranslate;
+}) {
+  return (
+    <div className="exp-toggle-all">
+      <button type="button" className="exp-toggle-btn" onClick={onExpand}>
+        {t('expandAll')}
+      </button>
+      <button type="button" className="exp-toggle-btn" onClick={onCollapse}>
+        {t('collapseAll')}
+      </button>
+    </div>
+  );
+}
+
+export function OrdersBlock({
+  shipment,
+  t,
+  showHeading = false,
+}: {
+  shipment: Shipment;
+  t: ExpTranslate;
+  /** When true, renders ORDERS heading + expand/collapse controls. */
+  showHeading?: boolean;
+}) {
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+
   const fromStops =
     shipment.stops?.flatMap((stop) =>
       stop.customers.flatMap((c) =>
@@ -140,38 +176,75 @@ export function OrdersBlock({ shipment, t }: { shipment: Shipment; t: ExpTransla
       )
     ) ?? [];
 
-  if (fromStops.length > 0) {
-    const byCustomer = new Map<string, OrderRow[]>();
-    fromStops.forEach((row) => {
-      const list = byCustomer.get(row.customer) || [];
-      list.push(row);
-      byCustomer.set(row.customer, list);
-    });
-    return (
-      <>
-        {Array.from(byCustomer.entries()).map(([name, rows]) => (
-          <CustomerOrderGroup key={name} name={name} rows={rows} t={t} />
-        ))}
-      </>
-    );
-  }
+  const groups: Array<[string, OrderRow[]]> = (() => {
+    if (fromStops.length > 0) {
+      const byCustomer = new Map<string, OrderRow[]>();
+      fromStops.forEach((row) => {
+        const list = byCustomer.get(row.customer) || [];
+        list.push(row);
+        byCustomer.set(row.customer, list);
+      });
+      return Array.from(byCustomer.entries());
+    }
+    if (shipment.customer.length) {
+      return shipment.customer.map((c) => [
+        c.name,
+        (c.orders as string[]).map((id) => ({ customer: c.name, id })),
+      ]);
+    }
+    return [];
+  })();
 
-  if (shipment.customer.length) {
-    return (
+  const isOpen = (name: string) => Boolean(openMap[name]);
+  const expandAll = () => {
+    const next: Record<string, boolean> = {};
+    groups.forEach(([name]) => {
+      next[name] = true;
+    });
+    setOpenMap(next);
+  };
+  const collapseAll = () => {
+    const next: Record<string, boolean> = {};
+    groups.forEach(([name]) => {
+      next[name] = false;
+    });
+    setOpenMap(next);
+  };
+
+  const meta = ordersHeaderMeta(shipment, t);
+  const canToggle = groups.length > 0;
+
+  const list =
+    groups.length === 0 ? (
+      <div className="sub">{t('noOrdersMapped')}</div>
+    ) : (
       <>
-        {shipment.customer.map((c, idx) => (
+        {groups.map(([name, rows]) => (
           <CustomerOrderGroup
-            key={idx}
-            name={c.name}
-            rows={(c.orders as string[]).map((id) => ({ customer: c.name, id }))}
+            key={name}
+            name={name}
+            rows={rows}
+            open={isOpen(name)}
+            onToggle={() => setOpenMap((prev) => ({ ...prev, [name]: !prev[name] }))}
             t={t}
           />
         ))}
       </>
     );
-  }
 
-  return <div className="sub">{t('noOrdersMapped')}</div>;
+  if (!showHeading) return list;
+
+  return (
+    <div className="exp-orders-block">
+      <div className="exp-section-head exp-section-head--tight">
+        <ExpHeading icon="orders" className="exp-h-gap">
+          {meta.label}
+        </ExpHeading>
+        {canToggle ? <ExpandCollapseButtons onExpand={expandAll} onCollapse={collapseAll} t={t} /> : null}
+      </div>
+      {list}
+    </div>
+  );
 }
 
 export function ordersHeaderMeta(shipment: Shipment, t: ExpTranslate): {

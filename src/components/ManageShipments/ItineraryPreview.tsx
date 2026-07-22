@@ -147,6 +147,7 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [openCargo, setOpenCargo] = useState<Record<string, boolean>>({});
+  const [cargoMode, setCargoMode] = useState<'auto' | 'all' | 'none'>('auto');
 
   const groups = useMemo(
     () => groupItineraryStops(stops, { origin, dest, pickDt, delDt }),
@@ -158,20 +159,54 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
 
   const collapsible = groups.length > 2;
   const visible = collapsible && !expanded ? groups.slice(0, 2) : groups;
+  const cargoKeys = groups.filter((g) => g.lines.length > 0).map((g) => g.key);
+  const canToggleCargo = cargoKeys.length > 0;
+
+  const expandAllCargo = () => {
+    setExpanded(true);
+    setCargoMode('all');
+    const next: Record<string, boolean> = {};
+    cargoKeys.forEach((key) => {
+      next[key] = true;
+    });
+    setOpenCargo(next);
+  };
+
+  const collapseAllCargo = () => {
+    setCargoMode('none');
+    const next: Record<string, boolean> = {};
+    cargoKeys.forEach((key) => {
+      next[key] = false;
+    });
+    setOpenCargo(next);
+  };
 
   return (
     <div className="itinerary-preview">
-      <ExpHeading icon="itinerary" className="exp-h-gap">
-        {t('itinerary')}
-        {groups.length > 0 && <span className="itin-count">{groups.length}</span>}
-      </ExpHeading>
+      <div className="exp-section-head exp-section-head--tight">
+        <ExpHeading icon="itinerary" className="exp-h-gap">
+          {t('itinerary')}
+          {groups.length > 0 && <span className="itin-count">{groups.length}</span>}
+        </ExpHeading>
+        {canToggleCargo ? (
+          <div className="exp-toggle-all">
+            <button type="button" className="exp-toggle-btn" onClick={expandAllCargo}>
+              {t('expandAll')}
+            </button>
+            <button type="button" className="exp-toggle-btn" onClick={collapseAllCargo}>
+              {t('collapseAll')}
+            </button>
+          </div>
+        ) : null}
+      </div>
 
       <div className="itin-timeline">
         {visible.map((stop, idx) => {
           const displayNumber = idx + 1;
           const when = formatWhen(stop.date, stop.timeStart);
           const hasCargo = stop.lines.length > 0;
-          const cargoOpen = hasCargo && (openCargo[stop.key] ?? tripLive);
+          const defaultOpen = cargoMode === 'auto' ? tripLive : cargoMode === 'all';
+          const cargoOpen = hasCargo && (openCargo[stop.key] ?? defaultOpen);
           const isPickup = stop.type === 'pickup';
           const summary = cargoSummary(stop.lines, t);
           const stopVisual = itineraryStopVisual(stop, idx, currentIndex, shipmentStatus);
@@ -207,9 +242,10 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
                   className={`itin-head itin-head--${stopVisual}`}
                   onClick={() => {
                     if (!hasCargo) return;
+                    setCargoMode('auto');
                     setOpenCargo((prev) => ({
                       ...prev,
-                      [stop.key]: !(prev[stop.key] ?? tripLive),
+                      [stop.key]: !(prev[stop.key] ?? defaultOpen),
                     }));
                   }}
                   disabled={!hasCargo}
