@@ -384,6 +384,7 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
           {t('quickActions')}
         </ExpHeading>
         <QuickActions
+          shipment={shipment}
           busy={qaBusy}
           onEdit={() => runQa('edit', onEdit)}
           onView={() => runQa('view', onViewNewTab)}

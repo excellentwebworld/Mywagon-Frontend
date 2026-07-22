@@ -120,6 +120,7 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
       <div className="exp-section exp-qa-col">
         <ExpHeading icon="qa">{t('quickActions')}</ExpHeading>
         <QuickActions
+          shipment={shipment}
           busy={qaBusy}
           onEdit={() => runQa('edit', onEdit)}
           onView={() => runQa('view', onViewNewTab)}

@@ -460,15 +460,26 @@ export function itineraryStopCount(s: Shipment): number {
   return 2;
 }
 
+/** Laravel detail/list: Edit & Cancel only for these statuses (not fulfilled / canceled). */
+const SHIPMENT_EDIT_CANCEL_STATUSES = new Set<Shipment['status']>([
+  'pending',
+  'scheduled',
+  'ready',
+  'upcoming',
+  'past_due',
+  'on_trip',
+  'in_progress',
+  'draft',
+  'awarded',
+]);
+
 export function isShipmentEditable(status: Shipment['status']): boolean {
-  return (
-    status !== 'delivered' &&
-    status !== 'fullfilled' &&
-    status !== 'partially_fullfilled' &&
-    status !== 'not_fullfilled' &&
-    status !== 'cancelled' &&
-    status !== 'canceled'
-  );
+  return SHIPMENT_EDIT_CANCEL_STATUSES.has(status);
+}
+
+/** Same allow-list as Laravel cancel-shipment-button. */
+export function isShipmentCancellable(status: Shipment['status']): boolean {
+  return SHIPMENT_EDIT_CANCEL_STATUSES.has(status);
 }
 
 export function statusBadgeClass(status: Shipment['status'], atRisk?: boolean): string {

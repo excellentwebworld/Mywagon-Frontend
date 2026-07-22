@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Shipment } from '../../context/AppContext';
-import { isShipmentEditable } from '../../pages/ManageShipments/utils/listingUtils';
+import { isShipmentCancellable, isShipmentEditable } from '../../pages/ManageShipments/utils/listingUtils';
 
 interface RowActionsMenuProps {
   shipment: Shipment;
@@ -17,7 +17,6 @@ export const RowActionsMenu: React.FC<RowActionsMenuProps> = ({
   onView,
   onEdit,
   onDelete,
-  onEditBlocked,
   t,
 }) => {
   const [open, setOpen] = useState(false);
@@ -53,6 +52,7 @@ export const RowActionsMenu: React.FC<RowActionsMenuProps> = ({
   }, [open]);
 
   const editable = isShipmentEditable(shipment.status);
+  const cancellable = isShipmentCancellable(shipment.status);
 
   return (
     <>
@@ -93,32 +93,31 @@ export const RowActionsMenu: React.FC<RowActionsMenuProps> = ({
             >
               {t('rowActionView')}
             </button>
-            <button
-              type="button"
-              role="menuitem"
-              className={!editable ? 'is-disabled' : undefined}
-              onClick={() => {
-                setOpen(false);
-                if (!editable) {
-                  onEditBlocked?.();
-                  return;
-                }
-                onEdit();
-              }}
-            >
-              {t('rowActionEdit')}
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="is-danger"
-              onClick={() => {
-                setOpen(false);
-                onDelete();
-              }}
-            >
-              {t('rowActionDelete')}
-            </button>
+            {editable ? (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  onEdit();
+                }}
+              >
+                {t('rowActionEdit')}
+              </button>
+            ) : null}
+            {cancellable ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="is-danger"
+                onClick={() => {
+                  setOpen(false);
+                  onDelete();
+                }}
+              >
+                {t('rowActionDelete')}
+              </button>
+            ) : null}
           </div>,
           document.body
         )}

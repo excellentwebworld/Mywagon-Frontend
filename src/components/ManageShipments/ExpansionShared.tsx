@@ -4,6 +4,8 @@ import {
   buildLaravelProgressSteps,
   formatEuro,
   formatStatValue,
+  isShipmentCancellable,
+  isShipmentEditable,
   itineraryStopCount,
 } from '../../pages/ManageShipments/utils/listingUtils';
 
@@ -279,12 +281,14 @@ export function StatusDetailGrid({ shipment, t }: { shipment: Shipment; t: ExpTr
 }
 
 export function QuickActions({
+  shipment,
   onEdit,
   onView,
   onCancel,
   busy = null,
   t,
 }: {
+  shipment: Shipment;
   onEdit: () => void;
   onView: () => void;
   onCancel: () => void;
@@ -292,20 +296,27 @@ export function QuickActions({
   t: ExpTranslate;
 }) {
   const locked = busy != null;
+  const canEdit = isShipmentEditable(shipment.status);
+  const canCancel = isShipmentCancellable(shipment.status);
+
   return (
     <div className="qa-row">
-      <button type="button" className="f-pill" disabled={locked} onClick={onEdit}>
-        {busy === 'edit' ? <span className="exp-btn-spin" aria-hidden /> : null}
-        {t('edit')}
-      </button>
+      {canEdit ? (
+        <button type="button" className="f-pill" disabled={locked} onClick={onEdit}>
+          {busy === 'edit' ? <span className="exp-btn-spin" aria-hidden /> : null}
+          {t('edit')}
+        </button>
+      ) : null}
       <button type="button" className="f-pill" disabled={locked} onClick={onView}>
         {busy === 'view' ? <span className="exp-btn-spin" aria-hidden /> : null}
         {t('viewDetails')}
       </button>
-      <button type="button" className="f-pill qa-danger" disabled={locked} onClick={onCancel}>
-        {busy === 'cancel' ? <span className="exp-btn-spin" aria-hidden /> : null}
-        {t('cancel')}
-      </button>
+      {canCancel ? (
+        <button type="button" className="f-pill qa-danger" disabled={locked} onClick={onCancel}>
+          {busy === 'cancel' ? <span className="exp-btn-spin" aria-hidden /> : null}
+          {t('cancel')}
+        </button>
+      ) : null}
     </div>
   );
 }
