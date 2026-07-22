@@ -389,7 +389,7 @@ export function useManageShipments() {
         carrier_init: detail.carrier_init || s.carrier_init,
         quotedPrice: detail.quotedPrice ?? s.quotedPrice,
         agreedPrice: detail.agreedPrice ?? s.agreedPrice,
-        price: detail.price ?? s.price ?? detail.quotedPrice ?? s.quotedPrice,
+        price: detail.price ?? s.price ?? detail.quotedPrice ?? s.quotedPrice ?? null,
         channel: detail.channel ?? s.channel,
         invited: detail.invited ?? s.invited,
         offers: detail.offers ?? s.offers,
