@@ -62,9 +62,6 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
             </span>
           </ExpHeading>
           <div className="exp-head-actions">
-            {onRefresh ? (
-              <ExpRefreshButton loading={detailLoading} onRefresh={onRefresh} t={t} />
-            ) : null}
             <QuickActions
               shipment={shipment}
               busy={qaBusy}
@@ -73,6 +70,9 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
               onCancel={() => runQa('cancel', onCancel)}
               t={t}
             />
+            {onRefresh ? (
+              <ExpRefreshButton loading={detailLoading} onRefresh={onRefresh} t={t} />
+            ) : null}
           </div>
         </div>
         <ProgressTimeline

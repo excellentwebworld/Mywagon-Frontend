@@ -978,6 +978,10 @@
   flex-wrap: wrap;
   gap: 8px;
   flex-shrink: 0;
+  margin-left: auto;
+}
+.exp-head-actions .exp-refresh-btn {
+  margin-left: 4px;
 }
 .exp-head-actions .qa-row {
   display: flex;
