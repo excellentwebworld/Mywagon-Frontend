@@ -112,6 +112,15 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
     date: fromLocal.date || stop.date || '',
     timeStart: fromLocal.time || stop.time_start || '',
     timeEnd: toLocal.time || stop.time_end || '',
+    locationStatus:
+      stop.status !== null && stop.status !== undefined && String(stop.status) !== ''
+        ? String(stop.status)
+        : '0',
+    pod:
+      stop.pod !== null && stop.pod !== undefined && String(stop.pod) !== ''
+        ? String(stop.pod)
+        : '0',
+    unableStatus: Number(stop.unable_status ?? 0) || 0,
     customers:
       stop.order_id || stop.product_name || stop.qty || stop.weight || name
         ? [

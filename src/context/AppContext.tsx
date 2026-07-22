@@ -144,6 +144,11 @@ export interface ShipmentStop {
   timeStart: string;
   timeEnd: string;
   customers: ShipmentCustomer[];
+  /** Driver location status code (0–8). */
+  locationStatus?: string;
+  /** POD: 0 not uploaded, 1 uploaded, 2 later, 3 skip */
+  pod?: string;
+  unableStatus?: number;
 }
 
 export interface Shipment {

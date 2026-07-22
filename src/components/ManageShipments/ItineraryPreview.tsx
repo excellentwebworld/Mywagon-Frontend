@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type { ShipmentStop } from '../../context/AppContext';
 import {
   groupItineraryStops,
+  productLineVisual,
   type ItineraryStopGroup,
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { ExpHeading } from './ExpHeading';
@@ -52,6 +53,29 @@ function cargoSummary(
     totalWeight > 0 ? formatWeight(totalWeight, weightUnit) : '',
   ].filter(Boolean);
   return parts.join(' · ');
+}
+
+function ProductStatusTick({ visual }: { visual: ReturnType<typeof productLineVisual> }) {
+  if (visual === 'default') return null;
+  if (visual === 'failed') {
+    return (
+      <span className="itin-status-tick itin-status-tick--fail" aria-hidden title="Unable">
+        ✕
+      </span>
+    );
+  }
+  if (visual === 'done-pod') {
+    return (
+      <span className="itin-status-tick itin-status-tick--ok" aria-hidden title="POD uploaded">
+        ✓✓
+      </span>
+    );
+  }
+  return (
+    <span className="itin-status-tick itin-status-tick--ok" aria-hidden title="Complete">
+      ✓
+    </span>
+  );
 }
 
 export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
@@ -146,8 +170,17 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
                     {stop.lines.map((line, li) => {
                       const qtyLabel = formatQty(line.qty, line.qtyUnit);
                       const weightLabel = formatWeight(line.weight, line.weightUnit);
+                      const visual = productLineVisual(
+                        stop.type,
+                        line.locationStatus,
+                        line.pod,
+                        line.unableStatus
+                      );
                       return (
-                        <div key={`${line.orderId}-${li}`} className="itin-cargo-row">
+                        <div
+                          key={`${line.orderId}-${li}`}
+                          className={`itin-cargo-row itin-cargo-row--${visual}`}
+                        >
                           <span className={`itin-action ${isPickup ? 'pick' : 'drop'}`}>
                             {isPickup ? '↑' : '↓'}
                           </span>
@@ -165,6 +198,7 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
                           <div className="itin-cargo-stats">
                             {qtyLabel ? <span>{qtyLabel}</span> : null}
                             {weightLabel ? <span>{weightLabel}</span> : null}
+                            <ProductStatusTick visual={visual} />
                           </div>
                         </div>
                       );

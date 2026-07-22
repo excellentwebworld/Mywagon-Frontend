@@ -93,6 +93,11 @@ export interface ApiShipmentStop {
   weight?: string | number | null;
   weight_unit?: string | number | null;
   company_name?: string | null;
+  /** Driver location status code: 0 pending … 5 complete pickup/drop … 7 complete shipment */
+  status?: string | number | null;
+  /** POD: 0 not uploaded, 1 uploaded, 2 later, 3 skip */
+  pod?: string | number | null;
+  unable_status?: string | number | null;
   sort_order?: number;
 }
 

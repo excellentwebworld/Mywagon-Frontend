@@ -1702,12 +1702,39 @@
   grid-template-columns: 16px minmax(0, 1fr) auto;
   gap: 6px;
   align-items: start;
-  padding: 5px 0;
+  padding: 5px 6px;
+  margin: 0 -6px;
   border-bottom: 1px solid var(--border);
+  border-radius: 5px;
 }
 .itin-cargo-row:last-child {
   border-bottom: none;
   padding-bottom: 2px;
+}
+/* Driver product box: completed (status 5) */
+.itin-cargo-row--done,
+.itin-cargo-row--done-pod {
+  background: #fff;
+}
+/* Driver product box: unable / POD skipped (red corner) */
+.itin-cargo-row--failed {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px #e11d48;
+}
+.itin-status-tick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+.itin-status-tick--ok {
+  color: #16a34a;
+}
+.itin-status-tick--fail {
+  color: #e11d48;
 }
 .itin-action {
   width: 16px;

@@ -517,6 +517,10 @@ export type ItineraryStopGroup = {
   timeStart: string;
   timeEnd: string;
   customers: string[];
+  /** First line / location[0] status — same as driver itinerary group. */
+  locationStatus?: string;
+  pod?: string;
+  unableStatus?: number;
   lines: Array<{
     customerName: string;
     orderId: string;
@@ -525,8 +529,95 @@ export type ItineraryStopGroup = {
     qtyUnit: string;
     weight: number;
     weightUnit: string;
+    locationStatus?: string;
+    pod?: string;
+    unableStatus?: number;
   }>;
 };
+
+/** Driver ShipmentLocationStatus codes (ConstantUtil). */
+const LOC_PENDING = 0;
+const LOC_UNABLE_START = 2;
+const LOC_UNABLE_REACH = 4;
+const LOC_COMPLETE_STOP = 5;
+const LOC_UNABLE_STOP = 6;
+const LOC_COMPLETE_SHIPMENT = 7;
+
+function locationStatusCode(status?: string | number | null): number {
+  const n = Number(status);
+  return Number.isFinite(n) ? n : LOC_PENDING;
+}
+
+/**
+ * Whether a product/location line is fully past for progress (driver continues past it).
+ * Delivery with status 5 but POD not uploaded stays current.
+ */
+export function isLocationLinePast(
+  type: 'pickup' | 'delivery',
+  status?: string | number | null,
+  pod?: string | number | null,
+  unableStatus?: number | null
+): boolean {
+  if (Number(unableStatus) === 1) return true;
+  const code = locationStatusCode(status);
+  if (code === LOC_COMPLETE_SHIPMENT) return true;
+  if (code === LOC_UNABLE_START || code === LOC_UNABLE_REACH || code === LOC_UNABLE_STOP) {
+    return true;
+  }
+  if (code === LOC_COMPLETE_STOP) {
+    if (type === 'delivery') {
+      const podCode = String(pod ?? '0');
+      // Not uploaded → still current (driver shows Upload POD)
+      if (podCode === '0') return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+function isItineraryGroupPast(group: ItineraryStopGroup): boolean {
+  if (group.lines.length > 0) {
+    return group.lines.every((line) =>
+      isLocationLinePast(group.type, line.locationStatus, line.pod, line.unableStatus)
+    );
+  }
+  return isLocationLinePast(group.type, group.locationStatus, group.pod, group.unableStatus);
+}
+
+/**
+ * Driver currentLocationIndex: first itinerary stop that still needs action.
+ * When trip just started (status 1 / 0 on first stop), index is 0.
+ */
+export function findCurrentItineraryIndex(groups: ItineraryStopGroup[]): number {
+  for (let i = 0; i < groups.length; i++) {
+    if (!isItineraryGroupPast(groups[i])) return i;
+  }
+  return Math.max(0, groups.length - 1);
+}
+
+/** Driver ProductListAdapter visual state for a product/location line. */
+export type ProductLineVisual = 'default' | 'done' | 'done-pod' | 'failed';
+
+export function productLineVisual(
+  type: 'pickup' | 'delivery',
+  status?: string | number | null,
+  pod?: string | number | null,
+  unableStatus?: number | null
+): ProductLineVisual {
+  const code = locationStatusCode(status);
+  const podCode = String(pod ?? '0');
+  if (Number(unableStatus) === 1 || code === LOC_UNABLE_REACH || code === LOC_UNABLE_STOP) {
+    return 'failed';
+  }
+  if (code === LOC_COMPLETE_STOP) {
+    if (type === 'delivery') {
+      if (podCode === '1') return 'done-pod';
+      if (podCode === '3') return 'failed';
+    }
+    return 'done';
+  }
+  return 'default';
+}
 
 /** Group consecutive same location+type+schedule rows into physical itinerary stops. */
 export function groupItineraryStops(
@@ -544,6 +635,9 @@ export function groupItineraryStops(
         timeStart: '',
         timeEnd: '',
         customers: [],
+        locationStatus: '0',
+        pod: '0',
+        unableStatus: 0,
         lines: [],
       },
       {
@@ -555,6 +649,9 @@ export function groupItineraryStops(
         timeStart: '',
         timeEnd: '',
         customers: [],
+        locationStatus: '0',
+        pod: '0',
+        unableStatus: 0,
         lines: [],
       },
     ];
@@ -577,6 +674,9 @@ export function groupItineraryStops(
           qtyUnit: order.qtyUnit || '',
           weight: order.weight || 0,
           weightUnit: order.weightUnit || '',
+          locationStatus: stop.locationStatus ?? '0',
+          pod: stop.pod ?? '0',
+          unableStatus: stop.unableStatus ?? 0,
         });
       });
     });
@@ -601,6 +701,10 @@ export function groupItineraryStops(
       timeStart: stop.timeStart || '',
       timeEnd: stop.timeEnd || '',
       customers: [...customers],
+      // location[0] — keep first row's status when merging products
+      locationStatus: stop.locationStatus ?? '0',
+      pod: stop.pod ?? '0',
+      unableStatus: stop.unableStatus ?? 0,
       lines,
     });
   });
@@ -712,13 +816,19 @@ export function buildLaravelProgressSteps(
   else if (pastAcceptance) startState = 'cur';
   steps.push({ id: 'start_trip', label: t('startTrip'), state: startState });
 
+  // Driver route view: index < current → complete; index === current → running/reached; else pending
+  const currentItinIndex = onTrip ? findCurrentItineraryIndex(itineraryStops) : -1;
+
   pushItinerarySteps((idx) => {
-    const isLast = idx === itineraryStops.length - 1;
     if (fulfilledLike && status !== 'not_fullfilled') return 'done';
     if (status === 'not_fullfilled') return 'pending';
     if (onTrip) {
-      if (isLast) return 'cur';
-      return 'done';
+      if (idx < currentItinIndex) return 'done';
+      if (idx === currentItinIndex) {
+        // Driver: arrived (3) / complete awaiting POD (5) → reached; else en route — both are current
+        return 'cur';
+      }
+      return 'skip';
     }
     return 'skip';
   });
