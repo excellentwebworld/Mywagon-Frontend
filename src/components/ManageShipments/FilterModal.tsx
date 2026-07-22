@@ -7,6 +7,8 @@ import {
   validateFilterRanges,
   type ShipmentsFilterState,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { DatePicker, getTodayDateString } from '../ui/DatePicker';
+import { TimePicker } from '../ui/TimePicker';
 import { FilterLocationField } from './FilterLocationField';
 
 interface FilterModalProps {
@@ -15,6 +17,71 @@ interface FilterModalProps {
   onClose: () => void;
   onApply: (filters: ShipmentsFilterState, productTypeNames: Record<string, string>) => boolean;
   t: (key: string) => string;
+}
+
+function splitDateTimeLocal(value: string): { date: string; time: string } {
+  if (!value) return { date: '', time: '' };
+  const [datePart, timePart = ''] = value.split('T');
+  return {
+    date: datePart || '',
+    time: timePart.slice(0, 5),
+  };
+}
+
+function joinDateTimeLocal(date: string, time: string): string {
+  if (!date) return '';
+  return `${date}T${time || '00:00'}`;
+}
+
+function FilterDateTimeField({
+  id,
+  label,
+  value,
+  onChange,
+  minDate,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+  minDate?: string;
+}) {
+  const { date, time } = splitDateTimeLocal(value);
+
+  return (
+    <div className="mgmt-pop-field">
+      <label className="mgmt-pop-label" htmlFor={id}>
+        {label}
+      </label>
+      <div className="mgmt-pop-datetime" id={id}>
+        <DatePicker
+          className="mgmt-pop-date-picker"
+          value={date}
+          onChange={(nextDate) => {
+            if (!nextDate) {
+              onChange('');
+              return;
+            }
+            onChange(joinDateTimeLocal(nextDate, time || '00:00'));
+          }}
+          min={minDate}
+          direction="auto"
+        />
+        <TimePicker
+          className="mgmt-pop-time-picker"
+          value={time}
+          onChange={(nextTime) => {
+            if (!nextTime && !date) {
+              onChange('');
+              return;
+            }
+            onChange(joinDateTimeLocal(date || getTodayDateString(), nextTime || '00:00'));
+          }}
+          style={{ width: 96 }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export const FilterModal: React.FC<FilterModalProps> = ({ open, filters, onClose, onApply, t }) => {
@@ -276,78 +343,45 @@ export const FilterModal: React.FC<FilterModalProps> = ({ open, filters, onClose
           <section className="mgmt-pop-sec">
             <h4 className="mgmt-pop-sec-title">{t('filterSectionDates') || 'Dates'}</h4>
             <div className="mgmt-pop-grid">
-              <div className="mgmt-pop-field">
-                <label className="mgmt-pop-label" htmlFor="pickup-from">
-                  {t('filterPickupFrom')}
-                </label>
-                <input
-                  id="pickup-from"
-                  type="datetime-local"
-                  className="mgmt-pop-input"
-                  value={draft.pickup_from}
-                  onChange={(e) => update('pickup_from', e.target.value)}
-                />
-              </div>
-              <div className="mgmt-pop-field">
-                <label className="mgmt-pop-label" htmlFor="pickup-to">
-                  {t('filterPickupTo')}
-                </label>
-                <input
-                  id="pickup-to"
-                  type="datetime-local"
-                  className="mgmt-pop-input"
-                  value={draft.pickup_to}
-                  onChange={(e) => update('pickup_to', e.target.value)}
-                />
-              </div>
-              <div className="mgmt-pop-field">
-                <label className="mgmt-pop-label" htmlFor="dropoff-from">
-                  {t('filterDropoffFrom')}
-                </label>
-                <input
-                  id="dropoff-from"
-                  type="datetime-local"
-                  className="mgmt-pop-input"
-                  value={draft.dropoff_from}
-                  onChange={(e) => update('dropoff_from', e.target.value)}
-                />
-              </div>
-              <div className="mgmt-pop-field">
-                <label className="mgmt-pop-label" htmlFor="dropoff-to">
-                  {t('filterDropoffTo')}
-                </label>
-                <input
-                  id="dropoff-to"
-                  type="datetime-local"
-                  className="mgmt-pop-input"
-                  value={draft.dropoff_to}
-                  onChange={(e) => update('dropoff_to', e.target.value)}
-                />
-              </div>
-              <div className="mgmt-pop-field">
-                <label className="mgmt-pop-label" htmlFor="posted-from">
-                  {t('filterPostedFrom')}
-                </label>
-                <input
-                  id="posted-from"
-                  type="datetime-local"
-                  className="mgmt-pop-input"
-                  value={draft.posted_from}
-                  onChange={(e) => update('posted_from', e.target.value)}
-                />
-              </div>
-              <div className="mgmt-pop-field">
-                <label className="mgmt-pop-label" htmlFor="posted-to">
-                  {t('filterPostedTo')}
-                </label>
-                <input
-                  id="posted-to"
-                  type="datetime-local"
-                  className="mgmt-pop-input"
-                  value={draft.posted_to}
-                  onChange={(e) => update('posted_to', e.target.value)}
-                />
-              </div>
+              <FilterDateTimeField
+                id="pickup-from"
+                label={t('filterPickupFrom')}
+                value={draft.pickup_from}
+                onChange={(v) => update('pickup_from', v)}
+              />
+              <FilterDateTimeField
+                id="pickup-to"
+                label={t('filterPickupTo')}
+                value={draft.pickup_to}
+                onChange={(v) => update('pickup_to', v)}
+                minDate={splitDateTimeLocal(draft.pickup_from).date || undefined}
+              />
+              <FilterDateTimeField
+                id="dropoff-from"
+                label={t('filterDropoffFrom')}
+                value={draft.dropoff_from}
+                onChange={(v) => update('dropoff_from', v)}
+              />
+              <FilterDateTimeField
+                id="dropoff-to"
+                label={t('filterDropoffTo')}
+                value={draft.dropoff_to}
+                onChange={(v) => update('dropoff_to', v)}
+                minDate={splitDateTimeLocal(draft.dropoff_from).date || undefined}
+              />
+              <FilterDateTimeField
+                id="posted-from"
+                label={t('filterPostedFrom')}
+                value={draft.posted_from}
+                onChange={(v) => update('posted_from', v)}
+              />
+              <FilterDateTimeField
+                id="posted-to"
+                label={t('filterPostedTo')}
+                value={draft.posted_to}
+                onChange={(v) => update('posted_to', v)}
+                minDate={splitDateTimeLocal(draft.posted_from).date || undefined}
+              />
             </div>
           </section>
 

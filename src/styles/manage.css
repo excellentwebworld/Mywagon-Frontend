@@ -2939,6 +2939,46 @@ select.mgmt-pop-input {
   background: var(--surface-alt);
 }
 
+.mgmt-pop-datetime {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mgmt-pop-datetime .mgmt-pop-date-picker {
+  flex: 1;
+  min-width: 0;
+}
+
+.mgmt-pop-datetime .mgmt-pop-date-picker .date-picker-trigger {
+  width: 100%;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 8px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.mgmt-pop-datetime .mgmt-pop-time-picker {
+  flex-shrink: 0;
+}
+
+.mgmt-pop-datetime .mgmt-pop-time-picker input {
+  font-size: 13px;
+  font-family: inherit;
+  padding: 8px 28px 8px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  box-sizing: border-box;
+  height: auto;
+}
+
 .mgmt-pop-input--sm {
   width: auto;
   min-width: 104px;
