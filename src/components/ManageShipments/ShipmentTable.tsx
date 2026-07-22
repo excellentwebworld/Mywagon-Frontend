@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Shipment } from '../../context/AppContext';
+import type { StatusTabKey } from '../../pages/ManageShipments/utils/listingUtils';
 import {
   formatEuro,
   formatRelativeAgo,
@@ -14,11 +15,12 @@ import { RowActionsMenu } from './RowActionsMenu';
 import { RowExpansionPending } from './RowExpansionPending';
 import { RowExpansionStatus } from './RowExpansionStatus';
 
-const TABLE_COL_COUNT = 12;
+const BASE_COL_COUNT = 11;
 
 interface ShipmentTableProps {
   loading?: boolean;
   shipments: Shipment[];
+  activeTab?: StatusTabKey;
   selectedIds: Set<string>;
   expandedId: string | null;
   detailLoadingIds?: Set<string>;
@@ -115,6 +117,7 @@ function BidsCell({
 export const ShipmentTable: React.FC<ShipmentTableProps> = ({
   loading = false,
   shipments,
+  activeTab = 'active',
   selectedIds,
   expandedId,
   detailLoadingIds,
@@ -143,6 +146,9 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
 }) => {
   const navigate = useNavigate();
   const allSelected = shipments.length > 0 && selectedIds.size === shipments.length;
+  // Bids / interest only matter while loads are still open for bidding.
+  const showBidsCol = activeTab === 'active' || activeTab === 'pending';
+  const colCount = BASE_COL_COUNT + (showBidsCol ? 1 : 0);
 
   const emptyMessage =
     emptyReason === 'unsupported'
@@ -163,7 +169,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
           <th>{t('customerCol')}</th>
           <th>{t('status')}</th>
           <th>{t('channelCol')}</th>
-          <th>{t('bidsCol')}</th>
+          {showBidsCol ? <th>{t('bidsCol')}</th> : null}
           <th>{t('transporterCol')}</th>
           <th>{t('quotedPriceCol')}</th>
           <th>{t('agreedPriceCol')}</th>
@@ -173,10 +179,10 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
       </thead>
       <tbody>
         {loading ? (
-          <ListSkeleton type="table" rowCount={8} columnCount={TABLE_COL_COUNT} />
+          <ListSkeleton type="table" rowCount={8} columnCount={colCount} />
         ) : shipments.length === 0 ? (
           <tr>
-            <td colSpan={TABLE_COL_COUNT}>
+            <td colSpan={colCount}>
               <div className="tbl-empty">
                 <p className="tbl-empty-msg">{emptyMessage}</p>
                 {emptyReason === 'filters' && onClearFilters ? (
@@ -284,9 +290,11 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                       </div>
                     )}
                   </td>
-                  <td>
-                    <BidsCell shipment={s} t={t} />
-                  </td>
+                  {showBidsCol ? (
+                    <td>
+                      <BidsCell shipment={s} t={t} />
+                    </td>
+                  ) : null}
                   <td>
                     {s.carrier ? (
                       <div className="carrier-cell">
@@ -346,7 +354,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
 
                 {isExpanded && (
                   <tr className="exp open">
-                    <td colSpan={TABLE_COL_COUNT}>
+                    <td colSpan={colCount}>
                       {showSkeleton ? (
                         <RowExpansionSkeleton variant={isPending ? 'pending' : 'status'} />
                       ) : isPending ? (
