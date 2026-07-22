@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, shipmentsService } from '../../../api';
 import type { ListShipmentsParams } from '../../../api/types/shipments';
 import { useApp } from '../../../context/AppContext';
@@ -15,6 +15,7 @@ import {
   filtersToApiParams,
   isShipmentEditable,
   kpiLabelKey,
+  parseStatusTabParam,
   statusTabHasApiSupport,
   statusTabToApiStatus,
   validateFilterRanges,
@@ -34,6 +35,7 @@ export function useManageShipments() {
   const { showToast } = useApp();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     carriersList: invitePartners,
     loading: invitePartnersLoading,
@@ -44,7 +46,9 @@ export function useManageShipments() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeKpi, setActiveKpiState] = useState<KpiKey | null>(null);
-  const [activeTab, setActiveTabState] = useState<StatusTabKey>('active');
+  const [activeTab, setActiveTabState] = useState<StatusTabKey>(() =>
+    parseStatusTabParam(searchParams.get('status'))
+  );
   const [sortKey, setSortKey] = useState<SortKey>('');
   const [page, setPage] = useState(1);
   const [appliedFilters, setAppliedFilters] = useState<ShipmentsFilterState>(DEFAULT_FILTERS);
@@ -160,11 +164,29 @@ export function useManageShipments() {
     setExpandedId(null);
   }, []);
 
-  const setActiveTab = useCallback((tab: StatusTabKey) => {
-    setActiveTabState(tab);
-    setActiveKpiState(null);
-    setPage(1);
-  }, []);
+  const setActiveTab = useCallback(
+    (tab: StatusTabKey) => {
+      setActiveTabState(tab);
+      setActiveKpiState(null);
+      setPage(1);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (tab === 'active') next.delete('status');
+          else next.set('status', tab);
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  // Keep tab in sync with URL (reload, back/forward, shared links)
+  useEffect(() => {
+    const fromUrl = parseStatusTabParam(searchParams.get('status'));
+    setActiveTabState((prev) => (prev === fromUrl ? prev : fromUrl));
+  }, [searchParams]);
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);

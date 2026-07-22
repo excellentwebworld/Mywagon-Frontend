@@ -128,7 +128,19 @@ function CustomerOrderGroup({
   );
 }
 
-function ExpandCollapseButtons({
+function ExpandIcon({ expand }: { expand: boolean }) {
+  return expand ? (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  ) : (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+      <polyline points="18 15 12 9 6 15" />
+    </svg>
+  );
+}
+
+export function ExpandCollapseButtons({
   onExpand,
   onCollapse,
   t,
@@ -139,11 +151,23 @@ function ExpandCollapseButtons({
 }) {
   return (
     <div className="exp-toggle-all">
-      <button type="button" className="exp-toggle-btn" onClick={onExpand}>
-        {t('expandAll')}
+      <button
+        type="button"
+        className="exp-toggle-btn exp-toggle-btn--icon"
+        onClick={onExpand}
+        title={t('expandAll')}
+        aria-label={t('expandAll')}
+      >
+        <ExpandIcon expand />
       </button>
-      <button type="button" className="exp-toggle-btn" onClick={onCollapse}>
-        {t('collapseAll')}
+      <button
+        type="button"
+        className="exp-toggle-btn exp-toggle-btn--icon"
+        onClick={onCollapse}
+        title={t('collapseAll')}
+        aria-label={t('collapseAll')}
+      >
+        <ExpandIcon expand={false} />
       </button>
     </div>
   );

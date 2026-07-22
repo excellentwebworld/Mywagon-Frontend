@@ -24,6 +24,49 @@ export type StatusTabKey =
   | 'unfulfilled'
   | 'cancelled';
 
+const STATUS_TAB_KEYS = new Set<StatusTabKey>([
+  'active',
+  'pending',
+  'scheduled',
+  'ready',
+  'past_due',
+  'on_trip',
+  'drafts',
+  'fullfilled',
+  'partially_fullfilled',
+  'unfulfilled',
+  'cancelled',
+]);
+
+/** URL aliases → canonical StatusTabKey (reload / share-friendly). */
+const STATUS_TAB_URL_ALIASES: Record<string, StatusTabKey> = {
+  active: 'active',
+  pending: 'pending',
+  scheduled: 'scheduled',
+  ready: 'ready',
+  past_due: 'past_due',
+  'past-due': 'past_due',
+  on_trip: 'on_trip',
+  'on-trip': 'on_trip',
+  drafts: 'drafts',
+  draft: 'drafts',
+  fullfilled: 'fullfilled',
+  fulfilled: 'fullfilled',
+  partially_fullfilled: 'partially_fullfilled',
+  'partially-fullfilled': 'partially_fullfilled',
+  unfulfilled: 'unfulfilled',
+  not_fullfilled: 'unfulfilled',
+  'not-fullfilled': 'unfulfilled',
+  cancelled: 'cancelled',
+  canceled: 'cancelled',
+};
+
+export function parseStatusTabParam(raw: string | null | undefined): StatusTabKey {
+  if (!raw) return 'active';
+  const key = STATUS_TAB_URL_ALIASES[raw.trim().toLowerCase()];
+  return key && STATUS_TAB_KEYS.has(key) ? key : 'active';
+}
+
 export type SortKey = '' | ShipmentSortKey;
 
 export const SORT_OPTIONS: { value: SortKey; labelKey: string }[] = [

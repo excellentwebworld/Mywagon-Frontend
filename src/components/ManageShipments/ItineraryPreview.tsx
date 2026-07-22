@@ -10,6 +10,7 @@ import {
   type ItineraryStopVisual,
   type ProductLineVisual,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { ExpandCollapseButtons } from './ExpansionShared';
 import { ExpHeading } from './ExpHeading';
 
 interface ItineraryPreviewProps {
@@ -147,7 +148,6 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [openCargo, setOpenCargo] = useState<Record<string, boolean>>({});
-  const [cargoMode, setCargoMode] = useState<'auto' | 'all' | 'none'>('auto');
 
   const groups = useMemo(
     () => groupItineraryStops(stops, { origin, dest, pickDt, delDt }),
@@ -164,7 +164,6 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
 
   const expandAllCargo = () => {
     setExpanded(true);
-    setCargoMode('all');
     const next: Record<string, boolean> = {};
     cargoKeys.forEach((key) => {
       next[key] = true;
@@ -173,7 +172,6 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
   };
 
   const collapseAllCargo = () => {
-    setCargoMode('none');
     const next: Record<string, boolean> = {};
     cargoKeys.forEach((key) => {
       next[key] = false;
@@ -189,14 +187,7 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
           {groups.length > 0 && <span className="itin-count">{groups.length}</span>}
         </ExpHeading>
         {canToggleCargo ? (
-          <div className="exp-toggle-all">
-            <button type="button" className="exp-toggle-btn" onClick={expandAllCargo}>
-              {t('expandAll')}
-            </button>
-            <button type="button" className="exp-toggle-btn" onClick={collapseAllCargo}>
-              {t('collapseAll')}
-            </button>
-          </div>
+          <ExpandCollapseButtons onExpand={expandAllCargo} onCollapse={collapseAllCargo} t={t} />
         ) : null}
       </div>
 
@@ -205,8 +196,8 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
           const displayNumber = idx + 1;
           const when = formatWhen(stop.date, stop.timeStart);
           const hasCargo = stop.lines.length > 0;
-          const defaultOpen = cargoMode === 'auto' ? tripLive : cargoMode === 'all';
-          const cargoOpen = hasCargo && (openCargo[stop.key] ?? defaultOpen);
+          // Default closed — only open when explicitly toggled / Expand all
+          const cargoOpen = hasCargo && Boolean(openCargo[stop.key]);
           const isPickup = stop.type === 'pickup';
           const summary = cargoSummary(stop.lines, t);
           const stopVisual = itineraryStopVisual(stop, idx, currentIndex, shipmentStatus);
@@ -242,10 +233,9 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
                   className={`itin-head itin-head--${stopVisual}`}
                   onClick={() => {
                     if (!hasCargo) return;
-                    setCargoMode('auto');
                     setOpenCargo((prev) => ({
                       ...prev,
-                      [stop.key]: !(prev[stop.key] ?? defaultOpen),
+                      [stop.key]: !prev[stop.key],
                     }));
                   }}
                   disabled={!hasCargo}
