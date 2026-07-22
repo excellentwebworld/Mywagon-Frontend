@@ -306,9 +306,9 @@ export function useManageShipments() {
           // Never wipe list transporter with a null detail payload.
           ...(detail.carrier ? { carrier: detail.carrier, carrier_init: detail.carrier_init } : {}),
           status: detail.status,
-          quotedPrice: detail.quotedPrice,
-          agreedPrice: detail.agreedPrice,
-          price: detail.price,
+          // Never wipe list prices when detail omits them.
+          ...(detail.quotedPrice != null ? { quotedPrice: detail.quotedPrice, price: detail.price } : {}),
+          ...(detail.agreedPrice != null ? { agreedPrice: detail.agreedPrice } : {}),
           // Keep list at-risk when detail omits it; otherwise apply authoritative detail flag.
           ...(detail.at_risk != null
             ? { at_risk: detail.at_risk, riskReason: detail.riskReason ?? null }
@@ -389,6 +389,7 @@ export function useManageShipments() {
         carrier_init: detail.carrier_init || s.carrier_init,
         quotedPrice: detail.quotedPrice ?? s.quotedPrice,
         agreedPrice: detail.agreedPrice ?? s.agreedPrice,
+        price: detail.price ?? s.price ?? detail.quotedPrice ?? s.quotedPrice,
         channel: detail.channel ?? s.channel,
         invited: detail.invited ?? s.invited,
         offers: detail.offers ?? s.offers,
