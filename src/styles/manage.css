@@ -961,6 +961,31 @@
 .exp-inner.exp-status-only {
   grid-template-columns: 1fr;
 }
+.exp-status-only .exp-below-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 24px;
+  align-items: start;
+  margin-top: 4px;
+}
+.exp-status-only .exp-below-left,
+.exp-status-only .exp-below-right {
+  min-width: 0;
+}
+.exp-status-only .exp-below-left .exp-h-gap:first-of-type,
+.exp-status-only .exp-below-left > .exp-heading:first-child,
+.exp-status-only .exp-below-left > h4:first-child {
+  margin-top: 0 !important;
+}
+.exp-status-only .exp-below-right .itinerary-preview .exp-h-gap,
+.exp-status-only .exp-below-right .itinerary-preview > h4:first-child {
+  margin-top: 0 !important;
+}
+@media (max-width: 900px) {
+  .exp-status-only .exp-below-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .exp-section {
   min-width: 0;
 }

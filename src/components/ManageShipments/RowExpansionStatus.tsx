@@ -84,47 +84,52 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
 
         <StatusDetailGrid shipment={shipment} t={t} />
 
-        <ExpHeading icon="carrier" className="exp-h-gap">
-          {t('assignedTransporter')}
-        </ExpHeading>
-        {shipment.carrier ? (
-          <div className="carrier-card">
-            <div className="cc-av">
-              {shipment.carrier_init || shipment.carrier.substring(0, 2).toUpperCase()}
-            </div>
-            <div className="cc-info">
-              <div className="cc-name">{shipment.carrier}</div>
-              {(shipment.updatedAt || shipment.updated) && (
-                <div className="cc-meta">
-                  {t('assigned')} · {formatRelativeAgo(shipment.updatedAt || shipment.updated, t)}
+        <div className="exp-below-grid">
+          <div className="exp-below-left">
+            <ExpHeading icon="carrier">{t('assignedTransporter')}</ExpHeading>
+            {shipment.carrier ? (
+              <div className="carrier-card">
+                <div className="cc-av">
+                  {shipment.carrier_init || shipment.carrier.substring(0, 2).toUpperCase()}
                 </div>
-              )}
-            </div>
-            <div className="cc-price">
-              {priceLabel && <span className="price">{priceLabel}</span>}
-              {priceLabel && (
-                <span className={priceType === 'spot' ? 'chip-spot' : 'chip-cont'}>
-                  {t(priceType)}
-                </span>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="carrier-empty">{t('noCarrierAssigned')}</div>
-        )}
+                <div className="cc-info">
+                  <div className="cc-name">{shipment.carrier}</div>
+                  {(shipment.updatedAt || shipment.updated) && (
+                    <div className="cc-meta">
+                      {t('assigned')} · {formatRelativeAgo(shipment.updatedAt || shipment.updated, t)}
+                    </div>
+                  )}
+                </div>
+                <div className="cc-price">
+                  {priceLabel && <span className="price">{priceLabel}</span>}
+                  {priceLabel && (
+                    <span className={priceType === 'spot' ? 'chip-spot' : 'chip-cont'}>
+                      {t(priceType)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="carrier-empty">{t('noCarrierAssigned')}</div>
+            )}
 
-        <ExpHeading icon="orders" className="exp-h-gap">
-          {ordersMeta.label}
-        </ExpHeading>
-        <OrdersBlock shipment={shipment} t={t} />
-        <ItineraryPreview
-          stops={shipment.stops}
-          origin={shipment.origin}
-          dest={shipment.dest}
-          pickDt={shipment.pickDt}
-          delDt={shipment.delDt}
-          t={t}
-        />
+            <ExpHeading icon="orders" className="exp-h-gap">
+              {ordersMeta.label}
+            </ExpHeading>
+            <OrdersBlock shipment={shipment} t={t} />
+          </div>
+
+          <div className="exp-below-right">
+            <ItineraryPreview
+              stops={shipment.stops}
+              origin={shipment.origin}
+              dest={shipment.dest}
+              pickDt={shipment.pickDt}
+              delDt={shipment.delDt}
+              t={t}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
