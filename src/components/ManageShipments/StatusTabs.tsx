@@ -1,5 +1,9 @@
 import React from 'react';
-import { countForStatusTab, type StatusTabKey } from '../../pages/ManageShipments/utils/listingUtils';
+import {
+  countForStatusTab,
+  STATUS_TAB_PRIORITY,
+  type StatusTabKey,
+} from '../../pages/ManageShipments/utils/listingUtils';
 
 interface StatusTabsProps {
   statusCounts: Record<string, number>;
@@ -8,20 +12,27 @@ interface StatusTabsProps {
   t: (key: string) => string;
 }
 
+const TAB_LABEL_KEYS: Record<StatusTabKey, string> = {
+  active: 'tabActive',
+  pending: 'tabPending',
+  scheduled: 'tabScheduled',
+  ready: 'tabReady',
+  past_due: 'tabPastDue',
+  on_trip: 'tabOnTrip',
+  drafts: 'tabDraft',
+  fullfilled: 'tabFulfilled',
+  partially_fullfilled: 'tabPartiallyFulfilled',
+  unfulfilled: 'tabUnfulfilled',
+  cancelled: 'tabCanceled',
+};
+
 /** Matches classic Shipper Panel status bar order and labels. */
-const TABS: { key: StatusTabKey; labelKey: string; warnCount?: boolean }[] = [
-  { key: 'active', labelKey: 'tabActive', warnCount: true },
-  { key: 'pending', labelKey: 'tabPending' },
-  { key: 'scheduled', labelKey: 'tabScheduled' },
-  { key: 'ready', labelKey: 'tabReady' },
-  { key: 'past_due', labelKey: 'tabPastDue' },
-  { key: 'on_trip', labelKey: 'tabOnTrip' },
-  { key: 'drafts', labelKey: 'tabDraft' },
-  { key: 'fullfilled', labelKey: 'tabFulfilled' },
-  { key: 'partially_fullfilled', labelKey: 'tabPartiallyFulfilled' },
-  { key: 'unfulfilled', labelKey: 'tabUnfulfilled' },
-  { key: 'cancelled', labelKey: 'tabCanceled' },
-];
+const TABS: { key: StatusTabKey; labelKey: string; warnCount?: boolean }[] =
+  STATUS_TAB_PRIORITY.map((key) => ({
+    key,
+    labelKey: TAB_LABEL_KEYS[key],
+    ...(key === 'active' ? { warnCount: true } : {}),
+  }));
 
 export const StatusTabs: React.FC<StatusTabsProps> = ({
   statusCounts,

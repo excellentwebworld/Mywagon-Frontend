@@ -11,11 +11,13 @@ import type { LoadsDirection } from '../../../components/ManageShipments/LoadsDi
 import {
   buildFilterChips,
   clearFilterChip,
+  countForStatusTab,
   DEFAULT_FILTERS,
   filtersToApiParams,
   isShipmentEditable,
   kpiLabelKey,
   parseStatusTabParam,
+  resolvePreferredStatusTab,
   statusTabHasApiSupport,
   statusTabToApiStatus,
   validateFilterRanges,
@@ -231,6 +233,46 @@ export function useManageShipments() {
         : null;
     setActiveKpiState((prev) => (prev === kpiFromUrl ? prev : kpiFromUrl));
   }, [searchParams]);
+
+  /**
+   * Top KPI filters (Needs Action, Awaiting POD, …) span multiple statuses.
+   * If the current tab has 0 matches after the KPI is applied, jump to the
+   * first status tab (priority order) that has data; otherwise stay on Active.
+   *
+   * Wait until we've seen loading=true for this KPI so we don't decide on
+   * stale summary counts from the previous (unfiltered) request.
+   */
+  const needsKpiAutoNavRef = useRef<KpiKey | null>(null);
+  const sawLoadingForKpiRef = useRef<KpiKey | null>(null);
+
+  useEffect(() => {
+    needsKpiAutoNavRef.current = activeKpi;
+    sawLoadingForKpiRef.current = null;
+  }, [activeKpi]);
+
+  useEffect(() => {
+    if (!activeKpi) return;
+
+    if (loading) {
+      if (needsKpiAutoNavRef.current === activeKpi) {
+        sawLoadingForKpiRef.current = activeKpi;
+      }
+      return;
+    }
+
+    if (needsKpiAutoNavRef.current !== activeKpi) return;
+    if (sawLoadingForKpiRef.current !== activeKpi) return;
+
+    needsKpiAutoNavRef.current = null;
+
+    const currentCount = countForStatusTab(statusCounts, activeTab);
+    if (currentCount > 0) return;
+
+    const preferred = resolvePreferredStatusTab(statusCounts, 'active');
+    if (preferred !== activeTab) {
+      setActiveTab(preferred);
+    }
+  }, [activeKpi, activeTab, statusCounts, loading, setActiveTab]);
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);

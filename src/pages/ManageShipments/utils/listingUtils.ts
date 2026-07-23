@@ -220,6 +220,37 @@ export function countForStatusTab(statuses: Record<string, number>, tab: StatusT
   }
 }
 
+/**
+ * Status-tab order for KPI auto-navigation (matches StatusTabs UI).
+ * When the current tab has 0 matches under a KPI filter, pick the first tab
+ * in this list with count > 0; if none, fall back to `active`.
+ */
+export const STATUS_TAB_PRIORITY: StatusTabKey[] = [
+  'active',
+  'pending',
+  'scheduled',
+  'ready',
+  'past_due',
+  'on_trip',
+  'drafts',
+  'fullfilled',
+  'partially_fullfilled',
+  'unfulfilled',
+  'cancelled',
+];
+
+export function resolvePreferredStatusTab(
+  statuses: Record<string, number>,
+  fallback: StatusTabKey = 'active'
+): StatusTabKey {
+  for (const tab of STATUS_TAB_PRIORITY) {
+    if (countForStatusTab(statuses, tab) > 0) {
+      return tab;
+    }
+  }
+  return fallback;
+}
+
 function toOptionalNumber(value: string): number | undefined {
   if (value.trim() === '') return undefined;
   const n = Number(value);
