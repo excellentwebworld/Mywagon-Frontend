@@ -295,7 +295,8 @@ export function formValuesToStepThreePayload(
   >,
   mode: SaveStepThreePayload['mode']
 ): SaveStepThreePayload {
-  const targetPrice = parseFloat(String(values.targetPrice ?? ''));
+  const rawTargetPrice = String(values.targetPrice ?? '').trim();
+  const targetPrice = rawTargetPrice === '' ? NaN : parseFloat(rawTargetPrice);
   const selectedCarriers = (values.selectedCarriers || [])
     .map((id) => parseInt(String(id), 10))
     .filter((id) => !Number.isNaN(id) && id > 0);
@@ -310,7 +311,8 @@ export function formValuesToStepThreePayload(
     mode,
     broadcast_type: values.broadcastType,
     selected_carriers: selectedCarriers,
-    target_price: Number.isNaN(targetPrice) ? undefined : targetPrice,
+    // Blank price is allowed (matches legacy negotiable create flow); persist 0 explicitly.
+    target_price: Number.isNaN(targetPrice) ? 0 : targetPrice,
     negotiable: Boolean(values.negotiable),
     tracking_emails: trackingEmails,
     driver_notes: values.driverNotes || '',

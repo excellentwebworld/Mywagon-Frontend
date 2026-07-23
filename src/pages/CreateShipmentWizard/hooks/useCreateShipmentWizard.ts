@@ -616,10 +616,13 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   const saveStep3 = useCallback(
     async (values: WizardFormValues, mode: 'partial' | 'complete') => {
       if (mode === 'complete') {
-        const price = parseFloat(String(values.targetPrice ?? ''));
-        if (!price || price <= 0) {
-          showToast(t('priceRequired') || 'Price must be positive.', 'error');
-          throw new Error('Invalid price');
+        const rawPrice = String(values.targetPrice ?? '').trim();
+        if (rawPrice !== '') {
+          const price = parseFloat(rawPrice);
+          if (Number.isNaN(price) || price < 0) {
+            showToast(t('priceMinZero') || 'Price must be greater than or equal to 0.', 'error');
+            throw new Error('Invalid price');
+          }
         }
         if (values.broadcastType === 'private' && (values.selectedCarriers || []).length < 1) {
           showToast(t('selectCarrierRequired') || 'Please select at least one carrier.', 'error');
@@ -659,10 +662,13 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
 
   const publishShipment = useCallback(
     async (values: WizardFormValues) => {
-      const price = parseFloat(String(values.targetPrice ?? ''));
-      if (!price || price <= 0) {
-        showToast(t('priceRequired') || 'Price must be positive.', 'error');
-        throw new Error('Invalid price');
+      const rawPrice = String(values.targetPrice ?? '').trim();
+      if (rawPrice !== '') {
+        const price = parseFloat(rawPrice);
+        if (Number.isNaN(price) || price < 0) {
+          showToast(t('priceMinZero') || 'Price must be greater than or equal to 0.', 'error');
+          throw new Error('Invalid price');
+        }
       }
       if (values.broadcastType === 'private' && (values.selectedCarriers || []).length < 1) {
         showToast(t('selectCarrierRequired') || 'Please select at least one carrier.', 'error');

@@ -30,7 +30,13 @@ const validationSchema = Yup.object().shape({
       ).min(1, 'At least one cargo line is required'),
     })
   ).min(2, 'At least two stops are required'),
-  targetPrice: Yup.number().positive('Price must be positive').required('Price is required'),
+  targetPrice: Yup.number()
+    .transform((value, originalValue) =>
+      originalValue === '' || originalValue === null || originalValue === undefined ? undefined : value
+    )
+    .min(0, 'Price must be greater than or equal to 0')
+    .nullable()
+    .optional(),
 });
 
 function stepTitle(step: number, t: (key: string) => string) {

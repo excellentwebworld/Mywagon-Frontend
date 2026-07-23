@@ -867,7 +867,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
           {/* PRICING */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
             <div className="ch flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor: T.bd }}>
-              <span className="font-semibold text-sm">{t('pricing') || 'Pricing'}</span>
+              <span className="font-semibold text-sm">
+                {t('pricing') || 'Pricing'}{' '}
+                <span className="ov-sub-inline font-normal" style={{ color: T.t3 }}>
+                  ({t('orderValueOptional') || 'Optional'})
+                </span>
+              </span>
               <span
                 className={`ml-auto inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded ${
                   contract ? 'bg-violet-100 text-indigo-700' : 'bg-amber-100 text-amber-800'
