@@ -838,6 +838,7 @@
   "customerVat": "VAT Number",
   "customerAdded": "✅ Customer added",
   "comingSoon": "Coming Soon",
+  "chatComingSoon": "Chat will be available soon.",
   "customerInviteNote": "Customer invitations are not yet available. You can add customers manually or sync from your ERP.",
   "confirmSuspendPartner": "Are you sure you want to suspend this partner?",
   "confirmReactivatePartner": "Reactivate this partner?",

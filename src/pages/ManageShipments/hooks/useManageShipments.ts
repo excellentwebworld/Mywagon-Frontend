@@ -495,10 +495,12 @@ export function useManageShipments() {
   /** Partner ids already invited on the target shipment (auto-selected & locked in modal). */
   const [alreadyInvitedPartnerIds, setAlreadyInvitedPartnerIds] = useState<Set<string>>(new Set());
 
-  const handleMessage = useCallback((s: Shipment, offerId?: string) => {
-    const q = offerId ? `?offer=${encodeURIComponent(offerId)}` : '';
-    window.open(`/shipments/${s.id}${q}`, '_blank', 'noopener,noreferrer');
-  }, []);
+  const handleMessage = useCallback(
+    (_s: Shipment, _offerId?: string) => {
+      showToast(t('chatComingSoon') || 'Chat will be available soon.', 'info');
+    },
+    [showToast, t]
+  );
 
   const handleAcceptOffer = useCallback(
     async (s: Shipment, offerId: string) => {

@@ -838,6 +838,7 @@
   "customerVat": "ΑΦΜ",
   "customerAdded": "✅ Ο πελάτης προστέθηκε",
   "comingSoon": "Σύντομα Διαθέσιμο",
+  "chatComingSoon": "Η συνομιλία θα είναι διαθέσιμη σύντομα.",
   "customerInviteNote": "Οι προσκλήσεις πελατών δεν είναι ακόμα διαθέσιμες.",
   "confirmSuspendPartner": "Θέλετε σίγουρα να αναστείλετε αυτόν τον συνεργάτη;",
   "confirmReactivatePartner": "Επανενεργοποίηση αυτού του συνεργάτη;",
