@@ -1033,6 +1033,8 @@
   "rowActionDelete": "Διαγραφή",
   "showAllStops": "Εμφάνιση όλων των στάσεων ({{count}})",
   "hideStops": "Απόκρυψη στάσεων",
+  "podProof": "Απόδειξη παράδοσης",
+  "podOpen": "Άνοιγμα",
   "expandAll": "Άνοιγμα όλων",
   "collapseAll": "Κλείσιμο όλων",
   "quantity": "Ποσότητα",

@@ -120,6 +120,9 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
       stop.pod !== null && stop.pod !== undefined && String(stop.pod) !== ''
         ? String(stop.pod)
         : '0',
+    podImages: (stop.pod_images || [])
+      .filter((img) => Boolean(img?.url))
+      .map((img) => ({ id: img.id ?? null, url: String(img.url) })),
     unableStatus: Number(stop.unable_status ?? 0) || 0,
     customers:
       stop.order_id || stop.product_name || stop.qty || stop.weight || name

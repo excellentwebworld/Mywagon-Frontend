@@ -10,6 +10,7 @@ import {
   type ItineraryStopVisual,
   type ProductLineVisual,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { ExpandCollapseButtons } from './ExpansionShared';
 import { ExpHeading } from './ExpHeading';
 
@@ -137,6 +138,60 @@ function PodChip({
   return null;
 }
 
+function uniquePodUrls(images?: Array<{ id?: number | null; url: string }>): string[] {
+  const seen = new Set<string>();
+  const urls: string[] = [];
+  for (const img of images || []) {
+    const url = resolveMediaUrl(img.url);
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    urls.push(url);
+  }
+  return urls;
+}
+
+/** Labeled POD preview strip — larger thumbs, open in new tab. */
+function PodProof({
+  images,
+  title,
+  openHint,
+  compact = false,
+}: {
+  images?: Array<{ id?: number | null; url: string }>;
+  title: string;
+  openHint: string;
+  compact?: boolean;
+}) {
+  const urls = uniquePodUrls(images);
+  if (urls.length === 0) return null;
+
+  return (
+    <div className={`itin-pod-proof${compact ? ' itin-pod-proof--compact' : ''}`}>
+      <div className="itin-pod-proof-meta">
+        <span className="itin-pod-proof-title">{title}</span>
+        <span className="itin-pod-proof-count">
+          {urls.length} · {openHint}
+        </span>
+      </div>
+      <div className="itin-pod-proof-thumbs">
+        {urls.map((url, idx) => (
+          <a
+            key={`${url}-${idx}`}
+            className="itin-pod-thumb"
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={openHint}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img src={url} alt={`${title} ${idx + 1}`} loading="lazy" />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
   stops,
   origin,
@@ -261,18 +316,31 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
                   </div>
                   <div className="itin-loc">{stop.location}</div>
                   {showAddress ? <div className="itin-addr">{truncate(stop.address, 56)}</div> : null}
-                  <div className="itin-head-foot">
-                    {stop.customers.slice(0, 1).map((name) => (
-                      <span key={name} className="itin-cust-pill">
-                        {name}
-                      </span>
-                    ))}
-                    {stop.customers.length > 1 ? (
-                      <span className="itin-cust-more">+{stop.customers.length - 1}</span>
-                    ) : null}
-                    {summary ? <span className="itin-summary">{summary}</span> : null}
-                  </div>
+                  {stop.customers.length > 0 || summary ? (
+                    <div className="itin-head-foot">
+                      {stop.customers.slice(0, 1).map((name) => (
+                        <span key={name} className="itin-cust-pill">
+                          {name}
+                        </span>
+                      ))}
+                      {stop.customers.length > 1 ? (
+                        <span className="itin-cust-more">+{stop.customers.length - 1}</span>
+                      ) : null}
+                      {summary ? <span className="itin-summary">{summary}</span> : null}
+                    </div>
+                  ) : null}
                 </button>
+                {!(hasCargo && cargoOpen) ? (
+                  <PodProof
+                    images={
+                      stop.podImages?.length
+                        ? stop.podImages
+                        : stop.lines.flatMap((line) => line.podImages || [])
+                    }
+                    title={t('podProof')}
+                    openHint={t('podOpen')}
+                  />
+                ) : null}
 
                 {hasCargo && cargoOpen && (
                   <div className={`itin-cargo itin-cargo--${stopVisual}`}>
@@ -285,31 +353,44 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
                         line.pod,
                         line.unableStatus
                       );
+                      const linePods = line.podImages?.length
+                        ? line.podImages
+                        : stop.lines.length === 1
+                          ? stop.podImages
+                          : undefined;
                       return (
                         <div
                           key={`${line.orderId}-${li}`}
                           className={`itin-cargo-row itin-cargo-row--${visual}`}
                         >
-                          <span className={`itin-action ${isPickup ? 'pick' : 'drop'}`}>
-                            {isPickup ? '↑' : '↓'}
-                          </span>
-                          <div className="itin-cargo-main">
-                            <div className="itin-product" title={line.products}>
-                              {truncate(line.products, 48)}
+                          <div className="itin-cargo-row-main">
+                            <span className={`itin-action ${isPickup ? 'pick' : 'drop'}`}>
+                              {isPickup ? '↑' : '↓'}
+                            </span>
+                            <div className="itin-cargo-main">
+                              <div className="itin-product" title={line.products}>
+                                {truncate(line.products, 48)}
+                              </div>
+                              <div className="itin-cargo-sub">
+                                {line.orderId ? <span className="itin-order">{line.orderId}</span> : null}
+                                {line.customerName && line.customerName !== '—' ? (
+                                  <span>{line.customerName}</span>
+                                ) : null}
+                              </div>
                             </div>
-                            <div className="itin-cargo-sub">
-                              {line.orderId ? <span className="itin-order">{line.orderId}</span> : null}
-                              {line.customerName && line.customerName !== '—' ? (
-                                <span>{line.customerName}</span>
-                              ) : null}
+                            <div className="itin-cargo-stats">
+                              {qtyLabel ? <span>{qtyLabel}</span> : null}
+                              {weightLabel ? <span>{weightLabel}</span> : null}
+                              <PodChip type={stop.type} pod={line.pod} visual={visual} />
+                              <ProductStatusTick visual={visual} />
                             </div>
                           </div>
-                          <div className="itin-cargo-stats">
-                            {qtyLabel ? <span>{qtyLabel}</span> : null}
-                            {weightLabel ? <span>{weightLabel}</span> : null}
-                            <PodChip type={stop.type} pod={line.pod} visual={visual} />
-                            <ProductStatusTick visual={visual} />
-                          </div>
+                          <PodProof
+                            images={linePods}
+                            title={t('podProof')}
+                            openHint={t('podOpen')}
+                            compact
+                          />
                         </div>
                       );
                     })}

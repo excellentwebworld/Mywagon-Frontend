@@ -97,6 +97,8 @@ export interface ApiShipmentStop {
   status?: string | number | null;
   /** POD: 0 not uploaded, 1 uploaded, 2 later, 3 skip */
   pod?: string | number | null;
+  /** Uploaded POD media (Spatie), when pod = 1. */
+  pod_images?: Array<{ id?: number | null; url: string }> | null;
   unable_status?: string | number | null;
   sort_order?: number;
 }

@@ -149,6 +149,8 @@ export interface ShipmentStop {
   locationStatus?: string;
   /** POD: 0 not uploaded, 1 uploaded, 2 later, 3 skip */
   pod?: string;
+  /** Uploaded POD image URLs when available. */
+  podImages?: Array<{ id?: number | null; url: string }>;
   unableStatus?: number;
 }
 

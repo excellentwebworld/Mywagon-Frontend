@@ -1033,6 +1033,8 @@
   "rowActionDelete": "Delete",
   "showAllStops": "Show all stops ({{count}})",
   "hideStops": "Hide stops",
+  "podProof": "Proof of delivery",
+  "podOpen": "Open",
   "expandAll": "Expand all",
   "collapseAll": "Collapse all",
   "quantity": "Quantity",

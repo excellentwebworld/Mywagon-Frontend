@@ -614,6 +614,7 @@ export type ItineraryStopGroup = {
   /** First line / location[0] status — same as driver itinerary group. */
   locationStatus?: string;
   pod?: string;
+  podImages?: Array<{ id?: number | null; url: string }>;
   unableStatus?: number;
   lines: Array<{
     customerName: string;
@@ -625,6 +626,7 @@ export type ItineraryStopGroup = {
     weightUnit: string;
     locationStatus?: string;
     pod?: string;
+    podImages?: Array<{ id?: number | null; url: string }>;
     unableStatus?: number;
   }>;
 };
@@ -831,6 +833,7 @@ export function groupItineraryStops(
         customers: [],
         locationStatus: '0',
         pod: '0',
+        podImages: [],
         unableStatus: 0,
         lines: [],
       },
@@ -845,6 +848,7 @@ export function groupItineraryStops(
         customers: [],
         locationStatus: '0',
         pod: '0',
+        podImages: [],
         unableStatus: 0,
         lines: [],
       },
@@ -870,6 +874,7 @@ export function groupItineraryStops(
           weightUnit: order.weightUnit || '',
           locationStatus: stop.locationStatus ?? '0',
           pod: stop.pod ?? '0',
+          podImages: stop.podImages ?? [],
           unableStatus: stop.unableStatus ?? 0,
         });
       });
@@ -882,6 +887,12 @@ export function groupItineraryStops(
       lines.forEach((line) => last.lines.push(line));
       customers.forEach((name) => {
         if (!last.customers.includes(name)) last.customers.push(name);
+      });
+      const existingUrls = new Set((last.podImages || []).map((img) => img.url));
+      (stop.podImages || []).forEach((img) => {
+        if (!img.url || existingUrls.has(img.url)) return;
+        existingUrls.add(img.url);
+        last.podImages = [...(last.podImages || []), img];
       });
       return;
     }
@@ -898,6 +909,7 @@ export function groupItineraryStops(
       // location[0] — keep first row's status when merging products
       locationStatus: stop.locationStatus ?? '0',
       pod: stop.pod ?? '0',
+      podImages: stop.podImages ?? [],
       unableStatus: stop.unableStatus ?? 0,
       lines,
     });
