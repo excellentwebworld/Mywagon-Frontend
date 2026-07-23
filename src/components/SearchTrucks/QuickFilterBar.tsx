@@ -39,7 +39,7 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
   onOpenSort,
   filterActiveCount = 0,
   sortActive = false,
-  canViewBidsCount = true,
+  canViewBidsCount = false,
   onOpenMobileMap,
   showMobileMapBtn,
   t,

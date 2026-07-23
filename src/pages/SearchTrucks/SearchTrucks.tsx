@@ -182,6 +182,7 @@ export const SearchTrucks: React.FC = () => {
           )}
           subscriptionBlocked={m.subscriptionBlocked}
           hideDetailPanel={m.mobileMapOpen}
+          canViewBidsCount={m.canViewBidsCount}
           t={m.t}
         />
 

@@ -11,6 +11,8 @@ interface AvailabilityCardProps {
   onBook: (truck: AvailableTruck, mode?: DrawerMode, occurrence?: string) => void;
   t: (key: string, options?: Record<string, unknown>) => string;
   cardRef?: (el: HTMLDivElement | null) => void;
+  /** View If Posted Truck Received Bids */
+  canViewBidsCount?: boolean;
 }
 
 export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
@@ -22,6 +24,7 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
   onBook,
   t,
   cardRef,
+  canViewBidsCount = false,
 }) => (
   <div
     ref={cardRef}
@@ -85,7 +88,7 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
             <span className="sat-muted">{t('satVehicleType')}: </span>
             {truck.truckType}
             {truck.specs ? <span className="sat-muted"> · {truck.specs}</span> : null}
-            {truck.bidsCount != null && truck.bidsCount > 0 && (
+            {canViewBidsCount && truck.bidsCount != null && truck.bidsCount > 0 && (
               <span className="sat-muted">
                 {' '}
                 · {t('satBidsCount', { count: truck.bidsCount })}

@@ -473,15 +473,33 @@ export function useSearchTrucks() {
 
   const liveTrucks = useMemo(() => {
     const pages = listQuery.data?.pages ?? [];
+    const caps = pages[0]?.meta.capabilities;
+    const allowBidsCount = caps?.can_view_bids_count === true;
+    const allowBestBid = caps?.can_view_best_bid === true;
     const items = pages.flatMap((p) => p.trucks);
-    return items.map((x) => (bidSentIds.has(x.id) ? { ...x, bidSent: true } : x));
+    return items.map((x) => {
+      const patched = bidSentIds.has(x.id) ? { ...x, bidSent: true } : x;
+      if (allowBidsCount && allowBestBid) return patched;
+      return {
+        ...patched,
+        hasBids: allowBidsCount ? patched.hasBids : undefined,
+        bidsCount: allowBidsCount ? patched.bidsCount : null,
+        bestBid: allowBestBid ? patched.bestBid : null,
+      };
+    });
   }, [listQuery.data?.pages, bidSentIds]);
 
   const filtered = USE_MOCK ? mockFiltered : liveTrucks;
 
   const totalFromApi = listQuery.data?.pages[0]?.meta.total ?? 0;
-  const canViewBidsCount =
-    USE_MOCK || listQuery.data?.pages[0]?.meta.capabilities?.can_view_bids_count !== false;
+  const listCapabilities = listQuery.data?.pages[0]?.meta.capabilities;
+  // Opt-in: only show bid features when API explicitly grants them.
+  const canViewBidsCount = USE_MOCK
+    ? true
+    : listCapabilities?.can_view_bids_count === true;
+  const canViewBestBid = USE_MOCK
+    ? true
+    : listCapabilities?.can_view_best_bid === true;
 
   useEffect(() => {
     if (canViewBidsCount) return;
@@ -1071,6 +1089,7 @@ export function useSearchTrucks() {
     quickFilters,
     toggleQuickFilter,
     canViewBidsCount,
+    canViewBestBid,
     criteria,
     setCriteria,
     appliedCriteria,

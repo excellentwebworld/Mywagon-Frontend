@@ -25,6 +25,8 @@ interface AvailabilityListProps {
   subscriptionBlocked?: boolean;
   /** Hide list-side detail when map hosts the bottom sheet (mobile overlay) */
   hideDetailPanel?: boolean;
+  /** View If Posted Truck Received Bids */
+  canViewBidsCount?: boolean;
   t: (key: string) => string;
 }
 
@@ -86,6 +88,7 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
   creatingShipment = false,
   subscriptionBlocked = false,
   hideDetailPanel = false,
+  canViewBidsCount = false,
   t,
 }) => {
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -162,6 +165,7 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
                 onSelect={(id) => onSelect(id)}
                 onBook={onBook}
                 t={t}
+                canViewBidsCount={canViewBidsCount}
                 cardRef={(el) => {
                   cardRefs.current[truck.id] = el;
                 }}
