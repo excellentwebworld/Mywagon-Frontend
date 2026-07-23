@@ -1325,19 +1325,36 @@
 /* Enlarged timeline (status expansion) */
 .tl-big {
   margin-bottom: 16px;
-  padding: 14px 16px 28px;
+  padding: 14px 16px 18px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .tl-big .tl,
 .tl-enlarged {
-  min-height: 32px;
-  padding-top: 8px;
+  min-height: 0;
+  padding-top: 6px;
   padding-bottom: 4px;
-  margin-bottom: 24px;
+  margin-bottom: 0;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.tl-enlarged .tl-track {
+  top: 12px;
+  transform: none;
+}
+
+.tl-enlarged .tl-step {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-width: 108px;
+  padding: 0 6px;
 }
 
 .tl-big .tl-dot,
@@ -1352,7 +1369,43 @@
   height: 14px;
 }
 
-/* Keep first/last tooltips inside the card */
+/* Always-visible captions (Laravel Load Details style) */
+.tl-cap {
+  width: 100%;
+  text-align: center;
+  pointer-events: none;
+}
+
+.tl-cap-label {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.tl-cap-label--cur {
+  color: var(--accent);
+}
+
+.tl-cap-label--pending {
+  color: #b45353;
+}
+
+.tl-cap-label--success {
+  color: #1f9d3f;
+}
+
+.tl-cap-date,
+.tl-cap-time {
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+/* Keep first/last tooltips inside the card (compact hover mode) */
 .tl-step:first-child .tl-tip {
   left: 0;
   transform: translateX(0) translateY(-4px);

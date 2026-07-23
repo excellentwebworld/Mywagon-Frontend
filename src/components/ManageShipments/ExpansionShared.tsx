@@ -37,21 +37,37 @@ export function ProgressTimeline({
   const timeline = (
     <div className={`tl${enlarged ? ' tl-enlarged' : ''}`} role="list">
       <div className="tl-track" aria-hidden />
-      {steps.map((step) => (
-        <div
-          key={step.id}
-          className={`tl-step tl-step--${step.state}`}
-          role="listitem"
-          tabIndex={0}
-          aria-label={[step.label, step.sub].filter(Boolean).join(', ')}
-        >
-          <div className={`tl-dot ${step.state}`} />
-          <div className="tl-tip" role="tooltip">
-            <div className={`tl-tip-label tl-tip-label--${step.state}`}>{step.label}</div>
-            {step.sub ? <div className="tl-tip-sub">{step.sub}</div> : null}
+      {steps.map((step) => {
+        const dateLine = step.dateLine;
+        const timeLine = step.timeLine;
+        const tipSub = step.sub || [dateLine, timeLine].filter(Boolean).join(' · ');
+        return (
+          <div
+            key={step.id}
+            className={`tl-step tl-step--${step.state}`}
+            role="listitem"
+            tabIndex={0}
+            aria-label={[step.label, tipSub].filter(Boolean).join(', ')}
+          >
+            <div className={`tl-dot ${step.state}`} />
+            {enlarged ? (
+              <div className="tl-cap">
+                <div className={`tl-cap-label tl-cap-label--${step.state}`}>{step.label}</div>
+                {dateLine ? <div className="tl-cap-date">{dateLine}</div> : null}
+                {timeLine ? <div className="tl-cap-time">{timeLine}</div> : null}
+                {!dateLine && !timeLine && step.sub ? (
+                  <div className="tl-cap-date">{step.sub}</div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="tl-tip" role="tooltip">
+                <div className={`tl-tip-label tl-tip-label--${step.state}`}>{step.label}</div>
+                {tipSub ? <div className="tl-tip-sub">{tipSub}</div> : null}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 

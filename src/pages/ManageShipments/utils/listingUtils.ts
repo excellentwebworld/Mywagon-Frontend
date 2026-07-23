@@ -1,6 +1,11 @@
 import type { Shipment } from '../../../context/AppContext';
 import type { ListShipmentsParams, ShipmentKpiKey, ShipmentSortKey } from '../../../api/types/shipments';
-import { localDateTimeLocalToUtcIso, parseUtcInstant } from '../../../utils/timezone';
+import {
+  formatUtcToDisplayDate,
+  formatUtcToDisplayTime,
+  localDateTimeLocalToUtcIso,
+  parseUtcInstant,
+} from '../../../utils/timezone';
 
 /** Convert datetime-local filter values to UTC ISO for the API. */
 function toUtcFilterParam(value: string): string | undefined {
@@ -591,6 +596,10 @@ export type LaravelProgressStep = {
   state: LaravelProgressState;
   /** Optional secondary line (date / time), like Laravel Load Details. */
   sub?: string;
+  /** Laravel-style date line under the action (e.g. 01/07/2026). */
+  dateLine?: string;
+  /** Laravel-style time line under the date (e.g. 18:49). */
+  timeLine?: string;
 };
 
 export type ItineraryStopGroup = {
@@ -897,6 +906,50 @@ export function groupItineraryStops(
   return groups;
 }
 
+/** Build Laravel-style date/time caption parts for a progress step. */
+function progressDateTimeParts(
+  isoOrDisplay?: string | null,
+  dateOnly?: string | null,
+  timeOnly?: string | null
+): { dateLine?: string; timeLine?: string; sub?: string } {
+  if (isoOrDisplay && parseUtcInstant(isoOrDisplay)) {
+    const dateLine = formatUtcToDisplayDate(isoOrDisplay);
+    const timeLine = formatUtcToDisplayTime(isoOrDisplay);
+    return {
+      dateLine: dateLine || undefined,
+      timeLine: timeLine || undefined,
+      sub: [dateLine, timeLine].filter(Boolean).join(' · ') || undefined,
+    };
+  }
+
+  // Already-local display strings from stop schedule (YYYY-MM-DD / HH:mm or display).
+  let dateLine = (dateOnly || '').trim() || undefined;
+  let timeLine = (timeOnly || '').trim() || undefined;
+
+  if (dateLine && /^\d{4}-\d{2}-\d{2}$/.test(dateLine)) {
+    const [y, m, d] = dateLine.split('-');
+    dateLine = `${d}/${m}/${y}`;
+  }
+
+  // Combined display like "15/6 · 18:30" or "15 Jun, 18:30"
+  if (!dateLine && isoOrDisplay) {
+    const raw = isoOrDisplay.trim();
+    const parts = raw.split(/\s*[·,]\s*|\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      dateLine = parts[0];
+      timeLine = parts.slice(1).join(' ');
+    } else if (raw) {
+      dateLine = raw;
+    }
+  }
+
+  return {
+    dateLine,
+    timeLine,
+    sub: [dateLine, timeLine].filter(Boolean).join(' · ') || undefined,
+  };
+}
+
 /** Progress dots aligned to physical itinerary stops (same grouping as Itinerary panel). */
 export function buildLaravelProgressSteps(
   shipment: Shipment,
@@ -950,23 +1003,35 @@ export function buildLaravelProgressSteps(
     status === 'not_fullfilled';
   const pastAcceptance = !isPending && !isCanceled;
 
+  const createdParts = progressDateTimeParts(shipment.createdAt || shipment.date || null);
+
   const steps: LaravelProgressStep[] = [
     {
       id: 'created',
       label: t('tlCreated'),
       state: 'done',
-      sub: shipment.date || undefined,
+      dateLine: createdParts.dateLine,
+      timeLine: createdParts.timeLine,
+      sub: createdParts.sub,
     },
   ];
 
   const pushItinerarySteps = (stateForIndex: (idx: number) => LaravelProgressState) => {
     itineraryStops.forEach((stop, idx) => {
-      const when = [stop.date, stop.timeStart].filter(Boolean).join(' · ');
+      const when = progressDateTimeParts(
+        null,
+        stop.date || undefined,
+        stop.timeStart || undefined
+      );
+      const action =
+        stop.type === 'pickup' ? t('pickup') : t('delivery');
       steps.push({
         id: `itin-${idx}`,
-        label: `${stop.type === 'pickup' ? t('pickup') : t('delivery')} · ${stop.location}`,
+        label: `${action} · ${stop.location}`,
         state: stateForIndex(idx),
-        sub: when || undefined,
+        dateLine: when.dateLine,
+        timeLine: when.timeLine,
+        sub: when.sub,
       });
     });
   };
@@ -999,7 +1064,20 @@ export function buildLaravelProgressSteps(
   if (onTrip || fulfilledLike) startState = 'done';
   else if (beforeTrip) startState = 'skip';
   else if (pastAcceptance) startState = 'cur';
-  steps.push({ id: 'start_trip', label: t('startTrip'), state: startState });
+  const firstStopWhen = progressDateTimeParts(
+    null,
+    itineraryStops[0]?.date,
+    itineraryStops[0]?.timeStart
+  );
+  steps.push({
+    id: 'start_trip',
+    label: t('startTrip'),
+    state: startState,
+    // Best available schedule stamp until activity-log timestamps are exposed by API.
+    dateLine: onTrip || fulfilledLike ? firstStopWhen.dateLine : undefined,
+    timeLine: onTrip || fulfilledLike ? firstStopWhen.timeLine : undefined,
+    sub: onTrip || fulfilledLike ? firstStopWhen.sub : undefined,
+  });
 
   // Driver route view: index < current → complete; index === current → running/reached; else pending
   const currentItinIndex = onTrip ? findCurrentItineraryIndex(itineraryStops) : -1;

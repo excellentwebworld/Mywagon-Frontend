@@ -185,6 +185,7 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     delDt: scheduleLabel(item.delivery_at_iso, item.delivery_at),
     pickDtIso: item.pickup_at_iso ?? null,
     delDtIso: item.delivery_at_iso ?? null,
+    createdAt: item.created_at ?? null,
     ref: item.customer_reference || undefined,
     status,
     vis: (item.channel || item.type) === 'public' ? 'public' : 'private',

@@ -198,6 +198,8 @@ export interface Shipment {
   delDtIso?: string | null;
   /** ISO timestamp for last update; format in UI via formatRelativeAgo(..., t). */
   updatedAt?: string | null;
+  /** ISO created_at for progress timeline (Created step). */
+  createdAt?: string | null;
   stops?: ShipmentStop[];
   journeyDistanceKm?: number | null;
   journeyTime?: string | number | null;
