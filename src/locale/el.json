@@ -1765,6 +1765,7 @@
   "satNoStartingPrice": "Χωρίς αρχική τιμή.",
   "satMustSendOffer": "Πρέπει να στείλετε προσφορά.",
   "satYourOffer": "Η Προσφορά σας (€)",
+  "satOfferRequired": "Η προσφορά σας είναι υποχρεωτική.",
   "satNotesToProvider": "Σημειώσεις προς τον Πάροχο",
   "satTermsNotesPlaceholder": "Ειδικοί όροι, σημειώσεις χρόνου...",
   "satSelectOccurrence": "Επιλογή Περιστατικού",

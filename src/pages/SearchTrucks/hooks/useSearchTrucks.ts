@@ -854,6 +854,13 @@ export function useSearchTrucks() {
       const shipmentId = shipment.id;
       if (!shipmentId) throw new ApiError('Invalid shipment', 422);
 
+      const showPrice = selectedTruck.price != null && !selectedTruck.priceBlurred;
+      const offerRequired = !showPrice || !draft.acceptStartingPrice;
+      const offerAmount = Number(String(draft.offerPrice).trim());
+      if (offerRequired && (!Number.isFinite(offerAmount) || offerAmount <= 0)) {
+        throw new ApiError(t('satOfferRequired') || 'Your offer is required.', 422);
+      }
+
       return availabilitiesService.placeBid(Number(selectedTruck.id), {
         shipment_id: shipmentId,
         quote: draft.offerPrice || undefined,

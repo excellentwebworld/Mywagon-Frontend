@@ -141,6 +141,11 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
     : '—';
 
   const showPrice = truck.price != null && !truck.priceBlurred;
+  const offerRequired = !showPrice || !draft.acceptStartingPrice;
+  const offerAmount = Number(String(draft.offerPrice).trim());
+  const offerValid =
+    !offerRequired || (Number.isFinite(offerAmount) && offerAmount > 0);
+  const canReviewTerms = offerValid;
 
   return (
     <div
@@ -382,15 +387,31 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
 
               {(!showPrice || !draft.acceptStartingPrice) && (
                 <div className="sat-field">
-                  <label>{t('satYourOffer')}</label>
+                  <label htmlFor="sat-offer-price">
+                    {t('satYourOffer')}
+                    <span className="sat-req" aria-hidden>
+                      *
+                    </span>
+                  </label>
                   <input
+                    id="sat-offer-price"
                     type="number"
+                    min={0}
+                    step="any"
+                    required
+                    aria-required="true"
+                    aria-invalid={!offerValid}
                     value={draft.offerPrice}
                     onChange={(e) =>
                       onDraftChange({ offerPrice: e.target.value, acceptStartingPrice: false })
                     }
                     placeholder={showPrice ? String(truck.price) : ''}
                   />
+                  {!offerValid ? (
+                    <p className="sat-field-error" role="alert">
+                      {t('satOfferRequired') || 'Your offer is required.'}
+                    </p>
+                  ) : null}
                 </div>
               )}
               <div className="sat-field">
@@ -477,7 +498,15 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
               <button type="button" className="sat-btn" onClick={() => onStepChange(1)}>
                 ← {t('satBack')}
               </button>
-              <button type="button" className="sat-btn sat-btn-pr" onClick={() => onStepChange(3)}>
+              <button
+                type="button"
+                className="sat-btn sat-btn-pr"
+                disabled={!canReviewTerms}
+                onClick={() => {
+                  if (!canReviewTerms) return;
+                  onStepChange(3);
+                }}
+              >
                 {t('satReview')} →
               </button>
             </>

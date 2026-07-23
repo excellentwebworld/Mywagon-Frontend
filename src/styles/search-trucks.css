@@ -1343,6 +1343,20 @@
   display: block;
   margin-bottom: 4px;
 }
+.sat-req {
+  color: var(--danger, #dc2626);
+  margin-left: 2px;
+}
+.sat-field-error {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--danger, #dc2626);
+}
+.sat-field input[aria-invalid='true'],
+.sat-field select[aria-invalid='true'],
+.sat-field textarea[aria-invalid='true'] {
+  border-color: var(--danger, #dc2626);
+}
 .sat-field input,
 .sat-field select,
 .sat-field textarea {

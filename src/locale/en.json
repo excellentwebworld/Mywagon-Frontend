@@ -1765,6 +1765,7 @@
   "satNoStartingPrice": "No starting price.",
   "satMustSendOffer": "You must send an offer.",
   "satYourOffer": "Your Offer (€)",
+  "satOfferRequired": "Your offer is required.",
   "satNotesToProvider": "Notes to Provider",
   "satTermsNotesPlaceholder": "Any special terms, timing notes...",
   "satSelectOccurrence": "Select Occurrence",
