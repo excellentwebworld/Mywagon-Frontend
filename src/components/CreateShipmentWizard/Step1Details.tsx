@@ -231,15 +231,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   }, [mOrd]);
 
   useEffect(() => {
-    if (locations.length > 0) {
-      setAbLocs(locations.filter((l) => l.status === "active"));
-    }
+    setAbLocs(locations.filter((l) => l.status === "active"));
   }, [locations]);
 
   useEffect(() => {
-    if (skus.length > 0) {
-      setPmSkus(skus.filter((s) => s.active));
-    }
+    setPmSkus(skus.filter((s) => s.active));
   }, [skus]);
 
   const orderIdsFromStops = useMemo(() => {

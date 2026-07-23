@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { addressBookService, productMasterService } from '../api';
+import { useAuth } from './AuthContext';
 
 // ==========================================
 // TYPES
@@ -379,6 +380,13 @@ const locationsFetchState: MasterDataFetchState = { loaded: false, inflight: nul
 const skusFetchState: MasterDataFetchState = { loaded: false, inflight: null };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isAuthenticated } = useAuth();
+  /** Parent shipper for sub-users; otherwise the logged-in shipper user id. */
+  const authScopeKey = user
+    ? String(user.parent_shipper_id ?? user.id)
+    : null;
+  const prevAuthScopeKeyRef = useRef<string | null | undefined>(undefined);
+
   // Locale State
   const [lang, setLangState] = useState<'en' | 'el'>(
     (localStorage.getItem('shipment-lang') as 'en' | 'el') || 'en'
@@ -596,6 +604,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateSku = (sku: SKU) => {
     setSkus((prev) => prev.map((item) => (item.id === sku.id ? sku : item)));
   };
+
+  // Drop cached address-book / SKU master data when the authenticated shipper changes.
+  // Without this, Create Shipment can keep showing the previous shipper's locations after
+  // logout/login in the same tab (module-level fetch flags skip refetch).
+  useEffect(() => {
+    const prev = prevAuthScopeKeyRef.current;
+    prevAuthScopeKeyRef.current = authScopeKey;
+
+    // Skip the very first render when scope is still unknown / unchanged null.
+    if (prev === undefined && authScopeKey === null && !isAuthenticated) {
+      return;
+    }
+    if (prev === authScopeKey) {
+      return;
+    }
+
+    locationsFetchState.loaded = false;
+    locationsFetchState.inflight = null;
+    skusFetchState.loaded = false;
+    skusFetchState.inflight = null;
+    setLocations([]);
+    setSkus([]);
+
+    if (!isAuthenticated || !authScopeKey) {
+      return;
+    }
+
+    void refreshLocationsFromApi(true);
+    void refreshSkusFromApi(true);
+  }, [authScopeKey, isAuthenticated, refreshLocationsFromApi, refreshSkusFromApi]);
 
   // Carriers State
   const [carriers, setCarriers] = useState<Carrier[]>([
