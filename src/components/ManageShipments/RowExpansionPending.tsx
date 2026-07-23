@@ -13,6 +13,7 @@ import {
   ProgressTimeline,
   QuickActions,
 } from './ExpansionShared';
+import { CarrierAvatar } from './CarrierAvatar';
 
 type ExpTranslate = (key: string, opts?: Record<string, unknown>) => string;
 
@@ -76,9 +77,12 @@ function OfferRow({
     <div className={`bid-row${locked ? ' is-busy' : ''}`}>
       <div className="bid-top">
         <div className="bid-name">
-          <span className="carrier-av" style={{ width: 24, height: 24, fontSize: 10 }}>
-            {offer.initials || offer.name.substring(0, 2).toUpperCase()}
-          </span>
+          <CarrierAvatar
+            name={offer.name}
+            initials={offer.initials}
+            avatar={offer.avatar}
+            size={24}
+          />
           {offer.name}
           {offer.rating != null && <span className="star">★ {offer.rating.toFixed(1)}</span>}
           <span className="badge badge-gray" style={{ fontSize: 9 }}>
@@ -331,9 +335,12 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
                 return (
                   <div key={inv.id} className={`inv-row${rowBusy ? ' is-busy' : ''}`}>
                     <span className="inv-name">
-                      <span className="carrier-av" style={{ width: 20, height: 20, fontSize: 8 }}>
-                        {inv.initials || inv.name.substring(0, 2).toUpperCase()}
-                      </span>
+                      <CarrierAvatar
+                        name={inv.name}
+                        initials={inv.initials}
+                        avatar={inv.avatar}
+                        size={20}
+                      />
                       {inv.name}
                     </span>
                     {inv.invitedAt && (

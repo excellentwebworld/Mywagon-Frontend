@@ -14,6 +14,7 @@ import {
   QuickActions,
   StatusDetailGrid,
 } from './ExpansionShared';
+import { CarrierAvatar } from './CarrierAvatar';
 
 interface RowExpansionStatusProps {
   shipment: Shipment;
@@ -87,9 +88,12 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
             <ExpHeading icon="carrier">{t('assignedTransporter')}</ExpHeading>
             {shipment.carrier ? (
               <div className="carrier-card">
-                <div className="cc-av">
-                  {shipment.carrier_init || shipment.carrier.substring(0, 2).toUpperCase()}
-                </div>
+                <CarrierAvatar
+                  className="cc-av"
+                  name={shipment.carrier}
+                  initials={shipment.carrier_init}
+                  avatar={shipment.carrierAvatar}
+                />
                 <div className="cc-info">
                   <div className="cc-name">{shipment.carrier}</div>
                   {(shipment.updatedAt || shipment.updated) && (

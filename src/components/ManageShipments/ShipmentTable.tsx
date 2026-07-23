@@ -14,6 +14,7 @@ import { RowExpansionSkeleton } from '../skeletons/ManageShipmentsSkeleton';
 import { RowActionsMenu } from './RowActionsMenu';
 import { RowExpansionPending } from './RowExpansionPending';
 import { RowExpansionStatus } from './RowExpansionStatus';
+import { CarrierAvatar } from './CarrierAvatar';
 
 const BASE_COL_COUNT = 11;
 
@@ -298,9 +299,11 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                   <td>
                     {s.carrier ? (
                       <div className="carrier-cell">
-                        <span className="carrier-av">
-                          {s.carrier_init || s.carrier.substring(0, 2).toUpperCase()}
-                        </span>
+                        <CarrierAvatar
+                          name={s.carrier}
+                          initials={s.carrier_init}
+                          avatar={s.carrierAvatar}
+                        />
                         {s.carrier}
                       </div>
                     ) : (

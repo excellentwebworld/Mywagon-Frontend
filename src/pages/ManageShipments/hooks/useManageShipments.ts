@@ -346,7 +346,13 @@ export function useManageShipments() {
           bidsSent: detail.bidsSent,
           best_bid: detail.best_bid,
           // Never wipe list transporter with a null detail payload.
-          ...(detail.carrier ? { carrier: detail.carrier, carrier_init: detail.carrier_init } : {}),
+          ...(detail.carrier
+            ? {
+                carrier: detail.carrier,
+                carrier_init: detail.carrier_init,
+                carrierAvatar: detail.carrierAvatar ?? null,
+              }
+            : {}),
           status: detail.status,
           // Never wipe list prices when detail omits them.
           ...(detail.quotedPrice != null ? { quotedPrice: detail.quotedPrice, price: detail.price } : {}),
@@ -430,6 +436,7 @@ export function useManageShipments() {
         best_bid: detail.best_bid ?? s.best_bid,
         carrier: detail.carrier || s.carrier,
         carrier_init: detail.carrier_init || s.carrier_init,
+        carrierAvatar: detail.carrierAvatar ?? s.carrierAvatar ?? null,
         quotedPrice: detail.quotedPrice ?? s.quotedPrice,
         agreedPrice: detail.agreedPrice ?? s.agreedPrice,
         price: detail.price ?? s.price ?? detail.quotedPrice ?? s.quotedPrice ?? null,

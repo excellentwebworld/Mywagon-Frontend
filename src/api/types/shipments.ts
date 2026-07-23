@@ -1,6 +1,7 @@
 export interface ApiShipmentListCarrier {
   name: string;
   initials: string;
+  avatar?: string | null;
 }
 
 export type ShipmentKpiKey =
@@ -110,6 +111,7 @@ export interface ApiShipmentOffer {
   type: 'bid' | 'interest';
   name: string;
   initials?: string;
+  avatar?: string | null;
   rating?: number | null;
   role?: 'company' | 'freelancer' | string;
   price?: number | null;
@@ -126,6 +128,7 @@ export interface ApiShipmentInvitee {
   id: number;
   name: string;
   initials?: string;
+  avatar?: string | null;
   invited_at?: string | null;
   status?: string;
 }

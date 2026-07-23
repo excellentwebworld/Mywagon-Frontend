@@ -1,5 +1,6 @@
 import React from 'react';
 import type { CarrierDetail } from '../../pages/ShipmentDetail/detailViewModel';
+import { CarrierAvatar } from '../ManageShipments/CarrierAvatar';
 import { CollapsibleCard } from './CollapsibleCard';
 
 interface CarrierCardProps {
@@ -15,7 +16,12 @@ export const CarrierCard: React.FC<CarrierCardProps> = ({ carrier, expanded, onT
     {carrier ? (
       <>
         <div className="ld-cr-card">
-          <div className="ld-cr-av">{carrier.initials}</div>
+          <CarrierAvatar
+            className="ld-cr-av"
+            name={carrier.name}
+            initials={carrier.initials}
+            avatar={carrier.avatar}
+          />
           <div>
             <div style={{ fontWeight: 600 }}>
               {carrier.name}{' '}

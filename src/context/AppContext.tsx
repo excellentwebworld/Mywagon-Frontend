@@ -178,6 +178,8 @@ export interface Shipment {
   bid_exp: string | null;
   carrier: string | null;
   carrier_init?: string;
+  /** Assigned carrier/driver profile image URL when available. */
+  carrierAvatar?: string | null;
   price: number | null;
   price_type: 'spot' | 'contract' | 'bidding';
   updated: string;
@@ -222,6 +224,7 @@ export interface Shipment {
     type: 'bid' | 'interest';
     name: string;
     initials?: string;
+    avatar?: string | null;
     rating?: number | null;
     role?: string;
     price?: number | null;
@@ -232,6 +235,7 @@ export interface Shipment {
     id: number;
     name: string;
     initials?: string;
+    avatar?: string | null;
     invitedAt?: string | null;
     status?: string;
   }>;

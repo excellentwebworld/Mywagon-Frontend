@@ -38,6 +38,7 @@ export interface AuditEntry {
 
 export interface CarrierDetail {
   initials: string;
+  avatar?: string | null;
   name: string;
   partner: boolean;
   rating: string;
@@ -282,6 +283,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
   const carrier: CarrierDetail | null = shipment.carrier
     ? {
         initials: shipment.carrier_init || shipment.carrier.substring(0, 2).toUpperCase(),
+        avatar: shipment.carrierAvatar ?? null,
         name: shipment.carrier.toUpperCase(),
         partner: true,
         rating: '5.0',

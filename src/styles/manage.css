@@ -869,6 +869,13 @@
   font-size: 9px;
   font-weight: 700;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.carrier-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .uncov {
   color: var(--danger);
@@ -1461,6 +1468,13 @@
   font-size: 14px;
   font-weight: 700;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.carrier-card .cc-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .carrier-card .cc-info {
   flex: 1;
