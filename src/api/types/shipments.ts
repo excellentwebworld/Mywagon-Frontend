@@ -99,6 +99,8 @@ export interface ApiShipmentStop {
   pod?: string | number | null;
   /** Uploaded POD media (Spatie), when pod = 1. */
   pod_images?: Array<{ id?: number | null; url: string }> | null;
+  /** Location event logs (ShipmentLocationLog status + created_at). */
+  logs?: Array<{ status?: string | number | null; created_at?: string | null }> | null;
   unable_status?: string | number | null;
   sort_order?: number;
 }

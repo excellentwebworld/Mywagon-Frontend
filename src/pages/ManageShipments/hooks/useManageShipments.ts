@@ -362,6 +362,7 @@ export function useManageShipments() {
           stops: detail.stops,
           stopCount: detail.stopCount,
           intermediateStops: detail.intermediateStops,
+          ...(detail.createdAt ? { createdAt: detail.createdAt } : {}),
         });
       } catch {
         // Keep existing expansion data on failure

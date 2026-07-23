@@ -1065,6 +1065,7 @@
   "pickup24h": "Pickup < 24h",
   "pickupToday": "Pickup today",
   "awaitingPod": "Awaiting POD",
+  "podUploaded": "POD Uploaded",
   "invoiceIssues": "Invoice Issues",
   "filterCarrierName": "Transporter name",
   "filterCarrierNamePlaceholder": "Search by transporter…",

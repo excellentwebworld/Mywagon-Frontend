@@ -151,6 +151,8 @@ export interface ShipmentStop {
   pod?: string;
   /** Uploaded POD image URLs when available. */
   podImages?: Array<{ id?: number | null; url: string }>;
+  /** Driver location event logs (status codes match Laravel ShipmentLocationLog). */
+  logs?: Array<{ status: string; createdAt: string }>;
   unableStatus?: number;
 }
 

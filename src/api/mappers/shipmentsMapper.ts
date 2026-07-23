@@ -123,6 +123,14 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
     podImages: (stop.pod_images || [])
       .filter((img) => Boolean(img?.url))
       .map((img) => ({ id: img.id ?? null, url: String(img.url) })),
+    logs: (stop.logs || [])
+      .filter((log) => Boolean(log?.created_at))
+      .map((log) => ({
+        status: log.status !== null && log.status !== undefined && String(log.status) !== ''
+          ? String(log.status)
+          : '0',
+        createdAt: String(log.created_at),
+      })),
     unableStatus: Number(stop.unable_status ?? 0) || 0,
     customers:
       stop.order_id || stop.product_name || stop.qty || stop.weight || name

@@ -615,6 +615,8 @@ export type ItineraryStopGroup = {
   locationStatus?: string;
   pod?: string;
   podImages?: Array<{ id?: number | null; url: string }>;
+  /** Event logs from first (merged) location row — Laravel timeline source. */
+  logs?: Array<{ status: string; createdAt: string }>;
   unableStatus?: number;
   lines: Array<{
     customerName: string;
@@ -834,6 +836,7 @@ export function groupItineraryStops(
         locationStatus: '0',
         pod: '0',
         podImages: [],
+        logs: [],
         unableStatus: 0,
         lines: [],
       },
@@ -849,6 +852,7 @@ export function groupItineraryStops(
         locationStatus: '0',
         pod: '0',
         podImages: [],
+        logs: [],
         unableStatus: 0,
         lines: [],
       },
@@ -910,6 +914,7 @@ export function groupItineraryStops(
       locationStatus: stop.locationStatus ?? '0',
       pod: stop.pod ?? '0',
       podImages: stop.podImages ?? [],
+      logs: stop.logs ?? [],
       unableStatus: stop.unableStatus ?? 0,
       lines,
     });
@@ -962,7 +967,34 @@ function progressDateTimeParts(
   };
 }
 
-/** Progress dots aligned to physical itinerary stops (same grouping as Itinerary panel). */
+/** ShipmentLocationLog status codes used by Laravel detail timeline. */
+const LOG_START_TRIP = '1';
+const LOG_ARRIVAL = '3';
+const LOG_COMPLETE_STOP = '5';
+const LOG_POD = '9';
+const LOG_PAID = '10';
+const LOG_ACCEPTED = '11';
+
+function findLogCreatedAt(
+  logs: Array<{ status: string; createdAt: string }> | undefined,
+  status: string
+): string | null {
+  const hit = (logs || []).find((log) => String(log.status) === status);
+  return hit?.createdAt || null;
+}
+
+function findAnyStopLogCreatedAt(
+  stops: Shipment['stops'] | undefined,
+  status: string
+): string | null {
+  for (const stop of stops || []) {
+    const at = findLogCreatedAt(stop.logs, status);
+    if (at) return at;
+  }
+  return null;
+}
+
+/** Progress dots aligned to Laravel detail timeline (location log event times). */
 export function buildLaravelProgressSteps(
   shipment: Shipment,
   t: (key: string, opts?: Record<string, unknown>) => string
@@ -1015,7 +1047,16 @@ export function buildLaravelProgressSteps(
     status === 'not_fullfilled';
   const pastAcceptance = !isPending && !isCanceled;
 
-  const createdParts = progressDateTimeParts(shipment.createdAt || shipment.date || null);
+  // Never fall back to pickup schedule (`shipment.date`) — that is not created_at.
+  const createdParts = progressDateTimeParts(shipment.createdAt || null);
+  const acceptedAt = findAnyStopLogCreatedAt(shipment.stops, LOG_ACCEPTED);
+  const acceptedParts = progressDateTimeParts(acceptedAt);
+  const startTripAt =
+    findLogCreatedAt(itineraryStops[0]?.logs, LOG_START_TRIP) ||
+    findAnyStopLogCreatedAt(shipment.stops, LOG_START_TRIP);
+  const startTripParts = progressDateTimeParts(startTripAt);
+  const podAt = findAnyStopLogCreatedAt(shipment.stops, LOG_POD);
+  const paidAt = findAnyStopLogCreatedAt(shipment.stops, LOG_PAID);
 
   const steps: LaravelProgressStep[] = [
     {
@@ -1030,20 +1071,32 @@ export function buildLaravelProgressSteps(
 
   const pushItinerarySteps = (stateForIndex: (idx: number) => LaravelProgressState) => {
     itineraryStops.forEach((stop, idx) => {
-      const when = progressDateTimeParts(
-        null,
-        stop.date || undefined,
-        stop.timeStart || undefined
-      );
-      const action =
-        stop.type === 'pickup' ? t('pickup') : t('delivery');
+      const state = stateForIndex(idx);
+      const arrivalAt = findLogCreatedAt(stop.logs, LOG_ARRIVAL);
+      const completeAt = findLogCreatedAt(stop.logs, LOG_COMPLETE_STOP);
+      const action = stop.type === 'pickup' ? t('pickup') : t('delivery');
+
+      // Laravel detail: Arrival step only when arrival log (status 3) exists.
+      if (arrivalAt) {
+        const arrivalParts = progressDateTimeParts(arrivalAt);
+        steps.push({
+          id: `arrival-${idx}`,
+          label: `${t('arrival')} · ${stop.location}`,
+          state: 'done',
+          dateLine: arrivalParts.dateLine,
+          timeLine: arrivalParts.timeLine,
+          sub: arrivalParts.sub,
+        });
+      }
+
+      const completeParts = progressDateTimeParts(completeAt);
       steps.push({
         id: `itin-${idx}`,
         label: `${action} · ${stop.location}`,
-        state: stateForIndex(idx),
-        dateLine: when.dateLine,
-        timeLine: when.timeLine,
-        sub: when.sub,
+        state,
+        dateLine: completeParts.dateLine,
+        timeLine: completeParts.timeLine,
+        sub: completeParts.sub,
       });
     });
   };
@@ -1064,34 +1117,42 @@ export function buildLaravelProgressSteps(
     return steps;
   }
 
-  steps.push({ id: 'accepted', label: acceptedLabel, state: 'done' });
+  steps.push({
+    id: 'accepted',
+    label: acceptedLabel,
+    state: 'done',
+    dateLine: acceptedParts.dateLine,
+    timeLine: acceptedParts.timeLine,
+    sub: acceptedParts.sub,
+  });
 
   let carrierState: LaravelProgressState = 'skip';
   if (pastAcceptance) {
     carrierState = beforeTrip ? 'cur' : 'done';
   }
-  steps.push({ id: 'carrier', label: carrierLabel, state: carrierState });
+  steps.push({
+    id: 'carrier',
+    label: carrierLabel,
+    state: carrierState,
+    // Laravel shows "Bid accepted {time}" under carrier when available.
+    dateLine: acceptedParts.dateLine,
+    timeLine: acceptedParts.timeLine,
+    sub: acceptedParts.sub,
+  });
 
   let startState: LaravelProgressState = 'skip';
   if (onTrip || fulfilledLike) startState = 'done';
   else if (beforeTrip) startState = 'skip';
   else if (pastAcceptance) startState = 'cur';
-  const firstStopWhen = progressDateTimeParts(
-    null,
-    itineraryStops[0]?.date,
-    itineraryStops[0]?.timeStart
-  );
   steps.push({
     id: 'start_trip',
     label: t('startTrip'),
     state: startState,
-    // Best available schedule stamp until activity-log timestamps are exposed by API.
-    dateLine: onTrip || fulfilledLike ? firstStopWhen.dateLine : undefined,
-    timeLine: onTrip || fulfilledLike ? firstStopWhen.timeLine : undefined,
-    sub: onTrip || fulfilledLike ? firstStopWhen.sub : undefined,
+    dateLine: startTripParts.dateLine,
+    timeLine: startTripParts.timeLine,
+    sub: startTripParts.sub,
   });
 
-  // Driver route view: index < current → complete; index === current → running/reached; else pending
   const currentItinIndex = onTrip ? findCurrentItineraryIndex(itineraryStops) : -1;
 
   pushItinerarySteps((idx) => {
@@ -1099,26 +1160,48 @@ export function buildLaravelProgressSteps(
     if (status === 'not_fullfilled') return 'pending';
     if (onTrip) {
       if (idx < currentItinIndex) return 'done';
-      if (idx === currentItinIndex) {
-        // Driver: arrived (3) / complete awaiting POD (5) → reached; else en route — both are current
-        return 'cur';
-      }
+      if (idx === currentItinIndex) return 'cur';
       return 'skip';
     }
     return 'skip';
   });
 
+  if (fulfilledLike) {
+    const podParts = progressDateTimeParts(podAt);
+    const allPodsUploaded =
+      Boolean(podAt) ||
+      (shipment.stops || [])
+        .filter((s) => s.type === 'delivery')
+        .every((s) => String(s.pod ?? '0') === '1');
+    steps.push({
+      id: 'pod',
+      label: allPodsUploaded ? t('podUploaded') : t('awaitingPod'),
+      state: allPodsUploaded ? 'done' : status === 'not_fullfilled' ? 'pending' : 'cur',
+      dateLine: podParts.dateLine,
+      timeLine: podParts.timeLine,
+      sub: podParts.sub,
+    });
+  }
+
   let paymentState: LaravelProgressState = 'skip';
   let paymentLabel = t('paymentPending');
+  const paidParts = progressDateTimeParts(paidAt);
   if (fulfilledLike) {
-    if (shipment.paymentStatus === 'paid') {
+    if (shipment.paymentStatus === 'paid' || paidAt) {
       paymentState = 'success';
       paymentLabel = t('paymentSuccessful');
     } else {
       paymentState = status === 'not_fullfilled' ? 'pending' : 'cur';
     }
   }
-  steps.push({ id: 'payment', label: paymentLabel, state: paymentState });
+  steps.push({
+    id: 'payment',
+    label: paymentLabel,
+    state: paymentState,
+    dateLine: paidParts.dateLine,
+    timeLine: paidParts.timeLine,
+    sub: paidParts.sub,
+  });
 
   return steps;
 }
