@@ -277,7 +277,7 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
             <ExpRefreshButton loading={detailLoading} onRefresh={onRefresh} t={t} />
           ) : null}
         </div>
-        <ProgressTimeline shipment={shipment} t={t} loading={false} />
+        <ProgressTimeline shipment={shipment} t={t} enlarged loading={false} />
 
         <OrdersBlock shipment={shipment} t={t} showHeading />
         <ItineraryPreview
