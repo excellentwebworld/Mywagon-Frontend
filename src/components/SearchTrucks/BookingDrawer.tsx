@@ -380,17 +380,19 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                 </div>
               )}
 
-              <div className="sat-field">
-                <label>{t('satYourOffer')}</label>
-                <input
-                  type="number"
-                  value={draft.offerPrice}
-                  onChange={(e) =>
-                    onDraftChange({ offerPrice: e.target.value, acceptStartingPrice: false })
-                  }
-                  placeholder={showPrice ? String(truck.price) : ''}
-                />
-              </div>
+              {(!showPrice || !draft.acceptStartingPrice) && (
+                <div className="sat-field">
+                  <label>{t('satYourOffer')}</label>
+                  <input
+                    type="number"
+                    value={draft.offerPrice}
+                    onChange={(e) =>
+                      onDraftChange({ offerPrice: e.target.value, acceptStartingPrice: false })
+                    }
+                    placeholder={showPrice ? String(truck.price) : ''}
+                  />
+                </div>
+              )}
               <div className="sat-field">
                 <label>{t('satNotesToProvider')}</label>
                 <textarea
