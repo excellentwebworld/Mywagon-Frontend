@@ -27,6 +27,8 @@ interface AvailabilityListProps {
   hideDetailPanel?: boolean;
   /** View If Posted Truck Received Bids */
   canViewBidsCount?: boolean;
+  /** View Best Bids On Posted Trucks */
+  canViewBestBid?: boolean;
   t: (key: string) => string;
 }
 
@@ -89,6 +91,7 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
   subscriptionBlocked = false,
   hideDetailPanel = false,
   canViewBidsCount = false,
+  canViewBestBid = false,
   t,
 }) => {
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -166,6 +169,7 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
                 onBook={onBook}
                 t={t}
                 canViewBidsCount={canViewBidsCount}
+                canViewBestBid={canViewBestBid}
                 cardRef={(el) => {
                   cardRefs.current[truck.id] = el;
                 }}
@@ -191,6 +195,8 @@ export const AvailabilityList: React.FC<AvailabilityListProps> = ({
           onMessage={onMessage}
           onProfile={onProfile}
           creatingShipment={creatingShipment}
+          canViewBidsCount={canViewBidsCount}
+          canViewBestBid={canViewBestBid}
           t={t}
         />
       )}

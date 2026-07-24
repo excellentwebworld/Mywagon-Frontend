@@ -919,6 +919,41 @@
   font-size: 15px;
   color: var(--accent);
 }
+.sat-price-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  line-height: 1.15;
+}
+.sat-price-stack--sm {
+  gap: 0;
+}
+.sat-price-stack--lg .sat-price {
+  font-size: 20px;
+}
+.sat-price-original {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+  white-space: nowrap;
+}
+.sat-price-stack--lg .sat-price-original {
+  font-size: 12px;
+}
+.sat-bids-meta {
+  font-size: 11px;
+  font-weight: 600;
+}
+.sat-bids-meta--has {
+  color: var(--accent);
+}
+.sat-bids-meta--none {
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
 
 .sat-offer-b {
   color: var(--text-tertiary);

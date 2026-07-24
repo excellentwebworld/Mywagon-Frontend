@@ -206,6 +206,8 @@
   "satCargoCategories": "Cargo / specs",
   "satPendingBidsLabel": "Pending bids",
   "satBestBid": "Best bid",
+  "satOriginalPrice": "Original price",
+  "satNoBidsReceived": "No bids received",
   "satLoadMatch": "Load match",
   "satPostedAt": "Posted",
   "satRating": "Rating",

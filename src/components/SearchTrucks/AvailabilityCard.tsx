@@ -1,6 +1,6 @@
 import React from 'react';
 import type { AvailableTruck, DrawerMode } from '../../pages/SearchTrucks/types';
-import { formatMoney } from '../../pages/SearchTrucks/utils/money';
+import { AvailabilityBidsMeta, AvailabilityPrice } from './AvailabilityPrice';
 
 interface AvailabilityCardProps {
   truck: AvailableTruck;
@@ -13,6 +13,8 @@ interface AvailabilityCardProps {
   cardRef?: (el: HTMLDivElement | null) => void;
   /** View If Posted Truck Received Bids */
   canViewBidsCount?: boolean;
+  /** View Best Bids On Posted Trucks */
+  canViewBestBid?: boolean;
 }
 
 export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
@@ -25,6 +27,7 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
   t,
   cardRef,
   canViewBidsCount = false,
+  canViewBestBid = false,
 }) => (
   <div
     ref={cardRef}
@@ -88,26 +91,23 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
             <span className="sat-muted">{t('satVehicleType')}: </span>
             {truck.truckType}
             {truck.specs ? <span className="sat-muted"> · {truck.specs}</span> : null}
-            {canViewBidsCount && truck.bidsCount != null && truck.bidsCount > 0 && (
-              <span className="sat-muted">
-                {' '}
-                · {t('satBidsCount', { count: truck.bidsCount })}
-              </span>
-            )}
           </span>
+          {canViewBidsCount ? (
+            <>
+              <span className="sat-muted"> · </span>
+              <AvailabilityBidsMeta truck={truck} canViewBidsCount t={t} />
+            </>
+          ) : null}
         </div>
       </div>
 
       <div className="sat-card-side">
-        {truck.price != null && !truck.priceBlurred ? (
-          <span className="sat-price sat-card-side__price">
-            {formatMoney(truck.price, truck.currency)}
-          </span>
-        ) : (
-          <span className={`sat-offer-b ${truck.priceBlurred ? 'sat-price-blurred' : ''}`}>
-            {t('satOfferBased')}
-          </span>
-        )}
+        <AvailabilityPrice
+          truck={truck}
+          canViewBestBid={canViewBestBid}
+          className="sat-price sat-card-side__price"
+          t={t}
+        />
         {truck.capacity && truck.capacity !== '—' ? (
           <span className="sat-card-side__cap">{truck.capacity}</span>
         ) : null}

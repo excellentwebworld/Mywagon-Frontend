@@ -3,6 +3,7 @@ import { loadGoogleMaps } from '../AddressBook/GoogleMapAddressField';
 import type { AvailableTruck, DrawerMode, MapPickupBounds } from '../../pages/SearchTrucks/types';
 import { formatMoney } from '../../pages/SearchTrucks/utils/money';
 import { AvailabilityDetailPanel } from './AvailabilityDetailPanel';
+import { AvailabilityPrice } from './AvailabilityPrice';
 
 interface AvailabilityMapProps {
   trucks: AvailableTruck[];
@@ -27,6 +28,8 @@ interface AvailabilityMapProps {
   onProfile?: (truck: AvailableTruck) => void;
   creatingShipment?: boolean;
   onClearSelection?: () => void;
+  canViewBidsCount?: boolean;
+  canViewBestBid?: boolean;
   t: (key: string) => string;
 }
 
@@ -182,6 +185,8 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   onProfile,
   creatingShipment = false,
   onClearSelection,
+  canViewBidsCount = false,
+  canViewBestBid = false,
   t,
 }) => {
   const displayedCount = pinCount ?? trucks.length;
@@ -597,11 +602,13 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
               </div>
               <div className="sat-map-sheet__peek-actions">
                 <div className="sat-map-sheet__price">
-                  {selectedTruck.price != null && !selectedTruck.priceBlurred ? (
-                    <span className="sat-price">{formatMoney(selectedTruck.price, selectedTruck.currency)}</span>
-                  ) : (
-                    <span className="sat-offer-b">{t('satOfferBased')}</span>
-                  )}
+                  <AvailabilityPrice
+                    truck={selectedTruck}
+                    canViewBestBid={canViewBestBid}
+                    className="sat-price"
+                    size="sm"
+                    t={t}
+                  />
                 </div>
                 <button
                   type="button"
@@ -645,6 +652,8 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
                   creatingShipment={creatingShipment}
                   variant="sheet"
                   hideHeader
+                  canViewBidsCount={canViewBidsCount}
+                  canViewBestBid={canViewBestBid}
                   t={t}
                 />
               </div>

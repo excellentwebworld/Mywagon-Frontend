@@ -183,6 +183,7 @@ export const SearchTrucks: React.FC = () => {
           subscriptionBlocked={m.subscriptionBlocked}
           hideDetailPanel={m.mobileMapOpen}
           canViewBidsCount={m.canViewBidsCount}
+          canViewBestBid={m.canViewBestBid}
           t={m.t}
         />
 
@@ -210,6 +211,8 @@ export const SearchTrucks: React.FC = () => {
             m.creatingShipment && m.creatingShipmentId && m.selectedId === m.creatingShipmentId
           )}
           onClearSelection={() => m.selectTruck(null)}
+          canViewBidsCount={m.canViewBidsCount}
+          canViewBestBid={m.canViewBestBid}
           t={m.t}
         />
       </div>
@@ -241,6 +244,8 @@ export const SearchTrucks: React.FC = () => {
             m.creatingShipment && m.creatingShipmentId && m.selectedId === m.creatingShipmentId
           )}
           onClearSelection={() => m.selectTruck(null)}
+          canViewBidsCount={m.canViewBidsCount}
+          canViewBestBid={m.canViewBestBid}
           t={m.t}
         />
       )}

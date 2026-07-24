@@ -206,6 +206,8 @@
   "satCargoCategories": "Φορτίο / προδιαγραφές",
   "satPendingBidsLabel": "Εκκρεμείς προσφορές",
   "satBestBid": "Καλύτερη προσφορά",
+  "satOriginalPrice": "Αρχική τιμή",
+  "satNoBidsReceived": "Δεν υπάρχουν προσφορές",
   "satLoadMatch": "Ταίριασμα φορτίου",
   "satPostedAt": "Αναρτήθηκε",
   "satRating": "Βαθμολογία",

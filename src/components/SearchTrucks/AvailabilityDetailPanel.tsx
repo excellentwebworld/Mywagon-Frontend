@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { availabilitiesService } from '../../api';
 import { mapListItemToTruck } from '../../api/mappers/availabilitiesMapper';
 import type { AvailableTruck, DrawerMode } from '../../pages/SearchTrucks/types';
-import { formatMoney } from '../../pages/SearchTrucks/utils/money';
+import { AvailabilityBidsMeta, AvailabilityPrice } from './AvailabilityPrice';
 
 interface AvailabilityDetailPanelProps {
   truck: AvailableTruck;
@@ -15,6 +15,10 @@ interface AvailabilityDetailPanelProps {
   variant?: 'overlay' | 'sheet';
   /** When true, hide the sticky provider header (map sheet peek already shows it) */
   hideHeader?: boolean;
+  /** View If Posted Truck Received Bids */
+  canViewBidsCount?: boolean;
+  /** View Best Bids On Posted Trucks */
+  canViewBestBid?: boolean;
   t: (key: string) => string;
 }
 
@@ -109,6 +113,8 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
   creatingShipment = false,
   variant = 'overlay',
   hideHeader = false,
+  canViewBidsCount = false,
+  canViewBestBid = false,
   t,
 }) => {
   const [detailTruck, setDetailTruck] = useState<AvailableTruck>(truck);
@@ -190,14 +196,23 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
                   {preferredTag}
                 </div>
               </div>
-              <div style={{ marginLeft: 'auto' }}>
-                {detailTruck.price != null && !detailTruck.priceBlurred ? (
-                  <span className="sat-price" style={{ fontSize: 20 }}>
-                    {formatMoney(detailTruck.price, detailTruck.currency)}
-                  </span>
-                ) : (
-                  <span className="sat-offer-b">{t('satOfferBased')}</span>
-                )}
+              <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                <AvailabilityPrice
+                  truck={detailTruck}
+                  canViewBestBid={canViewBestBid}
+                  className="sat-price"
+                  size="lg"
+                  t={t}
+                />
+                {canViewBidsCount ? (
+                  <div style={{ marginTop: 4 }}>
+                    <AvailabilityBidsMeta
+                      truck={detailTruck}
+                      canViewBidsCount
+                      t={t}
+                    />
+                  </div>
+                ) : null}
               </div>
             </div>
             <div
