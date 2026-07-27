@@ -116,7 +116,6 @@ function OfferCard({
               <span className="badge badge-gray" style={{ fontSize: 9 }}>
                 {roleLabel}
               </span>
-              {hasCounter ? <span className="bid-status bs-counter">↩</span> : null}
               {awaitingTransporter ? (
                 <span className="badge badge-info" style={{ fontSize: 9 }}>
                   {t('awaitingResponse')}
@@ -130,91 +129,92 @@ function OfferCard({
               <span className="bid-rating">
                 ★ {rating.toFixed(1)}/5 ({ratingCount})
               </span>
+              {offer.respondedAt ? (
+                <span>
+                  {t('respondedAgo', { time: formatRelativeAgo(offer.respondedAt, t) })}
+                </span>
+              ) : null}
             </div>
           </div>
         </div>
         {offer.price != null ? <div className="bid-price">{formatEuro(offer.price)}</div> : null}
       </div>
 
-      {offer.respondedAt ? (
-        <div className="bid-meta">
-          {t('respondedAgo', { time: formatRelativeAgo(offer.respondedAt, t) })}
+      <div className="bid-footer">
+        <div className="bid-footer-left">
+          {hasCounter && offer.counter ? (
+            <div className="co-chip">
+              <span className="co-yours">{formatEuro(offer.counter.yours)}</span>
+              <span className="co-arr">→</span>
+              <span className="co-theirs">{formatEuro(offer.counter.theirs)}</span>
+              <span className={`co-pct ${offer.counter.dir === 'up' ? 'up' : 'down'}`}>
+                {offer.counter.dir === 'up' ? '↑' : '↓'}
+                {offer.counter.pct > 0 ? '+' : ''}
+                {offer.counter.pct}%
+              </span>
+            </div>
+          ) : awaitingTransporter ? (
+            <span className="bid-awaiting-msg">{t('awaitingTheirResponse')}</span>
+          ) : (
+            <span className="bid-footer-spacer" aria-hidden />
+          )}
         </div>
-      ) : null}
 
-      {hasCounter && offer.counter ? (
-        <div className="co-line">
-          <div className="co-prices">
-            <span className="co-yours">{formatEuro(offer.counter.yours)}</span>
-            <span className="co-arr">→</span>
-            <span className="co-theirs">{formatEuro(offer.counter.theirs)}</span>
-          </div>
-          <span className={`co-pct ${offer.counter.dir === 'up' ? 'up' : 'down'}`}>
-            {offer.counter.dir === 'up' ? '↑' : '↓'}
-            {offer.counter.pct > 0 ? '+' : ''}
-            {offer.counter.pct}%
-          </span>
+        <div className="bid-acts">
+          {showAcceptReject ? (
+            <button
+              type="button"
+              className="bid-accept"
+              disabled={locked}
+              onClick={() => void run('accept', onAccept)}
+            >
+              {busy === 'accept' ? <ExpBtnSpin /> : null}
+              {t('accept')}
+            </button>
+          ) : null}
+          {showAcceptReject ? (
+            <button
+              type="button"
+              className="bid-reject bid-reject-danger"
+              disabled={locked}
+              onClick={() => void run('reject', onReject)}
+            >
+              {busy === 'reject' ? <ExpBtnSpin /> : null}
+              {t('reject')}
+            </button>
+          ) : null}
+          {canCounter ? (
+            <button
+              type="button"
+              className="bid-counter"
+              disabled={locked}
+              onClick={() => setCounterOpen((v) => !v)}
+            >
+              {t('counter')}
+            </button>
+          ) : null}
+          {showHistory ? (
+            <button
+              type="button"
+              className={`bid-history${historyOpen ? ' is-open' : ''}`}
+              disabled={locked}
+              aria-expanded={historyOpen}
+              onClick={() => setHistoryOpen((v) => !v)}
+            >
+              <span className={`cust-chev${historyOpen ? ' open' : ''}`}>▶</span>
+              {t('history')}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="bid-chat"
+            disabled={locked}
+            onClick={() => void run('chat', onMessage)}
+          >
+            {busy === 'chat' ? <ExpBtnSpin /> : null}
+            {t('chat')}
+          </button>
         </div>
-      ) : null}
-
-      <div className="bid-acts">
-        {awaitingTransporter ? (
-          <span className="sub">{t('awaitingTheirResponse')}</span>
-        ) : null}
-
-        {showAcceptReject ? (
-          <button
-            type="button"
-            className="bid-accept"
-            disabled={locked}
-            onClick={() => void run('accept', onAccept)}
-          >
-            {busy === 'accept' ? <ExpBtnSpin /> : null}
-            {t('accept')}
-          </button>
-        ) : null}
-        {showAcceptReject ? (
-          <button
-            type="button"
-            className="bid-reject bid-reject-danger"
-            disabled={locked}
-            onClick={() => void run('reject', onReject)}
-          >
-            {busy === 'reject' ? <ExpBtnSpin /> : null}
-            {t('reject')}
-          </button>
-        ) : null}
-        {canCounter ? (
-          <button
-            type="button"
-            className="bid-counter"
-            disabled={locked}
-            onClick={() => setCounterOpen((v) => !v)}
-          >
-            {t('counter')}
-          </button>
-        ) : null}
-        {showHistory ? (
-          <button
-            type="button"
-            className={`bid-history${historyOpen ? ' is-open' : ''}`}
-            disabled={locked}
-            aria-expanded={historyOpen}
-            onClick={() => setHistoryOpen((v) => !v)}
-          >
-            <span className={`cust-chev${historyOpen ? ' open' : ''}`}>▶</span>
-            {t('history')}
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className="bid-chat"
-          disabled={locked}
-          onClick={() => void run('chat', onMessage)}
-        >
-          {busy === 'chat' ? <ExpBtnSpin /> : null}
-          {t('chat')}
-        </button>
       </div>
 
       {counterOpen && canCounter ? (
