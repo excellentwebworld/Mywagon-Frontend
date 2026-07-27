@@ -687,7 +687,7 @@
   padding: 12px;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
-  vertical-align: top;
+  vertical-align: middle;
 }
 .mgmt-t .chk {
   width: 36px;
