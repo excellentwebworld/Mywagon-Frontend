@@ -55,9 +55,14 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
         <div className="exp-section-head">
           <ExpHeading icon="progress">
             {t('progress')} —{' '}
-            <span className={`badge ${statusBadgeClass(shipment.status)}`}>
-              <span className="bdot" />
-              {t(shipment.status)}
+            <span
+              className={statusBadgeClass(shipment.status, Boolean(shipment.at_risk), {
+                bidsReceived: shipment.bidsReceived ?? shipment.bids ?? 0,
+                bidsSent: shipment.bidsSent ?? 0,
+                invitedCount: shipment.invited ?? 0,
+              })}
+            >
+              <div className="status-box-title">{t(shipment.status)}</div>
             </span>
           </ExpHeading>
           <div className="exp-head-actions">

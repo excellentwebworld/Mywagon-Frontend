@@ -8,6 +8,7 @@ import {
   laneMidLabel,
   shipmentIdSublabel,
   statusBadgeClass,
+  statusBadgeDetails,
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { ListSkeleton } from '../skeletons/ListSkeleton';
 import { RowExpansionSkeleton } from '../skeletons/ManageShipmentsSkeleton';
@@ -204,7 +205,9 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
             const badgeClass = statusBadgeClass(row.status, Boolean(row.at_risk), {
               bidsReceived: row.bidsReceived ?? row.bids ?? 0,
               bidsSent: row.bidsSent ?? 0,
+              invitedCount: row.invited ?? 0,
             });
+            const statusDetails = statusBadgeDetails(row, t);
             const channel = row.channel || (row.vis === 'public' ? 'public' : 'private');
             const quoted = formatEuro(row.quotedPrice ?? row.price);
             const agreed = formatEuro(row.agreedPrice);
@@ -263,27 +266,32 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                     )}
                   </td>
                   <td className="col-status">
-                    <span className={`badge ${badgeClass}`}>
-                      <span className="bdot" />
-                      {t(row.status)}
-                    </span>
+                    <div className={badgeClass}>
+                      {row.status === 'partially_fullfilled' ? (
+                        <div className="status-box-partial-row">
+                          <span className="status-partial-left">{t('partially')}</span>
+                          <span className="status-partial-right">{t('fulfilled')}</span>
+                        </div>
+                      ) : (
+                        <div className="status-box-title">{t(row.status)}</div>
+                      )}
+                      {statusDetails.map((line) => (
+                        <div key={line} className="status-box-sub">
+                          {line}
+                        </div>
+                      ))}
+                    </div>
                     {row.paymentStatus === 'paid' && (
-                      <>
-                        <br />
-                        <span className="badge badge-success payment-subtag">
-                          <span className="bdot" />
-                          {t('paymentPaid')}
-                        </span>
-                      </>
+                      <span className="badge badge-success payment-subtag risk-subtag">
+                        <span className="bdot" />
+                        {t('paymentPaid')}
+                      </span>
                     )}
                     {row.paymentStatus === 'payment_pending' && (
-                      <>
-                        <br />
-                        <span className="badge badge-warning payment-subtag">
-                          <span className="bdot" />
-                          {t('paymentPending')}
-                        </span>
-                      </>
+                      <span className="badge badge-warning payment-subtag risk-subtag">
+                        <span className="bdot" />
+                        {t('paymentPending')}
+                      </span>
                     )}
                   </td>
                   <td className="col-vis">

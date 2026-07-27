@@ -591,39 +591,77 @@ export function isShipmentCancellable(status: Shipment['status']): boolean {
 export function statusBadgeClass(
   status: Shipment['status'],
   atRisk?: boolean,
-  opts?: { bidsReceived?: number; bidsSent?: number }
+  opts?: { bidsReceived?: number; bidsSent?: number; invitedCount?: number }
 ): string {
-  if (atRisk || status === 'past_due') return 'badge-danger';
+  // Match Laravel shipper panel status-box colors (style.css).
+  if (atRisk || status === 'past_due') return 'status-box status-box--past-due';
+
   switch (status) {
     case 'pending': {
-      // Match old panel: yellow = has inbound bids/partners; mint = bid-sent / idle; gradient = both.
+      // Laravel priority: both → gradient; sent-only → mint; partners/bids → yellow; else mint.
       const received = opts?.bidsReceived ?? 0;
       const sent = opts?.bidsSent ?? 0;
-      if (received > 0 && sent > 0) return 'badge-pending-more';
-      if (sent > 0 && received === 0) return 'badge-pending-request';
-      if (received > 0) return 'badge-warning';
-      return 'badge-pending-request';
+      const invited = opts?.invitedCount ?? 0;
+      if (received > 0 && sent > 0) return 'status-box status-box--pending-more';
+      if (sent > 0 && received === 0) return 'status-box status-box--pending-request';
+      if (received > 0 || invited > 0) return 'status-box status-box--pending';
+      return 'status-box status-box--pending-request';
     }
     case 'scheduled':
-    case 'ready':
     case 'upcoming':
-      return 'badge-accent';
+      return 'status-box status-box--scheduled';
+    case 'ready':
+      return 'status-box status-box--ready';
     case 'on_trip':
     case 'in_progress':
-      return 'badge-info';
+      return 'status-box status-box--on-trip';
     case 'fullfilled':
-    case 'partially_fullfilled':
-    case 'awarded':
     case 'delivered':
-      return 'badge-success';
+    case 'awarded':
+      return 'status-box status-box--fulfilled';
+    case 'partially_fullfilled':
+      return 'status-box status-box--partial';
     case 'not_fullfilled':
+      return 'status-box status-box--not-fulfilled';
     case 'draft':
+      return 'status-box status-box--draft';
     case 'canceled':
     case 'cancelled':
-      return 'badge-gray';
+      return 'status-box status-box--canceled';
     default:
-      return 'badge-gray';
+      return 'status-box status-box--draft';
   }
+}
+
+/** Extra lines inside the status pill — mirrors Laravel ManageShipmentMasterDataTable. */
+export function statusBadgeDetails(
+  shipment: Pick<
+    Shipment,
+    'status' | 'bidsReceived' | 'bidsSent' | 'bids' | 'invited'
+  >,
+  t: (key: string, opts?: Record<string, unknown>) => string
+): string[] {
+  const lines: string[] = [];
+  if (shipment.status === 'not_fullfilled') {
+    lines.push(t('shipmentPendingSublabel'));
+    return lines;
+  }
+  if (shipment.status !== 'pending') return lines;
+
+  const invited = shipment.invited ?? 0;
+  const received = shipment.bidsReceived ?? shipment.bids ?? 0;
+  const sent = shipment.bidsSent ?? 0;
+
+  if (invited > 0) {
+    lines.push(t('statusInterestedCount', { count: invited }));
+  }
+  if (received > 0) {
+    lines.push(t('statusBidRequestsCount', { count: received }));
+  }
+  if (sent > 0) {
+    lines.push(t('statusCarrierPendingCount', { count: sent }));
+  }
+  return lines;
 }
 
 export type LaravelProgressState = 'done' | 'cur' | 'pending' | 'success' | 'skip';
