@@ -74,31 +74,117 @@ export function ProgressTimeline({
   return enlarged ? <div className="tl-big">{timeline}</div> : timeline;
 }
 
-type OrderRow = {
-  customer: string;
-  id: string;
-  products?: string;
-  qty?: number;
-  qtyUnit?: string;
-  weight?: number;
-  weightUnit?: string;
+type ProductLine = {
+  products: string;
+  qty: number;
+  qtyUnit: string;
+  weight: number;
+  weightUnit: string;
 };
 
-function CustomerOrderGroup({
-  name,
-  rows,
+type OrderGroup = {
+  orderId: string;
+  customer: string;
+  lines: ProductLine[];
+};
+
+function lineSignature(line: ProductLine): string {
+  return [line.products, line.qty, line.qtyUnit, line.weight, line.weightUnit].join('|');
+}
+
+/**
+ * Unique orders with product lines (prefer pickup stops so pickup+delivery
+ * of the same order/product are not double-counted).
+ */
+function buildOrderProductGroups(shipment: Shipment): OrderGroup[] {
+  const stops = shipment.stops ?? [];
+  const byOrder = new Map<string, OrderGroup & { seen: Set<string> }>();
+
+  const ingest = (orderId: string, customer: string, line: ProductLine) => {
+    const key = orderId.trim();
+    if (!key) return;
+    let group = byOrder.get(key);
+    if (!group) {
+      group = { orderId: key, customer: customer || '', lines: [], seen: new Set() };
+      byOrder.set(key, group);
+    }
+    if (customer && !group.customer) group.customer = customer;
+    const sig = lineSignature(line);
+    if (group.seen.has(sig)) return;
+    group.seen.add(sig);
+    if (line.products || line.qty || line.weight) {
+      group.lines.push(line);
+    }
+  };
+
+  const ingestStops = (source: typeof stops) => {
+    source.forEach((stop) => {
+      (stop.customers || []).forEach((c) => {
+        (c.orders || []).forEach((o) => {
+          const orderId = (o.id || '').trim();
+          if (!orderId) return;
+          ingest(orderId, c.name || '', {
+            products: o.products || '',
+            qty: o.qty || 0,
+            qtyUnit: o.qtyUnit || '',
+            weight: o.weight || 0,
+            weightUnit: o.weightUnit || '',
+          });
+        });
+      });
+    });
+  };
+
+  const pickupStops = stops.filter((s) => s.type === 'pickup');
+  ingestStops(pickupStops.length > 0 ? pickupStops : stops);
+
+  // If pickups yielded order shells with no products, fill lines from remaining stops.
+  if (pickupStops.length > 0 && Array.from(byOrder.values()).some((g) => g.lines.length === 0)) {
+    ingestStops(stops.filter((s) => s.type !== 'pickup'));
+  }
+
+  if (byOrder.size > 0) {
+    return Array.from(byOrder.values()).map(({ seen: _seen, ...rest }) => rest);
+  }
+
+  // Fallbacks when stops have no order lines yet.
+  const knownIds = (shipment.orderIds ?? []).filter(Boolean);
+  if (knownIds.length > 0) {
+    return knownIds.map((orderId) => ({ orderId, customer: '', lines: [] }));
+  }
+
+  if (shipment.customer.length) {
+    return shipment.customer.flatMap((c) => {
+      const ids = (c.orders as unknown as Array<string | { id?: string }>).map((o) =>
+        typeof o === 'string' ? o : o?.id || ''
+      );
+      return ids.filter(Boolean).map((orderId) => ({
+        orderId,
+        customer: c.name,
+        lines: [] as ProductLine[],
+      }));
+    });
+  }
+
+  return [];
+}
+
+function OrderProductGroup({
+  group,
   open,
   onToggle,
   t,
 }: {
-  name: string;
-  rows: OrderRow[];
+  group: OrderGroup;
   open: boolean;
   onToggle: () => void;
   t: ExpTranslate;
 }) {
-  const count = rows.length;
-  const countLabel = `${count} ${count === 1 ? t('order') : t('orders').toLowerCase()}`;
+  const productCount = group.lines.length;
+  const countLabel =
+    productCount > 0
+      ? `${productCount} ${productCount === 1 ? t('aiWizardProduct') : t('aiWizardProducts')}`
+      : t('order');
 
   return (
     <div className="exp-cust-group">
@@ -116,29 +202,27 @@ function CustomerOrderGroup({
         aria-expanded={open}
       >
         <span className={`cust-chev${open ? ' open' : ''}`}>▶</span>
-        <span aria-hidden>🏪</span>
-        <span className="cust-name">{name}</span>
+        <span className="cust-name">{group.orderId}</span>
         <span className="cust-count">{countLabel}</span>
       </div>
       <div className={`exp-cust-body${open ? ' open' : ''}`}>
-        {rows.map((o) => (
-          <div key={`${o.id}-${o.products ?? ''}`} className="ord">
-            <span className="ord-id">{o.id}</span>
-            {o.products ? (
-              <span style={{ color: 'var(--text-tertiary)' }}> · {o.products}</span>
-            ) : name ? (
-              <span style={{ color: 'var(--text-tertiary)' }}> · {name}</span>
-            ) : null}
-            {(o.qty || 0) > 0 || (o.weight || 0) > 0 ? (
-              <span className="sub">
-                {' '}
-                ({(o.qty || 0) > 0 ? `${o.qty} ${o.qtyUnit}` : ''}
-                {(o.qty || 0) > 0 && (o.weight || 0) > 0 ? ', ' : ''}
-                {(o.weight || 0) > 0 ? `${o.weight} ${o.weightUnit}` : ''})
-              </span>
-            ) : null}
-          </div>
-        ))}
+        {group.lines.length === 0 ? (
+          <div className="ord sub">—</div>
+        ) : (
+          group.lines.map((line, idx) => (
+            <div key={`${group.orderId}-${lineSignature(line)}-${idx}`} className="ord">
+              <span className="ord-id">{line.products || '—'}</span>
+              {(line.qty || 0) > 0 || (line.weight || 0) > 0 ? (
+                <span className="sub">
+                  {' '}
+                  ({(line.qty || 0) > 0 ? `${line.qty} ${line.qtyUnit}` : ''}
+                  {(line.qty || 0) > 0 && (line.weight || 0) > 0 ? ', ' : ''}
+                  {(line.weight || 0) > 0 ? `${line.weight} ${line.weightUnit}` : ''})
+                </span>
+              ) : null}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
@@ -195,47 +279,14 @@ export function OrdersBlock({
 }) {
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
 
-  const fromStops =
-    shipment.stops?.flatMap((stop) =>
-      stop.customers.flatMap((c) =>
-        c.orders.map((o) => ({
-          customer: c.name,
-          id: o.id,
-          products: o.products,
-          qty: o.qty,
-          qtyUnit: o.qtyUnit,
-          weight: o.weight,
-          weightUnit: o.weightUnit,
-        }))
-      )
-    ) ?? [];
-
-  const groups: Array<[string, OrderRow[]]> = (() => {
-    if (fromStops.length > 0) {
-      const byCustomer = new Map<string, OrderRow[]>();
-      fromStops.forEach((row) => {
-        const list = byCustomer.get(row.customer) || [];
-        list.push(row);
-        byCustomer.set(row.customer, list);
-      });
-      return Array.from(byCustomer.entries());
-    }
-    if (shipment.customer.length) {
-      return shipment.customer.map((c) => [
-        c.name,
-        (c.orders as string[]).map((id) => ({ customer: c.name, id })),
-      ]);
-    }
-    return [];
-  })();
-
-  const isOpen = (name: string) => Boolean(openMap[name]);
-  const allExpanded = groups.length > 0 && groups.every(([name]) => openMap[name]);
+  const groups = buildOrderProductGroups(shipment);
+  const isOpen = (orderId: string) => Boolean(openMap[orderId]);
+  const allExpanded = groups.length > 0 && groups.every((g) => openMap[g.orderId]);
   const toggleAll = () => {
     const next: Record<string, boolean> = {};
     const open = !allExpanded;
-    groups.forEach(([name]) => {
-      next[name] = open;
+    groups.forEach((g) => {
+      next[g.orderId] = open;
     });
     setOpenMap(next);
   };
@@ -248,13 +299,14 @@ export function OrdersBlock({
       <div className="sub">{t('noOrdersMapped')}</div>
     ) : (
       <>
-        {groups.map(([name, rows]) => (
-          <CustomerOrderGroup
-            key={name}
-            name={name}
-            rows={rows}
-            open={isOpen(name)}
-            onToggle={() => setOpenMap((prev) => ({ ...prev, [name]: !prev[name] }))}
+        {groups.map((group) => (
+          <OrderProductGroup
+            key={group.orderId}
+            group={group}
+            open={isOpen(group.orderId)}
+            onToggle={() =>
+              setOpenMap((prev) => ({ ...prev, [group.orderId]: !prev[group.orderId] }))
+            }
             t={t}
           />
         ))}
@@ -280,36 +332,27 @@ export function OrdersBlock({
 
 export function ordersHeaderMeta(shipment: Shipment, t: ExpTranslate): {
   orderCount: number;
-  customerCount: number;
+  productCount: number;
   label: ReactNode;
 } {
-  const fromStops =
-    shipment.stops?.flatMap((stop) =>
-      stop.customers.flatMap((c) => c.orders.map((o) => ({ customer: c.name, id: o.id })))
-    ) ?? [];
-
-  let orderCount = fromStops.length;
-  let customerCount = new Set(fromStops.map((r) => r.customer)).size;
+  const groups = buildOrderProductGroups(shipment);
+  let orderCount = groups.length;
+  let productCount = groups.reduce((sum, g) => sum + g.lines.length, 0);
 
   if (orderCount === 0) {
-    customerCount = shipment.customer.length;
-    orderCount = shipment.customer.reduce(
-      (sum, c) => sum + ((c.orders as string[])?.length || 0),
-      0
-    );
-    if (orderCount === 0) orderCount = shipment.ordersCount ?? shipment.orderIds?.length ?? 0;
+    orderCount = shipment.ordersCount ?? shipment.orderIds?.length ?? 0;
   }
 
   return {
     orderCount,
-    customerCount,
+    productCount,
     label: (
       <>
         {t('orders')} ({orderCount})
-        {customerCount > 0 && (
+        {productCount > 0 && (
           <span className="exp-cust-meta">
-            🏪 {customerCount}{' '}
-            {customerCount === 1 ? t('customer') : t('customers')}
+            📦 {productCount}{' '}
+            {productCount === 1 ? t('aiWizardProduct') : t('aiWizardProducts')}
           </span>
         )}
       </>
