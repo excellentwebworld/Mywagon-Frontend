@@ -95,7 +95,6 @@ export const GoogleMapAddressField: React.FC<Props> = ({
 
         autocomplete = new window.google.maps.places.Autocomplete(inputEl, {
           fields: ['formatted_address', 'geometry', 'address_components', 'name'],
-          componentRestrictions: { country: 'gr' },
         });
 
         autocomplete.addListener('place_changed', () => {

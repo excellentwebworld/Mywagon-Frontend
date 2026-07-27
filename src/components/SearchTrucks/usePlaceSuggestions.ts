@@ -132,7 +132,6 @@ export function usePlaceSuggestions(opts: {
       ac.getPlacePredictions(
         {
           input: q,
-          componentRestrictions: { country: 'gr' },
           sessionToken: serviceRef.current.token ?? undefined,
         },
         (predictions, status) => {
