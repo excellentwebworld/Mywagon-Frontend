@@ -433,7 +433,7 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
           <>
             <div className="bids-section-head">
               <ExpHeading icon="responses">
-                {t('availabilityBids')} ({sentOffers.length})
+                {t('bidsSentPostedTruck')} ({sentOffers.length})
               </ExpHeading>
               {priceHeader('quotePriceLabel')}
             </div>
@@ -457,7 +457,7 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
               className={`bids-section-head${sentOffers.length > 0 ? ' bids-section-head--spaced' : ''}`}
             >
               <ExpHeading icon="responses">
-                {t('bidsForThisShipment')} ({receivedOffers.length})
+                {t('bidsReceivedFromTransporters')} ({receivedOffers.length})
               </ExpHeading>
               {priceHeader('startingPriceLabel')}
             </div>
