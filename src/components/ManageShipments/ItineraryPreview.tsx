@@ -25,7 +25,7 @@ interface ItineraryPreviewProps {
 }
 
 function formatWhen(date?: string, timeStart?: string): string {
-  return [date, timeStart].filter(Boolean).join(' · ');
+  return [date, timeStart].filter(Boolean).join(' ');
 }
 
 function formatQty(qty: number, unit: string): string {

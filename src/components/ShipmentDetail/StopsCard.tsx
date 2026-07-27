@@ -33,7 +33,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({ stops, expanded, onToggle,
                     {isPickup ? t('pickup') : t('delivery')}
                   </span>
                   <span className="ld-stop-time">
-                    {stop.date} · {stop.timeStart}–{stop.timeEnd}
+                    {stop.date} {stop.timeStart}–{stop.timeEnd}
                   </span>
                 </div>
                 <div className="ld-stop-name">{stop.location}</div>

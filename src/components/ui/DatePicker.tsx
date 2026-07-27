@@ -26,7 +26,7 @@ type Props = {
 export const DatePicker: React.FC<Props> = ({
   value,
   onChange,
-  placeholder = 'dd/mm/yyyy',
+  placeholder = 'dd/MM/yyyy',
   disabled = false,
   hasError = false,
   className = '',

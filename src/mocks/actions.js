@@ -288,7 +288,15 @@ export async function mockCreateLocation(locationData) {
       shipments30: 0,
       shipments90: 0,
       otd: 0,
-      created: new Date().toLocaleDateString('en-GB'),
+      created: (() => {
+        const d = new Date();
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = String(d.getFullYear());
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
+      })(),
     },
   };
 }
@@ -371,7 +379,15 @@ export async function mockDuplicateLocation(locationId, originalData) {
       id: newId,
       name: `${originalData.name} (Copy)`,
       lastUsed: 'just now',
-      created: new Date().toLocaleDateString('en-GB'),
+      created: (() => {
+        const d = new Date();
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = String(d.getFullYear());
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
+      })(),
     },
   };
 }

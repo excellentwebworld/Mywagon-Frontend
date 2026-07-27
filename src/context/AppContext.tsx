@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { addressBookService, productMasterService } from '../api';
+import { formatUtcToDisplayDateTime } from '../utils/timezone';
 import { useAuth } from './AuthContext';
 
 // ==========================================
@@ -448,7 +449,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...loc,
       id: nextId,
       status: 'active',
-      created: new Date().toLocaleDateString('en-GB'),
+      created: formatUtcToDisplayDateTime(new Date().toISOString()),
       shipments30: 0,
       shipments90: 0,
       otd: 100,

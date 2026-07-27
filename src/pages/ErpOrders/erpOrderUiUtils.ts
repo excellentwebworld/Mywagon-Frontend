@@ -40,11 +40,6 @@ export function getShipUrgency(
 
 export function formatShipDate(d: string): string {
   if (!d) return '—';
-  const m = d.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (m) {
-    const local = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-    return local.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
   return formatCalendarDate(d);
 }
 

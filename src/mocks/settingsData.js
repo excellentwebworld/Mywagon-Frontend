@@ -148,7 +148,14 @@ export function relativeTime(iso) {
   if (days < 7) return `${days}d ago`;
   const weeks = Math.floor(days / 7);
   if (weeks < 5) return `${weeks}w ago`;
-  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = String(d.getFullYear());
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
 }
 
 export function passwordAgeDays(lastChange) {

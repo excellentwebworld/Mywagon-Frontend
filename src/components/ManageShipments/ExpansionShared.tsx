@@ -40,7 +40,7 @@ export function ProgressTimeline({
       {steps.map((step) => {
         const dateLine = step.dateLine;
         const timeLine = step.timeLine;
-        const tipSub = step.sub || [dateLine, timeLine].filter(Boolean).join(' · ');
+        const tipSub = step.sub || [dateLine, timeLine].filter(Boolean).join(' ');
         return (
           <div
             key={step.id}

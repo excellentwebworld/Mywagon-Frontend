@@ -387,11 +387,16 @@ export function shouldSuggestSplit(order) {
   return getOrderTotals(order).pallets > 30;
 }
 
-// Format ISO date as "DD MMM YYYY" for display (locale-aware via navigator)
-export function formatShipDate(iso, locale = 'en-GB') {
+// Format ISO date as dd/MM/yyyy for display
+export function formatShipDate(iso) {
   if (!iso) return '—';
   try {
-    return new Date(iso + 'T00:00:00').toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
+    const d = new Date(iso + 'T00:00:00');
+    if (Number.isNaN(d.getTime())) return iso;
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = String(d.getFullYear());
+    return `${dd}/${mm}/${yyyy}`;
   } catch {
     return iso;
   }

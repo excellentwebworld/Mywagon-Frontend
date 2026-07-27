@@ -2967,10 +2967,10 @@ function fmtStopBrief(s: any, t: any) {
   const parts = [];
   if (s.dateFrom) {
     let str = `From ${formatDisplayDate(s.dateFrom)}`;
-    if (s.timeFrom) str += `, ${formatDisplayTime(s.timeFrom)}`;
+    if (s.timeFrom) str += ` ${formatDisplayTime(s.timeFrom)}`;
     if (s.dateTo) {
       str += ` To ${formatDisplayDate(s.dateTo)}`;
-      if (s.timeTo) str += `, ${formatDisplayTime(s.timeTo)}`;
+      if (s.timeTo) str += ` ${formatDisplayTime(s.timeTo)}`;
     } else if (s.timeTo) {
       str += ` To ${formatDisplayTime(s.timeTo)}`;
     }

@@ -1,5 +1,5 @@
 import type { Contact, LocationItem } from '../../context/AppContext';
-import { formatErpLastUpdate, parseUtcInstant } from '../../utils/timezone';
+import { formatErpLastUpdate, formatUtcToDisplayDateTime, parseUtcInstant } from '../../utils/timezone';
 import type { CreateLocationData, AddressBookSortField } from '../../pages/AddressBook/types';
 import { normalizeFacilityType } from '../../pages/AddressBook/constants';
 import type {
@@ -24,7 +24,7 @@ function formatLastUsed(iso: string | null): string {
   if (days <= 0) return 'Today';
   if (days === 1) return '1d ago';
   if (days < 30) return `${days}d ago`;
-  return date.toLocaleDateString();
+  return formatUtcToDisplayDateTime(iso);
 }
 
 function mapGroup(type: ApiLocationListItem['type']): LocationItem['group'] {

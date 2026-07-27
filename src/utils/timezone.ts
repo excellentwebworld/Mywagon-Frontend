@@ -5,8 +5,8 @@
 
 import { formatDisplayDate } from './dateDisplay';
 
-/** Matches backend `ShipperErpOrdersExport` / Carbon format: `26 Jun, 18:48` */
-export const ERP_LAST_UPDATE_FORMAT = 'd M, H:i';
+/** Panel datetime display format: `dd/MM/yyyy HH:mm` */
+export const ERP_LAST_UPDATE_FORMAT = 'd/m/Y H:i';
 
 export function getBrowserTimezone(): string {
   try {
@@ -69,7 +69,7 @@ export function formatInTimeZone(
   return new Intl.DateTimeFormat('en-GB', { timeZone: tz, ...opts }).format(date);
 }
 
-/** UTC instant → dd/mm/yyyy in browser (or explicit) TZ. */
+/** UTC instant → dd/MM/yyyy in browser (or explicit) TZ. */
 export function formatUtcToDisplayDate(utc: string, tz: string = getBrowserTimezone()): string {
   const parsed = parseUtcInstant(utc);
   if (!parsed) return utc || '';
@@ -82,7 +82,7 @@ export function formatUtcToDisplayDate(utc: string, tz: string = getBrowserTimez
   const month = parts.find((p) => p.type === 'month')?.value;
   const year = parts.find((p) => p.type === 'year')?.value;
   if (!day || !month || !year) return utc;
-  return `${day}/${month}/${year}`;
+  return `${pad2(day)}/${pad2(month)}/${year}`;
 }
 
 /** UTC instant → HH:mm in browser TZ. */
@@ -101,7 +101,7 @@ export function formatUtcToDisplayTime(utc: string, tz: string = getBrowserTimez
 }
 
 /**
- * UTC instant → schedule label matching list UI: `d/m · H:i` in browser TZ.
+ * UTC instant → panel datetime label: `dd/MM/yyyy HH:mm` in browser TZ.
  */
 export function formatUtcToDisplayDateTime(utc: string, tz: string = getBrowserTimezone()): string {
   const parsed = parseUtcInstant(utc);
@@ -109,41 +109,25 @@ export function formatUtcToDisplayDateTime(utc: string, tz: string = getBrowserT
   const parts = getTzParts(parsed, tz, {
     day: '2-digit',
     month: '2-digit',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
   });
   const day = parts.find((p) => p.type === 'day')?.value;
   const month = parts.find((p) => p.type === 'month')?.value;
+  const year = parts.find((p) => p.type === 'year')?.value;
   const hour = parts.find((p) => p.type === 'hour')?.value;
   const minute = parts.find((p) => p.type === 'minute')?.value;
-  if (!day || !month || hour == null || minute == null) return utc;
-  return `${Number(day)}/${Number(month)} · ${pad2(hour)}:${pad2(minute)}`;
+  if (!day || !month || !year || hour == null || minute == null) return utc;
+  return `${pad2(day)}/${pad2(month)}/${year} ${pad2(hour)}:${pad2(minute)}`;
 }
 
-/** ERP / Address Book style: `26 Jun, 18:48` in browser TZ. */
+/** ERP / Address Book / last-update timestamps: `dd/MM/yyyy HH:mm` in browser TZ. */
 export function formatErpLastUpdate(value: string, timezone = getBrowserTimezone()): string {
   if (!value) return '—';
-
-  const parsed = parseUtcInstant(value);
-  if (!parsed) return value;
-
-  const parts = getTzParts(parsed, timezone, {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-
-  const day = parts.find((part) => part.type === 'day')?.value;
-  const month = parts.find((part) => part.type === 'month')?.value;
-  const hour = parts.find((part) => part.type === 'hour')?.value;
-  const minute = parts.find((part) => part.type === 'minute')?.value;
-
-  if (!day || !month || hour == null || minute == null) return '—';
-
-  return `${day} ${month}, ${pad2(hour)}:${pad2(minute)}`;
+  const formatted = formatUtcToDisplayDateTime(value, timezone);
+  return formatted || '—';
 }
 
 /** Split a UTC instant into local calendar date + time for DatePicker / TimePicker. */

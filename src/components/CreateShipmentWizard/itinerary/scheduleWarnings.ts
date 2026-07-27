@@ -17,9 +17,12 @@ const DEFAULT_HOLIDAYS = [
 export function formatAppointmentLabel(stop: ApiStop): string {
   if (!stop.dateFrom) return '';
   let label = formatDisplayDate(stop.dateFrom);
-  if (stop.timeFrom) label += ` · ${formatDisplayTime(stop.timeFrom)}`;
-  if (stop.timeTo) label += ` – ${formatDisplayTime(stop.timeTo)}`;
-  else if (stop.dateTo && stop.dateTo !== stop.dateFrom) label += ` → ${formatDisplayDate(stop.dateTo)}`;
+  if (stop.timeFrom && stop.timeTo) {
+    label += ` ${formatDisplayTime(stop.timeFrom)} – ${formatDisplayTime(stop.timeTo)}`;
+  } else if (stop.timeFrom) {
+    label += ` ${formatDisplayTime(stop.timeFrom)}`;
+  }
+  if (stop.dateTo && stop.dateTo !== stop.dateFrom) label += ` → ${formatDisplayDate(stop.dateTo)}`;
   return label;
 }
 
@@ -27,9 +30,9 @@ export function formatStopScheduleShort(stop: ApiStop): string {
   if (!stop.dateFrom) return '—';
   const datePart = formatDisplayDate(stop.dateFrom);
   if (stop.timeFrom && stop.timeTo) {
-    return `${datePart} · ${formatDisplayTime(stop.timeFrom)}–${formatDisplayTime(stop.timeTo)}`;
+    return `${datePart} ${formatDisplayTime(stop.timeFrom)}–${formatDisplayTime(stop.timeTo)}`;
   }
-  if (stop.timeFrom) return `${datePart} · ${formatDisplayTime(stop.timeFrom)}`;
+  if (stop.timeFrom) return `${datePart} ${formatDisplayTime(stop.timeFrom)}`;
   if (stop.dateTo && stop.dateTo !== stop.dateFrom) {
     return `${datePart} → ${formatDisplayDate(stop.dateTo)}`;
   }

@@ -1,4 +1,8 @@
-/** Display helpers: European dd/mm/yyyy + 24h time (matches DatePicker placeholders). */
+/** Display helpers: European dd/MM/yyyy + 24h HH:mm (matches DatePicker placeholders). */
+
+export const DISPLAY_DATE_FORMAT = 'dd/MM/yyyy';
+export const DISPLAY_TIME_FORMAT = 'HH:mm';
+export const DISPLAY_DATETIME_FORMAT = 'dd/MM/yyyy HH:mm';
 
 export function getPreferredDateLocale(): string {
   return 'en-GB';
@@ -18,7 +22,7 @@ function parseYmd(ymd: string): Date | null {
   return date;
 }
 
-/** Format YYYY-MM-DD for display as dd/mm/yyyy. */
+/** Format YYYY-MM-DD for display as dd/MM/yyyy. */
 export function formatDisplayDate(ymd: string): string {
   const date = parseYmd(ymd);
   if (!date) return ymd || '';
@@ -48,10 +52,10 @@ export function formatDisplayTime(hm: string): string {
   });
 }
 
-/** Combine date + optional time for appointment labels. */
+/** Combine date + optional time for appointment labels (`dd/MM/yyyy HH:mm`). */
 export function formatDisplayDateTime(ymd?: string, hm?: string): string {
   if (!ymd) return '';
   let label = formatDisplayDate(ymd);
-  if (hm) label += ` · ${formatDisplayTime(hm)}`;
+  if (hm) label += ` ${formatDisplayTime(hm)}`;
   return label;
 }

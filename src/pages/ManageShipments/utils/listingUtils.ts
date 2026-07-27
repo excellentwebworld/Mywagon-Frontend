@@ -2,6 +2,7 @@ import type { Shipment } from '../../../context/AppContext';
 import type { ListShipmentsParams, ShipmentKpiKey, ShipmentSortKey } from '../../../api/types/shipments';
 import {
   formatUtcToDisplayDate,
+  formatUtcToDisplayDateTime,
   formatUtcToDisplayTime,
   localDateTimeLocalToUtcIso,
   parseUtcInstant,
@@ -935,7 +936,7 @@ function progressDateTimeParts(
     return {
       dateLine: dateLine || undefined,
       timeLine: timeLine || undefined,
-      sub: [dateLine, timeLine].filter(Boolean).join(' · ') || undefined,
+      sub: [dateLine, timeLine].filter(Boolean).join(' ') || undefined,
     };
   }
 
@@ -948,7 +949,7 @@ function progressDateTimeParts(
     dateLine = `${d}/${m}/${y}`;
   }
 
-  // Combined display like "15/6 · 18:30" or "15 Jun, 18:30"
+  // Combined display like "15/06/2026 18:30"
   if (!dateLine && isoOrDisplay) {
     const raw = isoOrDisplay.trim();
     const parts = raw.split(/\s*[·,]\s*|\s+/).filter(Boolean);
@@ -963,7 +964,7 @@ function progressDateTimeParts(
   return {
     dateLine,
     timeLine,
-    sub: [dateLine, timeLine].filter(Boolean).join(' · ') || undefined,
+    sub: [dateLine, timeLine].filter(Boolean).join(' ') || undefined,
   };
 }
 
@@ -1242,5 +1243,5 @@ export function formatRelativeAgo(
   if (hrs < 48) return tr('relativeHours', { count: hrs });
   const days = Math.floor(hrs / 24);
   if (days < 14) return tr('relativeDays', { count: days });
-  return new Date(ts).toLocaleDateString();
+  return formatUtcToDisplayDateTime(new Date(ts).toISOString());
 }
