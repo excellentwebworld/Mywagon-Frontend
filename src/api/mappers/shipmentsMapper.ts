@@ -303,6 +303,9 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
       (detail.offers || []).map((o) => ({
         id: o.id,
         type: o.type,
+        kind: o.kind ?? (o.availability_id ? 'sent' : 'received'),
+        availabilityId: o.availability_id ?? null,
+        lastActionBy: o.last_action_by ?? null,
         name: o.name,
         initials: o.initials,
         avatar: o.avatar ?? null,

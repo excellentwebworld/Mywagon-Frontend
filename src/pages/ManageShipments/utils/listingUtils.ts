@@ -588,11 +588,22 @@ export function isShipmentCancellable(status: Shipment['status']): boolean {
   return SHIPMENT_EDIT_CANCEL_STATUSES.has(status);
 }
 
-export function statusBadgeClass(status: Shipment['status'], atRisk?: boolean): string {
+export function statusBadgeClass(
+  status: Shipment['status'],
+  atRisk?: boolean,
+  opts?: { bidsReceived?: number; bidsSent?: number }
+): string {
   if (atRisk || status === 'past_due') return 'badge-danger';
   switch (status) {
-    case 'pending':
-      return 'badge-warning';
+    case 'pending': {
+      // Match old panel: yellow = has inbound bids/partners; mint = bid-sent / idle; gradient = both.
+      const received = opts?.bidsReceived ?? 0;
+      const sent = opts?.bidsSent ?? 0;
+      if (received > 0 && sent > 0) return 'badge-pending-more';
+      if (sent > 0 && received === 0) return 'badge-pending-request';
+      if (received > 0) return 'badge-warning';
+      return 'badge-pending-request';
+    }
     case 'scheduled':
     case 'ready':
     case 'upcoming':

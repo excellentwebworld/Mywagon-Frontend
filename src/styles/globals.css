@@ -438,6 +438,12 @@ a { color: inherit; text-decoration: none; }
 .badge-danger  { background: var(--danger-bg);  color: #991B1B; }
 .badge-info    { background: var(--info-bg);    color: #0369A1; }
 .badge-accent  { background: var(--accent-light); color: var(--accent); }
+/* Old Manage Shipment pending variants (mint / yellow / dual). */
+.badge-pending-request { background: #55cf9e; color: #ffffff; }
+.badge-pending-more {
+  background: transparent linear-gradient(90deg, #F3C747 0%, #4BA48A 100%) 0% 0% no-repeat padding-box;
+  color: #111827;
+}
 .badge-gray    { background: var(--surface-alt); color: var(--text-secondary); }
 .badge-pickup  { background: var(--pickup-bg); color: #0369A1; }
 .badge-delivery{ background: var(--delivery-bg); color: #065F46; }

@@ -223,6 +223,9 @@ export interface Shipment {
   offers?: Array<{
     id: string;
     type: 'bid' | 'interest';
+    kind?: 'received' | 'sent' | string | null;
+    availabilityId?: string | null;
+    lastActionBy?: string | null;
     name: string;
     initials?: string;
     avatar?: string | null;

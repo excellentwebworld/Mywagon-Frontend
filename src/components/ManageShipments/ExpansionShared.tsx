@@ -136,7 +136,20 @@ function buildOrderProductGroups(shipment: Shipment): OrderGroup[] {
   };
 
   const pickupStops = stops.filter((s) => s.type === 'pickup');
+  const deliveryStops = stops.filter((s) => s.type === 'delivery');
   ingestStops(pickupStops.length > 0 ? pickupStops : stops);
+
+  // Prefer receiving (delivery) company name when available.
+  deliveryStops.forEach((stop) => {
+    (stop.customers || []).forEach((c) => {
+      (c.orders || []).forEach((o) => {
+        const orderId = (o.id || '').trim();
+        if (!orderId || !c.name) return;
+        const group = byOrder.get(orderId);
+        if (group) group.customer = c.name;
+      });
+    });
+  });
 
   // If pickups yielded order shells with no products, fill lines from remaining stops.
   if (pickupStops.length > 0 && Array.from(byOrder.values()).some((g) => g.lines.length === 0)) {
@@ -202,7 +215,10 @@ function OrderProductGroup({
         aria-expanded={open}
       >
         <span className={`cust-chev${open ? ' open' : ''}`}>▶</span>
-        <span className="cust-name">{group.orderId}</span>
+        <div className="exp-order-head-main">
+          {group.customer ? <span className="ord-company">{group.customer}</span> : null}
+          <span className="cust-name">{group.orderId}</span>
+        </div>
         <span className="cust-count">{countLabel}</span>
       </div>
       <div className={`exp-cust-body${open ? ' open' : ''}`}>

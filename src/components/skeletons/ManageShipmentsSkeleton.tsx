@@ -8,14 +8,14 @@ const T = {
 };
 
 export const KpiStripSkeleton: React.FC = () => (
-  <div className="mgmt-kpi-s" aria-hidden="true">
+  <div className="mgmt-kpi-s mgmt-kpi-s--inline" aria-hidden="true">
     {Array.from({ length: 5 }).map((_, idx) => (
-      <div key={idx} className="mgmt-kpi" style={{ pointerEvents: 'none' }}>
+      <div key={idx} className="mgmt-kpi mgmt-kpi--compact" style={{ pointerEvents: 'none' }}>
         <div className="mgmt-kpi-v">
-          <Skeleton width={32} height={22} baseColor={T.sa} highlightColor={T.sf} />
+          <Skeleton width={28} height={18} baseColor={T.sa} highlightColor={T.sf} />
         </div>
         <div className="mgmt-kpi-l">
-          <Skeleton width={90} height={11} baseColor={T.sa} highlightColor={T.sf} />
+          <Skeleton width={72} height={10} baseColor={T.sa} highlightColor={T.sf} />
         </div>
       </div>
     ))}

@@ -17,11 +17,11 @@ const KPI_CONFIG: { key: ShipmentKpiKey; labelKey: string; color: string }[] = [
 ];
 
 export const KpiStrip: React.FC<KpiStripProps> = ({ counts, activeKpi, onKpiClick, t }) => (
-  <div className="mgmt-kpi-s a d1">
+  <div className="mgmt-kpi-s mgmt-kpi-s--inline a d1">
     {KPI_CONFIG.map((kpi) => (
       <div
         key={kpi.key}
-        className={`mgmt-kpi ${kpi.color} ${activeKpi === kpi.key ? 'act' : ''}`}
+        className={`mgmt-kpi mgmt-kpi--compact ${kpi.color} ${activeKpi === kpi.key ? 'act' : ''}`}
         onClick={() => onKpiClick(activeKpi === kpi.key ? null : kpi.key)}
         role="button"
         tabIndex={0}

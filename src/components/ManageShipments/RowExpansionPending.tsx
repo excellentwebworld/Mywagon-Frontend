@@ -60,6 +60,8 @@ function OfferRow({
   const prefill = offer.price != null ? Math.round(offer.price * COUNTER_OFFER_PREFILL_RATIO * 100) / 100 : 0;
   const [amount, setAmount] = useState(String(prefill || ''));
   const hasCounter = Boolean(offer.counter);
+  const awaitingTransporter =
+    offer.lastActionBy === 'shipper' || (hasCounter && offer.counter != null);
   const roleLabel = offer.role === 'freelancer' ? t('freelancer') : t('company');
   const locked = busy != null;
 
@@ -72,6 +74,18 @@ function OfferRow({
       setBusy(null);
     }
   };
+
+  const chatButton = (
+    <button
+      type="button"
+      className="bid-chat"
+      disabled={locked}
+      onClick={() => void run('chat', onMessage)}
+    >
+      {busy === 'chat' ? <ExpBtnSpin /> : null}
+      {t('chat')}
+    </button>
+  );
 
   return (
     <div className={`bid-row${locked ? ' is-busy' : ''}`}>
@@ -89,6 +103,11 @@ function OfferRow({
             {roleLabel}
           </span>
           {hasCounter && <span className="bid-status bs-counter">↩</span>}
+          {awaitingTransporter && (
+            <span className="badge badge-info" style={{ fontSize: 9 }}>
+              {t('awaitingResponse')}
+            </span>
+          )}
         </div>
         {offer.price != null && <div className="bid-price">{formatEuro(offer.price)}</div>}
       </div>
@@ -111,42 +130,46 @@ function OfferRow({
             {offer.counter.pct > 0 ? '+' : ''}
             {offer.counter.pct}%
           </span>
-          <div className="co-acts-inline">
-            <button
-              type="button"
-              className="co-ok"
-              disabled={locked}
-              onClick={() => void run('accept', onAccept)}
-            >
-              {busy === 'accept' ? <ExpBtnSpin /> : null}
-              ✓ {t('accept')}
-            </button>
-            <button
-              type="button"
-              className="co-cnt"
-              disabled={locked}
-              onClick={() => setCounterOpen(true)}
-            >
-              ↩ {t('counter')}
-            </button>
-            <button
-              type="button"
-              className="co-no bid-reject-danger"
-              disabled={locked}
-              onClick={() => void run('reject', onReject)}
-            >
-              {busy === 'reject' ? <ExpBtnSpin /> : '✕'}
-            </button>
-            <button
-              type="button"
-              className="bid-chat"
-              disabled={locked}
-              onClick={() => void run('chat', onMessage)}
-            >
-              {busy === 'chat' ? <ExpBtnSpin /> : null}
-              {t('chat')}
-            </button>
-          </div>
+          {awaitingTransporter ? (
+            <div className="co-acts-inline">
+              <span className="sub">{t('awaitingTheirResponse') || t('awaitingResponse')}</span>
+              {chatButton}
+            </div>
+          ) : (
+            <div className="co-acts-inline">
+              <button
+                type="button"
+                className="co-ok"
+                disabled={locked}
+                onClick={() => void run('accept', onAccept)}
+              >
+                {busy === 'accept' ? <ExpBtnSpin /> : null}
+                ✓ {t('accept')}
+              </button>
+              <button
+                type="button"
+                className="co-cnt"
+                disabled={locked}
+                onClick={() => setCounterOpen(true)}
+              >
+                ↩ {t('counter')}
+              </button>
+              <button
+                type="button"
+                className="co-no bid-reject-danger"
+                disabled={locked}
+                onClick={() => void run('reject', onReject)}
+              >
+                {busy === 'reject' ? <ExpBtnSpin /> : '✕'}
+              </button>
+              {chatButton}
+            </div>
+          )}
+        </div>
+      ) : awaitingTransporter ? (
+        <div className="bid-acts">
+          <span className="sub">{t('awaitingTheirResponse') || t('awaitingResponse')}</span>
+          {chatButton}
         </div>
       ) : (
         <div className="bid-acts">
@@ -176,19 +199,11 @@ function OfferRow({
           >
             {t('counter')}
           </button>
-          <button
-            type="button"
-            className="bid-chat"
-            disabled={locked}
-            onClick={() => void run('chat', onMessage)}
-          >
-            {busy === 'chat' ? <ExpBtnSpin /> : null}
-            {t('chat')}
-          </button>
+          {chatButton}
         </div>
       )}
 
-      {counterOpen && (
+      {counterOpen && !awaitingTransporter && (
         <div className="counter-form open">
           <span>€</span>
           <input
@@ -243,9 +258,23 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
   const offers = shipment.offers ?? [];
   const invitees = shipment.invitees ?? [];
   const invitedCount = invitees.length || shipment.invited || 0;
-  const bidLabel =
-    offers.length === 1 ? t('bid') : offers.length > 1 ? t('bids') : '';
   const isPublic = (shipment.channel || shipment.vis) === 'public';
+  const receivedOffers = offers.filter((o) => (o.kind ?? 'received') !== 'sent');
+  const sentOffers = offers.filter((o) => o.kind === 'sent');
+  const showSplitResponses = receivedOffers.length > 0 && sentOffers.length > 0;
+
+  const renderOfferList = (list: typeof offers) =>
+    list.map((offer) => (
+      <OfferRow
+        key={offer.id}
+        offer={offer}
+        onAccept={() => onAcceptOffer(offer.id)}
+        onReject={() => onRejectOffer(offer.id)}
+        onCounter={(amount) => onCounterOffer(offer.id, amount)}
+        onMessage={() => onMessage(offer.id)}
+        t={t}
+      />
+    ));
 
   const runInvite = async (key: string, fn: () => void | Promise<void>) => {
     if (inviteBusy) return;
@@ -293,26 +322,35 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
       </div>
 
       <div className="exp-section">
-        <ExpHeading icon="responses">
-          {t('responses')} ({offers.length}
-          {bidLabel ? ` ${bidLabel}` : ''})
-        </ExpHeading>
-        {offers.length > 0 ? (
-          offers.map((offer) => (
-            <OfferRow
-              key={offer.id}
-              offer={offer}
-              onAccept={() => onAcceptOffer(offer.id)}
-              onReject={() => onRejectOffer(offer.id)}
-              onCounter={(amount) => onCounterOffer(offer.id, amount)}
-              onMessage={() => onMessage(offer.id)}
-              t={t}
-            />
-          ))
+        {showSplitResponses ? (
+          <>
+            <ExpHeading icon="responses">
+              {t('bidsReceivedFromTransporters') || 'Bids Received from Transporters'} (
+              {receivedOffers.length})
+            </ExpHeading>
+            {renderOfferList(receivedOffers)}
+            <ExpHeading icon="responses" className="exp-h-gap exp-section-head--spaced">
+              {t('bidsSentPostedTruck') || 'Bids Sent Posted Truck Availabilities'} (
+              {sentOffers.length})
+            </ExpHeading>
+            {renderOfferList(sentOffers)}
+          </>
         ) : (
-          <div className="sub" style={{ padding: '12px 0', fontSize: 13 }}>
-            {t('noBidsYet')}
-          </div>
+          <>
+            <ExpHeading icon="responses">
+              {sentOffers.length > 0 && receivedOffers.length === 0
+                ? t('bidsSentPostedTruck') || 'Bids Sent Posted Truck Availabilities'
+                : t('responses')}{' '}
+              ({offers.length})
+            </ExpHeading>
+            {offers.length > 0 ? (
+              renderOfferList(offers)
+            ) : (
+              <div className="sub" style={{ padding: '12px 0', fontSize: 13 }}>
+                {t('noBidsYet')}
+              </div>
+            )}
+          </>
         )}
       </div>
 

@@ -109,6 +109,10 @@ export interface ApiShipmentStop {
 export interface ApiShipmentOffer {
   id: string;
   type: 'bid' | 'interest';
+  /** received = transporter bid/interest; sent = shipper bid on posted truck */
+  kind?: 'received' | 'sent' | string | null;
+  availability_id?: string | null;
+  last_action_by?: string | null;
   name: string;
   initials?: string;
   avatar?: string | null;

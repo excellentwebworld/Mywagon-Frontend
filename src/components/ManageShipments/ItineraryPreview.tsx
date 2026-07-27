@@ -10,6 +10,7 @@ import {
   type ItineraryStopVisual,
   type ProductLineVisual,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { formatDisplayDate } from '../../utils/dateDisplay';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { ExpandCollapseButtons } from './ExpansionShared';
 import { ExpHeading } from './ExpHeading';
@@ -25,7 +26,19 @@ interface ItineraryPreviewProps {
 }
 
 function formatWhen(date?: string, timeStart?: string): string {
-  return [date, timeStart].filter(Boolean).join(' ');
+  const dateLabel = date ? formatDisplayDate(date.includes('/') ? toYmd(date) : date) : '';
+  return [dateLabel || date, timeStart].filter(Boolean).join(' ');
+}
+
+/** Accept dd/MM/yyyy or already-ymd and normalize toward ymd for formatDisplayDate. */
+function toYmd(displayOrYmd: string): string {
+  const trimmed = displayOrYmd.trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.slice(0, 10);
+  const m = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) {
+    return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  }
+  return trimmed;
 }
 
 function formatQty(qty: number, unit: string): string {
