@@ -29,7 +29,7 @@ interface RowExpansionPendingProps {
   onMessage: (offerId?: string) => void | Promise<void>;
   onAcceptOffer: (offerId: string) => void | Promise<void>;
   onRejectOffer: (offerId: string) => void | Promise<void>;
-  onCounterOffer: (offerId: string, amount: number) => void | Promise<void>;
+  onCounterOffer: (offerId: string, amount: number, notes?: string) => void | Promise<void>;
   onRemindInvitee: (inviteeId: number) => void | Promise<void>;
   onRemoveInvitee: (inviteeId: number) => void | Promise<void>;
   onInviteMore: () => void;
@@ -64,7 +64,7 @@ function OfferCard({
   negotiable: boolean;
   onAccept: () => void | Promise<void>;
   onReject: () => void | Promise<void>;
-  onCounter: (amount: number) => void | Promise<void>;
+  onCounter: (amount: number, notes?: string) => void | Promise<void>;
   onMessage: () => void | Promise<void>;
   t: ExpTranslate;
 }) {
@@ -75,6 +75,8 @@ function OfferCard({
   const prefill =
     offer.price != null ? Math.round(offer.price * COUNTER_OFFER_PREFILL_RATIO * 100) / 100 : 0;
   const [amount, setAmount] = useState(String(prefill || ''));
+  const [notes, setNotes] = useState('');
+  const NOTES_MAX = 500;
 
   const awaitingTransporter = offer.lastActionBy === 'shipper';
   const showAcceptReject = canShowAcceptReject(offer, isAvailability) && !awaitingTransporter;
@@ -219,31 +221,73 @@ function OfferCard({
 
       {counterOpen && canCounter ? (
         <div className="counter-form open">
-          <span>€</span>
-          <input
-            type="number"
-            min={0}
-            step="0.01"
-            value={amount}
-            disabled={locked}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-          <button
-            type="button"
-            className="bid-accept"
-            disabled={locked}
-            onClick={() => {
-              const n = Number(amount);
-              if (!Number.isFinite(n) || n < 0) return;
-              void run('send', async () => {
-                await onCounter(n);
+          <div className="counter-form-row">
+            <label className="counter-form-label" htmlFor={`counter-price-${offer.id}`}>
+              {t('counterPriceLabel')} <span className="counter-req">*</span>
+            </label>
+            <div className="counter-price-wrap">
+              <span className="counter-currency">€</span>
+              <input
+                id={`counter-price-${offer.id}`}
+                type="number"
+                min={0}
+                step="0.01"
+                value={amount}
+                disabled={locked}
+                placeholder={t('counterPricePlaceholder')}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="counter-form-row">
+            <label className="counter-form-label" htmlFor={`counter-notes-${offer.id}`}>
+              {t('counterNotesLabel')} <span className="counter-opt">({t('optional')})</span>
+            </label>
+            <textarea
+              id={`counter-notes-${offer.id}`}
+              className="counter-notes"
+              rows={3}
+              maxLength={NOTES_MAX}
+              value={notes}
+              disabled={locked}
+              placeholder={t('counterNotesPlaceholder')}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+            <div className="counter-notes-count">
+              {notes.length}/{NOTES_MAX}
+            </div>
+          </div>
+          <div className="counter-form-actions">
+            <button
+              type="button"
+              className="bid-chat"
+              disabled={locked}
+              onClick={() => {
                 setCounterOpen(false);
-              });
-            }}
-          >
-            {busy === 'send' ? <ExpBtnSpin /> : null}
-            {t('send')}
-          </button>
+                setNotes('');
+              }}
+            >
+              {t('cancel')}
+            </button>
+            <button
+              type="button"
+              className="bid-accept counter-send"
+              disabled={locked}
+              onClick={() => {
+                const n = Number(amount);
+                if (!Number.isFinite(n) || n < 0) return;
+                const trimmed = notes.trim();
+                void run('send', async () => {
+                  await onCounter(n, trimmed || undefined);
+                  setCounterOpen(false);
+                  setNotes('');
+                });
+              }}
+            >
+              {busy === 'send' ? <ExpBtnSpin /> : null}
+              {t('sendCounterBid')}
+            </button>
+          </div>
         </div>
       ) : null}
 
@@ -276,7 +320,7 @@ function OfferList({
   negotiable: boolean;
   onAcceptOffer: (offerId: string) => void | Promise<void>;
   onRejectOffer: (offerId: string) => void | Promise<void>;
-  onCounterOffer: (offerId: string, amount: number) => void | Promise<void>;
+  onCounterOffer: (offerId: string, amount: number, notes?: string) => void | Promise<void>;
   onMessage: (offerId: string) => void | Promise<void>;
   t: ExpTranslate;
 }) {
@@ -291,7 +335,7 @@ function OfferList({
           negotiable={negotiable}
           onAccept={() => onAcceptOffer(offer.id)}
           onReject={() => onRejectOffer(offer.id)}
-          onCounter={(amount) => onCounterOffer(offer.id, amount)}
+          onCounter={(amount, notes) => onCounterOffer(offer.id, amount, notes)}
           onMessage={() => onMessage(offer.id)}
           t={t}
         />

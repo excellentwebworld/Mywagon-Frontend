@@ -592,9 +592,12 @@ export function useManageShipments() {
   );
 
   const handleCounterOffer = useCallback(
-    async (s: Shipment, offerId: string, amount: number) => {
+    async (s: Shipment, offerId: string, amount: number, notes?: string) => {
       try {
-        await shipmentsService.counterOffer(s.id, offerId, { amount });
+        await shipmentsService.counterOffer(s.id, offerId, {
+          amount,
+          ...(notes ? { notes } : {}),
+        });
         showToast(t('counterSent') || 'Counter-offer sent', 'success');
         await refreshShipmentDetail(s.id);
       } catch (err: unknown) {

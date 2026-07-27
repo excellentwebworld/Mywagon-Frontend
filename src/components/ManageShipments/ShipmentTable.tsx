@@ -41,7 +41,7 @@ interface ShipmentTableProps {
   onMessage: (s: Shipment, offerId?: string) => void;
   onAcceptOffer: (s: Shipment, offerId: string) => void;
   onRejectOffer: (s: Shipment, offerId: string) => void;
-  onCounterOffer: (s: Shipment, offerId: string, amount: number) => void;
+  onCounterOffer: (s: Shipment, offerId: string, amount: number, notes?: string) => void;
   onRemindInvitee: (s: Shipment, inviteeId: number) => void;
   onRemoveInvitee: (s: Shipment, inviteeId: number) => void;
   onInviteMore: (s: Shipment) => void;
@@ -370,8 +370,8 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                           onMessage={(offerId) => onMessage(detail, offerId)}
                           onAcceptOffer={(offerId) => onAcceptOffer(detail, offerId)}
                           onRejectOffer={(offerId) => onRejectOffer(detail, offerId)}
-                          onCounterOffer={(offerId, amount) =>
-                            onCounterOffer(detail, offerId, amount)
+                          onCounterOffer={(offerId, amount, notes) =>
+                            onCounterOffer(detail, offerId, amount, notes)
                           }
                           onRemindInvitee={(inviteeId) => onRemindInvitee(detail, inviteeId)}
                           onRemoveInvitee={(inviteeId) => onRemoveInvitee(detail, inviteeId)}

@@ -2618,34 +2618,99 @@
 }
 .counter-form {
   display: none;
-  margin-top: 8px;
-  padding: 8px;
+  margin-top: 10px;
+  padding: 12px;
   background: var(--surface-alt);
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 .counter-form.open {
   display: flex;
-  gap: 8px;
-  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
 }
-.counter-form input {
-  width: 90px;
-  padding: 6px 10px;
+.counter-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.counter-form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.counter-req {
+  color: var(--danger);
+}
+.counter-opt {
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-transform: none;
+}
+.counter-price-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+}
+.counter-currency {
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.counter-form input[type='number'] {
+  width: 100%;
+  padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
   font-family: "JetBrains Mono", monospace;
   font-weight: 600;
+  background: var(--surface);
 }
-.counter-form button {
-  padding: 6px 12px;
-  border-radius: 6px;
+.counter-form input[type='number']:focus,
+.counter-notes:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.counter-notes {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.4;
+  background: var(--surface);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+.counter-notes-count {
+  align-self: flex-end;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.counter-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.counter-form button.counter-send {
+  padding: 7px 14px;
+  border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
   border: none;
   background: var(--accent);
   color: #fff;
   cursor: pointer;
+  font-family: inherit;
+}
+.counter-form button {
   font-family: inherit;
 }
 .bid-status {
