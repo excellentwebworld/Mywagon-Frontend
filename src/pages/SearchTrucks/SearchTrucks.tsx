@@ -134,8 +134,16 @@ export const SearchTrucks: React.FC = () => {
           criteria={m.criteria}
           onChange={m.setCriteria}
           onSearch={m.applySearch}
+          searchPending={m.searchPending}
           t={m.t}
         />
+
+        {m.searchPending && (
+          <div className="sat-search-pending" role="status">
+            {m.t('satSearchPending') ||
+              'Filters changed — click Search to update results.'}
+          </div>
+        )}
 
         <QuickFilterBar
           visibility={m.visibility}

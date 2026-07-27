@@ -12,6 +12,7 @@ import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { SatFilterDraft } from '../../../components/SearchTrucks/SatFilterModal';
 import { resolveTripType } from '../../../components/SearchTrucks/SatFilterModal';
+import { toApiPickupDate } from '../../../api/mappers/availabilitiesMapper';
 import { MOCK_PENDING, MOCK_TRUCKS } from '../mockData';
 import type {
   AvailableTruck,
@@ -60,6 +61,51 @@ function parseStartKey(t: AvailableTruck): number {
   const [d, mo, y] = t.startDt.split('/').map(Number);
   const [hh, mm] = t.startTm.split(':').map(Number);
   return new Date(y, mo - 1, d, hh, mm).getTime();
+}
+
+function parseEndKey(t: AvailableTruck): number {
+  if (t.endDt && t.endDt !== '—') {
+    const [d, mo, y] = t.endDt.split('/').map(Number);
+    const [hh, mm] = (t.endTm || '23:59').split(':').map(Number);
+    if (y && mo && d) return new Date(y, mo - 1, d, hh || 23, mm || 59).getTime();
+  }
+  return parseStartKey(t) + 24 * 60 * 60 * 1000;
+}
+
+/** Mock parity with backend: availability window overlaps local calendar day. */
+function truckCoversLocalDate(t: AvailableTruck, ymd: string): boolean {
+  const [y, m, d] = ymd.split('-').map(Number);
+  if (!y || !m || !d) return true;
+  const dayStart = new Date(y, m - 1, d, 0, 0, 0).getTime();
+  const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+  return parseStartKey(t) < dayEnd && parseEndKey(t) >= dayStart;
+}
+
+function criteriaSearchSignature(c: SearchCriteria): string {
+  return JSON.stringify({
+    pickupCity: c.pickupCity.trim(),
+    pickupDate: c.pickupDate.trim(),
+    dropoffCity: c.dropoffCity.trim(),
+    dropoffDate: (c.dropoffDate || '').trim(),
+    vehicleType: c.vehicleType.trim(),
+    pickupLat: c.pickupLat,
+    pickupLng: c.pickupLng,
+    pickupRadius: c.pickupRadius ?? 50,
+    dropoffLat: c.dropoffLat,
+    dropoffLng: c.dropoffLng,
+    dropoffRadius: c.dropoffRadius ?? 50,
+    truckTypeIds: c.truckTypeIds,
+    vehicleSpecs: c.vehicleSpecs,
+    tripType: c.tripType,
+    availableFromStart: c.availableFromStart,
+    availableFromEnd: c.availableFromEnd,
+    stopsMulti: c.stopsMulti,
+    stopsDirect: c.stopsDirect,
+    providerNames: c.providerNames,
+    minPrice: c.minPrice,
+    maxPrice: c.maxPrice,
+    mapBounds: c.mapBounds,
+  });
 }
 
 function expandUngrouped(trucks: AvailableTruck[]): AvailableTruck[] {
@@ -163,6 +209,12 @@ function filterMockTrucks(
   if (ac.pickupCity.trim()) {
     const q = ac.pickupCity.trim().toLowerCase();
     data = data.filter((x) => x.pickup.toLowerCase().includes(q));
+  }
+  if (ac.pickupDate.trim()) {
+    const apiPickup = toApiPickupDate(ac.pickupDate);
+    if (apiPickup) {
+      data = data.filter((x) => truckCoversLocalDate(x, apiPickup));
+    }
   }
   if (ac.dropoffCity.trim()) {
     const q = ac.dropoffCity.trim().toLowerCase();
@@ -648,6 +700,11 @@ export function useSearchTrucks() {
     return true;
   }, [criteria, showToast, t]);
 
+  const searchPending = useMemo(
+    () => criteriaSearchSignature(criteria) !== criteriaSearchSignature(appliedCriteria),
+    [criteria, appliedCriteria]
+  );
+
   const applyMapBoundsSearch = useCallback(
     (bounds: MapPickupBounds) => {
       const next = { ...appliedCriteria, mapBounds: bounds };
@@ -1094,6 +1151,7 @@ export function useSearchTrucks() {
     setCriteria,
     appliedCriteria,
     applySearch,
+    searchPending,
     applyPanelFilters,
     resetPanelFilters,
     clearFilters,

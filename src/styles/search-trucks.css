@@ -236,6 +236,30 @@
   background: var(--accent-hover);
 }
 
+.sat-pill-search--pending {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+  animation: sat-search-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes sat-search-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+}
+
+.sat-search-pending {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--accent, #5b2be1);
+  background: color-mix(in srgb, var(--accent, #5b2be1) 8%, transparent);
+  border-radius: 8px;
+}
+
 .sat-pill-search--wide {
   width: auto;
   min-width: 96px;

@@ -1806,6 +1806,7 @@
   "satPickupDateRequired": "Pickup date is required",
   "satVehicleTypeRequired": "Vehicle type is required",
   "satSearchApplied": "Search applied",
+  "satSearchPending": "Filters changed — click Search to update results.",
   "satChipToday": "Available Today",
   "satChipSoon8h": "Starting < 8h",
   "satChipHasBids": "Has Bids",

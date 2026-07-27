@@ -17,10 +17,17 @@ interface SearchPillProps {
   criteria: SearchCriteria;
   onChange: (next: SearchCriteria) => void;
   onSearch: () => boolean;
+  searchPending?: boolean;
   t: (key: string) => string;
 }
 
-export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSearch, t }) => {
+export const SearchPill: React.FC<SearchPillProps> = ({
+  criteria,
+  onChange,
+  onSearch,
+  searchPending = false,
+  t,
+}) => {
   const [expanded, setExpanded] = useState(false);
   const [activeSeg, setActiveSeg] = useState<SegmentKey | null>(null);
   const [activeSuggestIdx, setActiveSuggestIdx] = useState(-1);
@@ -362,7 +369,7 @@ export const SearchPill: React.FC<SearchPillProps> = ({ criteria, onChange, onSe
 
         <button
           type="button"
-          className={`sat-pill-search ${expanded ? 'sat-pill-search--wide' : ''}`}
+          className={`sat-pill-search ${expanded ? 'sat-pill-search--wide' : ''}${searchPending ? ' sat-pill-search--pending' : ''}`}
           aria-label={t('satSearch')}
           onClick={(e) => {
             e.stopPropagation();
