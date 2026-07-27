@@ -146,13 +146,18 @@ function OfferCard({
         <div className="bid-footer-left">
           {hasCounter && offer.counter ? (
             <div className="co-chip">
-              <span className="co-yours">{formatEuro(offer.counter.yours)}</span>
+              {/* from = previous (strikethrough), to = latest counter */}
+              <span className="co-yours">
+                {formatEuro(offer.counter.from ?? offer.counter.theirs)}
+              </span>
               <span className="co-arr">→</span>
-              <span className="co-theirs">{formatEuro(offer.counter.theirs)}</span>
+              <span className="co-theirs">
+                {formatEuro(offer.counter.to ?? offer.counter.yours)}
+              </span>
               <span className={`co-pct ${offer.counter.dir === 'up' ? 'up' : 'down'}`}>
                 {offer.counter.dir === 'up' ? '↑' : '↓'}
                 {offer.counter.pct > 0 ? '+' : ''}
-                {offer.counter.pct}%
+                {Math.abs(offer.counter.pct)}%
               </span>
             </div>
           ) : awaitingTransporter ? (

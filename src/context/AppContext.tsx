@@ -240,7 +240,14 @@ export interface Shipment {
     price?: number | null;
     respondedAt?: string | null;
     status?: string | null;
-    counter?: { yours: number; theirs: number; pct: number; dir: 'up' | 'down' } | null;
+    counter?: {
+      yours: number;
+      theirs: number;
+      from?: number;
+      to?: number;
+      pct: number;
+      dir: 'up' | 'down';
+    } | null;
   }>;
   invitees?: Array<{
     id: number;

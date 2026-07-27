@@ -130,6 +130,10 @@ export interface ApiShipmentOffer {
   counter?: {
     yours: number;
     theirs: number;
+    /** Previous offer (strikethrough). */
+    from?: number;
+    /** Latest offer in the negotiation step. */
+    to?: number;
     pct: number;
     dir: 'up' | 'down';
   } | null;
