@@ -193,12 +193,26 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   const skipNextIdleSearch = useRef(true);
   const searchAreaCbRef = useRef(onSearchThisArea);
   searchAreaCbRef.current = onSearchThisArea;
+  const selectedIdRef = useRef(selectedId);
+  selectedIdRef.current = selectedId;
   const autoBoundsTimerRef = useRef<number | null>(null);
   const [, setTick] = useState(0);
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
 
   const AUTO_BOUNDS_DEBOUNCE_MS = 600;
+
+  const clearAutoBoundsTimer = () => {
+    if (autoBoundsTimerRef.current != null) {
+      window.clearTimeout(autoBoundsTimerRef.current);
+      autoBoundsTimerRef.current = null;
+    }
+  };
+
+  // While a truck detail is open, do not auto-refetch from map pan/zoom.
+  useEffect(() => {
+    if (selectedId) clearAutoBoundsTimer();
+  }, [selectedId]);
 
   /** Bottom sheet only on mobile overlay; desktop expanded map uses left overlay. */
   const showSheet =
@@ -239,11 +253,15 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
               skipNextIdleSearch.current = false;
               return;
             }
-            if (autoBoundsTimerRef.current != null) {
-              window.clearTimeout(autoBoundsTimerRef.current);
+            // Detail open (list overlay, expanded panel, or mobile sheet): ignore pan/zoom.
+            if (selectedIdRef.current) {
+              clearAutoBoundsTimer();
+              return;
             }
+            clearAutoBoundsTimer();
             autoBoundsTimerRef.current = window.setTimeout(() => {
               autoBoundsTimerRef.current = null;
+              if (selectedIdRef.current) return;
               const b = mapRef.current?.getBounds?.();
               if (!b || !searchAreaCbRef.current) return;
               const ne = b.getNorthEast();
@@ -270,10 +288,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
 
     return () => {
       cancelled = true;
-      if (autoBoundsTimerRef.current != null) {
-        window.clearTimeout(autoBoundsTimerRef.current);
-        autoBoundsTimerRef.current = null;
-      }
+      clearAutoBoundsTimer();
     };
   }, [apiKey]);
 
