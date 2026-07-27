@@ -1835,6 +1835,22 @@
   color: var(--muted);
   white-space: pre-wrap;
 }
+.neg-hist-timeline--skeleton .neg-hist-item {
+  border-bottom-color: color-mix(in srgb, var(--border) 55%, transparent);
+}
+.exp-itin-sk {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.exp-itin-sk-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.exp-bid-sk {
+  pointer-events: none;
+}
 
 .bid-row {
   padding: 10px 12px;

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { shipmentsService } from '../../api/services/shipmentsService';
 import type { ApiNegotiationHistoryItem } from '../../api/types/shipments';
 import { formatEuro } from '../../pages/ManageShipments/utils/listingUtils';
+import { NegotiationHistorySkeleton } from '../skeletons/ManageShipmentsSkeleton';
 
 type ExpTranslate = (key: string, opts?: Record<string, unknown>) => string;
 
@@ -75,7 +76,7 @@ export const NegotiationHistoryPanel: React.FC<NegotiationHistoryPanelProps> = (
   return (
     <div className="neg-hist-panel" aria-label={t('negotiationHistory')}>
       <div className="neg-hist-panel-title">{t('negotiationHistory')}</div>
-      {loading ? <div className="neg-hist-empty">{t('loading')}…</div> : null}
+      {loading ? <NegotiationHistorySkeleton rows={3} /> : null}
       {!loading && error ? <div className="neg-hist-empty">{error}</div> : null}
       {!loading && !error && items.length === 0 ? (
         <div className="neg-hist-empty">{t('negotiationHistoryEmpty')}</div>
