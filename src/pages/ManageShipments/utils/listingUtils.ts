@@ -330,6 +330,32 @@ export function hasActiveFilters(filters: ShipmentsFilterState): boolean {
   return Object.keys(filtersToApiParams(filters)).length > 0;
 }
 
+function uniqueSortedNames(values: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of values) {
+    const name = raw.trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(name);
+  }
+  return out.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+}
+
+/** Unique assigned transporters from the shipments currently in view. */
+export function transportersFromShipments(shipments: { carrier?: string | null }[]): string[] {
+  return uniqueSortedNames(shipments.map((s) => s.carrier || ''));
+}
+
+/** Unique customers from the shipments currently in view. */
+export function customersFromShipments(
+  shipments: { customer?: { name: string }[] }[]
+): string[] {
+  return uniqueSortedNames(shipments.flatMap((s) => (s.customer ?? []).map((c) => c.name || '')));
+}
+
 export type FilterChipKey =
   | 'carrier_name'
   | 'product_type'

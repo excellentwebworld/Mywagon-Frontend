@@ -3147,12 +3147,15 @@ select.mgmt-pop-input {
 }
 
 .mgmt-seg {
-  display: inline-flex;
+  display: flex;
+  width: 100%;
   flex-wrap: nowrap;
+  gap: 3px;
+  padding: 3px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  background: var(--surface);
+  border-radius: 10px;
+  background: var(--surface-alt, #f4f5f7);
+  box-sizing: border-box;
   max-width: 100%;
 }
 
@@ -3161,66 +3164,71 @@ select.mgmt-pop-input {
   overflow: visible;
   border: none;
   background: transparent;
+  padding: 0;
   gap: 6px;
 }
 
 .mgmt-seg--wrap .mgmt-seg-btn {
+  flex: 0 1 auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   white-space: normal;
   text-align: center;
   line-height: 1.25;
-}
-
-.mgmt-seg--wrap .mgmt-seg-btn + .mgmt-seg-btn {
-  border-left: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .mgmt-seg--wrap .mgmt-seg-btn.act {
   border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
 }
 
 .mgmt-seg-btn {
   appearance: none;
+  flex: 1 1 0;
+  min-width: 0;
   border: none;
+  border-radius: 7px;
   background: transparent;
   font-family: inherit;
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-tertiary);
-  padding: 7px 11px;
+  color: var(--text-secondary);
+  padding: 8px 10px;
   cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
 }
 
-.mgmt-seg-btn + .mgmt-seg-btn {
-  border-left: 1px solid var(--border);
-}
-
-.mgmt-seg-btn:hover {
+.mgmt-seg-btn:hover:not(.act) {
   color: var(--text-primary);
-  background: var(--surface-alt);
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .mgmt-seg-btn.act {
-  color: var(--accent);
-  background: var(--accent-light);
+  color: #fff;
+  background: var(--accent);
   font-weight: 600;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
 }
 
 .mgmt-pop-chips .mgmt-seg-btn {
+  flex: 0 0 auto;
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 5px 11px;
-}
-
-.mgmt-pop-chips .mgmt-seg-btn + .mgmt-seg-btn {
-  border-left: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  box-shadow: none;
 }
 
 .mgmt-pop-chips .mgmt-seg-btn.act {
   border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
 }
 
 .mgmt-loc-meta {
@@ -3375,13 +3383,10 @@ select.mgmt-pop-input {
     max-width: 100%;
   }
 
-  .mgmt-seg:not(.mgmt-seg--wrap) {
-    width: 100%;
-  }
-
-  .mgmt-seg:not(.mgmt-seg--wrap) .mgmt-seg-btn {
-    flex: 1;
-    text-align: center;
+  .mgmt-seg-btn {
+    white-space: normal;
+    line-height: 1.25;
+    padding: 8px 6px;
   }
 
   .mgmt-pop-ft {

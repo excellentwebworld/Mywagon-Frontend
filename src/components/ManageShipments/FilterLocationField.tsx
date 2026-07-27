@@ -14,6 +14,8 @@ type Props = {
   t: (key: string) => string;
 };
 
+const RADIUS_KM_OPTIONS = [10, 25, 50, 75, 100, 150, 200, 250, 300] as const;
+
 export const FilterLocationField: React.FC<Props> = ({
   id,
   label,
@@ -100,8 +102,16 @@ export const FilterLocationField: React.FC<Props> = ({
             disabled={lat == null || lng == null}
           >
             <option value="">{t('filterRadiusSelect')}</option>
-            <option value="50">50 km</option>
-            <option value="100">100 km</option>
+            {RADIUS_KM_OPTIONS.map((km) => (
+              <option key={km} value={km}>
+                {km} km
+              </option>
+            ))}
+            {/* Keep a previously applied custom value selectable if it falls outside the presets. */}
+            {radius != null &&
+              !(RADIUS_KM_OPTIONS as readonly number[]).includes(radius) && (
+                <option value={radius}>{radius} km</option>
+              )}
           </select>
         </label>
         {(address || lat != null) && (

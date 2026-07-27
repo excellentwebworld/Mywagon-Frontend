@@ -12,6 +12,7 @@ import {
   buildFilterChips,
   clearFilterChip,
   countForStatusTab,
+  customersFromShipments,
   DEFAULT_FILTERS,
   filtersToApiParams,
   isShipmentEditable,
@@ -20,6 +21,7 @@ import {
   resolvePreferredStatusTab,
   statusTabHasApiSupport,
   statusTabToApiStatus,
+  transportersFromShipments,
   validateFilterRanges,
   type FilterChipKey,
   type KpiKey,
@@ -86,6 +88,9 @@ export function useManageShipments() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [cancelTarget, setCancelTarget] = useState<Shipment | null>(null);
   const [bulkCancelIds, setBulkCancelIds] = useState<number[] | null>(null);
+  /** Transporter / customer dropdown options for the active status tab list. */
+  const [filterTransporterOptions, setFilterTransporterOptions] = useState<string[]>([]);
+  const [filterCustomerOptions, setFilterCustomerOptions] = useState<string[]>([]);
 
   const isOutbound = direction === 'outbound';
 
@@ -171,6 +176,57 @@ export function useManageShipments() {
     }),
     [shipments, meta]
   );
+
+  // Seed facet dropdowns from the visible page; refresh from full tab list when Filter opens.
+  useEffect(() => {
+    setFilterTransporterOptions(transportersFromShipments(shipments));
+    setFilterCustomerOptions(customersFromShipments(shipments));
+  }, [shipments]);
+
+  useEffect(() => {
+    if (!isFilterOpen || !tabSupported) return;
+    let cancelled = false;
+    const status = statusTabToApiStatus(activeTab);
+    const facetFilters = filtersToApiParams({
+      ...appliedFilters,
+      carrier_name: '',
+      customer: '',
+    });
+    const perPage = Math.min(Math.max(meta.total || shipments.length || 10, 10), 200);
+
+    void shipmentsService
+      .listMapped({
+        ...facetFilters,
+        ...(debouncedSearch ? { search: debouncedSearch } : {}),
+        ...(activeKpi ? { kpi: activeKpi } : {}),
+        direction: isOutbound ? 'outbound' : 'inbound',
+        ...(status !== undefined ? { status } : {}),
+        page: 1,
+        per_page: perPage,
+      })
+      .then(({ shipments: rows }) => {
+        if (cancelled) return;
+        setFilterTransporterOptions(transportersFromShipments(rows));
+        setFilterCustomerOptions(customersFromShipments(rows));
+      })
+      .catch(() => {
+        // Keep seeded page options on failure.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isFilterOpen,
+    tabSupported,
+    activeTab,
+    activeKpi,
+    appliedFilters,
+    debouncedSearch,
+    isOutbound,
+    meta.total,
+    shipments.length,
+  ]);
 
   const filterChips = useMemo(
     () => buildFilterChips(appliedFilters, t, productTypeNames),
@@ -835,6 +891,8 @@ export function useManageShipments() {
     appliedFilters,
     handleApplyFilters,
     filterChips,
+    filterTransporterOptions,
+    filterCustomerOptions,
     handleClearFilterChip,
     handleClearAllFilters,
     kpiChip,

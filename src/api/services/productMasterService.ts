@@ -100,6 +100,12 @@ export const productMasterService = {
     return res.data ?? [];
   },
 
+  /** Product types present in this shipper's Product Master (entered SKUs only). */
+  async getEnteredReferenceCategories(): Promise<ApiReferenceCategory[]> {
+    const res = await apiGet<ApiReferenceCategory[]>('/product-master/reference/categories/entered');
+    return res.data ?? [];
+  },
+
   async getAllReferenceCategories(): Promise<ApiReferenceCategory[]> {
     const res = await apiGet<ApiReferenceCategory[]>('/product-master/reference/categories/get/all');
     return res.data ?? [];

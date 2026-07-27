@@ -8,12 +8,15 @@ import {
   type ShipmentsFilterState,
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { DatePicker, getTodayDateString } from '../ui/DatePicker';
+import { SearchableSelect } from '../ui/SearchableSelect';
 import { TimePicker } from '../ui/TimePicker';
 import { FilterLocationField } from './FilterLocationField';
 
 interface FilterModalProps {
   open: boolean;
   filters: ShipmentsFilterState;
+  transporterOptions?: string[];
+  customerOptions?: string[];
   onClose: () => void;
   onApply: (filters: ShipmentsFilterState, productTypeNames: Record<string, string>) => boolean;
   t: (key: string) => string;
@@ -84,7 +87,22 @@ function FilterDateTimeField({
   );
 }
 
-export const FilterModal: React.FC<FilterModalProps> = ({ open, filters, onClose, onApply, t }) => {
+function withSelectedOption(options: string[], selected: string): string[] {
+  const trimmed = selected.trim();
+  if (!trimmed) return options;
+  if (options.some((o) => o.toLowerCase() === trimmed.toLowerCase())) return options;
+  return [trimmed, ...options];
+}
+
+export const FilterModal: React.FC<FilterModalProps> = ({
+  open,
+  filters,
+  transporterOptions = [],
+  customerOptions = [],
+  onClose,
+  onApply,
+  t,
+}) => {
   const [draft, setDraft] = useState<ShipmentsFilterState>(filters);
   const [productOptions, setProductOptions] = useState<{ id: string; name: string }[]>([]);
   const [rangeError, setRangeError] = useState<string | null>(null);
@@ -99,8 +117,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({ open, filters, onClose
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
+    // Only types that exist in this shipper's Product Master (entered SKUs).
     productMasterService
-      .getReferenceCategories()
+      .getEnteredReferenceCategories()
       .then((cats) => {
         if (cancelled) return;
         setProductOptions(mapReferenceToProductTypes(cats).map((pt) => ({ id: String(pt.id), name: pt.name })));
@@ -129,6 +148,32 @@ export const FilterModal: React.FC<FilterModalProps> = ({ open, filters, onClose
     });
     return map;
   }, [productOptions]);
+
+  const transporterChoices = useMemo(
+    () => withSelectedOption(transporterOptions, draft.carrier_name),
+    [transporterOptions, draft.carrier_name]
+  );
+
+  const customerChoices = useMemo(
+    () => withSelectedOption(customerOptions, draft.customer),
+    [customerOptions, draft.customer]
+  );
+
+  const transporterSelectOptions = useMemo(() => {
+    if (transporterChoices.length === 0) return [];
+    return [
+      { value: '', label: t('filterCarrierAll') },
+      ...transporterChoices.map((name) => ({ value: name, label: name })),
+    ];
+  }, [transporterChoices, t]);
+
+  const customerSelectOptions = useMemo(() => {
+    if (customerChoices.length === 0) return [];
+    return [
+      { value: '', label: t('filterCustomerAll') },
+      ...customerChoices.map((name) => ({ value: name, label: name })),
+    ];
+  }, [customerChoices, t]);
 
   const update = <K extends keyof ShipmentsFilterState>(key: K, value: ShipmentsFilterState[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -170,15 +215,20 @@ export const FilterModal: React.FC<FilterModalProps> = ({ open, filters, onClose
           <section className="mgmt-pop-sec">
             <h4 className="mgmt-pop-sec-title">{t('filterSectionGeneral') || 'General'}</h4>
             <div className="mgmt-pop-field">
-              <label className="mgmt-pop-label" htmlFor="filter-carrier">
-                {t('filterCarrierName')}
-              </label>
-              <input
-                id="filter-carrier"
-                className="mgmt-pop-input"
+              <span className="mgmt-pop-label">{t('filterCarrierName')}</span>
+              <SearchableSelect
+                options={transporterSelectOptions}
                 value={draft.carrier_name}
-                onChange={(e) => update('carrier_name', e.target.value)}
-                placeholder={t('filterCarrierNamePlaceholder')}
+                onChange={(v) => update('carrier_name', v)}
+                placeholder={
+                  transporterChoices.length === 0
+                    ? t('filterNoTransporters')
+                    : t('filterCarrierAll')
+                }
+                searchPlaceholder={t('filterCarrierNamePlaceholder')}
+                disabled={transporterChoices.length === 0 && !draft.carrier_name}
+                menuFixed
+                direction="auto"
               />
             </div>
 
@@ -207,7 +257,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({ open, filters, onClose
 
             <div className="mgmt-pop-field">
               <span className="mgmt-pop-label">{t('filterChannel')}</span>
-              <div className="mgmt-seg">
+              <div className="mgmt-seg" role="group" aria-label={t('filterChannel')}>
                 {(
                   [
                     ['all', 'filterChannelAll'],
@@ -229,7 +279,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({ open, filters, onClose
 
             <div className="mgmt-pop-field">
               <span className="mgmt-pop-label">{t('filterTripMode')}</span>
-              <div className="mgmt-seg">
+              <div className="mgmt-seg" role="group" aria-label={t('filterTripMode')}>
                 {(
                   [
                     ['', 'filterAny'],
@@ -389,7 +439,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({ open, filters, onClose
             <h4 className="mgmt-pop-sec-title">{t('filterSectionMore') || 'More'}</h4>
             <div className="mgmt-pop-field">
               <span className="mgmt-pop-label">{t('filterBidInterestState')}</span>
-              <div className="mgmt-seg mgmt-seg--wrap">
+              <div className="mgmt-seg" role="group" aria-label={t('filterBidInterestState')}>
                 {(
                   [
                     ['', 'filterAny'],
@@ -409,15 +459,18 @@ export const FilterModal: React.FC<FilterModalProps> = ({ open, filters, onClose
               </div>
             </div>
             <div className="mgmt-pop-field">
-              <label className="mgmt-pop-label" htmlFor="filter-customer">
-                {t('filterCustomer')}
-              </label>
-              <input
-                id="filter-customer"
-                className="mgmt-pop-input"
+              <span className="mgmt-pop-label">{t('filterCustomer')}</span>
+              <SearchableSelect
+                options={customerSelectOptions}
                 value={draft.customer}
-                onChange={(e) => update('customer', e.target.value)}
-                placeholder={t('filterCustomerPlaceholder')}
+                onChange={(v) => update('customer', v)}
+                placeholder={
+                  customerChoices.length === 0 ? t('filterNoCustomers') : t('filterCustomerAll')
+                }
+                searchPlaceholder={t('filterCustomerPlaceholder')}
+                disabled={customerChoices.length === 0 && !draft.customer}
+                menuFixed
+                direction="auto"
               />
             </div>
           </section>

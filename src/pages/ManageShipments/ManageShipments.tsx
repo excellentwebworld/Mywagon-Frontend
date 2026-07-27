@@ -136,6 +136,8 @@ export const ManageShipments: React.FC = () => {
       <FilterModal
         open={m.isFilterOpen}
         filters={m.appliedFilters}
+        transporterOptions={m.filterTransporterOptions}
+        customerOptions={m.filterCustomerOptions}
         onClose={() => m.setIsFilterOpen(false)}
         onApply={m.handleApplyFilters}
         t={m.t}
