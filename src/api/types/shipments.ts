@@ -65,6 +65,8 @@ export interface ApiShipmentListItem {
   /** @deprecated Prefer bids_received for row display; kept for expansion. */
   best_bid?: number | null;
   invited_count?: number;
+  /** Interested partners only — yellow Pending badge (Laravel list parity). */
+  interested_count?: number;
   carrier?: ApiShipmentListCarrier | null;
   negotiable?: boolean;
   payment_status?: 'paid' | 'payment_pending' | null;

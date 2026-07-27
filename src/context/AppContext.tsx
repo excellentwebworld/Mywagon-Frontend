@@ -194,6 +194,8 @@ export interface Shipment {
   awaitingPod?: boolean;
   bidsReceived?: number;
   bidsSent?: number;
+  /** Interested partners (status=1) — Laravel pending yellow badge. */
+  interestedCount?: number;
   quotedPrice?: number | null;
   agreedPrice?: number | null;
   paymentStatus?: 'paid' | 'payment_pending' | null;

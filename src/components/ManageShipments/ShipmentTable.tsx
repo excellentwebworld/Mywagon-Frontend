@@ -195,9 +195,9 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
             const isExpanded = expandedId === row.id;
             const isPending = detail.status === 'pending';
             const badgeClass = statusBadgeClass(row.status, Boolean(row.at_risk), {
-              bidsReceived: row.bidsReceived ?? row.bids ?? 0,
+              bidsReceived: row.bidsReceived ?? 0,
               bidsSent: row.bidsSent ?? 0,
-              invitedCount: row.invited ?? 0,
+              interestedCount: row.interestedCount ?? 0,
             });
             const channel = row.channel || (row.vis === 'public' ? 'public' : 'private');
             const quoted = formatEuro(row.quotedPrice ?? row.price);

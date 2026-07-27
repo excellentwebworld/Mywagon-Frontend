@@ -590,21 +590,27 @@ export function isShipmentCancellable(status: Shipment['status']): boolean {
 
 export function statusBadgeClass(
   status: Shipment['status'],
-  atRisk?: boolean,
-  opts?: { bidsReceived?: number; bidsSent?: number; invitedCount?: number }
+  _atRisk?: boolean,
+  opts?: { bidsReceived?: number; bidsSent?: number; interestedCount?: number }
 ): string {
-  // Match Laravel shipper panel status-box colors (style.css).
-  if (atRisk || status === 'past_due') return 'status-box status-box--past-due';
+  // Match Laravel ManageShipmentMasterDataTable + style.css status-box colors.
+  // Do NOT paint pending as past-due when at_risk — Laravel keeps pending variants.
+  if (status === 'past_due') return 'status-box status-box--past-due';
 
   switch (status) {
     case 'pending': {
-      // Laravel priority: both → gradient; sent-only → mint; partners/bids → yellow; else mint.
+      // Laravel order:
+      // 1) bids received + carrier pending → gradient
+      // 2) carrier pending only → mint
+      // 3) interested partners → yellow
+      // 4) bids received only → yellow
+      // 5) else → mint
       const received = opts?.bidsReceived ?? 0;
       const sent = opts?.bidsSent ?? 0;
-      const invited = opts?.invitedCount ?? 0;
+      const interested = opts?.interestedCount ?? 0;
       if (received > 0 && sent > 0) return 'status-box status-box--pending-more';
-      if (sent > 0 && received === 0) return 'status-box status-box--pending-request';
-      if (received > 0 || invited > 0) return 'status-box status-box--pending';
+      if (sent > 0) return 'status-box status-box--pending-request';
+      if (interested > 0 || received > 0) return 'status-box status-box--pending';
       return 'status-box status-box--pending-request';
     }
     case 'scheduled':
@@ -637,7 +643,7 @@ export function statusBadgeClass(
 export function statusBadgeDetails(
   shipment: Pick<
     Shipment,
-    'status' | 'bidsReceived' | 'bidsSent' | 'bids' | 'invited'
+    'status' | 'bidsReceived' | 'bidsSent' | 'bids' | 'interestedCount'
   >,
   t: (key: string, opts?: Record<string, unknown>) => string
 ): string[] {
@@ -648,12 +654,12 @@ export function statusBadgeDetails(
   }
   if (shipment.status !== 'pending') return lines;
 
-  const invited = shipment.invited ?? 0;
-  const received = shipment.bidsReceived ?? shipment.bids ?? 0;
+  const interested = shipment.interestedCount ?? 0;
+  const received = shipment.bidsReceived ?? 0;
   const sent = shipment.bidsSent ?? 0;
 
-  if (invited > 0) {
-    lines.push(t('statusInterestedCount', { count: invited }));
+  if (interested > 0) {
+    lines.push(t('statusInterestedCount', { count: interested }));
   }
   if (received > 0) {
     lines.push(t('statusBidRequestsCount', { count: received }));

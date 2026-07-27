@@ -57,9 +57,9 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
             {t('progress')} —{' '}
             <span
               className={statusBadgeClass(shipment.status, Boolean(shipment.at_risk), {
-                bidsReceived: shipment.bidsReceived ?? shipment.bids ?? 0,
+                bidsReceived: shipment.bidsReceived ?? 0,
                 bidsSent: shipment.bidsSent ?? 0,
-                invitedCount: shipment.invited ?? 0,
+                interestedCount: shipment.interestedCount ?? 0,
               })}
             >
               {t(shipment.status)}

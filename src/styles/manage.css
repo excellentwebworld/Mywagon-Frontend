@@ -1263,50 +1263,77 @@
   flex-shrink: 0;
   opacity: 0.85;
 }
-.status-box--pending {
-  background-color: #F3C747;
-  color: #111827;
+/* Status: new-UI compact pills + exact Laravel status-box hex colors */
+.mgmt-t .status-box,
+.exp-inner .status-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-sizing: border-box;
+  max-width: 100%;
+  border: none;
 }
-.status-box--pending-request {
-  background-color: #55cf9e;
-  color: #ffffff;
+.mgmt-t .status-box--pending,
+.exp-inner .status-box--pending {
+  background-color: #F3C747 !important;
+  color: #000000 !important;
 }
-.status-box--pending-more {
-  background: linear-gradient(90deg, #F3C747 0%, #4BA48A 100%);
-  color: #111827;
+.mgmt-t .status-box--pending-request,
+.exp-inner .status-box--pending-request {
+  background-color: #55cf9e !important;
+  color: #ffffff !important;
 }
-.status-box--scheduled {
-  background-color: #ffffff;
-  color: #5b21b6;
-  border: 1px solid #9B51E0;
+.mgmt-t .status-box--pending-more,
+.exp-inner .status-box--pending-more {
+  background: linear-gradient(90deg, #F3C747 0%, #4BA48A 100%) !important;
+  color: #000000 !important;
 }
-.status-box--ready {
-  background-color: #A9DBFB;
-  color: #0c4a6e;
+.mgmt-t .status-box--scheduled,
+.exp-inner .status-box--scheduled {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #9B51E0 !important;
 }
-.status-box--past-due {
-  background-color: #FC6600;
-  color: #ffffff;
+.mgmt-t .status-box--ready,
+.exp-inner .status-box--ready {
+  background-color: #A9DBFB !important;
+  color: #000000 !important;
 }
-.status-box--on-trip {
-  background-color: #3A90E5;
-  color: #ffffff;
+.mgmt-t .status-box--past-due,
+.exp-inner .status-box--past-due {
+  background-color: #FC6600 !important;
+  color: #ffffff !important;
 }
-.status-box--draft {
-  background-color: rgba(155, 81, 224, 0.14);
-  color: #5b21b6;
+.mgmt-t .status-box--on-trip,
+.exp-inner .status-box--on-trip {
+  background-color: #3A90E5 !important;
+  color: #ffffff !important;
 }
-.status-box--fulfilled {
-  background-color: #9A9AA9;
-  color: #ffffff;
+.mgmt-t .status-box--draft,
+.exp-inner .status-box--draft {
+  background-color: #9B51E024 !important;
+  color: #000000 !important;
 }
-.status-box--not-fulfilled {
-  background-color: #111827;
-  color: #ffffff;
+.mgmt-t .status-box--fulfilled,
+.exp-inner .status-box--fulfilled {
+  background-color: #9A9AA9 !important;
+  color: #ffffff !important;
 }
-.status-box--canceled {
-  background-color: #D56969;
-  color: #ffffff;
+.mgmt-t .status-box--not-fulfilled,
+.exp-inner .status-box--not-fulfilled {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+.mgmt-t .status-box--canceled,
+.exp-inner .status-box--canceled {
+  background-color: #D56969 !important;
+  color: #ffffff !important;
 }
 .status-box--partial,
 .status-box--partial-compact {

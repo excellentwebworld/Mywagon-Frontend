@@ -214,6 +214,7 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     ordersCount: item.orders_count ?? (item.customer_reference ? 1 : 0),
     orderIds: item.order_ids ?? [],
     invited: item.invited_count ?? 0,
+    interestedCount: item.interested_count ?? 0,
     customer: mapCustomers(item),
     bids: item.bids_count ?? 0,
     bidsReceived: item.bids_received ?? 0,
@@ -282,6 +283,9 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
   return {
     ...base,
     invited: detail.invitees?.length ?? detail.partners_count ?? base.invited,
+    interestedCount: detail.interested_count ?? base.interestedCount ?? 0,
+    bidsReceived: detail.bids_received ?? base.bidsReceived ?? 0,
+    bidsSent: detail.bids_sent ?? base.bidsSent ?? 0,
     customer: customers,
     orderIds: detail.order_ids?.length ? detail.order_ids : base.orderIds,
     ordersCount: detail.order_ids?.length || base.ordersCount,
