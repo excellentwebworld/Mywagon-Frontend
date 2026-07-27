@@ -8,7 +8,6 @@ import {
   laneMidLabel,
   shipmentIdSublabel,
   statusBadgeClass,
-  statusBadgeDetails,
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { ListSkeleton } from '../skeletons/ListSkeleton';
 import { RowExpansionSkeleton } from '../skeletons/ManageShipmentsSkeleton';
@@ -60,28 +59,21 @@ function LaneCell({
   const pickLabel = s.pickDt || s.date;
   const delLabel = s.delDt;
   const at = t('laneAt');
+  const origin = (s.origin || '').trim();
+  const dest = (s.dest || '').trim();
+
+  const formatLaneLine = (place: string, when?: string | null) => {
+    if (place && when) return `${place} ${at} ${when}`;
+    if (place) return place;
+    if (when) return when;
+    return '—';
+  };
 
   return (
     <div className="lane-cell">
-      <div className="lane">
-        {s.origin || '—'}
-        {pickLabel ? (
-          <>
-            {' '}
-            {at} {pickLabel}
-          </>
-        ) : null}
-      </div>
+      <div className="lane">{formatLaneLine(origin, pickLabel)}</div>
       <div className="lane-mid">{laneMidLabel(s, t)}</div>
-      <div className="lane">
-        {s.dest || '—'}
-        {delLabel ? (
-          <>
-            {' '}
-            {at} {delLabel}
-          </>
-        ) : null}
-      </div>
+      <div className="lane">{formatLaneLine(dest, delLabel)}</div>
     </div>
   );
 }
@@ -207,7 +199,6 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
               bidsSent: row.bidsSent ?? 0,
               invitedCount: row.invited ?? 0,
             });
-            const statusDetails = statusBadgeDetails(row, t);
             const channel = row.channel || (row.vis === 'public' ? 'public' : 'private');
             const quoted = formatEuro(row.quotedPrice ?? row.price);
             const agreed = formatEuro(row.agreedPrice);
@@ -266,33 +257,26 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                     )}
                   </td>
                   <td className="col-status">
-                    <div className={badgeClass}>
+                    <div className="status-cell">
                       {row.status === 'partially_fullfilled' ? (
-                        <div className="status-box-partial-row">
+                        <span className={`${badgeClass} status-box--partial-compact`}>
                           <span className="status-partial-left">{t('partially')}</span>
                           <span className="status-partial-right">{t('fulfilled')}</span>
-                        </div>
+                        </span>
                       ) : (
-                        <div className="status-box-title">{t(row.status)}</div>
+                        <span className={badgeClass}>{t(row.status)}</span>
                       )}
-                      {statusDetails.map((line) => (
-                        <div key={line} className="status-box-sub">
-                          {line}
-                        </div>
-                      ))}
+                      {row.paymentStatus === 'paid' ? (
+                        <span className="badge badge-success payment-subtag">
+                          {t('paymentPaid')}
+                        </span>
+                      ) : null}
+                      {row.paymentStatus === 'payment_pending' ? (
+                        <span className="badge badge-warning payment-subtag">
+                          {t('paymentPending')}
+                        </span>
+                      ) : null}
                     </div>
-                    {row.paymentStatus === 'paid' && (
-                      <span className="badge badge-success payment-subtag risk-subtag">
-                        <span className="bdot" />
-                        {t('paymentPaid')}
-                      </span>
-                    )}
-                    {row.paymentStatus === 'payment_pending' && (
-                      <span className="badge badge-warning payment-subtag risk-subtag">
-                        <span className="bdot" />
-                        {t('paymentPending')}
-                      </span>
-                    )}
                   </td>
                   <td className="col-vis">
                     <span className={`vis vis-${channel === 'public' ? 'pub' : 'priv'}`}>

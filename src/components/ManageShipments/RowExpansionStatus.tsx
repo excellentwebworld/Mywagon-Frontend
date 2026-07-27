@@ -62,7 +62,7 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
                 invitedCount: shipment.invited ?? 0,
               })}
             >
-              <div className="status-box-title">{t(shipment.status)}</div>
+              {t(shipment.status)}
             </span>
           </ExpHeading>
           <div className="exp-head-actions">
