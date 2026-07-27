@@ -1474,6 +1474,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--text-secondary);
+}
+
+.sat-map-ctrl svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 .sat-map-ctrl:hover {
@@ -1758,15 +1764,15 @@
 }
 
 .sat-map-marker.hovered .sat-mm-price {
-  background: #EA580C;
+  background: #6C3AED;
   color: #fff;
-  border-color: #EA580C;
+  border-color: #6C3AED;
 }
 
 .sat-map-marker.hovered.active .sat-mm-price {
-  background: #EA580C;
+  background: #6C3AED;
   color: #fff;
-  border-color: #EA580C;
+  border-color: #6C3AED;
 }
 
 .sat-map-marker.private .sat-mm-price {
@@ -1780,9 +1786,9 @@
 }
 
 .sat-map-marker.private.hovered .sat-mm-price {
-  background: #EA580C;
+  background: #6C3AED;
   color: #fff;
-  border-color: #EA580C;
+  border-color: #6C3AED;
 }
 
 .sat-mm-tail {
@@ -1849,7 +1855,7 @@
 .sat-map-marker.hovered .sat-mm-tail,
 .sat-map-marker.hovered.active .sat-mm-tail,
 .sat-map-marker.private.hovered .sat-mm-tail {
-  border-top-color: #EA580C;
+  border-top-color: #6C3AED;
 }
 
 .sat-map-marker.private.active .sat-mm-tail {
