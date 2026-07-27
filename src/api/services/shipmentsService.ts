@@ -2,6 +2,7 @@ import { apiGet, apiPost, apiDelete, AUTH_TOKEN_KEY, ApiError } from '../client'
 import { mapApiDetailToShipment, mapApiListItemToShipment } from '../mappers/shipmentsMapper';
 import type {
   ApiCancelReasonsPayload,
+  ApiNegotiationHistoryItem,
   ApiShipmentDetail,
   ApiShipmentListItem,
   ApiShipmentsSummary,
@@ -171,6 +172,16 @@ export const shipmentsService = {
     body: { amount: number; notes?: string }
   ): Promise<void> {
     await apiPost(`/shipments/${shipmentId}/offers/${offerId}/counter`, body);
+  },
+
+  async getOfferNegotiationHistory(
+    shipmentId: string | number,
+    offerId: string
+  ): Promise<ApiNegotiationHistoryItem[]> {
+    const res = await apiGet<ApiNegotiationHistoryItem[]>(
+      `/shipments/${shipmentId}/offers/${offerId}/negotiation-history`
+    );
+    return res.data ?? [];
   },
 
   async invitePartners(shipmentId: string | number, partnerIds: number[]): Promise<void> {

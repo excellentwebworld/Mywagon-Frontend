@@ -1595,13 +1595,186 @@
   color: var(--accent);
 }
 
-/* ── Bid panel ── */
+/* ── Bid panel (card layout in row expansion) ── */
+.bids-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.bids-section-head--spaced {
+  margin-top: 18px;
+}
+.bids-section-price {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.bids-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.bids-partner-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+
+.neg-hist-panel {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+}
+.neg-hist-panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.neg-hist-empty {
+  padding: 12px 4px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.neg-hist-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.neg-hist-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.neg-hist-item:last-child {
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+.neg-hist-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--warning) 70%, #c9a227);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8a5a2b;
+  background: color-mix(in srgb, var(--warning) 12%, #fff);
+}
+.neg-hist-icon.is-counter {
+  color: #2f6fed;
+  background: color-mix(in srgb, #2f6fed 10%, #fff);
+}
+.neg-hist-main {
+  flex: 1;
+  min-width: 0;
+}
+.neg-hist-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+.neg-hist-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.neg-hist-date {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.neg-hist-price {
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: "JetBrains Mono", monospace;
+}
+.neg-hist-notes {
+  margin-top: 4px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
 .bid-row {
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  margin-bottom: 8px;
+  margin-bottom: 0;
   background: var(--surface);
+}
+.bid-row.has-history-open {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+.bid-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.bid-name-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.bid-carrier-name {
+  font-weight: 600;
+}
+.bid-subline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--muted);
+}
+.bid-rating {
+  color: var(--accent);
+  font-weight: 600;
+}
+.bid-history {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--accent);
+}
+.bid-history.is-open,
+.bid-history:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+.bid-history .cust-chev {
+  font-size: 9px;
 }
 .bid-top {
   display: flex;

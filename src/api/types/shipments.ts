@@ -117,15 +117,33 @@ export interface ApiShipmentOffer {
   initials?: string;
   avatar?: string | null;
   rating?: number | null;
+  rating_count?: number | null;
+  vat?: string | null;
+  is_partner?: boolean;
+  has_history?: boolean;
   role?: 'company' | 'freelancer' | string;
   price?: number | null;
   responded_at?: string | null;
+  status?: string | null;
   counter?: {
     yours: number;
     theirs: number;
     pct: number;
     dir: 'up' | 'down';
   } | null;
+}
+
+export interface ApiNegotiationHistoryItem {
+  id: number;
+  type: string;
+  price?: number | null;
+  notes?: string | null;
+  initiated_by_type?: string | null;
+  initiated_by_id?: number | null;
+  initiated_by_name?: string | null;
+  bid_id?: number | null;
+  shipment_partner_id?: number | null;
+  created_at?: string | null;
 }
 
 export interface ApiShipmentInvitee {

@@ -230,9 +230,14 @@ export interface Shipment {
     initials?: string;
     avatar?: string | null;
     rating?: number | null;
+    ratingCount?: number | null;
+    vat?: string | null;
+    isPartner?: boolean;
+    hasHistory?: boolean;
     role?: string;
     price?: number | null;
     respondedAt?: string | null;
+    status?: string | null;
     counter?: { yours: number; theirs: number; pct: number; dir: 'up' | 'down' } | null;
   }>;
   invitees?: Array<{

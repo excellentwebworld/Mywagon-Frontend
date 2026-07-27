@@ -14,8 +14,10 @@ import {
   QuickActions,
 } from './ExpansionShared';
 import { CarrierAvatar } from './CarrierAvatar';
+import { NegotiationHistoryPanel } from './NegotiationHistoryPanel';
 
 type ExpTranslate = (key: string, opts?: Record<string, unknown>) => string;
+type Offer = NonNullable<Shipment['offers']>[number];
 
 interface RowExpansionPendingProps {
   shipment: Shipment;
@@ -38,15 +40,28 @@ function ExpBtnSpin() {
   return <span className="exp-btn-spin" aria-hidden />;
 }
 
-function OfferRow({
+/** Match old panel: availability Accept/Reject only when latest action is from transporter. */
+function canShowAcceptReject(offer: Offer, isAvailability: boolean): boolean {
+  if (!isAvailability) return true;
+  const by = String(offer.lastActionBy || '').toLowerCase();
+  return by === 'carrier' || by === 'driver';
+}
+
+function OfferCard({
   offer,
+  shipmentId,
+  isAvailability,
+  negotiable,
   onAccept,
   onReject,
   onCounter,
   onMessage,
   t,
 }: {
-  offer: NonNullable<Shipment['offers']>[number];
+  offer: Offer;
+  shipmentId: string | number;
+  isAvailability: boolean;
+  negotiable: boolean;
   onAccept: () => void | Promise<void>;
   onReject: () => void | Promise<void>;
   onCounter: (amount: number) => void | Promise<void>;
@@ -54,16 +69,25 @@ function OfferRow({
   t: ExpTranslate;
 }) {
   const [counterOpen, setCounterOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [busy, setBusy] = useState<'accept' | 'reject' | 'counter' | 'chat' | 'send' | null>(null);
-  // Prefill counter at 95% of the offer price as a starting negotiation point.
   const COUNTER_OFFER_PREFILL_RATIO = 0.95;
-  const prefill = offer.price != null ? Math.round(offer.price * COUNTER_OFFER_PREFILL_RATIO * 100) / 100 : 0;
+  const prefill =
+    offer.price != null ? Math.round(offer.price * COUNTER_OFFER_PREFILL_RATIO * 100) / 100 : 0;
   const [amount, setAmount] = useState(String(prefill || ''));
+
+  const awaitingTransporter = offer.lastActionBy === 'shipper';
+  const showAcceptReject = canShowAcceptReject(offer, isAvailability) && !awaitingTransporter;
+  const canCounter =
+    (isAvailability || negotiable) &&
+    !awaitingTransporter &&
+    (offer.type === 'bid' || offer.type === 'interest');
+  const showHistory = offer.hasHistory !== false;
   const hasCounter = Boolean(offer.counter);
-  const awaitingTransporter =
-    offer.lastActionBy === 'shipper' || (hasCounter && offer.counter != null);
   const roleLabel = offer.role === 'freelancer' ? t('freelancer') : t('company');
   const locked = busy != null;
+  const rating = offer.rating ?? 0;
+  const ratingCount = offer.ratingCount ?? 0;
 
   const run = async (key: NonNullable<typeof busy>, fn: () => void | Promise<void>) => {
     if (busy) return;
@@ -75,48 +99,48 @@ function OfferRow({
     }
   };
 
-  const chatButton = (
-    <button
-      type="button"
-      className="bid-chat"
-      disabled={locked}
-      onClick={() => void run('chat', onMessage)}
-    >
-      {busy === 'chat' ? <ExpBtnSpin /> : null}
-      {t('chat')}
-    </button>
-  );
-
   return (
-    <div className={`bid-row${locked ? ' is-busy' : ''}`}>
+    <div className={`bid-row${locked ? ' is-busy' : ''}${historyOpen ? ' has-history-open' : ''}`}>
       <div className="bid-top">
         <div className="bid-name">
           <CarrierAvatar
             name={offer.name}
             initials={offer.initials}
             avatar={offer.avatar}
-            size={24}
+            size={28}
           />
-          {offer.name}
-          {offer.rating != null && <span className="star">★ {offer.rating.toFixed(1)}</span>}
-          <span className="badge badge-gray" style={{ fontSize: 9 }}>
-            {roleLabel}
-          </span>
-          {hasCounter && <span className="bid-status bs-counter">↩</span>}
-          {awaitingTransporter && (
-            <span className="badge badge-info" style={{ fontSize: 9 }}>
-              {t('awaitingResponse')}
-            </span>
-          )}
+          <div className="bid-name-block">
+            <div className="bid-name-line">
+              <span className="bid-carrier-name">{offer.name}</span>
+              {offer.isPartner ? <span className="bids-partner-badge">{t('partner')}</span> : null}
+              <span className="badge badge-gray" style={{ fontSize: 9 }}>
+                {roleLabel}
+              </span>
+              {hasCounter ? <span className="bid-status bs-counter">↩</span> : null}
+              {awaitingTransporter ? (
+                <span className="badge badge-info" style={{ fontSize: 9 }}>
+                  {t('awaitingResponse')}
+                </span>
+              ) : null}
+            </div>
+            <div className="bid-subline">
+              <span>
+                {t('vatNumberLabel')} {offer.vat || t('nA')}
+              </span>
+              <span className="bid-rating">
+                ★ {rating.toFixed(1)}/5 ({ratingCount})
+              </span>
+            </div>
+          </div>
         </div>
-        {offer.price != null && <div className="bid-price">{formatEuro(offer.price)}</div>}
+        {offer.price != null ? <div className="bid-price">{formatEuro(offer.price)}</div> : null}
       </div>
 
-      {offer.respondedAt && (
+      {offer.respondedAt ? (
         <div className="bid-meta">
           {t('respondedAgo', { time: formatRelativeAgo(offer.respondedAt, t) })}
         </div>
-      )}
+      ) : null}
 
       {hasCounter && offer.counter ? (
         <div className="co-line">
@@ -130,49 +154,15 @@ function OfferRow({
             {offer.counter.pct > 0 ? '+' : ''}
             {offer.counter.pct}%
           </span>
-          {awaitingTransporter ? (
-            <div className="co-acts-inline">
-              <span className="sub">{t('awaitingTheirResponse') || t('awaitingResponse')}</span>
-              {chatButton}
-            </div>
-          ) : (
-            <div className="co-acts-inline">
-              <button
-                type="button"
-                className="co-ok"
-                disabled={locked}
-                onClick={() => void run('accept', onAccept)}
-              >
-                {busy === 'accept' ? <ExpBtnSpin /> : null}
-                ✓ {t('accept')}
-              </button>
-              <button
-                type="button"
-                className="co-cnt"
-                disabled={locked}
-                onClick={() => setCounterOpen(true)}
-              >
-                ↩ {t('counter')}
-              </button>
-              <button
-                type="button"
-                className="co-no bid-reject-danger"
-                disabled={locked}
-                onClick={() => void run('reject', onReject)}
-              >
-                {busy === 'reject' ? <ExpBtnSpin /> : '✕'}
-              </button>
-              {chatButton}
-            </div>
-          )}
         </div>
-      ) : awaitingTransporter ? (
-        <div className="bid-acts">
-          <span className="sub">{t('awaitingTheirResponse') || t('awaitingResponse')}</span>
-          {chatButton}
-        </div>
-      ) : (
-        <div className="bid-acts">
+      ) : null}
+
+      <div className="bid-acts">
+        {awaitingTransporter ? (
+          <span className="sub">{t('awaitingTheirResponse')}</span>
+        ) : null}
+
+        {showAcceptReject ? (
           <button
             type="button"
             className="bid-accept"
@@ -182,6 +172,8 @@ function OfferRow({
             {busy === 'accept' ? <ExpBtnSpin /> : null}
             {t('accept')}
           </button>
+        ) : null}
+        {showAcceptReject ? (
           <button
             type="button"
             className="bid-reject bid-reject-danger"
@@ -191,6 +183,8 @@ function OfferRow({
             {busy === 'reject' ? <ExpBtnSpin /> : null}
             {t('reject')}
           </button>
+        ) : null}
+        {canCounter ? (
           <button
             type="button"
             className="bid-counter"
@@ -199,11 +193,31 @@ function OfferRow({
           >
             {t('counter')}
           </button>
-          {chatButton}
-        </div>
-      )}
+        ) : null}
+        {showHistory ? (
+          <button
+            type="button"
+            className={`bid-history${historyOpen ? ' is-open' : ''}`}
+            disabled={locked}
+            aria-expanded={historyOpen}
+            onClick={() => setHistoryOpen((v) => !v)}
+          >
+            <span className={`cust-chev${historyOpen ? ' open' : ''}`}>▶</span>
+            {t('history')}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className="bid-chat"
+          disabled={locked}
+          onClick={() => void run('chat', onMessage)}
+        >
+          {busy === 'chat' ? <ExpBtnSpin /> : null}
+          {t('chat')}
+        </button>
+      </div>
 
-      {counterOpen && !awaitingTransporter && (
+      {counterOpen && canCounter ? (
         <div className="counter-form open">
           <span>€</span>
           <input
@@ -231,7 +245,57 @@ function OfferRow({
             {t('send')}
           </button>
         </div>
-      )}
+      ) : null}
+
+      {showHistory ? (
+        <NegotiationHistoryPanel
+          open={historyOpen}
+          shipmentId={shipmentId}
+          offerId={offer.id}
+          t={t}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function OfferList({
+  offers,
+  shipmentId,
+  isAvailability,
+  negotiable,
+  onAcceptOffer,
+  onRejectOffer,
+  onCounterOffer,
+  onMessage,
+  t,
+}: {
+  offers: Offer[];
+  shipmentId: string | number;
+  isAvailability: boolean;
+  negotiable: boolean;
+  onAcceptOffer: (offerId: string) => void | Promise<void>;
+  onRejectOffer: (offerId: string) => void | Promise<void>;
+  onCounterOffer: (offerId: string, amount: number) => void | Promise<void>;
+  onMessage: (offerId: string) => void | Promise<void>;
+  t: ExpTranslate;
+}) {
+  return (
+    <div className="bids-card-list">
+      {offers.map((offer) => (
+        <OfferCard
+          key={offer.id}
+          offer={offer}
+          shipmentId={shipmentId}
+          isAvailability={isAvailability}
+          negotiable={negotiable}
+          onAccept={() => onAcceptOffer(offer.id)}
+          onReject={() => onRejectOffer(offer.id)}
+          onCounter={(amount) => onCounterOffer(offer.id, amount)}
+          onMessage={() => onMessage(offer.id)}
+          t={t}
+        />
+      ))}
     </div>
   );
 }
@@ -261,20 +325,8 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
   const isPublic = (shipment.channel || shipment.vis) === 'public';
   const receivedOffers = offers.filter((o) => (o.kind ?? 'received') !== 'sent');
   const sentOffers = offers.filter((o) => o.kind === 'sent');
-  const showSplitResponses = receivedOffers.length > 0 && sentOffers.length > 0;
-
-  const renderOfferList = (list: typeof offers) =>
-    list.map((offer) => (
-      <OfferRow
-        key={offer.id}
-        offer={offer}
-        onAccept={() => onAcceptOffer(offer.id)}
-        onReject={() => onRejectOffer(offer.id)}
-        onCounter={(amount) => onCounterOffer(offer.id, amount)}
-        onMessage={() => onMessage(offer.id)}
-        t={t}
-      />
-    ));
+  const negotiable = Boolean(shipment.negotiable);
+  const quotePrice = shipment.quotedPrice ?? shipment.agreedPrice ?? null;
 
   const runInvite = async (key: string, fn: () => void | Promise<void>) => {
     if (inviteBusy) return;
@@ -292,10 +344,16 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
     try {
       fn();
     } finally {
-      // Sync navigation / modal open — clear on next frame so the spinner is visible.
       window.setTimeout(() => setQaBusy(null), 400);
     }
   };
+
+  const priceHeader = (labelKey: string) =>
+    quotePrice != null ? (
+      <span className="bids-section-price">
+        {t(labelKey)}: {formatEuro(quotePrice)}
+      </span>
+    ) : null;
 
   return (
     <div className={`exp-inner${detailLoading ? ' is-refreshing' : ''}`}>
@@ -322,36 +380,60 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
       </div>
 
       <div className="exp-section">
-        {showSplitResponses ? (
+        {sentOffers.length > 0 ? (
           <>
-            <ExpHeading icon="responses">
-              {t('bidsReceivedFromTransporters') || 'Bids Received from Transporters'} (
-              {receivedOffers.length})
-            </ExpHeading>
-            {renderOfferList(receivedOffers)}
-            <ExpHeading icon="responses" className="exp-h-gap exp-section-head--spaced">
-              {t('bidsSentPostedTruck') || 'Bids Sent Posted Truck Availabilities'} (
-              {sentOffers.length})
-            </ExpHeading>
-            {renderOfferList(sentOffers)}
+            <div className="bids-section-head">
+              <ExpHeading icon="responses">
+                {t('availabilityBids')} ({sentOffers.length})
+              </ExpHeading>
+              {priceHeader('quotePriceLabel')}
+            </div>
+            <OfferList
+              offers={sentOffers}
+              shipmentId={shipment.id}
+              isAvailability
+              negotiable={negotiable}
+              onAcceptOffer={onAcceptOffer}
+              onRejectOffer={onRejectOffer}
+              onCounterOffer={onCounterOffer}
+              onMessage={(id) => onMessage(id)}
+              t={t}
+            />
           </>
-        ) : (
+        ) : null}
+
+        {receivedOffers.length > 0 ? (
           <>
-            <ExpHeading icon="responses">
-              {sentOffers.length > 0 && receivedOffers.length === 0
-                ? t('bidsSentPostedTruck') || 'Bids Sent Posted Truck Availabilities'
-                : t('responses')}{' '}
-              ({offers.length})
-            </ExpHeading>
-            {offers.length > 0 ? (
-              renderOfferList(offers)
-            ) : (
-              <div className="sub" style={{ padding: '12px 0', fontSize: 13 }}>
-                {t('noBidsYet')}
-              </div>
-            )}
+            <div
+              className={`bids-section-head${sentOffers.length > 0 ? ' bids-section-head--spaced' : ''}`}
+            >
+              <ExpHeading icon="responses">
+                {t('bidsForThisShipment')} ({receivedOffers.length})
+              </ExpHeading>
+              {priceHeader('startingPriceLabel')}
+            </div>
+            <OfferList
+              offers={receivedOffers}
+              shipmentId={shipment.id}
+              isAvailability={false}
+              negotiable={negotiable}
+              onAcceptOffer={onAcceptOffer}
+              onRejectOffer={onRejectOffer}
+              onCounterOffer={onCounterOffer}
+              onMessage={(id) => onMessage(id)}
+              t={t}
+            />
           </>
-        )}
+        ) : null}
+
+        {offers.length === 0 ? (
+          <>
+            <ExpHeading icon="responses">{t('responses')} (0)</ExpHeading>
+            <div className="sub" style={{ padding: '12px 0', fontSize: 13 }}>
+              {t('noBidsYet')}
+            </div>
+          </>
+        ) : null}
       </div>
 
       <div className="exp-section">
