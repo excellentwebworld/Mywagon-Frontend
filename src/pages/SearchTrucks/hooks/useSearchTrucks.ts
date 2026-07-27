@@ -369,7 +369,6 @@ export function useSearchTrucks() {
   const [error, setError] = useState<string | null>(null);
   const [upgradeUrl, setUpgradeUrl] = useState(defaultSubscriptionUpgradeUrl);
   const [gateModalOpen, setGateModalOpen] = useState(false);
-  const [mapBoundsDirty, setMapBoundsDirty] = useState(false);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -623,7 +622,6 @@ export function useSearchTrucks() {
     setCriteria(emptyCriteria());
     setAppliedCriteria(emptyCriteria());
     setSelectedId(null);
-    setMapBoundsDirty(false);
     showToast(t('satFiltersCleared') || 'Filters cleared', 'info');
   }, [showToast, t]);
 
@@ -695,7 +693,6 @@ export function useSearchTrucks() {
     const next = { ...criteria, mapBounds: null };
     setCriteria(next);
     setAppliedCriteria(next);
-    setMapBoundsDirty(false);
     setSelectedId(null);
     showToast(t('satSearchApplied') || 'Search applied', 'success');
     return true;
@@ -707,17 +704,13 @@ export function useSearchTrucks() {
   );
 
   const applyMapBoundsSearch = useCallback(
-    (bounds: MapPickupBounds, opts?: { silent?: boolean }) => {
+    (bounds: MapPickupBounds) => {
       const next = { ...appliedCriteria, mapBounds: bounds };
       setCriteria((prev) => ({ ...prev, mapBounds: bounds }));
       setAppliedCriteria(next);
-      setMapBoundsDirty(false);
       setSelectedId(null);
-      if (!opts?.silent) {
-        showToast(t('satSearchApplied') || 'Search applied', 'success');
-      }
     },
-    [appliedCriteria, showToast, t]
+    [appliedCriteria]
   );
 
   const selectTruck = useCallback((id: string | null) => {
@@ -1136,10 +1129,7 @@ export function useSearchTrucks() {
     gateModalOpen,
     dismissGateReminder,
     retryLoad,
-    mapBoundsDirty,
-    setMapBoundsDirty,
     applyMapBoundsSearch,
-    mapBoundsActive: Boolean(appliedCriteria.mapBounds),
     visibility,
     setVisibility,
     searchQuery,

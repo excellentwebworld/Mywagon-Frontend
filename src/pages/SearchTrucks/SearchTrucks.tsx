@@ -205,9 +205,6 @@ export const SearchTrucks: React.FC = () => {
           loading={m.mapLoading}
           pinCount={m.mapPinCount}
           pinsCapped={m.mapPinsCapped}
-          mapBoundsActive={m.mapBoundsActive}
-          mapBoundsDirty={m.mapBoundsDirty}
-          onMapBoundsDirty={() => m.setMapBoundsDirty(true)}
           onSearchThisArea={m.applyMapBoundsSearch}
           selectedTruck={m.mapExpanded ? m.selectedTruckInList : null}
           onBook={m.openDrawer}
@@ -238,9 +235,6 @@ export const SearchTrucks: React.FC = () => {
           loading={m.mapLoading}
           pinCount={m.mapPinCount}
           pinsCapped={m.mapPinsCapped}
-          mapBoundsActive={m.mapBoundsActive}
-          mapBoundsDirty={m.mapBoundsDirty}
-          onMapBoundsDirty={() => m.setMapBoundsDirty(true)}
           onSearchThisArea={m.applyMapBoundsSearch}
           selectedTruck={m.selectedTruckInList}
           onBook={m.openDrawer}

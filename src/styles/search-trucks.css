@@ -2721,18 +2721,6 @@ button.sat-step:disabled { opacity: 1; cursor: default; }
 a.sat-btn {
   text-decoration: none;
 }
-.sat-map-bounds-chip {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: #eef6ff;
-  color: #1d4f91;
-  border: 1px solid #c7ddf7;
-}
-.sat-map-search-area {
-  margin-left: 4px;
-}
 /* ── Vehicle type picker (Airbnb-style cards, MYVAGON theme) ── */
 .sat-veh-picker {
   display: flex;

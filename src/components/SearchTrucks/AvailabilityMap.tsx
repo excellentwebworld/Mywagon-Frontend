@@ -17,10 +17,7 @@ interface AvailabilityMapProps {
   loading?: boolean;
   pinCount?: number;
   pinsCapped?: boolean;
-  mapBoundsActive?: boolean;
-  mapBoundsDirty?: boolean;
-  onMapBoundsDirty?: () => void;
-  onSearchThisArea?: (bounds: MapPickupBounds, opts?: { silent?: boolean }) => void;
+  onSearchThisArea?: (bounds: MapPickupBounds) => void;
   /** Selected truck for details (expanded map overlay / mobile bottom sheet) */
   selectedTruck?: AvailableTruck | null;
   onBook?: (truck: AvailableTruck, mode?: DrawerMode, occurrence?: string) => void;
@@ -175,9 +172,6 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   onToggleExpand,
   onCloseMobile,
   isMobileOverlay,
-  mapBoundsActive = false,
-  mapBoundsDirty = false,
-  onMapBoundsDirty,
   onSearchThisArea,
   selectedTruck = null,
   onBook,
@@ -196,9 +190,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   const destObjectsRef = useRef<any[]>([]);
   const routeBoundsRef = useRef<any>(null);
   const readyRef = useRef(false);
-  const skipNextIdleDirty = useRef(true);
-  const dirtyCbRef = useRef(onMapBoundsDirty);
-  dirtyCbRef.current = onMapBoundsDirty;
+  const skipNextIdleSearch = useRef(true);
   const searchAreaCbRef = useRef(onSearchThisArea);
   searchAreaCbRef.current = onSearchThisArea;
   const autoBoundsTimerRef = useRef<number | null>(null);
@@ -207,36 +199,6 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
 
   const AUTO_BOUNDS_DEBOUNCE_MS = 600;
-
-  const clearAutoBoundsTimer = () => {
-    if (autoBoundsTimerRef.current != null) {
-      window.clearTimeout(autoBoundsTimerRef.current);
-      autoBoundsTimerRef.current = null;
-    }
-  };
-
-  const readMapBounds = (): MapPickupBounds | null => {
-    const maps = mapsApi();
-    const map = mapRef.current;
-    const b = map?.getBounds?.();
-    if (!maps || !b) return null;
-    const ne = b.getNorthEast();
-    const sw = b.getSouthWest();
-    return {
-      neLat: ne.lat(),
-      neLng: ne.lng(),
-      swLat: sw.lat(),
-      swLng: sw.lng(),
-    };
-  };
-
-  const applySearchThisArea = (opts?: { silent?: boolean }) => {
-    const bounds = readMapBounds();
-    if (!bounds || !searchAreaCbRef.current) return;
-    clearAutoBoundsTimer();
-    searchAreaCbRef.current(bounds, opts);
-    skipNextIdleDirty.current = true;
-  };
 
   /** Bottom sheet only on mobile overlay; desktop expanded map uses left overlay. */
   const showSheet =
@@ -271,13 +233,12 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
             fullscreenControl: false,
             clickableIcons: false,
           });
-          skipNextIdleDirty.current = true;
+          skipNextIdleSearch.current = true;
           maps.event.addListener(mapRef.current, 'idle', () => {
-            if (skipNextIdleDirty.current) {
-              skipNextIdleDirty.current = false;
+            if (skipNextIdleSearch.current) {
+              skipNextIdleSearch.current = false;
               return;
             }
-            dirtyCbRef.current?.();
             if (autoBoundsTimerRef.current != null) {
               window.clearTimeout(autoBoundsTimerRef.current);
             }
@@ -287,16 +248,13 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
               if (!b || !searchAreaCbRef.current) return;
               const ne = b.getNorthEast();
               const sw = b.getSouthWest();
-              searchAreaCbRef.current(
-                {
-                  neLat: ne.lat(),
-                  neLng: ne.lng(),
-                  swLat: sw.lat(),
-                  swLng: sw.lng(),
-                },
-                { silent: true }
-              );
-              skipNextIdleDirty.current = true;
+              searchAreaCbRef.current({
+                neLat: ne.lat(),
+                neLng: ne.lng(),
+                swLat: sw.lat(),
+                swLng: sw.lng(),
+              });
+              skipNextIdleSearch.current = true;
             }, AUTO_BOUNDS_DEBOUNCE_MS);
           });
           readyRef.current = true;
@@ -361,11 +319,11 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
     const hasDest = selected?.destLat != null && selected.destLng != null;
 
     if (hasSelection && selected && !hasDest) {
-      skipNextIdleDirty.current = true;
+      skipNextIdleSearch.current = true;
       map.setCenter({ lat: selected.pickupLat, lng: selected.pickupLng });
       map.setZoom(10);
     } else if (!hasSelection && hasBounds) {
-      skipNextIdleDirty.current = true;
+      skipNextIdleSearch.current = true;
       map.fitBounds(bounds, 48);
     }
   }, [trucks, hoveredId, selectedId, onSelect, apiKey]);
@@ -432,7 +390,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
       focusBounds.extend(origin);
       focusBounds.extend(destination);
       routeBoundsRef.current = focusBounds;
-      skipNextIdleDirty.current = true;
+      skipNextIdleSearch.current = true;
       map.fitBounds(focusBounds, padding());
     };
     fitPickupAndDest();
@@ -477,7 +435,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
             const routeBounds = result.routes[0].bounds;
             if (routeBounds) {
               routeBoundsRef.current = routeBounds;
-              skipNextIdleDirty.current = true;
+              skipNextIdleSearch.current = true;
               map.fitBounds(routeBounds, padding());
             }
           } else {
@@ -514,7 +472,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
     const map = mapRef.current;
     const bounds = routeBoundsRef.current;
     if (!map || !bounds || !selectedRoute) return;
-    skipNextIdleDirty.current = true;
+    skipNextIdleSearch.current = true;
     map.fitBounds(bounds, routeFitPadding(showSheet, sheetExpanded));
   }, [showSheet, sheetExpanded, selectedRoute?.id]);
 
@@ -535,18 +493,6 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
           {loading ? '…' : displayedCount} {t('satResults')}
           {!loading && pinsCapped ? ` · ${t('satMapPinCap')}` : ''}
         </span>
-        {mapBoundsActive && (
-          <span className="sat-map-bounds-chip">{t('satMapBoundsActive')}</span>
-        )}
-        {mapBoundsDirty && onSearchThisArea && (
-          <button
-            type="button"
-            className="sat-btn sat-btn-sm sat-btn-pr sat-map-search-area"
-            onClick={() => applySearchThisArea()}
-          >
-            {t('satSearchThisArea')}
-          </button>
-        )}
         {isMobileOverlay && onCloseMobile ? (
           <button type="button" className="sat-map-ctrl" onClick={onCloseMobile} aria-label={t('close')}>
             ✕
