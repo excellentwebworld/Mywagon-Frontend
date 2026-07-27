@@ -20,8 +20,8 @@ interface AvailabilityMapProps {
   mapBoundsActive?: boolean;
   mapBoundsDirty?: boolean;
   onMapBoundsDirty?: () => void;
-  onSearchThisArea?: (bounds: MapPickupBounds) => void;
-  /** Selected truck for bottom details sheet (expanded / mobile map only) */
+  onSearchThisArea?: (bounds: MapPickupBounds, opts?: { silent?: boolean }) => void;
+  /** Selected truck for details (expanded map overlay / mobile bottom sheet) */
   selectedTruck?: AvailableTruck | null;
   onBook?: (truck: AvailableTruck, mode?: DrawerMode, occurrence?: string) => void;
   onMessage?: (carrier: string) => void;
@@ -65,7 +65,7 @@ function createPriceOverlay(
       .join(' ');
     div.style.position = 'absolute';
     div.style.cursor = 'pointer';
-    div.style.zIndex = opts.isActive || opts.isHovered ? '25' : '10';
+    div.style.zIndex = opts.isHovered ? '30' : opts.isActive ? '25' : '10';
 
     const showPrice = truck.price != null && !truck.priceBlurred;
     const label = showPrice ? formatMoney(truck.price, truck.currency) : 'Offer';
@@ -199,14 +199,56 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   const skipNextIdleDirty = useRef(true);
   const dirtyCbRef = useRef(onMapBoundsDirty);
   dirtyCbRef.current = onMapBoundsDirty;
+  const searchAreaCbRef = useRef(onSearchThisArea);
+  searchAreaCbRef.current = onSearchThisArea;
+  const autoBoundsTimerRef = useRef<number | null>(null);
   const [, setTick] = useState(0);
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
 
+  const AUTO_BOUNDS_DEBOUNCE_MS = 600;
+
+  const clearAutoBoundsTimer = () => {
+    if (autoBoundsTimerRef.current != null) {
+      window.clearTimeout(autoBoundsTimerRef.current);
+      autoBoundsTimerRef.current = null;
+    }
+  };
+
+  const readMapBounds = (): MapPickupBounds | null => {
+    const maps = mapsApi();
+    const map = mapRef.current;
+    const b = map?.getBounds?.();
+    if (!maps || !b) return null;
+    const ne = b.getNorthEast();
+    const sw = b.getSouthWest();
+    return {
+      neLat: ne.lat(),
+      neLng: ne.lng(),
+      swLat: sw.lat(),
+      swLng: sw.lng(),
+    };
+  };
+
+  const applySearchThisArea = (opts?: { silent?: boolean }) => {
+    const bounds = readMapBounds();
+    if (!bounds || !searchAreaCbRef.current) return;
+    clearAutoBoundsTimer();
+    searchAreaCbRef.current(bounds, opts);
+    skipNextIdleDirty.current = true;
+  };
+
+  /** Bottom sheet only on mobile overlay; desktop expanded map uses left overlay. */
   const showSheet =
     Boolean(selectedTruck) &&
     Boolean(onBook && onMessage && onProfile && onClearSelection) &&
-    (mapExpanded || Boolean(isMobileOverlay));
+    Boolean(isMobileOverlay);
+
+  const showExpandedOverlay =
+    Boolean(mapExpanded) &&
+    !isMobileOverlay &&
+    Boolean(selectedTruck) &&
+    Boolean(onBook && onMessage && onProfile && onClearSelection);
 
   useEffect(() => {
     setSheetExpanded(false);
@@ -236,6 +278,26 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
               return;
             }
             dirtyCbRef.current?.();
+            if (autoBoundsTimerRef.current != null) {
+              window.clearTimeout(autoBoundsTimerRef.current);
+            }
+            autoBoundsTimerRef.current = window.setTimeout(() => {
+              autoBoundsTimerRef.current = null;
+              const b = mapRef.current?.getBounds?.();
+              if (!b || !searchAreaCbRef.current) return;
+              const ne = b.getNorthEast();
+              const sw = b.getSouthWest();
+              searchAreaCbRef.current(
+                {
+                  neLat: ne.lat(),
+                  neLng: ne.lng(),
+                  swLat: sw.lat(),
+                  swLng: sw.lng(),
+                },
+                { silent: true }
+              );
+              skipNextIdleDirty.current = true;
+            }, AUTO_BOUNDS_DEBOUNCE_MS);
           });
           readyRef.current = true;
           setTick((n) => n + 1);
@@ -250,6 +312,10 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
 
     return () => {
       cancelled = true;
+      if (autoBoundsTimerRef.current != null) {
+        window.clearTimeout(autoBoundsTimerRef.current);
+        autoBoundsTimerRef.current = null;
+      }
     };
   }, [apiKey]);
 
@@ -260,7 +326,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
       maps.event.trigger(mapRef.current, 'resize');
     }, 50);
     return () => window.clearTimeout(id);
-  }, [mapExpanded, isMobileOverlay, showSheet, sheetExpanded]);
+  }, [mapExpanded, isMobileOverlay, showSheet, sheetExpanded, showExpandedOverlay]);
 
   useEffect(() => {
     const maps = mapsApi();
@@ -461,7 +527,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
     <div
       className={`sat-map-col ${mapExpanded ? 'expanded' : ''} ${isMobileOverlay ? 'mobile-overlay' : ''}${
         showSheet ? ' sat-map-col--sheet' : ''
-      }`}
+      }${showExpandedOverlay ? ' sat-map-col--detail' : ''}`}
     >
       <div className="sat-map-toolbar">
         <span className="sat-map-title">🗺️ {t('satTrucksMap')}</span>
@@ -476,21 +542,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
           <button
             type="button"
             className="sat-btn sat-btn-sm sat-btn-pr sat-map-search-area"
-            onClick={() => {
-              const maps = mapsApi();
-              const map = mapRef.current;
-              const b = map?.getBounds?.();
-              if (!maps || !b) return;
-              const ne = b.getNorthEast();
-              const sw = b.getSouthWest();
-              onSearchThisArea({
-                neLat: ne.lat(),
-                neLng: ne.lng(),
-                swLat: sw.lat(),
-                swLng: sw.lng(),
-              });
-              skipNextIdleDirty.current = true;
-            }}
+            onClick={() => applySearchThisArea()}
           >
             {t('satSearchThisArea')}
           </button>
@@ -563,6 +615,21 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
         {!loading && trucks.length === 0 && (
           <div className="sat-map-empty-hint">{t('satMapEmpty')}</div>
         )}
+
+        {showExpandedOverlay && selectedTruck && onBook && onMessage && onProfile && onClearSelection ? (
+          <AvailabilityDetailPanel
+            truck={selectedTruck}
+            onClose={onClearSelection}
+            onBook={onBook}
+            onMessage={onMessage}
+            onProfile={onProfile}
+            creatingShipment={creatingShipment}
+            variant="overlay"
+            canViewBidsCount={canViewBidsCount}
+            canViewBestBid={canViewBestBid}
+            t={t}
+          />
+        ) : null}
 
         {showSheet && selectedTruck && onBook && onMessage && onProfile && onClearSelection ? (
           <div

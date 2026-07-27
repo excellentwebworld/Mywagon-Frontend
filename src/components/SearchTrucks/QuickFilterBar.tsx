@@ -45,17 +45,6 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
   t,
 }) => (
   <div className="sat-filter-bar">
-    <select
-      className="sat-vis-select"
-      value={visibility}
-      onChange={(e) => onVisibilityChange(e.target.value as VisibilityFilter)}
-      aria-label={t('satColVisibility')}
-    >
-      <option value="all">{t('satTabAll')}</option>
-      <option value="public">{t('satTabPublic')}</option>
-      <option value="private">{t('satTabPrivate')}</option>
-    </select>
-
     <div className="sat-f-search sat-f-search--narrow">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="11" cy="11" r="8" />
@@ -69,6 +58,17 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
         aria-label={t('satSearchPlaceholder')}
       />
     </div>
+
+    <select
+      className="sat-vis-select"
+      value={visibility}
+      onChange={(e) => onVisibilityChange(e.target.value as VisibilityFilter)}
+      aria-label={t('satColVisibility')}
+    >
+      <option value="all">{t('satTabAll')}</option>
+      <option value="public">{t('satTabPublic')}</option>
+      <option value="private">{t('satTabPrivate')}</option>
+    </select>
 
     {CHIPS.filter((chip) => !chip.requiresBidsCount || canViewBidsCount).map((chip) => (
       <button

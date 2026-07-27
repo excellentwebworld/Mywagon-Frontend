@@ -235,7 +235,7 @@ function filterMockTrucks(
     );
   }
 
-  const q = searchQuery.trim().toLowerCase();
+  const q = searchQuery.trim().toLowerCase().replace(/^#+\s*/, '');
   if (q) {
     data = data.filter(
       (x) =>
@@ -244,7 +244,8 @@ function filterMockTrucks(
         x.dest.toLowerCase().includes(q) ||
         x.truckType.toLowerCase().includes(q) ||
         x.specs.toLowerCase().includes(q) ||
-        x.id.toLowerCase().includes(q)
+        x.id.toLowerCase().includes(q) ||
+        x.label.toLowerCase().includes(q)
     );
   }
 
@@ -706,13 +707,15 @@ export function useSearchTrucks() {
   );
 
   const applyMapBoundsSearch = useCallback(
-    (bounds: MapPickupBounds) => {
+    (bounds: MapPickupBounds, opts?: { silent?: boolean }) => {
       const next = { ...appliedCriteria, mapBounds: bounds };
       setCriteria((prev) => ({ ...prev, mapBounds: bounds }));
       setAppliedCriteria(next);
       setMapBoundsDirty(false);
       setSelectedId(null);
-      showToast(t('satSearchApplied') || 'Search applied', 'success');
+      if (!opts?.silent) {
+        showToast(t('satSearchApplied') || 'Search applied', 'success');
+      }
     },
     [appliedCriteria, showToast, t]
   );

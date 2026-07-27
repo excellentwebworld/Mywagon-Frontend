@@ -89,8 +89,10 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
         <div className="sat-card-meta sat-card-meta--vehicle">
           <span>
             <span className="sat-muted">{t('satVehicleType')}: </span>
-            {truck.truckType}
-            {truck.specs ? <span className="sat-muted"> · {truck.specs}</span> : null}
+            <span className="sat-card-vehicle-spec">
+              {truck.truckType}
+              {truck.specs ? ` · ${truck.specs}` : null}
+            </span>
           </span>
           {canViewBidsCount ? (
             <>
