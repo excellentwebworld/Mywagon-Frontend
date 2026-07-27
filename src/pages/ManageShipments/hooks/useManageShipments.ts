@@ -365,9 +365,7 @@ export function useManageShipments() {
           awaitingResponse: detail.awaitingResponse,
           offers: detail.offers,
           invitees: detail.invitees,
-          stops: detail.stops,
-          stopCount: detail.stopCount,
-          intermediateStops: detail.intermediateStops,
+          // Keep list-row lane/stop counts stable on expand — stops live in detailCache for the panel.
           ...(detail.createdAt ? { createdAt: detail.createdAt } : {}),
         });
       } catch {

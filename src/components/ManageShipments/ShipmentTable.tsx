@@ -196,61 +196,63 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
           </tr>
         ) : (
           shipments.map((row) => {
-            const s = resolveShipment ? resolveShipment(row) : row;
-            const isExpanded = expandedId === s.id;
-            const isPending = s.status === 'pending';
-            const badgeClass = statusBadgeClass(s.status);
-            const channel = s.channel || (s.vis === 'public' ? 'public' : 'private');
-            const quoted = formatEuro(s.quotedPrice ?? s.price);
-            const agreed = formatEuro(s.agreedPrice);
-            const detailLoading = detailLoadingIds?.has(s.id) ?? false;
-            const detailRefreshing = detailRefreshingIds?.has(s.id) ?? false;
-            const hasCachedDetail = isDetailCached?.(s.id) ?? false;
+            // Summary cells always use the list-row snapshot so expand never rewrites visible cells.
+            // Merged detail is only for the expansion panel (offers, stops, itinerary, etc.).
+            const detail = resolveShipment ? resolveShipment(row) : row;
+            const isExpanded = expandedId === row.id;
+            const isPending = detail.status === 'pending';
+            const badgeClass = statusBadgeClass(row.status);
+            const channel = row.channel || (row.vis === 'public' ? 'public' : 'private');
+            const quoted = formatEuro(row.quotedPrice ?? row.price);
+            const agreed = formatEuro(row.agreedPrice);
+            const detailLoading = detailLoadingIds?.has(row.id) ?? false;
+            const detailRefreshing = detailRefreshingIds?.has(row.id) ?? false;
+            const hasCachedDetail = isDetailCached?.(row.id) ?? false;
             // Skeleton only on cold open; cached open keeps content and refreshes in background.
             const showSkeleton = detailLoading && !hasCachedDetail;
             const detailBusy = detailLoading || detailRefreshing;
-            const priceType = s.price_type === 'contract' ? 'contract' : 'spot';
+            const priceType = row.price_type === 'contract' ? 'contract' : 'spot';
 
             return (
-              <React.Fragment key={s.id}>
-                <tr className={isExpanded ? 'expanded' : ''} onClick={() => onToggleExpand(s.id)}>
+              <React.Fragment key={row.id}>
+                <tr className={isExpanded ? 'expanded' : ''} onClick={() => onToggleExpand(row.id)}>
                   <td className="chk" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
-                      checked={selectedIds.has(s.id)}
-                      onChange={(e) => onSelectRow(s.id, e.target.checked)}
+                      checked={selectedIds.has(row.id)}
+                      onChange={(e) => onSelectRow(row.id, e.target.checked)}
                     />
                   </td>
                   <td>
                     <div className="sid">
-                      <span>{s.autoId || s.id}</span>
+                      <span>{row.autoId || row.id}</span>
                       <span
                         className="sid-copy"
                         title={t('copy')}
                         onClick={(e) => {
                           e.stopPropagation();
-                          onCopyId(s.autoId || s.id);
+                          onCopyId(row.autoId || row.id);
                         }}
                       >
                         📋
                       </span>
                     </div>
-                    <div className="sub">{shipmentIdSublabel(s, t)}</div>
+                    <div className="sub">{shipmentIdSublabel(row, t)}</div>
                   </td>
                   <td>
-                    <LaneCell shipment={s} t={t} />
+                    <LaneCell shipment={row} t={t} />
                   </td>
                   <td>
-                    {s.customer.length ? (
+                    {row.customer.length ? (
                       <div className="cust-pills">
-                        {s.customer.slice(0, 2).map((c, idx) => (
+                        {row.customer.slice(0, 2).map((c, idx) => (
                           <span key={idx} className="cust-pill">
                             <span className="ci">🏪</span>
                             {c.name}
                           </span>
                         ))}
-                        {s.customer.length > 2 && (
-                          <span className="cust-overflow">+{s.customer.length - 2}</span>
+                        {row.customer.length > 2 && (
+                          <span className="cust-overflow">+{row.customer.length - 2}</span>
                         )}
                       </div>
                     ) : (
@@ -260,9 +262,9 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                   <td className="col-status">
                     <span className={`badge ${badgeClass}`}>
                       <span className="bdot" />
-                      {t(s.status)}
+                      {t(row.status)}
                     </span>
-                    {s.paymentStatus === 'paid' && (
+                    {row.paymentStatus === 'paid' && (
                       <>
                         <br />
                         <span className="badge badge-success payment-subtag">
@@ -271,7 +273,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                         </span>
                       </>
                     )}
-                    {s.paymentStatus === 'payment_pending' && (
+                    {row.paymentStatus === 'payment_pending' && (
                       <>
                         <br />
                         <span className="badge badge-warning payment-subtag">
@@ -285,26 +287,26 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                     <span className={`vis vis-${channel === 'public' ? 'pub' : 'priv'}`}>
                       {channel === 'public' ? t('public') : t('private')}
                     </span>
-                    {channel === 'private' && s.status === 'pending' && (
+                    {channel === 'private' && row.status === 'pending' && (
                       <div className="sub">
-                        {t('invited')}: {s.invited ?? 0}
+                        {t('invited')}: {row.invited ?? 0}
                       </div>
                     )}
                   </td>
                   {showBidsCol ? (
                     <td>
-                      <BidsCell shipment={s} t={t} />
+                      <BidsCell shipment={row} t={t} />
                     </td>
                   ) : null}
                   <td>
-                    {s.carrier ? (
+                    {row.carrier ? (
                       <div className="carrier-cell">
                         <CarrierAvatar
-                          name={s.carrier}
-                          initials={s.carrier_init}
-                          avatar={s.carrierAvatar}
+                          name={row.carrier}
+                          initials={row.carrier_init}
+                          avatar={row.carrierAvatar}
                         />
-                        {s.carrier}
+                        {row.carrier}
                       </div>
                     ) : (
                       <span className="sub">—</span>
@@ -326,7 +328,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                     {agreed ? (
                       <>
                         <span className="price agreed-price">{agreed}</span>
-                        {s.carrier && (
+                        {row.carrier && (
                           <span className={priceType === 'spot' ? 'chip-spot' : 'chip-cont'}>
                             {t(priceType)}
                           </span>
@@ -338,16 +340,16 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                   </td>
                   <td className="col-last-update">
                     <span className="ago">
-                      {formatRelativeAgo(s.updatedAt || s.updated, t) || '—'}
+                      {formatRelativeAgo(row.updatedAt || row.updated, t) || '—'}
                     </span>
                   </td>
                   <td className="col-actions" onClick={(e) => e.stopPropagation()}>
                     <div className="acts">
                       <RowActionsMenu
-                        shipment={s}
-                        onView={() => navigate(`/shipments/${s.id}`)}
-                        onEdit={() => onEdit(s)}
-                        onDelete={() => onDelete(s)}
+                        shipment={row}
+                        onView={() => navigate(`/shipments/${row.id}`)}
+                        onEdit={() => onEdit(row)}
+                        onDelete={() => onDelete(row)}
                         onEditBlocked={onEditBlocked}
                         t={t}
                       />
@@ -362,33 +364,35 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                         <RowExpansionSkeleton variant={isPending ? 'pending' : 'status'} />
                       ) : isPending ? (
                         <RowExpansionPending
-                          shipment={s}
+                          shipment={detail}
                           detailLoading={detailBusy}
                           onRefresh={
-                            onRefreshDetail ? () => onRefreshDetail(s.id) : undefined
+                            onRefreshDetail ? () => onRefreshDetail(row.id) : undefined
                           }
-                          onEdit={() => onEdit(s)}
-                          onViewNewTab={() => onViewNewTab(s)}
-                          onCancel={() => onDelete(s)}
-                          onMessage={(offerId) => onMessage(s, offerId)}
-                          onAcceptOffer={(offerId) => onAcceptOffer(s, offerId)}
-                          onRejectOffer={(offerId) => onRejectOffer(s, offerId)}
-                          onCounterOffer={(offerId, amount) => onCounterOffer(s, offerId, amount)}
-                          onRemindInvitee={(inviteeId) => onRemindInvitee(s, inviteeId)}
-                          onRemoveInvitee={(inviteeId) => onRemoveInvitee(s, inviteeId)}
-                          onInviteMore={() => onInviteMore(s)}
+                          onEdit={() => onEdit(detail)}
+                          onViewNewTab={() => onViewNewTab(detail)}
+                          onCancel={() => onDelete(detail)}
+                          onMessage={(offerId) => onMessage(detail, offerId)}
+                          onAcceptOffer={(offerId) => onAcceptOffer(detail, offerId)}
+                          onRejectOffer={(offerId) => onRejectOffer(detail, offerId)}
+                          onCounterOffer={(offerId, amount) =>
+                            onCounterOffer(detail, offerId, amount)
+                          }
+                          onRemindInvitee={(inviteeId) => onRemindInvitee(detail, inviteeId)}
+                          onRemoveInvitee={(inviteeId) => onRemoveInvitee(detail, inviteeId)}
+                          onInviteMore={() => onInviteMore(detail)}
                           t={t}
                         />
                       ) : (
                         <RowExpansionStatus
-                          shipment={s}
+                          shipment={detail}
                           detailLoading={detailBusy}
                           onRefresh={
-                            onRefreshDetail ? () => onRefreshDetail(s.id) : undefined
+                            onRefreshDetail ? () => onRefreshDetail(row.id) : undefined
                           }
-                          onEdit={() => onEdit(s)}
-                          onViewNewTab={() => onViewNewTab(s)}
-                          onCancel={() => onDelete(s)}
+                          onEdit={() => onEdit(detail)}
+                          onViewNewTab={() => onViewNewTab(detail)}
+                          onCancel={() => onDelete(detail)}
                           t={t}
                         />
                       )}
