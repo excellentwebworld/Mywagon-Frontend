@@ -200,7 +200,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
 
-  const AUTO_BOUNDS_DEBOUNCE_MS = 600;
+  const AUTO_BOUNDS_DEBOUNCE_MS = 1000;
 
   const clearAutoBoundsTimer = () => {
     if (autoBoundsTimerRef.current != null) {
