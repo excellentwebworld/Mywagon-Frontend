@@ -209,6 +209,23 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
     }
   };
 
+  const emitSearchThisArea = () => {
+    const b = mapRef.current?.getBounds?.();
+    if (!b || !searchAreaCbRef.current) return false;
+    const ne = b.getNorthEast();
+    const sw = b.getSouthWest();
+    searchAreaCbRef.current({
+      neLat: ne.lat(),
+      neLng: ne.lng(),
+      swLat: sw.lat(),
+      swLng: sw.lng(),
+    });
+    skipNextIdleSearch.current = true;
+    return true;
+  };
+  const emitSearchThisAreaRef = useRef(emitSearchThisArea);
+  emitSearchThisAreaRef.current = emitSearchThisArea;
+
   // While a truck detail is open, do not auto-refetch from map pan/zoom.
   useEffect(() => {
     if (selectedId) clearAutoBoundsTimer();
@@ -262,17 +279,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
             autoBoundsTimerRef.current = window.setTimeout(() => {
               autoBoundsTimerRef.current = null;
               if (selectedIdRef.current) return;
-              const b = mapRef.current?.getBounds?.();
-              if (!b || !searchAreaCbRef.current) return;
-              const ne = b.getNorthEast();
-              const sw = b.getSouthWest();
-              searchAreaCbRef.current({
-                neLat: ne.lat(),
-                neLng: ne.lng(),
-                swLat: sw.lat(),
-                swLng: sw.lng(),
-              });
-              skipNextIdleSearch.current = true;
+              emitSearchThisAreaRef.current();
             }, AUTO_BOUNDS_DEBOUNCE_MS);
           });
           readyRef.current = true;
@@ -508,6 +515,18 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
           {loading ? '…' : displayedCount} {t('satResults')}
           {!loading && pinsCapped ? ` · ${t('satMapPinCap')}` : ''}
         </span>
+        {onSearchThisArea && !selectedId ? (
+          <button
+            type="button"
+            className="sat-btn sat-btn-sm sat-btn-pr sat-map-search-area"
+            onClick={() => {
+              clearAutoBoundsTimer();
+              emitSearchThisArea();
+            }}
+          >
+            {t('satSearchThisArea')}
+          </button>
+        ) : null}
         {isMobileOverlay && onCloseMobile ? (
           <button type="button" className="sat-map-ctrl" onClick={onCloseMobile} aria-label={t('close')}>
             ✕

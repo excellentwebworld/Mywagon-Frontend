@@ -1486,6 +1486,11 @@
   border-color: var(--border-focus);
 }
 
+.sat-map-search-area {
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
 .sat-map-wrap {
   flex: 1 1 auto;
   position: relative;

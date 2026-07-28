@@ -189,8 +189,6 @@ export function buildListParams(input: {
   };
 
   if (search.trim()) params.search = search.trim();
-  if (criteria.pickupCity.trim()) params.pickup_city = criteria.pickupCity.trim();
-  if (criteria.dropoffCity.trim()) params.dropoff_city = criteria.dropoffCity.trim();
 
   const pickupDate = toApiPickupDate(criteria.pickupDate);
   if (pickupDate) params.pickup_date = pickupDate;
@@ -199,26 +197,44 @@ export function buildListParams(input: {
   if (dropoffDate) params.dropoff_date = dropoffDate;
 
   const bounds = criteria.mapBounds;
-  if (
-    bounds &&
-    Number.isFinite(bounds.neLat) &&
-    Number.isFinite(bounds.neLng) &&
-    Number.isFinite(bounds.swLat) &&
-    Number.isFinite(bounds.swLng)
-  ) {
-    params.pickup_ne_lat = bounds.neLat;
-    params.pickup_ne_lng = bounds.neLng;
-    params.pickup_sw_lat = bounds.swLat;
-    params.pickup_sw_lng = bounds.swLng;
-  } else if (criteria.pickupLat != null && criteria.pickupLng != null) {
-    params.pickup_lat = criteria.pickupLat;
-    params.pickup_lng = criteria.pickupLng;
+  const hasPickupBounds =
+    Boolean(bounds) &&
+    Number.isFinite(bounds!.neLat) &&
+    Number.isFinite(bounds!.neLng) &&
+    Number.isFinite(bounds!.swLat) &&
+    Number.isFinite(bounds!.swLng);
+  const hasPickupGeo =
+    criteria.pickupLat != null &&
+    criteria.pickupLng != null &&
+    Number.isFinite(criteria.pickupLat) &&
+    Number.isFinite(criteria.pickupLng);
+  const hasDropoffGeo =
+    criteria.dropoffLat != null &&
+    criteria.dropoffLng != null &&
+    Number.isFinite(criteria.dropoffLat) &&
+    Number.isFinite(criteria.dropoffLng);
+
+  // Prefer geo/bounds over city text — ANDing both over-filters (Places city name
+  // often does not match DB pickup_city / address strings).
+  if (hasPickupBounds) {
+    params.pickup_ne_lat = bounds!.neLat;
+    params.pickup_ne_lng = bounds!.neLng;
+    params.pickup_sw_lat = bounds!.swLat;
+    params.pickup_sw_lng = bounds!.swLng;
+  } else if (hasPickupGeo) {
+    params.pickup_lat = criteria.pickupLat!;
+    params.pickup_lng = criteria.pickupLng!;
     params.pickup_radius = criteria.pickupRadius ?? 50;
+  } else if (criteria.pickupCity.trim()) {
+    params.pickup_city = criteria.pickupCity.trim();
   }
-  if (criteria.dropoffLat != null && criteria.dropoffLng != null) {
-    params.dropoff_lat = criteria.dropoffLat;
-    params.dropoff_lng = criteria.dropoffLng;
+
+  if (hasDropoffGeo) {
+    params.dropoff_lat = criteria.dropoffLat!;
+    params.dropoff_lng = criteria.dropoffLng!;
     params.dropoff_radius = criteria.dropoffRadius ?? 50;
+  } else if (criteria.dropoffCity.trim()) {
+    params.dropoff_city = criteria.dropoffCity.trim();
   }
 
   const typeIdsFromSpecs = Object.keys(criteria.vehicleSpecs || {})

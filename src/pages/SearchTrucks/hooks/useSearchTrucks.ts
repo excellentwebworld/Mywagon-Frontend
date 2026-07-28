@@ -206,17 +206,62 @@ function filterMockTrucks(
     data = data.filter((x) => (x.loadMatchScore ?? 0) >= LOAD_MATCH_THRESHOLD);
   }
 
-  if (ac.pickupCity.trim()) {
+  const bounds = ac.mapBounds;
+  const hasPickupBounds =
+    Boolean(bounds) &&
+    Number.isFinite(bounds!.neLat) &&
+    Number.isFinite(bounds!.neLng) &&
+    Number.isFinite(bounds!.swLat) &&
+    Number.isFinite(bounds!.swLng);
+  const hasPickupGeo =
+    ac.pickupLat != null &&
+    ac.pickupLng != null &&
+    Number.isFinite(ac.pickupLat) &&
+    Number.isFinite(ac.pickupLng);
+  const hasDropoffGeo =
+    ac.dropoffLat != null &&
+    ac.dropoffLng != null &&
+    Number.isFinite(ac.dropoffLat) &&
+    Number.isFinite(ac.dropoffLng);
+
+  if (hasPickupBounds && bounds) {
+    data = data.filter(
+      (x) =>
+        x.pickupLat <= bounds.neLat &&
+        x.pickupLat >= bounds.swLat &&
+        x.pickupLng <= bounds.neLng &&
+        x.pickupLng >= bounds.swLng
+    );
+  } else if (hasPickupGeo && ac.pickupLat != null && ac.pickupLng != null) {
+    const radiusKm = ac.pickupRadius ?? 50;
+    data = data.filter((x) => {
+      const dLat = (x.pickupLat - ac.pickupLat!) * 111;
+      const dLng =
+        (x.pickupLng - ac.pickupLng!) * 111 * Math.cos((ac.pickupLat! * Math.PI) / 180);
+      return Math.hypot(dLat, dLng) <= radiusKm;
+    });
+  } else if (ac.pickupCity.trim()) {
     const q = ac.pickupCity.trim().toLowerCase();
     data = data.filter((x) => x.pickup.toLowerCase().includes(q));
   }
+
   if (ac.pickupDate.trim()) {
     const apiPickup = toApiPickupDate(ac.pickupDate);
     if (apiPickup) {
       data = data.filter((x) => truckCoversLocalDate(x, apiPickup));
     }
   }
-  if (ac.dropoffCity.trim()) {
+
+  if (hasDropoffGeo && ac.dropoffLat != null && ac.dropoffLng != null) {
+    const radiusKm = ac.dropoffRadius ?? 50;
+    data = data.filter((x) => {
+      if (x.destLat == null || x.destLng == null) return x.dest === 'Any';
+      const dLat = (x.destLat - ac.dropoffLat!) * 111;
+      const dLng =
+        (x.destLng - ac.dropoffLng!) * 111 * Math.cos((ac.dropoffLat! * Math.PI) / 180);
+      return Math.hypot(dLat, dLng) <= radiusKm;
+    });
+  } else if (ac.dropoffCity.trim()) {
     const q = ac.dropoffCity.trim().toLowerCase();
     data = data.filter((x) => x.dest.toLowerCase().includes(q) || x.dest === 'Any');
   }
