@@ -16,7 +16,7 @@ type SegmentKey = 'pickupCity' | 'pickupDate' | 'vehicle' | 'dropoffCity';
 interface SearchPillProps {
   criteria: SearchCriteria;
   onChange: (next: SearchCriteria) => void;
-  onSearch: () => boolean;
+  onSearch: () => boolean | Promise<boolean>;
   searchPending?: boolean;
   t: (key: string) => string;
 }
@@ -110,7 +110,7 @@ export const SearchPill: React.FC<SearchPillProps> = ({
         pickupCity: place.city,
         pickupLat: place.lat,
         pickupLng: place.lng,
-        pickupRadius: criteria.pickupRadius ?? 50,
+        pickupRadius: criteria.pickupRadius ?? 100,
       });
     } else {
       onChange({
@@ -118,7 +118,7 @@ export const SearchPill: React.FC<SearchPillProps> = ({
         dropoffCity: place.city,
         dropoffLat: place.lat,
         dropoffLng: place.lng,
-        dropoffRadius: criteria.dropoffRadius ?? 50,
+        dropoffRadius: criteria.dropoffRadius ?? 100,
       });
     }
     clearSuggestions();
@@ -144,7 +144,9 @@ export const SearchPill: React.FC<SearchPillProps> = ({
   };
 
   const handleSearch = () => {
-    if (onSearch()) collapse();
+    void Promise.resolve(onSearch()).then((ok) => {
+      if (ok) collapse();
+    });
   };
 
   const vehicleLabel = useMemo(() => {

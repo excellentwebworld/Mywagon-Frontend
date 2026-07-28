@@ -13,6 +13,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import type { SatFilterDraft } from '../../../components/SearchTrucks/SatFilterModal';
 import { resolveTripType } from '../../../components/SearchTrucks/SatFilterModal';
 import { toApiPickupDate } from '../../../api/mappers/availabilitiesMapper';
+import { geocodeCityName } from '../../../components/SearchTrucks/usePlaceSuggestions';
 import { MOCK_PENDING, MOCK_TRUCKS } from '../mockData';
 import type {
   AvailableTruck,
@@ -155,10 +156,10 @@ export const emptyCriteria = (): SearchCriteria => ({
   vehicleType: '',
   pickupLat: null,
   pickupLng: null,
-  pickupRadius: 50,
+  pickupRadius: 100,
   dropoffLat: null,
   dropoffLng: null,
-  dropoffRadius: 50,
+  dropoffRadius: 100,
   truckTypeIds: [],
   vehicleSpecs: {},
   mapBounds: null,
@@ -233,12 +234,15 @@ function filterMockTrucks(
         x.pickupLng >= bounds.swLng
     );
   } else if (hasPickupGeo && ac.pickupLat != null && ac.pickupLng != null) {
-    const radiusKm = ac.pickupRadius ?? 50;
+    const radiusKm = ac.pickupRadius ?? 100;
     data = data.filter((x) => {
       const dLat = (x.pickupLat - ac.pickupLat!) * 111;
       const dLng =
         (x.pickupLng - ac.pickupLng!) * 111 * Math.cos((ac.pickupLat! * Math.PI) / 180);
-      return Math.hypot(dLat, dLng) <= radiusKm;
+      const inRadius = Math.hypot(dLat, dLng) <= radiusKm;
+      if (inRadius) return true;
+      const q = ac.pickupCity.trim().toLowerCase();
+      return q ? x.pickup.toLowerCase().includes(q) : false;
     });
   } else if (ac.pickupCity.trim()) {
     const q = ac.pickupCity.trim().toLowerCase();
@@ -253,7 +257,7 @@ function filterMockTrucks(
   }
 
   if (hasDropoffGeo && ac.dropoffLat != null && ac.dropoffLng != null) {
-    const radiusKm = ac.dropoffRadius ?? 50;
+    const radiusKm = ac.dropoffRadius ?? 100;
     data = data.filter((x) => {
       if (x.destLat == null || x.destLng == null) return x.dest === 'Any';
       const dLat = (x.destLat - ac.dropoffLat!) * 111;
@@ -390,6 +394,7 @@ export function useSearchTrucks() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mapExpanded, setMapExpanded] = useState(false);
+  const [searchEpoch, setSearchEpoch] = useState(0);
   const [mobileMapOpen, setMobileMapOpen] = useState(false);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -703,8 +708,8 @@ export function useSearchTrucks() {
       truckTypeIds: [],
       availableFromStart: '',
       availableFromEnd: '',
-      pickupRadius: 50,
-      dropoffRadius: 50,
+      pickupRadius: 100,
+      dropoffRadius: 100,
       stopsMulti: true,
       stopsDirect: false,
       tripType: 'any',
@@ -718,7 +723,7 @@ export function useSearchTrucks() {
     setSelectedId(null);
   }, []);
 
-  const applySearch = useCallback(() => {
+  const applySearch = useCallback(async () => {
     if (!criteria.pickupCity.trim()) {
       showToast(t('satPickupCityRequired') || 'Pickup city is required', 'warning');
       return false;
@@ -734,11 +739,53 @@ export function useSearchTrucks() {
       showToast(t('satVehicleTypeRequired') || 'Vehicle type is required', 'warning');
       return false;
     }
+
     // Pill search is authority: clear map bounds mode.
-    const next = { ...criteria, mapBounds: null };
+    let next: SearchCriteria = { ...criteria, mapBounds: null };
+
+    // Typed city without a Places pick → geocode so radius search works.
+    const hasPickupGeo =
+      next.pickupLat != null &&
+      next.pickupLng != null &&
+      Number.isFinite(next.pickupLat) &&
+      Number.isFinite(next.pickupLng);
+    if (!hasPickupGeo && next.pickupCity.trim()) {
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
+      const geo = await geocodeCityName(apiKey, next.pickupCity);
+      if (geo) {
+        next = {
+          ...next,
+          pickupCity: geo.city || next.pickupCity,
+          pickupLat: geo.lat,
+          pickupLng: geo.lng,
+          pickupRadius: next.pickupRadius ?? 100,
+        };
+      }
+    }
+
+    const hasDropoffGeo =
+      next.dropoffLat != null &&
+      next.dropoffLng != null &&
+      Number.isFinite(next.dropoffLat) &&
+      Number.isFinite(next.dropoffLng);
+    if (!hasDropoffGeo && next.dropoffCity.trim()) {
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
+      const geo = await geocodeCityName(apiKey, next.dropoffCity);
+      if (geo) {
+        next = {
+          ...next,
+          dropoffCity: geo.city || next.dropoffCity,
+          dropoffLat: geo.lat,
+          dropoffLng: geo.lng,
+          dropoffRadius: next.dropoffRadius ?? 100,
+        };
+      }
+    }
+
     setCriteria(next);
     setAppliedCriteria(next);
     setSelectedId(null);
+    setSearchEpoch((n) => n + 1);
     showToast(t('satSearchApplied') || 'Search applied', 'success');
     return true;
   }, [criteria, showToast, t]);
@@ -1202,6 +1249,7 @@ export function useSearchTrucks() {
     selectedTruckInList,
     mapExpanded,
     setMapExpanded,
+    searchEpoch,
     mobileMapOpen,
     setMobileMapOpen,
     drawerOpen,

@@ -206,6 +206,7 @@ export const SearchTrucks: React.FC = () => {
           pinCount={m.mapPinCount}
           pinsCapped={m.mapPinsCapped}
           onSearchThisArea={m.applyMapBoundsSearch}
+          searchEpoch={m.searchEpoch}
           selectedTruck={m.mapExpanded ? m.selectedTruckInList : null}
           onBook={m.openDrawer}
           onMessage={(carrier) =>
@@ -236,6 +237,7 @@ export const SearchTrucks: React.FC = () => {
           pinCount={m.mapPinCount}
           pinsCapped={m.mapPinsCapped}
           onSearchThisArea={m.applyMapBoundsSearch}
+          searchEpoch={m.searchEpoch}
           selectedTruck={m.selectedTruckInList}
           onBook={m.openDrawer}
           onMessage={(carrier) =>

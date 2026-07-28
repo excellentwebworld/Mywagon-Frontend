@@ -214,8 +214,8 @@ export function buildListParams(input: {
     Number.isFinite(criteria.dropoffLat) &&
     Number.isFinite(criteria.dropoffLng);
 
-  // Prefer geo/bounds over city text — ANDing both over-filters (Places city name
-  // often does not match DB pickup_city / address strings).
+  // Bounds override radius. With center+radius, also send city text so BE can OR
+  // radius with pickup_city/address LIKE (Places locality often ≠ DB strings).
   if (hasPickupBounds) {
     params.pickup_ne_lat = bounds!.neLat;
     params.pickup_ne_lng = bounds!.neLng;
@@ -224,7 +224,10 @@ export function buildListParams(input: {
   } else if (hasPickupGeo) {
     params.pickup_lat = criteria.pickupLat!;
     params.pickup_lng = criteria.pickupLng!;
-    params.pickup_radius = criteria.pickupRadius ?? 50;
+    params.pickup_radius = criteria.pickupRadius ?? 100;
+    if (criteria.pickupCity.trim()) {
+      params.pickup_city = criteria.pickupCity.trim();
+    }
   } else if (criteria.pickupCity.trim()) {
     params.pickup_city = criteria.pickupCity.trim();
   }
@@ -232,7 +235,7 @@ export function buildListParams(input: {
   if (hasDropoffGeo) {
     params.dropoff_lat = criteria.dropoffLat!;
     params.dropoff_lng = criteria.dropoffLng!;
-    params.dropoff_radius = criteria.dropoffRadius ?? 50;
+    params.dropoff_radius = criteria.dropoffRadius ?? 100;
   } else if (criteria.dropoffCity.trim()) {
     params.dropoff_city = criteria.dropoffCity.trim();
   }

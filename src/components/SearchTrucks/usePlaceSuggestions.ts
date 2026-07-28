@@ -207,3 +207,39 @@ export function usePlaceSuggestions(opts: {
 
   return { suggestions, loading, resolvePlace, clearSuggestions };
 }
+
+/** Geocode a free-text city when the user searches without picking a suggestion. */
+export async function geocodeCityName(
+  apiKey: string | undefined,
+  city: string
+): Promise<{ city: string; lat: number; lng: number } | null> {
+  const q = city.trim();
+  if (!q || !apiKey) return null;
+  try {
+    await loadGoogleMaps(apiKey);
+    const maps = (window as any).google?.maps;
+    if (!maps?.Geocoder) return null;
+    const geocoder = new maps.Geocoder();
+    const result = await new Promise<any[] | null>((resolve) => {
+      geocoder.geocode({ address: q }, (results: any[] | null, status: string) => {
+        resolve(status === 'OK' && results?.length ? results : null);
+      });
+    });
+    if (!result?.[0]?.geometry?.location) return null;
+    const loc = result[0].geometry.location;
+    const components: Array<{ types: string[]; long_name: string }> =
+      result[0].address_components || [];
+    const resolvedCity =
+      components.find((c) => c.types.includes('locality'))?.long_name ||
+      components.find((c) => c.types.includes('postal_town'))?.long_name ||
+      components.find((c) => c.types.includes('administrative_area_level_3'))?.long_name ||
+      q;
+    return {
+      city: resolvedCity,
+      lat: typeof loc.lat === 'function' ? loc.lat() : loc.lat,
+      lng: typeof loc.lng === 'function' ? loc.lng() : loc.lng,
+    };
+  } catch {
+    return null;
+  }
+}

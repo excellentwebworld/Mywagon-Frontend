@@ -18,6 +18,8 @@ interface AvailabilityMapProps {
   pinCount?: number;
   pinsCapped?: boolean;
   onSearchThisArea?: (bounds: MapPickupBounds) => void;
+  /** Bumps when pill Search applies — suppress auto bounds so idle can't override criteria. */
+  searchEpoch?: number;
   /** Selected truck for details (expanded map overlay / mobile bottom sheet) */
   selectedTruck?: AvailableTruck | null;
   onBook?: (truck: AvailableTruck, mode?: DrawerMode, occurrence?: string) => void;
@@ -173,6 +175,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   onCloseMobile,
   isMobileOverlay,
   onSearchThisArea,
+  searchEpoch = 0,
   selectedTruck = null,
   onBook,
   onMessage,
@@ -190,7 +193,8 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   const destObjectsRef = useRef<any[]>([]);
   const routeBoundsRef = useRef<any>(null);
   const readyRef = useRef(false);
-  const skipNextIdleSearch = useRef(true);
+  /** Ignore idle auto-search until this timestamp (covers multi-idle after fitBounds). */
+  const suppressAutoBoundsUntil = useRef(Date.now() + 5000);
   const searchAreaCbRef = useRef(onSearchThisArea);
   searchAreaCbRef.current = onSearchThisArea;
   const selectedIdRef = useRef(selectedId);
@@ -201,6 +205,8 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
 
   const AUTO_BOUNDS_DEBOUNCE_MS = 1000;
+  const PROGRAMMATIC_CAMERA_SUPPRESS_MS = 2200;
+  const PILL_SEARCH_SUPPRESS_MS = 3500;
 
   const clearAutoBoundsTimer = () => {
     if (autoBoundsTimerRef.current != null) {
@@ -208,6 +214,18 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
       autoBoundsTimerRef.current = null;
     }
   };
+
+  const markProgrammaticCamera = (ms = PROGRAMMATIC_CAMERA_SUPPRESS_MS) => {
+    suppressAutoBoundsUntil.current = Date.now() + ms;
+    clearAutoBoundsTimer();
+  };
+
+  // Pill Search just applied — don't let map idle rewrite criteria with viewport bounds.
+  useEffect(() => {
+    if (searchEpoch <= 0) return;
+    markProgrammaticCamera(PILL_SEARCH_SUPPRESS_MS);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchEpoch]);
 
   const emitSearchThisArea = () => {
     const b = mapRef.current?.getBounds?.();
@@ -220,7 +238,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
       swLat: sw.lat(),
       swLng: sw.lng(),
     });
-    skipNextIdleSearch.current = true;
+    markProgrammaticCamera();
     return true;
   };
   const emitSearchThisAreaRef = useRef(emitSearchThisArea);
@@ -264,10 +282,9 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
             fullscreenControl: false,
             clickableIcons: false,
           });
-          skipNextIdleSearch.current = true;
+          markProgrammaticCamera();
           maps.event.addListener(mapRef.current, 'idle', () => {
-            if (skipNextIdleSearch.current) {
-              skipNextIdleSearch.current = false;
+            if (Date.now() < suppressAutoBoundsUntil.current) {
               return;
             }
             // Detail open (list overlay, expanded panel, or mobile sheet): ignore pan/zoom.
@@ -279,6 +296,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
             autoBoundsTimerRef.current = window.setTimeout(() => {
               autoBoundsTimerRef.current = null;
               if (selectedIdRef.current) return;
+              if (Date.now() < suppressAutoBoundsUntil.current) return;
               emitSearchThisAreaRef.current();
             }, AUTO_BOUNDS_DEBOUNCE_MS);
           });
@@ -302,6 +320,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   useEffect(() => {
     const maps = mapsApi();
     if (!mapRef.current || !maps?.event) return;
+    markProgrammaticCamera();
     const id = window.setTimeout(() => {
       maps.event.trigger(mapRef.current, 'resize');
     }, 50);
@@ -317,38 +336,82 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
     overlaysRef.current = [];
 
     const hasSelection = Boolean(selectedId);
-    const bounds = new maps.LatLngBounds();
-    let hasBounds = false;
-
     const visibleTrucks = hasSelection
       ? trucks.filter((truck) => truck.id === selectedId)
       : trucks;
 
     visibleTrucks.forEach((truck) => {
-      const isActive = truck.id === selectedId;
-      const isHovered = truck.id === hoveredId;
       const overlay = createPriceOverlay(maps, map, truck, {
-        isActive,
-        isHovered,
+        isActive: truck.id === selectedId,
+        isHovered: truck.id === hoveredId,
         onClick: () => onSelect(truck.id),
       });
       overlaysRef.current.push(overlay);
-      bounds.extend({ lat: truck.pickupLat, lng: truck.pickupLng });
-      hasBounds = true;
     });
+  }, [trucks, hoveredId, selectedId, onSelect, apiKey]);
 
+  // Fit camera to results / selection — not on hover.
+  useEffect(() => {
+    const maps = mapsApi();
+    const map = mapRef.current;
+    if (!maps || !map || !readyRef.current) return;
+
+    const hasSelection = Boolean(selectedId);
     const selected = trucks.find((x) => x.id === selectedId);
     const hasDest = selected?.destLat != null && selected.destLng != null;
 
+    const visibleTrucks = hasSelection
+      ? trucks.filter((truck) => truck.id === selectedId)
+      : trucks;
+
     if (hasSelection && selected && !hasDest) {
-      skipNextIdleSearch.current = true;
+      markProgrammaticCamera();
       map.setCenter({ lat: selected.pickupLat, lng: selected.pickupLng });
-      map.setZoom(10);
-    } else if (!hasSelection && hasBounds) {
-      skipNextIdleSearch.current = true;
-      map.fitBounds(bounds, 48);
+      map.setZoom(mapExpanded ? 9 : 10);
+      return;
     }
-  }, [trucks, hoveredId, selectedId, onSelect, apiKey]);
+
+    if (hasSelection) {
+      // Route effect handles destination focus.
+      return;
+    }
+
+    if (visibleTrucks.length === 0) return;
+
+    const bounds = new maps.LatLngBounds();
+    visibleTrucks.forEach((truck) => {
+      bounds.extend({ lat: truck.pickupLat, lng: truck.pickupLng });
+    });
+
+    // Few / clustered pins: pad so we don't zoom into a single pin (esp. expanded map).
+    if (visibleTrucks.length <= 2) {
+      const ne = bounds.getNorthEast();
+      const sw = bounds.getSouthWest();
+      const pad = mapExpanded ? 0.45 : 0.28; // ~30–50 km
+      bounds.extend({ lat: ne.lat() + pad, lng: ne.lng() + pad });
+      bounds.extend({ lat: sw.lat() - pad, lng: sw.lng() - pad });
+    }
+
+    markProgrammaticCamera();
+    map.fitBounds(bounds, mapExpanded ? 72 : 48);
+
+    const maxZoom = mapExpanded
+      ? visibleTrucks.length <= 3
+        ? 8
+        : 9
+      : visibleTrucks.length <= 2
+        ? 10
+        : 12;
+    maps.event.addListenerOnce(map, 'idle', () => {
+      markProgrammaticCamera();
+      const z = map.getZoom?.();
+      if (typeof z === 'number' && z > maxZoom) {
+        map.setZoom(maxZoom);
+      }
+    });
+    // Intentionally key on truck ids + selection/expand — not hover.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trucks.map((t) => t.id).join(','), selectedId, mapExpanded, apiKey]);
 
   const selectedRoute = React.useMemo(() => {
     const selected = trucks.find((x) => x.id === selectedId);
@@ -412,7 +475,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
       focusBounds.extend(origin);
       focusBounds.extend(destination);
       routeBoundsRef.current = focusBounds;
-      skipNextIdleSearch.current = true;
+      markProgrammaticCamera();
       map.fitBounds(focusBounds, padding());
     };
     fitPickupAndDest();
@@ -457,7 +520,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
             const routeBounds = result.routes[0].bounds;
             if (routeBounds) {
               routeBoundsRef.current = routeBounds;
-              skipNextIdleSearch.current = true;
+              markProgrammaticCamera();
               map.fitBounds(routeBounds, padding());
             }
           } else {
@@ -494,7 +557,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
     const map = mapRef.current;
     const bounds = routeBoundsRef.current;
     if (!map || !bounds || !selectedRoute) return;
-    skipNextIdleSearch.current = true;
+    markProgrammaticCamera();
     map.fitBounds(bounds, routeFitPadding(showSheet, sheetExpanded));
   }, [showSheet, sheetExpanded, selectedRoute?.id]);
 
