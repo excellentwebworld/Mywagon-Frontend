@@ -22,9 +22,10 @@ export const ManageShipments: React.FC = () => {
 
   return (
     <div className="mgmt-page">
-      <h1 className="pg-title">{m.t('shipmentsTitle') || 'Shipments'}</h1>
-
-      <LoadsDirectionToggle direction={m.direction} onChange={m.setDirection} t={m.t} />
+      <div className="mgmt-page-title-row">
+        <h1 className="pg-title">{m.t('shipmentsTitle') || 'Shipments'}</h1>
+        <LoadsDirectionToggle direction={m.direction} onChange={m.setDirection} t={m.t} />
+      </div>
 
       {m.error && (
         <div style={{ marginBottom: 12, color: 'var(--danger)' }}>

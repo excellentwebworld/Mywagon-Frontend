@@ -23,18 +23,28 @@
 
 .mgmt-page .pg-title {
   font-size: 22px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
+}
+
+.mgmt-page-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
 /* ── Outbound / Inbound direction toggle ── */
 .dir-toggle {
   display: inline-flex;
   gap: 0;
-  margin-bottom: 16px;
+  margin-bottom: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .dir-toggle-btn {
