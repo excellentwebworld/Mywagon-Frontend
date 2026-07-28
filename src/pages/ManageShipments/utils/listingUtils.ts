@@ -15,6 +15,17 @@ function toUtcFilterParam(value: string): string | undefined {
   const iso = localDateTimeLocalToUtcIso(trimmed);
   return iso || undefined;
 }
+
+/** Display datetime-local filter values as DD/MM/YYYY HH:mm. */
+function formatFilterChipDateTime(value: string): string {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return '…';
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/);
+  if (!match) return trimmed;
+  const [, year, month, day, hour, minute] = match;
+  const date = `${day}/${month}/${year}`;
+  return hour != null && minute != null ? `${date} ${hour}:${minute}` : date;
+}
 export type KpiKey = ShipmentKpiKey;
 
 export type StatusTabKey =
@@ -425,19 +436,19 @@ export function buildFilterChips(
   if (filters.pickup_from || filters.pickup_to) {
     chips.push({
       key: 'pickup_dates',
-      label: `${t('filterPickupDate')}: ${filters.pickup_from || '…'} → ${filters.pickup_to || '…'}`,
+      label: `${t('filterPickupDate')}: ${formatFilterChipDateTime(filters.pickup_from)} → ${formatFilterChipDateTime(filters.pickup_to)}`,
     });
   }
   if (filters.dropoff_from || filters.dropoff_to) {
     chips.push({
       key: 'dropoff_dates',
-      label: `${t('filterDropoffDate')}: ${filters.dropoff_from || '…'} → ${filters.dropoff_to || '…'}`,
+      label: `${t('filterDropoffDate')}: ${formatFilterChipDateTime(filters.dropoff_from)} → ${formatFilterChipDateTime(filters.dropoff_to)}`,
     });
   }
   if (filters.posted_from || filters.posted_to) {
     chips.push({
       key: 'posted_dates',
-      label: `${t('filterPostedDate')}: ${filters.posted_from || '…'} → ${filters.posted_to || '…'}`,
+      label: `${t('filterPostedDate')}: ${formatFilterChipDateTime(filters.posted_from)} → ${formatFilterChipDateTime(filters.posted_to)}`,
     });
   }
   if (filters.bid_state) {

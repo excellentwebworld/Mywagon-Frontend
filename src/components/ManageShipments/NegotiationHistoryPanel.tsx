@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { shipmentsService } from '../../api/services/shipmentsService';
 import type { ApiNegotiationHistoryItem } from '../../api/types/shipments';
 import { formatEuro } from '../../pages/ManageShipments/utils/listingUtils';
+import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { NegotiationHistorySkeleton } from '../skeletons/ManageShipmentsSkeleton';
 
 type ExpTranslate = (key: string, opts?: Record<string, unknown>) => string;
@@ -15,10 +16,7 @@ interface NegotiationHistoryPanelProps {
 
 function formatHistoryDate(iso?: string | null): string {
   if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return formatUtcToDisplayDateTime(iso) || iso;
 }
 
 function typeLabel(type: string, t: ExpTranslate): string {

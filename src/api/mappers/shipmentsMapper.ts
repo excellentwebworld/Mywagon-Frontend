@@ -174,7 +174,16 @@ function scheduleLabel(iso?: string | null, fallback?: string | null): string | 
     const formatted = formatUtcToDisplayDateTime(iso);
     if (formatted) return formatted;
   }
-  return fallback ?? null;
+  const raw = (fallback || '').trim();
+  if (!raw) return null;
+  // Normalize API fallbacks that already look like d/m/Y or d/m/Y H:i.
+  const match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if (match) {
+    const [, d, m, y, hh, mm] = match;
+    const date = `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+    return hh != null && mm != null ? `${date} ${hh.padStart(2, '0')}:${mm}` : date;
+  }
+  return raw;
 }
 
 export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {

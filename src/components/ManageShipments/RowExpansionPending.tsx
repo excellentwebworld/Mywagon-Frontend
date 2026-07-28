@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import type { Shipment } from '../../context/AppContext';
-import {
-  formatEuro,
-  formatRelativeAgo,
-} from '../../pages/ManageShipments/utils/listingUtils';
+import { formatEuro } from '../../pages/ManageShipments/utils/listingUtils';
+import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { ExpHeading } from './ExpHeading';
 import { ExpRefreshButton } from './ExpRefreshButton';
 import { ItineraryPreview } from './ItineraryPreview';
@@ -184,7 +182,9 @@ function OfferCard({
               </span>
               {offer.respondedAt ? (
                 <span>
-                  {t('respondedAgo', { time: formatRelativeAgo(offer.respondedAt, t) })}
+                  {t('respondedAgo', {
+                    time: formatUtcToDisplayDateTime(offer.respondedAt || '') || '—',
+                  })}
                 </span>
               ) : null}
             </div>
@@ -601,7 +601,9 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
                         ) : null}
                         {inv.invitedAt && isPendingInvite ? (
                           <span className="ago">
-                            {t('invitedAgo', { time: formatRelativeAgo(inv.invitedAt, t) })}
+                            {t('invitedAgo', {
+                              time: formatUtcToDisplayDateTime(inv.invitedAt || '') || '—',
+                            })}
                           </span>
                         ) : null}
                       </div>

@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import type { Shipment } from '../../context/AppContext';
 import {
   formatEuro,
-  formatRelativeAgo,
   statusBadgeClass,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { ExpHeading } from './ExpHeading';
 import { ExpRefreshButton } from './ExpRefreshButton';
 import { ItineraryPreview } from './ItineraryPreview';
@@ -103,7 +103,8 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
                   <div className="cc-name">{shipment.carrier}</div>
                   {(shipment.updatedAt || shipment.updated) && (
                     <div className="cc-meta">
-                      {t('assigned')} · {formatRelativeAgo(shipment.updatedAt || shipment.updated, t)}
+                      {t('assigned')} ·{' '}
+                      {formatUtcToDisplayDateTime(shipment.updatedAt || shipment.updated || '') || '—'}
                     </div>
                   )}
                 </div>

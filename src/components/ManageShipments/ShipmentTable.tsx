@@ -4,11 +4,11 @@ import type { Shipment } from '../../context/AppContext';
 import type { StatusTabKey } from '../../pages/ManageShipments/utils/listingUtils';
 import {
   formatEuro,
-  formatRelativeAgo,
   laneMidLabel,
   shipmentIdSublabel,
   statusBadgeClass,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { ListSkeleton } from '../skeletons/ListSkeleton';
 import { RowExpansionSkeleton } from '../skeletons/ManageShipmentsSkeleton';
 import { RowActionsMenu } from './RowActionsMenu';
@@ -335,7 +335,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                   </td>
                   <td className="col-last-update">
                     <span className="ago">
-                      {formatRelativeAgo(row.updatedAt || row.updated, t) || '—'}
+                      {formatUtcToDisplayDateTime(row.updatedAt || row.updated || '') || '—'}
                     </span>
                   </td>
                   <td className="col-actions" onClick={(e) => e.stopPropagation()}>

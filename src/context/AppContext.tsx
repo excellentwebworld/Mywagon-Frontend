@@ -205,7 +205,7 @@ export interface Shipment {
   orderIds?: string[];
   pickDtIso?: string | null;
   delDtIso?: string | null;
-  /** ISO timestamp for last update; format in UI via formatRelativeAgo(..., t). */
+  /** ISO timestamp for last update; format in UI as DD/MM/YYYY HH:mm. */
   updatedAt?: string | null;
   /** ISO created_at for progress timeline (Created step). */
   createdAt?: string | null;
