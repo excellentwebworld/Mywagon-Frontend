@@ -129,7 +129,6 @@ function OfferCard({
     !awaitingTransporter &&
     (offer.type === 'bid' || offer.type === 'interest');
   const showHistory = offer.hasHistory !== false;
-  const hasCounter = Boolean(offer.counter);
   const roleLabel = offer.role === 'freelancer' ? t('freelancer') : t('company');
   const locked = busy != null;
   const rating = offer.rating ?? 0;
@@ -196,23 +195,7 @@ function OfferCard({
 
       <div className="bid-footer">
         <div className="bid-footer-left">
-          {hasCounter && offer.counter ? (
-            <div className="co-chip">
-              {/* from = previous (strikethrough), to = latest counter */}
-              <span className="co-yours">
-                {formatEuro(offer.counter.from ?? offer.counter.theirs)}
-              </span>
-              <span className="co-arr">→</span>
-              <span className="co-theirs">
-                {formatEuro(offer.counter.to ?? offer.counter.yours)}
-              </span>
-              <span className={`co-pct ${offer.counter.dir === 'up' ? 'up' : 'down'}`}>
-                {offer.counter.dir === 'up' ? '↑' : '↓'}
-                {offer.counter.pct > 0 ? '+' : ''}
-                {Math.abs(offer.counter.pct)}%
-              </span>
-            </div>
-          ) : partnerClosed && partnerLabel ? (
+          {partnerClosed && partnerLabel ? (
             <span className="bid-awaiting-msg">{partnerLabel}</span>
           ) : awaitingTransporter ? (
             <span className="bid-awaiting-msg">{t('awaitingTheirResponse')}</span>
