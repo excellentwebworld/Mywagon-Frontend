@@ -2752,6 +2752,20 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.inv-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.inv-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-left: 25px;
+}
 .inv-acts {
   display: flex;
   gap: 3px;

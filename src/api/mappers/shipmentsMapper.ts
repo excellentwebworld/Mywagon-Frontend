@@ -322,6 +322,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
         price: o.price,
         respondedAt: o.responded_at,
         status: o.status ?? 'pending',
+        partnerStatus: o.partner_status ?? null,
         counter: o.counter ?? null,
       }))
     ),
@@ -332,6 +333,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
       avatar: i.avatar ?? null,
       invitedAt: i.invited_at,
       status: i.status,
+      role: i.role,
     })),
   };
 }

@@ -127,6 +127,8 @@ export interface ApiShipmentOffer {
   price?: number | null;
   responded_at?: string | null;
   status?: string | null;
+  /** shipment_partners.status for this bidder (0 pending … 4 rejected). */
+  partner_status?: string | null;
   counter?: {
     yours: number;
     theirs: number;
@@ -159,6 +161,7 @@ export interface ApiShipmentInvitee {
   avatar?: string | null;
   invited_at?: string | null;
   status?: string;
+  role?: 'company' | 'freelancer' | string;
 }
 
 export interface ApiShipmentDetail extends ApiShipmentListItem {

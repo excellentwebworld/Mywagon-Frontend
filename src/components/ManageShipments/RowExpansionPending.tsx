@@ -42,9 +42,47 @@ function ExpBtnSpin() {
 
 /** Match old panel: availability Accept/Reject only when latest action is from transporter. */
 function canShowAcceptReject(offer: Offer, isAvailability: boolean): boolean {
+  if (isPartnerTerminal(offer.partnerStatus)) return false;
   if (!isAvailability) return true;
   const by = String(offer.lastActionBy || '').toLowerCase();
   return by === 'carrier' || by === 'driver';
+}
+
+/** shipment_partners.status: 2=decline, 4=rejected */
+function isPartnerTerminal(status?: string | null): boolean {
+  const s = String(status ?? '');
+  return s === '2' || s === '4';
+}
+
+function partnerStatusLabel(status: string | null | undefined, t: ExpTranslate): string | null {
+  switch (String(status ?? '')) {
+    case '0':
+      return t('inviteeStatusPending');
+    case '1':
+      return t('inviteeStatusInterested');
+    case '2':
+      return t('inviteeStatusDeclined');
+    case '3':
+      return t('inviteeStatusAccepted');
+    case '4':
+      return t('inviteeStatusRejected');
+    default:
+      return null;
+  }
+}
+
+function partnerStatusBadgeClass(status: string | null | undefined): string {
+  switch (String(status ?? '')) {
+    case '1':
+      return 'badge badge-success';
+    case '2':
+    case '4':
+      return 'badge badge-danger';
+    case '3':
+      return 'badge badge-info';
+    default:
+      return 'badge badge-warning';
+  }
 }
 
 function OfferCard({
@@ -52,6 +90,7 @@ function OfferCard({
   shipmentId,
   isAvailability,
   negotiable,
+  quotePrice,
   onAccept,
   onReject,
   onCounter,
@@ -62,6 +101,7 @@ function OfferCard({
   shipmentId: string | number;
   isAvailability: boolean;
   negotiable: boolean;
+  quotePrice?: number | null;
   onAccept: () => void | Promise<void>;
   onReject: () => void | Promise<void>;
   onCounter: (amount: number, notes?: string) => void | Promise<void>;
@@ -72,15 +112,19 @@ function OfferCard({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [busy, setBusy] = useState<'accept' | 'reject' | 'counter' | 'chat' | 'send' | null>(null);
   const COUNTER_OFFER_PREFILL_RATIO = 0.95;
+  const basePrice = offer.price ?? quotePrice ?? null;
   const prefill =
-    offer.price != null ? Math.round(offer.price * COUNTER_OFFER_PREFILL_RATIO * 100) / 100 : 0;
+    basePrice != null ? Math.round(basePrice * COUNTER_OFFER_PREFILL_RATIO * 100) / 100 : 0;
   const [amount, setAmount] = useState(String(prefill || ''));
   const [notes, setNotes] = useState('');
   const NOTES_MAX = 500;
 
-  const awaitingTransporter = offer.lastActionBy === 'shipper';
+  const partnerClosed = isPartnerTerminal(offer.partnerStatus);
+  const partnerLabel = partnerStatusLabel(offer.partnerStatus, t);
+  const awaitingTransporter = offer.lastActionBy === 'shipper' && !partnerClosed;
   const showAcceptReject = canShowAcceptReject(offer, isAvailability) && !awaitingTransporter;
   const canCounter =
+    !partnerClosed &&
     (isAvailability || negotiable) &&
     !awaitingTransporter &&
     (offer.type === 'bid' || offer.type === 'interest');
@@ -118,7 +162,15 @@ function OfferCard({
               <span className="badge badge-gray" style={{ fontSize: 9 }}>
                 {roleLabel}
               </span>
-              {awaitingTransporter ? (
+              {partnerClosed && partnerLabel ? (
+                <span className={partnerStatusBadgeClass(offer.partnerStatus)} style={{ fontSize: 9 }}>
+                  {partnerLabel}
+                </span>
+              ) : offer.type === 'interest' ? (
+                <span className="badge badge-success" style={{ fontSize: 9 }}>
+                  {t('inviteeStatusInterested')}
+                </span>
+              ) : awaitingTransporter ? (
                 <span className="badge badge-info" style={{ fontSize: 9 }}>
                   {t('awaitingResponse')}
                 </span>
@@ -160,6 +212,8 @@ function OfferCard({
                 {Math.abs(offer.counter.pct)}%
               </span>
             </div>
+          ) : partnerClosed && partnerLabel ? (
+            <span className="bid-awaiting-msg">{partnerLabel}</span>
           ) : awaitingTransporter ? (
             <span className="bid-awaiting-msg">{t('awaitingTheirResponse')}</span>
           ) : (
@@ -313,6 +367,7 @@ function OfferList({
   shipmentId,
   isAvailability,
   negotiable,
+  quotePrice,
   onAcceptOffer,
   onRejectOffer,
   onCounterOffer,
@@ -323,6 +378,7 @@ function OfferList({
   shipmentId: string | number;
   isAvailability: boolean;
   negotiable: boolean;
+  quotePrice?: number | null;
   onAcceptOffer: (offerId: string) => void | Promise<void>;
   onRejectOffer: (offerId: string) => void | Promise<void>;
   onCounterOffer: (offerId: string, amount: number, notes?: string) => void | Promise<void>;
@@ -338,6 +394,7 @@ function OfferList({
           shipmentId={shipmentId}
           isAvailability={isAvailability}
           negotiable={negotiable}
+          quotePrice={quotePrice}
           onAccept={() => onAcceptOffer(offer.id)}
           onReject={() => onRejectOffer(offer.id)}
           onCounter={(amount, notes) => onCounterOffer(offer.id, amount, notes)}
@@ -444,30 +501,7 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
               shipmentId={shipment.id}
               isAvailability
               negotiable={negotiable}
-              onAcceptOffer={onAcceptOffer}
-              onRejectOffer={onRejectOffer}
-              onCounterOffer={onCounterOffer}
-              onMessage={(id) => onMessage(id)}
-              t={t}
-            />
-          </>
-        ) : null}
-
-        {receivedBids.length > 0 ? (
-          <>
-            <div
-              className={`bids-section-head${sentOffers.length > 0 ? ' bids-section-head--spaced' : ''}`}
-            >
-              <ExpHeading icon="responses">
-                {t('bidsReceivedFromTransporters')} ({receivedBids.length})
-              </ExpHeading>
-              {priceHeader('startingPriceLabel')}
-            </div>
-            <OfferList
-              offers={receivedBids}
-              shipmentId={shipment.id}
-              isAvailability={false}
-              negotiable={negotiable}
+              quotePrice={quotePrice}
               onAcceptOffer={onAcceptOffer}
               onRejectOffer={onRejectOffer}
               onCounterOffer={onCounterOffer}
@@ -480,19 +514,48 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
         {receivedInterests.length > 0 ? (
           <>
             <div
-              className={`bids-section-head${
-                sentOffers.length > 0 || receivedBids.length > 0 ? ' bids-section-head--spaced' : ''
-              }`}
+              className={`bids-section-head${sentOffers.length > 0 ? ' bids-section-head--spaced' : ''}`}
             >
               <ExpHeading icon="responses">
                 {t('interestedPartners')} ({receivedInterests.length})
               </ExpHeading>
+              {priceHeader('startingPriceLabel')}
             </div>
             <OfferList
               offers={receivedInterests}
               shipmentId={shipment.id}
               isAvailability={false}
               negotiable={negotiable}
+              quotePrice={quotePrice}
+              onAcceptOffer={onAcceptOffer}
+              onRejectOffer={onRejectOffer}
+              onCounterOffer={onCounterOffer}
+              onMessage={(id) => onMessage(id)}
+              t={t}
+            />
+          </>
+        ) : null}
+
+        {receivedBids.length > 0 ? (
+          <>
+            <div
+              className={`bids-section-head${
+                sentOffers.length > 0 || receivedInterests.length > 0
+                  ? ' bids-section-head--spaced'
+                  : ''
+              }`}
+            >
+              <ExpHeading icon="responses">
+                {t('bidsReceivedFromTransporters')} ({receivedBids.length})
+              </ExpHeading>
+              {priceHeader('startingPriceLabel')}
+            </div>
+            <OfferList
+              offers={receivedBids}
+              shipmentId={shipment.id}
+              isAvailability={false}
+              negotiable={negotiable}
+              quotePrice={quotePrice}
               onAcceptOffer={onAcceptOffer}
               onRejectOffer={onRejectOffer}
               onCounterOffer={onCounterOffer}
@@ -528,42 +591,60 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
                 const remindKey = `remind-${inv.id}`;
                 const removeKey = `remove-${inv.id}`;
                 const rowBusy = inviteBusy === remindKey || inviteBusy === removeKey;
+                const statusCode = String(inv.status ?? '0');
+                const isPendingInvite = statusCode === '0';
+                const statusText = partnerStatusLabel(statusCode, t);
+                const roleLabel = inv.role === 'freelancer' ? t('freelancer') : t('company');
                 return (
                   <div key={inv.id} className={`inv-row${rowBusy ? ' is-busy' : ''}`}>
-                    <span className="inv-name">
-                      <CarrierAvatar
-                        name={inv.name}
-                        initials={inv.initials}
-                        avatar={inv.avatar}
-                        size={20}
-                      />
-                      {inv.name}
-                    </span>
-                    {inv.invitedAt && (
-                      <span className="ago">
-                        {t('invitedAgo', { time: formatRelativeAgo(inv.invitedAt, t) })}
+                    <div className="inv-main">
+                      <span className="inv-name">
+                        <CarrierAvatar
+                          name={inv.name}
+                          initials={inv.initials}
+                          avatar={inv.avatar}
+                          size={20}
+                        />
+                        {inv.name}
                       </span>
-                    )}
-                    <div className="inv-acts">
-                      <button
-                        type="button"
-                        className="inv-btn"
-                        disabled={inviteBusy != null}
-                        onClick={() => void runInvite(remindKey, () => onRemindInvitee(inv.id))}
-                      >
-                        {inviteBusy === remindKey ? <ExpBtnSpin /> : null}
-                        {t('remind')}
-                      </button>
-                      <button
-                        type="button"
-                        className="inv-btn"
-                        disabled={inviteBusy != null}
-                        onClick={() => void runInvite(removeKey, () => onRemoveInvitee(inv.id))}
-                      >
-                        {inviteBusy === removeKey ? <ExpBtnSpin /> : null}
-                        {t('remove')}
-                      </button>
+                      <div className="inv-meta">
+                        <span className="badge badge-gray" style={{ fontSize: 9 }}>
+                          {roleLabel}
+                        </span>
+                        {statusText ? (
+                          <span className={partnerStatusBadgeClass(statusCode)} style={{ fontSize: 9 }}>
+                            {statusText}
+                          </span>
+                        ) : null}
+                        {inv.invitedAt && isPendingInvite ? (
+                          <span className="ago">
+                            {t('invitedAgo', { time: formatRelativeAgo(inv.invitedAt, t) })}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
+                    {isPendingInvite ? (
+                      <div className="inv-acts">
+                        <button
+                          type="button"
+                          className="inv-btn"
+                          disabled={inviteBusy != null}
+                          onClick={() => void runInvite(remindKey, () => onRemindInvitee(inv.id))}
+                        >
+                          {inviteBusy === remindKey ? <ExpBtnSpin /> : null}
+                          {t('remind')}
+                        </button>
+                        <button
+                          type="button"
+                          className="inv-btn"
+                          disabled={inviteBusy != null}
+                          onClick={() => void runInvite(removeKey, () => onRemoveInvitee(inv.id))}
+                        >
+                          {inviteBusy === removeKey ? <ExpBtnSpin /> : null}
+                          {t('remove')}
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}

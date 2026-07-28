@@ -240,6 +240,7 @@ export interface Shipment {
     price?: number | null;
     respondedAt?: string | null;
     status?: string | null;
+    partnerStatus?: string | null;
     counter?: {
       yours: number;
       theirs: number;
@@ -256,6 +257,7 @@ export interface Shipment {
     avatar?: string | null;
     invitedAt?: string | null;
     status?: string;
+    role?: string;
   }>;
 }
 
