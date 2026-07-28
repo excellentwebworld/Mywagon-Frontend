@@ -216,8 +216,9 @@ function OrderProductGroup({
       >
         <span className={`cust-chev${open ? ' open' : ''}`}>▶</span>
         <div className="exp-order-head-main">
-          {group.customer ? <span className="ord-company">{group.customer}</span> : null}
-          <span className="cust-name">{group.orderId}</span>
+          <span className="cust-name">
+            {t('erpOrdersColOrderId')} - {group.orderId}
+          </span>
         </div>
         <span className="cust-count">{countLabel}</span>
       </div>
