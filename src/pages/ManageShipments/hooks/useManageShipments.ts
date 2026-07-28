@@ -526,11 +526,12 @@ export function useManageShipments() {
   }, []);
 
   const handleCancelled = useCallback(() => {
-    showToast(t('shipmentCancelled'), 'success');
+    const wasDraft = cancelTarget?.status === 'draft';
+    showToast(wasDraft ? t('draftDeleted') : t('shipmentCancelled'), 'success');
     setCancelTarget(null);
     setExpandedId(null);
     refreshList();
-  }, [refreshList, showToast, t]);
+  }, [cancelTarget?.status, refreshList, showToast, t]);
 
   const handleEditBlocked = useCallback(() => {
     showToast(t('editNotAllowed'), 'warning');

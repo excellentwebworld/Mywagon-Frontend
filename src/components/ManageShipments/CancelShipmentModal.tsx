@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ApiError, shipmentsService } from '../../api';
+import { ApiError, createShipmentService, shipmentsService } from '../../api';
 import type { ApiCancelReason, ApiCancelReasonsPayload } from '../../api/types/shipments';
 import type { Shipment } from '../../context/AppContext';
 import { CancelReasonsSkeleton } from '../skeletons/CancelReasonsSkeleton';
@@ -25,6 +25,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
   t,
 }) => {
   const isBulk = Boolean(shipmentIds && shipmentIds.length > 0);
+  const isDraft = !isBulk && shipment?.status === 'draft';
   const reasonSourceId = isBulk ? shipmentIds![0] : shipment?.id;
   const count = isBulk ? shipmentIds!.length : 1;
 
@@ -38,6 +39,18 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
 
   useEffect(() => {
     if (!open || reasonSourceId == null) return;
+
+    // Drafts are deleted (no cancel reasons) — skip the cancel-reasons API.
+    if (isDraft) {
+      setLoading(false);
+      setError(null);
+      setNotes('');
+      setReasonId(null);
+      setReasons([]);
+      setChargeMessage('');
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -66,7 +79,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [open, reasonSourceId, t]);
+  }, [open, reasonSourceId, isDraft, t]);
 
   useEffect(() => {
     if (!open) return;
@@ -83,6 +96,25 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
   const needsNotes = Boolean(selected?.is_other);
 
   const handleSubmit = async () => {
+    if (isDraft) {
+      if (!shipment) {
+        setError(t('cancelFailed'));
+        return;
+      }
+      setSubmitting(true);
+      setError(null);
+      try {
+        await createShipmentService.deleteDraft(shipment.id);
+        onCancelled();
+        onClose();
+      } catch (err: unknown) {
+        setError(err instanceof ApiError ? err.message : t('draftDeleteFailed'));
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     if (!reasonId) {
       setError(t('cancelSelectReason'));
       return;
@@ -118,13 +150,28 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
     }
   };
 
-  const title = isBulk ? t('bulkCancelTitle') || t('cancelShipmentTitle') : t('cancelShipmentTitle');
-  const intro = isBulk
-    ? t('bulkCancelIntro', { count }) || `Cancel ${count} selected shipments?`
-    : t('cancelShipmentIntro', { id: shipment?.autoId || shipment?.id || '' });
+  const title = isDraft
+    ? t('draftDeleteTitle') || t('cancelShipmentTitle')
+    : isBulk
+      ? t('bulkCancelTitle') || t('cancelShipmentTitle')
+      : t('cancelShipmentTitle');
+  const intro = isDraft
+    ? t('draftDeleteIntro', { id: shipment?.autoId || shipment?.id || '' })
+    : isBulk
+      ? t('bulkCancelIntro', { count }) || `Cancel ${count} selected shipments?`
+      : t('cancelShipmentIntro', { id: shipment?.autoId || shipment?.id || '' });
 
-  const canSubmit =
-    !loading && !submitting && reasons.length > 0 && reasonId != null && (!needsNotes || Boolean(notes.trim()));
+  const canSubmit = isDraft
+    ? !submitting
+    : !loading && !submitting && reasons.length > 0 && reasonId != null && (!needsNotes || Boolean(notes.trim()));
+
+  const confirmLabel = isDraft
+    ? submitting
+      ? t('deleting') || t('cancelling')
+      : t('draftDeleteConfirm') || t('cancelShipmentConfirm')
+    : submitting
+      ? t('cancelling')
+      : t('cancelShipmentConfirm');
 
   return createPortal(
     <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -145,7 +192,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
         </div>
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>{intro}</p>
-          {loading ? (
+          {isDraft ? null : loading ? (
             <CancelReasonsSkeleton />
           ) : (
             <>
@@ -208,9 +255,9 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
             type="button"
             className="btn btn-danger"
             disabled={!canSubmit}
-            onClick={handleSubmit}
+            onClick={() => void handleSubmit()}
           >
-            {submitting ? t('cancelling') : t('cancelShipmentConfirm')}
+            {confirmLabel}
           </button>
         </div>
       </div>
