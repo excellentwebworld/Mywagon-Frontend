@@ -373,6 +373,8 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
   const invitedCount = invitees.length || shipment.invited || 0;
   const isPublic = (shipment.channel || shipment.vis) === 'public';
   const receivedOffers = offers.filter((o) => (o.kind ?? 'received') !== 'sent');
+  const receivedBids = receivedOffers.filter((o) => o.type === 'bid');
+  const receivedInterests = receivedOffers.filter((o) => o.type === 'interest');
   const sentOffers = offers.filter((o) => o.kind === 'sent');
   const negotiable = Boolean(shipment.negotiable);
   const quotePrice = shipment.quotedPrice ?? shipment.agreedPrice ?? null;
@@ -451,18 +453,43 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
           </>
         ) : null}
 
-        {receivedOffers.length > 0 ? (
+        {receivedBids.length > 0 ? (
           <>
             <div
               className={`bids-section-head${sentOffers.length > 0 ? ' bids-section-head--spaced' : ''}`}
             >
               <ExpHeading icon="responses">
-                {t('bidsReceivedFromTransporters')} ({receivedOffers.length})
+                {t('bidsReceivedFromTransporters')} ({receivedBids.length})
               </ExpHeading>
               {priceHeader('startingPriceLabel')}
             </div>
             <OfferList
-              offers={receivedOffers}
+              offers={receivedBids}
+              shipmentId={shipment.id}
+              isAvailability={false}
+              negotiable={negotiable}
+              onAcceptOffer={onAcceptOffer}
+              onRejectOffer={onRejectOffer}
+              onCounterOffer={onCounterOffer}
+              onMessage={(id) => onMessage(id)}
+              t={t}
+            />
+          </>
+        ) : null}
+
+        {receivedInterests.length > 0 ? (
+          <>
+            <div
+              className={`bids-section-head${
+                sentOffers.length > 0 || receivedBids.length > 0 ? ' bids-section-head--spaced' : ''
+              }`}
+            >
+              <ExpHeading icon="responses">
+                {t('interestedPartners')} ({receivedInterests.length})
+              </ExpHeading>
+            </div>
+            <OfferList
+              offers={receivedInterests}
               shipmentId={shipment.id}
               isAvailability={false}
               negotiable={negotiable}
