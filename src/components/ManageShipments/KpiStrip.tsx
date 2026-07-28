@@ -10,7 +10,7 @@ interface KpiStripProps {
 
 const KPI_CONFIG: { key: ShipmentKpiKey; labelKey: string; color: string }[] = [
   { key: 'needs_action', labelKey: 'needsActionLabel', color: 'c-warn' },
-  { key: 'awaiting_response', labelKey: 'awaitingResponse', color: 'c-acc' },
+  { key: 'awaiting_response', labelKey: 'awaitingResponse', color: 'c-mint' },
   { key: 'at_risk', labelKey: 'atRiskLate', color: 'c-err' },
   { key: 'pickup_today', labelKey: 'pickupToday', color: 'c-info' },
   { key: 'awaiting_pod', labelKey: 'awaitingPod', color: '' },

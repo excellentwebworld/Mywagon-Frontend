@@ -602,7 +602,13 @@ export function isShipmentCancellable(status: Shipment['status']): boolean {
 export function statusBadgeClass(
   status: Shipment['status'],
   _atRisk?: boolean,
-  opts?: { bidsReceived?: number; bidsSent?: number; interestedCount?: number }
+  opts?: {
+    bidsReceived?: number;
+    bidsSent?: number;
+    interestedCount?: number;
+    awaitingResponse?: boolean;
+    needsAction?: boolean;
+  }
 ): string {
   // Match Laravel ManageShipmentMasterDataTable + style.css status-box colors.
   // Do NOT paint pending as past-due when at_risk — Laravel keeps pending variants.
@@ -610,18 +616,18 @@ export function statusBadgeClass(
 
   switch (status) {
     case 'pending': {
-      // Laravel order:
-      // 1) bids received + carrier pending → gradient
-      // 2) carrier pending only → mint
-      // 3) interested partners → yellow
-      // 4) bids received only → yellow
-      // 5) else → mint
-      const received = opts?.bidsReceived ?? 0;
-      const sent = opts?.bidsSent ?? 0;
-      const interested = opts?.interestedCount ?? 0;
-      if (received > 0 && sent > 0) return 'status-box status-box--pending-more';
-      if (sent > 0) return 'status-box status-box--pending-request';
-      if (interested > 0 || received > 0) return 'status-box status-box--pending';
+      // Green = awaiting transporter (counter / posted-truck bid).
+      // Yellow = shipper needs to act on inbound bid/interest.
+      // Both = green→yellow gradient.
+      const awaiting =
+        Boolean(opts?.awaitingResponse) || (opts?.bidsSent ?? 0) > 0;
+      const needs =
+        Boolean(opts?.needsAction) ||
+        (opts?.bidsReceived ?? 0) > 0 ||
+        (opts?.interestedCount ?? 0) > 0;
+      if (awaiting && needs) return 'status-box status-box--pending-more';
+      if (awaiting) return 'status-box status-box--pending-request';
+      if (needs) return 'status-box status-box--pending';
       return 'status-box status-box--pending-request';
     }
     case 'scheduled':

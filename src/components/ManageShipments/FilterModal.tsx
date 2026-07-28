@@ -104,28 +104,52 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   t,
 }) => {
   const [draft, setDraft] = useState<ShipmentsFilterState>(filters);
-  const [productOptions, setProductOptions] = useState<{ id: string; name: string }[]>([]);
+  const [productTree, setProductTree] = useState<
+    Array<{ id: string; name: string; skus: Array<{ id: string; name: string }> }>
+  >([]);
+  const [productSearch, setProductSearch] = useState('');
+  const [expandedTypes, setExpandedTypes] = useState<Record<string, boolean>>({});
   const [rangeError, setRangeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setDraft(filters);
       setRangeError(null);
+      setProductSearch('');
     }
   }, [open, filters]);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    // Only types that exist in this shipper's Product Master (entered SKUs).
-    productMasterService
-      .getEnteredReferenceCategories()
-      .then((cats) => {
+    Promise.all([
+      productMasterService.getEnteredReferenceCategories(),
+      productMasterService.listAllSkus({ status: 'active', per_page: 100 }),
+    ])
+      .then(([cats, skus]) => {
         if (cancelled) return;
-        setProductOptions(mapReferenceToProductTypes(cats).map((pt) => ({ id: String(pt.id), name: pt.name })));
+        const types = mapReferenceToProductTypes(cats);
+        const byType = new Map<string, Array<{ id: string; name: string }>>();
+        skus.forEach((sku) => {
+          const typeId = String(sku.typeId || '');
+          if (!typeId) return;
+          const list = byType.get(typeId) || [];
+          list.push({
+            id: `sku:${sku.id}`,
+            name: sku.name || sku.number || String(sku.id),
+          });
+          byType.set(typeId, list);
+        });
+        setProductTree(
+          types.map((pt) => ({
+            id: String(pt.id),
+            name: pt.name,
+            skus: (byType.get(String(pt.id)) || []).sort((a, b) => a.name.localeCompare(b.name)),
+          }))
+        );
       })
       .catch(() => {
-        if (!cancelled) setProductOptions([]);
+        if (!cancelled) setProductTree([]);
       });
     return () => {
       cancelled = true;
@@ -143,11 +167,28 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 
   const productTypeNames = useMemo(() => {
     const map: Record<string, string> = {};
-    productOptions.forEach((p) => {
-      map[p.id] = p.name;
+    productTree.forEach((pt) => {
+      map[pt.id] = pt.name;
+      pt.skus.forEach((sku) => {
+        map[sku.id] = `${pt.name}: ${sku.name}`;
+      });
     });
     return map;
-  }, [productOptions]);
+  }, [productTree]);
+
+  const filteredProductTree = useMemo(() => {
+    const q = productSearch.trim().toLowerCase();
+    if (!q) return productTree;
+    return productTree
+      .map((pt) => {
+        const typeMatch = pt.name.toLowerCase().includes(q);
+        const skus = pt.skus.filter((s) => s.name.toLowerCase().includes(q));
+        if (typeMatch) return pt;
+        if (skus.length === 0) return null;
+        return { ...pt, skus };
+      })
+      .filter(Boolean) as typeof productTree;
+  }, [productTree, productSearch]);
 
   const transporterChoices = useMemo(
     () => withSelectedOption(transporterOptions, draft.carrier_name),
@@ -180,7 +221,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     setRangeError(null);
   };
 
-  const toggleProductType = (id: string) => {
+  const toggleProductToken = (id: string) => {
     setDraft((prev) => {
       const has = prev.product_type.includes(id);
       return {
@@ -188,6 +229,10 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         product_type: has ? prev.product_type.filter((x) => x !== id) : [...prev.product_type, id],
       };
     });
+  };
+
+  const toggleTypeExpanded = (id: string) => {
+    setExpandedTypes((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   if (!open) return null;
@@ -234,24 +279,70 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 
             <div className="mgmt-pop-field">
               <span className="mgmt-pop-label">{t('filterProductType')}</span>
-              <div className="mgmt-pop-chips">
-                {productOptions.length === 0 ? (
-                  <span className="mgmt-pop-hint">{t('filterNoProductTypes')}</span>
-                ) : (
-                  productOptions.map((pt) => {
-                    const active = draft.product_type.includes(pt.id);
-                    return (
-                      <button
-                        key={pt.id}
-                        type="button"
-                        className={`mgmt-seg-btn${active ? ' act' : ''}`}
-                        onClick={() => toggleProductType(pt.id)}
-                      >
-                        {pt.name}
-                      </button>
-                    );
-                  })
-                )}
+              <div className="mgmt-product-filter">
+                <input
+                  type="search"
+                  className="mgmt-product-filter-search"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder={t('filterProductSearch') || 'Search product type or SKU…'}
+                />
+                <div className="mgmt-product-filter-tree">
+                  {filteredProductTree.length === 0 ? (
+                    <span className="mgmt-pop-hint">{t('filterNoProductTypes')}</span>
+                  ) : (
+                    filteredProductTree.map((pt) => {
+                      const typeActive = draft.product_type.includes(pt.id);
+                      const openType = Boolean(expandedTypes[pt.id]) || Boolean(productSearch.trim());
+                      const selectedSkuCount = pt.skus.filter((s) =>
+                        draft.product_type.includes(s.id)
+                      ).length;
+                      return (
+                        <div key={pt.id} className="mgmt-product-type">
+                          <div className="mgmt-product-type-row">
+                            <button
+                              type="button"
+                              className="mgmt-product-type-chev"
+                              aria-expanded={openType}
+                              onClick={() => toggleTypeExpanded(pt.id)}
+                            >
+                              {openType ? '▾' : '▸'}
+                            </button>
+                            <label className="mgmt-product-type-label">
+                              <input
+                                type="checkbox"
+                                checked={typeActive}
+                                onChange={() => toggleProductToken(pt.id)}
+                              />
+                              <span>{pt.name}</span>
+                              {selectedSkuCount > 0 ? (
+                                <span className="mgmt-product-type-count">{selectedSkuCount}</span>
+                              ) : null}
+                            </label>
+                          </div>
+                          {openType ? (
+                            <div className="mgmt-product-sku-list">
+                              {pt.skus.length === 0 ? (
+                                <span className="mgmt-pop-hint">{t('filterNoSkus') || 'No SKUs'}</span>
+                              ) : (
+                                pt.skus.map((sku) => (
+                                  <label key={sku.id} className="mgmt-product-sku-row">
+                                    <input
+                                      type="checkbox"
+                                      checked={draft.product_type.includes(sku.id)}
+                                      onChange={() => toggleProductToken(sku.id)}
+                                    />
+                                    <span>{sku.name}</span>
+                                  </label>
+                                ))
+                              )}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </div>
 

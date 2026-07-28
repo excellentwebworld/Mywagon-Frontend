@@ -55,14 +55,25 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
         <div className="exp-section-head">
           <ExpHeading icon="progress">
             {t('progress')} —{' '}
-            <span
-              className={statusBadgeClass(shipment.status, Boolean(shipment.at_risk), {
-                bidsReceived: shipment.bidsReceived ?? 0,
-                bidsSent: shipment.bidsSent ?? 0,
-                interestedCount: shipment.interestedCount ?? 0,
-              })}
-            >
-              {t(shipment.status)}
+            <span className="status-box-wrap">
+              <span
+                className={statusBadgeClass(shipment.status, Boolean(shipment.at_risk), {
+                  bidsReceived: shipment.bidsReceived ?? 0,
+                  bidsSent: shipment.bidsSent ?? 0,
+                  interestedCount: shipment.interestedCount ?? 0,
+                  awaitingResponse: Boolean(shipment.awaitingResponse),
+                  needsAction: Boolean(shipment.needsAction),
+                })}
+              >
+                {t(shipment.status)}
+              </span>
+              {shipment.at_risk ? (
+                <span className="status-at-risk-warn" title={t('atRiskLate')} aria-label={t('atRiskLate')}>
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M12 2L1 21h22L12 2zm0 6l6.5 11h-13L12 8zm-1 4h2v4h-2v-4zm0 5h2v2h-2v-2z" />
+                  </svg>
+                </span>
+              ) : null}
             </span>
           </ExpHeading>
           <div className="exp-head-actions">

@@ -198,7 +198,10 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
               bidsReceived: row.bidsReceived ?? 0,
               bidsSent: row.bidsSent ?? 0,
               interestedCount: row.interestedCount ?? 0,
+              awaitingResponse: Boolean(row.awaitingResponse),
+              needsAction: Boolean(row.needsAction),
             });
+            const showAtRiskWarn = Boolean(row.at_risk);
             const channel = row.channel || (row.vis === 'public' ? 'public' : 'private');
             const quoted = formatEuro(row.quotedPrice ?? row.price);
             const agreed = formatEuro(row.agreedPrice);
@@ -258,14 +261,23 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                   </td>
                   <td className="col-status">
                     <div className="status-cell">
-                      {row.status === 'partially_fullfilled' ? (
-                        <span className={`${badgeClass} status-box--partial-compact`}>
-                          <span className="status-partial-left">{t('partially')}</span>
-                          <span className="status-partial-right">{t('fulfilled')}</span>
-                        </span>
-                      ) : (
-                        <span className={badgeClass}>{t(row.status)}</span>
-                      )}
+                      <span className="status-box-wrap">
+                        {row.status === 'partially_fullfilled' ? (
+                          <span className={`${badgeClass} status-box--partial-compact`}>
+                            <span className="status-partial-left">{t('partially')}</span>
+                            <span className="status-partial-right">{t('fulfilled')}</span>
+                          </span>
+                        ) : (
+                          <span className={badgeClass}>{t(row.status)}</span>
+                        )}
+                        {showAtRiskWarn ? (
+                          <span className="status-at-risk-warn" title={t('atRiskLate')} aria-label={t('atRiskLate')}>
+                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                              <path d="M12 2L1 21h22L12 2zm0 6l6.5 11h-13L12 8zm-1 4h2v4h-2v-4zm0 5h2v2h-2v-2z" />
+                            </svg>
+                          </span>
+                        ) : null}
+                      </span>
                       {row.paymentStatus === 'paid' ? (
                         <span className="badge badge-success payment-subtag">
                           {t('paymentPaid')}
