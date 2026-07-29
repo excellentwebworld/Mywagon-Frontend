@@ -66,6 +66,15 @@ Uses `VITE_GOOGLE_MAPS_KEY` via `loadGoogleMaps`. Without key, placeholder with 
 
 _(none — SAT → Create Shipment locationId + vehicleSpecs prefill complete)_
 
+## PDS-939 Flow 1 — Bid with existing shipment (2 steps)
+
+- Split Book/Bid wizard: left truck details stay visible; right panel has 2 steps
+- Step 1: Manage-Shipments-style pending table + Match Score after Choose (Cancel / Continue)
+- Step 2: load snapshot + editable offer → Send bid
+- Public/private pending filter by truck visibility; match score premium-gated
+- `GET /availabilities/{id}/pending-matches/{shipmentId}` for score + snapshot
+- Place bid accepts custom `quote` for all availability bids (PDS-943)
+
 ## Prefill notes
 
 - Proceed `prefill` includes `truck_type_id` (int) plus display `truck_type`.

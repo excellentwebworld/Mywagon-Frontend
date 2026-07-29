@@ -129,6 +129,93 @@ export interface PendingShipment {
   weight: string;
   stops: number;
   exactMatch?: boolean;
+  customers?: string[];
+  quotedPrice?: number | null;
+  channel?: 'public' | 'private';
+  truckTypes?: string[];
+  origin?: string | null;
+  dest?: string | null;
+  pickupAt?: string | null;
+  deliveryAt?: string | null;
+  intermediateStops?: number;
+  orderIds?: string[];
+  ordersCount?: number;
+  negotiable?: boolean;
+}
+
+export type FitValue = 'yes' | 'no' | 'partial';
+
+export interface MatchScore {
+  capacityFit: FitValue;
+  itineraryFit: FitValue;
+  timingFit: FitValue;
+}
+
+export interface PendingMatchStop {
+  id?: number | null;
+  type: string | null;
+  companyName: string | null;
+  locationName: string | null;
+  address: string | null;
+  fromDate: string | null;
+  toDate: string | null;
+  fromDateIso?: string | null;
+  toDateIso?: string | null;
+  date?: string | null;
+  timeStart?: string | null;
+  timeEnd?: string | null;
+  orderId: string | number | null;
+  productName?: string | null;
+  lat: number | null;
+  lng: number | null;
+  qty: number | null;
+  qtyUnit?: string | null;
+  weight: number | null;
+  weightUnit?: string | null;
+  products: Array<{
+    name: string | null;
+    qty: number | null;
+    qtyUnit: string | null;
+    weight: number | null;
+    weightUnit: string | null;
+  }>;
+}
+
+export interface PendingMatchSnapshot {
+  sid: string;
+  lane: string;
+  channel: 'public' | 'private';
+  customers: string[];
+  quotedPrice: number | null;
+  truckTypes: string[];
+  negotiable: boolean;
+  note: string | null;
+  stops: PendingMatchStop[];
+  partners: Array<{ id: number; partnerId?: number | null; name: string | null; status: string | null }>;
+  offers: Array<{
+    id: number;
+    price: number | string | null;
+    status: string;
+    bidableType?: string | null;
+    carrierName?: string | null;
+    name?: string | null;
+    initials?: string | null;
+    avatar?: string | null;
+    rating?: number | null;
+    ratingCount?: number;
+    vat?: string | null;
+    isPartner?: boolean;
+    role?: string | null;
+    respondedAt?: string | null;
+    kind?: string | null;
+    type?: string | null;
+  }>;
+}
+
+export interface PendingMatchDetail extends PendingShipment {
+  matchScore: MatchScore | null;
+  canViewMatchScore: boolean;
+  snapshot: PendingMatchSnapshot | null;
 }
 
 export type DrawerMode = 'pending' | 'new';
@@ -139,6 +226,8 @@ export interface BookingDraft {
   tripPref: TripType;
   occurrence: string;
   acceptStartingPrice: boolean;
+  /** When true, offer uses the load's quoted price as the starting suggestion */
+  useLoadQuotedPrice: boolean;
   newPickup: string;
   newPickupDt: string;
   newDelivery: string;

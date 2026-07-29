@@ -262,14 +262,21 @@ export const SearchTrucks: React.FC = () => {
         pending={m.pending}
         pendingLoading={m.pendingLoading}
         pendingFetchingMore={m.pendingFetchingMore}
-        pendingHasMore={m.pendingHasMore}
         pendingTotal={m.pendingTotal}
+        pendingPage={m.pendingPage}
+        pendingLastPage={m.pendingLastPage}
         pendingSearch={m.pendingSearch}
         onPendingSearchChange={m.setPendingSearchQuery}
-        onLoadMorePending={m.fetchMorePending}
+        onPendingPageChange={m.goToPendingPage}
         confirming={m.confirming}
         selectedPendingIdx={m.selectedPendingIdx}
         onSelectPending={m.setSelectedPendingIdx}
+        onChooseShipment={(idx) => void m.choosePendingShipment(idx)}
+        onCancelChoice={m.cancelPendingChoice}
+        matchDetail={m.matchDetail}
+        matchDetailLoading={m.matchDetailLoading}
+        canViewMatchScore={m.canViewMatchScore}
+        onMatchPremiumHint={m.showMatchPremiumHint}
         draft={m.draft}
         onDraftChange={m.updateDraft}
         onClose={m.closeDrawer}

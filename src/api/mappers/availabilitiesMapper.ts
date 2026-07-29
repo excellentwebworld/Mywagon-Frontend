@@ -1,10 +1,13 @@
 import type {
   ApiAvailabilityListItem,
   ApiPendingMatch,
+  ApiPendingMatchDetail,
   ListAvailabilitiesParams,
 } from '../types/availabilities';
 import type {
   AvailableTruck,
+  PendingMatchDetail,
+  PendingMatchSnapshot,
   PendingShipment,
   ProviderType,
   SearchCriteria,
@@ -14,10 +17,26 @@ import type {
   QuickFilterKey,
 } from '../../pages/SearchTrucks/types';
 import { formatMoney } from '../../pages/SearchTrucks/utils/money';
-import { formatUtcToDisplayDate, formatUtcToDisplayTime, parseUtcInstant } from '../../utils/timezone';
+import { formatUtcToDisplayDate, formatUtcToDisplayDateTime, formatUtcToDisplayTime, parseUtcInstant } from '../../utils/timezone';
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
+}
+
+function scheduleLabel(iso?: string | null, fallback?: string | null): string | null {
+  if (iso) {
+    const formatted = formatUtcToDisplayDateTime(iso);
+    if (formatted) return formatted;
+  }
+  const raw = (fallback || '').trim();
+  if (!raw) return null;
+  const match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if (match) {
+    const [, d, m, y, hh, mm] = match;
+    const date = `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+    return hh != null && mm != null ? `${date} ${hh.padStart(2, '0')}:${mm}` : date;
+  }
+  return raw;
 }
 
 function splitDateTime(iso: string | null): { date: string; time: string } {
@@ -160,14 +179,110 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
 }
 
 export function mapPendingMatch(item: ApiPendingMatch): PendingShipment {
+  const quoted = item.quoted_price ?? item.total;
   return {
     id: item.id,
     sid: item.load_id || `SHP-${item.id}`,
     lane: item.lane,
-    pickup: item.pickup_city || '—',
-    weight: item.total != null ? formatMoney(item.total, 'EUR') : '—',
+    pickup: item.origin || item.pickup_city || '—',
+    weight: quoted != null ? formatMoney(quoted, 'EUR') : '—',
     stops: item.stops_count ?? 0,
     exactMatch: item.exact_match,
+    customers: item.customers ?? [],
+    quotedPrice: quoted,
+    channel: item.channel === 'private' ? 'private' : 'public',
+    truckTypes: item.truck_types ?? [],
+    origin: item.origin ?? item.pickup_city,
+    dest: item.dest ?? item.dropoff_city,
+    pickupAt: scheduleLabel(item.pickup_at_iso, item.pickup_at),
+    deliveryAt: scheduleLabel(item.delivery_at_iso, item.delivery_at),
+    intermediateStops: item.intermediate_stops ?? Math.max((item.stops_count ?? 2) - 2, 0),
+    orderIds: item.order_ids ?? [],
+    ordersCount: item.orders_count ?? (item.order_ids?.length ?? 0),
+    negotiable: item.negotiable ?? item.price_type === 1,
+  };
+}
+
+export function mapPendingMatchDetail(item: ApiPendingMatchDetail): PendingMatchDetail {
+  const base = mapPendingMatch(item);
+  const snap = item.snapshot;
+  const snapshot: PendingMatchSnapshot | null = snap
+    ? {
+        sid: snap.load_id || base.sid,
+        lane: snap.lane || base.lane,
+        channel: snap.channel === 'private' ? 'private' : 'public',
+        customers: snap.customers ?? base.customers ?? [],
+        quotedPrice: snap.quoted_price ?? snap.total ?? base.quotedPrice ?? null,
+        truckTypes: snap.truck_types ?? base.truckTypes ?? [],
+        negotiable: Boolean(snap.negotiable),
+        note: snap.note ?? null,
+        stops: (snap.stops ?? []).map((s) => ({
+          id: s.id ?? null,
+          type: s.type,
+          companyName: s.company_name,
+          locationName: s.location_name,
+          address: s.address,
+          fromDate: scheduleLabel(s.from_date_iso, s.from_date),
+          toDate: scheduleLabel(s.to_date_iso, s.to_date),
+          fromDateIso: s.from_date_iso ?? null,
+          toDateIso: s.to_date_iso ?? null,
+          date: s.date ?? null,
+          timeStart: s.time_start ?? null,
+          timeEnd: s.time_end ?? null,
+          orderId: s.order_id,
+          productName: s.product_name ?? null,
+          lat: s.lat,
+          lng: s.lng,
+          qty: s.qty,
+          qtyUnit: s.qty_unit ?? null,
+          weight: s.weight,
+          weightUnit: s.weight_unit ?? null,
+          products: (s.products ?? []).map((p) => ({
+            name: p.name,
+            qty: p.qty,
+            qtyUnit: p.qty_unit,
+            weight: p.weight,
+            weightUnit: p.weight_unit,
+          })),
+        })),
+        partners: (snap.partners ?? []).map((p) => ({
+          id: p.id,
+          partnerId: p.partner_id,
+          name: p.name,
+          status: p.status,
+        })),
+        offers: (snap.offers ?? []).map((o) => ({
+          id: o.id,
+          price: o.price,
+          status: o.status,
+          bidableType: o.bidable_type,
+          carrierName: o.carrier_name ?? o.name ?? null,
+          name: o.name ?? o.carrier_name ?? null,
+          initials: o.initials ?? null,
+          avatar: o.avatar ?? null,
+          rating: o.rating ?? null,
+          ratingCount: o.rating_count ?? 0,
+          vat: o.vat ?? null,
+          isPartner: Boolean(o.is_partner),
+          role: o.role ?? null,
+          respondedAt: o.responded_at ?? null,
+          kind: o.kind ?? null,
+          type: o.type ?? 'bid',
+        })),
+      }
+    : null;
+
+  return {
+    ...base,
+    matchScore: item.match_score
+      ? {
+          capacityFit: item.match_score.capacity_fit,
+          itineraryFit: item.match_score.itinerary_fit,
+          timingFit: item.match_score.timing_fit,
+        }
+      : null,
+    canViewMatchScore: Boolean(item.can_view_match_score),
+    snapshot,
   };
 }
 

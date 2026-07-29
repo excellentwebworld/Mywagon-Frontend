@@ -20,6 +20,7 @@ import type {
   BookingDraft,
   DrawerMode,
   MapPickupBounds,
+  PendingMatchDetail,
   PendingShipment,
   QuickFilterKey,
   SearchCriteria,
@@ -138,6 +139,7 @@ function createDraft(truck: AvailableTruck): BookingDraft {
     tripPref: truck.trip,
     occurrence: truck.occurrences[0] ?? '',
     acceptStartingPrice: truck.price != null,
+    useLoadQuotedPrice: false,
     newPickup: truck.pickup,
     newPickupDt: `${truck.startDt} ${truck.startTm}`,
     newDelivery: truck.dest !== 'Any' ? truck.dest : '',
@@ -409,7 +411,11 @@ export function useSearchTrucks() {
   const [pendingPage, setPendingPage] = useState(1);
   const [pendingHasMore, setPendingHasMore] = useState(false);
   const [pendingTotal, setPendingTotal] = useState(0);
+  const [pendingLastPage, setPendingLastPage] = useState(1);
   const [pendingSearch, setPendingSearch] = useState('');
+  const [canViewMatchScore, setCanViewMatchScore] = useState(false);
+  const [matchDetail, setMatchDetail] = useState<PendingMatchDetail | null>(null);
+  const [matchDetailLoading, setMatchDetailLoading] = useState(false);
   const pendingTruckIdRef = useRef<string | null>(null);
   const pendingReqSeqRef = useRef(0);
   const [confirming, setConfirming] = useState(false);
@@ -829,9 +835,12 @@ export function useSearchTrucks() {
       if (append) setPendingFetchingMore(true);
       else {
         setPendingLoading(true);
-        setPending([]);
-        setSelectedPendingIdx(null);
-        setPendingPage(1);
+        // Keep previous rows visible while paging; clear only on fresh open/search (page 1).
+        if (page <= 1) {
+          setPending([]);
+          setSelectedPendingIdx(null);
+          setMatchDetail(null);
+        }
         setPendingHasMore(false);
       }
 
@@ -847,10 +856,13 @@ export function useSearchTrucks() {
           });
           const start = (page - 1) * PENDING_PAGE_SIZE;
           const slice = filtered.slice(start, start + PENDING_PAGE_SIZE);
-          setPending((prev) => (append ? [...prev, ...slice] : slice));
+          const lastPage = Math.max(1, Math.ceil(filtered.length / PENDING_PAGE_SIZE) || 1);
+          setPending(slice);
           setPendingPage(page);
           setPendingTotal(filtered.length);
-          setPendingHasMore(start + slice.length < filtered.length);
+          setPendingLastPage(lastPage);
+          setPendingHasMore(page < lastPage);
+          setCanViewMatchScore(true);
           return;
         }
 
@@ -864,12 +876,16 @@ export function useSearchTrucks() {
         });
         if (reqId !== pendingReqSeqRef.current || pendingTruckIdRef.current !== truck.id) return;
 
-        setPending((prev) => (append ? [...prev, ...result.items] : result.items));
+        // Pagination mode: always replace page contents (no infinite append).
+        setPending(result.items);
         setPendingPage(result.meta.current_page);
         setPendingTotal(result.meta.total);
-        setPendingHasMore(
-          result.meta.current_page < (result.meta.last_page ?? result.meta.current_page)
-        );
+        const lastPage = result.meta.last_page ?? result.meta.current_page;
+        setPendingLastPage(lastPage);
+        setPendingHasMore(result.meta.current_page < lastPage);
+        if (typeof result.meta.can_view_match_score === 'boolean') {
+          setCanViewMatchScore(result.meta.can_view_match_score);
+        }
       } catch (err) {
         if (reqId !== pendingReqSeqRef.current) return;
         if (!append) setPending([]);
@@ -893,6 +909,8 @@ export function useSearchTrucks() {
     (search: string) => {
       setPendingSearch(search);
       if (!selectedTruck) return;
+      setSelectedPendingIdx(null);
+      setMatchDetail(null);
       void loadPendingMatches(selectedTruck, {
         page: 1,
         append: false,
@@ -902,20 +920,39 @@ export function useSearchTrucks() {
     [loadPendingMatches, selectedTruck]
   );
 
+  const goToPendingPage = useCallback(
+    (page: number) => {
+      if (!selectedTruck) return;
+      const next = Math.max(1, Math.min(page, Math.max(pendingLastPage, 1)));
+      if (next === pendingPage && pending.length > 0 && !pendingLoading) return;
+      setSelectedPendingIdx(null);
+      setMatchDetail(null);
+      void loadPendingMatches(selectedTruck, {
+        page: next,
+        append: false,
+        search: pendingSearch,
+      });
+    },
+    [
+      loadPendingMatches,
+      pending.length,
+      pendingLastPage,
+      pendingLoading,
+      pendingPage,
+      pendingSearch,
+      selectedTruck,
+    ]
+  );
+
   const fetchMorePending = useCallback(() => {
     if (!selectedTruck || pendingLoading || pendingFetchingMore || !pendingHasMore) return;
-    void loadPendingMatches(selectedTruck, {
-      page: pendingPage + 1,
-      append: true,
-      search: pendingSearch,
-    });
+    goToPendingPage(pendingPage + 1);
   }, [
-    loadPendingMatches,
+    goToPendingPage,
     pendingFetchingMore,
     pendingHasMore,
     pendingLoading,
     pendingPage,
-    pendingSearch,
     selectedTruck,
   ]);
 
@@ -958,6 +995,7 @@ export function useSearchTrucks() {
       setDrawerStep(1);
       setDrawerMode('pending');
       setSelectedPendingIdx(null);
+      setMatchDetail(null);
       setPendingSearch('');
       const d = createDraft(truck);
       if (occurrence) d.occurrence = occurrence;
@@ -973,6 +1011,7 @@ export function useSearchTrucks() {
     setSelectedTruck(null);
     setDraft(null);
     setSelectedPendingIdx(null);
+    setMatchDetail(null);
     setDrawerStep(1);
     setPending([]);
     setPendingSearch('');
@@ -980,6 +1019,145 @@ export function useSearchTrucks() {
     setPendingTotal(0);
     pendingTruckIdRef.current = null;
   }, []);
+
+  const cancelPendingChoice = useCallback(() => {
+    setSelectedPendingIdx(null);
+    setMatchDetail(null);
+    setDrawerStep(1);
+  }, []);
+
+  const choosePendingShipment = useCallback(
+    async (idx: number) => {
+      if (!selectedTruck) return;
+      const shipment = pending[idx];
+      if (!shipment?.id) {
+        showToast(t('satSelectPendingFirst') || 'Select a pending shipment', 'error');
+        return;
+      }
+
+      // Toggle off when clicking the already-selected row.
+      if (selectedPendingIdx === idx) {
+        setSelectedPendingIdx(null);
+        setMatchDetail(null);
+        setMatchDetailLoading(false);
+        return;
+      }
+
+      setSelectedPendingIdx(idx);
+      setMatchDetailLoading(true);
+      setDrawerStep(1);
+
+      try {
+        if (USE_MOCK) {
+          await new Promise((r) => setTimeout(r, 250));
+          const detail: PendingMatchDetail = {
+            ...shipment,
+            matchScore: {
+              capacityFit: 'yes',
+              itineraryFit: 'partial',
+              timingFit: 'yes',
+            },
+            canViewMatchScore: true,
+            snapshot: {
+              sid: shipment.sid,
+              lane: shipment.lane,
+              channel: shipment.channel ?? 'public',
+              customers: shipment.customers ?? [],
+              quotedPrice: shipment.quotedPrice ?? null,
+              truckTypes: shipment.truckTypes ?? [],
+              negotiable: true,
+              note: null,
+              stops: [
+                {
+                  type: 'Pickup',
+                  companyName: shipment.customers?.[0] ?? null,
+                  locationName: shipment.pickup,
+                  address: shipment.pickup,
+                  fromDate: null,
+                  toDate: null,
+                  orderId: null,
+                  lat: null,
+                  lng: null,
+                  qty: null,
+                  weight: null,
+                  products: [],
+                },
+              ],
+              partners: [],
+              offers: [],
+            },
+          };
+          setMatchDetail(detail);
+          setCanViewMatchScore(true);
+          setDraft((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  offerPrice:
+                    selectedTruck.price != null
+                      ? String(selectedTruck.price)
+                      : shipment.quotedPrice != null
+                        ? String(shipment.quotedPrice)
+                        : prev.offerPrice,
+                }
+              : prev
+          );
+          return;
+        }
+
+        const detail = await availabilitiesService.pendingMatchDetail(
+          Number(selectedTruck.id),
+          shipment.id
+        );
+        setMatchDetail(detail);
+        setCanViewMatchScore(detail.canViewMatchScore);
+        setDraft((prev) => {
+          if (!prev) return prev;
+          if (selectedTruck.price != null && !selectedTruck.priceBlurred) {
+            return {
+              ...prev,
+              acceptStartingPrice: true,
+              useLoadQuotedPrice: false,
+              offerPrice: String(selectedTruck.price),
+            };
+          }
+          if (detail.snapshot?.quotedPrice != null) {
+            return {
+              ...prev,
+              acceptStartingPrice: false,
+              useLoadQuotedPrice: true,
+              offerPrice: String(detail.snapshot.quotedPrice),
+            };
+          }
+          return {
+            ...prev,
+            acceptStartingPrice: false,
+            useLoadQuotedPrice: false,
+            offerPrice: '',
+          };
+        });
+      } catch (err) {
+        setSelectedPendingIdx(null);
+        setMatchDetail(null);
+        const msg =
+          err instanceof ApiError
+            ? err.message
+            : t('satMatchLoadError') || 'Failed to load match details';
+        showToast(msg, 'error');
+      } finally {
+        setMatchDetailLoading(false);
+      }
+    },
+    [pending, selectedPendingIdx, selectedTruck, showToast, t]
+  );
+
+  const showMatchPremiumHint = useCallback(() => {
+    showToast(
+      t('satMatchPremiumHint') ||
+        'Premium Feature - upgrade to a higher plan to view',
+      'error'
+    );
+  }, [showToast, t]);
 
   const updateDraft = useCallback((patch: Partial<BookingDraft>) => {
     setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -995,6 +1173,7 @@ export function useSearchTrucks() {
       }
       setDrawerMode('pending');
       setSelectedPendingIdx(null);
+      setMatchDetail(null);
       setPendingSearch('');
       if (selectedTruck) {
         void loadPendingMatches(selectedTruck, {
@@ -1017,8 +1196,7 @@ export function useSearchTrucks() {
       const shipmentId = shipment.id;
       if (!shipmentId) throw new ApiError('Invalid shipment', 422);
 
-      const showPrice = selectedTruck.price != null && !selectedTruck.priceBlurred;
-      const offerRequired = !showPrice || !draft.acceptStartingPrice;
+      const offerRequired = !draft.acceptStartingPrice && !draft.useLoadQuotedPrice;
       const offerAmount = Number(String(draft.offerPrice).trim());
       if (offerRequired && (!Number.isFinite(offerAmount) || offerAmount <= 0)) {
         throw new ApiError(t('satOfferRequired') || 'Your offer is required.', 422);
@@ -1197,9 +1375,12 @@ export function useSearchTrucks() {
     pendingFetchingMore,
     pendingHasMore,
     pendingTotal,
+    pendingPage,
+    pendingLastPage,
     pendingSearch,
     setPendingSearchQuery,
     fetchMorePending,
+    goToPendingPage,
     confirming: confirming || placeBidMutation.isPending,
     creatingShipment: Boolean(creatingShipmentId),
     creatingShipmentId,
@@ -1260,6 +1441,12 @@ export function useSearchTrucks() {
     selectedTruck,
     selectedPendingIdx,
     setSelectedPendingIdx,
+    choosePendingShipment,
+    cancelPendingChoice,
+    matchDetail,
+    matchDetailLoading,
+    canViewMatchScore,
+    showMatchPremiumHint,
     draft,
     updateDraft,
     openDrawer,

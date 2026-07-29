@@ -1,11 +1,12 @@
 import { ApiError, apiGet, apiPost, AUTH_TOKEN_KEY } from '../client';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
-import { buildListParams, mapListItemToTruck, mapPendingMatch } from '../mappers/availabilitiesMapper';
+import { buildListParams, mapListItemToTruck, mapPendingMatch, mapPendingMatchDetail } from '../mappers/availabilitiesMapper';
 import type {
   ApiAvailabilityDetail,
   ApiAvailabilityListItem,
   ApiPendingMatch,
+  ApiPendingMatchDetail,
   ApiPlaceBidResult,
   ApiProceedResult,
   ListAvailabilitiesParams,
@@ -14,6 +15,7 @@ import type {
 import type { ApiListMeta } from '../types/addressBook';
 import type {
   AvailableTruck,
+  PendingMatchDetail,
   PendingShipment,
   QuickFilterKey,
   SearchCriteria,
@@ -163,7 +165,10 @@ export const availabilitiesService = {
       search?: string;
       filter?: 'all' | 'exact' | 'multi';
     } = {}
-  ): Promise<{ items: PendingShipment[]; meta: ApiListMeta & { counts?: Record<string, number> } }> {
+  ): Promise<{
+    items: PendingShipment[];
+    meta: ApiListMeta & { counts?: Record<string, number>; can_view_match_score?: boolean };
+  }> {
     const res = await apiGet<ApiPendingMatch[]>(`/availabilities/${id}/pending-matches`, {
       page: input.page ?? 1,
       per_page: input.perPage ?? 10,
@@ -180,6 +185,16 @@ export const availabilitiesService = {
       items: (res.data ?? []).map(mapPendingMatch),
       meta,
     };
+  },
+
+  async pendingMatchDetail(
+    availabilityId: number,
+    shipmentId: number
+  ): Promise<PendingMatchDetail> {
+    const res = await apiGet<ApiPendingMatchDetail>(
+      `/availabilities/${availabilityId}/pending-matches/${shipmentId}`
+    );
+    return mapPendingMatchDetail(res.data);
   },
 
   async placeBid(

@@ -59,14 +59,109 @@ export interface ApiPendingMatch {
   load_id: string | null;
   status: string;
   total: number | null;
+  quoted_price?: number | null;
   price_type: number | null;
+  negotiable?: boolean;
+  channel?: 'public' | 'private' | string | null;
+  customers?: string[];
+  order_ids?: string[];
+  orders_count?: number;
+  origin?: string | null;
+  dest?: string | null;
   pickup_city: string | null;
   dropoff_city: string | null;
   lane: string;
+  pickup_at?: string | null;
+  delivery_at?: string | null;
+  pickup_at_iso?: string | null;
+  delivery_at_iso?: string | null;
   stops_count: number;
+  intermediate_stops?: number;
   from_date: string | null;
   truck_types: string[];
   exact_match?: boolean;
+}
+
+export type ApiFitValue = 'yes' | 'no' | 'partial';
+
+export interface ApiMatchScore {
+  capacity_fit: ApiFitValue;
+  itinerary_fit: ApiFitValue;
+  timing_fit: ApiFitValue;
+}
+
+export interface ApiPendingMatchStop {
+  id?: number | null;
+  type: string | null;
+  company_name: string | null;
+  location_name: string | null;
+  address: string | null;
+  from_date: string | null;
+  to_date: string | null;
+  from_date_iso?: string | null;
+  to_date_iso?: string | null;
+  date?: string | null;
+  time_start?: string | null;
+  time_end?: string | null;
+  order_id: string | number | null;
+  product_name?: string | null;
+  lat: number | null;
+  lng: number | null;
+  qty: number | null;
+  qty_unit?: string | null;
+  weight: number | null;
+  weight_unit?: string | null;
+  products?: Array<{
+    name: string | null;
+    qty: number | null;
+    qty_unit: string | null;
+    weight: number | null;
+    weight_unit: string | null;
+  }>;
+}
+
+export interface ApiPendingMatchSnapshot {
+  load_id?: string | null;
+  lane?: string;
+  channel?: string | null;
+  customers?: string[];
+  quoted_price?: number | null;
+  total?: number | null;
+  truck_types?: string[];
+  negotiable?: boolean;
+  note?: string | null;
+  stops?: ApiPendingMatchStop[];
+  partners?: Array<{
+    id: number;
+    partner_id?: number | null;
+    name: string | null;
+    status: string | null;
+  }>;
+  offers?: Array<{
+    id: number;
+    price: number | string | null;
+    status: string;
+    bidable_type?: string | null;
+    carrier_name?: string | null;
+    name?: string | null;
+    initials?: string | null;
+    avatar?: string | null;
+    rating?: number | null;
+    rating_count?: number | null;
+    vat?: string | null;
+    is_partner?: boolean;
+    role?: string | null;
+    responded_at?: string | null;
+    kind?: string | null;
+    type?: string | null;
+    is_availability_bid?: boolean;
+  }>;
+}
+
+export interface ApiPendingMatchDetail extends ApiPendingMatch {
+  match_score: ApiMatchScore | null;
+  can_view_match_score: boolean;
+  snapshot: ApiPendingMatchSnapshot | null;
 }
 
 export interface ApiAvailabilityPrefill {
