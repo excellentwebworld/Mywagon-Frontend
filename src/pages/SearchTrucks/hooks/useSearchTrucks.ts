@@ -92,10 +92,10 @@ function criteriaSearchSignature(c: SearchCriteria): string {
     vehicleType: c.vehicleType.trim(),
     pickupLat: c.pickupLat,
     pickupLng: c.pickupLng,
-    pickupRadius: c.pickupRadius ?? 50,
+    pickupRadius: c.pickupRadius ?? 100,
     dropoffLat: c.dropoffLat,
     dropoffLng: c.dropoffLng,
-    dropoffRadius: c.dropoffRadius ?? 50,
+    dropoffRadius: c.dropoffRadius ?? 100,
     truckTypeIds: c.truckTypeIds,
     vehicleSpecs: c.vehicleSpecs,
     tripType: c.tripType,
@@ -1056,6 +1056,17 @@ export function useSearchTrucks() {
               capacityFit: 'yes',
               itineraryFit: 'partial',
               timingFit: 'yes',
+              details: {
+                capacity: {
+                  reason: 'Load qty (12.00) ≤ truck capacity (24.00).',
+                },
+                itinerary: {
+                  reason: 'Pickup within radius; dropoff outside radius (partial).',
+                },
+                timing: {
+                  reason: 'Pickup falls within truck window (±6h).',
+                },
+              },
             },
             canViewMatchScore: true,
             snapshot: {

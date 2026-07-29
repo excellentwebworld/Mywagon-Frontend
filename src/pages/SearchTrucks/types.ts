@@ -145,10 +145,45 @@ export interface PendingShipment {
 
 export type FitValue = 'yes' | 'no' | 'partial';
 
+export interface MatchScoreDetails {
+  capacity?: {
+    loadQty?: number;
+    loadWeight?: number;
+    availCapacity?: number | null;
+    comparedAs?: string;
+    comparedValue?: number;
+    reason?: string;
+  };
+  itinerary?: {
+    hasEnd?: boolean;
+    pickupDistanceKm?: number | null;
+    pickupRadiusKm?: number;
+    pickupOk?: boolean;
+    pickupCoordsMissing?: boolean;
+    dropoffDistanceKm?: number | null;
+    dropoffRadiusKm?: number | null;
+    dropoffOk?: boolean | null;
+    reason?: string;
+  };
+  timing?: {
+    hasEnd?: boolean;
+    pickupAt?: string | null;
+    deliveryAt?: string | null;
+    windowStart?: string | null;
+    windowEnd?: string | null;
+    windowLabel?: string;
+    toleranceHours?: number;
+    pickupOk?: boolean;
+    deliveryOk?: boolean | null;
+    reason?: string;
+  };
+}
+
 export interface MatchScore {
   capacityFit: FitValue;
   itineraryFit: FitValue;
   timingFit: FitValue;
+  details?: MatchScoreDetails | null;
 }
 
 export interface PendingMatchStop {

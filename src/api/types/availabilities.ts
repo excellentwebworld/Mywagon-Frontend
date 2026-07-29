@@ -88,6 +88,11 @@ export interface ApiMatchScore {
   capacity_fit: ApiFitValue;
   itinerary_fit: ApiFitValue;
   timing_fit: ApiFitValue;
+  details?: {
+    capacity?: Record<string, unknown>;
+    itinerary?: Record<string, unknown>;
+    timing?: Record<string, unknown>;
+  } | null;
 }
 
 export interface ApiPendingMatchStop {

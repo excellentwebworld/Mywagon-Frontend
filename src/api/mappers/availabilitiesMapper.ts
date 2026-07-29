@@ -279,6 +279,72 @@ export function mapPendingMatchDetail(item: ApiPendingMatchDetail): PendingMatch
           capacityFit: item.match_score.capacity_fit,
           itineraryFit: item.match_score.itinerary_fit,
           timingFit: item.match_score.timing_fit,
+          details: item.match_score.details
+            ? {
+                capacity: item.match_score.details.capacity
+                  ? {
+                      loadQty: Number(item.match_score.details.capacity.load_qty ?? 0),
+                      loadWeight: Number(item.match_score.details.capacity.load_weight ?? 0),
+                      availCapacity:
+                        item.match_score.details.capacity.avail_capacity == null
+                          ? null
+                          : Number(item.match_score.details.capacity.avail_capacity),
+                      comparedAs: String(item.match_score.details.capacity.compared_as ?? ''),
+                      comparedValue:
+                        item.match_score.details.capacity.compared_value == null
+                          ? undefined
+                          : Number(item.match_score.details.capacity.compared_value),
+                      reason: String(item.match_score.details.capacity.reason ?? ''),
+                    }
+                  : undefined,
+                itinerary: item.match_score.details.itinerary
+                  ? {
+                      hasEnd: Boolean(item.match_score.details.itinerary.has_end),
+                      pickupDistanceKm:
+                        item.match_score.details.itinerary.pickup_distance_km == null
+                          ? null
+                          : Number(item.match_score.details.itinerary.pickup_distance_km),
+                      pickupRadiusKm: Number(
+                        item.match_score.details.itinerary.pickup_radius_km ?? 50
+                      ),
+                      pickupOk: Boolean(item.match_score.details.itinerary.pickup_ok),
+                      pickupCoordsMissing: Boolean(
+                        item.match_score.details.itinerary.pickup_coords_missing
+                      ),
+                      dropoffDistanceKm:
+                        item.match_score.details.itinerary.dropoff_distance_km == null
+                          ? null
+                          : Number(item.match_score.details.itinerary.dropoff_distance_km),
+                      dropoffRadiusKm:
+                        item.match_score.details.itinerary.dropoff_radius_km == null
+                          ? null
+                          : Number(item.match_score.details.itinerary.dropoff_radius_km),
+                      dropoffOk:
+                        item.match_score.details.itinerary.dropoff_ok == null
+                          ? null
+                          : Boolean(item.match_score.details.itinerary.dropoff_ok),
+                      reason: String(item.match_score.details.itinerary.reason ?? ''),
+                    }
+                  : undefined,
+                timing: item.match_score.details.timing
+                  ? {
+                      hasEnd: Boolean(item.match_score.details.timing.has_end),
+                      pickupAt: (item.match_score.details.timing.pickup_at as string) ?? null,
+                      deliveryAt: (item.match_score.details.timing.delivery_at as string) ?? null,
+                      windowStart: (item.match_score.details.timing.window_start as string) ?? null,
+                      windowEnd: (item.match_score.details.timing.window_end as string) ?? null,
+                      windowLabel: String(item.match_score.details.timing.window_label ?? ''),
+                      toleranceHours: Number(item.match_score.details.timing.tolerance_hours ?? 6),
+                      pickupOk: Boolean(item.match_score.details.timing.pickup_ok),
+                      deliveryOk:
+                        item.match_score.details.timing.delivery_ok == null
+                          ? null
+                          : Boolean(item.match_score.details.timing.delivery_ok),
+                      reason: String(item.match_score.details.timing.reason ?? ''),
+                    }
+                  : undefined,
+              }
+            : null,
         }
       : null,
     canViewMatchScore: Boolean(item.can_view_match_score),

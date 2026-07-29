@@ -363,10 +363,25 @@ function MatchScorePanel({
   onUpgrade: () => void;
   t: (key: string) => string;
 }) {
-  const items: Array<{ key: string; label: string; value?: FitValue }> = [
-    { key: 'capacity', label: t('satCapacityFit'), value: score?.capacityFit },
-    { key: 'itinerary', label: t('satItineraryFit') || t('satTripPreference'), value: score?.itineraryFit },
-    { key: 'timing', label: t('satTimingFit'), value: score?.timingFit },
+  const items: Array<{ key: 'capacity' | 'itinerary' | 'timing'; label: string; value?: FitValue; reason?: string }> = [
+    {
+      key: 'capacity',
+      label: t('satCapacityFit'),
+      value: score?.capacityFit,
+      reason: score?.details?.capacity?.reason,
+    },
+    {
+      key: 'itinerary',
+      label: t('satItineraryFit') || t('satTripPreference'),
+      value: score?.itineraryFit,
+      reason: score?.details?.itinerary?.reason,
+    },
+    {
+      key: 'timing',
+      label: t('satTimingFit'),
+      value: score?.timingFit,
+      reason: score?.details?.timing?.reason,
+    },
   ];
 
   return (
@@ -403,6 +418,9 @@ function MatchScorePanel({
                   ? `${fitLabel(item.value, t)} ${fitIcon(item.value)}`
                   : '••••'}
               </div>
+              {canView && score && item.reason ? (
+                <div className="sat-match-detail">{item.reason}</div>
+              ) : null}
             </div>
           ))}
         </div>
@@ -765,43 +783,42 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
         aria-labelledby="sat-drawer-title"
       >
         <div className="sat-drawer-h sat-bid-header">
-          <div>
+          <div className="sat-bid-header-title">
             <p className="sat-drawer-kicker">{t('satBook')}</p>
             <h3 id="sat-drawer-title">{t('satBidWizardTitle') || 'Bid with existing shipment'}</h3>
           </div>
-          <button type="button" className="sat-drawer-close" onClick={onClose} aria-label={t('close')}>
-            ✕
-          </button>
-        </div>
 
-        <nav className="sat-stepper" aria-label={t('satBook')}>
-          {(
-            [
-              { n: 1, label: t('satStepChoose') },
-              { n: 2, label: t('satStepReviewBid') || t('satStepTerms') },
-            ] as const
-          ).map((s, i, arr) => {
-            const done = step > s.n;
-            const act = step === s.n;
-            return (
-              <React.Fragment key={s.n}>
-                <button
-                  type="button"
-                  className={`sat-step ${act ? 'act' : ''} ${done ? 'done' : ''}`}
-                  disabled={!done && !act}
-                  onClick={() => done && onStepChange(s.n)}
-                  aria-current={act ? 'step' : undefined}
-                >
-                  <span className="sat-step-num">{done ? '✓' : s.n}</span>
-                  <span className="sat-step-label">{s.label}</span>
-                </button>
-                {i < arr.length - 1 ? (
-                  <div className={`sat-step-line ${step > s.n ? 'done' : ''} ${step === s.n ? 'act' : ''}`} />
-                ) : null}
-              </React.Fragment>
-            );
-          })}
-        </nav>
+          <div className="sat-bid-header-actions">
+            <nav className="sat-stepper sat-stepper--header" aria-label={t('satBook')}>
+              {(
+                [
+                  { n: 1, label: t('satStepChoose') },
+                  { n: 2, label: t('satStepReviewBid') || t('satStepTerms') },
+                ] as const
+              ).map((s) => {
+                const done = step > s.n;
+                const act = step === s.n;
+                return (
+                  <button
+                    key={s.n}
+                    type="button"
+                    className={`sat-step ${act ? 'act' : ''} ${done ? 'done' : ''}`}
+                    disabled={!done && !act}
+                    onClick={() => done && onStepChange(s.n)}
+                    aria-current={act ? 'step' : undefined}
+                  >
+                    <span className="sat-step-num">{done ? '✓' : s.n}</span>
+                    <span className="sat-step-label">{s.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            <button type="button" className="sat-drawer-close" onClick={onClose} aria-label={t('close')}>
+              ✕
+            </button>
+          </div>
+        </div>
 
         <div className="sat-bid-split">
           <TruckContextPanel truck={truck} t={t} />

@@ -58,11 +58,11 @@ export const SearchTrucks: React.FC = () => {
       pickupCity: m.criteria.pickupCity ?? '',
       pickupLat: m.criteria.pickupLat ?? null,
       pickupLng: m.criteria.pickupLng ?? null,
-      pickupRadius: m.criteria.pickupRadius ?? 50,
+      pickupRadius: m.criteria.pickupRadius ?? 100,
       dropoffCity: m.criteria.dropoffCity ?? '',
       dropoffLat: m.criteria.dropoffLat ?? null,
       dropoffLng: m.criteria.dropoffLng ?? null,
-      dropoffRadius: m.criteria.dropoffRadius ?? 50,
+      dropoffRadius: m.criteria.dropoffRadius ?? 100,
       stopsMulti: m.criteria.stopsMulti ?? stops.stopsMulti,
       stopsDirect: m.criteria.stopsDirect ?? stops.stopsDirect,
       providerNames: m.criteria.providerNames ?? [],
@@ -79,8 +79,9 @@ export const SearchTrucks: React.FC = () => {
     if (ac.availableFromStart?.trim()) n += 1;
     if (ac.availableFromEnd?.trim()) n += 1;
     if ((ac.tripType ?? 'any') !== 'any') n += 1;
-    if ((ac.pickupRadius ?? 50) !== 50) n += 1;
-    if ((ac.dropoffRadius ?? 50) !== 50) n += 1;
+    // Default radii match emptyCriteria() (100). Do not count baseline values as active.
+    if ((ac.pickupRadius ?? 100) !== 100) n += 1;
+    if ((ac.dropoffRadius ?? 100) !== 100) n += 1;
     if (ac.providerNames?.length) n += 1;
     if (ac.minPrice?.trim()) n += 1;
     if (ac.maxPrice?.trim()) n += 1;
