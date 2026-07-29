@@ -179,12 +179,78 @@ function laneMidLabel(p: PendingShipment, t: (key: string, opts?: Record<string,
   );
 }
 
-function PendingTableSkeleton({ rows = 5 }: { rows?: number }) {
+function PendingTableSkeleton({
+  rows = 6,
+  t,
+}: {
+  rows?: number;
+  t: (key: string) => string;
+}) {
   return (
-    <div className="sat-bid-table-skel" role="status" aria-busy="true">
-      {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="sat-bid-table-skel-row" aria-hidden />
-      ))}
+    <div className="sat-bid-table-skel" role="status" aria-busy="true" aria-label={t('satLoadingPending') || 'Loading'}>
+      <table className="sat-bid-table sat-bid-table--skel">
+        <thead>
+          <tr>
+            <th>{t('shipmentIdCol') || 'Shipment ID'}</th>
+            <th>{t('laneCol') || 'Lane'}</th>
+            <th>{t('customerCol') || 'Customer'}</th>
+            <th>{t('quotedPriceCol') || 'Quoted Price'}</th>
+            <th>{t('satVehiclesCol') || 'Vehicles'}</th>
+            <th className="sat-bid-col-choose">{t('satChooseShipment') || 'Choose'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: rows }, (_, i) => (
+            <tr key={i} aria-hidden>
+              <td>
+                <div className="sat-bid-skel-line sat-bid-skel-line--sid" />
+                <div className="sat-bid-skel-line sat-bid-skel-line--sub" />
+              </td>
+              <td>
+                <div className="sat-bid-skel-lane">
+                  <div className="sat-bid-skel-line sat-bid-skel-line--lane" />
+                  <div className="sat-bid-skel-line sat-bid-skel-line--mid" />
+                  <div className="sat-bid-skel-line sat-bid-skel-line--lane" />
+                </div>
+              </td>
+              <td>
+                <div className="sat-bid-skel-pills">
+                  <span className="sat-bid-skel-pill" />
+                  <span className="sat-bid-skel-pill sat-bid-skel-pill--sm" />
+                </div>
+              </td>
+              <td>
+                <div className="sat-bid-skel-price">
+                  <div className="sat-bid-skel-line sat-bid-skel-line--price" />
+                  <span className="sat-bid-skel-chip" />
+                </div>
+              </td>
+              <td>
+                <span className="sat-bid-skel-chip sat-bid-skel-chip--wide" />
+              </td>
+              <td className="sat-bid-col-choose">
+                <span className="sat-bid-skel-btn" />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MatchScoreSkeleton({ t }: { t: (key: string) => string }) {
+  return (
+    <div className="sat-pend-match sat-pend-match--skel" role="status" aria-busy="true">
+      <h4>{t('satMatchScore')}</h4>
+      <div className="sat-match-grid" aria-hidden>
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="sat-match-item sat-match-item--skel">
+            <div className="sat-bid-skel-line sat-bid-skel-line--match-label" />
+            <div className="sat-bid-skel-line sat-bid-skel-line--match-val" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -774,7 +840,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                       aria-busy={pendingLoading || pendingFetchingMore || undefined}
                     >
                       {pendingLoading ? (
-                        <PendingTableSkeleton rows={6} />
+                        <PendingTableSkeleton rows={6} t={t} />
                       ) : pending.length === 0 ? (
                         <div className="sat-empty sat-pend-empty">
                           {pendingTotal === 0 && !pendingSearch
@@ -924,13 +990,17 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                   </div>
 
                   {selectedPending && !pendingLoading ? (
-                    <MatchScorePanel
-                      score={matchDetail?.matchScore ?? null}
-                      canView={canViewMatchScore || Boolean(matchDetail?.canViewMatchScore)}
-                      loading={matchDetailLoading}
-                      onUpgrade={openMatchPremiumDialog}
-                      t={t}
-                    />
+                    matchDetailLoading ? (
+                      <MatchScoreSkeleton t={t} />
+                    ) : (
+                      <MatchScorePanel
+                        score={matchDetail?.matchScore ?? null}
+                        canView={canViewMatchScore || Boolean(matchDetail?.canViewMatchScore)}
+                        loading={false}
+                        onUpgrade={openMatchPremiumDialog}
+                        t={t}
+                      />
+                    )
                   ) : null}
                 </div>
               )}
