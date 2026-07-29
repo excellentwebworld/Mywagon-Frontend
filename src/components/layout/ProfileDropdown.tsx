@@ -16,7 +16,7 @@ import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
 import { LANGUAGES } from '../../constants/panel';
 import { THEMES, type ThemeKey } from '../../utils/themes';
-import { userAvatarUrl } from '../../utils/resolveMediaUrl';
+import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 
 export function ProfileDropdown() {
   const { t, i18n, lang } = useTranslation();
@@ -39,7 +39,8 @@ export function ProfileDropdown() {
     LANGUAGES.find((l) => l.code === (i18n.language || lang)) || LANGUAGES[0];
 
   const displayName = `${user.firstName} ${user.lastName}`.trim();
-  const avatarUrl = userAvatarUrl(user.avatarUrl, user.firstName, user.lastName);
+  // Match reference: gradient initials; only show photo when API provided one
+  const photoUrl = user.avatarUrl ? resolveMediaUrl(user.avatarUrl) : null;
   const [avatarImgError, setAvatarImgError] = useState(false);
 
   const changeLang = (code: string, dir: string) => {
@@ -86,9 +87,9 @@ export function ProfileDropdown() {
               fontSize: 11,
             }}
           >
-            {avatarUrl && !avatarImgError ? (
+            {photoUrl && !avatarImgError ? (
               <img
-                src={avatarUrl}
+                src={photoUrl}
                 alt=""
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 onError={() => setAvatarImgError(true)}
@@ -117,8 +118,8 @@ export function ProfileDropdown() {
                     fontSize: 13,
                   }}
                 >
-                  {avatarUrl && !avatarImgError ? (
-                    <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {photoUrl && !avatarImgError ? (
+                    <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     user.initials
                   )}

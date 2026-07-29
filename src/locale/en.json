@@ -2214,7 +2214,8 @@
     "billing": "Billing",
     "subscription": "Subscription",
     "support": "Support",
-    "settings": "Settings"
+    "settings": "Settings",
+    "operations": "Operations"
   },
   "trust": {
     "title": "Security & Trust",

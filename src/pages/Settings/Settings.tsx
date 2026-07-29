@@ -10,6 +10,7 @@ import {
   User, Building2, Users, Lock, CreditCard, Star,
   Zap, ClipboardList, Bell, Palette, Clock, Sun, Moon,
   Bot, Globe, FileText, ExternalLink, ShieldCheck,
+  PanelLeft, PanelTop,
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
@@ -60,7 +61,7 @@ const BUILT = new Set([
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
-  const { T, theme, isDark, setTheme, toggleDark } = useTheme();
+  const { T, theme, isDark, setTheme, toggleDark, navMode, setNavMode } = useTheme();
   const { setLang } = useApp();
   const navigate = useNavigate();
 
@@ -215,6 +216,43 @@ export default function Settings() {
         {activeSection === 'appearance' && (
           <div>
             <h2 className="font-bold mb-6" style={{ fontSize: 18, color: T.t1 }}>{t('settings.appearance')}</h2>
+
+            <div className="mb-8">
+              <div className="font-semibold mb-3" style={{ fontSize: 13, color: T.t2 }}>
+                {t('settings.navigationMode') || 'Navigation mode'}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 max-w-md">
+                {(
+                  [
+                    { key: 'sidebar' as const, icon: PanelLeft, labelKey: 'settings.sidebarMode', descKey: 'settings.sidebarDesc', fallback: 'Sidebar', descFallback: 'Classic left sidebar navigation' },
+                    { key: 'top' as const, icon: PanelTop, labelKey: 'settings.topMenuMode', descKey: 'settings.topMenuDesc', fallback: 'Top menu', descFallback: 'Horizontal top bar with dropdown menus' },
+                  ]
+                ).map((mode) => (
+                  <button
+                    type="button"
+                    key={mode.key}
+                    onClick={() => setNavMode(mode.key)}
+                    className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-150 min-w-0"
+                    style={{
+                      border: navMode === mode.key ? `2px solid ${T.ac}` : `1px solid ${T.bd}`,
+                      background: navMode === mode.key ? T.al : T.sf,
+                      color: navMode === mode.key ? T.ac : T.t1,
+                    }}
+                  >
+                    <mode.icon size={20} className="shrink-0" />
+                    <div className="text-left min-w-0">
+                      <div className="font-semibold" style={{ fontSize: 13 }}>
+                        {t(mode.labelKey) || mode.fallback}
+                      </div>
+                      <div style={{ fontSize: 11, color: T.t3 }}>
+                        {t(mode.descKey) || mode.descFallback}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="mb-8">
               <div className="font-semibold mb-3" style={{ fontSize: 13, color: T.t2 }}>{t('settings.selectTheme')}</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-xl">

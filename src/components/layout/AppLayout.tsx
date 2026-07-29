@@ -3,7 +3,9 @@ import { Outlet } from 'react-router-dom';
 import { AlertCircle, CheckCircle, Info, X } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { TopNav } from './TopNav';
 import { useApp } from '../../context/AppContext';
+import { useTheme } from '../../hooks/useTheme';
 import { DESKTOP_SIDEBAR_QUERY, useMediaQuery } from '../../hooks/useMediaQuery';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
@@ -27,6 +29,8 @@ export const AppLayout: React.FC = () => {
   const isDesktop = useMediaQuery(DESKTOP_SIDEBAR_QUERY);
   const isSidebarCollapsed = sidebarCollapsed && isDesktop;
   const { toast, hideToast } = useApp();
+  const { navMode } = useTheme();
+  const isSideMode = navMode !== 'top';
 
   useEffect(() => {
     try {
@@ -57,28 +61,36 @@ export const AppLayout: React.FC = () => {
   const ToastIcon = TOAST_ICON[toast.type] || Info;
 
   return (
-    <div className="app-layout">
-      <Sidebar
-        collapsed={isSidebarCollapsed}
-        onToggleCollapse={toggleSidebarCollapse}
-        mobileOpen={mobileMenuOpen}
-        onCloseMobile={() => setMobileMenuOpen(false)}
-      />
+    <div className={`app-layout${isSideMode ? '' : ' app-layout--top-nav'}`}>
+      {isSideMode && (
+        <Sidebar
+          collapsed={isSidebarCollapsed}
+          onToggleCollapse={toggleSidebarCollapse}
+          mobileOpen={mobileMenuOpen}
+          onCloseMobile={() => setMobileMenuOpen(false)}
+        />
+      )}
 
-      <div className={`main-content${isSidebarCollapsed ? ' expanded' : ''}`}>
+      <div
+        className={`main-content${isSidebarCollapsed && isSideMode ? ' expanded' : ''}${
+          !isSideMode ? ' main-content--top-nav' : ''
+        }`}
+      >
         <Header
           onToggleMobileMenu={() => setMobileMenuOpen(true)}
           sidebarCollapsed={isSidebarCollapsed}
           onToggleSidebarCollapse={toggleSidebarCollapse}
           isDesktop={isDesktop}
+          navMode={isSideMode ? 'sidebar' : 'top'}
         />
+
+        {!isSideMode && <TopNav />}
 
         <main className="page-body">
           <Outlet />
         </main>
       </div>
 
-      {/* Global Toast Notification — dismissible (matches Web Panel React toast UX) */}
       {toast.show && (
         <div className="toast-container" role="status" aria-live="polite">
           <div className={`toast ${toast.type} show`}>

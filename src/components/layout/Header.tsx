@@ -10,6 +10,7 @@ interface HeaderProps {
   sidebarCollapsed: boolean;
   onToggleSidebarCollapse: () => void;
   isDesktop: boolean;
+  navMode?: 'sidebar' | 'top';
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
   sidebarCollapsed,
   onToggleSidebarCollapse,
   isDesktop,
+  navMode = 'sidebar',
 }) => {
   const { setLang, showToast } = useApp();
   const { t, lang } = useTranslation();
@@ -27,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
   const [activePeriod, setActivePeriod] = useState<'today' | '7d' | '30d' | 'quarter' | 'ytd'>('today');
 
+  const isSideMode = navMode !== 'top';
   const isDashboard = location.pathname.startsWith('/dashboard');
   const isMaster = ['/address-book', '/products', '/partners', '/erp-orders'].includes(location.pathname);
 
@@ -56,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="topbar" role="banner">
-      {isDesktop && (
+      {isDesktop && isSideMode && (
         <button
           type="button"
           className="btn btn-ghost btn-icon sidebar-toggle-btn"
@@ -81,7 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
       )}
 
-      {!isDesktop && (
+      {!isDesktop && isSideMode && (
         <button
           id="mobileMenuBtn"
           aria-label="Open navigation"

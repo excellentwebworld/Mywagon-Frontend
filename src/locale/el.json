@@ -2214,7 +2214,8 @@
     "billing": "Χρεώσεις",
     "subscription": "Συνδρομή",
     "support": "Υποστήριξη",
-    "settings": "Ρυθμίσεις"
+    "settings": "Ρυθμίσεις",
+    "operations": "Λειτουργίες"
   },
   "trust": {
     "title": "Ασφάλεια & Εμπιστοσύνη",
