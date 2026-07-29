@@ -2364,6 +2364,24 @@
   font-size: 12px;
   color: var(--text-secondary);
 }
+.sat-match-premium-hint--btn {
+  display: inline-block;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.sat-match-premium-hint--btn:hover {
+  color: var(--accent-hover, var(--accent));
+}
+.sat-match-premium-dialog {
+  z-index: 1400;
+}
 .sat-match-loading {
   font-size: 12px;
   color: var(--text-secondary);

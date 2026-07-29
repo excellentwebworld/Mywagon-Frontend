@@ -1151,14 +1151,6 @@ export function useSearchTrucks() {
     [pending, selectedPendingIdx, selectedTruck, showToast, t]
   );
 
-  const showMatchPremiumHint = useCallback(() => {
-    showToast(
-      t('satMatchPremiumHint') ||
-        'Premium Feature - upgrade to a higher plan to view',
-      'error'
-    );
-  }, [showToast, t]);
-
   const updateDraft = useCallback((patch: Partial<BookingDraft>) => {
     setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
   }, []);
@@ -1446,7 +1438,6 @@ export function useSearchTrucks() {
     matchDetail,
     matchDetailLoading,
     canViewMatchScore,
-    showMatchPremiumHint,
     draft,
     updateDraft,
     openDrawer,

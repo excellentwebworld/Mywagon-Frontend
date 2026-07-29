@@ -1803,6 +1803,7 @@
   "satFitNo": "NO",
   "satFitPartial": "PARTIAL",
   "satMatchPremiumHint": "Premium Feature - upgrade to a higher plan to view",
+  "satMatchPremiumTitle": "Premium Feature",
   "satMatchLoading": "Calculating match…",
   "satMatchLoadError": "Failed to load match details",
   "satVehiclesCol": "Vehicles",

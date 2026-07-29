@@ -320,7 +320,10 @@ function MatchScorePanel({
           onKeyDown={
             !canView
               ? (e) => {
-                  if (e.key === 'Enter' || e.key === ' ') onUpgrade();
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onUpgrade();
+                  }
                 }
               : undefined
           }
@@ -339,8 +342,69 @@ function MatchScorePanel({
         </div>
       )}
       {!canView && !loading ? (
-        <p className="sat-match-premium-hint">{t('satMatchPremiumHint')}</p>
+        <button
+          type="button"
+          className="sat-match-premium-hint sat-match-premium-hint--btn"
+          onClick={onUpgrade}
+        >
+          {t('satMatchPremiumHint')}
+        </button>
       ) : null}
+    </div>
+  );
+}
+
+function MatchScorePremiumDialog({
+  open,
+  upgradeUrl,
+  onClose,
+  t,
+}: {
+  open: boolean;
+  upgradeUrl?: string;
+  onClose: () => void;
+  t: (key: string) => string;
+}) {
+  if (!open) return null;
+
+  return (
+    <div
+      className="sat-gate-modal sat-match-premium-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="sat-match-premium-title"
+    >
+      <div
+        className="sat-gate-modal__backdrop"
+        onClick={onClose}
+        role="presentation"
+      />
+      <div className="sat-gate-modal__panel">
+        <div className="sat-gate-modal__body">
+          <h2 id="sat-match-premium-title" className="sat-gate-modal__title">
+            {t('satMatchPremiumTitle') || 'Premium Feature'}
+          </h2>
+          <p className="sat-gate-modal__copy">
+            {t('satMatchPremiumHint') ||
+              'Premium Feature - upgrade to a higher plan to view'}
+          </p>
+        </div>
+        <div className="sat-gate-modal__actions">
+          <button type="button" className="sat-btn" onClick={onClose}>
+            {t('close') || t('satRemindLater') || 'Close'}
+          </button>
+          {upgradeUrl ? (
+            <a
+              className="sat-btn sat-btn-pr"
+              href={upgradeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t('satUpgradeNow') || 'Upgrade Now'}
+            </a>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
@@ -534,7 +598,7 @@ interface BookingDrawerProps {
   matchDetail: PendingMatchDetail | null;
   matchDetailLoading?: boolean;
   canViewMatchScore?: boolean;
-  onMatchPremiumHint?: () => void;
+  upgradeUrl?: string;
   draft: BookingDraft | null;
   onDraftChange: (patch: Partial<BookingDraft>) => void;
   onClose: () => void;
@@ -564,7 +628,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
   matchDetail,
   matchDetailLoading,
   canViewMatchScore = false,
-  onMatchPremiumHint,
+  upgradeUrl,
   draft,
   onDraftChange,
   onClose,
@@ -572,6 +636,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
   t,
 }) => {
   const [searchInput, setSearchInput] = useState(pendingSearch);
+  const [matchPremiumOpen, setMatchPremiumOpen] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -587,6 +652,18 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
     (draft.acceptStartingPrice ||
       draft.useLoadQuotedPrice ||
       (Number.isFinite(offerAmount) && offerAmount > 0));
+
+  const openMatchPremiumDialog = () => {
+    setMatchPremiumOpen(true);
+  };
+
+  useEffect(() => {
+    if (!open) setMatchPremiumOpen(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (canViewMatchScore) setMatchPremiumOpen(false);
+  }, [canViewMatchScore]);
 
   useEffect(() => {
     if (!open) return;
@@ -851,7 +928,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                       score={matchDetail?.matchScore ?? null}
                       canView={canViewMatchScore || Boolean(matchDetail?.canViewMatchScore)}
                       loading={matchDetailLoading}
-                      onUpgrade={() => onMatchPremiumHint?.()}
+                      onUpgrade={openMatchPremiumDialog}
                       t={t}
                     />
                   ) : null}
@@ -1033,6 +1110,13 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
           </div>
         </div>
       </div>
+
+      <MatchScorePremiumDialog
+        open={matchPremiumOpen}
+        upgradeUrl={upgradeUrl}
+        onClose={() => setMatchPremiumOpen(false)}
+        t={t}
+      />
     </div>
   );
 };

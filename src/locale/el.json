@@ -1803,6 +1803,7 @@
   "satFitNo": "ΟΧΙ",
   "satFitPartial": "ΜΕΡΙΚΗ",
   "satMatchPremiumHint": "Premium λειτουργία - αναβαθμίστε το πλάνο σας για προβολή",
+  "satMatchPremiumTitle": "Premium λειτουργία",
   "satMatchLoading": "Υπολογισμός αντιστοιχίας…",
   "satMatchLoadError": "Αποτυχία φόρτωσης λεπτομερειών αντιστοιχίας",
   "satVehiclesCol": "Οχήματα",

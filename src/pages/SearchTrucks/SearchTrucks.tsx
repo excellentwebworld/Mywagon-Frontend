@@ -276,7 +276,7 @@ export const SearchTrucks: React.FC = () => {
         matchDetail={m.matchDetail}
         matchDetailLoading={m.matchDetailLoading}
         canViewMatchScore={m.canViewMatchScore}
-        onMatchPremiumHint={m.showMatchPremiumHint}
+        upgradeUrl={m.upgradeUrl}
         draft={m.draft}
         onDraftChange={m.updateDraft}
         onClose={m.closeDrawer}
