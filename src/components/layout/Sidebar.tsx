@@ -248,38 +248,67 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
 
 
-          <a href="#subscription" className="ni" title={t("navSubscription")}>
+          <Link
+            to="/settings"
+            onClick={onCloseMobile}
+            className={`ni ${isLinkActive("/settings") ? "active" : ""}`}
+            title={t("settings.title") || t("settings") || "Settings"}
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
+            <span>{t("settings.title") || t("settings") || "Settings"}</span>
+          </Link>
+
+          <Link
+            to="/subscription"
+            onClick={onCloseMobile}
+            className={`ni ${isLinkActive("/subscription") ? "active" : ""}`}
+            title={t("navSubscription")}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect>
               <line x1="2" y1="10" x2="22" y2="10"></line>
             </svg>
             <span>{t("navSubscription")}</span>
-          </a>
+          </Link>
 
-          <a href="#billing" className="ni" title={t("billing")}>
+          <Link
+            to="/billing"
+            onClick={onCloseMobile}
+            className={`ni ${isLinkActive("/billing") ? "active" : ""}`}
+            title={t("billing")}
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z"></path>
               <line x1="9" y1="7" x2="15" y2="7"></line>
               <line x1="9" y1="11" x2="15" y2="11"></line>
             </svg>
             <span>{t("billing")}</span>
-          </a>
+          </Link>
 
-          <a href="#support" className="ni" title={t("support")}>
+          <Link
+            to="/support"
+            onClick={onCloseMobile}
+            className={`ni ${isLinkActive("/support") ? "active" : ""}`}
+            title={t("support")}
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <path d="M9.09 9a3 3 0 115.82 1c0 2-3 2-3 4"></path>
               <line x1="12" y1="17" x2="12" y2="17"></line>
             </svg>
             <span>{t("support")}</span>
-          </a>
+          </Link>
 
           <a href="#tutorial" className="ni" title={t("tutorial")}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="5 3 19 12 5 21 5 3"></polygon>
             </svg>
             <span>{t("tutorial")}</span>

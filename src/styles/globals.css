@@ -6,27 +6,37 @@
 
 /* ── Design Tokens ── */
 :root {
-  /* Brand */
-  --accent:           #6C3AED;
-  --accent-hover:     #5B2BD4;
-  --accent-light:     #EDE9FE;
-  --accent-pale:      #F5F3FF;
+  /* Brand — Amethyst defaults (ThemeProvider overrides at runtime) */
+  --accent:           #9B51E0;
+  --accent-hover:     #7C3AED;
+  --accent-light:     #F3E8FF;
+  --accent-pale:      #FAF5FF;
   --brand-navy:       #1F1F41;
   --brand-blue:       #4E5CDC;
   --brand-grey:       #8B8A8F;
   --brand-gold:       #C5915D;
 
   /* Surface */
-  --bg:               #F7F7F8;
+  --bg:               #F5F5F7;
   --surface:          #FFFFFF;
   --surface-alt:      #F0F0F3;
   --border:           #E4E4E8;
   --border-focus:     #C8C8CF;
 
   /* Text */
-  --text-primary:     #121217;
+  --text-primary:     #18181B;
   --text-secondary:   #5E5E6E;
   --text-tertiary:    #8E8E9A;
+
+  /* Nav (sidebar) */
+  --nav-bg:           #18181B;
+  --nav-text:         rgba(255,255,255,0.55);
+  --nav-text-hover:   rgba(255,255,255,0.75);
+  --nav-active:       rgba(155,81,224,0.24);
+  --nav-active-text:  #FFFFFF;
+  --nav-section:      rgba(255,255,255,0.22);
+  --nav-border:       rgba(255,255,255,0.08);
+  --nav-hover:        rgba(255,255,255,0.06);
 
   /* Status */
   --success:          #10B981;
@@ -101,7 +111,8 @@ a { color: inherit; text-decoration: none; }
   width: var(--sidebar-w);
   height: 100vh;
   height: 100dvh;
-  background: var(--text-primary); color: #fff;
+  background: var(--nav-bg, var(--text-primary)); color: var(--nav-active-text, #fff);
+  border-right: 1px solid var(--nav-border, transparent);
   display: flex; flex-direction: column;
   z-index: var(--z-sidebar);
   transition: transform .25s cubic-bezier(.4,0,.2,1), width .25s cubic-bezier(.4,0,.2,1);
@@ -109,7 +120,7 @@ a { color: inherit; text-decoration: none; }
 }
 .sb-logo {
   padding: 20px 24px; display: flex; align-items: center; justify-content: flex-start;
-  border-bottom: 1px solid rgba(255,255,255,.08); flex-shrink: 0;
+  border-bottom: 1px solid var(--nav-border, rgba(255,255,255,.08)); flex-shrink: 0;
   text-decoration: none;
 }
 .sb-logo:hover { opacity: .92; }
@@ -118,13 +129,13 @@ a { color: inherit; text-decoration: none; }
 .sb-ni {
   display: flex; align-items: center; gap: 12px;
   padding: 10px 14px; border-radius: var(--radius-sm);
-  color: rgba(255,255,255,.55); font-size: 14px; font-weight: 500;
+  color: var(--nav-text, rgba(255,255,255,.55)); font-size: 14px; font-weight: 500;
   cursor: pointer; transition: all .15s; text-decoration: none; margin-bottom: 2px;
 }
 .ni:hover,
-.sb-ni:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.85); }
+.sb-ni:hover { background: var(--nav-hover, rgba(255,255,255,.06)); color: var(--nav-text-hover, rgba(255,255,255,.85)); }
 .ni.active,
-.sb-ni.active { background: rgba(155,81,224,.2); color: #fff; }
+.sb-ni.active { background: var(--nav-active, rgba(155,81,224,.2)); color: var(--nav-active-text, #fff); }
 .ni svg,
 .sb-ni svg { opacity: .7; flex-shrink: 0; width: 18px; height: 18px; display: block; }
 .ni.active svg,
@@ -132,16 +143,16 @@ a { color: inherit; text-decoration: none; }
 .ns,
 .sb-ns {
   padding: 14px 14px 6px; font-size: 11px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,.25);
+  text-transform: uppercase; letter-spacing: 1px; color: var(--nav-section, rgba(255,255,255,.25));
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .nb {
   margin-left: auto; font-size: 10px; font-weight: 700;
   background: var(--accent); color: #fff; padding: 2px 7px; border-radius: 99px;
 }
-.sb-ft { padding: 14px; border-top: 1px solid rgba(255,255,255,.08); flex-shrink: 0; }
+.sb-ft { padding: 14px; border-top: 1px solid var(--nav-border, rgba(255,255,255,.08)); flex-shrink: 0; }
 .sb-ft .ni,
-.sb-ft .sb-ni { font-size: 13px; color: rgba(255,255,255,.4); }
+.sb-ft .sb-ni { font-size: 13px; color: var(--nav-text, rgba(255,255,255,.4)); }
 
 
 .sb-overlay {
@@ -321,6 +332,58 @@ a { color: inherit; text-decoration: none; }
 .dashboard-page {
   padding: 20px 28px 40px;
   min-width: 0;
+}
+
+/* ════════════════════════════════════════
+   SETTINGS — profile sub-nav + content
+   ════════════════════════════════════════ */
+.settings-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 600px;
+  padding: 20px 28px 40px;
+  box-sizing: border-box;
+}
+.settings-nav-mobile {
+  display: block;
+}
+.settings-nav-desktop {
+  display: none;
+  width: 210px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+}
+.settings-content {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  border-radius: 16px;
+  box-sizing: border-box;
+}
+@media (min-width: 768px) {
+  .settings-layout {
+    flex-direction: row;
+    gap: 24px;
+  }
+  .settings-nav-mobile {
+    display: none;
+  }
+  .settings-nav-desktop {
+    display: block;
+  }
+  .settings-content {
+    padding: 24px 32px;
+  }
+}
+@media (min-width: 1024px) {
+  .settings-content {
+    padding: 32px;
+  }
 }
 
 /* ════════════════════════════════════════

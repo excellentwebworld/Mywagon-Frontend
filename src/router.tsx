@@ -16,26 +16,21 @@ import { MarketingAbout } from './pages/MarketingAbout';
 import Partners from './pages/Partners';
 import { ErpOrders } from './pages/ErpOrders/ErpOrders';
 import { SearchTrucks } from './pages/SearchTrucks';
+import Settings from './pages/Settings/Settings';
+import {
+  BillingPage,
+  SubscriptionPage,
+  SupportPage,
+  TrustPage,
+} from './pages/Placeholders/AccountPlaceholders';
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
 
 const appRoutes = [
-  {
-    path: '/dashboard',
-    element: <Dashboard />,
-  },
-  {
-    path: '/shipments',
-    element: <ManageShipments />,
-  },
-  {
-    path: '/search-trucks',
-    element: <SearchTrucks />,
-  },
-  {
-    path: '/shipments/:id',
-    element: <ShipmentDetail />,
-  },
+  { path: '/dashboard', element: <Dashboard /> },
+  { path: '/shipments', element: <ManageShipments /> },
+  { path: '/search-trucks', element: <SearchTrucks /> },
+  { path: '/shipments/:id', element: <ShipmentDetail /> },
   {
     path: '/shipments/create',
     element: <CreateShipmentWizardLayout />,
@@ -46,22 +41,15 @@ const appRoutes = [
       { path: 'step/3', element: <CreateShipmentStep3Page /> },
     ],
   },
-  {
-    path: '/address-book',
-    element: <AddressBook />,
-  },
-  {
-    path: '/products',
-    element: <ProductMaster />,
-  },
-  {
-    path: '/partners',
-    element: <Partners />,
-  },
-  {
-    path: '/erp-orders',
-    element: <ErpOrders />,
-  },
+  { path: '/address-book', element: <AddressBook /> },
+  { path: '/products', element: <ProductMaster /> },
+  { path: '/partners', element: <Partners /> },
+  { path: '/erp-orders', element: <ErpOrders /> },
+  { path: '/settings', element: <Settings /> },
+  { path: '/billing', element: <BillingPage /> },
+  { path: '/subscription', element: <SubscriptionPage /> },
+  { path: '/support', element: <SupportPage /> },
+  { path: '/trust', element: <TrustPage /> },
 ];
 
 const protectedLayout = {
