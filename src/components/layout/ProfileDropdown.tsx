@@ -16,7 +16,6 @@ import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
 import { LANGUAGES } from '../../constants/panel';
 import { THEMES, type ThemeKey } from '../../utils/themes';
-import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 
 export function ProfileDropdown() {
   const { t, i18n, lang } = useTranslation();
@@ -39,9 +38,8 @@ export function ProfileDropdown() {
     LANGUAGES.find((l) => l.code === (i18n.language || lang)) || LANGUAGES[0];
 
   const displayName = `${user.firstName} ${user.lastName}`.trim();
-  // Match reference: gradient initials; only show photo when API provided one
-  const photoUrl = user.avatarUrl ? resolveMediaUrl(user.avatarUrl) : null;
-  const [avatarImgError, setAvatarImgError] = useState(false);
+  // Match reference TopBar: always use gradient initials (no broken photo placeholders)
+  const initials = user.initials || 'SV';
 
   const changeLang = (code: string, dir: string) => {
     i18n.changeLanguage(code);
@@ -87,16 +85,7 @@ export function ProfileDropdown() {
               fontSize: 11,
             }}
           >
-            {photoUrl && !avatarImgError ? (
-              <img
-                src={photoUrl}
-                alt=""
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                onError={() => setAvatarImgError(true)}
-              />
-            ) : (
-              user.initials
-            )}
+            {initials}
           </div>
           <ChevronDown size={12} style={{ color: T.t3 }} />
         </button>
@@ -118,11 +107,7 @@ export function ProfileDropdown() {
                     fontSize: 13,
                   }}
                 >
-                  {photoUrl && !avatarImgError ? (
-                    <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    user.initials
-                  )}
+                  {initials}
                 </div>
                 <div>
                   <div className="font-semibold" style={{ fontSize: 13, color: T.t1 }}>{displayName}</div>

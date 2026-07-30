@@ -1,6 +1,20 @@
+/**
+ * Header — matches MV_Web_Panel TopBar layout:
+ * [Logo?] Title | Search …… | Vagon AI | Bell | Messages | Profile | CTA | Trust
+ */
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  Search,
+  Sparkles,
+  MessageSquare,
+  Plus,
+  ShieldCheck,
+  Bell,
+  Menu,
+} from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { ProfileDropdown } from './ProfileDropdown';
@@ -20,252 +34,346 @@ export const Header: React.FC<HeaderProps> = ({
   isDesktop,
   navMode = 'sidebar',
 }) => {
-  const { setLang, showToast } = useApp();
-  const { t, lang } = useTranslation();
+  const { showToast } = useApp();
+  const { t } = useTranslation();
+  const { T } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [searchValue, setSearchValue] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
-  const [activePeriod, setActivePeriod] = useState<'today' | '7d' | '30d' | 'quarter' | 'ytd'>('today');
 
   const isSideMode = navMode !== 'top';
-  const isDashboard = location.pathname.startsWith('/dashboard');
-  const isMaster = ['/address-book', '/products', '/partners', '/erp-orders'].includes(location.pathname);
-
-  const showFilters = isDashboard;
-  const showSearch = isDashboard;
-  const showCta = !isMaster && location.pathname !== '/shipments/create';
-  const isShipmentsList =
-    location.pathname === '/shipments' || location.pathname === '/shipments/';
+  const showCta = location.pathname !== '/shipments/create';
 
   const getPageTitle = () => {
     const path = location.pathname;
     if (path.startsWith('/dashboard')) return t('dashboard');
     if (path.startsWith('/shipments/create')) return t('createShipment');
     if (path.startsWith('/shipments')) return t('manageShipments');
-    if (path.startsWith('/search-trucks')) return t('satPageTitle') || t('searchTrucks');
+    if (path.startsWith('/search-trucks')) return t('satPageTitle') || t('truckAvailability') || 'Search Trucks';
     if (path.startsWith('/address-book')) return t('addressBook');
     if (path.startsWith('/products')) return t('products');
     if (path.startsWith('/partners')) return t('partners');
     if (path.startsWith('/erp-orders')) return t('erpOrders') || 'ERP Orders';
-    if (path.startsWith('/settings')) return t('settings.title') || t('settings');
+    if (path.startsWith('/settings')) return t('settings.title') || 'Settings';
     if (path.startsWith('/billing')) return t('sidebar.billing') || t('billing');
     if (path.startsWith('/subscription')) return t('sidebar.subscription') || t('navSubscription');
     if (path.startsWith('/support')) return t('sidebar.support') || t('support');
     if (path.startsWith('/trust')) return t('settings.securityTrust') || 'Security & Trust';
-    return t('portal');
+    return t('dashboard');
   };
 
   return (
-    <header className="topbar" role="banner">
+    <header
+      className="mv-topbar"
+      role="banner"
+      style={{
+        height: 52,
+        background: `${T.sf}E6`,
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: `1px solid ${T.bd}`,
+        zIndex: 30,
+      }}
+    >
+      {/* Sidebar toggles */}
       {isDesktop && isSideMode && (
         <button
           type="button"
-          className="btn btn-ghost btn-icon sidebar-toggle-btn"
+          className="mv-topbar-icon-btn"
           onClick={onToggleSidebarCollapse}
           aria-label={sidebarCollapsed ? t('navExpandMenu') : t('navCollapseMenu')}
           aria-expanded={!sidebarCollapsed}
           title={sidebarCollapsed ? t('navExpandMenu') : t('navCollapseMenu')}
+          style={{ color: T.t2 }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = T.sa;
+            e.currentTarget.style.color = T.t1;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = T.t2;
+          }}
         >
-          <svg
-            style={{ height: '22px', width: '22px' }}
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            aria-hidden
-          >
-            <path d="M3 6h18M3 12h18M3 18h18" />
-          </svg>
+          <Menu size={20} />
         </button>
       )}
 
       {!isDesktop && isSideMode && (
         <button
-          id="mobileMenuBtn"
-          aria-label="Open navigation"
+          type="button"
+          className="mv-topbar-icon-btn"
           onClick={onToggleMobileMenu}
-          className="btn btn-ghost btn-icon mobile-menu-toggle"
-          style={{ color: 'var(--text-secondary)' }}
+          aria-label="Open navigation"
+          style={{ color: T.t2 }}
         >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          >
-            <path d="M3 6h18M3 12h18M3 18h18" />
-          </svg>
+          <Menu size={20} />
         </button>
       )}
 
-      <span className="tb-title">{getPageTitle()}</span>
-
-      {showFilters && (
-        <div className="tb-filters" role="group" aria-label="Quick filters">
-          {([
-            ['today', 'today'],
-            ['7d', 'sevenDays'],
-            ['30d', 'thirtyDays'],
-            ['quarter', 'quarter'],
-            ['ytd', 'ytd'],
-          ] as const).map(([key, labelKey]) => (
-            <button
-              key={key}
-              type="button"
-              className={`tb-chip ${activePeriod === key ? 'active' : ''}`}
-              onClick={() => setActivePeriod(key)}
-            >
-              {t(labelKey)}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {!showSearch && <span className="sp" style={{ flex: 1 }} />}
-
-      {showSearch && (
-        <div className="tb-search">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35" />
-          </svg>
-          <input
-            type="text"
-            id="searchInput"
-            placeholder={t('searchPlaceholderHeader')}
-            aria-label="Search shipments"
-          />
-        </div>
-      )}
-
-      <div className="tb-right">
-        <div className="lang-toggle" id="langToggle" role="group" aria-label="Language selector">
-          <button type="button" className={`lang-btn ${lang === 'en' ? 'active' : ''}`} onClick={() => setLang('en')}>
-            EN
-          </button>
-          <button type="button" className={`lang-btn ${lang === 'el' ? 'active' : ''}`} onClick={() => setLang('el')}>
-            EL
-          </button>
-        </div>
-
-        <div ref={notifRef} className="dropdown" style={{ position: 'relative' }}>
+      {/* Logo — top nav mode only */}
+      {!isSideMode && (
+        <>
           <button
             type="button"
-            className="tb-btn tb-notif"
-            onClick={() => setNotifOpen(!notifOpen)}
-            aria-label="Notifications"
-            aria-haspopup="true"
-            title="Notifications"
+            className="mv-topbar-logo"
+            onClick={() => navigate('/dashboard')}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 01-3.46 0" />
-            </svg>
-            <span className="tb-notif-dot" aria-label="3 unread notifications" />
+            <span className="font-bold" style={{ fontSize: '1.1rem', letterSpacing: '-0.3px' }}>
+              <span style={{ color: T.t3 }}>MY</span>
+              <span style={{ color: T.t1 }}>VAGON</span>
+            </span>
           </button>
+          <div style={{ width: 1, height: 22, background: T.bd, flexShrink: 0 }} />
+        </>
+      )}
 
-          {notifOpen && (
+      {/* Page title */}
+      <h1
+        className="mv-topbar-title"
+        style={{ fontSize: 14, fontWeight: 600, color: T.t1, margin: 0 }}
+      >
+        {getPageTitle()}
+      </h1>
+
+      {/* Search — always visible like React TopBar */}
+      <div
+        className="mv-topbar-search"
+        style={{ background: T.sa, border: `1px solid ${T.bd}`, height: 34 }}
+        onFocus={(e) => {
+          e.currentTarget.style.borderColor = T.ac;
+          e.currentTarget.style.boxShadow = `0 0 0 2px ${T.ac}18`;
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.borderColor = T.bd;
+          e.currentTarget.style.boxShadow = 'none';
+        }}
+      >
+        <Search size={15} style={{ color: T.t3, flexShrink: 0 }} />
+        <input
+          type="text"
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          placeholder={t('topbar.search') || 'Search anything..'}
+          aria-label={t('topbar.search') || 'Search'}
+          style={{
+            flex: 1,
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            fontSize: 12,
+            color: T.t1,
+            minWidth: 0,
+          }}
+        />
+      </div>
+
+      <div style={{ flex: 1 }} />
+
+      {/* Vagon AI */}
+      <button
+        type="button"
+        onClick={() => showToast(t('vagonai.title') || 'Vagon AI', 'info')}
+        aria-label={t('vagonai.title') || 'Vagon AI'}
+        className="mv-topbar-ai"
+        style={{
+          background: `linear-gradient(135deg, ${T.grad1}, ${T.grad2})`,
+          boxShadow: `0 2px 8px ${T.ac}33`,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-1px)';
+          e.currentTarget.style.boxShadow = `0 4px 14px ${T.ac}44`;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = `0 2px 8px ${T.ac}33`;
+        }}
+      >
+        <Sparkles size={14} />
+        <span className="mv-topbar-ai-label">{t('vagonai.title') || 'Vagon AI'}</span>
+      </button>
+
+      {/* Notifications */}
+      <div ref={notifRef} style={{ position: 'relative' }}>
+        <button
+          type="button"
+          className="mv-topbar-icon-btn"
+          onClick={() => setNotifOpen(!notifOpen)}
+          aria-label={t('topbar.notifications') || t('notifications')}
+          aria-expanded={notifOpen}
+          style={{ color: T.t2 }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = T.sa;
+            e.currentTarget.style.color = T.t1;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = T.t2;
+          }}
+        >
+          <Bell size={18} />
+          <span
+            className="mv-topbar-dot"
+            style={{ background: '#EF4444' }}
+            aria-label="Unread notifications"
+          />
+        </button>
+
+        {notifOpen && (
+          <div
+            className="mv-topbar-panel"
+            role="menu"
+            style={{ background: T.sf, border: `1px solid ${T.bd}` }}
+          >
             <div
-              className="dropdown-menu open"
-              id="notifMenu"
-              style={{ width: '320px', right: 0, display: 'block' }}
-              role="menu"
-              aria-label="Notifications"
+              style={{
+                padding: '12px 14px',
+                borderBottom: `1px solid ${T.bd}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
             >
-              <div
+              <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>
+                {t('notifications')}
+              </span>
+              <span
                 style={{
-                  padding: '12px 14px',
-                  borderBottom: '1px solid var(--border)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <span style={{ fontSize: '13px', fontWeight: 600 }}>{t('notifications')}</span>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    background: 'var(--danger-bg)',
-                    color: 'var(--danger)',
-                    padding: '1px 7px',
-                    borderRadius: '99px',
-                  }}
-                >
-                  3 {t('new')}
-                </span>
-              </div>
-              <div
-                className="dropdown-item"
-                role="menuitem"
-                onClick={() => showToast(t('openingNotifications'), 'info')}
-              >
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>{t('notifBidReceived')}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>2m ago</div>
-                </div>
-              </div>
-              <div
-                className="dropdown-item"
-                role="menuitem"
-                onClick={() => showToast(t('openingNotifications'), 'info')}
-              >
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>{t('notifShipmentUpdate')}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>1h ago</div>
-                </div>
-              </div>
-              <div
-                style={{
-                  padding: '10px 14px',
-                  textAlign: 'center',
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: 600,
-                  color: 'var(--accent)',
-                  cursor: 'pointer',
-                  borderTop: '1px solid var(--border)',
+                  background: '#FEF2F2',
+                  color: '#EF4444',
+                  padding: '1px 7px',
+                  borderRadius: 99,
                 }}
+              >
+                3 {t('new') || 'new'}
+              </span>
+            </div>
+            {[
+              { title: t('notifBidReceived') || 'New bid received', time: '2m ago' },
+              { title: t('notifShipmentUpdate') || 'Shipment updated', time: '1h ago' },
+            ].map((n) => (
+              <button
+                type="button"
+                key={n.title}
+                className="mv-topbar-panel-item"
+                style={{ color: T.t1 }}
                 onClick={() => {
                   setNotifOpen(false);
-                  showToast(t('openingNotifications'), 'info');
+                  showToast(t('openingNotifications') || 'Notifications', 'info');
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = T.sa;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
                 }}
               >
-                {t('viewAllNotifications')}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <ProfileDropdown />
-
-        {showCta && (
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => navigate('/shipments/create')}
-            style={{ whiteSpace: 'nowrap' }}
-          >
-            + {isShipmentsList ? t('newShipment') || 'New shipment' : t('createShipment')}
-          </button>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>{n.title}</div>
+                <div style={{ fontSize: 11, color: T.t3 }}>{n.time}</div>
+              </button>
+            ))}
+            <button
+              type="button"
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                border: 'none',
+                borderTop: `1px solid ${T.bd}`,
+                background: 'transparent',
+                color: T.ac,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+              onClick={() => {
+                setNotifOpen(false);
+                showToast(t('viewAllNotifications') || 'View all', 'info');
+              }}
+            >
+              {t('viewAllNotifications') || 'View all notifications'}
+            </button>
+          </div>
         )}
       </div>
+
+      {/* Messages */}
+      <button
+        type="button"
+        className="mv-topbar-icon-btn"
+        onClick={() => navigate('/support')}
+        aria-label={t('topbar.messages') || 'Messages'}
+        style={{ color: T.t2, position: 'relative' }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = T.sa;
+          e.currentTarget.style.color = T.t1;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent';
+          e.currentTarget.style.color = T.t2;
+        }}
+      >
+        <MessageSquare size={18} />
+        <span className="mv-topbar-dot" style={{ background: '#EF4444' }} />
+      </button>
+
+      {/* Profile dropdown */}
+      <ProfileDropdown />
+
+      {/* CTA */}
+      {showCta && (
+        <button
+          type="button"
+          onClick={() => navigate('/shipments/create')}
+          aria-label={t('createShipment')}
+          className="mv-topbar-cta"
+          style={{
+            background: T.ac,
+            boxShadow: `0 2px 8px ${T.ac}40`,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = `0 4px 14px ${T.ac}55`;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = `0 2px 8px ${T.ac}40`;
+          }}
+        >
+          <Plus size={16} className="mv-topbar-cta-icon" />
+          <span className="mv-topbar-cta-label">
+            + {t('newShipment') || t('createShipment') || 'New shipment'}
+          </span>
+        </button>
+      )}
+
+      {/* Trust shield */}
+      <button
+        type="button"
+        onClick={() => navigate('/trust')}
+        aria-label={t('settings.securityTrust') || 'Security & Trust'}
+        title={t('settings.securityTrust') || 'Security & Trust'}
+        className="mv-topbar-icon-btn"
+        style={{ color: T.t2, position: 'relative' }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = T.sa;
+          e.currentTarget.style.color = T.t1;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent';
+          e.currentTarget.style.color = T.t2;
+        }}
+      >
+        <ShieldCheck size={18} />
+        <span
+          className="mv-topbar-dot"
+          style={{ background: '#10B981', boxShadow: '0 0 4px #10B981', top: 6, right: 6 }}
+        />
+      </button>
     </header>
   );
 };

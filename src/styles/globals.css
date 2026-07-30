@@ -260,8 +260,127 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ════════════════════════════════════════
-   LAYOUT — Topbar
+   LAYOUT — MV TopBar (matches Web Panel React)
    ════════════════════════════════════════ */
+.mv-topbar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+.mv-topbar-title {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.mv-topbar-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 420px;
+  min-width: 120px;
+  border-radius: 8px;
+  padding: 0 12px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.mv-topbar-icon-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.mv-topbar-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+}
+.mv-topbar-ai {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.mv-topbar-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  min-width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.mv-topbar-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  width: 320px;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  z-index: 150;
+}
+.mv-topbar-panel-item {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+@media (max-width: 900px) {
+  .mv-topbar-ai-label,
+  .mv-topbar-cta-label {
+    display: none;
+  }
+  .mv-topbar-search {
+    max-width: 180px;
+  }
+}
+@media (max-width: 640px) {
+  .mv-topbar-search {
+    display: none;
+  }
+  .mv-topbar-title {
+    font-size: 13px !important;
+  }
+}
+
+/* Legacy topbar kept for non-migrated pages if any */
 .topbar {
   position: sticky;
   top: 0;

@@ -65,7 +65,7 @@ export default function PersonalSection() {
   const role = ROLES_BY_KEY[user.role];
   const pwAge = passwordAgeDays(user.lastPasswordChange);
 
-  const currentAvatar = avatarPreview || user.avatarUrl;
+  const currentAvatar = avatarPreview || null;
 
   return (
     <div className="space-y-4">
