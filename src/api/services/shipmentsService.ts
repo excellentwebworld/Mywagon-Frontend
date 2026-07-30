@@ -207,4 +207,47 @@ export const shipmentsService = {
   async bulkExtendBid(ids: number[], hours = 24): Promise<void> {
     await apiPost('/shipments/bulk-extend-bid', { ids, hours });
   },
+
+  async submitRating(
+    id: string | number,
+    body: {
+      user_id: number;
+      user_type: 'carrier' | 'driver';
+      rating: number;
+      review?: string;
+      delivery_on_time?: boolean;
+    }
+  ): Promise<void> {
+    await apiPost(`/shipments/${id}/rating`, body);
+  },
+
+  async pendingPickupDelay(id: string | number): Promise<
+    Array<{
+      location_id: number;
+      location_name?: string | null;
+      company_name?: string | null;
+      driver_id?: number | null;
+    }>
+  > {
+    const res = await apiGet<{ pending: Array<{
+      location_id: number;
+      location_name?: string | null;
+      company_name?: string | null;
+      driver_id?: number | null;
+    }> }>(`/shipments/${id}/pickup-delay/pending`);
+    return res.data?.pending ?? [];
+  },
+
+  async submitPickupDelay(
+    id: string | number,
+    locationId: string | number,
+    body: {
+      was_on_time: boolean;
+      delay_bucket?: string;
+      hours?: number;
+      minutes?: number;
+    }
+  ): Promise<void> {
+    await apiPost(`/shipments/${id}/locations/${locationId}/pickup-delay`, body);
+  },
 };

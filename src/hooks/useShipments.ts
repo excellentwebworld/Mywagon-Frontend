@@ -9,6 +9,11 @@ export function useShipment(id?: string) {
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(Boolean(id));
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const refetch = useCallback(() => {
+    setReloadKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
     if (!id) {
@@ -40,9 +45,9 @@ export function useShipment(id?: string) {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, reloadKey]);
 
-  return { shipment, loading, error };
+  return { shipment, loading, error, refetch };
 }
 
 const EMPTY_SUMMARY: ApiShipmentsSummary = {

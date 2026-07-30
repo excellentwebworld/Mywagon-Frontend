@@ -181,6 +181,12 @@ export interface Shipment {
   carrier_init?: string;
   /** Assigned carrier/driver profile image URL when available. */
   carrierAvatar?: string | null;
+  carrierId?: number | null;
+  carrierType?: 'carrier' | 'driver' | string | null;
+  carrierRating?: number | null;
+  carrierOnTimeDeliveryPct?: number | null;
+  carrierCancellationRatePct?: number | null;
+  carrierAvgPickupDelayMinutes?: number | null;
   price: number | null;
   price_type: 'spot' | 'contract' | 'bidding';
   updated: string;

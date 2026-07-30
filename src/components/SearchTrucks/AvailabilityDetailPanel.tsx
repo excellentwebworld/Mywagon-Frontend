@@ -26,6 +26,10 @@ function formatStatPct(value: number | null | undefined): string {
   return value == null ? '—' : `${value}%`;
 }
 
+function formatStatMin(value: number | null | undefined): string {
+  return value == null ? '—' : `${value}m`;
+}
+
 function DetailPanelSkeleton({
   onClose,
   variant,
@@ -254,6 +258,23 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
                   </span>
                 )}
               </div>
+              <div className="sat-exp-stat">
+                <span>{t('avgPickupDelay') || 'Avg pickup delay'}</span>
+                {statsLoading ? (
+                  <span className="sat-exp-stat-skel" aria-hidden />
+                ) : (
+                  <span
+                    style={{
+                      color:
+                        detailTruck.avgPickupDelayMinutes == null
+                          ? 'var(--text-tertiary)'
+                          : undefined,
+                    }}
+                  >
+                    {formatStatMin(detailTruck.avgPickupDelayMinutes)}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="sat-exp-actions">
               <button
@@ -313,6 +334,23 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
                     }}
                   >
                     {formatStatPct(detailTruck.cancellationRate)}
+                  </span>
+                )}
+              </div>
+              <div className="sat-exp-stat">
+                <span>{t('avgPickupDelay') || 'Avg pickup delay'}</span>
+                {statsLoading ? (
+                  <span className="sat-exp-stat-skel" aria-hidden />
+                ) : (
+                  <span
+                    style={{
+                      color:
+                        detailTruck.avgPickupDelayMinutes == null
+                          ? 'var(--text-tertiary)'
+                          : undefined,
+                    }}
+                  >
+                    {formatStatMin(detailTruck.avgPickupDelayMinutes)}
                   </span>
                 )}
               </div>

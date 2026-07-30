@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ActivityLogModal,
@@ -12,6 +12,8 @@ import {
   LoadSummaryCard,
   MilestonesBar,
   NotesCard,
+  PickupDelayModal,
+  RatingModal,
   ShareTrackingModal,
   StopsCard,
   TrackingCard,
@@ -22,6 +24,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useShipment } from '../../hooks/useShipments';
 import { ShipmentDetailSkeleton } from '../../components/skeletons/ShipmentDetailSkeleton';
 import { buildShipmentDetailViewModel } from './detailViewModel';
+import { shipmentsService } from '../../api';
 import '../../styles/load-details.css';
 
 const DEFAULT_SECTIONS: Record<string, boolean> = {
@@ -41,14 +44,40 @@ export const ShipmentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { showToast } = useApp();
   const { t } = useTranslation();
-  const { shipment, loading, error } = useShipment(id);
+  const { shipment, loading, error, refetch } = useShipment(id);
   const [lang, setLang] = useState<'en' | 'el'>('en');
   const [activeNav, setActiveNav] = useState('stops');
   const [sections, setSections] = useState(DEFAULT_SECTIONS);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isLogOpen, setIsLogOpen] = useState(false);
+  const [isRatingOpen, setIsRatingOpen] = useState(false);
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [pendingDelay, setPendingDelay] = useState<{
+    location_id: number;
+    location_name?: string | null;
+    company_name?: string | null;
+  } | null>(null);
+  const [delaySubmitting, setDelaySubmitting] = useState(false);
 
   const vm = useMemo(() => (shipment ? buildShipmentDetailViewModel(shipment) : null), [shipment]);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    shipmentsService
+      .pendingPickupDelay(id)
+      .then((pending) => {
+        if (!cancelled && pending.length > 0) {
+          setPendingDelay(pending[0]);
+        }
+      })
+      .catch(() => {
+        /* ignore — optional prompt */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   const toggleSection = useCallback((key: string) => {
     setSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -65,6 +94,52 @@ export const ShipmentDetail: React.FC = () => {
       showToast(t('copied'), 'success');
     },
     [showToast, t]
+  );
+
+  const handleSubmitRating = useCallback(
+    async (payload: { rating: number; review: string; delivery_on_time?: boolean }) => {
+      if (!id || !vm?.carrier?.userId || !vm.carrier.userType) return;
+      setRatingSubmitting(true);
+      try {
+        await shipmentsService.submitRating(id, {
+          user_id: vm.carrier.userId,
+          user_type: vm.carrier.userType,
+          rating: payload.rating,
+          review: payload.review || undefined,
+          delivery_on_time: payload.delivery_on_time,
+        });
+        showToast(t('ratingSubmitted') || 'Rating submitted', 'success');
+        setIsRatingOpen(false);
+        refetch?.();
+      } catch {
+        showToast(t('ratingFailed') || 'Failed to submit rating', 'error');
+      } finally {
+        setRatingSubmitting(false);
+      }
+    },
+    [id, refetch, showToast, t, vm?.carrier]
+  );
+
+  const handleSubmitPickupDelay = useCallback(
+    async (payload: {
+      was_on_time: boolean;
+      delay_bucket?: string;
+      hours?: number;
+      minutes?: number;
+    }) => {
+      if (!id || !pendingDelay) return;
+      setDelaySubmitting(true);
+      try {
+        await shipmentsService.submitPickupDelay(id, pendingDelay.location_id, payload);
+        showToast(t('pickupDelaySaved') || 'Pickup delay report saved', 'success');
+        setPendingDelay(null);
+      } catch {
+        showToast(t('pickupDelayFailed') || 'Failed to save pickup delay', 'error');
+      } finally {
+        setDelaySubmitting(false);
+      }
+    },
+    [id, pendingDelay, showToast, t]
   );
 
   if (loading) {
@@ -157,6 +232,7 @@ export const ShipmentDetail: React.FC = () => {
               expanded={sections.carrier}
               onToggle={() => toggleSection('carrier')}
               onToast={(msg) => showToast(msg, 'info')}
+              onRate={() => setIsRatingOpen(true)}
               t={t}
             />
             <IncidentsCard
@@ -197,6 +273,24 @@ export const ShipmentDetail: React.FC = () => {
         open={isLogOpen}
         entries={vm.auditEntries}
         onClose={() => setIsLogOpen(false)}
+        t={t}
+      />
+
+      <RatingModal
+        open={isRatingOpen}
+        carrierName={vm.carrier?.name || ''}
+        submitting={ratingSubmitting}
+        onClose={() => setIsRatingOpen(false)}
+        onSubmit={handleSubmitRating}
+        t={t}
+      />
+
+      <PickupDelayModal
+        open={Boolean(pendingDelay)}
+        locationLabel={pendingDelay?.location_name || pendingDelay?.company_name}
+        submitting={delaySubmitting}
+        onClose={() => setPendingDelay(null)}
+        onSubmit={handleSubmitPickupDelay}
         t={t}
       />
     </div>
