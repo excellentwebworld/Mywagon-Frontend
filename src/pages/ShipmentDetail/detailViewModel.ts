@@ -43,12 +43,16 @@ export interface CarrierDetail {
   partner: boolean;
   rating: string;
   meta: string;
+  userId?: number | null;
+  userType?: 'carrier' | 'driver' | null;
   onTimePickup: string;
   onTimeDelivery: string;
   cancelRate: string;
+  avgPickupDelay: string;
   avgResponse: string;
   plates: string[];
   templates: string[];
+  canRate?: boolean;
 }
 
 export interface TripSummary {
@@ -280,20 +284,36 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
   const primaryCustomer = shipment.customer[0]?.name || 'Alpha Foods Ltd';
   const orderIds = shipment.customer.flatMap((c) => c.orders).join(', ') || 'PAP-12345';
 
+  const fmtPct = (v: number | null | undefined) => (v == null ? '—' : `${v}%`);
+  const fmtMin = (v: number | null | undefined) => (v == null ? '—' : `${v}m`);
+
   const carrier: CarrierDetail | null = shipment.carrier
     ? {
         initials: shipment.carrier_init || shipment.carrier.substring(0, 2).toUpperCase(),
         avatar: shipment.carrierAvatar ?? null,
         name: shipment.carrier.toUpperCase(),
         partner: true,
-        rating: '5.0',
-        meta: 'Freelancer · VAT: 061548403 · 78 trips',
-        onTimePickup: '96%',
-        onTimeDelivery: '94%',
-        cancelRate: '2%',
-        avgResponse: '15m',
-        plates: ['IAE 8104', 'P61381'],
+        rating: shipment.carrierRating != null ? shipment.carrierRating.toFixed(1) : '—',
+        meta: shipment.carrierType === 'driver' ? 'Freelancer' : 'Carrier',
+        userId: shipment.carrierId ?? null,
+        userType:
+          shipment.carrierType === 'driver' || shipment.carrierType === 'carrier'
+            ? shipment.carrierType
+            : null,
+        onTimePickup: '—',
+        onTimeDelivery: fmtPct(shipment.carrierOnTimeDeliveryPct),
+        cancelRate: fmtPct(shipment.carrierCancellationRatePct),
+        avgPickupDelay: fmtMin(shipment.carrierAvgPickupDelayMinutes),
+        avgResponse: '—',
+        plates: [],
         templates: ['Confirm pickup', 'Running late—update ETA', 'Send POD after delivery'],
+        canRate: Boolean(
+          shipment.carrierId &&
+            (shipment.carrierType === 'carrier' || shipment.carrierType === 'driver') &&
+            (shipment.status === 'fullfilled' ||
+              shipment.status === 'partially_fullfilled' ||
+              shipment.status === 'delivered')
+        ),
       }
     : null;
 

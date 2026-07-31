@@ -359,9 +359,76 @@ export const PartnerDetailPanel: React.FC<Props> = ({
                       val: `${perf.unfulfilled_pct}%`,
                       lbl: t("unfulfilledPct"),
                     },
+                    ...(perf.on_time_delivery_pct != null
+                      ? [
+                          {
+                            val: `${perf.on_time_delivery_pct}%`,
+                            lbl: t("satOnTimeDelivery"),
+                            cls: "ptn-ki-g",
+                          },
+                        ]
+                      : []),
+                    ...(perf.cancellation_rate_pct != null
+                      ? [
+                          {
+                            val: `${perf.cancellation_rate_pct}%`,
+                            lbl: t("satCancellationRate"),
+                          },
+                        ]
+                      : []),
+                    ...(perf.avg_pickup_delay_minutes != null
+                      ? [
+                          {
+                            val: `${perf.avg_pickup_delay_minutes}m`,
+                            lbl: t("avgPickupDelay") || "Avg pickup delay",
+                          },
+                        ]
+                      : []),
                   ].map(({ val, lbl, cls }) => (
                     <div key={lbl} className="ptn-sc-noborder">
                       <div className={`sv ${cls || ""}`}>{val}</div>
+                      <div className="ptn-sl">{lbl}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {isSupplier && perf && (
+          <div className="ptn-dps">
+            <SectionHeader
+              label={`📊 ${t("performanceKpis")}`}
+              sectionKey="kpis"
+              open={openSections.kpis}
+              onToggle={toggleSection}
+            />
+            {openSections.kpis && (
+              <div className="ptn-dpsb">
+                <div className="ptn-sg">
+                  {[
+                    { val: perf.loads_30d, lbl: t("loads30dCol") },
+                    { val: perf.lifetime_loads, lbl: t("lifetimeLoads") },
+                    ...(perf.cancellation_rate_pct != null
+                      ? [
+                          {
+                            val: `${perf.cancellation_rate_pct}%`,
+                            lbl: t("satCancellationRate"),
+                          },
+                        ]
+                      : []),
+                    ...(perf.avg_loading_wait_minutes != null
+                      ? [
+                          {
+                            val: `${perf.avg_loading_wait_minutes}m`,
+                            lbl: t("avgLoadingWait") || "Avg loading wait",
+                          },
+                        ]
+                      : []),
+                  ].map(({ val, lbl }) => (
+                    <div key={lbl} className="ptn-sc-noborder">
+                      <div className="sv">{val}</div>
                       <div className="ptn-sl">{lbl}</div>
                     </div>
                   ))}

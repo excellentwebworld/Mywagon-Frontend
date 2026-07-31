@@ -111,6 +111,7 @@ export interface AvailableTruck {
   /** On-time delivery % from provider history; null = unknown */
   onTimeDeliveryPct?: number | null;
   cancellationRate?: number | null;
+  avgPickupDelayMinutes?: number | null;
   pickupLat: number;
   pickupLng: number;
   destLat?: number | null;

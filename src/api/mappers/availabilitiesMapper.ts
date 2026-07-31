@@ -167,6 +167,7 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
     recurrenceLabel: '',
     onTimeDeliveryPct: item.provider?.on_time_delivery_pct ?? null,
     cancellationRate: item.provider?.cancellation_rate_pct ?? null,
+    avgPickupDelayMinutes: item.provider?.avg_pickup_delay_minutes ?? null,
     pickupLat: item.pickup_lat ?? 0,
     pickupLng: item.pickup_lng ?? 0,
     destLat,

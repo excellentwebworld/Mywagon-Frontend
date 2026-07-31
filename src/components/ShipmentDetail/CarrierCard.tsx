@@ -8,10 +8,18 @@ interface CarrierCardProps {
   expanded: boolean;
   onToggle: () => void;
   onToast: (msg: string) => void;
+  onRate?: () => void;
   t: (key: string) => string;
 }
 
-export const CarrierCard: React.FC<CarrierCardProps> = ({ carrier, expanded, onToggle, onToast, t }) => (
+export const CarrierCard: React.FC<CarrierCardProps> = ({
+  carrier,
+  expanded,
+  onToggle,
+  onToast,
+  onRate,
+  t,
+}) => (
   <CollapsibleCard id="carrier" title={<>🚛 {t('carrierDriver')}</>} expanded={expanded} onToggle={onToggle}>
     {carrier ? (
       <>
@@ -38,10 +46,6 @@ export const CarrierCard: React.FC<CarrierCardProps> = ({ carrier, expanded, onT
         </div>
         <div className="ld-cr-score">
           <div className="ld-cr-stat">
-            {t('onTimePickup')}
-            <strong>{carrier.onTimePickup}</strong>
-          </div>
-          <div className="ld-cr-stat">
             {t('onTimeDelivery')}
             <strong>{carrier.onTimeDelivery}</strong>
           </div>
@@ -50,10 +54,15 @@ export const CarrierCard: React.FC<CarrierCardProps> = ({ carrier, expanded, onT
             <strong>{carrier.cancelRate}</strong>
           </div>
           <div className="ld-cr-stat">
+            {t('avgPickupDelay') || 'Avg pickup delay'}
+            <strong>{carrier.avgPickupDelay}</strong>
+          </div>
+          <div className="ld-cr-stat">
             {t('avgResponse')}
             <strong>{carrier.avgResponse}</strong>
           </div>
         </div>
+        {carrier.plates.length > 0 && (
         <div className="ld-cr-plates">
           {carrier.plates.map((plate) => (
             <span key={plate} className="ld-cr-plate">
@@ -61,6 +70,14 @@ export const CarrierCard: React.FC<CarrierCardProps> = ({ carrier, expanded, onT
             </span>
           ))}
         </div>
+        )}
+        {carrier.canRate && onRate && (
+          <div style={{ marginTop: 12 }}>
+            <button type="button" className="btn btn-primary btn-sm" style={{ width: '100%' }} onClick={onRate}>
+              ★ {t('rateCarrier') || 'Rate carrier'}
+            </button>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
           <button type="button" className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => onToast(t('email'))}>
             ✉️ {t('email')}
