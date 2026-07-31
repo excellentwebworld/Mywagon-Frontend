@@ -18,6 +18,8 @@ interface FilterModalProps {
   filters: ShipmentsFilterState;
   transporterOptions?: string[];
   customerOptions?: string[];
+  pickupLocationOptions?: string[];
+  dropoffLocationOptions?: string[];
   onClose: () => void;
   onApply: (filters: ShipmentsFilterState, productTypeNames: Record<string, string>) => boolean;
   t: (key: string) => string;
@@ -100,6 +102,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   filters,
   transporterOptions = [],
   customerOptions = [],
+  pickupLocationOptions = [],
+  dropoffLocationOptions = [],
   onClose,
   onApply,
   t,
@@ -184,6 +188,16 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     [customerOptions, draft.customer]
   );
 
+  const pickupLocationChoices = useMemo(
+    () => withSelectedOption(pickupLocationOptions, draft.pickup_location_name),
+    [pickupLocationOptions, draft.pickup_location_name]
+  );
+
+  const dropoffLocationChoices = useMemo(
+    () => withSelectedOption(dropoffLocationOptions, draft.dropoff_location_name),
+    [dropoffLocationOptions, draft.dropoff_location_name]
+  );
+
   const transporterSelectOptions = useMemo(() => {
     if (transporterChoices.length === 0) return [];
     return [
@@ -199,6 +213,22 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       ...customerChoices.map((name) => ({ value: name, label: name })),
     ];
   }, [customerChoices, t]);
+
+  const pickupLocationSelectOptions = useMemo(() => {
+    if (pickupLocationChoices.length === 0) return [];
+    return [
+      { value: '', label: t('filterAddressBookPickupAll') },
+      ...pickupLocationChoices.map((name) => ({ value: name, label: name })),
+    ];
+  }, [pickupLocationChoices, t]);
+
+  const dropoffLocationSelectOptions = useMemo(() => {
+    if (dropoffLocationChoices.length === 0) return [];
+    return [
+      { value: '', label: t('filterAddressBookDropoffAll') },
+      ...dropoffLocationChoices.map((name) => ({ value: name, label: name })),
+    ];
+  }, [dropoffLocationChoices, t]);
 
   const update = <K extends keyof ShipmentsFilterState>(key: K, value: ShipmentsFilterState[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -318,9 +348,48 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 
           <section className="mgmt-pop-sec">
             <h4 className="mgmt-pop-sec-title">{t('filterSectionLocations') || 'Locations'}</h4>
+
+            <p className="mgmt-pop-sec-subtitle">
+              {t('filterAddressBookLocations') || 'Address Book Locations'}
+            </p>
+            <div className="mgmt-pop-field">
+              <span className="mgmt-pop-label">{t('filterAddressBookPickup')}</span>
+              <SearchableSelect
+                options={pickupLocationSelectOptions}
+                value={draft.pickup_location_name}
+                onChange={(v) => update('pickup_location_name', v)}
+                placeholder={
+                  pickupLocationChoices.length === 0
+                    ? t('filterNoAddressBookPickups')
+                    : t('filterAddressBookPickupAll')
+                }
+                searchPlaceholder={t('filterAddressBookSearch')}
+                disabled={pickupLocationChoices.length === 0 && !draft.pickup_location_name}
+                menuFixed
+                direction="auto"
+              />
+            </div>
+            <div className="mgmt-pop-field">
+              <span className="mgmt-pop-label">{t('filterAddressBookDropoff')}</span>
+              <SearchableSelect
+                options={dropoffLocationSelectOptions}
+                value={draft.dropoff_location_name}
+                onChange={(v) => update('dropoff_location_name', v)}
+                placeholder={
+                  dropoffLocationChoices.length === 0
+                    ? t('filterNoAddressBookDropoffs')
+                    : t('filterAddressBookDropoffAll')
+                }
+                searchPlaceholder={t('filterAddressBookSearch')}
+                disabled={dropoffLocationChoices.length === 0 && !draft.dropoff_location_name}
+                menuFixed
+                direction="auto"
+              />
+            </div>
+
             <FilterLocationField
               id="filter-pickup-address"
-              label={t('filterPickupLocation')}
+              label={t('filterPickupCityAddress')}
               address={draft.pickup_address}
               lat={draft.pickup_lat}
               lng={draft.pickup_lng}
@@ -334,7 +403,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             />
             <FilterLocationField
               id="filter-dropoff-address"
-              label={t('filterDropoffLocation')}
+              label={t('filterDropoffCityAddress')}
               address={draft.dropoff_address}
               lat={draft.dropoff_lat}
               lng={draft.dropoff_lng}

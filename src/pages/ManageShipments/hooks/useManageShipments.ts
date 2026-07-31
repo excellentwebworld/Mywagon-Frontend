@@ -14,10 +14,12 @@ import {
   countForStatusTab,
   customersFromShipments,
   DEFAULT_FILTERS,
+  dropoffLocationsFromShipments,
   filtersToApiParams,
   isShipmentEditable,
   kpiLabelKey,
   parseStatusTabParam,
+  pickupLocationsFromShipments,
   resolvePreferredStatusTab,
   statusTabHasApiSupport,
   statusTabToApiStatus,
@@ -91,6 +93,8 @@ export function useManageShipments() {
   /** Transporter / customer dropdown options for the active status tab list. */
   const [filterTransporterOptions, setFilterTransporterOptions] = useState<string[]>([]);
   const [filterCustomerOptions, setFilterCustomerOptions] = useState<string[]>([]);
+  const [filterPickupLocationOptions, setFilterPickupLocationOptions] = useState<string[]>([]);
+  const [filterDropoffLocationOptions, setFilterDropoffLocationOptions] = useState<string[]>([]);
 
   const isOutbound = direction === 'outbound';
 
@@ -181,6 +185,8 @@ export function useManageShipments() {
   useEffect(() => {
     setFilterTransporterOptions(transportersFromShipments(shipments));
     setFilterCustomerOptions(customersFromShipments(shipments));
+    setFilterPickupLocationOptions(pickupLocationsFromShipments(shipments));
+    setFilterDropoffLocationOptions(dropoffLocationsFromShipments(shipments));
   }, [shipments]);
 
   useEffect(() => {
@@ -191,6 +197,8 @@ export function useManageShipments() {
       ...appliedFilters,
       carrier_name: '',
       customer: '',
+      pickup_location_name: '',
+      dropoff_location_name: '',
     });
     const perPage = Math.min(Math.max(meta.total || shipments.length || 10, 10), 200);
 
@@ -208,6 +216,8 @@ export function useManageShipments() {
         if (cancelled) return;
         setFilterTransporterOptions(transportersFromShipments(rows));
         setFilterCustomerOptions(customersFromShipments(rows));
+        setFilterPickupLocationOptions(pickupLocationsFromShipments(rows));
+        setFilterDropoffLocationOptions(dropoffLocationsFromShipments(rows));
       })
       .catch(() => {
         // Keep seeded page options on failure.
@@ -897,6 +907,8 @@ export function useManageShipments() {
     filterChips,
     filterTransporterOptions,
     filterCustomerOptions,
+    filterPickupLocationOptions,
+    filterDropoffLocationOptions,
     handleClearFilterChip,
     handleClearAllFilters,
     kpiChip,

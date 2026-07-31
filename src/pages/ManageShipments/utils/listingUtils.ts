@@ -125,6 +125,8 @@ export interface ShipmentsFilterState {
   carrier_name: string;
   product_type: string[];
   channel: 'all' | 'private' | 'public';
+  pickup_location_name: string;
+  dropoff_location_name: string;
   pickup_address: string;
   pickup_lat: number | null;
   pickup_lng: number | null;
@@ -152,6 +154,8 @@ export const DEFAULT_FILTERS: ShipmentsFilterState = {
   carrier_name: '',
   product_type: [],
   channel: 'all',
+  pickup_location_name: '',
+  dropoff_location_name: '',
   pickup_address: '',
   pickup_lat: null,
   pickup_lng: null,
@@ -281,6 +285,12 @@ export function filtersToApiParams(filters: ShipmentsFilterState): Omit<ListShip
   if (filters.carrier_name.trim()) params.carrier_name = filters.carrier_name.trim();
   if (filters.product_type.length) params.product_type = filters.product_type;
   if (filters.channel !== 'all') params.channel = filters.channel;
+  if (filters.pickup_location_name.trim()) {
+    params.pickup_location_name = filters.pickup_location_name.trim();
+  }
+  if (filters.dropoff_location_name.trim()) {
+    params.dropoff_location_name = filters.dropoff_location_name.trim();
+  }
 
   if (filters.pickup_lat != null && filters.pickup_lng != null) {
     params.pickup_lat = filters.pickup_lat;
@@ -367,10 +377,33 @@ export function customersFromShipments(
   return uniqueSortedNames(shipments.flatMap((s) => (s.customer ?? []).map((c) => c.name || '')));
 }
 
+function isUsableLocationLabel(name: string): boolean {
+  const n = name.trim();
+  if (!n) return false;
+  if (n === '—' || n === '-' || n.toLowerCase() === 'n/a') return false;
+  return true;
+}
+
+/** Unique Address Book pickup location names from the shipments currently in view. */
+export function pickupLocationsFromShipments(shipments: { origin?: string | null }[]): string[] {
+  return uniqueSortedNames(
+    shipments.map((s) => s.origin || '').filter(isUsableLocationLabel)
+  );
+}
+
+/** Unique Address Book dropoff location names from the shipments currently in view. */
+export function dropoffLocationsFromShipments(shipments: { dest?: string | null }[]): string[] {
+  return uniqueSortedNames(
+    shipments.map((s) => s.dest || '').filter(isUsableLocationLabel)
+  );
+}
+
 export type FilterChipKey =
   | 'carrier_name'
   | 'product_type'
   | 'channel'
+  | 'pickup_location_name'
+  | 'dropoff_location_name'
   | 'pickup'
   | 'dropoff'
   | 'trip_km'
@@ -407,18 +440,30 @@ export function buildFilterChips(
       label: `${t('filterChannel')}: ${filters.channel === 'private' ? t('filterChannelPrivate') : t('filterChannelPublic')}`,
     });
   }
+  if (filters.pickup_location_name.trim()) {
+    chips.push({
+      key: 'pickup_location_name',
+      label: `${t('filterAddressBookPickup')}: ${filters.pickup_location_name.trim()}`,
+    });
+  }
+  if (filters.dropoff_location_name.trim()) {
+    chips.push({
+      key: 'dropoff_location_name',
+      label: `${t('filterAddressBookDropoff')}: ${filters.dropoff_location_name.trim()}`,
+    });
+  }
   if (filters.pickup_lat != null && filters.pickup_lng != null) {
     const place = filters.pickup_address || `${filters.pickup_lat}, ${filters.pickup_lng}`;
     chips.push({
       key: 'pickup',
-      label: `${t('filterPickupLocation')}: ${place} (${filters.pickup_radius ?? 50} km)`,
+      label: `${t('filterPickupCityAddress')}: ${place} (${filters.pickup_radius ?? 50} km)`,
     });
   }
   if (filters.dropoff_lat != null && filters.dropoff_lng != null) {
     const place = filters.dropoff_address || `${filters.dropoff_lat}, ${filters.dropoff_lng}`;
     chips.push({
       key: 'dropoff',
-      label: `${t('filterDropoffLocation')}: ${place} (${filters.dropoff_radius ?? 50} km)`,
+      label: `${t('filterDropoffCityAddress')}: ${place} (${filters.dropoff_radius ?? 50} km)`,
     });
   }
   if (filters.trip_km_min || filters.trip_km_max) {
@@ -482,6 +527,10 @@ export function clearFilterChip(filters: ShipmentsFilterState, key: FilterChipKe
       return { ...filters, product_type: [] };
     case 'channel':
       return { ...filters, channel: 'all' };
+    case 'pickup_location_name':
+      return { ...filters, pickup_location_name: '' };
+    case 'dropoff_location_name':
+      return { ...filters, dropoff_location_name: '' };
     case 'pickup':
       return {
         ...filters,

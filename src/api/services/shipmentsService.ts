@@ -55,6 +55,8 @@ function toQuery(params: ListShipmentsParams): Record<string, string | number> {
   assign('posted_to', params.posted_to);
   assign('bid_state', params.bid_state);
   assign('customer', params.customer);
+  assign('pickup_location_name', params.pickup_location_name);
+  assign('dropoff_location_name', params.dropoff_location_name);
   assign('trip_mode', params.trip_mode);
   assign('direction', params.direction);
   if (params.ids?.length) {

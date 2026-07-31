@@ -211,6 +211,8 @@ export interface ListShipmentsParams {
   posted_to?: string;
   bid_state?: 'has_interest' | 'no_interest';
   customer?: string;
+  pickup_location_name?: string;
+  dropoff_location_name?: string;
   trip_mode?: 'direct' | 'multiple';
   direction?: 'outbound' | 'inbound';
   ids?: number[];
