@@ -11,6 +11,7 @@ import { DatePicker, getTodayDateString } from '../ui/DatePicker';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { TimePicker } from '../ui/TimePicker';
 import { FilterLocationField } from './FilterLocationField';
+import { ProductTypeMultiSelect } from './ProductTypeMultiSelect';
 
 interface FilterModalProps {
   open: boolean;
@@ -107,15 +108,12 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const [productTree, setProductTree] = useState<
     Array<{ id: string; name: string; skus: Array<{ id: string; name: string }> }>
   >([]);
-  const [productSearch, setProductSearch] = useState('');
-  const [expandedTypes, setExpandedTypes] = useState<Record<string, boolean>>({});
   const [rangeError, setRangeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setDraft(filters);
       setRangeError(null);
-      setProductSearch('');
     }
   }, [open, filters]);
 
@@ -176,20 +174,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     return map;
   }, [productTree]);
 
-  const filteredProductTree = useMemo(() => {
-    const q = productSearch.trim().toLowerCase();
-    if (!q) return productTree;
-    return productTree
-      .map((pt) => {
-        const typeMatch = pt.name.toLowerCase().includes(q);
-        const skus = pt.skus.filter((s) => s.name.toLowerCase().includes(q));
-        if (typeMatch) return pt;
-        if (skus.length === 0) return null;
-        return { ...pt, skus };
-      })
-      .filter(Boolean) as typeof productTree;
-  }, [productTree, productSearch]);
-
   const transporterChoices = useMemo(
     () => withSelectedOption(transporterOptions, draft.carrier_name),
     [transporterOptions, draft.carrier_name]
@@ -219,20 +203,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   const update = <K extends keyof ShipmentsFilterState>(key: K, value: ShipmentsFilterState[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
     setRangeError(null);
-  };
-
-  const toggleProductToken = (id: string) => {
-    setDraft((prev) => {
-      const has = prev.product_type.includes(id);
-      return {
-        ...prev,
-        product_type: has ? prev.product_type.filter((x) => x !== id) : [...prev.product_type, id],
-      };
-    });
-  };
-
-  const toggleTypeExpanded = (id: string) => {
-    setExpandedTypes((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   if (!open) return null;
@@ -279,71 +249,26 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 
             <div className="mgmt-pop-field">
               <span className="mgmt-pop-label">{t('filterProductType')}</span>
-              <div className="mgmt-product-filter">
-                <input
-                  type="search"
-                  className="mgmt-product-filter-search"
-                  value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
-                  placeholder={t('filterProductSearch') || 'Search product type or SKU…'}
-                />
-                <div className="mgmt-product-filter-tree">
-                  {filteredProductTree.length === 0 ? (
-                    <span className="mgmt-pop-hint">{t('filterNoProductTypes')}</span>
-                  ) : (
-                    filteredProductTree.map((pt) => {
-                      const typeActive = draft.product_type.includes(pt.id);
-                      const openType = Boolean(expandedTypes[pt.id]) || Boolean(productSearch.trim());
-                      const selectedSkuCount = pt.skus.filter((s) =>
-                        draft.product_type.includes(s.id)
-                      ).length;
-                      return (
-                        <div key={pt.id} className="mgmt-product-type">
-                          <div className="mgmt-product-type-row">
-                            <button
-                              type="button"
-                              className="mgmt-product-type-chev"
-                              aria-expanded={openType}
-                              onClick={() => toggleTypeExpanded(pt.id)}
-                            >
-                              {openType ? '▾' : '▸'}
-                            </button>
-                            <label className="mgmt-product-type-label">
-                              <input
-                                type="checkbox"
-                                checked={typeActive}
-                                onChange={() => toggleProductToken(pt.id)}
-                              />
-                              <span>{pt.name}</span>
-                              {selectedSkuCount > 0 ? (
-                                <span className="mgmt-product-type-count">{selectedSkuCount}</span>
-                              ) : null}
-                            </label>
-                          </div>
-                          {openType ? (
-                            <div className="mgmt-product-sku-list">
-                              {pt.skus.length === 0 ? (
-                                <span className="mgmt-pop-hint">{t('filterNoSkus') || 'No SKUs'}</span>
-                              ) : (
-                                pt.skus.map((sku) => (
-                                  <label key={sku.id} className="mgmt-product-sku-row">
-                                    <input
-                                      type="checkbox"
-                                      checked={draft.product_type.includes(sku.id)}
-                                      onChange={() => toggleProductToken(sku.id)}
-                                    />
-                                    <span>{sku.name}</span>
-                                  </label>
-                                ))
-                              )}
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
+              <ProductTypeMultiSelect
+                tree={productTree}
+                value={draft.product_type}
+                onChange={(next) => update('product_type', next)}
+                placeholder={
+                  productTree.length === 0 ? t('filterNoProductTypes') : t('filterProductAll')
+                }
+                searchPlaceholder={t('filterProductSearch')}
+                emptyLabel={t('filterNoProductTypes')}
+                clearLabel={t('filterProductAll')}
+                skuSingular={t('filterSkuSingular') || 'SKU'}
+                skuPlural={t('filterSkuPlural') || 'SKUs'}
+                selectedCountLabel={(count) =>
+                  (t('filterProductSelectedCount') || '{{count}} selected').replace(
+                    '{{count}}',
+                    String(count)
+                  )
+                }
+                disabled={productTree.length === 0 && draft.product_type.length === 0}
+              />
             </div>
 
             <div className="mgmt-pop-field">
