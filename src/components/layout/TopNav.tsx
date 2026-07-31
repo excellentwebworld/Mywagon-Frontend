@@ -2,7 +2,7 @@
  * TopNav — horizontal nav when Appearance → Top menu.
  * Dropdowns match MV_Web_Panel_React TopNav (hover menus with icons + left accent).
  */
-import { useRef, useState, type ComponentType } from 'react';
+import { useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ChevronDown,
@@ -18,6 +18,7 @@ import {
   CreditCard,
   Star,
   HelpCircle,
+  type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -27,7 +28,7 @@ type NavItem = {
   labelKey: string;
   fallback: string;
   route: string;
-  icon: ComponentType<{ size?: number }>;
+  icon: LucideIcon;
   tag?: string;
 };
 
