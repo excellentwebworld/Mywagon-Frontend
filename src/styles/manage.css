@@ -1293,23 +1293,40 @@
   display: inline-flex;
   align-items: center;
 }
-.mgmt-kpi-at-risk-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
 .mgmt-kpi-at-risk-warn {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  z-index: 2;
   display: inline-flex;
   width: 10px;
   height: 10px;
   color: #991b1b;
   flex-shrink: 0;
   line-height: 0;
+  pointer-events: none;
 }
 .mgmt-kpi-at-risk-warn svg {
   display: block;
   width: 10px;
   height: 10px;
+}
+.status-at-risk-warn {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  z-index: 2;
+  display: inline-flex;
+  width: 9px;
+  height: 9px;
+  color: #991b1b;
+  line-height: 0;
+  pointer-events: none;
+}
+.status-at-risk-warn svg {
+  display: block;
+  width: 9px;
+  height: 9px;
 }
 .status-box .bdot {
   width: 6px;
