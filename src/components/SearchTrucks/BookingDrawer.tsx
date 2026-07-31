@@ -394,7 +394,6 @@ function MatchScorePanel({
       ) : (
         <div
           className="sat-match-grid"
-          onMouseEnter={!canView ? onUpgrade : undefined}
           onClick={!canView ? onUpgrade : undefined}
           role={!canView ? 'button' : undefined}
           tabIndex={!canView ? 0 : undefined}
@@ -451,19 +450,31 @@ function MatchScorePremiumDialog({
 }) {
   if (!open) return null;
 
+  const handleClose = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClose();
+  };
+
   return (
     <div
       className="sat-gate-modal sat-match-premium-dialog"
       role="dialog"
       aria-modal="true"
       aria-labelledby="sat-match-premium-title"
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
     >
       <div
         className="sat-gate-modal__backdrop"
-        onClick={onClose}
+        onMouseDown={handleClose}
         role="presentation"
       />
-      <div className="sat-gate-modal__panel">
+      <div
+        className="sat-gate-modal__panel"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sat-gate-modal__body">
           <h2 id="sat-match-premium-title" className="sat-gate-modal__title">
             {t('satMatchPremiumTitle') || 'Premium Feature'}
@@ -474,7 +485,7 @@ function MatchScorePremiumDialog({
           </p>
         </div>
         <div className="sat-gate-modal__actions">
-          <button type="button" className="sat-btn" onClick={onClose}>
+          <button type="button" className="sat-btn" onMouseDown={handleClose}>
             {t('close') || t('satRemindLater') || 'Close'}
           </button>
           {upgradeUrl ? (
@@ -723,6 +734,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
   const [matchPremiumOpen, setMatchPremiumOpen] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const matchPremiumDismissedUntilRef = useRef(0);
 
   const selectedPending =
     selectedPendingIdx != null ? pending[selectedPendingIdx] : null;
@@ -738,7 +750,14 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
       (Number.isFinite(offerAmount) && offerAmount > 0));
 
   const openMatchPremiumDialog = () => {
+    // Ignore ghost click / mouseenter right after Close (modal unmounts under cursor).
+    if (Date.now() < matchPremiumDismissedUntilRef.current) return;
     setMatchPremiumOpen(true);
+  };
+
+  const closeMatchPremiumDialog = () => {
+    matchPremiumDismissedUntilRef.current = Date.now() + 400;
+    setMatchPremiumOpen(false);
   };
 
   useEffect(() => {
@@ -1201,7 +1220,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
       <MatchScorePremiumDialog
         open={matchPremiumOpen}
         upgradeUrl={upgradeUrl}
-        onClose={() => setMatchPremiumOpen(false)}
+        onClose={closeMatchPremiumDialog}
         t={t}
       />
     </div>
