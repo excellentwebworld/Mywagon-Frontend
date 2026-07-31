@@ -260,12 +260,16 @@ function filterMockTrucks(
 
   if (hasDropoffGeo && ac.dropoffLat != null && ac.dropoffLng != null) {
     const radiusKm = ac.dropoffRadius ?? 100;
+    const q = ac.dropoffCity.trim().toLowerCase();
     data = data.filter((x) => {
-      if (x.destLat == null || x.destLng == null) return x.dest === 'Any';
+      if (x.destLat == null || x.destLng == null) return true;
+      if (x.dest === 'Any' || !x.dest.trim()) return true;
       const dLat = (x.destLat - ac.dropoffLat!) * 111;
       const dLng =
         (x.destLng - ac.dropoffLng!) * 111 * Math.cos((ac.dropoffLat! * Math.PI) / 180);
-      return Math.hypot(dLat, dLng) <= radiusKm;
+      const inRadius = Math.hypot(dLat, dLng) <= radiusKm;
+      if (inRadius) return true;
+      return q ? x.dest.toLowerCase().includes(q) : false;
     });
   } else if (ac.dropoffCity.trim()) {
     const q = ac.dropoffCity.trim().toLowerCase();

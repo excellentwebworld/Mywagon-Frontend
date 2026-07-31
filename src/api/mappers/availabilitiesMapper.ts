@@ -417,6 +417,9 @@ export function buildListParams(input: {
     params.dropoff_lat = criteria.dropoffLat!;
     params.dropoff_lng = criteria.dropoffLng!;
     params.dropoff_radius = criteria.dropoffRadius ?? 100;
+    if (criteria.dropoffCity.trim()) {
+      params.dropoff_city = criteria.dropoffCity.trim();
+    }
   } else if (criteria.dropoffCity.trim()) {
     params.dropoff_city = criteria.dropoffCity.trim();
   }
