@@ -27,13 +27,6 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ counts, activeKpi, onKpiClic
         tabIndex={0}
         onKeyDown={(e) => e.key === 'Enter' && onKpiClick(activeKpi === kpi.key ? null : kpi.key)}
       >
-        {kpi.key === 'at_risk' ? (
-          <span className="mgmt-kpi-at-risk-warn" aria-hidden title={t(kpi.labelKey)}>
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3L22 21H2L12 3z" />
-            </svg>
-          </span>
-        ) : null}
         <div className="mgmt-kpi-v">{counts[kpi.key] ?? 0}</div>
         <div className="mgmt-kpi-l">{t(kpi.labelKey)}</div>
       </div>

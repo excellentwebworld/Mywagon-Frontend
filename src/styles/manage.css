@@ -1298,24 +1298,6 @@
 .status-box-wrap.is-at-risk {
   padding-right: 2px;
 }
-.mgmt-kpi-at-risk-warn {
-  position: absolute;
-  top: 5px;
-  right: 6px;
-  z-index: 2;
-  display: inline-flex;
-  width: 10px;
-  height: 10px;
-  color: #991b1b;
-  flex-shrink: 0;
-  line-height: 0;
-  pointer-events: none;
-}
-.mgmt-kpi-at-risk-warn svg {
-  display: block;
-  width: 10px;
-  height: 10px;
-}
 .status-at-risk-warn {
   position: absolute;
   top: -2px;
