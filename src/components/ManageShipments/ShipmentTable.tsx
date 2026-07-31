@@ -260,14 +260,27 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                   </td>
                   <td className="col-status">
                     <div className="status-cell">
-                      {row.status === 'partially_fullfilled' ? (
-                        <span className={`${badgeClass} status-box--partial-compact`}>
-                          <span className="status-partial-left">{t('partially')}</span>
-                          <span className="status-partial-right">{t('fulfilled')}</span>
-                        </span>
-                      ) : (
-                        <span className={badgeClass}>{t(row.status)}</span>
-                      )}
+                      <span className={`status-box-wrap${row.at_risk ? ' is-at-risk' : ''}`}>
+                        {row.status === 'partially_fullfilled' ? (
+                          <span className={`${badgeClass} status-box--partial-compact`}>
+                            <span className="status-partial-left">{t('partially')}</span>
+                            <span className="status-partial-right">{t('fulfilled')}</span>
+                          </span>
+                        ) : (
+                          <span className={badgeClass}>{t(row.status)}</span>
+                        )}
+                        {row.at_risk ? (
+                          <span
+                            className="status-at-risk-warn"
+                            aria-label={t('atRiskLate')}
+                            title={t('atRiskLate')}
+                          >
+                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                              <path d="M12 3L22 21H2L12 3z" />
+                            </svg>
+                          </span>
+                        ) : null}
+                      </span>
                       {row.paymentStatus === 'paid' ? (
                         <span className="badge badge-success payment-subtag">
                           {t('paymentPaid')}

@@ -55,16 +55,29 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
         <div className="exp-section-head">
           <ExpHeading icon="progress">
             {t('progress')} —{' '}
-            <span
-              className={statusBadgeClass(shipment.status, Boolean(shipment.at_risk), {
-                bidsReceived: shipment.bidsReceived ?? 0,
-                bidsSent: shipment.bidsSent ?? 0,
-                interestedCount: shipment.interestedCount ?? 0,
-                awaitingResponse: Boolean(shipment.awaitingResponse),
-                needsAction: Boolean(shipment.needsAction),
-              })}
-            >
-              {t(shipment.status)}
+            <span className={`status-box-wrap${shipment.at_risk ? ' is-at-risk' : ''}`}>
+              <span
+                className={statusBadgeClass(shipment.status, Boolean(shipment.at_risk), {
+                  bidsReceived: shipment.bidsReceived ?? 0,
+                  bidsSent: shipment.bidsSent ?? 0,
+                  interestedCount: shipment.interestedCount ?? 0,
+                  awaitingResponse: Boolean(shipment.awaitingResponse),
+                  needsAction: Boolean(shipment.needsAction),
+                })}
+              >
+                {t(shipment.status)}
+              </span>
+              {shipment.at_risk ? (
+                <span
+                  className="status-at-risk-warn"
+                  aria-label={t('atRiskLate')}
+                  title={t('atRiskLate')}
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M12 3L22 21H2L12 3z" />
+                  </svg>
+                </span>
+              ) : null}
             </span>
           </ExpHeading>
           <div className="exp-head-actions">

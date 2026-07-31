@@ -1260,6 +1260,7 @@
   align-items: flex-start;
   gap: 4px;
   max-width: 148px;
+  overflow: visible;
 }
 .status-cell-meta {
   display: flex;
@@ -1292,6 +1293,10 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  overflow: visible;
+}
+.status-box-wrap.is-at-risk {
+  padding-right: 2px;
 }
 .mgmt-kpi-at-risk-warn {
   position: absolute;

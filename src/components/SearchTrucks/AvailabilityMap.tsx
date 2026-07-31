@@ -199,6 +199,8 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
   searchAreaCbRef.current = onSearchThisArea;
   const selectedIdRef = useRef(selectedId);
   selectedIdRef.current = selectedId;
+  const prevSelectedIdRef = useRef<string | null>(selectedId);
+  const prevTruckIdsKeyRef = useRef('');
   const autoBoundsTimerRef = useRef<number | null>(null);
   const [, setTick] = useState(0);
   const [sheetExpanded, setSheetExpanded] = useState(false);
@@ -350,11 +352,22 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
     });
   }, [trucks, hoveredId, selectedId, onSelect, apiKey]);
 
-  // Fit camera to results / selection — not on hover.
+  // Fit camera to results / selection — not on hover, and not when only closing the detail panel.
   useEffect(() => {
     const maps = mapsApi();
     const map = mapRef.current;
     if (!maps || !map || !readyRef.current) return;
+
+    const truckIdsKey = trucks.map((t) => t.id).join(',');
+    const prevSelectedId = prevSelectedIdRef.current;
+    const prevTruckIdsKey = prevTruckIdsKeyRef.current;
+    prevSelectedIdRef.current = selectedId;
+    prevTruckIdsKeyRef.current = truckIdsKey;
+
+    // Closing left popup / clearing selection: keep current zoom & center; route effect removes polygon only.
+    if (prevSelectedId && !selectedId && prevTruckIdsKey === truckIdsKey) {
+      return;
+    }
 
     const hasSelection = Boolean(selectedId);
     const selected = trucks.find((x) => x.id === selectedId);
