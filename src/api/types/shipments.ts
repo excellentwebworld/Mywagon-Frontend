@@ -22,8 +22,12 @@ export type ShipmentSortKey =
   | 'latest_first_pickup_time'
   | 'earliest_posting_date'
   | 'latest_posting_date'
-  | 'price_asc'
-  | 'price_desc';
+  | 'updated_desc'
+  | 'updated_asc'
+  | 'quoted_price_asc'
+  | 'quoted_price_desc'
+  | 'agreed_price_asc'
+  | 'agreed_price_desc';
 
 export interface ApiShipmentListFlags {
   needs_action: boolean;

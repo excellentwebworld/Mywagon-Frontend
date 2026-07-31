@@ -689,7 +689,8 @@
   background: var(--accent-light);
 }
 
-.mgmt-t .col-last-update {
+.mgmt-t .col-last-update,
+.mgmt-t .col-date-created {
   min-width: 110px;
   padding-right: 8px;
 }
@@ -3538,7 +3539,8 @@
     width: 72px;
     padding-right: 12px;
   }
-  .mgmt-t .col-last-update {
+  .mgmt-t .col-last-update,
+  .mgmt-t .col-date-created {
     min-width: 96px;
   }
 }

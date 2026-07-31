@@ -97,8 +97,12 @@ export const SORT_OPTIONS: { value: SortKey; labelKey: string }[] = [
   { value: 'latest_first_pickup_time', labelKey: 'sortLatestPickup' },
   { value: 'earliest_posting_date', labelKey: 'sortEarliestPosted' },
   { value: 'latest_posting_date', labelKey: 'sortLatestPosted' },
-  { value: 'price_asc', labelKey: 'sortPriceAsc' },
-  { value: 'price_desc', labelKey: 'sortPriceDesc' },
+  { value: 'updated_desc', labelKey: 'sortUpdatedDesc' },
+  { value: 'updated_asc', labelKey: 'sortUpdatedAsc' },
+  { value: 'quoted_price_asc', labelKey: 'sortQuotedPriceAsc' },
+  { value: 'quoted_price_desc', labelKey: 'sortQuotedPriceDesc' },
+  { value: 'agreed_price_asc', labelKey: 'sortAgreedPriceAsc' },
+  { value: 'agreed_price_desc', labelKey: 'sortAgreedPriceDesc' },
 ];
 
 export const EMPTY_KPI_COUNTS: Record<ShipmentKpiKey, number> = {

@@ -16,7 +16,7 @@ import { RowExpansionPending } from './RowExpansionPending';
 import { RowExpansionStatus } from './RowExpansionStatus';
 import { CarrierAvatar } from './CarrierAvatar';
 
-const BASE_COL_COUNT = 11;
+const BASE_COL_COUNT = 12;
 
 interface ShipmentTableProps {
   loading?: boolean;
@@ -168,6 +168,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
           <th>{t('quotedPriceCol')}</th>
           <th>{t('agreedPriceCol')}</th>
           <th className="col-last-update">{t('lastUpdateCol')}</th>
+          <th className="col-date-created">{t('dateCreatedCol')}</th>
           <th className="col-actions">{t('actionsCol')}</th>
         </tr>
       </thead>
@@ -351,6 +352,11 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                   <td className="col-last-update">
                     <span className="ago">
                       {formatUtcToDisplayDateTime(row.updatedAt || row.updated || '') || '—'}
+                    </span>
+                  </td>
+                  <td className="col-date-created">
+                    <span className="ago">
+                      {formatUtcToDisplayDateTime(row.createdAt || '') || '—'}
                     </span>
                   </td>
                   <td className="col-actions" onClick={(e) => e.stopPropagation()}>
