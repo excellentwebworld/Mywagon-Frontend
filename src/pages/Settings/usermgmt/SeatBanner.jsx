@@ -1,22 +1,21 @@
 /**
- * SeatBanner — Displays seat usage progress bar and plan info.
- *
- * Shows: "8 of 10 seats used · Business Plan"
- * Progress bar fills based on usage percentage.
- * Warning color when ≥80% full, error when 100%.
+ * SeatBanner — seat usage from live subscription meta (dispatcher_users).
  */
 
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import { Crown, ArrowUpRight } from 'lucide-react';
-import { SEAT_CONFIG } from '../../../mocks/userMgmtData';
+import { useUserMgmt } from '../../../context/UserMgmtContext';
 
 export default function SeatBanner() {
   const { t } = useTranslation();
   const { T } = useTheme();
+  const { seats } = useUserMgmt();
 
-  const { usedSeats, totalSeats, plan } = SEAT_CONFIG;
-  const pct = Math.round((usedSeats / totalSeats) * 100);
+  const usedSeats = seats?.used ?? 0;
+  const totalSeats = seats?.total ?? 0;
+  const plan = seats?.plan || t('userMgmt.seats.currentPlan', { defaultValue: 'Current plan' });
+  const pct = totalSeats > 0 ? Math.round((usedSeats / totalSeats) * 100) : 0;
   const barColor = pct >= 100 ? '#EF4444' : pct >= 80 ? '#F59E0B' : T.ac;
 
   return (
@@ -24,7 +23,6 @@ export default function SeatBanner() {
       className="rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-3"
       style={{ background: T.sa, border: `1px solid ${T.bd}` }}
     >
-      {/* Left: info */}
       <div className="flex items-center gap-2.5 flex-1 min-w-0">
         <div
           className="flex items-center justify-center rounded-lg shrink-0"
@@ -35,7 +33,7 @@ export default function SeatBanner() {
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span style={{ fontSize: 14, fontWeight: 700, color: T.t1 }}>
-              {usedSeats} / {totalSeats}
+              {usedSeats} / {totalSeats || '—'}
             </span>
             <span style={{ fontSize: 12, color: T.t3 }}>
               {t('userMgmt.seats.used')}
@@ -47,7 +45,6 @@ export default function SeatBanner() {
         </div>
       </div>
 
-      {/* Center: progress bar */}
       <div className="flex-1 min-w-[120px] max-w-xs">
         <div
           className="w-full rounded-full overflow-hidden"
@@ -55,13 +52,13 @@ export default function SeatBanner() {
         >
           <div
             className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${pct}%`, background: barColor }}
+            style={{ width: `${Math.min(pct, 100)}%`, background: barColor }}
           />
         </div>
       </div>
 
-      {/* Right: upgrade */}
       <button
+        type="button"
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer border-none shrink-0 transition-opacity duration-150"
         style={{ background: T.ac, color: '#fff', fontSize: 12, fontWeight: 600 }}
         onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }}

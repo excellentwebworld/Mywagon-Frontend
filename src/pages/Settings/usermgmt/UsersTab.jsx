@@ -20,12 +20,12 @@ import PaginationBar from '../../../components/ui/PaginationBar';
 import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 import InviteUserModal from './modals/InviteUserModal';
 import {
-  SHIPPER_ROLES, ROLES_BY_KEY,
   USER_STATUS_CONFIG, getUserInitials, getUserFullName, getUserAvatarColor,
   getInviteStatus,
 } from '../../../mocks/userMgmtData';
-import { hasCustomDirectPermissions } from '../../../utils/shipperAccessPresets';
-
+import { hasCustomDirectPermissions, SHIPPER_ROLES, ROLES_BY_KEY } from '../../../utils/shipperAccessPresets';
+import { usersSettingsService } from '../../../api/services/usersSettingsService';
+import { ApiError } from '../../../api/client';
 const SORT_FIELDS = ['user', 'role', 'status', 'lastActive', 'created'];
 
 export default function UsersTab() {
@@ -33,8 +33,8 @@ export default function UsersTab() {
   const { T } = useTheme();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { users, setUsers, addUser, removeUser, updateUser } = useUserMgmt();
-
+  const { users, setUsers, addUser, updateUser, refresh, loading, error, roles } = useUserMgmt();
+  const roleFilterOptions = roles.length ? roles : SHIPPER_ROLES;
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState([]);
   const [statusFilter, setStatusFilter] = useState([]);
@@ -134,18 +134,29 @@ export default function UsersTab() {
     navigate(`/settings/users/${u.id}`);
   };
 
-  const handleReactivate = (u) => {
-    updateUser({ ...u, status: 'active' });
-    toast.success(t('userMgmt.toast.reactivated', { name: getUserFullName(u) }));
+  const handleReactivate = async (u) => {
+    try {
+      const updated = await usersSettingsService.reactivate(u.id);
+      updateUser(updated);
+      await refresh();
+      toast.success(t('userMgmt.toast.reactivated', { name: getUserFullName(u) }));
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));
+    }
     setActionMenu(null);
   };
   const handleDeactivate = (u) => {
     setConfirmDialog({
       title: t('userMgmt.confirm.deactivateTitle'),
       message: t('userMgmt.confirm.deactivateMsg', { name: getUserFullName(u) }),
-      onConfirm: () => {
-        updateUser({ ...u, status: 'deactivated' });
-        toast.success(t('userMgmt.toast.deactivated', { name: getUserFullName(u) }));
+      onConfirm: async () => {
+        try {
+          const updated = await usersSettingsService.deactivate(u.id);
+          updateUser(updated);
+          toast.success(t('userMgmt.toast.deactivated', { name: getUserFullName(u) }));
+        } catch (e) {
+          toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));
+        }
         setConfirmDialog(null);
       },
     });
@@ -156,8 +167,7 @@ export default function UsersTab() {
       message: t('userMgmt.confirm.deleteMsg', { name: getUserFullName(u) }),
       variant: 'danger',
       onConfirm: () => {
-        removeUser(u.id);
-        toast.success(t('userMgmt.toast.deleted', { name: getUserFullName(u) }));
+        toast.info(t('userMgmt.toast.deleteNotAvailable', { defaultValue: 'Permanent delete is not available yet. Deactivate the user instead.' }));
         setConfirmDialog(null);
       },
     });
@@ -166,9 +176,14 @@ export default function UsersTab() {
     setConfirmDialog({
       title: t('userMgmt.confirm.cancelInviteTitle'),
       message: t('userMgmt.confirm.cancelInviteMsg', { name: getUserFullName(u) }),
-      onConfirm: () => {
-        removeUser(u.id);
-        toast.success(t('userMgmt.toast.inviteCancelled'));
+      onConfirm: async () => {
+        try {
+          const updated = await usersSettingsService.deactivate(u.id);
+          updateUser(updated);
+          toast.success(t('userMgmt.toast.inviteCancelled'));
+        } catch (e) {
+          toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));
+        }
         setConfirmDialog(null);
       },
     });
@@ -178,8 +193,18 @@ export default function UsersTab() {
     setConfirmDialog({
       title: t('userMgmt.bulk.deactivate'),
       message: t('userMgmt.confirm.bulkDeactivateMsg', { count: selected.size }),
-      onConfirm: () => {
-        setUsers((prev) => prev.map((x) => (selected.has(x.id) ? { ...x, status: 'deactivated' } : x)));
+      onConfirm: async () => {
+        const ids = [...selected];
+        for (const id of ids) {
+          const u = users.find((x) => String(x.id) === String(id));
+          if (!u || u.isOwner || u.is_owner || u.status === 'deactivated') continue;
+          try {
+            const updated = await usersSettingsService.deactivate(id);
+            updateUser(updated);
+          } catch {
+            /* continue */
+          }
+        }
         toast.success(t('userMgmt.toast.bulkDeactivated', { count: selected.size }));
         setSelected(new Set());
         setConfirmDialog(null);
@@ -187,6 +212,15 @@ export default function UsersTab() {
     });
   };
 
+  const handleResendInvite = async (u) => {
+    try {
+      await usersSettingsService.resendInvite(u.id);
+      toast.success(t('userMgmt.toast.inviteResent', { email: u.email }));
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));
+    }
+    setActionMenu(null);
+  };
   const relTime = (iso) => {
     if (!iso) return t('userMgmt.table.never');
     const diff = Date.now() - new Date(iso).getTime();
@@ -208,6 +242,16 @@ export default function UsersTab() {
 
   return (
     <div className="flex flex-col h-full">
+      {error && (
+        <div className="mx-4 md:mx-6 mt-3 px-3 py-2 rounded-lg" style={{ background: '#FEF2F2', color: '#EF4444', fontSize: 12 }}>
+          {error}
+        </div>
+      )}
+      {loading && users.length === 0 && (
+        <div className="py-16 text-center" style={{ color: T.t3, fontSize: 13 }}>
+          {t('common.loading', { defaultValue: 'Loading…' })}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2 px-4 md:px-6 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
         <div className="relative" style={{ width: 220 }}>
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: T.t3 }} />
@@ -226,7 +270,7 @@ export default function UsersTab() {
           </button>
           {showRoleFilter && (
             <div className="absolute top-full left-0 mt-1 rounded-xl shadow-xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}`, zIndex: 50, minWidth: 180 }}>
-              {SHIPPER_ROLES.map((r) => (
+              {roleFilterOptions.map((r) => (
                 <label key={r.key} className="flex items-center gap-2 px-3 py-2 cursor-pointer" style={{ fontSize: 12, color: T.t1 }}>
                   <input type="checkbox" checked={roleFilter.includes(r.key)} onChange={() => {
                     setRoleFilter((prev) => (prev.includes(r.key) ? prev.filter((x) => x !== r.key) : [...prev, r.key]));
@@ -328,8 +372,8 @@ export default function UsersTab() {
                 onDeactivate={() => { handleDeactivate(u); setActionMenu(null); }}
                 onDelete={() => { handleDeletePermanently(u); setActionMenu(null); }}
                 onCancelInvite={() => { handleCancelInvite(u); setActionMenu(null); }}
-                onResendInvite={() => { toast.success(t('userMgmt.toast.inviteResent', { email: u.email })); setActionMenu(null); }}
-                onCopyLink={() => { navigator.clipboard?.writeText('https://app.myvagon.com/invite/mock-token'); toast.info(t('userMgmt.toast.linkCopied')); setActionMenu(null); }}
+                onResendInvite={() => { handleResendInvite(u); }}
+                onCopyLink={() => { navigator.clipboard?.writeText(window.location.origin); toast.info(t('userMgmt.toast.linkCopied')); setActionMenu(null); }}
                 onForceSignout={() => { toast.success(t('userMgmt.toast.sessionRevoked', { name: getUserFullName(u) })); setActionMenu(null); }}
                 relTime={relTime}
                 formatDate={formatDate}
@@ -364,10 +408,11 @@ export default function UsersTab() {
       <InviteUserModal
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
-        onInvite={(newUser) => {
+        onInvite={async (newUser) => {
           addUser(newUser);
           setInviteOpen(false);
           toast.success(t('userMgmt.toast.invited', { email: newUser.email }));
+          await refresh();
         }}
       />
 
@@ -390,12 +435,13 @@ function UserRow({
   onCancelInvite, onResendInvite, onCopyLink, onForceSignout,
   relTime, formatDate, actionMenuRef,
 }) {
-  const role = ROLES_BY_KEY[u.role];
+  const role = ROLES_BY_KEY[u.role] || { name: u.role, color: '#3B82F6' };
   const sc = USER_STATUS_CONFIG[u.status] || USER_STATUS_CONFIG.active;
   const inviteInfo = getInviteStatus(u);
   const displayStatus = inviteInfo?.label === 'expired' ? 'expired' : u.status;
   const statusCfg = USER_STATUS_CONFIG[displayStatus] || sc;
   const custom = hasCustomDirectPermissions(u);
+  const isOwner = !!(u.isOwner || u.is_owner);
 
   return (
     <tr onClick={onClick} className="cursor-pointer transition-colors duration-100"
@@ -414,7 +460,7 @@ function UserRow({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{getUserFullName(u)}</span>
-              {u.isOwner && <span title="Owner" style={{ fontSize: 13 }}>👑</span>}
+              {isOwner && <span title="Owner" style={{ fontSize: 13 }}>👑</span>}
             </div>
             <div style={{ fontSize: 11, color: T.t3 }}>{u.email}</div>
           </div>

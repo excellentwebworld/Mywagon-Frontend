@@ -1,42 +1,83 @@
 /**
- * UserMgmtContext — in-memory user list for Settings Users & Roles (mock Phase 2).
- * Keeps list / invite / edit page in sync until real APIs land.
+ * UserMgmtContext — live Users & Roles data (PDS-937 Spatie).
  */
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react';
-import { MOCK_USERS } from '../mocks/userMgmtData';
+import { usersSettingsService, type SeatMeta, type SettingsUser } from '../api/services/usersSettingsService';
+import {
+  rolesSettingsService,
+  type PermissionCatalogGroup,
+  type SettingsRole,
+} from '../api/services/rolesSettingsService';
 
-export type UserMgmtUser = (typeof MOCK_USERS)[number] & Record<string, unknown>;
+export type UserMgmtUser = SettingsUser & Record<string, unknown>;
 
 interface UserMgmtContextValue {
   users: UserMgmtUser[];
+  seats: SeatMeta | null;
+  roles: SettingsRole[];
+  permissionGroups: PermissionCatalogGroup[];
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
   setUsers: React.Dispatch<React.SetStateAction<UserMgmtUser[]>>;
   getUser: (id: string) => UserMgmtUser | undefined;
   updateUser: (user: UserMgmtUser) => void;
   addUser: (user: UserMgmtUser) => void;
   removeUser: (id: string) => void;
+  setRoles: React.Dispatch<React.SetStateAction<SettingsRole[]>>;
+  setPermissionGroups: React.Dispatch<React.SetStateAction<PermissionCatalogGroup[]>>;
+  setSeats: React.Dispatch<React.SetStateAction<SeatMeta | null>>;
 }
 
 const UserMgmtContext = createContext<UserMgmtContextValue | null>(null);
 
 export function UserMgmtProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useState<UserMgmtUser[]>(() =>
-    MOCK_USERS.map((u) => ({ ...u })),
-  );
+  const [users, setUsers] = useState<UserMgmtUser[]>([]);
+  const [seats, setSeats] = useState<SeatMeta | null>(null);
+  const [roles, setRoles] = useState<SettingsRole[]>([]);
+  const [permissionGroups, setPermissionGroups] = useState<PermissionCatalogGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [usersPayload, rolesPayload] = await Promise.all([
+        usersSettingsService.list(),
+        rolesSettingsService.list(),
+      ]);
+      setUsers((usersPayload.users || []).map((u) => ({ ...u })));
+      setSeats(usersPayload.seats || null);
+      setRoles(rolesPayload.roles || []);
+      setPermissionGroups(rolesPayload.groups || []);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Failed to load users & roles';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   const getUser = useCallback(
-    (id: string) => users.find((u) => u.id === id),
+    (id: string) => users.find((u) => String(u.id) === String(id)),
     [users],
   );
 
   const updateUser = useCallback((user: UserMgmtUser) => {
-    setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, ...user } : u)));
+    setUsers((prev) => prev.map((u) => (String(u.id) === String(user.id) ? { ...u, ...user } : u)));
   }, []);
 
   const addUser = useCallback((user: UserMgmtUser) => {
@@ -44,12 +85,40 @@ export function UserMgmtProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const removeUser = useCallback((id: string) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+    setUsers((prev) => prev.filter((u) => String(u.id) !== String(id)));
   }, []);
 
   const value = useMemo(
-    () => ({ users, setUsers, getUser, updateUser, addUser, removeUser }),
-    [users, getUser, updateUser, addUser, removeUser],
+    () => ({
+      users,
+      seats,
+      roles,
+      permissionGroups,
+      loading,
+      error,
+      refresh,
+      setUsers,
+      getUser,
+      updateUser,
+      addUser,
+      removeUser,
+      setRoles,
+      setPermissionGroups,
+      setSeats,
+    }),
+    [
+      users,
+      seats,
+      roles,
+      permissionGroups,
+      loading,
+      error,
+      refresh,
+      getUser,
+      updateUser,
+      addUser,
+      removeUser,
+    ],
   );
 
   return <UserMgmtContext.Provider value={value}>{children}</UserMgmtContext.Provider>;

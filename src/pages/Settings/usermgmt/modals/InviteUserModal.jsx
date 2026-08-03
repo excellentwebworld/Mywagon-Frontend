@@ -1,25 +1,38 @@
 /**
- * InviteUserModal — single-step invite (PDS-937 Phase 2).
- * Identity + Admin/Dispatcher preset only. Access Scope removed.
- * Seeds directPermissions from preset (hybrid / old-platform compatible).
+ * InviteUserModal — invite via settings/users/invite API.
  */
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Send } from 'lucide-react';
 import { useTheme } from '../../../../hooks/useTheme';
-import { SHIPPER_ROLES } from '../../../../mocks/userMgmtData';
-import { seedDirectPermissionsForInvite } from '../../../../utils/shipperAccessPresets';
+import { useUserMgmt } from '../../../../context/UserMgmtContext';
+import { usersSettingsService } from '../../../../api/services/usersSettingsService';
+import { ApiError } from '../../../../api/client';
+import { SHIPPER_ROLES } from '../../../../utils/shipperAccessPresets';
 
 export default function InviteUserModal({ open, onClose, onInvite }) {
   const { t } = useTranslation();
   const { T } = useTheme();
+  const { roles, seats, setSeats } = useUserMgmt();
+
+  const roleOptions = roles.length
+    ? roles.map((r) => ({
+        key: r.key,
+        name: r.name,
+        color: r.color,
+        description: r.description,
+        permissions: r.permissions,
+        permission_names: r.permission_names,
+      }))
+    : SHIPPER_ROLES;
 
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     role: '', message: '',
   });
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
 
@@ -34,34 +47,43 @@ export default function InviteUserModal({ open, onClose, onInvite }) {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!validate()) return;
-    const now = new Date().toISOString();
-    const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    const newUser = {
-      id: `USR-${String(Date.now()).slice(-3)}`,
-      firstName: form.firstName.trim(),
-      lastName: form.lastName.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim() || null,
-      jobTitle: null,
-      department: null,
-      role: form.role,
-      status: 'invited',
-      mfa: false,
-      isOwner: false,
-      directPermissions: seedDirectPermissionsForInvite(form.role),
-      lastActive: null,
-      created: now,
-      lastPasswordChange: null,
-      inviteSentAt: now,
-      inviteExpiresAt: expires,
-      timezone: 'Europe/Athens',
-      locale: 'el',
-    };
-    onInvite(newUser);
-    setForm({ firstName: '', lastName: '', email: '', phone: '', role: '', message: '' });
-    setErrors({});
+    if (seats && seats.can_invite === false) {
+      setErrors({ email: t('userMgmt.seats.limitReached', { defaultValue: 'Seat limit reached' }) });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const created = await usersSettingsService.invite({
+        first_name: form.firstName.trim(),
+        last_name: form.lastName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim() || null,
+        role: form.role,
+      });
+      onInvite(created);
+      setForm({ firstName: '', lastName: '', email: '', phone: '', role: '', message: '' });
+      setErrors({});
+      // Refresh seats via list is handled by parent refresh ideally; bump used locally.
+      if (seats) {
+        setSeats({
+          ...seats,
+          used: (seats.used || 0) + 1,
+          remaining: Math.max(0, (seats.remaining || 0) - 1),
+          can_invite: (seats.remaining || 0) - 1 > 0,
+        });
+      }
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.inviteFailed', { defaultValue: 'Invite failed' });
+      if (e instanceof ApiError && e.fieldErrors?.email?.[0]) {
+        setErrors({ email: e.fieldErrors.email[0] });
+      } else {
+        setErrors({ email: msg });
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleClose = () => {
@@ -117,8 +139,11 @@ export default function InviteUserModal({ open, onClose, onInvite }) {
             </label>
             {errors.role && <p style={{ fontSize: 11, color: '#EF4444', marginBottom: 4 }}>{errors.role}</p>}
             <div className="grid grid-cols-2 gap-2">
-              {SHIPPER_ROLES.map((role) => {
+              {roleOptions.map((role) => {
                 const sel = form.role === role.key;
+                const permCount = role.permissions === null
+                  ? null
+                  : (role.permission_names || role.permissions || []).length;
                 return (
                   <button
                     type="button"
@@ -137,9 +162,9 @@ export default function InviteUserModal({ open, onClose, onInvite }) {
                     </div>
                     <p style={{ fontSize: 10, color: T.t3, lineHeight: 1.4 }}>{role.description}</p>
                     <div style={{ fontSize: 10, color: T.t3, marginTop: 4 }}>
-                      {role.permissions === null
+                      {permCount === null
                         ? t('userMgmt.invite.allPermissions')
-                        : t('userMgmt.invite.permCount', { n: role.permissions.length })
+                        : t('userMgmt.invite.permCount', { n: permCount })
                       }
                     </div>
                   </button>
@@ -147,30 +172,20 @@ export default function InviteUserModal({ open, onClose, onInvite }) {
               })}
             </div>
           </div>
-
-          <Field label={t('userMgmt.invite.personalMessage')}>
-            <textarea
-              value={form.message}
-              onChange={(e) => set('message', e.target.value)}
-              placeholder={t('userMgmt.invite.personalMessagePlaceholder')}
-              rows={2}
-              className="w-full px-3 py-2 rounded-lg outline-none resize-none"
-              style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
-            />
-          </Field>
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: `1px solid ${T.bd}` }}>
-          <button type="button" onClick={handleClose}
-            className="px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
-            style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 13 }}>
+        <div className="flex justify-end gap-2 px-6 py-4" style={{ borderTop: `1px solid ${T.bd}` }}>
+          <button type="button" onClick={handleClose} className="px-4 py-2 rounded-lg cursor-pointer border-none" style={{ background: T.sa, color: T.t2, fontSize: 13 }}>
             {t('common.cancel')}
           </button>
-          <button type="button" onClick={handleSend}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
-            style={{ background: T.ac, color: '#fff', fontSize: 13 }}>
-            <Send size={14} />
-            {t('userMgmt.invite.sendInvitation')}
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={submitting}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
+            style={{ background: T.ac, color: '#fff', fontSize: 13, opacity: submitting ? 0.7 : 1 }}
+          >
+            <Send size={14} /> {submitting ? t('common.saving', { defaultValue: 'Sending…' }) : t('userMgmt.invite.sendInvitation')}
           </button>
         </div>
       </div>
@@ -179,14 +194,13 @@ export default function InviteUserModal({ open, onClose, onInvite }) {
 }
 
 function Field({ label, required, error, children }) {
-  const { T } = useTheme();
   return (
     <div>
-      <label className="block mb-1.5" style={{ fontSize: 12, fontWeight: 600, color: T.t1 }}>
+      <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600 }}>
         {label} {required && <span style={{ color: '#EF4444' }}>*</span>}
       </label>
       {children}
-      {error && <p style={{ fontSize: 11, color: '#EF4444', marginTop: 3 }}>{error}</p>}
+      {error && <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{error}</p>}
     </div>
   );
 }

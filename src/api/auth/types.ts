@@ -1,7 +1,8 @@
 export interface ShipperPermission {
-  id: number;
-  name: string;
-  slug: string | null;
+  id?: number;
+  name?: string;
+  value?: string;
+  slug?: string | null;
 }
 
 export interface ShipperUser {
@@ -17,7 +18,8 @@ export interface ShipperUser {
   status: string;
   is_sub_user: boolean;
   parent_shipper_id: number | null;
-  permissions?: ShipperPermission[];
+  /** Spatie RBAC names (= shipper_permissions.value) */
+  permissions?: string[] | ShipperPermission[];
 }
 
 export interface LoginPayload {

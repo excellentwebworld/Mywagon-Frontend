@@ -609,11 +609,15 @@ export const ACTIVE_SESSIONS = [
 const AVATAR_COLORS = ['#7C3AED', '#2563EB', '#059669', '#DC2626', '#D97706', '#0891B2', '#BE185D', '#4338CA', '#0D9488'];
 
 export function getUserInitials(u) {
-  return ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase();
+  const first = u.firstName || u.first_name || '';
+  const last = u.lastName || u.last_name || '';
+  return `${(first[0] || '').toUpperCase()}${(last[0] || '').toUpperCase()}` || '?';
 }
 
 export function getUserFullName(u) {
-  return `${u.firstName} ${u.lastName}`.trim();
+  const first = u.firstName || u.first_name || '';
+  const last = u.lastName || u.last_name || '';
+  return `${first} ${last}`.trim();
 }
 
 export function getUserAvatarColor(userId) {
