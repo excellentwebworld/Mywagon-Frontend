@@ -116,7 +116,7 @@ export function ProfileDropdown() {
 
               <div className="py-1" role="group" style={{ borderBottom: `1px solid ${T.bd}` }}>
                 {[
-                  { icon: Building2, label: t('topbar.companyInfo') || 'Company info', route: '/settings' },
+                  { icon: Building2, label: t('topbar.companyInfo') || 'Company info', route: '/settings/organization' },
                   { icon: CreditCard, label: t('sidebar.billing') || t('billing') || 'Billing', route: '/billing' },
                   { icon: Star, label: t('sidebar.subscription') || t('navSubscription') || 'Subscription', route: '/subscription' },
                   { icon: HelpCircle, label: t('sidebar.support') || t('support') || 'Support', route: '/support' },

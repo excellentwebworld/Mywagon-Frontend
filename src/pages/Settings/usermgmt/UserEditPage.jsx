@@ -53,8 +53,7 @@ export default function UserEditPage() {
   }, [user?.id]);
 
   const goBack = () => {
-    try { sessionStorage.setItem('mv_settings_tab', 'users'); } catch { /* ignore */ }
-    navigate('/settings');
+    navigate('/settings/users');
   };
 
   const effectivePerms = user ? getEffectivePermissions(user) : [];

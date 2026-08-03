@@ -2,10 +2,11 @@
  * Settings — ported from MV_Web_Panel_React (shipper adaptations:
  * - Appearance: navigation mode + dark/light only (theme picker removed per PDS-937)
  * - Section paths under ./sections
+ * - Active section driven by URL: /settings/:section (survives refresh)
  */
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
   User, Building2, Users, Lock, CreditCard, Star,
   Zap, ClipboardList, Bell, Palette, Clock, Sun, Moon,
@@ -25,7 +26,10 @@ import PoliciesSection from './sections/PoliciesSection';
 import AuditLogSection from './sections/AuditLogSection';
 import IntegrationsSection from './sections/IntegrationsSection';
 import AiSettingsSection from './sections/AiSettingsSection';
+import NotificationsSection from './sections/NotificationsSection';
 import { KYC_OVERALL, POLICIES, POLICY_ACCEPTANCES } from '../../mocks/complianceData';
+
+const DEFAULT_SECTION = 'personal';
 
 const MENU = [
   { group: 'settings.groupPersonal', items: [
@@ -55,26 +59,41 @@ const MENU = [
 
 const BUILT = new Set([
   'appearance', 'aiSettings', 'language', 'legal', 'users', 'personal',
-  'organization', 'security', 'compliance', 'audit', 'integrations',
+  'organization', 'security', 'compliance', 'audit', 'integrations', 'notifications',
 ]);
+
+const SECTION_IDS = new Set(
+  MENU.flatMap((g) => g.items)
+    .filter((i) => !('link' in i && i.link))
+    .map((i) => i.id),
+);
+
+function isValidSection(id: string | undefined): id is string {
+  return !!id && SECTION_IDS.has(id);
+}
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
   const { T, isDark, toggleDark, navMode, setNavMode } = useTheme();
   const { setLang } = useApp();
   const navigate = useNavigate();
+  const { section: sectionParam } = useParams<{ section?: string }>();
 
-  const [activeSection, setActiveSectionRaw] = useState(() => {
-    try { return sessionStorage.getItem('mv_settings_tab') || 'personal'; } catch { return 'personal'; }
-  });
+  const sectionValid = isValidSection(sectionParam);
+  const activeSection = sectionValid ? sectionParam : DEFAULT_SECTION;
+
   const setActiveSection = useCallback((id: string) => {
-    setActiveSectionRaw(id);
-    try { sessionStorage.setItem('mv_settings_tab', id); } catch { /* ignore */ }
-  }, []);
+    if (!SECTION_IDS.has(id)) return;
+    navigate(`/settings/${id}`);
+  }, [navigate]);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const allItems = MENU.flatMap((g) => g.items);
+  const allItems = useMemo(() => MENU.flatMap((g) => g.items), []);
   const activeItem = allItems.find((i) => i.id === activeSection);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [activeSection]);
 
   const kycNeedsAttention = KYC_OVERALL.percent < 100;
   const [pendingPolicyCount, setPendingPolicyCount] = useState(() => {
@@ -96,6 +115,11 @@ export default function Settings() {
       setLang(code);
     }
   };
+
+  // /settings or unknown slug → canonical URL
+  if (!sectionValid) {
+    return <Navigate to={`/settings/${DEFAULT_SECTION}`} replace />;
+  }
 
   return (
     <div className="settings-layout">
@@ -196,7 +220,7 @@ export default function Settings() {
                 }}
               >
                 <item.icon size={16} />
-                <span>{t(item.labelKey)}</span>
+                <span className="truncate">{t(item.labelKey)}</span>
                 {'link' in item && item.link && <ExternalLink size={11} style={{ marginLeft: 'auto', opacity: 0.35 }} />}
                 {!('link' in item && item.link) && BADGES[item.id] && (
                   <span className="ml-auto w-2 h-2 rounded-full shrink-0" style={{ background: '#EF4444' }} />
@@ -309,6 +333,7 @@ export default function Settings() {
         {activeSection === 'personal' && <PersonalSection />}
         {activeSection === 'organization' && <OrganizationSection />}
         {activeSection === 'security' && <PersonalSecuritySection />}
+        {activeSection === 'notifications' && <NotificationsSection />}
         {activeSection === 'users' && <UserManagementSection />}
 
         {!BUILT.has(activeSection) && (

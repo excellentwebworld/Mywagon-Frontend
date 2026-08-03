@@ -1185,6 +1185,18 @@
       "passwordChanged": "Password changed successfully",
       "accessRequested": "Access change request sent to your admin"
     },
+    "notificationsSection": {
+      "subtitle": "Choose which push and email alerts you want to receive.",
+      "push": "Push notifications",
+      "email": "Email notifications",
+      "selectAll": "Select all",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "loading": "Loading notification settings…",
+      "saved": "Notification settings saved",
+      "loadError": "Failed to load notification settings",
+      "saveError": "Failed to save notification settings"
+    },
     "securityTrust": "Security & Trust"
   },
   "portal": "Portal",
