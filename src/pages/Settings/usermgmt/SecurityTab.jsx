@@ -26,13 +26,15 @@ import {
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { toUpperGreek } from '../../../utils/greekUppercase';
-import { SECURITY_POLICIES, ACTIVE_SESSIONS } from '../../../mocks/userMgmtData';
+import { SECURITY_POLICIES, ACTIVE_SESSIONS, LOGIN_HISTORY, getUserFullName } from '../../../mocks/userMgmtData';
+import { useUserMgmt } from '../../../context/UserMgmtContext';
 import SsoCard from './SsoCard';
 
 export default function SecurityTab() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
+  const { users } = useUserMgmt();
   const isGreek = i18n.language === 'el';
 
   const [policies, setPolicies] = useState({ ...SECURITY_POLICIES, passwordPolicy: { ...SECURITY_POLICIES.passwordPolicy }, failedLoginAlerts: { ...SECURITY_POLICIES.failedLoginAlerts } });
@@ -259,6 +261,60 @@ export default function SecurityTab() {
                 <span className="px-2 py-0.5 rounded-full" style={{ background: '#ECFDF5', color: '#10B981', fontSize: 10, fontWeight: 600 }}>
                   {t('userMgmt.security.current')}
                 </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* ── 7. Login history (all users) — PDS-937 ── */}
+      <Section icon={Clock} title={sectionTitle(t('userMgmt.security.loginHistoryAllTitle'))} T={T}>
+        <p style={{ fontSize: 12, color: T.t3, marginBottom: 12 }}>{t('userMgmt.security.loginHistoryAllDesc')}</p>
+        <div className="space-y-1.5 max-h-80 overflow-y-auto">
+          {users.flatMap((u) => {
+            const entries = LOGIN_HISTORY[u.id] || [];
+            if (entries.length === 0) {
+              return [{
+                key: `${u.id}-empty`,
+                user: u,
+                empty: true,
+              }];
+            }
+            return entries.map((entry, idx) => ({
+              key: `${u.id}-${idx}-${entry.ts}`,
+              user: u,
+              entry,
+              empty: false,
+            }));
+          }).sort((a, b) => {
+            if (a.empty || b.empty) return a.empty ? 1 : -1;
+            return new Date(b.entry.ts).getTime() - new Date(a.entry.ts).getTime();
+          }).slice(0, 50).map((row) => (
+            <div key={row.key} className="flex items-center gap-3 px-3 py-2 rounded-lg"
+              style={{
+                background: row.empty ? T.sa : (row.entry.ok ? T.sa : '#FEF2F2'),
+                border: `1px solid ${row.empty ? T.bd : (row.entry.ok ? T.bd : '#FECACA')}`,
+              }}>
+              <div className="w-2 h-2 rounded-full shrink-0" style={{ background: row.empty ? T.t3 : (row.entry.ok ? '#10B981' : '#EF4444') }} />
+              <div className="flex-1 min-w-0">
+                <div style={{ fontSize: 12, fontWeight: 600, color: T.t1 }}>{getUserFullName(row.user)}</div>
+                {row.empty ? (
+                  <div style={{ fontSize: 11, color: T.t3 }}>{t('userMgmt.empty.noLoginHistory')}</div>
+                ) : (
+                  <div style={{ fontSize: 11, color: T.t3 }}>
+                    {row.entry.device} · {row.entry.city} · {row.entry.ip}
+                  </div>
+                )}
+              </div>
+              {!row.empty && (
+                <>
+                  <span style={{ fontSize: 11, color: T.t3, whiteSpace: 'nowrap' }}>{relativeTime(row.entry.ts)}</span>
+                  {!row.entry.ok && (
+                    <span className="px-1.5 py-0.5 rounded" style={{ fontSize: 9, fontWeight: 700, background: '#FECACA', color: '#991B1B' }}>
+                      {t('userMgmt.drawer.failedLogin')}
+                    </span>
+                  )}
+                </>
               )}
             </div>
           ))}

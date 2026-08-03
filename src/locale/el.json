@@ -2533,7 +2533,11 @@
       "col_lastActive": "Τελ. Σύνδεση",
       "col_created": "Δημιουργία",
       "never": "Ποτέ",
-      "justNow": "Μόλις τώρα"
+      "justNow": "Μόλις τώρα",
+      "minsAgo": "πριν {{n}}λ",
+      "hrsAgo": "πριν {{n}}ώ",
+      "daysAgo": "πριν {{n}}ημ",
+      "weeksAgo": "πριν {{n}}εβδ"
     },
     "filter": {
       "role": "Ρόλος",
@@ -2578,13 +2582,32 @@
       "suspendTitle": "Αναστολή αυτού του χρήστη;",
       "deactivateTitle": "Απενεργοποίηση αυτού του χρήστη;",
       "deleteTitle": "Μόνιμη διαγραφή αυτού του χρήστη;",
-      "cancelInviteTitle": "Ακύρωση αυτής της πρόσκλησης;"
+      "cancelInviteTitle": "Ακύρωση αυτής της πρόσκλησης;",
+      "suspendMsg": "Αναστολή του {{name}};",
+      "deactivateMsg": "Απενεργοποίηση του {{name}}; Δεν θα μπορεί να συνδεθεί.",
+      "deleteMsg": "Μόνιμη διαγραφή του {{name}};",
+      "cancelInviteMsg": "Ακύρωση πρόσκλησης για {{name}};",
+      "bulkSuspendMsg": "Αναστολή {{count}} επιλεγμένων χρηστών;",
+      "bulkDeactivateMsg": "Απενεργοποίηση {{count}} επιλεγμένων χρηστών;"
     },
     "ownership": {
       "owner": "Ιδιοκτήτης"
     },
     "role": {
-      "custom": "Προσαρμοσμένος"
+      "custom": "Προσαρμοσμένος",
+      "customPermissions": "Προσαρμοσμένα δικαιώματα"
+    },
+    "editPage": {
+      "back": "Πίσω στους Χρήστες & Ρόλους",
+      "notFound": "Ο χρήστης δεν βρέθηκε",
+      "userInfo": "Στοιχεία χρήστη",
+      "jobTitle": "Θέση εργασίας",
+      "rolePreset": "Προεπιλογή ρόλου",
+      "rolePresetHint": "Admin και Dispatcher είναι πρότυπα δικαιωμάτων. Τα άμεσα δικαιώματα παρακάτω είναι η πηγή αλήθειας.",
+      "resetToPreset": "Επαναφορά δικαιωμάτων στο πρότυπο",
+      "directPermissions": "Άμεσα δικαιώματα",
+      "directPermissionsHint": "Αντιστοιχεί στο υπάρχον μοντέλο checkboxes της πλατφόρμας.",
+      "actions": "Ενέργειες"
     },
     "seats": {
       "used": "θέσεις σε χρήση",
@@ -2624,16 +2647,27 @@
       "exportStarted": "Η εξαγωγή CSV ξεκίνησε",
       "mfaEnabled": "Η απαίτηση MFA ενεργοποιήθηκε",
       "mfaDisabled": "Η απαίτηση MFA απενεργοποιήθηκε",
-      "passwordResetSent": "Στάλθηκε email επαναφοράς κωδικού",
-      "permissionsSaved": "Τα δικαιώματα αποθηκεύτηκαν",
-      "resetToDefaults": "Τα δικαιώματα επαναφέρθηκαν στις προεπιλογές",
-      "roleSaved": "Τα δικαιώματα ρόλου αποθηκεύτηκαν",
-      "roleCreated": "Ο ρόλος δημιουργήθηκε",
-      "roleDeleted": "Ο ρόλος διαγράφηκε",
-      "roleDuplicated": "Ο ρόλος αντιγράφηκε"
+      "passwordResetSent": "Στάλθηκε email επαναφοράς κωδικού στο {{email}}",
+      "permissionsSaved": "Τα άμεσα δικαιώματα αποθηκεύτηκαν",
+      "resetToDefaults": "Τα δικαιώματα επαναφέρθηκαν στο πρότυπο",
+      "roleSaved": "Το πρότυπο δικαιωμάτων αποθηκεύτηκε",
+      "roleCreated": "Το πρότυπο δημιουργήθηκε",
+      "roleDeleted": "Το πρότυπο διαγράφηκε",
+      "roleDuplicated": "Το πρότυπο αντιγράφηκε",
+      "userUpdated": "Τα στοιχεία χρήστη ενημερώθηκαν",
+      "invited": "Πρόσκληση στάλθηκε στο {{email}}",
+      "inviteResent": "Η πρόσκληση επαναστάλθηκε στο {{email}}",
+      "sessionRevoked": "Οι συνεδρίες του {{name}} τερματίστηκαν",
+      "suspended": "Αναστολή: {{name}}",
+      "reactivated": "Επανενεργοποίηση: {{name}}",
+      "deactivated": "Απενεργοποίηση: {{name}}",
+      "deleted": "Διαγραφή: {{name}}",
+      "bulkSuspended": "{{count}} χρήστες σε αναστολή",
+      "bulkDeactivated": "{{count}} χρήστες απενεργοποιήθηκαν"
     },
     "invite": {
       "title": "Πρόσκληση Μέλους Ομάδας",
+      "singleStepHint": "Επιλέξτε πρότυπο Admin ή Dispatcher. Τα δικαιώματα μπορούν να προσαρμοστούν αργότερα.",
       "step1Title": "Βήμα 1 — Ταυτότητα & Ρόλος",
       "step2Title": "Βήμα 2 — Εύρος Πρόσβασης",
       "firstName": "Όνομα",
@@ -2656,7 +2690,9 @@
       "customer_selected": "Μόνο επιλεγμένοι πελάτες",
       "locationRestrictions": "Περιορισμοί Τοποθεσίας",
       "location_none": "Χωρίς περιορισμούς",
-      "location_specific": "Μόνο συγκεκριμένες τοποθεσίες"
+      "location_specific": "Μόνο συγκεκριμένες τοποθεσίες",
+      "sentAgo": "Στάλθηκε {{time}}",
+      "daysLeft": "{{n}}ημ. ακόμα"
     },
     "deps": {
       "linkedDep": "Αυτόματη ενεργοποίηση (εξάρτηση)"
@@ -2820,6 +2856,7 @@
       "selectRole": "Επιλέξτε ρόλο για προβολή δικαιωμάτων",
       "searchPermissions": "Αναζήτηση δικαιωμάτων…",
       "defaultsFor": "Προεπιλεγμένοι ρόλοι για {{type}}",
+      "presetsTitle": "Πρότυπα δικαιωμάτων (Admin / Dispatcher)",
       "userCount": "{{n}} χρήστες",
       "affectsUsers": "Οι αλλαγές θα επηρεάσουν {{n}} χρήστες αμέσως.",
       "cannotDelete": "Αδύνατη διαγραφή — {{n}} χρήστες είναι ανατεθειμένοι."
@@ -2850,6 +2887,8 @@
       "strong": "Ισχυρή",
       "moderate": "Μέτρια",
       "weak": "Αδύναμη",
+      "loginHistoryAllTitle": "Ιστορικό σύνδεσης (όλοι οι χρήστες)",
+      "loginHistoryAllDesc": "Πρόσφατες συνδέσεις όλων των μελών της ομάδας.",
       "failedTitle": "Ειδοποιήσεις Αποτυχημένης Σύνδεσης",
       "alertAfter": "Ειδοποίηση μετά από",
       "attemptsIn": "προσπάθειες σε",

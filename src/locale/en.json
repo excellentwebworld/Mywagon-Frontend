@@ -2533,7 +2533,11 @@
       "col_lastActive": "Last Active",
       "col_created": "Created",
       "never": "Never",
-      "justNow": "Just now"
+      "justNow": "Just now",
+      "minsAgo": "{{n}}m ago",
+      "hrsAgo": "{{n}}h ago",
+      "daysAgo": "{{n}}d ago",
+      "weeksAgo": "{{n}}w ago"
     },
     "filter": {
       "role": "Role",
@@ -2578,13 +2582,32 @@
       "suspendTitle": "Suspend this user?",
       "deactivateTitle": "Deactivate this user?",
       "deleteTitle": "Permanently delete this user?",
-      "cancelInviteTitle": "Cancel this invitation?"
+      "cancelInviteTitle": "Cancel this invitation?",
+      "suspendMsg": "Suspend {{name}}? They will lose access until reactivated.",
+      "deactivateMsg": "Deactivate {{name}}? They will no longer be able to sign in.",
+      "deleteMsg": "Permanently delete {{name}}? This cannot be undone.",
+      "cancelInviteMsg": "Cancel the invitation for {{name}}?",
+      "bulkSuspendMsg": "Suspend {{count}} selected users?",
+      "bulkDeactivateMsg": "Deactivate {{count}} selected users?"
     },
     "ownership": {
       "owner": "Owner"
     },
     "role": {
-      "custom": "Custom"
+      "custom": "Custom",
+      "customPermissions": "Custom permissions"
+    },
+    "editPage": {
+      "back": "Back to Users & Roles",
+      "notFound": "User not found",
+      "userInfo": "User information",
+      "jobTitle": "Job title",
+      "rolePreset": "Role preset",
+      "rolePresetHint": "Admin and Dispatcher are permission templates. Direct permissions below are the access source of truth (legacy platform model).",
+      "resetToPreset": "Reset permissions to preset",
+      "directPermissions": "Direct permissions",
+      "directPermissionsHint": "Matches the existing platform checkbox assignment. Changing these overrides the preset for this user.",
+      "actions": "Actions"
     },
     "seats": {
       "used": "seats used",
@@ -2624,16 +2647,27 @@
       "exportStarted": "CSV export started",
       "mfaEnabled": "MFA requirement enabled",
       "mfaDisabled": "MFA requirement disabled",
-      "passwordResetSent": "Password reset email sent",
-      "permissionsSaved": "Custom permissions saved",
-      "resetToDefaults": "Permissions reset to role defaults",
-      "roleSaved": "Role permissions saved",
-      "roleCreated": "Role created",
-      "roleDeleted": "Role deleted",
-      "roleDuplicated": "Role duplicated"
+      "passwordResetSent": "Password reset email sent to {{email}}",
+      "permissionsSaved": "Direct permissions saved",
+      "resetToDefaults": "Permissions reset to preset",
+      "roleSaved": "Permission template saved",
+      "roleCreated": "Permission template created",
+      "roleDeleted": "Permission template deleted",
+      "roleDuplicated": "Permission template duplicated",
+      "userUpdated": "User details updated",
+      "invited": "Invitation sent to {{email}}",
+      "inviteResent": "Invitation resent to {{email}}",
+      "sessionRevoked": "Sessions revoked for {{name}}",
+      "suspended": "{{name}} suspended",
+      "reactivated": "{{name}} reactivated",
+      "deactivated": "{{name}} deactivated",
+      "deleted": "{{name}} deleted",
+      "bulkSuspended": "{{count}} users suspended",
+      "bulkDeactivated": "{{count}} users deactivated"
     },
     "invite": {
       "title": "Invite Team Member",
+      "singleStepHint": "Choose Admin or Dispatcher preset. Access can be refined later with direct permissions.",
       "step1Title": "Step 1 — Identity & Role",
       "step2Title": "Step 2 — Access Scope",
       "firstName": "First Name",
@@ -2656,7 +2690,9 @@
       "customer_selected": "Selected customers only",
       "locationRestrictions": "Location Restrictions",
       "location_none": "No restrictions",
-      "location_specific": "Specific locations only"
+      "location_specific": "Specific locations only",
+      "sentAgo": "Sent {{time}}",
+      "daysLeft": "{{n}}d left"
     },
     "deps": {
       "linkedDep": "Auto-enabled (dependency)"
@@ -2812,14 +2848,15 @@
       "userManagement": "User Management"
     },
     "roles": {
-      "createRole": "Create Role",
-      "roleName": "Role name",
+      "createRole": "Create template",
+      "roleName": "Template name",
       "duplicate": "Duplicate",
       "system": "System",
       "custom": "Custom",
-      "selectRole": "Select a role to view permissions",
+      "selectRole": "Select a template to view permissions",
       "searchPermissions": "Search permissions…",
       "defaultsFor": "Default roles for {{type}}",
+      "presetsTitle": "Permission templates (Admin / Dispatcher)",
       "userCount": "{{n}} users",
       "affectsUsers": "Changes will affect {{n}} users immediately.",
       "cannotDelete": "Cannot delete — {{n}} users are assigned. Reassign them first."
@@ -2849,6 +2886,8 @@
       "special": "special chars",
       "strong": "Strong",
       "moderate": "Moderate",
+      "loginHistoryAllTitle": "Login history (all users)",
+      "loginHistoryAllDesc": "Recent sign-in activity across every team member.",
       "weak": "Weak",
       "failedTitle": "Failed Login Alerts",
       "alertAfter": "Alert after",

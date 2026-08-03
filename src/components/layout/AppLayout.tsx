@@ -6,6 +6,7 @@ import { Header } from './Header';
 import { TopNav } from './TopNav';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../hooks/useTheme';
+import { UserMgmtProvider } from '../../context/UserMgmtContext';
 import { DESKTOP_SIDEBAR_QUERY, useMediaQuery } from '../../hooks/useMediaQuery';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
@@ -61,6 +62,7 @@ export const AppLayout: React.FC = () => {
   const ToastIcon = TOAST_ICON[toast.type] || Info;
 
   return (
+    <UserMgmtProvider>
     <div className={`app-layout${isSideMode ? '' : ' app-layout--top-nav'}`}>
       {isSideMode && (
         <Sidebar
@@ -110,5 +112,6 @@ export const AppLayout: React.FC = () => {
         </div>
       )}
     </div>
+    </UserMgmtProvider>
   );
 };

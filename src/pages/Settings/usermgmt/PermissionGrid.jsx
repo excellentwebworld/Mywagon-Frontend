@@ -1,7 +1,7 @@
 /**
  * PermissionGrid — Reusable permission checkbox grid with dependency enforcement.
  *
- * Used by: UserDrawer (read/edit mode), RolesTab (Session 2)
+ * Used by: UserEditPage (read/edit mode), RolesTab
  *
  * Features:
  * - 14 permission groups, ~50 permissions

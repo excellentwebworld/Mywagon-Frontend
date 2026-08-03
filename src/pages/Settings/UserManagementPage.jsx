@@ -6,9 +6,9 @@
  * component renders in the same content area as other settings sections.
  *
  * 4 tabs:
- * 1. Users — table + filters + bulk actions + user drawer
- * 2. Roles & Permissions — 2-pane role editor
- * 3. Security — policies + sessions + password policy + failed logins
+ * 1. Users — table + filters + bulk actions + full-page edit
+ * 2. Roles & Permissions — permission templates (Admin / Dispatcher)
+ * 3. Security — policies + sessions + login history for all users
  * 4. Audit Log — filtered timeline + export
  *
  * API dependencies:

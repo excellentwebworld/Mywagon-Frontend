@@ -241,11 +241,13 @@ export function resolveModuleAccess(perms) {
 }
 
 /**
- * Resolve effective permissions for a user: custom overrides > role perms.
+ * Resolve effective permissions for a user.
+ * Hybrid (PDS-937): directPermissions (or legacy customPerms) override role preset.
  * @returns {string[]|null} — null means full access
  */
 export function getEffectivePermissions(user) {
-  if (user.customPerms !== null && user.customPerms !== undefined) return user.customPerms;
+  const direct = user.directPermissions !== undefined ? user.directPermissions : user.customPerms;
+  if (direct !== null && direct !== undefined) return direct;
   const role = ROLES_BY_KEY[user.role];
   return role ? role.permissions : [];
 }
@@ -274,26 +276,7 @@ export const SHIPPER_ROLES = [
       'partners.view', 'partners.manage',
       'analytics.basic',
     ],
-    userCount: 3,
-  },
-  {
-    id: 'role-finance', key: 'finance', name: 'Finance', color: '#10B981', isSystem: true,
-    description: 'Handles billing, payments, analytics, and financial oversight.',
-    permissions: [
-      'billing.view', 'billing.pay', 'billing.disputes', 'billing.credits',
-      'analytics.basic', 'analytics.advanced', 'analytics.export',
-      'orders.view', 'pricelists.view', 'shipment.view',
-    ],
-    userCount: 1,
-  },
-  {
-    id: 'role-viewer', key: 'viewer', name: 'Viewer', color: '#9CA3AF', isSystem: true,
-    description: 'Read-only access across the platform.',
-    permissions: [
-      'shipment.view', 'orders.view', 'fleet.view', 'pricelists.view',
-      'analytics.basic', 'loads.view',
-    ],
-    userCount: 3,
+    userCount: 7,
   },
 ];
 
@@ -326,7 +309,7 @@ export const MOCK_USERS = [
     id: 'USR-001', firstName: 'Γιώργος', lastName: 'Οικονομόπουλος',
     email: 'g.oikonomopoulos@vikos.com', phone: '+30 694 123 4567',
     jobTitle: 'CEO', department: 'Executive', role: 'admin',
-    status: 'active', mfa: true, isOwner: true, customPerms: null,
+    status: 'active', mfa: true, isOwner: true, directPermissions: null,
     lastActive: '2026-05-09T09:15:00Z', created: '2024-01-15T10:00:00Z',
     lastPasswordChange: '2026-03-01T08:00:00Z',
     timezone: 'Europe/Athens', locale: 'el',
@@ -335,7 +318,7 @@ export const MOCK_USERS = [
     id: 'USR-002', firstName: 'Ηπειρωτική', lastName: 'Βιομηχανία',
     email: 'info@hpeirotiki.gr', phone: '+30 265 102 3456',
     jobTitle: 'Operations Manager', department: 'Operations', role: 'admin',
-    status: 'active', mfa: true, isOwner: false, customPerms: null,
+    status: 'active', mfa: true, isOwner: false, directPermissions: null,
     lastActive: '2026-05-08T14:30:00Z', created: '2024-01-15T10:00:00Z',
     lastPasswordChange: '2026-04-10T12:00:00Z',
     timezone: 'Europe/Athens', locale: 'el',
@@ -344,7 +327,7 @@ export const MOCK_USERS = [
     id: 'USR-003', firstName: 'Παύλος', lastName: 'Σταμούλης',
     email: 'p.stamoulis@vikos.com', phone: '+30 698 765 4321',
     jobTitle: 'Dispatcher', department: 'Logistics', role: 'dispatcher',
-    status: 'active', mfa: false, isOwner: false, customPerms: null,
+    status: 'active', mfa: false, isOwner: false, directPermissions: null,
     lastActive: '2026-05-07T16:20:00Z', created: '2024-03-10T09:00:00Z',
     lastPasswordChange: '2025-11-20T09:00:00Z',
     timezone: 'Europe/Athens', locale: 'el',
@@ -352,8 +335,14 @@ export const MOCK_USERS = [
   {
     id: 'USR-004', firstName: 'Σταματία', lastName: 'Μαάλη',
     email: 's.maali@vikos.com', phone: '+30 697 111 2233',
-    jobTitle: 'Accountant', department: 'Finance', role: 'finance',
-    status: 'active', mfa: true, isOwner: false, customPerms: null,
+    jobTitle: 'Accountant', department: 'Finance', role: 'dispatcher',
+    status: 'active', mfa: true, isOwner: false,
+    // Former Finance role — preserved as direct permissions (old platform model)
+    directPermissions: [
+      'billing.view', 'billing.pay', 'billing.disputes', 'billing.credits',
+      'analytics.basic', 'analytics.advanced', 'analytics.export',
+      'orders.view', 'pricelists.view', 'shipment.view',
+    ],
     lastActive: '2026-05-06T11:00:00Z', created: '2024-06-20T08:30:00Z',
     lastPasswordChange: '2026-02-15T10:00:00Z',
     timezone: 'Europe/Athens', locale: 'el',
@@ -362,7 +351,7 @@ export const MOCK_USERS = [
     id: 'USR-005', firstName: 'Μιχάλης', lastName: 'Τζιάλας',
     email: 'm.tzialas@vikos.com', phone: '+30 693 444 5566',
     jobTitle: 'Driver Coordinator', department: 'Logistics', role: 'dispatcher',
-    status: 'suspended', mfa: false, isOwner: false, customPerms: null,
+    status: 'suspended', mfa: false, isOwner: false, directPermissions: null,
     lastActive: '2026-04-25T13:00:00Z', created: '2024-04-15T14:00:00Z',
     lastPasswordChange: '2025-09-01T08:00:00Z',
     suspendedReason: 'Policy violation review',
@@ -372,7 +361,7 @@ export const MOCK_USERS = [
     id: 'USR-006', firstName: 'Ανδρέας', lastName: 'Καφαντάρης',
     email: 'a.kafantaris@vikos.com', phone: '+30 691 222 3344',
     jobTitle: 'Junior Dispatcher', department: 'Logistics', role: 'dispatcher',
-    status: 'active', mfa: false, isOwner: false, customPerms: null,
+    status: 'active', mfa: false, isOwner: false, directPermissions: null,
     lastActive: '2026-05-09T04:15:00Z', created: '2025-01-08T09:00:00Z',
     lastPasswordChange: '2025-12-20T10:00:00Z',
     timezone: 'Europe/Athens', locale: 'en',
@@ -380,9 +369,9 @@ export const MOCK_USERS = [
   {
     id: 'USR-007', firstName: 'Όλγα', lastName: 'Τσαγκάρη',
     email: 'o.tsagkari@vikos.com', phone: '+30 694 888 9900',
-    jobTitle: 'Analyst', department: 'Strategy', role: 'viewer',
+    jobTitle: 'Analyst', department: 'Strategy', role: 'dispatcher',
     status: 'active', mfa: false, isOwner: false,
-    customPerms: ['shipment.view', 'orders.view', 'analytics.basic', 'analytics.advanced', 'posting.public'],
+    directPermissions: ['shipment.view', 'orders.view', 'analytics.basic', 'analytics.advanced', 'posting.public'],
     lastActive: '2026-05-08T09:30:00Z', created: '2024-09-12T10:00:00Z',
     lastPasswordChange: '2026-01-10T09:00:00Z',
     timezone: 'Europe/Athens', locale: 'en',
@@ -390,8 +379,13 @@ export const MOCK_USERS = [
   {
     id: 'USR-008', firstName: 'Ελένη', lastName: 'Δημητρίου',
     email: 'e.dimitriou@vikos.com', phone: '+30 697 333 4455',
-    jobTitle: 'Intern', department: 'Operations', role: 'viewer',
-    status: 'active', mfa: false, isOwner: false, customPerms: null,
+    jobTitle: 'Intern', department: 'Operations', role: 'dispatcher',
+    status: 'active', mfa: false, isOwner: false,
+    // Former Viewer role — preserved as direct permissions
+    directPermissions: [
+      'shipment.view', 'orders.view', 'fleet.view', 'pricelists.view',
+      'analytics.basic', 'loads.view',
+    ],
     lastActive: '2026-05-02T10:00:00Z', created: '2025-02-01T09:00:00Z',
     lastPasswordChange: '2025-02-01T09:00:00Z',
     timezone: 'Europe/Athens', locale: 'el',
@@ -399,8 +393,18 @@ export const MOCK_USERS = [
   {
     id: 'USR-009', firstName: 'Ολίβια', lastName: 'Κύρου',
     email: 'o.kyrou@vikos.com', phone: null,
-    jobTitle: null, department: null, role: 'viewer',
-    status: 'invited', mfa: false, isOwner: false, customPerms: null,
+    jobTitle: null, department: null, role: 'dispatcher',
+    status: 'invited', mfa: false, isOwner: false,
+    directPermissions: [
+      'shipment.create', 'shipment.edit', 'shipment.cancel', 'shipment.view',
+      'orders.view', 'orders.create', 'orders.edit', 'orders.delete', 'orders.split', 'orders.groups', 'orders.ai_optimizer',
+      'master.address_book', 'master.products', 'master.partners',
+      'loads.view', 'loads.create', 'loads.assign_carrier', 'loads.assign_fleet', 'loads.track', 'loads.confirm_delivery',
+      'fleet.view', 'fleet.assign',
+      'docs.upload', 'docs.review', 'docs.request',
+      'partners.view', 'partners.manage',
+      'analytics.basic',
+    ],
     lastActive: null, created: '2026-05-01T14:30:00Z',
     lastPasswordChange: null,
     inviteSentAt: '2026-05-01T14:30:00Z',
@@ -465,6 +469,7 @@ export const LOGIN_HISTORY = {
     { ts: '2026-04-30T09:15:00Z', ok: true, device: 'Chrome · macOS', city: 'Volos, GR', ip: '85.74.xxx.xxx' },
     { ts: '2026-04-28T08:45:00Z', ok: true, device: 'Chrome · macOS', city: 'Volos, GR', ip: '85.74.xxx.xxx' },
   ],
+  'USR-009': [],
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════

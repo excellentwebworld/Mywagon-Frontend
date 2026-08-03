@@ -24,31 +24,24 @@ import {
   Plus, Copy, Trash2, Search, Pencil, X, Check, AlertTriangle,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
-import { useAuth } from '../../../hooks/useAuth';
 import { useToast } from '../../../hooks/useToast';
 import { toUpperGreek } from '../../../utils/greekUppercase';
 import PermissionGrid from './PermissionGrid';
 import {
-  SHIPPER_ROLES, FORWARDER_ROLES, CARRIER_ROLES,
-  MOCK_USERS, ALL_PERMISSION_KEYS,
+  SHIPPER_ROLES,
+  ALL_PERMISSION_KEYS,
 } from '../../../mocks/userMgmtData';
-
-const ROLE_SETS = {
-  shipper: SHIPPER_ROLES,
-  forwarder: FORWARDER_ROLES,
-  carrier: CARRIER_ROLES,
-};
+import { useUserMgmt } from '../../../context/UserMgmtContext';
 
 export default function RolesTab() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
-  const { role: accountType } = useAuth();
   const { toast } = useToast();
+  const { users } = useUserMgmt();
   const isGreek = i18n.language === 'el';
 
-  const [roles, setRoles] = useState(() =>
-    (ROLE_SETS[accountType] || SHIPPER_ROLES).map(r => ({ ...r }))
-  );
+  // PDS-937: Admin / Dispatcher permission templates only (not backend Spatie roles yet)
+  const [roles, setRoles] = useState(() => SHIPPER_ROLES.map((r) => ({ ...r })));
   const [selectedId, setSelectedId] = useState(roles[0]?.id || null);
   const [editing, setEditing] = useState(false);
   const [editPerms, setEditPerms] = useState(null);
@@ -59,14 +52,14 @@ export default function RolesTab() {
   const [newRoleColor, setNewRoleColor] = useState('#3B82F6');
 
   const selectedRole = useMemo(
-    () => roles.find(r => r.id === selectedId),
-    [roles, selectedId]
+    () => roles.find((r) => r.id === selectedId),
+    [roles, selectedId],
   );
 
   const usersOnRole = useMemo(() => {
     if (!selectedRole) return [];
-    return MOCK_USERS.filter(u => u.role === selectedRole.key && u.status !== 'deactivated');
-  }, [selectedRole]);
+    return users.filter((u) => u.role === selectedRole.key && u.status !== 'deactivated');
+  }, [selectedRole, users]);
 
   /* ─── Editing ─── */
   const startEdit = () => {
@@ -147,8 +140,8 @@ export default function RolesTab() {
         <div className="mb-3 flex items-center justify-between">
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: T.t3 }}>
             {isGreek
-              ? toUpperGreek(t('userMgmt.roles.defaultsFor', { type: t(`roles.${accountType}`) }))
-              : t('userMgmt.roles.defaultsFor', { type: t(`roles.${accountType}`) })
+              ? toUpperGreek(t('userMgmt.roles.presetsTitle'))
+              : t('userMgmt.roles.presetsTitle')
             }
           </span>
         </div>

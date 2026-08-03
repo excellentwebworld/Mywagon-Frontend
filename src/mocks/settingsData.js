@@ -27,7 +27,7 @@ export const CURRENT_USER = {
   lastLogin: '2026-05-09T09:15:00Z',
   memberSince: '2024-01-15',
   permissions: null,
-  customPerms: null,
+  directPermissions: null,
 };
 
 // ═══ Organization ═══
