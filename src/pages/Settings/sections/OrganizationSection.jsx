@@ -1,244 +1,555 @@
 /**
- * OrganizationSection — Organization settings (4 cards).
- *
- * Card 1: Account Type & Plan — type badge, comparison, application
- * Card 2: Legal & Billing Identity — KYC-locked fields, admin-only editing
- * Card 3: Operational Profile — locations, equipment, industries
- * Card 4: Branding & Public Profile — logo, description, public toggle
- *
- * API: GET/PATCH /api/v1/organization, POST /api/v1/account-type/apply
+ * OrganizationSection — Organization settings (PDS-937 Phase B).
+ * Live data via GET/PUT /api/shipper/v1/settings/organization (+ logo POST).
  */
 
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 import {
-  Pencil, X, Check, Lock, Shield, Building2, Truck, Image,
-  MapPin, Package, Globe, ArrowUpRight, AlertTriangle, Mail,
+  Pencil, X, Check, Lock, Building2, Truck, Image as ImageIcon, Plus, Mail,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
-import {
-  ORGANIZATION, ORG_OPERATIONAL, APPLICATION_HISTORY,
-  EQUIPMENT_TYPES, INDUSTRIES,
-} from '../../../mocks/settingsData';
+import { organizationSettingsService } from '../../../api/services/organizationSettingsService';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_INVOICE_EMAILS = 5;
+const BRANDING_OPS_KEY = 'company_description';
 
 export default function OrganizationSection() {
   const { t } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
 
-  const [org, setOrg] = useState({ ...ORGANIZATION });
-  const [ops, setOps] = useState({ ...ORG_OPERATIONAL });
-  const [apps] = useState([...APPLICATION_HISTORY]);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+
   const [editingLegal, setEditingLegal] = useState(false);
   const [editingOps, setEditingOps] = useState(false);
   const [editingBrand, setEditingBrand] = useState(false);
+  const [savingLegal, setSavingLegal] = useState(false);
+  const [savingOps, setSavingOps] = useState(false);
+  const [savingBrand, setSavingBrand] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
   const [legalDraft, setLegalDraft] = useState({});
   const [opsDraft, setOpsDraft] = useState({});
   const [brandDraft, setBrandDraft] = useState({});
+  const [emailInput, setEmailInput] = useState('');
+  const logoInputRef = useRef(null);
 
-  const isKycLocked = org.kycStatus === 'verified';
-  const LOCKED_FIELDS = ['legalName', 'vatNumber', 'registrationNumber'];
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const payload = await organizationSettingsService.get();
+      setData(payload);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('settings.orgSection.loadError'));
+    } finally {
+      setLoading(false);
+    }
+  }, [toast, t]);
 
-  const typeColors = { shipper: '#6366F1', forwarder: '#0EA5E9', carrier: '#F59E0B' };
-  const typeIcons = { shipper: '📦', forwarder: '🔀', carrier: '🚛' };
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const applyPayload = (payload) => {
+    setData(payload);
+  };
+
+  const opsFields = useMemo(() => {
+    const fields = data?.operations_meta?.fields ?? [];
+    return fields.filter((f) => f.key !== BRANDING_OPS_KEY);
+  }, [data]);
+
+  const startLegalEdit = () => {
+    setLegalDraft({
+      legal_name: data.legal.legal_name ?? '',
+      trade_name: data.legal.trade_name ?? '',
+      vat_number: data.legal.vat_number ?? '',
+      registration_number: data.legal.registration_number ?? '',
+      billing_address: data.legal.billing_address ?? '',
+      city: data.legal.city ?? '',
+      postal_code: data.legal.postal_code ?? '',
+      invoice_emails: [...(data.legal.invoice_emails || [])],
+    });
+    setEmailInput('');
+    setEditingLegal(true);
+  };
+
+  const startOpsEdit = () => {
+    const draft = {};
+    for (const field of opsFields) {
+      const val = data.operations?.[field.key];
+      draft[field.key] = field.type === 'multi'
+        ? [...(Array.isArray(val) ? val.map(String) : [])]
+        : (val == null ? '' : String(val));
+    }
+    setOpsDraft(draft);
+    setEditingOps(true);
+  };
+
+  const startBrandEdit = () => {
+    setBrandDraft({
+      public_profile: !!data.branding.public_profile,
+      company_description: data.branding.company_description ?? '',
+    });
+    setEditingBrand(true);
+  };
+
+  const isFieldLocked = (apiKey) =>
+    !!data?.legal?.kyc_locked && (data.legal.kyc_locked_fields || []).includes(apiKey);
+
+  const addInvoiceEmail = () => {
+    const email = emailInput.trim().toLowerCase();
+    if (!email) return;
+    if (!EMAIL_RE.test(email)) {
+      toast.error(t('settings.orgSection.legal.invalidEmail'));
+      return;
+    }
+    const list = legalDraft.invoice_emails || [];
+    if (list.includes(email)) {
+      setEmailInput('');
+      return;
+    }
+    if (list.length >= MAX_INVOICE_EMAILS) {
+      toast.error(t('settings.orgSection.legal.maxEmails', { max: MAX_INVOICE_EMAILS }));
+      return;
+    }
+    setLegalDraft((p) => ({ ...p, invoice_emails: [...(p.invoice_emails || []), email] }));
+    setEmailInput('');
+  };
+
+  const removeInvoiceEmail = (email) => {
+    setLegalDraft((p) => ({
+      ...p,
+      invoice_emails: (p.invoice_emails || []).filter((e) => e !== email),
+    }));
+  };
+
+  const saveLegal = async () => {
+    setSavingLegal(true);
+    try {
+      const payload = await organizationSettingsService.update({ legal: legalDraft });
+      applyPayload(payload);
+      setEditingLegal(false);
+      toast.success(t('settings.orgSection.saved'));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('settings.orgSection.saveError'));
+    } finally {
+      setSavingLegal(false);
+    }
+  };
+
+  const saveOps = async () => {
+    setSavingOps(true);
+    try {
+      const payload = await organizationSettingsService.update({ operations: opsDraft });
+      applyPayload(payload);
+      setEditingOps(false);
+      toast.success(t('settings.orgSection.saved'));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('settings.orgSection.saveError'));
+    } finally {
+      setSavingOps(false);
+    }
+  };
+
+  const saveBrand = async () => {
+    setSavingBrand(true);
+    try {
+      const payload = await organizationSettingsService.update({ branding: brandDraft });
+      applyPayload(payload);
+      setEditingBrand(false);
+      toast.success(t('settings.orgSection.saved'));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('settings.orgSection.saveError'));
+    } finally {
+      setSavingBrand(false);
+    }
+  };
+
+  const onLogoSelected = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const branding = await organizationSettingsService.uploadLogo(file);
+      setData((prev) => (prev ? { ...prev, branding: { ...prev.branding, ...branding } } : prev));
+      toast.success(t('settings.orgSection.branding.logoUploaded'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('settings.orgSection.saveError'));
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  if (loading) {
+    return <OrgSkeleton T={T} />;
+  }
+
+  if (!data) {
+    return (
+      <div className="rounded-xl px-5 py-8 text-center" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+        <p style={{ fontSize: 13, color: T.t3, marginBottom: 12 }}>{t('settings.orgSection.loadError')}</p>
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
+          style={{ background: T.ac, color: '#fff', fontSize: 12 }}
+        >
+          {t('common.retry', { defaultValue: 'Retry' })}
+        </button>
+      </div>
+    );
+  }
+
+  const pct = data.completion?.operations_percentage ?? 0;
+  const accountType = data.account_type || 'shipper';
 
   return (
     <div className="space-y-4">
+      {/* Completion gauge */}
+      <div className="rounded-xl px-5 py-4" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <div>
+            <div className="font-bold" style={{ fontSize: 14, color: T.t1 }}>
+              {t('settings.orgSection.completion.title')}
+            </div>
+            <div style={{ fontSize: 12, color: T.t3, marginTop: 2 }}>
+              {t('settings.orgSection.completion.subtitle', {
+                answered: data.completion.answered_questions,
+                total: data.completion.total_questions,
+              })}
+            </div>
+          </div>
+          <div className="font-extrabold" style={{ fontSize: 22, color: T.ac }}>{pct}%</div>
+        </div>
+        <div className="w-full rounded-full overflow-hidden" style={{ height: 8, background: T.sa }}>
+          <div
+            style={{
+              width: `${Math.min(100, Math.max(0, pct))}%`,
+              height: '100%',
+              background: T.ac,
+              transition: 'width 0.3s ease',
+            }}
+          />
+        </div>
+      </div>
 
-      {/* ═══ Card 1: Account Type ═══ */}
+      {/* Account type — read-only */}
       <div className="rounded-xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
-        <div className="p-5 rounded-t-xl" style={{ background: `linear-gradient(135deg, #1e1b4b, #312e81)` }}>
+        <div className="p-5 rounded-t-xl" style={{ background: 'linear-gradient(135deg, #1e1b4b, #312e81)' }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
             {t('settings.orgSection.accountType.yourType')}
           </div>
           <div className="flex items-center gap-3 mt-2">
-            <span style={{ fontSize: 28 }}>{typeIcons[org.accountType]}</span>
             <span style={{ fontSize: 22, fontWeight: 800, color: '#C4B5FD', letterSpacing: 0.5 }}>
-              {t(`roles.${org.accountType}`).toUpperCase()}
+              {t(`roles.${accountType}`, { defaultValue: accountType }).toUpperCase()}
             </span>
           </div>
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 8, maxWidth: 500 }}>
-            {t(`settings.orgSection.accountType.desc_${org.accountType}`)}
+            {t(`settings.orgSection.accountType.desc_${accountType}`, {
+              defaultValue: t('settings.orgSection.accountType.desc_shipper'),
+            })}
           </p>
         </div>
-
-        <div className="px-5 py-4">
-          {/* Apply buttons */}
-          {org.accountType === 'shipper' && (
-            <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border-none font-semibold" style={{ background: T.al, color: T.ac, fontSize: 12 }}>
-                🔀 {t('settings.orgSection.accountType.applyForwarder')}
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border-none font-semibold" style={{ background: '#FEF3C7', color: '#92400E', fontSize: 12 }}>
-                🚛 {t('settings.orgSection.accountType.applyCarrier')}
-              </button>
-            </div>
-          )}
-
-          {/* Application status */}
-          {apps.length === 0 && (
-            <div className="mt-3 px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 12, color: T.t3 }}>
-              {t('settings.orgSection.accountType.noApps')}
-            </div>
-          )}
+        <div className="px-5 py-3" style={{ fontSize: 12, color: T.t3 }}>
+          {t('settings.orgSection.accountType.readOnly')}
         </div>
       </div>
 
-      {/* ═══ Card 2: Legal & Billing Identity ═══ */}
-      <SectionCard title={t('settings.orgSection.legal.title')} icon={<Building2 size={16} style={{ color: T.ac }} />}
+      {/* Legal */}
+      <SectionCard
+        title={t('settings.orgSection.legal.title')}
+        icon={<Building2 size={16} style={{ color: T.ac }} />}
         editing={editingLegal}
-        onEdit={() => { setLegalDraft({ ...org }); setEditingLegal(true); }}
-        onSave={() => { setOrg({ ...legalDraft }); setEditingLegal(false); toast.success(t('settings.settingsToast.orgUpdated')); }}
-        onCancel={() => setEditingLegal(false)} T={T}>
-
+        saving={savingLegal}
+        onEdit={startLegalEdit}
+        onSave={saveLegal}
+        onCancel={() => setEditingLegal(false)}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <LegalField label={t('settings.orgSection.legal.legalName')} value={editingLegal ? legalDraft.legalName : org.legalName}
-            onChange={(v) => setLegalDraft(p => ({ ...p, legalName: v }))}
-            locked={isKycLocked && LOCKED_FIELDS.includes('legalName')} editing={editingLegal} T={T} t={t} />
-          <LegalField label={t('settings.orgSection.legal.tradeName')} value={editingLegal ? legalDraft.tradeName : org.tradeName}
-            onChange={(v) => setLegalDraft(p => ({ ...p, tradeName: v }))} editing={editingLegal} T={T} t={t} />
-          <LegalField label={t('settings.orgSection.legal.vatNumber')} value={editingLegal ? legalDraft.vatNumber : org.vatNumber}
-            onChange={(v) => setLegalDraft(p => ({ ...p, vatNumber: v }))}
-            locked={isKycLocked && LOCKED_FIELDS.includes('vatNumber')} editing={editingLegal} T={T} t={t} />
-          <LegalField label={t('settings.orgSection.legal.regNumber')} value={editingLegal ? legalDraft.registrationNumber : org.registrationNumber}
-            onChange={(v) => setLegalDraft(p => ({ ...p, registrationNumber: v }))}
-            locked={isKycLocked && LOCKED_FIELDS.includes('registrationNumber')} editing={editingLegal} T={T} t={t} />
-          <LegalField label={t('settings.orgSection.legal.billingAddress')} value={editingLegal ? legalDraft.billingAddress : org.billingAddress}
-            onChange={(v) => setLegalDraft(p => ({ ...p, billingAddress: v }))} editing={editingLegal} T={T} t={t} />
-          <LegalField label={t('settings.orgSection.legal.country')} value={org.country} editing={false} T={T} t={t} />
-          <LegalField label={t('settings.orgSection.legal.currency')} value={`${org.defaultCurrency} (€)`} editing={false} T={T} t={t} />
-          <div>
-            <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{t('settings.orgSection.legal.invoiceEmails')}</label>
-            <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 13, color: T.t1 }}>
-              {org.invoiceEmails.join(', ')}
-            </div>
-          </div>
-        </div>
-      </SectionCard>
+          <LegalField
+            label={t('settings.orgSection.legal.legalName')}
+            value={editingLegal ? legalDraft.legal_name : data.legal.legal_name}
+            onChange={(v) => setLegalDraft((p) => ({ ...p, legal_name: v }))}
+            locked={isFieldLocked('legal_name')}
+            editing={editingLegal}
+          />
+          <LegalField
+            label={t('settings.orgSection.legal.tradeName')}
+            value={editingLegal ? legalDraft.trade_name : data.legal.trade_name}
+            onChange={(v) => setLegalDraft((p) => ({ ...p, trade_name: v }))}
+            editing={editingLegal}
+          />
+          <LegalField
+            label={t('settings.orgSection.legal.vatNumber')}
+            value={editingLegal ? legalDraft.vat_number : data.legal.vat_number}
+            onChange={(v) => setLegalDraft((p) => ({ ...p, vat_number: v }))}
+            locked={isFieldLocked('vat_number')}
+            editing={editingLegal}
+          />
+          <LegalField
+            label={t('settings.orgSection.legal.regNumber')}
+            value={editingLegal ? legalDraft.registration_number : data.legal.registration_number}
+            onChange={(v) => setLegalDraft((p) => ({ ...p, registration_number: v }))}
+            locked={isFieldLocked('registration_number')}
+            editing={editingLegal}
+          />
+          <LegalField
+            label={t('settings.orgSection.legal.billingAddress')}
+            value={editingLegal ? legalDraft.billing_address : data.legal.billing_address}
+            onChange={(v) => setLegalDraft((p) => ({ ...p, billing_address: v }))}
+            editing={editingLegal}
+          />
+          <LegalField
+            label={t('settings.orgSection.legal.city')}
+            value={editingLegal ? legalDraft.city : data.legal.city}
+            onChange={(v) => setLegalDraft((p) => ({ ...p, city: v }))}
+            editing={editingLegal}
+          />
+          <LegalField
+            label={t('settings.orgSection.legal.postalCode')}
+            value={editingLegal ? legalDraft.postal_code : data.legal.postal_code}
+            onChange={(v) => setLegalDraft((p) => ({ ...p, postal_code: v }))}
+            editing={editingLegal}
+          />
+          <LegalField
+            label={t('settings.orgSection.legal.country')}
+            value={data.legal.country}
+            editing={false}
+          />
 
-      {/* ═══ Card 3: Operational Profile ═══ */}
-      <SectionCard title={t('settings.orgSection.operational.title')} icon={<Truck size={16} style={{ color: T.ac }} />}
-        editing={editingOps}
-        onEdit={() => { setOpsDraft({ ...ops }); setEditingOps(true); }}
-        onSave={() => { setOps({ ...opsDraft }); setEditingOps(false); toast.success(t('settings.settingsToast.orgUpdated')); }}
-        onCancel={() => setEditingOps(false)} T={T}>
-
-        <div className="space-y-4">
-          {/* Locations */}
-          <div>
-            <label className="block mb-2" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
-              <MapPin size={12} className="inline mr-1" />{t('settings.orgSection.operational.locations')}
+          <div className="md:col-span-2">
+            <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+              {t('settings.orgSection.legal.invoiceEmails')}
+              <span style={{ fontWeight: 400, color: T.t3, marginLeft: 6 }}>
+                ({t('settings.orgSection.legal.emailsHint', { max: MAX_INVOICE_EMAILS })})
+              </span>
             </label>
-            <div className="flex flex-wrap gap-1.5">
-              {ops.primaryLocations.map(loc => (
-                <span key={loc} className="px-2.5 py-1 rounded-full" style={{ background: T.al, fontSize: 11, fontWeight: 500, color: T.ac }}>
-                  {loc}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Equipment */}
-          <div>
-            <label className="block mb-2" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
-              <Package size={12} className="inline mr-1" />{t('settings.orgSection.operational.equipment')}
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {EQUIPMENT_TYPES.map(eq => {
-                const active = ops.equipmentTypes.includes(eq.key);
-                return (
-                  <button key={eq.key}
-                    onClick={() => editingOps && setOpsDraft(p => ({ ...p, equipmentTypes: active ? p.equipmentTypes.filter(e => e !== eq.key) : [...p.equipmentTypes, eq.key] }))}
-                    className="px-2.5 py-1 rounded-full cursor-pointer border-none"
-                    style={{ background: active ? T.al : T.sa, color: active ? T.ac : T.t3, fontSize: 11, fontWeight: 500, border: `1px solid ${active ? T.ac + '40' : T.bd}` }}>
-                    {eq.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Industries */}
-          <div>
-            <label className="block mb-2" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
-              <Globe size={12} className="inline mr-1" />{t('settings.orgSection.operational.industries')}
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {INDUSTRIES.map(ind => {
-                const active = ops.industries.includes(ind.key);
-                return (
-                  <button key={ind.key}
-                    onClick={() => editingOps && setOpsDraft(p => ({ ...p, industries: active ? p.industries.filter(i => i !== ind.key) : [...p.industries, ind.key] }))}
-                    className="px-2.5 py-1 rounded-full cursor-pointer border-none"
-                    style={{ background: active ? T.al : T.sa, color: active ? T.ac : T.t3, fontSize: 11, fontWeight: 500, border: `1px solid ${active ? T.ac + '40' : T.bd}` }}>
-                    {ind.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Shipment profile */}
-          <div>
-            <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{t('settings.orgSection.operational.shipmentProfile')}</label>
-            {editingOps ? (
-              <input value={opsDraft.shipmentProfile || ''} onChange={(e) => setOpsDraft(p => ({ ...p, shipmentProfile: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg outline-none" style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+            {editingLegal ? (
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {(legalDraft.invoice_emails || []).map((email) => (
+                    <span
+                      key={email}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
+                      style={{ background: T.al, fontSize: 11, fontWeight: 500, color: T.ac }}
+                    >
+                      <Mail size={10} />
+                      {email}
+                      <button
+                        type="button"
+                        onClick={() => removeInvoiceEmail(email)}
+                        className="border-none bg-transparent cursor-pointer p-0"
+                        style={{ color: T.ac, lineHeight: 1 }}
+                        aria-label={t('settings.orgSection.legal.removeEmail')}
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                {(legalDraft.invoice_emails || []).length < MAX_INVOICE_EMAILS && (
+                  <div className="flex gap-2">
+                    <input
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addInvoiceEmail();
+                        }
+                      }}
+                      placeholder={t('settings.orgSection.legal.addEmailPlaceholder')}
+                      className="flex-1 px-3 py-2 rounded-lg outline-none"
+                      style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={addInvoiceEmail}
+                      className="flex items-center gap-1 px-3 py-2 rounded-lg cursor-pointer border-none font-semibold"
+                      style={{ background: T.al, color: T.ac, fontSize: 12 }}
+                    >
+                      <Plus size={12} /> {t('settings.orgSection.legal.addEmail')}
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
-              <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 13, color: T.t1 }}>{ops.shipmentProfile || '—'}</div>
+              <div className="flex flex-wrap gap-1.5 px-3 py-2 rounded-lg" style={{ background: T.sa, minHeight: 40 }}>
+                {(data.legal.invoice_emails || []).length === 0 ? (
+                  <span style={{ fontSize: 13, color: T.t3 }}>—</span>
+                ) : (
+                  data.legal.invoice_emails.map((email) => (
+                    <span
+                      key={email}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
+                      style={{ background: T.al, fontSize: 11, fontWeight: 500, color: T.ac }}
+                    >
+                      <Mail size={10} />
+                      {email}
+                    </span>
+                  ))
+                )}
+              </div>
             )}
           </div>
         </div>
       </SectionCard>
 
-      {/* ═══ Card 4: Branding & Public Profile ═══ */}
-      <SectionCard title={t('settings.orgSection.branding.title')} icon={<Image size={16} style={{ color: T.ac }} />}
-        editing={editingBrand}
-        onEdit={() => { setBrandDraft({ logoUrl: org.logoUrl, publicProfile: org.publicProfile, companyDescription: org.companyDescription }); setEditingBrand(true); }}
-        onSave={() => { setOrg(p => ({ ...p, ...brandDraft })); setEditingBrand(false); toast.success(t('settings.settingsToast.orgUpdated')); }}
-        onCancel={() => setEditingBrand(false)} T={T}>
+      {/* Operations */}
+      <SectionCard
+        title={t('settings.orgSection.operational.title')}
+        icon={<Truck size={16} style={{ color: T.ac }} />}
+        editing={editingOps}
+        saving={savingOps}
+        onEdit={startOpsEdit}
+        onSave={saveOps}
+        onCancel={() => setEditingOps(false)}
+      >
+        {opsFields.length === 0 ? (
+          <div style={{ fontSize: 13, color: T.t3 }}>{t('settings.orgSection.operational.empty')}</div>
+        ) : (
+          <div className="space-y-4">
+            {opsFields.map((field) => (
+              <OpsField
+                key={field.key}
+                field={field}
+                value={editingOps ? opsDraft[field.key] : data.operations?.[field.key]}
+                editing={editingOps}
+                onChange={(v) => setOpsDraft((p) => ({ ...p, [field.key]: v }))}
+                T={T}
+              />
+            ))}
+          </div>
+        )}
+      </SectionCard>
 
+      {/* Branding */}
+      <SectionCard
+        title={t('settings.orgSection.branding.title')}
+        icon={<ImageIcon size={16} style={{ color: T.ac }} />}
+        editing={editingBrand}
+        saving={savingBrand}
+        onEdit={startBrandEdit}
+        onSave={saveBrand}
+        onCancel={() => setEditingBrand(false)}
+      >
         <div className="space-y-4">
-          {/* Logo */}
           <div>
-            <label className="block mb-2" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{t('settings.orgSection.branding.logo')}</label>
+            <label className="block mb-2" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+              {t('settings.orgSection.branding.logo')}
+            </label>
             <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center rounded-xl" style={{ width: 72, height: 72, background: T.al, border: `2px dashed ${T.bd}`, color: T.ac, fontSize: 11, fontWeight: 700 }}>
-                {org.logoUrl ? <img src={org.logoUrl} alt="" className="w-full h-full object-contain rounded-xl" /> : 'LOGO'}
+              <div
+                className="flex items-center justify-center rounded-xl overflow-hidden"
+                style={{
+                  width: 72,
+                  height: 72,
+                  background: T.al,
+                  border: `2px dashed ${T.bd}`,
+                  color: T.ac,
+                  fontSize: 11,
+                  fontWeight: 700,
+                }}
+              >
+                {data.branding.logo_url ? (
+                  <img src={data.branding.logo_url} alt="" className="w-full h-full object-contain" />
+                ) : (
+                  'LOGO'
+                )}
               </div>
-              {editingBrand && (
-                <button className="px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold" style={{ background: T.al, color: T.ac, fontSize: 11 }}>
-                  {t('settings.orgSection.branding.uploadLogo')}
+              <div>
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={onLogoSelected}
+                />
+                <button
+                  type="button"
+                  disabled={uploadingLogo}
+                  onClick={() => logoInputRef.current?.click()}
+                  className="px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
+                  style={{ background: T.al, color: T.ac, fontSize: 11, opacity: uploadingLogo ? 0.7 : 1 }}
+                >
+                  {uploadingLogo
+                    ? t('settings.orgSection.branding.uploading')
+                    : t('settings.orgSection.branding.uploadLogo')}
                 </button>
-              )}
+              </div>
             </div>
           </div>
 
-          {/* Public profile toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-semibold" style={{ fontSize: 13, color: T.t1 }}>{t('settings.orgSection.branding.publicToggle')}</div>
-              <div style={{ fontSize: 11, color: T.t3 }}>{t('settings.orgSection.branding.publicDesc')}</div>
+              <div className="font-semibold" style={{ fontSize: 13, color: T.t1 }}>
+                {t('settings.orgSection.branding.publicToggle')}
+              </div>
+              <div style={{ fontSize: 11, color: T.t3 }}>
+                {t('settings.orgSection.branding.publicDesc')}
+              </div>
             </div>
             <button
-              onClick={() => editingBrand && setBrandDraft(p => ({ ...p, publicProfile: !p.publicProfile }))}
-              className="relative cursor-pointer border-none rounded-full shrink-0"
-              style={{ width: 44, height: 24, background: (editingBrand ? brandDraft.publicProfile : org.publicProfile) ? T.ac : T.bd, padding: 0 }}>
-              <span className="absolute rounded-full bg-white shadow" style={{ width: 20, height: 20, top: 2, left: (editingBrand ? brandDraft.publicProfile : org.publicProfile) ? 22 : 2, transition: 'left 0.2s' }} />
+              type="button"
+              disabled={!editingBrand}
+              onClick={() =>
+                editingBrand &&
+                setBrandDraft((p) => ({ ...p, public_profile: !p.public_profile }))
+              }
+              className="relative border-none rounded-full shrink-0"
+              style={{
+                width: 44,
+                height: 24,
+                background: (editingBrand ? brandDraft.public_profile : data.branding.public_profile)
+                  ? T.ac
+                  : T.bd,
+                padding: 0,
+                cursor: editingBrand ? 'pointer' : 'default',
+                opacity: editingBrand ? 1 : 0.85,
+              }}
+            >
+              <span
+                className="absolute rounded-full bg-white shadow"
+                style={{
+                  width: 20,
+                  height: 20,
+                  top: 2,
+                  left: (editingBrand ? brandDraft.public_profile : data.branding.public_profile) ? 22 : 2,
+                  transition: 'left 0.2s',
+                }}
+              />
             </button>
           </div>
 
-          {/* Description */}
           <div>
-            <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{t('settings.orgSection.branding.description')}</label>
+            <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+              {t('settings.orgSection.branding.description')}
+            </label>
             {editingBrand ? (
-              <textarea value={brandDraft.companyDescription || ''} onChange={(e) => setBrandDraft(p => ({ ...p, companyDescription: e.target.value }))}
-                rows={3} maxLength={500} className="w-full px-3 py-2 rounded-lg outline-none resize-none"
-                style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+              <textarea
+                value={brandDraft.company_description || ''}
+                onChange={(e) =>
+                  setBrandDraft((p) => ({ ...p, company_description: e.target.value }))
+                }
+                rows={3}
+                maxLength={2000}
+                className="w-full px-3 py-2 rounded-lg outline-none resize-none"
+                style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+              />
             ) : (
-              <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 13, color: T.t1, lineHeight: 1.6 }}>
-                {org.companyDescription || '—'}
+              <div
+                className="px-3 py-2 rounded-lg"
+                style={{ background: T.sa, fontSize: 13, color: T.t1, lineHeight: 1.6 }}
+              >
+                {data.branding.company_description || '—'}
               </div>
             )}
           </div>
@@ -248,9 +559,289 @@ export default function OrganizationSection() {
   );
 }
 
-/* ── Shared sub-components ── */
+function OpsField({ field, value, editing, onChange, T }) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const options = field.options || [];
+  const isMulti = field.type === 'multi';
+  const inputType = (field.input_type || '').toLowerCase();
+  const useTextarea = inputType.includes('textarea') || inputType.includes('text_area');
 
-function SectionCard({ title, icon, editing, onEdit, onSave, onCancel, children, T }) {
+  const CHIP_PREVIEW = 12;
+
+  const findOption = (v) => {
+    const s = String(v);
+    return (
+      options.find((o) => String(o.value) === s) ||
+      options.find((o) => slugify(o.label) === s) ||
+      options.find((o) => slugify(o.value) === s) ||
+      null
+    );
+  };
+
+  const labelFor = (v) => {
+    const opt = findOption(v);
+    if (opt) return opt.label;
+    const s = String(v);
+    // Humanize leftover snake_case keys
+    if (/^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(s)) {
+      return s
+        .split('_')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+    }
+    return s;
+  };
+
+  const isSelected = (opt, selected) => {
+    const v = String(opt.value);
+    if (selected.includes(v)) return true;
+    if (selected.includes(slugify(opt.label))) return true;
+    if (selected.includes(slugify(opt.value))) return true;
+    return false;
+  };
+
+  if (isMulti && options.length > 0) {
+    const selected = Array.isArray(value) ? value.map(String) : [];
+
+    const collapsedOptions = (() => {
+      if (!editing || expanded || options.length <= CHIP_PREVIEW) return options;
+      const head = options.slice(0, CHIP_PREVIEW);
+      const headValues = new Set(head.map((o) => String(o.value)));
+      const missingSelected = options.filter(
+        (o) => isSelected(o, selected) && !headValues.has(String(o.value)),
+      );
+      return [...head, ...missingSelected];
+    })();
+
+    const displayOptions = editing ? collapsedOptions : options.filter((o) => isSelected(o, selected));
+    const hiddenCount =
+      editing && !expanded && options.length > CHIP_PREVIEW
+        ? Math.max(0, options.length - collapsedOptions.length)
+        : 0;
+
+    if (!editing) {
+      return (
+        <div>
+          <label className="block mb-2" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+            {field.label}
+            {field.required ? ' *' : ''}
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {selected.length === 0 ? (
+              <span style={{ fontSize: 13, color: T.t3 }}>—</span>
+            ) : (
+              selected.map((v) => (
+                <span
+                  key={v}
+                  className="px-2.5 py-1 rounded-full"
+                  style={{ background: T.al, fontSize: 11, fontWeight: 500, color: T.ac }}
+                >
+                  {labelFor(v)}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const extras = selected.filter((v) => !findOption(v));
+
+    return (
+      <div>
+        <label className="block mb-2" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+          {field.label}
+          {field.required ? ' *' : ''}
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {displayOptions.map((opt) => {
+            const active = isSelected(opt, selected);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  const canonical = String(opt.value);
+                  // Drop any slug/label aliases for this option when toggling
+                  const aliases = new Set([
+                    canonical,
+                    slugify(opt.label),
+                    slugify(opt.value),
+                  ]);
+                  const without = selected.filter((v) => !aliases.has(v));
+                  onChange(active ? without : [...without, canonical]);
+                }}
+                className="px-2.5 py-1 rounded-full border-none cursor-pointer"
+                style={{
+                  background: active ? T.al : T.sa,
+                  color: active ? T.ac : T.t3,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  border: `1px solid ${active ? `${T.ac}40` : T.bd}`,
+                  maxWidth: '100%',
+                  textAlign: 'left',
+                }}
+                title={opt.label}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        {hiddenCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="mt-2 px-0 border-none bg-transparent cursor-pointer font-semibold"
+            style={{ fontSize: 12, color: T.ac }}
+          >
+            {t('settings.orgSection.operational.showMore', { count: hiddenCount })}
+          </button>
+        )}
+        {editing && expanded && options.length > CHIP_PREVIEW && (
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            className="mt-2 px-0 border-none bg-transparent cursor-pointer font-semibold"
+            style={{ fontSize: 12, color: T.ac }}
+          >
+            {t('settings.orgSection.operational.showLess')}
+          </button>
+        )}
+        {extras.map((v) => (
+          <span
+            key={`extra-${v}`}
+            className="inline-flex items-center gap-1 mt-2 mr-1 px-2.5 py-1 rounded-full"
+            style={{ background: T.al, fontSize: 11, fontWeight: 500, color: T.ac }}
+          >
+            {labelFor(v)}
+            <button
+              type="button"
+              className="border-none bg-transparent cursor-pointer p-0"
+              style={{ color: T.ac }}
+              onClick={() => onChange(selected.filter((x) => x !== v))}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  if (!isMulti && options.length > 0) {
+    const current = value == null ? '' : String(value);
+    const matched = findOption(current);
+    const selectValue = matched ? String(matched.value) : current;
+    const label = matched?.label || labelFor(current) || '—';
+    return (
+      <div>
+        <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+          {field.label}
+          {field.required ? ' *' : ''}
+        </label>
+        {editing ? (
+          <select
+            value={selectValue}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg outline-none"
+            style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+          >
+            <option value="">—</option>
+            {options.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 13, color: T.t1 }}>
+            {label || '—'}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Free text / multi without options (tags as comma list when editing)
+  if (isMulti) {
+    const list = Array.isArray(value) ? value.map(String) : [];
+    return (
+      <div>
+        <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+          {field.label}
+          {field.required ? ' *' : ''}
+        </label>
+        {editing ? (
+          <input
+            value={list.join(', ')}
+            onChange={(e) => {
+              const next = e.target.value
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean);
+              onChange(next);
+            }}
+            className="w-full px-3 py-2 rounded-lg outline-none"
+            style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+            placeholder="a, b, c"
+          />
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {list.length === 0 ? (
+              <span style={{ fontSize: 13, color: T.t3 }}>—</span>
+            ) : (
+              list.map((item) => (
+                <span
+                  key={item}
+                  className="px-2.5 py-1 rounded-full"
+                  style={{ background: T.al, fontSize: 11, fontWeight: 500, color: T.ac }}
+                >
+                  {item}
+                </span>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const text = value == null ? '' : String(value);
+  return (
+    <div>
+      <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+        {field.label}
+        {field.required ? ' *' : ''}
+      </label>
+      {editing ? (
+        useTextarea ? (
+          <textarea
+            value={text}
+            onChange={(e) => onChange(e.target.value)}
+            rows={3}
+            className="w-full px-3 py-2 rounded-lg outline-none resize-none"
+            style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+          />
+        ) : (
+          <input
+            value={text}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg outline-none"
+            style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+          />
+        )
+      ) : (
+        <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 13, color: T.t1 }}>
+          {text || '—'}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SectionCard({ title, icon, editing, saving, onEdit, onSave, onCancel, children }) {
   const { T: theme } = useTheme();
   const { t } = useTranslation();
   return (
@@ -261,15 +852,32 @@ function SectionCard({ title, icon, editing, onEdit, onSave, onCancel, children,
           <h3 className="font-bold" style={{ fontSize: 14, color: theme.t1 }}>{title}</h3>
         </div>
         {!editing ? (
-          <button onClick={onEdit} className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold" style={{ background: theme.ac, color: '#fff', fontSize: 12 }}>
+          <button
+            type="button"
+            onClick={onEdit}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
+            style={{ background: theme.ac, color: '#fff', fontSize: 12 }}
+          >
             <Pencil size={12} /> {t('common.edit')}
           </button>
         ) : (
           <div className="flex gap-2">
-            <button onClick={onSave} className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold" style={{ background: theme.ac, color: '#fff', fontSize: 12 }}>
-              <Check size={12} /> {t('common.save')}
+            <button
+              type="button"
+              disabled={saving}
+              onClick={onSave}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
+              style={{ background: theme.ac, color: '#fff', fontSize: 12, opacity: saving ? 0.7 : 1 }}
+            >
+              <Check size={12} /> {saving ? t('common.saving', { defaultValue: 'Saving…' }) : t('common.save')}
             </button>
-            <button onClick={onCancel} className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none" style={{ background: theme.sa, border: `1px solid ${theme.bd}`, color: theme.t2, fontSize: 12 }}>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={onCancel}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
+              style={{ background: theme.sa, border: `1px solid ${theme.bd}`, color: theme.t2, fontSize: 12 }}
+            >
               <X size={12} /> {t('common.cancel')}
             </button>
           </div>
@@ -289,15 +897,52 @@ function LegalField({ label, value, onChange, locked, editing }) {
         {label} {locked && <Lock size={10} style={{ color: theme.t3 }} />}
       </label>
       {editing && !locked ? (
-        <input value={value || ''} onChange={(e) => onChange?.(e.target.value)}
+        <input
+          value={value || ''}
+          onChange={(e) => onChange?.(e.target.value)}
           className="w-full px-3 py-2 rounded-lg outline-none"
-          style={{ border: `1px solid ${theme.bd}`, background: theme.sf, color: theme.t1, fontSize: 13 }} />
+          style={{ border: `1px solid ${theme.bd}`, background: theme.sf, color: theme.t1, fontSize: 13 }}
+        />
       ) : (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: theme.sa, fontSize: 13, color: locked ? theme.t3 : theme.t1 }}>
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-lg"
+          style={{ background: theme.sa, fontSize: 13, color: locked ? theme.t3 : theme.t1 }}
+        >
           <span className="flex-1">{value || '—'}</span>
-          {locked && <span style={{ fontSize: 10, color: theme.t3 }}>{t('settings.orgSection.legal.kycLocked')}</span>}
+          {locked && (
+            <span style={{ fontSize: 10, color: theme.t3 }}>
+              {t('settings.orgSection.legal.kycLocked')}
+            </span>
+          )}
         </div>
       )}
     </div>
   );
+}
+
+function OrgSkeleton({ T }) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl px-5 py-4" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+        <Skeleton height={18} width="40%" />
+        <Skeleton height={8} className="mt-3" />
+      </div>
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="rounded-xl px-5 py-4" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+          <Skeleton height={16} width="30%" />
+          <Skeleton height={40} className="mt-3" count={3} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function slugify(text) {
+  return String(text || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .replace(/_+/g, '_');
 }

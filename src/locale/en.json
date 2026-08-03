@@ -1132,6 +1132,13 @@
       }
     },
     "orgSection": {
+      "loadError": "Failed to load organization settings",
+      "saveError": "Failed to save organization settings",
+      "saved": "Organization settings saved",
+      "completion": {
+        "title": "Operations profile completion",
+        "subtitle": "{{answered}} of {{total}} questions answered"
+      },
       "accountType": {
         "yourType": "Your Account Type",
         "desc_shipper": "You create shipments, request quotes from forwarders and carriers, and track deliveries.",
@@ -1149,7 +1156,8 @@
         "feat_partnersFeature": "Partners",
         "applyForwarder": "Apply to become a Forwarder",
         "applyCarrier": "Apply to become a Carrier",
-        "noApps": "No active applications."
+        "noApps": "No active applications.",
+        "readOnly": "Account type changes are managed by MYVAGON support."
       },
       "legal": {
         "title": "Legal & Billing Identity",
@@ -1158,22 +1166,35 @@
         "vatNumber": "VAT Number",
         "regNumber": "Registration Number",
         "billingAddress": "Billing Address",
+        "city": "City",
+        "postalCode": "Postal code",
         "country": "Country",
         "currency": "Default Currency",
         "invoiceEmails": "Invoice Email(s)",
+        "emailsHint": "max {{max}}",
+        "addEmail": "Add",
+        "addEmailPlaceholder": "billing@company.com",
+        "removeEmail": "Remove email",
+        "invalidEmail": "Enter a valid email address",
+        "maxEmails": "You can add up to {{max}} invoice emails",
         "kycLocked": "Verified — contact support to change"
       },
       "operational": {
-        "title": "Operational Profile",
+        "title": "Company Operations Information",
         "locations": "Primary Locations",
         "equipment": "Equipment Types",
         "industries": "Industries",
-        "shipmentProfile": "Typical Shipment Profile"
+        "shipmentProfile": "Typical Shipment Profile",
+        "empty": "No operations questions are configured yet.",
+        "showMore": "Show more (+{{count}})",
+        "showLess": "Show less"
       },
       "branding": {
         "title": "Branding & Public Profile",
         "logo": "Company Logo",
         "uploadLogo": "Upload Logo",
+        "uploading": "Uploading…",
+        "logoUploaded": "Company logo updated",
         "publicToggle": "Public Profile",
         "publicDesc": "Show your company profile to potential partners on MYVAGON",
         "description": "Company Description"
