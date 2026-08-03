@@ -1,6 +1,6 @@
 /**
  * Settings — ported from MV_Web_Panel_React (shipper adaptations:
- * - Appearance: themes + dark only (no top-nav mode)
+ * - Appearance: navigation mode + dark/light only (theme picker removed per PDS-937)
  * - Section paths under ./sections
  */
 import { useState, useCallback } from 'react';
@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
-import { THEMES } from '../../utils/themes';
 import { LANGUAGES } from '../../constants/panel';
 import { useApp } from '../../context/AppContext';
 import UserManagementSection from './UserManagementPage';
@@ -61,7 +60,7 @@ const BUILT = new Set([
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
-  const { T, theme, isDark, setTheme, toggleDark, navMode, setNavMode } = useTheme();
+  const { T, isDark, toggleDark, navMode, setNavMode } = useTheme();
   const { setLang } = useApp();
   const navigate = useNavigate();
 
@@ -253,33 +252,6 @@ export default function Settings() {
               </div>
             </div>
 
-            <div className="mb-8">
-              <div className="font-semibold mb-3" style={{ fontSize: 13, color: T.t2 }}>{t('settings.selectTheme')}</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-xl">
-                {Object.entries(THEMES).map(([key, obj]) => (
-                  <button
-                    type="button"
-                    key={key}
-                    onClick={() => setTheme(key)}
-                    className="flex items-center gap-2.5 px-3 py-3 rounded-xl cursor-pointer transition-all duration-150 min-w-0"
-                    style={{
-                      border: theme === key ? `2px solid ${T.ac}` : `1px solid ${T.bd}`,
-                      background: theme === key ? T.al : T.sf,
-                    }}
-                  >
-                    <div className="flex gap-0.5 shrink-0">
-                      {obj.preview.map((c, i) => (
-                        <span key={i} className="rounded-full" style={{ width: 18, height: 18, background: c }} />
-                      ))}
-                    </div>
-                    <div className="text-left min-w-0">
-                      <div className="font-semibold truncate" style={{ fontSize: 13, color: T.t1 }}>{obj.name}</div>
-                      <div className="truncate" style={{ fontSize: 11, color: T.t3 }}>{obj.description}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
             <div className="flex items-center justify-between max-w-md">
               <div>
                 <div className="font-semibold" style={{ fontSize: 14, color: T.t1 }}>{t('settings.darkModeToggle')}</div>

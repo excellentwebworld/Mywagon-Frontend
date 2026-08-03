@@ -86,11 +86,11 @@ export const PERSONAL_LOGIN_HISTORY = [
 ];
 
 export const RECENT_ACTIVITY = [
-  { icon: '📦', action: 'Created shipment SHP-4521', ts: '2026-05-09T07:15:00Z' },
-  { icon: '✏️', action: 'Edited order ORD-0015', ts: '2026-05-08T11:30:00Z' },
-  { icon: '🚛', action: 'Assigned DRV-005 to TRK-001', ts: '2026-05-07T09:00:00Z' },
-  { icon: '📋', action: 'Exported price list CSV', ts: '2026-05-06T14:22:00Z' },
-  { icon: '🔑', action: 'Password changed', ts: '2026-03-15T10:00:00Z' },
+  { icon: '📦', action: 'Load LD-4521 created', ts: '2026-05-09T07:15:00Z' },
+  { icon: '🔄', action: 'Load LD-4518 status updated to On trip', ts: '2026-05-08T11:30:00Z' },
+  { icon: '🤝', action: 'Partner request accepted', ts: '2026-05-07T09:00:00Z' },
+  { icon: '📋', action: 'Price list exported (CSV)', ts: '2026-05-06T14:22:00Z' },
+  { icon: '👤', action: 'User invited to the account', ts: '2026-05-05T10:00:00Z' },
 ];
 
 export const APPLICATION_HISTORY = [];

@@ -15,12 +15,11 @@ import { useApp } from '../../context/AppContext';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
 import { LANGUAGES } from '../../constants/panel';
-import { THEMES, type ThemeKey } from '../../utils/themes';
 
 export function ProfileDropdown() {
   const { t, i18n, lang } = useTranslation();
   const { setLang, showToast } = useApp();
-  const { T, theme, isDark, setTheme, toggleDark } = useTheme();
+  const { T, isDark, toggleDark } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -166,36 +165,6 @@ export function ProfileDropdown() {
                     style={{ width: 18, height: 18, left: isDark ? 18 : 2, transition: 'left 0.2s' }}
                   />
                 </button>
-              </div>
-
-              <div className="px-4 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: T.t3, marginBottom: 8 }}>
-                  {t('topbar.theme') || 'Theme'}
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {(Object.entries(THEMES) as [ThemeKey, (typeof THEMES)[ThemeKey]][]).map(([key, themeObj]) => (
-                    <button
-                      type="button"
-                      key={key}
-                      onClick={() => setTheme(key)}
-                      className="flex flex-col items-center gap-1 px-1 py-2 rounded-lg cursor-pointer transition-all duration-200"
-                      style={{
-                        border: theme === key ? `2px solid ${T.ac}` : `1px solid ${T.bd}`,
-                        background: theme === key ? T.al : 'transparent',
-                        fontSize: 10,
-                        fontWeight: 500,
-                        color: T.t2,
-                      }}
-                    >
-                      <div className="flex gap-0.5">
-                        {themeObj.preview.map((color, i) => (
-                          <span key={i} className="rounded-full" style={{ width: 12, height: 12, background: color }} />
-                        ))}
-                      </div>
-                      <span className="truncate">{themeObj.name}</span>
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <div className="px-4 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>

@@ -1063,7 +1063,8 @@
         "requestPlaceholder": "Describe what access you need and why..."
       },
       "activity": {
-        "recentTitle": "Recent Activity",
+        "recentTitle": "Account activity",
+        "accountActivityHint": "Overall account activity — not limited to your personal actions.",
         "accountInfo": "Account Information",
         "memberSince": "Member Since",
         "lastLogin": "Last Login",

@@ -21,17 +21,20 @@ export interface ThemeContextValue {
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+const DEFAULT_THEME = 'amethyst';
 const STORAGE_KEY_THEME = 'mv_theme';
 const STORAGE_KEY_DARK = 'mv_dark';
 const STORAGE_KEY_NAV = 'mv_nav_mode';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  // PDS-937: theme picker removed — lock brand palette to amethyst (dark/light still apply)
   const [theme, setThemeState] = useState(() => {
     try {
-      return localStorage.getItem(STORAGE_KEY_THEME) || 'amethyst';
+      localStorage.setItem(STORAGE_KEY_THEME, DEFAULT_THEME);
     } catch {
-      return 'amethyst';
+      /* ignore */
     }
+    return DEFAULT_THEME;
   });
 
   const [isDark, setIsDarkState] = useState(() => {
@@ -79,10 +82,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.body.style.color = T.t1;
   }, [T, isDark]);
 
-  const setTheme = useCallback((v: string) => {
-    setThemeState(v);
+  const setTheme = useCallback((_v: string) => {
+    setThemeState(DEFAULT_THEME);
     try {
-      localStorage.setItem(STORAGE_KEY_THEME, v);
+      localStorage.setItem(STORAGE_KEY_THEME, DEFAULT_THEME);
     } catch {
       /* ignore */
     }

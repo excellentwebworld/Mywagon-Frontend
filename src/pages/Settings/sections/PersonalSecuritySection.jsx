@@ -1,25 +1,23 @@
 /**
- * PersonalSecuritySection — User-level security settings (4 cards).
+ * PersonalSecuritySection — User-level security settings (2 cards).
  *
  * Card 1: Password — last changed, strength, change modal
  * Card 2: Two-Factor Authentication — status, enable/disable
- * Card 3: Active Sessions — current + other with revoke
- * Card 4: Login History — success/failed entries
  *
- * API: POST /api/v1/security/change-password, GET/POST /api/v1/security/mfa/*
+ * Sessions / login history removed per PDS-937 (login history lives under Users & Roles → Security).
+ * API: POST /api/v1/security/change-password, GET/POST /api/v1/security/mfa/* (Phase 5)
  */
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  KeyRound, ShieldCheck, Monitor, Clock, AlertTriangle,
-  Eye, EyeOff, Copy, Download, Check, X,
+  KeyRound, ShieldCheck, AlertTriangle,
+  Eye, EyeOff, Copy, X,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import {
-  CURRENT_USER, PERSONAL_SESSIONS, PERSONAL_LOGIN_HISTORY,
-  RECOVERY_CODES, relativeTime, passwordAgeDays,
+  CURRENT_USER, RECOVERY_CODES, passwordAgeDays,
 } from '../../../mocks/settingsData';
 import { SECURITY_POLICIES } from '../../../mocks/userMgmtData';
 
@@ -29,37 +27,14 @@ export default function PersonalSecuritySection() {
   const { toast } = useToast();
 
   const [user, setUser] = useState({ ...CURRENT_USER });
-  const [sessions, setSessions] = useState([...PERSONAL_SESSIONS]);
   const [showPwModal, setShowPwModal] = useState(false);
-  const [show2FAModal, setShow2FAModal] = useState(false);
   const [showCodes, setShowCodes] = useState(false);
 
   const pwAge = passwordAgeDays(user.lastPasswordChange);
   const policy = SECURITY_POLICIES.passwordPolicy;
-  const hasFailedLogin = PERSONAL_LOGIN_HISTORY.some(l => !l.success);
-  const failedEntry = PERSONAL_LOGIN_HISTORY.find(l => !l.success);
-
-  const revokeSession = (id) => {
-    setSessions(prev => prev.filter(s => s.id !== id));
-    toast.success(t('settings.securitySection.sessions.revoked'));
-  };
-  const revokeAll = () => {
-    setSessions(prev => prev.filter(s => s.current));
-    toast.success(t('settings.securitySection.sessions.allRevoked'));
-  };
 
   return (
     <div className="space-y-4">
-
-      {/* Failed login alert */}
-      {hasFailedLogin && failedEntry && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-          <AlertTriangle size={16} style={{ color: '#EF4444' }} />
-          <span style={{ fontSize: 12, color: '#991B1B' }}>
-            {t('settings.securitySection.loginHistory.failedAlert', { city: `${failedEntry.city}, ${failedEntry.country}`, time: relativeTime(failedEntry.ts) })}
-          </span>
-        </div>
-      )}
 
       {/* ═══ Card 1: Password ═══ */}
       <SCard title={t('settings.securitySection.password.title')} icon={<KeyRound size={16} style={{ color: T.ac }} />} T={T}>
@@ -137,57 +112,6 @@ export default function PersonalSecuritySection() {
             </div>
           </div>
         )}
-      </SCard>
-
-      {/* ═══ Card 3: Active Sessions ═══ */}
-      <SCard title={t('settings.securitySection.sessions.title')} icon={<Monitor size={16} style={{ color: T.ac }} />}
-        action={
-          <button onClick={revokeAll} className="px-3 py-1.5 rounded-lg cursor-pointer border-none" style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444', fontSize: 11, fontWeight: 600 }}>
-            {t('settings.securitySection.sessions.revokeAll')}
-          </button>
-        } T={T}>
-        <div className="space-y-2">
-          {sessions.map((s) => (
-            <div key={s.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{ background: T.sa, border: `1px solid ${T.bd}` }}>
-              <div className="w-2 h-2 rounded-full shrink-0" style={{ background: s.current ? '#10B981' : T.t3 }} />
-              <Monitor size={16} style={{ color: s.current ? '#10B981' : T.t3 }} />
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold" style={{ fontSize: 12, color: T.t1 }}>
-                  {s.browser} · {s.os}
-                  {s.current && <span className="ml-2 px-1.5 py-0.5 rounded-full" style={{ fontSize: 9, fontWeight: 700, background: '#ECFDF5', color: '#10B981' }}>
-                    {t('settings.securitySection.sessions.current')}
-                  </span>}
-                </div>
-                <div style={{ fontSize: 11, color: T.t3 }}>{s.city}, {s.country} · {s.ip}</div>
-              </div>
-              <span style={{ fontSize: 11, color: T.t3 }}>{relativeTime(s.startedAt)}</span>
-              {!s.current && (
-                <button onClick={() => revokeSession(s.id)} className="px-2 py-1 rounded cursor-pointer border-none" style={{ background: '#FEF2F2', color: '#EF4444', fontSize: 10, fontWeight: 600 }}>
-                  {t('settings.securitySection.sessions.revoke')}
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      </SCard>
-
-      {/* ═══ Card 4: Login History ═══ */}
-      <SCard title={t('settings.securitySection.loginHistory.title')} icon={<Clock size={16} style={{ color: T.ac }} />} T={T}>
-        <div className="space-y-1.5">
-          {PERSONAL_LOGIN_HISTORY.map((entry) => (
-            <div key={entry.id} className="flex items-center gap-3 px-3 py-2 rounded-lg"
-              style={{ background: entry.success ? T.sa : '#FEF2F2', border: `1px solid ${entry.success ? T.bd : '#FECACA'}` }}>
-              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: entry.success ? '#10B981' : '#EF4444' }} />
-              <div className="flex-1 min-w-0">
-                <span style={{ fontSize: 12, fontWeight: 500, color: T.t1 }}>{entry.browser} · {entry.os}</span>
-                <span style={{ fontSize: 11, color: T.t3, marginLeft: 8 }}>{entry.city}, {entry.country}</span>
-              </div>
-              <span style={{ fontSize: 11, color: T.t3 }}>{entry.ip}</span>
-              <span style={{ fontSize: 11, color: T.t3, whiteSpace: 'nowrap' }}>{relativeTime(entry.ts)}</span>
-              {!entry.success && <span className="px-1.5 py-0.5 rounded" style={{ fontSize: 9, fontWeight: 700, background: '#FECACA', color: '#991B1B' }}>{t('settings.securitySection.loginHistory.failed')}</span>}
-            </div>
-          ))}
-        </div>
       </SCard>
 
       {/* ═══ Change Password Modal ═══ */}

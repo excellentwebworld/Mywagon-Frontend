@@ -20,6 +20,23 @@ import { useToast } from '../../../hooks/useToast';
 import { CURRENT_USER, RECENT_ACTIVITY, TIMEZONES, relativeTime, passwordAgeDays } from '../../../mocks/settingsData';
 import { resolveModuleAccess, getEffectivePermissions, PERMISSION_GROUPS, ROLES_BY_KEY, ALL_PERMISSION_KEYS } from '../../../mocks/userMgmtData';
 
+/** PDS-937: Personal settings show Admin / Dispatcher only */
+const SHIPPER_PERSONAL_ROLES = {
+  admin: { name: 'Admin', color: '#7C3AED' },
+  dispatcher: { name: 'Dispatcher', color: '#3B82F6' },
+};
+
+function resolvePersonalRole(roleKey) {
+  const key = String(roleKey || '').toLowerCase();
+  if (SHIPPER_PERSONAL_ROLES[key]) return SHIPPER_PERSONAL_ROLES[key];
+  const fromCatalog = ROLES_BY_KEY[key];
+  if (fromCatalog && (key === 'admin' || key === 'dispatcher')) {
+    return { name: fromCatalog.name, color: fromCatalog.color };
+  }
+  // Never surface Finance/Viewer on Personal — fall back to Dispatcher label for unknowns
+  return { name: 'Dispatcher', color: '#3B82F6' };
+}
+
 export default function PersonalSection() {
   const { t } = useTranslation();
   const { T } = useTheme();
@@ -62,7 +79,7 @@ export default function PersonalSection() {
   const rawPerms = getEffectivePermissions(user);
   const effectivePerms = rawPerms === null ? new Set(ALL_PERMISSION_KEYS) : new Set(rawPerms);
   const moduleAccess = resolveModuleAccess(rawPerms);
-  const role = ROLES_BY_KEY[user.role];
+  const role = resolvePersonalRole(user.role);
   const pwAge = passwordAgeDays(user.lastPasswordChange);
 
   const currentAvatar = avatarPreview || null;
@@ -142,7 +159,7 @@ export default function PersonalSection() {
       {/* ═══ Card 2: My Role & Permissions ═══ */}
       <Card title={t('settings.profileSection.roleAccess')} icon={<Shield size={16} style={{ color: T.ac }} />} T={T}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-          <InfoRow label={t('settings.profileSection.role.role')} value={role?.name || user.role} T={T} />
+          <InfoRow label={t('settings.profileSection.role.role')} value={role.name} T={T} />
           <InfoRow label={t('settings.profileSection.role.assignedBy')} value={user.roleAssignedBy} T={T} />
           <InfoRow label={t('settings.profileSection.role.since')} value={new Date(user.roleAssignedDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} T={T} />
         </div>
@@ -201,6 +218,7 @@ export default function PersonalSection() {
       {/* ═══ Card 3: Activity ═══ */}
       <Card title={t('settings.profileSection.prefsActivity')} icon={<Clock size={16} style={{ color: T.ac }} />} T={T}>
         <div className="font-semibold mb-2" style={{ fontSize: 12, color: T.t2 }}>{t('settings.profileSection.activity.recentTitle')}</div>
+        <p style={{ fontSize: 11, color: T.t3, marginBottom: 8 }}>{t('settings.profileSection.activity.accountActivityHint')}</p>
         <div className="space-y-2 mb-5">
           {RECENT_ACTIVITY.map((a, i) => (
             <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-lg" style={{ background: T.sa }}>
