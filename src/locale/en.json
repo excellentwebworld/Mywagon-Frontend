@@ -1045,12 +1045,20 @@
       "email": "Email Address",
       "emailLocked": "Contact admin to change",
       "phone": "Phone",
+      "phoneLocked": "Phone can only be set once",
+      "mainUse": "Main use of MYVAGON",
+      "mainUseLocked": "Already set",
       "jobTitle": "Job Title",
       "department": "Department",
       "timezone": "Timezone",
       "language": "Preferred Language",
       "roleAccess": "My Role & Access",
-      "prefsActivity": "Preferences & Activity",
+      "prefsActivity": "Account activity",
+      "loadError": "Failed to load personal settings",
+      "saveError": "Failed to save personal settings",
+      "saved": "Personal settings saved",
+      "uploadAvatar": "Upload photo",
+      "avatarUploaded": "Profile photo updated",
       "role": {
         "role": "Role",
         "assignedBy": "Assigned By",
@@ -1065,14 +1073,15 @@
       "activity": {
         "recentTitle": "Account activity",
         "accountActivityHint": "Overall account activity — not limited to your personal actions.",
+        "empty": "No account activity to show yet. A full audit feed will be available soon.",
         "accountInfo": "Account Information",
         "memberSince": "Member Since",
-        "lastLogin": "Last Login",
+        "lastLogin": "Last active",
         "passwordAge": "Password Age",
         "daysAgo": "days ago"
       },
       "adminOnly": "Only administrators can edit profile information",
-      "avatarTooLarge": "Image must be under 2MB"
+      "avatarTooLarge": "Image must be under 5MB"
     },
     "securitySection": {
       "password": {

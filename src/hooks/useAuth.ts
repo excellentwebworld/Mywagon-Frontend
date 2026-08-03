@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { useAuth as useShipperAuth } from '../context/AuthContext';
 
 export function useAuth() {
-  const { user: shipperUser, logout } = useShipperAuth();
+  const { user: shipperUser, logout, refreshUser } = useShipperAuth();
 
   const user = useMemo(() => {
     const firstName = shipperUser?.first_name || 'User';
@@ -27,6 +27,7 @@ export function useAuth() {
     user,
     role: 'shipper' as const,
     logout,
+    refreshUser,
     switchRole: () => {},
   };
 }
