@@ -17,7 +17,7 @@ import Partners from './pages/Partners';
 import { ErpOrders } from './pages/ErpOrders/ErpOrders';
 import { SearchTrucks } from './pages/SearchTrucks';
 import Settings from './pages/Settings/Settings';
-import UserEditPage from './pages/Settings/usermgmt/UserEditPage';
+import SettingsSectionOrUserEdit from './pages/Settings/SettingsSectionOrUserEdit';
 import {
   BillingPage,
   SubscriptionPage,
@@ -47,7 +47,7 @@ const appRoutes = [
   { path: '/partners', element: <Partners /> },
   { path: '/erp-orders', element: <ErpOrders /> },
   { path: '/settings', element: <Navigate to="/settings/personal" replace /> },
-  { path: '/settings/users/:userId', element: <UserEditPage /> },
+  { path: '/settings/:section/:tab', element: <SettingsSectionOrUserEdit /> },
   { path: '/settings/:section', element: <Settings /> },
   { path: '/billing', element: <BillingPage /> },
   { path: '/subscription', element: <SubscriptionPage /> },

@@ -1,52 +1,62 @@
 /**
  * UserManagementSection — Orchestrator for the User Management module.
  *
- * Renders INLINE within Settings.jsx right panel (not as a separate route).
- * When the user clicks "Users & Roles" in the Settings left menu, this
- * component renders in the same content area as other settings sections.
+ * Tabs are URL-driven (PDS-937):
+ *   /settings/users           → Users
+ *   /settings/users/roles     → Roles
+ *   /settings/users/:id       → user edit (separate route)
  *
- * 4 tabs:
- * 1. Users — table + filters + bulk actions + full-page edit
- * 2. Roles & Permissions — permission templates (Admin / Dispatcher)
- * 3. Security — policies + sessions + login history for all users
- * 4. Audit Log — filtered timeline + export
- *
- * API dependencies:
- * - GET /api/v1/users
- * - GET /api/v1/roles
- * - GET /api/v1/security/policies
- * - GET /api/v1/audit-log
+ * Security / Audit tabs removed (were mock-only; live login history / audit pipeline pending).
  */
 
-import { useState, useCallback, memo } from 'react';
+import { useCallback, memo } from 'react';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, Shield, Lock, Clock } from 'lucide-react';
+import { Users, Shield } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { toUpperGreek } from '../../utils/greekUppercase';
 import SeatBanner from './usermgmt/SeatBanner';
 import UsersTab from './usermgmt/UsersTab';
 import RolesTab from './usermgmt/RolesTab';
-import SecurityTab from './usermgmt/SecurityTab';
-import AuditTab from './usermgmt/AuditTab';
 
 const TABS = [
   { id: 'users', Icon: Users },
   { id: 'roles', Icon: Shield },
-  { id: 'security', Icon: Lock },
-  { id: 'audit', Icon: Clock },
 ];
+
+const TAB_IDS = new Set(TABS.map((t) => t.id));
+
+function resolveTab(tabParam) {
+  if (!tabParam || tabParam === 'users') return 'users';
+  if (TAB_IDS.has(tabParam)) return tabParam;
+  return null;
+}
+
+function tabPath(id) {
+  return id === 'users' ? '/settings/users' : `/settings/users/${id}`;
+}
 
 function UserManagementSection() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
-  const [activeTab, setActiveTab] = useState('users');
+  const navigate = useNavigate();
+  const { tab: tabParam } = useParams();
+  const activeTab = resolveTab(tabParam);
   const isGreek = i18n.language === 'el';
 
-  const handleTabClick = useCallback((id) => setActiveTab(id), []);
+  const handleTabClick = useCallback(
+    (id) => {
+      navigate(tabPath(id));
+    },
+    [navigate],
+  );
+
+  if (!activeTab) {
+    return <Navigate to="/settings/users" replace />;
+  }
 
   return (
     <div className="flex flex-col" style={{ minHeight: 500 }}>
-      {/* ─── Title + Seat Banner ─── */}
       <h2 className="font-bold mb-1" style={{ fontSize: 18, color: T.t1 }}>
         {t('userMgmt.title')}
       </h2>
@@ -56,7 +66,6 @@ function UserManagementSection() {
 
       <SeatBanner />
 
-      {/* ─── Tab Bar ─── */}
       <div
         className="flex gap-0 overflow-x-auto mt-4"
         style={{ borderBottom: `2px solid ${T.bd}` }}
@@ -67,6 +76,7 @@ function UserManagementSection() {
           return (
             <button
               key={id}
+              type="button"
               onClick={() => handleTabClick(id)}
               className="flex items-center gap-2 px-4 py-2.5 shrink-0 cursor-pointer border-none transition-all duration-150"
               style={{
@@ -87,12 +97,9 @@ function UserManagementSection() {
         })}
       </div>
 
-      {/* ─── Tab Content ─── */}
       <div className="flex-1 mt-4">
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'roles' && <RolesTab />}
-        {activeTab === 'security' && <SecurityTab />}
-        {activeTab === 'audit' && <AuditTab />}
       </div>
     </div>
   );

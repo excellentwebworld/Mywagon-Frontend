@@ -26,6 +26,9 @@ import {
 import { hasCustomDirectPermissions, SHIPPER_ROLES, ROLES_BY_KEY } from '../../../utils/shipperAccessPresets';
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { ApiError } from '../../../api/client';
+import { parseUtcInstant } from '../../../utils/timezone';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 const SORT_FIELDS = ['user', 'role', 'status', 'lastActive', 'created'];
 
 export default function UsersTab() {
@@ -223,7 +226,9 @@ export default function UsersTab() {
   };
   const relTime = (iso) => {
     if (!iso) return t('userMgmt.table.never');
-    const diff = Date.now() - new Date(iso).getTime();
+    const d = parseUtcInstant(iso);
+    if (!d) return t('userMgmt.table.never');
+    const diff = Date.now() - d.getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return t('userMgmt.table.justNow');
     if (mins < 60) return t('userMgmt.table.minsAgo', { n: mins });
@@ -231,11 +236,13 @@ export default function UsersTab() {
     if (hrs < 24) return t('userMgmt.table.hrsAgo', { n: hrs });
     const days = Math.floor(hrs / 24);
     if (days < 7) return t('userMgmt.table.daysAgo', { n: days });
-    return new Date(iso).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' });
+    return d.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' });
   };
   const formatDate = (iso) => {
     if (!iso) return '—';
-    return new Date(iso).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' });
+    const d = parseUtcInstant(iso);
+    if (!d) return '—';
+    return d.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const hasFilters = roleFilter.length > 0 || statusFilter.length > 0 || search;
@@ -245,11 +252,6 @@ export default function UsersTab() {
       {error && (
         <div className="mx-4 md:mx-6 mt-3 px-3 py-2 rounded-lg" style={{ background: '#FEF2F2', color: '#EF4444', fontSize: 12 }}>
           {error}
-        </div>
-      )}
-      {loading && users.length === 0 && (
-        <div className="py-16 text-center" style={{ color: T.t3, fontSize: 13 }}>
-          {t('common.loading', { defaultValue: 'Loading…' })}
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2 px-0 md:px-0 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
@@ -365,7 +367,10 @@ export default function UsersTab() {
             </tr>
           </thead>
           <tbody>
-            {pageData.map((u) => (
+            {loading && users.length === 0 && (
+              <UsersTableSkeleton T={T} rows={6} />
+            )}
+            {!(loading && users.length === 0) && pageData.map((u) => (
               <UserRow key={String(u.id)} user={u} T={T} t={t}
                 selected={selected.has(u.id) || selected.has(String(u.id))}
                 onToggle={() => toggleOne(u.id)}
@@ -426,6 +431,47 @@ export default function UsersTab() {
         variant={confirmDialog?.variant || 'danger'}
       />
     </div>
+  );
+}
+
+function UsersTableSkeleton({ T, rows = 6 }) {
+  const sk = { baseColor: T.sa, highlightColor: T.bd };
+  return (
+    <>
+      {Array.from({ length: rows }).map((_, i) => (
+        <tr key={i} style={{ borderBottom: `1px solid ${T.bd}` }}>
+          <td className="px-4 py-3">
+            <Skeleton width={14} height={14} borderRadius={3} {...sk} />
+          </td>
+          <td className="px-3 py-3">
+            <div className="flex items-center gap-2.5">
+              <Skeleton circle width={32} height={32} {...sk} />
+              <div className="min-w-0 flex-1">
+                <Skeleton width={120 + (i % 3) * 24} height={12} borderRadius={4} {...sk} />
+                <div style={{ marginTop: 6 }}>
+                  <Skeleton width={140 + (i % 2) * 20} height={10} borderRadius={4} {...sk} />
+                </div>
+              </div>
+            </div>
+          </td>
+          <td className="px-3 py-3">
+            <Skeleton width={72} height={22} borderRadius={999} {...sk} />
+          </td>
+          <td className="px-3 py-3">
+            <Skeleton width={64} height={22} borderRadius={999} {...sk} />
+          </td>
+          <td className="px-3 py-3">
+            <Skeleton width={56} height={12} borderRadius={4} {...sk} />
+          </td>
+          <td className="px-3 py-3">
+            <Skeleton width={72} height={12} borderRadius={4} {...sk} />
+          </td>
+          <td className="px-3 py-3">
+            <Skeleton width={18} height={18} borderRadius={4} {...sk} />
+          </td>
+        </tr>
+      ))}
+    </>
   );
 }
 

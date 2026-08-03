@@ -3,6 +3,7 @@
  * - Appearance: navigation mode + dark/light only (theme picker removed per PDS-937)
  * - Section paths under ./sections
  * - Active section driven by URL: /settings/:section (survives refresh)
+ * - Users & Roles tabs: /settings/users[/roles]
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -77,7 +78,7 @@ export default function Settings() {
   const { T, isDark, toggleDark, navMode, setNavMode } = useTheme();
   const { setLang } = useApp();
   const navigate = useNavigate();
-  const { section: sectionParam } = useParams<{ section?: string }>();
+  const { section: sectionParam } = useParams<{ section?: string; tab?: string }>();
 
   const sectionValid = isValidSection(sectionParam);
   const activeSection = sectionValid ? sectionParam : DEFAULT_SECTION;
@@ -303,26 +304,50 @@ export default function Settings() {
 
         {activeSection === 'language' && (
           <div>
-            <h2 className="font-bold mb-6" style={{ fontSize: 18, color: T.t1 }}>{t('topbar.language')}</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-w-2xl">
-              {LANGUAGES.map((lang) => (
-                <button
-                  type="button"
-                  key={lang.code}
-                  onClick={() => changeLanguage(lang.code, lang.dir)}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-150"
-                  style={{
-                    border: i18n.language === lang.code ? `2px solid ${T.ac}` : `1px solid ${T.bd}`,
-                    background: i18n.language === lang.code ? T.al : T.sf,
-                    color: i18n.language === lang.code ? T.ac : T.t1,
-                    fontSize: 13,
-                    fontWeight: i18n.language === lang.code ? 600 : 400,
-                  }}
-                >
-                  <span style={{ fontSize: 18 }}>{lang.flag}</span>
-                  <span>{lang.label}</span>
-                </button>
-              ))}
+            <h2 className="font-bold" style={{ fontSize: 18, color: T.t1 }}>{t('topbar.language')}</h2>
+            <p style={{ fontSize: 12, color: T.t3, marginTop: 4, marginBottom: 20 }}>
+              {t('settings.languageSection.subtitle', {
+                defaultValue: 'Choose your preferred language for the shipper panel. English and Greek are available.',
+              })}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+              {LANGUAGES.map((lang) => {
+                const selected = (i18n.language || '').startsWith(lang.code);
+                return (
+                  <button
+                    type="button"
+                    key={lang.code}
+                    onClick={() => changeLanguage(lang.code, lang.dir)}
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl cursor-pointer transition-all duration-150 text-left"
+                    style={{
+                      border: selected ? `2px solid ${T.ac}` : `1px solid ${T.bd}`,
+                      background: selected ? T.al : T.sf,
+                      color: selected ? T.ac : T.t1,
+                      fontWeight: selected ? 600 : 400,
+                    }}
+                  >
+                    <span
+                      className="inline-flex items-center justify-center rounded-md font-bold shrink-0"
+                      style={{
+                        width: 36,
+                        height: 28,
+                        fontSize: 11,
+                        letterSpacing: 0.4,
+                        background: selected ? T.ac : T.sa,
+                        color: selected ? '#fff' : T.t2,
+                      }}
+                    >
+                      {lang.tag}
+                    </span>
+                    <span className="flex flex-col min-w-0">
+                      <span style={{ fontSize: 14 }}>{lang.nativeLabel}</span>
+                      <span style={{ fontSize: 11, color: T.t3, fontWeight: 400 }}>
+                        {t(`settings.languageSection.${lang.code}`, { defaultValue: lang.label })}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

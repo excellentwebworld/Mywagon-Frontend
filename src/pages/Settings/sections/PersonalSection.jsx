@@ -14,6 +14,7 @@ import { useTheme } from '../../../hooks/useTheme';
 import { useAuth } from '../../../hooks/useAuth';
 import { useToast } from '../../../hooks/useToast';
 import { personalSettingsService } from '../../../api/services/personalSettingsService';
+import { parseUtcInstant } from '../../../utils/timezone';
 
 export default function PersonalSection() {
   const { t } = useTranslation();
@@ -317,12 +318,35 @@ export default function PersonalSection() {
         <p style={{ fontSize: 11, color: T.t3, marginBottom: 8 }}>
           {t('settings.profileSection.activity.accountActivityHint')}
         </p>
-        <div
-          className="px-3 py-4 rounded-lg mb-5 text-center"
-          style={{ background: T.sa, fontSize: 12, color: T.t3 }}
-        >
-          {t('settings.profileSection.activity.empty')}
-        </div>
+        {(data.activity || []).length === 0 ? (
+          <div
+            className="px-3 py-4 rounded-lg mb-5 text-center"
+            style={{ background: T.sa, fontSize: 12, color: T.t3 }}
+          >
+            {t('settings.profileSection.activity.empty')}
+          </div>
+        ) : (
+          <div className="mb-5 space-y-2">
+            {(data.activity || []).map((item) => (
+              <div
+                key={item.id}
+                className="flex items-start gap-3 px-3 py-2.5 rounded-lg"
+                style={{ background: T.sa, border: `1px solid ${T.bd}` }}
+              >
+                <div className="mt-1 w-2 h-2 rounded-full shrink-0" style={{ background: T.ac }} />
+                <div className="min-w-0 flex-1">
+                  <div style={{ fontSize: 12, fontWeight: 600, color: T.t1 }}>{item.title}</div>
+                  {item.description && (
+                    <div style={{ fontSize: 11, color: T.t3, marginTop: 2 }}>{item.description}</div>
+                  )}
+                </div>
+                <div className="shrink-0" style={{ fontSize: 10, color: T.t3 }}>
+                  {relativeTime(item.at)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="font-semibold mb-2" style={{ fontSize: 12, color: T.t2 }}>
           {t('settings.profileSection.activity.accountInfo')}
@@ -456,15 +480,16 @@ function PersonalSkeleton({ T }) {
 
 function formatDate(iso) {
   if (!iso) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
+  const d = parseUtcInstant(iso);
+  if (!d) return '—';
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function relativeTime(iso) {
   if (!iso) return '—';
-  const diff = Date.now() - new Date(iso).getTime();
-  if (Number.isNaN(diff)) return '—';
+  const d = parseUtcInstant(iso);
+  if (!d) return '—';
+  const diff = Date.now() - d.getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return 'Just now';
   if (mins < 60) return `${mins}m ago`;

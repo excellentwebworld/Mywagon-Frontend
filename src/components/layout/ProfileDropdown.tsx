@@ -179,8 +179,19 @@ export function ProfileDropdown() {
                   style={{ background: T.sa, color: T.t1, fontSize: 13 }}
                 >
                   <div className="flex items-center gap-2">
-                    <span>{currentLang.flag}</span>
-                    <span>{currentLang.label}</span>
+                    <span
+                      className="inline-flex items-center justify-center rounded font-bold"
+                      style={{
+                        width: 28,
+                        height: 20,
+                        fontSize: 10,
+                        background: T.bd,
+                        color: T.t2,
+                      }}
+                    >
+                      {currentLang.tag}
+                    </span>
+                    <span>{currentLang.nativeLabel}</span>
                   </div>
                   <ChevronDown
                     size={12}
@@ -209,8 +220,19 @@ export function ProfileDropdown() {
                           fontWeight: (i18n.language || lang) === l.code ? 600 : 400,
                         }}
                       >
-                        <span>{l.flag}</span>
-                        <span>{l.label}</span>
+                        <span
+                          className="inline-flex items-center justify-center rounded font-bold"
+                          style={{
+                            width: 24,
+                            height: 18,
+                            fontSize: 9,
+                            background: T.sa,
+                            color: T.t2,
+                          }}
+                        >
+                          {l.tag}
+                        </span>
+                        <span>{l.nativeLabel}</span>
                       </button>
                     ))}
                   </div>

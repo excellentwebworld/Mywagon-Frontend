@@ -29,7 +29,8 @@ function effectivePermissions(user) {
 }
 
 export default function UserEditPage() {
-  const { userId } = useParams();
+  const { userId: userIdParam, tab } = useParams();
+  const userId = userIdParam || tab;
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { T } = useTheme();

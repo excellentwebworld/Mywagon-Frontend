@@ -22,17 +22,22 @@ export default function NotificationsSection() {
   const [push, setPush] = useState([]);
   const [email, setEmail] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadFailed(false);
     try {
       const data = await notificationSettingsService.get();
       setPush(data.push || []);
       setEmail(data.email || []);
       setDirty(false);
     } catch (e) {
+      setPush([]);
+      setEmail([]);
+      setLoadFailed(true);
       toast.error(e instanceof Error ? e.message : t('settings.notificationsSection.loadError'));
     } finally {
       setLoading(false);
@@ -41,7 +46,9 @@ export default function NotificationsSection() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+    // Mount-only: avoid re-fetch loops if toast/t identities churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleItem = (group, slug) => {
     const setter = group === 'push' ? setPush : setEmail;
@@ -80,7 +87,32 @@ export default function NotificationsSection() {
   };
 
   if (loading) {
-    return <NotificationsSkeleton T={T} />;
+    return (
+      <NotificationsSkeleton
+        T={T}
+        title={t('settings.notificationSettings')}
+        subtitle={t('settings.notificationsSection.subtitle')}
+        loadingLabel={t('settings.notificationsSection.loading')}
+      />
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <div className="rounded-xl px-5 py-8 text-center" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+        <p style={{ fontSize: 13, color: T.t3, marginBottom: 12 }}>
+          {t('settings.notificationsSection.loadError')}
+        </p>
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
+          style={{ background: T.ac, color: '#fff', fontSize: 12 }}
+        >
+          {t('settings.notificationsSection.retry', { defaultValue: 'Try again' })}
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -156,17 +188,19 @@ export default function NotificationsSection() {
   );
 }
 
-function NotificationsSkeleton({ T }) {
+function NotificationsSkeleton({ T, title, subtitle, loadingLabel }) {
   const sk = { baseColor: T.sa, highlightColor: T.bd };
+  const labelWidths = [180, 150, 200, 160, 190];
 
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Loading">
+    <div className="space-y-4" aria-busy="true" aria-label={loadingLabel}>
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="min-w-0 flex-1">
-          <Skeleton width={160} height={22} borderRadius={6} {...sk} />
-          <div style={{ marginTop: 8 }}>
-            <Skeleton width="70%" height={12} borderRadius={4} {...sk} />
-          </div>
+          <h2 className="font-bold" style={{ fontSize: 18, color: T.t1 }}>
+            {title}
+          </h2>
+          <p style={{ fontSize: 12, color: T.t3, marginTop: 4 }}>{subtitle}</p>
+          <p style={{ fontSize: 11, color: T.t3, marginTop: 8 }}>{loadingLabel}</p>
         </div>
         <Skeleton width={120} height={36} borderRadius={8} {...sk} />
       </div>
@@ -182,24 +216,26 @@ function NotificationsSkeleton({ T }) {
               className="flex items-center justify-between gap-3 px-5 py-3"
               style={{ borderBottom: `1px solid ${T.bd}` }}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <Skeleton circle width={16} height={16} {...sk} />
-                <Skeleton width={140} height={14} borderRadius={4} {...sk} />
+                <Skeleton width={card === 0 ? 140 : 150} height={14} borderRadius={4} {...sk} />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <Skeleton width={64} height={12} borderRadius={4} {...sk} />
                 <Skeleton width={44} height={24} borderRadius={999} {...sk} />
               </div>
             </div>
             <div className="px-5 py-1">
-              {Array.from({ length: 5 }).map((_, i) => (
+              {labelWidths.map((w, i) => (
                 <div
                   key={i}
                   className="flex items-center justify-between py-3 gap-3"
-                  style={{ borderBottom: i < 4 ? `1px solid ${T.bd}` : 'none' }}
+                  style={{ borderBottom: i < labelWidths.length - 1 ? `1px solid ${T.bd}` : 'none' }}
                 >
-                  <Skeleton width={`${55 + (i % 3) * 10}%`} height={13} borderRadius={4} {...sk} />
-                  <Skeleton width={44} height={24} borderRadius={999} {...sk} />
+                  <div className="min-w-0 flex-1">
+                    <Skeleton width={w} height={13} borderRadius={4} {...sk} />
+                  </div>
+                  <Skeleton width={44} height={24} borderRadius={999} containerClassName="shrink-0" {...sk} />
                 </div>
               ))}
             </div>

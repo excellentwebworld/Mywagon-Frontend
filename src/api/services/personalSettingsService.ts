@@ -7,6 +7,14 @@ export type PersonalMainUseOption = {
   label: string;
 };
 
+export type PersonalActivityItem = {
+  id: string;
+  type: string;
+  title: string;
+  description: string | null;
+  at: string;
+};
+
 export type PersonalSettingsPayload = {
   profile: {
     first_name: string | null;
@@ -22,6 +30,7 @@ export type PersonalSettingsPayload = {
     member_since: string | null;
     last_active_at: string | null;
   };
+  activity?: PersonalActivityItem[];
   main_use_options: PersonalMainUseOption[];
 };
 

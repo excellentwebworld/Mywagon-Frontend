@@ -1000,6 +1000,11 @@
     "cookieDesc": "Information about cookies and tracking technologies",
     "notificationSettings": "Notifications",
     "appearance": "Appearance",
+    "languageSection": {
+      "subtitle": "Choose your preferred language for the shipper panel. English and Greek are available.",
+      "en": "English",
+      "el": "Greek"
+    },
     "auditLog": "Audit log",
     "aiSettings": "AI settings",
     "aiSettingsDesc": "Configure Vagon AI, auto-suggestions, and smart routing features.",
@@ -1223,6 +1228,7 @@
       "save": "Save changes",
       "saving": "Saving…",
       "loading": "Loading notification settings…",
+      "retry": "Try again",
       "saved": "Notification settings saved",
       "loadError": "Failed to load notification settings",
       "saveError": "Failed to save notification settings"

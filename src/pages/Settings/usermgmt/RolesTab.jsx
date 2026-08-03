@@ -5,6 +5,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, Pencil, X, Check, AlertTriangle } from 'lucide-react';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { toUpperGreek } from '../../../utils/greekUppercase';
@@ -83,7 +85,32 @@ export default function RolesTab() {
   };
 
   if (loading && !roles.length) {
-    return <div className="py-16 text-center" style={{ color: T.t3 }}>{t('common.loading', { defaultValue: 'Loading…' })}</div>;
+    const sk = { baseColor: T.sa, highlightColor: T.bd };
+    return (
+      <div className="flex flex-col md:flex-row gap-4" style={{ minHeight: 400 }} aria-busy="true">
+        <div className="shrink-0 md:w-[280px] space-y-2">
+          <Skeleton width={160} height={10} borderRadius={4} {...sk} />
+          {[0, 1].map((i) => (
+            <div key={i} className="rounded-xl p-3" style={{ border: `1px solid ${T.bd}`, background: T.sf }}>
+              <Skeleton width={100} height={14} borderRadius={4} {...sk} />
+              <div style={{ marginTop: 8 }}>
+                <Skeleton width={140} height={11} borderRadius={4} {...sk} />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 rounded-xl p-4 space-y-3" style={{ border: `1px solid ${T.bd}`, background: T.sf }}>
+          <Skeleton width={220} height={14} borderRadius={4} {...sk} />
+          <Skeleton width="80%" height={12} borderRadius={4} {...sk} />
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center justify-between py-2" style={{ borderBottom: `1px solid ${T.bd}` }}>
+              <Skeleton width={120 + i * 18} height={12} borderRadius={4} {...sk} />
+              <Skeleton width={18} height={18} borderRadius={4} {...sk} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
