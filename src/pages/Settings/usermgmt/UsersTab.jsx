@@ -68,9 +68,9 @@ export default function UsersTab() {
     if (q) {
       list = list.filter((u) =>
         getUserFullName(u).toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
+        u.email?.toLowerCase?.().includes(q) ||
         (u.phone || '').includes(q) ||
-        (ROLES_BY_KEY[u.role]?.name || u.role).toLowerCase().includes(q),
+        (ROLES_BY_KEY[u.role]?.name || u.role || '').toLowerCase().includes(q),
       );
     }
     if (roleFilter.length) list = list.filter((u) => roleFilter.includes(u.role));
@@ -79,10 +79,10 @@ export default function UsersTab() {
       let va; let vb;
       switch (sortField) {
         case 'user': va = getUserFullName(a).toLowerCase(); vb = getUserFullName(b).toLowerCase(); break;
-        case 'role': va = (ROLES_BY_KEY[a.role]?.name || a.role); vb = (ROLES_BY_KEY[b.role]?.name || b.role); break;
-        case 'status': va = a.status; vb = b.status; break;
-        case 'lastActive': va = a.lastActive || ''; vb = b.lastActive || ''; break;
-        case 'created': va = a.created; vb = b.created; break;
+        case 'role': va = (ROLES_BY_KEY[a.role]?.name || a.role || ''); vb = (ROLES_BY_KEY[b.role]?.name || b.role || ''); break;
+        case 'status': va = a.status || ''; vb = b.status || ''; break;
+        case 'lastActive': va = a.lastActive || a.last_active || ''; vb = b.lastActive || b.last_active || ''; break;
+        case 'created': va = a.created || a.created_at || ''; vb = b.created || b.created_at || ''; break;
         default: va = ''; vb = '';
       }
       if (va < vb) return sortDir === 'asc' ? -1 : 1;
@@ -241,7 +241,7 @@ export default function UsersTab() {
   const hasFilters = roleFilter.length > 0 || statusFilter.length > 0 || search;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col min-h-0">
       {error && (
         <div className="mx-4 md:mx-6 mt-3 px-3 py-2 rounded-lg" style={{ background: '#FEF2F2', color: '#EF4444', fontSize: 12 }}>
           {error}
@@ -252,7 +252,7 @@ export default function UsersTab() {
           {t('common.loading', { defaultValue: 'Loading…' })}
         </div>
       )}
-      <div className="flex flex-wrap items-center gap-2 px-4 md:px-6 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
+      <div className="flex flex-wrap items-center gap-2 px-0 md:px-0 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
         <div className="relative" style={{ width: 220 }}>
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: T.t3 }} />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('userMgmt.searchPlaceholder')}
@@ -331,7 +331,7 @@ export default function UsersTab() {
       </div>
 
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 px-4 md:px-6 py-2.5 flex-wrap" style={{ background: T.al, borderBottom: `1px solid ${T.ac}33` }}>
+        <div className="flex items-center gap-3 py-2.5 flex-wrap" style={{ background: T.al, borderBottom: `1px solid ${T.ac}33` }}>
           <div className="flex items-center gap-1.5" style={{ fontSize: 12, fontWeight: 600, color: T.ac }}>
             <Check size={14} />
             {t('userMgmt.bulk.selected', { count: selected.size })}
@@ -341,8 +341,12 @@ export default function UsersTab() {
         </div>
       )}
 
-      <div className="flex-1 overflow-auto">
-        <table className="w-full hidden md:table" style={{ borderCollapse: 'collapse' }}>
+      <div className="w-full overflow-x-auto">
+        {/* Avoid Tailwind `hidden` — app.css has `.hidden { display:none !important }` which blocks `md:table`. */}
+        <table
+          className="w-full"
+          style={{ borderCollapse: 'collapse', display: 'table', width: '100%' }}
+        >
           <thead>
             <tr style={{ borderBottom: `1px solid ${T.bd}` }}>
               <th className="px-4 py-2.5 w-10">
@@ -362,12 +366,15 @@ export default function UsersTab() {
           </thead>
           <tbody>
             {pageData.map((u) => (
-              <UserRow key={u.id} user={u} T={T} t={t}
-                selected={selected.has(u.id)}
+              <UserRow key={String(u.id)} user={u} T={T} t={t}
+                selected={selected.has(u.id) || selected.has(String(u.id))}
                 onToggle={() => toggleOne(u.id)}
                 onClick={() => openEdit(u)}
-                actionMenu={actionMenu === u.id}
-                onActionMenuToggle={(e) => { e.stopPropagation(); setActionMenu((prev) => (prev === u.id ? null : u.id)); }}
+                actionMenu={actionMenu === u.id || actionMenu === String(u.id)}
+                onActionMenuToggle={(e) => {
+                  e.stopPropagation();
+                  setActionMenu((prev) => (prev === u.id || prev === String(u.id) ? null : u.id));
+                }}
                 onReactivate={() => handleReactivate(u)}
                 onDeactivate={() => { handleDeactivate(u); setActionMenu(null); }}
                 onDelete={() => { handleDeletePermanently(u); setActionMenu(null); }}
@@ -377,19 +384,13 @@ export default function UsersTab() {
                 onForceSignout={() => { toast.success(t('userMgmt.toast.sessionRevoked', { name: getUserFullName(u) })); setActionMenu(null); }}
                 relTime={relTime}
                 formatDate={formatDate}
-                actionMenuRef={actionMenu === u.id ? actionMenuRef : null}
+                actionMenuRef={(actionMenu === u.id || actionMenu === String(u.id)) ? actionMenuRef : null}
               />
             ))}
           </tbody>
         </table>
 
-        <div className="md:hidden px-4 py-3 space-y-2">
-          {pageData.map((u) => (
-            <MobileUserCard key={u.id} user={u} T={T} t={t} onClick={() => openEdit(u)} relTime={relTime} />
-          ))}
-        </div>
-
-        {pageData.length === 0 && (
+        {pageData.length === 0 && !loading && (
           <div className="flex flex-col items-center justify-center py-16">
             <Search size={32} style={{ color: T.t3, opacity: 0.4 }} />
             <p className="mt-3" style={{ fontSize: 14, fontWeight: 500, color: T.t3 }}>{t('userMgmt.empty.noUsers')}</p>
@@ -487,9 +488,9 @@ function UserRow({
       <td className="px-3 py-3" style={{ fontSize: 12, color: T.t3 }}>
         {u.status === 'invited' ? (
           <span style={{ color: '#F59E0B' }}>{t('userMgmt.invite.sentAgo', { time: relTime(u.inviteSentAt) })}</span>
-        ) : relTime(u.lastActive)}
+        ) : relTime(u.lastActive || u.last_active)}
       </td>
-      <td className="px-3 py-3" style={{ fontSize: 12, color: T.t3 }}>{formatDate(u.created)}</td>
+      <td className="px-3 py-3" style={{ fontSize: 12, color: T.t3 }}>{formatDate(u.created || u.created_at)}</td>
       <td className="px-3 py-3 relative" onClick={(e) => e.stopPropagation()}>
         <button type="button" onClick={onActionMenuToggle} className="p-1.5 rounded-lg cursor-pointer border-none"
           style={{ background: actionMenu ? T.sa : 'transparent', color: T.t3 }}>

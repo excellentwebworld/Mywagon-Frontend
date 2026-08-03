@@ -14,7 +14,9 @@ export default function SeatBanner() {
 
   const usedSeats = seats?.used ?? 0;
   const totalSeats = seats?.total ?? 0;
-  const plan = seats?.plan || t('userMgmt.seats.currentPlan', { defaultValue: 'Current plan' });
+  const planLabel = seats?.plan
+    ? t('userMgmt.seats.plan', { plan: seats.plan })
+    : t('userMgmt.seats.currentPlan', { defaultValue: 'Current plan' });
   const pct = totalSeats > 0 ? Math.round((usedSeats / totalSeats) * 100) : 0;
   const barColor = pct >= 100 ? '#EF4444' : pct >= 80 ? '#F59E0B' : T.ac;
 
@@ -40,7 +42,7 @@ export default function SeatBanner() {
             </span>
           </div>
           <div style={{ fontSize: 11, color: T.t3, marginTop: 1 }}>
-            {t('userMgmt.seats.plan', { plan })}
+            {planLabel}
           </div>
         </div>
       </div>

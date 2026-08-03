@@ -621,8 +621,9 @@ export function getUserFullName(u) {
 }
 
 export function getUserAvatarColor(userId) {
+  const s = String(userId ?? '');
   let h = 0;
-  for (let i = 0; i < userId.length; i++) h = userId.charCodeAt(i) + ((h << 5) - h);
+  for (let i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h);
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
 }
 
