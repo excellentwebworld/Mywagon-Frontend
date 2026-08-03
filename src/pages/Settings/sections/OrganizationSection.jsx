@@ -921,18 +921,128 @@ function LegalField({ label, value, onChange, locked, editing }) {
 }
 
 function OrgSkeleton({ T }) {
+  const sk = { baseColor: T.sa, highlightColor: T.bd };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" aria-busy="true" aria-label="Loading">
+      {/* Completion gauge */}
       <div className="rounded-xl px-5 py-4" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
-        <Skeleton height={18} width="40%" />
-        <Skeleton height={8} className="mt-3" />
-      </div>
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="rounded-xl px-5 py-4" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
-          <Skeleton height={16} width="30%" />
-          <Skeleton height={40} className="mt-3" count={3} />
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="min-w-0 flex-1">
+            <Skeleton width={200} height={16} borderRadius={4} {...sk} />
+            <div style={{ marginTop: 8 }}>
+              <Skeleton width={160} height={12} borderRadius={4} {...sk} />
+            </div>
+          </div>
+          <Skeleton width={48} height={28} borderRadius={6} {...sk} />
         </div>
-      ))}
+        <Skeleton height={8} borderRadius={999} {...sk} />
+      </div>
+
+      {/* Account type */}
+      <div className="rounded-xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+        <div className="p-5" style={{ background: 'linear-gradient(135deg, #1e1b4b, #312e81)' }}>
+          <Skeleton width={110} height={10} borderRadius={4} baseColor="rgba(255,255,255,0.15)" highlightColor="rgba(255,255,255,0.28)" />
+          <div style={{ marginTop: 12 }}>
+            <Skeleton width={140} height={24} borderRadius={6} baseColor="rgba(255,255,255,0.2)" highlightColor="rgba(255,255,255,0.35)" />
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <Skeleton width="75%" height={12} borderRadius={4} baseColor="rgba(255,255,255,0.12)" highlightColor="rgba(255,255,255,0.22)" />
+          </div>
+        </div>
+        <div className="px-5 py-3">
+          <Skeleton width="55%" height={12} borderRadius={4} {...sk} />
+        </div>
+      </div>
+
+      {/* Legal & billing */}
+      <div className="rounded-xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
+          <div className="flex items-center gap-2">
+            <Skeleton circle width={16} height={16} {...sk} />
+            <Skeleton width={160} height={14} borderRadius={4} {...sk} />
+          </div>
+          <Skeleton width={72} height={30} borderRadius={8} {...sk} />
+        </div>
+        <div className="px-5 py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i}>
+              <Skeleton width={90 + (i % 3) * 18} height={12} borderRadius={4} {...sk} />
+              <div style={{ marginTop: 8 }}>
+                <Skeleton height={38} borderRadius={8} {...sk} />
+              </div>
+            </div>
+          ))}
+          <div className="md:col-span-2">
+            <Skeleton width={120} height={12} borderRadius={4} {...sk} />
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              <Skeleton width={180} height={26} borderRadius={999} {...sk} />
+              <Skeleton width={140} height={26} borderRadius={999} {...sk} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Operations */}
+      <div className="rounded-xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
+          <div className="flex items-center gap-2">
+            <Skeleton circle width={16} height={16} {...sk} />
+            <Skeleton width={220} height={14} borderRadius={4} {...sk} />
+          </div>
+          <Skeleton width={72} height={30} borderRadius={8} {...sk} />
+        </div>
+        <div className="px-5 py-4 space-y-5">
+          {[0, 1, 2, 3].map((row) => (
+            <div key={row}>
+              <Skeleton width={`${45 + row * 8}%`} height={12} borderRadius={4} {...sk} />
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {Array.from({ length: row === 0 ? 5 : row === 1 ? 1 : 3 }).map((_, i) => (
+                  <Skeleton
+                    key={i}
+                    width={row === 0 ? 120 + (i % 3) * 28 : row === 1 ? 64 : 88 + i * 12}
+                    height={row === 1 ? 36 : 26}
+                    borderRadius={row === 1 ? 8 : 999}
+                    {...sk}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Branding */}
+      <div className="rounded-xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
+          <div className="flex items-center gap-2">
+            <Skeleton circle width={16} height={16} {...sk} />
+            <Skeleton width={180} height={14} borderRadius={4} {...sk} />
+          </div>
+          <Skeleton width={72} height={30} borderRadius={8} {...sk} />
+        </div>
+        <div className="px-5 py-4 space-y-4">
+          <div className="flex items-center gap-4">
+            <Skeleton width={72} height={72} borderRadius={12} {...sk} />
+            <Skeleton width={100} height={28} borderRadius={8} {...sk} />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <Skeleton width={110} height={13} borderRadius={4} {...sk} />
+              <div style={{ marginTop: 6 }}>
+                <Skeleton width="70%" height={11} borderRadius={4} {...sk} />
+              </div>
+            </div>
+            <Skeleton width={44} height={24} borderRadius={999} {...sk} />
+          </div>
+          <div>
+            <Skeleton width={140} height={12} borderRadius={4} {...sk} />
+            <div style={{ marginTop: 8 }}>
+              <Skeleton height={72} borderRadius={8} {...sk} />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
