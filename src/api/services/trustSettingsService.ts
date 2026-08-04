@@ -82,6 +82,12 @@ export type TrustOrgPosture = {
 export type TrustCenterPayload = {
   generated_at: string;
   overall_status: string;
+  probe?: {
+    source: string;
+    checked_at: string | null;
+    region: string;
+    components: Record<string, unknown>;
+  };
   badges: Array<{ id: string; label_key: string; sub_key: string }>;
   security_dates: {
     last_security_audit?: string | null;
@@ -103,7 +109,7 @@ export type TrustCenterPayload = {
     dataLoss?: string;
     status: string;
   } | null;
-  infrastructure: TrustInfrastructure[];
+  infrastructure: Array<TrustInfrastructure & { live?: boolean; metric?: string | null }>;
   pillars: TrustPillar[];
   encryption: TrustEncryptionRow[];
   certifications: TrustCertification[];

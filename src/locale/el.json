@@ -2363,16 +2363,21 @@
     },
     "infra": {
       "title": "Υποδομή AWS",
-      "subtitle": "Φιλοξενείται στο AWS στη Φρανκφούρτη (eu-central-1), με Application Load Balancer και Auto Scaling για διαθεσιμότητα και απόδοση.",
+      "subtitle": "Φιλοξενείται στο AWS στη Φρανκφούρτη (eu-central-1). Το staging εξυπηρετεί την κίνηση από άμεσο EC2 instance· η παραγωγή μπορεί να χρησιμοποιεί ALB + Auto Scaling όταν ρυθμιστεί.",
       "primary": "ΚΥΡΙΟ",
       "loadBalancer": "LOAD BALANCER",
       "autoScaling": "AUTO SCALING",
+      "directInstance": "ΑΜΕΣΟ INSTANCE",
+      "fixedCapacity": "ΣΤΑΘΕΡΗ ΧΩΡΗΤΙΚΟΤΗΤΑ",
+      "liveAws": "Ζωντανά · AWS API",
+      "localProbe": "Τοπικός έλεγχος",
+      "checkedAt": "Έλεγχος",
       "replica": "Αντίγραφο",
       "drStandby": "DR Αναμονή",
       "realtimeSync": "συγχρονισμός πραγματικού χρόνου",
       "asyncReplication": "ασύγχρονη αναπαραγωγή",
       "euDataResidency": "Φιλοξενία Δεδομένων στην ΕΕ",
-      "euDataDesc": "Τα παραγωγικά δεδομένα φιλοξενούνται στο AWS eu-central-1 (Φρανκφούρτη), εντός της Ευρωπαϊκής Ένωσης. Το load balancing και το Auto Scaling διατηρούν την πλατφόρμα διαθέσιμη καθώς αλλάζει η κίνηση."
+      "euDataDesc": "Τα παραγωγικά δεδομένα φιλοξενούνται στο AWS eu-central-1 (Φρανκφούρτη), εντός της Ευρωπαϊκής Ένωσης."
     },
     "encryption": {
       "title": "Στοίβα Κρυπτογράφησης",
