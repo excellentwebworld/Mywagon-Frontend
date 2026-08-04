@@ -1,43 +1,28 @@
 /**
- * OrgPosture — Organization security posture section.
- *
- * 4 cards: KYC (live), SSO, MFA, Password Policy.
- * KYC status loaded from /api/shipper/v1/settings/kyc when available.
- *
- * Used by: TrustCenterPage
+ * OrgPosture — live org security from /settings/trust (KYC, team, SSO/MFA, password).
  */
 
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../../hooks/useTheme';
-import { ClipboardList, KeyRound, Shield, Lock, ArrowRight, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
-import { ORG_SECURITY_POSTURE } from '../../../mocks/trustData';
-import { kycSettingsService } from '../../../api/services/kycSettingsService';
+import { ClipboardList, KeyRound, Shield, Lock, ArrowRight, CheckCircle, AlertTriangle, XCircle, Clock } from 'lucide-react';
 
-function getKycStatus(kyc) {
-  const status = kyc?.status;
-  if (status === 'verified' || status === 'accepted') return { level: 'green', icon: CheckCircle };
+function getKycStatus(status) {
+  if (status === 'verified' || status === 'accepted') return { level: 'green', icon: CheckCircle, label: status === 'accepted' ? 'verified' : status };
   if (status === 'in_progress' || status === 'action_required' || status === 'pending') {
-    return { level: 'amber', icon: AlertTriangle };
+    return { level: 'amber', icon: AlertTriangle, label: 'in_progress' };
   }
-  return { level: 'red', icon: XCircle };
+  if (status === 'rejected') return { level: 'red', icon: XCircle, label: 'rejected' };
+  return { level: 'red', icon: XCircle, label: 'not_started' };
 }
 
-function getSsoStatus(sso) {
-  if (sso.enabled) return { level: 'green', icon: CheckCircle };
-  return { level: 'red', icon: XCircle };
-}
-
-function getMfaStatus(mfa) {
-  if (mfa.enforced || mfa.usersWithMfa === mfa.totalUsers) return { level: 'green', icon: CheckCircle };
-  if (mfa.usersWithMfa > 0) return { level: 'amber', icon: AlertTriangle };
-  return { level: 'red', icon: XCircle };
+function getComingSoon() {
+  return { level: 'amber', icon: Clock, label: 'coming_soon' };
 }
 
 function getPwStatus(pw) {
-  if (pw.strength === 'strong') return { level: 'green', icon: CheckCircle };
-  if (pw.strength === 'medium') return { level: 'amber', icon: AlertTriangle };
+  if (pw?.strength === 'strong') return { level: 'green', icon: CheckCircle };
+  if (pw?.strength === 'medium') return { level: 'amber', icon: AlertTriangle };
   return { level: 'red', icon: XCircle };
 }
 
@@ -47,49 +32,35 @@ const LEVEL_COLORS = {
   red: '#EF4444',
 };
 
-function mapLiveKycLabel(status) {
+function mapKycLabel(status) {
   if (status === 'accepted') return 'verified';
   if (status === 'pending') return 'in_progress';
   if (status === 'rejected') return 'rejected';
-  return 'not_started';
+  return status || 'not_started';
 }
 
-export default function OrgPosture() {
+export default function OrgPosture({ data }) {
   const { t } = useTranslation();
   const { T } = useTheme();
   const navigate = useNavigate();
-  const posture = ORG_SECURITY_POSTURE;
+  const posture = data?.org_posture;
 
-  const [kycLive, setKycLive] = useState(null);
+  if (!posture) return null;
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await kycSettingsService.get();
-        if (!cancelled) {
-          setKycLive({
-            status: mapLiveKycLabel(data.kyc_status),
-            since: data.kyc_update_date_time,
-            renewsAt: null,
-          });
-        }
-      } catch {
-        if (!cancelled) setKycLive(null);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  const kyc = kycLive || posture.kyc;
-  const kycSt = getKycStatus(kyc);
-  const ssoSt = getSsoStatus(posture.sso);
-  const mfaSt = getMfaStatus(posture.mfa);
-  const pwSt = getPwStatus(posture.passwordPolicy);
+  const kycLabel = mapKycLabel(posture.kyc?.status);
+  const kycSt = getKycStatus(posture.kyc?.status);
+  const ssoComing = posture.sso?.status === 'coming_soon' || !posture.sso?.enabled;
+  const mfaComing = posture.mfa?.status === 'coming_soon';
+  const ssoSt = ssoComing ? getComingSoon() : { level: 'green', icon: CheckCircle, label: 'active' };
+  const mfaSt = mfaComing ? getComingSoon() : getComingSoon();
+  const pwSt = getPwStatus(posture.password_policy);
+  const pw = posture.password_policy;
 
   const fmt = (iso) => {
     if (!iso) return '—';
-    return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   const cards = [
@@ -99,9 +70,8 @@ export default function OrgPosture() {
       status: kycSt,
       title: t('trust.org.kyc'),
       lines: [
-        `${t(`trust.org.${kyc.status}`, { defaultValue: kyc.status })}`,
-        kyc.since ? `${t('trust.org.since')} ${fmt(kyc.since)}` : null,
-        kyc.renewsAt ? `${t('trust.org.renews')} ${fmt(kyc.renewsAt)}` : null,
+        t(`trust.org.${kycLabel}`, { defaultValue: kycLabel }),
+        posture.kyc?.since ? `${t('trust.org.since')} ${fmt(posture.kyc.since)}` : null,
       ].filter(Boolean),
       action: t('trust.org.viewDetails'),
       route: '/settings/compliance',
@@ -111,9 +81,9 @@ export default function OrgPosture() {
       icon: KeyRound,
       status: ssoSt,
       title: t('trust.org.sso'),
-      lines: posture.sso.enabled
-        ? [`${t('trust.org.active')}`, posture.sso.provider, `${posture.sso.usersViaSso} ${t('trust.org.usersViaSso')}`]
-        : [t('trust.org.notConfigured')],
+      lines: ssoComing
+        ? [t('integrations.comingSoon', { defaultValue: 'Coming soon' })]
+        : [t('trust.org.active'), posture.sso.provider].filter(Boolean),
       action: t('trust.org.manage'),
       route: '/settings/users',
     },
@@ -122,13 +92,15 @@ export default function OrgPosture() {
       icon: Shield,
       status: mfaSt,
       title: t('trust.org.mfa'),
-      lines: [
-        `${posture.mfa.usersWithMfa} / ${posture.mfa.totalUsers} ${t('trust.org.usersWithMfa')}`,
-        ...(posture.mfa.usersWithMfa < posture.mfa.totalUsers
-          ? [`${posture.mfa.totalUsers - posture.mfa.usersWithMfa} ${t('trust.org.withoutMfa')}`]
-          : []),
-      ],
-      action: posture.mfa.enforced ? t('trust.org.manage') : t('trust.org.enforce'),
+      lines: mfaComing
+        ? [
+          t('integrations.comingSoon', { defaultValue: 'Coming soon' }),
+          posture.mfa?.note || t('trust.org.otpPlanned', { defaultValue: 'OTP planned for all users' }),
+        ]
+        : [
+          `${posture.mfa.users_with_mfa} / ${posture.mfa.total_users} ${t('trust.org.usersWithMfa')}`,
+        ],
+      action: t('trust.org.manage'),
       route: '/settings/security',
     },
     {
@@ -137,13 +109,9 @@ export default function OrgPosture() {
       status: pwSt,
       title: t('trust.org.password'),
       lines: [
-        t(`trust.org.${posture.passwordPolicy.strength}`),
-        `${t('trust.org.minChars', { n: posture.passwordPolicy.minLength })}`,
-        [
-          posture.passwordPolicy.requireUppercase && t('trust.org.uppercase'),
-          posture.passwordPolicy.requireNumbers && t('trust.org.numbers'),
-          posture.passwordPolicy.requireSpecial && t('trust.org.special'),
-        ].filter(Boolean).join(' + '),
+        t(`trust.org.${pw?.strength || 'strong'}`),
+        `${t('trust.org.minChars', { n: pw?.min_length || 8 })}`,
+        pw?.hashing ? String(pw.hashing).toUpperCase() : 'bcrypt',
       ],
       action: t('trust.org.viewPolicy'),
       route: '/settings/security',

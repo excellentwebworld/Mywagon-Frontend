@@ -1,9 +1,10 @@
 /**
- * TrustCenterPage — Security & Trust showcase (ported from MV_Web_Panel_React).
- *
- * Used at /settings/trustCenter (with Settings sidebar) and legacy /trust redirect.
+ * TrustCenterPage — Security & Trust (dynamic via GET /settings/trust).
  */
 
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../hooks/useTheme';
+import { TrustCenterProvider, useTrustCenter } from './TrustCenterContext';
 import HeroCard from './trust/HeroCard';
 import PlatformStatus from './trust/PlatformStatus';
 import SecurityPillars from './trust/SecurityPillars';
@@ -13,7 +14,37 @@ import ComplianceSection from './trust/ComplianceSection';
 import OrgPosture from './trust/OrgPosture';
 import TrustFooter from './trust/TrustFooter';
 
-export default function TrustCenterPage({ embedded = false }) {
+function TrustCenterBody({ embedded = false }: { embedded?: boolean }) {
+  const { t } = useTranslation();
+  const { T } = useTheme();
+  const { data, loading, error, refresh } = useTrustCenter();
+
+  if (loading && !data) {
+    return (
+      <div className="w-full flex justify-center py-16">
+        <p style={{ fontSize: 13, color: T.t3 }}>{t('common.loading', { defaultValue: 'Loading…' })}</p>
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center py-16 gap-3">
+        <p style={{ fontSize: 13, color: '#EF4444' }}>{error}</p>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          className="px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
+          style={{ background: T.ac, color: '#fff', fontSize: 12 }}
+        >
+          {t('common.retry', { defaultValue: 'Retry' })}
+        </button>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
   return (
     <div
       className="w-full flex justify-center"
@@ -24,16 +55,24 @@ export default function TrustCenterPage({ embedded = false }) {
         style={{ maxWidth: embedded ? '100%' : 960 }}
       >
         <div className="flex flex-col gap-12">
-          <HeroCard />
-          <PlatformStatus />
-          <SecurityPillars />
-          <InfrastructureSection />
-          <EncryptionStack />
-          <ComplianceSection />
-          <OrgPosture />
-          <TrustFooter />
+          <HeroCard data={data} />
+          <PlatformStatus data={data} />
+          <SecurityPillars data={data} />
+          <InfrastructureSection data={data} />
+          <EncryptionStack data={data} />
+          <ComplianceSection data={data} />
+          <OrgPosture data={data} />
+          <TrustFooter data={data} />
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TrustCenterPage({ embedded = false }: { embedded?: boolean }) {
+  return (
+    <TrustCenterProvider>
+      <TrustCenterBody embedded={embedded} />
+    </TrustCenterProvider>
   );
 }

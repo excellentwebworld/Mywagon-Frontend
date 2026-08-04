@@ -21,7 +21,7 @@ function generateUptimeHistory() {
     const dayIndex = 89 - i; // 0 = oldest, 89 = today
     if (dayIndex === 44) {
       // ~27 Mar — DB failover
-      days.push({ date: iso, uptime: 99.97, note: { en: 'Database failover — 4 min degraded', el: 'Αλλαγή βάσης δεδομένων — 4 λεπτά υποβάθμιση' } });
+      days.push({ date: iso, uptime: 99.97, note: { en: 'Brief connectivity issue — 4 min degraded', el: 'Σύντομο πρόβλημα συνδεσιμότητας — 4 λεπτά υποβάθμιση' } });
     } else if (dayIndex === 59) {
       // ~11 Mar — scheduled maintenance
       days.push({ date: iso, uptime: 99.99, note: { en: 'Scheduled maintenance — 1 min', el: 'Προγραμματισμένη συντήρηση — 1 λεπτό' } });
@@ -52,10 +52,10 @@ export const PLATFORM_STATUS = {
   overallUptime90Days: 99.99,
   lastIncident: {
     date: '2026-03-27',
-    title:       { en: 'Database failover',     el: 'Αλλαγή βάσης δεδομένων' },
+    title:       { en: 'Brief connectivity issue', el: 'Σύντομο πρόβλημα συνδεσιμότητας' },
     description: {
-      en: 'Our primary database in Frankfurt experienced a brief connectivity issue at 14:23 UTC. Automatic failover to the Ireland replica completed in 4 minutes. No data was lost.',
-      el: 'Η κύρια βάση δεδομένων μας στη Φρανκφούρτη αντιμετώπισε σύντομο πρόβλημα συνδεσιμότητας στις 14:23 UTC. Η αυτόματη εναλλαγή στο αντίγραφο της Ιρλανδίας ολοκληρώθηκε σε 4 λεπτά. Δεν χάθηκαν δεδομένα.',
+      en: 'A brief connectivity issue in the Frankfurt (eu-central-1) environment was mitigated by the load balancer and Auto Scaling. Service recovered quickly. No data was lost.',
+      el: 'Ένα σύντομο πρόβλημα συνδεσιμότητας στο περιβάλλον της Φρανκφούρτης (eu-central-1) αντιμετωπίστηκε από το load balancer και το Auto Scaling. Η υπηρεσία επανήλθε γρήγορα. Δεν χάθηκαν δεδομένα.',
     },
     duration: '4 minutes',
     impact: 'minor',
@@ -132,18 +132,45 @@ export const ENCRYPTION_STACK = [
   { layer: { en: 'Data at rest',      el: 'Δεδομένα σε αδράνεια' },     technology: 'AES-256-GCM',              status: 'active' },
   { layer: { en: 'Data in transit',   el: 'Δεδομένα σε μεταφορά' },     technology: 'TLS 1.3',                   status: 'active' },
   { layer: { en: 'Key management',    el: 'Διαχείριση κλειδιών' },      technology: 'AWS KMS + HSM',             status: 'active' },
-  { layer: { en: 'Backups',           el: 'Αντίγραφα ασφαλείας' },      technology: 'AES-256 · Cross-region',    status: 'active' },
+  { layer: { en: 'Backups',           el: 'Αντίγραφα ασφαλείας' },      technology: 'AES-256 · eu-central-1',    status: 'active' },
   { layer: { en: 'User passwords',    el: 'Κωδικοί χρηστών' },          technology: 'bcrypt + salt (cost 12)',    status: 'active' },
   { layer: { en: 'API tokens',        el: 'Κλειδιά API' },              technology: 'SHA-256 hashed',            status: 'active' },
   { layer: { en: 'Webhook secrets',   el: 'Μυστικά Webhook' },          technology: 'HMAC-SHA256',               status: 'active' },
 ];
 
-// ── Infrastructure Regions ──────────────────────────────────────
+// ── Infrastructure (confirmed: AWS eu-central-1 + ALB + Auto Scaling) ──
 
 export const INFRASTRUCTURE = [
-  { code: 'eu-central-1', city: { en: 'Frankfurt', el: 'Φρανκφούρτη' }, role: 'primary',    status: 'operational', description: { en: 'Production workloads',                    el: 'Παραγωγικά φορτία' } },
-  { code: 'eu-west-1',    city: { en: 'Ireland',   el: 'Ιρλανδία' },    role: 'replica',     status: 'operational', description: { en: 'Real-time sync, read replicas',           el: 'Συγχρονισμός σε πραγματικό χρόνο' } },
-  { code: 'eu-south-1',   city: { en: 'Milan',     el: 'Μιλάνο' },      role: 'dr_standby',  status: 'standby',     description: { en: 'Disaster recovery, automated failover',   el: 'Ανάκαμψη καταστροφών, αυτόματη εναλλαγή' } },
+  {
+    code: 'eu-central-1',
+    city: { en: 'Frankfurt', el: 'Φρανκφούρτη' },
+    role: 'primary',
+    status: 'operational',
+    description: {
+      en: 'Primary AWS region. Production workloads, database (RDS), and file storage (S3).',
+      el: 'Κύρια περιοχή AWS. Παραγωγικά φορτία, βάση δεδομένων (RDS) και αποθήκευση αρχείων (S3).',
+    },
+  },
+  {
+    code: 'ALB',
+    city: { en: 'Load Balancer', el: 'Load Balancer' },
+    role: 'load_balancer',
+    status: 'operational',
+    description: {
+      en: 'AWS Application Load Balancer distributes traffic across healthy instances for high availability.',
+      el: 'Το AWS Application Load Balancer κατανέμει την κίνηση σε υγιείς instances για υψηλή διαθεσιμότητα.',
+    },
+  },
+  {
+    code: 'ASG',
+    city: { en: 'Auto Scaling', el: 'Auto Scaling' },
+    role: 'autoscaling',
+    status: 'operational',
+    description: {
+      en: 'Auto Scaling Group scales capacity up or down with demand to keep performance stable.',
+      el: 'Το Auto Scaling Group αυξομειώνει τη χωρητικότητα ανάλογα με τη ζήτηση για σταθερή απόδοση.',
+    },
+  },
 ];
 
 // ── Compliance Certifications ───────────────────────────────────
@@ -172,8 +199,8 @@ export const COMPLIANCE_DETAILS = [
     icon: 'HardDrive',
     title: { en: 'Automated Backups', el: 'Αυτοματοποιημένα Αντίγραφα' },
     description: {
-      en: 'Daily snapshots with point-in-time recovery capability. RPO: < 1 hour · RTO: < 4 hours. Cross-region backup replication (Frankfurt → Ireland).',
-      el: 'Καθημερινά στιγμιότυπα με δυνατότητα ανάκτησης ανά χρονικό σημείο. RPO: < 1 ώρα · RTO: < 4 ώρες. Αναπαραγωγή αντιγράφων μεταξύ περιοχών (Φρανκφούρτη → Ιρλανδία).',
+      en: 'Daily snapshots with point-in-time recovery capability in AWS eu-central-1 (Frankfurt).',
+      el: 'Καθημερινά στιγμιότυπα με δυνατότητα ανάκτησης ανά χρονικό σημείο στο AWS eu-central-1 (Φρανκφούρτη).',
     },
   },
   {
@@ -181,17 +208,17 @@ export const COMPLIANCE_DETAILS = [
     icon: 'Globe',
     title: { en: 'Network Security', el: 'Ασφάλεια Δικτύου' },
     description: {
-      en: 'VPC isolation with private subnets. Security groups with least-privilege rules. AWS Shield for DDoS protection. Private endpoints for all internal service communication.',
-      el: 'Απομόνωση VPC με ιδιωτικά υποδίκτυα. Ομάδες ασφαλείας με κανόνες ελάχιστων δικαιωμάτων. AWS Shield για προστασία DDoS. Ιδιωτικά τελικά σημεία για εσωτερική επικοινωνία.',
+      en: 'Traffic enters via AWS Application Load Balancer. Auto Scaling keeps capacity aligned with demand. Hosted in AWS eu-central-1 (Frankfurt).',
+      el: 'Η κίνηση εισέρχεται μέσω AWS Application Load Balancer. Το Auto Scaling προσαρμόζει τη χωρητικότητα στη ζήτηση. Φιλοξενία στο AWS eu-central-1 (Φρανκφούρτη).',
     },
   },
   {
     id: 'dr',
     icon: 'RefreshCw',
-    title: { en: 'Disaster Recovery', el: 'Ανάκαμψη Καταστροφών' },
+    title: { en: 'High Availability', el: 'Υψηλή Διαθεσιμότητα' },
     description: {
-      en: 'Cross-region replication with automated failover. RTO: < 4 hours. Annual DR drills. Last drill: Jan 2026.',
-      el: 'Αναπαραγωγή μεταξύ περιοχών με αυτόματη εναλλαγή. RTO: < 4 ώρες. Ετήσιες ασκήσεις DR. Τελευταία άσκηση: Ιαν 2026.',
+      en: 'Load balancing and Auto Scaling in AWS Frankfurt (eu-central-1) keep the platform available under changing load.',
+      el: 'Load balancing και Auto Scaling στο AWS Φρανκφούρτη (eu-central-1) διατηρούν την πλατφόρμα διαθέσιμη υπό μεταβαλλόμενο φορτίο.',
     },
   },
   {
@@ -199,8 +226,8 @@ export const COMPLIANCE_DETAILS = [
     icon: 'Building2',
     title: { en: 'Physical Security', el: 'Φυσική Ασφάλεια' },
     description: {
-      en: 'AWS data centers: SOC 2 and ISO 27001 certified. Biometric access controls, 24/7 surveillance, man traps.',
-      el: 'Data centers AWS: Πιστοποίηση SOC 2 και ISO 27001. Βιομετρικοί έλεγχοι πρόσβασης, επιτήρηση 24/7, κλειδαριές ασφαλείας.',
+      en: 'Hosted in AWS data centers in Frankfurt (eu-central-1). Physical security is managed by AWS.',
+      el: 'Φιλοξενείται σε data centers AWS στη Φρανκφούρτη (eu-central-1). Η φυσική ασφάλεια διαχειρίζεται από την AWS.',
     },
   },
   {

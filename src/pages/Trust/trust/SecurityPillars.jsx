@@ -1,23 +1,18 @@
 /**
- * SecurityPillars — 6 security pillar cards (2×3 grid).
- *
- * Each card: icon circle, title, description, tech tags, status badge.
- * Content sourced from the MYVAGON security presentation.
- *
- * Used by: TrustCenterPage
+ * SecurityPillars — from /settings/trust.
  */
 
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import { CheckCircle, Lock, ShieldCheck, Shield, ClipboardList, Eye, Code } from 'lucide-react';
-import { SECURITY_PILLARS } from '../../../mocks/trustData';
 
 const ICON_MAP = { Lock, ShieldCheck, Shield, ClipboardList, Eye, Code };
 
-export default function SecurityPillars() {
+export default function SecurityPillars({ data }) {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const lang = (i18n.language || 'en').startsWith('el') ? 'el' : 'en';
+  const pillars = data?.pillars || [];
 
   return (
     <section>
@@ -26,13 +21,12 @@ export default function SecurityPillars() {
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {SECURITY_PILLARS.map(p => {
+        {pillars.map((p) => {
           const Icon = ICON_MAP[p.icon] || Shield;
+          const statusLabel = p.status_label || p.statusLabel;
           return (
             <div key={p.id} className="rounded-xl p-5 flex flex-col transition-all duration-200"
               style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
-
-              {/* Icon + title row */}
               <div className="flex items-center gap-3 mb-3">
                 <div className="flex items-center justify-center rounded-lg"
                   style={{ width: 40, height: 40, background: `${T.ac}14` }}>
@@ -42,16 +36,12 @@ export default function SecurityPillars() {
                   {p.title[lang] || p.title.en}
                 </h3>
               </div>
-
-              {/* Description */}
               <p style={{ fontSize: 13, color: T.t2, lineHeight: 1.55, flex: 1, marginBottom: 12 }}>
                 {p.description[lang] || p.description.en}
               </p>
-
-              {/* Tech tags + status */}
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex flex-wrap gap-1.5">
-                  {p.tags.map(tag => (
+                  {(p.tags || []).map((tag) => (
                     <span key={tag} className="rounded-md px-2 py-0.5"
                       style={{ fontSize: 10, fontFamily: 'monospace', color: T.t3, border: `1px solid ${T.bd}`, background: T.sa }}>
                       {tag}
@@ -61,7 +51,7 @@ export default function SecurityPillars() {
                 <div className="flex items-center gap-1">
                   <CheckCircle size={13} style={{ color: '#10B981' }} />
                   <span style={{ fontSize: 11, fontWeight: 600, color: '#10B981' }}>
-                    {p.statusLabel[lang] || p.statusLabel.en}
+                    {statusLabel?.[lang] || statusLabel?.en}
                   </span>
                 </div>
               </div>

@@ -2335,7 +2335,7 @@
       "gdpr": "GDPR",
       "compliant": "Compliant",
       "awsCloud": "AWS",
-      "cloud": "Cloud",
+      "cloud": "eu-central-1",
       "uptime": "99.99%",
       "uptimePct": "Uptime"
     },
@@ -2362,15 +2362,17 @@
       "title": "Security at Every Layer"
     },
     "infra": {
-      "title": "Distributed AWS Architecture",
-      "subtitle": "Our platform is hosted in AWS data centers with backups across geographically diverse European locations.",
-      "primary": "Primary",
+      "title": "AWS Infrastructure",
+      "subtitle": "Hosted on AWS in Frankfurt (eu-central-1), with Application Load Balancer and Auto Scaling for availability and performance.",
+      "primary": "PRIMARY",
+      "loadBalancer": "LOAD BALANCER",
+      "autoScaling": "AUTO SCALING",
       "replica": "Replica",
       "drStandby": "DR Standby",
       "realtimeSync": "real-time sync",
       "asyncReplication": "async replication",
       "euDataResidency": "EU Data Residency",
-      "euDataDesc": "All data stays within the European Union. No data is transferred outside the EU at any time. This applies to primary data, backups, logs, and AI processing when using the default Vagon AI provider."
+      "euDataDesc": "Production data is hosted in AWS eu-central-1 (Frankfurt), inside the European Union. Load balancing and Auto Scaling keep the platform available as traffic changes."
     },
     "encryption": {
       "title": "Encryption Stack",

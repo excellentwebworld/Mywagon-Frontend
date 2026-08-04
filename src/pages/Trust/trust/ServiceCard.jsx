@@ -54,7 +54,8 @@ export default function ServiceCard({ service, lang }) {
       {/* Metric */}
       <div className="flex items-baseline gap-1.5 mb-3">
         <span style={{ fontSize: 11, color: T.t3 }}>
-          {service.metricLabel[lang] || service.metricLabel.en}:
+          {(service.metric_label || service.metricLabel)?.[lang]
+            || (service.metric_label || service.metricLabel)?.en}:
         </span>
         <span style={{ fontSize: 13, fontWeight: 600, color: T.t1, fontVariantNumeric: 'tabular-nums' }}>
           {service.metric}

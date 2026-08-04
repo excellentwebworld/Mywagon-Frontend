@@ -1,24 +1,21 @@
 /**
- * PlatformStatus — Live platform status section.
- *
- * 6 service cards (3×2 grid) + 90-day uptime bar + last incident note.
- *
- * Used by: TrustCenterPage
- * API: GET /api/v1/trust/status, GET /api/v1/trust/uptime, GET /api/v1/trust/incidents
+ * PlatformStatus — services + uptime from /settings/trust.
  */
 
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import { CheckCircle } from 'lucide-react';
-import { PLATFORM_STATUS } from '../../../mocks/trustData';
 import ServiceCard from './ServiceCard';
 import UptimeBar from './UptimeBar';
 
-export default function PlatformStatus() {
+export default function PlatformStatus({ data }) {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const lang = (i18n.language || 'en').startsWith('el') ? 'el' : 'en';
-  const incident = PLATFORM_STATUS.lastIncident;
+  const services = data?.services || [];
+  const history = data?.uptime?.history || [];
+  const overallUptime = data?.uptime?.overall_90_days ?? 99.99;
+  const incident = data?.last_incident;
 
   return (
     <section>
@@ -26,23 +23,18 @@ export default function PlatformStatus() {
         {t('trust.status.title')}
       </h2>
 
-      {/* Service grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-        {PLATFORM_STATUS.services.map(svc => (
+        {services.map((svc) => (
           <ServiceCard key={svc.id} service={svc} lang={lang} />
         ))}
       </div>
 
-      {/* Uptime bar */}
-      <div className="rounded-xl p-5 mb-4" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
-        <UptimeBar
-          history={PLATFORM_STATUS.uptimeHistory}
-          overallUptime={PLATFORM_STATUS.overallUptime90Days}
-          lang={lang}
-        />
-      </div>
+      {history.length > 0 && (
+        <div className="rounded-xl p-5 mb-4" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+          <UptimeBar history={history} overallUptime={overallUptime} lang={lang} />
+        </div>
+      )}
 
-      {/* Last incident */}
       {incident && (
         <div className="rounded-xl p-5" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
           <div className="flex items-center gap-2 mb-3">
@@ -63,7 +55,7 @@ export default function PlatformStatus() {
           <div className="flex flex-wrap gap-4" style={{ fontSize: 12, color: T.t3 }}>
             <span>{t('trust.status.duration')}: {incident.duration}</span>
             <span>{t('trust.status.impact')}: {t(`trust.status.${incident.impact}`)}</span>
-            <span>{t('trust.status.dataLoss')}: {t(`trust.status.${incident.dataLoss}`)}</span>
+            <span>{t('trust.status.dataLoss')}: {t(`trust.status.${incident.data_loss || incident.dataLoss || 'none'}`)}</span>
           </div>
         </div>
       )}
