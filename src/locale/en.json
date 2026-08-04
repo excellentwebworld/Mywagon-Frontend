@@ -983,6 +983,7 @@
     "groupIntegration": "Integration",
     "groupPreferences": "Preferences",
     "personal": "Personal info",
+    "performanceReviews": "Performance & Reviews",
     "organization": "Organization",
     "accountType": "Account type",
     "usersRoles": "Users & roles",
@@ -1065,6 +1066,7 @@
       "uploadAvatar": "Upload photo",
       "avatarUploaded": "Profile photo updated",
       "performanceHint": "Company-level metrics: cancels by your company, and average driver-reported loading wait at your pickups.",
+      "noReviews": "No reviews yet",
       "role": {
         "role": "Role",
         "assignedBy": "Assigned By",
