@@ -33,6 +33,17 @@ export type PersonalSettingsPayload = {
   performance?: {
     cancellation_rate_pct: number | null;
     avg_loading_wait_minutes: number | null;
+    rating_average?: number | null;
+    rating_count?: number;
+    ratings?: Array<{
+      id: number;
+      rating: number | null;
+      review: string | null;
+      created_at: string | null;
+      rater_type: string | null;
+      rater_name: string | null;
+      rater_avatar_url: string | null;
+    }>;
   };
   activity?: PersonalActivityItem[];
   main_use_options: PersonalMainUseOption[];

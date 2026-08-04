@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import {
-  Pencil, X, Check, Lock, Briefcase, Camera, Clock, BarChart2,
+  Pencil, X, Check, Lock, Briefcase, Camera, Clock, BarChart2, Star,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useAuth } from '../../../hooks/useAuth';
@@ -312,7 +312,15 @@ export default function PersonalSection() {
       </Card>
 
       <Card title={t('performanceKpis') || 'Performance KPIs'} icon={<BarChart2 size={16} style={{ color: T.ac }} />}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <InfoRow
+            label={t('averageRating') || 'Average rating'}
+            value={
+              data.performance?.rating_average != null && data.performance.rating_average > 0
+                ? `${data.performance.rating_average} / 5`
+                : '—'
+            }
+          />
           <InfoRow
             label={t('satCancellationRate') || 'Cancellation rate'}
             value={
@@ -334,6 +342,51 @@ export default function PersonalSection() {
           {t('settings.profileSection.performanceHint')
             || 'Company-level metrics: cancels by your company, and average driver-reported loading wait at your pickups.'}
         </p>
+
+        {(data.performance?.ratings || []).length > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <div className="font-semibold mb-3 flex items-center gap-2" style={{ fontSize: 12, color: T.t2 }}>
+              <Star size={14} style={{ color: T.ac }} />
+              {t('reviews') || 'Reviews'} ({data.performance.rating_count ?? data.performance.ratings.length})
+            </div>
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {(data.performance.ratings || []).map((review) => (
+                <div
+                  key={review.id}
+                  className="px-3 py-3 rounded-lg"
+                  style={{ background: T.sa, border: `1px solid ${T.bd}` }}
+                >
+                  <div className="flex items-start gap-3">
+                    {review.rater_avatar_url ? (
+                      <img src={review.rater_avatar_url} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                        style={{ background: T.ac, color: '#fff', fontSize: 12, fontWeight: 700 }}
+                      >
+                        {(review.rater_name || '?').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex justify-between gap-2">
+                        <span style={{ fontSize: 12, fontWeight: 600, color: T.t1 }}>
+                          {review.rater_name || t('transporter') || 'Transporter'}
+                        </span>
+                        <span style={{ fontSize: 10, color: T.t3 }}>{relativeTime(review.created_at)}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: T.ac, marginTop: 4 }}>
+                        {'★'.repeat(review.rating || 0)}{'☆'.repeat(Math.max(0, 5 - (review.rating || 0)))}
+                      </div>
+                      {review.review && (
+                        <p style={{ fontSize: 12, color: T.t2, marginTop: 6 }}>{review.review}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </Card>
 
       <Card title={t('settings.profileSection.prefsActivity')} icon={<Clock size={16} style={{ color: T.ac }} />}>
