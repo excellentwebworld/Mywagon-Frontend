@@ -18,7 +18,6 @@ import { ErpOrders } from './pages/ErpOrders/ErpOrders';
 import { SearchTrucks } from './pages/SearchTrucks';
 import Settings from './pages/Settings/Settings';
 import SettingsSectionOrUserEdit from './pages/Settings/SettingsSectionOrUserEdit';
-import TrustCenterPage from './pages/Trust/TrustCenterPage';
 import {
   BillingPage,
   SubscriptionPage,
@@ -47,12 +46,13 @@ const appRoutes = [
   { path: '/partners', element: <Partners /> },
   { path: '/erp-orders', element: <ErpOrders /> },
   { path: '/settings', element: <Navigate to="/settings/personal" replace /> },
+  { path: '/settings/audit', element: <Navigate to="/settings/users/audit" replace /> },
   { path: '/settings/:section/:tab', element: <SettingsSectionOrUserEdit /> },
   { path: '/settings/:section', element: <Settings /> },
   { path: '/billing', element: <BillingPage /> },
   { path: '/subscription', element: <SubscriptionPage /> },
   { path: '/support', element: <SupportPage /> },
-  { path: '/trust', element: <TrustCenterPage /> },
+  { path: '/trust', element: <Navigate to="/settings/trustCenter" replace /> },
 ];
 
 const protectedLayout = {

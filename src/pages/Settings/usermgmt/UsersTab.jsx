@@ -1,18 +1,18 @@
 /**
  * UsersTab — User table (PDS-937 Phase 2).
  * No MFA column/filter; no Suspend / Edit Permissions / Require MFA.
- * Edit Details → full-page /settings/users/:id
+ * Edit Details → same Invite/Edit popup (no separate page).
  */
 
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Search, Download, X, ChevronDown, ChevronUp,
-  MoreHorizontal, Edit3,
+  MoreHorizontal, Edit3, ShieldCheck,
   UserPlus, Trash2, RotateCcw, LogOut, Copy,
   Send, Check, XCircle,
 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { useUserMgmt } from '../../../context/UserMgmtContext';
@@ -35,7 +35,6 @@ export default function UsersTab() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const { users, setUsers, addUser, updateUser, refresh, loading, error, roles } = useUserMgmt();
   const roleFilterOptions = roles.length ? roles : SHIPPER_ROLES;
   const [search, setSearch] = useState('');
@@ -47,6 +46,7 @@ export default function UsersTab() {
   const [pageSize, setPageSize] = useState(20);
   const [selected, setSelected] = useState(new Set());
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
   const [actionMenu, setActionMenu] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [showRoleFilter, setShowRoleFilter] = useState(false);
@@ -134,7 +134,13 @@ export default function UsersTab() {
 
   const openEdit = (u) => {
     setActionMenu(null);
-    navigate(`/settings/users/${u.id}`);
+    setEditingUser(u);
+    setInviteOpen(true);
+  };
+
+  const closeUserModal = () => {
+    setInviteOpen(false);
+    setEditingUser(null);
   };
 
   const handleReactivate = async (u) => {
@@ -325,7 +331,7 @@ export default function UsersTab() {
           style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12, fontWeight: 500 }}>
           <Download size={13} /> {t('userMgmt.export')}
         </button>
-        <button type="button" onClick={() => setInviteOpen(true)}
+        <button type="button" onClick={() => { setEditingUser(null); setInviteOpen(true); }}
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none"
           style={{ background: T.ac, color: '#fff', fontSize: 12, fontWeight: 600 }}>
           <UserPlus size={14} /> {t('userMgmt.inviteUser')}
@@ -343,7 +349,7 @@ export default function UsersTab() {
         </div>
       )}
 
-      <div className="w-full overflow-x-auto">
+      <div className="w-full overflow-x-auto" style={{ overflowY: 'visible' }}>
         {/* Avoid Tailwind `hidden` — app.css has `.hidden { display:none !important }` which blocks `md:table`. */}
         <table
           className="w-full"
@@ -363,7 +369,21 @@ export default function UsersTab() {
                   </span>
                 </th>
               ))}
-              <th className="px-3 py-2.5 w-10" />
+              <th
+                className="px-3 py-2.5 w-12 text-right"
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: T.t3,
+                  letterSpacing: 0.5,
+                  position: 'sticky',
+                  right: 0,
+                  background: T.sf,
+                  zIndex: 2,
+                }}
+              >
+                {t('userMgmt.table.actions', { defaultValue: 'Actions' })}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -413,11 +433,21 @@ export default function UsersTab() {
 
       <InviteUserModal
         open={inviteOpen}
-        onClose={() => setInviteOpen(false)}
+        user={editingUser}
+        onClose={closeUserModal}
         onInvite={async (newUser) => {
           addUser(newUser);
-          setInviteOpen(false);
+          closeUserModal();
           toast.success(t('userMgmt.toast.invited', { email: newUser.email }));
+          await refresh();
+        }}
+        onSaved={async (updated) => {
+          updateUser(updated);
+          closeUserModal();
+          toast.success(t('userMgmt.toast.userUpdated', {
+            name: getUserFullName(updated),
+            defaultValue: 'User updated',
+          }));
           await refresh();
         }}
       />
@@ -483,12 +513,36 @@ function UserRow({
   relTime, formatDate, actionMenuRef,
 }) {
   const role = ROLES_BY_KEY[u.role] || { name: u.role, color: '#3B82F6' };
-  const sc = USER_STATUS_CONFIG[u.status] || USER_STATUS_CONFIG.active;
+  const status = String(u.status || 'active').toLowerCase();
+  const sc = USER_STATUS_CONFIG[status] || USER_STATUS_CONFIG.active;
   const inviteInfo = getInviteStatus(u);
-  const displayStatus = inviteInfo?.label === 'expired' ? 'expired' : u.status;
+  const displayStatus = inviteInfo?.label === 'expired' ? 'expired' : status;
   const statusCfg = USER_STATUS_CONFIG[displayStatus] || sc;
   const custom = hasCustomDirectPermissions(u);
   const isOwner = !!(u.isOwner || u.is_owner);
+  const btnRef = useRef(null);
+  const [menuPos, setMenuPos] = useState(null);
+
+  useEffect(() => {
+    if (!actionMenu || !btnRef.current) {
+      setMenuPos(null);
+      return undefined;
+    }
+    const update = () => {
+      const rect = btnRef.current.getBoundingClientRect();
+      setMenuPos({
+        top: rect.bottom + 4,
+        right: Math.max(8, window.innerWidth - rect.right),
+      });
+    };
+    update();
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [actionMenu]);
 
   return (
     <tr onClick={onClick} className="cursor-pointer transition-colors duration-100"
@@ -496,7 +550,7 @@ function UserRow({
       onMouseEnter={(e) => { e.currentTarget.style.background = T.sa; }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-        <input type="checkbox" checked={selected} onChange={onToggle} />
+        <input type="checkbox" checked={selected} onChange={onToggle} disabled={isOwner} />
       </td>
       <td className="px-3 py-3">
         <div className="flex items-center gap-3">
@@ -532,27 +586,55 @@ function UserRow({
         </span>
       </td>
       <td className="px-3 py-3" style={{ fontSize: 12, color: T.t3 }}>
-        {u.status === 'invited' ? (
+        {status === 'invited' ? (
           <span style={{ color: '#F59E0B' }}>{t('userMgmt.invite.sentAgo', { time: relTime(u.inviteSentAt) })}</span>
         ) : relTime(u.lastActive || u.last_active)}
       </td>
       <td className="px-3 py-3" style={{ fontSize: 12, color: T.t3 }}>{formatDate(u.created || u.created_at)}</td>
-      <td className="px-3 py-3 relative" onClick={(e) => e.stopPropagation()}>
-        <button type="button" onClick={onActionMenuToggle} className="p-1.5 rounded-lg cursor-pointer border-none"
-          style={{ background: actionMenu ? T.sa : 'transparent', color: T.t3 }}>
+      <td
+        className="px-3 py-3 relative text-right"
+        onClick={(e) => e.stopPropagation()}
+        style={{ position: 'sticky', right: 0, background: 'inherit', zIndex: 1 }}
+      >
+        <button
+          ref={btnRef}
+          type="button"
+          onClick={onActionMenuToggle}
+          aria-label={t('userMgmt.table.actions', { defaultValue: 'Actions' })}
+          className="inline-flex items-center justify-center p-1.5 rounded-lg cursor-pointer border-none"
+          style={{ background: actionMenu ? T.sa : T.sa, color: T.t1, border: `1px solid ${T.bd}`, minWidth: 32, minHeight: 32 }}
+        >
           <MoreHorizontal size={16} />
         </button>
-        {actionMenu && (
-          <div ref={actionMenuRef} className="absolute right-0 top-full mt-1 rounded-xl shadow-xl py-1 min-w-[180px]" style={{ background: T.sf, border: `1px solid ${T.bd}`, zIndex: 60 }}>
-            {u.status === 'active' && (
+        {actionMenu && menuPos && createPortal(
+          <div
+            ref={actionMenuRef}
+            className="rounded-xl shadow-xl py-1 min-w-[200px]"
+            style={{
+              position: 'fixed',
+              top: menuPos.top,
+              right: menuPos.right,
+              background: T.sf,
+              border: `1px solid ${T.bd}`,
+              zIndex: 9999,
+            }}
+          >
+            {(status === 'active' || isOwner) && (
               <>
                 <ActionItem icon={Edit3} label={t('userMgmt.actions.edit')} onClick={onClick} T={T} />
-                <div className="my-1" style={{ borderTop: `1px solid ${T.bd}` }} />
-                <ActionItem icon={LogOut} label={t('userMgmt.actions.forceSignout')} onClick={onForceSignout} T={T} />
-                <ActionItem icon={XCircle} label={t('userMgmt.actions.deactivate')} onClick={onDeactivate} T={T} danger />
+                {!isOwner && (
+                  <ActionItem icon={ShieldCheck} label={t('userMgmt.actions.changeRole')} onClick={onClick} T={T} />
+                )}
+                {!isOwner && (
+                  <>
+                    <div className="my-1" style={{ borderTop: `1px solid ${T.bd}` }} />
+                    <ActionItem icon={LogOut} label={t('userMgmt.actions.forceSignout')} onClick={onForceSignout} T={T} />
+                    <ActionItem icon={XCircle} label={t('userMgmt.actions.deactivate')} onClick={onDeactivate} T={T} danger />
+                  </>
+                )}
               </>
             )}
-            {u.status === 'invited' && (
+            {status === 'invited' && (
               <>
                 <ActionItem icon={Send} label={t('userMgmt.actions.resendInvite')} onClick={onResendInvite} T={T} />
                 <ActionItem icon={Copy} label={t('userMgmt.actions.copyLink')} onClick={onCopyLink} T={T} />
@@ -560,20 +642,21 @@ function UserRow({
                 <ActionItem icon={XCircle} label={t('userMgmt.actions.cancelInvite')} onClick={onCancelInvite} T={T} danger />
               </>
             )}
-            {u.status === 'suspended' && (
+            {status === 'suspended' && (
               <>
                 <ActionItem icon={Edit3} label={t('userMgmt.actions.edit')} onClick={onClick} T={T} />
                 <ActionItem icon={RotateCcw} label={t('userMgmt.actions.reactivate')} onClick={onReactivate} T={T} />
                 <ActionItem icon={XCircle} label={t('userMgmt.actions.deactivate')} onClick={onDeactivate} T={T} danger />
               </>
             )}
-            {u.status === 'deactivated' && (
+            {status === 'deactivated' && (
               <>
                 <ActionItem icon={RotateCcw} label={t('userMgmt.actions.reactivate')} onClick={onReactivate} T={T} />
                 <ActionItem icon={Trash2} label={t('userMgmt.actions.deletePerm')} onClick={onDelete} T={T} danger />
               </>
             )}
-          </div>
+          </div>,
+          document.body,
         )}
       </td>
     </tr>

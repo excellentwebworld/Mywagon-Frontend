@@ -1,18 +1,24 @@
 /**
- * /settings/:section/:tab — either a Users & Roles sub-tab, a user edit page (numeric id),
- * or redirect stray segments back to /settings/:section.
+ * /settings/:section/:tab — Users & Roles sub-tabs, or redirect stray segments.
+ * Numeric /settings/users/:id (old full-page edit) redirects to the users list;
+ * edit now uses the invite/edit popup on that page.
  */
 import { Navigate, useParams } from 'react-router-dom';
 import Settings from './Settings';
-import UserEditPage from './usermgmt/UserEditPage';
 
-const USER_SUBTABS = new Set(['roles']);
+const USER_SUBTABS = new Set(['roles', 'audit']);
 
 export default function SettingsSectionOrUserEdit() {
   const { section, tab } = useParams<{ section?: string; tab?: string }>();
 
+  // Legacy: Audit Log lived under /settings/audit — keep deep links working
+  if (section === 'audit') {
+    return <Navigate to="/settings/users/audit" replace />;
+  }
+
+  // Legacy full-page user edit → list (edit opens as modal there)
   if (section === 'users' && tab && /^\d+$/.test(tab)) {
-    return <UserEditPage />;
+    return <Navigate to="/settings/users" replace />;
   }
 
   if (section === 'users' && tab && USER_SUBTABS.has(tab)) {

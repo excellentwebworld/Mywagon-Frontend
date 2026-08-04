@@ -57,6 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
     if (path.startsWith('/products')) return t('products');
     if (path.startsWith('/partners')) return t('partners');
     if (path.startsWith('/erp-orders')) return t('erpOrders') || 'ERP Orders';
+    if (path.startsWith('/settings/trustCenter')) return t('settings.securityTrust') || 'Security & Trust';
     if (path.startsWith('/settings')) return t('settings.title') || 'Settings';
     if (path.startsWith('/billing')) return t('sidebar.billing') || t('billing');
     if (path.startsWith('/subscription')) return t('sidebar.subscription') || t('navSubscription');
@@ -354,7 +355,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Trust shield */}
       <button
         type="button"
-        onClick={() => navigate('/trust')}
+        onClick={() => navigate('/settings/trustCenter')}
         aria-label={t('settings.securityTrust') || 'Security & Trust'}
         title={t('settings.securityTrust') || 'Security & Trust'}
         className="mv-topbar-icon-btn"

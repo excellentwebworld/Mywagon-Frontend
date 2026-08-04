@@ -1,10 +1,13 @@
 /**
- * RolesTab — Admin / Dispatcher role packs from live Spatie API.
+ * RolesTab — Admin / Dispatcher from live API + custom Add role (design parity).
+ * System roles save via API; custom roles persist locally until backend supports them.
  */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, Pencil, X, Check, AlertTriangle } from 'lucide-react';
+import {
+  Search, Pencil, X, Check, AlertTriangle, Plus, Copy, Trash2,
+} from 'lucide-react';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { useTheme } from '../../../hooks/useTheme';
@@ -15,19 +18,51 @@ import { useUserMgmt } from '../../../context/UserMgmtContext';
 import { rolesSettingsService } from '../../../api/services/rolesSettingsService';
 import { ApiError } from '../../../api/client';
 
+const CUSTOM_ROLES_KEY = 'mv_shipper_custom_roles';
+const COLORS = ['#7C3AED', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#EC4899', '#8B5CF6'];
+
+function loadCustomRoles() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_ROLES_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomRoles(roles) {
+  try {
+    localStorage.setItem(CUSTOM_ROLES_KEY, JSON.stringify(roles));
+  } catch {
+    /* ignore quota */
+  }
+}
+
 export default function RolesTab() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
-  const { users, roles, setRoles, setPermissionGroups, loading } = useUserMgmt();
+  const { users, roles: apiRoles, setRoles: setApiRoles, setPermissionGroups, loading } = useUserMgmt();
   const isGreek = i18n.language === 'el';
 
+  const [customRoles, setCustomRoles] = useState(loadCustomRoles);
   const [selectedKey, setSelectedKey] = useState(null);
   const [editing, setEditing] = useState(false);
   const [editPerms, setEditPerms] = useState(null);
   const [autoEnabled, setAutoEnabled] = useState(new Set());
   const [permSearch, setPermSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleColor, setNewRoleColor] = useState('#3B82F6');
+
+  const persistCustom = useCallback((next) => {
+    setCustomRoles(next);
+    saveCustomRoles(next);
+  }, []);
+
+  const roles = useMemo(() => [...(apiRoles || []), ...customRoles], [apiRoles, customRoles]);
 
   useEffect(() => {
     if (!selectedKey && roles.length) {
@@ -40,6 +75,9 @@ export default function RolesTab() {
     [roles, selectedKey],
   );
 
+  const isSystem = !!(selectedRole?.isSystem || selectedRole?.is_system);
+  const isCustom = selectedRole && !isSystem;
+
   const usersOnRole = useMemo(() => {
     if (!selectedRole) return [];
     return users.filter((u) => u.role === selectedRole.key && u.status !== 'deactivated');
@@ -47,7 +85,12 @@ export default function RolesTab() {
 
   const startEdit = () => {
     if (!selectedRole) return;
-    setEditPerms(selectedRole.permissions === null ? null : [...(selectedRole.permission_names || selectedRole.permissions || [])]);
+    if (selectedRole.key === 'admin') return;
+    setEditPerms(
+      selectedRole.permissions === null
+        ? []
+        : [...(selectedRole.permission_names || selectedRole.permissions || [])],
+    );
     setAutoEnabled(new Set());
     setEditing(true);
   };
@@ -59,20 +102,24 @@ export default function RolesTab() {
   };
 
   const saveEdit = async () => {
-    if (!selectedRole || editPerms === null) {
-      // Admin pack is locked to full catalog on backend; skip empty save for admin.
-      if (selectedRole?.key === 'admin') {
-        cancelEdit();
-        return;
-      }
+    if (!selectedRole) return;
+
+    if (isCustom) {
+      const next = customRoles.map((r) => (
+        r.key === selectedRole.key
+          ? { ...r, permissions: editPerms || [], permission_names: editPerms || [] }
+          : r
+      ));
+      persistCustom(next);
+      cancelEdit();
+      toast.success(t('userMgmt.toast.roleSaved'));
+      return;
     }
+
     setSaving(true);
     try {
-      const payload = selectedRole.key === 'admin'
-        ? (editPerms || [])
-        : (editPerms || []);
-      const data = await rolesSettingsService.update(selectedRole.key, payload);
-      setRoles(data.roles || []);
+      const data = await rolesSettingsService.update(selectedRole.key, editPerms || []);
+      setApiRoles(data.roles || []);
       setPermissionGroups(data.groups || []);
       cancelEdit();
       toast.success(t('userMgmt.toast.roleSaved'));
@@ -84,7 +131,85 @@ export default function RolesTab() {
     }
   };
 
-  if (loading && !roles.length) {
+  const handleCreate = () => {
+    if (!newRoleName.trim()) return;
+    const key = newRoleName.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    if (!key) {
+      toast.error(t('userMgmt.roles.roleName'));
+      return;
+    }
+    if (roles.some((r) => r.key === key)) {
+      toast.error(t('userMgmt.roles.nameTaken', { defaultValue: 'A role with this name already exists.' }));
+      return;
+    }
+    const newRole = {
+      id: `role-custom-${Date.now()}`,
+      key,
+      name: newRoleName.trim(),
+      label: newRoleName.trim(),
+      color: newRoleColor,
+      isSystem: false,
+      is_system: false,
+      description: '',
+      permissions: [],
+      permission_names: [],
+      userCount: 0,
+      user_count: 0,
+    };
+    persistCustom([...customRoles, newRole]);
+    setSelectedKey(newRole.key);
+    setShowCreate(false);
+    setNewRoleName('');
+    setNewRoleColor('#3B82F6');
+    toast.success(t('userMgmt.toast.roleCreated'));
+  };
+
+  const handleDuplicate = () => {
+    if (!selectedRole) return;
+    const baseKey = `${selectedRole.key}_copy`;
+    let key = baseKey;
+    let i = 2;
+    while (roles.some((r) => r.key === key)) {
+      key = `${baseKey}_${i++}`;
+    }
+    const dup = {
+      ...selectedRole,
+      id: `role-dup-${Date.now()}`,
+      key,
+      name: `${selectedRole.name} (Copy)`,
+      label: `${selectedRole.name} (Copy)`,
+      isSystem: false,
+      is_system: false,
+      permissions: selectedRole.permissions === null
+        ? []
+        : [...(selectedRole.permission_names || selectedRole.permissions || [])],
+      permission_names: selectedRole.permissions === null
+        ? []
+        : [...(selectedRole.permission_names || selectedRole.permissions || [])],
+      userCount: 0,
+      user_count: 0,
+    };
+    persistCustom([...customRoles, dup]);
+    setSelectedKey(dup.key);
+    cancelEdit();
+    toast.success(t('userMgmt.toast.roleDuplicated'));
+  };
+
+  const handleDelete = () => {
+    if (!selectedRole || isSystem) return;
+    if (usersOnRole.length > 0) {
+      toast.error(t('userMgmt.roles.cannotDelete', { n: usersOnRole.length }));
+      return;
+    }
+    const next = customRoles.filter((r) => r.key !== selectedRole.key);
+    persistCustom(next);
+    const remaining = [...(apiRoles || []), ...next];
+    setSelectedKey(remaining[0]?.key || null);
+    cancelEdit();
+    toast.success(t('userMgmt.toast.roleDeleted'));
+  };
+
+  if (loading && !apiRoles.length) {
     const sk = { baseColor: T.sa, highlightColor: T.bd };
     return (
       <div className="flex flex-col md:flex-row gap-4" style={{ minHeight: 400 }} aria-busy="true">
@@ -102,12 +227,6 @@ export default function RolesTab() {
         <div className="flex-1 rounded-xl p-4 space-y-3" style={{ border: `1px solid ${T.bd}`, background: T.sf }}>
           <Skeleton width={220} height={14} borderRadius={4} {...sk} />
           <Skeleton width="80%" height={12} borderRadius={4} {...sk} />
-          {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex items-center justify-between py-2" style={{ borderBottom: `1px solid ${T.bd}` }}>
-              <Skeleton width={120 + i * 18} height={12} borderRadius={4} {...sk} />
-              <Skeleton width={18} height={18} borderRadius={4} {...sk} />
-            </div>
-          ))}
         </div>
       </div>
     );
@@ -129,6 +248,7 @@ export default function RolesTab() {
           {roles.map((role) => {
             const sel = selectedKey === role.key;
             const count = role.userCount ?? role.user_count ?? 0;
+            const system = !!(role.isSystem || role.is_system);
             return (
               <button
                 type="button"
@@ -148,9 +268,12 @@ export default function RolesTab() {
                     </span>
                     <span
                       className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold"
-                      style={{ background: `${T.ac}15`, color: T.ac }}
+                      style={{
+                        background: system ? `${T.ac}15` : `${T.t3}15`,
+                        color: system ? T.ac : T.t3,
+                      }}
                     >
-                      {t('userMgmt.roles.system')}
+                      {system ? t('userMgmt.roles.system') : t('userMgmt.roles.custom')}
                     </span>
                   </div>
                   <span style={{ fontSize: 11, color: T.t3 }}>
@@ -166,33 +289,105 @@ export default function RolesTab() {
             );
           })}
         </div>
+
+        <button
+          type="button"
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg cursor-pointer border-none transition-all duration-150"
+          style={{ background: T.sa, border: `1px dashed ${T.bd}`, color: T.ac, fontSize: 13, fontWeight: 500 }}
+        >
+          <Plus size={14} /> {t('userMgmt.roles.createRole')}
+        </button>
+
+        {showCreate && (
+          <div className="mt-2 p-3 rounded-lg" style={{ background: T.sa, border: `1px solid ${T.bd}` }}>
+            <input
+              value={newRoleName}
+              onChange={(e) => setNewRoleName(e.target.value)}
+              placeholder={t('userMgmt.roles.roleName')}
+              className="w-full px-2.5 py-1.5 rounded-lg outline-none mb-2"
+              style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 12 }}
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
+            />
+            <div className="flex gap-1 mb-2 flex-wrap">
+              {COLORS.map((c) => (
+                <button
+                  type="button"
+                  key={c}
+                  onClick={() => setNewRoleColor(c)}
+                  className="w-5 h-5 rounded-full cursor-pointer border-none"
+                  style={{ background: c, outline: newRoleColor === c ? `2px solid ${T.ac}` : 'none', outlineOffset: 2 }}
+                />
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleCreate}
+                className="flex-1 px-2 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
+                style={{ background: T.ac, color: '#fff', fontSize: 11 }}
+              >
+                {t('common.create', { defaultValue: 'Create' })}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowCreate(false); setNewRoleName(''); }}
+                className="px-2 py-1.5 rounded-lg cursor-pointer border-none"
+                style={{ background: T.sf, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 11 }}
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
         {selectedRole ? (
           <>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
               <div className="flex items-center gap-2.5">
                 <span className="w-4 h-4 rounded-full" style={{ background: selectedRole.color }} />
                 <h3 className="font-bold" style={{ fontSize: 16, color: T.t1 }}>{selectedRole.name}</h3>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {!editing ? (
-                  <button
-                    type="button"
-                    onClick={startEdit}
-                    disabled={selectedRole.key === 'admin'}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold transition-opacity"
-                    style={{
-                      background: selectedRole.key === 'admin' ? T.sa : T.ac,
-                      color: selectedRole.key === 'admin' ? T.t3 : '#fff',
-                      fontSize: 12,
-                      opacity: selectedRole.key === 'admin' ? 0.7 : 1,
-                    }}
-                    title={selectedRole.key === 'admin' ? t('userMgmt.roles.adminLocked', { defaultValue: 'Admin always has all permissions' }) : undefined}
-                  >
-                    <Pencil size={12} /> {t('common.edit')}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={startEdit}
+                      disabled={selectedRole.key === 'admin'}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
+                      style={{
+                        background: selectedRole.key === 'admin' ? T.sa : T.ac,
+                        color: selectedRole.key === 'admin' ? T.t3 : '#fff',
+                        fontSize: 12,
+                        opacity: selectedRole.key === 'admin' ? 0.7 : 1,
+                      }}
+                      title={selectedRole.key === 'admin' ? t('userMgmt.roles.adminLocked', { defaultValue: 'Admin always has all permissions' }) : undefined}
+                    >
+                      <Pencil size={12} /> {t('common.edit')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDuplicate}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                      style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}
+                    >
+                      <Copy size={12} /> {t('userMgmt.roles.duplicate')}
+                    </button>
+                    {isCustom && (
+                      <button
+                        type="button"
+                        onClick={handleDelete}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                        style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444', fontSize: 12 }}
+                      >
+                        <Trash2 size={12} /> {t('common.delete')}
+                      </button>
+                    )}
+                  </>
                 ) : (
                   <>
                     <button
@@ -250,11 +445,10 @@ export default function RolesTab() {
               autoEnabledKeys={autoEnabled}
               onAutoEnabled={setAutoEnabled}
               searchQuery={permSearch}
-              defaultCollapsed={!editing}
             />
           </>
         ) : (
-          <div className="flex items-center justify-center py-20" style={{ color: T.t3, fontSize: 13 }}>
+          <div className="flex items-center justify-center py-16" style={{ color: T.t3, fontSize: 13 }}>
             {t('userMgmt.roles.selectRole')}
           </div>
         )}

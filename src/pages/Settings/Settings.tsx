@@ -4,14 +4,14 @@
  * - Tools: Integrations + AI settings show "Coming soon" sidebar badges (PDS-937)
  * - Section paths under ./sections
  * - Active section driven by URL: /settings/:section (survives refresh)
- * - Users & Roles tabs: /settings/users[/roles]
+ * - Users & Roles tabs: /settings/users[/roles|/audit]
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
   User, Building2, Users, Lock, CreditCard, Star,
-  Zap, ClipboardList, Bell, Palette, Clock, Sun, Moon,
+  Zap, ClipboardList, Bell, Palette, Sun, Moon,
   Bot, Globe, FileText, ExternalLink, ShieldCheck,
   PanelLeft, PanelTop, BarChart2,
 } from 'lucide-react';
@@ -26,10 +26,10 @@ import OrganizationSection from './sections/OrganizationSection';
 import PersonalSecuritySection from './sections/PersonalSecuritySection';
 import KycSection from './sections/KycSection';
 import PoliciesSection from './sections/PoliciesSection';
-import AuditLogSection from './sections/AuditLogSection';
 import IntegrationsSection from './sections/IntegrationsSection';
 import AiSettingsSection from './sections/AiSettingsSection';
 import NotificationsSection from './sections/NotificationsSection';
+import TrustCenterPage from '../Trust/TrustCenterPage';
 import { kycSettingsService } from '../../api/services/kycSettingsService';
 
 const DEFAULT_SECTION = 'personal';
@@ -54,16 +54,16 @@ const MENU = [
     { id: 'aiSettings', icon: Bot, labelKey: 'settings.aiSettings', comingSoon: true },
   ]},
   { group: 'settings.groupLegal', items: [
-    { id: 'trustCenter', icon: ShieldCheck, labelKey: 'settings.securityTrust', link: '/trust' },
+    { id: 'trustCenter', icon: ShieldCheck, labelKey: 'settings.securityTrust' },
     { id: 'compliance', icon: ClipboardList, labelKey: 'settings.complianceKyc' },
     { id: 'legal', icon: FileText, labelKey: 'settings.agreements' },
-    { id: 'audit', icon: Clock, labelKey: 'settings.auditLog' },
   ]},
 ];
 
 const BUILT = new Set([
   'appearance', 'aiSettings', 'language', 'legal', 'users', 'personal', 'performance',
-  'organization', 'security', 'compliance', 'audit', 'integrations', 'notifications',
+  'organization', 'security', 'compliance', 'integrations', 'notifications',
+  'trustCenter',
 ]);
 
 const SECTION_IDS = new Set(
@@ -85,6 +85,11 @@ export default function Settings() {
 
   const sectionValid = isValidSection(sectionParam);
   const activeSection = sectionValid ? sectionParam : DEFAULT_SECTION;
+
+  // Legacy deep link: Audit Log moved under Users & Roles
+  if (sectionParam === 'audit') {
+    return <Navigate to="/settings/users/audit" replace />;
+  }
 
   const setActiveSection = useCallback((id: string) => {
     if (!SECTION_IDS.has(id)) return;
@@ -383,6 +388,7 @@ export default function Settings() {
           </div>
         )}
 
+        {activeSection === 'trustCenter' && <TrustCenterPage embedded />}
         {activeSection === 'compliance' && (
           <KycSection
             onStatusChange={(payload: { needs_attention?: boolean }) => {
@@ -391,7 +397,6 @@ export default function Settings() {
           />
         )}
         {activeSection === 'legal' && <PoliciesSection onPendingChange={setPendingPolicyCount} />}
-        {activeSection === 'audit' && <AuditLogSection />}
         {activeSection === 'personal' && <PersonalSection />}
         {activeSection === 'performance' && <PerformanceSection />}
         {activeSection === 'organization' && <OrganizationSection />}
