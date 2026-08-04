@@ -1064,6 +1064,7 @@
       "saved": "Personal settings saved",
       "uploadAvatar": "Upload photo",
       "avatarUploaded": "Profile photo updated",
+      "performanceHint": "Company-level metrics: cancels by your company, and average driver-reported loading wait at your pickups.",
       "role": {
         "role": "Role",
         "assignedBy": "Assigned By",

@@ -30,6 +30,10 @@ export type PersonalSettingsPayload = {
     member_since: string | null;
     last_active_at: string | null;
   };
+  performance?: {
+    cancellation_rate_pct: number | null;
+    avg_loading_wait_minutes: number | null;
+  };
   activity?: PersonalActivityItem[];
   main_use_options: PersonalMainUseOption[];
 };

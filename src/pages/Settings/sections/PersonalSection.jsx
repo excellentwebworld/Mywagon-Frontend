@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import {
-  Pencil, X, Check, Lock, Briefcase, Camera, Clock,
+  Pencil, X, Check, Lock, Briefcase, Camera, Clock, BarChart2,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useAuth } from '../../../hooks/useAuth';
@@ -309,6 +309,31 @@ export default function PersonalSection() {
             )}
           </div>
         </div>
+      </Card>
+
+      <Card title={t('performanceKpis') || 'Performance KPIs'} icon={<BarChart2 size={16} style={{ color: T.ac }} />}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <InfoRow
+            label={t('satCancellationRate') || 'Cancellation rate'}
+            value={
+              data.performance?.cancellation_rate_pct != null
+                ? `${data.performance.cancellation_rate_pct}%`
+                : '—'
+            }
+          />
+          <InfoRow
+            label={t('avgLoadingWait') || 'Avg loading wait'}
+            value={
+              data.performance?.avg_loading_wait_minutes != null
+                ? `${data.performance.avg_loading_wait_minutes} ${t('min') || 'min'}`
+                : '—'
+            }
+          />
+        </div>
+        <p style={{ fontSize: 11, color: T.t3, marginTop: 10 }}>
+          {t('settings.profileSection.performanceHint')
+            || 'Company-level metrics: cancels by your company, and average driver-reported loading wait at your pickups.'}
+        </p>
       </Card>
 
       <Card title={t('settings.profileSection.prefsActivity')} icon={<Clock size={16} style={{ color: T.ac }} />}>
