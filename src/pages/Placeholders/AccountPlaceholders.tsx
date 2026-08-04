@@ -37,13 +37,3 @@ export function SubscriptionPage() {
 export function SupportPage() {
   return <PlaceholderPage titleKey="sidebar.support" fallbackTitle="Support" />;
 }
-
-export function TrustPage() {
-  return (
-    <PlaceholderPage
-      titleKey="settings.securityTrust"
-      fallbackTitle="Security & Trust"
-      description="Trust Center details will appear here."
-    />
-  );
-}

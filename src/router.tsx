@@ -18,11 +18,11 @@ import { ErpOrders } from './pages/ErpOrders/ErpOrders';
 import { SearchTrucks } from './pages/SearchTrucks';
 import Settings from './pages/Settings/Settings';
 import SettingsSectionOrUserEdit from './pages/Settings/SettingsSectionOrUserEdit';
+import TrustCenterPage from './pages/Trust/TrustCenterPage';
 import {
   BillingPage,
   SubscriptionPage,
   SupportPage,
-  TrustPage,
 } from './pages/Placeholders/AccountPlaceholders';
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
@@ -52,7 +52,7 @@ const appRoutes = [
   { path: '/billing', element: <BillingPage /> },
   { path: '/subscription', element: <SubscriptionPage /> },
   { path: '/support', element: <SupportPage /> },
-  { path: '/trust', element: <TrustPage /> },
+  { path: '/trust', element: <TrustCenterPage /> },
 ];
 
 const protectedLayout = {

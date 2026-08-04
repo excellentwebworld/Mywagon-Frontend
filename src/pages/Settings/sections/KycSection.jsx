@@ -1,211 +1,276 @@
 /**
- * KycSection — KYC verification with overall status + 5 expandable section cards.
- *
- * Each section: status badge, document list, reviewer notes, submit/resubmit actions.
- * Overall progress bar derived from section statuses.
+ * KycSection — PDS-937: VAT number + government certificate only.
+ * Live parity with Laravel Blade shipper profile KYC tab.
+ * GET/POST /api/shipper/v1/settings/kyc
  */
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 import {
-  ChevronDown, ChevronRight, Upload, Eye, RefreshCw, Trash2,
-  FileText, AlertTriangle, CheckCircle, Clock,
+  AlertTriangle, CheckCircle, Clock, Eye, FileText, Upload, XCircle,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
-import { KYC_SECTIONS, KYC_OVERALL, KYC_STATUS_CONFIG } from '../../../mocks/complianceData';
+import { kycSettingsService } from '../../../api/services/kycSettingsService';
 
-export default function KycSection() {
+const STATUS_STYLE = {
+  accepted: { color: '#047857', bg: '#ECFDF5', border: '#A7F3D0', Icon: CheckCircle },
+  pending: { color: '#B45309', bg: '#FFFBEB', border: '#FDE68A', Icon: Clock },
+  rejected: { color: '#B91C1C', bg: '#FEF2F2', border: '#FECACA', Icon: XCircle },
+  not_started: { color: '#6B7280', bg: '#F3F4F6', border: '#E5E7EB', Icon: AlertTriangle },
+};
+
+export default function KycSection({ onStatusChange }) {
   const { t } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
+  const fileRef = useRef(null);
 
-  const [sections, setSections] = useState([...KYC_SECTIONS]);
-  const [expanded, setExpanded] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [data, setData] = useState(null);
+  const [vatNumber, setVatNumber] = useState('');
+  const [file, setFile] = useState(null);
+  const [fileError, setFileError] = useState('');
 
-  const overall = KYC_OVERALL;
-  const overallCfg = KYC_STATUS_CONFIG[overall.status] || KYC_STATUS_CONFIG.not_started;
+  const applyPayload = useCallback((payload) => {
+    setData(payload);
+    setVatNumber(payload.vat_number || '');
+    setFile(null);
+    setFileError('');
+    onStatusChange?.(payload);
+  }, [onStatusChange]);
 
-  const toggleExpand = (id) => setExpanded(prev => prev === id ? null : id);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadFailed(false);
+    try {
+      const payload = await kycSettingsService.get();
+      applyPayload(payload);
+    } catch (e) {
+      setLoadFailed(true);
+      setData(null);
+      toast.error(e instanceof Error ? e.message : t('compliance.kyc.loadError'));
+    } finally {
+      setLoading(false);
+    }
+  }, [applyPayload, toast, t]);
 
-  const handleSubmit = (sectionId) => {
-    setSections(prev => prev.map(s => s.id === sectionId ? { ...s, status: 'submitted', submittedAt: new Date().toISOString().split('T')[0] } : s));
-    toast.success(t('compliance.toast.sectionSubmitted'));
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const status = data?.kyc_status || 'not_started';
+  const style = STATUS_STYLE[status] || STATUS_STYLE.not_started;
+  const StatusIcon = style.Icon;
+  const canEdit = Boolean(data?.can_edit);
+
+  const onFileChange = (e) => {
+    const next = e.target.files?.[0];
+    if (!next) return;
+    if (next.size > 5 * 1024 * 1024) {
+      setFileError(t('compliance.kyc.fileTooLarge'));
+      setFile(null);
+      return;
+    }
+    setFileError('');
+    setFile(next);
   };
 
-  const handleResubmit = (sectionId) => {
-    setSections(prev => prev.map(s => s.id === sectionId ? { ...s, status: 'submitted', reviewerNote: null } : s));
-    toast.success(t('compliance.toast.sectionResubmitted'));
+  const submit = async () => {
+    if (!vatNumber.trim() || vatNumber.trim().length < 2) {
+      toast.error(t('compliance.kyc.vatRequired'));
+      return;
+    }
+    if (!data?.certificate?.url && !file) {
+      toast.error(t('compliance.kyc.certRequired'));
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = await kycSettingsService.submit(vatNumber.trim(), file);
+      applyPayload(payload);
+      toast.success(t('compliance.kyc.submitSuccess'));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('compliance.kyc.submitError'));
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton height={28} width={180} />
+        <Skeleton height={120} />
+        <Skeleton height={220} />
+      </div>
+    );
+  }
+
+  if (loadFailed || !data) {
+    return (
+      <div className="rounded-xl p-6 text-center" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+        <p style={{ fontSize: 13, color: T.t2, marginBottom: 12 }}>{t('compliance.kyc.loadError')}</p>
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
+          style={{ background: T.ac, color: '#fff', fontSize: 12 }}
+        >
+          {t('common.retry', { defaultValue: 'Retry' })}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
+      <div>
+        <h2 className="font-bold" style={{ fontSize: 18, color: T.t1 }}>{t('compliance.kyc.title')}</h2>
+        <p style={{ fontSize: 13, color: T.t3, marginTop: 4 }}>{t('compliance.kyc.subtitle')}</p>
+      </div>
 
-      {/* ═══ Overall Status Card ═══ */}
-      <div className="rounded-xl p-5" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: T.t3 }}>
-              {t('compliance.kyc.overallStatus')}
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <span style={{ fontSize: 18 }}>{overallCfg.icon}</span>
-              <span className="font-bold" style={{ fontSize: 18, color: overallCfg.color }}>
-                {t(overallCfg.labelKey)}
-              </span>
-            </div>
+      {/* Status banner */}
+      <div
+        className="rounded-xl px-4 py-3 flex items-start gap-3"
+        style={{ background: style.bg, border: `1px solid ${style.border}` }}
+      >
+        <StatusIcon size={18} style={{ color: style.color, marginTop: 2 }} />
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold" style={{ fontSize: 13, color: style.color }}>
+            {t(`compliance.kyc.status.${status === 'not_started' ? 'notStarted' : status}`, {
+              defaultValue: status,
+            })}
           </div>
-          <div className="text-right">
-            <div style={{ fontSize: 11, color: T.t3 }}>{t('compliance.kyc.lastUpdated')}: {overall.lastUpdated}</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: T.t1 }}>{overall.percent}%</div>
+          <div style={{ fontSize: 12, color: T.t2, marginTop: 2 }}>
+            {status === 'accepted' && t('compliance.kyc.msg.accepted')}
+            {status === 'pending' && t('compliance.kyc.msg.pending')}
+            {status === 'rejected' && t('compliance.kyc.msg.rejected')}
+            {status === 'not_started' && t('compliance.kyc.msg.notStarted')}
           </div>
-        </div>
-
-        <div className="w-full rounded-full overflow-hidden mb-2" style={{ height: 8, background: T.bd }}>
-          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${overall.percent}%`, background: overallCfg.color }} />
-        </div>
-        <div style={{ fontSize: 11, color: T.t3 }}>
-          {t('compliance.kyc.progressText', { approved: overall.approvedCount, total: overall.totalSections })}
-        </div>
-
-        {/* Step indicator */}
-        <div className="flex gap-2 mt-4">
-          {sections.map(s => {
-            const cfg = KYC_STATUS_CONFIG[s.status] || KYC_STATUS_CONFIG.not_started;
-            return (
-              <button key={s.id} onClick={() => toggleExpand(s.id)}
-                className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg cursor-pointer border-none transition-all"
-                style={{ background: expanded === s.id ? T.al : T.sa, border: `1px solid ${expanded === s.id ? T.ac + '40' : T.bd}` }}>
-                <span style={{ fontSize: 14 }}>{cfg.icon}</span>
-                <span style={{ fontSize: 9, fontWeight: 600, color: T.t3, textAlign: 'center', lineHeight: 1.2 }}>
-                  {t(s.titleKey)}
-                </span>
-              </button>
-            );
-          })}
+          {status === 'rejected' && data.kyc_current_rejected_reason && (
+            <p className="mt-2 px-3 py-2 rounded-lg" style={{ fontSize: 12, background: '#fff', color: '#991B1B' }}>
+              {data.kyc_current_rejected_reason}
+            </p>
+          )}
+          {data.kyc_update_date_time && (
+            <div style={{ fontSize: 11, color: T.t3, marginTop: 6 }}>
+              {t('compliance.kyc.lastUpdated')}: {new Date(data.kyc_update_date_time).toLocaleString()}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ═══ Section Cards ═══ */}
-      {sections.map(section => {
-        const cfg = KYC_STATUS_CONFIG[section.status] || KYC_STATUS_CONFIG.not_started;
-        const isExpanded = expanded === section.id;
-        const isEditable = ['not_started', 'draft', 'revision_required', 'more_info_needed', 'rejected'].includes(section.status);
-        const isReadOnly = ['submitted', 'under_review', 'approved'].includes(section.status);
+      {/* Form card */}
+      <div className="rounded-xl p-5 space-y-5" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+        <div>
+          <label className="block mb-1.5" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+            {t('compliance.kyc.vatLabel')} <span style={{ color: '#EF4444' }}>*</span>
+          </label>
+          <input
+            type="text"
+            value={vatNumber}
+            onChange={(e) => setVatNumber(e.target.value)}
+            disabled={!canEdit || saving}
+            maxLength={15}
+            className="w-full px-3 py-2.5 rounded-lg outline-none"
+            style={{
+              border: `1px solid ${T.bd}`,
+              background: canEdit ? T.sf : T.sa,
+              color: T.t1,
+              fontSize: 13,
+              opacity: canEdit ? 1 : 0.85,
+            }}
+            placeholder={t('compliance.kyc.vatPlaceholder')}
+          />
+        </div>
 
-        return (
-          <div key={section.id} className="rounded-xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${section.status === 'revision_required' ? '#FDE68A' : T.bd}` }}>
-            {/* Header */}
-            <button onClick={() => toggleExpand(section.id)}
-              className="flex items-center justify-between w-full px-5 py-3.5 cursor-pointer border-none text-left"
-              style={{ background: 'transparent' }}>
-              <div className="flex items-center gap-3">
-                {isExpanded ? <ChevronDown size={14} style={{ color: T.t3 }} /> : <ChevronRight size={14} style={{ color: T.t3 }} />}
-                <span style={{ fontSize: 14 }}>{cfg.icon}</span>
-                <span className="font-bold" style={{ fontSize: 14, color: T.t1 }}>{t(section.titleKey)}</span>
+        <div>
+          <label className="block mb-1.5" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+            {t('compliance.kyc.certLabel')} <span style={{ color: '#EF4444' }}>*</span>
+          </label>
+          <p style={{ fontSize: 11, color: T.t3, marginBottom: 10 }}>{t('compliance.kyc.certHint')}</p>
+
+          {data.certificate?.url && (
+            <div
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg mb-3"
+              style={{ background: T.sa, border: `1px solid ${T.bd}` }}
+            >
+              <FileText size={16} style={{ color: T.ac }} />
+              <div className="flex-1 min-w-0">
+                <div className="truncate font-medium" style={{ fontSize: 12, color: T.t1 }}>
+                  {data.certificate.file_name || t('compliance.kyc.uploadedCert')}
+                </div>
               </div>
-              <span className="px-2.5 py-1 rounded-full" style={{ fontSize: 11, fontWeight: 600, background: cfg.bg, color: cfg.color }}>
-                {t(cfg.labelKey)}
-              </span>
-            </button>
+              <a
+                href={data.certificate.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg no-underline"
+                style={{ fontSize: 11, fontWeight: 600, color: T.ac, background: T.al }}
+              >
+                <Eye size={12} /> {t('compliance.kyc.viewCert')}
+              </a>
+            </div>
+          )}
 
-            {/* Expanded content */}
-            {isExpanded && (
-              <div className="px-5 pb-5" style={{ borderTop: `1px solid ${T.bd}` }}>
-                {/* Reviewer note */}
-                {section.reviewerNote && (
-                  <div className="flex items-start gap-3 px-4 py-3 rounded-lg mt-4 mb-4" style={{ background: cfg.bg, border: `1px solid ${cfg.color}30` }}>
-                    <AlertTriangle size={16} style={{ color: cfg.color, marginTop: 2 }} />
-                    <div>
-                      <div className="font-semibold mb-1" style={{ fontSize: 12, color: cfg.color }}>{t('compliance.kyc.reviewerNote')}</div>
-                      <p style={{ fontSize: 12, color: T.t1, lineHeight: 1.6 }}>{section.reviewerNote}</p>
-                      {section.reviewedAt && (
-                        <div style={{ fontSize: 10, color: T.t3, marginTop: 4 }}>{t('compliance.kyc.reviewedOn')} {section.reviewedAt}</div>
-                      )}
-                    </div>
-                  </div>
-                )}
+          {canEdit && (
+            <>
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={saving}
+                className="flex items-center justify-center gap-2 w-full px-4 py-6 rounded-xl cursor-pointer border-none"
+                style={{ border: `2px dashed ${T.bd}`, background: T.sa, color: T.t2 }}
+              >
+                <Upload size={18} />
+                <span style={{ fontSize: 12, fontWeight: 500 }}>
+                  {file ? file.name : t('compliance.kyc.dragDrop')}
+                </span>
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".pdf,image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                className="hidden"
+                onChange={onFileChange}
+              />
+              <div style={{ fontSize: 10, color: T.t3, marginTop: 6 }}>PDF, JPG, PNG, WEBP · Max 5MB</div>
+              {fileError && <div style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{fileError}</div>}
+            </>
+          )}
+        </div>
 
-                {/* Submitted info */}
-                {isReadOnly && section.submittedAt && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg mt-4 mb-3" style={{ background: T.sa }}>
-                    <Clock size={12} style={{ color: T.t3 }} />
-                    <span style={{ fontSize: 12, color: T.t3 }}>
-                      {section.status === 'approved'
-                        ? `${t('compliance.kyc.approvedOn')} ${section.reviewedAt}`
-                        : `${t('compliance.kyc.submittedOn')} ${section.submittedAt} — ${t('compliance.kyc.awaitingReview')}`
-                      }
-                    </span>
-                  </div>
-                )}
-
-                {/* Documents */}
-                {section.docs.length > 0 && (
-                  <div className="mt-3">
-                    <div className="font-semibold mb-2" style={{ fontSize: 12, color: T.t2 }}>{t('compliance.kyc.documents')}</div>
-                    <div className="space-y-2">
-                      {section.docs.map(doc => {
-                        const docStatus = KYC_STATUS_CONFIG[doc.status] || KYC_STATUS_CONFIG.not_started;
-                        return (
-                          <div key={doc.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{ background: T.sa, border: `1px solid ${T.bd}` }}>
-                            <FileText size={16} style={{ color: docStatus.color }} />
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium truncate" style={{ fontSize: 12, color: T.t1 }}>{doc.name}</div>
-                              <div style={{ fontSize: 10, color: T.t3 }}>{doc.size} · {t('compliance.kyc.uploadedOn')} {doc.uploadedAt}</div>
-                            </div>
-                            <span className="px-2 py-0.5 rounded-full shrink-0" style={{ fontSize: 9, fontWeight: 600, background: docStatus.bg, color: docStatus.color }}>
-                              {t(docStatus.labelKey)}
-                            </span>
-                            {isEditable && (
-                              <div className="flex gap-1 shrink-0">
-                                <button className="p-1 cursor-pointer border-none bg-transparent" style={{ color: T.t3 }}><Eye size={12} /></button>
-                                <button className="p-1 cursor-pointer border-none bg-transparent" style={{ color: T.t3 }}><RefreshCw size={12} /></button>
-                                <button className="p-1 cursor-pointer border-none bg-transparent" style={{ color: '#EF4444' }}><Trash2 size={12} /></button>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Upload zone (for editable sections) */}
-                {isEditable && (
-                  <div className="mt-3 flex items-center justify-center p-6 rounded-lg cursor-pointer" style={{ border: `2px dashed ${T.bd}`, background: T.sa }}
-                    onClick={() => toast.info(t('compliance.kyc.uploadMock'))}>
-                    <div className="text-center">
-                      <Upload size={20} style={{ color: T.t3, margin: '0 auto 6px' }} />
-                      <div style={{ fontSize: 12, fontWeight: 500, color: T.t2 }}>{t('compliance.kyc.dragDrop')}</div>
-                      <div style={{ fontSize: 10, color: T.t3 }}>PDF, JPG, PNG · Max 10MB</div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Actions */}
-                {isEditable && (
-                  <div className="flex gap-2 mt-4">
-                    {section.status === 'revision_required' || section.status === 'rejected' ? (
-                      <button onClick={() => handleResubmit(section.id)} className="px-4 py-2 rounded-lg cursor-pointer border-none font-semibold" style={{ background: T.ac, color: '#fff', fontSize: 12 }}>
-                        {t('compliance.kyc.resubmit')}
-                      </button>
-                    ) : (
-                      <>
-                        <button className="px-4 py-2 rounded-lg cursor-pointer border-none" style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}>
-                          {t('compliance.kyc.saveDraft')}
-                        </button>
-                        <button onClick={() => handleSubmit(section.id)} className="px-4 py-2 rounded-lg cursor-pointer border-none font-semibold" style={{ background: T.ac, color: '#fff', fontSize: 12 }}>
-                          {t('compliance.kyc.submit')}
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+        {canEdit ? (
+          <button
+            type="button"
+            onClick={() => void submit()}
+            disabled={saving}
+            className="px-5 py-2.5 rounded-lg cursor-pointer border-none font-semibold"
+            style={{ background: T.ac, color: '#fff', fontSize: 13, opacity: saving ? 0.7 : 1 }}
+          >
+            {saving
+              ? t('common.saving', { defaultValue: 'Saving…' })
+              : status === 'rejected'
+                ? t('compliance.kyc.resubmit')
+                : t('compliance.kyc.submit')}
+          </button>
+        ) : status === 'pending' ? (
+          <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 12, color: T.t3 }}>
+            {t('compliance.kyc.msg.pendingLocked')}
           </div>
-        );
-      })}
+        ) : status === 'accepted' ? (
+          <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 12, color: T.t3 }}>
+            {t('compliance.kyc.msg.acceptedLocked')}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

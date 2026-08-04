@@ -30,7 +30,7 @@ import AuditLogSection from './sections/AuditLogSection';
 import IntegrationsSection from './sections/IntegrationsSection';
 import AiSettingsSection from './sections/AiSettingsSection';
 import NotificationsSection from './sections/NotificationsSection';
-import { KYC_OVERALL, POLICIES, POLICY_ACCEPTANCES } from '../../mocks/complianceData';
+import { kycSettingsService } from '../../api/services/kycSettingsService';
 
 const DEFAULT_SECTION = 'personal';
 
@@ -99,14 +99,22 @@ export default function Settings() {
     setMobileMenuOpen(false);
   }, [activeSection]);
 
-  const kycNeedsAttention = KYC_OVERALL.percent < 100;
-  const [pendingPolicyCount, setPendingPolicyCount] = useState(() => {
-    return POLICIES.filter((p: { applicable?: boolean; isToggle?: boolean; id: string }) => {
-      if (!p.applicable || p.isToggle) return false;
-      const acc = (POLICY_ACCEPTANCES as Record<string, { current?: boolean } | undefined>)[p.id];
-      return !acc || !acc.current;
-    }).length;
-  });
+  const [kycNeedsAttention, setKycNeedsAttention] = useState(false);
+  const [pendingPolicyCount, setPendingPolicyCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const kyc = await kycSettingsService.get();
+        if (!cancelled) setKycNeedsAttention(Boolean(kyc.needs_attention));
+      } catch {
+        if (!cancelled) setKycNeedsAttention(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const BADGES: Record<string, boolean> = {
     compliance: kycNeedsAttention,
     legal: pendingPolicyCount > 0,
@@ -375,7 +383,13 @@ export default function Settings() {
           </div>
         )}
 
-        {activeSection === 'compliance' && <KycSection />}
+        {activeSection === 'compliance' && (
+          <KycSection
+            onStatusChange={(payload: { needs_attention?: boolean }) => {
+              setKycNeedsAttention(Boolean(payload?.needs_attention));
+            }}
+          />
+        )}
         {activeSection === 'legal' && <PoliciesSection onPendingChange={setPendingPolicyCount} />}
         {activeSection === 'audit' && <AuditLogSection />}
         {activeSection === 'personal' && <PersonalSection />}
