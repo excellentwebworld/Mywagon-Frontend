@@ -15,6 +15,16 @@ export type PersonalActivityItem = {
   at: string;
 };
 
+export type PersonalRatingItem = {
+  id: number;
+  rating: number | null;
+  review: string | null;
+  created_at: string | null;
+  rater_type: string | null;
+  rater_name: string | null;
+  rater_avatar_url: string | null;
+};
+
 export type PersonalSettingsPayload = {
   profile: {
     first_name: string | null;
@@ -35,15 +45,6 @@ export type PersonalSettingsPayload = {
     avg_loading_wait_minutes: number | null;
     rating_average?: number | null;
     rating_count?: number;
-    ratings?: Array<{
-      id: number;
-      rating: number | null;
-      review: string | null;
-      created_at: string | null;
-      rater_type: string | null;
-      rater_name: string | null;
-      rater_avatar_url: string | null;
-    }>;
   };
   activity?: PersonalActivityItem[];
   main_use_options: PersonalMainUseOption[];
@@ -60,6 +61,31 @@ export const personalSettingsService = {
   async get(): Promise<PersonalSettingsPayload> {
     const res = await apiGet<PersonalSettingsPayload>('/settings/personal');
     return res.data;
+  },
+
+  async getRatings(page = 1, perPage = 15): Promise<{
+    items: PersonalRatingItem[];
+    meta: { current_page: number; per_page: number; total: number; last_page: number };
+  }> {
+    const res = await apiGet<PersonalRatingItem[]>('/settings/personal/ratings', {
+      page,
+      per_page: perPage,
+    });
+    const meta = res.meta ?? {
+      current_page: page,
+      per_page: perPage,
+      total: Array.isArray(res.data) ? res.data.length : 0,
+      last_page: page,
+    };
+    return {
+      items: Array.isArray(res.data) ? res.data : [],
+      meta: {
+        current_page: meta.current_page,
+        per_page: meta.per_page,
+        total: meta.total,
+        last_page: meta.last_page ?? Math.max(1, Math.ceil(meta.total / meta.per_page)),
+      },
+    };
   },
 
   async update(body: PersonalUpdateBody): Promise<PersonalSettingsPayload> {

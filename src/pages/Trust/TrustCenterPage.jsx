@@ -14,7 +14,7 @@ import ComplianceSection from './trust/ComplianceSection';
 import OrgPosture from './trust/OrgPosture';
 import TrustFooter from './trust/TrustFooter';
 
-function TrustCenterBody({ embedded = false }: { embedded?: boolean }) {
+function TrustCenterBody({ embedded = false }) {
   const { t } = useTranslation();
   const { T } = useTheme();
   const { data, loading, error, refresh } = useTrustCenter();
@@ -69,7 +69,7 @@ function TrustCenterBody({ embedded = false }: { embedded?: boolean }) {
   );
 }
 
-export default function TrustCenterPage({ embedded = false }: { embedded?: boolean }) {
+export default function TrustCenterPage({ embedded = false }) {
   return (
     <TrustCenterProvider>
       <TrustCenterBody embedded={embedded} />
