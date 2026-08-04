@@ -128,14 +128,7 @@ export default function PerformanceSection() {
   }, [loading, reviewsLoading, reviewsPage, reviewsLastPage, loadMore, reviews.length]);
 
   if (loading) {
-    return (
-      <div className="rounded-xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
-        <div className="px-5 py-4 space-y-4">
-          <Skeleton height={72} borderRadius={8} baseColor={T.sa} highlightColor={T.bd} />
-          <Skeleton height={120} borderRadius={8} baseColor={T.sa} highlightColor={T.bd} />
-        </div>
-      </div>
-    );
+    return <PerformanceSkeleton T={T} />;
   }
 
   if (!data?.performance) {
@@ -191,10 +184,7 @@ export default function PerformanceSection() {
         </div>
 
         {reviewsLoading ? (
-          <div className="space-y-3">
-            <Skeleton height={64} borderRadius={8} baseColor={T.sa} highlightColor={T.bd} />
-            <Skeleton height={64} borderRadius={8} baseColor={T.sa} highlightColor={T.bd} />
-          </div>
+          <ReviewsSkeleton T={T} count={4} />
         ) : reviewCount === 0 ? (
           <p style={{ fontSize: 12, color: T.t3 }}>{t('settings.profileSection.noReviews')}</p>
         ) : (
@@ -244,6 +234,72 @@ export default function PerformanceSection() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function PerformanceSkeleton({ T }) {
+  const sk = { baseColor: T.sa, highlightColor: T.bd };
+  return (
+    <div
+      className="rounded-xl overflow-hidden"
+      style={{ background: T.sf, border: `1px solid ${T.bd}` }}
+      aria-busy="true"
+      aria-label="Loading"
+    >
+      <div className="flex items-center gap-2 px-5 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
+        <Skeleton circle width={16} height={16} {...sk} />
+        <Skeleton width={160} height={14} borderRadius={4} {...sk} />
+      </div>
+      <div className="px-5 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="px-3 py-2 rounded-lg" style={{ background: T.sa }}>
+              <Skeleton width={90} height={10} borderRadius={4} {...sk} />
+              <div style={{ marginTop: 8 }}>
+                <Skeleton width={72} height={16} borderRadius={4} {...sk} />
+              </div>
+            </div>
+          ))}
+        </div>
+        <Skeleton width="85%" height={10} borderRadius={4} {...sk} />
+        <div className="flex items-center gap-2 mt-5 mb-3">
+          <Skeleton circle width={14} height={14} {...sk} />
+          <Skeleton width={100} height={12} borderRadius={4} {...sk} />
+        </div>
+        <ReviewsSkeleton T={T} count={4} />
+      </div>
+    </div>
+  );
+}
+
+function ReviewsSkeleton({ T, count = 4 }) {
+  const sk = { baseColor: T.sa, highlightColor: T.bd };
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="px-3 py-3 rounded-lg"
+          style={{ background: T.sa, border: `1px solid ${T.bd}` }}
+        >
+          <div className="flex items-start gap-3">
+            <Skeleton circle width={40} height={40} {...sk} />
+            <div className="min-w-0 flex-1">
+              <div className="flex justify-between gap-2">
+                <Skeleton width={140} height={12} borderRadius={4} {...sk} />
+                <Skeleton width={48} height={10} borderRadius={4} {...sk} />
+              </div>
+              <div style={{ marginTop: 8 }}>
+                <Skeleton width={88} height={12} borderRadius={4} {...sk} />
+              </div>
+              <div style={{ marginTop: 8 }}>
+                <Skeleton width="75%" height={10} borderRadius={4} {...sk} />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
