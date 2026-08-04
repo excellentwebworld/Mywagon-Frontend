@@ -279,6 +279,7 @@ export const ShipmentDetail: React.FC = () => {
       <RatingModal
         open={isRatingOpen}
         carrierName={vm.carrier?.name || ''}
+        showDeliveryOnTime={vm.carrier?.showDeliveryOnTime !== false}
         submitting={ratingSubmitting}
         onClose={() => setIsRatingOpen(false)}
         onSubmit={handleSubmitRating}

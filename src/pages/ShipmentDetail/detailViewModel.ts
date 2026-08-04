@@ -45,6 +45,8 @@ export interface CarrierDetail {
   meta: string;
   userId?: number | null;
   userType?: 'carrier' | 'driver' | null;
+  /** PDS-938 on-time toggle — carrier company or freelancer only */
+  showDeliveryOnTime?: boolean;
   onTimePickup: string;
   onTimeDelivery: string;
   cancelRate: string;
@@ -300,6 +302,9 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
           shipment.carrierType === 'driver' || shipment.carrierType === 'carrier'
             ? shipment.carrierType
             : null,
+        // Assigned actor is carrier company or freelancer — never a nested company driver card.
+        showDeliveryOnTime:
+          shipment.carrierType === 'carrier' || shipment.carrierType === 'driver',
         onTimePickup: '—',
         onTimeDelivery: fmtPct(shipment.carrierOnTimeDeliveryPct),
         cancelRate: fmtPct(shipment.carrierCancellationRatePct),

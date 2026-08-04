@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 interface RatingModalProps {
   open: boolean;
   carrierName: string;
+  /** PDS-938: only for carrier company or freelancer — not company/carrier drivers */
+  showDeliveryOnTime?: boolean;
   submitting?: boolean;
   onClose: () => void;
   onSubmit: (payload: {
@@ -16,6 +18,7 @@ interface RatingModalProps {
 export const RatingModal: React.FC<RatingModalProps> = ({
   open,
   carrierName,
+  showDeliveryOnTime = true,
   submitting = false,
   onClose,
   onSubmit,
@@ -32,7 +35,8 @@ export const RatingModal: React.FC<RatingModalProps> = ({
     onSubmit({
       rating,
       review: review.trim(),
-      delivery_on_time: onTime === '' ? undefined : onTime === 'yes',
+      delivery_on_time:
+        showDeliveryOnTime && onTime !== '' ? onTime === 'yes' : undefined,
     });
   };
 
@@ -69,31 +73,33 @@ export const RatingModal: React.FC<RatingModalProps> = ({
               </button>
             ))}
           </div>
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-              {t('wasDeliveryOnTime') || 'Was the delivery on time?'}
+          {showDeliveryOnTime && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+                {t('wasDeliveryOnTime') || 'Was the delivery on time?'}
+              </div>
+              <div style={{ display: 'flex', gap: 16 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                  <input
+                    type="radio"
+                    name="delivery_on_time"
+                    checked={onTime === 'yes'}
+                    onChange={() => setOnTime('yes')}
+                  />
+                  {t('yes') || 'Yes'}
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                  <input
+                    type="radio"
+                    name="delivery_on_time"
+                    checked={onTime === 'no'}
+                    onChange={() => setOnTime('no')}
+                  />
+                  {t('no') || 'No'}
+                </label>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 16 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                <input
-                  type="radio"
-                  name="delivery_on_time"
-                  checked={onTime === 'yes'}
-                  onChange={() => setOnTime('yes')}
-                />
-                {t('yes') || 'Yes'}
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                <input
-                  type="radio"
-                  name="delivery_on_time"
-                  checked={onTime === 'no'}
-                  onChange={() => setOnTime('no')}
-                />
-                {t('no') || 'No'}
-              </label>
-            </div>
-          </div>
+          )}
           <textarea
             className="ld-share-email"
             style={{ width: '100%', minHeight: 90, resize: 'vertical' }}
