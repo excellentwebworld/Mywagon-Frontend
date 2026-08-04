@@ -1,6 +1,7 @@
 /**
  * Settings — ported from MV_Web_Panel_React (shipper adaptations:
  * - Appearance: navigation mode + dark/light only (theme picker removed per PDS-937)
+ * - Tools: Integrations + AI settings show "Coming soon" sidebar badges (PDS-937)
  * - Section paths under ./sections
  * - Active section driven by URL: /settings/:section (survives refresh)
  * - Users & Roles tabs: /settings/users[/roles]
@@ -49,8 +50,8 @@ const MENU = [
     { id: 'billing', icon: CreditCard, labelKey: 'settings.billingSettings' },
   ]},
   { group: 'settings.groupTools', items: [
-    { id: 'integrations', icon: Zap, labelKey: 'settings.integrations' },
-    { id: 'aiSettings', icon: Bot, labelKey: 'settings.aiSettings' },
+    { id: 'integrations', icon: Zap, labelKey: 'settings.integrations', comingSoon: true },
+    { id: 'aiSettings', icon: Bot, labelKey: 'settings.aiSettings', comingSoon: true },
   ]},
   { group: 'settings.groupLegal', items: [
     { id: 'trustCenter', icon: ShieldCheck, labelKey: 'settings.securityTrust', link: '/trust' },
@@ -175,9 +176,19 @@ export default function Settings() {
                       fontWeight: activeSection === item.id ? 600 : 400,
                     }}
                   >
-                    <item.icon size={16} />
-                    <span>{t(item.labelKey)}</span>
-                    {'link' in item && item.link && <ExternalLink size={12} style={{ marginLeft: 'auto', opacity: 0.4 }} />}
+                    <item.icon size={16} className="shrink-0" />
+                    <span className="truncate">{t(item.labelKey)}</span>
+                    {'comingSoon' in item && item.comingSoon && (
+                      <span
+                        className="ml-auto shrink-0 px-1.5 py-0.5 rounded"
+                        style={{ fontSize: 9, fontWeight: 600, color: T.t3, background: T.sa, border: `1px solid ${T.bd}`, letterSpacing: 0.2 }}
+                      >
+                        {t('integrations.comingSoon', { defaultValue: 'Coming soon' })}
+                      </span>
+                    )}
+                    {'link' in item && item.link && !('comingSoon' in item && item.comingSoon) && (
+                      <ExternalLink size={12} style={{ marginLeft: 'auto', opacity: 0.4 }} />
+                    )}
                   </button>
                 ))}
               </div>
@@ -222,10 +233,20 @@ export default function Settings() {
                   }
                 }}
               >
-                <item.icon size={16} />
+                <item.icon size={16} className="shrink-0" />
                 <span className="truncate">{t(item.labelKey)}</span>
-                {'link' in item && item.link && <ExternalLink size={11} style={{ marginLeft: 'auto', opacity: 0.35 }} />}
-                {!('link' in item && item.link) && BADGES[item.id] && (
+                {'comingSoon' in item && item.comingSoon && (
+                  <span
+                    className="ml-auto shrink-0 px-1.5 py-0.5 rounded"
+                    style={{ fontSize: 9, fontWeight: 600, color: T.t3, background: T.sa, border: `1px solid ${T.bd}`, letterSpacing: 0.2 }}
+                  >
+                    {t('integrations.comingSoon', { defaultValue: 'Coming soon' })}
+                  </span>
+                )}
+                {'link' in item && item.link && !('comingSoon' in item && item.comingSoon) && (
+                  <ExternalLink size={11} style={{ marginLeft: 'auto', opacity: 0.35 }} />
+                )}
+                {!('link' in item && item.link) && !('comingSoon' in item && item.comingSoon) && BADGES[item.id] && (
                   <span className="ml-auto w-2 h-2 rounded-full shrink-0" style={{ background: '#EF4444' }} />
                 )}
               </button>
