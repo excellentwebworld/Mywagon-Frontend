@@ -267,7 +267,7 @@ export function ProfileDropdown() {
         onClose={() => !isSigningOut && setSignOutConfirmOpen(false)}
         onConfirm={confirmSignOut}
         title={t('signOutConfirmTitle') || 'Sign out?'}
-        message={t('signOutConfirmMessage') || 'Are you sure you want to sign out?'}
+        message={t('signOutConfirmQuestion') || 'Are you sure you want to sign out?'}
         confirmText={t('signOut') || 'Sign out'}
         type="danger"
         confirmLoading={isSigningOut}
