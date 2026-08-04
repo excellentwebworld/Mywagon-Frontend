@@ -13,6 +13,7 @@ import {
   MilestonesBar,
   NotesCard,
   PickupDelayModal,
+  PickupDelayReportsCard,
   RatingModal,
   ShareTrackingModal,
   StopsCard,
@@ -29,6 +30,7 @@ import '../../styles/load-details.css';
 
 const DEFAULT_SECTIONS: Record<string, boolean> = {
   stops: true,
+  pickupDelay: true,
   load: true,
   notes: true,
   docs: true,
@@ -57,27 +59,28 @@ export const ShipmentDetail: React.FC = () => {
     location_name?: string | null;
     company_name?: string | null;
   } | null>(null);
+  const [reportablePickups, setReportablePickups] = useState<Array<{
+    location_id: number;
+    location_name?: string | null;
+    company_name?: string | null;
+  }>>([]);
   const [delaySubmitting, setDelaySubmitting] = useState(false);
 
   const vm = useMemo(() => (shipment ? buildShipmentDetailViewModel(shipment) : null), [shipment]);
 
-  useEffect(() => {
+  const loadReportablePickups = useCallback(async () => {
     if (!id) return;
-    let cancelled = false;
-    shipmentsService
-      .pendingPickupDelay(id)
-      .then((pending) => {
-        if (!cancelled && pending.length > 0) {
-          setPendingDelay(pending[0]);
-        }
-      })
-      .catch(() => {
-        /* ignore — optional prompt */
-      });
-    return () => {
-      cancelled = true;
-    };
+    try {
+      const pending = await shipmentsService.pendingPickupDelay(id);
+      setReportablePickups(pending);
+    } catch {
+      setReportablePickups([]);
+    }
   }, [id]);
+
+  useEffect(() => {
+    void loadReportablePickups();
+  }, [loadReportablePickups]);
 
   const toggleSection = useCallback((key: string) => {
     setSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -133,13 +136,15 @@ export const ShipmentDetail: React.FC = () => {
         await shipmentsService.submitPickupDelay(id, pendingDelay.location_id, payload);
         showToast(t('pickupDelaySaved') || 'Pickup delay report saved', 'success');
         setPendingDelay(null);
+        await loadReportablePickups();
+        refetch?.();
       } catch {
         showToast(t('pickupDelayFailed') || 'Failed to save pickup delay', 'error');
       } finally {
         setDelaySubmitting(false);
       }
     },
-    [id, pendingDelay, showToast, t]
+    [id, loadReportablePickups, pendingDelay, refetch, showToast, t]
   );
 
   if (loading) {
@@ -188,6 +193,13 @@ export const ShipmentDetail: React.FC = () => {
               onToggle={() => toggleSection('stops')}
               onCopy={handleCopy}
               onToast={(msg) => showToast(msg, 'info')}
+              t={t}
+            />
+            <PickupDelayReportsCard
+              pickups={reportablePickups}
+              expanded={sections.pickupDelay}
+              onToggle={() => toggleSection('pickupDelay')}
+              onReport={setPendingDelay}
               t={t}
             />
             <LoadSummaryCard

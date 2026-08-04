@@ -16,3 +16,4 @@ export { ShareTrackingModal } from './ShareTrackingModal';
 export { ActivityLogModal } from './ActivityLogModal';
 export { RatingModal } from './RatingModal';
 export { PickupDelayModal } from './PickupDelayModal';
+export { PickupDelayReportsCard } from './PickupDelayReportsCard';
