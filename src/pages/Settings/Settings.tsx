@@ -14,6 +14,7 @@ import {
   Zap, ClipboardList, Bell, Palette, Sun, Moon,
   Bot, Globe, FileText, ExternalLink, ShieldCheck,
   PanelLeft, PanelTop, BarChart2,
+  type LucideIcon,
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
@@ -34,7 +35,20 @@ import { kycSettingsService } from '../../api/services/kycSettingsService';
 
 const DEFAULT_SECTION = 'personal';
 
-const MENU = [
+type SettingsMenuItem = {
+  id: string;
+  icon: LucideIcon;
+  labelKey: string;
+  comingSoon?: boolean;
+  link?: string;
+};
+
+type SettingsMenuGroup = {
+  group: string;
+  items: SettingsMenuItem[];
+};
+
+const MENU: SettingsMenuGroup[] = [
   { group: 'settings.groupPersonal', items: [
     { id: 'personal', icon: User, labelKey: 'settings.personal' },
     { id: 'performance', icon: BarChart2, labelKey: 'settings.performanceReviews' },
@@ -68,7 +82,7 @@ const BUILT = new Set([
 
 const SECTION_IDS = new Set(
   MENU.flatMap((g) => g.items)
-    .filter((i) => !('link' in i && i.link))
+    .filter((i) => !i.link)
     .map((i) => i.id),
 );
 
@@ -177,7 +191,7 @@ export default function Settings() {
                     type="button"
                     key={item.id}
                     onClick={() => {
-                      if ('link' in item && item.link) navigate(item.link);
+                      if (item.link) navigate(item.link);
                       else setActiveSection(item.id);
                       setMobileMenuOpen(false);
                     }}
@@ -191,7 +205,7 @@ export default function Settings() {
                   >
                     <item.icon size={16} className="shrink-0" />
                     <span className="truncate">{t(item.labelKey)}</span>
-                    {'comingSoon' in item && item.comingSoon && (
+                    {item.comingSoon && (
                       <span
                         className="ml-auto shrink-0 px-1.5 py-0.5 rounded"
                         style={{ fontSize: 9, fontWeight: 600, color: T.t3, background: T.sa, border: `1px solid ${T.bd}`, letterSpacing: 0.2 }}
@@ -199,9 +213,9 @@ export default function Settings() {
                         {t('integrations.comingSoon', { defaultValue: 'Coming soon' })}
                       </span>
                     )}
-                    {'link' in item && item.link && !('comingSoon' in item && item.comingSoon) && (
+                    {item.link && !item.comingSoon ? (
                       <ExternalLink size={12} style={{ marginLeft: 'auto', opacity: 0.4 }} />
-                    )}
+                    ) : null}
                   </button>
                 ))}
               </div>
@@ -225,7 +239,7 @@ export default function Settings() {
               <button
                 type="button"
                 key={item.id}
-                onClick={() => ('link' in item && item.link ? navigate(item.link) : setActiveSection(item.id))}
+                onClick={() => (item.link ? navigate(item.link) : setActiveSection(item.id))}
                 className="flex items-center gap-2 w-full px-3 py-2 rounded-lg cursor-pointer border-none mb-0.5 transition-all duration-150"
                 style={{
                   background: activeSection === item.id ? T.al : 'transparent',
@@ -248,7 +262,7 @@ export default function Settings() {
               >
                 <item.icon size={16} className="shrink-0" />
                 <span className="truncate">{t(item.labelKey)}</span>
-                {'comingSoon' in item && item.comingSoon && (
+                {item.comingSoon && (
                   <span
                     className="ml-auto shrink-0 px-1.5 py-0.5 rounded"
                     style={{ fontSize: 9, fontWeight: 600, color: T.t3, background: T.sa, border: `1px solid ${T.bd}`, letterSpacing: 0.2 }}
@@ -256,12 +270,12 @@ export default function Settings() {
                     {t('integrations.comingSoon', { defaultValue: 'Coming soon' })}
                   </span>
                 )}
-                {'link' in item && item.link && !('comingSoon' in item && item.comingSoon) && (
+                {item.link && !item.comingSoon ? (
                   <ExternalLink size={11} style={{ marginLeft: 'auto', opacity: 0.35 }} />
-                )}
-                {!('link' in item && item.link) && !('comingSoon' in item && item.comingSoon) && BADGES[item.id] && (
+                ) : null}
+                {!item.link && !item.comingSoon && BADGES[item.id] ? (
                   <span className="ml-auto w-2 h-2 rounded-full shrink-0" style={{ background: '#EF4444' }} />
-                )}
+                ) : null}
               </button>
             ))}
           </div>
