@@ -4,8 +4,8 @@
  * Tabs are URL-driven (PDS-937):
  *   /settings/users           → Users
  *   /settings/users/roles     → Roles
- *   /settings/users/audit     → Audit Log
  *
+ * Audit Log lives under Admin sidebar (/settings/audit), not here.
  * User edit uses the Invite/Edit popup (no separate page).
  * Security tab removed (mock-only; live login history pending).
  */
@@ -13,18 +13,16 @@
 import { useCallback, memo } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, Shield, Clock } from 'lucide-react';
+import { Users, Shield } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { toUpperGreek } from '../../utils/greekUppercase';
 import SeatBanner from './usermgmt/SeatBanner';
 import UsersTab from './usermgmt/UsersTab';
 import RolesTab from './usermgmt/RolesTab';
-import AuditTab from './usermgmt/AuditTab';
 
 const TABS = [
   { id: 'users', Icon: Users },
   { id: 'roles', Icon: Shield },
-  { id: 'audit', Icon: Clock },
 ];
 
 const TAB_IDS = new Set(TABS.map((t) => t.id));
@@ -103,7 +101,6 @@ function UserManagementSection() {
       <div className="flex-1 mt-4">
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'roles' && <RolesTab />}
-        {activeTab === 'audit' && <AuditTab />}
       </div>
     </div>
   );

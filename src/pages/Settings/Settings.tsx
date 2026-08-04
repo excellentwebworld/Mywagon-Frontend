@@ -4,14 +4,15 @@
  * - Tools: Integrations + AI settings show "Coming soon" sidebar badges (PDS-937)
  * - Section paths under ./sections
  * - Active section driven by URL: /settings/:section (survives refresh)
- * - Users & Roles tabs: /settings/users[/roles|/audit]
+ * - Users & Roles tabs: /settings/users[/roles]
+ * - Audit Log under Admin (PDS-937): /settings/audit
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
   User, Building2, Users, Lock, CreditCard, Star,
-  Zap, ClipboardList, Bell, Palette, Sun, Moon,
+  Zap, ClipboardList, Bell, Palette, Sun, Moon, Clock,
   Bot, Globe, FileText, ExternalLink, ShieldCheck,
   PanelLeft, PanelTop, BarChart2,
   type LucideIcon,
@@ -27,6 +28,7 @@ import OrganizationSection from './sections/OrganizationSection';
 import PersonalSecuritySection from './sections/PersonalSecuritySection';
 import KycSection from './sections/KycSection';
 import PoliciesSection from './sections/PoliciesSection';
+import AuditLogSection from './sections/AuditLogSection';
 import IntegrationsSection from './sections/IntegrationsSection';
 import AiSettingsSection from './sections/AiSettingsSection';
 import NotificationsSection from './sections/NotificationsSection';
@@ -60,6 +62,7 @@ const MENU: SettingsMenuGroup[] = [
   { group: 'settings.groupAdmin', items: [
     { id: 'organization', icon: Building2, labelKey: 'settings.organization' },
     { id: 'users', icon: Users, labelKey: 'settings.usersRoles' },
+    { id: 'audit', icon: Clock, labelKey: 'settings.auditLog' },
     { id: 'subscription', icon: Star, labelKey: 'settings.subscription' },
     { id: 'billing', icon: CreditCard, labelKey: 'settings.billingSettings' },
   ]},
@@ -76,7 +79,7 @@ const MENU: SettingsMenuGroup[] = [
 
 const BUILT = new Set([
   'appearance', 'aiSettings', 'language', 'legal', 'users', 'personal', 'performance',
-  'organization', 'security', 'compliance', 'integrations', 'notifications',
+  'organization', 'security', 'compliance', 'audit', 'integrations', 'notifications',
   'trustCenter',
 ]);
 
@@ -99,11 +102,6 @@ export default function Settings() {
 
   const sectionValid = isValidSection(sectionParam);
   const activeSection = sectionValid ? sectionParam : DEFAULT_SECTION;
-
-  // Legacy deep link: Audit Log moved under Users & Roles
-  if (sectionParam === 'audit') {
-    return <Navigate to="/settings/users/audit" replace />;
-  }
 
   const setActiveSection = useCallback((id: string) => {
     if (!SECTION_IDS.has(id)) return;
@@ -411,6 +409,7 @@ export default function Settings() {
           />
         )}
         {activeSection === 'legal' && <PoliciesSection onPendingChange={setPendingPolicyCount} />}
+        {activeSection === 'audit' && <AuditLogSection />}
         {activeSection === 'personal' && <PersonalSection />}
         {activeSection === 'performance' && <PerformanceSection />}
         {activeSection === 'organization' && <OrganizationSection />}

@@ -46,7 +46,6 @@ const appRoutes = [
   { path: '/partners', element: <Partners /> },
   { path: '/erp-orders', element: <ErpOrders /> },
   { path: '/settings', element: <Navigate to="/settings/personal" replace /> },
-  { path: '/settings/audit', element: <Navigate to="/settings/users/audit" replace /> },
   { path: '/settings/:section/:tab', element: <SettingsSectionOrUserEdit /> },
   { path: '/settings/:section', element: <Settings /> },
   { path: '/billing', element: <BillingPage /> },
