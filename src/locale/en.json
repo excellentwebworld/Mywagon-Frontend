@@ -1153,7 +1153,9 @@
         "recoveryCodes": "Recovery Codes",
         "codesDesc": "Save these codes somewhere safe. Each can be used once if you lose access to your authenticator.",
         "copyAll": "Copy All",
+        "download": "Download",
         "codesCopied": "Recovery codes copied to clipboard",
+        "codesDownloaded": "Recovery codes downloaded",
         "enabled_toast": "Two-factor authentication enabled",
         "disabled_toast": "Two-factor authentication disabled"
       },

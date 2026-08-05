@@ -3,9 +3,21 @@
  */
 
 import { useEffect, useState } from 'react';
-import { ShieldCheck, Mail, Smartphone, Copy, Loader2 } from 'lucide-react';
+import { ShieldCheck, Mail, Smartphone, Copy, Download, Loader2 } from 'lucide-react';
 import { securitySettingsService } from '../../../api/services/securitySettingsService';
 import { ApiError } from '../../../api/client';
+
+function downloadRecoveryCodes(codes) {
+  const blob = new Blob([codes.join('\n') + '\n'], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `myvagon-recovery-codes-${new Date().toISOString().slice(0, 10)}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
 
 export default function TwoFactorSetupModal({ T, t, toast, onClose, onEnabled }) {
   const [step, setStep] = useState('choose'); // choose | verify | codes
@@ -199,17 +211,30 @@ export default function TwoFactorSetupModal({ T, t, toast, onClose, onEnabled })
                   </div>
                 ))}
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard?.writeText(recoveryCodes.join('\n'));
-                  toast.success(t('settings.securitySection.mfa.codesCopied'));
-                }}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
-                style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 11 }}
-              >
-                <Copy size={11} /> {t('settings.securitySection.mfa.copyAll')}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(recoveryCodes.join('\n'));
+                    toast.success(t('settings.securitySection.mfa.codesCopied'));
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                  style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 11 }}
+                >
+                  <Copy size={11} /> {t('settings.securitySection.mfa.copyAll')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    downloadRecoveryCodes(recoveryCodes);
+                    toast.success(t('settings.securitySection.mfa.codesDownloaded', { defaultValue: 'Recovery codes downloaded' }));
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                  style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 11 }}
+                >
+                  <Download size={11} /> {t('settings.securitySection.mfa.download', { defaultValue: 'Download' })}
+                </button>
+              </div>
             </>
           )}
         </div>

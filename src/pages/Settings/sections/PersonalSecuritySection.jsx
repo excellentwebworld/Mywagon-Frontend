@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   KeyRound, ShieldCheck, AlertTriangle,
-  Eye, EyeOff, Copy, X,
+  Eye, EyeOff, Copy, Download, X,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
@@ -15,6 +15,18 @@ import { securitySettingsService } from '../../../api/services/securitySettingsS
 import { ApiError } from '../../../api/client';
 import TwoFactorSetupModal from '../components/TwoFactorSetupModal';
 import ConfirmTwoFactorModal from '../components/ConfirmTwoFactorModal';
+
+function downloadRecoveryCodes(codes) {
+  const blob = new Blob([codes.join('\n') + '\n'], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `myvagon-recovery-codes-${new Date().toISOString().slice(0, 10)}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
 
 export default function PersonalSecuritySection() {
   const { t } = useTranslation();
@@ -154,6 +166,17 @@ export default function PersonalSecuritySection() {
                 style={{ background: T.sf, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 11 }}
               >
                 <Copy size={11} /> {t('settings.securitySection.mfa.copyAll')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  downloadRecoveryCodes(recoveryCodes);
+                  toast.success(t('settings.securitySection.mfa.codesDownloaded', { defaultValue: 'Recovery codes downloaded' }));
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                style={{ background: T.sf, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 11 }}
+              >
+                <Download size={11} /> {t('settings.securitySection.mfa.download', { defaultValue: 'Download' })}
               </button>
               <button
                 type="button"
