@@ -1,0 +1,459 @@
+/**
+ * DetailPane — Price Lists detail drawer (420px, right-slide).
+ *
+ * Sections: Hero, Route Legs, Pricing, Lane Costs (carrier+forwarder),
+ * Vehicle Rates, Weight Breaks, Fuel Surcharge, Profitability (carrier),
+ * Margin Analysis (forwarder), Quote Calculator, History, Footer Actions.
+ *
+ * @API: GET /api/v1/price-lists/:id
+ * @API: GET /api/v1/price-lists/audit-log?laneId=:id
+ */
+import { useState, useMemo } from 'react';
+import { X, ChevronDown, ChevronRight, MapPin, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../../hooks/useTheme';
+import {
+  getPrimaryUnit, getPrimaryPrice, isExpiringSoon,
+  calcProfitability, calcFuelSurchargePerKm, cityLabel,
+  COMPANY_DEFAULTS,
+} from '../../../mocks/priceListsData';
+
+const MARGIN_COLORS = { good: '#059669', ok: '#F59E0B', bad: '#DC2626' };
+
+function marginColor(pct) {
+  if (pct > 20) return MARGIN_COLORS.good;
+  if (pct > 5) return MARGIN_COLORS.ok;
+  return MARGIN_COLORS.bad;
+}
+
+export default function DetailPane({ lane, onClose, role, auditLog, onAction, allLanes }) {
+  const { t, i18n } = useTranslation();
+  const { T } = useTheme();
+  const lang = i18n.language;
+
+  const [openSections, setOpenSections] = useState({
+    legs: true, pricing: true, laneCosts: true,
+    vehicleRates: false, weightBreaks: false,
+    profitability: false, marginAnalysis: false,
+    calculator: false, history: false,
+  });
+
+  const toggle = (key) => setOpenSections((p) => ({ ...p, [key]: !p[key] }));
+
+  if (!lane) return null;
+
+  const unit = getPrimaryUnit(lane);
+  const price = getPrimaryPrice(lane);
+  const expiring = isExpiringSoon(lane);
+  const fuelSurchargePerKm = calcFuelSurchargePerKm();
+  const routeFuelSurcharge = fuelSurchargePerKm * lane.totalKm;
+  const profitability = role === 'carrier' ? calcProfitability(lane) : null;
+
+  // Forwarder margin: find matching buy/sell pair
+  const marginPair = useMemo(() => {
+    if (role !== 'forwarder') return null;
+    const routeKey = lane.stops.map((s) => s.city).join('-');
+    const otherDir = lane.scopeDirection === 'sell' ? 'buy' : 'sell';
+    const match = allLanes?.find((l) =>
+      l.id !== lane.id &&
+      l.scopeDirection === otherDir &&
+      l.stops.map((s) => s.city).join('-') === routeKey &&
+      l.status === 'active'
+    );
+    if (!match) return null;
+    const sellPrice = lane.scopeDirection === 'sell' ? getPrimaryPrice(lane) : getPrimaryPrice(match);
+    const buyPrice = lane.scopeDirection === 'buy' ? getPrimaryPrice(lane) : getPrimaryPrice(match);
+    const gross = sellPrice - buyPrice;
+    const pct = sellPrice > 0 ? (gross / sellPrice) * 100 : 0;
+    return { sellPrice, buyPrice, gross, pct, matchId: match.id };
+  }, [lane, allLanes, role]);
+
+  // Lane history from audit log
+  const laneHistory = useMemo(() => {
+    if (!auditLog) return [];
+    return auditLog.filter((e) => e.laneId === lane.id).slice(0, 10);
+  }, [auditLog, lane.id]);
+
+  const routeDisplay = lane.stops.map((s) => cityLabel(s.city, lang)).join(lane.isRoundTrip ? ' ↔ ' : ' → ');
+
+  return (
+    <div
+      className="shrink-0 overflow-y-auto overflow-x-hidden flex flex-col"
+      style={{
+        width: 420,
+        borderLeft: `1px solid ${T.bd}`,
+        background: T.sf,
+      }}
+    >
+      {/* ─── Hero ─── */}
+      <div className="p-4" style={{ borderBottom: `1px solid ${T.bd}` }}>
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <div style={{ fontSize: 16, fontWeight: 700, color: T.t1, lineHeight: 1.3 }}>
+              {routeDisplay}
+            </div>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              {lane.isRoundTrip && <Badge bg="#DBEAFE" fg="#2563EB">{t('priceLists.badge.roundTrip', 'RT')}</Badge>}
+              {lane.stops.length > 2 && <Badge bg="#EDE9FE" fg="#7C3AED">{t('priceLists.badge.multiStop', 'Multi')}</Badge>}
+              <Badge bg={({ active: '#D1FAE5', inactive: '#F3F4F6', archived: '#FEF3C7' })[lane.status]}
+                     fg={({ active: '#059669', inactive: '#6B7280', archived: '#92400E' })[lane.status]}>
+                {t(`priceLists.status.${lane.status}`, lane.status)}
+              </Badge>
+              {lane.scope !== 'default' && <Badge bg="#F0F9FF" fg="#0EA5E9">{lane.scopeLabel}</Badge>}
+              {lane.scopeDirection && (
+                <Badge bg={lane.scopeDirection === 'sell' ? '#D1FAE5' : '#FEE2E2'}
+                       fg={lane.scopeDirection === 'sell' ? '#059669' : '#DC2626'}>
+                  {lane.scopeDirection === 'sell' ? '↑ Sell' : '↓ Buy'}
+                </Badge>
+              )}
+              {expiring && <Badge bg="#FEF3C7" fg="#92400E">⏰ {t('priceLists.badge.expiring', 'Expiring')}</Badge>}
+            </div>
+          </div>
+          <button onClick={onClose} className="border-none cursor-pointer bg-transparent p-1 rounded" style={{ color: T.t3 }}>
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex items-center gap-4 mt-3">
+          <span style={{ fontSize: 10, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>{lane.id}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: T.t1, fontFamily: "'JetBrains Mono', monospace" }}>{lane.totalKm.toLocaleString()} km</span>
+          <span style={{ fontSize: 11, color: T.t3 }}>
+            {lane.effectiveFrom?.slice(0, 10)}
+            {lane.effectiveTo ? ` → ${lane.effectiveTo.slice(0, 10)}` : ` → ∞`}
+          </span>
+        </div>
+      </div>
+
+      {/* ─── Sections ─── */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Route Legs */}
+        <Section title={t('priceLists.detail.routeLegs', 'Route legs')} sectionKey="legs"
+          open={openSections.legs} onToggle={toggle} T={T}>
+          <table className="w-full" style={{ fontSize: 12 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.detail.from', 'From')}</th>
+                <th style={{ color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }} />
+                <th style={{ textAlign: 'left', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.detail.to', 'To')}</th>
+                <th style={{ textAlign: 'right', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>km</th>
+                <th style={{ textAlign: 'right', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.detail.toll', 'Toll')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lane.legs.map((leg, i) => (
+                <tr key={i} style={{ opacity: leg.isReturn ? 0.55 : 1 }}>
+                  <td style={{ padding: '4px 0', color: T.t1 }}>{cityLabel(leg.from, lang)}</td>
+                  <td style={{ padding: '4px 4px', color: T.t3 }}><ArrowRight size={12} /></td>
+                  <td style={{ padding: '4px 0', color: T.t1 }}>{cityLabel(leg.to, lang)}</td>
+                  <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t1 }}>
+                    {leg.km ? leg.km.toLocaleString() : '—'}
+                  </td>
+                  <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t2 }}>
+                    {leg.toll ? `€${leg.toll.toFixed(2)}` : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ borderTop: `1px solid ${T.bd}`, fontWeight: 700 }}>
+                <td colSpan={3} style={{ padding: '6px 0', color: T.t1 }}>{t('common.total', 'Total')}</td>
+                <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t1, padding: '6px 0' }}>
+                  {lane.totalKm.toLocaleString()}
+                </td>
+                <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t2, padding: '6px 0' }}>
+                  {lane.laneCosts?.tollCost ? `€${lane.laneCosts.tollCost.toFixed(2)}` : '—'}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </Section>
+
+        {/* Pricing */}
+        <Section title={t('priceLists.detail.pricing', 'Pricing')} sectionKey="pricing"
+          open={openSections.pricing} onToggle={toggle} T={T}>
+          <div className="space-y-1.5">
+            {lane.pricing.perLoad != null && <PriceLine T={T} label={t('priceLists.pricing.perLoad', 'Per load')} value={`€${lane.pricing.perLoad}`} />}
+            {lane.pricing.perPallet != null && <PriceLine T={T} label={t('priceLists.pricing.perPallet', 'Per pallet')} value={`€${lane.pricing.perPallet}`} />}
+            {lane.pricing.perKm != null && <PriceLine T={T} label={t('priceLists.pricing.perKm', 'Per km')} value={`€${lane.pricing.perKm}`} />}
+            {lane.pricing.perKg != null && <PriceLine T={T} label={t('priceLists.pricing.perKg', 'Per kg')} value={`€${lane.pricing.perKg}`} />}
+            {lane.pricing.perTonne != null && <PriceLine T={T} label={t('priceLists.pricing.perTonne', 'Per tonne')} value={`€${lane.pricing.perTonne}`} />}
+            {/* Derived cost/km if perLoad set */}
+            {lane.pricing.perLoad != null && lane.totalKm > 0 && (
+              <PriceLine T={T} label={t('priceLists.pricing.derivedPerKm', 'Derived €/km')}
+                value={`€${(lane.pricing.perLoad / lane.totalKm).toFixed(3)}`} muted />
+            )}
+            {lane.pricing.minimumCharge && (
+              <PriceLine T={T} label={t('priceLists.pricing.minimumCharge', 'Minimum')} value={`€${lane.pricing.minimumCharge}`} />
+            )}
+            {COMPANY_DEFAULTS.fuelSurcharge.enabled && (
+              <PriceLine T={T} label={t('priceLists.pricing.fuelSurcharge', 'Fuel surcharge')}
+                value={`+€${routeFuelSurcharge.toFixed(2)}`}
+                sub={`€${fuelSurchargePerKm.toFixed(3)}/km × ${lane.totalKm} km`} />
+            )}
+          </div>
+        </Section>
+
+        {/* Lane Costs — carrier + forwarder only */}
+        {(role === 'carrier' || role === 'forwarder') && lane.laneCosts && (
+          <Section title={t('priceLists.detail.laneCosts', 'Lane costs')} sectionKey="laneCosts"
+            open={openSections.laneCosts} onToggle={toggle} T={T}>
+            <div className="space-y-1.5">
+              {lane.laneCosts.tollCost != null && <PriceLine T={T} label={t('priceLists.laneCosts.tolls', 'Tolls')} value={`€${lane.laneCosts.tollCost.toFixed(2)}`} />}
+              {lane.laneCosts.ferryCost != null && <PriceLine T={T} label={t('priceLists.laneCosts.ferry', 'Ferry')} value={`€${lane.laneCosts.ferryCost.toFixed(2)}`} />}
+              {lane.laneCosts.otherCosts != null && (
+                <PriceLine T={T} label={lane.laneCosts.otherCostsLabel || t('priceLists.laneCosts.other', 'Other')} value={`€${lane.laneCosts.otherCosts.toFixed(2)}`} />
+              )}
+              {(() => {
+                const total = (lane.laneCosts.tollCost || 0) + (lane.laneCosts.ferryCost || 0) + (lane.laneCosts.otherCosts || 0);
+                const perKm = lane.totalKm > 0 ? total / lane.totalKm : 0;
+                return (
+                  <div style={{ borderTop: `1px solid ${T.bd}`, paddingTop: 4 }}>
+                    <PriceLine T={T} label={t('priceLists.laneCosts.total', 'Total fixed')} value={`€${total.toFixed(2)}`} bold />
+                    <PriceLine T={T} label={t('priceLists.laneCosts.perKm', 'Per km')} value={`€${perKm.toFixed(3)}/km`} muted />
+                  </div>
+                );
+              })()}
+            </div>
+          </Section>
+        )}
+
+        {/* Vehicle Rates */}
+        {lane.vehicleRates && lane.vehicleRates.length > 0 && (
+          <Section title={t('priceLists.detail.vehicleRates', 'Vehicle rates')} sectionKey="vehicleRates"
+            open={openSections.vehicleRates} onToggle={toggle} T={T}>
+            <table className="w-full" style={{ fontSize: 12 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.detail.vehicleType', 'Type')}</th>
+                  <th style={{ textAlign: 'right', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.pricing.perLoad', '/Load')}</th>
+                  <th style={{ textAlign: 'right', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.pricing.perKm', '/Km')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lane.vehicleRates.map((vr, i) => (
+                  <tr key={i}>
+                    <td style={{ padding: '4px 0', color: T.t1, textTransform: 'capitalize' }}>{vr.vehicleType}</td>
+                    <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t1 }}>
+                      {vr.perLoad != null ? `€${vr.perLoad}` : '—'}
+                    </td>
+                    <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t1 }}>
+                      {vr.perKm != null ? `€${vr.perKm}` : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Section>
+        )}
+
+        {/* Weight Breaks */}
+        {lane.weightBreaks && lane.weightBreaks.length > 0 && (
+          <Section title={t('priceLists.detail.weightBreaks', 'Weight breaks')} sectionKey="weightBreaks"
+            open={openSections.weightBreaks} onToggle={toggle} T={T}>
+            <table className="w-full" style={{ fontSize: 12 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.detail.range', 'Range')}</th>
+                  <th style={{ textAlign: 'right', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.pricing.perPallet', '/Plt')}</th>
+                  <th style={{ textAlign: 'right', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.pricing.perTonne', '/T')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lane.weightBreaks.map((wb, i) => (
+                  <tr key={i}>
+                    <td style={{ padding: '4px 0', color: T.t1 }}>
+                      {wb.minQty}–{wb.maxQty ?? '∞'}
+                    </td>
+                    <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t1 }}>
+                      {wb.perPallet != null ? `€${wb.perPallet}` : '—'}
+                    </td>
+                    <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t1 }}>
+                      {wb.perTonne != null ? `€${wb.perTonne}` : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Section>
+        )}
+
+        {/* Profitability — carrier only */}
+        {role === 'carrier' && profitability && (
+          <Section title={t('priceLists.detail.profitability', 'Profitability')} sectionKey="profitability"
+            open={openSections.profitability} onToggle={toggle} T={T}>
+            <div className="space-y-1.5">
+              <PriceLine T={T} label={t('priceLists.profitability.revenue', 'Revenue')} value={`€${profitability.revenue.toFixed(2)}`} bold />
+              <div style={{ height: 1, background: T.bd, margin: '4px 0' }} />
+              <PriceLine T={T} label={t('priceLists.profitability.fuel', 'Fuel')} value={`−€${profitability.fuel.toFixed(2)}`} />
+              <PriceLine T={T} label={t('priceLists.profitability.driver', 'Driver')} value={`−€${profitability.driver.toFixed(2)}`} />
+              <PriceLine T={T} label={t('priceLists.profitability.tolls', 'Tolls')} value={`−€${profitability.tolls.toFixed(2)}`} />
+              <PriceLine T={T} label={t('priceLists.profitability.maintenance', 'Maintenance')} value={`−€${profitability.maintenance.toFixed(2)}`} />
+              <PriceLine T={T} label={t('priceLists.profitability.depreciation', 'Depreciation')} value={`−€${profitability.depreciation.toFixed(2)}`} />
+              <PriceLine T={T} label={t('priceLists.profitability.insurance', 'Insurance')} value={`−€${profitability.insurance.toFixed(2)}`} />
+              <div style={{ height: 1, background: T.bd, margin: '4px 0' }} />
+              <PriceLine T={T} label={t('priceLists.profitability.totalCost', 'Total cost')} value={`€${profitability.totalCost.toFixed(2)}`} />
+              <div className="flex items-center justify-between" style={{ padding: '6px 0' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: T.t1 }}>{t('priceLists.profitability.netMargin', 'Net margin')}</span>
+                <div className="flex items-center gap-2">
+                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: marginColor(profitability.marginPct) }}>
+                    €{profitability.margin.toFixed(2)}
+                  </span>
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                    background: marginColor(profitability.marginPct) + '1A',
+                    color: marginColor(profitability.marginPct),
+                  }}>
+                    {profitability.marginPct.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Section>
+        )}
+
+        {/* Margin Analysis — forwarder only */}
+        {role === 'forwarder' && (
+          <Section title={t('priceLists.detail.marginAnalysis', 'Margin analysis')} sectionKey="marginAnalysis"
+            open={openSections.marginAnalysis} onToggle={toggle} T={T}>
+            {marginPair ? (
+              <div className="space-y-1.5">
+                <PriceLine T={T} label={t('priceLists.marginAnalysis.sellPrice', 'Sell price')} value={`€${marginPair.sellPrice}`} />
+                <PriceLine T={T} label={t('priceLists.marginAnalysis.buyPrice', 'Buy price')} value={`€${marginPair.buyPrice}`} />
+                <div style={{ height: 1, background: T.bd, margin: '4px 0' }} />
+                <div className="flex items-center justify-between" style={{ padding: '4px 0' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: T.t1 }}>{t('priceLists.marginAnalysis.grossMargin', 'Gross margin')}</span>
+                  <div className="flex items-center gap-2">
+                    <span style={{ fontSize: 14, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: marginColor(marginPair.pct) }}>
+                      €{marginPair.gross.toFixed(2)}
+                    </span>
+                    <span style={{
+                      fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                      background: marginColor(marginPair.pct) + '1A',
+                      color: marginColor(marginPair.pct),
+                    }}>
+                      {marginPair.pct.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: T.t3, padding: '8px 0' }}>
+                {lane.scopeDirection
+                  ? t('priceLists.marginAnalysis.addOther', `Add a ${lane.scopeDirection === 'sell' ? 'buy' : 'sell'} rate to see margin.`)
+                  : t('priceLists.marginAnalysis.noDirection', 'Set scope direction (sell/buy) to enable margin analysis.')}
+              </div>
+            )}
+          </Section>
+        )}
+
+        {/* History */}
+        <Section title={t('priceLists.detail.history', 'History')} sectionKey="history"
+          open={openSections.history} onToggle={toggle} T={T}>
+          {laneHistory.length === 0 ? (
+            <div style={{ fontSize: 12, color: T.t3, padding: '8px 0' }}>
+              {t('priceLists.detail.noHistory', 'No history available.')}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {laneHistory.map((entry) => (
+                <div key={entry.id} className="flex gap-2" style={{ fontSize: 11 }}>
+                  <span style={{ fontSize: 10, color: T.t3, fontFamily: "'JetBrains Mono', monospace", minWidth: 80, whiteSpace: 'nowrap' }}>
+                    {new Date(entry.timestamp).toLocaleDateString()}
+                  </span>
+                  <span style={{ color: T.t2 }}>{entry.details}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        {/* Notes */}
+        {lane.notes && (
+          <div style={{ padding: '12px 16px', borderBottom: `1px solid ${T.bd}` }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: T.t3 }}>{t('priceLists.detail.notes', 'Notes')}</span>
+            <p style={{ fontSize: 12, color: T.t2, marginTop: 4 }}>{lane.notes}</p>
+          </div>
+        )}
+      </div>
+
+      {/* ─── Footer Actions ─── */}
+      <div className="shrink-0 flex items-center gap-2 p-3 flex-wrap" style={{ borderTop: `1px solid ${T.bd}`, background: T.sh }}>
+        <ActionBtn T={T} onClick={() => onAction('edit', lane)}>✏️ {t('common.edit', 'Edit')}</ActionBtn>
+        <ActionBtn T={T} onClick={() => onAction('duplicate', lane)}>📋 {t('priceLists.actions.duplicate', 'Duplicate')}</ActionBtn>
+        {lane.status !== 'archived'
+          ? <ActionBtn T={T} onClick={() => onAction('archive', lane)}>🗄️ {t('priceLists.actions.archive', 'Archive')}</ActionBtn>
+          : (
+            <>
+              <ActionBtn T={T} onClick={() => onAction('reactivate', lane)}>♻️ {t('priceLists.actions.reactivate', 'Reactivate')}</ActionBtn>
+              <ActionBtn T={T} onClick={() => onAction('deleteForever', lane)} danger>🗑️ {t('priceLists.actions.deleteForever', 'Delete forever')}</ActionBtn>
+            </>
+          )}
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, sectionKey, open, onToggle, T, children }) {
+  return (
+    <div style={{ borderBottom: `1px solid ${T.bd}` }}>
+      <button
+        onClick={() => onToggle(sectionKey)}
+        className="flex items-center justify-between w-full border-none cursor-pointer bg-transparent"
+        style={{ padding: '10px 16px' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = T.sh; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+      >
+        <span style={{ fontSize: 12, fontWeight: 600, color: T.t1 }}>{title}</span>
+        {open ? <ChevronDown size={14} style={{ color: T.t3 }} /> : <ChevronRight size={14} style={{ color: T.t3 }} />}
+      </button>
+      {open && <div style={{ padding: '0 16px 12px' }}>{children}</div>}
+    </div>
+  );
+}
+
+function PriceLine({ T, label, value, sub, muted, bold }) {
+  return (
+    <div className="flex items-baseline justify-between" style={{ padding: '2px 0' }}>
+      <span style={{ fontSize: 12, color: muted ? T.t3 : T.t2, fontStyle: muted ? 'italic' : 'normal' }}>{label}</span>
+      <div className="text-right">
+        <span style={{
+          fontSize: 12, fontWeight: bold ? 700 : 600,
+          fontFamily: "'JetBrains Mono', monospace",
+          color: muted ? T.t3 : T.t1,
+          fontStyle: muted ? 'italic' : 'normal',
+        }}>
+          {value}
+        </span>
+        {sub && <div style={{ fontSize: 10, color: T.t3 }}>{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+function Badge({ bg, fg, children }) {
+  return (
+    <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: bg, color: fg }}>
+      {children}
+    </span>
+  );
+}
+
+function ActionBtn({ T, children, onClick, danger }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-lg border-none cursor-pointer"
+      style={{
+        padding: '6px 12px',
+        fontSize: 11,
+        fontWeight: 600,
+        background: danger ? '#FEE2E2' : T.sa,
+        color: danger ? '#DC2626' : T.t1,
+        border: `1px solid ${danger ? '#FECACA' : T.bd}`,
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = danger ? '#FCA5A5' : T.sh; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = danger ? '#FEE2E2' : T.sa; }}
+    >
+      {children}
+    </button>
+  );
+}

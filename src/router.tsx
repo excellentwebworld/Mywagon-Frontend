@@ -24,6 +24,8 @@ import {
   SupportPage,
 } from './pages/Placeholders/AccountPlaceholders';
 
+import PriceListsPage from './pages/PriceLists/PriceListsPage';
+
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
 
 const appRoutes = [
@@ -44,6 +46,7 @@ const appRoutes = [
   { path: '/address-book', element: <AddressBook /> },
   { path: '/products', element: <ProductMaster /> },
   { path: '/partners', element: <Partners /> },
+  { path: '/pricing', element: <PriceListsPage /> },
   { path: '/erp-orders', element: <ErpOrders /> },
   { path: '/settings', element: <Navigate to="/settings/personal" replace /> },
   { path: '/settings/:section/:tab', element: <SettingsSectionOrUserEdit /> },
