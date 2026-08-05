@@ -2719,10 +2719,12 @@
       "deactivateTitle": "Deactivate this user?",
       "deleteTitle": "Permanently delete this user?",
       "cancelInviteTitle": "Cancel this invitation?",
+      "forceSignoutTitle": "Force sign out this user?",
       "suspendMsg": "Suspend {{name}}? They will lose access until reactivated.",
       "deactivateMsg": "Deactivate {{name}}? They will no longer be able to sign in.",
       "deleteMsg": "Permanently delete {{name}}? This cannot be undone.",
       "cancelInviteMsg": "Cancel the invitation for {{name}}?",
+      "forceSignoutMsg": "Revoke all active sessions for {{name}}? They will need to sign in again.",
       "bulkSuspendMsg": "Suspend {{count}} selected users?",
       "bulkDeactivateMsg": "Deactivate {{count}} selected users?"
     },

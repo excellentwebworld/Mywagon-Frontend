@@ -189,6 +189,24 @@ export default function UsersTab() {
     }
     setActionMenu(null);
   };
+
+  const handleForceSignOut = (u) => {
+    setConfirmDialog({
+      title: t('userMgmt.confirm.forceSignoutTitle'),
+      message: t('userMgmt.confirm.forceSignoutMsg', {
+        name: getUserFullName(u),
+      }),
+      onConfirm: async () => {
+        try {
+          await usersSettingsService.forceSignOut(u.id);
+          toast.success(t('userMgmt.toast.sessionRevoked', { name: getUserFullName(u) }));
+        } catch (e) {
+          toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));
+        }
+        setConfirmDialog(null);
+      },
+    });
+  };
   const relTime = (iso) => {
     if (!iso) return t('userMgmt.table.never');
     const d = parseUtcInstant(iso);
@@ -348,7 +366,7 @@ export default function UsersTab() {
                 onCancelInvite={() => { handleCancelInvite(u); setActionMenu(null); }}
                 onResendInvite={() => { handleResendInvite(u); }}
                 onCopyLink={() => { navigator.clipboard?.writeText(window.location.origin); toast.info(t('userMgmt.toast.linkCopied')); setActionMenu(null); }}
-                onForceSignout={() => { toast.success(t('userMgmt.toast.sessionRevoked', { name: getUserFullName(u) })); setActionMenu(null); }}
+                onForceSignout={() => { handleForceSignOut(u); setActionMenu(null); }}
                 relTime={relTime}
                 formatDate={formatDate}
                 actionMenuRef={(actionMenu === u.id || actionMenu === String(u.id)) ? actionMenuRef : null}
@@ -484,11 +502,7 @@ function UserRow({
   }, [actionMenu]);
 
   return (
-    <tr
-      className="transition-colors duration-100"
-      style={{ borderBottom: `1px solid ${T.bd}` }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = T.sa; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+    <tr style={{ borderBottom: `1px solid ${T.bd}` }}>
       <td className="px-3 py-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold shrink-0"

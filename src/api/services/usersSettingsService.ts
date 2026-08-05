@@ -94,4 +94,9 @@ export const usersSettingsService = {
     const res = await apiPost<SettingsUser>(`/settings/users/${id}/resend-invite`);
     return res.data;
   },
+
+  async forceSignOut(id: string | number): Promise<SettingsUser> {
+    const res = await apiPost<SettingsUser>(`/settings/users/${id}/force-signout`);
+    return res.data;
+  },
 };

@@ -220,6 +220,15 @@ export default function UserEditPage() {
     }
   };
 
+  const handleForceSignOut = async () => {
+    try {
+      await usersSettingsService.forceSignOut(user.id);
+      toast.success(t('userMgmt.toast.sessionRevoked', { name: getUserFullName(user) }));
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-4">
       <button type="button" onClick={goBack} className="flex items-center gap-2 cursor-pointer border-none bg-transparent mb-2" style={{ color: T.ac, fontSize: 13, fontWeight: 600 }}>
@@ -349,7 +358,7 @@ export default function UserEditPage() {
           </button>
           {user.status === 'active' && !isOwner && (
             <>
-              <button type="button" onClick={() => toast.success(t('userMgmt.toast.sessionRevoked', { name: getUserFullName(user) }))} className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none" style={{ background: T.sa, color: T.t1, fontSize: 12 }}>
+              <button type="button" onClick={handleForceSignOut} className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none" style={{ background: T.sa, color: T.t1, fontSize: 12 }}>
                 <LogOut size={13} /> {t('userMgmt.actions.forceSignout')}
               </button>
               <button type="button" onClick={handleDeactivate} className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none" style={{ background: '#FEF2F2', color: '#EF4444', fontSize: 12 }}>
