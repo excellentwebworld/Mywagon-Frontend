@@ -18,6 +18,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<TwoFactorChallenge | null>;
   verifyTwoFactor: (challengeToken: string, code: string) => Promise<void>;
   resendTwoFactorEmail: (challengeToken: string) => Promise<{ masked_email?: string }>;
+  sendTwoFactorRecoveryEmail: (challengeToken: string) => Promise<{ masked_email?: string }>;
+  verifyTwoFactorRecovery: (challengeToken: string, code: string) => Promise<{ two_factor_reset: boolean }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   clearLoginError: () => void;
@@ -119,6 +121,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return authService.resendTwoFactorEmail(challengeToken);
   }, []);
 
+  const sendTwoFactorRecoveryEmail = useCallback(async (challengeToken: string) => {
+    return authService.sendTwoFactorRecoveryEmail(challengeToken);
+  }, []);
+
+  const verifyTwoFactorRecovery = useCallback(async (challengeToken: string, code: string) => {
+    setLoginError(null);
+    try {
+      const { token: bearerToken, user: profile, two_factor_reset } =
+        await authService.verifyTwoFactorRecovery(challengeToken, code);
+      setStoredToken(bearerToken);
+      setToken(bearerToken);
+      setUser(profile);
+      return { two_factor_reset };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Recovery verification failed';
+      setLoginError(message);
+      throw err;
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await authService.logout();
@@ -142,6 +164,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login,
       verifyTwoFactor,
       resendTwoFactorEmail,
+      sendTwoFactorRecoveryEmail,
+      verifyTwoFactorRecovery,
       logout,
       refreshUser,
       clearLoginError,
@@ -154,6 +178,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login,
       verifyTwoFactor,
       resendTwoFactorEmail,
+      sendTwoFactorRecoveryEmail,
+      verifyTwoFactorRecovery,
       logout,
       refreshUser,
       clearLoginError,

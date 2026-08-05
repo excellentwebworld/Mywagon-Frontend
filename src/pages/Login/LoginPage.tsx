@@ -35,6 +35,8 @@ export const LoginPage: React.FC = () => {
     login,
     verifyTwoFactor,
     resendTwoFactorEmail,
+    sendTwoFactorRecoveryEmail,
+    verifyTwoFactorRecovery,
     loginError,
     clearLoginError,
     isAuthenticated,
@@ -53,6 +55,7 @@ export const LoginPage: React.FC = () => {
   const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null);
   const [otpCode, setOtpCode] = useState('');
   const [useRecovery, setUseRecovery] = useState(false);
+  const [lostAccess, setLostAccess] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
   const [resendBusy, setResendBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -124,6 +127,7 @@ export const LoginPage: React.FC = () => {
         setChallenge(nextChallenge);
         setOtpCode('');
         setUseRecovery(false);
+        setLostAccess(false);
         if (nextChallenge.method === 'email') {
           setResendSeconds(60);
         }
@@ -141,9 +145,20 @@ export const LoginPage: React.FC = () => {
     e.preventDefault();
     if (!challenge || !otpCode.trim()) return;
     clearLoginError();
+    setLocalError(null);
     setSubmitting(true);
     try {
-      await verifyTwoFactor(challenge.challenge_token, otpCode.trim());
+      if (lostAccess) {
+        const { two_factor_reset } = await verifyTwoFactorRecovery(
+          challenge.challenge_token,
+          otpCode.trim(),
+        );
+        if (two_factor_reset) {
+          sessionStorage.setItem('shipper_mfa_reset_toast', '1');
+        }
+      } else {
+        await verifyTwoFactor(challenge.challenge_token, otpCode.trim());
+      }
       navigate(from, { replace: true });
     } catch {
       // loginError set in context
@@ -158,7 +173,9 @@ export const LoginPage: React.FC = () => {
     clearLoginError();
     setLocalError(null);
     try {
-      const data = await resendTwoFactorEmail(challenge.challenge_token);
+      const data = lostAccess
+        ? await sendTwoFactorRecoveryEmail(challenge.challenge_token)
+        : await resendTwoFactorEmail(challenge.challenge_token);
       if (data.masked_email) {
         setChallenge((prev) => (prev ? { ...prev, masked_email: data.masked_email! } : prev));
       }
@@ -174,11 +191,39 @@ export const LoginPage: React.FC = () => {
     }
   };
 
+  const startLostAccess = async () => {
+    if (!challenge || resendBusy) return;
+    setUseRecovery(false);
+    setOtpCode('');
+    setLostAccess(true);
+    clearLoginError();
+    setLocalError(null);
+    setResendBusy(true);
+    try {
+      const data = await sendTwoFactorRecoveryEmail(challenge.challenge_token);
+      if (data.masked_email) {
+        setChallenge((prev) => (prev ? { ...prev, masked_email: data.masked_email! } : prev));
+      }
+      setResendSeconds(60);
+    } catch (err) {
+      setLostAccess(false);
+      setLocalError(
+        err instanceof Error
+          ? err.message
+          : t('login.twoFactor.resendFailed', { defaultValue: 'Could not send recovery email' })
+      );
+    } finally {
+      setResendBusy(false);
+    }
+  };
+
   const backToCredentials = () => {
     setChallenge(null);
     setOtpCode('');
     setUseRecovery(false);
+    setLostAccess(false);
     clearLoginError();
+    setLocalError(null);
   };
 
   return (
@@ -206,7 +251,12 @@ export const LoginPage: React.FC = () => {
                   </a>
                   <p className="shipper-login-para">
                     {challenge
-                      ? t('login.twoFactor.subtitle', { defaultValue: 'Enter your verification code to continue.' })
+                      ? lostAccess
+                        ? t('login.twoFactor.lostAccessHint', {
+                            email: challenge.masked_email,
+                            defaultValue: `We sent a code to ${challenge.masked_email}. Enter it to reset 2FA and sign in.`,
+                          })
+                        : t('login.twoFactor.subtitle', { defaultValue: 'Enter your verification code to continue.' })
                       : t('loginDescription')}
                   </p>
                 </div>
@@ -232,36 +282,42 @@ export const LoginPage: React.FC = () => {
                     <form className="shipper-login-form" onSubmit={handleVerify} noValidate>
                       <div className="shipper-login-field">
                         <label htmlFor="otp-code">
-                          {useRecovery
-                            ? t('login.twoFactor.recoveryLabel', { defaultValue: 'Recovery code' })
-                            : challenge.method === 'email'
-                              ? t('login.twoFactor.emailLabel', {
-                                  email: challenge.masked_email,
-                                  defaultValue: `Code sent to ${challenge.masked_email}`,
-                                })
-                              : t('login.twoFactor.authenticatorLabel', {
-                                  defaultValue: 'Authenticator app code',
-                                })}
+                          {lostAccess
+                            ? t('login.twoFactor.emailLabel', {
+                                email: challenge.masked_email,
+                                defaultValue: `Code sent to ${challenge.masked_email}`,
+                              })
+                            : useRecovery
+                              ? t('login.twoFactor.recoveryLabel', { defaultValue: 'Recovery code' })
+                              : challenge.method === 'email'
+                                ? t('login.twoFactor.emailLabel', {
+                                    email: challenge.masked_email,
+                                    defaultValue: `Code sent to ${challenge.masked_email}`,
+                                  })
+                                : t('login.twoFactor.authenticatorLabel', {
+                                    defaultValue: 'Authenticator app code',
+                                  })}
                         </label>
                         <input
                           id="otp-code"
                           name="code"
                           type="text"
-                          inputMode={useRecovery ? 'text' : 'numeric'}
+                          inputMode={useRecovery && !lostAccess ? 'text' : 'numeric'}
                           autoComplete="one-time-code"
                           className="shipper-login-control"
                           value={otpCode}
                           onChange={(e) => {
                             clearLoginError();
+                            setLocalError(null);
                             setOtpCode(e.target.value);
                           }}
-                          placeholder={useRecovery ? 'XXXXXXXXXX' : '000000'}
+                          placeholder={useRecovery && !lostAccess ? 'XXXXXXXXXX' : '000000'}
                           disabled={submitting}
                           autoFocus
                         />
                       </div>
 
-                      {challenge.method === 'email' && !useRecovery && (
+                      {(lostAccess || (challenge.method === 'email' && !useRecovery)) && (
                         <div className="shipper-login-forgot" style={{ marginBottom: 12 }}>
                           <button
                             type="button"
@@ -280,28 +336,70 @@ export const LoginPage: React.FC = () => {
                         </div>
                       )}
 
-                      <div className="shipper-login-forgot" style={{ marginBottom: 12 }}>
-                        <button
-                          type="button"
-                          className="shipper-login-pw-link"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                          onClick={() => {
-                            setUseRecovery((v) => !v);
-                            setOtpCode('');
-                            clearLoginError();
-                          }}
-                        >
-                          {useRecovery
-                            ? t('login.twoFactor.useAppCode', { defaultValue: 'Use authenticator / email code' })
-                            : t('login.twoFactor.useRecovery', { defaultValue: 'Use a recovery code' })}
-                        </button>
-                      </div>
+                      {!lostAccess && (
+                        <div className="shipper-login-forgot" style={{ marginBottom: 12 }}>
+                          <button
+                            type="button"
+                            className="shipper-login-pw-link"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                            onClick={() => {
+                              setUseRecovery((v) => !v);
+                              setOtpCode('');
+                              clearLoginError();
+                              setLocalError(null);
+                            }}
+                          >
+                            {useRecovery
+                              ? t('login.twoFactor.useAppCode', { defaultValue: 'Use authenticator / email code' })
+                              : t('login.twoFactor.useRecovery', { defaultValue: 'Use a recovery code' })}
+                          </button>
+                        </div>
+                      )}
+
+                      {!lostAccess && (
+                        <div className="shipper-login-forgot" style={{ marginBottom: 12 }}>
+                          <button
+                            type="button"
+                            className="shipper-login-pw-link"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                            onClick={() => void startLostAccess()}
+                            disabled={resendBusy}
+                          >
+                            {t('login.twoFactor.lostAccess', {
+                              defaultValue: 'Lost access to your authenticator?',
+                            })}
+                          </button>
+                        </div>
+                      )}
+
+                      {lostAccess && (
+                        <div className="shipper-login-forgot" style={{ marginBottom: 12 }}>
+                          <button
+                            type="button"
+                            className="shipper-login-pw-link"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                            onClick={() => {
+                              setLostAccess(false);
+                              setOtpCode('');
+                              setUseRecovery(false);
+                              clearLoginError();
+                              setLocalError(null);
+                            }}
+                          >
+                            {t('login.twoFactor.backTo2fa', {
+                              defaultValue: 'Back to authenticator / recovery code',
+                            })}
+                          </button>
+                        </div>
+                      )}
 
                       <div className="shipper-login-submit-wrap">
                         <button type="submit" className="shipper-login-submit-btn" disabled={submitting || !otpCode.trim()}>
                           {submitting
                             ? t('login.twoFactor.verifying', { defaultValue: 'Verifying…' })
-                            : t('login.twoFactor.verify', { defaultValue: 'Verify' })}
+                            : lostAccess
+                              ? t('login.twoFactor.resetAndSignIn', { defaultValue: 'Reset 2FA & sign in' })
+                              : t('login.twoFactor.verify', { defaultValue: 'Verify' })}
                         </button>
                       </div>
 

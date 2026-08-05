@@ -114,6 +114,49 @@ export const authService = {
     return res.data ?? {};
   },
 
+  async sendTwoFactorRecoveryEmail(challengeToken: string): Promise<{ masked_email?: string }> {
+    const res = await authRequest<{
+      status: boolean;
+      message: string;
+      data?: { masked_email?: string };
+    }>('/auth/2fa/recovery/send-email', {
+      method: 'POST',
+      body: { challenge_token: challengeToken },
+    }, null);
+
+    if (!res.status) {
+      throw new Error(res.message || 'Could not send recovery email');
+    }
+
+    return res.data ?? {};
+  },
+
+  async verifyTwoFactorRecovery(
+    challengeToken: string,
+    code: string,
+  ): Promise<{ token: string; user: ShipperUser; two_factor_reset: boolean }> {
+    const res = await authRequest<{
+      status: boolean;
+      message: string;
+      bearer_token?: string;
+      data?: ShipperUser;
+      two_factor_reset?: boolean;
+    }>('/auth/2fa/recovery/verify', {
+      method: 'POST',
+      body: { challenge_token: challengeToken, code },
+    }, null);
+
+    if (!res.status || !res.bearer_token || !res.data) {
+      throw new Error(res.message || 'Recovery verification failed');
+    }
+
+    return {
+      token: res.bearer_token,
+      user: res.data,
+      two_factor_reset: Boolean(res.two_factor_reset),
+    };
+  },
+
   async me(): Promise<ShipperUser> {
     const res = await authRequest<MeResponse>('/auth/me');
     return res.data;
