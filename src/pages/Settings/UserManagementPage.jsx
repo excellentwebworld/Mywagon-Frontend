@@ -4,26 +4,23 @@
  * Tabs are URL-driven (PDS-937):
  *   /settings/users           → Users
  *   /settings/users/roles     → Roles
- *   /settings/users/security  → Login history
  *   /settings/users/audit     → User & role audit
  */
 
 import { useCallback, memo } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, Shield, Lock, ScrollText } from 'lucide-react';
+import { Users, Shield, ScrollText } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { toUpperGreek } from '../../utils/greekUppercase';
 import SeatBanner from './usermgmt/SeatBanner';
 import UsersTab from './usermgmt/UsersTab';
 import RolesTab from './usermgmt/RolesTab';
 import AuditTab from './usermgmt/AuditTab';
-import SecurityTab from './usermgmt/SecurityTab';
 
 const TABS = [
   { id: 'users', Icon: Users },
   { id: 'roles', Icon: Shield },
-  { id: 'security', Icon: Lock },
   { id: 'audit', Icon: ScrollText },
 ];
 
@@ -103,7 +100,6 @@ function UserManagementSection() {
       <div className="flex-1 mt-4">
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'roles' && <RolesTab />}
-        {activeTab === 'security' && <SecurityTab />}
         {activeTab === 'audit' && <AuditTab />}
       </div>
     </div>

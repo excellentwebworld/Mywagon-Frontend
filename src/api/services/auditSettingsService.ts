@@ -32,16 +32,6 @@ export type UserAuditEntry = {
   summary: string;
 };
 
-export type LoginHistoryEntry = {
-  ts: string;
-  ok: boolean;
-  device: string | null;
-  city: string | null;
-  ip: string | null;
-  userId: string | null;
-  userName: string | null;
-};
-
 export type AuditListResult<T> = {
   items: T[];
   meta: ApiListMeta & { last_page: number };
@@ -114,20 +104,5 @@ export const auditSettingsService = {
       per_page: params.per_page,
     });
     return parseList<UserAuditEntry>(`/settings/users/audit${qs}`);
-  },
-
-  async listLoginHistory(params: {
-    from?: string;
-    to?: string;
-    page?: number;
-    per_page?: number;
-  } = {}): Promise<AuditListResult<LoginHistoryEntry>> {
-    const qs = buildQuery({
-      from: params.from,
-      to: params.to,
-      page: params.page,
-      per_page: params.per_page,
-    });
-    return parseList<LoginHistoryEntry>(`/settings/users/login-history${qs}`);
   },
 };

@@ -14,8 +14,6 @@
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import Skeleton from 'react-loading-skeleton';
-import 'react-loading-skeleton/dist/skeleton.css';
 import {
   Search, Download, ChevronDown, ChevronRight, X, Clock,
 } from 'lucide-react';
@@ -23,6 +21,7 @@ import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { AUDIT_CATEGORIES, SEVERITY_CONFIG } from '../../../mocks/auditLogData';
 import { auditSettingsService } from '../../../api/services/auditSettingsService';
+import { PlatformAuditLogSkeleton } from '../components/AuditSkeletons';
 
 const SEVERITY_CYCLE = ['all', 'info', 'warning', 'critical'];
 const PAGE_SIZE = 20;
@@ -190,11 +189,7 @@ export default function AuditLogSection() {
 
       {/* ─── Timeline ─── */}
       {loading ? (
-        <div className="space-y-3" aria-busy="true">
-          <Skeleton height={56} borderRadius={8} baseColor={T.sa} highlightColor={T.bd} />
-          <Skeleton height={56} borderRadius={8} baseColor={T.sa} highlightColor={T.bd} />
-          <Skeleton height={56} borderRadius={8} baseColor={T.sa} highlightColor={T.bd} />
-        </div>
+        <PlatformAuditLogSkeleton T={T} />
       ) : paged.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <Clock size={28} style={{ color: T.t3, opacity: 0.4 }} />
@@ -293,11 +288,6 @@ export default function AuditLogSection() {
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* Retention note */}
-          <div className="mt-4 px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 11, color: T.t3 }}>
-            {t('compliance.audit.retention')}
           </div>
         </div>
       )}

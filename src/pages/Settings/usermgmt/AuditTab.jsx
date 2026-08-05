@@ -16,8 +16,6 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import Skeleton from 'react-loading-skeleton';
-import 'react-loading-skeleton/dist/skeleton.css';
 import {
   Search, Download, X, ChevronDown,
   UserPlus, ShieldCheck, Ban, UserX, RefreshCw,
@@ -26,6 +24,7 @@ import {
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { auditSettingsService } from '../../../api/services/auditSettingsService';
+import { UserAuditTabSkeleton } from '../components/AuditSkeletons';
 
 const ACTION_ICONS = {
   login: Clock,
@@ -218,10 +217,7 @@ export default function AuditTab() {
 
       {/* ─── Timeline ─── */}
       {loading ? (
-        <div className="space-y-3" aria-busy="true">
-          <Skeleton height={64} borderRadius={8} baseColor={T.sa} highlightColor={T.bd} />
-          <Skeleton height={64} borderRadius={8} baseColor={T.sa} highlightColor={T.bd} />
-        </div>
+        <UserAuditTabSkeleton T={T} />
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <Clock size={28} style={{ color: T.t3, opacity: 0.4 }} />

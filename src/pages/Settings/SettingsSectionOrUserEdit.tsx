@@ -6,7 +6,7 @@
 import { Navigate, useParams } from 'react-router-dom';
 import Settings from './Settings';
 
-const USER_SUBTABS = new Set(['roles', 'security', 'audit']);
+const USER_SUBTABS = new Set(['roles', 'audit']);
 
 export default function SettingsSectionOrUserEdit() {
   const { section, tab } = useParams<{ section?: string; tab?: string }>();
