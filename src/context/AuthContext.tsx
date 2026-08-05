@@ -5,6 +5,7 @@ import {
   setStoredToken,
   clearStoredToken,
   type ShipperUser,
+  type TwoFactorChallenge,
 } from '../api/auth';
 
 interface AuthContextValue {
@@ -13,7 +14,10 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   loginError: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  /** Returns a 2FA challenge when required; otherwise authenticates and returns null. */
+  login: (email: string, password: string) => Promise<TwoFactorChallenge | null>;
+  verifyTwoFactor: (challengeToken: string, code: string) => Promise<void>;
+  resendTwoFactorEmail: (challengeToken: string) => Promise<{ masked_email?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   clearLoginError: () => void;
@@ -79,18 +83,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [refreshUser]);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string): Promise<TwoFactorChallenge | null> => {
     setLoginError(null);
     try {
-      const { token: bearerToken, user: profile } = await authService.login({ email, password });
-      setStoredToken(bearerToken);
-      setToken(bearerToken);
-      setUser(profile);
+      const result = await authService.login({ email, password });
+      if (result.kind === 'two_factor') {
+        return result.challenge;
+      }
+      setStoredToken(result.token);
+      setToken(result.token);
+      setUser(result.user);
+      return null;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
       setLoginError(message);
       throw err;
     }
+  }, []);
+
+  const verifyTwoFactor = useCallback(async (challengeToken: string, code: string) => {
+    setLoginError(null);
+    try {
+      const { token: bearerToken, user: profile } = await authService.verifyTwoFactor(challengeToken, code);
+      setStoredToken(bearerToken);
+      setToken(bearerToken);
+      setUser(profile);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Verification failed';
+      setLoginError(message);
+      throw err;
+    }
+  }, []);
+
+  const resendTwoFactorEmail = useCallback(async (challengeToken: string) => {
+    return authService.resendTwoFactorEmail(challengeToken);
   }, []);
 
   const logout = useCallback(async () => {
@@ -114,11 +140,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isLoading,
       loginError,
       login,
+      verifyTwoFactor,
+      resendTwoFactorEmail,
       logout,
       refreshUser,
       clearLoginError,
     }),
-    [user, token, isLoading, loginError, login, logout, refreshUser, clearLoginError]
+    [
+      user,
+      token,
+      isLoading,
+      loginError,
+      login,
+      verifyTwoFactor,
+      resendTwoFactorEmail,
+      logout,
+      refreshUser,
+      clearLoginError,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

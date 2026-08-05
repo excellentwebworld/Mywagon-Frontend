@@ -20,6 +20,8 @@ export interface ShipperUser {
   parent_shipper_id: number | null;
   /** Spatie RBAC names (= shipper_permissions.value) */
   permissions?: string[] | ShipperPermission[];
+  two_factor_enabled?: boolean;
+  two_factor_method?: 'authenticator' | 'email' | null;
 }
 
 export interface LoginPayload {
@@ -28,12 +30,36 @@ export interface LoginPayload {
   device_token?: string;
 }
 
-export interface LoginResponse {
+export type TwoFactorMethod = 'authenticator' | 'email';
+
+export interface TwoFactorChallenge {
+  challenge_token: string;
+  method: TwoFactorMethod;
+  masked_email: string;
+}
+
+export interface LoginSuccessResponse {
   status: boolean;
   message: string;
   bearer_token: string;
   data: ShipperUser;
+  two_factor_required?: false;
 }
+
+export interface LoginTwoFactorResponse {
+  status: boolean;
+  message: string;
+  two_factor_required: true;
+  challenge_token: string;
+  method: TwoFactorMethod;
+  masked_email: string;
+}
+
+export type LoginResponse = LoginSuccessResponse | LoginTwoFactorResponse;
+
+export type LoginResult =
+  | { kind: 'authenticated'; token: string; user: ShipperUser }
+  | { kind: 'two_factor'; challenge: TwoFactorChallenge };
 
 export interface MeResponse {
   status: boolean;

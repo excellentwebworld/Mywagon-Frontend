@@ -1,26 +1,56 @@
 /**
- * PersonalSecuritySection — password (live) + 2FA coming soon (PDS-937).
- * Sessions / login history stay under Users & Roles → Security.
+ * PersonalSecuritySection — password (live) + 2FA (authenticator / email OTP).
  */
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   KeyRound, ShieldCheck, AlertTriangle,
-  Eye, EyeOff,
+  Eye, EyeOff, Copy, X,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { SECURITY_POLICIES } from '../../../mocks/userMgmtData';
 import { securitySettingsService } from '../../../api/services/securitySettingsService';
 import { ApiError } from '../../../api/client';
+import TwoFactorSetupModal from '../components/TwoFactorSetupModal';
+import ConfirmTwoFactorModal from '../components/ConfirmTwoFactorModal';
 
 export default function PersonalSecuritySection() {
   const { t } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
   const [showPwModal, setShowPwModal] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+  const [confirmMode, setConfirmMode] = useState(null); // disable | view-codes | regenerate
+  const [status, setStatus] = useState({ enabled: false, method: null, confirmed_at: null });
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [recoveryCodes, setRecoveryCodes] = useState(null);
   const policy = SECURITY_POLICIES.passwordPolicy;
+
+  const loadStatus = useCallback(async () => {
+    setLoadingStatus(true);
+    try {
+      const res = await securitySettingsService.getTwoFactorStatus();
+      setStatus(res);
+    } catch {
+      setStatus({ enabled: false, method: null, confirmed_at: null });
+    } finally {
+      setLoadingStatus(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadStatus();
+  }, [loadStatus]);
+
+  const methodLabel = status.method === 'email'
+    ? t('settings.securitySection.mfa.methodEmail', { defaultValue: 'Email OTP' })
+    : t('settings.securitySection.mfa.authenticator');
+
+  const sinceLabel = status.confirmed_at
+    ? new Date(status.confirmed_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    : '—';
 
   return (
     <div className="space-y-4">
@@ -48,26 +78,94 @@ export default function PersonalSecuritySection() {
       </SCard>
 
       <SCard title={t('settings.securitySection.mfa.title')} icon={<ShieldCheck size={16} style={{ color: T.ac }} />} T={T}>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-3" style={{ background: T.al, border: `1px solid ${T.ac}33` }}>
-          <ShieldCheck size={14} style={{ color: T.ac }} />
-          <span style={{ fontSize: 12, color: T.t1 }}>
-            {t('settings.securitySection.mfa.comingSoon', {
-              defaultValue: 'Two-factor authentication (OTP) is coming soon and will be required for all users.',
-            })}
-          </span>
-        </div>
-        <p style={{ fontSize: 12, color: T.t3, marginBottom: 0 }}>
-          {t('settings.securitySection.mfa.recommendation')}
-        </p>
-        <button
-          type="button"
-          disabled
-          className="mt-3 px-4 py-2 rounded-lg border-none font-semibold"
-          style={{ background: T.sa, color: T.t3, fontSize: 12, opacity: 0.7, cursor: 'not-allowed' }}
-        >
-          <ShieldCheck size={13} className="inline mr-1.5" />
-          {t('settings.securitySection.mfa.comingSoonBtn', { defaultValue: 'Coming soon' })}
-        </button>
+        {loadingStatus ? (
+          <p style={{ fontSize: 12, color: T.t3 }}>{t('common.loading', { defaultValue: 'Loading…' })}</p>
+        ) : status.enabled ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+              <InfoBox label={t('settings.securitySection.mfa.status')} value={`🛡️ ${t('settings.securitySection.mfa.enabled')}`} T={T} />
+              <InfoBox label={t('settings.securitySection.mfa.method')} value={methodLabel} T={T} />
+              <InfoBox label={t('settings.securitySection.mfa.since')} value={sinceLabel} T={T} />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmMode('disable')}
+                className="px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444', fontSize: 12, fontWeight: 500 }}
+              >
+                {t('settings.securitySection.mfa.disable')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmMode('view-codes')}
+                className="px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12, fontWeight: 500 }}
+              >
+                {t('settings.securitySection.mfa.viewCodes')}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-3" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+              <AlertTriangle size={14} style={{ color: '#F59E0B' }} />
+              <span style={{ fontSize: 12, color: '#92400E' }}>{t('settings.securitySection.mfa.notEnabled')}</span>
+            </div>
+            <p style={{ fontSize: 12, color: T.t3, marginBottom: 12 }}>
+              {t('settings.securitySection.mfa.recommendation')}
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowSetup(true)}
+              className="px-4 py-2 rounded-lg border-none font-semibold cursor-pointer"
+              style={{ background: T.ac, color: '#fff', fontSize: 12 }}
+            >
+              <ShieldCheck size={13} className="inline mr-1.5" />
+              {t('settings.securitySection.mfa.enable')}
+            </button>
+          </>
+        )}
+
+        {recoveryCodes && (
+          <div className="mt-4 p-4 rounded-xl" style={{ background: T.sa, border: `1px solid ${T.bd}` }}>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-bold" style={{ fontSize: 13, color: T.t1 }}>{t('settings.securitySection.mfa.recoveryCodes')}</h4>
+              <button type="button" onClick={() => setRecoveryCodes(null)} className="cursor-pointer border-none bg-transparent">
+                <X size={14} style={{ color: T.t3 }} />
+              </button>
+            </div>
+            <p style={{ fontSize: 11, color: T.t3, marginBottom: 8 }}>{t('settings.securitySection.mfa.codesDesc')}</p>
+            <div className="grid grid-cols-2 gap-1.5 mb-3">
+              {recoveryCodes.map((c) => (
+                <div key={c} className="px-2.5 py-1.5 rounded" style={{ background: T.sf, fontFamily: 'monospace', fontSize: 12, color: T.t1, border: `1px solid ${T.bd}` }}>
+                  {c}
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard?.writeText(recoveryCodes.join('\n'));
+                  toast.success(t('settings.securitySection.mfa.codesCopied'));
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                style={{ background: T.sf, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 11 }}
+              >
+                <Copy size={11} /> {t('settings.securitySection.mfa.copyAll')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmMode('regenerate')}
+                className="px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                style={{ background: T.sf, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 11 }}
+              >
+                {t('settings.securitySection.mfa.regenerateCodes', { defaultValue: 'Regenerate' })}
+              </button>
+            </div>
+          </div>
+        )}
       </SCard>
 
       {showPwModal && (
@@ -77,6 +175,35 @@ export default function PersonalSecuritySection() {
           t={t}
           toast={toast}
           policy={policy}
+        />
+      )}
+
+      {showSetup && (
+        <TwoFactorSetupModal
+          T={T}
+          t={t}
+          toast={toast}
+          onClose={() => setShowSetup(false)}
+          onEnabled={() => void loadStatus()}
+        />
+      )}
+
+      {confirmMode && (
+        <ConfirmTwoFactorModal
+          T={T}
+          t={t}
+          toast={toast}
+          mode={confirmMode}
+          method={status.method}
+          onClose={() => setConfirmMode(null)}
+          onSuccess={(codes) => {
+            if (confirmMode === 'disable') {
+              setRecoveryCodes(null);
+              void loadStatus();
+            } else if (Array.isArray(codes)) {
+              setRecoveryCodes(codes);
+            }
+          }}
         />
       )}
     </div>

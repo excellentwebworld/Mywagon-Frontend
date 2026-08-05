@@ -1,6 +1,14 @@
 import axios from 'axios';
 import { axiosInstance, AUTH_TOKEN_KEY, getStoredToken, setStoredToken, clearStoredToken } from '../client';
-import type { LoginPayload, LoginResponse, LogoutResponse, MeResponse, ShipperUser } from './types';
+import type {
+  LoginPayload,
+  LoginResponse,
+  LoginResult,
+  LogoutResponse,
+  MeResponse,
+  ShipperUser,
+  TwoFactorChallenge,
+} from './types';
 
 export { AUTH_TOKEN_KEY, getStoredToken, setStoredToken, clearStoredToken };
 
@@ -31,7 +39,7 @@ async function authRequest<T>(
       headers,
     });
     return response.data;
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
       const data = err.response?.data;
       const statusText = err.response?.statusText || err.message;
@@ -47,17 +55,63 @@ async function authRequest<T>(
 }
 
 export const authService = {
-  async login(payload: LoginPayload): Promise<{ token: string; user: ShipperUser }> {
+  async login(payload: LoginPayload): Promise<LoginResult> {
     const res = await authRequest<LoginResponse>('/auth/login', {
       method: 'POST',
       body: payload,
     }, null);
 
+    if (res.two_factor_required) {
+      return {
+        kind: 'two_factor',
+        challenge: {
+          challenge_token: res.challenge_token,
+          method: res.method,
+          masked_email: res.masked_email,
+        },
+      };
+    }
+
     if (!res.status || !res.bearer_token) {
       throw new Error(res.message || 'Login failed');
     }
 
+    return { kind: 'authenticated', token: res.bearer_token, user: res.data };
+  },
+
+  async verifyTwoFactor(challengeToken: string, code: string): Promise<{ token: string; user: ShipperUser }> {
+    const res = await authRequest<{
+      status: boolean;
+      message: string;
+      bearer_token?: string;
+      data?: ShipperUser;
+    }>('/auth/2fa/verify', {
+      method: 'POST',
+      body: { challenge_token: challengeToken, code },
+    }, null);
+
+    if (!res.status || !res.bearer_token || !res.data) {
+      throw new Error(res.message || 'Verification failed');
+    }
+
     return { token: res.bearer_token, user: res.data };
+  },
+
+  async resendTwoFactorEmail(challengeToken: string): Promise<{ masked_email?: string }> {
+    const res = await authRequest<{
+      status: boolean;
+      message: string;
+      data?: { masked_email?: string };
+    }>('/auth/2fa/resend-email', {
+      method: 'POST',
+      body: { challenge_token: challengeToken },
+    }, null);
+
+    if (!res.status) {
+      throw new Error(res.message || 'Could not resend code');
+    }
+
+    return res.data ?? {};
   },
 
   async me(): Promise<ShipperUser> {
@@ -73,3 +127,5 @@ export const authService = {
     }
   },
 };
+
+export type { TwoFactorChallenge };

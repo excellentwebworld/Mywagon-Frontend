@@ -52,7 +52,13 @@ export default function OrgPosture({ data }) {
   const ssoComing = posture.sso?.status === 'coming_soon' || !posture.sso?.enabled;
   const mfaComing = posture.mfa?.status === 'coming_soon';
   const ssoSt = ssoComing ? getComingSoon() : { level: 'green', icon: CheckCircle, label: 'active' };
-  const mfaSt = mfaComing ? getComingSoon() : getComingSoon();
+  const mfaUsers = posture.mfa?.users_with_mfa ?? 0;
+  const mfaTotal = posture.mfa?.total_users ?? 0;
+  const mfaSt = mfaComing
+    ? getComingSoon()
+    : mfaUsers > 0
+      ? { level: 'green', icon: CheckCircle, label: 'active' }
+      : { level: 'amber', icon: AlertTriangle, label: 'available' };
   const pwSt = getPwStatus(posture.password_policy);
   const pw = posture.password_policy;
 
@@ -98,8 +104,9 @@ export default function OrgPosture({ data }) {
           posture.mfa?.note || t('trust.org.otpPlanned', { defaultValue: 'OTP planned for all users' }),
         ]
         : [
-          `${posture.mfa.users_with_mfa} / ${posture.mfa.total_users} ${t('trust.org.usersWithMfa')}`,
-        ],
+          `${mfaUsers} / ${mfaTotal} ${t('trust.org.usersWithMfa')}`,
+          mfaUsers === 0 ? t('trust.org.withoutMfa') : null,
+        ].filter(Boolean),
       action: t('trust.org.manage'),
       route: '/settings/security',
     },
