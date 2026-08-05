@@ -293,18 +293,29 @@ function ChangePasswordModal({ onClose, T, t, toast, policy }) {
               <AlertTriangle size={14} /> {error}
             </div>
           )}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleSave();
+            }}
+            className="space-y-3"
+          >
           <div>
             <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{t('settings.securitySection.password.currentPw')}</label>
             <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)}
               className="w-full px-3 py-2 rounded-lg outline-none"
-              style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+              style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+              autoComplete="current-password"
+            />
           </div>
           <div>
             <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{t('settings.securitySection.password.newPw')}</label>
             <div className="relative">
               <input type={showNew ? 'text' : 'password'} value={newPw} onChange={(e) => setNewPw(e.target.value)}
                 className="w-full px-3 py-2 pr-10 rounded-lg outline-none"
-                style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+                style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+                autoComplete="new-password"
+              />
               <button type="button" onClick={() => setShowNew((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent" style={{ color: T.t3 }}>
                 {showNew ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
@@ -319,25 +330,27 @@ function ChangePasswordModal({ onClose, T, t, toast, policy }) {
             <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{t('settings.securitySection.password.confirmPw')}</label>
             <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
               className="w-full px-3 py-2 rounded-lg outline-none"
-              style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+              style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+              autoComplete="new-password"
+            />
             {confirm && newPw !== confirm && (
               <p style={{ fontSize: 11, color: '#EF4444', marginTop: 3 }}>{t('settings.securitySection.password.noMatch')}</p>
             )}
           </div>
-        </div>
-        <div className="flex justify-end gap-2 px-5 py-4" style={{ borderTop: `1px solid ${T.bd}` }}>
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg cursor-pointer border-none" style={{ background: T.sa, color: T.t2, fontSize: 13 }}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            disabled={!canSave || saving}
-            onClick={handleSave}
-            className="px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
-            style={{ background: canSave ? T.ac : T.sa, color: canSave ? '#fff' : T.t3, fontSize: 13, opacity: saving ? 0.7 : 1 }}
-          >
-            {saving ? t('common.saving', { defaultValue: 'Saving…' }) : t('settings.securitySection.password.change')}
-          </button>
+          <div className="flex justify-end gap-2 pt-1">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg cursor-pointer border-none" style={{ background: T.sa, color: T.t2, fontSize: 13 }}>
+              {t('common.cancel')}
+            </button>
+            <button
+              type="submit"
+              disabled={!canSave || saving}
+              className="px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
+              style={{ background: canSave ? T.ac : T.sa, color: canSave ? '#fff' : T.t3, fontSize: 13, opacity: saving ? 0.7 : 1 }}
+            >
+              {saving ? t('common.saving', { defaultValue: 'Saving…' }) : t('settings.securitySection.password.change')}
+            </button>
+          </div>
+          </form>
         </div>
       </div>
     </div>

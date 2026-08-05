@@ -575,7 +575,7 @@ export const SECURITY_POLICIES = {
   allowedDomains: ['vikos.com', 'hpeirotiki.gr'],
   sessionTimeout: 8,
   passwordPolicy: {
-    minLength: 12,
+    minLength: 8,
     requireUppercase: true,
     requireNumbers: true,
     requireSpecial: false,
