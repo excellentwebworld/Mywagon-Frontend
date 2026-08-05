@@ -2568,7 +2568,6 @@
       "exportStarted": "Audit log CSV export started",
       "noEntries": "No audit log entries found",
       "showing": "Showing {{from}}–{{to}} of {{total}} entries",
-      "retention": "Audit logs are retained for 24 months. Older entries are archived and available on request.",
       "dates": {
         "today": "Today",
         "yesterday": "Yesterday",
@@ -2619,7 +2618,6 @@
     "tabs": {
       "users": "Users",
       "roles": "Roles",
-      "security": "Security",
       "audit": "Audit Log"
     },
     "table": {
@@ -2989,8 +2987,6 @@
       "special": "special chars",
       "strong": "Strong",
       "moderate": "Moderate",
-      "loginHistoryAllTitle": "Login history (all users)",
-      "loginHistoryAllDesc": "Recent sign-in activity across every team member.",
       "weak": "Weak",
       "failedTitle": "Failed Login Alerts",
       "alertAfter": "Alert after",
