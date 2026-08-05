@@ -75,11 +75,13 @@ function extractUpgradeUrl(body: unknown): string | undefined {
   return typeof url === 'string' && url.length > 0 ? url : undefined;
 }
 
-function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
+function buildQuery(params: Record<string, string | number | boolean | undefined | string[]>): string {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === '') return;
-    if (typeof value === 'boolean') {
+    if (value === undefined || value === '' || (Array.isArray(value) && value.length === 0)) return;
+    if (Array.isArray(value)) {
+      value.forEach((v) => search.append(`${key}[]`, v));
+    } else if (typeof value === 'boolean') {
       search.set(key, value ? '1' : '0');
     } else {
       search.set(key, String(value));
@@ -159,4 +161,55 @@ export function apiPut<T>(path: string, body: unknown): Promise<ApiResponse<T>> 
 
 export function apiDelete<T>(path: string): Promise<ApiResponse<T>> {
   return apiRequest<T>(path, { method: 'DELETE' });
+}
+
+function parseFilenameFromDisposition(header: string | undefined, fallback: string): string {
+  if (!header) return fallback;
+  const match = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(header);
+  if (!match?.[1]) return fallback;
+  try {
+    return decodeURIComponent(match[1].replace(/"/g, ''));
+  } catch {
+    return match[1];
+  }
+}
+
+export async function apiDownload(
+  path: string,
+  fallbackFilename: string,
+  query?: Record<string, string | number | boolean | undefined | string[]>,
+): Promise<{ filename: string; truncated: boolean }> {
+  const qs = query ? buildQuery(query) : '';
+  try {
+    const response = await axiosInstance.get(`${path}${qs}`, {
+      responseType: 'blob',
+    });
+    const blob = response.data as Blob;
+    const filename = parseFilenameFromDisposition(
+      response.headers['content-disposition'],
+      fallbackFilename,
+    );
+    const truncated = response.headers['x-audit-export-truncated'] === 'true';
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    return { filename, truncated };
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err) && err.response?.data instanceof Blob) {
+      try {
+        const text = await err.response.data.text();
+        const parsed = JSON.parse(text) as { message?: string };
+        throw new ApiError(parsed.message || 'Download failed', err.response.status);
+      } catch {
+        throw new ApiError('Download failed', err.response?.status || 500);
+      }
+    }
+    if (err instanceof ApiError) throw err;
+    throw err;
+  }
 }

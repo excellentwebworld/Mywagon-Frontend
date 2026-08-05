@@ -1,4 +1,4 @@
-import { apiGet } from '../client';
+import { apiDownload, apiGet } from '../client';
 import type { ApiListMeta } from '../types/addressBook';
 
 export type PlatformAuditEntry = {
@@ -104,5 +104,35 @@ export const auditSettingsService = {
       per_page: params.per_page,
     });
     return parseList<UserAuditEntry>(`/settings/users/audit${qs}`);
+  },
+
+  async exportPlatformAudit(params: {
+    search?: string;
+    category?: string[];
+    severity?: string;
+    from?: string;
+    to?: string;
+  } = {}): Promise<{ filename: string; truncated: boolean }> {
+    return apiDownload('/settings/audit/export', 'audit-log.csv', {
+      search: params.search,
+      category: params.category,
+      severity: params.severity !== 'all' ? params.severity : undefined,
+      from: params.from,
+      to: params.to,
+    });
+  },
+
+  async exportUserAudit(params: {
+    search?: string;
+    action_type?: string[];
+    from?: string;
+    to?: string;
+  } = {}): Promise<{ filename: string; truncated: boolean }> {
+    return apiDownload('/settings/users/audit/export', 'user-audit-log.csv', {
+      search: params.search,
+      action_type: params.action_type,
+      from: params.from,
+      to: params.to,
+    });
   },
 };

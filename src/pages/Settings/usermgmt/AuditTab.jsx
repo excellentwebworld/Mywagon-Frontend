@@ -17,7 +17,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Search, Download, X, ChevronDown,
+  Search, Download, X, ChevronDown, Loader2,
   UserPlus, ShieldCheck, Ban, UserX, RefreshCw,
   KeyRound, Shield, LogOut, Trash2, Settings, Clock,
 } from 'lucide-react';
@@ -78,6 +78,7 @@ export default function AuditTab() {
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const typeRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -129,8 +130,24 @@ export default function AuditTab() {
     setDateTo('');
   };
 
-  const handleExport = () => {
-    toast.success(t('userMgmt.audit.exportStarted'));
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const { truncated } = await auditSettingsService.exportUserAudit({
+        search: search || undefined,
+        action_type: selectedTypes.length ? selectedTypes : undefined,
+        from: dateFrom || undefined,
+        to: dateTo || undefined,
+      });
+      toast.success(t('userMgmt.audit.exportStarted'));
+      if (truncated) {
+        toast.info(t('userMgmt.audit.exportTruncated', { defaultValue: 'Export limited to 10,000 most recent entries.' }));
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('userMgmt.audit.exportError', { defaultValue: 'Failed to export audit log' }));
+    } finally {
+      setExporting(false);
+    }
   };
 
   const formatDate = (iso) => {
@@ -209,8 +226,11 @@ export default function AuditTab() {
         )}
 
         <div className="ml-auto">
-          <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold" style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}>
-            <Download size={13} /> {t('userMgmt.audit.export')}
+          <button onClick={() => void handleExport()} disabled={exporting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold disabled:opacity-60"
+            style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}>
+            {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+            {t('userMgmt.audit.export')}
           </button>
         </div>
       </div>

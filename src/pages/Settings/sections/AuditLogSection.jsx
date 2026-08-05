@@ -15,7 +15,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Search, Download, ChevronDown, ChevronRight, X, Clock,
+  Search, Download, ChevronDown, ChevronRight, X, Clock, Loader2,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
@@ -43,6 +43,7 @@ export default function AuditLogSection() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const catRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -90,6 +91,27 @@ export default function AuditLogSection() {
   const hasFilters = search || catFilter.length > 0 || severity !== 'all' || dateFrom || dateTo;
 
   const clearAll = () => { setSearch(''); setCatFilter([]); setSeverity('all'); setDateFrom(''); setDateTo(''); setPage(1); };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const { truncated } = await auditSettingsService.exportPlatformAudit({
+        search: search || undefined,
+        category: catFilter.length ? catFilter : undefined,
+        severity: severity !== 'all' ? severity : undefined,
+        from: dateFrom || undefined,
+        to: dateTo || undefined,
+      });
+      toast.success(t('compliance.audit.exportStarted'));
+      if (truncated) {
+        toast.info(t('compliance.audit.exportTruncated', { defaultValue: 'Export limited to 10,000 most recent entries.' }));
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('compliance.audit.exportError', { defaultValue: 'Failed to export audit log' }));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Date grouping
   const getDateLabel = (iso) => {
@@ -179,10 +201,11 @@ export default function AuditLogSection() {
         )}
 
         <div className="ml-auto">
-          <button onClick={() => toast.success(t('compliance.audit.exportStarted'))}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
+          <button onClick={() => void handleExport()} disabled={exporting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold disabled:opacity-60"
             style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}>
-            <Download size={13} /> {t('compliance.audit.exportCsv')}
+            {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+            {t('compliance.audit.exportCsv')}
           </button>
         </div>
       </div>
