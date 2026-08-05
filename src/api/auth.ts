@@ -1,5 +1,13 @@
 export { authService, getStoredToken, setStoredToken, clearStoredToken } from './auth/authService';
-export type { LoginPayload, LoginResponse, ShipperUser, ShipperPermission } from './auth/types';
+export type {
+  LoginPayload,
+  LoginResponse,
+  LoginResult,
+  ShipperUser,
+  ShipperPermission,
+  TwoFactorChallenge,
+  TwoFactorMethod,
+} from './auth/types';
 
 import axiosInstance from '../utils/axios';
 

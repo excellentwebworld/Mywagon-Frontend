@@ -177,7 +177,9 @@ export const LoginPage: React.FC = () => {
         ? await sendTwoFactorRecoveryEmail(challenge.challenge_token)
         : await resendTwoFactorEmail(challenge.challenge_token);
       if (data.masked_email) {
-        setChallenge((prev) => (prev ? { ...prev, masked_email: data.masked_email! } : prev));
+        setChallenge((prev: TwoFactorChallenge | null) =>
+          prev ? { ...prev, masked_email: data.masked_email! } : prev
+        );
       }
       setResendSeconds(60);
     } catch (err) {
@@ -202,7 +204,9 @@ export const LoginPage: React.FC = () => {
     try {
       const data = await sendTwoFactorRecoveryEmail(challenge.challenge_token);
       if (data.masked_email) {
-        setChallenge((prev) => (prev ? { ...prev, masked_email: data.masked_email! } : prev));
+        setChallenge((prev: TwoFactorChallenge | null) =>
+          prev ? { ...prev, masked_email: data.masked_email! } : prev
+        );
       }
       setResendSeconds(60);
     } catch (err) {
@@ -356,7 +360,7 @@ export const LoginPage: React.FC = () => {
                         </div>
                       )}
 
-                      {!lostAccess && (
+                      {!lostAccess && challenge.method === 'authenticator' && (
                         <div className="shipper-login-forgot" style={{ marginBottom: 12 }}>
                           <button
                             type="button"
