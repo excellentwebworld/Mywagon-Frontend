@@ -12,14 +12,17 @@
  * - Pagination (20 per page)
  */
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 import {
   Search, Download, ChevronDown, ChevronRight, X, Clock,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
-import { AUDIT_LOG_ENTRIES, AUDIT_CATEGORIES, SEVERITY_CONFIG } from '../../../mocks/auditLogData';
+import { AUDIT_CATEGORIES, SEVERITY_CONFIG } from '../../../mocks/auditLogData';
+import { auditSettingsService } from '../../../api/services/auditSettingsService';
 
 const SEVERITY_CYCLE = ['all', 'info', 'warning', 'critical'];
 const PAGE_SIZE = 20;
@@ -37,7 +40,40 @@ export default function AuditLogSection() {
   const [expandedId, setExpandedId] = useState(null);
   const [page, setPage] = useState(1);
   const [showCatDrop, setShowCatDrop] = useState(false);
+  const [entries, setEntries] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
   const catRef = useRef(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await auditSettingsService.listPlatformAudit({
+        search: search || undefined,
+        category: catFilter.length ? catFilter : undefined,
+        severity: severity !== 'all' ? severity : undefined,
+        from: dateFrom || undefined,
+        to: dateTo || undefined,
+        page,
+        per_page: PAGE_SIZE,
+      });
+      setEntries(res.items);
+      setTotal(res.meta.total);
+      setTotalPages(res.meta.last_page || 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('compliance.audit.loadError', { defaultValue: 'Failed to load audit log' }));
+      setEntries([]);
+      setTotal(0);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
+    }
+  }, [search, catFilter, severity, dateFrom, dateTo, page, toast, t]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   useEffect(() => {
     if (!showCatDrop) return;
@@ -46,23 +82,12 @@ export default function AuditLogSection() {
     return () => document.removeEventListener('mousedown', h);
   }, [showCatDrop]);
 
-  const toggleCat = (key) => setCatFilter(prev => prev.includes(key) ? prev.filter(c => c !== key) : [...prev, key]);
+  const toggleCat = (key) => {
+    setCatFilter((prev) => (prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]));
+    setPage(1);
+  };
 
-  const filtered = useMemo(() => {
-    let list = [...AUDIT_LOG_ENTRIES];
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter(e => e.actor.name.toLowerCase().includes(q) || e.target.toLowerCase().includes(q) || e.details.toLowerCase().includes(q) || e.action.toLowerCase().includes(q));
-    }
-    if (catFilter.length > 0) list = list.filter(e => catFilter.includes(e.category));
-    if (severity !== 'all') list = list.filter(e => e.severity === severity);
-    if (dateFrom) list = list.filter(e => new Date(e.ts) >= new Date(dateFrom));
-    if (dateTo) { const end = new Date(dateTo); end.setHours(23, 59, 59); list = list.filter(e => new Date(e.ts) <= end); }
-    return list.sort((a, b) => new Date(b.ts) - new Date(a.ts));
-  }, [search, catFilter, severity, dateFrom, dateTo]);
-
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paged = entries;
   const hasFilters = search || catFilter.length > 0 || severity !== 'all' || dateFrom || dateTo;
 
   const clearAll = () => { setSearch(''); setCatFilter([]); setSeverity('all'); setDateFrom(''); setDateTo(''); setPage(1); };
@@ -164,7 +189,13 @@ export default function AuditLogSection() {
       </div>
 
       {/* ─── Timeline ─── */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="space-y-3" aria-busy="true">
+          <Skeleton height={56} borderRadius={8} baseColor={T.sa} highlightColor={T.bd} />
+          <Skeleton height={56} borderRadius={8} baseColor={T.sa} highlightColor={T.bd} />
+          <Skeleton height={56} borderRadius={8} baseColor={T.sa} highlightColor={T.bd} />
+        </div>
+      ) : paged.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <Clock size={28} style={{ color: T.t3, opacity: 0.4 }} />
           <p style={{ fontSize: 13, color: T.t3, marginTop: 8 }}>{t('compliance.audit.noEntries')}</p>
@@ -179,7 +210,7 @@ export default function AuditLogSection() {
               </div>
 
               {group.entries.map(entry => {
-                const sev = SEVERITY_CONFIG[entry.severity];
+                const sev = SEVERITY_CONFIG[entry.severity] || SEVERITY_CONFIG.info;
                 const isExpanded = expandedId === entry.id;
                 const time = new Date(entry.ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
@@ -197,7 +228,7 @@ export default function AuditLogSection() {
                           <span className="px-1.5 py-0.5 rounded-full shrink-0" style={{ fontSize: 9, fontWeight: 700, background: sev.bg, color: sev.color }}>{sev.label}</span>
                         </div>
                         <div style={{ fontSize: 11, color: T.t3, marginTop: 1 }}>
-                          {entry.actor.name} · {entry.target}
+                          {entry.actor?.name || '—'} · {entry.target}
                         </div>
                       </div>
                       <span className="shrink-0" style={{ fontSize: 11, color: T.t3 }}>{time}</span>
@@ -207,11 +238,11 @@ export default function AuditLogSection() {
                     {isExpanded && (
                       <div className="px-4 pb-4 pt-2" style={{ borderTop: `1px solid ${T.bd}` }}>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
-                          <DetailItem label={t('compliance.audit.detail.actor')} value={`${entry.actor.name} (${entry.actor.email})`} T={T} />
-                          <DetailItem label={t('compliance.audit.detail.role')} value={entry.actor.role} T={T} />
-                          <DetailItem label={t('compliance.audit.detail.ip')} value={entry.actor.ip} T={T} />
-                          <DetailItem label={t('compliance.audit.detail.device')} value={entry.actor.device} T={T} />
-                          <DetailItem label={t('compliance.audit.detail.location')} value={`${entry.actor.city}, ${entry.actor.country}`} T={T} />
+                          <DetailItem label={t('compliance.audit.detail.actor')} value={`${entry.actor?.name || '—'} (${entry.actor?.email || '—'})`} T={T} />
+                          <DetailItem label={t('compliance.audit.detail.role')} value={entry.actor?.role || '—'} T={T} />
+                          <DetailItem label={t('compliance.audit.detail.ip')} value={entry.actor?.ip || '—'} T={T} />
+                          <DetailItem label={t('compliance.audit.detail.device')} value={entry.actor?.device || '—'} T={T} />
+                          <DetailItem label={t('compliance.audit.detail.location')} value={[entry.actor?.city, entry.actor?.country].filter(Boolean).join(', ') || '—'} T={T} />
                           <DetailItem label={t('compliance.audit.detail.timestamp')} value={new Date(entry.ts).toLocaleString('en-GB')} T={T} />
                         </div>
 
@@ -251,7 +282,7 @@ export default function AuditLogSection() {
           {/* Pagination */}
           <div className="flex items-center justify-between mt-4 px-2">
             <span style={{ fontSize: 12, color: T.t3 }}>
-              {t('compliance.audit.showing', { from: (page - 1) * PAGE_SIZE + 1, to: Math.min(page * PAGE_SIZE, filtered.length), total: filtered.length })}
+              {t('compliance.audit.showing', { from: total > 0 ? (page - 1) * PAGE_SIZE + 1 : 0, to: Math.min(page * PAGE_SIZE, total), total })}
             </span>
             <div className="flex gap-1">
               {Array.from({ length: totalPages }, (_, i) => (

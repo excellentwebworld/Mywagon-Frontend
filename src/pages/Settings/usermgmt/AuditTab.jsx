@@ -14,8 +14,10 @@
  * - GET /api/v1/audit-log/export
  */
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 import {
   Search, Download, X, ChevronDown,
   UserPlus, ShieldCheck, Ban, UserX, RefreshCw,
@@ -23,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
-import { AUDIT_LOG } from '../../../mocks/userMgmtData';
+import { auditSettingsService } from '../../../api/services/auditSettingsService';
 
 const ACTION_ICONS = {
   login: Clock,
@@ -75,7 +77,33 @@ export default function AuditTab() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
   const typeRef = useRef(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await auditSettingsService.listUserAudit({
+        search: search || undefined,
+        action_type: selectedTypes.length ? selectedTypes : undefined,
+        from: dateFrom || undefined,
+        to: dateTo || undefined,
+        page: 1,
+        per_page: 50,
+      });
+      setEntries(res.items);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('userMgmt.empty.noAudit'));
+      setEntries([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [search, selectedTypes, dateFrom, dateTo, toast, t]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   // Click-outside for type dropdown
   useEffect(() => {
@@ -88,34 +116,10 @@ export default function AuditTab() {
   }, [showTypeDropdown]);
 
   const toggleType = (type) => {
-    setSelectedTypes(prev =>
-      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-    );
+    setSelectedTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
   };
 
-  const filtered = useMemo(() => {
-    let list = [...AUDIT_LOG];
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter(e =>
-        e.actor.toLowerCase().includes(q) ||
-        e.target.toLowerCase().includes(q) ||
-        e.summary.toLowerCase().includes(q)
-      );
-    }
-    if (selectedTypes.length > 0) {
-      list = list.filter(e => selectedTypes.includes(e.action));
-    }
-    if (dateFrom) {
-      list = list.filter(e => new Date(e.ts) >= new Date(dateFrom));
-    }
-    if (dateTo) {
-      const end = new Date(dateTo);
-      end.setHours(23, 59, 59);
-      list = list.filter(e => new Date(e.ts) <= end);
-    }
-    return list.sort((a, b) => new Date(b.ts) - new Date(a.ts));
-  }, [search, selectedTypes, dateFrom, dateTo]);
+  const filtered = entries;
 
   const hasFilters = search || selectedTypes.length > 0 || dateFrom || dateTo;
 
@@ -213,7 +217,12 @@ export default function AuditTab() {
       </div>
 
       {/* ─── Timeline ─── */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="space-y-3" aria-busy="true">
+          <Skeleton height={64} borderRadius={8} baseColor={T.sa} highlightColor={T.bd} />
+          <Skeleton height={64} borderRadius={8} baseColor={T.sa} highlightColor={T.bd} />
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <Clock size={28} style={{ color: T.t3, opacity: 0.4 }} />
           <p style={{ fontSize: 13, color: T.t3, marginTop: 8 }}>{t('userMgmt.empty.noAudit')}</p>
