@@ -10,7 +10,7 @@ import {
   Search, Download, X, ChevronDown, ChevronUp,
   MoreHorizontal, Edit3, ShieldCheck,
   UserPlus, Trash2, RotateCcw, LogOut, Copy,
-  Send, XCircle,
+  Send, XCircle, Loader2,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../../../hooks/useTheme';
@@ -31,6 +31,10 @@ import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 const SORT_FIELDS = ['user', 'role', 'status', 'lastActive', 'created'];
 
+function escapeCsvCell(value) {
+  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+}
+
 export default function UsersTab() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
@@ -50,6 +54,7 @@ export default function UsersTab() {
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [showRoleFilter, setShowRoleFilter] = useState(false);
   const [showStatusFilter, setShowStatusFilter] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const actionMenuRef = useRef(null);
   const roleFilterRef = useRef(null);
   const statusFilterRef = useRef(null);
@@ -228,6 +233,44 @@ export default function UsersTab() {
     return d.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  const handleExport = () => {
+    if (filtered.length === 0) {
+      toast.info(t('userMgmt.toast.exportEmpty', 'No users to export.'));
+      return;
+    }
+
+    setExporting(true);
+    try {
+      const header = ['first_name', 'last_name', 'email', 'role', 'status', 'last_active', 'created', 'phone', 'job_title'];
+      const rows = filtered.map((u) => [
+        u.firstName || u.first_name || '',
+        u.lastName || u.last_name || '',
+        u.email || '',
+        ROLES_BY_KEY[u.role]?.name || u.role || '',
+        u.status || '',
+        u.lastActive || u.last_active || '',
+        u.created || u.created_at || '',
+        u.phone || '',
+        u.jobTitle || u.job_title || '',
+      ]);
+      const csv = `\uFEFF${header.join(',')}\n${rows.map((row) => row.map(escapeCsvCell).join(',')).join('\n')}`;
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `MYVAGON_Users_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(t('userMgmt.toast.exported', 'Users exported'));
+    } catch (_e) {
+      toast.error(t('userMgmt.toast.exportFailed', 'Failed to export users'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const hasFilters = roleFilter.length > 0 || statusFilter.length > 0 || search;
 
   return (
@@ -303,10 +346,11 @@ export default function UsersTab() {
 
         <div className="flex-1" />
 
-        <button type="button" onClick={() => toast.info(t('userMgmt.toast.exportStarted'))}
+        <button type="button" onClick={handleExport} disabled={exporting}
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none"
-          style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12, fontWeight: 500 }}>
-          <Download size={13} /> {t('userMgmt.export')}
+          style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12, fontWeight: 500, opacity: exporting ? 0.7 : 1 }}>
+          {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+          {t('userMgmt.export')}
         </button>
         <button type="button" onClick={() => { setEditingUser(null); setInviteOpen(true); }}
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none"

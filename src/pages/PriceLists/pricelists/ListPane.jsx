@@ -19,6 +19,8 @@ import {
   getPrimaryMetricKey,
   resolveLanePricingRows,
 } from '../../../api/utils/laneMetricDisplay';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 
 const STATUS_PILL = {
   active: { bg: '#D1FAE5', fg: '#059669' },
@@ -51,6 +53,8 @@ export default function ListPane({
   lanes, selectedId, onSelectLane, role,
   onAction,
   selectedIds, onToggleSelect, onToggleAll,
+  loading = false,
+  isEmptyCatalog = false,
 }) {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
@@ -206,10 +210,33 @@ export default function ListPane({
             </tr>
           </thead>
           <tbody>
-            {pageData.length === 0 ? (
+            {loading ? (
+              Array.from({ length: 8 }).map((_, rowIdx) => (
+                <tr key={rowIdx}>
+                  {Array.from({ length: role === 'carrier' ? 12 : 11 }).map((_, colIdx) => (
+                    <td key={colIdx} style={{ ...tdStyle, borderBottom: `1px solid ${T.bd}` }}>
+                      <Skeleton
+                        width={
+                          colIdx === 0 ? 18
+                            : colIdx === 1 ? 180
+                              : colIdx === 4 ? 64
+                                : colIdx === 5 ? 88
+                                  : 52
+                        }
+                        height={colIdx === 1 ? 32 : 14}
+                        baseColor={T.bg}
+                        highlightColor={T.sf}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : pageData.length === 0 ? (
               <tr>
                 <td colSpan={99} style={{ ...tdStyle, textAlign: 'center', padding: 40, color: T.t3 }}>
-                  {t('priceLists.empty.noLanes', 'No lanes match your filters.')}
+                  {isEmptyCatalog
+                    ? t('priceLists.empty.noLanesYet', 'No price lanes yet. Add your first lane to get started.')
+                    : t('priceLists.empty.noLanes', 'No lanes match your filters.')}
                 </td>
               </tr>
             ) : pageData.map((lane) => {

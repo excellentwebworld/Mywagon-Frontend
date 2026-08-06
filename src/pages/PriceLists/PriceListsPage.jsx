@@ -21,8 +21,6 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { toUpperGreek } from '../../utils/greekUppercase';
 
 import {
-  MOCK_LANES,
-  seedAuditLog,
   calculateRouteTotals,
 } from '../../mocks/priceListsData';
 import {
@@ -44,8 +42,7 @@ import ImportModal from './pricelists/modals/ImportModal';
 import QuoteCalculator from './pricelists/QuoteCalculator';
 import AuditLogPanel from './pricelists/AuditLogPanel';
 import BulkActionBar from './pricelists/BulkActionBar';
-
-let nextId = 200;
+import PriceListsSkeleton from './pricelists/PriceListsSkeleton';
 
 function buildLegacyPricingFromRows(rows = []) {
   const pricing = {
@@ -171,8 +168,10 @@ export default function PriceListsPage() {
   const isGreek = i18n.language === 'el';
 
   // ─── Core state ───
-  const [lanes, setLanes] = useState(() => JSON.parse(JSON.stringify(MOCK_LANES)));
-  const [auditLog] = useState(() => seedAuditLog(MOCK_LANES));
+  const [lanes, setLanes] = useState([]);
+  const [lanesLoading, setLanesLoading] = useState(true);
+  const [lanesError, setLanesError] = useState(null);
+  const [auditLog] = useState([]);
 
   // ─── UI state ───
   const [selectedId, setSelectedId] = useState(null);
@@ -426,15 +425,17 @@ export default function PriceListsPage() {
   }, [filteredLanes, isGreek, t, toast]);
 
   const reloadLanes = useCallback(async () => {
+    setLanesLoading(true);
+    setLanesError(null);
     try {
       const apiLanes = await priceListsService.listLanes();
-      if (Array.isArray(apiLanes) && apiLanes.length > 0) {
-        setLanes(apiLanes.map(mapApiLaneToUiLane));
-      }
+      setLanes(Array.isArray(apiLanes) ? apiLanes.map(mapApiLaneToUiLane) : []);
     } catch (_e) {
-      // Keep current lanes when API is unavailable.
+      setLanesError(t('priceLists.error.loadFailed', 'Failed to load price lanes.'));
+    } finally {
+      setLanesLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const handleImported = useCallback(async (result) => {
     await reloadLanes();
@@ -457,20 +458,27 @@ export default function PriceListsPage() {
 
   // ─── Bulk actions ───
   const handleBulkDuplicate = useCallback(() => {
-    const ids = [...selectedIds];
-    ids.forEach(id => {
-      const lane = lanes.find(l => l.id === id);
-      if (lane) {
-        const dup = JSON.parse(JSON.stringify(lane));
-        dup.id = `LP-${String(nextId++).padStart(3, '0')}`;
-        dup.status = 'inactive';
-        dup.createdAt = new Date().toISOString();
-        dup.updatedAt = new Date().toISOString();
-        setLanes(prev => [dup, ...prev]);
-      }
+    const selected = [...selectedIds]
+      .map((id) => lanes.find((l) => l.id === id))
+      .filter(Boolean);
+
+    if (selected.length === 0) return;
+
+    const first = selected[0];
+    setEditLane({
+      ...JSON.parse(JSON.stringify(first)),
+      duplicateSourceId: first.id,
+      id: undefined,
+      apiId: undefined,
+      status: 'inactive',
     });
+    setModalMode('duplicate');
+    setAddEditOpen(true);
     setSelectedIds(new Set());
-    toast.success(t('priceLists.toast.duplicated', 'Duplicated') + ` (${ids.length})`);
+
+    if (selected.length > 1) {
+      toast.success(t('priceLists.toast.duplicateOneAtATime', 'Opened duplicate form for the first selected lane.'));
+    }
   }, [selectedIds, lanes, t, toast]);
 
   const handleBulkArchive = useCallback(() => {
@@ -580,55 +588,77 @@ export default function PriceListsPage() {
       </div>
 
       {/* ── 3-Pane layout ── */}
-      <div className="flex flex-1 min-h-0 px-5 pb-4 gap-3"
+      <div className="flex flex-1 min-h-0 px-5 pb-4"
         onClick={(e) => { if (e.target === e.currentTarget && selectedId) setSelectedId(null); }}>
-        {/* Left: Directory */}
-        <div
-          className="shrink-0 rounded-xl overflow-y-auto"
-          style={{ width: 230, background: T.sf, border: `1px solid ${T.bd}` }}
-        >
-          <DirectoryPane
-            lanes={lanes}
-            activeNode={activeNode}
-            onNodeClick={handleNodeClick}
-          />
-        </div>
+        {lanesLoading && lanes.length === 0 && !lanesError ? (
+          <PriceListsSkeleton role={viewRole} />
+        ) : lanesError && lanes.length === 0 ? (
+          <div className="flex flex-1 items-center justify-center rounded-xl" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+            <div className="text-center px-6 py-10">
+              <p style={{ fontSize: 14, color: T.t2, marginBottom: 12 }}>{lanesError}</p>
+              <button
+                type="button"
+                onClick={() => reloadLanes()}
+                className="px-4 py-2 rounded-lg cursor-pointer border-none text-white"
+                style={{ background: T.ac, fontSize: 13, fontWeight: 600 }}
+              >
+                {t('priceLists.error.retry', 'Try again')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-1 min-h-0 gap-3">
+            {/* Left: Directory */}
+            <div
+              className="shrink-0 rounded-xl overflow-y-auto"
+              style={{ width: 230, background: T.sf, border: `1px solid ${T.bd}`, opacity: lanesLoading ? 0.6 : 1 }}
+            >
+              <DirectoryPane
+                lanes={lanes}
+                activeNode={activeNode}
+                onNodeClick={handleNodeClick}
+              />
+            </div>
 
-        {/* Center: Table */}
-        <div className="flex-1 min-w-0 rounded-xl overflow-hidden flex flex-col" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
-          <ListPane
-            lanes={filteredLanes}
-            selectedId={selectedId}
-            onSelectLane={setSelectedId}
-            role={viewRole}
-            onAction={handleAction}
-            selectedIds={selectedIds}
-            onToggleSelect={handleToggleSelect}
-            onToggleAll={handleToggleAll}
-          />
-        </div>
+            {/* Center: Table */}
+            <div className="flex-1 min-w-0 rounded-xl overflow-hidden flex flex-col" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+              <ListPane
+                lanes={filteredLanes}
+                selectedId={selectedId}
+                onSelectLane={setSelectedId}
+                role={viewRole}
+                onAction={handleAction}
+                selectedIds={selectedIds}
+                onToggleSelect={handleToggleSelect}
+                onToggleAll={handleToggleAll}
+                loading={lanesLoading}
+                isEmptyCatalog={lanes.length === 0 && !hasActiveFilters && activeNode === 'all'}
+              />
+            </div>
 
-        {/* Right: Detail */}
-        <div
-          className="shrink-0 rounded-xl overflow-y-auto overflow-x-hidden transition-all duration-300"
-          style={{
-            width: selectedLane ? 420 : 0,
-            opacity: selectedLane ? 1 : 0,
-            background: T.sf,
-            border: selectedLane ? `1px solid ${T.bd}` : 'none',
-          }}
-        >
-          {selectedLane && (
-            <DetailPane
-              lane={selectedLane}
-              onClose={() => setSelectedId(null)}
-              role={viewRole}
-              auditLog={auditLog}
-              onAction={handleAction}
-              allLanes={lanes}
-            />
-          )}
-        </div>
+            {/* Right: Detail */}
+            <div
+              className="shrink-0 rounded-xl overflow-y-auto overflow-x-hidden transition-all duration-300"
+              style={{
+                width: selectedLane ? 420 : 0,
+                opacity: selectedLane ? 1 : 0,
+                background: T.sf,
+                border: selectedLane ? `1px solid ${T.bd}` : 'none',
+              }}
+            >
+              {selectedLane && (
+                <DetailPane
+                  lane={selectedLane}
+                  onClose={() => setSelectedId(null)}
+                  role={viewRole}
+                  auditLog={auditLog}
+                  onAction={handleAction}
+                  allLanes={lanes}
+                />
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Confirm Dialog ── */}

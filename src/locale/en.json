@@ -2783,6 +2783,9 @@
       "linkCopied": "Invite link copied to clipboard",
       "inviteCancelled": "Invitation cancelled",
       "exportStarted": "CSV export started",
+      "exported": "Users exported",
+      "exportEmpty": "No users to export.",
+      "exportFailed": "Failed to export users",
       "mfaEnabled": "MFA requirement enabled",
       "mfaDisabled": "MFA requirement disabled",
       "passwordResetSent": "Password reset email sent to {{email}}",
@@ -3555,7 +3558,12 @@
       "openEnded": "Open-ended"
     },
     "empty": {
-      "noLanes": "No lanes match your filters"
+      "noLanes": "No lanes match your filters",
+      "noLanesYet": "No price lanes yet. Add your first lane to get started."
+    },
+    "error": {
+      "loadFailed": "Failed to load price lanes.",
+      "retry": "Try again"
     },
     "pagination": {
       "lanes": "lanes"
@@ -3687,6 +3695,7 @@
     },
     "toast": {
       "duplicated": "Lane duplicated",
+      "duplicateOneAtATime": "Opened duplicate form for the first selected lane.",
       "archived": "Lane archived",
       "reactivated": "Lane reactivated",
       "activated": "Lane activated",
