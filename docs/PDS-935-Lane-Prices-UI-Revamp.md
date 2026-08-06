@@ -204,7 +204,7 @@ System must block save and show a clear conflict error.
 - Phase 2: In Progress (API-backed create/edit + status transitions and modal validation/localization updates done; live QA signoff pending)
 - Phase 3: In Progress (exact-duplicate and active route+trip checks implemented; full overlap+carrier-base conflict rule pending)
 - Phase 4: Done
-- Phase 5: In Progress
+- Phase 5: Done
 - Phase 6: In Progress
 - Phase 7: Planned
 
@@ -485,7 +485,7 @@ Legend:
 - Exit criteria:
   - Filter counts and results match expected lane subsets.
   - Calculator dependencies and quote outputs are correct.
-  - Status: Planned
+  - Status: Done
 
 ### Phase 6: Import/Export Parity
 - Update import template columns for metric-row pricing schema.
@@ -1004,9 +1004,11 @@ Refactor list and expanded lane details to match required fields/actions while p
 Deliver the final filter model and calculator behavior using the current lane library as source of truth.
 
 ### 13.2 Current State Snapshot
-- Horizontal stats filter removal is pending completion review.
-- Left filter additions and removals are not fully finalized.
-- Calculator flow exists but needs dependency and pricing model parity verification.
+- Horizontal stats filters removed (`KpiStrip` deleted).
+- Left filter set finalized on metric-row predicates; legacy perPallet/perKm nodes removed.
+- Settings drawer removed from Price Lists page.
+- Calculator uses lane-library-only pricing with select dropdowns and no fuel surcharge/defaults fallback.
+- Expiring-soon threshold aligned to 14 days.
 
 ### 13.3 Phase 5 Scope (Backend)
 

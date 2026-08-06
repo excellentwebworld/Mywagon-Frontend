@@ -1,24 +1,13 @@
 /**
  * BulkActionBar — Floating action bar for Price Lists bulk operations.
- * Actions: Move to folder, Duplicate, Archive, Delete forever, Clear.
- * Appears when selectedIds.size > 0.
  */
 import { useTranslation } from 'react-i18next';
-import { Archive, X, Copy, Trash2, FolderPlus, ChevronDown } from 'lucide-react';
+import { Archive, X, Copy, Trash2 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
-import { useState, useRef, useEffect } from 'react';
 
-export default function BulkActionBar({ count, onDuplicate, onArchive, onDelete, onClear, folders, onMoveToFolder }) {
+export default function BulkActionBar({ count, onDuplicate, onArchive, onDelete, onClear }) {
   const { t } = useTranslation();
   const { T } = useTheme();
-  const [folderMenuOpen, setFolderMenuOpen] = useState(false);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    const h = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setFolderMenuOpen(false); };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, []);
 
   return (
     <div
@@ -30,37 +19,6 @@ export default function BulkActionBar({ count, onDuplicate, onArchive, onDelete,
       </span>
 
       <div className="flex-1 min-w-[8px]" />
-
-      {/* Move to folder */}
-      {folders && folders.length > 0 && (
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setFolderMenuOpen(!folderMenuOpen)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold whitespace-nowrap"
-            style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 12 }}
-          >
-            <FolderPlus size={14} />
-            {t('priceLists.bulk.moveToFolder', 'Move to folder')}
-            <ChevronDown size={12} />
-          </button>
-          {folderMenuOpen && (
-            <div className="absolute bottom-10 left-0 rounded-lg shadow-xl overflow-hidden"
-              style={{ background: T.sf, border: `1px solid ${T.bd}`, minWidth: 180, zIndex: 60 }}>
-              {folders.map(f => (
-                <button key={f.id}
-                  onClick={() => { onMoveToFolder(f.id); setFolderMenuOpen(false); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 cursor-pointer border-none text-left"
-                  style={{ background: 'transparent', color: T.t1, fontSize: 12 }}
-                  onMouseEnter={e => { e.currentTarget.style.background = T.sh; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: f.color, flexShrink: 0 }} />
-                  {f.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       <button
         onClick={onDuplicate}

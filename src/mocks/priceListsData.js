@@ -777,7 +777,7 @@ export function getPrimaryPrice(lane) {
 }
 
 /** Check if a lane is expiring within N days */
-export function isExpiringSoon(lane, days = 30) {
+export function isExpiringSoon(lane, days = 14) {
   if (!lane.effectiveTo || lane.status !== 'active') return false;
   const end = new Date(lane.effectiveTo);
   const now = new Date();

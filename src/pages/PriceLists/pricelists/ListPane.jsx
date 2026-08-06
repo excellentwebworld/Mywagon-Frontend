@@ -49,9 +49,8 @@ function relativeTime(dateStr, t) {
 
 export default function ListPane({
   lanes, selectedId, onSelectLane, role,
-  onAction, // (action, lane) → void
+  onAction,
   selectedIds, onToggleSelect, onToggleAll,
-  activeNode,
 }) {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
@@ -357,7 +356,6 @@ export default function ListPane({
                           lane={lane} T={T} t={t}
                           onAction={(action) => { setOpenMenuId(null); onAction(action, lane); }}
                           onClose={() => setOpenMenuId(null)}
-                          activeNode={activeNode}
                         />
                       )}
                     </div>
@@ -385,7 +383,7 @@ export default function ListPane({
   );
 }
 
-function RowMenu({ lane, T, t, onAction, onClose, activeNode }) {
+function RowMenu({ lane, T, t, onAction, onClose }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -398,7 +396,6 @@ function RowMenu({ lane, T, t, onAction, onClose, activeNode }) {
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
-  const inFolder = activeNode?.startsWith('folder_');
   return (
     <div
       ref={ref}
@@ -412,9 +409,6 @@ function RowMenu({ lane, T, t, onAction, onClose, activeNode }) {
     >
       <MenuItem T={T} onClick={() => onAction('edit')}>✏️ {t('common.edit', 'Edit')}</MenuItem>
       <MenuItem T={T} onClick={() => onAction('duplicate')}>📋 {t('priceLists.actions.duplicate', 'Duplicate')}</MenuItem>
-      {inFolder && (
-        <MenuItem T={T} onClick={() => onAction('removeFromFolder')}>📂 {t('priceLists.actions.removeFromFolder', 'Remove from folder')}</MenuItem>
-      )}
       {lane.status !== 'archived' && (
         <MenuItem T={T} onClick={() => onAction('archive')}>🗄️ {t('priceLists.actions.archive', 'Archive')}</MenuItem>
       )}

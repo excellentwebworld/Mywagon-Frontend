@@ -20,11 +20,14 @@ export type LaneLike = {
   isRoundTrip?: boolean;
   effectiveFrom?: string;
   effectiveTo?: string | null;
+  status?: string;
   scope?: string;
   scopePartnerIds?: string[];
   scopeDirection?: string | null;
   notes?: string;
 };
+
+export const EXPIRING_SOON_DAYS = 14;
 
 export type TranslateFn = (key: string, fallback?: string) => string;
 
@@ -220,4 +223,32 @@ export function buildLaneFingerprintFromEntry(entry: {
     scopeDirection: entry.scopeDirection,
     notes: entry.notes,
   });
+}
+
+export function laneHasMetric(lane: LaneLike | null | undefined, metric: PriceLaneMetric | string): boolean {
+  return resolveLanePricingRows(lane).some((row) => row.metric === metric);
+}
+
+export function laneIsFtl(lane: LaneLike | null | undefined): boolean {
+  return laneHasMetric(lane, 'ftl_truck_type');
+}
+
+export function laneIsDirectTrip(lane: LaneLike | null | undefined): boolean {
+  return !lane?.isRoundTrip;
+}
+
+export function laneIsSimpleLane(lane: LaneLike | null | undefined): boolean {
+  return Array.isArray(lane?.stops) && lane.stops.length === 2;
+}
+
+export function laneIsMultistop(lane: LaneLike | null | undefined): boolean {
+  return Array.isArray(lane?.stops) && lane.stops.length > 2;
+}
+
+export function laneIsExpiringSoonActive(lane: LaneLike | null | undefined, days = EXPIRING_SOON_DAYS): boolean {
+  if (!lane?.effectiveTo || lane.status !== 'active') return false;
+  const end = new Date(lane.effectiveTo);
+  const now = new Date();
+  const diff = (end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+  return diff > 0 && diff <= days;
 }

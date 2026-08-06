@@ -5,20 +5,12 @@
  * Route: /pricing
  *
  * 3-pane layout: DirectoryPane (230px left) + ListPane (center) + DetailPane (420px right).
- * KPI strip with click-to-filter.
- * Filter bar: search + unit + status + expiry pills.
- * SettingsDrawer overlay (company defaults, fuel surcharge, operating costs).
+ * Filter bar: search.
  * Bulk select + row actions (duplicate, archive, reactivate, delete forever).
- *
- * @API: GET  /api/v1/pricing/lanes
- * @API: POST /api/v1/pricing/lanes
- * @API: PUT  /api/v1/pricing/lanes/:id
- * @API: GET  /api/v1/pricing/defaults
- * @API: PUT  /api/v1/pricing/defaults
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, Settings as SettingsIcon, Download, Upload as UploadIcon, ClipboardList, Calculator } from 'lucide-react';
+import { Plus, Download, Upload as UploadIcon, ClipboardList, Calculator } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
@@ -29,17 +21,24 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { toUpperGreek } from '../../utils/greekUppercase';
 
 import {
-  MOCK_LANES, COMPANY_DEFAULTS,
-  seedAuditLog, getPrimaryUnit, isExpiringSoon,
-  calculateRouteTotals, cityLabel,
+  MOCK_LANES,
+  seedAuditLog,
+  calculateRouteTotals,
 } from '../../mocks/priceListsData';
+import {
+  laneHasMetric,
+  laneIsDirectTrip,
+  laneIsExpiringSoonActive,
+  laneIsFtl,
+  laneIsMultistop,
+  laneIsSimpleLane,
+  resolveLanePricingRows,
+} from '../../api/utils/laneMetricDisplay';
 
-import KpiStrip from './pricelists/KpiStrip';
 import DirectoryPane from './pricelists/DirectoryPane';
 import FilterBar from './pricelists/FilterBar';
 import ListPane from './pricelists/ListPane';
 import DetailPane from './pricelists/DetailPane';
-import SettingsDrawer from './pricelists/SettingsDrawer';
 import AddEditLaneModal from './pricelists/modals/AddEditLaneModalV2';
 import ImportModal from './pricelists/modals/ImportModal';
 import QuoteCalculator from './pricelists/QuoteCalculator';
@@ -47,34 +46,6 @@ import AuditLogPanel from './pricelists/AuditLogPanel';
 import BulkActionBar from './pricelists/BulkActionBar';
 
 let nextId = 200;
-
-function getPricingRows(lane) {
-  if (Array.isArray(lane?.pricingRows) && lane.pricingRows.length > 0) return lane.pricingRows;
-  return [];
-}
-
-function laneHasMetric(lane, metric) {
-  const rows = getPricingRows(lane);
-  if (rows.some((row) => row.metric === metric)) return true;
-
-  if (metric === 'load_any_size') return Boolean(lane?.pricing?.perLoad);
-  if (metric === 'unit_transport') return Boolean(lane?.pricing?.perPallet);
-  if (metric === 'weight') return Boolean(lane?.pricing?.perKg || lane?.pricing?.perTonne);
-  if (metric === 'ftl_truck_type') return Boolean(lane?.pricing?.perLoad || lane?.vehicleRates?.length);
-  return false;
-}
-
-function laneIsDirectTrip(lane) {
-  return !lane?.isRoundTrip;
-}
-
-function laneIsSimpleLane(lane) {
-  return Array.isArray(lane?.stops) && lane.stops.length === 2;
-}
-
-function laneIsExpiringSoonLane(lane) {
-  return Boolean(lane?.status === 'active' && isExpiringSoon(lane));
-}
 
 function buildLegacyPricingFromRows(rows = []) {
   const pricing = {
@@ -111,21 +82,11 @@ function metricValueToString(metric, metricValue) {
 }
 
 function buildPricingRowsForExport(lane) {
-  const rows = Array.isArray(lane?.pricingRows) ? lane.pricingRows.map((row) => ({
+  return resolveLanePricingRows(lane).map((row) => ({
     metric: row.metric,
     metricValue: row.metricValue || {},
     priceEur: Number(row.priceEur || 0),
-  })) : [];
-
-  if (rows.length > 0) return rows;
-
-  const legacy = lane?.pricing || {};
-  const fallbackRows = [];
-  if (legacy.perLoad != null) fallbackRows.push({ metric: 'load_any_size', metricValue: { type: 'per_load' }, priceEur: Number(legacy.perLoad) });
-  if (legacy.perPallet != null) fallbackRows.push({ metric: 'unit_transport', metricValue: { type: 'eur_pallet' }, priceEur: Number(legacy.perPallet) });
-  if (legacy.perKg != null) fallbackRows.push({ metric: 'weight', metricValue: { unit: 'kg' }, priceEur: Number(legacy.perKg) });
-  if (legacy.perTonne != null) fallbackRows.push({ metric: 'weight', metricValue: { unit: 'ton' }, priceEur: Number(legacy.perTonne) });
-  return fallbackRows;
+  }));
 }
 
 function mapApiLaneToUiLane(apiLane) {
@@ -226,16 +187,12 @@ export default function PriceListsPage() {
 
   // ─── Core state ───
   const [lanes, setLanes] = useState(() => JSON.parse(JSON.stringify(MOCK_LANES)));
-  const [defaults, setDefaults] = useState(() => JSON.parse(JSON.stringify(COMPANY_DEFAULTS)));
   const [auditLog] = useState(() => seedAuditLog(MOCK_LANES));
-  const [folders, setFolders] = useState([]);
 
   // ─── UI state ───
   const [selectedId, setSelectedId] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [activeKpi, setActiveKpi] = useState(null);
   const [activeNode, setActiveNode] = useState('all');
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [addEditOpen, setAddEditOpen] = useState(false);
   const [editLane, setEditLane] = useState(null);
@@ -251,45 +208,18 @@ export default function PriceListsPage() {
     ? (forwarderTab === 'carrier' ? 'shipper' : 'carrier')
     : role;
 
-  // ─── Filter state ───
   const [search, setSearch] = useState('');
-  const [unitFilter, setUnitFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [expiryFilter, setExpiryFilter] = useState('all');
 
-  const hasActiveFilters = search || unitFilter !== 'all' || statusFilter !== 'all' || expiryFilter !== 'all';
+  const hasActiveFilters = Boolean(search.trim());
   const clearFilters = useCallback(() => {
     setSearch('');
-    setUnitFilter('all');
-    setStatusFilter('all');
-    setExpiryFilter('all');
-    setActiveKpi(null);
     setActiveNode('all');
   }, []);
 
-  // ─── KPI tiles ───
-  const kpiTiles = useMemo(() => {
-    const active = lanes.filter(l => l.status === 'active').length;
-    const expiring = lanes.filter(l => l.status === 'active' && isExpiringSoon(l)).length;
-    const ftl = lanes.filter(l => l.status === 'active' && l.pricing?.perLoad).length;
-    const pallet = lanes.filter(l => l.status === 'active' && l.pricing?.perPallet).length;
-    const perKm = lanes.filter(l => l.status === 'active' && l.pricing?.perKm).length;
-    const inactive = lanes.filter(l => l.status === 'inactive').length;
-    return [
-      { key: 'active', labelKey: 'priceLists.kpi.active', value: active },
-      { key: 'expiring', labelKey: 'priceLists.kpi.expiring', value: expiring },
-      { key: 'ftl', labelKey: 'priceLists.kpi.ftl', value: ftl },
-      { key: 'pallet', labelKey: 'priceLists.kpi.perPallet', value: pallet },
-      { key: 'perKm', labelKey: 'priceLists.kpi.perKm', value: perKm },
-      { key: 'inactive', labelKey: 'priceLists.kpi.inactive', value: inactive },
-    ];
-  }, [lanes]);
-
-  // ─── Combined filtering: Forwarder tab + KPI + Directory + FilterBar ───
+  // ─── Combined filtering: Forwarder tab + Directory + search ───
   const filteredLanes = useMemo(() => {
     let result = [...lanes];
 
-    // Forwarder tab pre-filter
     if (role === 'forwarder') {
       if (forwarderTab === 'carrier') {
         result = result.filter(l => l.scopeDirection === 'buy' || l.scope === 'default');
@@ -298,64 +228,26 @@ export default function PriceListsPage() {
       }
     }
 
-    // KPI filter
-    if (activeKpi) {
-      if (activeKpi === 'active') result = result.filter(l => l.status === 'active');
-      else if (activeKpi === 'expiring') result = result.filter(l => l.status === 'active' && isExpiringSoon(l));
-      else if (activeKpi === 'ftl') result = result.filter(l => l.status === 'active' && l.pricing?.perLoad);
-      else if (activeKpi === 'pallet') result = result.filter(l => l.status === 'active' && l.pricing?.perPallet);
-      else if (activeKpi === 'perKm') result = result.filter(l => l.status === 'active' && l.pricing?.perKm);
-      else if (activeKpi === 'inactive') result = result.filter(l => l.status === 'inactive');
-    }
-
-    // Directory node filter
     if (activeNode && activeNode !== 'all') {
       if (activeNode === 'active') result = result.filter(l => l.status === 'active');
-      else if (activeNode === 'ftl') result = result.filter(l => l.pricing?.perLoad);
-      else if (activeNode === 'perPallet') result = result.filter(l => l.pricing?.perPallet);
-      else if (activeNode === 'perKm') result = result.filter(l => l.pricing?.perKm);
-      else if (activeNode === 'perWeight') result = result.filter(l => l.pricing?.perKg || l.pricing?.perTonne);
+      else if (activeNode === 'ftl') result = result.filter(l => laneIsFtl(l));
+      else if (activeNode === 'perWeight') result = result.filter(l => laneHasMetric(l, 'weight'));
       else if (activeNode === 'perLoad') result = result.filter(l => laneHasMetric(l, 'load_any_size'));
       else if (activeNode === 'perUnitTransport') result = result.filter(l => laneHasMetric(l, 'unit_transport'));
       else if (activeNode === 'directTrip') result = result.filter(l => laneIsDirectTrip(l));
       else if (activeNode === 'simpleLane') result = result.filter(l => laneIsSimpleLane(l));
-      else if (activeNode === 'expiring') result = result.filter(l => l.status === 'active' && isExpiringSoon(l));
+      else if (activeNode === 'expiring') result = result.filter(l => laneIsExpiringSoonActive(l));
       else if (activeNode === 'roundTrips') result = result.filter(l => l.isRoundTrip);
-      else if (activeNode === 'multiStop') result = result.filter(l => l.stops.length > 2);
+      else if (activeNode === 'multiStop') result = result.filter(l => laneIsMultistop(l));
       else if (activeNode === 'scope_default') result = result.filter(l => l.scope === 'default');
       else if (activeNode.startsWith('scope_')) {
         const scopeId = activeNode.replace('scope_', '');
         result = result.filter(l => (l.scopePartnerIds || []).includes(scopeId) || l.scope === scopeId);
       }
-      else if (activeNode.startsWith('folder_')) {
-        const folderId = activeNode.replace('folder_', '');
-        result = result.filter(l => (l.folderIds || []).includes(folderId));
-      }
       else if (activeNode === 'inactive') result = result.filter(l => l.status === 'inactive');
       else if (activeNode === 'archived') result = result.filter(l => l.status === 'archived');
     }
 
-    // FilterBar: status
-    if (statusFilter !== 'all') {
-      result = result.filter(l => l.status === statusFilter);
-    }
-
-    // FilterBar: unit
-    if (unitFilter !== 'all') {
-      if (unitFilter === 'load') result = result.filter(l => laneHasMetric(l, 'load_any_size'));
-      else if (unitFilter === 'pallet') result = result.filter(l => laneHasMetric(l, 'unit_transport'));
-      else if (unitFilter === 'km') result = result.filter(l => l.pricing?.perKm);
-      else if (unitFilter === 'weight') result = result.filter(l => laneHasMetric(l, 'weight'));
-    }
-
-    // FilterBar: expiry
-    if (expiryFilter !== 'all') {
-      if (expiryFilter === 'expiring') result = result.filter(l => l.status === 'active' && isExpiringSoon(l));
-      else if (expiryFilter === 'open_ended') result = result.filter(l => !l.effectiveTo);
-      else if (expiryFilter === 'has_end') result = result.filter(l => !!l.effectiveTo);
-    }
-
-    // Search (bilingual)
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(l => {
@@ -366,7 +258,7 @@ export default function PriceListsPage() {
     }
 
     return result;
-  }, [lanes, activeKpi, activeNode, statusFilter, unitFilter, expiryFilter, search, role, forwarderTab]);
+  }, [lanes, activeNode, search, role, forwarderTab]);
 
   // ─── Selected lane ───
   const selectedLane = useMemo(() => {
@@ -374,16 +266,8 @@ export default function PriceListsPage() {
     return lanes.find(l => l.id === selectedId) || null;
   }, [lanes, selectedId]);
 
-  // ─── KPI click ───
-  const handleKpiClick = useCallback((key) => {
-    setActiveKpi(prev => prev === key ? null : key);
-    setActiveNode('all');
-  }, []);
-
-  // ─── Directory click ───
   const handleNodeClick = useCallback((node) => {
     setActiveNode(prev => prev === node ? 'all' : node);
-    setActiveKpi(null);
   }, []);
 
   // ─── Multi-select ───
@@ -480,14 +364,6 @@ export default function PriceListsPage() {
         void persistLaneStatus(lane, 'inactive', t('priceLists.toast.deactivated', 'Lane deactivated'));
         break;
 
-      case 'removeFromFolder': {
-        if (!activeNode?.startsWith('folder_')) break;
-        const folderId = activeNode.replace('folder_', '');
-        setLanes(prev => prev.map(l => l.id === lane.id ? { ...l, folderIds: (l.folderIds || []).filter(f => f !== folderId) } : l));
-        toast.success(t('priceLists.toast.removedFromFolder', 'Removed from folder'));
-        break;
-      }
-
       case 'deleteForever':
         setConfirmDialog({
           title: t('priceLists.confirm.deleteTitle', 'Delete Forever'),
@@ -506,14 +382,7 @@ export default function PriceListsPage() {
       default:
         break;
     }
-  }, [t, toast, selectedId, activeNode, persistLaneStatus]);
-
-  // ─── Settings save ───
-  const handleSaveSettings = useCallback((newDefaults) => {
-    setDefaults(newDefaults);
-    setSettingsOpen(false);
-    toast.success(t('priceLists.toast.settingsSaved', 'Settings saved'));
-  }, [t, toast]);
+  }, [t, toast, selectedId, persistLaneStatus]);
 
   // ─── Save lane (add/edit) ───
   const handleSaveLane = useCallback(async (entry, existingId) => {
@@ -714,17 +583,6 @@ export default function PriceListsPage() {
     });
   }, [selectedIds, t, toast]);
 
-  const handleBulkMoveToFolder = useCallback((folderId) => {
-    setLanes(prev => prev.map(l => {
-      if (!selectedIds.has(l.id)) return l;
-      const existing = l.folderIds || [];
-      if (existing.includes(folderId)) return l;
-      return { ...l, folderIds: [...existing, folderId] };
-    }));
-    setSelectedIds(new Set());
-    toast.success(t('priceLists.toast.movedToFolder', 'Moved to folder'));
-  }, [selectedIds, t, toast]);
-
   // ─── Page title ───
   const pageTitle = isGreek
     ? toUpperGreek(t('priceLists.title', 'Price Lists'))
@@ -770,12 +628,6 @@ export default function PriceListsPage() {
             <Calculator size={14} />
             {t('priceLists.calcBtn', 'Calculator')}
           </button>
-          <button onClick={() => setSettingsOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer border-none"
-            style={{ background: T.sf, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12, fontWeight: 500 }}>
-            <SettingsIcon size={14} />
-            {t('priceLists.settingsBtn', 'Settings')}
-          </button>
           <button onClick={handleExport}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer border-none"
             style={{ background: T.sf, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12, fontWeight: 500 }}>
@@ -806,7 +658,7 @@ export default function PriceListsPage() {
           ].map(tab => (
             <button
               key={tab.key}
-              onClick={() => { setForwarderTab(tab.key); setSelectedId(null); setActiveKpi(null); setActiveNode('all'); }}
+              onClick={() => { setForwarderTab(tab.key); setSelectedId(null); setActiveNode('all'); }}
               className="px-4 py-2 cursor-pointer border-none"
               style={{
                 fontSize: 13, fontWeight: forwarderTab === tab.key ? 600 : 400,
@@ -823,19 +675,13 @@ export default function PriceListsPage() {
         </div>
       )}
 
-      {/* ── KPI Strip ── */}
-      <div className="px-5 shrink-0">
-        <KpiStrip tiles={kpiTiles} activeKpi={activeKpi} onKpiClick={handleKpiClick} />
-      </div>
-
       {/* ── Filter Bar ── */}
       <div className="px-5 shrink-0">
         <FilterBar
-          search={search} onSearchChange={setSearch}
-          unitFilter={unitFilter} onUnitChange={setUnitFilter}
-          statusFilter={statusFilter} onStatusChange={setStatusFilter}
-          expiryFilter={expiryFilter} onExpiryChange={setExpiryFilter}
-          onClear={clearFilters} hasActiveFilters={hasActiveFilters}
+          search={search}
+          onSearchChange={setSearch}
+          onClear={clearFilters}
+          hasActiveFilters={hasActiveFilters}
         />
       </div>
 
@@ -851,9 +697,6 @@ export default function PriceListsPage() {
             lanes={lanes}
             activeNode={activeNode}
             onNodeClick={handleNodeClick}
-            role={role}
-            folders={folders}
-            setFolders={setFolders}
           />
         </div>
 
@@ -868,7 +711,6 @@ export default function PriceListsPage() {
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
             onToggleAll={handleToggleAll}
-            activeNode={activeNode}
           />
         </div>
 
@@ -894,16 +736,6 @@ export default function PriceListsPage() {
           )}
         </div>
       </div>
-
-      {/* ── Settings Drawer ── */}
-      <SettingsDrawer
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        role={viewRole}
-        defaults={defaults}
-        onSave={handleSaveSettings}
-        lanes={lanes}
-      />
 
       {/* ── Confirm Dialog ── */}
       {confirmDialog && (
@@ -944,8 +776,6 @@ export default function PriceListsPage() {
         open={calcOpen}
         onClose={() => setCalcOpen(false)}
         lanes={lanes}
-        defaults={defaults}
-        role={viewRole}
       />
 
       {/* ── Audit Log Panel ── */}
@@ -963,8 +793,6 @@ export default function PriceListsPage() {
           onArchive={handleBulkArchive}
           onDelete={handleBulkDelete}
           onClear={() => setSelectedIds(new Set())}
-          folders={folders}
-          onMoveToFolder={handleBulkMoveToFolder}
         />
       )}
     </div>
