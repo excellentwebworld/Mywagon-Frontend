@@ -32,8 +32,8 @@ import {
   laneIsFtl,
   laneIsMultistop,
   laneIsSimpleLane,
-  resolveLanePricingRows,
 } from '../../api/utils/laneMetricDisplay';
+import { serializeLanesToCsv } from '../../api/utils/laneCsvSchema';
 
 import DirectoryPane from './pricelists/DirectoryPane';
 import FilterBar from './pricelists/FilterBar';
@@ -72,21 +72,6 @@ function buildLegacyPricingFromRows(rows = []) {
   });
 
   return pricing;
-}
-
-function metricValueToString(metric, metricValue) {
-  if (metric === 'weight') return metricValue?.unit || 'kg';
-  if (metric === 'unit_transport') return metricValue?.type || 'eur_pallet';
-  if (metric === 'ftl_truck_type') return metricValue?.vehicle_type || 'vehicle_type';
-  return metricValue?.type || 'per_load';
-}
-
-function buildPricingRowsForExport(lane) {
-  return resolveLanePricingRows(lane).map((row) => ({
-    metric: row.metric,
-    metricValue: row.metricValue || {},
-    priceEur: Number(row.priceEur || 0),
-  }));
 }
 
 function mapApiLaneToUiLane(apiLane) {
@@ -426,29 +411,8 @@ export default function PriceListsPage() {
 
   // ─── Export CSV ───
   const handleExport = useCallback(() => {
-    const header = ['origin_city', 'destination_city', 'trip_type', 'metric', 'metric_value', 'price', 'currency', 'effective_from', 'effective_to', 'status', 'scope', 'scope_direction', 'notes'];
-    const rows = filteredLanes.flatMap((lane) => {
-      const pricingRows = buildPricingRowsForExport(lane);
-      const origin = lane.stops?.[0]?.city || lane.stops?.[0]?.value || '';
-      const destination = lane.stops?.[lane.stops.length - 1]?.city || lane.stops?.[lane.stops.length - 1]?.value || '';
-      const tripType = lane.tripType || (lane.isRoundTrip ? 'roundtrip' : 'direct');
-      return pricingRows.map((row) => [
-        origin,
-        destination,
-        tripType,
-        row.metric,
-        metricValueToString(row.metric, row.metricValue),
-        row.priceEur,
-        lane.pricing?.currency || 'EUR',
-        lane.effectiveFrom || '',
-        lane.effectiveTo || '',
-        lane.status,
-        lane.scope || 'default',
-        lane.scopeDirection || '',
-        lane.notes || '',
-      ]);
-    });
-    const csv = '\uFEFF' + header.join(',') + '\n' + rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+    const lang = isGreek ? 'el' : 'en';
+    const csv = serializeLanesToCsv(filteredLanes, lang);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -459,89 +423,37 @@ export default function PriceListsPage() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast.success(t('priceLists.toast.exported', 'Exported'));
-  }, [filteredLanes, t, toast]);
+  }, [filteredLanes, isGreek, t, toast]);
 
-  // ─── Import CSV rows ───
-  const handleImportRows = useCallback((validRows) => {
-    const grouped = new Map();
-
-    validRows.forEach((r) => {
-      const key = [
-        r.oCity || r.oRaw,
-        r.dCity || r.dRaw,
-        r.tripType || 'direct',
-        r.from || '',
-        r.to || '',
-        r.status || 'active',
-        r.scope || 'Default',
-        r.scopeDirection || '',
-        r.notes || '',
-      ].join('|');
-
-      if (!grouped.has(key)) {
-        grouped.set(key, {
-          stops: [{ city: r.oCity, label: r.oRaw || r.oCity }, { city: r.dCity, label: r.dRaw || r.dCity }],
-          tripType: r.tripType || 'direct',
-          effectiveFrom: r.from,
-          effectiveTo: r.to || null,
-          status: r.status,
-          scope: r.scope === 'Default' ? 'default' : 'specific',
-          scopeLabel: r.scope,
-          scopeDirection: r.scopeDirection || null,
-          notes: r.notes || '',
-          pricingRows: [],
-          pricing: { perLoad: null, perPallet: null, perKm: null, perKg: null, perTonne: null, currency: r.cur || 'EUR', minimumCharge: null },
-        });
+  const reloadLanes = useCallback(async () => {
+    try {
+      const apiLanes = await priceListsService.listLanes();
+      if (Array.isArray(apiLanes) && apiLanes.length > 0) {
+        setLanes(apiLanes.map(mapApiLaneToUiLane));
       }
+    } catch (_e) {
+      // Keep current lanes when API is unavailable.
+    }
+  }, []);
 
-      const lane = grouped.get(key);
-      lane.pricingRows.push({
-        metric: r.metric,
-        priceEur: Number(r.price || 0),
-        metricValue: r.metricValue || {},
-      });
-      lane.pricing = buildLegacyPricingFromRows(lane.pricingRows);
-    });
-
-    let count = 0;
-    Array.from(grouped.values()).forEach((lane) => {
-      const directKm = 0;
-      const effectiveKm = lane.tripType === 'roundtrip' ? directKm * 2 : directKm;
-      const routeLabel = `${lane.stops[0]?.label || lane.stops[0]?.city} ${lane.tripType === 'roundtrip' ? '↔' : '→'} ${lane.stops[lane.stops.length - 1]?.label || lane.stops[lane.stops.length - 1]?.city}`;
-
-      const newLane = {
-        id: `LP-${String(nextId++).padStart(3, '0')}`,
-        stops: lane.stops,
-        isRoundTrip: lane.tripType === 'roundtrip',
-        tripType: lane.tripType,
-        routeLabel,
-        totalKm: effectiveKm,
-        totalKmDirect: directKm,
-        totalKmEffective: effectiveKm,
-        legs: [{ from: lane.stops[0]?.city, to: lane.stops[1]?.city, km: directKm }],
-        pricing: lane.pricing,
-        pricingRows: lane.pricingRows,
-        vehicleRates: null,
-        weightBreaks: null,
-        laneCosts: null,
-        effectiveFrom: lane.effectiveFrom,
-        effectiveTo: lane.effectiveTo,
-        status: lane.status,
-        scope: lane.scope,
-        scopeLabel: lane.scopeLabel,
-        scopePartnerIds: [],
-        scopeDirection: lane.scopeDirection,
-        notes: lane.notes,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        createdBy: 'CSV Import',
-      };
-      setLanes((prev) => [newLane, ...prev]);
-      count += 1;
-    });
+  const handleImported = useCallback(async (result) => {
+    await reloadLanes();
     setImportOpen(false);
-    toast.success(`${t('priceLists.toast.imported', 'Imported')} ${count} ${t('priceLists.import.lanes', 'lanes')}`);
-  }, [t, toast]);
+
+    const created = result?.created ?? 0;
+    const skipped = result?.skipped ?? 0;
+    const errorCount = result?.errors?.length ?? 0;
+
+    if (created > 0 && errorCount === 0) {
+      toast.success(`${t('priceLists.toast.imported', 'Imported')} ${created} ${t('priceLists.import.lanes', 'lanes')}`);
+    } else if (created > 0) {
+      toast.success(
+        `${t('priceLists.toast.imported', 'Imported')} ${created} ${t('priceLists.import.lanes', 'lanes')}. ${skipped} ${t('priceLists.import.skippedRows', 'rows skipped')}.`,
+      );
+    } else {
+      toast.error(t('priceLists.import.nothingImported', 'No lanes were imported. Please review the file errors.'));
+    }
+  }, [reloadLanes, t, toast]);
 
   // ─── Bulk actions ───
   const handleBulkDuplicate = useCallback(() => {
@@ -589,26 +501,8 @@ export default function PriceListsPage() {
     : t('priceLists.title', 'Price Lists');
 
   useEffect(() => {
-    let active = true;
-
-    const loadLanes = async () => {
-      try {
-        const apiLanes = await priceListsService.listLanes();
-        if (!active || !Array.isArray(apiLanes) || apiLanes.length === 0) return;
-
-        const mapped = apiLanes.map(mapApiLaneToUiLane);
-        setLanes(mapped);
-      } catch (_e) {
-        // Keep mock lanes as fallback for local/dev flows when API is unavailable.
-      }
-    };
-
-    loadLanes();
-
-    return () => {
-      active = false;
-    };
-  }, []);
+    reloadLanes();
+  }, [reloadLanes]);
 
   return (
     <div className="flex flex-col h-full" style={{ background: T.bg, minHeight: 0 }}>
@@ -767,7 +661,7 @@ export default function PriceListsPage() {
       <ImportModal
         open={importOpen}
         onClose={() => setImportOpen(false)}
-        onImport={handleImportRows}
+        onImported={handleImported}
         existingLanes={lanes}
       />
 

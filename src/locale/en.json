@@ -3766,8 +3766,27 @@
       "validLabel": "Valid",
       "duplicates": "Duplicates",
       "invalidCity": "Invalid city",
+      "invalidMetric": "Invalid metric",
+      "groupErrors": "Group errors",
+      "invalidRow": "Invalid row",
+      "ok": "OK",
       "importBtn": "Import",
-      "lanes": "lanes"
+      "importing": "Importing…",
+      "lanes": "lanes",
+      "skippedRows": "rows skipped",
+      "nothingImported": "No lanes were imported. Please review the file errors.",
+      "failed": "Import failed. Please try again.",
+      "acceptedValues": "Accepted values reference",
+      "ref": {
+        "tripType": "Trip type",
+        "metric": "Metric",
+        "metricValue": "Metric value",
+        "status": "Status",
+        "scope": "Scope",
+        "scopeDirection": "Scope direction",
+        "ftlHint": "vehicle type slug",
+        "multiRowHint": "One CSV row = one pricing metric. Rows with the same route, dates, scope, and notes are grouped into one lane (max 4 metrics)."
+      }
     },
     "calculator": {
       "title": "Quote Calculator",

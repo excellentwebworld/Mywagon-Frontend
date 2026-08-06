@@ -205,7 +205,7 @@ System must block save and show a clear conflict error.
 - Phase 3: In Progress (exact-duplicate and active route+trip checks implemented; full overlap+carrier-base conflict rule pending)
 - Phase 4: Done
 - Phase 5: Done
-- Phase 6: In Progress
+- Phase 6: Done
 - Phase 7: Planned
 
 ### Phase 1: Foundations and Data Contract
@@ -494,7 +494,7 @@ Legend:
 - Exit criteria:
   - Import accepts valid rows and rejects invalid metric/value combinations.
   - Export can round-trip back through import without data loss.
-  - Status: Planned
+  - Status: Done
 
 ### Phase 7: QA, Regression, and Release Readiness
 
@@ -1109,6 +1109,17 @@ Achieve reliable CSV/Excel import/export parity for the new metric-row schema, i
 ### 14.9 Definition of Done (Phase 6)
 - Import accepts valid metric-row files and rejects invalid rows with clear feedback.
 - Export format is fully compatible with import template round-trip.
+
+**Implemented (Phase 6 complete):**
+- Shared schema module: `shipper/src/api/utils/laneCsvSchema.ts`
+- Backend bulk import: `POST /api/shipper/v1/price-lists/lanes/import`
+- Import modal accepted-values reference + row-level error preview
+- Export uses the same column dictionary as the import template (`Default`/`Specific` scope labels)
+
+**Round-trip example:**
+1. Export lanes with multiple pricing metrics → CSV with one row per metric.
+2. Re-import the same file → rows group into one lane with all metrics preserved.
+3. Invalid `metric_value` (e.g. `weight` + `lb`) → rejected with `INVALID_METRIC_VALUE`.
 
 ---
 
