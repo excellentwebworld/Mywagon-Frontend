@@ -90,11 +90,11 @@ export default function LaneLocationPicker({ value, onChange, label, required })
 
   const typeLabel = (type) => {
     const map = {
-      country: t('partnersMaster.typeCountry'),
-      region: t('partnersMaster.typeRegion'),
-      prefecture: t('partnersMaster.typePrefecture'),
-      city: t('partnersMaster.typeCity'),
-      zip: t('partnersMaster.typeZip'),
+      country: t('partnersMaster.typeCountry', 'Country'),
+      region: t('partnersMaster.typeRegion', 'Region'),
+      prefecture: t('partnersMaster.typePrefecture', 'Prefecture'),
+      city: t('partnersMaster.typeCity', 'City'),
+      zip: t('partnersMaster.typeZip', 'Zip'),
     };
     return map[type] || type;
   };
@@ -110,7 +110,7 @@ export default function LaneLocationPicker({ value, onChange, label, required })
       {/* Step 1 — Location type */}
       <div className="mb-2">
         <div style={{ fontSize: 10, color: T.t3, marginBottom: 3 }}>
-          {t('partnersMaster.locationType')}
+          {t('partnersMaster.locationType', 'Location type')}
         </div>
         <select
           value={locationType}
@@ -118,7 +118,7 @@ export default function LaneLocationPicker({ value, onChange, label, required })
           className="w-full px-3 py-2 rounded-md outline-none cursor-pointer"
           style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
         >
-          <option value="">{t('partnersMaster.selectLocationType')}</option>
+          <option value="">{t('partnersMaster.selectLocationType', 'Select location type')}</option>
           {LOCATION_TYPES.map((lt) => (
             <option key={lt} value={lt}>{typeLabel(lt)}</option>
           ))}
@@ -132,7 +132,7 @@ export default function LaneLocationPicker({ value, onChange, label, required })
           items={COUNTRIES.map((c) => ({ value: c, label: t(`partnersMaster.country_${c}`, c) }))}
           value={countryCode}
           onChange={setCountryCode}
-          placeholder={t('partnersMaster.selectCountry')}
+              placeholder={t('partnersMaster.selectCountry', 'Select country')}
         />
       )}
 
@@ -141,14 +141,14 @@ export default function LaneLocationPicker({ value, onChange, label, required })
           {/* Country picker first */}
           <div className="mb-2">
             <div style={{ fontSize: 10, color: T.t3, marginBottom: 3 }}>
-              {t('partnersMaster.selectCountry')}
+              {t('partnersMaster.selectCountry', 'Select country')}
             </div>
             <SearchableDropdown
               T={T} t={t}
               items={COUNTRIES.map((c) => ({ value: c, label: t(`partnersMaster.country_${c}`, c) }))}
               value={countryCode}
               onChange={(v) => { setCountryCode(v); setLocationValue(''); }}
-              placeholder={t('partnersMaster.selectCountry')}
+              placeholder={t('partnersMaster.selectCountry', 'Select country')}
             />
           </div>
 
@@ -160,11 +160,11 @@ export default function LaneLocationPicker({ value, onChange, label, required })
                 items={REGIONS.map((r) => ({ value: r, label: t(`partnersMaster.region_${r}`, r) }))}
                 value={locationValue}
                 onChange={setLocationValue}
-                placeholder={t('partnersMaster.selectRegion')}
+                placeholder={t('partnersMaster.selectRegion', 'Select region')}
               />
             ) : (
               <FreeTextInput T={T} value={locationValue} onChange={setLocationValue}
-                placeholder={t('partnersMaster.enterRegion')} />
+                placeholder={t('partnersMaster.enterRegion', 'Enter region')} />
             )
           )}
 
@@ -176,24 +176,24 @@ export default function LaneLocationPicker({ value, onChange, label, required })
                 items={GREEK_PREFECTURES.map((p) => ({ value: p.value, label: p.label }))}
                 value={locationValue}
                 onChange={setLocationValue}
-                placeholder={t('partnersMaster.selectPrefecture')}
+                placeholder={t('partnersMaster.selectPrefecture', 'Select prefecture')}
               />
             ) : (
               <FreeTextInput T={T} value={locationValue} onChange={setLocationValue}
-                placeholder={t('partnersMaster.enterPrefecture')} />
+                placeholder={t('partnersMaster.enterPrefecture', 'Enter prefecture')} />
             )
           )}
 
           {/* City — always free-text */}
           {locationType === 'city' && countryCode && (
             <FreeTextInput T={T} value={locationValue} onChange={setLocationValue}
-              placeholder={t('partnersMaster.enterCity')} />
+              placeholder={t('partnersMaster.enterCity', 'Enter city')} />
           )}
 
           {/* Zip — always free-text */}
           {locationType === 'zip' && countryCode && (
             <FreeTextInput T={T} value={locationValue} onChange={setLocationValue}
-              placeholder={t('partnersMaster.enterZip')} />
+              placeholder={t('partnersMaster.enterZip', 'Enter zip')} />
           )}
         </>
       )}

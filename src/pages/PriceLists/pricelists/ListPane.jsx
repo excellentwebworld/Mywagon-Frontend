@@ -1,7 +1,7 @@
 /**
  * ListPane — Price Lists table view.
  *
- * Columns: Checkbox, Route, Stops, Total km, Price, Unit, Status, Scope,
+ * Columns: Checkbox, Route, Stops, Total km, Price, Metric, Status, Scope,
  *          Effective, Margin% (carrier only), Updated, Actions.
  * Per-column sorting with dual-chevron asc/desc/unsorted pattern.
  * Shared PaginationBar. Click row → open detail pane.
@@ -26,6 +26,8 @@ const UNIT_PILL = {
   kg: { labelKey: 'priceLists.pricing.perKg', bg: '#FFE4E6', fg: '#DC2626' },
   tonne: { labelKey: 'priceLists.pricing.perTonne', bg: '#ECFDF5', fg: '#059669' },
 };
+
+const STATUS_SORT_ORDER = { active: 0, inactive: 1, archived: 2 };
 
 function SortIcon({ sortKey, currentSort, currentDir }) {
   if (currentSort !== sortKey) return <ArrowUpDown size={12} style={{ opacity: 0.3 }} />;
@@ -83,6 +85,9 @@ export default function ListPane({
         case 'stops': va = a.stops.length; vb = b.stops.length; break;
         case 'km': va = a.totalKm; vb = b.totalKm; break;
         case 'price': va = getPrimaryPrice(a); vb = getPrimaryPrice(b); break;
+        case 'metric': va = t(UNIT_PILL[getPrimaryUnit(a)]?.labelKey || 'priceLists.filter.perLoad', UNIT_PILL[getPrimaryUnit(a)]?.labelKey || 'Load'); vb = t(UNIT_PILL[getPrimaryUnit(b)]?.labelKey || 'priceLists.filter.perLoad', UNIT_PILL[getPrimaryUnit(b)]?.labelKey || 'Load'); break;
+        case 'status': va = STATUS_SORT_ORDER[a.status] ?? 99; vb = STATUS_SORT_ORDER[b.status] ?? 99; break;
+        case 'scope': va = formatScopeDisplay(a, t); vb = formatScopeDisplay(b, t); break;
         case 'effective': va = a.effectiveFrom; vb = b.effectiveFrom; break;
         case 'updated': va = a.updatedAt; vb = b.updatedAt; break;
         case 'margin': {
@@ -155,9 +160,24 @@ export default function ListPane({
                   <SortIcon sortKey="price" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={thStyle}>{t('priceLists.col.unit', 'Unit')}</th>
-              <th style={thStyle}>{t('priceLists.col.status', 'Status')}</th>
-              <th style={{ ...thStyle }} className="hidden lg:table-cell">{t('priceLists.col.scope', 'Scope')}</th>
+              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('metric')}>
+                <span className="flex items-center gap-1">
+                  {t('priceLists.col.metric', 'Metric')}
+                  <SortIcon sortKey="metric" currentSort={sortKey} currentDir={sortDir} />
+                </span>
+              </th>
+              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('status')}>
+                <span className="flex items-center gap-1">
+                  {t('priceLists.col.status', 'Status')}
+                  <SortIcon sortKey="status" currentSort={sortKey} currentDir={sortDir} />
+                </span>
+              </th>
+              <th style={{ ...thStyle }} className="hidden lg:table-cell cursor-pointer" onClick={() => handleSort('scope')}>
+                <span className="flex items-center gap-1">
+                  {t('priceLists.col.scope', 'Scope')}
+                  <SortIcon sortKey="scope" currentSort={sortKey} currentDir={sortDir} />
+                </span>
+              </th>
               <th style={thStyle} className="cursor-pointer hidden xl:table-cell" onClick={() => handleSort('effective')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.effective', 'Effective')}

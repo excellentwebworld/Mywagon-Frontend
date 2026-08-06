@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { partnersService, ApiError } from '../../../api';
+import type { StoreContractLanePayload } from '../../../api/types/partners';
 import {
   inviteTypeToApi,
   kpiToFacet,
@@ -330,7 +331,7 @@ export function usePartners() {
   });
 
   const laneMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: { origin_city: string; destination_city: string; price: number; unit: 'load' | 'pallet' } }) =>
+    mutationFn: ({ id, payload }: { id: string; payload: StoreContractLanePayload }) =>
       partnersService.storeContractLane(id, payload),
     onSuccess: () => {
       invalidatePartners();
@@ -436,7 +437,7 @@ export function usePartners() {
 
   const closeGenericModal = useCallback(() => setGenericModal(null), []);
 
-  const saveContractLane = useCallback((values: { origin_city: string; destination_city: string; price: number; unit: 'load' | 'pallet' }) => {
+  const saveContractLane = useCallback((values: StoreContractLanePayload) => {
     if (!selectedPartner) return;
     laneMutation.mutate({
       id: selectedPartner.id,

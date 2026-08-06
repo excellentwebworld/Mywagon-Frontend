@@ -21,6 +21,63 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../../hooks/useTheme';
 import { CITIES, resolveCity, cityLabel } from '../../../../mocks/priceListsData';
 
+const METRIC_VALUE_OPTIONS = {
+  weight: ['kg', 'ton'],
+  unit_transport: ['eur_pallet', 'us_pallet', 'box', 'unit', 'big_bag'],
+  ftl_truck_type: ['vehicle_type'],
+  load_any_size: ['per_load'],
+};
+
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function parseMetricValue(metric, value) {
+  const raw = normalizeText(value);
+  if (metric === 'weight') {
+    if (raw.includes('ton')) return { unit: 'ton' };
+    return { unit: 'kg' };
+  }
+  if (metric === 'unit_transport') {
+    if (raw.includes('us')) return { type: 'us_pallet' };
+    if (raw.includes('box')) return { type: 'box' };
+    if (raw.includes('unit')) return { type: 'unit' };
+    if (raw.includes('big')) return { type: 'big_bag' };
+    return { type: 'eur_pallet' };
+  }
+  if (metric === 'ftl_truck_type') return { vehicle_type: value || 'vehicle_type' };
+  return { type: 'per_load' };
+}
+
+function metricLabel(metric, t) {
+  if (metric === 'weight') return t('priceLists.phase2.metric.weight', 'Weight');
+  if (metric === 'unit_transport') return t('priceLists.phase2.metric.unitTransport', 'Unit of transport');
+  if (metric === 'ftl_truck_type') return t('priceLists.phase2.metric.ftlTruckType', 'FTL truck type');
+  if (metric === 'load_any_size') return t('priceLists.phase2.metric.loadAnySize', 'Load (any size)');
+  return metric;
+}
+
+function metricValueLabel(metric, metricValue, t) {
+  if (metric === 'weight') return metricValue?.unit === 'ton' ? t('priceLists.phase2.metricValue.ton', 'ton') : t('priceLists.phase2.metricValue.kg', 'kg');
+  if (metric === 'unit_transport') {
+    const value = metricValue?.type || 'eur_pallet';
+    if (value === 'us_pallet') return t('priceLists.phase2.unit.usPallet', 'US pallets');
+    if (value === 'box') return t('priceLists.phase2.unit.box', 'Boxes');
+    if (value === 'unit') return t('priceLists.phase2.unit.unit', 'Units');
+    if (value === 'big_bag') return t('priceLists.phase2.unit.bigBag', 'Big Bags');
+    return t('priceLists.phase2.unit.eurPallet', 'EUR pallets');
+  }
+  if (metric === 'ftl_truck_type') return metricValue?.vehicle_type || t('priceLists.phase2.metricValue.vehicleType', 'Vehicle type');
+  return t('priceLists.phase2.metricValue.perLoad', 'per load');
+}
+
+function legacyUnitToMetric(unit) {
+  const normalized = normalizeText(unit);
+  if (normalized.includes('pallet')) return 'unit_transport';
+  if (normalized.includes('kg') || normalized.includes('ton')) return 'weight';
+  return 'load_any_size';
+}
+
 export default function ImportModal({ open, onClose, onImport, existingLanes }) {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
@@ -36,13 +93,13 @@ export default function ImportModal({ open, onClose, onImport, existingLanes }) 
 
   // ─── Download template ───
   const downloadTemplate = useCallback(() => {
-    const hdrEN = ['origin_city', 'destination_city', 'unit', 'price', 'currency', 'effective_from', 'effective_to', 'status', 'scope'];
-    const hdrEL = ['πόλη_αφετηρίας', 'πόλη_προορισμού', 'μονάδα', 'τιμή', 'νόμισμα', 'ισχύς_από', 'ισχύς_έως', 'κατάσταση', 'πεδίο'];
+    const hdrEN = ['origin_city', 'destination_city', 'trip_type', 'metric', 'metric_value', 'price', 'currency', 'effective_from', 'effective_to', 'status', 'scope', 'scope_direction', 'notes'];
+    const hdrEL = ['πόλη_αφετηρίας', 'πόλη_προορισμού', 'τύπος_δρομολογίου', 'μετρική', 'τιμή_μετρικής', 'τιμή', 'νόμισμα', 'ισχύς_από', 'ισχύς_έως', 'κατάσταση', 'πεδίο', 'κατεύθυνση_πεδίου', 'σημειώσεις'];
     const hdr = lang === 'el' ? hdrEL : hdrEN;
     const rows = [
-      [lang === 'el' ? 'Αθήνα' : 'Athens', lang === 'el' ? 'Θεσσαλονίκη' : 'Thessaloniki', 'PER_LOAD', '450', 'EUR', '2026-03-01', '2026-12-31', 'ACTIVE', 'Default'],
-      [lang === 'el' ? 'Πάτρα' : 'Patras', lang === 'el' ? 'Ηράκλειο' : 'Heraklion', 'PER_PALLET', '42', 'EUR', '2026-03-01', '', 'ACTIVE', 'Default'],
-      [lang === 'el' ? 'Βόλος' : 'Volos', lang === 'el' ? 'Λάρισα' : 'Larissa', 'PER_LOAD', '180', 'EUR', '2026-03-01', '', 'ACTIVE', 'Default'],
+      [lang === 'el' ? 'Αθήνα' : 'Athens', lang === 'el' ? 'Θεσσαλονίκη' : 'Thessaloniki', 'direct', 'load_any_size', 'per_load', '450', 'EUR', '2026-03-01', '2026-12-31', 'active', 'Default', '', ''],
+      [lang === 'el' ? 'Πάτρα' : 'Patras', lang === 'el' ? 'Ηράκλειο' : 'Heraklion', 'direct', 'unit_transport', 'eur_pallet', '42', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
+      [lang === 'el' ? 'Βόλος' : 'Volos', lang === 'el' ? 'Λάρισα' : 'Larissa', 'roundtrip', 'weight', 'kg', '180', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
     ];
     const csv = '\uFEFF' + hdr.join(',') + '\n' + rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -72,10 +129,13 @@ export default function ImportModal({ open, onClose, onImport, existingLanes }) 
       if (lines.length < 2) return;
 
       const hdr = lines[0].split(sep).map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
-      const colMap = { o: -1, d: -1, unit: -1, price: -1, cur: -1, from: -1, to: -1, status: -1, scope: -1 };
+      const colMap = { o: -1, d: -1, trip: -1, metric: -1, metricValue: -1, unit: -1, price: -1, cur: -1, from: -1, to: -1, status: -1, scope: -1, scopeDirection: -1, notes: -1 };
       hdr.forEach((h, i) => {
         if (h.includes('origin') || h.includes('αφετ')) colMap.o = i;
         if (h.includes('dest') || h.includes('προορ')) colMap.d = i;
+        if (h.includes('trip') || h.includes('δρομολογ')) colMap.trip = i;
+        if (h.includes('metric') || h.includes('μετρικ')) colMap.metric = i;
+        if (h.includes('metric_value') || h.includes('τιμή_μετρικής') || h.includes('μετρική_τιμή')) colMap.metricValue = i;
         if (h.includes('unit') || h.includes('μονάδ')) colMap.unit = i;
         if (h.includes('price') || h.includes('τιμή') || h.includes('τιμη')) colMap.price = i;
         if (h.includes('curr') || h.includes('νόμισ') || h.includes('νομισ')) colMap.cur = i;
@@ -83,6 +143,8 @@ export default function ImportModal({ open, onClose, onImport, existingLanes }) 
         if (h.includes('to') || h.includes('έως') || h.includes('εως')) colMap.to = i;
         if (h.includes('status') || h.includes('κατάσ') || h.includes('κατασ')) colMap.status = i;
         if (h.includes('scope') || h.includes('πεδίο') || h.includes('πεδιο')) colMap.scope = i;
+        if (h.includes('direction') || h.includes('κατεύθυν')) colMap.scopeDirection = i;
+        if (h.includes('note') || h.includes('σημεί')) colMap.notes = i;
       });
 
       if (colMap.o < 0 || colMap.d < 0 || colMap.price < 0) return;
@@ -99,20 +161,48 @@ export default function ImportModal({ open, onClose, onImport, existingLanes }) 
         const dCity = resolveCity(dRaw);
         const validO = !!oCity;
         const validD = !!dCity;
-        const unit = colMap.unit >= 0 && (vals[colMap.unit] || '').toUpperCase().includes('PALLET') ? 'PER_PALLET' : 'PER_LOAD';
+        const metric = colMap.metric >= 0
+          ? normalizeText(vals[colMap.metric])
+          : legacyUnitToMetric(colMap.unit >= 0 ? vals[colMap.unit] : '');
+        const metricValueRaw = colMap.metricValue >= 0 ? vals[colMap.metricValue] : (colMap.unit >= 0 ? vals[colMap.unit] : 'per_load');
+        const metricValue = parseMetricValue(metric, metricValueRaw);
         const cur = colMap.cur >= 0 ? vals[colMap.cur] || 'EUR' : 'EUR';
         const from = colMap.from >= 0 ? vals[colMap.from] || new Date().toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
         const to = colMap.to >= 0 ? vals[colMap.to] || '' : '';
-        const status = colMap.status >= 0 && (vals[colMap.status] || '').toUpperCase() === 'INACTIVE' ? 'inactive' : 'active';
+        const status = colMap.status >= 0 && normalizeText(vals[colMap.status]) === 'inactive' ? 'inactive' : 'active';
         const scope = colMap.scope >= 0 ? vals[colMap.scope] || 'Default' : 'Default';
+        const tripType = colMap.trip >= 0 && normalizeText(vals[colMap.trip]) === 'roundtrip' ? 'roundtrip' : 'direct';
+        const scopeDirection = colMap.scopeDirection >= 0 ? normalizeText(vals[colMap.scopeDirection]) || null : null;
+        const notes = colMap.notes >= 0 ? vals[colMap.notes] || '' : '';
 
         const dupe = existingLanes?.some(l =>
           l.stops[0]?.city?.toLowerCase() === (oCity || '').toLowerCase() &&
           l.stops[l.stops.length - 1]?.city?.toLowerCase() === (dCity || '').toLowerCase() &&
-          l.status === 'active'
+          l.status === 'active' &&
+          (l.tripType || (l.isRoundTrip ? 'roundtrip' : 'direct')) === tripType
         );
 
-        rows.push({ line: i + 1, oRaw, dRaw, oCity, dCity, validO, validD, unit, price, cur, from, to, status, scope, dupe });
+        rows.push({
+          line: i + 1,
+          oRaw,
+          dRaw,
+          oCity,
+          dCity,
+          validO,
+          validD,
+          metric,
+          metricValue,
+          price,
+          cur,
+          from,
+          to,
+          status,
+          scope,
+          tripType,
+          scopeDirection,
+          notes,
+          dupe,
+        });
       }
 
       const valid = rows.filter(r => !r.dupe && r.validO && r.validD);
@@ -186,7 +276,7 @@ export default function ImportModal({ open, onClose, onImport, existingLanes }) 
                 <table className="w-full" style={{ fontSize: 11, borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: T.bg }}>
-                      {['#', t('priceLists.modal.origin', 'Origin'), t('priceLists.modal.destination', 'Dest'), t('priceLists.col.unit', 'Unit'), t('priceLists.col.price', 'Price'), t('priceLists.col.status', 'Status')].map((h, i) => (
+                      {['#', t('priceLists.modal.origin', 'Origin'), t('priceLists.modal.destination', 'Dest'), t('priceLists.col.metric', 'Metric'), t('priceLists.col.price', 'Price'), t('priceLists.col.status', 'Status')].map((h, i) => (
                         <th key={i} className="text-left px-2 py-1.5" style={{ color: T.t3, fontWeight: 600, borderBottom: `1px solid ${T.bd}` }}>{h}</th>
                       ))}
                     </tr>
@@ -199,7 +289,10 @@ export default function ImportModal({ open, onClose, onImport, existingLanes }) 
                           <td className="px-2 py-1" style={{ color: T.t3 }}>{r.line}</td>
                           <td className="px-2 py-1" style={{ color: T.t1 }}>{r.oRaw}{!r.validO ? ' ⚠️' : ''}</td>
                           <td className="px-2 py-1" style={{ color: T.t1 }}>{r.dRaw}{!r.validD ? ' ⚠️' : ''}</td>
-                          <td className="px-2 py-1" style={{ color: T.t2 }}>{r.unit === 'PER_PALLET' ? 'Pallet' : 'Load'}</td>
+                          <td className="px-2 py-1" style={{ color: T.t2 }}>
+                            <div>{metricLabel(r.metric, t)}</div>
+                            <div style={{ fontSize: 10, color: T.t3 }}>{metricValueLabel(r.metric, r.metricValue, t)}</div>
+                          </td>
                           <td className="px-2 py-1" style={{ fontFamily: "'JetBrains Mono', monospace", color: T.t1 }}>{r.price} {r.cur}</td>
                           <td className="px-2 py-1">{r.dupe
                             ? <span style={{ color: '#F59E0B' }}>{t('priceLists.import.duplicates', 'Duplicate')}</span>

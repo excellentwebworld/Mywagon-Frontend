@@ -8,6 +8,7 @@ import type {
   ApiPartnerDetail,
   ApiPartnerListItem,
   ApiPartnerSummary,
+  StoreContractLanePayload,
   ApiTruckCategory,
   ListPartnersParams,
   PaginatedPartnersResult,
@@ -114,7 +115,7 @@ export const partnersService = {
 
   async storeContractLane(
     partnerId: string,
-    payload: { origin_city: string; destination_city: string; price: number; unit: 'load' | 'pallet' }
+    payload: StoreContractLanePayload
   ) {
     const res = await apiPost(`/partners/${partnerId}/contract-lanes`, payload);
     return res.data;

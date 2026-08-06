@@ -17,12 +17,14 @@
  * @API: PUT  /api/v1/pricing/defaults
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Settings as SettingsIcon, Download, Upload as UploadIcon, ClipboardList, Calculator } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
+import { ApiError } from '../../api/client';
+import { priceListsService } from '../../api/services/priceListsService';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { toUpperGreek } from '../../utils/greekUppercase';
 
@@ -38,13 +40,182 @@ import FilterBar from './pricelists/FilterBar';
 import ListPane from './pricelists/ListPane';
 import DetailPane from './pricelists/DetailPane';
 import SettingsDrawer from './pricelists/SettingsDrawer';
-import AddEditLaneModal from './pricelists/modals/AddEditLaneModal';
+import AddEditLaneModal from './pricelists/modals/AddEditLaneModalV2';
 import ImportModal from './pricelists/modals/ImportModal';
 import QuoteCalculator from './pricelists/QuoteCalculator';
 import AuditLogPanel from './pricelists/AuditLogPanel';
 import BulkActionBar from './pricelists/BulkActionBar';
 
 let nextId = 200;
+
+function getPricingRows(lane) {
+  if (Array.isArray(lane?.pricingRows) && lane.pricingRows.length > 0) return lane.pricingRows;
+  return [];
+}
+
+function laneHasMetric(lane, metric) {
+  const rows = getPricingRows(lane);
+  if (rows.some((row) => row.metric === metric)) return true;
+
+  if (metric === 'load_any_size') return Boolean(lane?.pricing?.perLoad);
+  if (metric === 'unit_transport') return Boolean(lane?.pricing?.perPallet);
+  if (metric === 'weight') return Boolean(lane?.pricing?.perKg || lane?.pricing?.perTonne);
+  if (metric === 'ftl_truck_type') return Boolean(lane?.pricing?.perLoad || lane?.vehicleRates?.length);
+  return false;
+}
+
+function laneIsDirectTrip(lane) {
+  return !lane?.isRoundTrip;
+}
+
+function laneIsSimpleLane(lane) {
+  return Array.isArray(lane?.stops) && lane.stops.length === 2;
+}
+
+function laneIsExpiringSoonLane(lane) {
+  return Boolean(lane?.status === 'active' && isExpiringSoon(lane));
+}
+
+function buildLegacyPricingFromRows(rows = []) {
+  const pricing = {
+    perLoad: null,
+    perPallet: null,
+    perKm: null,
+    perKg: null,
+    perTonne: null,
+    currency: 'EUR',
+    minimumCharge: null,
+  };
+
+  rows.forEach((row) => {
+    const amount = Number(row?.price_eur || 0);
+    if (!amount || !row?.metric) return;
+
+    if (row.metric === 'load_any_size' && pricing.perLoad == null) pricing.perLoad = amount;
+    if (row.metric === 'unit_transport' && pricing.perPallet == null) pricing.perPallet = amount;
+    if (row.metric === 'weight') {
+      if (row.metric_value?.unit === 'kg' && pricing.perKg == null) pricing.perKg = amount;
+      if (row.metric_value?.unit === 'ton' && pricing.perTonne == null) pricing.perTonne = amount;
+    }
+    if (row.metric === 'ftl_truck_type' && pricing.perLoad == null) pricing.perLoad = amount;
+  });
+
+  return pricing;
+}
+
+function metricValueToString(metric, metricValue) {
+  if (metric === 'weight') return metricValue?.unit || 'kg';
+  if (metric === 'unit_transport') return metricValue?.type || 'eur_pallet';
+  if (metric === 'ftl_truck_type') return metricValue?.vehicle_type || 'vehicle_type';
+  return metricValue?.type || 'per_load';
+}
+
+function buildPricingRowsForExport(lane) {
+  const rows = Array.isArray(lane?.pricingRows) ? lane.pricingRows.map((row) => ({
+    metric: row.metric,
+    metricValue: row.metricValue || {},
+    priceEur: Number(row.priceEur || 0),
+  })) : [];
+
+  if (rows.length > 0) return rows;
+
+  const legacy = lane?.pricing || {};
+  const fallbackRows = [];
+  if (legacy.perLoad != null) fallbackRows.push({ metric: 'load_any_size', metricValue: { type: 'per_load' }, priceEur: Number(legacy.perLoad) });
+  if (legacy.perPallet != null) fallbackRows.push({ metric: 'unit_transport', metricValue: { type: 'eur_pallet' }, priceEur: Number(legacy.perPallet) });
+  if (legacy.perKg != null) fallbackRows.push({ metric: 'weight', metricValue: { unit: 'kg' }, priceEur: Number(legacy.perKg) });
+  if (legacy.perTonne != null) fallbackRows.push({ metric: 'weight', metricValue: { unit: 'ton' }, priceEur: Number(legacy.perTonne) });
+  return fallbackRows;
+}
+
+function mapApiLaneToUiLane(apiLane) {
+  const stops = Array.isArray(apiLane?.stops) ? apiLane.stops : [];
+  const normalizedStops = stops
+    .map((s) => ({
+      city: s?.city || s?.value || '',
+      label: s?.label || s?.city || s?.value || '',
+      type: s?.type || 'city',
+      value: s?.value || s?.city || '',
+      countryCode: s?.countryCode || 'GR',
+    }))
+    .filter((s) => s.city || s.value);
+
+  const isRoundTrip = apiLane?.trip_type === 'roundtrip';
+  const routeCalc = normalizedStops.length >= 2 ? calculateRouteTotals(normalizedStops, isRoundTrip) : { legs: [], routeLabel: '' };
+
+  const directKm = Number(apiLane?.total_km_direct || routeCalc.totalKm || 0);
+  const effectiveKm = Number(apiLane?.total_km_effective || (isRoundTrip ? directKm * 2 : directKm));
+  const pricingRows = Array.isArray(apiLane?.pricing_rows)
+    ? apiLane.pricing_rows.map((row) => ({
+      metric: row.metric,
+      priceEur: Number(row.price_eur || 0),
+      metricValue: row.metric_value || {},
+    }))
+    : [];
+
+  return {
+    id: `APL-${apiLane.id}`,
+    apiId: apiLane.id,
+    stops: normalizedStops,
+    isRoundTrip,
+    tripType: isRoundTrip ? 'roundtrip' : 'direct',
+    routeLabel: routeCalc.routeLabel || normalizedStops.map((s) => s.label || s.city).join(isRoundTrip ? ' ↔ ' : ' → '),
+    totalKm: effectiveKm,
+    totalKmDirect: directKm,
+    totalKmEffective: effectiveKm,
+    legs: routeCalc.legs || [],
+    pricing: buildLegacyPricingFromRows(apiLane.pricing_rows),
+    pricingRows,
+    vehicleRates: null,
+    weightBreaks: null,
+    laneCosts: null,
+    effectiveFrom: apiLane.effective_from || '',
+    effectiveTo: apiLane.effective_to || null,
+    status: apiLane.status || 'active',
+    scope: apiLane.scope || 'default',
+    scopePartnerIds: apiLane.scope_partner_ids || [],
+    scopeLabel: (apiLane.scope_partner_ids || []).length > 0 ? 'Specific' : 'Default',
+    scopeDirection: apiLane.scope_direction || null,
+    notes: apiLane.notes || '',
+    createdAt: apiLane.created_at || new Date().toISOString(),
+    updatedAt: apiLane.updated_at || new Date().toISOString(),
+    createdBy: 'API',
+  };
+}
+
+function mapUiEntryToStorePayload(entry) {
+  const stops = Array.isArray(entry?.stops) ? entry.stops : [];
+  const origin = stops[0]?.city || stops[0]?.value || '';
+  const destination = stops[stops.length - 1]?.city || stops[stops.length - 1]?.value || '';
+  const tripType = entry.tripType || (entry.isRoundTrip ? 'roundtrip' : 'direct');
+
+  return {
+    origin_city: origin,
+    destination_city: destination,
+    stops: stops.map((s) => ({
+      city: s.city || s.value || '',
+      label: s.label || s.city || s.value || '',
+      type: s.type || 'city',
+      value: s.value || s.city || '',
+      countryCode: s.countryCode || 'GR',
+    })),
+    trip_type: tripType,
+    total_km_direct: Number(entry.totalKmDirect || entry.totalKm || 0),
+    total_km_effective: Number(entry.totalKmEffective || entry.totalKm || 0),
+    pricing_rows: (entry.pricingRows || []).map((row) => ({
+      price_eur: Number(row.priceEur || 0),
+      metric: row.metric,
+      metric_value: row.metricValue || {},
+    })),
+    effective_from: entry.effectiveFrom || undefined,
+    effective_to: entry.effectiveTo || null,
+    scope: entry.scope || 'default',
+    scope_partner_ids: entry.scopePartnerIds || [],
+    scope_direction: entry.scopeDirection || null,
+    notes: entry.notes || '',
+    status: entry.status || 'active',
+  };
+}
 
 export default function PriceListsPage() {
   const { t, i18n } = useTranslation();
@@ -68,10 +239,12 @@ export default function PriceListsPage() {
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [addEditOpen, setAddEditOpen] = useState(false);
   const [editLane, setEditLane] = useState(null);
+  const [modalMode, setModalMode] = useState('add');
   const [importOpen, setImportOpen] = useState(false);
   const [calcOpen, setCalcOpen] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
   const [forwarderTab, setForwarderTab] = useState('carrier'); // 'carrier' | 'shipper' — forwarder only
+  const [savingLane, setSavingLane] = useState(false);
 
   // Effective role for view behavior: forwarder tab switches perspective
   const viewRole = role === 'forwarder'
@@ -142,6 +315,10 @@ export default function PriceListsPage() {
       else if (activeNode === 'perPallet') result = result.filter(l => l.pricing?.perPallet);
       else if (activeNode === 'perKm') result = result.filter(l => l.pricing?.perKm);
       else if (activeNode === 'perWeight') result = result.filter(l => l.pricing?.perKg || l.pricing?.perTonne);
+      else if (activeNode === 'perLoad') result = result.filter(l => laneHasMetric(l, 'load_any_size'));
+      else if (activeNode === 'perUnitTransport') result = result.filter(l => laneHasMetric(l, 'unit_transport'));
+      else if (activeNode === 'directTrip') result = result.filter(l => laneIsDirectTrip(l));
+      else if (activeNode === 'simpleLane') result = result.filter(l => laneIsSimpleLane(l));
       else if (activeNode === 'expiring') result = result.filter(l => l.status === 'active' && isExpiringSoon(l));
       else if (activeNode === 'roundTrips') result = result.filter(l => l.isRoundTrip);
       else if (activeNode === 'multiStop') result = result.filter(l => l.stops.length > 2);
@@ -165,10 +342,10 @@ export default function PriceListsPage() {
 
     // FilterBar: unit
     if (unitFilter !== 'all') {
-      if (unitFilter === 'load') result = result.filter(l => l.pricing?.perLoad);
-      else if (unitFilter === 'pallet') result = result.filter(l => l.pricing?.perPallet);
+      if (unitFilter === 'load') result = result.filter(l => laneHasMetric(l, 'load_any_size'));
+      else if (unitFilter === 'pallet') result = result.filter(l => laneHasMetric(l, 'unit_transport'));
       else if (unitFilter === 'km') result = result.filter(l => l.pricing?.perKm);
-      else if (unitFilter === 'weight') result = result.filter(l => l.pricing?.perKg || l.pricing?.perTonne);
+      else if (unitFilter === 'weight') result = result.filter(l => laneHasMetric(l, 'weight'));
     }
 
     // FilterBar: expiry
@@ -227,24 +404,53 @@ export default function PriceListsPage() {
     });
   }, []);
 
+  const persistLaneStatus = useCallback(async (lane, nextStatus, successMessage) => {
+    if (!lane) return;
+
+    if (lane.apiId) {
+      try {
+        const payload = {
+          ...mapUiEntryToStorePayload(lane),
+          status: nextStatus,
+        };
+        const updatedApiLane = await priceListsService.updateLane(lane.apiId, payload);
+        const updatedUiLane = mapApiLaneToUiLane(updatedApiLane);
+        setLanes((prev) => prev.map((l) => (
+          l.id === lane.id
+            ? { ...l, ...updatedUiLane, id: l.id, apiId: updatedUiLane.apiId }
+            : l
+        )));
+        toast.success(successMessage);
+        return;
+      } catch (_e) {
+        toast.error(t('genericError', 'Something went wrong'));
+        return;
+      }
+    }
+
+    setLanes(prev => prev.map(l => l.id === lane.id ? { ...l, status: nextStatus, updatedAt: new Date().toISOString() } : l));
+    toast.success(successMessage);
+  }, [t, toast]);
+
   // ─── CRUD actions ───
   const handleAction = useCallback((action, lane) => {
     switch (action) {
       case 'edit':
         setEditLane(lane);
+        setModalMode('edit');
         setAddEditOpen(true);
         break;
 
-      case 'duplicate': {
-        const dup = JSON.parse(JSON.stringify(lane));
-        dup.id = `LP-${String(nextId++).padStart(3, '0')}`;
-        dup.status = 'inactive';
-        dup.createdAt = new Date().toISOString();
-        dup.updatedAt = new Date().toISOString();
-        setLanes(prev => [dup, ...prev]);
-        toast.success(t('priceLists.toast.duplicated', 'Lane duplicated'));
+      case 'duplicate':
+        setEditLane({
+          ...JSON.parse(JSON.stringify(lane)),
+          id: undefined,
+          apiId: undefined,
+          status: 'inactive',
+        });
+        setModalMode('duplicate');
+        setAddEditOpen(true);
         break;
-      }
 
       case 'archive':
         setConfirmDialog({
@@ -262,18 +468,15 @@ export default function PriceListsPage() {
         break;
 
       case 'reactivate':
-        setLanes(prev => prev.map(l => l.id === lane.id ? { ...l, status: 'active', updatedAt: new Date().toISOString() } : l));
-        toast.success(t('priceLists.toast.reactivated', 'Lane reactivated'));
+        void persistLaneStatus(lane, 'active', t('priceLists.toast.reactivated', 'Lane reactivated'));
         break;
 
       case 'activate':
-        setLanes(prev => prev.map(l => l.id === lane.id ? { ...l, status: 'active', updatedAt: new Date().toISOString() } : l));
-        toast.success(t('priceLists.toast.activated', 'Lane activated'));
+        void persistLaneStatus(lane, 'active', t('priceLists.toast.activated', 'Lane activated'));
         break;
 
       case 'deactivate':
-        setLanes(prev => prev.map(l => l.id === lane.id ? { ...l, status: 'inactive', updatedAt: new Date().toISOString() } : l));
-        toast.success(t('priceLists.toast.deactivated', 'Lane deactivated'));
+        void persistLaneStatus(lane, 'inactive', t('priceLists.toast.deactivated', 'Lane deactivated'));
         break;
 
       case 'removeFromFolder': {
@@ -302,7 +505,7 @@ export default function PriceListsPage() {
       default:
         break;
     }
-  }, [t, toast, selectedId, activeNode]);
+  }, [t, toast, selectedId, activeNode, persistLaneStatus]);
 
   // ─── Settings save ───
   const handleSaveSettings = useCallback((newDefaults) => {
@@ -312,34 +515,69 @@ export default function PriceListsPage() {
   }, [t, toast]);
 
   // ─── Save lane (add/edit) ───
-  const handleSaveLane = useCallback((entry, existingId) => {
-    if (existingId) {
-      setLanes(prev => prev.map(l => l.id === existingId ? { ...l, ...entry, updatedAt: new Date().toISOString() } : l));
-      toast.success(t('priceLists.toast.laneUpdated', 'Lane updated'));
-    } else {
-      const newLane = {
-        ...entry,
-        id: `LP-${String(nextId++).padStart(3, '0')}`,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        createdBy: 'Current User',
-      };
-      setLanes(prev => [newLane, ...prev]);
-      toast.success(t('priceLists.toast.laneCreated', 'Lane created'));
+  const handleSaveLane = useCallback(async (entry, existingId) => {
+    if (savingLane) return;
+
+    setSavingLane(true);
+    try {
+      const payload = mapUiEntryToStorePayload(entry);
+      const editingLane = existingId ? lanes.find((l) => l.id === existingId) : null;
+      const canUseApiUpdate = Boolean(editingLane?.apiId);
+
+      if (existingId && canUseApiUpdate) {
+        const updatedApiLane = await priceListsService.updateLane(editingLane.apiId, payload);
+        const updatedUiLane = mapApiLaneToUiLane(updatedApiLane);
+        setLanes((prev) => prev.map((l) => (l.id === existingId ? { ...l, ...updatedUiLane, id: l.id, apiId: updatedUiLane.apiId } : l)));
+        toast.success(t('priceLists.toast.laneUpdated', 'Lane updated'));
+      } else if (existingId) {
+        setLanes((prev) => prev.map((l) => (l.id === existingId ? { ...l, ...entry, updatedAt: new Date().toISOString() } : l)));
+        toast.success(t('priceLists.toast.laneUpdated', 'Lane updated'));
+      } else {
+        const createdApiLane = await priceListsService.storeLane(payload);
+        const createdUiLane = mapApiLaneToUiLane(createdApiLane);
+        setLanes((prev) => [createdUiLane, ...prev]);
+        toast.success(t('priceLists.toast.laneCreated', 'Lane created'));
+      }
+
+      setAddEditOpen(false);
+      setEditLane(null);
+      setModalMode('add');
+    } catch (e) {
+      if (e instanceof ApiError) {
+        throw e;
+      }
+
+      toast.error(t('genericError', 'Something went wrong'));
+      throw e;
+    } finally {
+      setSavingLane(false);
     }
-    setAddEditOpen(false);
-    setEditLane(null);
-  }, [t, toast]);
+  }, [savingLane, lanes, t, toast]);
 
   // ─── Export CSV ───
   const handleExport = useCallback(() => {
-    const header = ['id', 'route', 'stops', 'km', 'perLoad', 'perPallet', 'perKm', 'perTonne', 'currency', 'status', 'scope', 'effectiveFrom', 'effectiveTo'];
-    const rows = filteredLanes.map(l => [
-      l.id, l.routeLabel, l.stops.length, l.totalKm,
-      l.pricing.perLoad ?? '', l.pricing.perPallet ?? '', l.pricing.perKm ?? '', l.pricing.perTonne ?? '',
-      l.pricing.currency, l.status, l.scopeLabel, l.effectiveFrom, l.effectiveTo || '',
-    ]);
+    const header = ['origin_city', 'destination_city', 'trip_type', 'metric', 'metric_value', 'price', 'currency', 'effective_from', 'effective_to', 'status', 'scope', 'scope_direction', 'notes'];
+    const rows = filteredLanes.flatMap((lane) => {
+      const pricingRows = buildPricingRowsForExport(lane);
+      const origin = lane.stops?.[0]?.city || lane.stops?.[0]?.value || '';
+      const destination = lane.stops?.[lane.stops.length - 1]?.city || lane.stops?.[lane.stops.length - 1]?.value || '';
+      const tripType = lane.tripType || (lane.isRoundTrip ? 'roundtrip' : 'direct');
+      return pricingRows.map((row) => [
+        origin,
+        destination,
+        tripType,
+        row.metric,
+        metricValueToString(row.metric, row.metricValue),
+        row.priceEur,
+        lane.pricing?.currency || 'EUR',
+        lane.effectiveFrom || '',
+        lane.effectiveTo || '',
+        lane.status,
+        lane.scope || 'default',
+        lane.scopeDirection || '',
+        lane.notes || '',
+      ]);
+    });
     const csv = '\uFEFF' + header.join(',') + '\n' + rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -355,35 +593,81 @@ export default function PriceListsPage() {
 
   // ─── Import CSV rows ───
   const handleImportRows = useCallback((validRows) => {
+    const grouped = new Map();
+
+    validRows.forEach((r) => {
+      const key = [
+        r.oCity || r.oRaw,
+        r.dCity || r.dRaw,
+        r.tripType || 'direct',
+        r.from || '',
+        r.to || '',
+        r.status || 'active',
+        r.scope || 'Default',
+        r.scopeDirection || '',
+        r.notes || '',
+      ].join('|');
+
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          stops: [{ city: r.oCity, label: r.oRaw || r.oCity }, { city: r.dCity, label: r.dRaw || r.dCity }],
+          tripType: r.tripType || 'direct',
+          effectiveFrom: r.from,
+          effectiveTo: r.to || null,
+          status: r.status,
+          scope: r.scope === 'Default' ? 'default' : 'specific',
+          scopeLabel: r.scope,
+          scopeDirection: r.scopeDirection || null,
+          notes: r.notes || '',
+          pricingRows: [],
+          pricing: { perLoad: null, perPallet: null, perKm: null, perKg: null, perTonne: null, currency: r.cur || 'EUR', minimumCharge: null },
+        });
+      }
+
+      const lane = grouped.get(key);
+      lane.pricingRows.push({
+        metric: r.metric,
+        priceEur: Number(r.price || 0),
+        metricValue: r.metricValue || {},
+      });
+      lane.pricing = buildLegacyPricingFromRows(lane.pricingRows);
+    });
+
     let count = 0;
-    validRows.forEach(r => {
+    Array.from(grouped.values()).forEach((lane) => {
+      const directKm = 0;
+      const effectiveKm = lane.tripType === 'roundtrip' ? directKm * 2 : directKm;
+      const routeLabel = `${lane.stops[0]?.label || lane.stops[0]?.city} ${lane.tripType === 'roundtrip' ? '↔' : '→'} ${lane.stops[lane.stops.length - 1]?.label || lane.stops[lane.stops.length - 1]?.city}`;
+
       const newLane = {
         id: `LP-${String(nextId++).padStart(3, '0')}`,
-        stops: [{ city: r.oCity, label: '' }, { city: r.dCity, label: '' }],
-        isRoundTrip: false,
-        routeLabel: `${r.oCity} → ${r.dCity}`,
-        totalKm: 0,
-        legs: [{ from: r.oCity, to: r.dCity, km: 0 }],
-        pricing: {
-          perLoad: r.unit === 'PER_LOAD' ? r.price : null,
-          perPallet: r.unit === 'PER_PALLET' ? r.price : null,
-          perKm: null, perKg: null, perTonne: null,
-          currency: r.cur, minimumCharge: null,
-        },
-        vehicleRates: null, weightBreaks: null, laneCosts: null,
-        effectiveFrom: r.from,
-        effectiveTo: r.to || null,
-        status: r.status,
-        scope: r.scope === 'Default' ? 'default' : r.scope,
-        scopeLabel: r.scope,
-        scopeDirection: null,
-        notes: '',
+        stops: lane.stops,
+        isRoundTrip: lane.tripType === 'roundtrip',
+        tripType: lane.tripType,
+        routeLabel,
+        totalKm: effectiveKm,
+        totalKmDirect: directKm,
+        totalKmEffective: effectiveKm,
+        legs: [{ from: lane.stops[0]?.city, to: lane.stops[1]?.city, km: directKm }],
+        pricing: lane.pricing,
+        pricingRows: lane.pricingRows,
+        vehicleRates: null,
+        weightBreaks: null,
+        laneCosts: null,
+        effectiveFrom: lane.effectiveFrom,
+        effectiveTo: lane.effectiveTo,
+        status: lane.status,
+        scope: lane.scope,
+        scopeLabel: lane.scopeLabel,
+        scopePartnerIds: [],
+        scopeDirection: lane.scopeDirection,
+        notes: lane.notes,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         createdBy: 'CSV Import',
       };
-      setLanes(prev => [newLane, ...prev]);
-      count++;
+      setLanes((prev) => [newLane, ...prev]);
+      count += 1;
     });
     setImportOpen(false);
     toast.success(`${t('priceLists.toast.imported', 'Imported')} ${count} ${t('priceLists.import.lanes', 'lanes')}`);
@@ -444,6 +728,28 @@ export default function PriceListsPage() {
   const pageTitle = isGreek
     ? toUpperGreek(t('priceLists.title', 'Price Lists'))
     : t('priceLists.title', 'Price Lists');
+
+  useEffect(() => {
+    let active = true;
+
+    const loadLanes = async () => {
+      try {
+        const apiLanes = await priceListsService.listLanes();
+        if (!active || !Array.isArray(apiLanes) || apiLanes.length === 0) return;
+
+        const mapped = apiLanes.map(mapApiLaneToUiLane);
+        setLanes(mapped);
+      } catch (_e) {
+        // Keep mock lanes as fallback for local/dev flows when API is unavailable.
+      }
+    };
+
+    loadLanes();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="flex flex-col h-full" style={{ background: T.bg, minHeight: 0 }}>
@@ -614,12 +920,14 @@ export default function PriceListsPage() {
       {/* ── Add/Edit Lane Modal ── */}
       <AddEditLaneModal
         open={addEditOpen}
-        onClose={() => { setAddEditOpen(false); setEditLane(null); }}
+        onClose={() => { setAddEditOpen(false); setEditLane(null); setModalMode('add'); }}
         onSave={handleSaveLane}
         lane={editLane}
+        mode={modalMode}
         role={role}
         allLanes={lanes}
         forwarderTab={forwarderTab}
+        isSaving={savingLane}
       />
 
       {/* ── Import Modal ── */}

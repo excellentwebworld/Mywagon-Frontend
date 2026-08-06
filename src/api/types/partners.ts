@@ -48,8 +48,42 @@ export interface ApiContractLane {
   price_formatted: string;
   unit: 'load' | 'pallet';
   unit_label: string;
+  trip_type?: 'direct' | 'roundtrip';
+  total_km_direct?: number | null;
+  total_km_effective?: number | null;
+  pricing_rows?: ApiContractLanePricingRow[];
+  stops?: ApiContractLaneStop[] | null;
+  effective_from?: string | null;
+  effective_to?: string | null;
   status: string;
   status_label: string;
+}
+
+export type ApiContractLaneMetric = 'weight' | 'unit_transport' | 'ftl_truck_type' | 'load_any_size';
+
+export interface ApiContractLanePricingRow {
+  price_eur: number;
+  metric: ApiContractLaneMetric;
+  metric_value?: Record<string, unknown>;
+}
+
+export interface ApiContractLaneStop {
+  label?: string;
+  city?: string;
+}
+
+export interface StoreContractLanePayload {
+  origin_city: string;
+  destination_city: string;
+  price?: number;
+  unit?: 'load' | 'pallet';
+  trip_type?: 'direct' | 'roundtrip';
+  total_km_direct?: number;
+  total_km_effective?: number;
+  pricing_rows?: ApiContractLanePricingRow[];
+  stops?: ApiContractLaneStop[];
+  effective_from?: string;
+  effective_to?: string;
 }
 
 export interface ApiPartnerPerformance {

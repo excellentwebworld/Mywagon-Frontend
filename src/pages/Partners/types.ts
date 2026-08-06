@@ -10,6 +10,16 @@ export interface ContractLane {
   unit: 'load' | 'pallet';
   unitLabel: string;
   price: number;
+  tripType?: 'direct' | 'roundtrip';
+  totalKmDirect?: number | null;
+  totalKmEffective?: number | null;
+  pricingRows?: Array<{
+    priceEur: number;
+    metric: 'weight' | 'unit_transport' | 'ftl_truck_type' | 'load_any_size';
+    metricValue?: Record<string, unknown>;
+  }>;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
   status: string;
 }
 

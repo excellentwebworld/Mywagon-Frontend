@@ -3745,7 +3745,9 @@
       "saveChanges": "Αποθήκευση Αλλαγών",
       "createLane": "Δημιουργία Διαδρομής",
       "specificPartners": "Συγκεκριμένοι συνεργάτες",
-      "searchPartners": "Αναζήτηση συνεργατών…"
+      "searchPartners": "Αναζήτηση συνεργατών…",
+      "conflictOverlap": "Υπάρχει ήδη διαδρομή που συγκρούεται για το ίδιο δρομολόγιο, το ίδιο εύρος και το ίδιο χρονικό παράθυρο ισχύος.",
+      "duplicateLane": "Υπάρχει ήδη διαδρομή με την ίδια αφετηρία, προορισμό και τύπο ταξιδιού."
     },
     "import": {
       "title": "Εισαγωγή CSV",
@@ -3817,7 +3819,56 @@
       "source": "Βάσει",
       "carrierLanes": "{{n}} διαδρομή(-ές) μεταφορέα",
       "defaultRate": "Προεπιλεγμένη τιμή"
+    },
+    "phase2": {
+      "metric": {
+        "weight": "Βάρος",
+        "unitTransport": "Μονάδα μεταφοράς",
+        "ftlTruckType": "Τύπος φορτηγού FTL",
+        "loadAnySize": "Φορτίο (οποιοδήποτε μέγεθος)"
+      },
+      "unit": {
+        "eurPallet": "Παλέτες EUR",
+        "usPallet": "Παλέτες US",
+        "box": "Κιβώτια",
+        "unit": "Τεμάχια",
+        "bigBag": "Big Bags"
+      },
+      "validation": {
+        "addAtLeastTwoStops": "Παρακαλώ προσθέστε τουλάχιστον αφετηρία και προορισμό.",
+        "dupeWarnTrip": "Υπάρχει παρόμοια ενεργή διαδρομή για αυτή τη διαδρομή και τύπο ταξιδιού.",
+        "priceRequired": "Εισαγάγετε έγκυρο ποσό EUR για αυτή τη γραμμή.",
+        "metricDuplicate": "Αυτή η μετρική χρησιμοποιείται ήδη σε άλλη γραμμή τιμολόγησης.",
+        "metricValueRequired": "Επιλέξτε έγκυρη τιμή για αυτή τη μετρική."
+      },
+      "km": {
+        "direct": "Άμεσα χλμ",
+        "effective": "Πραγματικά χλμ"
+      },
+      "priceEur": "Τιμή (EUR)",
+      "pricingMetric": "Μετρική τιμολόγησης",
+      "metricValue": "Τιμή μετρικής",
+      "used": "(σε χρήση)",
+      "perLoad": "Ανά φορτίο",
+      "vehicleTypeSummary": "Σύνοψη τύπου οχήματος",
+      "addPricingRow": "Προσθήκη γραμμής τιμολόγησης"
     }
+  },
+  "partnersMaster": {
+    "locationType": "Τύπος τοποθεσίας",
+    "selectLocationType": "Επιλέξτε τύπο τοποθεσίας",
+    "typeCountry": "Χώρα",
+    "typeRegion": "Περιοχή",
+    "typePrefecture": "Νομός",
+    "typeCity": "Πόλη",
+    "typeZip": "Τ.Κ.",
+    "selectCountry": "Επιλέξτε χώρα",
+    "selectRegion": "Επιλέξτε περιοχή",
+    "enterRegion": "Εισάγετε περιοχή",
+    "selectPrefecture": "Επιλέξτε νομό",
+    "enterPrefecture": "Εισάγετε νομό",
+    "enterCity": "Εισάγετε πόλη",
+    "enterZip": "Εισάγετε Τ.Κ."
   },
   "vagonai": {
     "title": "Vagon AI"

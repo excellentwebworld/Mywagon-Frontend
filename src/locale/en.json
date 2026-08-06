@@ -3745,7 +3745,9 @@
       "saveChanges": "Save Changes",
       "createLane": "Create Lane",
       "specificPartners": "Specific partners",
-      "searchPartners": "Search partners…"
+      "searchPartners": "Search partners…",
+      "conflictOverlap": "A conflicting lane already exists for this route, scope, and validity window.",
+      "duplicateLane": "A lane with the same origin, destination, and trip type already exists."
     },
     "import": {
       "title": "Import CSV",
@@ -3817,7 +3819,56 @@
       "source": "Based on",
       "carrierLanes": "{{n}} carrier lane(s)",
       "defaultRate": "Default rate"
+    },
+    "phase2": {
+      "metric": {
+        "weight": "Weight",
+        "unitTransport": "Unit of transport",
+        "ftlTruckType": "FTL truck type",
+        "loadAnySize": "Load (any size)"
+      },
+      "unit": {
+        "eurPallet": "EUR pallets",
+        "usPallet": "US pallets",
+        "box": "Boxes",
+        "unit": "Units",
+        "bigBag": "Big Bags"
+      },
+      "validation": {
+        "addAtLeastTwoStops": "Please add at least origin and destination.",
+        "dupeWarnTrip": "Similar active lane exists for this route and trip type.",
+        "priceRequired": "Enter a valid EUR amount for this row.",
+        "metricDuplicate": "This metric is already used in another pricing row.",
+        "metricValueRequired": "Choose a valid value for this metric."
+      },
+      "km": {
+        "direct": "Direct km",
+        "effective": "Effective km"
+      },
+      "priceEur": "Price (EUR)",
+      "pricingMetric": "Pricing metric",
+      "metricValue": "Metric value",
+      "used": "(used)",
+      "perLoad": "Per load",
+      "vehicleTypeSummary": "Vehicle type summary",
+      "addPricingRow": "Add pricing row"
     }
+  },
+  "partnersMaster": {
+    "locationType": "Location type",
+    "selectLocationType": "Select location type",
+    "typeCountry": "Country",
+    "typeRegion": "Region",
+    "typePrefecture": "Prefecture",
+    "typeCity": "City",
+    "typeZip": "Zip",
+    "selectCountry": "Select country",
+    "selectRegion": "Select region",
+    "enterRegion": "Enter region",
+    "selectPrefecture": "Select prefecture",
+    "enterPrefecture": "Enter prefecture",
+    "enterCity": "Enter city",
+    "enterZip": "Enter zip"
   },
   "vagonai": {
     "title": "Vagon AI"

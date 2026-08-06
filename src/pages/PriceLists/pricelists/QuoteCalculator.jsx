@@ -1,25 +1,94 @@
 /**
- * QuoteCalculator — Rate lookup / quote resolution tool.
+ * QuoteCalculator — lane-based quote resolution tool.
  *
- * Used by: Shipper, Forwarder, Carrier.
- *
- * Enter origin/destination, pallets, weight, vehicle type.
- * Resolves: lane match → pricing → fuel surcharge → minimum charge → weight breaks.
- * Carrier gets fleet vehicle picker for per-vehicle profitability.
- *
- * @API: GET /api/v1/price-lists/quote?stops=A,B&pallets=N&weight=W&vehicle=V
+ * The calculator now derives pickup/dropoff options from the current lane
+ * library and resolves pricing from lane pricing rows first.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { X, Calculator, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import {
-  CITIES, resolveCity, cityLabel, getDistance,
+  resolveCity, cityLabel, getDistance,
   calcFuelSurchargePerKm, getPrimaryUnit, getPrimaryPrice,
 } from '../../../mocks/priceListsData';
 
 const VEHICLE_TYPES = ['van', 'rigid', 'semi'];
+
+function uniqueCities(list) {
+  return Array.from(new Set(list.filter(Boolean)));
+}
+
+function normalizeLaneCity(value) {
+  const resolved = resolveCity(value);
+  return resolved || value;
+}
+
+function getLaneOrigin(lane) {
+  return lane?.stops?.[0]?.city || lane?.stops?.[0]?.value || '';
+}
+
+function getLaneDestination(lane) {
+  const stops = lane?.stops || [];
+  return stops.length > 0 ? (stops[stops.length - 1]?.city || stops[stops.length - 1]?.value || '') : '';
+}
+
+function metricPriority(row, vehicleType, pallets, weight) {
+  if (!row) return 99;
+  if (row.metric === 'ftl_truck_type' && vehicleType && row.metricValue?.vehicle_type === vehicleType) return 0;
+  if (row.metric === 'unit_transport' && pallets && Number(pallets) > 0) return 1;
+  if (row.metric === 'weight' && weight && Number(weight) > 0) return row.metricValue?.unit === 'ton' ? 2 : 3;
+  if (row.metric === 'load_any_size') return 4;
+  return 99;
+}
+
+function priceFromPricingRows(lane, { pallets, weight, vehicleType }) {
+  const rows = Array.isArray(lane?.pricingRows) ? [...lane.pricingRows] : [];
+  const ordered = rows.sort((a, b) => metricPriority(a, vehicleType, pallets, weight) - metricPriority(b, vehicleType, pallets, weight));
+  const selected = ordered.find((row) => metricPriority(row, vehicleType, pallets, weight) < 99);
+
+  if (!selected) return null;
+
+  const base = Number(selected.priceEur || 0);
+
+  if (selected.metric === 'ftl_truck_type') {
+    return {
+      price: base,
+      unit: 'load',
+      matchedMetric: selected.metric,
+      matchedValue: selected.metricValue?.vehicle_type || vehicleType,
+    };
+  }
+
+  if (selected.metric === 'unit_transport') {
+    const qty = Number(pallets || 0);
+    return {
+      price: base * qty,
+      unit: 'pallet',
+      matchedMetric: selected.metric,
+      matchedValue: selected.metricValue?.type || 'eur_pallet',
+    };
+  }
+
+  if (selected.metric === 'weight') {
+    const qty = Number(weight || 0);
+    const multiplier = selected.metricValue?.unit === 'kg' ? 1000 : 1;
+    return {
+      price: base * qty * multiplier,
+      unit: selected.metricValue?.unit || 'ton',
+      matchedMetric: selected.metric,
+      matchedValue: selected.metricValue?.unit || 'ton',
+    };
+  }
+
+  return {
+    price: base,
+    unit: 'load',
+    matchedMetric: selected.metric,
+    matchedValue: selected.metricValue?.type || 'per_load',
+  };
+}
 
 export default function QuoteCalculator({ open, onClose, lanes, defaults, role }) {
   const { t, i18n } = useTranslation();
@@ -34,11 +103,31 @@ export default function QuoteCalculator({ open, onClose, lanes, defaults, role }
   const [result, setResult] = useState(null);
   const [expanded, setExpanded] = useState(false);
 
-  const cityOptions = CITIES.map(c => lang === 'el' ? `${c.el} (${c.en})` : c.en);
+  const originOptions = useMemo(() => uniqueCities(lanes.map(getLaneOrigin)), [lanes]);
+  const destinationOptions = useMemo(() => uniqueCities(
+    lanes
+      .filter((lane) => normalizeLaneCity(getLaneOrigin(lane)) === normalizeLaneCity(origin))
+      .map(getLaneDestination),
+  ), [lanes, origin]);
+
+  useEffect(() => {
+    if (origin && !originOptions.includes(origin)) {
+      setOrigin('');
+      setDestination('');
+      setResult(null);
+    }
+  }, [origin, originOptions]);
+
+  useEffect(() => {
+    if (destination && !destinationOptions.includes(destination)) {
+      setDestination('');
+      setResult(null);
+    }
+  }, [destination, destinationOptions]);
 
   const calculate = useCallback(() => {
-    const oCity = resolveCity(origin);
-    const dCity = resolveCity(destination);
+    const oCity = normalizeLaneCity(origin);
+    const dCity = normalizeLaneCity(destination);
     if (!oCity || !dCity || oCity === dCity) { setResult({ error: 'invalid' }); return; }
 
     const km = getDistance(oCity, dCity);
@@ -47,8 +136,8 @@ export default function QuoteCalculator({ open, onClose, lanes, defaults, role }
     // 1. Exact lane match (origin → destination)
     const candidates = lanes.filter(l =>
       l.status === 'active' &&
-      l.stops[0]?.city === oCity &&
-      l.stops[l.stops.length - 1]?.city === dCity
+      normalizeLaneCity(getLaneOrigin(l)) === oCity &&
+      normalizeLaneCity(getLaneDestination(l)) === dCity
     );
 
     // 2. Prefer customer-specific over default; most recent first
@@ -86,30 +175,16 @@ export default function QuoteCalculator({ open, onClose, lanes, defaults, role }
     const laneKm = matched.totalKm || km || 0;
     let price = 0;
     let unit = getPrimaryUnit(matched);
+    let matchedMetric = null;
 
-    // Vehicle-specific rate
-    if (vehicleType && matched.vehicleRates) {
-      const vr = matched.vehicleRates.find(v => v.vehicleType === vehicleType);
-      if (vr) {
-        price = vr.perLoad || (vr.perKm ? vr.perKm * laneKm : 0);
-        unit = vr.perLoad ? 'load' : 'km';
-      }
+    const pricingFromRows = priceFromPricingRows(matched, { pallets, weight, vehicleType });
+    if (pricingFromRows) {
+      price = pricingFromRows.price;
+      unit = pricingFromRows.unit;
+      matchedMetric = pricingFromRows.matchedMetric;
     }
 
-    // Weight breaks
-    if (!price && pallets && matched.weightBreaks) {
-      const qty = Number(pallets);
-      const tier = matched.weightBreaks.find(b => qty >= b.minQty && (!b.maxQty || qty <= b.maxQty));
-      if (tier?.perPallet) {
-        price = tier.perPallet * qty;
-        unit = 'pallet';
-      } else if (tier?.perTonne && weight) {
-        price = tier.perTonne * Number(weight);
-        unit = 'tonne';
-      }
-    }
-
-    // Primary pricing fallback
+    // Legacy pricing fallback for lanes not yet fully migrated.
     if (!price) {
       const p = matched.pricing;
       if (p.perLoad) { price = p.perLoad; unit = 'load'; }
@@ -136,6 +211,7 @@ export default function QuoteCalculator({ open, onClose, lanes, defaults, role }
       total: Math.round(total * 100) / 100,
       unit,
       minApplied: price + surcharge < minCharge,
+      matchedMetric,
       breakdown: { base: price, surcharge, minimum: minCharge },
     });
   }, [origin, destination, pallets, weight, vehicleType, lanes, defaults]);
@@ -166,12 +242,12 @@ export default function QuoteCalculator({ open, onClose, lanes, defaults, role }
             <div>
               <label style={labelStyle}>{t('priceLists.modal.origin', 'Origin')}</label>
               <input list="calc-cities-o" value={origin} onChange={e => setOrigin(e.target.value)} style={inputStyle} />
-              <datalist id="calc-cities-o">{cityOptions.map(c => <option key={c} value={c} />)}</datalist>
+              <datalist id="calc-cities-o">{originOptions.map(c => <option key={c} value={c} />)}</datalist>
             </div>
             <div>
               <label style={labelStyle}>{t('priceLists.modal.destination', 'Destination')}</label>
               <input list="calc-cities-d" value={destination} onChange={e => setDestination(e.target.value)} style={inputStyle} />
-              <datalist id="calc-cities-d">{cityOptions.map(c => <option key={c} value={c} />)}</datalist>
+              <datalist id="calc-cities-d">{destinationOptions.map(c => <option key={c} value={c} />)}</datalist>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -234,7 +310,7 @@ export default function QuoteCalculator({ open, onClose, lanes, defaults, role }
                   {expanded && (
                     <div className="mt-2 space-y-1" style={{ fontSize: 11 }}>
                       <div className="flex justify-between" style={{ color: T.t2 }}>
-                        <span>{t('priceLists.calculator.basePrice', 'Base price')} ({result.unit})</span>
+                          <span>{t('priceLists.calculator.basePrice', 'Base price')} ({result.unit}) {result.matchedMetric ? `· ${result.matchedMetric}` : ''}</span>
                         <span>€{result.price.toFixed(2)}</span>
                       </div>
                       {result.surcharge > 0 && (

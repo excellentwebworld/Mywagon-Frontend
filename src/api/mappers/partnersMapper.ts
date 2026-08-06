@@ -86,15 +86,34 @@ export function mergeDetailIntoPartner(base: Partner, detail: ApiPartnerDetail):
 }
 
 export function mapContractLane(lane: ApiContractLane): ContractLane {
+  const pricingRows = (lane.pricing_rows ?? []).map((row) => ({
+    priceEur: Number(row.price_eur ?? 0),
+    metric: row.metric,
+    metricValue: row.metric_value ?? {},
+  }));
+
+  const primaryRow = pricingRows[0];
+  const resolvedUnit: 'load' | 'pallet' = lane.unit
+    ?? (primaryRow?.metric === 'unit_transport' ? 'pallet' : 'load');
+  const resolvedPrice = typeof lane.price === 'number'
+    ? lane.price
+    : Number(primaryRow?.priceEur ?? 0);
+
   return {
     id: String(lane.id),
     originCity: lane.origin_city,
     destinationCity: lane.destination_city,
     lane: `${lane.origin_city} → ${lane.destination_city}`,
-    unit: lane.unit,
-    price: lane.price,
+    unit: resolvedUnit,
+    price: resolvedPrice,
     status: lane.status,
     unitLabel: lane.unit_label,
+    tripType: lane.trip_type,
+    totalKmDirect: lane.total_km_direct ?? null,
+    totalKmEffective: lane.total_km_effective ?? null,
+    pricingRows,
+    effectiveFrom: lane.effective_from ?? null,
+    effectiveTo: lane.effective_to ?? null,
   };
 }
 

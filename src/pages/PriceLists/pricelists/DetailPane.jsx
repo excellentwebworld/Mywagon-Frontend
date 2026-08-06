@@ -1,8 +1,7 @@
 /**
  * DetailPane — Price Lists detail drawer (420px, right-slide).
  *
- * Sections: Hero, Route Legs, Pricing, Lane Costs (carrier+forwarder),
- * Vehicle Rates, Weight Breaks, Fuel Surcharge, Profitability (carrier),
+ * Sections: Hero, Route Legs, Pricing, Profitability (carrier),
  * Margin Analysis (forwarder), Quote Calculator, History, Footer Actions.
  *
  * @API: GET /api/v1/price-lists/:id
@@ -13,9 +12,8 @@ import { X, ChevronDown, ChevronRight, MapPin, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import {
-  getPrimaryUnit, getPrimaryPrice, isExpiringSoon,
-  calcProfitability, calcFuelSurchargePerKm, cityLabel,
-  COMPANY_DEFAULTS,
+  getPrimaryPrice, isExpiringSoon,
+  calcProfitability, cityLabel,
 } from '../../../mocks/priceListsData';
 
 const MARGIN_COLORS = { good: '#059669', ok: '#F59E0B', bad: '#DC2626' };
@@ -32,8 +30,7 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
   const lang = i18n.language;
 
   const [openSections, setOpenSections] = useState({
-    legs: true, pricing: true, laneCosts: true,
-    vehicleRates: false, weightBreaks: false,
+    legs: true, pricing: true,
     profitability: false, marginAnalysis: false,
     calculator: false, history: false,
   });
@@ -42,11 +39,8 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
 
   if (!lane) return null;
 
-  const unit = getPrimaryUnit(lane);
   const price = getPrimaryPrice(lane);
   const expiring = isExpiringSoon(lane);
-  const fuelSurchargePerKm = calcFuelSurchargePerKm();
-  const routeFuelSurcharge = fuelSurchargePerKm * lane.totalKm;
   const profitability = role === 'carrier' ? calcProfitability(lane) : null;
 
   // Forwarder margin: find matching buy/sell pair
@@ -135,7 +129,6 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
                 <th style={{ color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }} />
                 <th style={{ textAlign: 'left', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.detail.to', 'To')}</th>
                 <th style={{ textAlign: 'right', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>km</th>
-                <th style={{ textAlign: 'right', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.detail.toll', 'Toll')}</th>
               </tr>
             </thead>
             <tbody>
@@ -147,9 +140,6 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
                   <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t1 }}>
                     {leg.km ? leg.km.toLocaleString() : '—'}
                   </td>
-                  <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t2 }}>
-                    {leg.toll ? `€${leg.toll.toFixed(2)}` : '—'}
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -158,9 +148,6 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
                 <td colSpan={3} style={{ padding: '6px 0', color: T.t1 }}>{t('common.total', 'Total')}</td>
                 <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t1, padding: '6px 0' }}>
                   {lane.totalKm.toLocaleString()}
-                </td>
-                <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t2, padding: '6px 0' }}>
-                  {lane.laneCosts?.tollCost ? `€${lane.laneCosts.tollCost.toFixed(2)}` : '—'}
                 </td>
               </tr>
             </tfoot>
@@ -176,105 +163,11 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
             {lane.pricing.perKm != null && <PriceLine T={T} label={t('priceLists.pricing.perKm', 'Per km')} value={`€${lane.pricing.perKm}`} />}
             {lane.pricing.perKg != null && <PriceLine T={T} label={t('priceLists.pricing.perKg', 'Per kg')} value={`€${lane.pricing.perKg}`} />}
             {lane.pricing.perTonne != null && <PriceLine T={T} label={t('priceLists.pricing.perTonne', 'Per tonne')} value={`€${lane.pricing.perTonne}`} />}
-            {/* Derived cost/km if perLoad set */}
-            {lane.pricing.perLoad != null && lane.totalKm > 0 && (
-              <PriceLine T={T} label={t('priceLists.pricing.derivedPerKm', 'Derived €/km')}
-                value={`€${(lane.pricing.perLoad / lane.totalKm).toFixed(3)}`} muted />
-            )}
             {lane.pricing.minimumCharge && (
               <PriceLine T={T} label={t('priceLists.pricing.minimumCharge', 'Minimum')} value={`€${lane.pricing.minimumCharge}`} />
             )}
-            {COMPANY_DEFAULTS.fuelSurcharge.enabled && (
-              <PriceLine T={T} label={t('priceLists.pricing.fuelSurcharge', 'Fuel surcharge')}
-                value={`+€${routeFuelSurcharge.toFixed(2)}`}
-                sub={`€${fuelSurchargePerKm.toFixed(3)}/km × ${lane.totalKm} km`} />
-            )}
           </div>
         </Section>
-
-        {/* Lane Costs — carrier + forwarder only */}
-        {(role === 'carrier' || role === 'forwarder') && lane.laneCosts && (
-          <Section title={t('priceLists.detail.laneCosts', 'Lane costs')} sectionKey="laneCosts"
-            open={openSections.laneCosts} onToggle={toggle} T={T}>
-            <div className="space-y-1.5">
-              {lane.laneCosts.tollCost != null && <PriceLine T={T} label={t('priceLists.laneCosts.tolls', 'Tolls')} value={`€${lane.laneCosts.tollCost.toFixed(2)}`} />}
-              {lane.laneCosts.ferryCost != null && <PriceLine T={T} label={t('priceLists.laneCosts.ferry', 'Ferry')} value={`€${lane.laneCosts.ferryCost.toFixed(2)}`} />}
-              {lane.laneCosts.otherCosts != null && (
-                <PriceLine T={T} label={lane.laneCosts.otherCostsLabel || t('priceLists.laneCosts.other', 'Other')} value={`€${lane.laneCosts.otherCosts.toFixed(2)}`} />
-              )}
-              {(() => {
-                const total = (lane.laneCosts.tollCost || 0) + (lane.laneCosts.ferryCost || 0) + (lane.laneCosts.otherCosts || 0);
-                const perKm = lane.totalKm > 0 ? total / lane.totalKm : 0;
-                return (
-                  <div style={{ borderTop: `1px solid ${T.bd}`, paddingTop: 4 }}>
-                    <PriceLine T={T} label={t('priceLists.laneCosts.total', 'Total fixed')} value={`€${total.toFixed(2)}`} bold />
-                    <PriceLine T={T} label={t('priceLists.laneCosts.perKm', 'Per km')} value={`€${perKm.toFixed(3)}/km`} muted />
-                  </div>
-                );
-              })()}
-            </div>
-          </Section>
-        )}
-
-        {/* Vehicle Rates */}
-        {lane.vehicleRates && lane.vehicleRates.length > 0 && (
-          <Section title={t('priceLists.detail.vehicleRates', 'Vehicle rates')} sectionKey="vehicleRates"
-            open={openSections.vehicleRates} onToggle={toggle} T={T}>
-            <table className="w-full" style={{ fontSize: 12 }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: 'left', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.detail.vehicleType', 'Type')}</th>
-                  <th style={{ textAlign: 'right', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.pricing.perLoad', '/Load')}</th>
-                  <th style={{ textAlign: 'right', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.pricing.perKm', '/Km')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lane.vehicleRates.map((vr, i) => (
-                  <tr key={i}>
-                    <td style={{ padding: '4px 0', color: T.t1, textTransform: 'capitalize' }}>{vr.vehicleType}</td>
-                    <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t1 }}>
-                      {vr.perLoad != null ? `€${vr.perLoad}` : '—'}
-                    </td>
-                    <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t1 }}>
-                      {vr.perKm != null ? `€${vr.perKm}` : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Section>
-        )}
-
-        {/* Weight Breaks */}
-        {lane.weightBreaks && lane.weightBreaks.length > 0 && (
-          <Section title={t('priceLists.detail.weightBreaks', 'Weight breaks')} sectionKey="weightBreaks"
-            open={openSections.weightBreaks} onToggle={toggle} T={T}>
-            <table className="w-full" style={{ fontSize: 12 }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: 'left', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.detail.range', 'Range')}</th>
-                  <th style={{ textAlign: 'right', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.pricing.perPallet', '/Plt')}</th>
-                  <th style={{ textAlign: 'right', color: T.t3, fontWeight: 600, padding: '4px 0', fontSize: 10 }}>{t('priceLists.pricing.perTonne', '/T')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lane.weightBreaks.map((wb, i) => (
-                  <tr key={i}>
-                    <td style={{ padding: '4px 0', color: T.t1 }}>
-                      {wb.minQty}–{wb.maxQty ?? '∞'}
-                    </td>
-                    <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t1 }}>
-                      {wb.perPallet != null ? `€${wb.perPallet}` : '—'}
-                    </td>
-                    <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t1 }}>
-                      {wb.perTonne != null ? `€${wb.perTonne}` : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Section>
-        )}
 
         {/* Profitability — carrier only */}
         {role === 'carrier' && profitability && (
@@ -379,6 +272,8 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
       <div className="shrink-0 flex items-center gap-2 p-3 flex-wrap" style={{ borderTop: `1px solid ${T.bd}`, background: T.sh }}>
         <ActionBtn T={T} onClick={() => onAction('edit', lane)}>✏️ {t('common.edit', 'Edit')}</ActionBtn>
         <ActionBtn T={T} onClick={() => onAction('duplicate', lane)}>📋 {t('priceLists.actions.duplicate', 'Duplicate')}</ActionBtn>
+        {lane.status === 'active' && <ActionBtn T={T} onClick={() => onAction('deactivate', lane)}>⏸️ {t('priceLists.actions.deactivate', 'Deactivate')}</ActionBtn>}
+        {lane.status === 'inactive' && <ActionBtn T={T} onClick={() => onAction('activate', lane)}>▶️ {t('priceLists.actions.activate', 'Activate')}</ActionBtn>}
         {lane.status !== 'archived'
           ? <ActionBtn T={T} onClick={() => onAction('archive', lane)}>🗄️ {t('priceLists.actions.archive', 'Archive')}</ActionBtn>
           : (

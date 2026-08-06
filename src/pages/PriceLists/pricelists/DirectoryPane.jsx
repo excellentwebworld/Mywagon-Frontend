@@ -1,8 +1,7 @@
 /**
  * DirectoryPane — Left-side tree filter for Price Lists.
  *
- * Nodes: All / Active / pricing methods / special groups / My Folders / By scope (collapsible) / status.
- * Custom folders: user-created with add/rename/delete.
+ * Nodes: All / Active / pricing methods / special groups / By scope (collapsible) / status.
  * By Scope section collapsible/expandable, nodes from scopePartnerIds.
  */
 import { useCallback, useState, useMemo } from 'react';
@@ -18,19 +17,12 @@ export default function DirectoryPane({ lanes, activeNode, onNodeClick, role, fo
   const { t } = useTranslation();
   const { T } = useTheme();
   const [scopeOpen, setScopeOpen] = useState(true);
-  const [foldersOpen, setFoldersOpen] = useState(true);
-  const [addingFolder, setAddingFolder] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const [editFolderId, setEditFolderId] = useState(null);
-  const [editFolderName, setEditFolderName] = useState('');
-
   const counts = useMemo(() => {
     const c = {
       all: lanes.length, active: 0, inactive: 0, archived: 0,
       ftl: 0, pallet: 0, km: 0, weight: 0,
-      expiring: 0, roundTrip: 0, multiStop: 0,
+      load: 0, unitTransport: 0, expiring: 0, roundTrip: 0, directTrip: 0, simpleLane: 0, multiStop: 0,
       scopePartners: {}, // partnerId → { count, name }
-      folders: {}, // folderId → count
     };
     lanes.forEach((l) => {
       if (l.status === 'active') c.active++;
@@ -41,8 +33,12 @@ export default function DirectoryPane({ lanes, activeNode, onNodeClick, role, fo
       if (unit === 'pallet') c.pallet++;
       if (unit === 'km') c.km++;
       if (unit === 'tonne' || unit === 'kg') c.weight++;
+      if ((l.pricingRows || []).some((row) => row.metric === 'load_any_size') || l.pricing?.perLoad) c.load++;
+      if ((l.pricingRows || []).some((row) => row.metric === 'unit_transport') || l.pricing?.perPallet) c.unitTransport++;
       if (isExpiringSoon(l)) c.expiring++;
       if (l.isRoundTrip) c.roundTrip++;
+      if (!l.isRoundTrip) c.directTrip++;
+      if (Array.isArray(l.stops) && l.stops.length === 2) c.simpleLane++;
       if (l.stops.length > 2) c.multiStop++;
       // Scope: count default vs per-partner
       if (l.scope === 'default') {
@@ -55,10 +51,6 @@ export default function DirectoryPane({ lanes, activeNode, onNodeClick, role, fo
           c.scopePartners[pid] = { count: 0, name: names[0] || pid };
         }
         c.scopePartners[pid].count++;
-      });
-      // Folders
-      (l.folderIds || []).forEach(fid => {
-        c.folders[fid] = (c.folders[fid] || 0) + 1;
       });
     });
     return c;
@@ -73,25 +65,6 @@ export default function DirectoryPane({ lanes, activeNode, onNodeClick, role, fo
       label: key === 'default' ? t('priceLists.directory.defaultScope', 'Default') : (name || key),
       count, indent: true,
     }));
-
-  const handleAddFolder = useCallback(() => {
-    if (!newFolderName.trim()) return;
-    const id = `FLD-${String(nextFolderId++).padStart(3, '0')}`;
-    setFolders(prev => [...prev, { id, name: newFolderName.trim(), color: FOLDER_COLORS[prev.length % FOLDER_COLORS.length] }]);
-    setNewFolderName('');
-    setAddingFolder(false);
-  }, [newFolderName, setFolders]);
-
-  const handleRenameFolder = useCallback((id) => {
-    if (!editFolderName.trim()) return;
-    setFolders(prev => prev.map(f => f.id === id ? { ...f, name: editFolderName.trim() } : f));
-    setEditFolderId(null);
-  }, [editFolderName, setFolders]);
-
-  const handleDeleteFolder = useCallback((id) => {
-    setFolders(prev => prev.filter(f => f.id !== id));
-    if (activeNode === `folder_${id}`) onNodeClick('all');
-  }, [setFolders, activeNode, onNodeClick]);
 
   const NodeButton = ({ node }) => {
     const isActive = activeNode === node.key;
@@ -127,79 +100,14 @@ export default function DirectoryPane({ lanes, activeNode, onNodeClick, role, fo
       <NodeButton node={{ key: 'perPallet', icon: '📐', label: t('priceLists.directory.perPallet', 'Per pallet'), count: counts.pallet }} />
       <NodeButton node={{ key: 'perKm', icon: '📏', label: t('priceLists.directory.perKm', 'Per km'), count: counts.km }} />
       <NodeButton node={{ key: 'perWeight', icon: '⚖️', label: t('priceLists.directory.perWeight', 'Per weight'), count: counts.weight }} />
+      <NodeButton node={{ key: 'perLoad', icon: '📦', label: t('priceLists.directory.perLoadAny', 'Per load (any size)'), count: counts.load }} />
+      <NodeButton node={{ key: 'perUnitTransport', icon: '🧮', label: t('priceLists.directory.perUnitTransport', 'Per unit of transport'), count: counts.unitTransport }} />
       <Sep />
       <NodeButton node={{ key: 'expiring', icon: '⏰', label: t('priceLists.directory.expiring', 'Expiring soon'), count: counts.expiring }} />
+      <NodeButton node={{ key: 'directTrip', icon: '➡️', label: t('priceLists.directory.directTrip', 'Direct Trip'), count: counts.directTrip }} />
       <NodeButton node={{ key: 'roundTrips', icon: '🔄', label: t('priceLists.directory.roundTrips', 'Round trips'), count: counts.roundTrip }} />
+      <NodeButton node={{ key: 'simpleLane', icon: '2️⃣', label: t('priceLists.directory.simpleLane', 'Simple Lane'), count: counts.simpleLane }} />
       <NodeButton node={{ key: 'multiStop', icon: '📍', label: t('priceLists.directory.multiStop', 'Multi-stop'), count: counts.multiStop }} />
-      <Sep />
-
-      {/* ── My Folders (collapsible) ── */}
-      <button onClick={() => setFoldersOpen(!foldersOpen)}
-        className="flex items-center gap-2 w-full px-2 py-1.5 cursor-pointer border-none rounded-lg"
-        style={{ background: 'transparent', fontSize: 11, fontWeight: 600, color: T.t3 }}>
-        {foldersOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        <span>📁 {t('priceLists.directory.myFolders', 'My Folders')}</span>
-        <button onClick={(e) => { e.stopPropagation(); setAddingFolder(true); }}
-          className="ml-auto p-0.5 rounded cursor-pointer border-none" style={{ background: 'transparent', color: T.t3 }}>
-          <Plus size={11} />
-        </button>
-      </button>
-      {foldersOpen && (
-        <>
-          {(folders || []).map(folder => {
-            const isActive = activeNode === `folder_${folder.id}`;
-            const fCount = counts.folders[folder.id] || 0;
-            if (editFolderId === folder.id) {
-              return (
-                <div key={folder.id} className="flex items-center gap-1 px-2 py-1" style={{ paddingLeft: 28 }}>
-                  <input autoFocus value={editFolderName} onChange={e => setEditFolderName(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleRenameFolder(folder.id); if (e.key === 'Escape') setEditFolderId(null); }}
-                    className="flex-1 rounded px-2 py-1 outline-none"
-                    style={{ fontSize: 11, border: `1px solid ${T.ac}`, background: T.sf, color: T.t1 }} />
-                  <button onClick={() => handleDeleteFolder(folder.id)} className="p-0.5 border-none cursor-pointer" style={{ background: 'transparent', color: '#EF4444' }}><X size={11} /></button>
-                </div>
-              );
-            }
-            return (
-              <div key={folder.id} className="group relative">
-                <button
-                  onClick={() => onNodeClick(`folder_${folder.id}`)}
-                  onDoubleClick={() => { setEditFolderId(folder.id); setEditFolderName(folder.name); }}
-                  className="flex items-center gap-2 w-full rounded-lg cursor-pointer border-none text-left"
-                  style={{ padding: '6px 8px 6px 28px', fontSize: 12, fontWeight: isActive ? 600 : 400, color: isActive ? T.ac : T.t1, background: isActive ? T.al : 'transparent' }}
-                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = T.sh; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? T.al : 'transparent'; }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: folder.color, flexShrink: 0 }} />
-                  <span className="flex-1 min-w-0 truncate">{folder.name}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>({fCount})</span>
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folder.id); }}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded border-none cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ background: 'transparent', color: T.t3 }}
-                  title={t('priceLists.directory.deleteFolder', 'Delete folder')}
-                >
-                  <X size={11} />
-                </button>
-              </div>
-            );
-          })}
-          {addingFolder && (
-            <div className="flex items-center gap-1 px-2 py-1" style={{ paddingLeft: 28 }}>
-              <input autoFocus value={newFolderName} onChange={e => setNewFolderName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleAddFolder(); if (e.key === 'Escape') setAddingFolder(false); }}
-                placeholder={t('priceLists.directory.newFolder', 'New folder')}
-                className="flex-1 rounded px-2 py-1 outline-none"
-                style={{ fontSize: 11, border: `1px solid ${T.ac}`, background: T.sf, color: T.t1 }} />
-            </div>
-          )}
-          {!folders?.length && !addingFolder && (
-            <div style={{ paddingLeft: 28, fontSize: 11, color: T.t3, padding: '4px 8px 4px 28px' }}>
-              {t('priceLists.directory.noFolders', 'No folders yet')}
-            </div>
-          )}
-        </>
-      )}
       <Sep />
 
       {/* ── By Scope (collapsible) ── */}
