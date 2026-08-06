@@ -11,20 +11,19 @@ import { MoreHorizontal, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-reac
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import PaginationBar from '../../../components/ui/PaginationBar';
-import { getPrimaryUnit, getPrimaryPrice, isExpiringSoon, calcProfitability, cityLabel, formatScopeDisplay } from '../../../mocks/priceListsData';
+import { getPrimaryPrice, isExpiringSoon, calcProfitability, cityLabel, formatScopeDisplay } from '../../../mocks/priceListsData';
+import {
+  METRIC_PILL,
+  METRIC_SORT_ORDER,
+  formatMetricLabel,
+  getPrimaryMetricKey,
+  resolveLanePricingRows,
+} from '../../../api/utils/laneMetricDisplay';
 
 const STATUS_PILL = {
   active: { bg: '#D1FAE5', fg: '#059669' },
   inactive: { bg: '#F3F4F6', fg: '#6B7280' },
   archived: { bg: '#FEF3C7', fg: '#92400E' },
-};
-
-const UNIT_PILL = {
-  load: { labelKey: 'priceLists.filter.perLoad', bg: '#DBEAFE', fg: '#2563EB' },
-  pallet: { labelKey: 'priceLists.filter.perPallet', bg: '#EDE9FE', fg: '#7C3AED' },
-  km: { labelKey: 'priceLists.filter.perKm', bg: '#FEF3C7', fg: '#92400E' },
-  kg: { labelKey: 'priceLists.pricing.perKg', bg: '#FFE4E6', fg: '#DC2626' },
-  tonne: { labelKey: 'priceLists.pricing.perTonne', bg: '#ECFDF5', fg: '#059669' },
 };
 
 const STATUS_SORT_ORDER = { active: 0, inactive: 1, archived: 2 };
@@ -85,7 +84,13 @@ export default function ListPane({
         case 'stops': va = a.stops.length; vb = b.stops.length; break;
         case 'km': va = a.totalKm; vb = b.totalKm; break;
         case 'price': va = getPrimaryPrice(a); vb = getPrimaryPrice(b); break;
-        case 'metric': va = t(UNIT_PILL[getPrimaryUnit(a)]?.labelKey || 'priceLists.filter.perLoad', UNIT_PILL[getPrimaryUnit(a)]?.labelKey || 'Load'); vb = t(UNIT_PILL[getPrimaryUnit(b)]?.labelKey || 'priceLists.filter.perLoad', UNIT_PILL[getPrimaryUnit(b)]?.labelKey || 'Load'); break;
+        case 'metric': {
+          const ma = getPrimaryMetricKey(a);
+          const mb = getPrimaryMetricKey(b);
+          va = METRIC_SORT_ORDER[ma] ?? 99;
+          vb = METRIC_SORT_ORDER[mb] ?? 99;
+          break;
+        }
         case 'status': va = STATUS_SORT_ORDER[a.status] ?? 99; vb = STATUS_SORT_ORDER[b.status] ?? 99; break;
         case 'scope': va = formatScopeDisplay(a, t); vb = formatScopeDisplay(b, t); break;
         case 'effective': va = a.effectiveFrom; vb = b.effectiveFrom; break;
@@ -209,9 +214,11 @@ export default function ListPane({
                 </td>
               </tr>
             ) : pageData.map((lane) => {
-              const unit = getPrimaryUnit(lane);
               const price = getPrimaryPrice(lane);
-              const unitInfo = UNIT_PILL[unit] || UNIT_PILL.load;
+              const pricingRows = resolveLanePricingRows(lane);
+              const primaryMetric = getPrimaryMetricKey(lane);
+              const metricInfo = METRIC_PILL[primaryMetric] || METRIC_PILL.load_any_size;
+              const extraMetricCount = Math.max(0, pricingRows.length - 1);
               const statusInfo = STATUS_PILL[lane.status] || STATUS_PILL.active;
               const isSelected = selectedId === lane.id;
               const expiring = isExpiringSoon(lane);
@@ -276,13 +283,20 @@ export default function ListPane({
                     </span>
                   </td>
                   <td style={tdStyle}>
-                    <span
-                      style={{
-                        fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99,
-                        background: unitInfo.bg, color: unitInfo.fg,
-                      }}
-                    >
-                      {t(unitInfo.labelKey)}
+                    <span className="inline-flex items-center gap-1">
+                      <span
+                        style={{
+                          fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99,
+                          background: metricInfo.bg, color: metricInfo.fg,
+                        }}
+                      >
+                        {formatMetricLabel(primaryMetric, t)}
+                      </span>
+                      {extraMetricCount > 0 && (
+                        <span style={{ fontSize: 9, fontWeight: 700, color: T.t3 }}>
+                          {t('priceLists.col.metricMultiple', '+{{count}}').replace('{{count}}', String(extraMetricCount))}
+                        </span>
+                      )}
                     </span>
                   </td>
                   <td style={tdStyle}>

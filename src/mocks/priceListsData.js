@@ -737,9 +737,23 @@ export function seedAuditLog(lanes) {
   return log;
 }
 
+import {
+  getPrimaryMetricKey,
+  getPrimaryMetricPrice,
+  metricKeyToLegacyUnit,
+  resolveLanePricingRows,
+} from '../api/utils/laneMetricDisplay';
+
 /** Get the primary pricing method label for a lane */
 export function getPrimaryUnit(lane) {
-  const p = lane.pricing;
+  const rows = resolveLanePricingRows(lane);
+  if (rows.length > 0) {
+    const metric = getPrimaryMetricKey(lane);
+    const primaryRow = rows.find((row) => row.metric === metric) || rows[0];
+    return metricKeyToLegacyUnit(metric, primaryRow?.metricValue);
+  }
+
+  const p = lane.pricing || {};
   if (p.perLoad != null) return 'load';
   if (p.perPallet != null) return 'pallet';
   if (p.perKm != null) return 'km';
@@ -750,7 +764,10 @@ export function getPrimaryUnit(lane) {
 
 /** Get primary price value */
 export function getPrimaryPrice(lane) {
-  const p = lane.pricing;
+  const rows = resolveLanePricingRows(lane);
+  if (rows.length > 0) return getPrimaryMetricPrice(lane);
+
+  const p = lane.pricing || {};
   if (p.perLoad != null) return p.perLoad;
   if (p.perPallet != null) return p.perPallet;
   if (p.perKm != null) return p.perKm;

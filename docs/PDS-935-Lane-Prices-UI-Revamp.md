@@ -203,7 +203,7 @@ System must block save and show a clear conflict error.
 - Phase 1: Done
 - Phase 2: In Progress (API-backed create/edit + status transitions and modal validation/localization updates done; live QA signoff pending)
 - Phase 3: In Progress (exact-duplicate and active route+trip checks implemented; full overlap+carrier-base conflict rule pending)
-- Phase 4: In Progress
+- Phase 4: Done
 - Phase 5: In Progress
 - Phase 6: In Progress
 - Phase 7: Planned
@@ -321,7 +321,7 @@ Legend:
 - Exit criteria:
   - Updated expanded view fields match requirements.
   - Duplicate and activate/deactivate flows work end-to-end.
-  - Status: Planned
+  - Status: Done
 
 ### 12) Detailed Plan - Phase 4 (Table, Expanded View, and Actions)
 
@@ -448,26 +448,27 @@ Legend:
 - [ ] Pending
 
 #### A) Table Tasks
-- [ ] Rename Unit column to Metric.
-- [ ] Ensure sorting on Metric, Scope, and Status.
-- [ ] Keep selection, pagination, and route display stable.
+- [x] Rename Unit column to Metric.
+- [x] Ensure sorting on Metric, Scope, and Status.
+- [x] Keep selection, pagination, and route display stable.
 
 #### B) Expanded Drawer Tasks
-- [ ] Remove tolls cost display.
-- [ ] Remove euro/km estimate display.
-- [ ] Remove fuel surcharge display.
-- [ ] Remove Vehicle Rates section.
-- [ ] Remove Weight Breaks section.
-- [ ] Keep history, notes, edit, archive, duplicate.
+- [x] Remove tolls cost display.
+- [x] Remove euro/km estimate display.
+- [x] Remove fuel surcharge display.
+- [x] Remove Vehicle Rates section.
+- [x] Remove Weight Breaks section.
+- [x] Keep history, notes, edit, archive, duplicate.
 
 #### C) Actions Tasks
-- [ ] Duplicate opens Add Lane prefilled from source lane.
-- [ ] Show Activate for inactive lanes.
-- [ ] Show Deactivate for active lanes.
-- [ ] Preserve archive/reactivate behavior where still applicable.
+- [x] Duplicate opens Add Lane prefilled from source lane.
+- [x] Show Activate for inactive lanes.
+- [x] Show Deactivate for active lanes.
+- [x] Preserve archive/reactivate behavior where still applicable.
+- [x] Block exact-duplicate save in duplicate mode (client-side fingerprint guard).
 
 #### D) Localization and QA Tasks
-- [ ] Localize all new table and drawer copy.
+- [x] Localize all new table and drawer copy.
 - [ ] Run regression check on list and detail browsing after changes.
 - [ ] Run manual QA for action visibility and duplicate prefill.
 

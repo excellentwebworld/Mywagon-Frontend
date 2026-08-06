@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Plus, Trash2, ChevronDown, ChevronUp, AlertTriangle, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../../hooks/useTheme';
 import { ApiError } from '../../../../api/client';
+import { buildLaneFingerprint, buildLaneFingerprintFromEntry } from '../../../../api/utils/laneMetricDisplay';
 import { resolveCity, calculateRouteTotals, getScopeLabels } from '../../../../mocks/priceListsData';
 import { PARTNERS as MOCK_PARTNERS } from '../../../../mocks/partnersMasterData';
 import LaneLocationPicker from '../../../../components/Partners/LaneLocationPicker';
@@ -130,6 +131,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState({});
   const [dupeWarn, setDupeWarn] = useState(false);
+  const sourceLaneRef = useRef(null);
 
   const mapBackendFieldErrors = (fieldErrors = {}) => {
     const mapped = {};
@@ -178,9 +180,18 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
   };
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      sourceLaneRef.current = null;
+      return;
+    }
 
     if (lane) {
+      if (mode === 'duplicate') {
+        sourceLaneRef.current = JSON.parse(JSON.stringify(lane));
+      } else {
+        sourceLaneRef.current = null;
+      }
+
       setStops((lane.stops || []).map((s) => (
         s?.type ? s : { type: 'city', value: s.city, label: s.label || s.city, countryCode: 'GR' }
       )));
@@ -204,7 +215,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
 
     setErrors({});
     setDupeWarn(false);
-  }, [open, lane, role, forwarderTab]);
+  }, [open, lane, role, forwarderTab, mode]);
 
   const routeCalc = useMemo(() => {
     const validStops = stops.filter((s) => s && s.value);
@@ -246,8 +257,9 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
     }
 
     const isRoundTrip = tripType === 'roundtrip';
+    const excludeId = lane?.id || lane?.duplicateSourceId || sourceLaneRef.current?.duplicateSourceId || sourceLaneRef.current?.id;
     const dup = allLanes.some((l) =>
-      l.id !== lane?.id
+      l.id !== excludeId
       && l.status === 'active'
       && (l.stops[0]?.city === first || l.stops[0]?.value === first)
       && (l.stops[l.stops.length - 1]?.city === last || l.stops[l.stops.length - 1]?.value === last)
@@ -345,6 +357,17 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       scopeDirection: role === 'forwarder' && scopeDirection ? scopeDirection : null,
       notes,
     };
+
+    if (mode === 'duplicate' && sourceLaneRef.current) {
+      const sourceFingerprint = buildLaneFingerprint(sourceLaneRef.current);
+      const entryFingerprint = buildLaneFingerprintFromEntry(entry);
+      if (sourceFingerprint === entryFingerprint) {
+        setErrors({
+          form: t('priceLists.phase2.validation.exactDuplicate', 'Change at least one field before saving this duplicate lane.'),
+        });
+        return;
+      }
+    }
 
     try {
       setErrors({});

@@ -9,6 +9,7 @@ import { ChevronDown, ChevronRight, Plus, MoreHorizontal, FolderPlus, X } from '
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import { isExpiringSoon, getPrimaryUnit, getScopeLabels } from '../../../mocks/priceListsData';
+import { resolveLanePricingRows } from '../../../api/utils/laneMetricDisplay';
 
 const FOLDER_COLORS = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#0891B2', '#BE185D'];
 let nextFolderId = 100;
@@ -33,8 +34,8 @@ export default function DirectoryPane({ lanes, activeNode, onNodeClick, role, fo
       if (unit === 'pallet') c.pallet++;
       if (unit === 'km') c.km++;
       if (unit === 'tonne' || unit === 'kg') c.weight++;
-      if ((l.pricingRows || []).some((row) => row.metric === 'load_any_size') || l.pricing?.perLoad) c.load++;
-      if ((l.pricingRows || []).some((row) => row.metric === 'unit_transport') || l.pricing?.perPallet) c.unitTransport++;
+      if (resolveLanePricingRows(l).some((row) => row.metric === 'load_any_size')) c.load++;
+      if (resolveLanePricingRows(l).some((row) => row.metric === 'unit_transport')) c.unitTransport++;
       if (isExpiringSoon(l)) c.expiring++;
       if (l.isRoundTrip) c.roundTrip++;
       if (!l.isRoundTrip) c.directTrip++;

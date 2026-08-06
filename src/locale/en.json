@@ -3535,6 +3535,8 @@
       "totalKm": "Total km",
       "price": "Price",
       "unit": "Unit",
+      "metric": "Metric",
+      "metricMultiple": "+{{count}}",
       "status": "Status",
       "scope": "Scope",
       "effective": "Effective",
@@ -3601,6 +3603,7 @@
       "marginAnalysis": "Margin Analysis",
       "history": "History",
       "noHistory": "No history yet",
+      "noPricing": "No pricing configured.",
       "notes": "Notes",
       "toll": "Toll"
     },
@@ -3839,6 +3842,7 @@
       "validation": {
         "addAtLeastTwoStops": "Please add at least origin and destination.",
         "dupeWarnTrip": "Similar active lane exists for this route and trip type.",
+        "exactDuplicate": "Change at least one field before saving this duplicate lane.",
         "priceRequired": "Enter a valid EUR amount for this row.",
         "metricDuplicate": "This metric is already used in another pricing row.",
         "metricValueRequired": "Choose a valid value for this metric."

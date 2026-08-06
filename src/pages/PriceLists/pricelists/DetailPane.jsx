@@ -15,6 +15,11 @@ import {
   getPrimaryPrice, isExpiringSoon,
   calcProfitability, cityLabel,
 } from '../../../mocks/priceListsData';
+import {
+  formatMetricLabel,
+  formatMetricValueLabel,
+  resolveLanePricingRows,
+} from '../../../api/utils/laneMetricDisplay';
 
 const MARGIN_COLORS = { good: '#059669', ok: '#F59E0B', bad: '#DC2626' };
 
@@ -37,15 +42,8 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
 
   const toggle = (key) => setOpenSections((p) => ({ ...p, [key]: !p[key] }));
 
-  if (!lane) return null;
-
-  const price = getPrimaryPrice(lane);
-  const expiring = isExpiringSoon(lane);
-  const profitability = role === 'carrier' ? calcProfitability(lane) : null;
-
-  // Forwarder margin: find matching buy/sell pair
   const marginPair = useMemo(() => {
-    if (role !== 'forwarder') return null;
+    if (!lane || role !== 'forwarder') return null;
     const routeKey = lane.stops.map((s) => s.city).join('-');
     const otherDir = lane.scopeDirection === 'sell' ? 'buy' : 'sell';
     const match = allLanes?.find((l) =>
@@ -62,12 +60,17 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
     return { sellPrice, buyPrice, gross, pct, matchId: match.id };
   }, [lane, allLanes, role]);
 
-  // Lane history from audit log
   const laneHistory = useMemo(() => {
-    if (!auditLog) return [];
+    if (!lane || !auditLog) return [];
     return auditLog.filter((e) => e.laneId === lane.id).slice(0, 10);
-  }, [auditLog, lane.id]);
+  }, [auditLog, lane]);
 
+  const pricingRows = useMemo(() => (lane ? resolveLanePricingRows(lane) : []), [lane]);
+
+  if (!lane) return null;
+
+  const expiring = isExpiringSoon(lane);
+  const profitability = role === 'carrier' ? calcProfitability(lane) : null;
   const routeDisplay = lane.stops.map((s) => cityLabel(s.city, lang)).join(lane.isRoundTrip ? ' ↔ ' : ' → ');
 
   return (
@@ -157,16 +160,22 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
         {/* Pricing */}
         <Section title={t('priceLists.detail.pricing', 'Pricing')} sectionKey="pricing"
           open={openSections.pricing} onToggle={toggle} T={T}>
-          <div className="space-y-1.5">
-            {lane.pricing.perLoad != null && <PriceLine T={T} label={t('priceLists.pricing.perLoad', 'Per load')} value={`€${lane.pricing.perLoad}`} />}
-            {lane.pricing.perPallet != null && <PriceLine T={T} label={t('priceLists.pricing.perPallet', 'Per pallet')} value={`€${lane.pricing.perPallet}`} />}
-            {lane.pricing.perKm != null && <PriceLine T={T} label={t('priceLists.pricing.perKm', 'Per km')} value={`€${lane.pricing.perKm}`} />}
-            {lane.pricing.perKg != null && <PriceLine T={T} label={t('priceLists.pricing.perKg', 'Per kg')} value={`€${lane.pricing.perKg}`} />}
-            {lane.pricing.perTonne != null && <PriceLine T={T} label={t('priceLists.pricing.perTonne', 'Per tonne')} value={`€${lane.pricing.perTonne}`} />}
-            {lane.pricing.minimumCharge && (
-              <PriceLine T={T} label={t('priceLists.pricing.minimumCharge', 'Minimum')} value={`€${lane.pricing.minimumCharge}`} />
-            )}
-          </div>
+          {pricingRows.length === 0 ? (
+            <div style={{ fontSize: 12, color: T.t3, padding: '8px 0' }}>
+              {t('priceLists.detail.noPricing', 'No pricing configured.')}
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {pricingRows.map((row, idx) => (
+                <PriceLine
+                  key={`${row.metric}-${idx}`}
+                  T={T}
+                  label={`${formatMetricLabel(row.metric, t)} · ${formatMetricValueLabel(row.metric, row.metricValue, t)}`}
+                  value={`€${Number(row.priceEur || 0).toLocaleString(undefined, { minimumFractionDigits: Number(row.priceEur) < 10 ? 2 : 0 })}`}
+                />
+              ))}
+            </div>
+          )}
         </Section>
 
         {/* Profitability — carrier only */}
@@ -178,7 +187,6 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
               <div style={{ height: 1, background: T.bd, margin: '4px 0' }} />
               <PriceLine T={T} label={t('priceLists.profitability.fuel', 'Fuel')} value={`−€${profitability.fuel.toFixed(2)}`} />
               <PriceLine T={T} label={t('priceLists.profitability.driver', 'Driver')} value={`−€${profitability.driver.toFixed(2)}`} />
-              <PriceLine T={T} label={t('priceLists.profitability.tolls', 'Tolls')} value={`−€${profitability.tolls.toFixed(2)}`} />
               <PriceLine T={T} label={t('priceLists.profitability.maintenance', 'Maintenance')} value={`−€${profitability.maintenance.toFixed(2)}`} />
               <PriceLine T={T} label={t('priceLists.profitability.depreciation', 'Depreciation')} value={`−€${profitability.depreciation.toFixed(2)}`} />
               <PriceLine T={T} label={t('priceLists.profitability.insurance', 'Insurance')} value={`−€${profitability.insurance.toFixed(2)}`} />

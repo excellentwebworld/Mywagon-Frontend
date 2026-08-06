@@ -444,6 +444,7 @@ export default function PriceListsPage() {
       case 'duplicate':
         setEditLane({
           ...JSON.parse(JSON.stringify(lane)),
+          duplicateSourceId: lane.id,
           id: undefined,
           apiId: undefined,
           status: 'inactive',

@@ -19,6 +19,7 @@ import { useCallback, useRef, useState } from 'react';
 import { X, Download, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../../hooks/useTheme';
+import { formatMetricLabel, formatMetricValueLabel } from '../../../../api/utils/laneMetricDisplay';
 import { CITIES, resolveCity, cityLabel } from '../../../../mocks/priceListsData';
 
 const METRIC_VALUE_OPTIONS = {
@@ -47,28 +48,6 @@ function parseMetricValue(metric, value) {
   }
   if (metric === 'ftl_truck_type') return { vehicle_type: value || 'vehicle_type' };
   return { type: 'per_load' };
-}
-
-function metricLabel(metric, t) {
-  if (metric === 'weight') return t('priceLists.phase2.metric.weight', 'Weight');
-  if (metric === 'unit_transport') return t('priceLists.phase2.metric.unitTransport', 'Unit of transport');
-  if (metric === 'ftl_truck_type') return t('priceLists.phase2.metric.ftlTruckType', 'FTL truck type');
-  if (metric === 'load_any_size') return t('priceLists.phase2.metric.loadAnySize', 'Load (any size)');
-  return metric;
-}
-
-function metricValueLabel(metric, metricValue, t) {
-  if (metric === 'weight') return metricValue?.unit === 'ton' ? t('priceLists.phase2.metricValue.ton', 'ton') : t('priceLists.phase2.metricValue.kg', 'kg');
-  if (metric === 'unit_transport') {
-    const value = metricValue?.type || 'eur_pallet';
-    if (value === 'us_pallet') return t('priceLists.phase2.unit.usPallet', 'US pallets');
-    if (value === 'box') return t('priceLists.phase2.unit.box', 'Boxes');
-    if (value === 'unit') return t('priceLists.phase2.unit.unit', 'Units');
-    if (value === 'big_bag') return t('priceLists.phase2.unit.bigBag', 'Big Bags');
-    return t('priceLists.phase2.unit.eurPallet', 'EUR pallets');
-  }
-  if (metric === 'ftl_truck_type') return metricValue?.vehicle_type || t('priceLists.phase2.metricValue.vehicleType', 'Vehicle type');
-  return t('priceLists.phase2.metricValue.perLoad', 'per load');
 }
 
 function legacyUnitToMetric(unit) {
@@ -290,8 +269,8 @@ export default function ImportModal({ open, onClose, onImport, existingLanes }) 
                           <td className="px-2 py-1" style={{ color: T.t1 }}>{r.oRaw}{!r.validO ? ' ⚠️' : ''}</td>
                           <td className="px-2 py-1" style={{ color: T.t1 }}>{r.dRaw}{!r.validD ? ' ⚠️' : ''}</td>
                           <td className="px-2 py-1" style={{ color: T.t2 }}>
-                            <div>{metricLabel(r.metric, t)}</div>
-                            <div style={{ fontSize: 10, color: T.t3 }}>{metricValueLabel(r.metric, r.metricValue, t)}</div>
+                            <div>{formatMetricLabel(r.metric, t)}</div>
+                            <div style={{ fontSize: 10, color: T.t3 }}>{formatMetricValueLabel(r.metric, r.metricValue, t)}</div>
                           </td>
                           <td className="px-2 py-1" style={{ fontFamily: "'JetBrains Mono', monospace", color: T.t1 }}>{r.price} {r.cur}</td>
                           <td className="px-2 py-1">{r.dupe
