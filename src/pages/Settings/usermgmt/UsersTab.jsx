@@ -10,7 +10,7 @@ import {
   Search, Download, X, ChevronDown, ChevronUp,
   MoreHorizontal, Edit3, ShieldCheck,
   UserPlus, Trash2, RotateCcw, LogOut, Copy,
-  Send, Check, XCircle,
+  Send, XCircle,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../../../hooks/useTheme';
@@ -44,7 +44,6 @@ export default function UsersTab() {
   const [sortDir, setSortDir] = useState('desc');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [selected, setSelected] = useState(new Set());
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [actionMenu, setActionMenu] = useState(null);
@@ -102,24 +101,7 @@ export default function UsersTab() {
   const showTo = Math.min(safePage * pageSize, totalCount);
   const pageData = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
 
-  useEffect(() => { setPage(1); setSelected(new Set()); }, [search, roleFilter, statusFilter]);
-
-  const allOnPageSelected = pageData.length > 0 && pageData.every((u) => selected.has(u.id));
-  const toggleAll = () => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (allOnPageSelected) pageData.forEach((u) => next.delete(u.id));
-      else pageData.forEach((u) => next.add(u.id));
-      return next;
-    });
-  };
-  const toggleOne = (id) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
+  useEffect(() => { setPage(1); }, [search, roleFilter, statusFilter]);
 
   const handleSort = (field) => {
     if (sortField === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -198,29 +180,6 @@ export default function UsersTab() {
     });
   };
 
-  const handleBulkDeactivate = () => {
-    setConfirmDialog({
-      title: t('userMgmt.bulk.deactivate'),
-      message: t('userMgmt.confirm.bulkDeactivateMsg', { count: selected.size }),
-      onConfirm: async () => {
-        const ids = [...selected];
-        for (const id of ids) {
-          const u = users.find((x) => String(x.id) === String(id));
-          if (!u || u.isOwner || u.is_owner || u.status === 'deactivated') continue;
-          try {
-            const updated = await usersSettingsService.deactivate(id);
-            updateUser(updated);
-          } catch {
-            /* continue */
-          }
-        }
-        toast.success(t('userMgmt.toast.bulkDeactivated', { count: selected.size }));
-        setSelected(new Set());
-        setConfirmDialog(null);
-      },
-    });
-  };
-
   const handleResendInvite = async (u) => {
     try {
       await usersSettingsService.resendInvite(u.id);
@@ -229,6 +188,24 @@ export default function UsersTab() {
       toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));
     }
     setActionMenu(null);
+  };
+
+  const handleForceSignOut = (u) => {
+    setConfirmDialog({
+      title: t('userMgmt.confirm.forceSignoutTitle'),
+      message: t('userMgmt.confirm.forceSignoutMsg', {
+        name: getUserFullName(u),
+      }),
+      onConfirm: async () => {
+        try {
+          await usersSettingsService.forceSignOut(u.id);
+          toast.success(t('userMgmt.toast.sessionRevoked', { name: getUserFullName(u) }));
+        } catch (e) {
+          toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));
+        }
+        setConfirmDialog(null);
+      },
+    });
   };
   const relTime = (iso) => {
     if (!iso) return t('userMgmt.table.never');
@@ -338,17 +315,6 @@ export default function UsersTab() {
         </button>
       </div>
 
-      {selected.size > 0 && (
-        <div className="flex items-center gap-3 py-2.5 flex-wrap" style={{ background: T.al, borderBottom: `1px solid ${T.ac}33` }}>
-          <div className="flex items-center gap-1.5" style={{ fontSize: 12, fontWeight: 600, color: T.ac }}>
-            <Check size={14} />
-            {t('userMgmt.bulk.selected', { count: selected.size })}
-          </div>
-          <button type="button" onClick={handleBulkDeactivate} className="px-3 py-1.5 rounded-lg cursor-pointer border-none" style={{ background: T.sf, border: `1px solid ${T.bd}`, color: '#EF4444', fontSize: 11, fontWeight: 600 }}>{t('userMgmt.bulk.deactivate')}</button>
-          <button type="button" onClick={() => setSelected(new Set())} className="flex items-center gap-1 cursor-pointer border-none bg-transparent" style={{ color: T.t3, fontSize: 11 }}><X size={12} /> {t('userMgmt.bulk.clear')}</button>
-        </div>
-      )}
-
       <div className="w-full overflow-x-auto" style={{ overflowY: 'visible' }}>
         {/* Avoid Tailwind `hidden` — app.css has `.hidden { display:none !important }` which blocks `md:table`. */}
         <table
@@ -357,9 +323,6 @@ export default function UsersTab() {
         >
           <thead>
             <tr style={{ borderBottom: `1px solid ${T.bd}` }}>
-              <th className="px-4 py-2.5 w-10">
-                <input type="checkbox" checked={allOnPageSelected && pageData.length > 0} onChange={toggleAll} />
-              </th>
               {SORT_FIELDS.map((f) => (
                 <th key={f} onClick={() => handleSort(f)} className="px-3 py-2.5 text-left cursor-pointer select-none"
                   style={{ fontSize: 11, fontWeight: 700, color: T.t3, letterSpacing: 0.5 }}>
@@ -392,12 +355,9 @@ export default function UsersTab() {
             )}
             {!(loading && users.length === 0) && pageData.map((u) => (
               <UserRow key={String(u.id)} user={u} T={T} t={t}
-                selected={selected.has(u.id) || selected.has(String(u.id))}
-                onToggle={() => toggleOne(u.id)}
-                onClick={() => openEdit(u)}
+                onEdit={() => openEdit(u)}
                 actionMenu={actionMenu === u.id || actionMenu === String(u.id)}
-                onActionMenuToggle={(e) => {
-                  e.stopPropagation();
+                onActionMenuToggle={() => {
                   setActionMenu((prev) => (prev === u.id || prev === String(u.id) ? null : u.id));
                 }}
                 onReactivate={() => handleReactivate(u)}
@@ -406,7 +366,7 @@ export default function UsersTab() {
                 onCancelInvite={() => { handleCancelInvite(u); setActionMenu(null); }}
                 onResendInvite={() => { handleResendInvite(u); }}
                 onCopyLink={() => { navigator.clipboard?.writeText(window.location.origin); toast.info(t('userMgmt.toast.linkCopied')); setActionMenu(null); }}
-                onForceSignout={() => { toast.success(t('userMgmt.toast.sessionRevoked', { name: getUserFullName(u) })); setActionMenu(null); }}
+                onForceSignout={() => { handleForceSignOut(u); setActionMenu(null); }}
                 relTime={relTime}
                 formatDate={formatDate}
                 actionMenuRef={(actionMenu === u.id || actionMenu === String(u.id)) ? actionMenuRef : null}
@@ -470,9 +430,6 @@ function UsersTableSkeleton({ T, rows = 6 }) {
     <>
       {Array.from({ length: rows }).map((_, i) => (
         <tr key={i} style={{ borderBottom: `1px solid ${T.bd}` }}>
-          <td className="px-4 py-3">
-            <Skeleton width={14} height={14} borderRadius={3} {...sk} />
-          </td>
           <td className="px-3 py-3">
             <div className="flex items-center gap-2.5">
               <Skeleton circle width={32} height={32} {...sk} />
@@ -506,7 +463,7 @@ function UsersTableSkeleton({ T, rows = 6 }) {
 }
 
 function UserRow({
-  user: u, T, t, selected, onToggle, onClick,
+  user: u, T, t, onEdit,
   actionMenu, onActionMenuToggle,
   onReactivate, onDeactivate, onDelete,
   onCancelInvite, onResendInvite, onCopyLink, onForceSignout,
@@ -545,13 +502,7 @@ function UserRow({
   }, [actionMenu]);
 
   return (
-    <tr onClick={onClick} className="cursor-pointer transition-colors duration-100"
-      style={{ borderBottom: `1px solid ${T.bd}` }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = T.sa; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
-      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-        <input type="checkbox" checked={selected} onChange={onToggle} disabled={isOwner} />
-      </td>
+    <tr style={{ borderBottom: `1px solid ${T.bd}` }}>
       <td className="px-3 py-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold shrink-0"
@@ -593,7 +544,6 @@ function UserRow({
       <td className="px-3 py-3" style={{ fontSize: 12, color: T.t3 }}>{formatDate(u.created || u.created_at)}</td>
       <td
         className="px-3 py-3 relative text-right"
-        onClick={(e) => e.stopPropagation()}
         style={{ position: 'sticky', right: 0, background: 'inherit', zIndex: 1 }}
       >
         <button
@@ -621,9 +571,9 @@ function UserRow({
           >
             {(status === 'active' || isOwner) && (
               <>
-                <ActionItem icon={Edit3} label={t('userMgmt.actions.edit')} onClick={onClick} T={T} />
+                <ActionItem icon={Edit3} label={t('userMgmt.actions.edit')} onClick={onEdit} T={T} />
                 {!isOwner && (
-                  <ActionItem icon={ShieldCheck} label={t('userMgmt.actions.changeRole')} onClick={onClick} T={T} />
+                  <ActionItem icon={ShieldCheck} label={t('userMgmt.actions.changeRole')} onClick={onEdit} T={T} />
                 )}
                 {!isOwner && (
                   <>
@@ -644,7 +594,7 @@ function UserRow({
             )}
             {status === 'suspended' && (
               <>
-                <ActionItem icon={Edit3} label={t('userMgmt.actions.edit')} onClick={onClick} T={T} />
+                <ActionItem icon={Edit3} label={t('userMgmt.actions.edit')} onClick={onEdit} T={T} />
                 <ActionItem icon={RotateCcw} label={t('userMgmt.actions.reactivate')} onClick={onReactivate} T={T} />
                 <ActionItem icon={XCircle} label={t('userMgmt.actions.deactivate')} onClick={onDeactivate} T={T} danger />
               </>
