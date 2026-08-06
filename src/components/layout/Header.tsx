@@ -76,7 +76,6 @@ export const Header: React.FC<HeaderProps> = ({
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         borderBottom: `1px solid ${T.bd}`,
-        zIndex: 30,
       }}
     >
       {/* Sidebar toggles */}

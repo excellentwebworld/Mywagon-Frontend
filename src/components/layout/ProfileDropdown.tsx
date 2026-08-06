@@ -62,7 +62,7 @@ export function ProfileDropdown() {
 
   return (
     <>
-      <div ref={menuRef} className="relative" style={{ zIndex: 200 }}>
+      <div ref={menuRef} className="relative">
         <button
           type="button"
           className="flex items-center gap-2 px-2 py-1 rounded-lg cursor-pointer border-none transition-all duration-200"
@@ -90,7 +90,7 @@ export function ProfileDropdown() {
         </button>
 
         {open && (
-          <div className="absolute right-0 top-full pt-1" style={{ zIndex: 200 }}>
+          <div className="absolute right-0 top-full pt-1" style={{ zIndex: 150 }}>
             <div
               className="rounded-xl shadow-xl overflow-hidden"
               role="menu"
