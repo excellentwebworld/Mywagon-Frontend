@@ -56,6 +56,7 @@ export default function RolesTab() {
   const [showCreate, setShowCreate] = useState(false);
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleColor, setNewRoleColor] = useState('#3B82F6');
+  const [nameError, setNameError] = useState('');
 
   const persistCustom = useCallback((next) => {
     setCustomRoles(next);
@@ -132,21 +133,25 @@ export default function RolesTab() {
   };
 
   const handleCreate = () => {
-    if (!newRoleName.trim()) return;
-    const key = newRoleName.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-    if (!key) {
-      toast.error(t('userMgmt.roles.roleName'));
+    const trimmed = newRoleName.trim();
+    if (!trimmed) {
+      setNameError(t('userMgmt.roles.nameRequired', { defaultValue: 'Role name is required.' }));
       return;
     }
-    if (roles.some((r) => r.key === key)) {
-      toast.error(t('userMgmt.roles.nameTaken', { defaultValue: 'A role with this name already exists.' }));
+    const key = trimmed.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    if (!key) {
+      setNameError(t('userMgmt.roles.nameInvalid', { defaultValue: 'Enter a valid role name using letters or numbers.' }));
+      return;
+    }
+    if (roles.some((r) => r.key === key || String(r.name || r.label || '').trim().toLowerCase() === trimmed.toLowerCase())) {
+      setNameError(t('userMgmt.roles.nameTaken', { defaultValue: 'A role with this name already exists.' }));
       return;
     }
     const newRole = {
       id: `role-custom-${Date.now()}`,
       key,
-      name: newRoleName.trim(),
-      label: newRoleName.trim(),
+      name: trimmed,
+      label: trimmed,
       color: newRoleColor,
       isSystem: false,
       is_system: false,
@@ -161,6 +166,7 @@ export default function RolesTab() {
     setShowCreate(false);
     setNewRoleName('');
     setNewRoleColor('#3B82F6');
+    setNameError('');
     toast.success(t('userMgmt.toast.roleCreated'));
   };
 
@@ -292,7 +298,7 @@ export default function RolesTab() {
 
         <button
           type="button"
-          onClick={() => setShowCreate(true)}
+          onClick={() => { setShowCreate(true); setNameError(''); }}
           className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg cursor-pointer border-none transition-all duration-150"
           style={{ background: T.sa, border: `1px dashed ${T.bd}`, color: T.ac, fontSize: 13, fontWeight: 500 }}
         >
@@ -303,13 +309,28 @@ export default function RolesTab() {
           <div className="mt-2 p-3 rounded-lg" style={{ background: T.sa, border: `1px solid ${T.bd}` }}>
             <input
               value={newRoleName}
-              onChange={(e) => setNewRoleName(e.target.value)}
+              onChange={(e) => {
+                setNewRoleName(e.target.value);
+                if (nameError) setNameError('');
+              }}
               placeholder={t('userMgmt.roles.roleName')}
-              className="w-full px-2.5 py-1.5 rounded-lg outline-none mb-2"
-              style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 12 }}
+              className="w-full px-2.5 py-1.5 rounded-lg outline-none"
+              style={{
+                border: `1px solid ${nameError ? '#EF4444' : T.bd}`,
+                background: T.sf,
+                color: T.t1,
+                fontSize: 12,
+                marginBottom: nameError ? 4 : 8,
+              }}
               autoFocus
+              aria-invalid={Boolean(nameError)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
             />
+            {!!nameError && (
+              <div style={{ color: '#DC2626', fontSize: 11, marginBottom: 8, lineHeight: 1.35 }}>
+                {nameError}
+              </div>
+            )}
             <div className="flex gap-1 mb-2 flex-wrap">
               {COLORS.map((c) => (
                 <button
@@ -332,7 +353,7 @@ export default function RolesTab() {
               </button>
               <button
                 type="button"
-                onClick={() => { setShowCreate(false); setNewRoleName(''); }}
+                onClick={() => { setShowCreate(false); setNewRoleName(''); setNameError(''); }}
                 className="px-2 py-1.5 rounded-lg cursor-pointer border-none"
                 style={{ background: T.sf, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 11 }}
               >

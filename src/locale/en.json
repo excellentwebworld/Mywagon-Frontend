@@ -2994,6 +2994,8 @@
     "roles": {
       "createRole": "Add role",
       "roleName": "Role name",
+      "nameRequired": "Role name is required.",
+      "nameInvalid": "Enter a valid role name using letters or numbers.",
       "duplicate": "Duplicate",
       "system": "System",
       "custom": "Custom",
