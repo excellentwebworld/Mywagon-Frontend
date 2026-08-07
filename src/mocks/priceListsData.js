@@ -157,10 +157,110 @@ const REGION_DISTANCES = {
   'macedonia-peloponnese': 480, 'central_greece-peloponnese': 260, 'epirus-peloponnese': 350,
 };
 
+const CITY_COORDINATES = {
+  // Greek cities & regions
+  athens: { lat: 37.9838, lng: 23.7275 },
+  thessaloniki: { lat: 40.6401, lng: 22.9444 },
+  patras: { lat: 38.2466, lng: 21.7345 },
+  ioannina: { lat: 39.6650, lng: 20.8537 },
+  larissa: { lat: 39.6390, lng: 22.4191 },
+  volos: { lat: 39.3621, lng: 22.9422 },
+  heraklion: { lat: 35.3387, lng: 25.1442 },
+  chania: { lat: 35.5138, lng: 24.0180 },
+  kavala: { lat: 40.9377, lng: 24.4124 },
+  alexandroupoli: { lat: 40.8457, lng: 25.8739 },
+  kalamata: { lat: 37.0379, lng: 22.1130 },
+  tripoli: { lat: 37.5106, lng: 22.3726 },
+  lamia: { lat: 38.8986, lng: 22.4350 },
+  corinth: { lat: 37.9386, lng: 22.9322 },
+  kozani: { lat: 40.3006, lng: 21.7889 },
+  serres: { lat: 41.0911, lng: 23.5497 },
+  grevena: { lat: 40.0850, lng: 21.4273 },
+  peloponnese: { lat: 37.5000, lng: 22.3700 },
+  attica: { lat: 37.9800, lng: 23.7200 },
+  thessaly: { lat: 39.6000, lng: 22.4000 },
+  epirus: { lat: 39.6000, lng: 20.8500 },
+  macedonia: { lat: 40.6000, lng: 22.9000 },
+
+  // Indian cities
+  ahmedabad: { lat: 23.0225, lng: 72.5714 },
+  kalupur: { lat: 23.0270, lng: 72.5985 },
+  amritsar: { lat: 31.6340, lng: 74.8723 },
+  delhi: { lat: 28.6139, lng: 77.2090 },
+  mumbai: { lat: 19.0760, lng: 72.8777 },
+  bengaluru: { lat: 12.9716, lng: 77.5946 },
+  chennai: { lat: 13.0827, lng: 80.2707 },
+  kolkata: { lat: 22.5726, lng: 88.3639 },
+  hyderabad: { lat: 17.3850, lng: 78.4867 },
+  pune: { lat: 18.5204, lng: 73.8567 },
+  jaipur: { lat: 26.9124, lng: 75.7873 },
+  surat: { lat: 21.1702, lng: 72.8311 },
+  vadodara: { lat: 22.3072, lng: 73.1812 },
+  chandigarh: { lat: 30.7333, lng: 76.7794 },
+  ludhiana: { lat: 30.9010, lng: 75.8573 },
+
+  // European cities
+  sofia: { lat: 42.6977, lng: 23.3219 },
+  bucharest: { lat: 44.4268, lng: 26.1025 },
+  berlin: { lat: 52.5200, lng: 13.4050 },
+  munich: { lat: 48.1351, lng: 11.5820 },
+  frankfurt: { lat: 50.1109, lng: 8.6821 },
+  rome: { lat: 41.9028, lng: 12.4964 },
+  milan: { lat: 45.4642, lng: 9.1900 },
+  vienna: { lat: 48.2082, lng: 16.3738 },
+  prague: { lat: 50.0755, lng: 14.4378 },
+  warsaw: { lat: 52.2297, lng: 21.0122 },
+  amsterdam: { lat: 52.3676, lng: 4.9041 },
+  brussels: { lat: 50.8503, lng: 4.3517 },
+  paris: { lat: 48.8566, lng: 2.3522 },
+};
+
+function extractCoords(obj) {
+  if (!obj) return null;
+  if (typeof obj === 'object') {
+    const lat = Number(obj.lat ?? obj.latitude);
+    const lng = Number(obj.lng ?? obj.longitude);
+    if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
+      return { lat, lng };
+    }
+  }
+  const str = String(typeof obj === 'object' ? (obj.value || obj.city || obj.label || obj.address || '') : obj).toLowerCase();
+  for (const [key, coords] of Object.entries(CITY_COORDINATES)) {
+    if (str.includes(key)) {
+      return coords;
+    }
+  }
+  return null;
+}
+
 export function getDistance(a, b) {
   if (!a || !b) return null;
-  const strA = String(a).trim();
-  const strB = String(b).trim();
+
+  // 0. Extract exact or dictionary lat/lng coordinates if available (Haversine road distance)
+  const coordsA = extractCoords(a);
+  const coordsB = extractCoords(b);
+
+  if (coordsA && coordsB) {
+    const lat1 = coordsA.lat;
+    const lon1 = coordsA.lng;
+    const lat2 = coordsB.lat;
+    const lon2 = coordsB.lng;
+
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    if (Math.abs(dLat) < 0.0001 && Math.abs(dLon) < 0.0001) return 0;
+
+    const sinLat = Math.sin(dLat / 2);
+    const sinLon = Math.sin(dLon / 2);
+    const h = sinLat * sinLat + Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * sinLon * sinLon;
+    const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+    const airKm = 6371 * c;
+    const roadKm = Math.round(airKm * 1.25);
+    if (roadKm > 0) return roadKm;
+  }
+
+  const strA = String(typeof a === 'object' ? (a.value || a.city || a.label || '') : a).trim();
+  const strB = String(typeof b === 'object' ? (b.value || b.city || b.label || '') : b).trim();
   if (!strA || !strB) return 0;
 
   // 1. Direct lookup in DISTANCE_PAIRS
@@ -196,7 +296,7 @@ export function getDistance(a, b) {
   const cityMatch = DISTANCE_PAIRS[`${cityA}-${cityB}`] || DISTANCE_PAIRS[`${cityB}-${cityA}`];
   if (cityMatch) return cityMatch;
 
-  // 5. Deterministic estimated distance calculation (never returns 0 for valid stops)
+  // 5. Hash fallback
   let charSum = 0;
   for (let i = 0; i < lowerA.length; i++) charSum += lowerA.charCodeAt(i);
   for (let i = 0; i < lowerB.length; i++) charSum += lowerB.charCodeAt(i);
@@ -215,7 +315,9 @@ const TOLL_ESTIMATES = {
 
 export function getTollEstimate(a, b) {
   if (!a || !b) return null;
-  return TOLL_ESTIMATES[`${a}-${b}`] || TOLL_ESTIMATES[`${b}-${a}`] || null;
+  const strA = typeof a === 'object' ? (a.value || a.city || a.label || '') : String(a);
+  const strB = typeof b === 'object' ? (b.value || b.city || b.label || '') : String(b);
+  return TOLL_ESTIMATES[`${strA}-${strB}`] || TOLL_ESTIMATES[`${strB}-${strA}`] || null;
 }
 
 /** Given an ordered array of stops, compute legs, totalKm, totalTolls, routeLabel. */
@@ -224,20 +326,20 @@ export function calculateRouteTotals(stops, isRoundTrip = false) {
   for (let i = 0; i < stops.length - 1; i++) {
     const rawFrom = stops[i];
     const rawTo = stops[i + 1];
-    const from = typeof rawFrom === 'string' ? rawFrom : (rawFrom?.value || rawFrom?.city || rawFrom?.label || '');
-    const to = typeof rawTo === 'string' ? rawTo : (rawTo?.value || rawTo?.city || rawTo?.label || '');
-    const km = getDistance(from, to) || 0;
-    const toll = getTollEstimate(from, to) || 0;
-    legs.push({ from, to, km, toll });
+    const fromStr = typeof rawFrom === 'string' ? rawFrom : (rawFrom?.value || rawFrom?.city || rawFrom?.label || '');
+    const toStr = typeof rawTo === 'string' ? rawTo : (rawTo?.value || rawTo?.city || rawTo?.label || '');
+    const km = getDistance(rawFrom, rawTo) || 0;
+    const toll = getTollEstimate(rawFrom, rawTo) || 0;
+    legs.push({ from: fromStr, to: toStr, km, toll });
   }
   if (isRoundTrip && stops.length >= 2) {
     const rawFrom = stops[stops.length - 1];
     const rawTo = stops[0];
-    const from = typeof rawFrom === 'string' ? rawFrom : (rawFrom?.value || rawFrom?.city || rawFrom?.label || '');
-    const to = typeof rawTo === 'string' ? rawTo : (rawTo?.value || rawTo?.city || rawTo?.label || '');
-    const km = getDistance(from, to) || 0;
-    const toll = getTollEstimate(from, to) || 0;
-    legs.push({ from, to, km, toll, isReturn: true });
+    const fromStr = typeof rawFrom === 'string' ? rawFrom : (rawFrom?.value || rawFrom?.city || rawFrom?.label || '');
+    const toStr = typeof rawTo === 'string' ? rawTo : (rawTo?.value || rawTo?.city || rawTo?.label || '');
+    const km = getDistance(rawFrom, rawTo) || 0;
+    const toll = getTollEstimate(rawFrom, rawTo) || 0;
+    legs.push({ from: fromStr, to: toStr, km, toll, isReturn: true });
   }
   const totalKm = legs.reduce((s, l) => s + (l.km || 0), 0);
   const totalTolls = legs.reduce((s, l) => s + (l.toll || 0), 0);

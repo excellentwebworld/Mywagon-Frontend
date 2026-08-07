@@ -307,6 +307,78 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
     };
   }, [createStep, createData, queryClient]);
 
+  const [googleKm, setGoogleKm] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const validStops = stops.filter((s) => isValidLaneStop(s));
+
+    if (validStops.length < 2) {
+      setGoogleKm(null);
+      return;
+    }
+
+    async function calculateGoogleKm() {
+      if (typeof window === 'undefined' || !window.google || !window.google.maps || !window.google.maps.DistanceMatrixService) {
+        return;
+      }
+
+      try {
+        let total = 0;
+        const service = new window.google.maps.DistanceMatrixService();
+
+        for (let i = 0; i < validStops.length - 1; i++) {
+          const s1 = validStops[i];
+          const s2 = validStops[i + 1];
+
+          const orig = (s1.lat && s1.lng)
+            ? new window.google.maps.LatLng(Number(s1.lat), Number(s1.lng))
+            : (s1.address || s1.label || s1.city || s1.value);
+
+          const dest = (s2.lat && s2.lng)
+            ? new window.google.maps.LatLng(Number(s2.lat), Number(s2.lng))
+            : (s2.address || s2.label || s2.city || s2.value);
+
+          if (!orig || !dest) continue;
+
+          const res = await new Promise((resolve) => {
+            service.getDistanceMatrix(
+              {
+                origins: [orig],
+                destinations: [dest],
+                travelMode: window.google.maps.TravelMode.DRIVING,
+                unitSystem: window.google.maps.UnitSystem.METRIC,
+              },
+              (response, status) => {
+                if (status === 'OK' && response?.rows?.[0]?.elements?.[0]?.status === 'OK') {
+                  const m = response.rows[0].elements[0].distance.value;
+                  resolve(Math.round(m / 1000));
+                } else {
+                  resolve(null);
+                }
+              }
+            );
+          });
+
+          if (res) total += res;
+        }
+
+        if (!cancelled && total > 0) {
+          setGoogleKm(total);
+        }
+      } catch (_e) {
+        // Fallback to local Haversine / matrix
+      }
+    }
+
+    setGoogleKm(null);
+    void calculateGoogleKm();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [stops]);
+
   const routeCalc = useMemo(() => {
     const validStops = stops.filter((s) => isValidLaneStop(s));
     if (validStops.length < 2) return null;
@@ -318,10 +390,20 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       value: s.value,
       countryCode: s.countryCode,
       location_id: s.location_id,
+      address: s.address,
+      lat: s.lat,
+      lng: s.lng,
     }));
 
-    return calculateRouteTotals(stopObjects, tripType === 'roundtrip');
-  }, [stops, tripType]);
+    const baseCalc = calculateRouteTotals(stopObjects, tripType === 'roundtrip');
+    if (googleKm && googleKm > 0) {
+      return {
+        ...baseCalc,
+        totalKm: googleKm,
+      };
+    }
+    return baseCalc;
+  }, [stops, tripType, googleKm]);
 
   useEffect(() => {
     const validStops = stops.filter((s) => isValidLaneStop(s));
