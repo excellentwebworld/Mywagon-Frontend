@@ -23,6 +23,39 @@ const METRICS = [
   { key: 'load_any_size', labelKey: 'priceLists.phase2.metric.loadAnySize', fallback: 'Load (any size)' },
 ];
 
+/** Max digits in the price amount (before decimal). Prevents absurd values like 560000000. */
+const MAX_PRICE_DIGITS = 8;
+const MAX_PRICE_DECIMALS = 2;
+const MAX_PRICE_VALUE = 10 ** MAX_PRICE_DIGITS - 1; // 99_999_999
+
+function clampPriceInput(raw) {
+  const value = String(raw ?? '');
+  if (value === '' || value === '.') return value;
+
+  // Allow intermediate typing: "12.", "0.5"
+  if (!/^\d*\.?\d*$/.test(value)) return null;
+
+  const [intPart = '', decPart] = value.split('.');
+  if (intPart.length > MAX_PRICE_DIGITS) {
+    const clippedInt = intPart.slice(0, MAX_PRICE_DIGITS);
+    if (decPart != null) {
+      return `${clippedInt}.${decPart.slice(0, MAX_PRICE_DECIMALS)}`;
+    }
+    return clippedInt;
+  }
+  if (decPart != null && decPart.length > MAX_PRICE_DECIMALS) {
+    return `${intPart}.${decPart.slice(0, MAX_PRICE_DECIMALS)}`;
+  }
+  return value;
+}
+
+function isPriceWithinLimit(amount) {
+  const n = Number(amount);
+  if (!Number.isFinite(n) || n <= 0) return false;
+  const digitCount = String(Math.floor(Math.abs(n))).replace(/^0+/, '') || '0';
+  return digitCount.length <= MAX_PRICE_DIGITS && n <= MAX_PRICE_VALUE;
+}
+
 const UNIT_TRANSPORT_OPTIONS = [
   { value: 'eur_pallet', labelKey: 'priceLists.phase2.unit.eurPallet', fallback: 'EUR pallets' },
   { value: 'us_pallet', labelKey: 'priceLists.phase2.unit.usPallet', fallback: 'US pallets' },
@@ -467,7 +500,8 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
 
     pricingRows.forEach((row, idx) => {
       const amount = Number(row.amount || 0);
-      if (!amount || amount <= 0) errs[`amount_${idx}`] = true;
+      if (!amount || amount <= 0) errs[`amount_${idx}`] = 'required';
+      else if (!isPriceWithinLimit(row.amount)) errs[`amount_${idx}`] = 'tooLong';
       if (!isMetricValueValid(row.metric, row.metricValue)) errs[`metricValue_${idx}`] = true;
     });
 
@@ -724,10 +758,31 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                           style={inputStyle}
                           type="number"
                           min="0"
+                          max={MAX_PRICE_VALUE}
+                          step="0.01"
+                          inputMode="decimal"
                           value={row.amount}
-                          onChange={(e) => updatePricingRow(row.id, { amount: e.target.value })}
+                          onChange={(e) => {
+                            const next = clampPriceInput(e.target.value);
+                            if (next === null) return;
+                            updatePricingRow(row.id, { amount: next });
+                          }}
+                          onKeyDown={(e) => {
+                            // Block scientific notation / signs that bypass digit limits
+                            if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                          }}
                         />
-                        {!!errors[`amount_${idx}`] && <div className="error-msg" data-error="true" style={errorStyle}>{t('priceLists.phase2.validation.priceRequired', 'Enter a valid EUR amount for this row.')}</div>}
+                        {!!errors[`amount_${idx}`] && (
+                          <div className="error-msg" data-error="true" style={errorStyle}>
+                            {errors[`amount_${idx}`] === 'tooLong'
+                              ? t('priceLists.phase2.validation.priceMaxDigits', {
+                                defaultValue: `Price cannot exceed ${MAX_PRICE_DIGITS} digits (max ${MAX_PRICE_VALUE.toLocaleString('en-US')}).`,
+                                max: MAX_PRICE_DIGITS,
+                                maxValue: MAX_PRICE_VALUE,
+                              })
+                              : t('priceLists.phase2.validation.priceRequired', 'Enter a valid EUR amount for this row.')}
+                          </div>
+                        )}
                       </div>
                       <div className="col-span-4">
                         <label style={labelStyle}>{t('priceLists.phase2.pricingMetric', 'Pricing metric')}</label>
