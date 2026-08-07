@@ -13,7 +13,7 @@ interface LocationSelectProps {
   locations: LocationItem[];
   value: string;
   onChange: (locationId: string) => void;
-  onCreateNew: () => void;
+  onCreateNew?: () => void;
   onPreview?: (location: LocationItem) => void;
   disabled?: boolean;
   invalid?: boolean;
@@ -217,18 +217,20 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
                 </button>
               ))}
             </div>
-            <button
-              type="button"
-              className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold"
-              style={{ color: 'var(--accent)' }}
-              onClick={() => {
-                setOpen(false);
-                onCreateNew();
-              }}
-            >
-              <Plus size={12} />
-              {t('createNewLocation') || 'Create New Location'}
-            </button>
+            {onCreateNew && (
+              <button
+                type="button"
+                className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold"
+                style={{ color: 'var(--accent)' }}
+                onClick={() => {
+                  setOpen(false);
+                  onCreateNew();
+                }}
+              >
+                <Plus size={12} />
+                {t('createNewLocation') || 'Create New Location'}
+              </button>
+            )}
           </div>
 
           <div className="max-h-64 overflow-y-auto">

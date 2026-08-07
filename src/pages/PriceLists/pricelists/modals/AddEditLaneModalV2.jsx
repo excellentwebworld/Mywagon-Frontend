@@ -1,35 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Plus, Trash2, ChevronDown, ChevronUp, AlertTriangle, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../../../../hooks/useTheme';
 import { useApp } from '../../../../context/AppContext';
 import { ApiError } from '../../../../api/client';
-import { addressBookService } from '../../../../api';
 import { buildLaneFingerprint, buildLaneFingerprintFromEntry } from '../../../../api/utils/laneMetricDisplay';
 import { resolveCity, calculateRouteTotals, getScopeLabels } from '../../../../mocks/priceListsData';
 import { PARTNERS as MOCK_PARTNERS } from '../../../../mocks/partnersMasterData';
 import { LocationSelect } from '../../../../components/CreateShipmentWizard/LocationSelect';
-import { CreateLocationModal } from '../../../../components/AddressBook/CreateLocationModal';
-import { CreateCompanyModal } from '../../../../components/AddressBook/CreateCompanyModal';
 import { SearchVehicleCargoPicker } from '../../../../components/SearchTrucks/SearchVehicleCargoPicker';
-import {
-  EMPTY_COMPANY_DATA,
-  EMPTY_CREATE_DATA,
-} from '../../../../pages/AddressBook/types';
-import { applyTemplate as applyAddressTemplate } from '../../../../pages/AddressBook/utils/locationUtils';
-import { validateCreateAll } from '../../../../pages/AddressBook/validation/locationCreateValidation';
-import {
-  checkLocationDuplicate,
-  DUPLICATE_LOCATION_MESSAGE,
-} from '../../../../pages/AddressBook/validation/locationDuplicateValidation';
 import {
   mapLocationToLaneStop,
   isValidLaneStop,
   stopsAreSamePlace,
   normalizeLoadedLaneStop,
 } from '../mapLocationToLaneStop';
-import '../../../../styles/address-book.css';
 
 const METRICS = [
   { key: 'weight', labelKey: 'priceLists.phase2.metric.weight', fallback: 'Weight' },
@@ -129,8 +114,7 @@ function toLegacyPricing(rows) {
 export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode = 'add', role, allLanes, forwarderTab, isSaving = false }) {
   const { t } = useTranslation();
   const { T } = useTheme();
-  const queryClient = useQueryClient();
-  const { locations, refreshLocationsFromApi, showToast } = useApp();
+  const { locations, refreshLocationsFromApi } = useApp();
 
   const metricLabel = (metric) => {
     const item = METRICS.find((m) => m.key === metric);
@@ -157,23 +141,10 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
   const [dupeWarn, setDupeWarn] = useState(false);
   const sourceLaneRef = useRef(null);
 
-  // Address Book create-location flow (same pattern as Create Shipment)
-  const [createLocOpen, setCreateLocOpen] = useState(false);
-  const [createStep, setCreateStep] = useState(1);
-  const [createData, setCreateData] = useState(EMPTY_CREATE_DATA);
-  const [createStopIdx, setCreateStopIdx] = useState(null);
-  const [companyQuery, setCompanyQuery] = useState('');
-  const [apiCompanies, setApiCompanies] = useState([]);
-  const [potentialDuplicates, setPotentialDuplicates] = useState([]);
-  const [isCompanyOpen, setIsCompanyOpen] = useState(false);
-  const [companyData, setCompanyData] = useState(EMPTY_COMPANY_DATA);
-  const [savingLocation, setSavingLocation] = useState(false);
-
   const activeLocations = useMemo(
     () => (locations || []).filter((l) => l.status === 'active'),
     [locations],
   );
-  const filteredCompanies = useMemo(() => apiCompanies, [apiCompanies]);
 
   const mapBackendFieldErrors = (fieldErrors = {}) => {
     const mapped = {};
@@ -224,8 +195,6 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
   useEffect(() => {
     if (!open) {
       sourceLaneRef.current = null;
-      setCreateLocOpen(false);
-      setCreateStopIdx(null);
       return;
     }
 
@@ -261,123 +230,6 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
     setErrors({});
     setDupeWarn(false);
   }, [open, lane, role, forwarderTab, mode, refreshLocationsFromApi]);
-
-  useEffect(() => {
-    if (!createLocOpen) return undefined;
-    const q = companyQuery.trim();
-    const timer = setTimeout(() => {
-      addressBookService
-        .listCompanies(q || undefined, 'my_locations')
-        .then(setApiCompanies)
-        .catch(() => setApiCompanies([]));
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [companyQuery, createLocOpen]);
-
-  useEffect(() => {
-    if (createStep !== 4) {
-      setPotentialDuplicates([]);
-      return undefined;
-    }
-
-    const name = createData.name.trim();
-    const company = createData.company.trim();
-    if (!name || !company) return undefined;
-
-    let cancelled = false;
-    addressBookService
-      .checkDuplicate(name, company)
-      .then(async (result) => {
-        if (cancelled || !result.duplicate || !result.existing_id) {
-          if (!cancelled) setPotentialDuplicates([]);
-          return;
-        }
-        const existing = await queryClient.fetchQuery({
-          queryKey: ['locationDetail', String(result.existing_id)],
-          queryFn: () => addressBookService.getLocation(String(result.existing_id)),
-        });
-        if (!cancelled) setPotentialDuplicates([existing]);
-      })
-      .catch(() => {
-        if (!cancelled) setPotentialDuplicates([]);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [createStep, createData, queryClient]);
-
-  const [googleKm, setGoogleKm] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const validStops = stops.filter((s) => isValidLaneStop(s));
-
-    if (validStops.length < 2) {
-      setGoogleKm(null);
-      return;
-    }
-
-    async function calculateGoogleKm() {
-      if (typeof window === 'undefined' || !window.google || !window.google.maps || !window.google.maps.DistanceMatrixService) {
-        return;
-      }
-
-      try {
-        let total = 0;
-        const service = new window.google.maps.DistanceMatrixService();
-
-        for (let i = 0; i < validStops.length - 1; i++) {
-          const s1 = validStops[i];
-          const s2 = validStops[i + 1];
-
-          const orig = (s1.lat && s1.lng)
-            ? new window.google.maps.LatLng(Number(s1.lat), Number(s1.lng))
-            : (s1.address || s1.label || s1.city || s1.value);
-
-          const dest = (s2.lat && s2.lng)
-            ? new window.google.maps.LatLng(Number(s2.lat), Number(s2.lng))
-            : (s2.address || s2.label || s2.city || s2.value);
-
-          if (!orig || !dest) continue;
-
-          const res = await new Promise((resolve) => {
-            service.getDistanceMatrix(
-              {
-                origins: [orig],
-                destinations: [dest],
-                travelMode: window.google.maps.TravelMode.DRIVING,
-                unitSystem: window.google.maps.UnitSystem.METRIC,
-              },
-              (response, status) => {
-                if (status === 'OK' && response?.rows?.[0]?.elements?.[0]?.status === 'OK') {
-                  const m = response.rows[0].elements[0].distance.value;
-                  resolve(Math.round(m / 1000));
-                } else {
-                  resolve(null);
-                }
-              }
-            );
-          });
-
-          if (res) total += res;
-        }
-
-        if (!cancelled && total > 0) {
-          setGoogleKm(total);
-        }
-      } catch (_e) {
-        // Fallback to local Haversine / matrix
-      }
-    }
-
-    setGoogleKm(null);
-    void calculateGoogleKm();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [stops]);
 
   const routeCalc = useMemo(() => {
     const validStops = stops.filter((s) => isValidLaneStop(s));
@@ -445,103 +297,6 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
     const loc = activeLocations.find((x) => String(x.id) === String(locationId));
     if (loc) applyLocationAtIndex(idx, loc);
   }, [activeLocations, applyLocationAtIndex]);
-
-  const openCreateLocation = (idx) => {
-    setCreateStopIdx(idx);
-    setCreateStep(1);
-    setCreateData({ ...EMPTY_CREATE_DATA, context: 'my', role: 'both' });
-    setPotentialDuplicates([]);
-    setCreateLocOpen(true);
-  };
-
-  const closeCreateLocation = () => {
-    setCreateLocOpen(false);
-    setCreateStopIdx(null);
-  };
-
-  const handleApplyCompany = useCallback(async (values) => {
-    try {
-      const created = await addressBookService.createCompanyEntity({
-        name: values.name.trim(),
-        vat_number: values.vat.trim(),
-        address: values.address.trim(),
-        country: values.country.trim() || 'Greece',
-        phone: values.phone || undefined,
-        email: values.email || undefined,
-        website: values.website || undefined,
-        industry: values.industry || undefined,
-        primary_contact: values.contactPerson || undefined,
-      });
-      setApiCompanies((prev) => [
-        ...prev,
-        { company_name: created.name, company_vat: created.vat_number || '' },
-      ]);
-      setCreateData((prev) => ({
-        ...prev,
-        company: created.name,
-        companyVat: created.vat_number || '',
-      }));
-      setIsCompanyOpen(false);
-      showToast(t('erpOrdersCompanyCreated', 'Company created successfully.'), 'success');
-    } catch (err) {
-      const message = err instanceof ApiError
-        ? err.message
-        : t('erpOrdersCompanyCreateError', 'Failed to create company');
-      showToast(message, 'error');
-    }
-  }, [showToast, t]);
-
-  const submitNewLocation = useCallback(async () => {
-    const payload = {
-      ...createData,
-      company: createData.context === 'customer' ? createData.company : 'My Company',
-      companyVat: createData.context === 'customer'
-        ? createData.companyVat
-        : createData.companyVat || 'N/A',
-      contacts: [],
-      amenityIds: [],
-      equipment: [],
-      hours: '',
-      tags: '',
-    };
-
-    const validationErrors = validateCreateAll(payload);
-    if (Object.keys(validationErrors).length > 0) {
-      const firstKey = Object.keys(validationErrors)[0];
-      showToast(validationErrors[firstKey] ?? 'Please fix validation errors', 'error');
-      if (firstKey === 'companyEntity' || firstKey === 'type') setCreateStep(1);
-      else if (['name', 'address', 'city', 'postal', 'role'].includes(firstKey)) setCreateStep(2);
-      else setCreateStep(3);
-      return;
-    }
-
-    try {
-      setSavingLocation(true);
-      const isDuplicate = await checkLocationDuplicate(payload.name, payload.company);
-      if (isDuplicate) {
-        showToast(DUPLICATE_LOCATION_MESSAGE, 'error');
-        setCreateStep(4);
-        return;
-      }
-
-      const created = await addressBookService.createLocation(payload);
-      void refreshLocationsFromApi(true);
-
-      if (createStopIdx != null) {
-        applyLocationAtIndex(createStopIdx, created);
-      }
-
-      closeCreateLocation();
-      showToast(t('erpOrdersLocationCreated', 'Address created successfully.'), 'success');
-    } catch (err) {
-      const message = err instanceof ApiError
-        ? err.message
-        : t('erpOrdersLocationCreateError', 'Failed to create address.');
-      showToast(message, 'error');
-    } finally {
-      setSavingLocation(false);
-    }
-  }, [createData, createStopIdx, applyLocationAtIndex, refreshLocationsFromApi, showToast, t]);
 
   const addPricingRow = () => {
     const nextMetric = METRICS.find((m) => !usedMetrics.has(m.key));
@@ -785,7 +540,6 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                         locations={activeLocations}
                         value={stop?.location_id ? String(stop.location_id) : ''}
                         onChange={(lid) => selectLocationAtIndex(idx, lid)}
-                        onCreateNew={() => openCreateLocation(idx)}
                         invalid={!!errors.stops && !isValidLaneStop(stop)}
                         fallbackLabel={missingLocFallback}
                       />
@@ -1007,38 +761,6 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
           </button>
         </div>
       </div>
-
-      <CreateLocationModal
-        isCreateOpen={createLocOpen}
-        closeCreateModal={closeCreateLocation}
-        createStep={createStep}
-        setCreateStep={setCreateStep}
-        createData={createData}
-        setCreateData={setCreateData}
-        submitNewLocation={submitNewLocation}
-        potentialDuplicates={potentialDuplicates}
-        selectExistingDuplicate={async (loc) => {
-          void refreshLocationsFromApi(true);
-          if (createStopIdx != null) {
-            applyLocationAtIndex(createStopIdx, loc);
-          }
-          closeCreateLocation();
-        }}
-        saving={savingLocation}
-        filteredCompanies={filteredCompanies}
-        setCompanyQuery={setCompanyQuery}
-        setIsCompanyOpen={setIsCompanyOpen}
-        handleApplyTemplate={(tpl) => setCreateData((prev) => applyAddressTemplate(tpl, prev))}
-        t={t}
-      />
-
-      <CreateCompanyModal
-        isCompanyOpen={isCompanyOpen}
-        closeCompanyModal={() => setIsCompanyOpen(false)}
-        companyData={companyData}
-        setCompanyData={setCompanyData}
-        handleApplyCompany={handleApplyCompany}
-      />
     </div>
   );
 }
