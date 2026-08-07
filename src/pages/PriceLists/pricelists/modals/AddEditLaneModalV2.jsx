@@ -3,10 +3,9 @@ import { X, Plus, Trash2, ChevronDown, ChevronUp, AlertTriangle, Check } from 'l
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../../hooks/useTheme';
 import { useApp } from '../../../../context/AppContext';
-import { ApiError } from '../../../../api/client';
+import { ApiError, partnersService } from '../../../../api';
 import { buildLaneFingerprint, buildLaneFingerprintFromEntry } from '../../../../api/utils/laneMetricDisplay';
-import { resolveCity, calculateRouteTotals, getScopeLabels } from '../../../../mocks/priceListsData';
-import { PARTNERS as MOCK_PARTNERS } from '../../../../mocks/partnersMasterData';
+import { resolveCity, calculateRouteTotals } from '../../../../mocks/priceListsData';
 import { LocationSelect } from '../../../../components/CreateShipmentWizard/LocationSelect';
 import { SearchVehicleCargoPicker } from '../../../../components/SearchTrucks/SearchVehicleCargoPicker';
 import { DatePicker } from '../../../../components/ui/DatePicker';
@@ -141,12 +140,63 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
   const [errors, setErrors] = useState({});
   const [dupeWarn, setDupeWarn] = useState(false);
   const [googleKm, setGoogleKm] = useState(null);
+  const [partners, setPartners] = useState([]);
+  const [partnersLoading, setPartnersLoading] = useState(false);
+  const [partnersError, setPartnersError] = useState(null);
+  const [partnerSearch, setPartnerSearch] = useState('');
   const sourceLaneRef = useRef(null);
 
   const activeLocations = useMemo(
     () => (locations || []).filter((l) => l.status === 'active'),
     [locations],
   );
+
+  const partnerOptions = useMemo(() => {
+    const q = partnerSearch.trim().toLowerCase();
+    const list = (partners || []).filter((p) => {
+      const status = String(p.status || '').toLowerCase();
+      return !status || status === 'active';
+    });
+    if (!q) return list;
+    return list.filter((p) => String(p.name || '').toLowerCase().includes(q));
+  }, [partners, partnerSearch]);
+
+  const partnerNameById = useMemo(() => {
+    const map = new Map();
+    partners.forEach((p) => {
+      map.set(String(p.id), p.name);
+    });
+    return map;
+  }, [partners]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setPartnersLoading(true);
+      setPartnersError(null);
+      try {
+        const result = await partnersService.listPartners({
+          page: 1,
+          per_page: 100,
+          facet: 'all',
+          statuses: ['active'],
+          sort: 'name',
+          sort_dir: 'asc',
+        });
+        if (!cancelled) {
+          setPartners(Array.isArray(result?.items) ? result.items : []);
+        }
+      } catch (_e) {
+        if (!cancelled) {
+          setPartners([]);
+          setPartnersError(t('priceLists.modal.partnersLoadError', 'Could not load partners.'));
+        }
+      } finally {
+        if (!cancelled) setPartnersLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [t]);
 
   const mapBackendFieldErrors = (fieldErrors = {}) => {
     const mapped = {};
@@ -216,9 +266,10 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       setPricingRows(normalizeRowsFromLane(lane));
       setEffectiveFrom(lane.effectiveFrom || '');
       setEffectiveTo(lane.effectiveTo || '');
-      setScopePartnerIds(lane.scopePartnerIds || []);
+      setScopePartnerIds((lane.scopePartnerIds || []).map((id) => String(id)));
       setScopeDirection(lane.scopeDirection || '');
       setNotes(lane.notes || '');
+      setPartnerSearch('');
     } else {
       setStops([null, null]);
       setTripType('direct');
@@ -228,6 +279,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       setScopePartnerIds([]);
       setScopeDirection(role === 'forwarder' ? (forwarderTab === 'carrier' ? 'buy' : 'sell') : '');
       setNotes('');
+      setPartnerSearch('');
     }
 
     setErrors({});
@@ -473,7 +525,9 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       effectiveTo: effectiveTo || null,
       scope: scopePartnerIds.length > 0 ? 'specific' : 'default',
       scopePartnerIds,
-      scopeLabel: scopePartnerIds.length > 0 ? getScopeLabels(scopePartnerIds).join(', ') : 'Default',
+      scopeLabel: scopePartnerIds.length > 0
+        ? scopePartnerIds.map((id) => partnerNameById.get(String(id)) || String(id)).join(', ')
+        : 'Default',
       scopeDirection: role === 'forwarder' && scopeDirection ? scopeDirection : null,
       notes,
     };
@@ -512,7 +566,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       }));
       scrollToFirstError();
     }
-  }, [stops, pricingRows, effectiveFrom, effectiveTo, routeCalc, tripType, scopePartnerIds, scopeDirection, notes, role, onSave, lane, mode, mapBackendFieldErrors, getErrorMessage, scrollToFirstError, t]);
+  }, [stops, pricingRows, effectiveFrom, effectiveTo, routeCalc, tripType, scopePartnerIds, scopeDirection, notes, role, onSave, lane, mode, mapBackendFieldErrors, getErrorMessage, scrollToFirstError, t, partnerNameById]);
   if (!open) return null;
 
   const inputStyle = {
@@ -805,25 +859,57 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
 
               <div>
                 <label style={labelStyle}>{t('priceLists.modal.specificPartners', 'Specific partners')}</label>
+                <input
+                  type="search"
+                  style={{ ...inputStyle, marginBottom: 8 }}
+                  value={partnerSearch}
+                  onChange={(e) => setPartnerSearch(e.target.value)}
+                  placeholder={t('priceLists.modal.searchPartners', 'Search partners…')}
+                />
                 <div className="grid grid-cols-2 gap-2 p-2 rounded-lg" style={{ border: `1px solid ${T.bd}`, maxHeight: 150, overflowY: 'auto' }}>
-                  {MOCK_PARTNERS.map((p) => {
-                    const checked = scopePartnerIds.includes(p.id);
+                  {partnersLoading && (
+                    <div className="col-span-2 py-4 text-center" style={{ fontSize: 12, color: T.t3 }}>
+                      {t('common.loading', 'Loading…')}
+                    </div>
+                  )}
+                  {!partnersLoading && partnersError && (
+                    <div className="col-span-2 py-4 text-center" style={{ fontSize: 12, color: '#B91C1C' }}>
+                      {partnersError}
+                    </div>
+                  )}
+                  {!partnersLoading && !partnersError && partnerOptions.length === 0 && (
+                    <div className="col-span-2 py-4 text-center" style={{ fontSize: 12, color: T.t3 }}>
+                      {partnerSearch.trim()
+                        ? t('priceLists.modal.noPartnersMatch', 'No partners match your search.')
+                        : t('priceLists.modal.noPartners', 'No active partners found.')}
+                    </div>
+                  )}
+                  {!partnersLoading && partnerOptions.map((p) => {
+                    const pid = String(p.id);
+                    const checked = scopePartnerIds.includes(pid);
                     return (
                       <button
-                        key={p.id}
+                        key={pid}
                         type="button"
                         className="flex items-center justify-between px-2 py-1.5 rounded-md border-none cursor-pointer"
                         style={{ background: checked ? T.al : T.bg, color: checked ? T.ac : T.t1, fontSize: 12 }}
                         onClick={() => {
-                          setScopePartnerIds((prev) => checked ? prev.filter((x) => x !== p.id) : [...prev, p.id]);
+                          setScopePartnerIds((prev) => (
+                            checked ? prev.filter((x) => x !== pid) : [...prev, pid]
+                          ));
                         }}
                       >
-                        <span className="truncate">{p.name}</span>
+                        <span className="truncate" title={p.name}>{p.name}</span>
                         {checked && <Check size={12} />}
                       </button>
                     );
                   })}
                 </div>
+                {scopePartnerIds.length > 0 && (
+                  <div style={{ fontSize: 11, color: T.t3, marginTop: 6 }}>
+                    {t('priceLists.modal.partnersSelected', '{{n}} selected').replace('{{n}}', String(scopePartnerIds.length))}
+                  </div>
+                )}
               </div>
 
               <div>
