@@ -12,6 +12,10 @@ export interface ApiPriceLaneStop {
   type?: string;
   value?: string;
   countryCode?: string;
+  location_id?: string | number | null;
+  address?: string;
+  lat?: string | number | null;
+  lng?: string | number | null;
 }
 
 export interface ApiPriceLane {

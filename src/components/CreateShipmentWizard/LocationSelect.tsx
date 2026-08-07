@@ -17,6 +17,8 @@ interface LocationSelectProps {
   onPreview?: (location: LocationItem) => void;
   disabled?: boolean;
   invalid?: boolean;
+  /** Shown when value is set but the location is missing from `locations` (deleted/legacy). */
+  fallbackLabel?: string;
 }
 
 export const LocationSelect: React.FC<LocationSelectProps> = ({
@@ -27,6 +29,7 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
   onPreview,
   disabled = false,
   invalid = false,
+  fallbackLabel,
 }) => {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -161,7 +164,7 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
         style={{
           border: invalid ? '1px solid #DC2626' : '1px solid var(--border)',
           background: 'var(--surface)',
-          color: selected ? 'var(--text-primary)' : 'var(--text-tertiary)',
+          color: selected || (value && fallbackLabel) ? 'var(--text-primary)' : 'var(--text-tertiary)',
           fontSize: 12,
           boxShadow: invalid ? '0 0 0 1px #DC2626' : undefined,
         }}
@@ -170,7 +173,9 @@ export const LocationSelect: React.FC<LocationSelectProps> = ({
         <span className="truncate">
           {selected
             ? `${selected.name}${selected.city ? ` · ${selected.city}` : ''}`
-            : t('selectLocation') || 'Select location...'}
+            : (value && fallbackLabel)
+              ? fallbackLabel
+              : t('selectLocation') || 'Select location...'}
         </span>
         <ChevronDown size={14} />
       </button>
