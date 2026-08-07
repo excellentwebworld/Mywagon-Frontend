@@ -191,8 +191,50 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       return !status || status === 'active';
     });
     if (!q) return list;
-    return list.filter((p) => String(p.name || '').toLowerCase().includes(q));
+    return list.filter((p) => {
+      const name = String(p.name || '').toLowerCase();
+      const type = String(p.type || '').toLowerCase();
+      const typeLabel = String(p.type_label || '').toLowerCase();
+      return name.includes(q) || type.includes(q) || typeLabel.includes(q)
+        || (q === 'carrier' && type.includes('carrier'))
+        || (q === 'freelancer' && (type.includes('freelancer') || type.includes('driver')));
+    });
   }, [partners, partnerSearch]);
+
+  const partnerTypeBadge = (partner) => {
+    const type = String(partner?.type || '').toLowerCase();
+    if (type === 'carrier_company' || type === 'carrier') {
+      return {
+        label: t('priceLists.modal.partnerTypeCarrier', 'Carrier'),
+        bg: '#EFF6FF',
+        fg: '#2563EB',
+        bd: '#BFDBFE',
+      };
+    }
+    if (type === 'freelancer_driver' || type === 'driver' || type === 'freelancer') {
+      return {
+        label: t('priceLists.modal.partnerTypeFreelancer', 'Freelancer'),
+        bg: 'rgba(108, 58, 237, 0.08)',
+        fg: T.ac,
+        bd: 'rgba(108, 58, 237, 0.2)',
+      };
+    }
+    if (type === 'supplier' || type === 'shipper' || type === 'customer') {
+      return {
+        label: partner?.type_label || t('priceLists.modal.partnerTypeShipper', 'Shipper'),
+        bg: '#ECFDF5',
+        fg: '#059669',
+        bd: '#A7F3D0',
+      };
+    }
+    if (!partner?.type_label && !partner?.type) return null;
+    return {
+      label: partner.type_label || partner.type,
+      bg: T.bg,
+      fg: T.t3,
+      bd: T.bd,
+    };
+  };
 
   const partnerNameById = useMemo(() => {
     const map = new Map();
@@ -924,7 +966,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                   onChange={(e) => setPartnerSearch(e.target.value)}
                   placeholder={t('priceLists.modal.searchPartners', 'Search partners…')}
                 />
-                <div className="grid grid-cols-2 gap-2 p-2 rounded-lg" style={{ border: `1px solid ${T.bd}`, maxHeight: 150, overflowY: 'auto' }}>
+                <div className="grid grid-cols-2 gap-2 p-2 rounded-lg" style={{ border: `1px solid ${T.bd}`, maxHeight: 180, overflowY: 'auto' }}>
                   {partnersLoading && (
                     <div className="col-span-2 py-4 text-center" style={{ fontSize: 12, color: T.t3 }}>
                       {t('common.loading', 'Loading…')}
@@ -945,11 +987,12 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                   {!partnersLoading && partnerOptions.map((p) => {
                     const pid = String(p.id);
                     const checked = scopePartnerIds.includes(pid);
+                    const typeBadge = partnerTypeBadge(p);
                     return (
                       <button
                         key={pid}
                         type="button"
-                        className="flex items-center justify-between px-2 py-1.5 rounded-md border-none cursor-pointer"
+                        className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md border-none cursor-pointer text-left"
                         style={{ background: checked ? T.al : T.bg, color: checked ? T.ac : T.t1, fontSize: 12 }}
                         onClick={() => {
                           setScopePartnerIds((prev) => (
@@ -957,8 +1000,27 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                           ));
                         }}
                       >
-                        <span className="truncate" title={p.name}>{p.name}</span>
-                        {checked && <Check size={12} />}
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate" title={p.name}>{p.name}</span>
+                          {typeBadge && (
+                            <span
+                              className="inline-block mt-0.5 truncate max-w-full"
+                              style={{
+                                fontSize: 9,
+                                fontWeight: 600,
+                                padding: '1px 6px',
+                                borderRadius: 4,
+                                background: typeBadge.bg,
+                                color: typeBadge.fg,
+                                border: `1px solid ${typeBadge.bd}`,
+                                lineHeight: 1.4,
+                              }}
+                            >
+                              {typeBadge.label}
+                            </span>
+                          )}
+                        </span>
+                        {checked && <Check size={12} className="shrink-0" />}
                       </button>
                     );
                   })}

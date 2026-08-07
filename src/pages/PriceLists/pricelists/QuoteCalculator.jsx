@@ -1,6 +1,7 @@
 /**
  * QuoteCalculator — lane-based quote tool.
  * Origin/destination use Address Book LocationSelect (same as Add Lane).
+ * Vehicle types come from matching-lane FTL metrics, else the vehicle catalog API.
  */
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
@@ -8,14 +9,13 @@ import { X, Calculator, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import { useApp } from '../../../context/AppContext';
+import { useVehicleTypes } from '../../../hooks/useVehicleTypes';
 import { resolveCity, getDistance } from '../../../mocks/priceListsData';
 import { LocationSelect } from '../../../components/CreateShipmentWizard/LocationSelect';
 import {
   formatMetricLabel,
   resolveLanePricingRows,
 } from '../../../api/utils/laneMetricDisplay';
-
-const FALLBACK_VEHICLE_TYPES = ['van', 'rigid', 'semi'];
 
 function getStopLocationId(stop) {
   if (!stop || typeof stop === 'string') return null;
@@ -49,6 +49,19 @@ function stopMatchesLocation(stop, location) {
   const name = (location.name || '').trim();
   const raw = getStopRaw(stop);
   return placesMatch(raw, city) || placesMatch(raw, name) || placesMatch(raw, `${name} · ${city}`);
+}
+
+function collectFtlVehicleNames(lanes) {
+  const names = new Set();
+  (lanes || []).forEach((lane) => {
+    resolveLanePricingRows(lane).forEach((row) => {
+      if (row.metric !== 'ftl_truck_type') return;
+      const raw = String(row.metricValue?.vehicle_type || '').trim();
+      if (!raw) return;
+      raw.split(',').map((s) => s.trim()).filter(Boolean).forEach((name) => names.add(name));
+    });
+  });
+  return Array.from(names).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 }
 
 function metricPriority(row, vehicleType, pallets, weight) {
@@ -112,6 +125,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
   const { t } = useTranslation();
   const { T } = useTheme();
   const { locations, refreshLocationsFromApi } = useApp();
+  const { vehicleTypes, loading: vehicleTypesLoading } = useVehicleTypes();
 
   const [originId, setOriginId] = useState('');
   const [destinationId, setDestinationId] = useState('');
@@ -141,7 +155,6 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
     [activeLocations, destinationId],
   );
 
-  /** Prefer AB locations that appear as origins in the lane library; fall back to all active. */
   const originLocations = useMemo(() => {
     const ids = new Set();
     activeLanes.forEach((lane) => {
@@ -153,7 +166,6 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
     return filtered.length > 0 ? filtered : activeLocations;
   }, [activeLanes, activeLocations]);
 
-  /** Destinations that exist on lanes matching the selected origin. */
   const destinationLocations = useMemo(() => {
     if (!originLocation) return [];
     const ids = new Set();
@@ -167,23 +179,28 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
       const filtered = activeLocations.filter((l) => ids.has(String(l.id)));
       if (filtered.length > 0) return filtered;
     }
-    // Legacy lanes without location_id — allow any AB location except origin
     return activeLocations.filter((l) => String(l.id) !== String(originLocation.id));
   }, [originLocation, activeLanes, activeLocations]);
 
-  const vehicleOptions = useMemo(() => {
-    const fromLanes = new Set();
-    activeLanes.forEach((lane) => {
-      resolveLanePricingRows(lane).forEach((row) => {
-        if (row.metric !== 'ftl_truck_type') return;
-        const raw = String(row.metricValue?.vehicle_type || '').trim();
-        if (!raw) return;
-        raw.split(',').map((s) => s.trim()).filter(Boolean).forEach((name) => fromLanes.add(name));
-      });
+  const matchingOdLanes = useMemo(() => {
+    if (!originLocation || !destinationLocation) return [];
+    return activeLanes.filter((l) => {
+      const stops = l.stops || [];
+      return stopMatchesLocation(stops[0], originLocation)
+        && stopMatchesLocation(stops[stops.length - 1], destinationLocation);
     });
-    const list = Array.from(fromLanes).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-    return list.length > 0 ? list : FALLBACK_VEHICLE_TYPES;
-  }, [activeLanes]);
+  }, [originLocation, destinationLocation, activeLanes]);
+
+  const vehicleOptions = useMemo(() => {
+    const laneSource = matchingOdLanes.length > 0 ? matchingOdLanes : activeLanes;
+    const fromLanes = collectFtlVehicleNames(laneSource);
+    if (fromLanes.length > 0) return fromLanes;
+
+    const fromCatalog = (vehicleTypes || [])
+      .map((vt) => String(vt.name || '').trim())
+      .filter(Boolean);
+    return Array.from(new Set(fromCatalog)).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  }, [matchingOdLanes, activeLanes, vehicleTypes]);
 
   useEffect(() => {
     if (!open) return;
@@ -209,6 +226,12 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
     }
   }, [destinationId, destinationLocations]);
 
+  useEffect(() => {
+    if (vehicleType && !vehicleOptions.includes(vehicleType)) {
+      setVehicleType('');
+    }
+  }, [vehicleType, vehicleOptions]);
+
   const calculate = useCallback(() => {
     if (!originLocation || !destinationLocation || String(originLocation.id) === String(destinationLocation.id)) {
       setResult({ error: 'invalid' });
@@ -219,11 +242,13 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
     const dCity = (destinationLocation.city || destinationLocation.name || '').trim();
     const km = getDistance(oCity, dCity);
 
-    const candidates = activeLanes.filter((l) => {
-      const stops = l.stops || [];
-      return stopMatchesLocation(stops[0], originLocation)
-        && stopMatchesLocation(stops[stops.length - 1], destinationLocation);
-    });
+    const candidates = matchingOdLanes.length > 0
+      ? matchingOdLanes
+      : activeLanes.filter((l) => {
+        const stops = l.stops || [];
+        return stopMatchesLocation(stops[0], originLocation)
+          && stopMatchesLocation(stops[stops.length - 1], destinationLocation);
+      });
 
     const sorted = [...candidates].sort((a, b) => {
       if (a.scope !== 'default' && b.scope === 'default') return -1;
@@ -255,7 +280,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
       matchedMetricLabel: formatMetricLabel(pricingFromRows.matchedMetric, t),
       breakdown: { base: price },
     });
-  }, [originLocation, destinationLocation, pallets, weight, vehicleType, activeLanes, t]);
+  }, [originLocation, destinationLocation, matchingOdLanes, pallets, weight, vehicleType, activeLanes, t]);
 
   if (!open) return null;
 
@@ -270,6 +295,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
     width: '100%',
   };
   const labelStyle = { fontSize: 11, fontWeight: 600, color: T.t2, marginBottom: 3, display: 'block' };
+  const canCalculate = Boolean(originId && destinationId);
 
   return (
     <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 200 }}>
@@ -292,11 +318,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label style={labelStyle}>{t('priceLists.modal.origin', 'Origin')}</label>
-              <LocationSelect
-                locations={originLocations}
-                value={originId}
-                onChange={setOriginId}
-              />
+              <LocationSelect locations={originLocations} value={originId} onChange={setOriginId} />
             </div>
             <div>
               <label style={labelStyle}>{t('priceLists.modal.destination', 'Destination')}</label>
@@ -320,17 +342,28 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
             </div>
             <div>
               <label style={labelStyle}>{t('priceLists.calculator.vehicle', 'Vehicle')}</label>
-              <select value={vehicleType} onChange={(e) => setVehicleType(e.target.value)} style={inputStyle}>
+              <select
+                value={vehicleType}
+                onChange={(e) => setVehicleType(e.target.value)}
+                style={inputStyle}
+                disabled={vehicleTypesLoading && vehicleOptions.length === 0}
+              >
                 <option value="">—</option>
                 {vehicleOptions.map((v) => <option key={v} value={v}>{v}</option>)}
               </select>
+              {vehicleOptions.length === 0 && !vehicleTypesLoading && (
+                <div style={{ fontSize: 10, color: T.t3, marginTop: 4 }}>
+                  {t('priceLists.calculator.noVehicles', 'No vehicle types in price list')}
+                </div>
+              )}
             </div>
           </div>
 
           <button
             onClick={calculate}
+            disabled={!canCalculate}
             className="w-full py-2.5 rounded-lg cursor-pointer border-none text-white"
-            style={{ background: T.ac, fontSize: 13, fontWeight: 600 }}
+            style={{ background: T.ac, fontSize: 13, fontWeight: 600, opacity: canCalculate ? 1 : 0.55 }}
           >
             {t('priceLists.calculator.calculate', 'Calculate Quote')}
           </button>

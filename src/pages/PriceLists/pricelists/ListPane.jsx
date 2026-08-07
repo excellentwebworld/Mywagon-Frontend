@@ -19,7 +19,7 @@ import {
   getPrimaryMetricKey,
   resolveLanePricingRows,
 } from '../../../api/utils/laneMetricDisplay';
-import { formatDisplayDate } from '../../../utils/dateDisplay';
+import { formatDisplayDate, formatIsoDisplayDateTime } from '../../../utils/dateDisplay';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 
@@ -36,27 +36,6 @@ function SortIcon({ sortKey, currentSort, currentDir }) {
   return currentDir === 'asc'
     ? <ChevronUp size={12} />
     : <ChevronDown size={12} />;
-}
-
-function relativeTime(dateStr, t) {
-  if (!dateStr) return t('priceLists.time.today', 'Today');
-  const normalized = typeof dateStr === 'string' ? dateStr.trim().replace(' ', 'T') : dateStr;
-  const d = new Date(normalized);
-  if (isNaN(d.getTime())) return t('priceLists.time.today', 'Today');
-
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-
-  if (diffMs < 24 * 60 * 60 * 1000) {
-    return t('priceLists.time.today', 'Today');
-  }
-
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (days <= 0) return t('priceLists.time.today', 'Today');
-  if (days === 1) return t('priceLists.time.oneDayAgo', '1d ago');
-  if (days < 30) return t('priceLists.time.daysAgo', '{{n}}d ago').replace('{{n}}', String(days));
-  const months = Math.floor(days / 30);
-  return t('priceLists.time.monthsAgo', '{{n}}mo ago').replace('{{n}}', String(months));
 }
 
 export default function ListPane({
@@ -405,7 +384,7 @@ export default function ListPane({
                     </td>
                   )}
                   <td style={tdStyle}>
-                    <span style={{ fontSize: 11, color: T.t3 }}>{relativeTime(lane.updatedAt, t)}</span>
+                    <span style={{ fontSize: 11, color: T.t3 }}>{formatIsoDisplayDateTime(lane.updatedAt) || '—'}</span>
                   </td>
                   <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
                     <div className="relative">

@@ -23,7 +23,6 @@ import { toUpperGreek } from '../../utils/greekUppercase';
 
 import {
   calculateRouteTotals,
-  seedAuditLog,
 } from '../../mocks/priceListsData';
 import { serializeLanesToCsv } from '../../api/utils/laneCsvSchema';
 import { resolveCountryIsoCode } from '../../mocks/partnersMasterData';
@@ -188,7 +187,7 @@ function mapUiEntryToStorePayload(entry) {
 export default function PriceListsPage() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const { toast } = useToast();
   const isGreek = i18n.language === 'el';
   const [searchParams, setSearchParams] = useSearchParams();
@@ -199,17 +198,28 @@ export default function PriceListsPage() {
   const [lanesError, setLanesError] = useState(null);
   const [auditLog, setAuditLog] = useState([]);
 
+  const auditActorLabel = useMemo(() => {
+    const first = String(user?.firstName || '').trim();
+    const last = String(user?.lastName || '').trim();
+    const full = `${first} ${last}`.trim();
+    if (full && full !== 'User') return full;
+    if (user?.email) return String(user.email);
+    if (role === 'forwarder') return 'Forwarder Admin';
+    if (role === 'carrier') return 'Carrier Admin';
+    return 'Shipper Admin';
+  }, [user, role]);
+
   const addAuditEntry = useCallback((action, laneId, details) => {
     const entry = {
       id: `AUD-${laneId || 'SYS'}-${Date.now().toString(36)}`,
       laneId: laneId || 'N/A',
       action,
       timestamp: new Date().toISOString(),
-      user: role === 'forwarder' ? 'Forwarder Admin' : role === 'carrier' ? 'Carrier Admin' : 'Shipper Admin',
+      user: auditActorLabel,
       details,
     };
-    setAuditLog(prev => [entry, ...prev]);
-  }, [role]);
+    setAuditLog((prev) => [entry, ...prev]);
+  }, [auditActorLabel]);
 
   // ─── UI state ───
   const [selectedId, setSelectedId] = useState(null);
@@ -338,7 +348,6 @@ export default function PriceListsPage() {
       const uiLanes = Array.isArray(items) ? items.map(mapApiLaneToUiLane) : [];
       setLanes(uiLanes);
       setListMeta(meta || { current_page: page, per_page: pageSize, total: uiLanes.length, last_page: 1 });
-      setAuditLog((prev) => (prev.length === 0 ? seedAuditLog(uiLanes) : prev));
     } catch (_e) {
       setLanesError(t('priceLists.error.loadFailed', 'Could not load price lanes.'));
       setLanes([]);
@@ -479,7 +488,16 @@ export default function PriceListsPage() {
       } else {
         const createdApiLane = await priceListsService.storeLane(payload);
         const createdUiLane = mapApiLaneToUiLane(createdApiLane);
-        addAuditEntry('created', createdUiLane.id, `Created new lane ${createdUiLane.id}: ${createdUiLane.routeLabel || ''}`);
+        const sourceId = editLane?.duplicateSourceId;
+        if (modalMode === 'duplicate' || sourceId) {
+          addAuditEntry(
+            'duplicated',
+            createdUiLane.id,
+            `Lane ${createdUiLane.id} duplicated from ${sourceId || 'source'}: ${createdUiLane.routeLabel || ''}`,
+          );
+        } else {
+          addAuditEntry('created', createdUiLane.id, `Created new lane ${createdUiLane.id}: ${createdUiLane.routeLabel || ''}`);
+        }
         toast.success(t('priceLists.toast.laneCreated', 'Lane created'));
       }
 
@@ -497,7 +515,7 @@ export default function PriceListsPage() {
     } finally {
       setSavingLane(false);
     }
-  }, [savingLane, lanes, catalogLanes, editLane, t, toast, addAuditEntry, refreshAll]);
+  }, [savingLane, lanes, catalogLanes, editLane, modalMode, t, toast, addAuditEntry, refreshAll]);
 
   // ─── Export CSV (same filters as sidebar, full matching set) ───
   const handleExport = useCallback(async () => {
@@ -539,10 +557,14 @@ export default function PriceListsPage() {
       setImportOpen(false);
 
       if (errorCount === 0) {
-        addAuditEntry('imported', 'IMPORT', `Imported ${created} price lanes from CSV file`);
+        addAuditEntry('imported', 'IMPORT', `Imported ${created} price lanes from CSV`);
         toast.success(`${t('priceLists.toast.imported', 'Imported')} ${created} ${t('priceLists.import.lanes', 'lanes')}`);
       } else {
-        addAuditEntry('imported', 'IMPORT', `Imported ${created} price lanes (${skipped} skipped)`);
+        addAuditEntry(
+          'imported',
+          'IMPORT',
+          `Imported ${created} price lanes from CSV (${skipped} skipped, ${errorCount} row error${errorCount === 1 ? '' : 's'})`,
+        );
         toast.success(
           `${t('priceLists.toast.imported', 'Imported')} ${created} ${t('priceLists.import.lanes', 'lanes')}. ${skipped} ${t('priceLists.import.skippedRows', 'rows skipped')}.`,
         );

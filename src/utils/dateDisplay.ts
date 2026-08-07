@@ -59,3 +59,19 @@ export function formatDisplayDateTime(ymd?: string, hm?: string): string {
   if (hm) label += ` ${formatDisplayTime(hm)}`;
   return label;
 }
+
+/**
+ * Format an ISO / Date-parseable timestamp as `dd/MM/yyyy HH:mm` (en-GB, 24h).
+ */
+export function formatIsoDisplayDateTime(iso?: string | null): string {
+  if (!iso) return '';
+  const normalized = typeof iso === 'string' ? iso.trim().replace(' ', 'T') : String(iso);
+  const d = new Date(normalized);
+  if (Number.isNaN(d.getTime())) return '';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = String(d.getFullYear());
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+}

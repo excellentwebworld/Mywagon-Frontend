@@ -3763,6 +3763,9 @@
       "createLane": "Create Lane",
       "specificPartners": "Specific partners",
       "searchPartners": "Search partners…",
+      "partnerTypeCarrier": "Carrier",
+      "partnerTypeFreelancer": "Freelancer",
+      "partnerTypeShipper": "Shipper",
       "conflictOverlap": "A conflicting lane already exists for this route, scope, and validity window.",
       "duplicateLane": "A lane with the same origin, destination, and trip type already exists."
     },
@@ -3834,7 +3837,8 @@
       "noPricing": "Matched lane has no applicable pricing for the entered quantity",
       "laneMatch": "Lane match",
       "breakdown": "Breakdown",
-      "basePrice": "Base price"
+      "basePrice": "Base price",
+      "noVehicles": "No vehicle types in price list"
     },
     "audit": {
       "title": "Audit Log",
@@ -3844,12 +3848,18 @@
       "deletedLabel": "Deleted",
       "created": "Created",
       "updated": "Updated",
+      "activated": "Activated",
       "deactivated": "Deactivated",
       "archived": "Archived",
       "deleted": "Deleted",
       "duplicated": "Duplicated",
       "imported": "Imported",
-      "noEntries": "No audit entries"
+      "noEntries": "No audit entries",
+      "searchPlaceholder": "Search details or lane ID…",
+      "actionType": "Action",
+      "clearFilters": "Clear",
+      "filteredCount": "{{count}} entries",
+      "showing": "Showing {{from}}–{{to}} of {{total}}"
     },
     "time": {
       "today": "Today",
