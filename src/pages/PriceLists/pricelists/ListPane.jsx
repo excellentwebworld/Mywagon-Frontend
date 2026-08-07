@@ -1,7 +1,7 @@
 /**
  * ListPane — Price Lists table view.
  *
- * Columns: Checkbox, Route, Stops, Total km, Price, Metric, Status, Scope,
+ * Columns: Route, Stops, Total km, Price, Metric, Status, Scope,
  *          Effective, Margin% (carrier only), Updated, Actions.
  * Per-column sorting with dual-chevron asc/desc/unsorted pattern.
  * Shared PaginationBar. Click row → open detail pane.
@@ -61,7 +61,6 @@ function relativeTime(dateStr, t) {
 export default function ListPane({
   lanes, selectedId, onSelectLane, role,
   onAction,
-  selectedIds, onToggleSelect, onToggleAll,
   loading = false,
   isEmptyCatalog = false,
 }) {
@@ -129,8 +128,6 @@ export default function ListPane({
   const showFrom = sorted.length > 0 ? startIdx + 1 : 0;
   const showTo = Math.min(startIdx + pageSize, sorted.length);
 
-  const allOnPageSelected = pageData.length > 0 && pageData.every((l) => selectedIds.has(l.id));
-
   const thStyle = {
     fontSize: 11, fontWeight: 600, color: T.t3, padding: '8px 10px',
     borderBottom: `1px solid ${T.bd}`, whiteSpace: 'nowrap', userSelect: 'none',
@@ -145,14 +142,6 @@ export default function ListPane({
         <table className="w-full border-collapse" style={{ minWidth: selectedId ? 540 : 700 }}>
           <thead>
             <tr>
-              <th style={{ ...thStyle, width: 36 }}>
-                <input
-                  type="checkbox"
-                  checked={allOnPageSelected}
-                  onChange={() => onToggleAll(pageData.map(d => d.id))}
-                  className="cursor-pointer"
-                />
-              </th>
               <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('route')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.route', 'Route')}
@@ -222,17 +211,16 @@ export default function ListPane({
             {loading ? (
               Array.from({ length: 8 }).map((_, rowIdx) => (
                 <tr key={rowIdx}>
-                  {Array.from({ length: role === 'carrier' ? 12 : 11 }).map((_, colIdx) => (
+                  {Array.from({ length: role === 'carrier' ? 11 : 10 }).map((_, colIdx) => (
                     <td key={colIdx} style={{ ...tdStyle, borderBottom: `1px solid ${T.bd}` }}>
                       <Skeleton
                         width={
-                          colIdx === 0 ? 18
-                            : colIdx === 1 ? 180
-                              : colIdx === 4 ? 64
-                                : colIdx === 5 ? 88
-                                  : 52
+                          colIdx === 0 ? 180
+                            : colIdx === 3 ? 64
+                              : colIdx === 4 ? 88
+                                : 52
                         }
-                        height={colIdx === 1 ? 32 : 14}
+                        height={colIdx === 0 ? 32 : 14}
                         baseColor={T.bg}
                         highlightColor={T.sf}
                       />
@@ -273,14 +261,6 @@ export default function ListPane({
                   onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = T.sh; }}
                   onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = isSelected ? T.al : 'transparent'; }}
                 >
-                  <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(lane.id)}
-                      onChange={() => onToggleSelect(lane.id)}
-                      className="cursor-pointer"
-                    />
-                  </td>
                   <td style={tdStyle}>
                     <div style={{ fontWeight: 600, fontSize: 12, lineHeight: 1.3 }}>
                       {routeDisplay}

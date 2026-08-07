@@ -6,7 +6,7 @@
  *
  * 3-pane layout: DirectoryPane (230px left) + ListPane (center) + DetailPane (420px right).
  * Filter bar: search.
- * Bulk select + row actions (duplicate, archive, reactivate, delete forever).
+ * Row actions (duplicate, archive, reactivate, delete forever).
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -44,7 +44,6 @@ import AddEditLaneModal from './pricelists/modals/AddEditLaneModalV2';
 import ImportModal from './pricelists/modals/ImportModal';
 import QuoteCalculator from './pricelists/QuoteCalculator';
 import AuditLogPanel from './pricelists/AuditLogPanel';
-import BulkActionBar from './pricelists/BulkActionBar';
 import PriceListsSkeleton from './pricelists/PriceListsSkeleton';
 
 function buildLegacyPricingFromRows(rows = []) {
@@ -221,7 +220,6 @@ export default function PriceListsPage() {
 
   // ─── UI state ───
   const [selectedId, setSelectedId] = useState(null);
-  const [selectedIds, setSelectedIds] = useState(new Set());
   const [activeNode, setActiveNode] = useState('all');
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [addEditOpen, setAddEditOpen] = useState(false);
@@ -298,24 +296,6 @@ export default function PriceListsPage() {
 
   const handleNodeClick = useCallback((node) => {
     setActiveNode(prev => prev === node ? 'all' : node);
-  }, []);
-
-  // ─── Multi-select ───
-  const handleToggleSelect = useCallback((id) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const handleToggleAll = useCallback((ids) => {
-    setSelectedIds(prev => {
-      const allSelected = ids.every(id => prev.has(id));
-      if (allSelected) return new Set();
-      return new Set(ids);
-    });
   }, []);
 
   const persistLaneStatus = useCallback(async (lane, nextStatus, successMessage) => {
@@ -517,57 +497,6 @@ export default function PriceListsPage() {
     }
   }, [reloadLanes, t, toast, addAuditEntry]);
 
-  // ─── Bulk actions ───
-  const handleBulkDuplicate = useCallback(() => {
-    const selected = [...selectedIds]
-      .map((id) => lanes.find((l) => l.id === id))
-      .filter(Boolean);
-
-    if (selected.length === 0) return;
-
-    const first = selected[0];
-    setEditLane({
-      ...JSON.parse(JSON.stringify(first)),
-      duplicateSourceId: first.id,
-      id: undefined,
-      apiId: undefined,
-      status: 'inactive',
-    });
-    setModalMode('duplicate');
-    setAddEditOpen(true);
-    setSelectedIds(new Set());
-
-    if (selected.length > 1) {
-      toast.success(t('priceLists.toast.duplicateOneAtATime', 'Opened duplicate form for the first selected lane.'));
-    }
-  }, [selectedIds, lanes, t, toast]);
-
-  const handleBulkArchive = useCallback(() => {
-    const count = selectedIds.size;
-    setLanes(prev => prev.map(l => selectedIds.has(l.id) ? { ...l, status: 'archived', updatedAt: new Date().toISOString() } : l));
-    addAuditEntry('archived', 'BULK', `Bulk archived ${count} price lanes`);
-    setSelectedIds(new Set());
-    toast.success(t('priceLists.toast.archived', 'Archived'));
-  }, [selectedIds, t, toast, addAuditEntry]);
-
-  const handleBulkDelete = useCallback(() => {
-    const count = selectedIds.size;
-    setConfirmDialog({
-      title: t('priceLists.confirm.deleteTitle', 'Delete Forever'),
-      message: t('priceLists.bulk.deleteConfirm', 'Permanently delete {{n}} lanes? This cannot be undone.').replace('{{n}}', String(selectedIds.size)),
-      confirmLabel: t('priceLists.actions.deleteForever', 'Delete forever'),
-      destructive: true,
-      onConfirm: () => {
-        setLanes(prev => prev.filter(l => !selectedIds.has(l.id)));
-        addAuditEntry('deleted', 'BULK', `Bulk deleted ${count} price lanes`);
-        setSelectedIds(new Set());
-        setSelectedId(null);
-        toast.success(t('priceLists.toast.deleted', 'Deleted'));
-        setConfirmDialog(null);
-      },
-    });
-  }, [selectedIds, t, toast, addAuditEntry]);
-
   // ─── Page title ───
   const pageTitle = isGreek
     ? toUpperGreek(t('priceLists.title', 'Price Lists'))
@@ -693,9 +622,6 @@ export default function PriceListsPage() {
                 onSelectLane={setSelectedId}
                 role={viewRole}
                 onAction={handleAction}
-                selectedIds={selectedIds}
-                onToggleSelect={handleToggleSelect}
-                onToggleAll={handleToggleAll}
                 loading={lanesLoading}
                 isEmptyCatalog={lanes.length === 0 && !hasActiveFilters && activeNode === 'all'}
               />
@@ -773,17 +699,6 @@ export default function PriceListsPage() {
         onClose={() => setAuditOpen(false)}
         auditLog={auditLog}
       />
-
-      {/* ── Bulk Action Bar ── */}
-      {selectedIds.size > 0 && (
-        <BulkActionBar
-          count={selectedIds.size}
-          onDuplicate={handleBulkDuplicate}
-          onArchive={handleBulkArchive}
-          onDelete={handleBulkDelete}
-          onClear={() => setSelectedIds(new Set())}
-        />
-      )}
     </div>
   );
 }
