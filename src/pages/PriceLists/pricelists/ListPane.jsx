@@ -38,11 +38,17 @@ function SortIcon({ sortKey, currentSort, currentDir }) {
 }
 
 function relativeTime(dateStr, t) {
+  if (!dateStr) return t('priceLists.time.today', 'Today');
   const d = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
+
+  if (diffMs <= 0 || diffMs < 1000 * 60 * 60 * 24) {
+    return t('priceLists.time.today', 'Today');
+  }
+
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (days === 0) return t('priceLists.time.today', 'Today');
+  if (days <= 0) return t('priceLists.time.today', 'Today');
   if (days === 1) return t('priceLists.time.oneDayAgo', '1d ago');
   if (days < 30) return t('priceLists.time.daysAgo', '{{n}}d ago').replace('{{n}}', String(days));
   const months = Math.floor(days / 30);
