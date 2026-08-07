@@ -11,7 +11,7 @@ import { MoreHorizontal, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-reac
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import PaginationBar from '../../../components/ui/PaginationBar';
-import { getPrimaryPrice, isExpiringSoon, calcProfitability, cityLabel, formatScopeDisplay } from '../../../mocks/priceListsData';
+import { getPrimaryPrice, isExpiringSoon, calcProfitability, cityLabel, formatRouteLabel, formatScopeDisplay } from '../../../mocks/priceListsData';
 import {
   METRIC_PILL,
   METRIC_SORT_ORDER,
@@ -250,8 +250,8 @@ export default function ListPane({
               const expiring = isExpiringSoon(lane);
               const profitability = role === 'carrier' ? calcProfitability(lane) : null;
 
-              // Route display with bilingual support
-              const routeDisplay = lane.stops.map((s) => cityLabel(s.city, lang)).join(lane.isRoundTrip ? ' ↔ ' : ' → ');
+              // Route display with bilingual support and country code resolution
+              const routeDisplay = formatRouteLabel(lane, lang);
 
               return (
                 <tr

@@ -66,11 +66,60 @@ export function resolveCity(input) {
   return match ? match.en : null;
 }
 
-/** Get city label in given language */
-export function cityLabel(enName, lang = 'en') {
-  const c = CITIES.find((x) => x.en === enName);
-  if (!c) return enName;
-  return lang === 'el' ? c.el : c.en;
+import { COUNTRY_NAMES, getCountryName } from './partnersMasterData';
+
+/** Get city or country label in given language */
+export function cityLabel(input, lang = 'en') {
+  if (!input) return '';
+  const cleaned = String(input).trim();
+  if (!cleaned) return '';
+
+  // 1. Check if input is a known city in CITIES
+  const c = CITIES.find(
+    (x) => x.en.toLowerCase() === cleaned.toLowerCase() || x.el.toLowerCase() === cleaned.toLowerCase()
+  );
+  if (c) return lang?.startsWith('el') ? c.el : c.en;
+
+  // 2. Check if input is an ISO country code (e.g. GR, BG, RO, DE, IT, CZ, AT...)
+  const countryName = getCountryName(cleaned, lang);
+  if (countryName && countryName !== cleaned) {
+    return countryName;
+  }
+
+  // 3. Check if input is formatted like "Patras, GR" -> "Patras, Greece"
+  const commaMatch = cleaned.match(/^(.+?),\s*([A-Z]{2})$/i);
+  if (commaMatch) {
+    const cityName = cityLabel(commaMatch[1], lang);
+    const cName = getCountryName(commaMatch[2], lang);
+    if (cName && cName !== commaMatch[2]) {
+      return `${cityName}, ${cName}`;
+    }
+  }
+
+  return cleaned;
+}
+
+/** Formats a full route string with country codes converted to full names */
+export function formatRouteLabel(lane, lang = 'en') {
+  if (!lane) return '';
+  const arrow = lane.isRoundTrip || lane.tripType === 'roundtrip' ? ' ↔ ' : ' → ';
+
+  if (Array.isArray(lane.stops) && lane.stops.length >= 2) {
+    return lane.stops.map((s) => {
+      const val = typeof s === 'string' ? s : (s.label || s.city || s.value || '');
+      return cityLabel(val, lang);
+    }).join(arrow);
+  }
+
+  if (lane.routeLabel) {
+    const parts = lane.routeLabel.split(/\s*(?:→|↔)\s*/);
+    if (parts.length >= 2) {
+      return parts.map((p) => cityLabel(p, lang)).join(arrow);
+    }
+    return cityLabel(lane.routeLabel, lang);
+  }
+
+  return '';
 }
 
 // ─── Distance Matrix (bidirectional) ───

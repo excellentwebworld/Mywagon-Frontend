@@ -23,6 +23,82 @@ export const COUNTRIES = [
   'RS', 'BA', 'ME', 'TR', 'CY',
 ];
 
+export const COUNTRY_NAMES = {
+  GR: { en: 'Greece', el: 'Ελλάδα' },
+  BG: { en: 'Bulgaria', el: 'Βουλγαρία' },
+  RO: { en: 'Romania', el: 'Ρουμανία' },
+  IT: { en: 'Italy', el: 'Ιταλία' },
+  DE: { en: 'Germany', el: 'Γερμανία' },
+  FR: { en: 'France', el: 'Γαλλία' },
+  ES: { en: 'Spain', el: 'Ισπανία' },
+  PL: { en: 'Poland', el: 'Πολωνία' },
+  NL: { en: 'Netherlands', el: 'Ολλανδία' },
+  BE: { en: 'Belgium', el: 'Βέλγιο' },
+  AT: { en: 'Austria', el: 'Αυστρία' },
+  CZ: { en: 'Czech Republic', el: 'Τσεχία' },
+  HU: { en: 'Hungary', el: 'Ουγγαρία' },
+  HR: { en: 'Croatia', el: 'Κροατία' },
+  SK: { en: 'Slovakia', el: 'Σλοβακία' },
+  SI: { en: 'Slovenia', el: 'Σλοβενία' },
+  SE: { en: 'Sweden', el: 'Σουηδία' },
+  DK: { en: 'Denmark', el: 'Δανία' },
+  FI: { en: 'Finland', el: 'Φινλανδία' },
+  PT: { en: 'Portugal', el: 'Πορτογαλία' },
+  CH: { en: 'Switzerland', el: 'Ελβετία' },
+  NO: { en: 'Norway', el: 'Νορβηγία' },
+  IE: { en: 'Ireland', el: 'Ιρλανδία' },
+  LU: { en: 'Luxembourg', el: 'Λουξεμβούργο' },
+  LT: { en: 'Lithuania', el: 'Λιθουανία' },
+  LV: { en: 'Latvia', el: 'Λετονία' },
+  EE: { en: 'Estonia', el: 'Εσθονία' },
+  GB: { en: 'United Kingdom', el: 'Ηνωμένο Βασίλειο' },
+  AL: { en: 'Albania', el: 'Αλβανία' },
+  MK: { en: 'North Macedonia', el: 'Βόρεια Μακεδονία' },
+  RS: { en: 'Serbia', el: 'Σερβία' },
+  BA: { en: 'Bosnia and Herzegovina', el: 'Βοσνία και Ερζεγοβίνη' },
+  ME: { en: 'Montenegro', el: 'Μαυροβούνιο' },
+  TR: { en: 'Turkey', el: 'Τουρκία' },
+  CY: { en: 'Cyprus', el: 'Κύπρος' },
+};
+
+export function getCountryName(code, lang = 'en') {
+  if (!code) return '';
+  const upper = String(code).toUpperCase().trim();
+  const item = COUNTRY_NAMES[upper];
+  if (item) {
+    return lang?.startsWith('el') ? item.el : item.en;
+  }
+  return code;
+}
+
+export function resolveCountryIsoCode(input) {
+  if (!input) return '';
+  const str = String(input).trim();
+  if (!str) return '';
+
+  const upper = str.toUpperCase();
+  if (upper.length === 2 && COUNTRY_NAMES[upper]) {
+    return upper;
+  }
+
+  const parenMatch = str.match(/\(([A-Z]{2})\)/i);
+  if (parenMatch) {
+    const code = parenMatch[1].toUpperCase();
+    if (COUNTRY_NAMES[code]) return code;
+  }
+
+  for (const [code, names] of Object.entries(COUNTRY_NAMES)) {
+    if (
+      names.en.toLowerCase() === str.toLowerCase() ||
+      names.el.toLowerCase() === str.toLowerCase()
+    ) {
+      return code;
+    }
+  }
+
+  return '';
+}
+
 export const TRUCK_TYPES = [
   'curtainsider', 'refrigerated', 'flatbed', 'box',
   'tank', 'tipper', 'low_loader', 'container',

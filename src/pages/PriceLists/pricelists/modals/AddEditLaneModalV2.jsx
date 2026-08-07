@@ -5,7 +5,7 @@ import { useTheme } from '../../../../hooks/useTheme';
 import { ApiError } from '../../../../api/client';
 import { buildLaneFingerprint, buildLaneFingerprintFromEntry } from '../../../../api/utils/laneMetricDisplay';
 import { resolveCity, calculateRouteTotals, getScopeLabels } from '../../../../mocks/priceListsData';
-import { PARTNERS as MOCK_PARTNERS } from '../../../../mocks/partnersMasterData';
+import { PARTNERS as MOCK_PARTNERS, resolveCountryIsoCode } from '../../../../mocks/partnersMasterData';
 import LaneLocationPicker from '../../../../components/Partners/LaneLocationPicker';
 import { SearchVehicleCargoPicker } from '../../../../components/SearchTrucks/SearchVehicleCargoPicker';
 
@@ -192,9 +192,21 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
         sourceLaneRef.current = null;
       }
 
-      setStops((lane.stops || []).map((s) => (
-        s?.type ? s : { type: 'city', value: s.city, label: s.label || s.city, countryCode: 'GR' }
-      )));
+      setStops((lane.stops || []).map((s) => {
+        const val = s?.value || s?.city || s?.label || '';
+        const isoCode = resolveCountryIsoCode(s?.countryCode) || resolveCountryIsoCode(val) || resolveCountryIsoCode(s?.label);
+        const isCountry = s?.type === 'country' || Boolean(isoCode);
+        const type = isCountry ? 'country' : (s?.type || 'city');
+        const countryCode = isoCode || s?.countryCode || 'GR';
+        const finalVal = type === 'country' ? (isoCode || val) : val;
+
+        return {
+          type,
+          value: finalVal,
+          label: s?.label || finalVal,
+          countryCode,
+        };
+      }));
       setTripType(lane.tripType || (lane.isRoundTrip ? 'roundtrip' : 'direct'));
       setPricingRows(normalizeRowsFromLane(lane));
       setEffectiveFrom(lane.effectiveFrom || '');

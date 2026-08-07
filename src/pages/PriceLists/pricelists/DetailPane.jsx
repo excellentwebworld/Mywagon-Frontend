@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import {
   getPrimaryPrice, isExpiringSoon,
-  calcProfitability, cityLabel,
+  calcProfitability, cityLabel, formatRouteLabel,
 } from '../../../mocks/priceListsData';
 import {
   formatMetricLabel,
@@ -71,7 +71,7 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
 
   const expiring = isExpiringSoon(lane);
   const profitability = role === 'carrier' ? calcProfitability(lane) : null;
-  const routeDisplay = lane.stops.map((s) => cityLabel(s.city, lang)).join(lane.isRoundTrip ? ' ↔ ' : ' → ');
+  const routeDisplay = formatRouteLabel(lane, lang);
 
   return (
     <div

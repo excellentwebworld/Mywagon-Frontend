@@ -72,16 +72,27 @@ function buildLegacyPricingFromRows(rows = []) {
   return pricing;
 }
 
+import { PARTNERS as MOCK_PARTNERS, resolveCountryIsoCode } from '../../mocks/partnersMasterData';
+
 function mapApiLaneToUiLane(apiLane) {
   const stops = Array.isArray(apiLane?.stops) ? apiLane.stops : [];
   const normalizedStops = stops
-    .map((s) => ({
-      city: s?.city || s?.value || '',
-      label: s?.label || s?.city || s?.value || '',
-      type: s?.type || 'city',
-      value: s?.value || s?.city || '',
-      countryCode: s?.countryCode || 'GR',
-    }))
+    .map((s) => {
+      const val = s?.value || s?.city || s?.label || '';
+      const isoCode = resolveCountryIsoCode(s?.countryCode) || resolveCountryIsoCode(val) || resolveCountryIsoCode(s?.label);
+      const isCountry = s?.type === 'country' || Boolean(isoCode);
+      const type = isCountry ? 'country' : (s?.type || 'city');
+      const countryCode = isoCode || (s?.countryCode && s.countryCode !== 'GR' ? s.countryCode : 'GR');
+      const finalVal = type === 'country' ? (isoCode || val) : val;
+
+      return {
+        city: s?.city || val,
+        label: s?.label || val,
+        type,
+        value: finalVal,
+        countryCode,
+      };
+    })
     .filter((s) => s.city || s.value);
 
   const isRoundTrip = apiLane?.trip_type === 'roundtrip';
@@ -136,13 +147,22 @@ function mapUiEntryToStorePayload(entry) {
   return {
     origin_city: origin,
     destination_city: destination,
-    stops: stops.map((s) => ({
-      city: s.city || s.value || '',
-      label: s.label || s.city || s.value || '',
-      type: s.type || 'city',
-      value: s.value || s.city || '',
-      countryCode: s.countryCode || 'GR',
-    })),
+    stops: stops.map((s) => {
+      const val = s?.value || s?.city || s?.label || '';
+      const isoCode = resolveCountryIsoCode(s?.countryCode) || resolveCountryIsoCode(val) || resolveCountryIsoCode(s?.label);
+      const isCountry = s?.type === 'country' || Boolean(isoCode);
+      const type = isCountry ? 'country' : (s?.type || 'city');
+      const countryCode = isoCode || (s?.countryCode && s.countryCode !== 'GR' ? s.countryCode : 'GR');
+      const finalVal = type === 'country' ? (isoCode || val) : val;
+
+      return {
+        city: s.city || val,
+        label: s.label || val,
+        type,
+        value: finalVal,
+        countryCode,
+      };
+    }),
     trip_type: tripType,
     total_km_direct: Number(entry.totalKmDirect || entry.totalKm || 0),
     total_km_effective: Number(entry.totalKmEffective || entry.totalKm || 0),

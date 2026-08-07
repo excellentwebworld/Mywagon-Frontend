@@ -24,25 +24,65 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
-import { COUNTRIES, REGIONS } from '../../mocks/partnersMasterData';
+import { COUNTRIES, REGIONS, getCountryName, resolveCountryIsoCode } from '../../mocks/partnersMasterData';
 import GREEK_PREFECTURES from '../../mocks/greekPrefectures';
 import { ChevronDown, Search, X } from 'lucide-react';
 
 const LOCATION_TYPES = ['country', 'region', 'prefecture', 'city', 'zip'];
 
+const resolveLocationState = (val) => {
+  if (!val) return { type: '', countryCode: '', locationValue: '' };
+
+  const rawVal = val.value || val.city || val.label || '';
+  const isoCode = resolveCountryIsoCode(val.countryCode) || resolveCountryIsoCode(rawVal) || resolveCountryIsoCode(val.label);
+
+  const isCountry = val.type === 'country' || (Boolean(isoCode) && (!val.type || val.type === 'city'));
+  const locationType = isCountry ? 'country' : (val.type || 'city');
+
+  if (locationType === 'country') {
+    const finalIso = isoCode || 'GR';
+    return {
+      type: 'country',
+      countryCode: finalIso,
+      locationValue: finalIso,
+    };
+  }
+
+  const finalCountry = isoCode || val.countryCode || 'GR';
+  return {
+    type: locationType,
+    countryCode: finalCountry,
+    locationValue: val.value || val.city || '',
+  };
+};
+
 export default function LaneLocationPicker({ value, onChange, label, required }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { T } = useTheme();
+  const lang = i18n.language || 'en';
 
-  const [locationType, setLocationType] = useState(value?.type || '');
-  const [countryCode, setCountryCode] = useState(value?.countryCode || '');
-  const [locationValue, setLocationValue] = useState(value?.value || '');
+  const initialState = useMemo(() => resolveLocationState(value), [value]);
 
-  // Reset downstream when type changes
+  const [locationType, setLocationType] = useState(initialState.type);
+  const [countryCode, setCountryCode] = useState(initialState.countryCode);
+  const [locationValue, setLocationValue] = useState(initialState.locationValue);
+
+  const countryDropdownItems = useMemo(() => {
+    return COUNTRIES.map((c) => {
+      const fullName = getCountryName(c, lang);
+      return {
+        value: c,
+        label: `${fullName} (${c})`,
+      };
+    });
+  }, [lang]);
+
+  // Reset downstream when value prop changes
   useEffect(() => {
-    setLocationType(value?.type || '');
-    setCountryCode(value?.countryCode || '');
-    setLocationValue(value?.value || '');
+    const st = resolveLocationState(value);
+    setLocationType(st.type);
+    setCountryCode(st.countryCode);
+    setLocationValue(st.locationValue);
   }, [value]);
 
   const handleTypeChange = (newType) => {
@@ -55,14 +95,15 @@ export default function LaneLocationPicker({ value, onChange, label, required })
   // Country type: selecting country IS the final value
   useEffect(() => {
     if (locationType === 'country' && countryCode) {
+      const countryLabel = getCountryName(countryCode, lang);
       onChange({
         type: 'country',
         value: countryCode,
-        label: t(`partnersMaster.country_${countryCode}`, countryCode),
+        label: `${countryLabel} (${countryCode})`,
         countryCode,
       });
     }
-  }, [locationType, countryCode]);
+  }, [locationType, countryCode, lang]);
 
   // Region / Prefecture / City / Zip: need both country + locationValue
   useEffect(() => {
@@ -71,7 +112,7 @@ export default function LaneLocationPicker({ value, onChange, label, required })
       onChange(null);
       return;
     }
-    const countryLabel = t(`partnersMaster.country_${countryCode}`, countryCode);
+    const countryLabel = getCountryName(countryCode, lang);
     let lbl = locationValue;
     if (locationType === 'region' && countryCode === 'GR') {
       lbl = t(`partnersMaster.region_${locationValue}`, locationValue);
@@ -86,7 +127,7 @@ export default function LaneLocationPicker({ value, onChange, label, required })
       label: `${lbl}, ${countryLabel}`,
       countryCode,
     });
-  }, [locationType, countryCode, locationValue]);
+  }, [locationType, countryCode, locationValue, lang, t]);
 
   const typeLabel = (type) => {
     const map = {
@@ -129,10 +170,10 @@ export default function LaneLocationPicker({ value, onChange, label, required })
       {locationType === 'country' && (
         <SearchableDropdown
           T={T} t={t}
-          items={COUNTRIES.map((c) => ({ value: c, label: t(`partnersMaster.country_${c}`, c) }))}
+          items={countryDropdownItems}
           value={countryCode}
           onChange={setCountryCode}
-              placeholder={t('partnersMaster.selectCountry', 'Select country')}
+          placeholder={t('partnersMaster.selectCountry', 'Select country')}
         />
       )}
 
@@ -145,7 +186,7 @@ export default function LaneLocationPicker({ value, onChange, label, required })
             </div>
             <SearchableDropdown
               T={T} t={t}
-              items={COUNTRIES.map((c) => ({ value: c, label: t(`partnersMaster.country_${c}`, c) }))}
+              items={countryDropdownItems}
               value={countryCode}
               onChange={(v) => { setCountryCode(v); setLocationValue(''); }}
               placeholder={t('partnersMaster.selectCountry', 'Select country')}
