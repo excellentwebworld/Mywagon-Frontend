@@ -177,7 +177,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       try {
         const result = await partnersService.listPartners({
           page: 1,
-          per_page: 100,
+          per_page: 50,
           facet: 'all',
           statuses: ['active'],
           sort: 'name',

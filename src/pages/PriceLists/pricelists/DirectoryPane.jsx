@@ -1,74 +1,65 @@
 /**
  * DirectoryPane — Left-side tree filter for Price Lists.
  *
- * Nodes: All / Active / pricing methods / special groups / By scope (collapsible) / status.
+ * Counts come from GET /price-lists/lanes/summary (API), not client-side filtering.
  */
 import { useState, useMemo } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import { getScopeLabels } from '../../../mocks/priceListsData';
-import {
-  laneHasMetric,
-  laneIsDirectTrip,
-  laneIsExpiringSoonActive,
-  laneIsFtl,
-  laneIsMultistop,
-  laneIsSimpleLane,
-} from '../../../api/utils/laneMetricDisplay';
 
-export default function DirectoryPane({ lanes, activeNode, onNodeClick }) {
+const EMPTY_COUNTS = {
+  all: 0,
+  active: 0,
+  inactive: 0,
+  archived: 0,
+  ftl: 0,
+  weight: 0,
+  load: 0,
+  unitTransport: 0,
+  expiring: 0,
+  roundTrip: 0,
+  directTrip: 0,
+  simpleLane: 0,
+  multiStop: 0,
+  scopePartners: {},
+};
+
+export default function DirectoryPane({ summary, activeNode, onNodeClick }) {
   const { t } = useTranslation();
   const { T } = useTheme();
   const [scopeOpen, setScopeOpen] = useState(true);
 
   const counts = useMemo(() => {
-    const c = {
-      all: lanes.length,
-      active: 0,
-      inactive: 0,
-      archived: 0,
-      ftl: 0,
-      weight: 0,
-      load: 0,
-      unitTransport: 0,
-      expiring: 0,
-      roundTrip: 0,
-      directTrip: 0,
-      simpleLane: 0,
-      multiStop: 0,
-      scopePartners: {},
-    };
-
-    lanes.forEach((l) => {
-      if (l.status === 'active') c.active++;
-      if (l.status === 'inactive') c.inactive++;
-      if (l.status === 'archived') c.archived++;
-      if (laneIsFtl(l)) c.ftl++;
-      if (laneHasMetric(l, 'weight')) c.weight++;
-      if (laneHasMetric(l, 'load_any_size')) c.load++;
-      if (laneHasMetric(l, 'unit_transport')) c.unitTransport++;
-      if (laneIsExpiringSoonActive(l)) c.expiring++;
-      if (l.isRoundTrip) c.roundTrip++;
-      if (laneIsDirectTrip(l)) c.directTrip++;
-      if (laneIsSimpleLane(l)) c.simpleLane++;
-      if (laneIsMultistop(l)) c.multiStop++;
-
-      if (l.scope === 'default') {
-        c.scopePartners.default = c.scopePartners.default || { count: 0, name: null };
-        c.scopePartners.default.count++;
+    if (!summary) return EMPTY_COUNTS;
+    const scopePartners = {};
+    Object.entries(summary.scopes || {}).forEach(([key, count]) => {
+      if (key === 'default') {
+        scopePartners.default = { count: Number(count) || 0, name: null };
+        return;
       }
-      (l.scopePartnerIds || []).forEach((pid) => {
-        if (!c.scopePartners[pid]) {
-          const names = getScopeLabels([pid]);
-          c.scopePartners[pid] = { count: 0, name: names[0] || pid };
-        }
-        c.scopePartners[pid].count++;
-      });
+      const names = getScopeLabels([key]);
+      scopePartners[key] = { count: Number(count) || 0, name: names[0] || key };
     });
 
-    return c;
-  }, [lanes]);
+    return {
+      all: Number(summary.all) || 0,
+      active: Number(summary.active) || 0,
+      inactive: Number(summary.inactive) || 0,
+      archived: Number(summary.archived) || 0,
+      ftl: Number(summary.ftl) || 0,
+      weight: Number(summary.weight) || 0,
+      load: Number(summary.load) || 0,
+      unitTransport: Number(summary.unit_transport) || 0,
+      expiring: Number(summary.expiring) || 0,
+      roundTrip: Number(summary.round_trip) || 0,
+      directTrip: Number(summary.direct_trip) || 0,
+      simpleLane: Number(summary.simple_lane) || 0,
+      multiStop: Number(summary.multi_stop) || 0,
+      scopePartners,
+    };
+  }, [summary]);
 
   const scopeNodes = Object.entries(counts.scopePartners)
     .sort(([a], [b]) => (a === 'default' ? -1 : b === 'default' ? 1 : a.localeCompare(b)))
@@ -118,23 +109,22 @@ export default function DirectoryPane({ lanes, activeNode, onNodeClick }) {
       <Sep />
       <NodeButton node={{ key: 'expiring', icon: '⏰', label: t('priceLists.directory.expiring', 'Expiring soon'), count: counts.expiring }} />
       <NodeButton node={{ key: 'directTrip', icon: '➡️', label: t('priceLists.directory.directTrip', 'Direct Trip'), count: counts.directTrip }} />
-      <NodeButton node={{ key: 'roundTrips', icon: '🔄', label: t('priceLists.directory.roundTrips', 'Round trips'), count: counts.roundTrip }} />
-      <NodeButton node={{ key: 'simpleLane', icon: '2️⃣', label: t('priceLists.directory.simpleLane', 'Simple Lane'), count: counts.simpleLane }} />
-      <NodeButton node={{ key: 'multiStop', icon: '📍', label: t('priceLists.directory.multiStop', 'Multi-stop'), count: counts.multiStop }} />
+      <NodeButton node={{ key: 'roundTrips', icon: '🔄', label: t('priceLists.directory.roundTrips', 'Round Trips'), count: counts.roundTrip }} />
+      <NodeButton node={{ key: 'simpleLane', icon: '📍', label: t('priceLists.directory.simpleLane', 'Simple Lane'), count: counts.simpleLane }} />
+      <NodeButton node={{ key: 'multiStop', icon: '📍📍', label: t('priceLists.directory.multiStop', 'Multi-Stop'), count: counts.multiStop }} />
       <Sep />
-
       <button
-        onClick={() => setScopeOpen(!scopeOpen)}
-        className="flex items-center gap-2 w-full px-2 py-1.5 cursor-pointer border-none rounded-lg"
-        style={{ background: 'transparent', fontSize: 11, fontWeight: 600, color: T.t3 }}
+        type="button"
+        onClick={() => setScopeOpen((v) => !v)}
+        className="flex items-center gap-2 w-full rounded-lg cursor-pointer border-none text-left"
+        style={{ padding: '6px 8px', fontSize: 12, fontWeight: 600, color: T.t2, background: 'transparent' }}
       >
-        {scopeOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        <span>👤 {t('priceLists.directory.byScope', 'By scope')}</span>
+        {scopeOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        <span>{t('priceLists.directory.byScope', 'By Scope')}</span>
       </button>
       {scopeOpen && scopeNodes.map((node) => <NodeButton key={node.key} node={node} />)}
       <Sep />
-
-      <NodeButton node={{ key: 'inactive', icon: '📁', label: t('priceLists.directory.inactive', 'Inactive'), count: counts.inactive }} />
+      <NodeButton node={{ key: 'inactive', icon: '⏸️', label: t('priceLists.directory.inactive', 'Inactive'), count: counts.inactive }} />
       <NodeButton node={{ key: 'archived', icon: '🗄️', label: t('priceLists.directory.archived', 'Archived'), count: counts.archived }} />
     </div>
   );

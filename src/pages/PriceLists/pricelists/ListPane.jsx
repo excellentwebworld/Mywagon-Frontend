@@ -64,6 +64,11 @@ export default function ListPane({
   onAction,
   loading = false,
   isEmptyCatalog = false,
+  page: controlledPage,
+  pageSize: controlledPageSize,
+  totalCount: controlledTotal,
+  onPageChange,
+  onPageSizeChange,
 }) {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
@@ -71,9 +76,26 @@ export default function ListPane({
 
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [localPage, setLocalPage] = useState(1);
+  const [localPageSize, setLocalPageSize] = useState(10);
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  const serverPaged = typeof controlledTotal === 'number' && typeof onPageChange === 'function';
+  const page = serverPaged ? (controlledPage || 1) : localPage;
+  const pageSize = serverPaged ? (controlledPageSize || 10) : localPageSize;
+  const setPage = (next) => {
+    if (serverPaged) onPageChange(next);
+    else setLocalPage(next);
+  };
+  const setPageSize = (sz) => {
+    if (serverPaged) {
+      onPageSizeChange?.(sz);
+      onPageChange?.(1);
+    } else {
+      setLocalPageSize(sz);
+      setLocalPage(1);
+    }
+  };
 
   const handleSort = (key) => {
     if (sortKey === key) {
@@ -122,12 +144,13 @@ export default function ListPane({
     return arr;
   }, [lanes, sortKey, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const totalCount = serverPaged ? controlledTotal : sorted.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const safePage = Math.min(page, totalPages);
   const startIdx = (safePage - 1) * pageSize;
-  const pageData = sorted.slice(startIdx, startIdx + pageSize);
-  const showFrom = sorted.length > 0 ? startIdx + 1 : 0;
-  const showTo = Math.min(startIdx + pageSize, sorted.length);
+  const pageData = serverPaged ? sorted : sorted.slice(startIdx, startIdx + pageSize);
+  const showFrom = totalCount > 0 ? (serverPaged ? startIdx + 1 : startIdx + 1) : 0;
+  const showTo = Math.min(startIdx + pageData.length, totalCount);
 
   const thStyle = {
     fontSize: 11, fontWeight: 600, color: T.t3, padding: '8px 10px',
@@ -415,7 +438,7 @@ export default function ListPane({
       <PaginationBar
         showFrom={showFrom}
         showTo={showTo}
-        totalCount={sorted.length}
+        totalCount={totalCount}
         pageSize={pageSize}
         setPageSize={(sz) => { setPageSize(sz); setPage(1); }}
         safePage={safePage}

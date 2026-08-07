@@ -24,16 +24,7 @@ import { toUpperGreek } from '../../utils/greekUppercase';
 import {
   calculateRouteTotals,
   seedAuditLog,
-  MOCK_LANES,
 } from '../../mocks/priceListsData';
-import {
-  laneHasMetric,
-  laneIsDirectTrip,
-  laneIsExpiringSoonActive,
-  laneIsFtl,
-  laneIsMultistop,
-  laneIsSimpleLane,
-} from '../../api/utils/laneMetricDisplay';
 import { serializeLanesToCsv } from '../../api/utils/laneCsvSchema';
 import { resolveCountryIsoCode } from '../../mocks/partnersMasterData';
 
@@ -232,6 +223,14 @@ export default function PriceListsPage() {
   const [auditOpen, setAuditOpen] = useState(false);
   const [forwarderTab, setForwarderTab] = useState('carrier'); // 'carrier' | 'shipper' — forwarder only
   const [savingLane, setSavingLane] = useState(false);
+  const [summary, setSummary] = useState(null);
+  const [listMeta, setListMeta] = useState({ current_page: 1, per_page: 10, total: 0, last_page: 1 });
+  const [page, setPage] = useState(() => Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1));
+  const [pageSize, setPageSize] = useState(() => {
+    const n = parseInt(searchParams.get('per_page') || '10', 10);
+    return Number.isFinite(n) && n > 0 ? Math.min(n, 100) : 10;
+  });
+  const [catalogLanes, setCatalogLanes] = useState([]);
 
   // Effective role for view behavior: forwarder tab switches perspective
   const viewRole = role === 'forwarder'
@@ -239,86 +238,119 @@ export default function PriceListsPage() {
     : role;
 
   const [search, setSearch] = useState(() => searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get('search') || '');
 
-  // Keep directory filter + search in the URL (shareable / back-forward friendly)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Keep directory filter + search + pagination in the URL
   useEffect(() => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       if (!activeNode || activeNode === 'all') next.delete('node');
       else next.set('node', activeNode);
 
-      const q = search.trim();
+      const q = debouncedSearch.trim();
       if (!q) next.delete('search');
       else next.set('search', q);
 
+      if (page <= 1) next.delete('page');
+      else next.set('page', String(page));
+
+      if (!pageSize || pageSize === 10) next.delete('per_page');
+      else next.set('per_page', String(pageSize));
+
       return next;
     }, { replace: true });
-  }, [activeNode, search, setSearchParams]);
+  }, [activeNode, debouncedSearch, page, pageSize, setSearchParams]);
 
   useEffect(() => {
     setActiveNode(searchParams.get('node') || 'all');
     setSearch(searchParams.get('search') || '');
+    setDebouncedSearch(searchParams.get('search') || '');
+    setPage(Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1));
+    const n = parseInt(searchParams.get('per_page') || '10', 10);
+    setPageSize(Number.isFinite(n) && n > 0 ? Math.min(n, 100) : 10);
   }, [searchParams]);
 
-  const hasActiveFilters = Boolean(search.trim()) || (activeNode && activeNode !== 'all');
+  const hasActiveFilters = Boolean(debouncedSearch.trim()) || (activeNode && activeNode !== 'all');
   const clearFilters = useCallback(() => {
     setSearch('');
+    setDebouncedSearch('');
     setActiveNode('all');
+    setPage(1);
   }, []);
 
-  // ─── Combined filtering: Forwarder tab + Directory + search ───
-  const filteredLanes = useMemo(() => {
-    let result = [...lanes];
-
-    if (role === 'forwarder') {
-      if (forwarderTab === 'carrier') {
-        result = result.filter(l => l.scopeDirection === 'buy' || l.scope === 'default');
-      } else {
-        result = result.filter(l => l.scopeDirection === 'sell' || l.scope === 'default');
-      }
-    }
-
-    if (activeNode && activeNode !== 'all') {
-      if (activeNode === 'active') result = result.filter(l => l.status === 'active');
-      else if (activeNode === 'ftl') result = result.filter(l => laneIsFtl(l));
-      else if (activeNode === 'perWeight') result = result.filter(l => laneHasMetric(l, 'weight'));
-      else if (activeNode === 'perLoad') result = result.filter(l => laneHasMetric(l, 'load_any_size'));
-      else if (activeNode === 'perUnitTransport') result = result.filter(l => laneHasMetric(l, 'unit_transport'));
-      else if (activeNode === 'directTrip') result = result.filter(l => laneIsDirectTrip(l));
-      else if (activeNode === 'simpleLane') result = result.filter(l => laneIsSimpleLane(l));
-      else if (activeNode === 'expiring') result = result.filter(l => laneIsExpiringSoonActive(l));
-      else if (activeNode === 'roundTrips') result = result.filter(l => l.isRoundTrip);
-      else if (activeNode === 'multiStop') result = result.filter(l => laneIsMultistop(l));
-      else if (activeNode === 'scope_default') result = result.filter(l => l.scope === 'default');
-      else if (activeNode.startsWith('scope_')) {
-        const scopeId = activeNode.replace('scope_', '');
-        result = result.filter(l => (l.scopePartnerIds || []).includes(scopeId) || l.scope === scopeId);
-      }
-      else if (activeNode === 'inactive') result = result.filter(l => l.status === 'inactive');
-      else if (activeNode === 'archived') result = result.filter(l => l.status === 'archived');
-    }
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(l => {
-        const route = l.routeLabel?.toLowerCase() || '';
-        const cities = l.stops.map(s => `${s.city} ${s.label || ''}`).join(' ').toLowerCase();
-        return route.includes(q) || cities.includes(q) || l.id.toLowerCase().includes(q);
-      });
-    }
-
-    return result;
-  }, [lanes, activeNode, search, role, forwarderTab]);
+  const scopeDirectionParam = role === 'forwarder'
+    ? (forwarderTab === 'carrier' ? 'buy' : 'sell')
+    : undefined;
 
   // ─── Selected lane ───
   const selectedLane = useMemo(() => {
     if (!selectedId) return null;
-    return lanes.find(l => l.id === selectedId) || null;
-  }, [lanes, selectedId]);
+    return lanes.find(l => l.id === selectedId) || catalogLanes.find(l => l.id === selectedId) || null;
+  }, [lanes, catalogLanes, selectedId]);
 
   const handleNodeClick = useCallback((node) => {
-    setActiveNode(prev => prev === node ? 'all' : node);
+    setActiveNode((prev) => (prev === node ? 'all' : node));
+    setPage(1);
+    setSelectedId(null);
   }, []);
+
+  const reloadSummary = useCallback(async () => {
+    try {
+      const data = await priceListsService.getSummary();
+      setSummary(data);
+    } catch (_e) {
+      // keep previous summary on failure
+    }
+  }, []);
+
+  const reloadCatalog = useCallback(async () => {
+    try {
+      const { items } = await priceListsService.listLanes({
+        page: 1,
+        per_page: 100,
+        node: 'active',
+        scope_direction: scopeDirectionParam,
+      });
+      setCatalogLanes(Array.isArray(items) ? items.map(mapApiLaneToUiLane) : []);
+    } catch (_e) {
+      // non-blocking for calculator / modal helpers
+    }
+  }, [scopeDirectionParam]);
+
+  const reloadLanes = useCallback(async () => {
+    setLanesLoading(true);
+    setLanesError(null);
+    try {
+      const { items, meta } = await priceListsService.listLanes({
+        page,
+        per_page: pageSize,
+        node: activeNode,
+        search: debouncedSearch,
+        scope_direction: scopeDirectionParam,
+        sort: 'updated_at',
+        sort_dir: 'desc',
+      });
+      const uiLanes = Array.isArray(items) ? items.map(mapApiLaneToUiLane) : [];
+      setLanes(uiLanes);
+      setListMeta(meta || { current_page: page, per_page: pageSize, total: uiLanes.length, last_page: 1 });
+      setAuditLog((prev) => (prev.length === 0 ? seedAuditLog(uiLanes) : prev));
+    } catch (_e) {
+      setLanesError(t('priceLists.error.loadFailed', 'Could not load price lanes.'));
+      setLanes([]);
+      setListMeta({ current_page: page, per_page: pageSize, total: 0, last_page: 1 });
+    } finally {
+      setLanesLoading(false);
+    }
+  }, [page, pageSize, activeNode, debouncedSearch, scopeDirectionParam, t]);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([reloadLanes(), reloadSummary(), reloadCatalog()]);
+  }, [reloadLanes, reloadSummary, reloadCatalog]);
 
   const persistLaneStatus = useCallback(async (lane, nextStatus, successMessage) => {
     if (!lane) return;
@@ -340,16 +372,11 @@ export default function PriceListsPage() {
           ...mapUiEntryToStorePayload(lane),
           status: nextStatus,
         };
-        const updatedApiLane = await priceListsService.updateLane(lane.apiId, payload);
-        const updatedUiLane = mapApiLaneToUiLane(updatedApiLane);
-        setLanes((prev) => prev.map((l) => (
-          l.id === lane.id
-            ? { ...l, ...updatedUiLane, id: l.id, apiId: updatedUiLane.apiId }
-            : l
-        )));
+        await priceListsService.updateLane(lane.apiId, payload);
         addAuditEntry(actionType, lane.id, detailMsg);
         if (nextStatus === 'archived' && selectedId === lane.id) setSelectedId(null);
         toast.success(successMessage);
+        await refreshAll();
         return;
       } catch (_e) {
         toast.error(t('genericError', 'Something went wrong'));
@@ -357,11 +384,11 @@ export default function PriceListsPage() {
       }
     }
 
-    setLanes(prev => prev.map(l => l.id === lane.id ? { ...l, status: nextStatus, updatedAt: new Date().toISOString() } : l));
     addAuditEntry(actionType, lane.id, detailMsg);
     if (nextStatus === 'archived' && selectedId === lane.id) setSelectedId(null);
     toast.success(successMessage);
-  }, [t, toast, addAuditEntry, selectedId]);
+    await refreshAll();
+  }, [t, toast, addAuditEntry, selectedId, refreshAll]);
 
   // ─── CRUD actions ───
   const handleAction = useCallback((action, lane) => {
@@ -416,11 +443,11 @@ export default function PriceListsPage() {
           confirmLabel: t('priceLists.actions.deleteForever', 'Delete forever'),
           destructive: true,
           onConfirm: () => {
-            setLanes(prev => prev.filter(l => l.id !== lane.id));
             addAuditEntry('deleted', lane.id, `Lane ${lane.id} permanently deleted`);
             if (selectedId === lane.id) setSelectedId(null);
             toast.success(t('priceLists.toast.deleted', 'Lane deleted'));
             setConfirmDialog(null);
+            void refreshAll();
           },
         });
         break;
@@ -428,7 +455,7 @@ export default function PriceListsPage() {
       default:
         break;
     }
-  }, [t, toast, selectedId, persistLaneStatus, addAuditEntry]);
+  }, [t, toast, selectedId, persistLaneStatus, addAuditEntry, refreshAll]);
 
   // ─── Save lane (add/edit) ───
   const handleSaveLane = useCallback(async (entry, existingId) => {
@@ -437,23 +464,21 @@ export default function PriceListsPage() {
     setSavingLane(true);
     try {
       const payload = mapUiEntryToStorePayload(entry);
-      const editingLane = existingId ? lanes.find((l) => l.id === existingId) : null;
+      const editingLane = existingId
+        ? (lanes.find((l) => l.id === existingId) || catalogLanes.find((l) => l.id === existingId) || editLane)
+        : null;
       const canUseApiUpdate = Boolean(editingLane?.apiId);
 
       if (existingId && canUseApiUpdate) {
-        const updatedApiLane = await priceListsService.updateLane(editingLane.apiId, payload);
-        const updatedUiLane = mapApiLaneToUiLane(updatedApiLane);
-        setLanes((prev) => prev.map((l) => (l.id === existingId ? { ...l, ...updatedUiLane, id: l.id, apiId: updatedUiLane.apiId, updatedAt: new Date().toISOString() } : l)));
+        await priceListsService.updateLane(editingLane.apiId, payload);
         addAuditEntry('updated', existingId, `Lane ${existingId} updated with new parameters`);
         toast.success(t('priceLists.toast.laneUpdated', 'Lane updated'));
       } else if (existingId) {
-        setLanes((prev) => prev.map((l) => (l.id === existingId ? { ...l, ...entry, updatedAt: new Date().toISOString() } : l)));
         addAuditEntry('updated', existingId, `Lane ${existingId} updated`);
         toast.success(t('priceLists.toast.laneUpdated', 'Lane updated'));
       } else {
         const createdApiLane = await priceListsService.storeLane(payload);
         const createdUiLane = mapApiLaneToUiLane(createdApiLane);
-        setLanes((prev) => [createdUiLane, ...prev]);
         addAuditEntry('created', createdUiLane.id, `Created new lane ${createdUiLane.id}: ${createdUiLane.routeLabel || ''}`);
         toast.success(t('priceLists.toast.laneCreated', 'Lane created'));
       }
@@ -461,6 +486,7 @@ export default function PriceListsPage() {
       setAddEditOpen(false);
       setEditLane(null);
       setModalMode('add');
+      await refreshAll();
     } catch (e) {
       if (e instanceof ApiError) {
         throw e;
@@ -471,42 +497,40 @@ export default function PriceListsPage() {
     } finally {
       setSavingLane(false);
     }
-  }, [savingLane, lanes, t, toast, addAuditEntry]);
+  }, [savingLane, lanes, catalogLanes, editLane, t, toast, addAuditEntry, refreshAll]);
 
-  // ─── Export CSV ───
-  const handleExport = useCallback(() => {
+  // ─── Export CSV (same filters as sidebar, full matching set) ───
+  const handleExport = useCallback(async () => {
     const lang = isGreek ? 'el' : 'en';
-    const csv = serializeLanesToCsv(filteredLanes, lang);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `MYVAGON_PriceLists_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success(t('priceLists.toast.exported', 'Exported'));
-  }, [filteredLanes, isGreek, t, toast]);
-
-  const reloadLanes = useCallback(async () => {
-    setLanesLoading(true);
-    setLanesError(null);
     try {
-      const apiLanes = await priceListsService.listLanes();
-      const uiLanes = Array.isArray(apiLanes) && apiLanes.length > 0 ? apiLanes.map(mapApiLaneToUiLane) : MOCK_LANES;
-      setLanes(uiLanes);
-      setAuditLog((prev) => (prev.length === 0 ? seedAuditLog(uiLanes) : prev));
+      const { items } = await priceListsService.listLanes({
+        page: 1,
+        per_page: 100,
+        node: activeNode,
+        search: debouncedSearch,
+        scope_direction: scopeDirectionParam,
+        sort: 'updated_at',
+        sort_dir: 'desc',
+      });
+      const exportLanes = (Array.isArray(items) ? items : []).map(mapApiLaneToUiLane);
+      const csv = serializeLanesToCsv(exportLanes, lang);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `MYVAGON_PriceLists_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(t('priceLists.toast.exported', 'Exported'));
     } catch (_e) {
-      setLanes(MOCK_LANES);
-      setAuditLog((prev) => (prev.length === 0 ? seedAuditLog(MOCK_LANES) : prev));
-    } finally {
-      setLanesLoading(false);
+      toast.error(t('priceLists.error.exportFailed', 'Could not export price lanes.'));
     }
-  }, []);
+  }, [activeNode, debouncedSearch, scopeDirectionParam, isGreek, t, toast]);
 
   const handleImported = useCallback(async (result) => {
-    await reloadLanes();
+    await refreshAll();
     setImportOpen(false);
 
     const created = result?.created ?? 0;
@@ -524,7 +548,7 @@ export default function PriceListsPage() {
     } else {
       toast.error(t('priceLists.import.nothingImported', 'No lanes were imported. Please review the file errors.'));
     }
-  }, [reloadLanes, t, toast, addAuditEntry]);
+  }, [refreshAll, t, toast, addAuditEntry]);
 
   // ─── Page title ───
   const pageTitle = isGreek
@@ -534,6 +558,11 @@ export default function PriceListsPage() {
   useEffect(() => {
     reloadLanes();
   }, [reloadLanes]);
+
+  useEffect(() => {
+    reloadSummary();
+    reloadCatalog();
+  }, [reloadSummary, reloadCatalog]);
 
   return (
     <div className="flex flex-col h-full" style={{ background: T.bg, minHeight: 0 }}>
@@ -583,7 +612,7 @@ export default function PriceListsPage() {
           ].map(tab => (
             <button
               key={tab.key}
-              onClick={() => { setForwarderTab(tab.key); setSelectedId(null); setActiveNode('all'); }}
+              onClick={() => { setForwarderTab(tab.key); setSelectedId(null); setActiveNode('all'); setPage(1); }}
               className="px-4 py-2 cursor-pointer border-none"
               style={{
                 fontSize: 13, fontWeight: forwarderTab === tab.key ? 600 : 400,
@@ -637,7 +666,7 @@ export default function PriceListsPage() {
               style={{ width: 230, background: T.sf, border: `1px solid ${T.bd}`, opacity: lanesLoading ? 0.6 : 1 }}
             >
               <DirectoryPane
-                lanes={lanes}
+                summary={summary}
                 activeNode={activeNode}
                 onNodeClick={handleNodeClick}
               />
@@ -646,13 +675,18 @@ export default function PriceListsPage() {
             {/* Center: Table */}
             <div className="flex-1 min-w-0 rounded-xl overflow-hidden flex flex-col" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
               <ListPane
-                lanes={filteredLanes}
+                lanes={lanes}
                 selectedId={selectedId}
                 onSelectLane={setSelectedId}
                 role={viewRole}
                 onAction={handleAction}
                 loading={lanesLoading}
-                isEmptyCatalog={lanes.length === 0 && !hasActiveFilters && activeNode === 'all'}
+                isEmptyCatalog={(summary?.all ?? 0) === 0 && !hasActiveFilters && activeNode === 'all'}
+                page={listMeta.current_page || page}
+                pageSize={listMeta.per_page || pageSize}
+                totalCount={listMeta.total ?? 0}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
               />
             </div>
 
@@ -673,7 +707,7 @@ export default function PriceListsPage() {
                   role={viewRole}
                   auditLog={auditLog}
                   onAction={handleAction}
-                  allLanes={lanes}
+                  allLanes={catalogLanes}
                 />
               )}
             </div>
@@ -702,7 +736,7 @@ export default function PriceListsPage() {
         lane={editLane}
         mode={modalMode}
         role={role}
-        allLanes={lanes}
+        allLanes={catalogLanes}
         forwarderTab={forwarderTab}
         isSaving={savingLane}
       />
@@ -712,14 +746,14 @@ export default function PriceListsPage() {
         open={importOpen}
         onClose={() => setImportOpen(false)}
         onImported={handleImported}
-        existingLanes={lanes}
+        existingLanes={catalogLanes}
       />
 
       {/* ── Quote Calculator ── */}
       <QuoteCalculator
         open={calcOpen}
         onClose={() => setCalcOpen(false)}
-        lanes={lanes}
+        lanes={catalogLanes}
       />
 
       {/* ── Audit Log Panel ── */}

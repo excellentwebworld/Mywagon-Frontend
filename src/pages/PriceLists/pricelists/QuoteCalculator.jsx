@@ -15,29 +15,68 @@ import {
   resolveLanePricingRows,
 } from '../../../api/utils/laneMetricDisplay';
 
-const VEHICLE_TYPES = ['van', 'rigid', 'semi'];
-
-function uniqueCities(list) {
-  return Array.from(new Set(list.filter(Boolean)));
-}
+const FALLBACK_VEHICLE_TYPES = ['van', 'rigid', 'semi'];
 
 function normalizeLaneCity(value) {
   const resolved = resolveCity(value);
-  return resolved || value;
+  return resolved || String(value || '').trim();
+}
+
+function getStopRaw(stop) {
+  if (!stop) return '';
+  if (typeof stop === 'string') return stop.trim();
+  return String(stop.city || stop.label || stop.value || '').trim();
 }
 
 function getLaneOrigin(lane) {
-  return lane?.stops?.[0]?.city || lane?.stops?.[0]?.value || '';
+  return getStopRaw(lane?.stops?.[0]);
 }
 
 function getLaneDestination(lane) {
   const stops = lane?.stops || [];
-  return stops.length > 0 ? (stops[stops.length - 1]?.city || stops[stops.length - 1]?.value || '') : '';
+  return stops.length > 0 ? getStopRaw(stops[stops.length - 1]) : '';
+}
+
+/** Stable key so "IT" and "Italy" collapse to one option. */
+function placeDedupeKey(value, lang) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const labeled = cityLabel(normalizeLaneCity(raw) || raw, lang);
+  return String(labeled || raw).trim().toLowerCase();
+}
+
+function placesMatch(a, b, lang) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const na = normalizeLaneCity(a);
+  const nb = normalizeLaneCity(b);
+  if (na && nb && na === nb) return true;
+  return placeDedupeKey(a, lang) === placeDedupeKey(b, lang);
+}
+
+/** Unique place options keyed by display label; value keeps a canonical raw for matching. */
+function uniquePlaceOptions(values, lang) {
+  const map = new Map();
+  values.forEach((raw) => {
+    const value = String(raw || '').trim();
+    if (!value) return;
+    const key = placeDedupeKey(value, lang);
+    if (!key || map.has(key)) return;
+    const canonical = normalizeLaneCity(value) || value;
+    map.set(key, {
+      value: canonical,
+      label: cityLabel(canonical, lang) || canonical,
+    });
+  });
+  return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 }
 
 function metricPriority(row, vehicleType, pallets, weight) {
   if (!row) return 99;
-  if (row.metric === 'ftl_truck_type' && vehicleType && row.metricValue?.vehicle_type === vehicleType) return 0;
+  if (row.metric === 'ftl_truck_type' && vehicleType) {
+    const vt = String(row.metricValue?.vehicle_type || '');
+    if (vt === vehicleType || vt.split(',').map((s) => s.trim()).includes(vehicleType)) return 0;
+  }
   if (row.metric === 'unit_transport' && pallets && Number(pallets) > 0) return 1;
   if (row.metric === 'weight' && weight && Number(weight) > 0) return row.metricValue?.unit === 'ton' ? 2 : 3;
   if (row.metric === 'load_any_size') return 4;
@@ -106,27 +145,65 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
   const [result, setResult] = useState(null);
   const [expanded, setExpanded] = useState(false);
 
-  const originOptions = useMemo(() => uniqueCities(lanes.map(getLaneOrigin)), [lanes]);
-  const destinationOptions = useMemo(() => uniqueCities(
-    lanes
-      .filter((lane) => normalizeLaneCity(getLaneOrigin(lane)) === normalizeLaneCity(origin))
-      .map(getLaneDestination),
-  ), [lanes, origin]);
+  const activeLanes = useMemo(
+    () => (Array.isArray(lanes) ? lanes.filter((l) => l.status === 'active') : []),
+    [lanes],
+  );
+
+  const originOptions = useMemo(
+    () => uniquePlaceOptions(activeLanes.map(getLaneOrigin), lang),
+    [activeLanes, lang],
+  );
+
+  const destinationOptions = useMemo(
+    () => uniquePlaceOptions(
+      activeLanes
+        .filter((lane) => placesMatch(getLaneOrigin(lane), origin, lang))
+        .map(getLaneDestination),
+      lang,
+    ),
+    [activeLanes, origin, lang],
+  );
+
+  const vehicleOptions = useMemo(() => {
+    const fromLanes = new Set();
+    activeLanes.forEach((lane) => {
+      resolveLanePricingRows(lane).forEach((row) => {
+        if (row.metric !== 'ftl_truck_type') return;
+        const raw = String(row.metricValue?.vehicle_type || '').trim();
+        if (!raw) return;
+        raw.split(',').map((s) => s.trim()).filter(Boolean).forEach((name) => fromLanes.add(name));
+      });
+    });
+    const list = Array.from(fromLanes).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    return list.length > 0 ? list : FALLBACK_VEHICLE_TYPES;
+  }, [activeLanes]);
 
   useEffect(() => {
-    if (origin && !originOptions.includes(origin)) {
+    if (!open) return;
+    setOrigin('');
+    setDestination('');
+    setPallets('');
+    setWeight('');
+    setVehicleType('');
+    setResult(null);
+    setExpanded(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (origin && !originOptions.some((o) => o.value === origin || placesMatch(o.value, origin, lang))) {
       setOrigin('');
       setDestination('');
       setResult(null);
     }
-  }, [origin, originOptions]);
+  }, [origin, originOptions, lang]);
 
   useEffect(() => {
-    if (destination && !destinationOptions.includes(destination)) {
+    if (destination && !destinationOptions.some((o) => o.value === destination || placesMatch(o.value, destination, lang))) {
       setDestination('');
       setResult(null);
     }
-  }, [destination, destinationOptions]);
+  }, [destination, destinationOptions, lang]);
 
   useEffect(() => {
     setDestination('');
@@ -134,19 +211,18 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
   }, [origin]);
 
   const calculate = useCallback(() => {
-    const oCity = normalizeLaneCity(origin);
-    const dCity = normalizeLaneCity(destination);
-    if (!oCity || !dCity || oCity === dCity) {
+    if (!origin || !destination || placesMatch(origin, destination, lang)) {
       setResult({ error: 'invalid' });
       return;
     }
 
+    const oCity = normalizeLaneCity(origin) || origin;
+    const dCity = normalizeLaneCity(destination) || destination;
     const km = getDistance(oCity, dCity);
 
-    const candidates = lanes.filter((l) =>
-      l.status === 'active'
-      && normalizeLaneCity(getLaneOrigin(l)) === oCity
-      && normalizeLaneCity(getLaneDestination(l)) === dCity,
+    const candidates = activeLanes.filter((l) =>
+      placesMatch(getLaneOrigin(l), origin, lang)
+      && placesMatch(getLaneDestination(l), destination, lang),
     );
 
     const sorted = [...candidates].sort((a, b) => {
@@ -183,7 +259,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
       matchedMetricLabel: formatMetricLabel(pricingFromRows.matchedMetric, t),
       breakdown: { base: price },
     });
-  }, [origin, destination, pallets, weight, vehicleType, lanes, t]);
+  }, [origin, destination, pallets, weight, vehicleType, activeLanes, lang, t]);
 
   if (!open) return null;
 
@@ -226,8 +302,8 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
                 style={inputStyle}
               >
                 <option value="">{t('priceLists.calculator.selectOrigin', 'Select pickup…')}</option>
-                {originOptions.map((c) => (
-                  <option key={c} value={c}>{cityLabel(c, lang)}</option>
+                {originOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
             </div>
@@ -240,8 +316,8 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
                 style={{ ...inputStyle, opacity: origin ? 1 : 0.6 }}
               >
                 <option value="">{t('priceLists.calculator.selectDestination', 'Select dropoff…')}</option>
-                {destinationOptions.map((c) => (
-                  <option key={c} value={c}>{cityLabel(c, lang)}</option>
+                {destinationOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
             </div>
@@ -259,7 +335,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
               <label style={labelStyle}>{t('priceLists.calculator.vehicle', 'Vehicle')}</label>
               <select value={vehicleType} onChange={(e) => setVehicleType(e.target.value)} style={inputStyle}>
                 <option value="">—</option>
-                {VEHICLE_TYPES.map((v) => <option key={v} value={v}>{v}</option>)}
+                {vehicleOptions.map((v) => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
           </div>
