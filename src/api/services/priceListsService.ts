@@ -6,6 +6,8 @@ export type ImportLaneRowPayload = {
   line: number;
   origin_city: string;
   destination_city: string;
+  origin_location_id?: string | null;
+  destination_location_id?: string | null;
   trip_type: 'direct' | 'roundtrip';
   metric: string;
   metric_value: string;

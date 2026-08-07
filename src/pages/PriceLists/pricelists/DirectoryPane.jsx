@@ -88,7 +88,7 @@ export default function DirectoryPane({ summary, activeNode, onNodeClick }) {
         onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = T.sh; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? T.al : 'transparent'; }}
       >
-        <span style={{ width: 16, textAlign: 'center', fontSize: 13 }}>{node.icon}</span>
+        <span className="shrink-0" style={{ width: 16, textAlign: 'center', fontSize: 13, lineHeight: 1 }}>{node.icon}</span>
         <span className="flex-1 min-w-0 truncate">{node.label}</span>
         <span style={{ fontSize: 10, fontWeight: 700, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>({node.count})</span>
       </button>
@@ -111,7 +111,7 @@ export default function DirectoryPane({ summary, activeNode, onNodeClick }) {
       <NodeButton node={{ key: 'directTrip', icon: '➡️', label: t('priceLists.directory.directTrip', 'Direct Trip'), count: counts.directTrip }} />
       <NodeButton node={{ key: 'roundTrips', icon: '🔄', label: t('priceLists.directory.roundTrips', 'Round Trips'), count: counts.roundTrip }} />
       <NodeButton node={{ key: 'simpleLane', icon: '📍', label: t('priceLists.directory.simpleLane', 'Simple Lane'), count: counts.simpleLane }} />
-      <NodeButton node={{ key: 'multiStop', icon: '📍📍', label: t('priceLists.directory.multiStop', 'Multi-Stop'), count: counts.multiStop }} />
+      <NodeButton node={{ key: 'multiStop', icon: '🗺️', label: t('priceLists.directory.multiStop', 'Multi-Stop'), count: counts.multiStop }} />
       <Sep />
       <button
         type="button"

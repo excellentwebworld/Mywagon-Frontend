@@ -153,6 +153,8 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
                 </button>
                 {referenceOpen && (
                   <div className="px-4 py-3 space-y-2" style={{ fontSize: 11, color: T.t2, borderTop: `1px solid ${T.bd}` }}>
+                    <div><strong>{t('priceLists.import.ref.cities', 'Origin / Destination city')}:</strong> {t('priceLists.import.ref.citiesHint', 'Any city name (Address Book cities supported).')}</div>
+                    <div><strong>{t('priceLists.import.ref.locationIds', 'Origin / Destination Location ID')}:</strong> {t('priceLists.import.ref.locationIdsHint', 'Optional Address Book location IDs (filled automatically on Export).')}</div>
                     <div><strong>{t('priceLists.import.ref.tripType', 'Trip type')}:</strong> {ACCEPTED_VALUES.trip_type.join(', ')}</div>
                     <div><strong>{t('priceLists.import.ref.metric', 'Metric')}:</strong> {ACCEPTED_VALUES.metric.join(', ')}</div>
                     <div><strong>{t('priceLists.import.ref.metricValue', 'Metric value')}:</strong></div>

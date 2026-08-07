@@ -4,9 +4,9 @@ import { cityLabel, resolveCity } from '../../mocks/priceListsData';
 
 const isLikelyIsoCode = (s: string) => /^[A-Za-z]{2}$/.test(s);
 
-/** Human-readable stop name for CSV — same resolution as UI route labels (cityLabel). */
+/** Human-readable stop name for CSV — prefer real city / AB name over ISO codes. */
 function formatStopForCsv(
-  stop: { city?: string; label?: string; value?: string } | string | undefined,
+  stop: { city?: string; label?: string; value?: string; location_id?: string | number | null } | string | undefined,
   lang: 'en' | 'el',
 ): string {
   if (!stop) return '';
@@ -14,18 +14,33 @@ function formatStopForCsv(
   const city = String(stop.city || '').trim();
   const label = String(stop.label || '').trim();
   const value = String(stop.value || '').trim();
-  // Prefer a real place name over a bare ISO code stored in city/value.
-  const raw =
+  // Prefer city; if label is "Name · City", use the city part when city is ISO/empty
+  let raw =
     (city && !isLikelyIsoCode(city) ? city : '') ||
     label ||
     city ||
     value;
+  const dotParts = raw.split(/\s*·\s*/);
+  if (dotParts.length >= 2) {
+    const maybeCity = dotParts[dotParts.length - 1].trim();
+    if (maybeCity && !isLikelyIsoCode(maybeCity)) raw = maybeCity;
+  }
   return cityLabel(raw, lang);
+}
+
+function stopLocationId(
+  stop: { location_id?: string | number | null; locationId?: string | number | null } | undefined,
+): string {
+  if (!stop) return '';
+  const id = stop.location_id ?? stop.locationId ?? '';
+  return id != null && String(id).trim() !== '' ? String(id) : '';
 }
 
 export const CSV_COLUMNS_EN = [
   'Origin City',
   'Destination City',
+  'Origin Location ID',
+  'Destination Location ID',
   'Trip Type',
   'Metric',
   'Metric Value',
@@ -42,6 +57,8 @@ export const CSV_COLUMNS_EN = [
 export const CSV_COLUMNS_EL = [
   'Πόλη Αφετηρίας',
   'Πόλη Προορισμού',
+  'ID Τοποθεσίας Αφετηρίας',
+  'ID Τοποθεσίας Προορισμού',
   'Τύπος Δρομολογίου',
   'Μετρική',
   'Τιμή Μετρικής',
@@ -79,14 +96,14 @@ export const ACCEPTED_VALUES = {
 
 export const CSV_TEMPLATE_SAMPLE_ROWS = {
   en: [
-    ['Athens', 'Thessaloniki', 'direct', 'load any size', 'per load', '450', 'EUR', '2026-03-01', '2026-12-31', 'active', 'Default', '', ''],
-    ['Patras', 'Heraklion', 'direct', 'unit transport', 'eur pallet', '42', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
-    ['Volos', 'Larissa', 'roundtrip', 'weight', 'kg', '180', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
+    ['Athens', 'Thessaloniki', '', '', 'direct', 'load any size', 'per load', '450', 'EUR', '2026-03-01', '2026-12-31', 'active', 'Default', '', ''],
+    ['Patras', 'Heraklion', '', '', 'direct', 'unit transport', 'eur pallet', '42', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
+    ['Volos', 'Larissa', '', '', 'roundtrip', 'weight', 'kg', '180', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
   ],
   el: [
-    ['Αθήνα', 'Θεσσαλονίκη', 'direct', 'load any size', 'per load', '450', 'EUR', '2026-03-01', '2026-12-31', 'active', 'Default', '', ''],
-    ['Πάτρα', 'Ηράκλειο', 'direct', 'unit transport', 'eur pallet', '42', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
-    ['Βόλος', 'Λάρισα', 'roundtrip', 'weight', 'kg', '180', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
+    ['Αθήνα', 'Θεσσαλονίκη', '', '', 'direct', 'load any size', 'per load', '450', 'EUR', '2026-03-01', '2026-12-31', 'active', 'Default', '', ''],
+    ['Πάτρα', 'Ηράκλειο', '', '', 'direct', 'unit transport', 'eur pallet', '42', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
+    ['Βόλος', 'Λάρισα', '', '', 'roundtrip', 'weight', 'kg', '180', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
   ],
 };
 
@@ -102,6 +119,8 @@ export type ParsedCsvRow = {
   dRaw: string;
   oCity: string | null;
   dCity: string | null;
+  oLocationId: string;
+  dLocationId: string;
   validO: boolean;
   validD: boolean;
   metric: string;
@@ -257,23 +276,40 @@ function detectSeparator(text: string): string {
 
 function mapHeaders(hdr: string[]): Record<string, number> {
   const colMap: Record<string, number> = {
-    o: -1, d: -1, trip: -1, metric: -1, metricValue: -1, unit: -1,
+    o: -1, d: -1, oLoc: -1, dLoc: -1, trip: -1, metric: -1, metricValue: -1, unit: -1,
     price: -1, cur: -1, from: -1, to: -1, status: -1, scope: -1,
     scopeDirection: -1, notes: -1,
   };
 
   hdr.forEach((h, i) => {
-    const clean = h.replace(/_/g, ' ');
-    if (clean.includes('origin') || clean.includes('αφετ')) colMap.o = i;
-    if (clean.includes('dest') || clean.includes('προορ')) colMap.d = i;
+    const clean = h.replace(/_/g, ' ').trim().toLowerCase();
+    if (
+      clean.includes('origin location')
+      || clean.includes('origin_location')
+      || (clean.includes('αφετ') && clean.includes('id'))
+    ) {
+      colMap.oLoc = i;
+      return;
+    }
+    if (
+      clean.includes('destination location')
+      || clean.includes('dest location')
+      || clean.includes('destination_location')
+      || (clean.includes('προορ') && clean.includes('id'))
+    ) {
+      colMap.dLoc = i;
+      return;
+    }
+    if ((clean.includes('origin') || clean.includes('αφετ')) && colMap.o < 0) colMap.o = i;
+    if ((clean.includes('dest') || clean.includes('προορ')) && colMap.d < 0) colMap.d = i;
     if (clean.includes('trip') || clean.includes('δρομολογ')) colMap.trip = i;
     if (clean.includes('metric value') || clean.includes('τιμη μετρικης') || clean.includes('μετρικη τιμη') || clean.includes('τιμή μετρικής')) colMap.metricValue = i;
     else if (clean.includes('metric') || clean.includes('μετρικ')) colMap.metric = i;
     if (clean.includes('unit') || clean.includes('μοναδ') || clean.includes('μονάδ')) colMap.unit = i;
-    if (clean.includes('price') || clean.includes('τιμη') || clean.includes('τιμή')) colMap.price = i;
+    if ((clean.includes('price') || clean.includes('τιμη') || clean.includes('τιμή')) && !clean.includes('metric')) colMap.price = i;
     if (clean.includes('curr') || clean.includes('νομισ') || clean.includes('νόμισ')) colMap.cur = i;
-    if (clean.includes('effective from') || clean.includes('ισχυς απο') || clean.includes('ισχύς από') || clean.includes('από') || clean.includes('απο')) colMap.from = i;
-    if (clean.includes('effective to') || clean.includes('ισχυς εως') || clean.includes('ισχύς έως') || clean.includes('έως') || clean.includes('εως')) colMap.to = i;
+    if (clean.includes('effective from') || clean.includes('ισχυς απο') || clean.includes('ισχύς από')) colMap.from = i;
+    if (clean.includes('effective to') || clean.includes('ισχυς εως') || clean.includes('ισχύς έως')) colMap.to = i;
     if (clean.includes('status') || clean.includes('κατασ') || clean.includes('κατάσ')) colMap.status = i;
     if (clean.includes('scope direction') || clean.includes('κατευθυν') || clean.includes('κατεύθυν')) colMap.scopeDirection = i;
     else if (clean.includes('scope') || clean.includes('πεδιο') || clean.includes('πεδίο')) colMap.scope = i;
@@ -356,16 +392,22 @@ export function parseCsvText(text: string, existingLanes?: LaneLike[]): CsvParse
     if (!oRaw && !dRaw) continue;
 
     const errors: CsvRowError[] = [];
-    const oCity = resolveCity(oRaw);
-    const dCity = resolveCity(dRaw);
-    const validO = !!oCity;
-    const validD = !!dCity;
+    // Accept Address Book / free-text cities — not only the Greek CITIES mock list
+    const resolvedO = resolveCity(oRaw);
+    const resolvedD = resolveCity(dRaw);
+    const oCity = resolvedO || (oRaw.trim() ? oRaw.trim() : null);
+    const dCity = resolvedD || (dRaw.trim() ? dRaw.trim() : null);
+    const oLocationId = colMap.oLoc >= 0 ? String(vals[colMap.oLoc] || '').trim() : '';
+    const dLocationId = colMap.dLoc >= 0 ? String(vals[colMap.dLoc] || '').trim() : '';
+    // City text is required; Address Book location IDs are optional (round-trip from export).
+    const validO = Boolean(oCity);
+    const validD = Boolean(dCity);
 
-    if (!oRaw || !validO) {
-      errors.push({ code: 'INVALID_ORIGIN_CITY', field: 'origin_city', message: 'Unknown or missing origin city.' });
+    if (!validO) {
+      errors.push({ code: 'INVALID_ORIGIN_CITY', field: 'origin_city', message: 'Missing origin city.' });
     }
-    if (!dRaw || !validD) {
-      errors.push({ code: 'INVALID_DESTINATION_CITY', field: 'destination_city', message: 'Unknown or missing destination city.' });
+    if (!validD) {
+      errors.push({ code: 'INVALID_DESTINATION_CITY', field: 'destination_city', message: 'Missing destination city.' });
     }
     if (!price || price <= 0) {
       errors.push({ code: 'INVALID_PRICE', field: 'price', message: 'Price must be greater than zero.' });
@@ -406,7 +448,7 @@ export function parseCsvText(text: string, existingLanes?: LaneLike[]): CsvParse
     });
 
     const dupe = validO && validD
-      ? isDuplicateRoute(oCity!, dCity!, tripType, existingLanes)
+      ? isDuplicateRoute(String(oCity || oRaw), String(dCity || dRaw), tripType, existingLanes)
       : false;
 
     rows.push({
@@ -415,6 +457,8 @@ export function parseCsvText(text: string, existingLanes?: LaneLike[]): CsvParse
       dRaw,
       oCity,
       dCity,
+      oLocationId,
+      dLocationId,
       validO,
       validD,
       metric: metricRaw,
@@ -473,6 +517,8 @@ export function serializeLanesToCsv(lanes: LaneLike[], lang: 'en' | 'el' = 'en')
     return pricingRows.map((row) => [
       origin,
       destination,
+      stopLocationId(stops[0]),
+      stopLocationId(stops[stops.length - 1]),
       tripType,
       formatMetricForCsv(String(row.metric)),
       metricValueToCsvCell(String(row.metric), row.metricValue),
@@ -501,6 +547,8 @@ export function rowsToImportApiPayload(rows: ParsedCsvRow[]) {
     line: row.line,
     origin_city: row.oCity || row.oRaw,
     destination_city: row.dCity || row.dRaw,
+    origin_location_id: row.oLocationId || null,
+    destination_location_id: row.dLocationId || null,
     trip_type: row.tripType,
     metric: row.metric,
     metric_value: row.metricValueRaw || metricValueToCsvCell(row.metric, row.metricValue),
@@ -526,12 +574,26 @@ export function groupRowsIntoLanePayloads(rows: ParsedCsvRow[]): StorePriceLaneP
 
   return Array.from(grouped.values()).map((groupRows) => {
     const first = groupRows[0];
+    const oCity = first.oCity || first.oRaw;
+    const dCity = first.dCity || first.dRaw;
     return {
-      origin_city: first.oCity || first.oRaw,
-      destination_city: first.dCity || first.dRaw,
+      origin_city: oCity,
+      destination_city: dCity,
       stops: [
-        { city: first.oCity || first.oRaw, label: first.oRaw || first.oCity || '', type: 'city', value: first.oCity || first.oRaw },
-        { city: first.dCity || first.dRaw, label: first.dRaw || first.dCity || '', type: 'city', value: first.dCity || first.dRaw },
+        {
+          city: oCity,
+          label: first.oRaw || oCity,
+          type: 'city',
+          value: oCity,
+          location_id: first.oLocationId || null,
+        },
+        {
+          city: dCity,
+          label: first.dRaw || dCity,
+          type: 'city',
+          value: dCity,
+          location_id: first.dLocationId || null,
+        },
       ],
       trip_type: first.tripType,
       pricing_rows: groupRows.map((row) => ({
