@@ -133,7 +133,7 @@ export default function ListPane({
     <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
       {/* Table */}
       <div className="flex-1 overflow-auto">
-        <table className="w-full border-collapse" style={{ minWidth: 800 }}>
+        <table className="w-full border-collapse" style={{ minWidth: selectedId ? 540 : 700 }}>
           <thead>
             <tr>
               <th style={{ ...thStyle, width: 36 }}>

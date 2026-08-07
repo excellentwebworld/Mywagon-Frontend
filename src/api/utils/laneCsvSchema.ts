@@ -3,35 +3,35 @@ import { resolveLanePricingRows, type LaneLike } from './laneMetricDisplay';
 import { resolveCity } from '../../mocks/priceListsData';
 
 export const CSV_COLUMNS_EN = [
-  'origin_city',
-  'destination_city',
-  'trip_type',
-  'metric',
-  'metric_value',
-  'price',
-  'currency',
-  'effective_from',
-  'effective_to',
-  'status',
-  'scope',
-  'scope_direction',
-  'notes',
+  'Origin City',
+  'Destination City',
+  'Trip Type',
+  'Metric',
+  'Metric Value',
+  'Price',
+  'Currency',
+  'Effective From',
+  'Effective To',
+  'Status',
+  'Scope',
+  'Scope Direction',
+  'Notes',
 ] as const;
 
 export const CSV_COLUMNS_EL = [
-  'πόλη_αφετηρίας',
-  'πόλη_προορισμού',
-  'τύπος_δρομολογίου',
-  'μετρική',
-  'τιμή_μετρικής',
-  'τιμή',
-  'νόμισμα',
-  'ισχύς_από',
-  'ισχύς_έως',
-  'κατάσταση',
-  'πεδίο',
-  'κατεύθυνση_πεδίου',
-  'σημειώσεις',
+  'Πόλη Αφετηρίας',
+  'Πόλη Προορισμού',
+  'Τύπος Δρομολογίου',
+  'Μετρική',
+  'Τιμή Μετρικής',
+  'Τιμή',
+  'Νόμισμα',
+  'Ισχύς Από',
+  'Ισχύς Έως',
+  'Κατάσταση',
+  'Πεδίο',
+  'Κατεύθυνση Πεδίου',
+  'Σημειώσεις',
 ] as const;
 
 export const VALID_METRICS: PriceLaneMetric[] = [
@@ -43,11 +43,11 @@ export const VALID_METRICS: PriceLaneMetric[] = [
 
 export const ACCEPTED_VALUES = {
   trip_type: ['direct', 'roundtrip'],
-  metric: VALID_METRICS,
+  metric: ['weight', 'unit transport', 'ftl truck type', 'load any size'],
   metric_value: {
     weight: ['kg', 'ton'],
-    unit_transport: ['eur_pallet', 'us_pallet', 'box', 'unit', 'big_bag'],
-    load_any_size: ['per_load'],
+    unit_transport: ['eur pallet', 'us pallet', 'box', 'unit', 'big bag'],
+    load_any_size: ['per load'],
     ftl_truck_type: ['vehicle_type slug (any non-empty text)'],
   },
   status: ['active', 'inactive', 'archived'],
@@ -58,13 +58,13 @@ export const ACCEPTED_VALUES = {
 
 export const CSV_TEMPLATE_SAMPLE_ROWS = {
   en: [
-    ['Athens', 'Thessaloniki', 'direct', 'load_any_size', 'per_load', '450', 'EUR', '2026-03-01', '2026-12-31', 'active', 'Default', '', ''],
-    ['Patras', 'Heraklion', 'direct', 'unit_transport', 'eur_pallet', '42', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
+    ['Athens', 'Thessaloniki', 'direct', 'load any size', 'per load', '450', 'EUR', '2026-03-01', '2026-12-31', 'active', 'Default', '', ''],
+    ['Patras', 'Heraklion', 'direct', 'unit transport', 'eur pallet', '42', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
     ['Volos', 'Larissa', 'roundtrip', 'weight', 'kg', '180', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
   ],
   el: [
-    ['Αθήνα', 'Θεσσαλονίκη', 'direct', 'load_any_size', 'per_load', '450', 'EUR', '2026-03-01', '2026-12-31', 'active', 'Default', '', ''],
-    ['Πάτρα', 'Ηράκλειο', 'direct', 'unit_transport', 'eur_pallet', '42', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
+    ['Αθήνα', 'Θεσσαλονίκη', 'direct', 'load any size', 'per load', '450', 'EUR', '2026-03-01', '2026-12-31', 'active', 'Default', '', ''],
+    ['Πάτρα', 'Ηράκλειο', 'direct', 'unit transport', 'eur pallet', '42', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
     ['Βόλος', 'Λάρισα', 'roundtrip', 'weight', 'kg', '180', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
   ],
 };
@@ -127,7 +127,7 @@ function legacyUnitToMetric(unit: string): string {
 }
 
 export function parseMetricValue(metric: string, value: string): { metricValue: Record<string, unknown>; error?: CsvRowError } {
-  const raw = normalizeText(value);
+  const raw = normalizeText(value).replace(/\s+/g, '_');
   const trimmed = String(value || '').trim();
 
   if (metric === 'weight') {
@@ -153,7 +153,7 @@ export function parseMetricValue(metric: string, value: string): { metricValue: 
       error: {
         code: 'INVALID_METRIC_VALUE',
         field: 'metric_value',
-        message: 'Unit transport requires: eur_pallet, us_pallet, box, unit, or big_bag.',
+        message: 'Unit transport requires: eur pallet, us pallet, box, unit, or big bag.',
       },
     };
   }
@@ -174,15 +174,22 @@ export function parseMetricValue(metric: string, value: string): { metricValue: 
 
   return {
     metricValue: {},
-    error: { code: 'INVALID_METRIC_VALUE', field: 'metric_value', message: 'Load metric requires per_load.' },
+    error: { code: 'INVALID_METRIC_VALUE', field: 'metric_value', message: 'Load metric requires per load.' },
   };
 }
 
+export function formatMetricForCsv(metric: string): string {
+  return String(metric || '').replace(/_/g, ' ');
+}
+
 export function metricValueToCsvCell(metric: string, metricValue?: Record<string, unknown>): string {
-  if (metric === 'weight') return String(metricValue?.unit || 'kg');
-  if (metric === 'unit_transport') return String(metricValue?.type || 'eur_pallet');
-  if (metric === 'ftl_truck_type') return String(metricValue?.vehicle_type || '');
-  return String(metricValue?.type || 'per_load');
+  let val = '';
+  if (metric === 'weight') val = String(metricValue?.unit || 'kg');
+  else if (metric === 'unit_transport') val = String(metricValue?.type || 'eur_pallet');
+  else if (metric === 'ftl_truck_type') val = String(metricValue?.vehicle_type || '');
+  else val = String(metricValue?.type || 'per_load');
+
+  return val.replace(/_/g, ' ');
 }
 
 export function scopeToCsvLabel(scope?: string): string {
@@ -235,20 +242,21 @@ function mapHeaders(hdr: string[]): Record<string, number> {
   };
 
   hdr.forEach((h, i) => {
-    if (h.includes('origin') || h.includes('αφετ')) colMap.o = i;
-    if (h.includes('dest') || h.includes('προορ')) colMap.d = i;
-    if (h.includes('trip') || h.includes('δρομολογ')) colMap.trip = i;
-    if (h.includes('metric_value') || h.includes('τιμή_μετρικής') || h.includes('μετρική_τιμή')) colMap.metricValue = i;
-    else if (h.includes('metric') || h.includes('μετρικ')) colMap.metric = i;
-    if (h.includes('unit') || h.includes('μονάδ')) colMap.unit = i;
-    if (h.includes('price') || h === 'τιμή' || h.includes('τιμη')) colMap.price = i;
-    if (h.includes('curr') || h.includes('νόμισ') || h.includes('νομισ')) colMap.cur = i;
-    if (h.includes('effective_from') || h.includes('ισχύς_από') || h.includes('από') || h.includes('απο')) colMap.from = i;
-    if (h.includes('effective_to') || h.includes('ισχύς_έως') || h.includes('έως') || h.includes('εως')) colMap.to = i;
-    if (h.includes('status') || h.includes('κατάσ') || h.includes('κατασ')) colMap.status = i;
-    if (h.includes('scope_direction') || h.includes('κατεύθυν')) colMap.scopeDirection = i;
-    else if (h.includes('scope') || h.includes('πεδίο') || h.includes('πεδιο')) colMap.scope = i;
-    if (h.includes('note') || h.includes('σημεί')) colMap.notes = i;
+    const clean = h.replace(/_/g, ' ');
+    if (clean.includes('origin') || clean.includes('αφετ')) colMap.o = i;
+    if (clean.includes('dest') || clean.includes('προορ')) colMap.d = i;
+    if (clean.includes('trip') || clean.includes('δρομολογ')) colMap.trip = i;
+    if (clean.includes('metric value') || clean.includes('τιμη μετρικης') || clean.includes('μετρικη τιμη') || clean.includes('τιμή μετρικής')) colMap.metricValue = i;
+    else if (clean.includes('metric') || clean.includes('μετρικ')) colMap.metric = i;
+    if (clean.includes('unit') || clean.includes('μοναδ') || clean.includes('μονάδ')) colMap.unit = i;
+    if (clean.includes('price') || clean.includes('τιμη') || clean.includes('τιμή')) colMap.price = i;
+    if (clean.includes('curr') || clean.includes('νομισ') || clean.includes('νόμισ')) colMap.cur = i;
+    if (clean.includes('effective from') || clean.includes('ισχυς απο') || clean.includes('ισχύς από') || clean.includes('από') || clean.includes('απο')) colMap.from = i;
+    if (clean.includes('effective to') || clean.includes('ισχυς εως') || clean.includes('ισχύς έως') || clean.includes('έως') || clean.includes('εως')) colMap.to = i;
+    if (clean.includes('status') || clean.includes('κατασ') || clean.includes('κατάσ')) colMap.status = i;
+    if (clean.includes('scope direction') || clean.includes('κατευθυν') || clean.includes('κατεύθυν')) colMap.scopeDirection = i;
+    else if (clean.includes('scope') || clean.includes('πεδιο') || clean.includes('πεδίο')) colMap.scope = i;
+    if (clean.includes('note') || clean.includes('σημει') || clean.includes('σημεί')) colMap.notes = i;
   });
 
   return colMap;
@@ -361,15 +369,16 @@ export function parseCsvText(text: string, existingLanes?: LaneLike[]): CsvParse
       errors.push({ code: 'INVALID_PRICE', field: 'price', message: 'Price must be greater than zero.' });
     }
 
-    const metricRaw = colMap.metric >= 0
-      ? normalizeText(vals[colMap.metric])
-      : legacyUnitToMetric(colMap.unit >= 0 ? vals[colMap.unit] : '');
+    const rawMetricInput = colMap.metric >= 0
+      ? vals[colMap.metric]
+      : (colMap.unit >= 0 ? vals[colMap.unit] : '');
+    const metricRaw = normalizeText(rawMetricInput).replace(/\s+/g, '_');
 
     if (!VALID_METRICS.includes(metricRaw as PriceLaneMetric)) {
       errors.push({
         code: 'INVALID_METRIC',
         field: 'metric',
-        message: 'Metric must be one of: weight, unit_transport, ftl_truck_type, load_any_size.',
+        message: 'Metric must be one of: weight, unit transport, ftl truck type, load any size.',
       });
     }
 
@@ -462,7 +471,7 @@ export function serializeLanesToCsv(lanes: LaneLike[], lang: 'en' | 'el' = 'en')
       origin,
       destination,
       tripType,
-      row.metric,
+      formatMetricForCsv(String(row.metric)),
       metricValueToCsvCell(String(row.metric), row.metricValue),
       Number(row.priceEur || 0),
       'EUR',

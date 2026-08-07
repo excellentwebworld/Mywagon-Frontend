@@ -12,7 +12,7 @@
  */
 
 import { useMemo } from 'react';
-import { X } from 'lucide-react';
+import { X, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 
@@ -67,10 +67,13 @@ export default function AuditLogPanel({ open, onClose, auditLog }) {
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: `1px solid ${T.bd}` }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: T.t1, margin: 0 }}>
-            📋 {t('priceLists.audit.title', 'Audit Log')}
-          </h3>
-          <button onClick={onClose} className="p-1 rounded cursor-pointer border-none" style={{ background: 'transparent', color: T.t3 }}><X size={16} /></button>
+          <div className="flex items-center gap-2">
+            <History size={18} style={{ color: T.ac }} />
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: T.t1, margin: 0 }}>
+              {t('priceLists.audit.title', 'Audit Log')}
+            </h3>
+          </div>
+          <button onClick={onClose} className="p-1 rounded cursor-pointer border-none hover:bg-black/5 dark:hover:bg-white/5 transition-colors" style={{ background: 'transparent', color: T.t3 }}><X size={16} /></button>
         </div>
 
         {/* Summary cards */}
@@ -81,9 +84,9 @@ export default function AuditLogPanel({ open, onClose, auditLog }) {
             { key: 'status', label: t('priceLists.audit.statusLabel', 'Status'), color: '#F59E0B' },
             { key: 'deleted', label: t('priceLists.audit.deletedLabel', 'Deleted'), color: '#EF4444' },
           ].map(c => (
-            <div key={c.key} className="text-center px-2 py-2 rounded-lg" style={{ background: T.bg }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: c.color }}>{stats[c.key]}</div>
-              <div style={{ fontSize: 10, color: T.t3, fontWeight: 500 }}>{c.label}</div>
+            <div key={c.key} className="flex flex-col items-center justify-center px-1 py-2.5 rounded-lg min-h-[58px]" style={{ background: T.bg }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: c.color, lineHeight: 1.1 }}>{stats[c.key]}</div>
+              <div className="truncate w-full text-center mt-1" style={{ fontSize: 10, color: T.t3, fontWeight: 600 }}>{c.label}</div>
             </div>
           ))}
         </div>
