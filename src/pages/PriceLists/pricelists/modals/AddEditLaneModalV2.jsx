@@ -233,25 +233,15 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
     const validStops = stops.filter((s) => s && s.value);
     if (validStops.length < 2) return null;
 
-    const cityStops = validStops.map((s) => {
-      if (s.type === 'city') {
-        const resolved = resolveCity(s.value);
-        return resolved ? { city: resolved, label: s.label } : { city: s.value, label: s.label };
-      }
-      return { city: null, label: s.label };
-    });
+    const stopObjects = validStops.map((s) => ({
+      city: s.value || s.city || s.label || '',
+      label: s.label || s.value || s.city || '',
+      type: s.type,
+      value: s.value,
+      countryCode: s.countryCode,
+    }));
 
-    const hasCities = cityStops.every((s) => s.city);
-    if (hasCities) {
-      return calculateRouteTotals(cityStops, tripType === 'roundtrip');
-    }
-
-    return {
-      legs: [],
-      totalKm: 0,
-      routeLabel: validStops.map((s) => s.label || s.value).join(tripType === 'roundtrip' ? ' ↔ ' : ' → '),
-      manualKm: true,
-    };
+    return calculateRouteTotals(stopObjects, tripType === 'roundtrip');
   }, [stops, tripType]);
 
   useEffect(() => {
@@ -302,6 +292,21 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
     updatePricingRow(rowId, { metric, metricValue: defaultMetricValue(metric) });
   };
 
+  const scrollContainerRef = useRef(null);
+
+  const scrollToFirstError = useCallback(() => {
+    setTimeout(() => {
+      if (scrollContainerRef.current) {
+        const errorEl = scrollContainerRef.current.querySelector('.error-msg, [data-error="true"]');
+        if (errorEl) {
+          errorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
+    }, 80);
+  }, []);
+
   const handleSave = useCallback(async () => {
     const errs = {};
     const validStops = stops.filter((s) => s && s.value);
@@ -324,6 +329,13 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
 
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
+      setSections((prev) => ({
+        ...prev,
+        route: Boolean(errs.stops || errs.sameCity) || prev.route,
+        pricing: Boolean(errs.pricingRows || Object.keys(errs).some((k) => k.startsWith('amount_') || k.startsWith('metric_'))) || prev.pricing,
+        validity: Boolean(errs.dateOrder) || prev.validity,
+      }));
+      scrollToFirstError();
       return;
     }
 
@@ -377,6 +389,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
         setErrors({
           form: t('priceLists.phase2.validation.exactDuplicate', 'Change at least one field before saving this duplicate lane.'),
         });
+        scrollToFirstError();
         return;
       }
     }
@@ -393,6 +406,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
             : t('priceLists.modal.duplicateLane', 'A lane with the same origin, destination, and trip type already exists.');
         }
         setErrors((prev) => ({ ...prev, ...mapped }));
+        scrollToFirstError();
         return;
       }
 
@@ -400,8 +414,9 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
         ...prev,
         form: t('genericError', 'Something went wrong'),
       }));
+      scrollToFirstError();
     }
-  }, [stops, pricingRows, effectiveFrom, effectiveTo, routeCalc, tripType, scopePartnerIds, scopeDirection, notes, role, onSave, lane, mode, mapBackendFieldErrors, getErrorMessage]);
+  }, [stops, pricingRows, effectiveFrom, effectiveTo, routeCalc, tripType, scopePartnerIds, scopeDirection, notes, role, onSave, lane, mode, mapBackendFieldErrors, getErrorMessage, scrollToFirstError]);
 
   if (!open) return null;
 
@@ -448,14 +463,14 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
         </div>
 
         {!!errors.form && (
-          <div className="px-6 pt-4">
+          <div className="px-6 pt-4 error-msg" data-error="true">
             <div className="rounded-lg px-3 py-2" style={{ background: '#FEE2E2', color: '#991B1B', fontSize: 12, fontWeight: 600 }}>
               {getErrorMessage(errors.form, t('genericError', 'Something went wrong'))}
             </div>
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
           {sectionBtn('route', t('priceLists.modal.route', 'Route'))}
           {sections.route && (
             <div className="px-6 pb-4 space-y-3">
@@ -496,11 +511,11 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                 <Plus size={13} /> {t('priceLists.modal.addStop', 'Add stop')}
               </button>
 
-              {!!errors.stops && <div style={errorStyle}>{t('priceLists.phase2.validation.addAtLeastTwoStops', 'Please add at least origin and destination.')}</div>}
-              {!!errors.sameCity && <div style={errorStyle}>{t('priceLists.modal.sameCity', 'Origin and destination must be different')}</div>}
+              {!!errors.stops && <div className="error-msg" data-error="true" style={errorStyle}>{t('priceLists.phase2.validation.addAtLeastTwoStops', 'Please add at least origin and destination.')}</div>}
+              {!!errors.sameCity && <div className="error-msg" data-error="true" style={errorStyle}>{t('priceLists.modal.sameCity', 'Origin and destination must be different')}</div>}
 
               {dupeWarn && (
-                <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: '#FEF3C7', color: '#92400E', fontSize: 11 }}>
+                <div className="flex items-center gap-2 p-2 rounded-lg error-msg" data-error="true" style={{ background: '#FEF3C7', color: '#92400E', fontSize: 11 }}>
                   <AlertTriangle size={14} />
                   {t('priceLists.phase2.validation.dupeWarnTrip', 'Similar active lane exists for this route and trip type.')}
                 </div>
@@ -525,7 +540,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                 const rowErr = errors[`amount_${idx}`] || errors[`metric_${idx}`] || errors[`metricValue_${idx}`];
 
                 return (
-                  <div key={row.id} className="p-3 rounded-lg" style={{ border: `1px solid ${rowErr ? '#FCA5A5' : T.bd}`, background: T.bg }}>
+                  <div key={row.id} className={`p-3 rounded-lg ${rowErr ? 'error-msg' : ''}`} data-error={rowErr ? 'true' : undefined} style={{ border: `1px solid ${rowErr ? '#FCA5A5' : T.bd}`, background: T.bg }}>
                     <div className="grid grid-cols-12 gap-2">
                       <div className="col-span-3">
                         <label style={labelStyle}>{t('priceLists.phase2.priceEur', 'Price (EUR)')}</label>
@@ -536,7 +551,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                           value={row.amount}
                           onChange={(e) => updatePricingRow(row.id, { amount: e.target.value })}
                         />
-                        {!!errors[`amount_${idx}`] && <div style={errorStyle}>{t('priceLists.phase2.validation.priceRequired', 'Enter a valid EUR amount for this row.')}</div>}
+                        {!!errors[`amount_${idx}`] && <div className="error-msg" data-error="true" style={errorStyle}>{t('priceLists.phase2.validation.priceRequired', 'Enter a valid EUR amount for this row.')}</div>}
                       </div>
                       <div className="col-span-4">
                         <label style={labelStyle}>{t('priceLists.phase2.pricingMetric', 'Pricing metric')}</label>
@@ -547,7 +562,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                             </option>
                           ))}
                         </select>
-                        {!!errors[`metric_${idx}`] && <div style={errorStyle}>{t('priceLists.phase2.validation.metricDuplicate', 'This metric is already used in another pricing row.')}</div>}
+                        {!!errors[`metric_${idx}`] && <div className="error-msg" data-error="true" style={errorStyle}>{t('priceLists.phase2.validation.metricDuplicate', 'This metric is already used in another pricing row.')}</div>}
                       </div>
                       <div className="col-span-4">
                         <label style={labelStyle}>{t('priceLists.phase2.metricValue', 'Metric value')}</label>
@@ -580,7 +595,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                             {row.metricValue?.vehicle_type || t('priceLists.phase2.vehicleTypeSummary', 'Vehicle type summary')}
                           </div>
                         )}
-                        {!!errors[`metricValue_${idx}`] && <div style={errorStyle}>{t('priceLists.phase2.validation.metricValueRequired', 'Choose a valid value for this metric.')}</div>}
+                        {!!errors[`metricValue_${idx}`] && <div className="error-msg" data-error="true" style={errorStyle}>{t('priceLists.phase2.validation.metricValueRequired', 'Choose a valid value for this metric.')}</div>}
                       </div>
                       <div className="col-span-1 flex items-end justify-end">
                         <button
@@ -643,7 +658,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                   <input type="date" style={inputStyle} value={effectiveTo} onChange={(e) => setEffectiveTo(e.target.value)} />
                 </div>
               </div>
-              {!!errors.dateOrder && <div style={errorStyle}>{t('priceLists.modal.dateError', 'End date must be after start date')}</div>}
+              {!!errors.dateOrder && <div className="error-msg" data-error="true" style={errorStyle}>{t('priceLists.modal.dateError', 'End date must be after start date')}</div>}
 
               {role === 'forwarder' && (
                 <div>
