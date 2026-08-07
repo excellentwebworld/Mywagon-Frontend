@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
+import { DatePicker } from '../../../components/ui/DatePicker';
 import { auditSettingsService } from '../../../api/services/auditSettingsService';
 import { UserAuditTabSkeleton } from '../components/AuditSkeletons';
 
@@ -210,14 +211,26 @@ export default function AuditTab() {
           )}
         </div>
 
-        {/* Date range */}
-        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-          className="px-2.5 py-1.5 rounded-lg outline-none"
-          style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 12 }} />
+        {/* Date range — shared DatePicker (same as Create Shipment / Add Lane) */}
+        <div style={{ width: 148 }}>
+          <DatePicker
+            value={dateFrom}
+            onChange={setDateFrom}
+            max={dateTo || undefined}
+            direction="auto"
+            placeholder="dd/MM/yyyy"
+          />
+        </div>
         <span style={{ fontSize: 12, color: T.t3 }}>→</span>
-        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-          className="px-2.5 py-1.5 rounded-lg outline-none"
-          style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 12 }} />
+        <div style={{ width: 148 }}>
+          <DatePicker
+            value={dateTo}
+            onChange={setDateTo}
+            min={dateFrom || undefined}
+            direction="auto"
+            placeholder="dd/MM/yyyy"
+          />
+        </div>
 
         {hasFilters && (
           <button onClick={clearAll} className="flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer border-none" style={{ color: T.t3, fontSize: 11 }}>
