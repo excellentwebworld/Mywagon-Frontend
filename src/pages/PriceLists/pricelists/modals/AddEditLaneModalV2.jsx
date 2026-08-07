@@ -355,8 +355,6 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
     setDupeWarn(dup);
   }, [stops, allLanes, lane, tripType]);
 
-  const usedMetrics = useMemo(() => new Set(pricingRows.map((r) => r.metric)), [pricingRows]);
-
   const toggleSection = (key) => setSections((p) => ({ ...p, [key]: !p[key] }));
 
   const addStop = () => { if (stops.length < 10) setStops((p) => [...p, null]); };
@@ -372,9 +370,9 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
   }, [activeLocations, applyLocationAtIndex]);
 
   const addPricingRow = () => {
-    const nextMetric = METRICS.find((m) => !usedMetrics.has(m.key));
-    if (!nextMetric) return;
-    setPricingRows((p) => [...p, { id: uid(), metric: nextMetric.key, amount: '', metricValue: defaultMetricValue(nextMetric.key) }]);
+    if (pricingRows.length >= METRICS.length) return;
+    const metric = 'load_any_size';
+    setPricingRows((p) => [...p, { id: uid(), metric, amount: '', metricValue: defaultMetricValue(metric) }]);
   };
 
   const removePricingRow = (rowId) => setPricingRows((p) => p.filter((r) => r.id !== rowId));
@@ -411,12 +409,9 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
 
     if (pricingRows.length === 0) errs.pricingRows = true;
 
-    const metricSet = new Set();
     pricingRows.forEach((row, idx) => {
       const amount = Number(row.amount || 0);
       if (!amount || amount <= 0) errs[`amount_${idx}`] = true;
-      if (metricSet.has(row.metric)) errs[`metric_${idx}`] = true;
-      metricSet.add(row.metric);
       if (!isMetricValueValid(row.metric, row.metricValue)) errs[`metricValue_${idx}`] = true;
     });
 
@@ -427,7 +422,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       setSections((prev) => ({
         ...prev,
         route: Boolean(errs.stops || errs.sameCity) || prev.route,
-        pricing: Boolean(errs.pricingRows || Object.keys(errs).some((k) => k.startsWith('amount_') || k.startsWith('metric_'))) || prev.pricing,
+        pricing: Boolean(errs.pricingRows || Object.keys(errs).some((k) => k.startsWith('amount_') || k.startsWith('metricValue_'))) || prev.pricing,
         validity: Boolean(errs.dateOrder) || prev.validity,
       }));
       scrollToFirstError();
@@ -660,8 +655,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
           {sections.pricing && (
             <div className="px-6 pb-4 space-y-3">
               {pricingRows.map((row, idx) => {
-                const metricTakenByOther = (m) => pricingRows.some((r) => r.id !== row.id && r.metric === m);
-                const rowErr = errors[`amount_${idx}`] || errors[`metric_${idx}`] || errors[`metricValue_${idx}`];
+                const rowErr = errors[`amount_${idx}`] || errors[`metricValue_${idx}`];
 
                 return (
                   <div key={row.id} className={`p-3 rounded-lg ${rowErr ? 'error-msg' : ''}`} data-error={rowErr ? 'true' : undefined} style={{ border: `1px solid ${rowErr ? '#FCA5A5' : T.bd}`, background: T.bg }}>
@@ -681,12 +675,11 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                         <label style={labelStyle}>{t('priceLists.phase2.pricingMetric', 'Pricing metric')}</label>
                         <select style={inputStyle} value={row.metric} onChange={(e) => updateRowMetric(row.id, e.target.value)}>
                           {METRICS.map((m) => (
-                            <option key={m.key} value={m.key} disabled={metricTakenByOther(m.key)}>
-                              {metricLabel(m.key)}{metricTakenByOther(m.key) ? ` ${t('priceLists.phase2.used', '(used)')}` : ''}
+                            <option key={m.key} value={m.key}>
+                              {metricLabel(m.key)}
                             </option>
                           ))}
                         </select>
-                        {!!errors[`metric_${idx}`] && <div className="error-msg" data-error="true" style={errorStyle}>{t('priceLists.phase2.validation.metricDuplicate', 'This metric is already used in another pricing row.')}</div>}
                       </div>
                       <div className="col-span-4">
                         <label style={labelStyle}>{t('priceLists.phase2.metricValue', 'Metric value')}</label>

@@ -333,25 +333,6 @@ function applyGroupErrors(rows: ParsedCsvRow[]): void {
         });
       });
     }
-
-    const metrics = new Map<string, ParsedCsvRow[]>();
-    groupRows.forEach((row) => {
-      if (!metrics.has(row.metric)) metrics.set(row.metric, []);
-      metrics.get(row.metric)!.push(row);
-    });
-
-    metrics.forEach((metricRows) => {
-      if (metricRows.length > 1) {
-        metricRows.forEach((row) => {
-          row.groupError = true;
-          row.errors.push({
-            code: 'DUPLICATE_METRIC_IN_LANE',
-            field: 'metric',
-            message: 'Duplicate metric in the same lane group.',
-          });
-        });
-      }
-    });
   });
 }
 
