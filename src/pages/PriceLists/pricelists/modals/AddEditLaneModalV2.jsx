@@ -28,7 +28,7 @@ import {
   isValidLaneStop,
   stopsAreSamePlace,
   normalizeLoadedLaneStop,
-} from './mapLocationToLaneStop';
+} from '../mapLocationToLaneStop';
 import '../../../../styles/address-book.css';
 
 const METRICS = [
