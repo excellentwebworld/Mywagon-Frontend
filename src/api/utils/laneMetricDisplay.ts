@@ -15,7 +15,13 @@ export type LaneLike = {
     perKg?: number | null;
     perTonne?: number | null;
   };
-  stops?: Array<{ city?: string; value?: string; label?: string }>;
+  stops?: Array<{
+    city?: string;
+    value?: string;
+    label?: string;
+    location_id?: string | number | null;
+    locationId?: string | number | null;
+  }>;
   tripType?: string;
   isRoundTrip?: boolean;
   effectiveFrom?: string;
@@ -200,7 +206,13 @@ export function buildLaneFingerprint(lane: LaneLike | null | undefined): string 
 }
 
 export function buildLaneFingerprintFromEntry(entry: {
-  stops?: Array<{ city?: string; value?: string; label?: string }>;
+  stops?: Array<{
+    city?: string;
+    value?: string;
+    label?: string;
+    location_id?: string | number | null;
+    locationId?: string | number | null;
+  }>;
   tripType?: string;
   isRoundTrip?: boolean;
   pricingRows?: LanePricingRow[];
