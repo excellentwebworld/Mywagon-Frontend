@@ -301,8 +301,16 @@ export default function PriceListsPage() {
   const persistLaneStatus = useCallback(async (lane, nextStatus, successMessage) => {
     if (!lane) return;
 
-    const actionType = nextStatus === 'active' ? 'activated' : 'deactivated';
-    const detailMsg = nextStatus === 'active' ? `Lane ${lane.id} activated` : `Lane ${lane.id} set to inactive`;
+    const actionType = nextStatus === 'archived'
+      ? 'archived'
+      : nextStatus === 'active'
+        ? 'activated'
+        : 'deactivated';
+    const detailMsg = nextStatus === 'archived'
+      ? `Lane ${lane.id} archived`
+      : nextStatus === 'active'
+        ? `Lane ${lane.id} activated`
+        : `Lane ${lane.id} set to inactive`;
 
     if (lane.apiId) {
       try {
@@ -318,6 +326,7 @@ export default function PriceListsPage() {
             : l
         )));
         addAuditEntry(actionType, lane.id, detailMsg);
+        if (nextStatus === 'archived' && selectedId === lane.id) setSelectedId(null);
         toast.success(successMessage);
         return;
       } catch (_e) {
@@ -328,8 +337,9 @@ export default function PriceListsPage() {
 
     setLanes(prev => prev.map(l => l.id === lane.id ? { ...l, status: nextStatus, updatedAt: new Date().toISOString() } : l));
     addAuditEntry(actionType, lane.id, detailMsg);
+    if (nextStatus === 'archived' && selectedId === lane.id) setSelectedId(null);
     toast.success(successMessage);
-  }, [t, toast, addAuditEntry]);
+  }, [t, toast, addAuditEntry, selectedId]);
 
   // ─── CRUD actions ───
   const handleAction = useCallback((action, lane) => {
@@ -359,11 +369,8 @@ export default function PriceListsPage() {
           confirmLabel: t('priceLists.actions.archive', 'Archive'),
           destructive: false,
           onConfirm: () => {
-            setLanes(prev => prev.map(l => l.id === lane.id ? { ...l, status: 'archived', updatedAt: new Date().toISOString() } : l));
-            addAuditEntry('archived', lane.id, `Lane ${lane.id} archived`);
-            if (selectedId === lane.id) setSelectedId(null);
-            toast.success(t('priceLists.toast.archived', 'Lane archived'));
             setConfirmDialog(null);
+            void persistLaneStatus(lane, 'archived', t('priceLists.toast.archived', 'Lane archived'));
           },
         });
         break;
