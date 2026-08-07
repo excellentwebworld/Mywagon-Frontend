@@ -421,7 +421,7 @@ export default function PriceListsPage() {
       if (existingId && canUseApiUpdate) {
         const updatedApiLane = await priceListsService.updateLane(editingLane.apiId, payload);
         const updatedUiLane = mapApiLaneToUiLane(updatedApiLane);
-        setLanes((prev) => prev.map((l) => (l.id === existingId ? { ...l, ...updatedUiLane, id: l.id, apiId: updatedUiLane.apiId } : l)));
+        setLanes((prev) => prev.map((l) => (l.id === existingId ? { ...l, ...updatedUiLane, id: l.id, apiId: updatedUiLane.apiId, updatedAt: new Date().toISOString() } : l)));
         addAuditEntry('updated', existingId, `Lane ${existingId} updated with new parameters`);
         toast.success(t('priceLists.toast.laneUpdated', 'Lane updated'));
       } else if (existingId) {

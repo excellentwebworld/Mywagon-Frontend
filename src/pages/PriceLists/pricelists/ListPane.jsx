@@ -39,11 +39,14 @@ function SortIcon({ sortKey, currentSort, currentDir }) {
 
 function relativeTime(dateStr, t) {
   if (!dateStr) return t('priceLists.time.today', 'Today');
-  const d = new Date(dateStr);
+  const normalized = typeof dateStr === 'string' ? dateStr.trim().replace(' ', 'T') : dateStr;
+  const d = new Date(normalized);
+  if (isNaN(d.getTime())) return t('priceLists.time.today', 'Today');
+
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
 
-  if (diffMs <= 0 || diffMs < 1000 * 60 * 60 * 24) {
+  if (diffMs < 24 * 60 * 60 * 1000) {
     return t('priceLists.time.today', 'Today');
   }
 
