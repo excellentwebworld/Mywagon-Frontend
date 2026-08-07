@@ -133,78 +133,81 @@ export default function ListPane({
     borderBottom: `1px solid ${T.bd}`, whiteSpace: 'nowrap', userSelect: 'none',
     background: T.sh, position: 'sticky', top: 0, zIndex: 2,
   };
-  const tdStyle = { fontSize: 12, padding: '8px 10px', borderBottom: `1px solid ${T.bd}`, color: T.t1 };
+  const tdStyle = { fontSize: 12, padding: '8px 10px', borderBottom: `1px solid ${T.bd}`, color: T.t1, verticalAlign: 'middle' };
 
   return (
     <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
       {/* Table */}
       <div className="flex-1 overflow-auto">
-        <table className="w-full border-collapse" style={{ minWidth: selectedId ? 540 : 700 }}>
+        <table
+          className="w-full border-collapse"
+          style={{ tableLayout: 'fixed', width: '100%', minWidth: selectedId ? 720 : 900 }}
+        >
           <thead>
             <tr>
-              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('route')}>
+              <th style={{ ...thStyle, width: selectedId ? '28%' : '22%' }} className="cursor-pointer" onClick={() => handleSort('route')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.route', 'Route')}
                   <SortIcon sortKey="route" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={thStyle} className="cursor-pointer hidden xl:table-cell" onClick={() => handleSort('stops')}>
+              <th style={{ ...thStyle, width: '6%' }} className="cursor-pointer hidden xl:table-cell" onClick={() => handleSort('stops')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.stops', 'Stops')}
                   <SortIcon sortKey="stops" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('km')}>
+              <th style={{ ...thStyle, width: '8%' }} className="cursor-pointer" onClick={() => handleSort('km')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.totalKm', 'Total km')}
                   <SortIcon sortKey="km" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('price')}>
+              <th style={{ ...thStyle, width: '9%' }} className="cursor-pointer" onClick={() => handleSort('price')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.price', 'Price')}
                   <SortIcon sortKey="price" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('metric')}>
+              <th style={{ ...thStyle, width: selectedId ? '16%' : '13%' }} className="cursor-pointer" onClick={() => handleSort('metric')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.metric', 'Metric')}
                   <SortIcon sortKey="metric" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('status')}>
+              <th style={{ ...thStyle, width: '9%' }} className="cursor-pointer" onClick={() => handleSort('status')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.status', 'Status')}
                   <SortIcon sortKey="status" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={{ ...thStyle }} className="hidden lg:table-cell cursor-pointer" onClick={() => handleSort('scope')}>
+              <th style={{ ...thStyle, width: '12%' }} className="hidden lg:table-cell cursor-pointer" onClick={() => handleSort('scope')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.scope', 'Scope')}
                   <SortIcon sortKey="scope" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={thStyle} className="cursor-pointer hidden xl:table-cell" onClick={() => handleSort('effective')}>
+              <th style={{ ...thStyle, width: '13%' }} className="cursor-pointer hidden xl:table-cell" onClick={() => handleSort('effective')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.effective', 'Effective')}
                   <SortIcon sortKey="effective" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
               {role === 'carrier' && (
-                <th style={thStyle} className="cursor-pointer hidden xl:table-cell" onClick={() => handleSort('margin')}>
+                <th style={{ ...thStyle, width: '8%' }} className="cursor-pointer hidden xl:table-cell" onClick={() => handleSort('margin')}>
                   <span className="flex items-center gap-1">
                     {t('priceLists.col.margin', 'Margin %')}
                     <SortIcon sortKey="margin" currentSort={sortKey} currentDir={sortDir} />
                   </span>
                 </th>
               )}
-              <th style={thStyle} className="hidden lg:table-cell cursor-pointer" onClick={() => handleSort('updated')}>
+              <th style={{ ...thStyle, width: '8%' }} className="hidden lg:table-cell cursor-pointer" onClick={() => handleSort('updated')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.updated', 'Updated')}
                   <SortIcon sortKey="updated" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={{ ...thStyle, width: 40 }} />
+              <th style={{ ...thStyle, width: 44 }} />
             </tr>
           </thead>
           <tbody>
@@ -261,24 +264,27 @@ export default function ListPane({
                   onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = T.sh; }}
                   onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = isSelected ? T.al : 'transparent'; }}
                 >
-                  <td style={tdStyle}>
-                    <div style={{ fontWeight: 600, fontSize: 12, lineHeight: 1.3 }}>
+                  <td style={{ ...tdStyle, overflow: 'hidden' }}>
+                    <div
+                      style={{ fontWeight: 600, fontSize: 12, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      title={routeDisplay}
+                    >
                       {routeDisplay}
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 min-w-0">
                       <span style={{ fontSize: 10, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>{lane.id}</span>
                       {lane.isRoundTrip && (
-                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#DBEAFE', color: '#2563EB' }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#DBEAFE', color: '#2563EB', flexShrink: 0 }}>
                           {t('priceLists.badge.roundTrip', 'RT')}
                         </span>
                       )}
                       {lane.stops.length > 2 && (
-                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#EDE9FE', color: '#7C3AED' }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#EDE9FE', color: '#7C3AED', flexShrink: 0 }}>
                           {t('priceLists.badge.multiStop', 'Multi')}
                         </span>
                       )}
                       {expiring && (
-                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#FEF3C7', color: '#92400E' }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#FEF3C7', color: '#92400E', flexShrink: 0 }}>
                           ⏰
                         </span>
                       )}
@@ -297,18 +303,20 @@ export default function ListPane({
                       €{typeof price === 'number' ? price.toLocaleString(undefined, { minimumFractionDigits: price < 10 ? 2 : 0 }) : price}
                     </span>
                   </td>
-                  <td style={tdStyle}>
-                    <span className="inline-flex items-center gap-1">
+                  <td style={{ ...tdStyle, overflow: 'hidden' }}>
+                    <span className="inline-flex items-center gap-1 max-w-full min-w-0">
                       <span
                         style={{
                           fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99,
                           background: metricInfo.bg, color: metricInfo.fg,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%',
                         }}
+                        title={formatMetricLabel(primaryMetric, t)}
                       >
                         {formatMetricLabel(primaryMetric, t)}
                       </span>
                       {extraMetricCount > 0 && (
-                        <span style={{ fontSize: 9, fontWeight: 700, color: T.t3 }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: T.t3, flexShrink: 0 }}>
                           {t('priceLists.col.metricMultiple', '+{{count}}').replace('{{count}}', String(extraMetricCount))}
                         </span>
                       )}
@@ -324,8 +332,11 @@ export default function ListPane({
                       {t(`priceLists.status.${lane.status}`, lane.status)}
                     </span>
                   </td>
-                  <td style={tdStyle} className="hidden lg:table-cell">
-                    <span style={{ fontSize: 11, color: T.t2 }}>
+                  <td style={{ ...tdStyle, overflow: 'hidden' }} className="hidden lg:table-cell">
+                    <span
+                      style={{ fontSize: 11, color: T.t2, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      title={formatScopeDisplay(lane, t)}
+                    >
                       {formatScopeDisplay(lane, t)}
                       {lane.scopeDirection && (
                         <span style={{ fontSize: 9, marginLeft: 4, fontWeight: 600, color: lane.scopeDirection === 'sell' ? '#059669' : '#DC2626' }}>
@@ -334,8 +345,8 @@ export default function ListPane({
                       )}
                     </span>
                   </td>
-                  <td style={tdStyle} className="hidden xl:table-cell">
-                    <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: T.t2 }}>
+                  <td style={{ ...tdStyle, overflow: 'hidden' }} className="hidden xl:table-cell">
+                    <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: T.t2, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {lane.effectiveFrom?.slice(0, 10)}
                       {lane.effectiveTo ? ` → ${lane.effectiveTo.slice(0, 10)}` : ` → ${t('priceLists.validity.openEnded', '∞')}`}
                     </span>
