@@ -245,10 +245,29 @@ export function laneIsMultistop(lane: LaneLike | null | undefined): boolean {
   return Array.isArray(lane?.stops) && lane.stops.length > 2;
 }
 
+/** Parse YYYY-MM-DD (or datetime) as a local calendar day — avoids UTC midnight off-by-one. */
+function parseLocalDay(value: string): Date | null {
+  const ymd = String(value || '').trim().slice(0, 10);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  if (match) {
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+}
+
+function startOfLocalToday(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
 export function laneIsExpiringSoonActive(lane: LaneLike | null | undefined, days = EXPIRING_SOON_DAYS): boolean {
   if (!lane?.effectiveTo || lane.status !== 'active') return false;
-  const end = new Date(lane.effectiveTo);
-  const now = new Date();
-  const diff = (end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-  return diff > 0 && diff <= days;
+  const end = parseLocalDay(String(lane.effectiveTo));
+  if (!end) return false;
+  const today = startOfLocalToday();
+  const diffDays = Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  // Inclusive: expires today (0) through today+days
+  return diffDays >= 0 && diffDays <= days;
 }

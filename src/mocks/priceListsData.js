@@ -995,13 +995,23 @@ export function getPrimaryPrice(lane) {
   return 0;
 }
 
-/** Check if a lane is expiring within N days */
+/** Check if a lane is expiring within N days (includes end date = today). */
 export function isExpiringSoon(lane, days = 14) {
   if (!lane.effectiveTo || lane.status !== 'active') return false;
-  const end = new Date(lane.effectiveTo);
+  const ymd = String(lane.effectiveTo).trim().slice(0, 10);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  const end = match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : (() => {
+      const parsed = new Date(lane.effectiveTo);
+      if (Number.isNaN(parsed.getTime())) return null;
+      return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+    })();
+  if (!end) return false;
   const now = new Date();
-  const diff = (end - now) / (1000 * 60 * 60 * 24);
-  return diff > 0 && diff <= days;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  return diffDays >= 0 && diffDays <= days;
 }
 
 /** Calculate avg toll/km from active lanes */
