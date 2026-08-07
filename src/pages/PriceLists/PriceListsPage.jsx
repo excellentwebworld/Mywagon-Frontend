@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Download, Upload as UploadIcon, ClipboardList, Calculator } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
@@ -34,7 +35,7 @@ import {
   laneIsSimpleLane,
 } from '../../api/utils/laneMetricDisplay';
 import { serializeLanesToCsv } from '../../api/utils/laneCsvSchema';
-import { PARTNERS as MOCK_PARTNERS, resolveCountryIsoCode } from '../../mocks/partnersMasterData';
+import { resolveCountryIsoCode } from '../../mocks/partnersMasterData';
 
 import DirectoryPane from './pricelists/DirectoryPane';
 import FilterBar from './pricelists/FilterBar';
@@ -199,6 +200,7 @@ export default function PriceListsPage() {
   const { role } = useAuth();
   const { toast } = useToast();
   const isGreek = i18n.language === 'el';
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // ─── Core state ───
   const [lanes, setLanes] = useState([]);
@@ -220,7 +222,7 @@ export default function PriceListsPage() {
 
   // ─── UI state ───
   const [selectedId, setSelectedId] = useState(null);
-  const [activeNode, setActiveNode] = useState('all');
+  const [activeNode, setActiveNode] = useState(() => searchParams.get('node') || 'all');
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [addEditOpen, setAddEditOpen] = useState(false);
   const [editLane, setEditLane] = useState(null);
@@ -236,9 +238,29 @@ export default function PriceListsPage() {
     ? (forwarderTab === 'carrier' ? 'shipper' : 'carrier')
     : role;
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
 
-  const hasActiveFilters = Boolean(search.trim());
+  // Keep directory filter + search in the URL (shareable / back-forward friendly)
+  useEffect(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (!activeNode || activeNode === 'all') next.delete('node');
+      else next.set('node', activeNode);
+
+      const q = search.trim();
+      if (!q) next.delete('search');
+      else next.set('search', q);
+
+      return next;
+    }, { replace: true });
+  }, [activeNode, search, setSearchParams]);
+
+  useEffect(() => {
+    setActiveNode(searchParams.get('node') || 'all');
+    setSearch(searchParams.get('search') || '');
+  }, [searchParams]);
+
+  const hasActiveFilters = Boolean(search.trim()) || (activeNode && activeNode !== 'all');
   const clearFilters = useCallback(() => {
     setSearch('');
     setActiveNode('all');
