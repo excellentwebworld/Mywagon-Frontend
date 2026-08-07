@@ -139,6 +139,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState({});
   const [dupeWarn, setDupeWarn] = useState(false);
+  const [googleKm, setGoogleKm] = useState(null);
   const sourceLaneRef = useRef(null);
 
   const activeLocations = useMemo(
