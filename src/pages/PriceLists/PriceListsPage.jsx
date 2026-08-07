@@ -530,24 +530,28 @@ export default function PriceListsPage() {
   }, [activeNode, debouncedSearch, scopeDirectionParam, isGreek, t, toast]);
 
   const handleImported = useCallback(async (result) => {
-    await refreshAll();
-    setImportOpen(false);
-
     const created = result?.created ?? 0;
     const skipped = result?.skipped ?? 0;
     const errorCount = result?.errors?.length ?? 0;
 
-    if (created > 0 && errorCount === 0) {
-      addAuditEntry('imported', 'IMPORT', `Imported ${created} price lanes from CSV file`);
-      toast.success(`${t('priceLists.toast.imported', 'Imported')} ${created} ${t('priceLists.import.lanes', 'lanes')}`);
-    } else if (created > 0) {
-      addAuditEntry('imported', 'IMPORT', `Imported ${created} price lanes (${skipped} skipped)`);
-      toast.success(
-        `${t('priceLists.toast.imported', 'Imported')} ${created} ${t('priceLists.import.lanes', 'lanes')}. ${skipped} ${t('priceLists.import.skippedRows', 'rows skipped')}.`,
-      );
-    } else {
-      toast.error(t('priceLists.import.nothingImported', 'No lanes were imported. Please review the file errors.'));
+    if (created > 0) {
+      await refreshAll();
+      setImportOpen(false);
+
+      if (errorCount === 0) {
+        addAuditEntry('imported', 'IMPORT', `Imported ${created} price lanes from CSV file`);
+        toast.success(`${t('priceLists.toast.imported', 'Imported')} ${created} ${t('priceLists.import.lanes', 'lanes')}`);
+      } else {
+        addAuditEntry('imported', 'IMPORT', `Imported ${created} price lanes (${skipped} skipped)`);
+        toast.success(
+          `${t('priceLists.toast.imported', 'Imported')} ${created} ${t('priceLists.import.lanes', 'lanes')}. ${skipped} ${t('priceLists.import.skippedRows', 'rows skipped')}.`,
+        );
+      }
+      return;
     }
+
+    // Keep Import modal open so the user can review server errors
+    toast.error(t('priceLists.import.nothingImported', 'No lanes were imported. Please review the file errors.'));
   }, [refreshAll, t, toast, addAuditEntry]);
 
   // ─── Page title ───
