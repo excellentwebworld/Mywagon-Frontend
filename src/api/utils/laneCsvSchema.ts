@@ -1,6 +1,27 @@
 import type { PriceLaneMetric, StorePriceLanePayload } from '../types/priceLists';
 import { resolveLanePricingRows, type LaneLike } from './laneMetricDisplay';
-import { resolveCity } from '../../mocks/priceListsData';
+import { cityLabel, resolveCity } from '../../mocks/priceListsData';
+
+const isLikelyIsoCode = (s: string) => /^[A-Za-z]{2}$/.test(s);
+
+/** Human-readable stop name for CSV — same resolution as UI route labels (cityLabel). */
+function formatStopForCsv(
+  stop: { city?: string; label?: string; value?: string } | string | undefined,
+  lang: 'en' | 'el',
+): string {
+  if (!stop) return '';
+  if (typeof stop === 'string') return cityLabel(stop, lang);
+  const city = String(stop.city || '').trim();
+  const label = String(stop.label || '').trim();
+  const value = String(stop.value || '').trim();
+  // Prefer a real place name over a bare ISO code stored in city/value.
+  const raw =
+    (city && !isLikelyIsoCode(city) ? city : '') ||
+    label ||
+    city ||
+    value;
+  return cityLabel(raw, lang);
+}
 
 export const CSV_COLUMNS_EN = [
   'Origin City',
@@ -463,8 +484,9 @@ export function serializeLanesToCsv(lanes: LaneLike[], lang: 'en' | 'el' = 'en')
   const hdr = lang === 'el' ? CSV_COLUMNS_EL : CSV_COLUMNS_EN;
   const rows = lanes.flatMap((lane) => {
     const pricingRows = resolveLanePricingRows(lane);
-    const origin = lane.stops?.[0]?.city || lane.stops?.[0]?.value || '';
-    const destination = lane.stops?.[lane.stops.length - 1]?.city || lane.stops?.[lane.stops.length - 1]?.value || '';
+    const stops = lane.stops || [];
+    const origin = formatStopForCsv(stops[0], lang);
+    const destination = formatStopForCsv(stops[stops.length - 1], lang);
     const tripType = lane.tripType || (lane.isRoundTrip ? 'roundtrip' : 'direct');
 
     return pricingRows.map((row) => [
