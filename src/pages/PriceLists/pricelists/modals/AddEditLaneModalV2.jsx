@@ -9,6 +9,7 @@ import { resolveCity, calculateRouteTotals, getScopeLabels } from '../../../../m
 import { PARTNERS as MOCK_PARTNERS } from '../../../../mocks/partnersMasterData';
 import { LocationSelect } from '../../../../components/CreateShipmentWizard/LocationSelect';
 import { SearchVehicleCargoPicker } from '../../../../components/SearchTrucks/SearchVehicleCargoPicker';
+import { DatePicker } from '../../../../components/ui/DatePicker';
 import {
   mapLocationToLaneStop,
   isValidLaneStop,
@@ -708,7 +709,11 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                           </div>
                         )}
                         {row.metric === 'ftl_truck_type' && (
-                          <div className="h-[34px] px-3 flex items-center rounded-md" style={{ border: `1px solid ${T.bd}`, color: T.t2, background: T.sf, fontSize: 12 }}>
+                          <div
+                            className="min-h-[34px] px-3 py-1.5 flex items-center rounded-md"
+                            style={{ border: `1px solid ${T.bd}`, color: T.t2, background: T.sf, fontSize: 12, lineHeight: 1.35 }}
+                            title={row.metricValue?.vehicle_type || undefined}
+                          >
                             {row.metricValue?.vehicle_type || t('priceLists.phase2.vehicleTypeSummary', 'Vehicle type summary')}
                           </div>
                         )}
@@ -767,12 +772,23 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
             <div className="px-6 pb-5 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label style={labelStyle}>Effective from</label>
-                  <input type="date" style={inputStyle} value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} />
+                  <label style={labelStyle}>{t('priceLists.modal.effectiveFrom', 'Effective from')}</label>
+                  <DatePicker
+                    value={effectiveFrom}
+                    onChange={setEffectiveFrom}
+                    hasError={Boolean(errors.dateOrder)}
+                    direction="auto"
+                  />
                 </div>
                 <div>
-                  <label style={labelStyle}>Effective to</label>
-                  <input type="date" style={inputStyle} value={effectiveTo} onChange={(e) => setEffectiveTo(e.target.value)} />
+                  <label style={labelStyle}>{t('priceLists.modal.effectiveTo', 'Effective to')}</label>
+                  <DatePicker
+                    value={effectiveTo}
+                    onChange={setEffectiveTo}
+                    min={effectiveFrom || undefined}
+                    hasError={Boolean(errors.dateOrder)}
+                    direction="auto"
+                  />
                 </div>
               </div>
               {!!errors.dateOrder && <div className="error-msg" data-error="true" style={errorStyle}>{t('priceLists.modal.dateError', 'End date must be after start date')}</div>}

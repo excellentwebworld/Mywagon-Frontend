@@ -38,11 +38,13 @@ export const SearchVehicleCargoPicker: React.FC<SearchVehicleCargoPickerProps> =
   }
 
   const emit = (nextSpecs: Record<string, string[]>, nextTypeIds: number[]) => {
-    const first = vehicleTypes.find((x) => nextTypeIds.includes(Number(x.formKey)));
+    const selectedNames = vehicleTypes
+      .filter((x) => nextTypeIds.includes(Number(x.formKey)))
+      .map((x) => (lang === 'el' ? x.nameEl : x.name));
     onChange({
       vehicleSpecs: nextSpecs,
       truckTypeIds: nextTypeIds,
-      vehicleType: first ? (lang === 'el' ? first.nameEl : first.name) : '',
+      vehicleType: selectedNames.join(', '),
     });
   };
 
