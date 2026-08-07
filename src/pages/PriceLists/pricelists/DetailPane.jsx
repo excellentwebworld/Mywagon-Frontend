@@ -5,9 +5,9 @@
  * Margin Analysis (forwarder), Quote Calculator, History, Footer Actions.
  *
  * @API: GET /api/v1/price-lists/:id
- * @API: GET /api/v1/price-lists/audit-log?laneId=:id
+ * @API: GET /price-lists/audit-log?lane_id=:id
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { X, ChevronDown, ChevronRight, MapPin, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
@@ -20,7 +20,8 @@ import {
   formatMetricValueLabel,
   resolveLanePricingRows,
 } from '../../../api/utils/laneMetricDisplay';
-import { formatDisplayDate } from '../../../utils/dateDisplay';
+import { formatDisplayDate, formatIsoDisplayDateTime } from '../../../utils/dateDisplay';
+import { priceListsService } from '../../../api/services/priceListsService';
 
 const MARGIN_COLORS = { good: '#059669', ok: '#F59E0B', bad: '#DC2626' };
 
@@ -30,7 +31,25 @@ function marginColor(pct) {
   return MARGIN_COLORS.bad;
 }
 
-export default function DetailPane({ lane, onClose, role, auditLog, onAction, allLanes }) {
+function OpenEndedInfinity({ color }) {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        fontSize: '1.35em',
+        fontWeight: 600,
+        lineHeight: 1,
+        verticalAlign: 'middle',
+        display: 'inline-block',
+        color,
+      }}
+    >
+      ∞
+    </span>
+  );
+}
+
+export default function DetailPane({ lane, onClose, role, onAction, allLanes }) {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const lang = i18n.language;
@@ -40,6 +59,8 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
     profitability: false, marginAnalysis: false,
     calculator: false, history: false,
   });
+  const [laneHistory, setLaneHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const toggle = (key) => setOpenSections((p) => ({ ...p, [key]: !p[key] }));
 
@@ -61,10 +82,29 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
     return { sellPrice, buyPrice, gross, pct, matchId: match.id };
   }, [lane, allLanes, role]);
 
-  const laneHistory = useMemo(() => {
-    if (!lane || !auditLog) return [];
-    return auditLog.filter((e) => e.laneId === lane.id).slice(0, 10);
-  }, [auditLog, lane]);
+  useEffect(() => {
+    let cancelled = false;
+    if (!lane?.apiId) {
+      setLaneHistory([]);
+      return undefined;
+    }
+    (async () => {
+      setHistoryLoading(true);
+      try {
+        const result = await priceListsService.listAuditLog({
+          lane_id: lane.apiId,
+          per_page: 10,
+          page: 1,
+        });
+        if (!cancelled) setLaneHistory(result.items || []);
+      } catch (_e) {
+        if (!cancelled) setLaneHistory([]);
+      } finally {
+        if (!cancelled) setHistoryLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [lane?.apiId, lane?.updatedAt]);
 
   const pricingRows = useMemo(() => (lane ? resolveLanePricingRows(lane) : []), [lane]);
 
@@ -118,7 +158,12 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
             {formatDisplayDate(lane.effectiveFrom?.slice(0, 10) || '')}
             {lane.effectiveTo
               ? ` → ${formatDisplayDate(lane.effectiveTo.slice(0, 10))}`
-              : ` → ∞`}
+              : (
+                <>
+                  {' → '}
+                  <OpenEndedInfinity color={T.t3} />
+                </>
+              )}
           </span>
         </div>
       </div>
@@ -252,7 +297,11 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
         {/* History */}
         <Section title={t('priceLists.detail.history', 'History')} sectionKey="history"
           open={openSections.history} onToggle={toggle} T={T}>
-          {laneHistory.length === 0 ? (
+          {historyLoading ? (
+            <div style={{ fontSize: 12, color: T.t3, padding: '8px 0' }}>
+              {t('common.loading', 'Loading…')}
+            </div>
+          ) : laneHistory.length === 0 ? (
             <div style={{ fontSize: 12, color: T.t3, padding: '8px 0' }}>
               {t('priceLists.detail.noHistory', 'No history available.')}
             </div>
@@ -260,10 +309,15 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
             <div className="space-y-2">
               {laneHistory.map((entry) => (
                 <div key={entry.id} className="flex gap-2" style={{ fontSize: 11 }}>
-                  <span style={{ fontSize: 10, color: T.t3, fontFamily: "'JetBrains Mono', monospace", minWidth: 80, whiteSpace: 'nowrap' }}>
-                    {new Date(entry.timestamp).toLocaleDateString()}
+                  <span style={{ fontSize: 10, color: T.t3, fontFamily: "'JetBrains Mono', monospace", minWidth: 110, whiteSpace: 'nowrap' }}>
+                    {formatIsoDisplayDateTime(entry.ts)}
                   </span>
-                  <span style={{ color: T.t2 }}>{entry.details}</span>
+                  <span className="min-w-0">
+                    <span style={{ color: T.t2, display: 'block' }}>{entry.details}</span>
+                    {entry.actor && (
+                      <span style={{ color: T.t3, fontSize: 10 }}>{entry.actor}</span>
+                    )}
+                  </span>
                 </div>
               ))}
             </div>

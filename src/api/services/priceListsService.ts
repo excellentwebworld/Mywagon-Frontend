@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from '../client';
+import { apiDownload, apiGet, apiPost, apiPut } from '../client';
 import type { ApiListMeta } from '../types/addressBook';
 import type { ApiPriceLane, StorePriceLanePayload } from '../types/priceLists';
 
@@ -68,12 +68,63 @@ export type PaginatedPriceLanesResult = {
   meta: ApiListMeta;
 };
 
+export type PriceListsAuditEntry = {
+  id: string;
+  ts: string;
+  action: string;
+  laneId: string | null;
+  laneApiId: number | null;
+  target: string;
+  details: string;
+  actor: string;
+  changes: Array<{ field: string; from: string; to: string }> | null;
+};
+
+export type PriceListsAuditActionCounts = {
+  created: number;
+  updated: number;
+  status: number;
+  deleted: number;
+};
+
+export type ListPriceListsAuditParams = {
+  search?: string;
+  action_type?: string[];
+  from?: string;
+  to?: string;
+  lane_id?: number | string;
+  page?: number;
+  per_page?: number;
+};
+
+export type PriceListsAuditListResult = {
+  items: PriceListsAuditEntry[];
+  meta: ApiListMeta & {
+    last_page: number;
+    action_counts?: PriceListsAuditActionCounts;
+  };
+};
+
 const DEFAULT_META: ApiListMeta = {
   current_page: 1,
   per_page: 10,
   total: 0,
   last_page: 1,
 };
+
+function buildAuditQuery(params: Record<string, string | number | boolean | undefined | string[]>): string {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === '' || (Array.isArray(value) && value.length === 0)) return;
+    if (Array.isArray(value)) {
+      value.forEach((v) => search.append(`${key}[]`, v));
+    } else {
+      search.set(key, String(value));
+    }
+  });
+  const qs = search.toString();
+  return qs ? `?${qs}` : '';
+}
 
 export const priceListsService = {
   async listLanes(params: ListPriceLanesParams = {}): Promise<PaginatedPriceLanesResult> {
@@ -134,5 +185,44 @@ export const priceListsService = {
   async importLanes(rows: ImportLaneRowPayload[]): Promise<ImportLanesResult> {
     const res = await apiPost<ImportLanesResult>('/price-lists/lanes/import', { rows });
     return res.data ?? { created: 0, skipped: 0, errors: [] };
+  },
+
+  async listAuditLog(params: ListPriceListsAuditParams = {}): Promise<PriceListsAuditListResult> {
+    const qs = buildAuditQuery({
+      search: params.search,
+      action_type: params.action_type,
+      from: params.from,
+      to: params.to,
+      lane_id: params.lane_id,
+      page: params.page,
+      per_page: params.per_page,
+    });
+    const res = await apiGet<PriceListsAuditEntry[]>(`/price-lists/audit-log${qs}`);
+    const meta = (res.meta ?? {
+      current_page: 1,
+      per_page: 20,
+      total: 0,
+      last_page: 1,
+    }) as PriceListsAuditListResult['meta'];
+    return {
+      items: Array.isArray(res.data) ? res.data : [],
+      meta: {
+        current_page: meta.current_page ?? 1,
+        per_page: meta.per_page ?? 20,
+        total: meta.total ?? 0,
+        last_page: meta.last_page ?? 1,
+        action_counts: meta.action_counts,
+      },
+    };
+  },
+
+  async exportAuditLog(params: ListPriceListsAuditParams = {}): Promise<{ filename: string; truncated: boolean }> {
+    return apiDownload('/price-lists/audit-log/export', 'price-lists-audit-log.csv', {
+      search: params.search,
+      action_type: params.action_type,
+      from: params.from,
+      to: params.to,
+      lane_id: params.lane_id,
+    });
   },
 };

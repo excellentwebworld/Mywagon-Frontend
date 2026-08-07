@@ -181,13 +181,16 @@ function mapUiEntryToStorePayload(entry) {
     scope_direction: entry.scopeDirection || null,
     notes: entry.notes || '',
     status: entry.status || 'active',
+    ...(entry.duplicateSourceApiId
+      ? { duplicate_source_id: Number(entry.duplicateSourceApiId) }
+      : {}),
   };
 }
 
 export default function PriceListsPage() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
-  const { role, user } = useAuth();
+  const { role } = useAuth();
   const { toast } = useToast();
   const isGreek = i18n.language === 'el';
   const [searchParams, setSearchParams] = useSearchParams();
@@ -196,30 +199,6 @@ export default function PriceListsPage() {
   const [lanes, setLanes] = useState([]);
   const [lanesLoading, setLanesLoading] = useState(true);
   const [lanesError, setLanesError] = useState(null);
-  const [auditLog, setAuditLog] = useState([]);
-
-  const auditActorLabel = useMemo(() => {
-    const first = String(user?.firstName || '').trim();
-    const last = String(user?.lastName || '').trim();
-    const full = `${first} ${last}`.trim();
-    if (full && full !== 'User') return full;
-    if (user?.email) return String(user.email);
-    if (role === 'forwarder') return 'Forwarder Admin';
-    if (role === 'carrier') return 'Carrier Admin';
-    return 'Shipper Admin';
-  }, [user, role]);
-
-  const addAuditEntry = useCallback((action, laneId, details) => {
-    const entry = {
-      id: `AUD-${laneId || 'SYS'}-${Date.now().toString(36)}`,
-      laneId: laneId || 'N/A',
-      action,
-      timestamp: new Date().toISOString(),
-      user: auditActorLabel,
-      details,
-    };
-    setAuditLog((prev) => [entry, ...prev]);
-  }, [auditActorLabel]);
 
   // ─── UI state ───
   const [selectedId, setSelectedId] = useState(null);
@@ -364,17 +343,6 @@ export default function PriceListsPage() {
   const persistLaneStatus = useCallback(async (lane, nextStatus, successMessage) => {
     if (!lane) return;
 
-    const actionType = nextStatus === 'archived'
-      ? 'archived'
-      : nextStatus === 'active'
-        ? 'activated'
-        : 'deactivated';
-    const detailMsg = nextStatus === 'archived'
-      ? `Lane ${lane.id} archived`
-      : nextStatus === 'active'
-        ? `Lane ${lane.id} activated`
-        : `Lane ${lane.id} set to inactive`;
-
     if (lane.apiId) {
       try {
         const payload = {
@@ -382,7 +350,6 @@ export default function PriceListsPage() {
           status: nextStatus,
         };
         await priceListsService.updateLane(lane.apiId, payload);
-        addAuditEntry(actionType, lane.id, detailMsg);
         if (nextStatus === 'archived' && selectedId === lane.id) setSelectedId(null);
         toast.success(successMessage);
         await refreshAll();
@@ -393,11 +360,10 @@ export default function PriceListsPage() {
       }
     }
 
-    addAuditEntry(actionType, lane.id, detailMsg);
     if (nextStatus === 'archived' && selectedId === lane.id) setSelectedId(null);
     toast.success(successMessage);
     await refreshAll();
-  }, [t, toast, addAuditEntry, selectedId, refreshAll]);
+  }, [t, toast, selectedId, refreshAll]);
 
   // ─── CRUD actions ───
   const handleAction = useCallback((action, lane) => {
@@ -412,6 +378,7 @@ export default function PriceListsPage() {
         setEditLane({
           ...JSON.parse(JSON.stringify(lane)),
           duplicateSourceId: lane.id,
+          duplicateSourceApiId: lane.apiId,
           id: undefined,
           apiId: undefined,
           status: 'inactive',
@@ -452,11 +419,9 @@ export default function PriceListsPage() {
           confirmLabel: t('priceLists.actions.deleteForever', 'Delete forever'),
           destructive: true,
           onConfirm: () => {
-            addAuditEntry('deleted', lane.id, `Lane ${lane.id} permanently deleted`);
             if (selectedId === lane.id) setSelectedId(null);
-            toast.success(t('priceLists.toast.deleted', 'Lane deleted'));
+            toast.info(t('priceLists.toast.deleteUnavailable', 'Permanent delete is not available yet.'));
             setConfirmDialog(null);
-            void refreshAll();
           },
         });
         break;
@@ -464,7 +429,7 @@ export default function PriceListsPage() {
       default:
         break;
     }
-  }, [t, toast, selectedId, persistLaneStatus, addAuditEntry, refreshAll]);
+  }, [t, toast, selectedId, persistLaneStatus]);
 
   // ─── Save lane (add/edit) ───
   const handleSaveLane = useCallback(async (entry, existingId) => {
@@ -472,7 +437,10 @@ export default function PriceListsPage() {
 
     setSavingLane(true);
     try {
-      const payload = mapUiEntryToStorePayload(entry);
+      const payload = mapUiEntryToStorePayload({
+        ...entry,
+        duplicateSourceApiId: entry.duplicateSourceApiId || editLane?.duplicateSourceApiId,
+      });
       const editingLane = existingId
         ? (lanes.find((l) => l.id === existingId) || catalogLanes.find((l) => l.id === existingId) || editLane)
         : null;
@@ -480,24 +448,11 @@ export default function PriceListsPage() {
 
       if (existingId && canUseApiUpdate) {
         await priceListsService.updateLane(editingLane.apiId, payload);
-        addAuditEntry('updated', existingId, `Lane ${existingId} updated with new parameters`);
         toast.success(t('priceLists.toast.laneUpdated', 'Lane updated'));
       } else if (existingId) {
-        addAuditEntry('updated', existingId, `Lane ${existingId} updated`);
         toast.success(t('priceLists.toast.laneUpdated', 'Lane updated'));
       } else {
-        const createdApiLane = await priceListsService.storeLane(payload);
-        const createdUiLane = mapApiLaneToUiLane(createdApiLane);
-        const sourceId = editLane?.duplicateSourceId;
-        if (modalMode === 'duplicate' || sourceId) {
-          addAuditEntry(
-            'duplicated',
-            createdUiLane.id,
-            `Lane ${createdUiLane.id} duplicated from ${sourceId || 'source'}: ${createdUiLane.routeLabel || ''}`,
-          );
-        } else {
-          addAuditEntry('created', createdUiLane.id, `Created new lane ${createdUiLane.id}: ${createdUiLane.routeLabel || ''}`);
-        }
+        await priceListsService.storeLane(payload);
         toast.success(t('priceLists.toast.laneCreated', 'Lane created'));
       }
 
@@ -515,7 +470,7 @@ export default function PriceListsPage() {
     } finally {
       setSavingLane(false);
     }
-  }, [savingLane, lanes, catalogLanes, editLane, modalMode, t, toast, addAuditEntry, refreshAll]);
+  }, [savingLane, lanes, catalogLanes, editLane, t, toast, refreshAll]);
 
   // ─── Export CSV (same filters as sidebar, full matching set) ───
   const handleExport = useCallback(async () => {
@@ -557,14 +512,8 @@ export default function PriceListsPage() {
       setImportOpen(false);
 
       if (errorCount === 0) {
-        addAuditEntry('imported', 'IMPORT', `Imported ${created} price lanes from CSV`);
         toast.success(`${t('priceLists.toast.imported', 'Imported')} ${created} ${t('priceLists.import.lanes', 'lanes')}`);
       } else {
-        addAuditEntry(
-          'imported',
-          'IMPORT',
-          `Imported ${created} price lanes from CSV (${skipped} skipped, ${errorCount} row error${errorCount === 1 ? '' : 's'})`,
-        );
         toast.success(
           `${t('priceLists.toast.imported', 'Imported')} ${created} ${t('priceLists.import.lanes', 'lanes')}. ${skipped} ${t('priceLists.import.skippedRows', 'rows skipped')}.`,
         );
@@ -574,7 +523,7 @@ export default function PriceListsPage() {
 
     // Keep Import modal open so the user can review server errors
     toast.error(t('priceLists.import.nothingImported', 'No lanes were imported. Please review the file errors.'));
-  }, [refreshAll, t, toast, addAuditEntry]);
+  }, [refreshAll, t, toast]);
 
   // ─── Page title ───
   const pageTitle = isGreek
@@ -731,7 +680,6 @@ export default function PriceListsPage() {
                   lane={selectedLane}
                   onClose={() => setSelectedId(null)}
                   role={viewRole}
-                  auditLog={auditLog}
                   onAction={handleAction}
                   allLanes={catalogLanes}
                 />
@@ -786,7 +734,6 @@ export default function PriceListsPage() {
       <AuditLogPanel
         open={auditOpen}
         onClose={() => setAuditOpen(false)}
-        auditLog={auditLog}
       />
     </div>
   );

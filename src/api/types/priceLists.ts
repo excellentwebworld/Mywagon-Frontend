@@ -55,4 +55,5 @@ export interface StorePriceLanePayload {
   scope_direction?: 'buy' | 'sell' | null;
   notes?: string;
   status?: 'active' | 'inactive' | 'archived';
+  duplicate_source_id?: number;
 }

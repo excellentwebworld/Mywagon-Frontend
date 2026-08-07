@@ -1,7 +1,7 @@
 /**
  * ListPane — Price Lists table view.
  *
- * Columns: Route, Stops, Total km, Price, Metric, Status, Scope,
+ * Columns: Route, Stops, Total km, Price, Metric, Status,
  *          Effective, Margin% (carrier only), Updated, Actions.
  * Per-column sorting with dual-chevron asc/desc/unsorted pattern.
  * Shared PaginationBar. Click row → open detail pane.
@@ -11,7 +11,7 @@ import { MoreHorizontal, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-reac
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import PaginationBar from '../../../components/ui/PaginationBar';
-import { getPrimaryPrice, isExpiringSoon, calcProfitability, cityLabel, formatRouteLabel, formatScopeDisplay } from '../../../mocks/priceListsData';
+import { getPrimaryPrice, isExpiringSoon, calcProfitability, cityLabel, formatRouteLabel } from '../../../mocks/priceListsData';
 import {
   METRIC_PILL,
   METRIC_SORT_ORDER,
@@ -105,7 +105,6 @@ export default function ListPane({
           break;
         }
         case 'status': va = STATUS_SORT_ORDER[a.status] ?? 99; vb = STATUS_SORT_ORDER[b.status] ?? 99; break;
-        case 'scope': va = formatScopeDisplay(a, t); vb = formatScopeDisplay(b, t); break;
         case 'effective': va = a.effectiveFrom; vb = b.effectiveFrom; break;
         case 'updated': va = a.updatedAt; vb = b.updatedAt; break;
         case 'margin': {
@@ -198,12 +197,6 @@ export default function ListPane({
                   <SortIcon sortKey="status" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('scope')}>
-                <span className="flex items-center gap-1">
-                  {t('priceLists.col.scope', 'Scope')}
-                  <SortIcon sortKey="scope" currentSort={sortKey} currentDir={sortDir} />
-                </span>
-              </th>
               <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('effective')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.effective', 'Effective')}
@@ -231,7 +224,7 @@ export default function ListPane({
             {loading ? (
               Array.from({ length: 8 }).map((_, rowIdx) => (
                 <tr key={rowIdx}>
-                  {Array.from({ length: showMargin ? 11 : 10 }).map((_, colIdx) => (
+                  {Array.from({ length: showMargin ? 10 : 9 }).map((_, colIdx) => (
                     <td key={colIdx} style={{ ...tdStyle, borderBottom: `1px solid ${T.bd}` }}>
                       <Skeleton
                         width={
@@ -350,24 +343,21 @@ export default function ListPane({
                     </span>
                   </td>
                   <td style={{ ...tdStyle, overflow: 'hidden' }}>
-                    <span
-                      style={{ fontSize: 11, color: T.t2, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                      title={formatScopeDisplay(lane, t)}
-                    >
-                      {formatScopeDisplay(lane, t)}
-                      {lane.scopeDirection && (
-                        <span style={{ fontSize: 9, marginLeft: 4, fontWeight: 600, color: lane.scopeDirection === 'sell' ? '#059669' : '#DC2626' }}>
-                          ({lane.scopeDirection === 'sell' ? '↑ Sell' : '↓ Buy'})
-                        </span>
-                      )}
-                    </span>
-                  </td>
-                  <td style={{ ...tdStyle, overflow: 'hidden' }}>
                     <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: T.t2, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {formatDisplayDate(lane.effectiveFrom?.slice(0, 10) || '')}
-                      {lane.effectiveTo
-                        ? ` → ${formatDisplayDate(lane.effectiveTo.slice(0, 10))}`
-                        : ` → ${t('priceLists.validity.openEnded', '∞')}`}
+                      {lane.effectiveTo ? (
+                        ` → ${formatDisplayDate(lane.effectiveTo.slice(0, 10))}`
+                      ) : (
+                        <>
+                          {' → '}
+                          <span
+                            aria-hidden="true"
+                            style={{ fontSize: '1.35em', fontWeight: 600, lineHeight: 1, verticalAlign: 'middle', display: 'inline-block' }}
+                          >
+                            {t('priceLists.validity.openEnded', '∞')}
+                          </span>
+                        </>
+                      )}
                     </span>
                   </td>
                   {showMargin && (

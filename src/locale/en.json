@@ -3511,7 +3511,7 @@
       "inactive": "Inactive"
     },
     "filter": {
-      "searchPlaceholder": "Search lanes…",
+      "searchPlaceholder": "Search route, ID, status, metric…",
       "allUnits": "All units",
       "perLoad": "Per load",
       "perPallet": "Per pallet",
@@ -3859,7 +3859,12 @@
       "actionType": "Action",
       "clearFilters": "Clear",
       "filteredCount": "{{count}} entries",
-      "showing": "Showing {{from}}–{{to}} of {{total}}"
+      "showing": "Showing {{from}}–{{to}} of {{total}}",
+      "export": "Export",
+      "exportStarted": "Export started",
+      "exportTruncated": "Export limited to 10,000 most recent entries.",
+      "exportError": "Failed to export audit log",
+      "loadError": "Could not load audit log."
     },
     "time": {
       "today": "Today",

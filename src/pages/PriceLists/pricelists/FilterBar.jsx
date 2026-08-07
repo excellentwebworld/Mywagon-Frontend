@@ -27,7 +27,7 @@ export default function FilterBar({
           type="text"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={t('priceLists.filter.searchPlaceholder', 'Search lanes…')}
+          placeholder={t('priceLists.filter.searchPlaceholder', 'Search route, ID, status, metric…')}
           className="w-full rounded-lg outline-none"
           style={{
             padding: '7px 10px 7px 30px',

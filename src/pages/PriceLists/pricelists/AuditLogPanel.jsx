@@ -1,18 +1,17 @@
 /**
- * AuditLogPanel — Global audit log slide-in panel.
+ * AuditLogPanel — Global audit log slide-in panel (API-backed).
  *
- * Used by: Shipper, Forwarder, Carrier.
- *
- * Phase 1: session in-memory entries + Settings-like filters (search, action, date range).
- * TODO(Phase 2): swap to GET /api/v1/price-lists/audit-log when backend ships.
+ * GET /price-lists/audit-log + export.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { X, History, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { X, History, Search, ChevronDown, ChevronLeft, ChevronRight, Download, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
+import { useToast } from '../../../hooks/useToast';
 import { DatePicker } from '../../../components/ui/DatePicker';
 import { formatIsoDisplayDateTime } from '../../../utils/dateDisplay';
+import { priceListsService } from '../../../api/services/priceListsService';
 
 const PAGE_SIZE = 50;
 
@@ -38,27 +37,34 @@ const ACTION_TYPES = [
   'imported',
 ];
 
-function entryDayKey(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-export default function AuditLogPanel({ open, onClose, auditLog }) {
+export default function AuditLogPanel({ open, onClose }) {
   const { t } = useTranslation();
   const { T } = useTheme();
+  const { toast } = useToast();
   const typeRef = useRef(null);
 
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [entries, setEntries] = useState([]);
+  const [meta, setMeta] = useState({
+    current_page: 1,
+    per_page: PAGE_SIZE,
+    total: 0,
+    last_page: 1,
+    action_counts: { created: 0, updated: 0, status: 0, deleted: 0 },
+  });
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -73,7 +79,43 @@ export default function AuditLogPanel({ open, onClose, auditLog }) {
 
   useEffect(() => {
     setPage(1);
-  }, [search, selectedTypes, dateFrom, dateTo]);
+  }, [debouncedSearch, selectedTypes, dateFrom, dateTo]);
+
+  const filterParams = useMemo(() => ({
+    search: debouncedSearch || undefined,
+    action_type: selectedTypes.length > 0 ? selectedTypes : undefined,
+    from: dateFrom || undefined,
+    to: dateTo || undefined,
+  }), [debouncedSearch, selectedTypes, dateFrom, dateTo]);
+
+  const load = useCallback(async () => {
+    if (!open) return;
+    setLoading(true);
+    try {
+      const result = await priceListsService.listAuditLog({
+        ...filterParams,
+        page,
+        per_page: PAGE_SIZE,
+      });
+      setEntries(result.items);
+      setMeta({
+        current_page: result.meta.current_page,
+        per_page: result.meta.per_page,
+        total: result.meta.total,
+        last_page: result.meta.last_page,
+        action_counts: result.meta.action_counts || { created: 0, updated: 0, status: 0, deleted: 0 },
+      });
+    } catch (_e) {
+      setEntries([]);
+      toast.error(t('priceLists.audit.loadError', 'Could not load audit log.'));
+    } finally {
+      setLoading(false);
+    }
+  }, [open, filterParams, page, t, toast]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const actionLabels = useMemo(() => ({
     created: t('priceLists.audit.created', 'Created'),
@@ -86,45 +128,17 @@ export default function AuditLogPanel({ open, onClose, auditLog }) {
     imported: t('priceLists.audit.imported', 'Imported'),
   }), [t]);
 
-  const filtered = useMemo(() => {
-    const list = Array.isArray(auditLog) ? auditLog : [];
-    const q = search.trim().toLowerCase();
-    return list.filter((e) => {
-      if (selectedTypes.length > 0 && !selectedTypes.includes(e.action)) return false;
-      if (dateFrom || dateTo) {
-        const day = entryDayKey(e.timestamp);
-        if (!day) return false;
-        if (dateFrom && day < dateFrom) return false;
-        if (dateTo && day > dateTo) return false;
-      }
-      if (q) {
-        const hay = `${e.details || ''} ${e.laneId || ''} ${e.user || ''} ${e.action || ''}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [auditLog, search, selectedTypes, dateFrom, dateTo]);
-
-  const stats = useMemo(() => {
-    const source = filtered;
-    return {
-      created: source.filter((e) => e.action === 'created' || e.action === 'imported' || e.action === 'duplicated').length,
-      updated: source.filter((e) => e.action === 'updated').length,
-      status: source.filter((e) => e.action === 'activated' || e.action === 'deactivated' || e.action === 'archived').length,
-      deleted: source.filter((e) => e.action === 'deleted').length,
-    };
-  }, [filtered]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const stats = meta.action_counts || { created: 0, updated: 0, status: 0, deleted: 0 };
+  const total = meta.total || 0;
+  const totalPages = Math.max(1, meta.last_page || 1);
   const safePage = Math.min(page, totalPages);
-  const pageSlice = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const showingFrom = filtered.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
-  const showingTo = Math.min(safePage * PAGE_SIZE, filtered.length);
-
+  const showingFrom = total === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
+  const showingTo = Math.min(safePage * PAGE_SIZE, total);
   const hasFilters = Boolean(search.trim() || selectedTypes.length > 0 || dateFrom || dateTo);
 
   const clearAll = () => {
     setSearch('');
+    setDebouncedSearch('');
     setSelectedTypes([]);
     setDateFrom('');
     setDateTo('');
@@ -138,6 +152,21 @@ export default function AuditLogPanel({ open, onClose, auditLog }) {
     ));
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const { truncated } = await priceListsService.exportAuditLog(filterParams);
+      toast.success(t('priceLists.audit.exportStarted', 'Export started'));
+      if (truncated) {
+        toast.info(t('priceLists.audit.exportTruncated', 'Export limited to 10,000 most recent entries.'));
+      }
+    } catch (_e) {
+      toast.error(t('priceLists.audit.exportError', 'Failed to export audit log'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -147,7 +176,6 @@ export default function AuditLogPanel({ open, onClose, auditLog }) {
         className="absolute right-0 top-0 bottom-0 flex flex-col shadow-2xl"
         style={{ width: 440, background: T.sf, borderLeft: `1px solid ${T.bd}`, animation: 'slideIn 0.3s ease' }}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: `1px solid ${T.bd}` }}>
           <div className="flex items-center gap-2">
             <History size={18} style={{ color: T.ac }} />
@@ -155,17 +183,28 @@ export default function AuditLogPanel({ open, onClose, auditLog }) {
               {t('priceLists.audit.title', 'Audit Log')}
             </h3>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded cursor-pointer border-none hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-            style={{ background: 'transparent', color: T.t3 }}
-          >
-            <X size={16} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={exporting}
+              onClick={() => void handleExport()}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg cursor-pointer border-none disabled:opacity-60"
+              style={{ background: T.sa, color: T.t2, fontSize: 11, fontWeight: 600 }}
+            >
+              {exporting ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+              {t('priceLists.audit.export', 'Export')}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 rounded cursor-pointer border-none hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              style={{ background: 'transparent', color: T.t3 }}
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
-        {/* Summary cards */}
         <div className="grid grid-cols-4 gap-2 px-5 py-3 shrink-0" style={{ borderBottom: `1px solid ${T.bd}` }}>
           {[
             { key: 'created', label: t('priceLists.audit.createdLabel', 'Created'), color: '#10B981' },
@@ -174,13 +213,12 @@ export default function AuditLogPanel({ open, onClose, auditLog }) {
             { key: 'deleted', label: t('priceLists.audit.deletedLabel', 'Deleted'), color: '#EF4444' },
           ].map((c) => (
             <div key={c.key} className="flex flex-col items-center justify-center px-1 py-2.5 rounded-lg min-h-[58px]" style={{ background: T.bg }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: c.color, lineHeight: 1.1 }}>{stats[c.key]}</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: c.color, lineHeight: 1.1 }}>{stats[c.key] || 0}</div>
               <div className="truncate w-full text-center mt-1" style={{ fontSize: 10, color: T.t3, fontWeight: 600 }}>{c.label}</div>
             </div>
           ))}
         </div>
 
-        {/* Filters */}
         <div className="px-5 py-3 shrink-0 space-y-2" style={{ borderBottom: `1px solid ${T.bd}` }}>
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: T.t3 }} />
@@ -273,20 +311,23 @@ export default function AuditLogPanel({ open, onClose, auditLog }) {
           <div style={{ fontSize: 11, color: T.t3 }}>
             {t('priceLists.audit.filteredCount', {
               defaultValue: '{{count}} entries',
-              count: filtered.length,
+              count: total,
             })}
           </div>
         </div>
 
-        {/* Timeline */}
         <div className="flex-1 overflow-y-auto px-5 py-3">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-10" style={{ color: T.t3, fontSize: 13 }}>
+              {t('common.loading', 'Loading…')}
+            </div>
+          ) : entries.length === 0 ? (
             <div className="text-center py-10" style={{ color: T.t3, fontSize: 13 }}>
               {t('priceLists.audit.noEntries', 'No audit entries')}
             </div>
           ) : (
             <div className="space-y-1">
-              {pageSlice.map((entry, i) => (
+              {entries.map((entry, i) => (
                 <div
                   key={entry.id || i}
                   className="rounded-lg px-3 py-2.5"
@@ -297,12 +338,17 @@ export default function AuditLogPanel({ open, onClose, auditLog }) {
                       {actionLabels[entry.action] || entry.action}
                     </span>
                     <span style={{ fontSize: 10, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>
-                      {entry.laneId}
+                      {entry.laneId || '—'}
                     </span>
                   </div>
                   <div style={{ fontSize: 11, color: T.t1, marginTop: 2 }}>{entry.details}</div>
+                  {Array.isArray(entry.changes) && entry.changes.length > 0 && (
+                    <div style={{ fontSize: 10, color: T.t3, marginTop: 2 }}>
+                      {entry.changes.map((c) => `${c.field}: ${c.from || '—'} → ${c.to || '—'}`).join(' · ')}
+                    </div>
+                  )}
                   <div style={{ fontSize: 10, color: T.t3, marginTop: 2 }}>
-                    {entry.user} · {formatIsoDisplayDateTime(entry.timestamp)}
+                    {entry.actor} · {formatIsoDisplayDateTime(entry.ts)}
                   </div>
                 </div>
               ))}
@@ -310,8 +356,7 @@ export default function AuditLogPanel({ open, onClose, auditLog }) {
           )}
         </div>
 
-        {/* Pagination footer */}
-        {filtered.length > 0 && (
+        {total > 0 && (
           <div
             className="flex items-center justify-between px-5 py-3 shrink-0"
             style={{ borderTop: `1px solid ${T.bd}` }}
@@ -321,14 +366,14 @@ export default function AuditLogPanel({ open, onClose, auditLog }) {
                 defaultValue: 'Showing {{from}}–{{to}} of {{total}}',
                 from: showingFrom,
                 to: showingTo,
-                total: filtered.length,
+                total,
               })}
             </span>
-            {filtered.length > PAGE_SIZE && (
+            {total > PAGE_SIZE && (
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  disabled={safePage <= 1}
+                  disabled={safePage <= 1 || loading}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   className="p-1 rounded cursor-pointer border-none disabled:opacity-40"
                   style={{ background: T.sa, color: T.t2 }}
@@ -340,7 +385,7 @@ export default function AuditLogPanel({ open, onClose, auditLog }) {
                 </span>
                 <button
                   type="button"
-                  disabled={safePage >= totalPages}
+                  disabled={safePage >= totalPages || loading}
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   className="p-1 rounded cursor-pointer border-none disabled:opacity-40"
                   style={{ background: T.sa, color: T.t2 }}
