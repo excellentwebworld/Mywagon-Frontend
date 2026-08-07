@@ -19,6 +19,7 @@ import {
   getPrimaryMetricKey,
   resolveLanePricingRows,
 } from '../../../api/utils/laneMetricDisplay';
+import { formatDisplayDate } from '../../../utils/dateDisplay';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 
@@ -134,6 +135,7 @@ export default function ListPane({
     background: T.sh, position: 'sticky', top: 0, zIndex: 2,
   };
   const tdStyle = { fontSize: 12, padding: '8px 10px', borderBottom: `1px solid ${T.bd}`, color: T.t1, verticalAlign: 'middle' };
+  const showMargin = role === 'carrier';
 
   return (
     <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
@@ -141,80 +143,93 @@ export default function ListPane({
       <div className="flex-1 overflow-auto">
         <table
           className="w-full border-collapse"
-          style={{ tableLayout: 'fixed', width: '100%', minWidth: selectedId ? 720 : 900 }}
+          style={{ tableLayout: 'fixed', width: '100%', minWidth: showMargin ? 980 : 920 }}
         >
+          <colgroup>
+            <col style={{ width: 'auto' }} />
+            <col style={{ width: 56 }} />
+            <col style={{ width: 72 }} />
+            <col style={{ width: 80 }} />
+            <col style={{ width: 130 }} />
+            <col style={{ width: 88 }} />
+            <col style={{ width: 110 }} />
+            <col style={{ width: 150 }} />
+            {showMargin && <col style={{ width: 72 }} />}
+            <col style={{ width: 80 }} />
+            <col style={{ width: 44 }} />
+          </colgroup>
           <thead>
             <tr>
-              <th style={{ ...thStyle, width: selectedId ? '28%' : '22%' }} className="cursor-pointer" onClick={() => handleSort('route')}>
+              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('route')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.route', 'Route')}
                   <SortIcon sortKey="route" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={{ ...thStyle, width: '6%' }} className="cursor-pointer hidden xl:table-cell" onClick={() => handleSort('stops')}>
+              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('stops')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.stops', 'Stops')}
                   <SortIcon sortKey="stops" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={{ ...thStyle, width: '8%' }} className="cursor-pointer" onClick={() => handleSort('km')}>
+              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('km')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.totalKm', 'Total km')}
                   <SortIcon sortKey="km" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={{ ...thStyle, width: '9%' }} className="cursor-pointer" onClick={() => handleSort('price')}>
+              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('price')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.price', 'Price')}
                   <SortIcon sortKey="price" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={{ ...thStyle, width: selectedId ? '16%' : '13%' }} className="cursor-pointer" onClick={() => handleSort('metric')}>
+              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('metric')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.metric', 'Metric')}
                   <SortIcon sortKey="metric" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={{ ...thStyle, width: '9%' }} className="cursor-pointer" onClick={() => handleSort('status')}>
+              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('status')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.status', 'Status')}
                   <SortIcon sortKey="status" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={{ ...thStyle, width: '12%' }} className="hidden lg:table-cell cursor-pointer" onClick={() => handleSort('scope')}>
+              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('scope')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.scope', 'Scope')}
                   <SortIcon sortKey="scope" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={{ ...thStyle, width: '13%' }} className="cursor-pointer hidden xl:table-cell" onClick={() => handleSort('effective')}>
+              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('effective')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.effective', 'Effective')}
                   <SortIcon sortKey="effective" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              {role === 'carrier' && (
-                <th style={{ ...thStyle, width: '8%' }} className="cursor-pointer hidden xl:table-cell" onClick={() => handleSort('margin')}>
+              {showMargin && (
+                <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('margin')}>
                   <span className="flex items-center gap-1">
                     {t('priceLists.col.margin', 'Margin %')}
                     <SortIcon sortKey="margin" currentSort={sortKey} currentDir={sortDir} />
                   </span>
                 </th>
               )}
-              <th style={{ ...thStyle, width: '8%' }} className="hidden lg:table-cell cursor-pointer" onClick={() => handleSort('updated')}>
+              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('updated')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.updated', 'Updated')}
                   <SortIcon sortKey="updated" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
-              <th style={{ ...thStyle, width: 44 }} />
+              <th style={thStyle} />
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: 8 }).map((_, rowIdx) => (
                 <tr key={rowIdx}>
-                  {Array.from({ length: role === 'carrier' ? 11 : 10 }).map((_, colIdx) => (
+                  {Array.from({ length: showMargin ? 11 : 10 }).map((_, colIdx) => (
                     <td key={colIdx} style={{ ...tdStyle, borderBottom: `1px solid ${T.bd}` }}>
                       <Skeleton
                         width={
@@ -233,7 +248,7 @@ export default function ListPane({
               ))
             ) : pageData.length === 0 ? (
               <tr>
-                <td colSpan={99} style={{ ...tdStyle, textAlign: 'center', padding: 40, color: T.t3 }}>
+                <td colSpan={showMargin ? 11 : 10} style={{ ...tdStyle, textAlign: 'center', padding: 40, color: T.t3 }}>
                   {isEmptyCatalog
                     ? t('priceLists.empty.noLanesYet', 'No price lanes yet. Add your first lane to get started.')
                     : t('priceLists.empty.noLanes', 'No lanes match your filters.')}
@@ -248,7 +263,7 @@ export default function ListPane({
               const statusInfo = STATUS_PILL[lane.status] || STATUS_PILL.active;
               const isSelected = selectedId === lane.id;
               const expiring = isExpiringSoon(lane);
-              const profitability = role === 'carrier' ? calcProfitability(lane) : null;
+              const profitability = showMargin ? calcProfitability(lane) : null;
 
               // Route display with bilingual support and country code resolution
               const routeDisplay = formatRouteLabel(lane, lang);
@@ -290,7 +305,7 @@ export default function ListPane({
                       )}
                     </div>
                   </td>
-                  <td style={tdStyle} className="hidden xl:table-cell">
+                  <td style={tdStyle}>
                     <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{lane.stops.length}</span>
                   </td>
                   <td style={tdStyle}>
@@ -332,7 +347,7 @@ export default function ListPane({
                       {t(`priceLists.status.${lane.status}`, lane.status)}
                     </span>
                   </td>
-                  <td style={{ ...tdStyle, overflow: 'hidden' }} className="hidden lg:table-cell">
+                  <td style={{ ...tdStyle, overflow: 'hidden' }}>
                     <span
                       style={{ fontSize: 11, color: T.t2, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                       title={formatScopeDisplay(lane, t)}
@@ -345,14 +360,16 @@ export default function ListPane({
                       )}
                     </span>
                   </td>
-                  <td style={{ ...tdStyle, overflow: 'hidden' }} className="hidden xl:table-cell">
+                  <td style={{ ...tdStyle, overflow: 'hidden' }}>
                     <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: T.t2, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {lane.effectiveFrom?.slice(0, 10)}
-                      {lane.effectiveTo ? ` → ${lane.effectiveTo.slice(0, 10)}` : ` → ${t('priceLists.validity.openEnded', '∞')}`}
+                      {formatDisplayDate(lane.effectiveFrom?.slice(0, 10) || '')}
+                      {lane.effectiveTo
+                        ? ` → ${formatDisplayDate(lane.effectiveTo.slice(0, 10))}`
+                        : ` → ${t('priceLists.validity.openEnded', '∞')}`}
                     </span>
                   </td>
-                  {role === 'carrier' && (
-                    <td style={tdStyle} className="hidden xl:table-cell">
+                  {showMargin && (
+                    <td style={tdStyle}>
                       {profitability && (
                         <span style={{
                           fontWeight: 700, fontSize: 12,
@@ -364,7 +381,7 @@ export default function ListPane({
                       )}
                     </td>
                   )}
-                  <td style={tdStyle} className="hidden lg:table-cell">
+                  <td style={tdStyle}>
                     <span style={{ fontSize: 11, color: T.t3 }}>{relativeTime(lane.updatedAt, t)}</span>
                   </td>
                   <td style={tdStyle} onClick={(e) => e.stopPropagation()}>

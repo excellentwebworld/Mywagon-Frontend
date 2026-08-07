@@ -20,6 +20,7 @@ import {
   formatMetricValueLabel,
   resolveLanePricingRows,
 } from '../../../api/utils/laneMetricDisplay';
+import { formatDisplayDate } from '../../../utils/dateDisplay';
 
 const MARGIN_COLORS = { good: '#059669', ok: '#F59E0B', bad: '#DC2626' };
 
@@ -114,8 +115,10 @@ export default function DetailPane({ lane, onClose, role, auditLog, onAction, al
           <span style={{ fontSize: 10, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>{lane.id}</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: T.t1, fontFamily: "'JetBrains Mono', monospace" }}>{lane.totalKm.toLocaleString()} km</span>
           <span style={{ fontSize: 11, color: T.t3 }}>
-            {lane.effectiveFrom?.slice(0, 10)}
-            {lane.effectiveTo ? ` → ${lane.effectiveTo.slice(0, 10)}` : ` → ∞`}
+            {formatDisplayDate(lane.effectiveFrom?.slice(0, 10) || '')}
+            {lane.effectiveTo
+              ? ` → ${formatDisplayDate(lane.effectiveTo.slice(0, 10))}`
+              : ` → ∞`}
           </span>
         </div>
       </div>
