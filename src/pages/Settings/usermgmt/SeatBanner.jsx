@@ -2,6 +2,7 @@
  * SeatBanner — seat usage from live subscription meta (dispatcher_users).
  */
 
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import { Crown, ArrowUpRight } from 'lucide-react';
@@ -10,6 +11,7 @@ import { useUserMgmt } from '../../../context/UserMgmtContext';
 export default function SeatBanner() {
   const { t } = useTranslation();
   const { T } = useTheme();
+  const navigate = useNavigate();
   const { seats } = useUserMgmt();
 
   const usedSeats = seats?.used ?? 0;
@@ -61,6 +63,7 @@ export default function SeatBanner() {
 
       <button
         type="button"
+        onClick={() => navigate('/settings/subscription')}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer border-none shrink-0 transition-opacity duration-150"
         style={{ background: T.ac, color: '#fff', fontSize: 12, fontWeight: 600 }}
         onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }}
