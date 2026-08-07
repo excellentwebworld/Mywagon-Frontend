@@ -35,9 +35,13 @@ export function isValidLaneStop(stop) {
 
 export function stopsAreSamePlace(a, b) {
   if (!a || !b) return false;
-  if (a.location_id && b.location_id) {
-    return String(a.location_id) === String(b.location_id);
+  const aId = a.location_id ?? a.locationId ?? null;
+  const bId = b.location_id ?? b.locationId ?? null;
+  if (aId && bId) {
+    return String(aId) === String(bId);
   }
+  // Address Book location vs legacy city stop — not the same place
+  if (aId || bId) return false;
   const av = (a.value || a.city || '').toLowerCase();
   const bv = (b.value || b.city || '').toLowerCase();
   return Boolean(av && bv && av === bv);

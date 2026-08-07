@@ -205,7 +205,10 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       const message = Array.isArray(messages) ? messages[0] : String(messages || '');
 
       if (field === 'origin_city' || field === 'destination_city' || field === 'stops') {
-        mapped.stops = true;
+        // Duplicate/conflict messages should only show the form banner — not the
+        // "Please add at least origin and destination" field hint.
+        const isIdentityError = /already exists|conflict/i.test(message);
+        if (!isIdentityError) mapped.stops = true;
         mapped.form = message;
         return;
       }
