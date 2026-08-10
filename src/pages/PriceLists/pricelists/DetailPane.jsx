@@ -60,6 +60,7 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
     calculator: false, history: false,
   });
   const [laneHistory, setLaneHistory] = useState([]);
+  const [historyTotal, setHistoryTotal] = useState(0);
   const [historyLoading, setHistoryLoading] = useState(false);
 
   const toggle = (key) => setOpenSections((p) => ({ ...p, [key]: !p[key] }));
@@ -86,6 +87,7 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
     let cancelled = false;
     if (!lane?.apiId) {
       setLaneHistory([]);
+      setHistoryTotal(0);
       return undefined;
     }
     (async () => {
@@ -96,9 +98,15 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
           per_page: 10,
           page: 1,
         });
-        if (!cancelled) setLaneHistory(result.items || []);
+        if (!cancelled) {
+          setLaneHistory(result.items || []);
+          setHistoryTotal(result.meta?.total ?? result.items?.length ?? 0);
+        }
       } catch (_e) {
-        if (!cancelled) setLaneHistory([]);
+        if (!cancelled) {
+          setLaneHistory([]);
+          setHistoryTotal(0);
+        }
       } finally {
         if (!cancelled) setHistoryLoading(false);
       }
@@ -297,8 +305,14 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
         )}
 
         {/* History */}
-        <Section title={t('priceLists.detail.history', 'History')} sectionKey="history"
-          open={openSections.history} onToggle={toggle} T={T}>
+        <Section
+          title={t('priceLists.detail.history', 'History')}
+          sectionKey="history"
+          count={historyLoading ? null : historyTotal}
+          open={openSections.history}
+          onToggle={toggle}
+          T={T}
+        >
           {historyLoading ? (
             <div style={{ fontSize: 12, color: T.t3, padding: '8px 0' }}>
               {t('common.loading', 'Loading…')}
@@ -354,7 +368,7 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
   );
 }
 
-function Section({ title, sectionKey, open, onToggle, T, children }) {
+function Section({ title, sectionKey, open, onToggle, T, children, count = null }) {
   return (
     <div style={{ borderBottom: `1px solid ${T.bd}` }}>
       <button
@@ -365,7 +379,14 @@ function Section({ title, sectionKey, open, onToggle, T, children }) {
         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
       >
         <span style={{ fontSize: 12, fontWeight: 600, color: T.t1 }}>{title}</span>
-        {open ? <ChevronDown size={14} style={{ color: T.t3 }} /> : <ChevronRight size={14} style={{ color: T.t3 }} />}
+        <span className="flex items-center gap-2 shrink-0">
+          {count != null && (
+            <span style={{ fontSize: 11, fontWeight: 600, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>
+              ({count})
+            </span>
+          )}
+          {open ? <ChevronDown size={14} style={{ color: T.t3 }} /> : <ChevronRight size={14} style={{ color: T.t3 }} />}
+        </span>
       </button>
       {open && <div style={{ padding: '0 16px 12px' }}>{children}</div>}
     </div>

@@ -678,7 +678,7 @@ export default function PriceListsPage() {
           <div className="flex flex-1 min-h-0 min-w-0 w-full max-w-full overflow-hidden gap-3">
             {/* Left: Directory */}
             <div
-              className="shrink-0 rounded-xl overflow-hidden"
+              className="shrink-0 rounded-xl overflow-hidden flex flex-col min-h-0 self-stretch"
               style={{ width: 230, background: T.sf, border: `1px solid ${T.bd}`, opacity: lanesLoading ? 0.6 : 1 }}
             >
               <DirectoryPane

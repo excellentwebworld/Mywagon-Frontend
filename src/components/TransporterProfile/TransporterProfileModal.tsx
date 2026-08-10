@@ -7,6 +7,7 @@ import {
 } from '../../api/services/transporterProfileService';
 import type { TransporterProfileTarget } from './TransporterProfileContext';
 import { TransporterProfileContent } from './TransporterProfileContent';
+import { TransporterProfileSkeleton } from './TransporterProfileSkeleton';
 import { SubscriptionGateModal } from '../SearchTrucks/SubscriptionGateModal';
 import '../../styles/transporter-profile.css';
 
@@ -84,7 +85,7 @@ export const TransporterProfileModal: React.FC<TransporterProfileModalProps> = (
             </div>
             <div className="tp-modal__body">
               {loading && !data ? (
-                <div className="tp-loading">{t('loading') || 'Loading…'}</div>
+                <TransporterProfileSkeleton />
               ) : error ? (
                 <div className="tp-error">{error}</div>
               ) : data ? (
