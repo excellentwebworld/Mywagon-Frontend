@@ -5,6 +5,7 @@ import {
   AuditLogCard,
   BillingCard,
   CarrierCard,
+  DriverCard,
   CommandHeader,
   DocumentsCard,
   IncidentsCard,
@@ -37,6 +38,7 @@ const DEFAULT_SECTIONS: Record<string, boolean> = {
   tracking: true,
   trip: true,
   carrier: true,
+  driver: true,
   incidents: true,
   billing: true,
   audit: true,
@@ -247,6 +249,15 @@ export const ShipmentDetail: React.FC = () => {
               onRate={() => setIsRatingOpen(true)}
               t={t}
             />
+            {vm.assignedDriver && (
+              <DriverCard
+                driver={vm.assignedDriver}
+                expanded={sections.driver}
+                onToggle={() => toggleSection('driver')}
+                onToast={(msg) => showToast(msg, 'info')}
+                t={t}
+              />
+            )}
             <IncidentsCard
               incidents={vm.incidents}
               expanded={sections.incidents}

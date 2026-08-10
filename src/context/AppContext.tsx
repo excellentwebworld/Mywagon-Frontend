@@ -187,6 +187,13 @@ export interface Shipment {
   carrierOnTimeDeliveryPct?: number | null;
   carrierCancellationRatePct?: number | null;
   carrierAvgPickupDelayMinutes?: number | null;
+  assignedDriverId?: number | null;
+  assignedDriverName?: string | null;
+  assignedDriverInitials?: string | null;
+  assignedDriverAvatar?: string | null;
+  assignedDriverRating?: number | null;
+  assignedDriverPartner?: boolean;
+  assignedDriverPlates?: string[];
   price: number | null;
   price_type: 'spot' | 'contract' | 'bidding';
   updated: string;

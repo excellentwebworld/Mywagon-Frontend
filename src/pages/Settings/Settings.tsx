@@ -14,7 +14,7 @@ import {
   User, Building2, Users, Lock, CreditCard, Star,
   Zap, ClipboardList, Bell, Palette, Sun, Moon, Clock,
   Bot, Globe, FileText, ExternalLink, ShieldCheck,
-  PanelLeft, PanelTop, BarChart2,
+  PanelLeft, PanelTop,
   type LucideIcon,
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
@@ -23,7 +23,6 @@ import { LANGUAGES } from '../../constants/panel';
 import { useApp } from '../../context/AppContext';
 import UserManagementSection from './UserManagementPage';
 import PersonalSection from './sections/PersonalSection';
-import PerformanceSection from './sections/PerformanceSection';
 import OrganizationSection from './sections/OrganizationSection';
 import PersonalSecuritySection from './sections/PersonalSecuritySection';
 import KycSection from './sections/KycSection';
@@ -53,7 +52,6 @@ type SettingsMenuGroup = {
 const MENU: SettingsMenuGroup[] = [
   { group: 'settings.groupPersonal', items: [
     { id: 'personal', icon: User, labelKey: 'settings.personal' },
-    { id: 'performance', icon: BarChart2, labelKey: 'settings.performanceReviews' },
     { id: 'security', icon: Lock, labelKey: 'settings.security' },
     { id: 'notifications', icon: Bell, labelKey: 'settings.notificationSettings' },
     { id: 'appearance', icon: Palette, labelKey: 'settings.appearance' },
@@ -78,7 +76,7 @@ const MENU: SettingsMenuGroup[] = [
 ];
 
 const BUILT = new Set([
-  'appearance', 'aiSettings', 'language', 'legal', 'users', 'personal', 'performance',
+  'appearance', 'aiSettings', 'language', 'legal', 'users', 'personal',
   'organization', 'security', 'compliance', 'audit', 'integrations', 'notifications',
   'trustCenter',
 ]);
@@ -411,7 +409,6 @@ export default function Settings() {
         {activeSection === 'legal' && <PoliciesSection onPendingChange={setPendingPolicyCount} />}
         {activeSection === 'audit' && <AuditLogSection />}
         {activeSection === 'personal' && <PersonalSection />}
-        {activeSection === 'performance' && <PerformanceSection />}
         {activeSection === 'organization' && <OrganizationSection />}
         {activeSection === 'security' && <PersonalSecuritySection />}
         {activeSection === 'notifications' && <NotificationsSection />}

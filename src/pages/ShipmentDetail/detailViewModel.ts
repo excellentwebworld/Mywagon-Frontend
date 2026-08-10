@@ -57,6 +57,18 @@ export interface CarrierDetail {
   canRate?: boolean;
 }
 
+export interface AssignedDriverDetail {
+  initials: string;
+  avatar?: string | null;
+  name: string;
+  partner: boolean;
+  rating: string;
+  meta: string;
+  userId?: number | null;
+  plates: string[];
+  canRate?: boolean;
+}
+
 export interface TripSummary {
   distanceKm: number;
   duration: string;
@@ -138,6 +150,7 @@ export interface ShipmentDetailViewModel {
   tracking: TrackingStats;
   trip: TripSummary;
   carrier: CarrierDetail | null;
+  assignedDriver: AssignedDriverDetail | null;
   incidents: IncidentItem[];
   billing: BillingMetrics;
   auditEntries: AuditEntry[];
@@ -322,6 +335,30 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       }
     : null;
 
+  const assignedDriver: AssignedDriverDetail | null =
+    shipment.assignedDriverId && shipment.assignedDriverName
+      ? {
+          initials:
+            shipment.assignedDriverInitials ||
+            shipment.assignedDriverName.substring(0, 2).toUpperCase(),
+          avatar: shipment.assignedDriverAvatar ?? null,
+          name: shipment.assignedDriverName,
+          partner: Boolean(shipment.assignedDriverPartner),
+          rating:
+            shipment.assignedDriverRating != null
+              ? shipment.assignedDriverRating.toFixed(1)
+              : '—',
+          meta: 'Driver',
+          userId: shipment.assignedDriverId,
+          plates: shipment.assignedDriverPlates ?? [],
+          canRate: Boolean(
+            shipment.status === 'fullfilled' ||
+              shipment.status === 'partially_fullfilled' ||
+              shipment.status === 'delivered'
+          ),
+        }
+      : null;
+
   return {
     displayId,
     lane: `${shipment.origin} → ${shipment.dest}`,
@@ -408,6 +445,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       orders: shipment.customer.reduce((sum, c) => sum + (c.orders?.length || 0), 0) || 1,
     },
     carrier,
+    assignedDriver,
     incidents: [
       {
         id: 'i1',

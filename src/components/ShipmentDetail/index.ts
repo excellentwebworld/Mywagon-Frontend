@@ -9,6 +9,7 @@ export { DocumentsCard } from './DocumentsCard';
 export { TrackingCard } from './TrackingCard';
 export { TripSummaryCard } from './TripSummaryCard';
 export { CarrierCard } from './CarrierCard';
+export { DriverCard } from './DriverCard';
 export { IncidentsCard } from './IncidentsCard';
 export { BillingCard } from './BillingCard';
 export { AuditLogCard } from './AuditLogCard';

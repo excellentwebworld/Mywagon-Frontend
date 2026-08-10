@@ -4,6 +4,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 import {
   KeyRound, ShieldCheck, AlertTriangle,
   Eye, EyeOff, Copy, Download, X,
@@ -91,7 +93,7 @@ export default function PersonalSecuritySection() {
 
       <SCard title={t('settings.securitySection.mfa.title')} icon={<ShieldCheck size={16} style={{ color: T.ac }} />} T={T}>
         {loadingStatus ? (
-          <p style={{ fontSize: 12, color: T.t3 }}>{t('common.loading', { defaultValue: 'Loading…' })}</p>
+          <TwoFactorAuthSkeleton T={T} />
         ) : status.enabled ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
@@ -374,6 +376,29 @@ function InfoBox({ label, value, T, warn }) {
     <div className="px-3 py-2.5 rounded-lg" style={{ background: T.sa, border: `1px solid ${warn ? '#FDE68A' : T.bd}` }}>
       <div style={{ fontSize: 10, color: T.t3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</div>
       <div style={{ fontSize: 13, color: warn ? '#D97706' : T.t1, fontWeight: 600, marginTop: 4 }}>{value}</div>
+    </div>
+  );
+}
+
+function TwoFactorAuthSkeleton({ T }) {
+  const sk = { baseColor: T.sa, highlightColor: T.bd };
+
+  return (
+    <div aria-busy="true" aria-label="Loading">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="px-3 py-2.5 rounded-lg" style={{ background: T.sa, border: `1px solid ${T.bd}` }}>
+            <Skeleton width={56} height={10} borderRadius={4} {...sk} />
+            <div style={{ marginTop: 8 }}>
+              <Skeleton width={i === 0 ? 88 : i === 1 ? 72 : 64} height={14} borderRadius={4} {...sk} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Skeleton width={96} height={34} borderRadius={8} {...sk} />
+        <Skeleton width={120} height={34} borderRadius={8} {...sk} />
+      </div>
     </div>
   );
 }

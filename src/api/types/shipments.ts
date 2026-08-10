@@ -11,6 +11,17 @@ export interface ApiShipmentListCarrier {
   avg_pickup_delay_minutes?: number | null;
 }
 
+export interface ApiAssignedDriver {
+  id: number;
+  name: string;
+  initials: string;
+  avatar?: string | null;
+  rating?: number | null;
+  rating_count?: number | null;
+  vehicle_plates?: string[];
+  is_partner?: boolean;
+}
+
 export type ShipmentKpiKey =
   | 'needs_action'
   | 'awaiting_response'
@@ -179,6 +190,7 @@ export interface ApiShipmentInvitee {
 
 export interface ApiShipmentDetail extends ApiShipmentListItem {
   note?: string | null;
+  assigned_driver?: ApiAssignedDriver | null;
   journey_distance?: string | number | null;
   journey_time?: string | number | null;
   tracking_required_by_shipper?: boolean;

@@ -318,6 +318,13 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     totalQty: detail.total_qty ?? null,
     weightUnit: detail.weight_unit ?? null,
     qtyUnit: detail.qty_unit ?? null,
+    assignedDriverId: detail.assigned_driver?.id ?? null,
+    assignedDriverName: detail.assigned_driver?.name ?? null,
+    assignedDriverInitials: detail.assigned_driver?.initials ?? null,
+    assignedDriverAvatar: detail.assigned_driver?.avatar ?? null,
+    assignedDriverRating: detail.assigned_driver?.rating ?? null,
+    assignedDriverPartner: Boolean(detail.assigned_driver?.is_partner),
+    assignedDriverPlates: detail.assigned_driver?.vehicle_plates ?? [],
     offers: dedupeShipmentOffers(
       (detail.offers || []).map((o) => ({
         id: o.id,
