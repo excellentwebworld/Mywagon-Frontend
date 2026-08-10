@@ -387,7 +387,7 @@ export default function ListPane({
                   <td style={{ ...tdStyle, overflow: 'hidden' }}>
                     <span
                       style={{ fontSize: 11, color: T.t2, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                      title={formatScopeDisplay(lane, t, partnerNameById)}
+                      title={formatScopeDisplay(lane, t, partnerNameById, { full: true })}
                     >
                       {formatScopeDisplay(lane, t, partnerNameById)}
                       {lane.scopeDirection && (

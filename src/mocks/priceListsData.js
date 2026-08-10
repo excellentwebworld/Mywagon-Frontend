@@ -382,19 +382,20 @@ export function getScopeLabels(partnerIds, partnerNameById) {
   return partnerIds.map((id) => resolvePartnerDisplayName(id, partnerNameById));
 }
 
-/** Format scope display: 1 name, 2-3 comma-joined, 4+ "N partners" */
-export function formatScopeDisplay(lane, t, partnerNameById) {
+/** Format scope display: 1 name, 2-3 comma-joined, 4+ "N partners" (unless full) */
+export function formatScopeDisplay(lane, t, partnerNameById, options = {}) {
+  const { full = false } = options;
   if (lane.scope === 'default' || !(lane.scopePartnerIds?.length)) {
     return t ? t('priceLists.scope.default', 'Default') : 'Default';
   }
   // Prefer stored label from save (real partner names); skip placeholder "Specific"
-  if (lane.scopeLabel && lane.scopeLabel !== 'Specific' && lane.scopeLabel !== 'Default') {
+  if (!full && lane.scopeLabel && lane.scopeLabel !== 'Specific' && lane.scopeLabel !== 'Default') {
     return lane.scopeLabel;
   }
   const ids = lane.scopePartnerIds || [];
   if (ids.length === 0) return lane.scopeLabel || (t ? t('priceLists.scope.default', 'Default') : 'Default');
   const names = ids.map((id) => resolvePartnerDisplayName(id, partnerNameById));
-  if (names.length <= 3) return names.join(', ');
+  if (full || names.length <= 3) return names.join(', ');
   return t ? t('priceLists.scope.nPartners', '{{n}} partners').replace('{{n}}', names.length) : `${names.length} partners`;
 }
 

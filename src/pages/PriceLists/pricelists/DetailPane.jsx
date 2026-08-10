@@ -14,6 +14,7 @@ import { useTheme } from '../../../hooks/useTheme';
 import {
   getPrimaryPrice, isExpiringSoon,
   calcProfitability, cityLabel, formatRouteLabel, formatScopeDisplay,
+  getScopeLabels,
 } from '../../../mocks/priceListsData';
 import {
   formatMetricLabel,
@@ -55,7 +56,7 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
   const lang = i18n.language;
 
   const [openSections, setOpenSections] = useState({
-    legs: true, pricing: true,
+    scope: true, legs: true, pricing: true,
     profitability: false, marginAnalysis: false,
     calculator: false, history: false,
   });
@@ -116,6 +117,16 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
 
   const pricingRows = useMemo(() => (lane ? resolveLanePricingRows(lane) : []), [lane]);
 
+  const scopePartnerNames = useMemo(() => {
+    if (!lane?.scopePartnerIds?.length) return [];
+    return getScopeLabels(lane.scopePartnerIds, partnerNameById);
+  }, [lane?.scopePartnerIds, partnerNameById]);
+
+  const scopeDisplayFull = useMemo(
+    () => (lane ? formatScopeDisplay(lane, t, partnerNameById, { full: true }) : ''),
+    [lane, t, partnerNameById],
+  );
+
   if (!lane) return null;
 
   const expiring = isExpiringSoon(lane);
@@ -146,7 +157,13 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
                 {t(`priceLists.status.${lane.status}`, lane.status)}
               </Badge>
               {(lane.scope !== 'default' || (lane.scopePartnerIds?.length ?? 0) > 0) && (
-                <Badge bg="#F0F9FF" fg="#0EA5E9">{formatScopeDisplay(lane, t, partnerNameById)}</Badge>
+                <Badge
+                  bg="#F0F9FF"
+                  fg="#0EA5E9"
+                  title={scopePartnerNames.length > 3 ? scopeDisplayFull : undefined}
+                >
+                  {formatScopeDisplay(lane, t, partnerNameById)}
+                </Badge>
               )}
               {lane.scopeDirection && (
                 <Badge bg={lane.scopeDirection === 'sell' ? '#D1FAE5' : '#FEE2E2'}
@@ -180,6 +197,37 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
 
       {/* ─── Sections ─── */}
       <div className="flex-1 overflow-y-auto">
+        {/* Scope — specific partners */}
+        {scopePartnerNames.length > 0 && (
+          <Section
+            title={t('priceLists.detail.scope', 'Scope')}
+            sectionKey="scope"
+            count={scopePartnerNames.length}
+            open={openSections.scope}
+            onToggle={toggle}
+            T={T}
+          >
+            <div className="flex flex-wrap gap-1.5">
+              {scopePartnerNames.map((name, idx) => (
+                <span
+                  key={lane.scopePartnerIds[idx] ?? idx}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 500,
+                    padding: '3px 10px',
+                    borderRadius: 99,
+                    background: '#F0F9FF',
+                    color: '#0369A1',
+                    border: '1px solid #BAE6FD',
+                  }}
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
+          </Section>
+        )}
+
         {/* Route Legs */}
         <Section title={t('priceLists.detail.routeLegs', 'Route legs')} sectionKey="legs"
           open={openSections.legs} onToggle={toggle} T={T}>
@@ -412,9 +460,12 @@ function PriceLine({ T, label, value, sub, muted, bold }) {
   );
 }
 
-function Badge({ bg, fg, children }) {
+function Badge({ bg, fg, children, title }) {
   return (
-    <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: bg, color: fg }}>
+    <span
+      title={title}
+      style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: bg, color: fg }}
+    >
       {children}
     </span>
   );

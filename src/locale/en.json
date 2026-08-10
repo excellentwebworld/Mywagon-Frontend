@@ -3615,6 +3615,7 @@
       "deleteFolder": "Delete folder"
     },
     "detail": {
+      "scope": "Scope",
       "routeLegs": "Route Legs",
       "from": "From",
       "to": "To",
