@@ -31,6 +31,44 @@ const STATUS_PILL = {
 
 const STATUS_SORT_ORDER = { active: 0, inactive: 1, archived: 2 };
 
+function splitIsoDateTime(iso) {
+  const formatted = formatIsoDisplayDateTime(iso);
+  if (!formatted) return null;
+  const spaceIdx = formatted.indexOf(' ');
+  if (spaceIdx === -1) return { date: formatted, time: '' };
+  return { date: formatted.slice(0, spaceIdx), time: formatted.slice(spaceIdx + 1) };
+}
+
+function EffectiveDates({ lane, t }) {
+  const from = formatDisplayDate(lane.effectiveFrom?.slice(0, 10) || '');
+  const to = lane.effectiveTo ? formatDisplayDate(lane.effectiveTo.slice(0, 10)) : null;
+
+  return (
+    <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: 'inherit', lineHeight: 1.4 }}>
+      <div>{from || '—'}</div>
+      {to ? (
+        <div>{to}</div>
+      ) : (
+        <div style={{ opacity: 0.85 }}>
+          {t('priceLists.validity.openEnded', 'Open-ended')}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UpdatedDateTime({ iso }) {
+  const parts = splitIsoDateTime(iso);
+  if (!parts) return <span>—</span>;
+
+  return (
+    <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.4 }}>
+      <div>{parts.date}</div>
+      {parts.time && <div style={{ opacity: 0.85 }}>{parts.time}</div>}
+    </div>
+  );
+}
+
 function SortIcon({ sortKey, currentSort, currentDir }) {
   if (currentSort !== sortKey) return <ArrowUpDown size={12} style={{ opacity: 0.3 }} />;
   return currentDir === 'asc'
@@ -145,7 +183,7 @@ export default function ListPane({
       <div className="flex-1 overflow-auto">
         <table
           className="w-full border-collapse"
-          style={{ tableLayout: 'fixed', width: '100%', minWidth: showMargin ? 980 : 920 }}
+          style={{ tableLayout: 'fixed', width: '100%', minWidth: showMargin ? 1040 : 980 }}
         >
           <colgroup>
             <col style={{ width: 'auto' }} />
@@ -155,9 +193,9 @@ export default function ListPane({
             <col style={{ width: 110 }} />
             <col style={{ width: 76 }} />
             <col style={{ width: 108 }} />
-            <col style={{ width: 100 }} />
+            <col style={{ width: 96 }} />
             {showMargin && <col style={{ width: 72 }} />}
-            <col style={{ width: 76 }} />
+            <col style={{ width: 96 }} />
             <col style={{ width: 44 }} />
           </colgroup>
           <thead>
@@ -215,7 +253,7 @@ export default function ListPane({
                   </span>
                 </th>
               )}
-              <th style={thStyle} className="cursor-pointer hidden xl:table-cell" onClick={() => handleSort('updated')}>
+              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('updated')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.updated', 'Updated')}
                   <SortIcon sortKey="updated" currentSort={sortKey} currentDir={sortDir} />
@@ -359,23 +397,8 @@ export default function ListPane({
                       )}
                     </span>
                   </td>
-                  <td style={{ ...tdStyle, overflow: 'hidden' }}>
-                    <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: T.t2, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {formatDisplayDate(lane.effectiveFrom?.slice(0, 10) || '')}
-                      {lane.effectiveTo ? (
-                        ` → ${formatDisplayDate(lane.effectiveTo.slice(0, 10))}`
-                      ) : (
-                        <>
-                          {' → '}
-                          <span
-                            aria-hidden="true"
-                            style={{ fontSize: '1.35em', fontWeight: 600, lineHeight: 1, verticalAlign: 'middle', display: 'inline-block' }}
-                          >
-                            {t('priceLists.validity.openEnded', '∞')}
-                          </span>
-                        </>
-                      )}
-                    </span>
+                  <td style={{ ...tdStyle, overflow: 'hidden', color: T.t2, verticalAlign: 'middle' }}>
+                    <EffectiveDates lane={lane} t={t} />
                   </td>
                   {showMargin && (
                     <td style={tdStyle}>
@@ -390,8 +413,8 @@ export default function ListPane({
                       )}
                     </td>
                   )}
-                  <td style={tdStyle} className="hidden xl:table-cell">
-                    <span style={{ fontSize: 11, color: T.t3 }}>{formatIsoDisplayDateTime(lane.updatedAt) || '—'}</span>
+                  <td style={{ ...tdStyle, color: T.t3, verticalAlign: 'middle' }}>
+                    <UpdatedDateTime iso={lane.updatedAt} />
                   </td>
                   <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
                     <div className="relative">
