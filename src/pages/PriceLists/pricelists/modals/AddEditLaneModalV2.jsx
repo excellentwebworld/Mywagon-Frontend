@@ -6,6 +6,7 @@ import { ApiError, partnersService } from '../../../../api';
 import { buildLaneFingerprint, buildLaneFingerprintFromEntry } from '../../../../api/utils/laneMetricDisplay';
 import { resolveCity, calculateRouteTotals } from '../../../../mocks/priceListsData';
 import { DatePicker } from '../../../../components/ui/DatePicker';
+import { SearchableSelect } from '../../../../components/ui/SearchableSelect';
 import { loadGoogleMaps } from '../../../../components/AddressBook/GoogleMapAddressField';
 import { SearchVehicleCargoPicker } from '../../../../components/SearchTrucks/SearchVehicleCargoPicker';
 import LanePlacePicker from '../LanePlacePicker';
@@ -16,6 +17,11 @@ import {
   sanitizeStopForSave,
   isLegacyLaneStop,
 } from '../mapLocationToLaneStop';
+
+const WEIGHT_UNIT_OPTIONS = [
+  { value: 'kg', label: 'kg' },
+  { value: 'ton', label: 'ton' },
+];
 
 const METRICS = [
   { key: 'weight', labelKey: 'priceLists.phase2.metric.weight', fallback: 'Weight' },
@@ -166,6 +172,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
     return t(item.labelKey, item.fallback);
   };
 
+  const [truckPickerOpen, setTruckPickerOpen] = useState({});
   const [sections, setSections] = useState({ route: true, pricing: true, validity: true });
   const [stops, setStops] = useState([null, null]);
   const [tripType, setTripType] = useState('direct');
@@ -373,6 +380,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
 
     setErrors({});
     setDupeWarn(false);
+    setTruckPickerOpen({});
   }, [open, lane, role, forwarderTab, mode]);
 
   // Google Distance Matrix km when stop lat/lng or address is available
@@ -812,34 +820,45 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                       </div>
                       <div className="col-span-4">
                         <label style={labelStyle}>{t('priceLists.phase2.pricingMetric', 'Pricing metric')}</label>
-                        <select style={inputStyle} value={row.metric} onChange={(e) => updateRowMetric(row.id, e.target.value)}>
-                          {METRICS.map((m) => (
-                            <option key={m.key} value={m.key}>
-                              {metricLabel(m.key)}
-                            </option>
-                          ))}
-                        </select>
+                        <SearchableSelect
+                          options={METRICS.map((m) => ({
+                            value: m.key,
+                            label: metricLabel(m.key),
+                          }))}
+                          value={row.metric}
+                          onChange={(next) => updateRowMetric(row.id, next)}
+                          searchable={false}
+                          menuFixed
+                          direction="auto"
+                          hasError={Boolean(errors[`metric_${idx}`])}
+                        />
                       </div>
                       <div className="col-span-4">
                         <label style={labelStyle}>{t('priceLists.phase2.metricValue', 'Metric value')}</label>
                         {row.metric === 'weight' && (
-                          <select
-                            style={inputStyle}
+                          <SearchableSelect
+                            options={WEIGHT_UNIT_OPTIONS}
                             value={row.metricValue?.unit || 'kg'}
-                            onChange={(e) => updatePricingRow(row.id, { metricValue: { ...row.metricValue, unit: e.target.value } })}
-                          >
-                            <option value="kg">kg</option>
-                            <option value="ton">ton</option>
-                          </select>
+                            onChange={(next) => updatePricingRow(row.id, { metricValue: { ...row.metricValue, unit: next } })}
+                            searchable={false}
+                            menuFixed
+                            direction="auto"
+                            hasError={Boolean(errors[`metricValue_${idx}`])}
+                          />
                         )}
                         {row.metric === 'unit_transport' && (
-                          <select
-                            style={inputStyle}
+                          <SearchableSelect
+                            options={UNIT_TRANSPORT_OPTIONS.map((opt) => ({
+                              value: opt.value,
+                              label: unitLabel(opt.value),
+                            }))}
                             value={row.metricValue?.type || 'eur_pallet'}
-                            onChange={(e) => updatePricingRow(row.id, { metricValue: { ...row.metricValue, type: e.target.value } })}
-                          >
-                            {UNIT_TRANSPORT_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{unitLabel(opt.value)}</option>)}
-                          </select>
+                            onChange={(next) => updatePricingRow(row.id, { metricValue: { ...row.metricValue, type: next } })}
+                            searchable={false}
+                            menuFixed
+                            direction="auto"
+                            hasError={Boolean(errors[`metricValue_${idx}`])}
+                          />
                         )}
                         {row.metric === 'load_any_size' && (
                           <div className="h-[34px] px-3 flex items-center rounded-md" style={{ border: `1px solid ${T.bd}`, color: T.t2, background: T.sf, fontSize: 12 }}>
@@ -871,22 +890,46 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                     </div>
 
                     {row.metric === 'ftl_truck_type' && (
-                      <div className="mt-3">
-                        <SearchVehicleCargoPicker
-                          t={(k) => t(k)}
-                          vehicleSpecs={row.metricValue?.vehicle_specs || {}}
-                          truckTypeIds={row.metricValue?.truck_type_ids || []}
-                          onChange={(next) => {
-                            updatePricingRow(row.id, {
-                              metricValue: {
-                                ...row.metricValue,
-                                vehicle_type: next.vehicleType,
-                                truck_type_ids: next.truckTypeIds,
-                                vehicle_specs: next.vehicleSpecs,
-                              },
-                            });
-                          }}
-                        />
+                      <div className="mt-3 rounded-lg overflow-hidden" style={{ border: `1px solid ${errors[`metricValue_${idx}`] ? '#EF4444' : T.bd}` }}>
+                        <button
+                          type="button"
+                          onClick={() => setTruckPickerOpen((prev) => ({ ...prev, [row.id]: !prev[row.id] }))}
+                          className="w-full flex items-center justify-between px-3 py-2.5 cursor-pointer border-none"
+                          style={{ background: T.bg, color: T.t1, fontSize: 12, fontWeight: 600 }}
+                        >
+                          <span className="flex items-center gap-2 min-w-0">
+                            <span>{t('priceLists.phase2.truckTypeSelection', 'Truck type selection')}</span>
+                            {row.metricValue?.vehicle_type && (
+                              <span className="truncate" style={{ fontWeight: 500, color: T.t3, fontSize: 11 }}>
+                                {row.metricValue.vehicle_type}
+                              </span>
+                            )}
+                          </span>
+                          {(truckPickerOpen[row.id] || errors[`metricValue_${idx}`]) ? (
+                            <ChevronUp size={14} style={{ color: T.t3, flexShrink: 0 }} />
+                          ) : (
+                            <ChevronDown size={14} style={{ color: T.t3, flexShrink: 0 }} />
+                          )}
+                        </button>
+                        {(truckPickerOpen[row.id] || errors[`metricValue_${idx}`]) && (
+                          <div className="p-3" style={{ borderTop: `1px solid ${T.bd}`, background: T.sf }}>
+                            <SearchVehicleCargoPicker
+                              t={(k) => t(k)}
+                              vehicleSpecs={row.metricValue?.vehicle_specs || {}}
+                              truckTypeIds={row.metricValue?.truck_type_ids || []}
+                              onChange={(next) => {
+                                updatePricingRow(row.id, {
+                                  metricValue: {
+                                    ...row.metricValue,
+                                    vehicle_type: next.vehicleType,
+                                    truck_type_ids: next.truckTypeIds,
+                                    vehicle_specs: next.vehicleSpecs,
+                                  },
+                                });
+                              }}
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1073,11 +1116,18 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
               {role === 'forwarder' && scopePartnerIds.length > 0 && (
                 <div>
                   <label style={labelStyle}>{t('priceLists.modal.direction', 'Direction')}</label>
-                  <select style={inputStyle} value={scopeDirection} onChange={(e) => setScopeDirection(e.target.value)}>
-                    <option value="">{t('priceLists.modal.noDirection', 'No direction')}</option>
-                    <option value="buy">{t('priceLists.modal.buy', 'Buy (from carrier)')}</option>
-                    <option value="sell">{t('priceLists.modal.sell', 'Sell (to customer)')}</option>
-                  </select>
+                  <SearchableSelect
+                    options={[
+                      { value: '', label: t('priceLists.modal.noDirection', 'No direction') },
+                      { value: 'buy', label: t('priceLists.modal.buy', 'Buy (from carrier)') },
+                      { value: 'sell', label: t('priceLists.modal.sell', 'Sell (to customer)') },
+                    ]}
+                    value={scopeDirection}
+                    onChange={setScopeDirection}
+                    searchable={false}
+                    menuFixed
+                    direction="auto"
+                  />
                 </div>
               )}
 

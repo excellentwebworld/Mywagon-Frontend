@@ -172,10 +172,14 @@ export default function ListPane({
   const thStyle = {
     fontSize: 11, fontWeight: 600, color: T.t3, padding: '8px 10px',
     borderBottom: `1px solid ${T.bd}`, whiteSpace: 'nowrap', userSelect: 'none',
-    background: T.sh, position: 'sticky', top: 0, zIndex: 2,
+    background: T.sh, position: 'sticky', top: 0, zIndex: 2, textAlign: 'left',
   };
   const tdStyle = { fontSize: 12, padding: '8px 10px', borderBottom: `1px solid ${T.bd}`, color: T.t1, verticalAlign: 'middle' };
   const showMargin = role === 'carrier';
+  const colCount = showMargin ? 11 : 10;
+  const colWidths = showMargin
+    ? ['22%', '5%', '7%', '8%', '11%', '7%', '10%', '9%', '7%', '9%', '5%']
+    : ['24%', '5%', '7%', '8%', '11%', '7%', '11%', '10%', '12%', '5%'];
 
   return (
     <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
@@ -183,20 +187,12 @@ export default function ListPane({
       <div className="flex-1 overflow-auto">
         <table
           className="w-full border-collapse"
-          style={{ tableLayout: 'fixed', width: '100%', minWidth: showMargin ? 1040 : 980 }}
+          style={{ tableLayout: 'fixed', width: '100%', minWidth: showMargin ? 960 : 880 }}
         >
           <colgroup>
-            <col style={{ width: 'auto' }} />
-            <col style={{ width: 56 }} />
-            <col style={{ width: 72 }} />
-            <col style={{ width: 80 }} />
-            <col style={{ width: 110 }} />
-            <col style={{ width: 76 }} />
-            <col style={{ width: 108 }} />
-            <col style={{ width: 96 }} />
-            {showMargin && <col style={{ width: 72 }} />}
-            <col style={{ width: 96 }} />
-            <col style={{ width: 44 }} />
+            {colWidths.map((width, idx) => (
+              <col key={idx} style={{ width }} />
+            ))}
           </colgroup>
           <thead>
             <tr>
@@ -266,7 +262,7 @@ export default function ListPane({
             {loading ? (
               Array.from({ length: 8 }).map((_, rowIdx) => (
                 <tr key={rowIdx}>
-                  {Array.from({ length: showMargin ? 11 : 10 }).map((_, colIdx) => (
+                  {Array.from({ length: colCount }).map((_, colIdx) => (
                     <td key={colIdx} style={{ ...tdStyle, borderBottom: `1px solid ${T.bd}` }}>
                       <Skeleton
                         width={
@@ -285,7 +281,7 @@ export default function ListPane({
               ))
             ) : pageData.length === 0 ? (
               <tr>
-                <td colSpan={showMargin ? 12 : 11} style={{ ...tdStyle, textAlign: 'center', padding: 40, color: T.t3 }}>
+                <td colSpan={colCount} style={{ ...tdStyle, textAlign: 'center', padding: 40, color: T.t3 }}>
                   {isEmptyCatalog
                     ? t('priceLists.empty.noLanesYet', 'No price lanes yet. Add your first lane to get started.')
                     : t('priceLists.empty.noLanes', 'No lanes match your filters.')}

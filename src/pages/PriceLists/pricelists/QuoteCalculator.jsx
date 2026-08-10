@@ -1,6 +1,6 @@
 /**
  * QuoteCalculator — lane-based quote tool.
- * Origin/destination use Google Places LanePlacePicker (same as Add Lane).
+ * Origin/destination pickers use saved lane library (not free Google search).
  */
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
@@ -9,17 +9,40 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import { useVehicleTypes } from '../../../hooks/useVehicleTypes';
 import { resolveCity, getDistance } from '../../../mocks/priceListsData';
-import { loadGoogleMaps } from '../../../components/AddressBook/GoogleMapAddressField';
-import LanePlacePicker from './LanePlacePicker';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 import {
-  isValidLaneStop,
+  normalizeLoadedLaneStop,
   stopMatchesPlace,
   stopsAreSamePlace,
-} from './mapLocationToLaneStop';
+} from './mapGooglePlaceToLaneStop';
 import {
   formatMetricLabel,
   resolveLanePricingRows,
 } from '../../../api/utils/laneMetricDisplay';
+
+function stopKey(stop) {
+  if (!stop) return '';
+  const placeId = stop.place_id ?? stop.placeId;
+  if (placeId) return `pid:${placeId}`;
+  if (stop.lat != null && stop.lng != null) return `coord:${stop.lat},${stop.lng}`;
+  return `city:${String(stop.city || stop.value || stop.label || '').trim().toLowerCase()}`;
+}
+
+function stopLabel(stop) {
+  if (!stop) return '';
+  return String(stop.label || stop.city || stop.value || '').trim();
+}
+
+function stopSublabel(stop) {
+  const label = stopLabel(stop);
+  const city = String(stop?.city || '').trim();
+  if (city && city !== label) return city;
+  return undefined;
+}
+
+function isCalculatorEndpoint(stop) {
+  return Boolean(String(stop?.city || stop?.value || stop?.label || '').trim());
+}
 
 function collectFtlVehicleNames(lanes) {
   const names = new Set();
@@ -96,11 +119,37 @@ function distinctEndpointStops(lanes, endpoint) {
   (lanes || []).forEach((lane) => {
     const stops = lane?.stops || [];
     if (stops.length < 2) return;
-    const stop = endpoint === 'origin' ? stops[0] : stops[stops.length - 1];
-    if (!stop?.city && !stop?.value) return;
+    const raw = endpoint === 'origin' ? stops[0] : stops[stops.length - 1];
+    const stop = normalizeLoadedLaneStop(raw);
+    if (!isCalculatorEndpoint(stop)) return;
     if (!out.some((s) => stopsAreSamePlace(s, stop))) out.push(stop);
   });
-  return out;
+  return out.sort((a, b) => stopLabel(a).localeCompare(stopLabel(b), undefined, { sensitivity: 'base' }));
+}
+
+function buildRoutePresets(lanes) {
+  const seen = new Set();
+  const out = [];
+  (lanes || []).forEach((lane) => {
+    const stops = lane?.stops || [];
+    if (stops.length < 2) return;
+    const origin = normalizeLoadedLaneStop(stops[0]);
+    const destination = normalizeLoadedLaneStop(stops[stops.length - 1]);
+    if (!isCalculatorEndpoint(origin) || !isCalculatorEndpoint(destination)) return;
+
+    const key = `${stopKey(origin)}|${stopKey(destination)}|${lane.tripType || (lane.isRoundTrip ? 'roundtrip' : 'direct')}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+
+    const arrow = lane.isRoundTrip || lane.tripType === 'roundtrip' ? ' ↔ ' : ' → ';
+    out.push({
+      value: key,
+      label: lane.routeLabel || `${stopLabel(origin)}${arrow}${stopLabel(destination)}`,
+      origin,
+      destination,
+    });
+  });
+  return out.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 }
 
 export default function QuoteCalculator({ open, onClose, lanes }) {
@@ -110,6 +159,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
 
   const [originStop, setOriginStop] = useState(null);
   const [destinationStop, setDestinationStop] = useState(null);
+  const [routePresetKey, setRoutePresetKey] = useState('');
   const [pallets, setPallets] = useState('');
   const [weight, setWeight] = useState('');
   const [vehicleType, setVehicleType] = useState('');
@@ -121,31 +171,67 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
     [lanes],
   );
 
-  const originQuickPicks = useMemo(
+  const routePresets = useMemo(() => buildRoutePresets(activeLanes), [activeLanes]);
+
+  const originStops = useMemo(
     () => distinctEndpointStops(activeLanes, 'origin'),
     [activeLanes],
   );
 
-  const destinationQuickPicks = useMemo(() => {
-    if (!isValidLaneStop(originStop)) return distinctEndpointStops(activeLanes, 'destination');
+  const destinationStops = useMemo(() => {
+    if (!isCalculatorEndpoint(originStop)) {
+      return distinctEndpointStops(activeLanes, 'destination');
+    }
     const picks = [];
     activeLanes.forEach((lane) => {
       const stops = lane?.stops || [];
       if (stops.length < 2) return;
-      if (!stopMatchesPlace(stops[0], originStop)) return;
-      const dest = stops[stops.length - 1];
-      if (!dest?.city && !dest?.value) return;
+      const laneOrigin = normalizeLoadedLaneStop(stops[0]);
+      if (!stopMatchesPlace(laneOrigin, originStop)) return;
+      const dest = normalizeLoadedLaneStop(stops[stops.length - 1]);
+      if (!isCalculatorEndpoint(dest)) return;
       if (!picks.some((s) => stopsAreSamePlace(s, dest))) picks.push(dest);
     });
-    return picks.length > 0 ? picks : distinctEndpointStops(activeLanes, 'destination');
+    const list = picks.length > 0 ? picks : distinctEndpointStops(activeLanes, 'destination');
+    return list.sort((a, b) => stopLabel(a).localeCompare(stopLabel(b), undefined, { sensitivity: 'base' }));
   }, [activeLanes, originStop]);
 
+  const originOptions = useMemo(
+    () => originStops.map((stop) => ({
+      value: stopKey(stop),
+      label: stopLabel(stop),
+      sublabel: stopSublabel(stop),
+    })),
+    [originStops],
+  );
+
+  const destinationOptions = useMemo(
+    () => destinationStops.map((stop) => ({
+      value: stopKey(stop),
+      label: stopLabel(stop),
+      sublabel: stopSublabel(stop),
+    })),
+    [destinationStops],
+  );
+
+  const originByKey = useMemo(() => {
+    const map = new Map();
+    originStops.forEach((stop) => map.set(stopKey(stop), stop));
+    return map;
+  }, [originStops]);
+
+  const destinationByKey = useMemo(() => {
+    const map = new Map();
+    destinationStops.forEach((stop) => map.set(stopKey(stop), stop));
+    return map;
+  }, [destinationStops]);
+
   const matchingOdLanes = useMemo(() => {
-    if (!isValidLaneStop(originStop) || !isValidLaneStop(destinationStop)) return [];
+    if (!isCalculatorEndpoint(originStop) || !isCalculatorEndpoint(destinationStop)) return [];
     return activeLanes.filter((l) => {
       const stops = l.stops || [];
-      return stopMatchesPlace(stops[0], originStop)
-        && stopMatchesPlace(stops[stops.length - 1], destinationStop);
+      return stopMatchesPlace(normalizeLoadedLaneStop(stops[0]), originStop)
+        && stopMatchesPlace(normalizeLoadedLaneStop(stops[stops.length - 1]), destinationStop);
     });
   }, [originStop, destinationStop, activeLanes]);
 
@@ -162,10 +248,9 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
 
   useEffect(() => {
     if (!open) return;
-    const key = import.meta.env.VITE_GOOGLE_MAPS_KEY;
-    if (key) void loadGoogleMaps(key).catch(() => {});
     setOriginStop(null);
     setDestinationStop(null);
+    setRoutePresetKey('');
     setPallets('');
     setWeight('');
     setVehicleType('');
@@ -174,9 +259,17 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
   }, [open]);
 
   useEffect(() => {
-    setDestinationStop(null);
     setResult(null);
-  }, [originStop]);
+    setDestinationStop((current) => {
+      if (!isCalculatorEndpoint(originStop)) return null;
+      if (!current) return null;
+      const stillValid = destinationStops.some((s) => stopsAreSamePlace(s, current));
+      return stillValid ? current : null;
+    });
+    if (!isCalculatorEndpoint(originStop)) {
+      setRoutePresetKey('');
+    }
+  }, [originStop, destinationStops]);
 
   useEffect(() => {
     if (vehicleType && !vehicleOptions.includes(vehicleType)) {
@@ -184,8 +277,17 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
     }
   }, [vehicleType, vehicleOptions]);
 
+  const handleRoutePreset = useCallback((key) => {
+    setRoutePresetKey(key);
+    const preset = routePresets.find((r) => r.value === key);
+    if (!preset) return;
+    setOriginStop(preset.origin);
+    setDestinationStop(preset.destination);
+    setResult(null);
+  }, [routePresets]);
+
   const calculate = useCallback(() => {
-    if (!isValidLaneStop(originStop) || !isValidLaneStop(destinationStop)
+    if (!isCalculatorEndpoint(originStop) || !isCalculatorEndpoint(destinationStop)
       || stopsAreSamePlace(originStop, destinationStop)) {
       setResult({ error: 'invalid' });
       return;
@@ -199,8 +301,8 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
       ? matchingOdLanes
       : activeLanes.filter((l) => {
         const stops = l.stops || [];
-        return stopMatchesPlace(stops[0], originStop)
-          && stopMatchesPlace(stops[stops.length - 1], destinationStop);
+        return stopMatchesPlace(normalizeLoadedLaneStop(stops[0]), originStop)
+          && stopMatchesPlace(normalizeLoadedLaneStop(stops[stops.length - 1]), destinationStop);
       });
 
     const sorted = [...candidates].sort((a, b) => {
@@ -248,17 +350,8 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
     width: '100%',
   };
   const labelStyle = { fontSize: 11, fontWeight: 600, color: T.t2, marginBottom: 3, display: 'block' };
-  const canCalculate = isValidLaneStop(originStop) && isValidLaneStop(destinationStop);
-
-  const quickPickStyle = {
-    fontSize: 10,
-    padding: '4px 8px',
-    borderRadius: 999,
-    border: `1px solid ${T.bd}`,
-    background: T.sa,
-    color: T.t2,
-    cursor: 'pointer',
-  };
+  const canCalculate = isCalculatorEndpoint(originStop) && isCalculatorEndpoint(destinationStop);
+  const hasLibrary = activeLanes.length > 0;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 200 }}>
@@ -278,53 +371,77 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
         </div>
 
         <div className="px-6 py-4 space-y-3">
-          <div className="grid grid-cols-1 gap-3">
-            <div>
-              <LanePlacePicker
-                label={t('priceLists.modal.origin', 'Origin')}
-                value={originStop}
-                onChange={setOriginStop}
-              />
-              {originQuickPicks.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {originQuickPicks.slice(0, 6).map((stop) => (
-                    <button
-                      key={`o-${stop.label}-${stop.city}`}
-                      type="button"
-                      style={quickPickStyle}
-                      className="border-none"
-                      onClick={() => setOriginStop(stop)}
-                    >
-                      {stop.label || stop.city}
-                    </button>
-                  ))}
-                </div>
+          {!hasLibrary ? (
+            <div
+              className="rounded-lg px-3 py-3"
+              style={{ background: T.bg, border: `1px solid ${T.bd}`, fontSize: 12, color: T.t2, lineHeight: 1.45 }}
+            >
+              {t(
+                'priceLists.calculator.noLanesHint',
+                'No active lanes in your library yet. Add lanes on the Price Lists page, then return here to calculate quotes.',
               )}
             </div>
-            <div>
-              <LanePlacePicker
-                label={t('priceLists.modal.destination', 'Destination')}
-                value={destinationStop}
-                onChange={setDestinationStop}
-                invalid={!isValidLaneStop(originStop) && originStop != null}
-              />
-              {destinationQuickPicks.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {destinationQuickPicks.slice(0, 6).map((stop) => (
-                    <button
-                      key={`d-${stop.label}-${stop.city}`}
-                      type="button"
-                      style={quickPickStyle}
-                      className="border-none"
-                      onClick={() => setDestinationStop(stop)}
-                    >
-                      {stop.label || stop.city}
-                    </button>
-                  ))}
+          ) : (
+            <>
+              {routePresets.length > 0 && (
+                <div>
+                  <label style={labelStyle}>
+                    {t('priceLists.calculator.savedRoute', 'Saved route')}
+                  </label>
+                  <SearchableSelect
+                    options={routePresets}
+                    value={routePresetKey}
+                    onChange={handleRoutePreset}
+                    placeholder={t('priceLists.calculator.pickSavedRoute', 'Pick a route from your lanes…')}
+                    searchPlaceholder={t('priceLists.calculator.searchRoutes', 'Search routes…')}
+                    menuFixed
+                    direction="auto"
+                  />
                 </div>
               )}
-            </div>
-          </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label style={labelStyle}>{t('priceLists.modal.origin', 'Origin')}</label>
+                  <SearchableSelect
+                    options={originOptions}
+                    value={originStop ? stopKey(originStop) : ''}
+                    onChange={(key) => {
+                      setOriginStop(originByKey.get(key) || null);
+                      setRoutePresetKey('');
+                    }}
+                    placeholder={t('priceLists.calculator.pickOrigin', 'Select origin from your lanes…')}
+                    searchPlaceholder={t('priceLists.calculator.searchOrigin', 'Search origins…')}
+                    menuFixed
+                    direction="auto"
+                    disabled={originOptions.length === 0}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>{t('priceLists.modal.destination', 'Destination')}</label>
+                  <SearchableSelect
+                    options={destinationOptions}
+                    value={destinationStop ? stopKey(destinationStop) : ''}
+                    onChange={(key) => {
+                      setDestinationStop(destinationByKey.get(key) || null);
+                      setRoutePresetKey('');
+                      setResult(null);
+                    }}
+                    placeholder={t('priceLists.calculator.pickDestination', 'Select destination from your lanes…')}
+                    searchPlaceholder={t('priceLists.calculator.searchDestination', 'Search destinations…')}
+                    menuFixed
+                    direction="auto"
+                    disabled={destinationOptions.length === 0}
+                  />
+                  {isCalculatorEndpoint(originStop) && destinationOptions.length === 0 && (
+                    <div style={{ fontSize: 11, color: T.t3, marginTop: 4 }}>
+                      {t('priceLists.calculator.noDestForOrigin', 'No destinations found for this origin in your lane library.')}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="grid grid-cols-3 gap-3">
             <div>
@@ -337,23 +454,27 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
             </div>
             <div>
               <label style={labelStyle}>{t('priceLists.calculator.vehicle', 'Vehicle')}</label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: '', label: '—' },
+                  ...vehicleOptions.map((v) => ({ value: v, label: v })),
+                ]}
                 value={vehicleType}
-                onChange={(e) => setVehicleType(e.target.value)}
-                style={inputStyle}
+                onChange={setVehicleType}
+                searchable={vehicleOptions.length > 8}
+                menuFixed
+                direction="auto"
                 disabled={vehicleTypesLoading && vehicleOptions.length === 0}
-              >
-                <option value="">—</option>
-                {vehicleOptions.map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
+                placeholder="—"
+              />
             </div>
           </div>
 
           <button
             onClick={calculate}
-            disabled={!canCalculate}
+            disabled={!canCalculate || !hasLibrary}
             className="w-full py-2.5 rounded-lg cursor-pointer border-none text-white"
-            style={{ background: T.ac, fontSize: 13, fontWeight: 600, opacity: canCalculate ? 1 : 0.55 }}
+            style={{ background: T.ac, fontSize: 13, fontWeight: 600, opacity: canCalculate && hasLibrary ? 1 : 0.55 }}
           >
             {t('priceLists.calculator.calculate', 'Calculate Quote')}
           </button>

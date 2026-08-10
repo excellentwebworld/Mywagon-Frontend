@@ -22,6 +22,8 @@ type Props = {
   direction?: 'up' | 'down' | 'auto';
   menuFixed?: boolean;
   hideSublabelInTrigger?: boolean;
+  /** When false, hides the search field (better for short option lists). Default true. */
+  searchable?: boolean;
 };
 
 export const SearchableSelect: React.FC<Props> = ({
@@ -39,6 +41,7 @@ export const SearchableSelect: React.FC<Props> = ({
   direction = 'auto',
   menuFixed = false,
   hideSublabelInTrigger = false,
+  searchable = true,
 }) => {
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -137,15 +140,17 @@ export const SearchableSelect: React.FC<Props> = ({
 
   const menuInner = (
     <>
-      <div className="searchable-select-search">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => handleQuery(e.target.value)}
-          placeholder={searchPlaceholder}
-          autoFocus
-        />
-      </div>
+      {searchable && (
+        <div className="searchable-select-search">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => handleQuery(e.target.value)}
+            placeholder={searchPlaceholder}
+            autoFocus
+          />
+        </div>
+      )}
       {headerAction && (
         <button
           type="button"

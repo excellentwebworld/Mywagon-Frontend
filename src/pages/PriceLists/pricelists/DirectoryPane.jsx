@@ -49,9 +49,36 @@ const EMPTY_COUNTS = {
 const SCOPE_PREVIEW_COUNT = 5;
 const SCOPE_COLLAPSE_THRESHOLD = 5;
 
-function IconWrap({ children, color }) {
+/** Distinct icon colors aligned with table metric/status pills. */
+const NODE_ICON_COLORS = {
+  all: '#6366F1',
+  active: '#059669',
+  ftl: '#2563EB',
+  perWeight: '#059669',
+  perLoad: '#D97706',
+  perUnitTransport: '#7C3AED',
+  expiring: '#F59E0B',
+  directTrip: '#2563EB',
+  roundTrips: '#0891B2',
+  simpleLane: '#10B981',
+  multiStop: '#7C3AED',
+  inactive: '#6B7280',
+  archived: '#92400E',
+  scopeDefault: '#6366F1',
+  scopePartner: '#64748B',
+};
+
+function IconWrap({ children, color, active = false }) {
   return (
-    <span className="shrink-0 flex items-center justify-center" style={{ width: 16, height: 16, color }}>
+    <span
+      className="shrink-0 flex items-center justify-center rounded-md"
+      style={{
+        width: 22,
+        height: 22,
+        color,
+        background: active ? `${color}18` : `${color}12`,
+      }}
+    >
       {children}
     </span>
   );
@@ -108,6 +135,7 @@ export default function DirectoryPane({ summary, activeNode, onNodeClick, partne
         label: key === 'default' ? defaultScopeLabel : (name || key),
         count,
         indent: true,
+        iconColor: key === 'default' ? NODE_ICON_COLORS.scopeDefault : NODE_ICON_COLORS.scopePartner,
       }))
       .sort((a, b) => {
         if (a.isDefault) return -1;
@@ -142,24 +170,24 @@ export default function DirectoryPane({ summary, activeNode, onNodeClick, partne
   const hiddenScopeCount = Math.max(0, filteredScopeNodes.length - visibleScopeNodes.length);
 
   const staticNodes = useMemo(() => ([
-    { key: 'all', icon: <ClipboardList size={14} />, label: t('priceLists.directory.all', 'All lanes'), count: counts.all },
-    { key: 'active', icon: <CheckCircle2 size={14} />, label: t('priceLists.directory.active', 'Active'), count: counts.active },
-    { key: 'ftl', icon: <Truck size={14} />, label: t('priceLists.directory.ftl', 'FTL truck type'), count: counts.ftl },
-    { key: 'perWeight', icon: <Scale size={14} />, label: t('priceLists.directory.perWeight', 'Per weight'), count: counts.weight },
-    { key: 'perLoad', icon: <Package size={14} />, label: t('priceLists.directory.perLoadAny', 'Per load (any size)'), count: counts.load },
-    { key: 'perUnitTransport', icon: <Calculator size={14} />, label: t('priceLists.directory.perUnitTransport', 'Per unit of transport'), count: counts.unitTransport },
-    { key: 'expiring', icon: <Clock size={14} />, label: t('priceLists.directory.expiring', 'Expiring soon'), count: counts.expiring },
-    { key: 'directTrip', icon: <ArrowRight size={14} />, label: t('priceLists.directory.directTrip', 'Direct Trip'), count: counts.directTrip },
-    { key: 'roundTrips', icon: <RefreshCw size={14} />, label: t('priceLists.directory.roundTrips', 'Round Trips'), count: counts.roundTrip },
-    { key: 'simpleLane', icon: <MapPin size={14} />, label: t('priceLists.directory.simpleLane', 'Simple Lane'), count: counts.simpleLane },
-    { key: 'multiStop', icon: <Map size={14} />, label: t('priceLists.directory.multiStop', 'Multi-Stop'), count: counts.multiStop },
-    { key: 'inactive', icon: <Pause size={14} />, label: t('priceLists.directory.inactive', 'Inactive'), count: counts.inactive },
-    { key: 'archived', icon: <Archive size={14} />, label: t('priceLists.directory.archived', 'Archived'), count: counts.archived },
+    { key: 'all', icon: <ClipboardList size={14} />, iconColor: NODE_ICON_COLORS.all, label: t('priceLists.directory.all', 'All lanes'), count: counts.all },
+    { key: 'active', icon: <CheckCircle2 size={14} />, iconColor: NODE_ICON_COLORS.active, label: t('priceLists.directory.active', 'Active'), count: counts.active },
+    { key: 'ftl', icon: <Truck size={14} />, iconColor: NODE_ICON_COLORS.ftl, label: t('priceLists.directory.ftl', 'FTL truck type'), count: counts.ftl },
+    { key: 'perWeight', icon: <Scale size={14} />, iconColor: NODE_ICON_COLORS.perWeight, label: t('priceLists.directory.perWeight', 'Per weight'), count: counts.weight },
+    { key: 'perLoad', icon: <Package size={14} />, iconColor: NODE_ICON_COLORS.perLoad, label: t('priceLists.directory.perLoadAny', 'Per load (any size)'), count: counts.load },
+    { key: 'perUnitTransport', icon: <Calculator size={14} />, iconColor: NODE_ICON_COLORS.perUnitTransport, label: t('priceLists.directory.perUnitTransport', 'Per unit of transport'), count: counts.unitTransport },
+    { key: 'expiring', icon: <Clock size={14} />, iconColor: NODE_ICON_COLORS.expiring, label: t('priceLists.directory.expiring', 'Expiring soon'), count: counts.expiring },
+    { key: 'directTrip', icon: <ArrowRight size={14} />, iconColor: NODE_ICON_COLORS.directTrip, label: t('priceLists.directory.directTrip', 'Direct Trip'), count: counts.directTrip },
+    { key: 'roundTrips', icon: <RefreshCw size={14} />, iconColor: NODE_ICON_COLORS.roundTrips, label: t('priceLists.directory.roundTrips', 'Round Trips'), count: counts.roundTrip },
+    { key: 'simpleLane', icon: <MapPin size={14} />, iconColor: NODE_ICON_COLORS.simpleLane, label: t('priceLists.directory.simpleLane', 'Simple Lane'), count: counts.simpleLane },
+    { key: 'multiStop', icon: <Map size={14} />, iconColor: NODE_ICON_COLORS.multiStop, label: t('priceLists.directory.multiStop', 'Multi-Stop'), count: counts.multiStop },
+    { key: 'inactive', icon: <Pause size={14} />, iconColor: NODE_ICON_COLORS.inactive, label: t('priceLists.directory.inactive', 'Inactive'), count: counts.inactive },
+    { key: 'archived', icon: <Archive size={14} />, iconColor: NODE_ICON_COLORS.archived, label: t('priceLists.directory.archived', 'Archived'), count: counts.archived },
   ]), [counts, t]);
 
   const NodeButton = ({ node }) => {
     const isActive = activeNode === node.key;
-    const iconColor = isActive ? T.ac : T.t3;
+    const iconColor = node.iconColor || T.ac;
     const scopeIcon = node.isDefault
       ? <Globe size={14} />
       : <Building2 size={14} />;
@@ -180,7 +208,7 @@ export default function DirectoryPane({ summary, activeNode, onNodeClick, partne
         onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = T.sh; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? T.al : 'transparent'; }}
       >
-        <IconWrap color={iconColor}>
+        <IconWrap color={iconColor} active={isActive}>
           {node.icon ?? scopeIcon}
         </IconWrap>
         <span className="flex-1 min-w-0 truncate" title={node.label}>{node.label}</span>
