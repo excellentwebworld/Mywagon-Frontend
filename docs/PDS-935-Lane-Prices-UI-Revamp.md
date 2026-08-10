@@ -772,7 +772,9 @@ Ship a production-ready Add/Edit Lane experience aligned with PDS-935 route and 
 ### 10.4 Phase 2 Scope (Frontend)
 
 #### A) Route UX
-- Finalize Address Book style location flow for origin/destination and stops.
+- **Google Places autocomplete** (`LanePlacePicker` / `GoogleMapAddressField`) for origin, destination, and multistop rows — **not** Address Book `LocationSelect`.
+- Lane stops persist `city`, `label`, `address`, `lat`, `lng`, optional `place_id`; `location_id` is stripped on save.
+- Legacy lanes with Address Book `location_id` only must be re-picked before save.
 - Ensure stop removal and ordering logic is stable across edit/create modes.
 - Keep direct/roundtrip computation consistent in route summary and payload.
 
@@ -843,7 +845,7 @@ Legend:
 - [x] Return/propagate backend validation errors with consistent field-code mapping for frontend inline rendering.
 
 #### B) Frontend Modal Tasks
-- [x] Use Address Book style location picker for origin/destination.
+- [x] Use Google Places autocomplete (`LanePlacePicker`) for origin/destination — not Address Book `LocationSelect`.
 - [x] Keep Add Stop behavior with bounded stop list.
 - [x] Support Direct Trip/Roundtrip toggle and effective km summary.
 - [x] Implement row-based pricing builder with one-row-per-metric enforcement.

@@ -1,5 +1,5 @@
 /**
- * ImportModal — CSV import for lane price entries (Address Book–first sheet).
+ * ImportModal — CSV import for lane price entries (Google Places sheet).
  *
  * Two-step flow:
  * 1. Choose: Download template OR Upload file (+ column / accepted values reference)
@@ -8,11 +8,10 @@
  * @API: POST /api/v1/price-lists/lanes/import
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, Download, Upload, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../../hooks/useTheme';
-import { useApp } from '../../../../context/AppContext';
 import { formatMetricLabel, formatMetricValueLabel } from '../../../../api/utils/laneMetricDisplay';
 import {
   ACCEPTED_VALUES,
@@ -32,7 +31,6 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const toast = useToast();
-  const { locations, refreshLocationsFromApi } = useApp();
   const lang = i18n.language?.startsWith('el') ? 'el' : 'en';
   const fileRef = useRef(null);
 
@@ -44,11 +42,6 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
   const [importResult, setImportResult] = useState(null);
 
   const columns = lang === 'el' ? CSV_COLUMNS_EL : CSV_COLUMNS_EN;
-
-  useEffect(() => {
-    if (!open) return;
-    void refreshLocationsFromApi?.();
-  }, [open, refreshLocationsFromApi]);
 
   const handleClose = useCallback(() => {
     setPreview(null);
@@ -77,7 +70,6 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
     setImportResult(null);
     const result = parseCsvText(text, {
       existingLanes,
-      locations: locations || [],
     });
     if (!result) {
       setPreview(null);
@@ -88,7 +80,7 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
       return;
     }
     setPreview(result);
-  }, [existingLanes, locations, t]);
+  }, [existingLanes, t]);
 
   const handleFileBlob = useCallback((file) => {
     if (!file) return;
@@ -186,7 +178,7 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
               >
                 {t(
                   'priceLists.import.howTo',
-                  'Download the template or Export existing lanes, edit Origin / Destination (Address Book labels) and Location IDs, then upload. Location IDs are preferred when two places share the same city.',
+                  'Download the template or Export existing lanes, then edit Origin / Destination labels, cities, addresses, and coordinates before uploading.',
                 )}
               </div>
 
@@ -246,9 +238,9 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
                         {columns.join(' · ')}
                       </div>
                     </div>
-                    <div><strong>{t('priceLists.import.ref.originDest', 'Origin / Destination')}:</strong> {t('priceLists.import.ref.originDestHint', 'Address Book label (e.g. Name · City).')}</div>
-                    <div><strong>{t('priceLists.import.ref.locationIds', 'Origin / Destination Location ID')}:</strong> {t('priceLists.import.ref.locationIdsHint', 'Preferred. Filled automatically on Export; used to distinguish same-city locations.')}</div>
-                    <div><strong>{t('priceLists.import.ref.cities', 'Origin / Destination City')}:</strong> {t('priceLists.import.ref.citiesHint', 'Optional when Location ID is set; otherwise required.')}</div>
+                    <div><strong>{t('priceLists.import.ref.originDest', 'Origin / Destination')}:</strong> {t('priceLists.import.ref.originDestHint', 'Google place label (e.g. Name · City).')}</div>
+                    <div><strong>{t('priceLists.import.ref.cities', 'Origin / Destination City')}:</strong> {t('priceLists.import.ref.citiesHint', 'Required match key for calculator and listing.')}</div>
+                    <div><strong>{t('priceLists.import.ref.coords', 'Origin / Destination Lat & Lng')}:</strong> {t('priceLists.import.ref.coordsHint', 'Required for import. Filled automatically on Export from saved lane stops.')}</div>
                     <div><strong>{t('priceLists.import.ref.tripType', 'Trip type')}:</strong> {ACCEPTED_VALUES.trip_type.join(', ')}</div>
                     <div><strong>{t('priceLists.import.ref.metric', 'Metric')}:</strong> {ACCEPTED_VALUES.metric.join(', ')}</div>
                     <div><strong>{t('priceLists.import.ref.metricValue', 'Metric value')}:</strong></div>
@@ -330,14 +322,14 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
                           <td className="px-2 py-1" style={{ color: T.t3 }}>{r.line}</td>
                           <td className="px-2 py-1" style={{ color: T.t1, maxWidth: 140 }}>
                             <div className="truncate">{r.oRaw}{!r.validO ? ' ⚠' : ''}</div>
-                            {r.oLocationId ? (
-                              <div style={{ fontSize: 9, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>{r.oLocationId}</div>
+                            {r.oLat != null && r.oLng != null ? (
+                              <div style={{ fontSize: 9, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>{r.oLat}, {r.oLng}</div>
                             ) : null}
                           </td>
                           <td className="px-2 py-1" style={{ color: T.t1, maxWidth: 140 }}>
                             <div className="truncate">{r.dRaw}{!r.validD ? ' ⚠' : ''}</div>
-                            {r.dLocationId ? (
-                              <div style={{ fontSize: 9, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>{r.dLocationId}</div>
+                            {r.dLat != null && r.dLng != null ? (
+                              <div style={{ fontSize: 9, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>{r.dLat}, {r.dLng}</div>
                             ) : null}
                           </td>
                           <td className="px-2 py-1" style={{ color: T.t3, fontSize: 10, whiteSpace: 'nowrap' }}>

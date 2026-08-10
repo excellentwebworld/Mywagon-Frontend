@@ -13,6 +13,11 @@ type Props = {
   onCityPostalChange?: (city: string, postal: string) => void;
   showCoordinates?: boolean;
   error?: string;
+  hideHint?: boolean;
+  hideLabel?: boolean;
+  inputId?: string;
+  /** Extra Google Places Autocomplete options (no country restriction by default). */
+  autocompleteOptions?: Record<string, unknown>;
 };
 
 type GoogleAutocomplete = {
@@ -20,6 +25,7 @@ type GoogleAutocomplete = {
   getPlace: () => {
     formatted_address?: string;
     name?: string;
+    place_id?: string;
     geometry?: { location?: { lat: () => number; lng: () => number } };
     address_components?: { types: string[]; long_name: string; short_name: string }[];
   };
@@ -69,6 +75,10 @@ export const GoogleMapAddressField: React.FC<Props> = ({
   onCityPostalChange,
   showCoordinates = false,
   error,
+  hideHint = false,
+  hideLabel = false,
+  inputId = 'ab-address-input',
+  autocompleteOptions,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
@@ -94,7 +104,8 @@ export const GoogleMapAddressField: React.FC<Props> = ({
         if (!inputEl || !window.google) return;
 
         autocomplete = new window.google.maps.places.Autocomplete(inputEl, {
-          fields: ['formatted_address', 'geometry', 'address_components', 'name'],
+          fields: ['formatted_address', 'geometry', 'address_components', 'name', 'place_id'],
+          ...autocompleteOptions,
         });
 
         autocomplete.addListener('place_changed', () => {
@@ -121,15 +132,17 @@ export const GoogleMapAddressField: React.FC<Props> = ({
     return () => {
       autocomplete = null;
     };
-  }, [apiKey]);
+  }, [apiKey, autocompleteOptions]);
 
   return (
     <div className={`ab-map-field${error ? ' has-error' : ''}`}>
-      <label className="ab-label" htmlFor="ab-address-input">
-        Address <span className="req">*</span>
-      </label>
+      {!hideLabel && (
+        <label className="ab-label" htmlFor={inputId}>
+          Address <span className="req">*</span>
+        </label>
+      )}
       <input
-        id="ab-address-input"
+        id={inputId}
         ref={inputRef}
         className="ab-input"
         value={address}
@@ -137,10 +150,10 @@ export const GoogleMapAddressField: React.FC<Props> = ({
         placeholder={apiKey ? 'Start typing address…' : 'Enter address manually'}
         autoComplete="off"
       />
-      {!apiKey && (
+      {!hideHint && !apiKey && (
         <p className="ab-field-hint">Set VITE_GOOGLE_MAPS_KEY for Google Places autocomplete.</p>
       )}
-      {apiKey && (
+      {!hideHint && apiKey && (
         <p className="ab-field-hint">Select an address from suggestions to auto-fill city and postal code.</p>
       )}
       {error && <p className="ab-field-error">{error}</p>}

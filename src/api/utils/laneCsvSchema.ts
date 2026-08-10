@@ -4,15 +4,17 @@ import { cityLabel, resolveCity } from '../../mocks/priceListsData';
 
 const isLikelyIsoCode = (s: string) => /^[A-Za-z]{2}$/.test(s);
 
-/** Address Book location shape used for CSV resolve (subset of AppContext LocationItem). */
-export type CsvAddressBookLocation = {
-  id: string | number;
-  name?: string;
+/** Google Places stop shape used for CSV import/export. */
+export type CsvLaneStopFields = {
+  label?: string;
   city?: string;
-  status?: string;
+  address?: string;
+  lat?: number | null;
+  lng?: number | null;
+  place_id?: string | null;
 };
 
-/** AB display label for CSV Origin/Destination columns. */
+/** Display label for CSV Origin/Destination columns. */
 function formatStopLabelForCsv(
   stop: {
     city?: string;
@@ -51,22 +53,30 @@ function formatStopCityForCsv(
   return cityLabel(city || value || '', lang);
 }
 
-function stopLocationId(
-  stop: { location_id?: string | number | null; locationId?: string | number | null } | undefined,
-): string {
-  if (!stop) return '';
-  const id = stop.location_id ?? stop.locationId ?? '';
-  return id != null && String(id).trim() !== '' ? String(id) : '';
+function stopLatLng(
+  stop: { lat?: number | null; lng?: number | null } | undefined,
+): { lat: string; lng: string } {
+  if (!stop) return { lat: '', lng: '' };
+  const lat = stop.lat;
+  const lng = stop.lng;
+  return {
+    lat: lat != null && Number.isFinite(Number(lat)) ? String(lat) : '',
+    lng: lng != null && Number.isFinite(Number(lng)) ? String(lng) : '',
+  };
 }
 
-/** New Address Book–first column order. */
+/** Google Places–first column order (no Address Book IDs). */
 export const CSV_COLUMNS_EN = [
   'Origin',
-  'Origin Location ID',
-  'Destination',
-  'Destination Location ID',
   'Origin City',
+  'Origin Address',
+  'Origin Lat',
+  'Origin Lng',
+  'Destination',
   'Destination City',
+  'Destination Address',
+  'Destination Lat',
+  'Destination Lng',
   'Trip Type',
   'Metric',
   'Metric Value',
@@ -82,11 +92,15 @@ export const CSV_COLUMNS_EN = [
 
 export const CSV_COLUMNS_EL = [
   'Αφετηρία',
-  'ID Τοποθεσίας Αφετηρίας',
-  'Προορισμός',
-  'ID Τοποθεσίας Προορισμού',
   'Πόλη Αφετηρίας',
+  'Διεύθυνση Αφετηρίας',
+  'Γ.Πλ. Αφετηρίας',
+  'Μ.Πλ. Αφετηρίας',
+  'Προορισμός',
   'Πόλη Προορισμού',
+  'Διεύθυνση Προορισμού',
+  'Γ.Πλ. Προορισμού',
+  'Μ.Πλ. Προορισμού',
   'Τύπος Δρομολογίου',
   'Μετρική',
   'Τιμή Μετρικής',
@@ -124,14 +138,14 @@ export const ACCEPTED_VALUES = {
 
 export const CSV_TEMPLATE_SAMPLE_ROWS = {
   en: [
-    ['9834 fruit truck · Ahmedabad', '', 'Empire Business Hub · Ahmedabad', '', 'Ahmedabad', 'Ahmedabad', 'direct', 'load any size', 'per load', '450', 'EUR', '2026-03-01', '2026-12-31', 'active', 'Default', '', ''],
-    ['Warehouse Patras · Patras', '', 'Port Heraklion · Heraklion', '', 'Patras', 'Heraklion', 'direct', 'unit transport', 'eur pallet', '42', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
-    ['Volos Depot · Volos', '', 'Larissa Hub · Larissa', '', 'Volos', 'Larissa', 'roundtrip', 'weight', 'kg', '180', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
+    ['Patras Port · Patras', 'Patras', 'Patras Port, Patras, Greece', '38.2466', '21.7346', 'Empire Business Hub · Patras', 'Patras', 'Empire Business Hub, Patras, Greece', '38.2500', '21.7350', 'direct', 'load any size', 'per load', '450', 'EUR', '2026-03-01', '2026-12-31', 'active', 'Default', '', ''],
+    ['Warehouse Patras · Patras', 'Patras', 'Warehouse Patras, Patras, Greece', '38.2466', '21.7346', 'Port Heraklion · Heraklion', 'Heraklion', 'Port Heraklion, Heraklion, Greece', '35.3387', '25.1442', 'direct', 'unit transport', 'eur pallet', '42', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
+    ['Volos Depot · Volos', 'Volos', 'Volos Depot, Volos, Greece', '39.3666', '22.9507', 'Larissa Hub · Larissa', 'Larissa', 'Larissa Hub, Larissa, Greece', '39.6390', '22.4191', 'roundtrip', 'weight', 'kg', '180', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
   ],
   el: [
-    ['Αποθήκη Αθήνα · Αθήνα', '', 'Κέντρο Θεσσαλονίκη · Θεσσαλονίκη', '', 'Αθήνα', 'Θεσσαλονίκη', 'direct', 'load any size', 'per load', '450', 'EUR', '2026-03-01', '2026-12-31', 'active', 'Default', '', ''],
-    ['Αποθήκη Πάτρα · Πάτρα', '', 'Λιμάνι Ηράκλειο · Ηράκλειο', '', 'Πάτρα', 'Ηράκλειο', 'direct', 'unit transport', 'eur pallet', '42', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
-    ['Βόλος Depot · Βόλος', '', 'Λάρισα Hub · Λάρισα', '', 'Βόλος', 'Λάρισα', 'roundtrip', 'weight', 'kg', '180', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
+    ['Αποθήκη Αθήνα · Αθήνα', 'Αθήνα', 'Αθήνα, Ελλάδα', '37.9838', '23.7275', 'Κέντρο Θεσσαλονίκη · Θεσσαλονίκη', 'Θεσσαλονίκη', 'Θεσσαλονίκη, Ελλάδα', '40.6401', '22.9444', 'direct', 'load any size', 'per load', '450', 'EUR', '2026-03-01', '2026-12-31', 'active', 'Default', '', ''],
+    ['Αποθήκη Πάτρα · Πάτρα', 'Πάτρα', 'Πάτρα, Ελλάδα', '38.2466', '21.7346', 'Λιμάνι Ηράκλειο · Ηράκλειο', 'Ηράκλειο', 'Ηράκλειο, Ελλάδα', '35.3387', '25.1442', 'direct', 'unit transport', 'eur pallet', '42', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
+    ['Βόλος Depot · Βόλος', 'Βόλος', 'Βόλος, Ελλάδα', '39.3666', '22.9507', 'Λάρισα Hub · Λάρισα', 'Λάρισα', 'Λάρισα, Ελλάδα', '39.6390', '22.4191', 'roundtrip', 'weight', 'kg', '180', 'EUR', '2026-03-01', '', 'active', 'Default', '', ''],
   ],
 };
 
@@ -141,7 +155,7 @@ export type CsvRowError = {
   message: string;
 };
 
-export type LocationMatchStatus = 'id' | 'matched' | 'city_only' | 'unknown_id' | 'missing';
+export type StopMatchStatus = 'coords' | 'city_only' | 'missing';
 
 export type ParsedCsvRow = {
   line: number;
@@ -149,10 +163,14 @@ export type ParsedCsvRow = {
   dRaw: string;
   oCity: string | null;
   dCity: string | null;
-  oLocationId: string;
-  dLocationId: string;
-  oMatch: LocationMatchStatus;
-  dMatch: LocationMatchStatus;
+  oAddress: string;
+  dAddress: string;
+  oLat: number | null;
+  oLng: number | null;
+  dLat: number | null;
+  dLng: number | null;
+  oMatch: StopMatchStatus;
+  dMatch: StopMatchStatus;
   validO: boolean;
   validD: boolean;
   metric: string;
@@ -185,7 +203,6 @@ export type CsvParseResult = {
 
 export type ParseCsvOptions = {
   existingLanes?: LaneLike[];
-  locations?: CsvAddressBookLocation[];
 };
 
 function normalizeText(value: unknown): string {
@@ -196,13 +213,6 @@ function escapeCsvCell(value: unknown): string {
   return `"${String(value ?? '').replace(/"/g, '""')}"`;
 }
 
-function locationDisplayLabel(loc: CsvAddressBookLocation): string {
-  const name = String(loc.name || '').trim();
-  const city = String(loc.city || '').trim();
-  if (name && city && name.toLowerCase() !== city.toLowerCase()) return `${name} · ${city}`;
-  return name || city || String(loc.id);
-}
-
 function cityFromLabel(raw: string): string {
   const text = String(raw || '').trim();
   if (!text) return '';
@@ -211,117 +221,78 @@ function cityFromLabel(raw: string): string {
   return text;
 }
 
-function findLocationById(
-  locations: CsvAddressBookLocation[] | undefined,
-  id: string,
-): CsvAddressBookLocation | null {
-  if (!id || !locations?.length) return null;
-  return locations.find((l) => String(l.id) === String(id)) || null;
+function parseCoordinate(value: unknown): number | null {
+  if (value == null || String(value).trim() === '') return null;
+  const n = Number(String(value).trim().replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
 }
 
-/**
- * Resolve Address Book location from label/city text.
- * Only auto-matches when the candidate is unique among active locations.
- */
-function resolveLocationFromText(
-  locations: CsvAddressBookLocation[] | undefined,
-  raw: string,
-  cityHint?: string,
-): CsvAddressBookLocation | null {
-  if (!locations?.length) return null;
-  const active = locations.filter((l) => !l.status || l.status === 'active');
-  const pool = active.length > 0 ? active : locations;
-  const needle = normalizeText(raw);
-  const cityNeedle = normalizeText(cityHint || cityFromLabel(raw));
-  if (!needle && !cityNeedle) return null;
-
-  const byLabel = pool.filter((l) => normalizeText(locationDisplayLabel(l)) === needle);
-  if (byLabel.length === 1) return byLabel[0];
-
-  const byName = pool.filter((l) => normalizeText(l.name) === needle);
-  if (byName.length === 1) return byName[0];
-
-  if (cityNeedle) {
-    const byCity = pool.filter((l) => normalizeText(l.city) === cityNeedle);
-    if (byCity.length === 1) return byCity[0];
-  }
-
-  return null;
-}
-
-function resolveStopIdentity(args: {
+function resolveStopFromCsv(args: {
   raw: string;
   cityCol: string;
-  locationIdCol: string;
-  locations?: CsvAddressBookLocation[];
+  addressCol: string;
+  latCol: string;
+  lngCol: string;
 }): {
   label: string;
   city: string | null;
-  locationId: string;
-  match: LocationMatchStatus;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+  match: StopMatchStatus;
   valid: boolean;
   warning?: CsvRowError;
 } {
-  const { raw, cityCol, locationIdCol, locations } = args;
+  const { raw, cityCol, addressCol, latCol, lngCol } = args;
   const label = raw.trim();
   let cityHint = cityCol.trim() || cityFromLabel(label);
   const resolvedMock = resolveCity(cityHint) || resolveCity(label);
   if (resolvedMock) cityHint = resolvedMock;
 
-  if (locationIdCol) {
-    const byId = findLocationById(locations, locationIdCol);
-    if (byId) {
-      const city = String(byId.city || cityHint || '').trim() || null;
-      return {
-        label: label || locationDisplayLabel(byId),
-        city,
-        locationId: String(byId.id),
-        match: 'id',
-        valid: true,
-      };
-    }
-    // Keep explicit ID even if not in local AB cache; city/label still required for DB
-    const city = cityHint.trim() || null;
-    const valid = Boolean(label || city);
-    return {
-      label: label || city || locationIdCol,
-      city,
-      locationId: locationIdCol,
-      match: 'unknown_id',
-      valid,
-      warning: valid
-        ? {
-          code: 'UNKNOWN_LOCATION_ID',
-          field: 'location_id',
-          message: 'Location ID not found in Address Book; imported as provided.',
-        }
-        : {
-          code: 'INVALID_ORIGIN_CITY',
-          field: 'origin_city',
-          message: 'Missing origin/destination when Location ID is unknown.',
-        },
-    };
-  }
-
-  const matched = resolveLocationFromText(locations, label, cityHint);
-  if (matched) {
-    return {
-      label: label || locationDisplayLabel(matched),
-      city: String(matched.city || cityHint || '').trim() || null,
-      locationId: String(matched.id),
-      match: 'matched',
-      valid: true,
-    };
-  }
-
+  const address = addressCol.trim();
+  const lat = parseCoordinate(latCol);
+  const lng = parseCoordinate(lngCol);
   const city = (cityHint || label).trim() || null;
-  const valid = Boolean(city);
+  const hasCoords = lat != null && lng != null;
+  const valid = Boolean(city) && hasCoords;
+
+  if (!city) {
+    return {
+      label: label || '',
+      city: null,
+      address,
+      lat,
+      lng,
+      match: 'missing',
+      valid: false,
+    };
+  }
+
+  if (!hasCoords) {
+    return {
+      label: label || city,
+      city,
+      address,
+      lat,
+      lng,
+      match: 'city_only',
+      valid: false,
+      warning: {
+        code: 'INVALID_COORDS',
+        field: 'lat',
+        message: 'Latitude and longitude are required for each stop.',
+      },
+    };
+  }
+
   return {
-    label: label || city || '',
+    label: label || city,
     city,
-    locationId: '',
-    match: valid ? 'city_only' : 'missing',
-    valid,
+    address,
+    lat,
+    lng,
+    match: 'coords',
+    valid: true,
   };
 }
 
@@ -401,8 +372,10 @@ export function scopeFromCsvLabel(scope: string): 'default' | 'specific' {
 }
 
 export function buildLaneGroupKey(row: {
-  oLocationId?: string;
-  dLocationId?: string;
+  oLat?: number | null;
+  oLng?: number | null;
+  dLat?: number | null;
+  dLng?: number | null;
   oCity?: string | null;
   oRaw?: string;
   dCity?: string | null;
@@ -415,8 +388,12 @@ export function buildLaneGroupKey(row: {
   scopeDirection?: string | null;
   notes?: string;
 }): string {
-  const originKey = row.oLocationId || row.oCity || row.oRaw || '';
-  const destKey = row.dLocationId || row.dCity || row.dRaw || '';
+  const originKey = row.oLat != null && row.oLng != null
+    ? `${row.oLat},${row.oLng}`
+    : (row.oCity || row.oRaw || '');
+  const destKey = row.dLat != null && row.dLng != null
+    ? `${row.dLat},${row.dLng}`
+    : (row.dCity || row.dRaw || '');
   return [
     originKey,
     destKey,
@@ -438,13 +415,12 @@ function detectSeparator(text: string): string {
 }
 
 /**
- * Map headers for new AB-first sheet + legacy city-first sheets.
- * New: Origin, Origin Location ID, Destination, Destination Location ID, Origin City, Destination City
- * Legacy: Origin City, Destination City, Origin Location ID, Destination Location ID
+ * Map headers for Google Places sheet + legacy AB/city-first sheets.
  */
 function mapHeaders(hdr: string[]): Record<string, number> {
   const colMap: Record<string, number> = {
-    o: -1, d: -1, oLoc: -1, dLoc: -1, oCity: -1, dCity: -1,
+    o: -1, d: -1, oCity: -1, dCity: -1, oAddress: -1, dAddress: -1,
+    oLat: -1, oLng: -1, dLat: -1, dLng: -1,
     trip: -1, metric: -1, metricValue: -1, unit: -1,
     price: -1, cur: -1, from: -1, to: -1, status: -1, scope: -1,
     scopeDirection: -1, notes: -1,
@@ -453,27 +429,6 @@ function mapHeaders(hdr: string[]): Record<string, number> {
   hdr.forEach((h, i) => {
     const clean = h.replace(/_/g, ' ').trim().toLowerCase();
 
-    if (
-      clean === 'origin location id'
-      || clean === 'origin_location_id'
-      || (clean.includes('origin') && clean.includes('location') && clean.includes('id'))
-      || (clean.includes('αφετ') && clean.includes('id') && clean.includes('τοποθ'))
-      || (clean.includes('αφετ') && clean.includes('id'))
-    ) {
-      colMap.oLoc = i;
-      return;
-    }
-    if (
-      clean === 'destination location id'
-      || clean === 'destination_location_id'
-      || (clean.includes('dest') && clean.includes('location') && clean.includes('id'))
-      || (clean.includes('προορ') && clean.includes('id'))
-    ) {
-      colMap.dLoc = i;
-      return;
-    }
-
-    // City columns (new + legacy "Origin City")
     if (
       clean === 'origin city'
       || clean === 'origin_city'
@@ -495,7 +450,68 @@ function mapHeaders(hdr: string[]): Record<string, number> {
       return;
     }
 
-    // Label columns: exact "Origin" / "Destination" / Greek Αφετηρία / Προορισμός
+    if (
+      clean === 'origin address'
+      || clean === 'origin_address'
+      || (clean.includes('origin') && clean.includes('address'))
+      || (clean.includes('διεύθ') && clean.includes('αφετ'))
+      || (clean.includes('διευθ') && clean.includes('αφετ'))
+    ) {
+      colMap.oAddress = i;
+      return;
+    }
+    if (
+      clean === 'destination address'
+      || clean === 'destination_address'
+      || (clean.includes('dest') && clean.includes('address'))
+      || (clean.includes('διεύθ') && clean.includes('προορ'))
+      || (clean.includes('διευθ') && clean.includes('προορ'))
+    ) {
+      colMap.dAddress = i;
+      return;
+    }
+
+    if (
+      clean === 'origin lat'
+      || clean === 'origin_lat'
+      || clean === 'origin latitude'
+      || (clean.includes('origin') && clean.includes('lat'))
+      || (clean.includes('γ.πλ') && clean.includes('αφετ'))
+    ) {
+      colMap.oLat = i;
+      return;
+    }
+    if (
+      clean === 'origin lng'
+      || clean === 'origin_lng'
+      || clean === 'origin longitude'
+      || (clean.includes('origin') && (clean.includes('lng') || clean.includes('lon')))
+      || (clean.includes('μ.πλ') && clean.includes('αφετ'))
+    ) {
+      colMap.oLng = i;
+      return;
+    }
+    if (
+      clean === 'destination lat'
+      || clean === 'destination_lat'
+      || clean === 'destination latitude'
+      || (clean.includes('dest') && clean.includes('lat'))
+      || (clean.includes('γ.πλ') && clean.includes('προορ'))
+    ) {
+      colMap.dLat = i;
+      return;
+    }
+    if (
+      clean === 'destination lng'
+      || clean === 'destination_lng'
+      || clean === 'destination longitude'
+      || (clean.includes('dest') && (clean.includes('lng') || clean.includes('lon')))
+      || (clean.includes('μ.πλ') && clean.includes('προορ'))
+    ) {
+      colMap.dLng = i;
+      return;
+    }
+
     if (
       clean === 'origin'
       || clean === 'αφετηρία'
@@ -514,7 +530,6 @@ function mapHeaders(hdr: string[]): Record<string, number> {
       return;
     }
 
-    // Legacy: "Origin City" already handled; if only "origin" with extra words left
     if ((clean.includes('origin') || clean.includes('αφετ')) && colMap.o < 0 && colMap.oCity < 0) {
       colMap.o = i;
       return;
@@ -538,7 +553,6 @@ function mapHeaders(hdr: string[]): Record<string, number> {
     if (clean.includes('note') || clean.includes('σημει') || clean.includes('σημεί')) colMap.notes = i;
   });
 
-  // Legacy city-first sheets: Origin City mapped to oCity — also use as label column if o missing
   if (colMap.o < 0 && colMap.oCity >= 0) colMap.o = colMap.oCity;
   if (colMap.d < 0 && colMap.dCity >= 0) colMap.d = colMap.dCity;
 
@@ -559,9 +573,47 @@ function parseScopeDirection(raw: string): 'buy' | 'sell' | null {
   return null;
 }
 
+function stopCoords(
+  stop: { lat?: number | null; lng?: number | null; place_id?: string | null; city?: string; value?: string; label?: string } | undefined,
+): { lat: number | null; lng: number | null } {
+  if (!stop) return { lat: null, lng: null };
+  const lat = parseCoordinate(stop.lat);
+  const lng = parseCoordinate(stop.lng);
+  return { lat, lng };
+}
+
+function stopsMatchEndpoint(
+  a: { lat?: number | null; lng?: number | null; place_id?: string | null; city?: string; value?: string; label?: string } | undefined,
+  b: { lat?: number | null; lng?: number | null; place_id?: string | null; city?: string; value?: string; label?: string } | undefined,
+): boolean {
+  if (!a || !b) return false;
+
+  const aPlaceId = a.place_id ?? null;
+  const bPlaceId = b.place_id ?? null;
+  if (aPlaceId && bPlaceId && String(aPlaceId) === String(bPlaceId)) return true;
+
+  const aCity = normalizeText(a.city || a.value || a.label || '');
+  const bCity = normalizeText(b.city || b.value || b.label || '');
+  const { lat: aLat, lng: aLng } = stopCoords(a);
+  const { lat: bLat, lng: bLng } = stopCoords(b);
+
+  if (aLat != null && aLng != null && bLat != null && bLng != null) {
+    const threshold = 0.001;
+    if (aCity && bCity && aCity === bCity
+      && Math.abs(aLat - bLat) <= threshold
+      && Math.abs(aLng - bLng) <= threshold) {
+      return true;
+    }
+  }
+
+  return Boolean(aCity && bCity && aCity === bCity);
+}
+
 function isDuplicateRoute(
-  oLocationId: string,
-  dLocationId: string,
+  oLat: number | null,
+  oLng: number | null,
+  dLat: number | null,
+  dLng: number | null,
   oCity: string,
   dCity: string,
   tripType: string,
@@ -575,18 +627,14 @@ function isDuplicateRoute(
     const stops = lane.stops || [];
     const lFirst = stops[0];
     const lLast = stops[stops.length - 1];
-    const lOId = stopLocationId(lFirst);
-    const lDId = stopLocationId(lLast);
 
-    if (oLocationId && dLocationId && lOId && lDId) {
-      return oLocationId === lOId && dLocationId === lDId;
-    }
-    // Mixed AB vs legacy — not the same route identity
-    if ((oLocationId && dLocationId) || (lOId && lDId)) return false;
-
-    const origin = (lFirst?.city || lFirst?.value || lFirst?.label || '').toLowerCase();
-    const dest = (lLast?.city || lLast?.value || lLast?.label || '').toLowerCase();
-    return origin === oCity.toLowerCase() && dest === dCity.toLowerCase();
+    return stopsMatchEndpoint(
+      { lat: oLat, lng: oLng, city: oCity },
+      lFirst,
+    ) && stopsMatchEndpoint(
+      { lat: dLat, lng: dLng, city: dCity },
+      lLast,
+    );
   });
 }
 
@@ -619,7 +667,7 @@ export function parseCsvText(
   const options: ParseCsvOptions = Array.isArray(existingLanesOrOptions)
     ? { existingLanes: existingLanesOrOptions }
     : (existingLanesOrOptions || {});
-  const { existingLanes, locations } = options;
+  const { existingLanes } = options;
 
   const sep = detectSeparator(text);
   const lines = text.split(/\r?\n/).filter((line) => line.trim());
@@ -646,28 +694,29 @@ export function parseCsvText(
     const oCityHint = colMap.oCity >= 0 && colMap.oCity !== colMap.o ? oCityCol : (colMap.oCity === colMap.o ? '' : oCityCol);
     const dCityHint = colMap.dCity >= 0 && colMap.dCity !== colMap.d ? dCityCol : (colMap.dCity === colMap.d ? '' : dCityCol);
 
-    const oResolved = resolveStopIdentity({
+    const oResolved = resolveStopFromCsv({
       raw: oRaw,
       cityCol: oCityHint || oCityCol,
-      locationIdCol: colMap.oLoc >= 0 ? String(vals[colMap.oLoc] || '').trim() : '',
-      locations,
+      addressCol: colMap.oAddress >= 0 ? String(vals[colMap.oAddress] || '') : '',
+      latCol: colMap.oLat >= 0 ? String(vals[colMap.oLat] || '') : '',
+      lngCol: colMap.oLng >= 0 ? String(vals[colMap.oLng] || '') : '',
     });
-    const dResolved = resolveStopIdentity({
+    const dResolved = resolveStopFromCsv({
       raw: dRaw,
       cityCol: dCityHint || dCityCol,
-      locationIdCol: colMap.dLoc >= 0 ? String(vals[colMap.dLoc] || '').trim() : '',
-      locations,
+      addressCol: colMap.dAddress >= 0 ? String(vals[colMap.dAddress] || '') : '',
+      latCol: colMap.dLat >= 0 ? String(vals[colMap.dLat] || '') : '',
+      lngCol: colMap.dLng >= 0 ? String(vals[colMap.dLng] || '') : '',
     });
 
     if (!oResolved.valid) {
-      errors.push({ code: 'INVALID_ORIGIN_CITY', field: 'origin_city', message: 'Missing origin location or city.' });
+      errors.push({ code: 'INVALID_ORIGIN_CITY', field: 'origin_city', message: 'Missing origin city or coordinates.' });
     }
     if (!dResolved.valid) {
-      errors.push({ code: 'INVALID_DESTINATION_CITY', field: 'destination_city', message: 'Missing destination location or city.' });
+      errors.push({ code: 'INVALID_DESTINATION_CITY', field: 'destination_city', message: 'Missing destination city or coordinates.' });
     }
-    // unknown_id warning is informational — do not block import
-    if (oResolved.warning && oResolved.warning.code !== 'UNKNOWN_LOCATION_ID') errors.push(oResolved.warning);
-    if (dResolved.warning && dResolved.warning.code !== 'UNKNOWN_LOCATION_ID') errors.push(dResolved.warning);
+    if (oResolved.warning) errors.push(oResolved.warning);
+    if (dResolved.warning) errors.push(dResolved.warning);
 
     if (!price || price <= 0) {
       errors.push({ code: 'INVALID_PRICE', field: 'price', message: 'Price must be greater than zero.' });
@@ -705,14 +754,14 @@ export function parseCsvText(
 
     const oCity = oResolved.city;
     const dCity = dResolved.city;
-    const oLocationId = oResolved.locationId;
-    const dLocationId = dResolved.locationId;
     const validO = oResolved.valid;
     const validD = dResolved.valid;
 
     const laneGroupKey = buildLaneGroupKey({
-      oLocationId,
-      dLocationId,
+      oLat: oResolved.lat,
+      oLng: oResolved.lng,
+      dLat: dResolved.lat,
+      dLng: dResolved.lng,
       oCity,
       oRaw: oResolved.label,
       dCity,
@@ -728,8 +777,10 @@ export function parseCsvText(
 
     const dupe = validO && validD
       ? isDuplicateRoute(
-        oLocationId,
-        dLocationId,
+        oResolved.lat,
+        oResolved.lng,
+        dResolved.lat,
+        dResolved.lng,
         String(oCity || oResolved.label),
         String(dCity || dResolved.label),
         tripType,
@@ -743,8 +794,12 @@ export function parseCsvText(
       dRaw: dResolved.label || dRaw,
       oCity,
       dCity,
-      oLocationId,
-      dLocationId,
+      oAddress: oResolved.address,
+      dAddress: dResolved.address,
+      oLat: oResolved.lat,
+      oLng: oResolved.lng,
+      dLat: dResolved.lat,
+      dLng: dResolved.lng,
       oMatch: oResolved.match,
       dMatch: dResolved.match,
       validO,
@@ -802,15 +857,21 @@ export function serializeLanesToCsv(lanes: LaneLike[], lang: 'en' | 'el' = 'en')
     const destination = formatStopLabelForCsv(stops[stops.length - 1], lang);
     const originCity = formatStopCityForCsv(stops[0], lang);
     const destinationCity = formatStopCityForCsv(stops[stops.length - 1], lang);
+    const oCoords = stopLatLng(stops[0]);
+    const dCoords = stopLatLng(stops[stops.length - 1]);
     const tripType = lane.tripType || (lane.isRoundTrip ? 'roundtrip' : 'direct');
 
     return pricingRows.map((row) => [
       origin,
-      stopLocationId(stops[0]),
-      destination,
-      stopLocationId(stops[stops.length - 1]),
       originCity,
+      String(stops[0]?.address || ''),
+      oCoords.lat,
+      oCoords.lng,
+      destination,
       destinationCity,
+      String(stops[stops.length - 1]?.address || ''),
+      dCoords.lat,
+      dCoords.lng,
       tripType,
       formatMetricForCsv(String(row.metric)),
       metricValueToCsvCell(String(row.metric), row.metricValue),
@@ -841,8 +902,12 @@ export function rowsToImportApiPayload(rows: ParsedCsvRow[]) {
     destination_city: row.dCity || cityFromLabel(row.dRaw) || row.dRaw,
     origin_label: row.oRaw || null,
     destination_label: row.dRaw || null,
-    origin_location_id: row.oLocationId || null,
-    destination_location_id: row.dLocationId || null,
+    origin_address: row.oAddress || null,
+    destination_address: row.dAddress || null,
+    origin_lat: row.oLat,
+    origin_lng: row.oLng,
+    destination_lat: row.dLat,
+    destination_lng: row.dLng,
     trip_type: row.tripType,
     metric: row.metric,
     metric_value: row.metricValueRaw || metricValueToCsvCell(row.metric, row.metricValue),
@@ -877,16 +942,20 @@ export function groupRowsIntoLanePayloads(rows: ParsedCsvRow[]): StorePriceLaneP
         {
           city: oCity,
           label: first.oRaw || oCity,
-          type: 'city',
+          type: 'place',
           value: oCity,
-          location_id: first.oLocationId || null,
+          address: first.oAddress || undefined,
+          lat: first.oLat ?? undefined,
+          lng: first.oLng ?? undefined,
         },
         {
           city: dCity,
           label: first.dRaw || dCity,
-          type: 'city',
+          type: 'place',
           value: dCity,
-          location_id: first.dLocationId || null,
+          address: first.dAddress || undefined,
+          lat: first.dLat ?? undefined,
+          lng: first.dLng ?? undefined,
         },
       ],
       trip_type: first.tripType,
@@ -910,14 +979,10 @@ export function isRowImportable(row: ParsedCsvRow): boolean {
   return !row.dupe && row.errors.length === 0 && !row.groupError && row.validO && row.validD;
 }
 
-export function matchStatusLabel(status: LocationMatchStatus, t: (key: string, fallback: string) => string): string {
+export function matchStatusLabel(status: StopMatchStatus, t: (key: string, fallback: string) => string): string {
   switch (status) {
-    case 'id':
-      return t('priceLists.import.match.id', 'AB ID');
-    case 'matched':
-      return t('priceLists.import.match.matched', 'AB matched');
-    case 'unknown_id':
-      return t('priceLists.import.match.unknownId', 'Unknown ID');
+    case 'coords':
+      return t('priceLists.import.match.coords', 'Coords');
     case 'city_only':
       return t('priceLists.import.match.cityOnly', 'City only');
     default:

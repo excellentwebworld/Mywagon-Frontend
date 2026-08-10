@@ -12,10 +12,15 @@ export interface ApiPriceLaneStop {
   type?: string;
   value?: string;
   countryCode?: string;
+  /** @deprecated Price lanes use Google Places, not Address Book */
   location_id?: string | number | null;
   address?: string;
   lat?: string | number | null;
   lng?: string | number | null;
+  place_id?: string | null;
+  region?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
 }
 
 export interface ApiPriceLane {

@@ -15,6 +15,7 @@ export interface ParsedPlaceAddress {
   lat: string;
   lng: string;
   placeName: string;
+  place_id?: string;
 }
 
 function findComponent(components: GoogleAddressComponent[], ...types: string[]): GoogleAddressComponent | undefined {
@@ -76,6 +77,7 @@ export function buildStreetAddress(components: GoogleAddressComponent[], formatt
 export function parseGooglePlace(place: {
   formatted_address?: string;
   name?: string;
+  place_id?: string;
   geometry?: { location?: { lat: () => number; lng: () => number } };
   address_components?: GoogleAddressComponent[];
 }): ParsedPlaceAddress | null {
@@ -96,5 +98,6 @@ export function parseGooglePlace(place: {
     lat: String(place.geometry.location.lat()),
     lng: String(place.geometry.location.lng()),
     placeName: place.name?.trim() ?? '',
+    place_id: place.place_id?.trim() || undefined,
   };
 }

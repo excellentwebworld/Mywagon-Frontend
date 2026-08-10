@@ -2,18 +2,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Plus, Trash2, ChevronDown, ChevronUp, AlertTriangle, Check, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../../hooks/useTheme';
-import { useApp } from '../../../../context/AppContext';
 import { ApiError, partnersService } from '../../../../api';
 import { buildLaneFingerprint, buildLaneFingerprintFromEntry } from '../../../../api/utils/laneMetricDisplay';
 import { resolveCity, calculateRouteTotals } from '../../../../mocks/priceListsData';
-import { LocationSelect } from '../../../../components/CreateShipmentWizard/LocationSelect';
-import { SearchVehicleCargoPicker } from '../../../../components/SearchTrucks/SearchVehicleCargoPicker';
 import { DatePicker } from '../../../../components/ui/DatePicker';
+import { loadGoogleMaps } from '../../../../components/AddressBook/GoogleMapAddressField';
+import { SearchVehicleCargoPicker } from '../../../../components/SearchTrucks/SearchVehicleCargoPicker';
+import LanePlacePicker from '../LanePlacePicker';
 import {
-  mapLocationToLaneStop,
   isValidLaneStop,
   stopsAreSamePlace,
   normalizeLoadedLaneStop,
+  sanitizeStopForSave,
+  isLegacyLaneStop,
 } from '../mapLocationToLaneStop';
 
 const METRICS = [
@@ -66,6 +67,11 @@ const UNIT_TRANSPORT_OPTIONS = [
 
 function uid() {
   return `pr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function loadGoogleMapsScript() {
+  const key = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+  if (key) void loadGoogleMaps(key).catch(() => {});
 }
 
 function defaultMetricValue(metric) {
@@ -147,7 +153,6 @@ function toLegacyPricing(rows) {
 export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode = 'add', role, allLanes, forwarderTab, isSaving = false }) {
   const { t } = useTranslation();
   const { T } = useTheme();
-  const { locations, refreshLocationsFromApi } = useApp();
 
   const metricLabel = (metric) => {
     const item = METRICS.find((m) => m.key === metric);
@@ -179,11 +184,6 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
   const [partnersError, setPartnersError] = useState(null);
   const [partnerSearch, setPartnerSearch] = useState('');
   const sourceLaneRef = useRef(null);
-
-  const activeLocations = useMemo(
-    () => (locations || []).filter((l) => l.status === 'active'),
-    [locations],
-  );
 
   const partnerOptions = useMemo(() => {
     const q = partnerSearch.trim().toLowerCase();
@@ -338,7 +338,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       return;
     }
 
-    void refreshLocationsFromApi();
+    void loadGoogleMapsScript();
 
     if (lane) {
       if (mode === 'duplicate') {
@@ -373,7 +373,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
 
     setErrors({});
     setDupeWarn(false);
-  }, [open, lane, role, forwarderTab, mode, refreshLocationsFromApi]);
+  }, [open, lane, role, forwarderTab, mode]);
 
   // Google Distance Matrix km when stop lat/lng or address is available
   useEffect(() => {
@@ -450,17 +450,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
     const validStops = stops.filter((s) => isValidLaneStop(s));
     if (validStops.length < 2) return null;
 
-    const stopObjects = validStops.map((s) => ({
-      city: s.city || s.value || s.label || '',
-      label: s.label || s.value || s.city || '',
-      type: s.type,
-      value: s.value,
-      countryCode: s.countryCode,
-      location_id: s.location_id,
-      address: s.address,
-      lat: s.lat,
-      lng: s.lng,
-    }));
+    const stopObjects = validStops.map((s) => sanitizeStopForSave(s));
 
     const baseCalc = calculateRouteTotals(stopObjects, tripType === 'roundtrip');
     if (googleKm && googleKm > 0) {
@@ -502,14 +492,9 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
   const addStop = () => { if (stops.length < 10) setStops((p) => [...p, null]); };
   const removeStop = (idx) => { if (stops.length > 2) setStops((p) => p.filter((_, i) => i !== idx)); };
 
-  const applyLocationAtIndex = useCallback((idx, locationItem) => {
-    setStops((p) => p.map((s, i) => (i === idx ? mapLocationToLaneStop(locationItem) : s)));
+  const setStopAtIndex = useCallback((idx, stop) => {
+    setStops((p) => p.map((s, i) => (i === idx ? stop : s)));
   }, []);
-
-  const selectLocationAtIndex = useCallback((idx, locationId) => {
-    const loc = activeLocations.find((x) => String(x.id) === String(locationId));
-    if (loc) applyLocationAtIndex(idx, loc);
-  }, [activeLocations, applyLocationAtIndex]);
 
   const addPricingRow = () => {
     if (pricingRows.length >= METRICS.length) return;
@@ -545,6 +530,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
     const validStops = stops.filter((s) => isValidLaneStop(s));
 
     if (validStops.length < 2) errs.stops = true;
+    if (stops.some((s) => s && isLegacyLaneStop(s))) errs.stops = true;
     if (validStops.length >= 2 && stopsAreSamePlace(validStops[0], validStops[validStops.length - 1])) {
       errs.sameCity = true;
     }
@@ -573,18 +559,14 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
     }
 
     const stopsForStorage = validStops.map((s) => {
-      const cityKey = s.city || s.value;
-      const cityResolved = (s.type === 'city' || s.location_id) ? resolveCity(cityKey) : null;
+      const sanitized = sanitizeStopForSave(s);
+      const cityKey = sanitized.city || sanitized.value;
+      const cityResolved = resolveCity(cityKey) || cityKey;
       return {
-        location_id: s.location_id || null,
-        city: cityResolved || cityKey,
-        label: s.label || cityKey,
-        type: s.type || 'city',
-        value: s.value || cityKey,
-        address: s.address || undefined,
-        lat: s.lat ?? undefined,
-        lng: s.lng ?? undefined,
-        countryCode: s.countryCode || undefined,
+        ...sanitized,
+        city: cityResolved,
+        value: sanitized.value || cityResolved,
+        label: sanitized.label || cityResolved,
       };
     });
 
@@ -738,29 +720,20 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                   : idx === stops.length - 1
                     ? t('priceLists.modal.destination', 'Destination')
                     : t('priceLists.modal.stopN', 'Stop {{n}}').replace('{{n}}', String(idx));
-                const legacyHint = stop && !stop.location_id && (stop.label || stop.city || stop.value)
-                  ? (stop.label || stop.city || stop.value)
-                  : null;
-                const missingLocFallback = stop?.location_id && !activeLocations.some((l) => String(l.id) === String(stop.location_id))
-                  ? (stop.label || stop.city || stop.value)
-                  : undefined;
 
                 return (
                   <div key={idx} className="flex items-start gap-2">
                     <div className="flex-1 min-w-0">
-                      <label style={labelStyle}>{stopLabel}</label>
-                      <LocationSelect
-                        locations={activeLocations}
-                        value={stop?.location_id ? String(stop.location_id) : ''}
-                        onChange={(lid) => selectLocationAtIndex(idx, lid)}
-                        invalid={!!errors.stops && !isValidLaneStop(stop)}
-                        fallbackLabel={missingLocFallback}
+                      <LanePlacePicker
+                        key={`${mode}-${lane?.apiId ?? 'new'}-${idx}`}
+                        label={stopLabel}
+                        value={stop}
+                        onChange={(next) => setStopAtIndex(idx, next)}
+                        invalid={Boolean(
+                          (errors.stops && !isValidLaneStop(stop))
+                          || (stop && isLegacyLaneStop(stop)),
+                        )}
                       />
-                      {legacyHint && (
-                        <div style={{ fontSize: 10, color: T.t3, marginTop: 4 }}>
-                          {t('priceLists.modal.legacyStopHint', 'Previously: {{label}}. Select an Address Book location.', { label: legacyHint })}
-                        </div>
-                      )}
                     </div>
                     {idx > 0 && idx < stops.length - 1 && (
                       <button type="button" className="mt-5 p-2 rounded-md border-none cursor-pointer" style={{ background: '#FEE2E2', color: '#B91C1C' }} onClick={() => removeStop(idx)}>

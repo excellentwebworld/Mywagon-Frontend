@@ -1,55 +1,25 @@
 /**
  * QuoteCalculator — lane-based quote tool.
- * Origin/destination use Address Book LocationSelect (same as Add Lane).
- * Vehicle types come from matching-lane FTL metrics, else the vehicle catalog API.
+ * Origin/destination use Google Places LanePlacePicker (same as Add Lane).
  */
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { X, Calculator, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
-import { useApp } from '../../../context/AppContext';
 import { useVehicleTypes } from '../../../hooks/useVehicleTypes';
 import { resolveCity, getDistance } from '../../../mocks/priceListsData';
-import { LocationSelect } from '../../../components/CreateShipmentWizard/LocationSelect';
+import { loadGoogleMaps } from '../../../components/AddressBook/GoogleMapAddressField';
+import LanePlacePicker from './LanePlacePicker';
+import {
+  isValidLaneStop,
+  stopMatchesPlace,
+  stopsAreSamePlace,
+} from './mapLocationToLaneStop';
 import {
   formatMetricLabel,
   resolveLanePricingRows,
 } from '../../../api/utils/laneMetricDisplay';
-
-function getStopLocationId(stop) {
-  if (!stop || typeof stop === 'string') return null;
-  const id = stop.location_id ?? stop.locationId ?? null;
-  return id != null && String(id).trim() !== '' ? String(id) : null;
-}
-
-function getStopRaw(stop) {
-  if (!stop) return '';
-  if (typeof stop === 'string') return stop.trim();
-  return String(stop.city || stop.label || stop.value || '').trim();
-}
-
-function normalizePlace(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  return (resolveCity(raw) || raw).toLowerCase();
-}
-
-function placesMatch(a, b) {
-  if (!a || !b) return false;
-  if (String(a).trim().toLowerCase() === String(b).trim().toLowerCase()) return true;
-  return normalizePlace(a) === normalizePlace(b);
-}
-
-function stopMatchesLocation(stop, location) {
-  if (!stop || !location) return false;
-  const stopLocId = getStopLocationId(stop);
-  if (stopLocId && String(location.id) === stopLocId) return true;
-  const city = (location.city || location.name || '').trim();
-  const name = (location.name || '').trim();
-  const raw = getStopRaw(stop);
-  return placesMatch(raw, city) || placesMatch(raw, name) || placesMatch(raw, `${name} · ${city}`);
-}
 
 function collectFtlVehicleNames(lanes) {
   const names = new Set();
@@ -121,75 +91,63 @@ function priceFromPricingRows(lane, { pallets, weight, vehicleType }) {
   };
 }
 
+function distinctEndpointStops(lanes, endpoint) {
+  const out = [];
+  (lanes || []).forEach((lane) => {
+    const stops = lane?.stops || [];
+    if (stops.length < 2) return;
+    const stop = endpoint === 'origin' ? stops[0] : stops[stops.length - 1];
+    if (!stop?.city && !stop?.value) return;
+    if (!out.some((s) => stopsAreSamePlace(s, stop))) out.push(stop);
+  });
+  return out;
+}
+
 export default function QuoteCalculator({ open, onClose, lanes }) {
   const { t } = useTranslation();
   const { T } = useTheme();
-  const { locations, refreshLocationsFromApi } = useApp();
   const { vehicleTypes, loading: vehicleTypesLoading } = useVehicleTypes();
 
-  const [originId, setOriginId] = useState('');
-  const [destinationId, setDestinationId] = useState('');
+  const [originStop, setOriginStop] = useState(null);
+  const [destinationStop, setDestinationStop] = useState(null);
   const [pallets, setPallets] = useState('');
   const [weight, setWeight] = useState('');
   const [vehicleType, setVehicleType] = useState('');
   const [result, setResult] = useState(null);
   const [expanded, setExpanded] = useState(false);
 
-  const activeLocations = useMemo(
-    () => (locations || []).filter((l) => l.status === 'active'),
-    [locations],
-  );
-
   const activeLanes = useMemo(
     () => (Array.isArray(lanes) ? lanes.filter((l) => l.status === 'active') : []),
     [lanes],
   );
 
-  const originLocation = useMemo(
-    () => activeLocations.find((l) => String(l.id) === String(originId)) || null,
-    [activeLocations, originId],
+  const originQuickPicks = useMemo(
+    () => distinctEndpointStops(activeLanes, 'origin'),
+    [activeLanes],
   );
 
-  const destinationLocation = useMemo(
-    () => activeLocations.find((l) => String(l.id) === String(destinationId)) || null,
-    [activeLocations, destinationId],
-  );
-
-  const originLocations = useMemo(() => {
-    const ids = new Set();
+  const destinationQuickPicks = useMemo(() => {
+    if (!isValidLaneStop(originStop)) return distinctEndpointStops(activeLanes, 'destination');
+    const picks = [];
     activeLanes.forEach((lane) => {
-      const id = getStopLocationId(lane?.stops?.[0]);
-      if (id) ids.add(id);
-    });
-    if (ids.size === 0) return activeLocations;
-    const filtered = activeLocations.filter((l) => ids.has(String(l.id)));
-    return filtered.length > 0 ? filtered : activeLocations;
-  }, [activeLanes, activeLocations]);
-
-  const destinationLocations = useMemo(() => {
-    if (!originLocation) return [];
-    const ids = new Set();
-    const matchedLanes = activeLanes.filter((lane) => stopMatchesLocation(lane?.stops?.[0], originLocation));
-    matchedLanes.forEach((lane) => {
       const stops = lane?.stops || [];
-      const id = getStopLocationId(stops[stops.length - 1]);
-      if (id) ids.add(id);
+      if (stops.length < 2) return;
+      if (!stopMatchesPlace(stops[0], originStop)) return;
+      const dest = stops[stops.length - 1];
+      if (!dest?.city && !dest?.value) return;
+      if (!picks.some((s) => stopsAreSamePlace(s, dest))) picks.push(dest);
     });
-    if (ids.size > 0) {
-      const filtered = activeLocations.filter((l) => ids.has(String(l.id)));
-      if (filtered.length > 0) return filtered;
-    }
-    return activeLocations.filter((l) => String(l.id) !== String(originLocation.id));
-  }, [originLocation, activeLanes, activeLocations]);
+    return picks.length > 0 ? picks : distinctEndpointStops(activeLanes, 'destination');
+  }, [activeLanes, originStop]);
 
   const matchingOdLanes = useMemo(() => {
-    if (!originLocation || !destinationLocation) return [];
+    if (!isValidLaneStop(originStop) || !isValidLaneStop(destinationStop)) return [];
     return activeLanes.filter((l) => {
       const stops = l.stops || [];
-      return stopMatchesLocation(stops[0], originLocation)
-        && stopMatchesLocation(stops[stops.length - 1], destinationLocation);
+      return stopMatchesPlace(stops[0], originStop)
+        && stopMatchesPlace(stops[stops.length - 1], destinationStop);
     });
-  }, [originLocation, destinationLocation, activeLanes]);
+  }, [originStop, destinationStop, activeLanes]);
 
   const vehicleOptions = useMemo(() => {
     const laneSource = matchingOdLanes.length > 0 ? matchingOdLanes : activeLanes;
@@ -204,27 +162,21 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
 
   useEffect(() => {
     if (!open) return;
-    void refreshLocationsFromApi?.();
-    setOriginId('');
-    setDestinationId('');
+    const key = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+    if (key) void loadGoogleMaps(key).catch(() => {});
+    setOriginStop(null);
+    setDestinationStop(null);
     setPallets('');
     setWeight('');
     setVehicleType('');
     setResult(null);
     setExpanded(false);
-  }, [open, refreshLocationsFromApi]);
+  }, [open]);
 
   useEffect(() => {
-    setDestinationId('');
+    setDestinationStop(null);
     setResult(null);
-  }, [originId]);
-
-  useEffect(() => {
-    if (destinationId && !destinationLocations.some((l) => String(l.id) === String(destinationId))) {
-      setDestinationId('');
-      setResult(null);
-    }
-  }, [destinationId, destinationLocations]);
+  }, [originStop]);
 
   useEffect(() => {
     if (vehicleType && !vehicleOptions.includes(vehicleType)) {
@@ -233,21 +185,22 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
   }, [vehicleType, vehicleOptions]);
 
   const calculate = useCallback(() => {
-    if (!originLocation || !destinationLocation || String(originLocation.id) === String(destinationLocation.id)) {
+    if (!isValidLaneStop(originStop) || !isValidLaneStop(destinationStop)
+      || stopsAreSamePlace(originStop, destinationStop)) {
       setResult({ error: 'invalid' });
       return;
     }
 
-    const oCity = (originLocation.city || originLocation.name || '').trim();
-    const dCity = (destinationLocation.city || destinationLocation.name || '').trim();
-    const km = getDistance(oCity, dCity);
+    const oCity = (originStop.city || originStop.value || '').trim();
+    const dCity = (destinationStop.city || destinationStop.value || '').trim();
+    const km = getDistance(resolveCity(oCity) || oCity, resolveCity(dCity) || dCity);
 
     const candidates = matchingOdLanes.length > 0
       ? matchingOdLanes
       : activeLanes.filter((l) => {
         const stops = l.stops || [];
-        return stopMatchesLocation(stops[0], originLocation)
-          && stopMatchesLocation(stops[stops.length - 1], destinationLocation);
+        return stopMatchesPlace(stops[0], originStop)
+          && stopMatchesPlace(stops[stops.length - 1], destinationStop);
       });
 
     const sorted = [...candidates].sort((a, b) => {
@@ -280,7 +233,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
       matchedMetricLabel: formatMetricLabel(pricingFromRows.matchedMetric, t),
       breakdown: { base: price },
     });
-  }, [originLocation, destinationLocation, matchingOdLanes, pallets, weight, vehicleType, activeLanes, t]);
+  }, [originStop, destinationStop, matchingOdLanes, pallets, weight, vehicleType, activeLanes, t]);
 
   if (!open) return null;
 
@@ -295,13 +248,23 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
     width: '100%',
   };
   const labelStyle = { fontSize: 11, fontWeight: 600, color: T.t2, marginBottom: 3, display: 'block' };
-  const canCalculate = Boolean(originId && destinationId);
+  const canCalculate = isValidLaneStop(originStop) && isValidLaneStop(destinationStop);
+
+  const quickPickStyle = {
+    fontSize: 10,
+    padding: '4px 8px',
+    borderRadius: 999,
+    border: `1px solid ${T.bd}`,
+    background: T.sa,
+    color: T.t2,
+    cursor: 'pointer',
+  };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 200 }}>
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className="relative w-full max-w-[520px] flex flex-col rounded-2xl shadow-2xl"
+        className="relative w-full max-w-[520px] flex flex-col rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
         style={{ background: T.sf, border: `1px solid ${T.bd}` }}
       >
         <div className="flex items-center justify-between px-6 py-4 shrink-0" style={{ borderBottom: `1px solid ${T.bd}` }}>
@@ -315,19 +278,51 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
         </div>
 
         <div className="px-6 py-4 space-y-3">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3">
             <div>
-              <label style={labelStyle}>{t('priceLists.modal.origin', 'Origin')}</label>
-              <LocationSelect locations={originLocations} value={originId} onChange={setOriginId} />
+              <LanePlacePicker
+                label={t('priceLists.modal.origin', 'Origin')}
+                value={originStop}
+                onChange={setOriginStop}
+              />
+              {originQuickPicks.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {originQuickPicks.slice(0, 6).map((stop) => (
+                    <button
+                      key={`o-${stop.label}-${stop.city}`}
+                      type="button"
+                      style={quickPickStyle}
+                      className="border-none"
+                      onClick={() => setOriginStop(stop)}
+                    >
+                      {stop.label || stop.city}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
-              <label style={labelStyle}>{t('priceLists.modal.destination', 'Destination')}</label>
-              <LocationSelect
-                locations={destinationLocations}
-                value={destinationId}
-                onChange={setDestinationId}
-                disabled={!originId}
+              <LanePlacePicker
+                label={t('priceLists.modal.destination', 'Destination')}
+                value={destinationStop}
+                onChange={setDestinationStop}
+                invalid={!isValidLaneStop(originStop) && originStop != null}
               />
+              {destinationQuickPicks.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {destinationQuickPicks.slice(0, 6).map((stop) => (
+                    <button
+                      key={`d-${stop.label}-${stop.city}`}
+                      type="button"
+                      style={quickPickStyle}
+                      className="border-none"
+                      onClick={() => setDestinationStop(stop)}
+                    >
+                      {stop.label || stop.city}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -351,11 +346,6 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
                 <option value="">—</option>
                 {vehicleOptions.map((v) => <option key={v} value={v}>{v}</option>)}
               </select>
-              {vehicleOptions.length === 0 && !vehicleTypesLoading && (
-                <div style={{ fontSize: 10, color: T.t3, marginTop: 4 }}>
-                  {t('priceLists.calculator.noVehicles', 'No vehicle types in price list')}
-                </div>
-              )}
             </div>
           </div>
 

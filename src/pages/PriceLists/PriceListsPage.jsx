@@ -26,7 +26,7 @@ import {
   calculateRouteTotals,
 } from '../../mocks/priceListsData';
 import { serializeLanesToCsv } from '../../api/utils/laneCsvSchema';
-import { resolveCountryIsoCode } from '../../mocks/partnersMasterData';
+import { normalizeLoadedLaneStop, sanitizeStopForSave } from './pricelists/mapGooglePlaceToLaneStop';
 
 import DirectoryPane from './pricelists/DirectoryPane';
 import FilterBar from './pricelists/FilterBar';
@@ -68,30 +68,8 @@ function buildLegacyPricingFromRows(rows = []) {
 function mapApiLaneToUiLane(apiLane) {
   const stops = Array.isArray(apiLane?.stops) ? apiLane.stops : [];
   const normalizedStops = stops
-    .map((s) => {
-      const locationId = s?.location_id ?? s?.locationId ?? null;
-      const val = s?.value || s?.city || s?.label || '';
-      const isoCode = resolveCountryIsoCode(s?.countryCode) || resolveCountryIsoCode(val) || resolveCountryIsoCode(s?.label);
-      const isCountry = !locationId && (s?.type === 'country' || Boolean(isoCode));
-      const type = locationId ? (s?.type || 'city') : (isCountry ? 'country' : (s?.type || 'city'));
-      const countryCode = locationId
-        ? (s?.countryCode || undefined)
-        : (isoCode || (s?.countryCode && s.countryCode !== 'GR' ? s.countryCode : 'GR'));
-      const finalVal = type === 'country' ? (isoCode || val) : (s?.value || s?.city || val);
-
-      return {
-        location_id: locationId,
-        city: s?.city || val,
-        label: s?.label || val,
-        type,
-        value: finalVal,
-        countryCode,
-        address: s?.address || undefined,
-        lat: s?.lat ?? undefined,
-        lng: s?.lng ?? undefined,
-      };
-    })
-    .filter((s) => s.city || s.value || s.location_id);
+    .map((s) => normalizeLoadedLaneStop(s))
+    .filter((s) => s && (s.city || s.value || s.address || s.lat != null));
   const isRoundTrip = apiLane?.trip_type === 'roundtrip';
   const routeCalc = normalizedStops.length >= 2 ? calculateRouteTotals(normalizedStops, isRoundTrip) : { legs: [], routeLabel: '' };
 
@@ -144,29 +122,7 @@ function mapUiEntryToStorePayload(entry) {
   return {
     origin_city: origin,
     destination_city: destination,
-    stops: stops.map((s) => {
-      const locationId = s.location_id ?? null;
-      const val = s?.value || s?.city || s?.label || '';
-      const isoCode = resolveCountryIsoCode(s?.countryCode) || resolveCountryIsoCode(val) || resolveCountryIsoCode(s?.label);
-      const isCountry = !locationId && (s?.type === 'country' || Boolean(isoCode));
-      const type = locationId ? (s?.type || 'city') : (isCountry ? 'country' : (s?.type || 'city'));
-      const countryCode = locationId
-        ? (s?.countryCode || undefined)
-        : (isoCode || (s?.countryCode && s.countryCode !== 'GR' ? s.countryCode : 'GR'));
-      const finalVal = type === 'country' ? (isoCode || val) : (s.value || s.city || val);
-
-      return {
-        location_id: locationId,
-        city: s.city || val,
-        label: s.label || val,
-        type,
-        value: finalVal,
-        countryCode,
-        address: s.address || undefined,
-        lat: s.lat ?? undefined,
-        lng: s.lng ?? undefined,
-      };
-    }),
+    stops: stops.map((s) => sanitizeStopForSave(s)),
     trip_type: tripType,
     total_km_direct: Number(entry.totalKmDirect || entry.totalKm || 0),
     total_km_effective: Number(entry.totalKmEffective || entry.totalKm || 0),

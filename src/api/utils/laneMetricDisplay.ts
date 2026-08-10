@@ -19,6 +19,10 @@ export type LaneLike = {
     city?: string;
     value?: string;
     label?: string;
+    address?: string;
+    lat?: number | null;
+    lng?: number | null;
+    place_id?: string | null;
     location_id?: string | number | null;
     locationId?: string | number | null;
   }>;
@@ -210,6 +214,10 @@ export function buildLaneFingerprintFromEntry(entry: {
     city?: string;
     value?: string;
     label?: string;
+    address?: string;
+    lat?: number | null;
+    lng?: number | null;
+    place_id?: string | null;
     location_id?: string | number | null;
     locationId?: string | number | null;
   }>;
