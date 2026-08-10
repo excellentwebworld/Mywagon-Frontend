@@ -1,9 +1,9 @@
 /**
- * ImportModal — CSV import for lane price entries (Google Places sheet).
+ * ImportModal — CSV import for lane price entries.
  *
- * Two-step flow:
- * 1. Choose: Download template OR Upload file (+ column / accepted values reference)
- * 2. Preview: Valid/Duplicate/Invalid counts, preview table, Import button
+ * Supports:
+ * - Simple 9-column template (city-only, manual entry)
+ * - Full 21-column export format (re-import with coordinates)
  *
  * @API: POST /api/v1/price-lists/lanes/import
  */
@@ -17,6 +17,8 @@ import {
   ACCEPTED_VALUES,
   CSV_COLUMNS_EL,
   CSV_COLUMNS_EN,
+  SIMPLE_CSV_COLUMNS_EL,
+  SIMPLE_CSV_COLUMNS_EN,
   buildTemplateCsv,
   getValidImportRows,
   isRowImportable,
@@ -41,7 +43,8 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
   const [dragOver, setDragOver] = useState(false);
   const [importResult, setImportResult] = useState(null);
 
-  const columns = lang === 'el' ? CSV_COLUMNS_EL : CSV_COLUMNS_EN;
+  const columns = lang === 'el' ? SIMPLE_CSV_COLUMNS_EL : SIMPLE_CSV_COLUMNS_EN;
+  const exportColumns = lang === 'el' ? CSV_COLUMNS_EL : CSV_COLUMNS_EN;
 
   const handleClose = useCallback(() => {
     setPreview(null);
@@ -75,7 +78,7 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
       setPreview(null);
       setParseError(t(
         'priceLists.import.parseError',
-        'Could not read this file. Check that it includes Origin, Destination, and Price columns.',
+        'We could not read this file. Make sure the first row includes Origin City, Destination City, and Price column headers, then try again.',
       ));
       return;
     }
@@ -137,24 +140,25 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
       setImportResult(null);
     } catch (error) {
       console.error('Import failed', error);
-      toast.error(t('priceLists.import.failed', 'Import failed. Please try again.'));
+      toast.error(t('priceLists.import.failed', 'Import failed. Check your file and try again.'));
     } finally {
       setImporting(false);
     }
   }, [preview, onImported, t, toast]);
 
   const getRowStatusLabel = useCallback((row) => {
-    if (row.dupe) return t('priceLists.import.duplicates', 'Duplicate');
+    if (row.dupe) return t('priceLists.import.duplicates', 'Already exists');
     if (row.errors.length > 0 || row.groupError) {
       return row.errors[0]?.message || t('priceLists.import.invalidRow', 'Invalid row');
     }
-    if (!row.validO || !row.validD) return t('priceLists.import.invalidCity', 'Invalid city');
-    return t('priceLists.import.ok', 'OK');
+    if (!row.validO || !row.validD) return t('priceLists.import.invalidCity', 'Missing city');
+    return t('priceLists.import.ok', 'Ready');
   }, [t]);
 
   if (!open) return null;
 
   const validLaneCount = preview ? new Set(getValidImportRows(preview.rows).map((r) => r.laneGroupKey)).size : 0;
+  const hasCityOnlyRows = preview?.rows.some((r) => r.oMatch === 'city_only' || r.dMatch === 'city_only') ?? false;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 200 }}>
@@ -163,9 +167,14 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
         style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
 
         <div className="flex items-center justify-between px-6 py-4 shrink-0" style={{ borderBottom: `1px solid ${T.bd}` }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: T.t1, margin: 0 }}>
-            {t('priceLists.import.title', 'Import CSV')}
-          </h3>
+          <div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: T.t1, margin: 0 }}>
+              {t('priceLists.import.title', 'Import lane prices')}
+            </h3>
+            <p style={{ fontSize: 12, color: T.t3, margin: '4px 0 0' }}>
+              {t('priceLists.import.subtitle', 'Add new routes from a spreadsheet or bulk-update prices from an export file.')}
+            </p>
+          </div>
           <button onClick={handleClose} className="p-1 rounded cursor-pointer border-none" style={{ background: 'transparent', color: T.t3 }}><X size={16} /></button>
         </div>
 
@@ -173,13 +182,32 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
           {!preview ? (
             <>
               <div
-                className="mb-4 rounded-xl px-3 py-2.5"
-                style={{ background: T.bg, border: `1px solid ${T.bd}`, fontSize: 12, color: T.t2, lineHeight: 1.45 }}
+                className="mb-4 rounded-xl px-4 py-3 space-y-2.5"
+                style={{ background: T.bg, border: `1px solid ${T.bd}`, fontSize: 12, color: T.t2, lineHeight: 1.5 }}
               >
-                {t(
-                  'priceLists.import.howTo',
-                  'Download the template or Export existing lanes, then edit Origin / Destination labels, cities, addresses, and coordinates before uploading.',
-                )}
+                <div style={{ fontWeight: 600, color: T.t1 }}>
+                  {t('priceLists.import.howToTitle', 'How it works')}
+                </div>
+                <ol className="m-0 space-y-1.5" style={{ paddingLeft: 18 }}>
+                  <li>
+                    {t(
+                      'priceLists.import.howToStep1',
+                      'New lanes — download the simple template, fill in origin city, destination city, metric, and price (one row per price).',
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      'priceLists.import.howToStep2',
+                      'Bulk edits — use Export on the lane list, change prices or dates in Excel, then upload the exported file here.',
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      'priceLists.import.howToStep3',
+                      'Review the preview, then confirm import. Rows with the same route and dates are grouped into one lane (up to 4 prices each).',
+                    )}
+                  </li>
+                </ol>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -189,8 +217,8 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
                   onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.ac; }}
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.bd; }}>
                   <Download size={28} style={{ color: T.ac }} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{t('priceLists.import.downloadTemplate', 'Download Template')}</span>
-                  <span style={{ fontSize: 11, color: T.t3, textAlign: 'center' }}>{t('priceLists.import.downloadSub', 'Get the CSV template with sample data')}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{t('priceLists.import.downloadTemplate', 'Download simple template')}</span>
+                  <span style={{ fontSize: 11, color: T.t3, textAlign: 'center' }}>{t('priceLists.import.downloadSub', '9 columns · city names only · includes sample rows')}</span>
                 </button>
                 <button
                   type="button"
@@ -205,9 +233,9 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
                   }}
                 >
                   <Upload size={28} style={{ color: T.ac }} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{t('priceLists.import.uploadFile', 'Upload File')}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{t('priceLists.import.uploadFile', 'Upload your file')}</span>
                   <span style={{ fontSize: 11, color: T.t3, textAlign: 'center' }}>
-                    {t('priceLists.import.uploadSub', 'CSV, TSV, or TXT — click or drag & drop')}
+                    {t('priceLists.import.uploadSub', 'Simple template or exported file · CSV, TSV, or TXT')}
                   </span>
                 </button>
               </div>
@@ -225,35 +253,86 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
                   className="w-full flex items-center justify-between px-4 py-3 cursor-pointer border-none rounded-xl"
                   style={{ background: T.bg, color: T.t1, fontSize: 13, fontWeight: 600 }}
                 >
-                  <span>{t('priceLists.import.acceptedValues', 'Sheet columns & accepted values')}</span>
+                  <span>{t('priceLists.import.acceptedValues', 'Column guide & allowed values')}</span>
                   {referenceOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
                 {referenceOpen && (
                   <div className="px-4 py-3 space-y-3" style={{ fontSize: 11, color: T.t2, borderTop: `1px solid ${T.bd}` }}>
+                    <div style={{ lineHeight: 1.5 }}>
+                      {t(
+                        'priceLists.import.ref.intro',
+                        'Use the simple template for new lanes. Only city names are required — no addresses or map coordinates. Currency is always EUR; status defaults to active and scope to Default unless you use an export file.',
+                      )}
+                    </div>
+
                     <div>
                       <div style={{ fontWeight: 600, color: T.t1, marginBottom: 6 }}>
-                        {t('priceLists.import.ref.columns', 'Columns (in order)')}
+                        {t('priceLists.import.ref.columns', 'Simple template columns')}
                       </div>
                       <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, lineHeight: 1.6, color: T.t3 }}>
                         {columns.join(' · ')}
                       </div>
                     </div>
-                    <div><strong>{t('priceLists.import.ref.originDest', 'Origin / Destination')}:</strong> {t('priceLists.import.ref.originDestHint', 'Google place label (e.g. Name · City).')}</div>
-                    <div><strong>{t('priceLists.import.ref.cities', 'Origin / Destination City')}:</strong> {t('priceLists.import.ref.citiesHint', 'Required match key for calculator and listing.')}</div>
-                    <div><strong>{t('priceLists.import.ref.coords', 'Origin / Destination Lat & Lng')}:</strong> {t('priceLists.import.ref.coordsHint', 'Required for import. Filled automatically on Export from saved lane stops.')}</div>
-                    <div><strong>{t('priceLists.import.ref.tripType', 'Trip type')}:</strong> {ACCEPTED_VALUES.trip_type.join(', ')}</div>
-                    <div><strong>{t('priceLists.import.ref.metric', 'Metric')}:</strong> {ACCEPTED_VALUES.metric.join(', ')}</div>
-                    <div><strong>{t('priceLists.import.ref.metricValue', 'Metric value')}:</strong></div>
-                    <ul className="list-disc pl-5 m-0">
-                      <li>weight: {ACCEPTED_VALUES.metric_value.weight.join(', ')}</li>
-                      <li>unit_transport: {ACCEPTED_VALUES.metric_value.unit_transport.join(', ')}</li>
-                      <li>load_any_size: {ACCEPTED_VALUES.metric_value.load_any_size.join(', ')}</li>
-                      <li>ftl_truck_type: {t('priceLists.import.ref.ftlHint', 'vehicle type slug')}</li>
-                    </ul>
-                    <div><strong>{t('priceLists.import.ref.status', 'Status')}:</strong> {ACCEPTED_VALUES.status.join(', ')}</div>
-                    <div><strong>{t('priceLists.import.ref.scope', 'Scope')}:</strong> {ACCEPTED_VALUES.scope.join(', ')}</div>
-                    <div><strong>{t('priceLists.import.ref.scopeDirection', 'Scope direction')}:</strong> buy, sell</div>
-                    <div style={{ color: T.t3 }}>{t('priceLists.import.ref.multiRowHint', 'One CSV row = one pricing metric. Rows with the same route, dates, scope, and notes are grouped into one lane (max 4 metrics).')}</div>
+
+                    <div>
+                      <div style={{ fontWeight: 600, color: T.t1, marginBottom: 4 }}>
+                        {t('priceLists.import.ref.required', 'Required fields')}
+                      </div>
+                      <ul className="list-disc pl-5 m-0 space-y-0.5">
+                        <li><strong>{t('priceLists.import.ref.cities', 'Origin City / Destination City')}</strong> — {t('priceLists.import.ref.citiesHint', 'City name used in the lane list and quote calculator.')}</li>
+                        <li><strong>{t('priceLists.import.ref.metric', 'Metric')}</strong> — {ACCEPTED_VALUES.metric.join(', ')}</li>
+                        <li><strong>{t('priceLists.import.ref.metricValue', 'Metric Value')}</strong> — {t('priceLists.import.ref.metricValueHint', 'see values below')}</li>
+                        <li><strong>{t('priceLists.col.price', 'Price')}</strong> — {t('priceLists.import.ref.priceHint', 'Amount in EUR, greater than zero.')}</li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <div style={{ fontWeight: 600, color: T.t1, marginBottom: 4 }}>
+                        {t('priceLists.import.ref.optional', 'Optional fields')}
+                      </div>
+                      <ul className="list-disc pl-5 m-0 space-y-0.5">
+                        <li><strong>{t('priceLists.import.ref.tripType', 'Trip Type')}</strong> — {ACCEPTED_VALUES.trip_type.join(', ')} ({t('priceLists.import.ref.tripDefaultHint', 'default: direct')})</li>
+                        <li><strong>{t('priceLists.import.ref.effectiveFrom', 'Effective From / To')}</strong> — {t('priceLists.import.ref.datesHint', 'YYYY-MM-DD. From defaults to today; leave To blank for no end date.')}</li>
+                        <li><strong>{t('priceLists.import.ref.notes', 'Notes')}</strong> — {t('priceLists.import.ref.notesHint', 'Free text, optional.')}</li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <div style={{ fontWeight: 600, color: T.t1, marginBottom: 4 }}>
+                        {t('priceLists.import.ref.metricValuesTitle', 'Allowed metric values')}
+                      </div>
+                      <ul className="list-disc pl-5 m-0 space-y-0.5">
+                        <li>weight — {ACCEPTED_VALUES.metric_value.weight.join(', ')}</li>
+                        <li>unit transport — {ACCEPTED_VALUES.metric_value.unit_transport.join(', ')}</li>
+                        <li>load any size — {ACCEPTED_VALUES.metric_value.load_any_size.join(', ')}</li>
+                        <li>ftl truck type — {t('priceLists.import.ref.ftlHint', 'any vehicle type name or slug')}</li>
+                      </ul>
+                    </div>
+
+                    <div style={{ color: T.t3, lineHeight: 1.5 }}>
+                      {t(
+                        'priceLists.import.ref.multiRowHint',
+                        'Each row is one price. Rows with the same origin, destination, trip type, dates, scope, and notes are merged into a single lane (maximum 4 prices per lane).',
+                      )}
+                    </div>
+
+                    <div
+                      className="rounded-lg px-3 py-2"
+                      style={{ background: T.sf, border: `1px solid ${T.bd}`, lineHeight: 1.5 }}
+                    >
+                      <div style={{ fontWeight: 600, color: T.t1, marginBottom: 4 }}>
+                        {t('priceLists.import.ref.exportTitle', 'Re-importing an export file')}
+                      </div>
+                      <div style={{ color: T.t3, marginBottom: 6 }}>
+                        {t(
+                          'priceLists.import.ref.fullFormatHint',
+                          'When you Export lanes from this page, the file has 21 columns including place labels, addresses, and coordinates. Upload that file here to update prices in bulk — coordinates are preserved automatically.',
+                        )}
+                      </div>
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, lineHeight: 1.5, color: T.t3 }}>
+                        {exportColumns.join(' · ')}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -262,7 +341,11 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
             <>
               <div className="flex items-center justify-between gap-2 mb-2">
                 <div style={{ fontSize: 12, color: T.t2 }}>
-                  {t('priceLists.import.preview', 'Preview')} — {t('priceLists.import.detected', 'Detected')} {preview.rows.length} {t('priceLists.import.rows', 'rows')}
+                  {t('priceLists.import.preview', 'Import preview')} — {preview.rows.length} {t('priceLists.import.rows', 'rows')}
+                  {' · '}
+                  {preview.format === 'full'
+                    ? t('priceLists.import.formatFull', 'export file detected')
+                    : t('priceLists.import.formatSimple', 'simple template detected')}
                 </div>
                 <button
                   type="button"
@@ -270,21 +353,30 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
                   className="px-2.5 py-1 rounded-md cursor-pointer border-none"
                   style={{ background: T.bg, color: T.ac, fontSize: 11, fontWeight: 600 }}
                 >
-                  {t('priceLists.import.chooseAnother', 'Choose another file')}
+                  {t('priceLists.import.chooseAnother', 'Upload a different file')}
                 </button>
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3" style={{ fontSize: 12 }}>
-                <span>{t('priceLists.import.validLabel', 'Valid')}: <span style={{ color: '#10B981', fontWeight: 600 }}>{preview.valid}</span></span>
-                <span>{t('priceLists.import.duplicates', 'Duplicates')}: <span style={{ color: '#F59E0B', fontWeight: 600 }}>{preview.dupes}</span></span>
-                <span>{t('priceLists.import.invalidCity', 'Invalid city')}: <span style={{ color: '#EF4444', fontWeight: 600 }}>{preview.invalidCity}</span></span>
+                <span>{t('priceLists.import.validLabel', 'Ready to import')}: <span style={{ color: '#10B981', fontWeight: 600 }}>{preview.valid}</span></span>
+                <span>{t('priceLists.import.duplicates', 'Already exists')}: <span style={{ color: '#F59E0B', fontWeight: 600 }}>{preview.dupes}</span></span>
+                <span>{t('priceLists.import.invalidCity', 'Missing city')}: <span style={{ color: '#EF4444', fontWeight: 600 }}>{preview.invalidCity}</span></span>
                 <span>{t('priceLists.import.invalidMetric', 'Invalid metric')}: <span style={{ color: '#EF4444', fontWeight: 600 }}>{preview.invalidMetric}</span></span>
-                <span>{t('priceLists.import.groupErrors', 'Group errors')}: <span style={{ color: '#EF4444', fontWeight: 600 }}>{preview.groupErrors}</span></span>
+                <span>{t('priceLists.import.groupErrors', 'Too many prices')}: <span style={{ color: '#EF4444', fontWeight: 600 }}>{preview.groupErrors}</span></span>
               </div>
+
+              {hasCityOnlyRows && (
+                <div className="mb-3 rounded-lg px-3 py-2" style={{ background: T.bg, border: `1px solid ${T.bd}`, fontSize: 12, color: T.t2 }}>
+                  {t(
+                    'priceLists.import.cityOnlyHint',
+                    'Some routes use city names only (no map pin yet). You can set the exact pickup and drop-off location after import by editing the lane.',
+                  )}
+                </div>
+              )}
 
               {importResult && (
                 <div className="mb-3 rounded-lg px-3 py-2" style={{ background: importResult.created > 0 ? '#ECFDF5' : '#FEE2E2', color: importResult.created > 0 ? '#065F46' : '#991B1B', fontSize: 12 }}>
                   <div style={{ fontWeight: 600 }}>
-                    {t('priceLists.import.resultSummary', 'Import result')}: {importResult.created} {t('priceLists.import.lanes', 'lanes')}, {importResult.skipped} {t('priceLists.import.skippedRows', 'rows skipped')}
+                    {t('priceLists.import.resultSummary', 'Result')}: {importResult.created} {t('priceLists.import.lanes', 'lanes imported')}, {importResult.skipped} {t('priceLists.import.skippedRows', 'rows skipped')}
                   </div>
                   {importResult.errors?.slice(0, 5).map((err, idx) => (
                     <div key={idx} style={{ marginTop: 4, opacity: 0.9 }}>
@@ -305,7 +397,7 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
                         '#',
                         t('priceLists.modal.origin', 'Origin'),
                         t('priceLists.modal.destination', 'Dest'),
-                        t('priceLists.import.col.match', 'Match'),
+                        t('priceLists.import.col.match', 'Location'),
                         t('priceLists.col.metric', 'Metric'),
                         t('priceLists.col.price', 'Price'),
                         t('priceLists.col.status', 'Status'),
@@ -361,7 +453,7 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
               style={{ background: T.ac, fontSize: 13, fontWeight: 600, opacity: importing ? 0.7 : 1 }}>
               {importing
                 ? t('priceLists.import.importing', 'Importing…')
-                : `${t('priceLists.import.importBtn', 'Import')} ${validLaneCount} ${t('priceLists.import.lanes', 'lanes')}`}
+                : `${t('priceLists.import.importBtn', 'Import')} ${validLaneCount} ${validLaneCount === 1 ? t('priceLists.import.laneSingular', 'lane') : t('priceLists.import.lanes', 'lanes')}`}
             </button>
           )}
         </div>

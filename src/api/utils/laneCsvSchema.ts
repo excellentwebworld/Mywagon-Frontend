@@ -114,6 +114,46 @@ export const CSV_COLUMNS_EL = [
   'Σημειώσεις',
 ] as const;
 
+/** User-facing 9-column import template (city-only, no coords required). */
+export const SIMPLE_CSV_COLUMNS_EN = [
+  'Origin City',
+  'Destination City',
+  'Trip Type',
+  'Metric',
+  'Metric Value',
+  'Price',
+  'Effective From',
+  'Effective To',
+  'Notes',
+] as const;
+
+export const SIMPLE_CSV_COLUMNS_EL = [
+  'Πόλη Αφετηρίας',
+  'Πόλη Προορισμού',
+  'Τύπος Δρομολογίου',
+  'Μετρική',
+  'Τιμή Μετρικής',
+  'Τιμή',
+  'Ισχύς Από',
+  'Ισχύς Έως',
+  'Σημειώσεις',
+] as const;
+
+export type CsvFormat = 'simple' | 'full';
+
+export const SIMPLE_CSV_TEMPLATE_SAMPLE_ROWS = {
+  en: [
+    ['Patras', 'Heraklion', 'direct', 'load any size', 'per load', '450', '2026-03-01', '2026-12-31', ''],
+    ['Patras', 'Heraklion', 'direct', 'unit transport', 'eur pallet', '42', '2026-03-01', '', ''],
+    ['Volos', 'Larissa', 'roundtrip', 'weight', 'kg', '180', '2026-03-01', '', ''],
+  ],
+  el: [
+    ['Αθήνα', 'Θεσσαλονίκη', 'direct', 'load any size', 'per load', '450', '2026-03-01', '2026-12-31', ''],
+    ['Πάτρα', 'Ηράκλειο', 'direct', 'unit transport', 'eur pallet', '42', '2026-03-01', '', ''],
+    ['Βόλος', 'Λάρισα', 'roundtrip', 'weight', 'kg', '180', '2026-03-01', '', ''],
+  ],
+};
+
 export const VALID_METRICS: PriceLaneMetric[] = [
   'weight',
   'unit_transport',
@@ -193,6 +233,7 @@ export type ParsedCsvRow = {
 };
 
 export type CsvParseResult = {
+  format: CsvFormat;
   rows: ParsedCsvRow[];
   valid: number;
   dupes: number;
@@ -241,7 +282,6 @@ function resolveStopFromCsv(args: {
   lng: number | null;
   match: StopMatchStatus;
   valid: boolean;
-  warning?: CsvRowError;
 } {
   const { raw, cityCol, addressCol, latCol, lngCol } = args;
   const label = raw.trim();
@@ -254,7 +294,6 @@ function resolveStopFromCsv(args: {
   const lng = parseCoordinate(lngCol);
   const city = (cityHint || label).trim() || null;
   const hasCoords = lat != null && lng != null;
-  const valid = Boolean(city) && hasCoords;
 
   if (!city) {
     return {
@@ -268,30 +307,13 @@ function resolveStopFromCsv(args: {
     };
   }
 
-  if (!hasCoords) {
-    return {
-      label: label || city,
-      city,
-      address,
-      lat,
-      lng,
-      match: 'city_only',
-      valid: false,
-      warning: {
-        code: 'INVALID_COORDS',
-        field: 'lat',
-        message: 'Latitude and longitude are required for each stop.',
-      },
-    };
-  }
-
   return {
     label: label || city,
     city,
     address,
     lat,
     lng,
-    match: 'coords',
+    match: hasCoords ? 'coords' : 'city_only',
     valid: true,
   };
 }
@@ -405,6 +427,42 @@ export function buildLaneGroupKey(row: {
     row.scopeDirection || '',
     row.notes || '',
   ].join('|');
+}
+
+/**
+ * Detect whether uploaded CSV uses the 9-column simple template or full export format.
+ */
+export function detectCsvFormat(headers: string[]): CsvFormat {
+  const normalized = headers.map((h) => h.replace(/_/g, ' ').trim().toLowerCase());
+
+  const hasFullColumn = normalized.some((h) => (
+    h === 'origin lat'
+    || h === 'origin latitude'
+    || (h.includes('origin') && h.includes('lat'))
+    || h === 'origin address'
+    || (h.includes('origin') && h.includes('address'))
+    || h === 'destination lat'
+    || h === 'destination latitude'
+    || (h.includes('dest') && h.includes('lat'))
+    || h === 'destination address'
+    || (h.includes('dest') && h.includes('address'))
+    || (h.includes('γ.πλ') && (h.includes('αφετ') || h.includes('προορ')))
+    || (h.includes('διεύθ') && (h.includes('αφετ') || h.includes('προορ')))
+    || (h.includes('διευθ') && (h.includes('αφετ') || h.includes('προορ')))
+  ));
+
+  if (hasFullColumn) return 'full';
+
+  const hasOriginLabel = normalized.some((h) => h === 'origin' || h === 'αφετηρία' || h === 'αφετηρια');
+  const hasOriginCity = normalized.some((h) => (
+    h === 'origin city'
+    || (h.includes('origin') && h.includes('city'))
+    || h.includes('πόλη αφετηρίας')
+  ));
+
+  if (hasOriginLabel && hasOriginCity) return 'full';
+
+  return 'simple';
 }
 
 function detectSeparator(text: string): string {
@@ -673,7 +731,9 @@ export function parseCsvText(
   const lines = text.split(/\r?\n/).filter((line) => line.trim());
   if (lines.length < 2) return null;
 
-  const hdr = lines[0].split(sep).map((h) => h.replace(/^"|"$/g, '').trim().toLowerCase());
+  const hdrRaw = lines[0].split(sep).map((h) => h.replace(/^"|"$/g, '').trim());
+  const hdr = hdrRaw.map((h) => h.toLowerCase());
+  const format = detectCsvFormat(hdrRaw);
   const colMap = mapHeaders(hdr);
   if (colMap.o < 0 || colMap.d < 0 || colMap.price < 0) return null;
 
@@ -710,13 +770,11 @@ export function parseCsvText(
     });
 
     if (!oResolved.valid) {
-      errors.push({ code: 'INVALID_ORIGIN_CITY', field: 'origin_city', message: 'Missing origin city or coordinates.' });
+      errors.push({ code: 'INVALID_ORIGIN_CITY', field: 'origin_city', message: 'Missing origin city.' });
     }
     if (!dResolved.valid) {
-      errors.push({ code: 'INVALID_DESTINATION_CITY', field: 'destination_city', message: 'Missing destination city or coordinates.' });
+      errors.push({ code: 'INVALID_DESTINATION_CITY', field: 'destination_city', message: 'Missing destination city.' });
     }
-    if (oResolved.warning) errors.push(oResolved.warning);
-    if (dResolved.warning) errors.push(dResolved.warning);
 
     if (!price || price <= 0) {
       errors.push({ code: 'INVALID_PRICE', field: 'price', message: 'Price must be greater than zero.' });
@@ -833,6 +891,7 @@ export function parseCsvText(
     && row.validD;
 
   return {
+    format,
     rows,
     valid: rows.filter(isRowValid).length,
     dupes: rows.filter((r) => r.dupe).length,
@@ -843,8 +902,8 @@ export function parseCsvText(
 }
 
 export function buildTemplateCsv(lang: 'en' | 'el' = 'en'): string {
-  const hdr = lang === 'el' ? CSV_COLUMNS_EL : CSV_COLUMNS_EN;
-  const rows = CSV_TEMPLATE_SAMPLE_ROWS[lang];
+  const hdr = lang === 'el' ? SIMPLE_CSV_COLUMNS_EL : SIMPLE_CSV_COLUMNS_EN;
+  const rows = SIMPLE_CSV_TEMPLATE_SAMPLE_ROWS[lang];
   return `\uFEFF${hdr.join(',')}\n${rows.map((r) => r.map(escapeCsvCell).join(',')).join('\n')}`;
 }
 
@@ -982,9 +1041,9 @@ export function isRowImportable(row: ParsedCsvRow): boolean {
 export function matchStatusLabel(status: StopMatchStatus, t: (key: string, fallback: string) => string): string {
   switch (status) {
     case 'coords':
-      return t('priceLists.import.match.coords', 'Coords');
+      return t('priceLists.import.match.coords', 'Pinned');
     case 'city_only':
-      return t('priceLists.import.match.cityOnly', 'City only');
+      return t('priceLists.import.match.cityOnly', 'City');
     default:
       return t('priceLists.import.match.missing', 'Missing');
   }

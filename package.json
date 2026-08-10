@@ -9,7 +9,9 @@
     "build": "tsc -b && vite build",
     "build:staging": "tsc -b && vite build --mode staging",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",
@@ -42,6 +44,7 @@
     "globals": "^17.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^3.2.7"
   }
 }
