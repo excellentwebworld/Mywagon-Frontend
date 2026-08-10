@@ -11,8 +11,6 @@ import { CreateShipmentStep2Page } from './pages/CreateShipmentWizard/steps/Crea
 import { CreateShipmentStep3Page } from './pages/CreateShipmentWizard/steps/CreateShipmentStep3Page';
 import { AddressBook } from './pages/AddressBook';
 import { ProductMaster } from './pages/ProductMaster';
-import { MarketingHome } from './pages/MarketingHome';
-import { MarketingAbout } from './pages/MarketingAbout';
 import Partners from './pages/Partners';
 import { ErpOrders } from './pages/ErpOrders/ErpOrders';
 import { SearchTrucks } from './pages/SearchTrucks';
@@ -76,10 +74,10 @@ export const router = createBrowserRouter(
       ]
     : [
         { path: '/login', element: <LoginPage /> },
-        { path: '/', element: <MarketingHome /> },
-        { path: '/about', element: <MarketingAbout /> },
+        { path: '/', element: <Navigate to="/login" replace /> },
+        { path: '/about', element: <Navigate to="/login" replace /> },
         protectedLayout,
-        { path: '*', element: <Navigate to="/" replace /> },
+        { path: '*', element: <Navigate to="/login" replace /> },
       ],
   { basename }
 );
