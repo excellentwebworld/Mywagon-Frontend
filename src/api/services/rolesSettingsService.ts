@@ -1,4 +1,4 @@
-import { apiGet, apiPut } from '../client';
+import { apiDelete, apiGet, apiPost, apiPut } from '../client';
 
 export type PermissionCatalogItem = {
   name: string;
@@ -32,14 +32,40 @@ export type RolesPayload = {
   groups: PermissionCatalogGroup[];
 };
 
+export type CreateRoleBody = {
+  name: string;
+  color?: string;
+  description?: string;
+  key?: string;
+  permissions?: string[];
+};
+
+export type UpdateRoleBody = {
+  name?: string;
+  color?: string;
+  description?: string;
+  permissions?: string[];
+};
+
 export const rolesSettingsService = {
   async list(): Promise<RolesPayload> {
     const res = await apiGet<RolesPayload>('/settings/roles');
     return res.data;
   },
 
-  async update(name: string, permissions: string[]): Promise<RolesPayload> {
-    const res = await apiPut<RolesPayload>(`/settings/roles/${name}`, { permissions });
+  async create(body: CreateRoleBody): Promise<RolesPayload> {
+    const res = await apiPost<RolesPayload>('/settings/roles', body);
+    return res.data;
+  },
+
+  async update(name: string, body: UpdateRoleBody | string[]): Promise<RolesPayload> {
+    const payload = Array.isArray(body) ? { permissions: body } : body;
+    const res = await apiPut<RolesPayload>(`/settings/roles/${name}`, payload);
+    return res.data;
+  },
+
+  async destroy(name: string): Promise<RolesPayload> {
+    const res = await apiDelete<RolesPayload>(`/settings/roles/${name}`);
     return res.data;
   },
 

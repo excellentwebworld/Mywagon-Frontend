@@ -23,10 +23,11 @@ import {
   USER_STATUS_CONFIG, getUserInitials, getUserFullName, getUserAvatarColor,
   getInviteStatus,
 } from '../../../mocks/userMgmtData';
-import { hasCustomDirectPermissions, SHIPPER_ROLES, ROLES_BY_KEY } from '../../../utils/shipperAccessPresets';
+import { hasCustomDirectPermissions, SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { ApiError } from '../../../api/client';
 import { parseUtcInstant } from '../../../utils/timezone';
+import { formatIsoDisplayDateTime } from '../../../utils/dateDisplay';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 const SORT_FIELDS = ['user', 'role', 'status', 'lastActive', 'created'];
@@ -41,6 +42,11 @@ export default function UsersTab() {
   const { toast } = useToast();
   const { users, setUsers, addUser, updateUser, refresh, loading, error, roles } = useUserMgmt();
   const roleFilterOptions = roles.length ? roles : SHIPPER_ROLES;
+  const rolesByKey = useMemo(() => {
+    const map = {};
+    roleFilterOptions.forEach((r) => { map[r.key] = r; });
+    return map;
+  }, [roleFilterOptions]);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState([]);
   const [statusFilter, setStatusFilter] = useState([]);
@@ -48,8 +54,8 @@ export default function UsersTab() {
   const [sortDir, setSortDir] = useState('desc');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalUser, setModalUser] = useState(null);
   const [actionMenu, setActionMenu] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [showRoleFilter, setShowRoleFilter] = useState(false);
@@ -77,7 +83,7 @@ export default function UsersTab() {
         getUserFullName(u).toLowerCase().includes(q) ||
         u.email?.toLowerCase?.().includes(q) ||
         (u.phone || '').includes(q) ||
-        (ROLES_BY_KEY[u.role]?.name || u.role || '').toLowerCase().includes(q),
+        (rolesByKey[u.role]?.name || u.role || '').toLowerCase().includes(q),
       );
     }
     if (roleFilter.length) list = list.filter((u) => roleFilter.includes(u.role));
@@ -86,7 +92,7 @@ export default function UsersTab() {
       let va; let vb;
       switch (sortField) {
         case 'user': va = getUserFullName(a).toLowerCase(); vb = getUserFullName(b).toLowerCase(); break;
-        case 'role': va = (ROLES_BY_KEY[a.role]?.name || a.role || ''); vb = (ROLES_BY_KEY[b.role]?.name || b.role || ''); break;
+        case 'role': va = (rolesByKey[a.role]?.name || a.role || ''); vb = (rolesByKey[b.role]?.name || b.role || ''); break;
         case 'status': va = a.status || ''; vb = b.status || ''; break;
         case 'lastActive': va = a.lastActive || a.last_active || ''; vb = b.lastActive || b.last_active || ''; break;
         case 'created': va = a.created || a.created_at || ''; vb = b.created || b.created_at || ''; break;
@@ -97,7 +103,7 @@ export default function UsersTab() {
       return 0;
     });
     return list;
-  }, [users, search, roleFilter, statusFilter, sortField, sortDir]);
+  }, [users, search, roleFilter, statusFilter, sortField, sortDir, rolesByKey]);
 
   const totalCount = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -121,13 +127,18 @@ export default function UsersTab() {
 
   const openEdit = (u) => {
     setActionMenu(null);
-    setEditingUser(u);
-    setInviteOpen(true);
+    setModalUser(u);
+    setModalOpen(true);
   };
 
-  const closeUserModal = () => {
-    setInviteOpen(false);
-    setEditingUser(null);
+  const openInvite = () => {
+    setModalUser(null);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setModalUser(null);
   };
 
   const handleReactivate = async (u) => {
@@ -224,13 +235,13 @@ export default function UsersTab() {
     if (hrs < 24) return t('userMgmt.table.hrsAgo', { n: hrs });
     const days = Math.floor(hrs / 24);
     if (days < 7) return t('userMgmt.table.daysAgo', { n: days });
-    return d.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' });
+    const formatted = formatIsoDisplayDateTime(iso);
+    return formatted ? formatted.split(' ')[0] : t('userMgmt.table.never');
   };
   const formatDate = (iso) => {
     if (!iso) return '—';
-    const d = parseUtcInstant(iso);
-    if (!d) return '—';
-    return d.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' });
+    const formatted = formatIsoDisplayDateTime(iso);
+    return formatted ? formatted.split(' ')[0] : '—';
   };
 
   const handleExport = () => {
@@ -246,7 +257,7 @@ export default function UsersTab() {
         u.firstName || u.first_name || '',
         u.lastName || u.last_name || '',
         u.email || '',
-        ROLES_BY_KEY[u.role]?.name || u.role || '',
+        rolesByKey[u.role]?.name || u.role || '',
         u.status || '',
         u.lastActive || u.last_active || '',
         u.created || u.created_at || '',
@@ -280,6 +291,7 @@ export default function UsersTab() {
           {error}
         </div>
       )}
+      <div className="flex flex-col flex-1 min-w-0">
       <div className="flex flex-wrap items-center gap-2 px-0 md:px-0 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
         <div className="relative" style={{ width: 220 }}>
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: T.t3 }} />
@@ -352,7 +364,7 @@ export default function UsersTab() {
           {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
           {t('userMgmt.export')}
         </button>
-        <button type="button" onClick={() => { setEditingUser(null); setInviteOpen(true); }}
+        <button type="button" onClick={openInvite}
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none"
           style={{ background: T.ac, color: '#fff', fontSize: 12, fontWeight: 600 }}>
           <UserPlus size={14} /> {t('userMgmt.inviteUser')}
@@ -399,6 +411,7 @@ export default function UsersTab() {
             )}
             {!(loading && users.length === 0) && pageData.map((u) => (
               <UserRow key={String(u.id)} user={u} T={T} t={t}
+                rolesByKey={rolesByKey}
                 onEdit={() => openEdit(u)}
                 actionMenu={actionMenu === u.id || actionMenu === String(u.id)}
                 onActionMenuToggle={() => {
@@ -434,20 +447,21 @@ export default function UsersTab() {
         setPage={setPage}
         itemLabel={t('userMgmt.table.users')}
       />
+      </div>
 
       <InviteUserModal
-        open={inviteOpen}
-        user={editingUser}
-        onClose={closeUserModal}
+        open={modalOpen}
+        user={modalUser}
+        onClose={closeModal}
         onInvite={async (newUser) => {
           addUser(newUser);
-          closeUserModal();
+          closeModal();
           toast.success(t('userMgmt.toast.invited', { email: newUser.email }));
           await refresh();
         }}
         onSaved={async (updated) => {
           updateUser(updated);
-          closeUserModal();
+          closeModal();
           toast.success(t('userMgmt.toast.userUpdated', {
             name: getUserFullName(updated),
             defaultValue: 'User updated',
@@ -507,13 +521,13 @@ function UsersTableSkeleton({ T, rows = 6 }) {
 }
 
 function UserRow({
-  user: u, T, t, onEdit,
+  user: u, T, t, onEdit, rolesByKey,
   actionMenu, onActionMenuToggle,
   onReactivate, onDeactivate, onDelete,
   onCancelInvite, onResendInvite, onCopyLink, onForceSignout,
   relTime, formatDate, actionMenuRef,
 }) {
-  const role = ROLES_BY_KEY[u.role] || { name: u.role, color: '#3B82F6' };
+  const role = rolesByKey?.[u.role] || { name: u.role, color: '#3B82F6' };
   const status = String(u.status || 'active').toLowerCase();
   const sc = USER_STATUS_CONFIG[status] || USER_STATUS_CONFIG.active;
   const inviteInfo = getInviteStatus(u);
@@ -589,6 +603,7 @@ function UserRow({
       <td
         className="px-3 py-3 relative text-right"
         style={{ position: 'sticky', right: 0, background: 'inherit', zIndex: 1 }}
+        onClick={(e) => e.stopPropagation()}
       >
         <button
           ref={btnRef}

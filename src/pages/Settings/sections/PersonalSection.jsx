@@ -1,5 +1,5 @@
 /**
- * PersonalSection — Personal Info settings (PDS-937, no Role).
+ * PersonalSection — Personal Info settings (PDS-937).
  * Live data via GET/PUT /api/shipper/v1/settings/personal (+ avatar POST).
  */
 
@@ -8,13 +8,14 @@ import { useTranslation } from 'react-i18next';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import {
-  Pencil, X, Check, Lock, Briefcase, Camera, Clock,
+  Pencil, X, Check, Lock, Briefcase, Camera, Clock, Shield,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useAuth } from '../../../hooks/useAuth';
 import { useToast } from '../../../hooks/useToast';
 import { personalSettingsService } from '../../../api/services/personalSettingsService';
 import { parseUtcInstant } from '../../../utils/timezone';
+import { formatIsoDisplayDateTime } from '../../../utils/dateDisplay';
 
 export default function PersonalSection() {
   const { t } = useTranslation();
@@ -146,6 +147,15 @@ export default function PersonalSection() {
   }
 
   const profile = data.profile;
+  const roleAccess = data.role_access ?? {
+    role_key: 'admin',
+    role_name: 'Admin',
+    role_color: '#7C3AED',
+    assigned_by: t('settings.profileSection.role.system', { defaultValue: 'System' }),
+    since: data.account?.member_since ?? null,
+    module_access: [],
+    has_custom_permissions: false,
+  };
   const displayFirst = editing ? draft.first_name : profile.first_name;
   const displayLast = editing ? draft.last_name : profile.last_name;
   const currentAvatar = avatarPreview || profile.avatar_url;
@@ -311,6 +321,26 @@ export default function PersonalSection() {
         </div>
       </Card>
 
+      <Card
+        title={t('settings.profileSection.roleAccess')}
+        icon={<Shield size={16} style={{ color: '#7C3AED' }} />}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <RoleBox
+            label={t('settings.profileSection.role.role')}
+            value={roleAccess.role_name}
+          />
+          <RoleBox
+            label={t('settings.profileSection.role.assignedBy')}
+            value={roleAccess.assigned_by}
+          />
+          <RoleBox
+            label={t('settings.profileSection.role.since')}
+            value={formatIsoDate(roleAccess.since)}
+          />
+        </div>
+      </Card>
+
       <Card title={t('settings.profileSection.prefsActivity')} icon={<Clock size={16} style={{ color: T.ac }} />}>
         <div className="font-semibold mb-2" style={{ fontSize: 12, color: T.t2 }}>
           {t('settings.profileSection.activity.recentTitle')}
@@ -410,12 +440,22 @@ function Field({ label, value, onChange, editing, locked, lockMsg, required, ico
   );
 }
 
+function RoleBox({ label, value }) {
+  const { T: theme } = useTheme();
+  return (
+    <div className="px-4 py-3 rounded-xl" style={{ background: theme.sa, border: `1px solid ${theme.bd}` }}>
+      <div style={{ fontSize: 11, color: theme.t3, fontWeight: 500, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: theme.t1 }}>{value || '—'}</div>
+    </div>
+  );
+}
+
 function InfoRow({ label, value }) {
   const { T: theme } = useTheme();
   return (
     <div className="px-3 py-2 rounded-lg" style={{ background: theme.sa }}>
       <div style={{ fontSize: 10, color: theme.t3, fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: theme.t1 }}>{value}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: theme.t1 }}>{value ?? '—'}</div>
     </div>
   );
 }
@@ -464,6 +504,20 @@ function PersonalSkeleton({ T }) {
       <div className="rounded-xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
         <div className="flex items-center gap-2 px-5 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
           <Skeleton circle width={16} height={16} {...sk} />
+          <Skeleton width={140} height={14} borderRadius={4} {...sk} />
+        </div>
+        <div className="px-5 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Skeleton height={52} borderRadius={8} {...sk} />
+            <Skeleton height={52} borderRadius={8} {...sk} />
+            <Skeleton height={52} borderRadius={8} {...sk} />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+        <div className="flex items-center gap-2 px-5 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
+          <Skeleton circle width={16} height={16} {...sk} />
           <Skeleton width={180} height={14} borderRadius={4} {...sk} />
         </div>
         <div className="px-5 py-4 space-y-4">
@@ -476,6 +530,13 @@ function PersonalSkeleton({ T }) {
       </div>
     </div>
   );
+}
+
+function formatIsoDate(iso) {
+  if (!iso) return '—';
+  const formatted = formatIsoDisplayDateTime(iso);
+  if (!formatted) return '—';
+  return formatted.split(' ')[0];
 }
 
 function formatDate(iso) {

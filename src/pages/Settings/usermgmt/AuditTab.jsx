@@ -25,6 +25,7 @@ import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { DatePicker } from '../../../components/ui/DatePicker';
 import { auditSettingsService } from '../../../api/services/auditSettingsService';
+import { formatIsoDisplayDateTime } from '../../../utils/dateDisplay';
 import { UserAuditTabSkeleton } from '../components/AuditSkeletons';
 
 const ACTION_ICONS = {
@@ -63,8 +64,8 @@ const ACTION_COLORS = {
 
 const ACTION_TYPES = [
   'login', 'invited', 'roleChanged', 'roleCreated', 'roleEdited',
-  'suspended', 'deactivated', 'reactivated', 'permissionsEdited',
-  'passwordReset', 'mfaChanged', 'signedOut', 'deleted', 'policyChanged',
+  'deactivated', 'reactivated', 'permissionsEdited',
+  'passwordReset', 'mfaChanged', 'signedOut',
 ];
 
 export default function AuditTab() {
@@ -152,13 +153,15 @@ export default function AuditTab() {
   };
 
   const formatDate = (iso) => {
-    const d = new Date(iso);
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    if (!iso) return '';
+    const formatted = formatIsoDisplayDateTime(iso);
+    return formatted ? formatted.split(' ')[0] : '';
   };
 
   const formatTime = (iso) => {
-    const d = new Date(iso);
-    return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    if (!iso) return '';
+    const formatted = formatIsoDisplayDateTime(iso);
+    return formatted ? (formatted.split(' ')[1] || '') : '';
   };
 
   return (

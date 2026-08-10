@@ -25,6 +25,21 @@ export type PersonalRatingItem = {
   rater_avatar_url: string | null;
 };
 
+export type PersonalModuleAccessGroup = {
+  group: string;
+  permissions: string[];
+};
+
+export type PersonalRoleAccess = {
+  role_key: string;
+  role_name: string;
+  role_color: string;
+  assigned_by: string;
+  since: string | null;
+  module_access: PersonalModuleAccessGroup[];
+  has_custom_permissions: boolean;
+};
+
 export type PersonalSettingsPayload = {
   profile: {
     first_name: string | null;
@@ -47,6 +62,7 @@ export type PersonalSettingsPayload = {
     rating_count?: number;
   };
   activity?: PersonalActivityItem[];
+  role_access?: PersonalRoleAccess;
   main_use_options: PersonalMainUseOption[];
 };
 

@@ -45,7 +45,7 @@ export type InviteUserBody = {
   email: string;
   phone?: string | null;
   country_code?: string | null;
-  role: 'admin' | 'dispatcher';
+  role: string;
   permissions?: string[];
 };
 
@@ -54,7 +54,7 @@ export type UpdateUserBody = {
   last_name?: string;
   phone?: string | null;
   job_title?: string | null;
-  role?: 'admin' | 'dispatcher';
+  role?: string;
   permissions?: string[] | null;
   reset_to_role?: boolean;
 };

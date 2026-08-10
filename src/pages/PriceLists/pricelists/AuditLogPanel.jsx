@@ -33,7 +33,6 @@ const ACTION_TYPES = [
   'activated',
   'deactivated',
   'archived',
-  'deleted',
   'duplicated',
   'imported',
 ];

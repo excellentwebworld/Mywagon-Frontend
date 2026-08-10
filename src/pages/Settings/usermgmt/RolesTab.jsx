@@ -1,9 +1,8 @@
 /**
- * RolesTab — Admin / Dispatcher from live API + custom Add role (design parity).
- * System roles save via API; custom roles persist locally until backend supports them.
+ * RolesTab — system + custom roles from live API (PDS-937).
  */
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Search, Pencil, X, Check, AlertTriangle, Plus, Copy, Trash2,
@@ -18,38 +17,33 @@ import { useUserMgmt } from '../../../context/UserMgmtContext';
 import { rolesSettingsService } from '../../../api/services/rolesSettingsService';
 import { ApiError } from '../../../api/client';
 
-const CUSTOM_ROLES_KEY = 'mv_shipper_custom_roles';
 const COLORS = ['#7C3AED', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#EC4899', '#8B5CF6'];
 
-function loadCustomRoles() {
-  try {
-    const raw = localStorage.getItem(CUSTOM_ROLES_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveCustomRoles(roles) {
-  try {
-    localStorage.setItem(CUSTOM_ROLES_KEY, JSON.stringify(roles));
-  } catch {
-    /* ignore quota */
-  }
+function applyRolesPayload(data, setApiRoles, setPermissionGroups) {
+  setApiRoles(data.roles || []);
+  setPermissionGroups(data.groups || []);
 }
 
 export default function RolesTab() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
-  const { users, roles: apiRoles, setRoles: setApiRoles, setPermissionGroups, loading } = useUserMgmt();
+  const {
+    users,
+    roles,
+    setRoles: setApiRoles,
+    setPermissionGroups,
+    refresh,
+    loading,
+  } = useUserMgmt();
   const isGreek = i18n.language === 'el';
 
-  const [customRoles, setCustomRoles] = useState(loadCustomRoles);
   const [selectedKey, setSelectedKey] = useState(null);
   const [editing, setEditing] = useState(false);
   const [editPerms, setEditPerms] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editColor, setEditColor] = useState('#3B82F6');
+  const [editDescription, setEditDescription] = useState('');
   const [autoEnabled, setAutoEnabled] = useState(new Set());
   const [permSearch, setPermSearch] = useState('');
   const [saving, setSaving] = useState(false);
@@ -57,13 +51,6 @@ export default function RolesTab() {
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleColor, setNewRoleColor] = useState('#3B82F6');
   const [nameError, setNameError] = useState('');
-
-  const persistCustom = useCallback((next) => {
-    setCustomRoles(next);
-    saveCustomRoles(next);
-  }, []);
-
-  const roles = useMemo(() => [...(apiRoles || []), ...customRoles], [apiRoles, customRoles]);
 
   useEffect(() => {
     if (!selectedKey && roles.length) {
@@ -92,6 +79,9 @@ export default function RolesTab() {
         ? []
         : [...(selectedRole.permission_names || selectedRole.permissions || [])],
     );
+    setEditName(selectedRole.name || '');
+    setEditColor(selectedRole.color || '#3B82F6');
+    setEditDescription(selectedRole.description || '');
     setAutoEnabled(new Set());
     setEditing(true);
   };
@@ -105,23 +95,25 @@ export default function RolesTab() {
   const saveEdit = async () => {
     if (!selectedRole) return;
 
-    if (isCustom) {
-      const next = customRoles.map((r) => (
-        r.key === selectedRole.key
-          ? { ...r, permissions: editPerms || [], permission_names: editPerms || [] }
-          : r
-      ));
-      persistCustom(next);
-      cancelEdit();
-      toast.success(t('userMgmt.toast.roleSaved'));
-      return;
-    }
-
     setSaving(true);
     try {
-      const data = await rolesSettingsService.update(selectedRole.key, editPerms || []);
-      setApiRoles(data.roles || []);
-      setPermissionGroups(data.groups || []);
+      if (isCustom) {
+        const trimmed = editName.trim();
+        if (!trimmed) {
+          toast.error(t('userMgmt.roles.nameRequired', { defaultValue: 'Role name is required.' }));
+          return;
+        }
+        const data = await rolesSettingsService.update(selectedRole.key, {
+          name: trimmed,
+          color: editColor,
+          description: editDescription,
+          permissions: editPerms || [],
+        });
+        applyRolesPayload(data, setApiRoles, setPermissionGroups);
+      } else {
+        const data = await rolesSettingsService.update(selectedRole.key, editPerms || []);
+        applyRolesPayload(data, setApiRoles, setPermissionGroups);
+      }
       cancelEdit();
       toast.success(t('userMgmt.toast.roleSaved'));
     } catch (e) {
@@ -132,90 +124,92 @@ export default function RolesTab() {
     }
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const trimmed = newRoleName.trim();
     if (!trimmed) {
       setNameError(t('userMgmt.roles.nameRequired', { defaultValue: 'Role name is required.' }));
       return;
     }
-    const key = trimmed.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-    if (!key) {
-      setNameError(t('userMgmt.roles.nameInvalid', { defaultValue: 'Enter a valid role name using letters or numbers.' }));
-      return;
-    }
-    if (roles.some((r) => r.key === key || String(r.name || r.label || '').trim().toLowerCase() === trimmed.toLowerCase())) {
+    if (roles.some((r) => String(r.name || r.label || '').trim().toLowerCase() === trimmed.toLowerCase())) {
       setNameError(t('userMgmt.roles.nameTaken', { defaultValue: 'A role with this name already exists.' }));
       return;
     }
-    const newRole = {
-      id: `role-custom-${Date.now()}`,
-      key,
-      name: trimmed,
-      label: trimmed,
-      color: newRoleColor,
-      isSystem: false,
-      is_system: false,
-      description: '',
-      permissions: [],
-      permission_names: [],
-      userCount: 0,
-      user_count: 0,
-    };
-    persistCustom([...customRoles, newRole]);
-    setSelectedKey(newRole.key);
-    setShowCreate(false);
-    setNewRoleName('');
-    setNewRoleColor('#3B82F6');
-    setNameError('');
-    toast.success(t('userMgmt.toast.roleCreated'));
-  };
 
-  const handleDuplicate = () => {
-    if (!selectedRole) return;
-    const baseKey = `${selectedRole.key}_copy`;
-    let key = baseKey;
-    let i = 2;
-    while (roles.some((r) => r.key === key)) {
-      key = `${baseKey}_${i++}`;
+    setSaving(true);
+    try {
+      const data = await rolesSettingsService.create({
+        name: trimmed,
+        color: newRoleColor,
+        permissions: [],
+      });
+      applyRolesPayload(data, setApiRoles, setPermissionGroups);
+      const created = data.roles?.find((r) => r.name === trimmed) || data.roles?.[data.roles.length - 1];
+      if (created) setSelectedKey(created.key);
+      setShowCreate(false);
+      setNewRoleName('');
+      setNewRoleColor('#3B82F6');
+      setNameError('');
+      toast.success(t('userMgmt.toast.roleCreated'));
+      await refresh();
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' });
+      toast.error(msg);
+    } finally {
+      setSaving(false);
     }
-    const dup = {
-      ...selectedRole,
-      id: `role-dup-${Date.now()}`,
-      key,
-      name: `${selectedRole.name} (Copy)`,
-      label: `${selectedRole.name} (Copy)`,
-      isSystem: false,
-      is_system: false,
-      permissions: selectedRole.permissions === null
-        ? []
-        : [...(selectedRole.permission_names || selectedRole.permissions || [])],
-      permission_names: selectedRole.permissions === null
-        ? []
-        : [...(selectedRole.permission_names || selectedRole.permissions || [])],
-      userCount: 0,
-      user_count: 0,
-    };
-    persistCustom([...customRoles, dup]);
-    setSelectedKey(dup.key);
-    cancelEdit();
-    toast.success(t('userMgmt.toast.roleDuplicated'));
   };
 
-  const handleDelete = () => {
+  const handleDuplicate = async () => {
+    if (!selectedRole) return;
+    const copyName = `${selectedRole.name} (Copy)`;
+    setSaving(true);
+    try {
+      const data = await rolesSettingsService.create({
+        name: copyName,
+        color: selectedRole.color,
+        description: selectedRole.description,
+        permissions: selectedRole.permissions === null
+          ? []
+          : [...(selectedRole.permission_names || selectedRole.permissions || [])],
+      });
+      applyRolesPayload(data, setApiRoles, setPermissionGroups);
+      const created = data.roles?.find((r) => r.name === copyName);
+      if (created) setSelectedKey(created.key);
+      cancelEdit();
+      toast.success(t('userMgmt.toast.roleDuplicated'));
+      await refresh();
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' });
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
     if (!selectedRole || isSystem) return;
     if (usersOnRole.length > 0) {
       toast.error(t('userMgmt.roles.cannotDelete', { n: usersOnRole.length }));
       return;
     }
-    const next = customRoles.filter((r) => r.key !== selectedRole.key);
-    persistCustom(next);
-    const remaining = [...(apiRoles || []), ...next];
-    setSelectedKey(remaining[0]?.key || null);
-    cancelEdit();
-    toast.success(t('userMgmt.toast.roleDeleted'));
+
+    setSaving(true);
+    try {
+      const data = await rolesSettingsService.destroy(selectedRole.key);
+      applyRolesPayload(data, setApiRoles, setPermissionGroups);
+      setSelectedKey(data.roles?.[0]?.key || null);
+      cancelEdit();
+      toast.success(t('userMgmt.toast.roleDeleted'));
+      await refresh();
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' });
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  if (loading && !apiRoles.length) {
+  if (loading && !roles.length) {
     const sk = { baseColor: T.sa, highlightColor: T.bd };
     return (
       <div className="flex flex-col md:flex-row gap-4" style={{ minHeight: 400 }} aria-busy="true">
@@ -324,7 +318,7 @@ export default function RolesTab() {
               }}
               autoFocus
               aria-invalid={Boolean(nameError)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') void handleCreate(); }}
             />
             {!!nameError && (
               <div style={{ color: '#DC2626', fontSize: 11, marginBottom: 8, lineHeight: 1.35 }}>
@@ -345,7 +339,8 @@ export default function RolesTab() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={handleCreate}
+                onClick={() => void handleCreate()}
+                disabled={saving}
                 className="flex-1 px-2 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
                 style={{ background: T.ac, color: '#fff', fontSize: 11 }}
               >
@@ -368,9 +363,20 @@ export default function RolesTab() {
         {selectedRole ? (
           <>
             <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-              <div className="flex items-center gap-2.5">
-                <span className="w-4 h-4 rounded-full" style={{ background: selectedRole.color }} />
-                <h3 className="font-bold" style={{ fontSize: 16, color: T.t1 }}>{selectedRole.name}</h3>
+              <div className="flex items-center gap-2.5 min-w-0">
+                {editing && isCustom ? (
+                  <input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="px-2.5 py-1.5 rounded-lg outline-none font-bold"
+                    style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 16, minWidth: 180 }}
+                  />
+                ) : (
+                  <>
+                    <span className="w-4 h-4 rounded-full shrink-0" style={{ background: selectedRole.color }} />
+                    <h3 className="font-bold" style={{ fontSize: 16, color: T.t1 }}>{selectedRole.name}</h3>
+                  </>
+                )}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {!editing ? (
@@ -392,7 +398,8 @@ export default function RolesTab() {
                     </button>
                     <button
                       type="button"
-                      onClick={handleDuplicate}
+                      onClick={() => void handleDuplicate()}
+                      disabled={saving}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
                       style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}
                     >
@@ -401,7 +408,8 @@ export default function RolesTab() {
                     {isCustom && (
                       <button
                         type="button"
-                        onClick={handleDelete}
+                        onClick={() => void handleDelete()}
+                        disabled={saving}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
                         style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444', fontSize: 12 }}
                       >
@@ -413,7 +421,7 @@ export default function RolesTab() {
                   <>
                     <button
                       type="button"
-                      onClick={saveEdit}
+                      onClick={() => void saveEdit()}
                       disabled={saving}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
                       style={{ background: T.ac, color: '#fff', fontSize: 12 }}
@@ -433,7 +441,26 @@ export default function RolesTab() {
               </div>
             </div>
 
-            {selectedRole.description && (
+            {editing && isCustom && (
+              <div className="mb-3">
+                <div style={{ fontSize: 11, fontWeight: 600, color: T.t3, marginBottom: 6 }}>
+                  {t('userMgmt.roles.color', { defaultValue: 'Color' })}
+                </div>
+                <div className="flex gap-1 flex-wrap">
+                  {COLORS.map((c) => (
+                    <button
+                      type="button"
+                      key={c}
+                      onClick={() => setEditColor(c)}
+                      className="w-6 h-6 rounded-full cursor-pointer border-none"
+                      style={{ background: c, outline: editColor === c ? `2px solid ${T.ac}` : 'none', outlineOffset: 2 }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!editing && selectedRole.description && (
               <p style={{ fontSize: 12, color: T.t3, marginBottom: 12 }}>{selectedRole.description}</p>
             )}
 

@@ -1,0 +1,289 @@
+/**
+ * UserDetailPanel — invite or edit user in a side panel (PDS-937).
+ */
+
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Send, Check, X } from 'lucide-react';
+import { useTheme } from '../../../hooks/useTheme';
+import { useUserMgmt } from '../../../context/UserMgmtContext';
+import { usersSettingsService } from '../../../api/services/usersSettingsService';
+import { ApiError } from '../../../api/client';
+import { SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
+
+const EMPTY_FORM = {
+  firstName: '', lastName: '', email: '', phone: '',
+  role: '', message: '',
+};
+
+function formFromUser(user) {
+  if (!user) return { ...EMPTY_FORM };
+  return {
+    firstName: user.firstName || user.first_name || '',
+    lastName: user.lastName || user.last_name || '',
+    email: user.email || '',
+    phone: user.phone || '',
+    role: user.role || '',
+    message: '',
+  };
+}
+
+export default function UserDetailPanel({
+  mode,
+  user = null,
+  onClose,
+  onInvite,
+  onSaved,
+}) {
+  const { t } = useTranslation();
+  const { T } = useTheme();
+  const { roles, seats, setSeats } = useUserMgmt();
+  const isEdit = mode === 'edit' && !!user;
+
+  const roleOptions = roles.length
+    ? roles.map((r) => ({
+        key: r.key,
+        name: r.name,
+        color: r.color,
+        description: r.description,
+        permissions: r.permissions,
+        permission_names: r.permission_names,
+      }))
+    : SHIPPER_ROLES;
+
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (mode === 'closed') return;
+    setForm(mode === 'invite' ? { ...EMPTY_FORM } : formFromUser(user));
+    setErrors({});
+    setSubmitting(false);
+  }, [mode, user]);
+
+  const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
+
+  const validate = () => {
+    const errs = {};
+    if (!form.firstName.trim()) errs.firstName = t('userMgmt.invite.required');
+    if (!form.lastName.trim()) errs.lastName = t('userMgmt.invite.required');
+    if (!isEdit) {
+      if (!form.email.trim()) errs.email = t('userMgmt.invite.required');
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = t('userMgmt.invite.invalidEmail');
+    }
+    if (!form.role) errs.role = t('userMgmt.invite.selectRole');
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validate()) return;
+
+    if (!isEdit) {
+      if (seats && seats.can_invite === false) {
+        setErrors({ email: t('userMgmt.seats.limitReached', { defaultValue: 'Seat limit reached' }) });
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const created = await usersSettingsService.invite({
+          first_name: form.firstName.trim(),
+          last_name: form.lastName.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim() || null,
+          role: form.role,
+        });
+        onInvite?.(created);
+        setForm({ ...EMPTY_FORM });
+        setErrors({});
+        if (seats) {
+          setSeats({
+            ...seats,
+            used: (seats.used || 0) + 1,
+            remaining: Math.max(0, (seats.remaining || 0) - 1),
+            can_invite: (seats.remaining || 0) - 1 > 0,
+          });
+        }
+      } catch (e) {
+        const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.inviteFailed', { defaultValue: 'Invite failed' });
+        if (e instanceof ApiError && e.fieldErrors?.email?.[0]) {
+          setErrors({ email: e.fieldErrors.email[0] });
+        } else {
+          setErrors({ email: msg });
+        }
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const isOwner = !!(user.isOwner || user.is_owner);
+      const updated = await usersSettingsService.update(user.id, {
+        first_name: form.firstName.trim(),
+        last_name: form.lastName.trim(),
+        phone: form.phone.trim() || null,
+        ...(isOwner ? {} : { role: form.role }),
+      });
+      onSaved?.(updated);
+      setErrors({});
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' });
+      if (e instanceof ApiError && e.fieldErrors) {
+        const mapped = {};
+        if (e.fieldErrors.first_name?.[0]) mapped.firstName = e.fieldErrors.first_name[0];
+        if (e.fieldErrors.last_name?.[0]) mapped.lastName = e.fieldErrors.last_name[0];
+        if (e.fieldErrors.phone?.[0]) mapped.phone = e.fieldErrors.phone[0];
+        if (e.fieldErrors.role?.[0]) mapped.role = e.fieldErrors.role[0];
+        setErrors(Object.keys(mapped).length ? mapped : { email: msg });
+      } else {
+        setErrors({ email: msg });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (mode === 'closed') return null;
+
+  const isOwner = isEdit && !!(user?.isOwner || user?.is_owner);
+  const title = isEdit ? t('userMgmt.invite.editTitle') : t('userMgmt.invite.title');
+  const hint = isEdit ? t('userMgmt.invite.editHint') : t('userMgmt.invite.singleStepHint');
+  const submitLabel = submitting
+    ? t('common.saving', { defaultValue: isEdit ? 'Saving…' : 'Sending…' })
+    : (isEdit ? t('userMgmt.invite.saveChanges') : t('userMgmt.invite.sendInvitation'));
+
+  return (
+    <div
+      className="shrink-0 overflow-y-auto overflow-x-hidden flex flex-col"
+      style={{
+        width: 420,
+        borderLeft: `1px solid ${T.bd}`,
+        background: T.sf,
+      }}
+    >
+      <div className="flex items-start justify-between p-4" style={{ borderBottom: `1px solid ${T.bd}` }}>
+        <div className="min-w-0 pr-2">
+          <h3 className="font-bold" style={{ fontSize: 16, color: T.t1 }}>{title}</h3>
+          <p style={{ fontSize: 12, color: T.t3, marginTop: 2 }}>{hint}</p>
+        </div>
+        <button type="button" onClick={onClose} className="border-none cursor-pointer bg-transparent p-1 rounded shrink-0" style={{ color: T.t3 }}>
+          <X size={18} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        <div className="grid grid-cols-1 gap-3">
+          <Field label={t('userMgmt.invite.firstName')} required error={errors.firstName} T={T}>
+            <input value={form.firstName} onChange={(e) => set('firstName', e.target.value)}
+              className="w-full px-3 py-2 rounded-lg outline-none"
+              style={{ border: `1px solid ${errors.firstName ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+          </Field>
+          <Field label={t('userMgmt.invite.lastName')} required error={errors.lastName} T={T}>
+            <input value={form.lastName} onChange={(e) => set('lastName', e.target.value)}
+              className="w-full px-3 py-2 rounded-lg outline-none"
+              style={{ border: `1px solid ${errors.lastName ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+          </Field>
+        </div>
+        <Field label={t('userMgmt.invite.email')} required={!isEdit} error={errors.email} T={T}>
+          <input
+            type="email"
+            value={form.email}
+            onChange={(e) => set('email', e.target.value)}
+            disabled={isEdit}
+            className="w-full px-3 py-2 rounded-lg outline-none"
+            style={{
+              border: `1px solid ${errors.email ? '#EF4444' : T.bd}`,
+              background: isEdit ? T.sa : T.sf,
+              color: T.t1,
+              fontSize: 13,
+              opacity: isEdit ? 0.85 : 1,
+              cursor: isEdit ? 'not-allowed' : 'text',
+            }}
+          />
+        </Field>
+        <Field label={t('userMgmt.invite.phone')} error={errors.phone} T={T}>
+          <input value={form.phone} onChange={(e) => set('phone', e.target.value)}
+            placeholder="+30 6XX XXX XXXX"
+            className="w-full px-3 py-2 rounded-lg outline-none"
+            style={{ border: `1px solid ${errors.phone ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+        </Field>
+
+        <div>
+          <label className="block mb-2" style={{ fontSize: 12, fontWeight: 600, color: T.t1 }}>
+            {t('userMgmt.invite.role')} <span style={{ color: '#EF4444' }}>*</span>
+          </label>
+          {errors.role && <p style={{ fontSize: 11, color: '#EF4444', marginBottom: 4 }}>{errors.role}</p>}
+          <div className="grid grid-cols-1 gap-2">
+            {roleOptions.map((role) => {
+              const sel = form.role === role.key;
+              const permCount = role.permissions === null
+                ? null
+                : (role.permission_names || role.permissions || []).length;
+              const disabled = isOwner;
+              return (
+                <button
+                  type="button"
+                  key={role.key}
+                  disabled={disabled}
+                  onClick={() => !disabled && set('role', role.key)}
+                  className="p-3 rounded-xl border-none text-left transition-all duration-150"
+                  style={{
+                    background: sel ? `${T.ac}08` : T.sa,
+                    border: sel ? `2px solid ${T.ac}` : `1px solid ${T.bd}`,
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    opacity: disabled && !sel ? 0.55 : 1,
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ background: role.color }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{role.name}</span>
+                    {sel && <span style={{ fontSize: 11, color: T.ac }}>✓</span>}
+                  </div>
+                  {role.description && (
+                    <p style={{ fontSize: 10, color: T.t3, lineHeight: 1.4 }}>{role.description}</p>
+                  )}
+                  <div style={{ fontSize: 10, color: T.t3, marginTop: 4 }}>
+                    {permCount === null
+                      ? t('userMgmt.invite.allPermissions')
+                      : t('userMgmt.invite.permCount', { n: permCount })
+                    }
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="shrink-0 flex justify-end gap-2 p-4" style={{ borderTop: `1px solid ${T.bd}` }}>
+        <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg cursor-pointer border-none" style={{ background: T.sa, color: T.t2, fontSize: 13 }}>
+          {t('common.cancel')}
+        </button>
+        <button
+          type="button"
+          onClick={() => void handleSubmit()}
+          disabled={submitting}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
+          style={{ background: T.ac, color: '#fff', fontSize: 13, opacity: submitting ? 0.7 : 1 }}
+        >
+          {isEdit ? <Check size={14} /> : <Send size={14} />} {submitLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, required, error, children, T }) {
+  return (
+    <div>
+      <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t1 }}>
+        {label} {required && <span style={{ color: '#EF4444' }}>*</span>}
+      </label>
+      {children}
+      {error && <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{error}</p>}
+    </div>
+  );
+}
