@@ -1089,6 +1089,7 @@
         "recentTitle": "Account activity",
         "accountActivityHint": "Overall account activity — not limited to your personal actions.",
         "empty": "No account activity to show yet. A full audit feed will be available soon.",
+        "viewFullAuditLog": "View full audit log",
         "accountInfo": "Account Information",
         "memberSince": "Member Since",
         "lastLogin": "Last active",

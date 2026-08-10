@@ -5,10 +5,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import {
-  Pencil, X, Check, Lock, Briefcase, Camera, Clock, Shield,
+  Pencil, X, Check, Lock, Briefcase, Camera, Clock, Shield, ArrowRight,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useAuth } from '../../../hooks/useAuth';
@@ -17,8 +18,11 @@ import { personalSettingsService } from '../../../api/services/personalSettingsS
 import { parseUtcInstant } from '../../../utils/timezone';
 import { formatIsoDisplayDateTime } from '../../../utils/dateDisplay';
 
+const ACTIVITY_PREVIEW_LIMIT = 10;
+
 export default function PersonalSection() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { T } = useTheme();
   const { refreshUser } = useAuth();
   const { toast } = useToast();
@@ -159,6 +163,7 @@ export default function PersonalSection() {
   const displayFirst = editing ? draft.first_name : profile.first_name;
   const displayLast = editing ? draft.last_name : profile.last_name;
   const currentAvatar = avatarPreview || profile.avatar_url;
+  const activityPreview = (data.activity || []).slice(0, ACTIVITY_PREVIEW_LIMIT);
 
   return (
     <div className="space-y-4">
@@ -350,14 +355,14 @@ export default function PersonalSection() {
         </p>
         {(data.activity || []).length === 0 ? (
           <div
-            className="px-3 py-4 rounded-lg mb-5 text-center"
+            className="px-3 py-4 rounded-lg mb-3 text-center"
             style={{ background: T.sa, fontSize: 12, color: T.t3 }}
           >
             {t('settings.profileSection.activity.empty')}
           </div>
         ) : (
-          <div className="mb-5 space-y-2">
-            {(data.activity || []).map((item) => (
+          <div className="mb-3 space-y-2">
+            {activityPreview.map((item) => (
               <div
                 key={item.id}
                 className="flex items-start gap-3 px-3 py-2.5 rounded-lg"
@@ -377,6 +382,16 @@ export default function PersonalSection() {
             ))}
           </div>
         )}
+
+        <button
+          type="button"
+          onClick={() => navigate('/settings/audit')}
+          className="flex items-center gap-1.5 mb-5 px-0 py-1 cursor-pointer border-none bg-transparent font-semibold"
+          style={{ fontSize: 12, color: T.ac }}
+        >
+          {t('settings.profileSection.activity.viewFullAuditLog')}
+          <ArrowRight size={14} />
+        </button>
 
         <div className="font-semibold mb-2" style={{ fontSize: 12, color: T.t2 }}>
           {t('settings.profileSection.activity.accountInfo')}

@@ -223,6 +223,11 @@ export default function UsersTab() {
       },
     });
   };
+  const formatDateTime = (iso) => {
+    if (!iso) return t('userMgmt.table.never');
+    const formatted = formatIsoDisplayDateTime(iso);
+    return formatted || t('userMgmt.table.never');
+  };
   const relTime = (iso) => {
     if (!iso) return t('userMgmt.table.never');
     const d = parseUtcInstant(iso);
@@ -259,7 +264,9 @@ export default function UsersTab() {
         u.email || '',
         rolesByKey[u.role]?.name || u.role || '',
         u.status || '',
-        u.lastActive || u.last_active || '',
+        u.lastActive || u.last_active
+          ? (formatIsoDisplayDateTime(u.lastActive || u.last_active) || '')
+          : '',
         u.created || u.created_at || '',
         u.phone || '',
         u.jobTitle || u.job_title || '',
@@ -425,6 +432,7 @@ export default function UsersTab() {
                 onCopyLink={() => { navigator.clipboard?.writeText(window.location.origin); toast.info(t('userMgmt.toast.linkCopied')); setActionMenu(null); }}
                 onForceSignout={() => { handleForceSignOut(u); setActionMenu(null); }}
                 relTime={relTime}
+                formatDateTime={formatDateTime}
                 formatDate={formatDate}
                 actionMenuRef={(actionMenu === u.id || actionMenu === String(u.id)) ? actionMenuRef : null}
               />
@@ -525,7 +533,7 @@ function UserRow({
   actionMenu, onActionMenuToggle,
   onReactivate, onDeactivate, onDelete,
   onCancelInvite, onResendInvite, onCopyLink, onForceSignout,
-  relTime, formatDate, actionMenuRef,
+  relTime, formatDateTime, formatDate, actionMenuRef,
 }) {
   const role = rolesByKey?.[u.role] || { name: u.role, color: '#3B82F6' };
   const status = String(u.status || 'active').toLowerCase();
@@ -597,7 +605,7 @@ function UserRow({
       <td className="px-3 py-3" style={{ fontSize: 12, color: T.t3 }}>
         {status === 'invited' ? (
           <span style={{ color: '#F59E0B' }}>{t('userMgmt.invite.sentAgo', { time: relTime(u.inviteSentAt) })}</span>
-        ) : relTime(u.lastActive || u.last_active)}
+        ) : formatDateTime(u.lastActive || u.last_active)}
       </td>
       <td className="px-3 py-3" style={{ fontSize: 12, color: T.t3 }}>{formatDate(u.created || u.created_at)}</td>
       <td
@@ -685,7 +693,7 @@ function ActionItem({ icon: Icon, label, onClick, T, danger }) {
   );
 }
 
-function MobileUserCard({ user: u, T, t, onClick, relTime }) {
+function MobileUserCard({ user: u, T, t, onClick, formatDateTime }) {
   const role = ROLES_BY_KEY[u.role];
   const sc = USER_STATUS_CONFIG[u.status] || USER_STATUS_CONFIG.active;
   return (
@@ -710,7 +718,7 @@ function MobileUserCard({ user: u, T, t, onClick, relTime }) {
         </div>
       </div>
       <div className="mt-2" style={{ fontSize: 10, color: T.t3 }}>
-        {t('userMgmt.table.col_lastActive')}: {relTime(u.lastActive)}
+        {t('userMgmt.table.col_lastActive')}: {formatDateTime(u.lastActive || u.last_active)}
       </div>
     </button>
   );
