@@ -1,0 +1,267 @@
+.tp-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.tp-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(15, 23, 42, 0.45);
+  cursor: pointer;
+}
+
+.tp-modal__panel {
+  position: relative;
+  width: min(640px, 100%);
+  max-height: min(90vh, 820px);
+  background: var(--surface, #fff);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tp-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.tp-modal__header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.tp-modal__close {
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-secondary, #64748b);
+}
+
+.tp-modal__body {
+  overflow: auto;
+  padding: 16px 20px 20px;
+}
+
+.tp-loading,
+.tp-error {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary, #64748b);
+}
+
+.tp-error {
+  color: #dc2626;
+}
+
+.tp-header-card {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border, #f5edfc);
+  border-radius: 12px;
+  background: var(--surface-muted, #faf6fd);
+  margin-bottom: 16px;
+}
+
+.tp-avatar {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.tp-name {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.tp-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.tp-stars {
+  color: #f59e0b;
+  letter-spacing: 1px;
+}
+
+.tp-star {
+  opacity: 0.25;
+}
+
+.tp-star--on {
+  opacity: 1;
+}
+
+.tp-rating-count {
+  color: var(--brand, #9b51e0);
+}
+
+.tp-kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--brand, #9b51e0);
+}
+
+.tp-kpi strong {
+  font-weight: 600;
+}
+
+.tp-section-title {
+  font-weight: 700;
+  padding: 8px 0 12px;
+  border-bottom: 1px solid var(--border, #f5edfc);
+  margin-bottom: 12px;
+}
+
+.tp-distribution {
+  margin-bottom: 16px;
+}
+
+.tp-dist-row {
+  display: grid;
+  grid-template-columns: 20px 1fr 40px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.tp-dist-bar-wrap {
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.tp-dist-bar {
+  height: 100%;
+  background: var(--brand, #9b51e0);
+  border-radius: 999px;
+  min-width: 0;
+}
+
+.tp-reviews {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tp-review {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border, #f1f5f9);
+}
+
+.tp-review-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.tp-review-rater {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.tp-review-date {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+  margin-left: auto;
+}
+
+.tp-review-otd {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+  margin-bottom: 4px;
+}
+
+.tp-review-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tp-review-empty {
+  padding: 16px 0;
+  color: var(--text-secondary, #64748b);
+  font-size: 14px;
+}
+
+.tp-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.tp-page-btn {
+  border: 1px solid var(--border, #e5e7eb);
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.tp-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tp-page-info {
+  font-size: 13px;
+  color: var(--text-secondary, #64748b);
+}
+
+.tp-name-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--brand, #9b51e0);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tp-name-link:hover {
+  opacity: 0.85;
+}
+
+.carrier-cell .tp-name-link {
+  font-weight: 500;
+}
+
+.bid-carrier-name.tp-name-link,
+.cc-name .tp-name-link {
+  font-weight: 600;
+}
+
+.ld-cr-card .tp-name-link {
+  font-weight: 600;
+  font-size: inherit;
+}

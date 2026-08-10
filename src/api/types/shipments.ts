@@ -132,6 +132,8 @@ export interface ApiShipmentOffer {
   rating?: number | null;
   rating_count?: number | null;
   vat?: string | null;
+  transporter_id?: number | null;
+  transporter_type?: 'carrier' | 'driver' | string | null;
   is_partner?: boolean;
   has_history?: boolean;
   role?: 'company' | 'freelancer' | string;

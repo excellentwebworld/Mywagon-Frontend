@@ -177,6 +177,8 @@ export interface ApiPendingMatchSnapshot {
     responded_at?: string | null;
     kind?: string | null;
     type?: string | null;
+    transporter_id?: number | null;
+    transporter_type?: 'carrier' | 'driver' | string | null;
     is_availability_bid?: boolean;
   }>;
 }

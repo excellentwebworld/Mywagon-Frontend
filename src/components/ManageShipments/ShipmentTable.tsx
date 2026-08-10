@@ -15,6 +15,7 @@ import { RowActionsMenu } from './RowActionsMenu';
 import { RowExpansionPending } from './RowExpansionPending';
 import { RowExpansionStatus } from './RowExpansionStatus';
 import { CarrierAvatar } from './CarrierAvatar';
+import { TransporterNameLink } from '../TransporterProfile/TransporterProfileContext';
 
 const BASE_COL_COUNT = 12;
 
@@ -317,7 +318,11 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                           initials={row.carrier_init}
                           avatar={row.carrierAvatar}
                         />
-                        {row.carrier}
+                        <TransporterNameLink
+                          id={row.carrierId}
+                          type={row.carrierType}
+                          name={row.carrier}
+                        />
                       </div>
                     ) : (
                       <span className="sub">—</span>

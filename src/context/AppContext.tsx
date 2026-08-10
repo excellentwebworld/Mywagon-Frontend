@@ -240,6 +240,8 @@ export interface Shipment {
     rating?: number | null;
     ratingCount?: number | null;
     vat?: string | null;
+    transporterId?: number | null;
+    transporterType?: 'carrier' | 'driver' | null;
     isPartner?: boolean;
     hasHistory?: boolean;
     role?: string;

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { CarrierDetail } from '../../pages/ShipmentDetail/detailViewModel';
 import { CarrierAvatar } from '../ManageShipments/CarrierAvatar';
+import { TransporterNameLink } from '../TransporterProfile/TransporterProfileContext';
 import { CollapsibleCard } from './CollapsibleCard';
 
 interface CarrierCardProps {
@@ -32,7 +33,11 @@ export const CarrierCard: React.FC<CarrierCardProps> = ({
           />
           <div>
             <div style={{ fontWeight: 600 }}>
-              {carrier.name}{' '}
+              <TransporterNameLink
+                id={carrier.userId}
+                type={carrier.userType}
+                name={carrier.name}
+              />{' '}
               {carrier.partner && (
                 <span className="ld-bg ld-bg-ac" style={{ fontSize: 9 }}>
                   PARTNER

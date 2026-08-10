@@ -257,6 +257,8 @@ export interface PendingMatchSnapshot {
     rating?: number | null;
     ratingCount?: number;
     vat?: string | null;
+    transporterId?: number | null;
+    transporterType?: 'carrier' | 'driver' | null;
     isPartner?: boolean;
     role?: string | null;
     respondedAt?: string | null;

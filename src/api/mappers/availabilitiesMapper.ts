@@ -281,6 +281,15 @@ export function mapPendingMatchDetail(item: ApiPendingMatchDetail): PendingMatch
           rating: o.rating ?? null,
           ratingCount: o.rating_count ?? 0,
           vat: o.vat ?? null,
+          transporterId: o.transporter_id ?? null,
+          transporterType:
+            o.transporter_type === 'carrier' || o.transporter_type === 'driver'
+              ? o.transporter_type
+              : o.bidable_type === 'driver'
+                ? 'driver'
+                : o.bidable_type === 'carrier'
+                  ? 'carrier'
+                  : null,
           isPartner: Boolean(o.is_partner),
           role: o.role ?? null,
           respondedAt: o.responded_at ?? null,

@@ -12,6 +12,7 @@ import {
   QuickActions,
 } from './ExpansionShared';
 import { CarrierAvatar } from './CarrierAvatar';
+import { TransporterNameLink } from '../TransporterProfile/TransporterProfileContext';
 import { NegotiationHistoryPanel } from './NegotiationHistoryPanel';
 
 type ExpTranslate = (key: string, opts?: Record<string, unknown>) => string;
@@ -154,7 +155,12 @@ function OfferCard({
           />
           <div className="bid-name-block">
             <div className="bid-name-line">
-              <span className="bid-carrier-name">{offer.name}</span>
+              <TransporterNameLink
+                id={offer.transporterId}
+                type={offer.transporterType}
+                name={offer.name}
+                className="bid-carrier-name tp-name-link"
+              />
               {offer.isPartner ? <span className="bids-partner-badge">{t('partner')}</span> : null}
               <span className="badge badge-gray" style={{ fontSize: 9 }}>
                 {roleLabel}

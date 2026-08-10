@@ -3,6 +3,7 @@ import { availabilitiesService } from '../../api';
 import { mapListItemToTruck } from '../../api/mappers/availabilitiesMapper';
 import type { AvailableTruck, DrawerMode } from '../../pages/SearchTrucks/types';
 import { AvailabilityBidsMeta, AvailabilityPrice } from './AvailabilityPrice';
+import { TransporterNameLink } from '../TransporterProfile/TransporterProfileContext';
 
 interface AvailabilityDetailPanelProps {
   truck: AvailableTruck;
@@ -193,7 +194,12 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
               </div>
               <div>
                 <div className="sat-cr-name" style={{ fontSize: 15 }}>
-                  {detailTruck.carrier}
+                  <TransporterNameLink
+                    id={detailTruck.providerId}
+                    type={detailTruck.type === 'Freelancer' ? 'driver' : 'carrier'}
+                    name={detailTruck.carrier}
+                    className="tp-name-link"
+                  />
                 </div>
                 <div className="sat-cr-rate">
                   ★ {detailTruck.rating.toFixed(1)} · {detailTruck.type}

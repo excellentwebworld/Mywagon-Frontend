@@ -14,6 +14,7 @@ import type { ShipmentStop } from '../../context/AppContext';
 import { ItineraryPreview } from '../ManageShipments/ItineraryPreview';
 import { Pagination } from '../ManageShipments/Pagination';
 import { CarrierAvatar } from '../ManageShipments/CarrierAvatar';
+import { TransporterNameLink } from '../TransporterProfile/TransporterProfileContext';
 import { utcToLocalParts, formatUtcToDisplayDateTime } from '../../utils/timezone';
 import '../../styles/manage.css';
 
@@ -666,7 +667,12 @@ function LoadSnapshotPanel({
                         />
                         <div className="bid-name-block">
                           <div className="bid-name-line">
-                            <span className="bid-carrier-name">{name}</span>
+                            <TransporterNameLink
+                              id={o.transporterId}
+                              type={o.transporterType}
+                              name={name}
+                              className="bid-carrier-name tp-name-link"
+                            />
                             {o.isPartner ? (
                               <span className="bids-partner-badge">{t('partner') || 'Partner'}</span>
                             ) : null}

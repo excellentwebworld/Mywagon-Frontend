@@ -7,6 +7,7 @@ import { TopNav } from './TopNav';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../hooks/useTheme';
 import { UserMgmtProvider } from '../../context/UserMgmtContext';
+import { TransporterProfileProvider } from '../TransporterProfile/TransporterProfileContext';
 import { DESKTOP_SIDEBAR_QUERY, useMediaQuery } from '../../hooks/useMediaQuery';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
@@ -63,6 +64,7 @@ export const AppLayout: React.FC = () => {
 
   return (
     <UserMgmtProvider>
+    <TransporterProfileProvider>
     <div className={`app-layout${isSideMode ? '' : ' app-layout--top-nav'}`}>
       {isSideMode && (
         <Sidebar
@@ -112,6 +114,7 @@ export const AppLayout: React.FC = () => {
         </div>
       )}
     </div>
+    </TransporterProfileProvider>
     </UserMgmtProvider>
   );
 };

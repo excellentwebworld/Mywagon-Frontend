@@ -15,6 +15,7 @@ import {
   StatusDetailGrid,
 } from './ExpansionShared';
 import { CarrierAvatar } from './CarrierAvatar';
+import { TransporterNameLink } from '../TransporterProfile/TransporterProfileContext';
 
 interface RowExpansionStatusProps {
   shipment: Shipment;
@@ -115,7 +116,13 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
                   avatar={shipment.carrierAvatar}
                 />
                 <div className="cc-info">
-                  <div className="cc-name">{shipment.carrier}</div>
+                  <div className="cc-name">
+                    <TransporterNameLink
+                      id={shipment.carrierId}
+                      type={shipment.carrierType}
+                      name={shipment.carrier}
+                    />
+                  </div>
                   {(shipment.updatedAt || shipment.updated) && (
                     <div className="cc-meta">
                       {t('assigned')} ·{' '}

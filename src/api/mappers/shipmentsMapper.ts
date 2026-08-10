@@ -331,6 +331,11 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
         rating: o.rating,
         ratingCount: o.rating_count ?? 0,
         vat: o.vat ?? null,
+        transporterId: o.transporter_id ?? null,
+        transporterType:
+          o.transporter_type === 'carrier' || o.transporter_type === 'driver'
+            ? o.transporter_type
+            : null,
         isPartner: Boolean(o.is_partner),
         hasHistory: o.has_history !== false,
         role: o.role,
