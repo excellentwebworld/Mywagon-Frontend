@@ -105,3 +105,36 @@ export default function PriceListsSkeleton({ role = 'shipper' }) {
 }
 
 export { DirectorySkeleton, TableSkeleton };
+
+export function AuditLogPanelSkeleton({ rows = 6 }) {
+  const { T } = useTheme();
+  const s = { baseColor: T.bg, highlightColor: T.sf };
+
+  return (
+    <div className="space-y-1" aria-busy="true" aria-label="Loading audit log">
+      {Array.from({ length: rows }, (_, i) => (
+        <div
+          key={i}
+          className="rounded-lg px-3 py-2.5"
+          style={{ background: T.bg, borderLeft: `3px solid ${T.bd}` }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <Skeleton width={56 + (i % 3) * 12} height={12} borderRadius={4} {...s} />
+            <Skeleton width={48} height={10} borderRadius={4} {...s} />
+          </div>
+          <div className="mt-2">
+            <Skeleton width={`${88 - (i % 3) * 8}%`} height={11} borderRadius={4} {...s} />
+          </div>
+          {i % 2 === 0 && (
+            <div className="mt-1.5">
+              <Skeleton width={`${72 - (i % 2) * 10}%`} height={10} borderRadius={4} {...s} />
+            </div>
+          )}
+          <div className="mt-2">
+            <Skeleton width={140 + (i % 4) * 20} height={10} borderRadius={4} {...s} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

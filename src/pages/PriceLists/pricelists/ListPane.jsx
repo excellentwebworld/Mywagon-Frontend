@@ -1,7 +1,7 @@
 /**
  * ListPane — Price Lists table view.
  *
- * Columns: Route, Stops, Total km, Price, Metric, Status,
+ * Columns: Route, Stops, Total km, Price, Metric, Status, Scope,
  *          Effective, Margin% (carrier only), Updated, Actions.
  * Per-column sorting with dual-chevron asc/desc/unsorted pattern.
  * Shared PaginationBar. Click row → open detail pane.
@@ -11,7 +11,7 @@ import { MoreHorizontal, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-reac
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import PaginationBar from '../../../components/ui/PaginationBar';
-import { getPrimaryPrice, isExpiringSoon, calcProfitability, cityLabel, formatRouteLabel } from '../../../mocks/priceListsData';
+import { getPrimaryPrice, isExpiringSoon, calcProfitability, cityLabel, formatRouteLabel, formatScopeDisplay } from '../../../mocks/priceListsData';
 import {
   METRIC_PILL,
   METRIC_SORT_ORDER,
@@ -48,6 +48,7 @@ export default function ListPane({
   totalCount: controlledTotal,
   onPageChange,
   onPageSizeChange,
+  partnerNameById,
 }) {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
@@ -151,12 +152,12 @@ export default function ListPane({
             <col style={{ width: 56 }} />
             <col style={{ width: 72 }} />
             <col style={{ width: 80 }} />
-            <col style={{ width: 130 }} />
-            <col style={{ width: 88 }} />
             <col style={{ width: 110 }} />
-            <col style={{ width: 150 }} />
+            <col style={{ width: 76 }} />
+            <col style={{ width: 108 }} />
+            <col style={{ width: 100 }} />
             {showMargin && <col style={{ width: 72 }} />}
-            <col style={{ width: 80 }} />
+            <col style={{ width: 76 }} />
             <col style={{ width: 44 }} />
           </colgroup>
           <thead>
@@ -197,6 +198,9 @@ export default function ListPane({
                   <SortIcon sortKey="status" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
+              <th style={thStyle}>
+                {t('priceLists.col.scope', 'Scope')}
+              </th>
               <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('effective')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.effective', 'Effective')}
@@ -211,7 +215,7 @@ export default function ListPane({
                   </span>
                 </th>
               )}
-              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('updated')}>
+              <th style={thStyle} className="cursor-pointer hidden xl:table-cell" onClick={() => handleSort('updated')}>
                 <span className="flex items-center gap-1">
                   {t('priceLists.col.updated', 'Updated')}
                   <SortIcon sortKey="updated" currentSort={sortKey} currentDir={sortDir} />
@@ -224,7 +228,7 @@ export default function ListPane({
             {loading ? (
               Array.from({ length: 8 }).map((_, rowIdx) => (
                 <tr key={rowIdx}>
-                  {Array.from({ length: showMargin ? 10 : 9 }).map((_, colIdx) => (
+                  {Array.from({ length: showMargin ? 11 : 10 }).map((_, colIdx) => (
                     <td key={colIdx} style={{ ...tdStyle, borderBottom: `1px solid ${T.bd}` }}>
                       <Skeleton
                         width={
@@ -243,7 +247,7 @@ export default function ListPane({
               ))
             ) : pageData.length === 0 ? (
               <tr>
-                <td colSpan={showMargin ? 11 : 10} style={{ ...tdStyle, textAlign: 'center', padding: 40, color: T.t3 }}>
+                <td colSpan={showMargin ? 12 : 11} style={{ ...tdStyle, textAlign: 'center', padding: 40, color: T.t3 }}>
                   {isEmptyCatalog
                     ? t('priceLists.empty.noLanesYet', 'No price lanes yet. Add your first lane to get started.')
                     : t('priceLists.empty.noLanes', 'No lanes match your filters.')}
@@ -343,6 +347,19 @@ export default function ListPane({
                     </span>
                   </td>
                   <td style={{ ...tdStyle, overflow: 'hidden' }}>
+                    <span
+                      style={{ fontSize: 11, color: T.t2, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      title={formatScopeDisplay(lane, t, partnerNameById)}
+                    >
+                      {formatScopeDisplay(lane, t, partnerNameById)}
+                      {lane.scopeDirection && (
+                        <span style={{ fontSize: 9, color: T.t3, marginLeft: 4 }}>
+                          ({lane.scopeDirection === 'sell' ? '↑ Sell' : '↓ Buy'})
+                        </span>
+                      )}
+                    </span>
+                  </td>
+                  <td style={{ ...tdStyle, overflow: 'hidden' }}>
                     <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: T.t2, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {formatDisplayDate(lane.effectiveFrom?.slice(0, 10) || '')}
                       {lane.effectiveTo ? (
@@ -373,7 +390,7 @@ export default function ListPane({
                       )}
                     </td>
                   )}
-                  <td style={tdStyle}>
+                  <td style={tdStyle} className="hidden xl:table-cell">
                     <span style={{ fontSize: 11, color: T.t3 }}>{formatIsoDisplayDateTime(lane.updatedAt) || '—'}</span>
                   </td>
                   <td style={tdStyle} onClick={(e) => e.stopPropagation()}>

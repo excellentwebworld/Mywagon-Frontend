@@ -12,6 +12,7 @@ import { useToast } from '../../../hooks/useToast';
 import { DatePicker } from '../../../components/ui/DatePicker';
 import { formatIsoDisplayDateTime } from '../../../utils/dateDisplay';
 import { priceListsService } from '../../../api/services/priceListsService';
+import { AuditLogPanelSkeleton } from './PriceListsSkeleton';
 
 const PAGE_SIZE = 50;
 
@@ -219,7 +220,7 @@ export default function AuditLogPanel({ open, onClose }) {
           ))}
         </div>
 
-        <div className="px-5 py-3 shrink-0 space-y-2" style={{ borderBottom: `1px solid ${T.bd}` }}>
+        <div className="px-5 py-3 shrink-0 space-y-2 overflow-visible" style={{ borderBottom: `1px solid ${T.bd}` }}>
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: T.t3 }} />
             <input
@@ -231,7 +232,7 @@ export default function AuditLogPanel({ open, onClose }) {
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 overflow-visible">
             <div className="relative" ref={typeRef}>
               <button
                 type="button"
@@ -292,6 +293,7 @@ export default function AuditLogPanel({ open, onClose }) {
                 onChange={setDateTo}
                 min={dateFrom || undefined}
                 direction="auto"
+                align="auto"
                 placeholder="dd/MM/yyyy"
               />
             </div>
@@ -318,9 +320,7 @@ export default function AuditLogPanel({ open, onClose }) {
 
         <div className="flex-1 overflow-y-auto px-5 py-3">
           {loading ? (
-            <div className="text-center py-10" style={{ color: T.t3, fontSize: 13 }}>
-              {t('common.loading', 'Loading…')}
-            </div>
+            <AuditLogPanelSkeleton rows={6} />
           ) : entries.length === 0 ? (
             <div className="text-center py-10" style={{ color: T.t3, fontSize: 13 }}>
               {t('priceLists.audit.noEntries', 'No audit entries')}
@@ -356,7 +356,7 @@ export default function AuditLogPanel({ open, onClose }) {
           )}
         </div>
 
-        {total > 0 && (
+        {total > 0 && !loading && (
           <div
             className="flex items-center justify-between px-5 py-3 shrink-0"
             style={{ borderTop: `1px solid ${T.bd}` }}

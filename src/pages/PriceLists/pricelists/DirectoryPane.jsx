@@ -7,7 +7,7 @@ import { useState, useMemo } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
-import { getScopeLabels } from '../../../mocks/priceListsData';
+import { resolvePartnerDisplayName } from '../../../mocks/priceListsData';
 
 const EMPTY_COUNTS = {
   all: 0,
@@ -26,7 +26,7 @@ const EMPTY_COUNTS = {
   scopePartners: {},
 };
 
-export default function DirectoryPane({ summary, activeNode, onNodeClick }) {
+export default function DirectoryPane({ summary, activeNode, onNodeClick, partnerNameById }) {
   const { t } = useTranslation();
   const { T } = useTheme();
   const [scopeOpen, setScopeOpen] = useState(true);
@@ -39,8 +39,11 @@ export default function DirectoryPane({ summary, activeNode, onNodeClick }) {
         scopePartners.default = { count: Number(count) || 0, name: null };
         return;
       }
-      const names = getScopeLabels([key]);
-      scopePartners[key] = { count: Number(count) || 0, name: names[0] || key };
+      const summaryLabel = summary?.scope_labels?.[key];
+      scopePartners[key] = {
+        count: Number(count) || 0,
+        name: summaryLabel || resolvePartnerDisplayName(key, partnerNameById),
+      };
     });
 
     return {
@@ -59,7 +62,7 @@ export default function DirectoryPane({ summary, activeNode, onNodeClick }) {
       multiStop: Number(summary.multi_stop) || 0,
       scopePartners,
     };
-  }, [summary]);
+  }, [summary, partnerNameById]);
 
   const scopeNodes = Object.entries(counts.scopePartners)
     .sort(([a], [b]) => (a === 'default' ? -1 : b === 'default' ? 1 : a.localeCompare(b)))

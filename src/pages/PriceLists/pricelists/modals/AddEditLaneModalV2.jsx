@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { X, Plus, Trash2, ChevronDown, ChevronUp, AlertTriangle, Check } from 'lucide-react';
+import { X, Plus, Trash2, ChevronDown, ChevronUp, AlertTriangle, Check, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../../hooks/useTheme';
 import { useApp } from '../../../../context/AppContext';
@@ -168,6 +168,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
   const [effectiveFrom, setEffectiveFrom] = useState('');
   const [effectiveTo, setEffectiveTo] = useState('');
   const [scopePartnerIds, setScopePartnerIds] = useState([]);
+  const [scopeDropdownOpen, setScopeDropdownOpen] = useState(false);
   const [scopeDirection, setScopeDirection] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState({});
@@ -243,6 +244,14 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
     });
     return map;
   }, [partners]);
+
+  const defaultScopeLabel = role === 'shipper'
+    ? t('priceLists.scope.allCarriers', 'All carriers')
+    : role === 'carrier'
+      ? t('priceLists.scope.allShippers', 'All shippers')
+      : t('priceLists.scope.allPartners', 'All partners');
+
+  const scopeIsSpecific = scopeDropdownOpen || scopePartnerIds.length > 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -345,6 +354,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       setEffectiveFrom(lane.effectiveFrom || '');
       setEffectiveTo(lane.effectiveTo || '');
       setScopePartnerIds((lane.scopePartnerIds || []).map((id) => String(id)));
+      setScopeDropdownOpen((lane.scopePartnerIds || []).length > 0);
       setScopeDirection(lane.scopeDirection || '');
       setNotes(lane.notes || '');
       setPartnerSearch('');
@@ -355,6 +365,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       setEffectiveFrom(new Date().toISOString().slice(0, 10));
       setEffectiveTo('');
       setScopePartnerIds([]);
+      setScopeDropdownOpen(false);
       setScopeDirection(role === 'forwarder' ? (forwarderTab === 'carrier' ? 'buy' : 'sell') : '');
       setNotes('');
       setPartnerSearch('');
@@ -606,8 +617,8 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       scopePartnerIds,
       scopeLabel: scopePartnerIds.length > 0
         ? scopePartnerIds.map((id) => partnerNameById.get(String(id)) || String(id)).join(', ')
-        : 'Default',
-      scopeDirection: role === 'forwarder' && scopeDirection ? scopeDirection : null,
+        : t('priceLists.scope.default', 'Default'),
+      scopeDirection: role === 'forwarder' && scopePartnerIds.length > 0 && scopeDirection ? scopeDirection : null,
       notes,
     };
 
@@ -947,90 +958,155 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
               </div>
               {!!errors.dateOrder && <div className="error-msg" data-error="true" style={errorStyle}>{t('priceLists.modal.dateError', 'End date must be after start date')}</div>}
 
-              {role === 'forwarder' && (
+              <div>
+                <label style={labelStyle}>{t('priceLists.modal.scope', 'Scope')}</label>
+
+                {scopePartnerIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {scopePartnerIds.map((pid) => (
+                      <span
+                        key={pid}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full"
+                        style={{ fontSize: 11, background: T.al, color: T.ac, border: `1px solid ${T.ac}` }}
+                      >
+                        {partnerNameById.get(String(pid)) || pid}
+                        <button
+                          type="button"
+                          onClick={() => setScopePartnerIds((prev) => prev.filter((id) => id !== pid))}
+                          className="border-none cursor-pointer bg-transparent p-0"
+                          style={{ color: T.ac }}
+                          aria-label={t('common.remove', 'Remove')}
+                        >
+                          <X size={10} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 mb-2">
+                  <label className="flex items-center gap-1.5 cursor-pointer" style={{ fontSize: 12, color: T.t2 }}>
+                    <input
+                      type="radio"
+                      name="lane-scope-mode"
+                      checked={!scopeIsSpecific}
+                      onChange={() => {
+                        setScopePartnerIds([]);
+                        setScopeDropdownOpen(false);
+                      }}
+                    />
+                    {defaultScopeLabel}
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer" style={{ fontSize: 12, color: T.t2 }}>
+                    <input
+                      type="radio"
+                      name="lane-scope-mode"
+                      checked={scopeIsSpecific}
+                      onChange={() => setScopeDropdownOpen(true)}
+                    />
+                    {t('priceLists.modal.specificPartners', 'Specific partners')}
+                  </label>
+                </div>
+
+                {scopeIsSpecific && (
+                  <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${T.bd}`, maxHeight: 220 }}>
+                    <div className="relative px-2 py-1.5" style={{ borderBottom: `1px solid ${T.bd}` }}>
+                      <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: T.t3 }} />
+                      <input
+                        type="search"
+                        value={partnerSearch}
+                        onChange={(e) => setPartnerSearch(e.target.value)}
+                        placeholder={t('priceLists.modal.searchPartners', 'Search partners…')}
+                        className="w-full pl-6 pr-2 py-1 outline-none border-none"
+                        style={{ background: 'transparent', fontSize: 11, color: T.t1 }}
+                      />
+                    </div>
+                    <div className="overflow-y-auto" style={{ maxHeight: 170 }}>
+                      {partnersLoading && (
+                        <div className="px-3 py-4 text-center" style={{ fontSize: 11, color: T.t3 }}>
+                          {t('common.loading', 'Loading…')}
+                        </div>
+                      )}
+                      {!partnersLoading && partnersError && (
+                        <div className="px-3 py-4 text-center" style={{ fontSize: 11, color: '#B91C1C' }}>
+                          {partnersError}
+                        </div>
+                      )}
+                      {!partnersLoading && !partnersError && partnerOptions.length === 0 && (
+                        <div className="px-3 py-4 text-center" style={{ fontSize: 11, color: T.t3 }}>
+                          {partnerSearch.trim()
+                            ? t('priceLists.modal.noPartnersMatch', 'No partners match your search.')
+                            : t('priceLists.modal.noPartners', 'No active partners found.')}
+                        </div>
+                      )}
+                      {!partnersLoading && partnerOptions.map((p) => {
+                        const pid = String(p.id);
+                        const checked = scopePartnerIds.includes(pid);
+                        const typeBadge = partnerTypeBadge(p);
+                        return (
+                          <button
+                            key={pid}
+                            type="button"
+                            className="flex items-center gap-2 w-full px-3 py-1.5 cursor-pointer border-none text-left"
+                            style={{ background: checked ? T.al : 'transparent', fontSize: 11, color: T.t1 }}
+                            onMouseEnter={(e) => { if (!checked) e.currentTarget.style.background = T.sh; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = checked ? T.al : 'transparent'; }}
+                            onClick={() => {
+                              setScopePartnerIds((prev) => (
+                                checked ? prev.filter((x) => x !== pid) : [...prev, pid]
+                              ));
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 14,
+                                height: 14,
+                                borderRadius: 3,
+                                border: `1.5px solid ${checked ? T.ac : T.bd}`,
+                                background: checked ? T.ac : 'transparent',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {checked && <Check size={9} style={{ color: '#fff' }} />}
+                            </span>
+                            <span className="flex-1 truncate" title={p.name}>{p.name}</span>
+                            {typeBadge && (
+                              <span
+                                style={{
+                                  fontSize: 9,
+                                  fontWeight: 600,
+                                  padding: '1px 6px',
+                                  borderRadius: 4,
+                                  background: typeBadge.bg,
+                                  color: typeBadge.fg,
+                                  border: `1px solid ${typeBadge.bd}`,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {typeBadge.label}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {role === 'forwarder' && scopePartnerIds.length > 0 && (
                 <div>
                   <label style={labelStyle}>{t('priceLists.modal.direction', 'Direction')}</label>
                   <select style={inputStyle} value={scopeDirection} onChange={(e) => setScopeDirection(e.target.value)}>
+                    <option value="">{t('priceLists.modal.noDirection', 'No direction')}</option>
                     <option value="buy">{t('priceLists.modal.buy', 'Buy (from carrier)')}</option>
                     <option value="sell">{t('priceLists.modal.sell', 'Sell (to customer)')}</option>
                   </select>
                 </div>
               )}
-
-              <div>
-                <label style={labelStyle}>{t('priceLists.modal.specificPartners', 'Specific partners')}</label>
-                <input
-                  type="search"
-                  style={{ ...inputStyle, marginBottom: 8 }}
-                  value={partnerSearch}
-                  onChange={(e) => setPartnerSearch(e.target.value)}
-                  placeholder={t('priceLists.modal.searchPartners', 'Search partners…')}
-                />
-                <div className="grid grid-cols-2 gap-2 p-2 rounded-lg" style={{ border: `1px solid ${T.bd}`, maxHeight: 180, overflowY: 'auto' }}>
-                  {partnersLoading && (
-                    <div className="col-span-2 py-4 text-center" style={{ fontSize: 12, color: T.t3 }}>
-                      {t('common.loading', 'Loading…')}
-                    </div>
-                  )}
-                  {!partnersLoading && partnersError && (
-                    <div className="col-span-2 py-4 text-center" style={{ fontSize: 12, color: '#B91C1C' }}>
-                      {partnersError}
-                    </div>
-                  )}
-                  {!partnersLoading && !partnersError && partnerOptions.length === 0 && (
-                    <div className="col-span-2 py-4 text-center" style={{ fontSize: 12, color: T.t3 }}>
-                      {partnerSearch.trim()
-                        ? t('priceLists.modal.noPartnersMatch', 'No partners match your search.')
-                        : t('priceLists.modal.noPartners', 'No active partners found.')}
-                    </div>
-                  )}
-                  {!partnersLoading && partnerOptions.map((p) => {
-                    const pid = String(p.id);
-                    const checked = scopePartnerIds.includes(pid);
-                    const typeBadge = partnerTypeBadge(p);
-                    return (
-                      <button
-                        key={pid}
-                        type="button"
-                        className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md border-none cursor-pointer text-left"
-                        style={{ background: checked ? T.al : T.bg, color: checked ? T.ac : T.t1, fontSize: 12 }}
-                        onClick={() => {
-                          setScopePartnerIds((prev) => (
-                            checked ? prev.filter((x) => x !== pid) : [...prev, pid]
-                          ));
-                        }}
-                      >
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate" title={p.name}>{p.name}</span>
-                          {typeBadge && (
-                            <span
-                              className="inline-block mt-0.5 truncate max-w-full"
-                              style={{
-                                fontSize: 9,
-                                fontWeight: 600,
-                                padding: '1px 6px',
-                                borderRadius: 4,
-                                background: typeBadge.bg,
-                                color: typeBadge.fg,
-                                border: `1px solid ${typeBadge.bd}`,
-                                lineHeight: 1.4,
-                              }}
-                            >
-                              {typeBadge.label}
-                            </span>
-                          )}
-                        </span>
-                        {checked && <Check size={12} className="shrink-0" />}
-                      </button>
-                    );
-                  })}
-                </div>
-                {scopePartnerIds.length > 0 && (
-                  <div style={{ fontSize: 11, color: T.t3, marginTop: 6 }}>
-                    {t('priceLists.modal.partnersSelected', '{{n}} selected').replace('{{n}}', String(scopePartnerIds.length))}
-                  </div>
-                )}
-              </div>
 
               <div>
                 <label style={labelStyle}>{t('priceLists.detail.notes', 'Notes')}</label>

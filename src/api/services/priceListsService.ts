@@ -61,6 +61,7 @@ export type PriceLaneSummary = {
   simple_lane: number;
   multi_stop: number;
   scopes: Record<string, number>;
+  scope_labels?: Record<string, string>;
 };
 
 export type PaginatedPriceLanesResult = {
@@ -169,6 +170,7 @@ export const priceListsService = {
       simple_lane: 0,
       multi_stop: 0,
       scopes: {},
+      scope_labels: {},
     };
   },
 

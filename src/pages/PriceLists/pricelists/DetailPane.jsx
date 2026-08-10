@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import {
   getPrimaryPrice, isExpiringSoon,
-  calcProfitability, cityLabel, formatRouteLabel,
+  calcProfitability, cityLabel, formatRouteLabel, formatScopeDisplay,
 } from '../../../mocks/priceListsData';
 import {
   formatMetricLabel,
@@ -49,7 +49,7 @@ function OpenEndedInfinity({ color }) {
   );
 }
 
-export default function DetailPane({ lane, onClose, role, onAction, allLanes }) {
+export default function DetailPane({ lane, onClose, role, onAction, allLanes, partnerNameById }) {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const lang = i18n.language;
@@ -137,7 +137,9 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes }) 
                      fg={({ active: '#059669', inactive: '#6B7280', archived: '#92400E' })[lane.status]}>
                 {t(`priceLists.status.${lane.status}`, lane.status)}
               </Badge>
-              {lane.scope !== 'default' && <Badge bg="#F0F9FF" fg="#0EA5E9">{lane.scopeLabel}</Badge>}
+              {(lane.scope !== 'default' || (lane.scopePartnerIds?.length ?? 0) > 0) && (
+                <Badge bg="#F0F9FF" fg="#0EA5E9">{formatScopeDisplay(lane, t, partnerNameById)}</Badge>
+              )}
               {lane.scopeDirection && (
                 <Badge bg={lane.scopeDirection === 'sell' ? '#D1FAE5' : '#FEE2E2'}
                        fg={lane.scopeDirection === 'sell' ? '#059669' : '#DC2626'}>

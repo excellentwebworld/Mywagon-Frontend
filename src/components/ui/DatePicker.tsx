@@ -1,6 +1,10 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatDisplayDate } from '../../utils/dateDisplay';
+
+const MENU_WIDTH = 280;
+const MENU_HEIGHT_EST = 360;
 
 /** Returns today's date as YYYY-MM-DD (local timezone). */
 export function getTodayDateString(): string {
@@ -21,6 +25,7 @@ type Props = {
   min?: string; // YYYY-MM-DD format
   max?: string; // YYYY-MM-DD format
   direction?: 'up' | 'down' | 'auto';
+  align?: 'left' | 'right' | 'auto';
 };
 
 export const DatePicker: React.FC<Props> = ({
@@ -33,12 +38,14 @@ export const DatePicker: React.FC<Props> = ({
   min,
   max,
   direction = 'down', // Default to 'down' to prevent top clipping in overflow scroll containers
+  align = 'auto',
 }) => {
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const { lang } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [openUp, setOpenUp] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<{ top: number; left: number } | null>(null);
 
   // Calendar navigation state
   const [currentMonth, setCurrentMonth] = useState(() => {
@@ -89,10 +96,42 @@ export const DatePicker: React.FC<Props> = ({
     }
   }, [currentYear, currentMonth, min]);
 
-  // Click outside listener
+  const computeMenuStyle = useCallback((): { top: number; left: number } | null => {
+    if (!rootRef.current) return null;
+    const rect = rootRef.current.getBoundingClientRect();
+    const viewportPad = 8;
+
+    let left = rect.left;
+    if (align === 'right') {
+      left = rect.right - MENU_WIDTH;
+    } else if (align === 'auto') {
+      if (left + MENU_WIDTH > window.innerWidth - viewportPad) {
+        left = rect.right - MENU_WIDTH;
+      }
+    }
+    left = Math.max(viewportPad, Math.min(left, window.innerWidth - MENU_WIDTH - viewportPad));
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUp = direction === 'up'
+      || (direction === 'auto' && spaceBelow < MENU_HEIGHT_EST && spaceAbove > spaceBelow);
+
+    let top = openUp ? rect.top - MENU_HEIGHT_EST - 4 : rect.bottom + 4;
+    top = Math.max(viewportPad, Math.min(top, window.innerHeight - MENU_HEIGHT_EST - viewportPad));
+
+    return { top, left };
+  }, [align, direction]);
+
+  const refreshMenuPosition = useCallback(() => {
+    if (!open) return;
+    setMenuStyle(computeMenuStyle());
+  }, [open, computeMenuStyle]);
+
+  // Click outside listener (trigger + portaled menu)
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) {
         setOpen(false);
       }
     };
@@ -100,19 +139,22 @@ export const DatePicker: React.FC<Props> = ({
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
+  useEffect(() => {
+    if (!open) return undefined;
+    refreshMenuPosition();
+    const onLayout = () => refreshMenuPosition();
+    window.addEventListener('resize', onLayout);
+    window.addEventListener('scroll', onLayout, true);
+    return () => {
+      window.removeEventListener('resize', onLayout);
+      window.removeEventListener('scroll', onLayout, true);
+    };
+  }, [open, refreshMenuPosition]);
+
   const handleToggle = () => {
     if (disabled) return;
     if (!open) {
-      if (direction === 'down') {
-        setOpenUp(false);
-      } else if (direction === 'up') {
-        setOpenUp(true);
-      } else if (rootRef.current) {
-        const rect = rootRef.current.getBoundingClientRect();
-        const spaceBelow = window.innerHeight - rect.bottom;
-        const spaceAbove = rect.top;
-        setOpenUp(spaceBelow < 320 && spaceAbove > spaceBelow);
-      }
+      setMenuStyle(computeMenuStyle());
     }
     setOpen((v) => !v);
   };
@@ -324,8 +366,13 @@ export const DatePicker: React.FC<Props> = ({
         </span>
       </button>
 
-      {open && (
-        <div className={`date-picker-menu${openUp ? ' open-up' : ''}`} role="dialog">
+      {open && menuStyle && createPortal(
+        <div
+          ref={menuRef}
+          className="date-picker-menu date-picker-menu--fixed"
+          style={{ top: menuStyle.top, left: menuStyle.left }}
+          role="dialog"
+        >
           <div className="date-picker-header">
             <button
               type="button"
@@ -434,7 +481,8 @@ export const DatePicker: React.FC<Props> = ({
               Today
             </button>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

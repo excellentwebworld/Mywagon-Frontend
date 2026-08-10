@@ -1990,6 +1990,11 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   top: auto;
   bottom: calc(100% + 4px);
 }
+.date-picker-menu--fixed {
+  position: fixed;
+  top: auto;
+  left: auto;
+}
 
 .date-picker-header {
   display: flex;

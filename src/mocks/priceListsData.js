@@ -362,27 +362,38 @@ export function getPartnersForScope(role) {
   return _activePartners; // forwarder sees all
 }
 
+/** Resolve a single partner ID to a display name (API map first, then mock fallback). */
+export function resolvePartnerDisplayName(partnerId, partnerNameById) {
+  const key = String(partnerId);
+  if (partnerNameById instanceof Map && partnerNameById.has(key)) {
+    return partnerNameById.get(key);
+  }
+  if (partnerNameById && typeof partnerNameById === 'object' && partnerNameById[key]) {
+    return partnerNameById[key];
+  }
+  const partners = getPartnersForScope('forwarder');
+  const p = partners.find((x) => String(x.id) === key);
+  return p ? p.name : key;
+}
+
 /** Resolve partner IDs to display names */
-export function getScopeLabels(partnerIds) {
+export function getScopeLabels(partnerIds, partnerNameById) {
   if (!partnerIds || partnerIds.length === 0) return [];
-  const partners = getPartnersForScope('forwarder'); // all
-  return partnerIds.map(id => {
-    const key = String(id);
-    const p = partners.find(x => String(x.id) === key);
-    return p ? p.name : key;
-  });
+  return partnerIds.map((id) => resolvePartnerDisplayName(id, partnerNameById));
 }
 
 /** Format scope display: 1 name, 2-3 comma-joined, 4+ "N partners" */
-export function formatScopeDisplay(lane, t) {
-  if (lane.scope === 'default') return t ? t('priceLists.scope.default', 'Default') : 'Default';
+export function formatScopeDisplay(lane, t, partnerNameById) {
+  if (lane.scope === 'default' || !(lane.scopePartnerIds?.length)) {
+    return t ? t('priceLists.scope.default', 'Default') : 'Default';
+  }
   // Prefer stored label from save (real partner names); skip placeholder "Specific"
   if (lane.scopeLabel && lane.scopeLabel !== 'Specific' && lane.scopeLabel !== 'Default') {
     return lane.scopeLabel;
   }
   const ids = lane.scopePartnerIds || [];
   if (ids.length === 0) return lane.scopeLabel || (t ? t('priceLists.scope.default', 'Default') : 'Default');
-  const names = getScopeLabels(ids);
+  const names = ids.map((id) => resolvePartnerDisplayName(id, partnerNameById));
   if (names.length <= 3) return names.join(', ');
   return t ? t('priceLists.scope.nPartners', '{{n}} partners').replace('{{n}}', names.length) : `${names.length} partners`;
 }

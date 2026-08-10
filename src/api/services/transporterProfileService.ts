@@ -22,6 +22,8 @@ export interface TransporterProfileData {
     vat_number: string | null;
     rating_average: number | null;
     rating_count: number;
+    /** False for company drivers — KPIs shown only for freelancers and carriers. */
+    show_performance_kpis?: boolean;
   };
   performance: {
     on_time_delivery_pct: number | null;

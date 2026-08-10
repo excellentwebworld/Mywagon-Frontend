@@ -45,6 +45,7 @@ export const TransporterProfileContent: React.FC<TransporterProfileContentProps>
 }) => {
   const { profile, performance, rating_distribution: dist, reviews } = data;
   const ratingAvg = profile.rating_average ?? 0;
+  const showPerformanceKpis = profile.show_performance_kpis !== false;
 
   const distributionRows = [
     { star: 5, pct: dist.five_pct },
@@ -74,6 +75,7 @@ export const TransporterProfileContent: React.FC<TransporterProfileContentProps>
               ({profile.rating_count}) {t('ratings') || 'Ratings'}
             </span>
           </div>
+          {showPerformanceKpis && (
           <div className="tp-kpi-row">
             <span className="tp-kpi">
               {t('onTimeDelivery')}: <strong>{fmtPct(performance.on_time_delivery_pct)}</strong>
@@ -86,6 +88,7 @@ export const TransporterProfileContent: React.FC<TransporterProfileContentProps>
               <strong>{fmtMin(performance.avg_pickup_delay_minutes)}</strong>
             </span>
           </div>
+          )}
         </div>
       </div>
 

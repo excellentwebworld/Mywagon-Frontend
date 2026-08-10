@@ -18,6 +18,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../api/client';
 import { priceListsService } from '../../api/services/priceListsService';
+import { partnersService } from '../../api';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { toUpperGreek } from '../../utils/greekUppercase';
 
@@ -220,6 +221,46 @@ export default function PriceListsPage() {
     return Number.isFinite(n) && n > 0 ? Math.min(n, 100) : 10;
   });
   const [catalogLanes, setCatalogLanes] = useState([]);
+  const [scopePartners, setScopePartners] = useState([]);
+
+  const partnerNameById = useMemo(() => {
+    const map = new Map();
+    scopePartners.forEach((p) => {
+      if (p?.id != null && p?.name) map.set(String(p.id), p.name);
+    });
+    Object.entries(summary?.scope_labels || {}).forEach(([id, name]) => {
+      if (name) map.set(String(id), name);
+    });
+    return map;
+  }, [scopePartners, summary?.scope_labels]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const all = [];
+        let pageNum = 1;
+        let lastPage = 1;
+        do {
+          const result = await partnersService.listPartners({
+            page: pageNum,
+            per_page: 200,
+            facet: 'all',
+            statuses: ['active'],
+            sort: 'name',
+            sort_dir: 'asc',
+          });
+          if (Array.isArray(result?.items)) all.push(...result.items);
+          lastPage = result?.meta?.last_page ?? 1;
+          pageNum += 1;
+        } while (pageNum <= lastPage && !cancelled);
+        if (!cancelled) setScopePartners(all);
+      } catch {
+        if (!cancelled) setScopePartners([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Effective role for view behavior: forwarder tab switches perspective
   const viewRole = role === 'forwarder'
@@ -644,6 +685,7 @@ export default function PriceListsPage() {
                 summary={summary}
                 activeNode={activeNode}
                 onNodeClick={handleNodeClick}
+                partnerNameById={partnerNameById}
               />
             </div>
 
@@ -662,6 +704,7 @@ export default function PriceListsPage() {
                 totalCount={listMeta.total ?? 0}
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
+                partnerNameById={partnerNameById}
               />
             </div>
 
@@ -682,6 +725,7 @@ export default function PriceListsPage() {
                   role={viewRole}
                   onAction={handleAction}
                   allLanes={catalogLanes}
+                  partnerNameById={partnerNameById}
                 />
               )}
             </div>
