@@ -2261,6 +2261,60 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.sat-bid-vehicles-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.sat-bid-cargo-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.sat-bid-cargo-spec,
+.sat-bid-cargo-spec-more {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--purple, #6B21A8);
+  background: rgba(107, 33, 168, 0.08);
+  border: 1px solid rgba(107, 33, 168, 0.15);
+  white-space: nowrap;
+}
+.sat-bid-qty {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.sat-bid-product-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sat-bid-product-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 12px;
+}
+.sat-bid-product-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 0;
+}
+.sat-bid-product-stat {
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
 .sat-bid-col-choose {
   min-width: 132px;
   width: 132px;

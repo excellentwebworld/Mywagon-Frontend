@@ -142,6 +142,10 @@ export interface PendingShipment {
   orderIds?: string[];
   ordersCount?: number;
   negotiable?: boolean;
+  cargoCategories?: string[];
+  totalQty?: number | null;
+  qtyUnit?: string | null;
+  quantityLabel?: string | null;
 }
 
 export type FitValue = 'yes' | 'no' | 'partial';
@@ -202,6 +206,7 @@ export interface PendingMatchStop {
   timeEnd?: string | null;
   orderId: string | number | null;
   productName?: string | null;
+  productType?: string | null;
   lat: number | null;
   lng: number | null;
   qty: number | null;
@@ -210,6 +215,7 @@ export interface PendingMatchStop {
   weightUnit?: string | null;
   products: Array<{
     name: string | null;
+    type?: string | null;
     qty: number | null;
     qtyUnit: string | null;
     weight: number | null;
@@ -224,6 +230,17 @@ export interface PendingMatchSnapshot {
   customers: string[];
   quotedPrice: number | null;
   truckTypes: string[];
+  cargoCategories?: string[];
+  totalQty?: number | null;
+  qtyUnit?: string | null;
+  quantityLabel?: string | null;
+  products?: Array<{
+    name: string;
+    qty: number | null;
+    qtyUnit: string | null;
+    weight: number | null;
+    weightUnit: string | null;
+  }>;
   negotiable: boolean;
   note: string | null;
   stops: PendingMatchStop[];

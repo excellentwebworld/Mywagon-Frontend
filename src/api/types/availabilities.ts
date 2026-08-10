@@ -80,6 +80,10 @@ export interface ApiPendingMatch {
   intermediate_stops?: number;
   from_date: string | null;
   truck_types: string[];
+  cargo_categories?: string[];
+  total_qty?: number | null;
+  qty_unit?: string | null;
+  quantity_label?: string | null;
   exact_match?: boolean;
 }
 
@@ -111,6 +115,7 @@ export interface ApiPendingMatchStop {
   time_end?: string | null;
   order_id: string | number | null;
   product_name?: string | null;
+  product_type?: string | null;
   lat: number | null;
   lng: number | null;
   qty: number | null;
@@ -119,6 +124,7 @@ export interface ApiPendingMatchStop {
   weight_unit?: string | null;
   products?: Array<{
     name: string | null;
+    type?: string | null;
     qty: number | null;
     qty_unit: string | null;
     weight: number | null;
@@ -134,6 +140,17 @@ export interface ApiPendingMatchSnapshot {
   quoted_price?: number | null;
   total?: number | null;
   truck_types?: string[];
+  cargo_categories?: string[];
+  total_qty?: number | null;
+  qty_unit?: string | null;
+  quantity_label?: string | null;
+  products?: Array<{
+    name: string;
+    qty: number | null;
+    qty_unit: string | null;
+    weight: number | null;
+    weight_unit: string | null;
+  }>;
   negotiable?: boolean;
   note?: string | null;
   stops?: ApiPendingMatchStop[];

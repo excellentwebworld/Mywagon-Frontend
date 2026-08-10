@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { Shipment, ShipmentStop } from '../../context/AppContext';
 import {
   findCurrentItineraryIndex,
@@ -22,6 +22,9 @@ interface ItineraryPreviewProps {
   pickDt?: string | null;
   delDt?: string | null;
   shipmentStatus?: Shipment['status'] | string;
+  /** Bid wizard / read-only review: expand all stops and show product rows immediately. */
+  defaultExpanded?: boolean;
+  defaultCargoExpanded?: boolean;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
 
@@ -64,15 +67,31 @@ function cargoSummary(
   t: ItineraryPreviewProps['t']
 ): string {
   if (lines.length === 0) return '';
+  const productNames = [
+    ...new Set(
+      lines
+        .map((line) => (line.products || '').trim())
+        .filter((name) => name && name !== '—')
+    ),
+  ];
   const totalQty = lines.reduce((sum, line) => sum + (line.qty || 0), 0);
   const totalWeight = lines.reduce((sum, line) => sum + (line.weight || 0), 0);
   const qtyUnit = lines.find((line) => line.qtyUnit)?.qtyUnit || '';
   const weightUnit = lines.find((line) => line.weightUnit)?.weightUnit || 'kg';
+  const namePart =
+    productNames.length === 0
+      ? ''
+      : productNames.length <= 2
+        ? productNames.join(', ')
+        : `${productNames.slice(0, 2).join(', ')} +${productNames.length - 2}`;
   const parts = [
-    `${lines.length} ${t('aiWizardProducts') || 'products'}`,
+    namePart,
     totalQty > 0 ? formatQty(totalQty, qtyUnit) : '',
     totalWeight > 0 ? formatWeight(totalWeight, weightUnit) : '',
   ].filter(Boolean);
+  if (parts.length === 0) {
+    return `${lines.length} ${t('aiWizardProducts') || 'products'}`;
+  }
   return parts.join(' · ');
 }
 
@@ -212,15 +231,32 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
   pickDt,
   delDt,
   shipmentStatus,
+  defaultExpanded = false,
+  defaultCargoExpanded = false,
   t,
 }) => {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [openCargo, setOpenCargo] = useState<Record<string, boolean>>({});
 
   const groups = useMemo(
     () => groupItineraryStops(stops, { origin, dest, pickDt, delDt }),
     [stops, origin, dest, pickDt, delDt]
   );
+
+  useEffect(() => {
+    if (!defaultCargoExpanded && !defaultExpanded) return;
+    const cargoKeys = groups.filter((g) => g.lines.length > 0).map((g) => g.key);
+    if (defaultExpanded) {
+      setExpanded(true);
+    }
+    if (defaultCargoExpanded && cargoKeys.length > 0) {
+      const next: Record<string, boolean> = {};
+      cargoKeys.forEach((key) => {
+        next[key] = true;
+      });
+      setOpenCargo(next);
+    }
+  }, [groups, defaultCargoExpanded, defaultExpanded]);
 
   const tripLive = showTripStatus(shipmentStatus);
   const currentIndex = tripLive ? findCurrentItineraryIndex(groups) : -1;

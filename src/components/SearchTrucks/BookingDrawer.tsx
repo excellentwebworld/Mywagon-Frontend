@@ -84,6 +84,15 @@ function schedulePartsFromStop(stop: PendingMatchStop): { date: string; timeStar
   return { date: '', timeStart: '', timeEnd: '' };
 }
 
+function formatProductLabel(name?: string | null, type?: string | null): string {
+  const productName = (name || '').trim();
+  const productType = (type || '').trim();
+  if (productName && productType && productName.toLowerCase() !== productType.toLowerCase()) {
+    return `${productType} · ${productName}`;
+  }
+  return productName || productType || '—';
+}
+
 /** Map bid-wizard snapshot stops into Manage Shipments `ShipmentStop` shape for ItineraryPreview. */
 function snapshotStopsToShipmentStops(stops: PendingMatchStop[]): ShipmentStop[] {
   return stops.map((stop, index) => {
@@ -98,6 +107,7 @@ function snapshotStopsToShipmentStops(stops: PendingMatchStop[]): ShipmentStop[]
           ? [
               {
                 name: stop.productName ?? null,
+                type: stop.productType ?? null,
                 qty: stop.qty,
                 qtyUnit: stop.qtyUnit ?? null,
                 weight: stop.weight,
@@ -125,7 +135,7 @@ function snapshotStopsToShipmentStops(stops: PendingMatchStop[]): ShipmentStop[]
                   productRows.length > 0
                     ? productRows.map((p) => ({
                         id: String(stop.orderId ?? ''),
-                        products: p.name || '—',
+                        products: formatProductLabel(p.name, p.type ?? stop.productType),
                         qty: p.qty ?? 0,
                         qtyUnit: p.qtyUnit || '',
                         weight: p.weight ?? 0,
@@ -134,7 +144,7 @@ function snapshotStopsToShipmentStops(stops: PendingMatchStop[]): ShipmentStop[]
                     : [
                         {
                           id: String(stop.orderId ?? ''),
-                          products: '—',
+                          products: formatProductLabel(stop.productName, stop.productType),
                           qty: stop.qty ?? 0,
                           qtyUnit: stop.qtyUnit || '',
                           weight: stop.weight ?? 0,
@@ -179,6 +189,45 @@ function laneMidLabel(p: PendingShipment, t: (key: string, opts?: Record<string,
   );
 }
 
+function VehiclesCell({
+  truckTypes,
+  cargoCategories,
+  t,
+}: {
+  truckTypes?: string[];
+  cargoCategories?: string[];
+  t: (key: string) => string;
+}) {
+  const types = truckTypes ?? [];
+  const specs = cargoCategories ?? [];
+  if (types.length === 0 && specs.length === 0) {
+    return <span className="sub">—</span>;
+  }
+  return (
+    <div className="sat-bid-vehicles-cell">
+      {types.length > 0 ? (
+        <div className="sat-bid-chip-row">
+          {types.slice(0, 2).map((v) => (
+            <span key={v} className="sat-bid-chip">
+              {v}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {specs.length > 0 ? (
+        <div className="sat-bid-cargo-specs" title={t('cargoSpecs') || 'Cargo specs'}>
+          {specs.slice(0, 3).map((spec) => (
+            <span key={spec} className="sat-bid-cargo-spec">
+              {spec}
+            </span>
+          ))}
+          {specs.length > 3 ? <span className="sat-bid-cargo-spec-more">+{specs.length - 3}</span> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function PendingTableSkeleton({
   rows = 6,
   t,
@@ -195,6 +244,7 @@ function PendingTableSkeleton({
             <th>{t('laneCol') || 'Lane'}</th>
             <th>{t('customerCol') || 'Customer'}</th>
             <th>{t('quotedPriceCol') || 'Quoted Price'}</th>
+            <th>{t('quantity') || 'Quantity'}</th>
             <th>{t('satVehiclesCol') || 'Vehicles'}</th>
             <th className="sat-bid-col-choose">{t('satChooseShipment') || 'Choose'}</th>
           </tr>
@@ -224,6 +274,9 @@ function PendingTableSkeleton({
                   <div className="sat-bid-skel-line sat-bid-skel-line--price" />
                   <span className="sat-bid-skel-chip" />
                 </div>
+              </td>
+              <td>
+                <div className="sat-bid-skel-line sat-bid-skel-line--sub" />
               </td>
               <td>
                 <span className="sat-bid-skel-chip sat-bid-skel-chip--wide" />
@@ -550,6 +603,8 @@ function LoadSnapshotPanel({
             pickDt={pickDt}
             delDt={delDt}
             shipmentStatus="pending"
+            defaultExpanded
+            defaultCargoExpanded
             t={t}
           />
         )}
@@ -558,16 +613,17 @@ function LoadSnapshotPanel({
       <div className="sat-bid-snap-grid">
         <section className="sat-bid-snap-section">
           <h4>{t('satVehiclesCol') || 'Vehicles'}</h4>
-          <div className="sat-bid-chip-row">
-            {snapshot.truckTypes.length ? (
-              snapshot.truckTypes.map((v) => (
-                <span key={v} className="sat-bid-chip">
-                  {v}
-                </span>
-              ))
-            ) : (
-              <span className="sub">—</span>
-            )}
+          <VehiclesCell
+            truckTypes={snapshot.truckTypes}
+            cargoCategories={snapshot.cargoCategories}
+            t={t}
+          />
+        </section>
+
+        <section className="sat-bid-snap-section">
+          <h4>{t('quantity') || 'Quantity'}</h4>
+          <div className="sat-bid-qty">
+            {snapshot.quantityLabel || '—'}
           </div>
         </section>
 
@@ -894,6 +950,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                                 <th>{t('laneCol') || 'Lane'}</th>
                                 <th>{t('customerCol') || 'Customer'}</th>
                                 <th>{t('quotedPriceCol') || 'Quoted Price'}</th>
+                                <th>{t('quantity') || 'Quantity'}</th>
                                 <th>{t('satVehiclesCol') || 'Vehicles'}</th>
                                 <th className="sat-bid-col-choose">
                                   {t('satChooseShipment') || 'Choose'}
@@ -971,17 +1028,18 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                                       )}
                                     </td>
                                     <td>
-                                      {(p.truckTypes ?? []).length ? (
-                                        <div className="sat-bid-chip-row">
-                                          {(p.truckTypes ?? []).slice(0, 2).map((v) => (
-                                            <span key={v} className="sat-bid-chip">
-                                              {v}
-                                            </span>
-                                          ))}
-                                        </div>
+                                      {p.quantityLabel ? (
+                                        <span className="sat-bid-qty">{p.quantityLabel}</span>
                                       ) : (
                                         <span className="sub">—</span>
                                       )}
+                                    </td>
+                                    <td>
+                                      <VehiclesCell
+                                        truckTypes={p.truckTypes}
+                                        cargoCategories={p.cargoCategories}
+                                        t={t}
+                                      />
                                     </td>
                                     <td className="sat-bid-col-choose">
                                       <button
