@@ -234,6 +234,13 @@ export interface ApiShipmentsSummary {
   statuses: Record<string, number>;
 }
 
+export interface ApiShipmentsFilterFacets {
+  transporters: string[];
+  customers: string[];
+  pickup_locations: string[];
+  dropoff_locations: string[];
+}
+
 export interface ApiCancelReason {
   id: number;
   reason: string;

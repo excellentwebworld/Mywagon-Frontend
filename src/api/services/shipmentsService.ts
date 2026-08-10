@@ -6,6 +6,7 @@ import type {
   ApiShipmentDetail,
   ApiShipmentListItem,
   ApiShipmentsSummary,
+  ApiShipmentsFilterFacets,
   ListShipmentsParams,
   PaginatedShipmentsResult,
 } from '../types/shipments';
@@ -95,6 +96,20 @@ export const shipmentsService = {
       shipments: result.items.map(mapApiListItemToShipment),
       meta: result.meta,
     };
+  },
+
+  async filterFacets(
+    params: Omit<ListShipmentsParams, 'page' | 'per_page' | 'sort'> = {}
+  ): Promise<ApiShipmentsFilterFacets> {
+    const res = await apiGet<ApiShipmentsFilterFacets>('/shipments/filter-facets', toQuery(params));
+    return (
+      res.data ?? {
+        transporters: [],
+        customers: [],
+        pickup_locations: [],
+        dropoff_locations: [],
+      }
+    );
   },
 
   async summary(params: Omit<ListShipmentsParams, 'page' | 'per_page'> = {}): Promise<ApiShipmentsSummary> {

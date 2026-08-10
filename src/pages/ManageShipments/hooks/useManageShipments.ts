@@ -12,18 +12,14 @@ import {
   buildFilterChips,
   clearFilterChip,
   countForStatusTab,
-  customersFromShipments,
   DEFAULT_FILTERS,
-  dropoffLocationsFromShipments,
   filtersToApiParams,
   isShipmentEditable,
   kpiLabelKey,
   parseStatusTabParam,
-  pickupLocationsFromShipments,
   resolvePreferredStatusTab,
   statusTabHasApiSupport,
   statusTabToApiStatus,
-  transportersFromShipments,
   validateFilterRanges,
   type FilterChipKey,
   type KpiKey,
@@ -160,6 +156,23 @@ export function useManageShipments() {
     };
   }, [summaryParams, page, activeTab, sortKey]);
 
+  const filterFacetParams = useMemo((): Omit<ListShipmentsParams, 'page' | 'per_page' | 'sort'> => {
+    const status = statusTabToApiStatus(activeTab);
+    return {
+      ...filtersToApiParams({
+        ...appliedFilters,
+        carrier_name: '',
+        customer: '',
+        pickup_location_name: '',
+        dropoff_location_name: '',
+      }),
+      ...(debouncedSearch ? { search: debouncedSearch } : {}),
+      ...(activeKpi ? { kpi: activeKpi } : {}),
+      direction: isOutbound ? 'outbound' : 'inbound',
+      ...(status !== undefined ? { status } : {}),
+    };
+  }, [appliedFilters, debouncedSearch, activeKpi, isOutbound, activeTab]);
+
   const { shipments, meta, summary, loading, error, patchShipment } = useShipmentsList(
     listParams,
     summaryParams,
@@ -181,62 +194,39 @@ export function useManageShipments() {
     [shipments, meta]
   );
 
-  // Seed facet dropdowns from the visible page; refresh from full tab list when Filter opens.
+  // Load filter facet dropdowns for the full active tab (via dedicated API, not current page).
   useEffect(() => {
-    setFilterTransporterOptions(transportersFromShipments(shipments));
-    setFilterCustomerOptions(customersFromShipments(shipments));
-    setFilterPickupLocationOptions(pickupLocationsFromShipments(shipments));
-    setFilterDropoffLocationOptions(dropoffLocationsFromShipments(shipments));
-  }, [shipments]);
+    if (!tabSupported || !isOutbound) {
+      setFilterTransporterOptions([]);
+      setFilterCustomerOptions([]);
+      setFilterPickupLocationOptions([]);
+      setFilterDropoffLocationOptions([]);
+      return;
+    }
 
-  useEffect(() => {
-    if (!isFilterOpen || !tabSupported) return;
     let cancelled = false;
-    const status = statusTabToApiStatus(activeTab);
-    const facetFilters = filtersToApiParams({
-      ...appliedFilters,
-      carrier_name: '',
-      customer: '',
-      pickup_location_name: '',
-      dropoff_location_name: '',
-    });
-    const perPage = Math.min(Math.max(meta.total || shipments.length || 10, 10), 200);
 
     void shipmentsService
-      .listMapped({
-        ...facetFilters,
-        ...(debouncedSearch ? { search: debouncedSearch } : {}),
-        ...(activeKpi ? { kpi: activeKpi } : {}),
-        direction: isOutbound ? 'outbound' : 'inbound',
-        ...(status !== undefined ? { status } : {}),
-        page: 1,
-        per_page: perPage,
-      })
-      .then(({ shipments: rows }) => {
+      .filterFacets(filterFacetParams)
+      .then((facets) => {
         if (cancelled) return;
-        setFilterTransporterOptions(transportersFromShipments(rows));
-        setFilterCustomerOptions(customersFromShipments(rows));
-        setFilterPickupLocationOptions(pickupLocationsFromShipments(rows));
-        setFilterDropoffLocationOptions(dropoffLocationsFromShipments(rows));
+        setFilterTransporterOptions(facets.transporters);
+        setFilterCustomerOptions(facets.customers);
+        setFilterPickupLocationOptions(facets.pickup_locations);
+        setFilterDropoffLocationOptions(facets.dropoff_locations);
       })
       .catch(() => {
-        // Keep seeded page options on failure.
+        if (cancelled) return;
+        setFilterTransporterOptions([]);
+        setFilterCustomerOptions([]);
+        setFilterPickupLocationOptions([]);
+        setFilterDropoffLocationOptions([]);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [
-    isFilterOpen,
-    tabSupported,
-    activeTab,
-    activeKpi,
-    appliedFilters,
-    debouncedSearch,
-    isOutbound,
-    meta.total,
-    shipments.length,
-  ]);
+  }, [filterFacetParams, tabSupported, isOutbound, refreshKey]);
 
   const filterChips = useMemo(
     () => buildFilterChips(appliedFilters, t, productTypeNames),
