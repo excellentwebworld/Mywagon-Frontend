@@ -57,61 +57,99 @@ function collectFtlVehicleNames(lanes) {
   return Array.from(names).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 }
 
-function metricPriority(row, vehicleType, pallets, weight) {
-  if (!row) return 99;
-  if (row.metric === 'ftl_truck_type' && vehicleType) {
-    const vt = String(row.metricValue?.vehicle_type || '');
-    if (vt === vehicleType || vt.split(',').map((s) => s.trim()).includes(vehicleType)) return 0;
+function evaluateRow(row, { pallets, weight, vehicleType }) {
+  if (!row || !row.metric || Number(row.priceEur) <= 0) return null;
+  const basePrice = Number(row.priceEur);
+  const metric = String(row.metric);
+  const metricVal = row.metricValue || {};
+
+  const numPallets = Number(pallets);
+  const hasPallets = !isNaN(numPallets) && numPallets > 0;
+  const numWeightTons = Number(weight);
+  const hasWeight = !isNaN(numWeightTons) && numWeightTons > 0;
+  const selectedVt = String(vehicleType || '').trim().toLowerCase();
+
+  if (metric === 'ftl_truck_type') {
+    const laneVt = String(metricVal.vehicle_type || '').trim().toLowerCase();
+    const laneVtList = laneVt.split(',').map((s) => s.trim()).filter(Boolean);
+
+    let score = 20;
+    if (selectedVt) {
+      if (laneVt === selectedVt || laneVtList.includes(selectedVt)) {
+        score = 100;
+      } else {
+        score = 5;
+      }
+    } else if (laneVt) {
+      score = 40;
+    }
+
+    return {
+      score,
+      price: basePrice,
+      unit: 'load',
+      matchedMetric: metric,
+      matchedValue: metricVal.vehicle_type || vehicleType || 'FTL Truck',
+    };
   }
-  if (row.metric === 'unit_transport' && pallets && Number(pallets) > 0) return 1;
-  if (row.metric === 'weight' && weight && Number(weight) > 0) return row.metricValue?.unit === 'ton' ? 2 : 3;
-  if (row.metric === 'load_any_size') return 4;
-  return 99;
+
+  if (metric === 'unit_transport') {
+    const palletQty = hasPallets ? numPallets : 1;
+    const score = hasPallets ? 90 : 15;
+    return {
+      score,
+      price: basePrice * palletQty,
+      unit: palletQty > 1 ? 'pallets' : 'pallet',
+      matchedMetric: metric,
+      matchedValue: metricVal.type || 'eur_pallet',
+    };
+  }
+
+  if (metric === 'weight') {
+    const isKg = metricVal.unit === 'kg';
+    const weightTons = hasWeight ? numWeightTons : 1;
+    const price = isKg ? basePrice * (weightTons * 1000) : basePrice * weightTons;
+    const score = hasWeight ? 80 : 15;
+    return {
+      score,
+      price,
+      unit: isKg ? 'kg' : 'ton',
+      matchedMetric: metric,
+      matchedValue: metricVal.unit || 'ton',
+    };
+  }
+
+  if (metric === 'load_any_size') {
+    return {
+      score: 30,
+      price: basePrice,
+      unit: 'load',
+      matchedMetric: metric,
+      matchedValue: metricVal.type || 'per_load',
+    };
+  }
+
+  return {
+    score: 10,
+    price: basePrice,
+    unit: 'load',
+    matchedMetric: metric,
+    matchedValue: 'custom',
+  };
 }
 
 function priceFromPricingRows(lane, { pallets, weight, vehicleType }) {
   const rows = resolveLanePricingRows(lane);
-  const ordered = [...rows].sort(
-    (a, b) => metricPriority(a, vehicleType, pallets, weight) - metricPriority(b, vehicleType, pallets, weight),
-  );
-  const selected = ordered.find((row) => metricPriority(row, vehicleType, pallets, weight) < 99);
-  if (!selected) return null;
+  if (!rows || rows.length === 0) return null;
 
-  const base = Number(selected.priceEur || 0);
+  const evaluated = rows
+    .map((row) => evaluateRow(row, { pallets, weight, vehicleType }))
+    .filter(Boolean);
 
-  if (selected.metric === 'ftl_truck_type') {
-    return {
-      price: base,
-      unit: 'load',
-      matchedMetric: selected.metric,
-      matchedValue: selected.metricValue?.vehicle_type || vehicleType,
-    };
-  }
-  if (selected.metric === 'unit_transport') {
-    const qty = Number(pallets || 0);
-    return {
-      price: base * qty,
-      unit: 'pallet',
-      matchedMetric: selected.metric,
-      matchedValue: selected.metricValue?.type || 'eur_pallet',
-    };
-  }
-  if (selected.metric === 'weight') {
-    const qty = Number(weight || 0);
-    const multiplier = selected.metricValue?.unit === 'kg' ? 1000 : 1;
-    return {
-      price: base * qty * multiplier,
-      unit: selected.metricValue?.unit || 'ton',
-      matchedMetric: selected.metric,
-      matchedValue: selected.metricValue?.unit || 'ton',
-    };
-  }
-  return {
-    price: base,
-    unit: 'load',
-    matchedMetric: selected.metric,
-    matchedValue: selected.metricValue?.type || 'per_load',
-  };
+  if (evaluated.length === 0) return null;
+
+  evaluated.sort((a, b) => b.score - a.score);
+  return evaluated[0];
 }
 
 function distinctEndpointStops(lanes, endpoint) {
@@ -119,10 +157,26 @@ function distinctEndpointStops(lanes, endpoint) {
   (lanes || []).forEach((lane) => {
     const stops = lane?.stops || [];
     if (stops.length < 2) return;
-    const raw = endpoint === 'origin' ? stops[0] : stops[stops.length - 1];
-    const stop = normalizeLoadedLaneStop(raw);
-    if (!isCalculatorEndpoint(stop)) return;
-    if (!out.some((s) => stopsAreSamePlace(s, stop))) out.push(stop);
+
+    const first = normalizeLoadedLaneStop(stops[0]);
+    const last = normalizeLoadedLaneStop(stops[stops.length - 1]);
+    const isRound = Boolean(lane.isRoundTrip || lane.tripType === 'roundtrip');
+
+    if (endpoint === 'origin') {
+      if (isCalculatorEndpoint(first) && !out.some((s) => stopsAreSamePlace(s, first))) {
+        out.push(first);
+      }
+      if (isRound && isCalculatorEndpoint(last) && !out.some((s) => stopsAreSamePlace(s, last))) {
+        out.push(last);
+      }
+    } else {
+      if (isCalculatorEndpoint(last) && !out.some((s) => stopsAreSamePlace(s, last))) {
+        out.push(last);
+      }
+      if (isRound && isCalculatorEndpoint(first) && !out.some((s) => stopsAreSamePlace(s, first))) {
+        out.push(first);
+      }
+    }
   });
   return out.sort((a, b) => stopLabel(a).localeCompare(stopLabel(b), undefined, { sensitivity: 'base' }));
 }
@@ -167,7 +221,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
   const [expanded, setExpanded] = useState(false);
 
   const activeLanes = useMemo(
-    () => (Array.isArray(lanes) ? lanes.filter((l) => l.status === 'active') : []),
+    () => (Array.isArray(lanes) ? lanes.filter((l) => !l.status || l.status === 'active') : []),
     [lanes],
   );
 
@@ -180,20 +234,27 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
 
   const destinationStops = useMemo(() => {
     if (!isCalculatorEndpoint(originStop)) {
-      return distinctEndpointStops(activeLanes, 'destination');
+      return [];
     }
     const picks = [];
     activeLanes.forEach((lane) => {
       const stops = lane?.stops || [];
       if (stops.length < 2) return;
-      const laneOrigin = normalizeLoadedLaneStop(stops[0]);
-      if (!stopMatchesPlace(laneOrigin, originStop)) return;
-      const dest = normalizeLoadedLaneStop(stops[stops.length - 1]);
-      if (!isCalculatorEndpoint(dest)) return;
-      if (!picks.some((s) => stopsAreSamePlace(s, dest))) picks.push(dest);
+      const first = normalizeLoadedLaneStop(stops[0]);
+      const last = normalizeLoadedLaneStop(stops[stops.length - 1]);
+      const isRound = Boolean(lane.isRoundTrip || lane.tripType === 'roundtrip');
+
+      if (stopMatchesPlace(first, originStop)) {
+        if (isCalculatorEndpoint(last) && !picks.some((s) => stopsAreSamePlace(s, last))) {
+          picks.push(last);
+        }
+      } else if (isRound && stopMatchesPlace(last, originStop)) {
+        if (isCalculatorEndpoint(first) && !picks.some((s) => stopsAreSamePlace(s, first))) {
+          picks.push(first);
+        }
+      }
     });
-    const list = picks.length > 0 ? picks : distinctEndpointStops(activeLanes, 'destination');
-    return list.sort((a, b) => stopLabel(a).localeCompare(stopLabel(b), undefined, { sensitivity: 'base' }));
+    return picks.sort((a, b) => stopLabel(a).localeCompare(stopLabel(b), undefined, { sensitivity: 'base' }));
   }, [activeLanes, originStop]);
 
   const originOptions = useMemo(
@@ -230,20 +291,26 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
     if (!isCalculatorEndpoint(originStop) || !isCalculatorEndpoint(destinationStop)) return [];
     return activeLanes.filter((l) => {
       const stops = l.stops || [];
-      return stopMatchesPlace(normalizeLoadedLaneStop(stops[0]), originStop)
-        && stopMatchesPlace(normalizeLoadedLaneStop(stops[stops.length - 1]), destinationStop);
+      if (stops.length < 2) return false;
+      const o = normalizeLoadedLaneStop(stops[0]);
+      const d = normalizeLoadedLaneStop(stops[stops.length - 1]);
+      const directMatch = stopMatchesPlace(o, originStop) && stopMatchesPlace(d, destinationStop);
+      const isRound = Boolean(l.isRoundTrip || l.tripType === 'roundtrip');
+      const reverseMatch = isRound && stopMatchesPlace(d, originStop) && stopMatchesPlace(o, destinationStop);
+      return directMatch || reverseMatch;
     });
   }, [originStop, destinationStop, activeLanes]);
 
   const vehicleOptions = useMemo(() => {
     const laneSource = matchingOdLanes.length > 0 ? matchingOdLanes : activeLanes;
     const fromLanes = collectFtlVehicleNames(laneSource);
-    if (fromLanes.length > 0) return fromLanes;
 
     const fromCatalog = (vehicleTypes || [])
       .map((vt) => String(vt.name || '').trim())
       .filter(Boolean);
-    return Array.from(new Set(fromCatalog)).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+    const combined = Array.from(new Set([...fromLanes, ...fromCatalog]));
+    return combined.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
   }, [matchingOdLanes, activeLanes, vehicleTypes]);
 
   useEffect(() => {
@@ -271,12 +338,6 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
     }
   }, [originStop, destinationStops]);
 
-  useEffect(() => {
-    if (vehicleType && !vehicleOptions.includes(vehicleType)) {
-      setVehicleType('');
-    }
-  }, [vehicleType, vehicleOptions]);
-
   const handleRoutePreset = useCallback((key) => {
     setRoutePresetKey(key);
     const preset = routePresets.find((r) => r.value === key);
@@ -301,8 +362,13 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
       ? matchingOdLanes
       : activeLanes.filter((l) => {
         const stops = l.stops || [];
-        return stopMatchesPlace(normalizeLoadedLaneStop(stops[0]), originStop)
-          && stopMatchesPlace(normalizeLoadedLaneStop(stops[stops.length - 1]), destinationStop);
+        if (stops.length < 2) return false;
+        const o = normalizeLoadedLaneStop(stops[0]);
+        const d = normalizeLoadedLaneStop(stops[stops.length - 1]);
+        const directMatch = stopMatchesPlace(o, originStop) && stopMatchesPlace(d, destinationStop);
+        const isRound = Boolean(l.isRoundTrip || l.tripType === 'roundtrip');
+        const reverseMatch = isRound && stopMatchesPlace(d, originStop) && stopMatchesPlace(o, destinationStop);
+        return directMatch || reverseMatch;
       });
 
     const sorted = [...candidates].sort((a, b) => {
@@ -402,7 +468,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
 
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label style={labelStyle}>{t('priceLists.modal.origin', 'Origin')}</label>
+                  <label style={labelStyle}>{t('priceLists.modal.origin', 'Pickup Location (Origin)')}</label>
                   <SearchableSelect
                     options={originOptions}
                     value={originStop ? stopKey(originStop) : ''}
@@ -410,7 +476,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
                       setOriginStop(originByKey.get(key) || null);
                       setRoutePresetKey('');
                     }}
-                    placeholder={t('priceLists.calculator.pickOrigin', 'Select origin from your lanes…')}
+                    placeholder={t('priceLists.calculator.pickOrigin', 'Select pickup location from your lanes…')}
                     searchPlaceholder={t('priceLists.calculator.searchOrigin', 'Search origins…')}
                     menuFixed
                     direction="auto"
@@ -418,7 +484,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>{t('priceLists.modal.destination', 'Destination')}</label>
+                  <label style={labelStyle}>{t('priceLists.modal.destination', 'Dropoff Location (Destination)')}</label>
                   <SearchableSelect
                     options={destinationOptions}
                     value={destinationStop ? stopKey(destinationStop) : ''}
@@ -427,15 +493,19 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
                       setRoutePresetKey('');
                       setResult(null);
                     }}
-                    placeholder={t('priceLists.calculator.pickDestination', 'Select destination from your lanes…')}
+                    placeholder={
+                      !isCalculatorEndpoint(originStop)
+                        ? t('priceLists.calculator.pickOriginFirst', 'Select pickup location first…')
+                        : t('priceLists.calculator.pickDestination', 'Select dropoff location for this pickup…')
+                    }
                     searchPlaceholder={t('priceLists.calculator.searchDestination', 'Search destinations…')}
                     menuFixed
                     direction="auto"
-                    disabled={destinationOptions.length === 0}
+                    disabled={!isCalculatorEndpoint(originStop) || destinationOptions.length === 0}
                   />
                   {isCalculatorEndpoint(originStop) && destinationOptions.length === 0 && (
                     <div style={{ fontSize: 11, color: T.t3, marginTop: 4 }}>
-                      {t('priceLists.calculator.noDestForOrigin', 'No destinations found for this origin in your lane library.')}
+                      {t('priceLists.calculator.noDestForOrigin', 'No destination locations found for this pickup in your lane library.')}
                     </div>
                   )}
                 </div>
@@ -453,7 +523,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
               <input type="number" min="0" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="—" style={inputStyle} />
             </div>
             <div>
-              <label style={labelStyle}>{t('priceLists.calculator.vehicle', 'Vehicle')}</label>
+              <label style={labelStyle}>{t('priceLists.calculator.vehicle', 'Vehicle Type')}</label>
               <SearchableSelect
                 options={[
                   { value: '', label: '—' },
@@ -493,7 +563,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
               )}
               {result.error === 'noPricing' && (
                 <div style={{ fontSize: 13, color: '#F59E0B', fontWeight: 500 }}>
-                  {t('priceLists.calculator.noPricing', 'Matched lane has no applicable pricing for the entered quantity')}
+                  {t('priceLists.calculator.noPricing', 'Matched lane has no applicable pricing for the entered data')}
                 </div>
               )}
               {!result.error && (
@@ -519,7 +589,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
                     <div className="mt-2 space-y-1" style={{ fontSize: 11 }}>
                       <div className="flex justify-between" style={{ color: T.t2 }}>
                         <span>
-                          {t('priceLists.calculator.basePrice', 'Base price')} ({result.unit})
+                          {t('priceLists.calculator.basePrice', 'Calculated Rate')} ({result.unit})
                           {result.matchedMetricLabel ? ` · ${result.matchedMetricLabel}` : ''}
                         </span>
                         <span>€{result.price.toFixed(2)}</span>
