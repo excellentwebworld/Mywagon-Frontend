@@ -4079,6 +4079,13 @@
   "tutorials": {
     "pageTitle": "Tutorials",
     "pageSubtitle": "Learn how to use MYVAGON. Discover all features through guided video tutorials.",
+    "heroBadge": "Learning Center",
+    "statsModules": "{{count}} modules",
+    "statsVideos": "{{count}} videos",
+    "moduleSingular": "module",
+    "modulePlural": "modules",
+    "videoCount": "{{count}} videos",
+    "clearFilters": "Clear filters",
     "searchPlaceholder": "Search tutorials by title or module…",
     "filterAll": "All Modules",
     "allModulesHeading": "All Modules",

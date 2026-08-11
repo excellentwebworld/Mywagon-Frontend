@@ -1,5 +1,5 @@
 import React from 'react';
-import { HelpCircle } from 'lucide-react';
+import { ArrowRight, HelpCircle, MessageCircle } from 'lucide-react';
 
 interface NeedHelpCardProps {
   title: string;
@@ -17,13 +17,17 @@ export const NeedHelpCard: React.FC<NeedHelpCardProps> = ({
   return (
     <div className="tut-need-help-wrap">
       <div className="tut-need-help-card">
-        <h5>
-          <HelpCircle size={14} aria-hidden />
-          {title}
-        </h5>
-        <p>{description}</p>
+        <div className="tut-need-help-copy">
+          <h5>
+            <HelpCircle size={16} aria-hidden />
+            {title}
+          </h5>
+          <p>{description}</p>
+        </div>
         <button type="button" className="tut-btn-support" onClick={onContactSupport}>
+          <MessageCircle size={16} aria-hidden />
           {buttonLabel}
+          <ArrowRight size={14} className="tut-btn-support-arrow" aria-hidden />
         </button>
       </div>
     </div>

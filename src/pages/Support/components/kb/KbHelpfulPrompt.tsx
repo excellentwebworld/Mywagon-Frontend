@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { ThumbsDown, ThumbsUp } from 'lucide-react';
 
 interface KbHelpfulPromptProps {
   articleId: string;
@@ -32,22 +33,24 @@ export function KbHelpfulPrompt({
 
   return (
     <div className="modal-helpful">
-      <span>{label}</span>
+      <span className="modal-helpful-label">{label}</span>
       <button
         type="button"
-        className={voted === 'yes' ? 'voted' : undefined}
+        className={`modal-helpful-btn${voted === 'yes' ? ' voted' : ''}`}
         onClick={() => handleVote(true)}
         disabled={voted !== null}
       >
-        👍 {voted === 'yes' ? thanksYes : yesLabel}
+        <ThumbsUp size={14} aria-hidden />
+        {voted === 'yes' ? thanksYes : yesLabel}
       </button>
       <button
         type="button"
-        className={voted === 'no' ? 'voted' : undefined}
+        className={`modal-helpful-btn${voted === 'no' ? ' voted-no' : ''}`}
         onClick={() => handleVote(false)}
         disabled={voted !== null}
       >
-        👎 {voted === 'no' ? notedNo : noLabel}
+        <ThumbsDown size={14} aria-hidden />
+        {voted === 'no' ? notedNo : noLabel}
       </button>
     </div>
   );

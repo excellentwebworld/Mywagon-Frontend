@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
+import { BookOpen, CalendarDays, ClipboardList, Lock } from 'lucide-react';
 import '../../styles/support.css';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useTheme } from '../../hooks/useTheme';
 import { SubscriptionGateModal } from '../../components/SearchTrucks/SubscriptionGateModal';
 import { SupportPageHeader } from './components/SupportPageHeader';
 import { SupportQuickActions } from './components/SupportQuickActions';
@@ -13,7 +13,6 @@ import { useSupportPage } from './hooks/useSupportPage';
 
 export default function SupportPage() {
   const { t } = useTranslation();
-  const { T } = useTheme();
   const {
     sectionOpen,
     activeRequestTab,
@@ -34,30 +33,11 @@ export default function SupportPage() {
 
   return (
     <>
-      <div
-        className="support-page"
-        style={{
-          maxWidth: 1200,
-          margin: '0 auto',
-          padding: '24px',
-          opacity: accessLoading ? 0.7 : 1,
-        }}
-      >
+      <div className={`support-page${accessLoading ? ' is-loading' : ''}`}>
         {isGated ? (
-          <div
-            className="support-gate-banner"
-            style={{
-              marginBottom: 20,
-              padding: '12px 16px',
-              borderRadius: 12,
-              background: '#FFFBEB',
-              border: '1px solid #FDE68A',
-              color: '#92400E',
-              fontSize: 13,
-              fontWeight: 500,
-            }}
-          >
-            {t('support.gateBanner')}
+          <div className="support-gate-banner" role="status">
+            <Lock size={16} aria-hidden />
+            <span>{t('support.gateBanner')}</span>
           </div>
         ) : null}
 
@@ -70,8 +50,8 @@ export default function SupportPage() {
 
         <SupportCollapsibleSection
           id="kb"
-          icon="📚"
-          iconBg="#EFF6FF"
+          icon={<BookOpen size={17} strokeWidth={2} />}
+          iconBg="var(--info-bg)"
           title={t('support.sections.knowledgeBase')}
           badge={
             kbArticleCount !== null && kbArticleCount > 0
@@ -87,7 +67,7 @@ export default function SupportPage() {
 
         <SupportCollapsibleSection
           id="requests"
-          icon="✦"
+          icon={<ClipboardList size={17} strokeWidth={2} />}
           iconBg="var(--accent-light)"
           title={t('support.sections.requests')}
           collapsed={sectionOpen.requests}
@@ -103,8 +83,8 @@ export default function SupportPage() {
 
         <SupportCollapsibleSection
           id="call"
-          icon="📅"
-          iconBg="#ECFDF5"
+          icon={<CalendarDays size={17} strokeWidth={2} />}
+          iconBg="var(--success-bg)"
           title={t('support.sections.bookCall')}
           collapsed={sectionOpen.call}
           onToggle={() => toggleSection('call')}

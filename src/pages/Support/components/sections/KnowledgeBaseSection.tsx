@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { useTheme } from '../../../../hooks/useTheme';
 import { useKnowledgeBase } from '../../hooks/useKnowledgeBase';
 import { KbSearchBar } from '../kb/KbSearchBar';
 import { KbCategoryGrid } from '../kb/KbCategoryGrid';
@@ -14,7 +13,6 @@ interface KnowledgeBaseSectionProps {
 
 export function KnowledgeBaseSection({ disabled = false, onArticleCountChange }: KnowledgeBaseSectionProps) {
   const { t, lang } = useTranslation();
-  const { T } = useTheme();
 
   const kb = useKnowledgeBase({ lang, disabled });
 
@@ -23,21 +21,7 @@ export function KnowledgeBaseSection({ disabled = false, onArticleCountChange }:
   }, [kb.totalArticleCount, onArticleCountChange]);
 
   if (disabled) {
-    return (
-      <div
-        className="support-placeholder"
-        style={{
-          padding: '32px 24px',
-          textAlign: 'center',
-          color: T.t3,
-          background: T.sa,
-          borderRadius: 12,
-          fontSize: 13,
-        }}
-      >
-        {t('support.kb.gatedMessage')}
-      </div>
-    );
+    return <div className="support-placeholder">{t('support.kb.gatedMessage')}</div>;
   }
 
   const articlesLabel = t('support.kb.articles');

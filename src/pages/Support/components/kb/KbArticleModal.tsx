@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { X } from 'lucide-react';
 import type { KbArticleDetail } from '../../types';
 import { KbHelpfulPrompt } from './KbHelpfulPrompt';
 
@@ -57,7 +58,7 @@ export function KbArticleModal({
         <div className="kb-modal-head">
           <h3 id="kb-modal-title">{loading ? '…' : article?.title ?? ''}</h3>
           <button type="button" className="kb-modal-close" onClick={onClose} aria-label="Close">
-            ×
+            <X size={16} aria-hidden />
           </button>
         </div>
         <div className="kb-modal-body">

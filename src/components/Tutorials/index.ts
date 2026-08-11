@@ -7,3 +7,4 @@ export { TutorialsEmptyState } from './TutorialsEmptyState';
 export { NeedHelpCard } from './NeedHelpCard';
 export { TutorialVideoModal } from './TutorialVideoModal';
 export { ContextualTutorialTrigger } from './ContextualTutorialTrigger';
+export { TutorialsLoadingSkeleton } from './TutorialsLoadingSkeleton';

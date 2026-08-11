@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowRight, BookOpen, CalendarDays, PenLine } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { SupportRequestTab, SupportSectionId } from '../types';
 
@@ -13,66 +14,68 @@ export function SupportQuickActions({ onNavigate, disabled = false }: SupportQui
   const cards = [
     {
       section: 'kb' as SupportSectionId,
-      icon: '🔍',
-      iconBg: '#EFF6FF',
+      icon: BookOpen,
+      iconBg: 'var(--info-bg)',
+      iconColor: 'var(--info)',
       title: t('support.quickActions.knowledgeBase'),
       desc: t('support.quickActions.knowledgeBaseDesc'),
     },
     {
       section: 'requests' as SupportSectionId,
       openRequestsTab: 'create' as SupportRequestTab,
-      icon: '✏️',
+      icon: PenLine,
       iconBg: 'var(--accent-light)',
+      iconColor: 'var(--accent)',
       title: t('support.quickActions.createRequest'),
       desc: t('support.quickActions.createRequestDesc'),
     },
     {
       section: 'call' as SupportSectionId,
-      icon: '📅',
-      iconBg: '#ECFDF5',
+      icon: CalendarDays,
+      iconBg: 'var(--success-bg)',
+      iconColor: 'var(--success)',
       title: t('support.quickActions.bookCall'),
       desc: t('support.quickActions.bookCallDesc'),
     },
   ];
 
   return (
-    <div className="support-quick-actions quick-actions">
-      {cards.map((card) => (
-        <div
-          key={card.section}
-          className="qa-card support-qa-card"
-          role="button"
-          tabIndex={disabled ? -1 : 0}
-          aria-disabled={disabled}
-          onClick={() => {
-            if (disabled) return;
-            onNavigate(card.section, card.openRequestsTab ? { openRequestsTab: card.openRequestsTab } : undefined);
-          }}
-          onKeyDown={(e) => {
-            if (disabled) return;
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
+    <div className="support-quick-actions">
+      {cards.map((card) => {
+        const Icon = card.icon;
+        return (
+          <div
+            key={card.section}
+            className={`support-qa-card${disabled ? ' is-disabled' : ''}`}
+            role="button"
+            tabIndex={disabled ? -1 : 0}
+            aria-disabled={disabled}
+            onClick={() => {
+              if (disabled) return;
               onNavigate(card.section, card.openRequestsTab ? { openRequestsTab: card.openRequestsTab } : undefined);
-            }
-          }}
-          style={disabled ? { opacity: 0.55, pointerEvents: 'none' } : undefined}
-        >
-          <div className="qa-icon" style={{ background: card.iconBg }}>
-            {card.icon}
-          </div>
-          <div style={{ flex: 1 }}>
-            <div className="qa-label" style={{ fontWeight: 700, fontSize: 14 }}>
-              {card.title}
+            }}
+            onKeyDown={(e) => {
+              if (disabled) return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onNavigate(card.section, card.openRequestsTab ? { openRequestsTab: card.openRequestsTab } : undefined);
+              }
+            }}
+          >
+            <div
+              className="support-qa-icon"
+              style={{ background: card.iconBg, color: card.iconColor }}
+            >
+              <Icon size={20} strokeWidth={2} />
             </div>
-            <div className="qa-sub" style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>
-              {card.desc}
+            <div style={{ flex: 1 }}>
+              <div className="support-qa-label">{card.title}</div>
+              <div className="support-qa-sub">{card.desc}</div>
             </div>
+            <ArrowRight className="support-qa-arrow" size={18} aria-hidden />
           </div>
-          <span className="support-qa-arrow" aria-hidden>
-            →
-          </span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

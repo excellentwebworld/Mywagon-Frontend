@@ -11,6 +11,7 @@ interface ModuleCardProps {
   lang: string;
   moduleTitle: string;
   moduleDescription: string;
+  videoCountLabel: string;
   onVideoClick: (video: TutorialVideo) => void;
 }
 
@@ -20,14 +21,19 @@ export const ModuleCard: React.FC<ModuleCardProps> = ({
   lang,
   moduleTitle,
   moduleDescription,
+  videoCountLabel,
   onVideoClick,
 }) => {
   return (
-    <article className="tut-mod-card">
+    <article className="tut-mod-card" style={{ '--tut-mod-accent': config.color } as React.CSSProperties}>
+      <div className="tut-mod-card-accent" aria-hidden />
       <div className="tut-mod-card-head">
         <TutorialModuleIcon icon={config.icon} color={config.color} bg={config.bg} />
         <div className="tut-mod-info">
-          <h4>{moduleTitle}</h4>
+          <div className="tut-mod-info-top">
+            <h4>{moduleTitle}</h4>
+            <span className="tut-mod-count">{videoCountLabel}</span>
+          </div>
           <p>{moduleDescription}</p>
         </div>
       </div>

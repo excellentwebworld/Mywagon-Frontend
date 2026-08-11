@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { useTheme } from '../../../../hooks/useTheme';
 import type { SupportRequestTab } from '../../types';
 import { CreateRequestForm } from '../requests/CreateRequestForm';
 import { MyRequestsTable } from '../requests/MyRequestsTable';
@@ -19,7 +18,6 @@ export function RequestsSection({
   disabled = false,
 }: RequestsSectionProps) {
   const { t, lang } = useTranslation();
-  const { T } = useTheme();
 
   const myRequests = useMyRequests({
     lang,
@@ -59,19 +57,7 @@ export function RequestsSection({
         {activeTab === 'create' ? (
           <CreateRequestForm lang={lang} disabled={disabled} />
         ) : disabled ? (
-          <div
-            className="support-placeholder"
-            style={{
-              padding: '32px 24px',
-              textAlign: 'center',
-              color: T.t3,
-              background: T.sa,
-              borderRadius: 12,
-              fontSize: 13,
-            }}
-          >
-            {t('support.requests.gatedMessage')}
-          </div>
+          <div className="support-placeholder">{t('support.requests.gatedMessage')}</div>
         ) : (
           <>
             <MyRequestsTable

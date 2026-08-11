@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 import type { TutorialVideo } from '../../api/types/tutorials';
 import { getTutorialVideoTitle } from '../../api/types/tutorials';
 
@@ -66,7 +67,7 @@ export const TutorialVideoModal: React.FC<TutorialVideoModalProps> = ({
             <div className="tut-modal-head-sub">{moduleTitle}</div>
           </div>
           <button type="button" className="tut-modal-close" onClick={onClose} aria-label="Close">
-            ✕
+            <X size={16} aria-hidden />
           </button>
         </div>
         <div className="tut-modal-body">

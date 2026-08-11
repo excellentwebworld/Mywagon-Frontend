@@ -108,9 +108,15 @@ export function useTutorialsPage() {
     };
   }, [modalVideo]);
 
+  const meta = data?.meta ?? {
+    module_count: mergedModules.length,
+    video_count: mergedModules.reduce((sum, m) => sum + m.videos.length, 0),
+  };
+
   return {
     t,
     lang,
+    meta,
     searchQuery,
     setSearchQuery,
     activeModuleFilter,

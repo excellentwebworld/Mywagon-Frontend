@@ -1,10 +1,9 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
-import { useTheme } from '../../../hooks/useTheme';
 
 interface SupportCollapsibleSectionProps {
   id: string;
-  icon: string;
+  icon: React.ReactNode;
   iconBg: string;
   title: string;
   badge?: string;
@@ -25,20 +24,11 @@ export function SupportCollapsibleSection({
   sectionRef,
   children,
 }: SupportCollapsibleSectionProps) {
-  const { T } = useTheme();
-
   return (
     <section
       id={`sec-${id}`}
       ref={sectionRef}
       className="support-section"
-      style={{
-        marginBottom: 20,
-        borderRadius: 16,
-        background: T.sf,
-        border: `1px solid ${T.bd}`,
-        overflow: 'hidden',
-      }}
     >
       <button
         type="button"
@@ -55,7 +45,7 @@ export function SupportCollapsibleSection({
         <ChevronDown
           size={20}
           className={`support-section-chevron${collapsed ? ' collapsed' : ''}`}
-          style={{ color: T.t3 }}
+          style={{ color: 'var(--text-tertiary)' }}
         />
       </button>
       <div

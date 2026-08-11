@@ -4079,6 +4079,13 @@
   "tutorials": {
     "pageTitle": "Εκπαίδευση",
     "pageSubtitle": "Μάθετε πώς να χρησιμοποιείτε το MYVAGON. Ανακαλύψτε όλες τις λειτουργίες μέσω καθοδηγητικών βίντεο.",
+    "heroBadge": "Κέντρο Μάθησης",
+    "statsModules": "{{count}} ενότητες",
+    "statsVideos": "{{count}} βίντεο",
+    "moduleSingular": "ενότητα",
+    "modulePlural": "ενότητες",
+    "videoCount": "{{count}} βίντεο",
+    "clearFilters": "Καθαρισμός φίλτρων",
     "searchPlaceholder": "Αναζήτηση μαθημάτων κατά τίτλο ή ενότητα…",
     "filterAll": "Όλες οι Ενότητες",
     "allModulesHeading": "Όλες οι Ενότητες",

@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { useTheme } from '../../../../hooks/useTheme';
 import { useCreateRequestForm } from '../../hooks/useCreateRequestForm';
 import { RequestFormField } from './RequestFormField';
 import { RequestAttachmentDropzone } from './RequestAttachmentDropzone';
@@ -12,28 +11,13 @@ interface CreateRequestFormProps {
 
 export function CreateRequestForm({ lang, disabled = false }: CreateRequestFormProps) {
   const { t } = useTranslation();
-  const { T } = useTheme();
   const form = useCreateRequestForm({ lang, disabled });
 
   const fieldError = (key: string) =>
     form.fieldErrors[key] ? t(`support.request.errors.${form.fieldErrors[key]}`) : undefined;
 
   if (disabled) {
-    return (
-      <div
-        className="support-placeholder"
-        style={{
-          padding: '32px 24px',
-          textAlign: 'center',
-          color: T.t3,
-          background: T.sa,
-          borderRadius: 12,
-          fontSize: 13,
-        }}
-      >
-        {t('support.request.gatedMessage')}
-      </div>
-    );
+    return <div className="support-placeholder">{t('support.request.gatedMessage')}</div>;
   }
 
   if (form.loadingOptions) {
