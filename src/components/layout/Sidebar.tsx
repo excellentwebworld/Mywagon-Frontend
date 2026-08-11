@@ -328,13 +328,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>{t("support")}</span>
           </Link>
 
-          <a href="#tutorial" className="ni" title={t("tutorial")}>
+          <Link
+            to="/tutorials"
+            onClick={onCloseMobile}
+            className={`ni ${isLinkActive("/tutorials") ? "active" : ""}`}
+            title={t("tutorial")}
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="5 3 19 12 5 21 5 3"></polygon>
             </svg>
             <span>{t("tutorial")}</span>
-          </a>
+          </Link>
 
         </div>
       </aside>

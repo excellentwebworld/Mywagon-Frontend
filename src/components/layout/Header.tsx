@@ -62,6 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
     if (path.startsWith('/billing')) return t('sidebar.billing') || t('billing');
     if (path.startsWith('/subscription')) return t('sidebar.subscription') || t('navSubscription');
     if (path.startsWith('/support')) return t('sidebar.support') || t('support');
+    if (path.startsWith('/tutorials')) return t('tutorials.pageTitle') || t('tutorial');
     if (path.startsWith('/trust')) return t('settings.securityTrust') || 'Security & Trust';
     return t('dashboard');
   };

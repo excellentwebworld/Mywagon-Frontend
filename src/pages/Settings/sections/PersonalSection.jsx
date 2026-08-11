@@ -17,6 +17,8 @@ import { useToast } from '../../../hooks/useToast';
 import { personalSettingsService } from '../../../api/services/personalSettingsService';
 import { parseUtcInstant } from '../../../utils/timezone';
 import { formatIsoDisplayDateTime } from '../../../utils/dateDisplay';
+import { ContextualTutorialTrigger } from '../../../components/Tutorials';
+import '../../../styles/tutorials.css';
 
 const ACTIVITY_PREVIEW_LIMIT = 10;
 
@@ -167,6 +169,12 @@ export default function PersonalSection() {
 
   return (
     <div className="space-y-4">
+      <div className="tut-title-with-trigger" style={{ marginBottom: 4 }}>
+        <h2 className="font-bold" style={{ fontSize: 18, color: T.t1, margin: 0 }}>
+          {t('settings.personal')}
+        </h2>
+        <ContextualTutorialTrigger tutorialKey="profile" />
+      </div>
       <Card
         title={t('settings.profileSection.myInfo')}
         icon={<Briefcase size={16} style={{ color: T.ac }} />}

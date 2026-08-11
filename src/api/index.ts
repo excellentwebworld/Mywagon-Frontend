@@ -8,6 +8,7 @@ export { createShipmentService } from './services/createShipmentService';
 export { shipmentsService } from './services/shipmentsService';
 export { priceListsService } from './services/priceListsService';
 export { availabilitiesService, SAT_PREFILL_KEY } from './services/availabilitiesService';
+export { supportService } from './services/supportService';
 export type { ApiAmenity, ApiCompanyEntity, ApiCompanyLookup, ApiAddressBookSummary, ApiListMeta } from './types/addressBook';
 export type { ApiProductSummary, ApiSkuListItem, ListSkusParams } from './types/productMaster';
 export type {

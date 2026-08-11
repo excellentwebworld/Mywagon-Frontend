@@ -16,6 +16,8 @@ import { useApp } from '../../context/AppContext';
 import '../../styles/search-trucks.css';
 import { useSearchTrucks } from './hooks/useSearchTrucks';
 import type { AvailableTruck } from './types';
+import { ContextualTutorialTrigger } from '../../components/Tutorials';
+import '../../styles/tutorials.css';
 
 export const SearchTrucks: React.FC = () => {
   const m = useSearchTrucks();
@@ -115,8 +117,9 @@ export const SearchTrucks: React.FC = () => {
 
       <div className="sat-page-top">
         <div className="sat-page-title-row">
-          <div className="sat-page-title-group">
+          <div className="sat-page-title-group tut-title-with-trigger">
             <h1>{m.t('satPageTitle')}</h1>
+            <ContextualTutorialTrigger tutorialKey="searchTrucks" />
             <span className="sat-beta-badge">BETA</span>
           </div>
           <div className="sat-page-actions">

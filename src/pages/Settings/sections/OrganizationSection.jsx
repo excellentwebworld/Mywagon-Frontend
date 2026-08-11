@@ -13,6 +13,8 @@ import {
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { organizationSettingsService } from '../../../api/services/organizationSettingsService';
+import { ContextualTutorialTrigger } from '../../../components/Tutorials';
+import '../../../styles/tutorials.css';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_INVOICE_EMAILS = 5;
@@ -213,6 +215,12 @@ export default function OrganizationSection() {
 
   return (
     <div className="space-y-4">
+      <div className="tut-title-with-trigger" style={{ marginBottom: 4 }}>
+        <h2 className="font-bold" style={{ fontSize: 18, color: T.t1, margin: 0 }}>
+          {t('settings.organization')}
+        </h2>
+        <ContextualTutorialTrigger tutorialKey="profile" />
+      </div>
       {/* Completion gauge */}
       <div className="rounded-xl px-5 py-4" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
         <div className="flex items-center justify-between gap-3 mb-2">

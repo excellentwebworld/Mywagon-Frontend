@@ -1,12 +1,17 @@
 import React from 'react';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
+import { ContextualTutorialTrigger } from '../Tutorials';
+import '../../styles/tutorials.css';
 
 type Props = Pick<AddressBookState, 't' | 'exportExcel' | 'exporting' | 'openCreateModal'>;
 
 export const AddressBookHeader: React.FC<Props> = ({ t, exportExcel, exporting, openCreateModal }) => (
   <div className="ab-head anim">
     <div className="ab-head-l">
-      <h1 className="ab-title">{t('addressBook')}</h1>
+      <div className="tut-title-with-trigger">
+        <h1 className="ab-title">{t('addressBook')}</h1>
+        <ContextualTutorialTrigger tutorialKey="addressBook" />
+      </div>
       <p className="ab-sub">{t('abSubtitle')}</p>
     </div>
     <div className="ab-head-r">

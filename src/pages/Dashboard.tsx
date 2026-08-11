@@ -8,6 +8,8 @@ import { Notifications } from '../components/dashboard/Notifications';
 import { RightPanel } from '../components/dashboard/RightPanel';
 
 import { useTranslation } from '../hooks/useTranslation';
+import { ContextualTutorialTrigger } from '../components/Tutorials';
+import '../styles/tutorials.css';
 
 export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
@@ -19,7 +21,10 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="animate-fade-in dashboard-page">
       {/* Page Title */}
-      <h1 className="text-h2" style={{ marginBottom: '16px' }}>{t('dashboard')}</h1>
+      <div className="tut-title-with-trigger" style={{ marginBottom: '16px' }}>
+        <h1 className="text-h2" style={{ marginBottom: 0 }}>{t('dashboard')}</h1>
+        <ContextualTutorialTrigger tutorialKey="dashboard" />
+      </div>
 
       {/* Greeting Header */}
       <div style={{ marginBottom: '20px' }}>

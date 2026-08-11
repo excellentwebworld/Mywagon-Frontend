@@ -17,6 +17,8 @@ import SeatBanner from './usermgmt/SeatBanner';
 import UsersTab from './usermgmt/UsersTab';
 import RolesTab from './usermgmt/RolesTab';
 import AuditTab from './usermgmt/AuditTab';
+import { ContextualTutorialTrigger } from '../../components/Tutorials';
+import '../../styles/tutorials.css';
 
 const TABS = [
   { id: 'users', Icon: Users },
@@ -57,9 +59,12 @@ function UserManagementSection() {
 
   return (
     <div className="flex flex-col" style={{ minHeight: 500 }}>
-      <h2 className="font-bold mb-1" style={{ fontSize: 18, color: T.t1 }}>
-        {t('userMgmt.title')}
-      </h2>
+      <div className="tut-title-with-trigger mb-1">
+        <h2 className="font-bold" style={{ fontSize: 18, color: T.t1, margin: 0 }}>
+          {t('userMgmt.title')}
+        </h2>
+        <ContextualTutorialTrigger tutorialKey="userManagement" />
+      </div>
       <p style={{ fontSize: 13, color: T.t3, marginBottom: 16 }}>
         {t('userMgmt.subtitle')}
       </p>

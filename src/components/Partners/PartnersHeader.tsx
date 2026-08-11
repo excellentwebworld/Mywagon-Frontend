@@ -1,12 +1,17 @@
 import React from 'react';
 import type { PartnersState } from '../../pages/Partners/hooks/usePartners';
+import { ContextualTutorialTrigger } from '../Tutorials';
+import '../../styles/tutorials.css';
 
 type Props = Pick<PartnersState, 't' | 'openInviteModal'>;
 
 export const PartnersHeader: React.FC<Props> = ({ t, openInviteModal }) => (
   <div className="ptn-head anim">
     <div className="ptn-head-l">
-      <div className="ptn-title">{t('partnersTitle')}</div>
+      <div className="tut-title-with-trigger">
+        <div className="ptn-title">{t('partnersTitle')}</div>
+        <ContextualTutorialTrigger tutorialKey="partners" />
+      </div>
       <div className="ptn-sub">{t('partnersSubtitle')}</div>
     </div>
     <div className="ptn-head-r">

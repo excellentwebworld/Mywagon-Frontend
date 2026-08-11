@@ -33,7 +33,3 @@ export function BillingPage() {
 export function SubscriptionPage() {
   return <PlaceholderPage titleKey="sidebar.subscription" fallbackTitle="Subscription" />;
 }
-
-export function SupportPage() {
-  return <PlaceholderPage titleKey="sidebar.support" fallbackTitle="Support" />;
-}

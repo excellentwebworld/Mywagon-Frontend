@@ -16,10 +16,11 @@ import { ErpOrders } from './pages/ErpOrders/ErpOrders';
 import { SearchTrucks } from './pages/SearchTrucks';
 import Settings from './pages/Settings/Settings';
 import SettingsSectionOrUserEdit from './pages/Settings/SettingsSectionOrUserEdit';
+import SupportPage from './pages/Support/SupportPage';
+import { TutorialsPage } from './pages/Tutorials/TutorialsPage';
 import {
   BillingPage,
   SubscriptionPage,
-  SupportPage,
 } from './pages/Placeholders/AccountPlaceholders';
 
 import PriceListsPage from './pages/PriceLists/PriceListsPage';
@@ -52,6 +53,7 @@ const appRoutes = [
   { path: '/billing', element: <BillingPage /> },
   { path: '/subscription', element: <SubscriptionPage /> },
   { path: '/support', element: <SupportPage /> },
+  { path: '/tutorials', element: <TutorialsPage /> },
   { path: '/trust', element: <Navigate to="/settings/trustCenter" replace /> },
 ];
 

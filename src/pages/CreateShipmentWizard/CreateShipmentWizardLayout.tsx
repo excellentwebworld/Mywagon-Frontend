@@ -11,6 +11,8 @@ import { Step3PricingSkeleton } from '../../components/skeletons/Step3PricingSke
 import { AvailabilityContextBar } from '../../components/CreateShipmentWizard/AvailabilityContextBar';
 import { useCreateShipmentWizard } from './hooks/useCreateShipmentWizard';
 import { useWizardMasterData } from './hooks/useWizardMasterData';
+import { ContextualTutorialTrigger } from '../../components/Tutorials';
+import '../../styles/tutorials.css';
 import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
 import type { WizardOutletContext } from './wizardOutletContext';
 import './CreateShipmentWizard.css';
@@ -155,11 +157,14 @@ export const CreateShipmentWizardLayout: React.FC = () => {
 
   const header = (
     <>
-      <div className="ph" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+      <div className="ph" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 className="ph-t" style={{ fontSize: '24px', fontWeight: 700 }}>
-            {stepTitle(step, t)}
-          </h1>
+          <div className="tut-title-with-trigger">
+            <h1 className="ph-t" style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>
+              {stepTitle(step, t)}
+            </h1>
+            <ContextualTutorialTrigger tutorialKey="createShipment" />
+          </div>
           <p className="ph-s" style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
             {stepSubtitle(step, t)}
           </p>

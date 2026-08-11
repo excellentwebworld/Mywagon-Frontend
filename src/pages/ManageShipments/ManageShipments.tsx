@@ -15,6 +15,8 @@ import {
 } from '../../components/ManageShipments';
 import { KpiStripSkeleton } from '../../components/skeletons/ManageShipmentsSkeleton';
 import { useManageShipments } from './hooks/useManageShipments';
+import { ContextualTutorialTrigger } from '../../components/Tutorials';
+import '../../styles/tutorials.css';
 import '../../styles/manage.css';
 
 export const ManageShipments: React.FC = () => {
@@ -23,7 +25,10 @@ export const ManageShipments: React.FC = () => {
   return (
     <div className="mgmt-page">
       <div className="mgmt-page-title-row">
-        <h1 className="pg-title">{m.t('shipmentsTitle') || 'Shipments'}</h1>
+        <div className="tut-title-with-trigger">
+          <h1 className="pg-title">{m.t('shipmentsTitle') || 'Shipments'}</h1>
+          <ContextualTutorialTrigger tutorialKey="manageShipments" />
+        </div>
         <LoadsDirectionToggle direction={m.direction} onChange={m.setDirection} t={m.t} />
       </div>
 

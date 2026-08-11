@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ProductMasterState } from "../../pages/ProductMaster/hooks/useProductMaster";
+import { ContextualTutorialTrigger } from "../Tutorials";
+import "../../styles/tutorials.css";
 
 type Props = Pick<
   ProductMasterState,
@@ -135,9 +137,12 @@ export const ProductMasterHeader: React.FC<Props> = ({
   return (
     <div className="page-hdr anim">
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-.3px" }}>
-          {t("prodMaster")}
-        </h1>
+        <div className="tut-title-with-trigger">
+          <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-.3px", margin: 0 }}>
+            {t("prodMaster")}
+          </h1>
+          <ContextualTutorialTrigger tutorialKey="productMaster" />
+        </div>
         <div style={{ fontSize: 13, color: "var(--t3)", marginTop: 3 }}>
           {t("subtitle")}
         </div>
