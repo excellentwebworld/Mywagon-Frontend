@@ -788,9 +788,14 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                   <div key={row.id} className={`p-3 rounded-lg ${rowErr ? 'error-msg' : ''}`} data-error={rowErr ? 'true' : undefined} style={{ border: `1px solid ${rowErr ? '#FCA5A5' : T.bd}`, background: T.bg }}>
                     <div className="grid grid-cols-12 gap-2">
                       <div className="col-span-3">
-                        <label style={labelStyle}>{t('priceLists.phase2.priceEur', 'Price (EUR)')}</label>
+                        <label style={labelStyle}>
+                          {t('priceLists.phase2.priceEur', 'Price (EUR)')} <span style={{ color: '#EF4444' }}>*</span>
+                        </label>
                         <input
-                          style={inputStyle}
+                          style={{
+                            ...inputStyle,
+                            borderColor: errors[`amount_${idx}`] ? '#EF4444' : T.bd,
+                          }}
                           type="number"
                           min="0"
                           max={MAX_PRICE_VALUE}
@@ -820,7 +825,9 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                         )}
                       </div>
                       <div className="col-span-4">
-                        <label style={labelStyle}>{t('priceLists.phase2.pricingMetric', 'Pricing metric')}</label>
+                        <label style={labelStyle}>
+                          {t('priceLists.phase2.pricingMetric', 'Pricing metric')} <span style={{ color: '#EF4444' }}>*</span>
+                        </label>
                         <SearchableSelect
                           options={METRICS.map((m) => ({
                             value: m.key,
@@ -835,7 +842,9 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                         />
                       </div>
                       <div className="col-span-4">
-                        <label style={labelStyle}>{t('priceLists.phase2.metricValue', 'Metric value')}</label>
+                        <label style={labelStyle}>
+                          {t('priceLists.phase2.metricValue', 'Metric value')} <span style={{ color: '#EF4444' }}>*</span>
+                        </label>
                         {row.metric === 'weight' && (
                           <SearchableSelect
                             options={WEIGHT_UNIT_OPTIONS}

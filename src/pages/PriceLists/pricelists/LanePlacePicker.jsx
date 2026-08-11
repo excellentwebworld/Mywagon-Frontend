@@ -92,12 +92,14 @@ export default function LanePlacePicker({ value, onChange, invalid = false, labe
     ? (draft.trim() && !displayable
       ? t(
         'priceLists.phase2.validation.selectFromSuggestions',
-        'Select a location from the suggestions list.',
-      )
-      : t(
-        'priceLists.phase2.validation.selectPlace',
         'Select an address from Google suggestions.',
-      ))
+      )
+      : (label
+        ? t('priceLists.phase2.validation.fieldRequired', '{{field}} is required', { field: label })
+        : t(
+          'priceLists.phase2.validation.addressRequired',
+          'Address is required',
+        )))
     : undefined;
 
   const labelStyle = { fontSize: 12, fontWeight: 600, color: T.t2, marginBottom: 4, display: 'block' };
@@ -105,7 +107,11 @@ export default function LanePlacePicker({ value, onChange, invalid = false, labe
 
   return (
     <div>
-      {label && <label style={labelStyle}>{label}</label>}
+      {label && (
+        <label style={labelStyle}>
+          {label} <span style={{ color: '#EF4444' }}>*</span>
+        </label>
+      )}
       {summary && (
         <div
           className="flex items-start justify-between gap-2 px-3 py-2 rounded-lg"
@@ -143,7 +149,6 @@ export default function LanePlacePicker({ value, onChange, invalid = false, labe
           <GoogleMapAddressField
             inputId={`lane-place-${inputId}`}
             hideLabel
-            hideHint
             address={draft}
             lat={value?.lat != null ? String(value.lat) : ''}
             lng={value?.lng != null ? String(value.lng) : ''}
