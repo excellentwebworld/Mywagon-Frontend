@@ -72,6 +72,24 @@ export function isValidLaneStop(stop) {
   return hasCoordinates(stop);
 }
 
+/** True when a stop has enough identity to show in the edit modal (city-only imports included). */
+export function isDisplayableLaneStop(stop) {
+  if (!stop) return false;
+  return Boolean(
+    String(stop.city || stop.value || stop.label || stop.address || '').trim()
+    || hasCoordinates(stop),
+  );
+}
+
+/** Imported or saved stop with a city name but no map pin yet. */
+export function isCityOnlyLaneStop(stop) {
+  if (!stop || isLegacyLaneStop(stop)) return false;
+  const city = String(stop.city || stop.value || stop.label || '').trim();
+  if (!city) return false;
+  const hasAddress = String(stop.address || '').trim() !== '';
+  return !hasCoordinates(stop) && !hasAddress;
+}
+
 export function coordsWithinThreshold(a, b, thresholdM = COORD_MATCH_THRESHOLD_M) {
   const lat1 = toNum(a?.lat);
   const lng1 = toNum(a?.lng);

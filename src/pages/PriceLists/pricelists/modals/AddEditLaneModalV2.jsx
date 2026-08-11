@@ -12,6 +12,7 @@ import { SearchVehicleCargoPicker } from '../../../../components/SearchTrucks/Se
 import LanePlacePicker from '../LanePlacePicker';
 import {
   isValidLaneStop,
+  isDisplayableLaneStop,
   stopsAreSamePlace,
   normalizeLoadedLaneStop,
   sanitizeStopForSave,
@@ -535,11 +536,11 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
 
   const handleSave = useCallback(async () => {
     const errs = {};
-    const validStops = stops.filter((s) => isValidLaneStop(s));
+    const displayableStops = stops.filter((s) => isDisplayableLaneStop(s));
 
-    if (validStops.length < 2) errs.stops = true;
+    if (displayableStops.length < 2) errs.stops = true;
     if (stops.some((s) => s && isLegacyLaneStop(s))) errs.stops = true;
-    if (validStops.length >= 2 && stopsAreSamePlace(validStops[0], validStops[validStops.length - 1])) {
+    if (displayableStops.length >= 2 && stopsAreSamePlace(displayableStops[0], displayableStops[displayableStops.length - 1])) {
       errs.sameCity = true;
     }
 
@@ -566,7 +567,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       return;
     }
 
-    const stopsForStorage = validStops.map((s) => {
+    const stopsForStorage = displayableStops.map((s) => {
       const sanitized = sanitizeStopForSave(s);
       const cityKey = sanitized.city || sanitized.value;
       const cityResolved = resolveCity(cityKey) || cityKey;
@@ -738,7 +739,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                         value={stop}
                         onChange={(next) => setStopAtIndex(idx, next)}
                         invalid={Boolean(
-                          (errors.stops && !isValidLaneStop(stop))
+                          (errors.stops && !isDisplayableLaneStop(stop))
                           || (stop && isLegacyLaneStop(stop)),
                         )}
                       />

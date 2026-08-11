@@ -6,6 +6,8 @@
 export {
   mapGooglePlaceToLaneStop,
   isValidLaneStop,
+  isDisplayableLaneStop,
+  isCityOnlyLaneStop,
   stopsAreSamePlace,
   stopMatchesPlace,
   normalizeLoadedLaneStop,

@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import { GoogleMapAddressField } from '../../../components/AddressBook/GoogleMapAddressField';
 import {
+  isCityOnlyLaneStop,
+  isDisplayableLaneStop,
   isLegacyLaneStop,
   isValidLaneStop,
   mapGooglePlaceToLaneStop,
@@ -16,10 +18,23 @@ const LANE_AUTOCOMPLETE_OPTIONS = {
 function stopSummaryLines(stop) {
   const label = String(stop?.label || '').trim();
   const address = String(stop?.address || '').trim();
-  const city = String(stop?.city || '').trim();
+  const city = String(stop?.city || stop?.value || '').trim();
   const primary = label || address || city;
-  const secondary = address && address !== label ? address : '';
+  const secondary = address && address !== label ? address : (city && city !== primary ? city : '');
   return { primary, secondary };
+}
+
+function stopIdentityKey(stop) {
+  if (!stop) return '';
+  return [
+    stop.city,
+    stop.value,
+    stop.label,
+    stop.address,
+    stop.lat,
+    stop.lng,
+    stop.place_id,
+  ].map((v) => String(v ?? '')).join('|');
 }
 
 /**
@@ -32,22 +47,30 @@ export default function LanePlacePicker({ value, onChange, invalid = false, labe
   const [draft, setDraft] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
-  const selected = isValidLaneStop(value);
+  const displayable = isDisplayableLaneStop(value);
+  const pinned = isValidLaneStop(value);
   const legacy = isLegacyLaneStop(value);
-  const showSearch = legacy || !selected || isEditing;
+  const cityOnly = isCityOnlyLaneStop(value);
+  const showSearch = legacy || !displayable || isEditing;
+
+  const valueKey = stopIdentityKey(value);
 
   useEffect(() => {
-    if (!selected) {
+    if (displayable) {
+      setIsEditing(false);
+      setDraft('');
+    } else {
       setIsEditing(true);
+      setDraft('');
     }
-  }, [selected]);
+  }, [valueKey, displayable]);
 
   const handleAddressChange = useCallback((text) => {
     setDraft(text);
-    if (selected) {
+    if (pinned || legacy) {
       onChange?.(null);
     }
-  }, [selected, onChange]);
+  }, [pinned, legacy, onChange]);
 
   const handlePlaceSelected = useCallback((details) => {
     const stop = mapGooglePlaceToLaneStop(details, { place_id: details.place_id });
@@ -59,12 +82,14 @@ export default function LanePlacePicker({ value, onChange, invalid = false, labe
 
   const handleChangeLocation = useCallback(() => {
     setIsEditing(true);
-    setDraft('');
-    onChange?.(null);
-  }, [onChange]);
+    setDraft(displayable ? (value?.label || value?.city || value?.value || '') : '');
+    if (pinned || legacy) {
+      onChange?.(null);
+    }
+  }, [displayable, pinned, legacy, value, onChange]);
 
   const validationError = invalid && showSearch
-    ? (draft.trim() && !selected
+    ? (draft.trim() && !displayable
       ? t(
         'priceLists.phase2.validation.selectFromSuggestions',
         'Select a location from the suggestions list.',
@@ -76,12 +101,12 @@ export default function LanePlacePicker({ value, onChange, invalid = false, labe
     : undefined;
 
   const labelStyle = { fontSize: 12, fontWeight: 600, color: T.t2, marginBottom: 4, display: 'block' };
-  const summary = selected ? stopSummaryLines(value) : null;
+  const summary = displayable && !isEditing ? stopSummaryLines(value) : null;
 
   return (
     <div>
       {label && <label style={labelStyle}>{label}</label>}
-      {selected && !isEditing && summary && (
+      {summary && (
         <div
           className="flex items-start justify-between gap-2 px-3 py-2 rounded-lg"
           style={{
@@ -112,6 +137,7 @@ export default function LanePlacePicker({ value, onChange, invalid = false, labe
           className="lane-place-picker"
           style={{
             '--ab-border': invalid ? '#EF4444' : T.bd,
+            marginTop: summary ? 8 : 0,
           }}
         >
           <GoogleMapAddressField
@@ -129,9 +155,12 @@ export default function LanePlacePicker({ value, onChange, invalid = false, labe
           />
         </div>
       )}
-      {invalid && selected && !isEditing && (
-        <div style={{ color: '#DC2626', fontSize: 11, marginTop: 4 }}>
-          {t('priceLists.phase2.validation.selectPlace', 'Select an address from Google suggestions.')}
+      {cityOnly && !isEditing && (
+        <div style={{ fontSize: 10, color: T.t3, marginTop: 4 }}>
+          {t(
+            'priceLists.modal.cityOnlyStopHint',
+            'Optional: click Change to pin the exact location on the map.',
+          )}
         </div>
       )}
       {legacy && (
