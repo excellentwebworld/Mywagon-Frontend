@@ -36,7 +36,11 @@ export function scopesOverlap(
     return false;
   }
 
-  if (existingScope === 'default' || newScope === 'default') {
+  // All Partners (default) and a specific partner lane are different carrier bases — allowed together.
+  if (existingScope === 'default' && newScope === 'specific') return false;
+  if (existingScope === 'specific' && newScope === 'default') return false;
+
+  if (existingScope === 'default' && newScope === 'default') {
     return true;
   }
 

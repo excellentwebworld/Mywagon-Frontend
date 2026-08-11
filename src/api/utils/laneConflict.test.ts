@@ -8,10 +8,34 @@ describe('laneConflict', () => {
     expect(dateRangesOverlap('2026-01-01', null, '2026-06-01', null)).toBe(true);
   });
 
-  it('scopesOverlap treats default scope as overlapping', () => {
-    expect(scopesOverlap('default', [], null, 'specific', ['2046'], null)).toBe(true);
+  it('scopesOverlap allows default + specific partner on same route', () => {
+    expect(scopesOverlap('default', [], null, 'specific', ['2046'], null)).toBe(false);
+    expect(scopesOverlap('specific', ['2046'], null, 'default', [], null)).toBe(false);
+    expect(scopesOverlap('default', [], null, 'default', [], null)).toBe(true);
     expect(scopesOverlap('specific', ['1'], null, 'specific', ['2'], null)).toBe(false);
     expect(scopesOverlap('specific', ['1', '2'], null, 'specific', ['2', '3'], null)).toBe(true);
+  });
+
+  it('findLaneConflict allows specific partner when default lane exists on same route', () => {
+    const lanes = [{
+      id: 'APL-1',
+      status: 'active',
+      stops: [{ city: 'Athens' }, { city: 'Patras' }],
+      effectiveFrom: '2026-03-01',
+      effectiveTo: '2026-03-31',
+      scope: 'default',
+      scopePartnerIds: [],
+    }];
+
+    const specificPartner = findLaneConflict({
+      stops: [{ city: 'Athens' }, { city: 'Patras' }],
+      effectiveFrom: '2026-03-15',
+      effectiveTo: '2026-04-15',
+      scope: 'specific',
+      scopePartnerIds: ['2046'],
+    }, lanes);
+
+    expect(specificPartner).toBeNull();
   });
 
   it('findLaneConflict matches route + dates + scope only', () => {
