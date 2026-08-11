@@ -137,16 +137,8 @@ export function KnowledgeBaseSection({ disabled = false, onArticleCountChange }:
               : null
         }
         onClose={kb.closeModal}
-        onVote={kb.submitFeedback}
         loadingLabel={t('support.kb.loadingArticle')}
         errorLabel={t('support.kb.errorArticle')}
-        helpfulLabels={{
-          label: t('support.kb.wasHelpful'),
-          yes: t('support.kb.yes'),
-          no: t('support.kb.no'),
-          thanksYes: t('support.kb.thanksYes'),
-          notedNo: t('support.kb.notedNo'),
-        }}
       />
     </>
   );

@@ -152,14 +152,6 @@ export function useKnowledgeBase({ lang, disabled = false }: UseKnowledgeBaseOpt
     setArticleError(null);
   }, []);
 
-  const submitFeedback = useCallback(
-    async (articleId: string, helpful: boolean) => {
-      if (disabled) return;
-      await supportService.submitKbArticleFeedback(articleId, lang, helpful);
-    },
-    [disabled, lang]
-  );
-
   const selectCategory = useCallback((categoryId: string) => {
     setSearchQuery('');
     setDebouncedQuery('');
@@ -205,6 +197,5 @@ export function useKnowledgeBase({ lang, disabled = false }: UseKnowledgeBaseOpt
     closeModal,
     selectCategory,
     backToCategories,
-    submitFeedback,
   };
 }

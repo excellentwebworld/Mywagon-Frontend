@@ -122,21 +122,6 @@ export const supportService = {
     return res.data ?? null;
   },
 
-  async submitKbArticleFeedback(
-    articleId: string,
-    lang: string,
-    helpful: boolean
-  ): Promise<void> {
-    try {
-      await apiPost<{ recorded: boolean; already_submitted?: boolean }>(
-        `/support/kb/articles/${encodeURIComponent(articleId)}/feedback?${buildLangQuery(lang)}`,
-        { helpful }
-      );
-    } catch {
-      // Fire-and-forget: vote UX is non-blocking
-    }
-  },
-
   async getFormOptions(): Promise<SupportFormOptions> {
     const res = await apiGet<SupportFormOptionsApiData>('/support/form-options');
     return mapFormOptions(res.data ?? { app_reference: '', types: [], categories: [] });

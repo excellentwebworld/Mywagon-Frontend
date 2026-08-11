@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import type { KbArticleDetail } from '../../types';
-import { KbHelpfulPrompt } from './KbHelpfulPrompt';
 
 interface KbArticleModalProps {
   open: boolean;
@@ -12,14 +11,6 @@ interface KbArticleModalProps {
   onClose: () => void;
   loadingLabel: string;
   errorLabel: string;
-  onVote: (articleId: string, helpful: boolean) => Promise<void>;
-  helpfulLabels: {
-    label: string;
-    yes: string;
-    no: string;
-    thanksYes: string;
-    notedNo: string;
-  };
 }
 
 export function KbArticleModal({
@@ -30,8 +21,6 @@ export function KbArticleModal({
   onClose,
   loadingLabel,
   errorLabel,
-  onVote,
-  helpfulLabels,
 }: KbArticleModalProps) {
   useEffect(() => {
     if (!open) return undefined;
@@ -99,15 +88,6 @@ export function KbArticleModal({
               <div
                 className="kb-modal-content"
                 dangerouslySetInnerHTML={{ __html: article.body_html }}
-              />
-              <KbHelpfulPrompt
-                articleId={article.id}
-                label={helpfulLabels.label}
-                yesLabel={helpfulLabels.yes}
-                noLabel={helpfulLabels.no}
-                thanksYes={helpfulLabels.thanksYes}
-                notedNo={helpfulLabels.notedNo}
-                onVote={(helpful) => onVote(article.id, helpful)}
               />
             </>
           ) : null}

@@ -876,62 +876,6 @@
   color: var(--accent);
 }
 
-.modal-helpful {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-top: 16px;
-  margin-top: 20px;
-  border-top: 1px solid var(--border);
-  font-size: 13px;
-  color: var(--text-tertiary);
-  flex-wrap: wrap;
-}
-
-.modal-helpful-label {
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.modal-helpful-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  color: var(--text-secondary);
-}
-
-.modal-helpful-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  background: var(--accent-light);
-  color: var(--accent);
-}
-
-.modal-helpful-btn.voted {
-  border-color: var(--success);
-  background: var(--success-bg);
-  color: var(--success);
-}
-
-.modal-helpful-btn.voted-no {
-  border-color: var(--border-focus);
-  background: var(--surface-alt);
-  color: var(--text-secondary);
-}
-
-.modal-helpful button:disabled,
-.modal-helpful-btn:disabled {
-  cursor: default;
-}
-
 .kb-loading {
   font-size: 13px;
   color: var(--text-tertiary);
