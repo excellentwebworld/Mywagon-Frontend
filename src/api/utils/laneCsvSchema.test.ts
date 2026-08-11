@@ -82,6 +82,36 @@ describe('laneCsvSchema', () => {
     expect(result!.rows[0].dLng).toBeCloseTo(25.1442);
   });
 
+  it('parseCsvText flags route conflicts only when dates and scope overlap', () => {
+    const existingLanes = [{
+      id: 'APL-1',
+      status: 'active',
+      stops: [{ city: 'Patras' }, { city: 'Heraklion' }],
+      effectiveFrom: '2026-03-01',
+      effectiveTo: '2026-03-31',
+      scope: 'default',
+      scopePartnerIds: [],
+    }];
+
+    const sameRouteDifferentDates = parseCsvText(
+      `Origin City,Destination City,Trip Type,Metric,Metric Value,Price,Effective From,Effective To,Notes
+Patras,Heraklion,direct,load any size,per load,450,2026-05-01,2026-05-31,`,
+      { existingLanes },
+    );
+
+    expect(sameRouteDifferentDates!.dupes).toBe(0);
+    expect(sameRouteDifferentDates!.valid).toBe(1);
+
+    const overlappingDates = parseCsvText(
+      `Origin City,Destination City,Trip Type,Metric,Metric Value,Price,Effective From,Effective To,Notes
+Patras,Heraklion,direct,load any size,per load,450,2026-03-15,2026-04-15,`,
+      { existingLanes },
+    );
+
+    expect(overlappingDates!.dupes).toBe(1);
+    expect(overlappingDates!.valid).toBe(0);
+  });
+
   it('parseCsvText parses Greek simple headers', () => {
     const greekCsv = `Πόλη Αφετηρίας,Πόλη Προορισμού,Τύπος Δρομολογίου,Μετρική,Τιμή Μετρικής,Τιμή,Ισχύς Από,Ισχύς Έως,Σημειώσεις
 Αθήνα,Θεσσαλονίκη,direct,load any size,per load,450,2026-03-01,,`;

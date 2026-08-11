@@ -1,6 +1,7 @@
 import type { PriceLaneMetric, StorePriceLanePayload } from '../types/priceLists';
 import { resolveLanePricingRows, type LaneLike } from './laneMetricDisplay';
 import { cityLabel, resolveCity } from '../../mocks/priceListsData';
+import { laneHasConflict, type LaneConflictCandidate } from './laneConflict';
 
 const isLikelyIsoCode = (s: string) => /^[A-Za-z]{2}$/.test(s);
 
@@ -724,69 +725,42 @@ function parseScopeDirection(raw: string): 'buy' | 'sell' | null {
   return null;
 }
 
-function stopCoords(
-  stop: { lat?: number | null; lng?: number | null; place_id?: string | null; city?: string; value?: string; label?: string } | undefined,
-): { lat: number | null; lng: number | null } {
-  if (!stop) return { lat: null, lng: null };
-  const lat = parseCoordinate(stop.lat);
-  const lng = parseCoordinate(stop.lng);
-  return { lat, lng };
-}
-
-function stopsMatchEndpoint(
-  a: { lat?: number | null; lng?: number | null; place_id?: string | null; city?: string; value?: string; label?: string } | undefined,
-  b: { lat?: number | null; lng?: number | null; place_id?: string | null; city?: string; value?: string; label?: string } | undefined,
-): boolean {
-  if (!a || !b) return false;
-
-  const aPlaceId = a.place_id ?? null;
-  const bPlaceId = b.place_id ?? null;
-  if (aPlaceId && bPlaceId && String(aPlaceId) === String(bPlaceId)) return true;
-
-  const aCity = normalizeText(a.city || a.value || a.label || '');
-  const bCity = normalizeText(b.city || b.value || b.label || '');
-  const { lat: aLat, lng: aLng } = stopCoords(a);
-  const { lat: bLat, lng: bLng } = stopCoords(b);
-
-  if (aLat != null && aLng != null && bLat != null && bLng != null) {
-    const threshold = 0.001;
-    if (aCity && bCity && aCity === bCity
-      && Math.abs(aLat - bLat) <= threshold
-      && Math.abs(aLng - bLng) <= threshold) {
-      return true;
-    }
-  }
-
-  return Boolean(aCity && bCity && aCity === bCity);
-}
-
-function isDuplicateRoute(
-  oLat: number | null,
-  oLng: number | null,
-  dLat: number | null,
-  dLng: number | null,
-  oCity: string,
-  dCity: string,
-  tripType: string,
+function rowConflictsWithExistingLane(
+  oResolved: { city: string | null; lat: number | null; lng: number | null; place_id?: string | null },
+  dResolved: { city: string | null; lat: number | null; lng: number | null; place_id?: string | null },
+  from: string,
+  to: string,
+  scopeApi: 'default' | 'specific',
+  scopeDirection: 'buy' | 'sell' | null,
+  status: 'active' | 'inactive' | 'archived',
   existingLanes: LaneLike[] | undefined,
 ): boolean {
-  return !!existingLanes?.some((lane) => {
-    if (lane.status !== 'active') return false;
-    const laneTrip = lane.tripType || (lane.isRoundTrip ? 'roundtrip' : 'direct');
-    if (laneTrip !== tripType) return false;
+  if (status !== 'active' || !existingLanes?.length) return false;
 
-    const stops = lane.stops || [];
-    const lFirst = stops[0];
-    const lLast = stops[stops.length - 1];
+  const candidate: LaneConflictCandidate = {
+    status: 'active',
+    stops: [
+      {
+        city: String(oResolved.city || ''),
+        lat: oResolved.lat ?? undefined,
+        lng: oResolved.lng ?? undefined,
+        place_id: oResolved.place_id ?? undefined,
+      },
+      {
+        city: String(dResolved.city || ''),
+        lat: dResolved.lat ?? undefined,
+        lng: dResolved.lng ?? undefined,
+        place_id: dResolved.place_id ?? undefined,
+      },
+    ],
+    effectiveFrom: from,
+    effectiveTo: to || null,
+    scope: scopeApi,
+    scopePartnerIds: [],
+    scopeDirection,
+  };
 
-    return stopsMatchEndpoint(
-      { lat: oLat, lng: oLng, city: oCity },
-      lFirst,
-    ) && stopsMatchEndpoint(
-      { lat: dLat, lng: dLng, city: dCity },
-      lLast,
-    );
-  });
+  return existingLanes.some((lane) => laneHasConflict(candidate, lane));
 }
 
 function applyGroupErrors(rows: ParsedCsvRow[]): void {
@@ -927,14 +901,14 @@ export function parseCsvText(
     });
 
     const dupe = validO && validD
-      ? isDuplicateRoute(
-        oResolved.lat,
-        oResolved.lng,
-        dResolved.lat,
-        dResolved.lng,
-        String(oCity || oResolved.label),
-        String(dCity || dResolved.label),
-        tripType,
+      ? rowConflictsWithExistingLane(
+        oResolved,
+        dResolved,
+        from,
+        to,
+        scopeApi,
+        scopeDirection,
+        status,
         existingLanes,
       )
       : false;

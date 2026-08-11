@@ -147,7 +147,7 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
   }, [preview, onImported, t, toast]);
 
   const getRowStatusLabel = useCallback((row) => {
-    if (row.dupe) return t('priceLists.import.duplicates', 'Already exists');
+    if (row.dupe) return t('priceLists.import.conflicts', 'Conflicting lane');
     if (row.errors.length > 0 || row.groupError) {
       return row.errors[0]?.message || t('priceLists.import.invalidRow', 'Invalid row');
     }
@@ -358,7 +358,7 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3" style={{ fontSize: 12 }}>
                 <span>{t('priceLists.import.validLabel', 'Ready to import')}: <span style={{ color: '#10B981', fontWeight: 600 }}>{preview.valid}</span></span>
-                <span>{t('priceLists.import.duplicates', 'Already exists')}: <span style={{ color: '#F59E0B', fontWeight: 600 }}>{preview.dupes}</span></span>
+                <span>{t('priceLists.import.conflicts', 'Conflicting lane')}: <span style={{ color: '#F59E0B', fontWeight: 600 }}>{preview.dupes}</span></span>
                 <span>{t('priceLists.import.invalidCity', 'Missing city')}: <span style={{ color: '#EF4444', fontWeight: 600 }}>{preview.invalidCity}</span></span>
                 <span>{t('priceLists.import.invalidMetric', 'Invalid metric')}: <span style={{ color: '#EF4444', fontWeight: 600 }}>{preview.invalidMetric}</span></span>
                 <span>{t('priceLists.import.groupErrors', 'Too many prices')}: <span style={{ color: '#EF4444', fontWeight: 600 }}>{preview.groupErrors}</span></span>

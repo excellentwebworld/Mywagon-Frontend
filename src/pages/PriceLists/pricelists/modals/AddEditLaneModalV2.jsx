@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../../hooks/useTheme';
 import { ApiError, partnersService } from '../../../../api';
 import { buildLaneFingerprint, buildLaneFingerprintFromEntry } from '../../../../api/utils/laneMetricDisplay';
+import { findLaneConflict, resolveConflictEffectiveFrom } from '../../../../api/utils/laneConflict';
 import { resolveCity, calculateRouteTotals } from '../../../../mocks/priceListsData';
 import { DatePicker } from '../../../../components/ui/DatePicker';
 import { SearchableSelect } from '../../../../components/ui/SearchableSelect';
@@ -485,16 +486,18 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       return;
     }
 
-    const isRoundTrip = tripType === 'roundtrip';
     const excludeId = lane?.id || lane?.duplicateSourceId || sourceLaneRef.current?.duplicateSourceId || sourceLaneRef.current?.id;
-    const dup = allLanes.some((l) => {
-      if (l.id === excludeId || l.status !== 'active' || Boolean(l.isRoundTrip) !== isRoundTrip) return false;
-      const lFirst = l.stops?.[0];
-      const lLast = l.stops?.[l.stops.length - 1];
-      return stopsAreSamePlace(first, lFirst) && stopsAreSamePlace(last, lLast);
-    });
-    setDupeWarn(dup);
-  }, [stops, allLanes, lane, tripType]);
+    const candidate = {
+      stops: validStops,
+      effectiveFrom: resolveConflictEffectiveFrom(effectiveFrom),
+      effectiveTo: effectiveTo || null,
+      scope: scopePartnerIds.length > 0 ? 'specific' : 'default',
+      scopePartnerIds,
+      scopeDirection: role === 'forwarder' && scopePartnerIds.length > 0 && scopeDirection ? scopeDirection : null,
+    };
+    const conflict = findLaneConflict(candidate, allLanes, { excludeId });
+    setDupeWarn(Boolean(conflict));
+  }, [stops, allLanes, lane, effectiveFrom, effectiveTo, scopePartnerIds, scopeDirection, role]);
 
   const toggleSection = (key) => setSections((p) => ({ ...p, [key]: !p[key] }));
 
@@ -554,6 +557,13 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
     });
 
     if (effectiveTo && effectiveFrom && effectiveTo < effectiveFrom) errs.dateOrder = true;
+
+    if (dupeWarn) {
+      errs.form = t(
+        'priceLists.phase2.validation.conflictWarn',
+        'An active lane already overlaps this route, validity window, and partner scope.',
+      );
+    }
 
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -632,9 +642,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       if (error instanceof ApiError) {
         const mapped = mapBackendFieldErrors(error.fieldErrors || {});
         if (error.status === 409) {
-          mapped.form = error.data?.error_code === 'lane_conflict_overlap'
-            ? t('priceLists.modal.conflictOverlap', 'A conflicting lane already exists for this route, scope, and validity window.')
-            : t('priceLists.modal.duplicateLane', 'A lane with the same origin, destination, and trip type already exists.');
+          mapped.form = t('priceLists.modal.conflictOverlap', 'A conflicting lane already exists for this route, scope, and validity window.');
         }
         setErrors((prev) => ({ ...prev, ...mapped }));
         scrollToFirstError();
@@ -647,7 +655,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
       }));
       scrollToFirstError();
     }
-  }, [stops, pricingRows, effectiveFrom, effectiveTo, routeCalc, tripType, scopePartnerIds, scopeDirection, notes, role, onSave, lane, mode, mapBackendFieldErrors, getErrorMessage, scrollToFirstError, t, partnerNameById]);
+  }, [stops, pricingRows, effectiveFrom, effectiveTo, routeCalc, tripType, scopePartnerIds, scopeDirection, notes, role, onSave, lane, mode, mapBackendFieldErrors, getErrorMessage, scrollToFirstError, t, partnerNameById, dupeWarn]);
   if (!open) return null;
 
   const inputStyle = {
@@ -763,7 +771,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
               {dupeWarn && (
                 <div className="flex items-center gap-2 p-2 rounded-lg error-msg" data-error="true" style={{ background: '#FEF3C7', color: '#92400E', fontSize: 11 }}>
                   <AlertTriangle size={14} />
-                  {t('priceLists.phase2.validation.dupeWarnTrip', 'Similar active lane exists for this route and trip type.')}
+                  {t('priceLists.phase2.validation.conflictWarn', 'An active lane already overlaps this route, validity window, and partner scope.')}
                 </div>
               )}
 
@@ -1144,7 +1152,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
           <button disabled={isSaving} onClick={onClose} className="px-4 py-2 rounded-lg cursor-pointer border-none disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: T.bg, color: T.t2, fontSize: 13, fontWeight: 500 }}>
             {t('common.cancel', 'Cancel')}
           </button>
-          <button disabled={isSaving} onClick={handleSave} className="px-4 py-2 rounded-lg cursor-pointer border-none text-white disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: T.ac, fontSize: 13, fontWeight: 600 }}>
+          <button disabled={isSaving || dupeWarn} onClick={handleSave} className="px-4 py-2 rounded-lg cursor-pointer border-none text-white disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: T.ac, fontSize: 13, fontWeight: 600 }}>
             {isSaving
               ? t('common.saving', 'Saving...')
               : mode === 'duplicate'

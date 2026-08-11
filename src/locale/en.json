@@ -3935,6 +3935,7 @@
       "validation": {
         "addAtLeastTwoStops": "Please add at least origin and destination.",
         "dupeWarnTrip": "Similar active lane exists for this route and trip type.",
+        "conflictWarn": "An active lane already overlaps this route, validity window, and partner scope.",
         "exactDuplicate": "Change at least one field before saving this duplicate lane.",
         "priceRequired": "Enter a valid EUR amount for this row.",
         "priceMaxDigits": "Price cannot exceed {{max}} digits (max {{maxValue}}).",
