@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { SupportRequestSummary } from '../../types';
 import { RequestStatusPill } from './RequestStatusPill';
+import { MyRequestsTableSkeleton } from './MyRequestsTableSkeleton';
 
 interface MyRequestsTableProps {
   requests: SupportRequestSummary[];
@@ -44,7 +45,7 @@ export function MyRequestsTable({
   const { t, lang } = useTranslation();
 
   if (loading && requests.length === 0) {
-    return <div className="kb-message">{t('support.requests.loading')}</div>;
+    return <MyRequestsTableSkeleton />;
   }
 
   if (error) {

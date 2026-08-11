@@ -21,6 +21,7 @@ export function useKnowledgeBase({ lang, disabled = false }: UseKnowledgeBaseOpt
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingArticles, setLoadingArticles] = useState(false);
   const [loadingArticle, setLoadingArticle] = useState(false);
+  const [articleError, setArticleError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -126,14 +127,18 @@ export function useKnowledgeBase({ lang, disabled = false }: UseKnowledgeBaseOpt
       if (disabled) return;
 
       setLoadingArticle(true);
+      setArticleError(null);
       setModalOpen(true);
       setSelectedArticle(null);
       try {
         const detail = await supportService.getKbArticle(articleId, lang);
-        setSelectedArticle(detail);
+        if (!detail) {
+          setArticleError('not_found');
+        } else {
+          setSelectedArticle(detail);
+        }
       } catch {
-        setError('article_failed');
-        setModalOpen(false);
+        setArticleError('load_failed');
       } finally {
         setLoadingArticle(false);
       }
@@ -144,6 +149,7 @@ export function useKnowledgeBase({ lang, disabled = false }: UseKnowledgeBaseOpt
   const closeModal = useCallback(() => {
     setModalOpen(false);
     setSelectedArticle(null);
+    setArticleError(null);
   }, []);
 
   const submitFeedback = useCallback(
@@ -191,6 +197,7 @@ export function useKnowledgeBase({ lang, disabled = false }: UseKnowledgeBaseOpt
     loadingCategories,
     loadingArticles,
     loadingArticle,
+    articleError,
     error,
     totalArticleCount,
     isSearchMode,

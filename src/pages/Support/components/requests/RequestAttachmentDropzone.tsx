@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { Paperclip } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { RequestAttachmentPreview } from '../../types';
 
@@ -66,8 +67,8 @@ export function RequestAttachmentDropzone({
             e.target.value = '';
           }}
         />
-        <div className="dz-icon" aria-hidden>
-          📎
+        <div className="dz-icon-wrap" aria-hidden>
+          <Paperclip size={22} strokeWidth={1.75} />
         </div>
         <div className="dz-text">{t('support.request.attachmentsDrop')}</div>
         <div className="dz-hint">

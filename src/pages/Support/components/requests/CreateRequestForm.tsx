@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { SearchableSelect } from '../../../../components/ui/SearchableSelect';
 import { useCreateRequestForm } from '../../hooks/useCreateRequestForm';
 import { RequestFormField } from './RequestFormField';
 import { RequestAttachmentDropzone } from './RequestAttachmentDropzone';
+import { RequestContextChips } from './RequestContextChips';
+import { CreateRequestFormSkeleton } from './CreateRequestFormSkeleton';
 
 interface CreateRequestFormProps {
   lang: string;
@@ -16,12 +20,30 @@ export function CreateRequestForm({ lang, disabled = false }: CreateRequestFormP
   const fieldError = (key: string) =>
     form.fieldErrors[key] ? t(`support.request.errors.${form.fieldErrors[key]}`) : undefined;
 
+  const typeOptions = useMemo(
+    () =>
+      (form.options?.types ?? []).map((option) => ({
+        value: option.name_en,
+        label: form.optionLabel(option),
+      })),
+    [form.options?.types, form.optionLabel]
+  );
+
+  const categoryOptions = useMemo(
+    () =>
+      (form.options?.categories ?? []).map((option) => ({
+        value: option.name_en,
+        label: form.optionLabel(option),
+      })),
+    [form.options?.categories, form.optionLabel]
+  );
+
   if (disabled) {
     return <div className="support-placeholder">{t('support.request.gatedMessage')}</div>;
   }
 
   if (form.loadingOptions) {
-    return <div className="kb-message">{t('support.request.loading')}</div>;
+    return <CreateRequestFormSkeleton />;
   }
 
   if (form.loadError) {
@@ -40,61 +62,55 @@ export function CreateRequestForm({ lang, disabled = false }: CreateRequestFormP
         <div className="kb-message kb-message--error">{t('support.request.submitError')}</div>
       ) : null}
 
-      <div className="form-row">
-        <RequestFormField
-          label={t('support.request.appReference')}
-          required
-        >
-          <input
-            className="form-input"
-            value={form.options?.appReference ?? ''}
-            readOnly
-            aria-readonly
-          />
-        </RequestFormField>
+      <div className="ticket-form-app-ref">
+        <div className="ticket-form-app-ref-icon" aria-hidden>
+          <AppWindow size={16} strokeWidth={2} />
+        </div>
+        <div className="ticket-form-app-ref-copy">
+          <span className="ticket-form-app-ref-label">{t('support.request.appReference')}</span>
+          <span className="ticket-form-app-ref-value">{form.options?.appReference ?? '—'}</span>
+        </div>
+      </div>
 
+      <div className="form-row">
         <RequestFormField
           label={t('support.request.type')}
           required
           error={fieldError('type')}
         >
-          <select
-            className="form-input"
+          <SearchableSelect
+            options={typeOptions}
             value={form.type}
-            onChange={(e) => form.setType(e.target.value)}
+            onChange={form.setType}
+            placeholder={t('support.request.selectType')}
             disabled={form.submitting}
-          >
-            <option value="">{t('support.request.selectType')}</option>
-            {form.options?.types.map((option) => (
-              <option key={option.id} value={option.name_en}>
-                {form.optionLabel(option)}
-              </option>
-            ))}
-          </select>
+            searchable={false}
+            menuFixed
+            direction="auto"
+            hasError={Boolean(fieldError('type'))}
+          />
         </RequestFormField>
-      </div>
 
-      <div className="form-row">
         <RequestFormField
           label={t('support.request.category')}
           required
           error={fieldError('category')}
         >
-          <select
-            className="form-input"
+          <SearchableSelect
+            options={categoryOptions}
             value={form.category}
-            onChange={(e) => form.setCategory(e.target.value)}
+            onChange={form.setCategory}
+            placeholder={t('support.request.selectCategory')}
             disabled={form.submitting}
-          >
-            <option value="">{t('support.request.selectCategory')}</option>
-            {form.options?.categories.map((option) => (
-              <option key={option.id} value={option.name_en}>
-                {form.optionLabel(option)}
-              </option>
-            ))}
-          </select>
+            searchable={false}
+            menuFixed
+            direction="auto"
+            hasError={Boolean(fieldError('category'))}
+          />
         </RequestFormField>
+      </div>
 
+      <div className="form-row full">
         <RequestFormField
           label={t('support.request.title')}
           required
@@ -144,8 +160,12 @@ export function CreateRequestForm({ lang, disabled = false }: CreateRequestFormP
         </RequestFormField>
       </div>
 
+      <div className="form-row full">
+        <RequestContextChips />
+      </div>
+
       <div className="form-footer">
-        <div />
+        <p className="form-footer-note">{t('support.request.footerNote')}</p>
         <div className="form-footer-actions">
           <button
             type="button"

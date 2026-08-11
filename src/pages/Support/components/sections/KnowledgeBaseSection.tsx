@@ -5,6 +5,8 @@ import { KbSearchBar } from '../kb/KbSearchBar';
 import { KbCategoryGrid } from '../kb/KbCategoryGrid';
 import { KbArticleList } from '../kb/KbArticleList';
 import { KbArticleModal } from '../kb/KbArticleModal';
+import { KbLoadingSkeleton } from '../kb/KbLoadingSkeleton';
+import { KbArticlesLoadingSkeleton } from '../kb/KbArticlesLoadingSkeleton';
 
 interface KnowledgeBaseSectionProps {
   disabled?: boolean;
@@ -40,7 +42,7 @@ export function KnowledgeBaseSection({ disabled = false, onArticleCountChange }:
       ) : null}
 
       {kb.loadingCategories && categoriesEmpty(kb.categories) ? (
-        <div className="kb-message">{t('support.kb.loading')}</div>
+        <KbLoadingSkeleton />
       ) : null}
 
       {kb.isSearchMode ? (
@@ -55,6 +57,8 @@ export function KnowledgeBaseSection({ disabled = false, onArticleCountChange }:
           </div>
           {!kb.loadingArticles && kb.articles.length === 0 ? (
             <div className="kb-message">{t('support.kb.noResults')}</div>
+          ) : kb.loadingArticles && kb.articles.length === 0 ? (
+            <KbArticlesLoadingSkeleton />
           ) : (
             <KbArticleList
               articles={kb.articles}
@@ -62,6 +66,7 @@ export function KnowledgeBaseSection({ disabled = false, onArticleCountChange }:
               searchQuery={kb.debouncedQuery}
               onSelect={kb.openArticle}
               highlightSearch
+              panel
             />
           )}
         </>
@@ -82,7 +87,7 @@ export function KnowledgeBaseSection({ disabled = false, onArticleCountChange }:
             </div>
           </div>
           {kb.loadingArticles ? (
-            <div className="kb-message">{t('support.kb.loading')}</div>
+            <KbArticlesLoadingSkeleton />
           ) : kb.articles.length === 0 ? (
             <div className="kb-message">{t('support.kb.emptyCategory')}</div>
           ) : (
@@ -90,6 +95,7 @@ export function KnowledgeBaseSection({ disabled = false, onArticleCountChange }:
               articles={kb.articles}
               categories={kb.categories}
               onSelect={kb.openArticle}
+              panel
             />
           )}
         </>
@@ -106,14 +112,15 @@ export function KnowledgeBaseSection({ disabled = false, onArticleCountChange }:
           ) : null}
 
           {showPopular && kb.popularArticles.length > 0 ? (
-            <>
+            <div className="kb-popular-block">
               <div className="kb-popular-title">{t('support.kb.popularArticles')}</div>
               <KbArticleList
                 articles={kb.popularArticles}
                 categories={kb.categories}
                 onSelect={kb.openArticle}
+                panel
               />
-            </>
+            </div>
           ) : null}
         </>
       )}
@@ -122,9 +129,17 @@ export function KnowledgeBaseSection({ disabled = false, onArticleCountChange }:
         open={kb.modalOpen}
         loading={kb.loadingArticle}
         article={kb.selectedArticle}
+        error={
+          kb.articleError === 'not_found'
+            ? t('support.kb.errorArticleNotFound')
+            : kb.articleError === 'load_failed'
+              ? t('support.kb.errorArticle')
+              : null
+        }
         onClose={kb.closeModal}
         onVote={kb.submitFeedback}
         loadingLabel={t('support.kb.loadingArticle')}
+        errorLabel={t('support.kb.errorArticle')}
         helpfulLabels={{
           label: t('support.kb.wasHelpful'),
           yes: t('support.kb.yes'),

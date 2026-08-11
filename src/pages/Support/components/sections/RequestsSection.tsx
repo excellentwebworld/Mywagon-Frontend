@@ -25,13 +25,8 @@ export function RequestsSection({
     disabled,
   });
 
-  const myRequestsTabLabel =
-    myRequests.meta !== null && myRequests.meta.total >= 0
-      ? `${t('support.tabs.myRequests')} (${myRequests.meta.total})`
-      : t('support.tabs.myRequests');
-
   return (
-    <div>
+    <div className="requests-section">
       <div className="support-tabs" role="tablist" aria-label={t('support.sections.requests')}>
         <button
           type="button"
@@ -49,11 +44,14 @@ export function RequestsSection({
           className={`support-tab${activeTab === 'myRequests' ? ' active' : ''}`}
           onClick={() => onTabChange('myRequests')}
         >
-          {myRequestsTabLabel}
+          {t('support.tabs.myRequests')}
+          {myRequests.meta !== null && myRequests.meta.total >= 0 ? (
+            <span className="support-tab-count">{myRequests.meta.total}</span>
+          ) : null}
         </button>
       </div>
 
-      <div role="tabpanel">
+      <div className="requests-tab-panel" role="tabpanel">
         {activeTab === 'create' ? (
           <CreateRequestForm lang={lang} disabled={disabled} />
         ) : disabled ? (
@@ -75,10 +73,7 @@ export function RequestsSection({
               error={myRequests.detailError}
               detail={myRequests.detail}
               ticketNumber={myRequests.selectedTicket}
-              replyLoading={myRequests.replyLoading}
-              replyError={myRequests.replyError}
               onClose={myRequests.closeDrawer}
-              onSubmitReply={myRequests.submitReply}
             />
           </>
         )}

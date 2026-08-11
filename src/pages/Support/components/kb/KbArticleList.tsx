@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { ChevronRight } from 'lucide-react';
 import type { KbArticleSummary, KbCategory } from '../../types';
 
 interface KbArticleListProps {
@@ -7,6 +8,7 @@ interface KbArticleListProps {
   searchQuery?: string;
   onSelect: (articleId: string) => void;
   highlightSearch?: boolean;
+  panel?: boolean;
 }
 
 function highlightMatch(text: string, query: string): React.ReactNode {
@@ -32,6 +34,7 @@ export function KbArticleList({
   searchQuery = '',
   onSelect,
   highlightSearch = false,
+  panel = false,
 }: KbArticleListProps) {
   const categoryMap = useMemo(() => {
     const map = new Map<string, KbCategory>();
@@ -44,7 +47,7 @@ export function KbArticleList({
   }
 
   return (
-    <div className="article-list">
+    <div className={`article-list${panel ? ' kb-article-panel' : ''}`}>
       {articles.map((article) => {
         const cat = categoryMap.get(article.category_id);
 
@@ -68,9 +71,7 @@ export function KbArticleList({
                 {tag}
               </span>
             ))}
-            <span className="ai-arrow" aria-hidden>
-              →
-            </span>
+            <ChevronRight className="ai-arrow" size={16} aria-hidden />
           </button>
         );
       })}
