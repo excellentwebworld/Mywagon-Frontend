@@ -5,7 +5,7 @@
 **Backend QA matrix:** [PDS-950-QA-TEST-RESULTS.md](../../MV_Backend_API/miro/Shipper/SupportAndFeedback/PDS-950-QA-TEST-RESULTS.md)  
 **Release sign-off:** [PDS-950-PHASE8-RELEASE-SIGNOFF.md](../../MV_Backend_API/miro/Shipper/SupportAndFeedback/PDS-950-PHASE8-RELEASE-SIGNOFF.md)
 
-**Prerequisites:** Migrations deployed; entitled shipper account; Confluence + HubSpot env on staging (KB/Call sections need these for full smoke).
+**Prerequisites:** Migrations deployed (`kb_articles` included); entitled shipper account; KB articles seeded or created in admin; HubSpot env for Book a Call smoke.
 
 ---
 
@@ -37,7 +37,7 @@
 
 ## Phase 2 — Knowledge Base
 
-Requires Confluence configured on staging.
+Requires `kb_articles` populated (seeder or admin panel).
 
 - [ ] Expand KB section — categories grid loads
 - [ ] Category badge shows article count
