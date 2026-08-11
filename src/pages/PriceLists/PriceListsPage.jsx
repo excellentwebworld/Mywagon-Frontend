@@ -25,7 +25,7 @@ import { toUpperGreek } from '../../utils/greekUppercase';
 import {
   calculateRouteTotals,
 } from '../../mocks/priceListsData';
-import { serializeLanesToCsv } from '../../api/utils/laneCsvSchema';
+import { buildPartnerNameMapForLanes, serializeLanesToCsv } from '../../api/utils/laneCsvSchema';
 import { normalizeLoadedLaneStop, sanitizeStopForSave } from './pricelists/mapGooglePlaceToLaneStop';
 
 import DirectoryPane from './pricelists/DirectoryPane';
@@ -200,9 +200,9 @@ export default function PriceListsPage() {
         do {
           const result = await partnersService.listPartners({
             page: pageNum,
-            per_page: 200,
+            per_page: 100,
             facet: 'all',
-            statuses: ['active'],
+            statuses: ['active', 'suspended', 'invited', 'pending'],
             sort: 'name',
             sort_dir: 'asc',
           });
@@ -483,7 +483,36 @@ export default function PriceListsPage() {
         sort_dir: 'desc',
       });
       const exportLanes = (Array.isArray(items) ? items : []).map(mapApiLaneToUiLane);
-      const csv = serializeLanesToCsv(exportLanes, lang);
+      let scopeLabels = summary?.scope_labels || {};
+      try {
+        const freshSummary = await priceListsService.getSummary();
+        if (freshSummary?.scope_labels) scopeLabels = freshSummary.scope_labels;
+      } catch {
+        // use cached summary labels
+      }
+      let exportPartnerMap = buildPartnerNameMapForLanes(
+        exportLanes,
+        partnerNameById,
+        scopeLabels,
+      );
+      const missingPartnerIds = [...new Set(
+        exportLanes.flatMap((lane) => (
+          lane.scope === 'default' || !(lane.scopePartnerIds?.length)
+            ? []
+            : lane.scopePartnerIds.map(String)
+        )).filter((id) => !exportPartnerMap.has(id)),
+      )];
+      if (missingPartnerIds.length > 0) {
+        await Promise.all(missingPartnerIds.map(async (id) => {
+          try {
+            const partner = await partnersService.getPartner(id);
+            if (partner?.name) exportPartnerMap.set(id, partner.name);
+          } catch {
+            // keep numeric fallback in CSV
+          }
+        }));
+      }
+      const csv = serializeLanesToCsv(exportLanes, lang, exportPartnerMap);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -497,7 +526,7 @@ export default function PriceListsPage() {
     } catch (_e) {
       toast.error(t('priceLists.error.exportFailed', 'Could not export price lanes.'));
     }
-  }, [activeNode, debouncedSearch, scopeDirectionParam, isGreek, t, toast]);
+  }, [activeNode, debouncedSearch, scopeDirectionParam, isGreek, t, toast, partnerNameById, summary?.scope_labels]);
 
   const handleImported = useCallback(async (result) => {
     const created = result?.created ?? 0;

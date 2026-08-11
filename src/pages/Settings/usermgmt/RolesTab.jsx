@@ -19,6 +19,43 @@ import { ApiError } from '../../../api/client';
 
 const COLORS = ['#7C3AED', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#EC4899', '#8B5CF6'];
 
+function FieldLabel({ children, T }) {
+  return (
+    <label className="block mb-1.5" style={{ fontSize: 11, fontWeight: 600, color: T.t3, letterSpacing: 0.2 }}>
+      {children}
+    </label>
+  );
+}
+
+function ColorSwatches({ value, onChange, size = 'md' }) {
+  const dim = size === 'sm' ? 20 : 28;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {COLORS.map((c) => {
+        const selected = value === c;
+        return (
+          <button
+            type="button"
+            key={c}
+            onClick={() => onChange(c)}
+            aria-label={c}
+            aria-pressed={selected}
+            className="rounded-full cursor-pointer border-none shrink-0 transition-transform duration-150"
+            style={{
+              width: dim,
+              height: dim,
+              background: c,
+              boxShadow: selected ? '0 0 0 2px #fff, 0 0 0 4px currentColor' : 'none',
+              color: c,
+              transform: selected ? 'scale(1.05)' : 'scale(1)',
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 function applyRolesPayload(data, setApiRoles, setPermissionGroups) {
   setApiRoles(data.roles || []);
   setPermissionGroups(data.groups || []);
@@ -50,6 +87,7 @@ export default function RolesTab() {
   const [showCreate, setShowCreate] = useState(false);
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleColor, setNewRoleColor] = useState('#3B82F6');
+  const [newRoleDescription, setNewRoleDescription] = useState('');
   const [nameError, setNameError] = useState('');
 
   useEffect(() => {
@@ -140,6 +178,7 @@ export default function RolesTab() {
       const data = await rolesSettingsService.create({
         name: trimmed,
         color: newRoleColor,
+        description: newRoleDescription.trim() || undefined,
         permissions: [],
       });
       applyRolesPayload(data, setApiRoles, setPermissionGroups);
@@ -148,6 +187,7 @@ export default function RolesTab() {
       setShowCreate(false);
       setNewRoleName('');
       setNewRoleColor('#3B82F6');
+      setNewRoleDescription('');
       setNameError('');
       toast.success(t('userMgmt.toast.roleCreated'));
       await refresh();
@@ -300,57 +340,73 @@ export default function RolesTab() {
         </button>
 
         {showCreate && (
-          <div className="mt-2 p-3 rounded-lg" style={{ background: T.sa, border: `1px solid ${T.bd}` }}>
-            <input
-              value={newRoleName}
-              onChange={(e) => {
-                setNewRoleName(e.target.value);
-                if (nameError) setNameError('');
-              }}
-              placeholder={t('userMgmt.roles.roleName')}
-              className="w-full px-2.5 py-1.5 rounded-lg outline-none"
-              style={{
-                border: `1px solid ${nameError ? '#EF4444' : T.bd}`,
-                background: T.sf,
-                color: T.t1,
-                fontSize: 12,
-                marginBottom: nameError ? 4 : 8,
-              }}
-              autoFocus
-              aria-invalid={Boolean(nameError)}
-              onKeyDown={(e) => { if (e.key === 'Enter') void handleCreate(); }}
-            />
-            {!!nameError && (
-              <div style={{ color: '#DC2626', fontSize: 11, marginBottom: 8, lineHeight: 1.35 }}>
-                {nameError}
-              </div>
-            )}
-            <div className="flex gap-1 mb-2 flex-wrap">
-              {COLORS.map((c) => (
-                <button
-                  type="button"
-                  key={c}
-                  onClick={() => setNewRoleColor(c)}
-                  className="w-5 h-5 rounded-full cursor-pointer border-none"
-                  style={{ background: c, outline: newRoleColor === c ? `2px solid ${T.ac}` : 'none', outlineOffset: 2 }}
-                />
-              ))}
+          <div className="mt-2 p-3 rounded-xl space-y-3" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: T.t1 }}>
+              {t('userMgmt.roles.createRole')}
             </div>
-            <div className="flex gap-2">
+            <div>
+              <FieldLabel T={T}>{t('userMgmt.roles.roleName')}</FieldLabel>
+              <input
+                value={newRoleName}
+                onChange={(e) => {
+                  setNewRoleName(e.target.value);
+                  if (nameError) setNameError('');
+                }}
+                placeholder={t('userMgmt.roles.roleName')}
+                className="w-full px-3 py-2 rounded-lg outline-none"
+                style={{
+                  border: `1px solid ${nameError ? '#EF4444' : T.bd}`,
+                  background: T.sf,
+                  color: T.t1,
+                  fontSize: 13,
+                }}
+                autoFocus
+                aria-invalid={Boolean(nameError)}
+                onKeyDown={(e) => { if (e.key === 'Enter') void handleCreate(); }}
+              />
+              {!!nameError && (
+                <div style={{ color: '#DC2626', fontSize: 11, marginTop: 4, lineHeight: 1.35 }}>
+                  {nameError}
+                </div>
+              )}
+            </div>
+            <div>
+              <FieldLabel T={T}>{t('userMgmt.roles.color', { defaultValue: 'Color' })}</FieldLabel>
+              <ColorSwatches value={newRoleColor} onChange={setNewRoleColor} size="sm" />
+            </div>
+            <div>
+              <FieldLabel T={T}>{t('userMgmt.roles.description', { defaultValue: 'Description' })}</FieldLabel>
+              <textarea
+                value={newRoleDescription}
+                onChange={(e) => setNewRoleDescription(e.target.value)}
+                placeholder={t('userMgmt.roles.descriptionPlaceholder', { defaultValue: 'Short description shown when inviting users…' })}
+                rows={2}
+                maxLength={500}
+                className="w-full px-3 py-2 rounded-lg outline-none resize-none"
+                style={{
+                  border: `1px solid ${T.bd}`,
+                  background: T.sf,
+                  color: T.t1,
+                  fontSize: 12,
+                  lineHeight: 1.45,
+                }}
+              />
+            </div>
+            <div className="flex gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => void handleCreate()}
                 disabled={saving}
-                className="flex-1 px-2 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
-                style={{ background: T.ac, color: '#fff', fontSize: 11 }}
+                className="flex-1 px-2 py-2 rounded-lg cursor-pointer border-none font-semibold"
+                style={{ background: T.ac, color: '#fff', fontSize: 12 }}
               >
                 {t('common.create', { defaultValue: 'Create' })}
               </button>
               <button
                 type="button"
-                onClick={() => { setShowCreate(false); setNewRoleName(''); setNameError(''); }}
-                className="px-2 py-1.5 rounded-lg cursor-pointer border-none"
-                style={{ background: T.sf, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 11 }}
+                onClick={() => { setShowCreate(false); setNewRoleName(''); setNewRoleDescription(''); setNameError(''); }}
+                className="px-3 py-2 rounded-lg cursor-pointer border-none"
+                style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}
               >
                 {t('common.cancel')}
               </button>
@@ -362,106 +418,171 @@ export default function RolesTab() {
       <div className="flex-1 min-w-0">
         {selectedRole ? (
           <>
-            <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-              <div className="flex items-center gap-2.5 min-w-0">
-                {editing && isCustom ? (
-                  <input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="px-2.5 py-1.5 rounded-lg outline-none font-bold"
-                    style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 16, minWidth: 180 }}
-                  />
-                ) : (
-                  <>
-                    <span className="w-4 h-4 rounded-full shrink-0" style={{ background: selectedRole.color }} />
-                    <h3 className="font-bold" style={{ fontSize: 16, color: T.t1 }}>{selectedRole.name}</h3>
-                  </>
-                )}
+            {editing && isCustom ? (
+              <div
+                className="rounded-xl p-4 mb-4"
+                style={{ background: T.sf, border: `1px solid ${T.bd}` }}
+              >
+                <div className="flex items-center gap-3 mb-4 pb-4" style={{ borderBottom: `1px solid ${T.bd}` }}>
+                  <span
+                    className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center"
+                    style={{ background: `${editColor}18`, border: `2px solid ${editColor}` }}
+                  >
+                    <span className="w-4 h-4 rounded-full" style={{ background: editColor }} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div style={{ fontSize: 13, fontWeight: 700, color: T.t1 }}>
+                      {editName.trim() || selectedRole.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: T.t3, marginTop: 2 }}>
+                      {t('userMgmt.roles.custom')} · {t('userMgmt.roles.editDetailsHint', { defaultValue: 'Update name, color, and description' })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <FieldLabel T={T}>{t('userMgmt.roles.roleName')}</FieldLabel>
+                    <input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg outline-none"
+                      style={{ border: `1px solid ${T.bd}`, background: T.sa, color: T.t1, fontSize: 13 }}
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel T={T}>{t('userMgmt.roles.color', { defaultValue: 'Color' })}</FieldLabel>
+                    <ColorSwatches value={editColor} onChange={setEditColor} />
+                  </div>
+                  <div>
+                    <FieldLabel T={T}>{t('userMgmt.roles.description', { defaultValue: 'Description' })}</FieldLabel>
+                    <textarea
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      placeholder={t('userMgmt.roles.descriptionPlaceholder', { defaultValue: 'Short description shown when inviting users…' })}
+                      rows={3}
+                      maxLength={500}
+                      className="w-full px-3 py-2.5 rounded-lg outline-none resize-none"
+                      style={{ border: `1px solid ${T.bd}`, background: T.sa, color: T.t1, fontSize: 13, lineHeight: 1.5 }}
+                    />
+                    <div className="mt-1 text-right" style={{ fontSize: 10, color: T.t3 }}>
+                      {editDescription.length}/500
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="flex items-center justify-end gap-2 mt-4 pt-4"
+                  style={{ borderTop: `1px solid ${T.bd}` }}
+                >
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    className="flex items-center gap-1 px-3 py-2 rounded-lg cursor-pointer border-none"
+                    style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}
+                  >
+                    <X size={12} /> {t('common.cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void saveEdit()}
+                    disabled={saving}
+                    className="flex items-center gap-1 px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
+                    style={{ background: T.ac, color: '#fff', fontSize: 12 }}
+                  >
+                    <Check size={12} /> {t('common.save')}
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {!editing ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={startEdit}
-                      disabled={selectedRole.key === 'admin'}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
-                      style={{
-                        background: selectedRole.key === 'admin' ? T.sa : T.ac,
-                        color: selectedRole.key === 'admin' ? T.t3 : '#fff',
-                        fontSize: 12,
-                        opacity: selectedRole.key === 'admin' ? 0.7 : 1,
-                      }}
-                      title={selectedRole.key === 'admin' ? t('userMgmt.roles.adminLocked', { defaultValue: 'Admin always has all permissions' }) : undefined}
-                    >
-                      <Pencil size={12} /> {t('common.edit')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleDuplicate()}
-                      disabled={saving}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
-                      style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}
-                    >
-                      <Copy size={12} /> {t('userMgmt.roles.duplicate')}
-                    </button>
-                    {isCustom && (
+            ) : (
+              <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-4 h-4 rounded-full shrink-0" style={{ background: selectedRole.color }} />
+                  <h3 className="font-bold" style={{ fontSize: 16, color: T.t1 }}>{selectedRole.name}</h3>
+                  <span
+                    className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold"
+                    style={{
+                      background: isSystem ? `${T.ac}15` : `${T.t3}15`,
+                      color: isSystem ? T.ac : T.t3,
+                    }}
+                  >
+                    {isSystem ? t('userMgmt.roles.system') : t('userMgmt.roles.custom')}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {!editing ? (
+                    <>
                       <button
                         type="button"
-                        onClick={() => void handleDelete()}
+                        onClick={startEdit}
+                        disabled={selectedRole.key === 'admin'}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
+                        style={{
+                          background: selectedRole.key === 'admin' ? T.sa : T.ac,
+                          color: selectedRole.key === 'admin' ? T.t3 : '#fff',
+                          fontSize: 12,
+                          opacity: selectedRole.key === 'admin' ? 0.7 : 1,
+                        }}
+                        title={selectedRole.key === 'admin' ? t('userMgmt.roles.adminLocked', { defaultValue: 'Admin always has all permissions' }) : undefined}
+                      >
+                        <Pencil size={12} /> {t('common.edit')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDuplicate()}
                         disabled={saving}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
-                        style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444', fontSize: 12 }}
+                        style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}
                       >
-                        <Trash2 size={12} /> {t('common.delete')}
+                        <Copy size={12} /> {t('userMgmt.roles.duplicate')}
                       </button>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => void saveEdit()}
-                      disabled={saving}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
-                      style={{ background: T.ac, color: '#fff', fontSize: 12 }}
-                    >
-                      <Check size={12} /> {t('common.save')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={cancelEdit}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
-                      style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}
-                    >
-                      <X size={12} /> {t('common.cancel')}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {editing && isCustom && (
-              <div className="mb-3">
-                <div style={{ fontSize: 11, fontWeight: 600, color: T.t3, marginBottom: 6 }}>
-                  {t('userMgmt.roles.color', { defaultValue: 'Color' })}
-                </div>
-                <div className="flex gap-1 flex-wrap">
-                  {COLORS.map((c) => (
-                    <button
-                      type="button"
-                      key={c}
-                      onClick={() => setEditColor(c)}
-                      className="w-6 h-6 rounded-full cursor-pointer border-none"
-                      style={{ background: c, outline: editColor === c ? `2px solid ${T.ac}` : 'none', outlineOffset: 2 }}
-                    />
-                  ))}
+                      {isCustom && (
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete()}
+                          disabled={saving}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                          style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444', fontSize: 12 }}
+                        >
+                          <Trash2 size={12} /> {t('common.delete')}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => void saveEdit()}
+                        disabled={saving}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
+                        style={{ background: T.ac, color: '#fff', fontSize: 12 }}
+                      >
+                        <Check size={12} /> {t('common.save')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                        style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}
+                      >
+                        <X size={12} /> {t('common.cancel')}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             )}
 
-            {!editing && selectedRole.description && (
-              <p style={{ fontSize: 12, color: T.t3, marginBottom: 12 }}>{selectedRole.description}</p>
+            {!editing && (((selectedRole.description || '').trim()) || isCustom) && (
+              <p style={{ fontSize: 12, color: T.t3, marginBottom: 12, lineHeight: 1.45 }}>
+                {(selectedRole.description || '').trim()
+                  ? selectedRole.description
+                  : (
+                    <span style={{ opacity: 0.65, fontStyle: 'italic' }}>
+                      {t('userMgmt.roles.noDescription', { defaultValue: 'No description provided.' })}
+                    </span>
+                  )}
+              </p>
             )}
 
             {editing && usersOnRole.length > 0 && (
@@ -469,6 +590,14 @@ export default function RolesTab() {
                 <AlertTriangle size={14} style={{ color: '#F59E0B' }} />
                 <span style={{ fontSize: 12, color: '#92400E' }}>
                   {t('userMgmt.roles.affectsUsers', { n: usersOnRole.length })}
+                </span>
+              </div>
+            )}
+
+            {editing && (
+              <div className="mb-2">
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: T.t3 }}>
+                  {t('userMgmt.roles.permissionsSection', { defaultValue: 'Permissions' })}
                 </span>
               </div>
             )}

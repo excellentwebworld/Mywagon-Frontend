@@ -2815,8 +2815,8 @@
       "bulkDeactivated": "{{count}} users deactivated"
     },
     "invite": {
-      "title": "Invite Team Member",
-      "editTitle": "Edit Team Member",
+      "title": "Invite User",
+      "editTitle": "Edit User",
       "singleStepHint": "Choose Admin or Dispatcher preset. Access can be refined later with direct permissions.",
       "editHint": "Update name, phone, or role. Email cannot be changed.",
       "saveChanges": "Save Changes",
@@ -3015,7 +3015,13 @@
       "affectsUsers": "Changes will affect {{n}} users immediately.",
       "cannotDelete": "Cannot delete — {{n}} users are assigned. Reassign them first.",
       "nameTaken": "A role with this name already exists.",
-      "adminLocked": "Admin always has all permissions"
+      "adminLocked": "Admin always has all permissions",
+      "description": "Description",
+      "descriptionPlaceholder": "Short description shown when inviting users…",
+      "noDescription": "No description provided.",
+      "color": "Color",
+      "editDetailsHint": "Update name, color, and description",
+      "permissionsSection": "Permissions"
     },
     "security": {
       "mfaTitle": "Multi-Factor Authentication",
@@ -3553,6 +3559,7 @@
       "status": "Status",
       "scope": "Scope",
       "effective": "Effective",
+      "expiry": "Expiry",
       "margin": "Margin %",
       "updated": "Updated"
     },

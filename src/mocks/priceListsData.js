@@ -386,7 +386,7 @@ export function getScopeLabels(partnerIds, partnerNameById) {
 export function formatScopeDisplay(lane, t, partnerNameById, options = {}) {
   const { full = false } = options;
   if (lane.scope === 'default' || !(lane.scopePartnerIds?.length)) {
-    return t ? t('priceLists.scope.default', 'Default') : 'Default';
+    return t ? t('priceLists.scope.allPartners', 'All Partners') : 'All Partners';
   }
   // Prefer stored label from save (real partner names); skip placeholder "Specific"
   if (!full && lane.scopeLabel && lane.scopeLabel !== 'Specific' && lane.scopeLabel !== 'Default') {

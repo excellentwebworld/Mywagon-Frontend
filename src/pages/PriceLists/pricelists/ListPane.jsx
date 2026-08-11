@@ -2,7 +2,7 @@
  * ListPane — Price Lists table view.
  *
  * Columns: Route, Stops, Total km, Price, Metric, Status, Scope,
- *          Effective, Margin% (carrier only), Updated, Actions.
+ *          Expiry, Margin% (carrier only), Updated, Actions.
  * Per-column sorting with dual-chevron asc/desc/unsorted pattern.
  * Shared PaginationBar. Click row → open detail pane.
  */
@@ -39,19 +39,15 @@ function splitIsoDateTime(iso) {
   return { date: formatted.slice(0, spaceIdx), time: formatted.slice(spaceIdx + 1) };
 }
 
-function EffectiveDates({ lane, t }) {
-  const from = formatDisplayDate(lane.effectiveFrom?.slice(0, 10) || '');
+function ExpiryDate({ lane, t }) {
   const to = lane.effectiveTo ? formatDisplayDate(lane.effectiveTo.slice(0, 10)) : null;
 
   return (
     <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: 'inherit', lineHeight: 1.4 }}>
-      <div>{from || '—'}</div>
-      {to ? (
-        <div>{to}</div>
-      ) : (
-        <div style={{ opacity: 0.85 }}>
+      {to || (
+        <span style={{ opacity: 0.85 }}>
           {t('priceLists.validity.openEnded', 'Open-ended')}
-        </div>
+        </span>
       )}
     </div>
   );
@@ -144,7 +140,12 @@ export default function ListPane({
           break;
         }
         case 'status': va = STATUS_SORT_ORDER[a.status] ?? 99; vb = STATUS_SORT_ORDER[b.status] ?? 99; break;
-        case 'effective': va = a.effectiveFrom; vb = b.effectiveFrom; break;
+        case 'expiry': {
+          const expirySortValue = (lane) => lane.effectiveTo || '9999-12-31';
+          va = expirySortValue(a);
+          vb = expirySortValue(b);
+          break;
+        }
         case 'updated': va = a.updatedAt; vb = b.updatedAt; break;
         case 'margin': {
           const ma = calcProfitability(a); const mb = calcProfitability(b);
@@ -235,10 +236,10 @@ export default function ListPane({
               <th style={thStyle}>
                 {t('priceLists.col.scope', 'Scope')}
               </th>
-              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('effective')}>
+              <th style={thStyle} className="cursor-pointer" onClick={() => handleSort('expiry')}>
                 <span className="flex items-center gap-1">
-                  {t('priceLists.col.effective', 'Effective')}
-                  <SortIcon sortKey="effective" currentSort={sortKey} currentDir={sortDir} />
+                  {t('priceLists.col.expiry', 'Expiry')}
+                  <SortIcon sortKey="expiry" currentSort={sortKey} currentDir={sortDir} />
                 </span>
               </th>
               {showMargin && (
@@ -394,7 +395,7 @@ export default function ListPane({
                     </span>
                   </td>
                   <td style={{ ...tdStyle, overflow: 'hidden', color: T.t2, verticalAlign: 'middle' }}>
-                    <EffectiveDates lane={lane} t={t} />
+                    <ExpiryDate lane={lane} t={t} />
                   </td>
                   {showMargin && (
                     <td style={tdStyle}>
@@ -485,10 +486,7 @@ function RowMenu({ lane, T, t, onAction, onClose }) {
         <MenuItem T={T} onClick={() => onAction('archive')}>🗄️ {t('priceLists.actions.archive', 'Archive')}</MenuItem>
       )}
       {lane.status === 'archived' && (
-        <>
-          <MenuItem T={T} onClick={() => onAction('reactivate')}>♻️ {t('priceLists.actions.reactivate', 'Reactivate')}</MenuItem>
-          <MenuItem T={T} onClick={() => onAction('deleteForever')} danger>🗑️ {t('priceLists.actions.deleteForever', 'Delete forever')}</MenuItem>
-        </>
+        <MenuItem T={T} onClick={() => onAction('reactivate')}>♻️ {t('priceLists.actions.reactivate', 'Reactivate')}</MenuItem>
       )}
       {lane.status === 'active' && (
         <MenuItem T={T} onClick={() => onAction('deactivate')}>⏸️ {t('priceLists.actions.deactivate', 'Deactivate')}</MenuItem>

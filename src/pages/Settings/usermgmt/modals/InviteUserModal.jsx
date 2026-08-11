@@ -239,7 +239,15 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
                       <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{role.name}</span>
                       {sel && <span style={{ fontSize: 11, color: T.ac }}>✓</span>}
                     </div>
-                    <p style={{ fontSize: 10, color: T.t3, lineHeight: 1.4 }}>{role.description}</p>
+                    <p style={{ fontSize: 10, color: T.t3, lineHeight: 1.4, minHeight: 28 }}>
+                      {(role.description || '').trim()
+                        ? role.description
+                        : (
+                          <span style={{ opacity: 0.55, fontStyle: 'italic' }}>
+                            {t('userMgmt.roles.noDescription', { defaultValue: 'No description provided.' })}
+                          </span>
+                        )}
+                    </p>
                     <div style={{ fontSize: 10, color: T.t3, marginTop: 4 }}>
                       {permCount === null
                         ? t('userMgmt.invite.allPermissions')

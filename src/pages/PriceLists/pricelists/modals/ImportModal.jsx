@@ -15,8 +15,8 @@ import { useTheme } from '../../../../hooks/useTheme';
 import { formatMetricLabel, formatMetricValueLabel } from '../../../../api/utils/laneMetricDisplay';
 import {
   ACCEPTED_VALUES,
-  CSV_COLUMNS_EL,
-  CSV_COLUMNS_EN,
+  EXPORT_CSV_COLUMNS_EL,
+  EXPORT_CSV_COLUMNS_EN,
   SIMPLE_CSV_COLUMNS_EL,
   SIMPLE_CSV_COLUMNS_EN,
   buildTemplateCsv,
@@ -44,7 +44,7 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
   const [importResult, setImportResult] = useState(null);
 
   const columns = lang === 'el' ? SIMPLE_CSV_COLUMNS_EL : SIMPLE_CSV_COLUMNS_EN;
-  const exportColumns = lang === 'el' ? CSV_COLUMNS_EL : CSV_COLUMNS_EN;
+  const exportColumns = lang === 'el' ? EXPORT_CSV_COLUMNS_EL : EXPORT_CSV_COLUMNS_EN;
 
   const handleClose = useCallback(() => {
     setPreview(null);
@@ -326,7 +326,7 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
                       <div style={{ color: T.t3, marginBottom: 6 }}>
                         {t(
                           'priceLists.import.ref.fullFormatHint',
-                          'When you Export lanes from this page, the file has 21 columns including place labels, addresses, and coordinates. Upload that file here to update prices in bulk — coordinates are preserved automatically.',
+                          'Export uses the same city-only columns as the template, plus Status and Scope. Legacy files with addresses or coordinates can still be imported.',
                         )}
                       </div>
                       <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, lineHeight: 1.5, color: T.t3 }}>

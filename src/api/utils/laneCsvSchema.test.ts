@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   CSV_COLUMNS_EN,
+  EXPORT_CSV_COLUMNS_EN,
   SIMPLE_CSV_COLUMNS_EN,
   buildTemplateCsv,
   detectCsvFormat,
   parseCsvText,
+  scopeToCsvExportLabel,
+  serializeLanesToCsv,
 } from './laneCsvSchema';
 
 const SIMPLE_CSV = `Origin City,Destination City,Trip Type,Metric,Metric Value,Price,Effective From,Effective To,Notes
@@ -25,6 +28,34 @@ describe('laneCsvSchema', () => {
     const headerLine = csv.replace(/^\uFEFF/, '').split('\n')[0];
     expect(headerLine.split(',')).toHaveLength(9);
     expect(headerLine).toBe(SIMPLE_CSV_COLUMNS_EN.join(','));
+  });
+
+  it('scopeToCsvExportLabel resolves partner names for specific scope', () => {
+    const map = new Map([['2046', 'TransMed Logistics A.E.']]);
+    expect(scopeToCsvExportLabel({
+      scope: 'specific',
+      scopePartnerIds: ['2046'],
+    }, 'en', map)).toBe('TransMed Logistics A.E.');
+    expect(scopeToCsvExportLabel({
+      scope: 'default',
+      scopePartnerIds: [],
+    }, 'en', map)).toBe('All Partners');
+  });
+
+  it('serializeLanesToCsv produces 11-column export without coords', () => {
+    const csv = serializeLanesToCsv([{
+      stops: [{ city: 'Athens', label: 'Athens' }, { city: 'Patras', label: 'Patras' }],
+      tripType: 'direct',
+      pricingRows: [{ metric: 'load_any_size', priceEur: 450, metricValue: { type: 'per_load' } }],
+      effectiveFrom: '2026-03-01',
+      status: 'active',
+      scope: 'default',
+    }], 'en');
+    const headerLine = csv.replace(/^\uFEFF/, '').split('\n')[0];
+    expect(headerLine).toBe(EXPORT_CSV_COLUMNS_EN.join(','));
+    expect(headerLine).toContain('Origin');
+    expect(headerLine).not.toContain('Origin Lat');
+    expect(headerLine).not.toContain('Origin Address');
   });
 
   it('parseCsvText accepts 9-column simple CSV with city-only rows', () => {

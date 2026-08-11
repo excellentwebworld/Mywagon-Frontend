@@ -125,7 +125,7 @@ export default function DirectoryPane({ summary, activeNode, onNodeClick, partne
     };
   }, [summary, partnerNameById]);
 
-  const defaultScopeLabel = t('priceLists.directory.defaultScope', 'Default');
+  const defaultScopeLabel = t('priceLists.scope.allPartners', 'All Partners');
 
   const scopeNodes = useMemo(() => (
     Object.entries(counts.scopePartners)

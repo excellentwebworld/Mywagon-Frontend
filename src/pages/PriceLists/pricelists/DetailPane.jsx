@@ -32,24 +32,6 @@ function marginColor(pct) {
   return MARGIN_COLORS.bad;
 }
 
-function OpenEndedInfinity({ color }) {
-  return (
-    <span
-      aria-hidden="true"
-      style={{
-        fontSize: '1.35em',
-        fontWeight: 600,
-        lineHeight: 1,
-        verticalAlign: 'middle',
-        display: 'inline-block',
-        color,
-      }}
-    >
-      ∞
-    </span>
-  );
-}
-
 export default function DetailPane({ lane, onClose, role, onAction, allLanes, partnerNameById }) {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
@@ -185,12 +167,7 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
             {formatDisplayDate(lane.effectiveFrom?.slice(0, 10) || '')}
             {lane.effectiveTo
               ? ` → ${formatDisplayDate(lane.effectiveTo.slice(0, 10))}`
-              : (
-                <>
-                  {' → '}
-                  <OpenEndedInfinity color={T.t3} />
-                </>
-              )}
+              : ` → ${t('priceLists.validity.openEnded', 'Open-ended')}`}
           </span>
         </div>
       </div>
@@ -405,12 +382,7 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
         {lane.status === 'inactive' && <ActionBtn T={T} onClick={() => onAction('activate', lane)}>▶️ {t('priceLists.actions.activate', 'Activate')}</ActionBtn>}
         {lane.status !== 'archived'
           ? <ActionBtn T={T} onClick={() => onAction('archive', lane)}>🗄️ {t('priceLists.actions.archive', 'Archive')}</ActionBtn>
-          : (
-            <>
-              <ActionBtn T={T} onClick={() => onAction('reactivate', lane)}>♻️ {t('priceLists.actions.reactivate', 'Reactivate')}</ActionBtn>
-              <ActionBtn T={T} onClick={() => onAction('deleteForever', lane)} danger>🗑️ {t('priceLists.actions.deleteForever', 'Delete forever')}</ActionBtn>
-            </>
-          )}
+          : <ActionBtn T={T} onClick={() => onAction('reactivate', lane)}>♻️ {t('priceLists.actions.reactivate', 'Reactivate')}</ActionBtn>}
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import {
 } from './mapGooglePlaceToLaneStop';
 import {
   formatMetricLabel,
+  formatMetricValueLabel,
   resolveLanePricingRows,
 } from '../../../api/utils/laneMetricDisplay';
 
@@ -69,7 +70,57 @@ function metricPriority(row, vehicleType, pallets, weight) {
   return 99;
 }
 
-function priceFromPricingRows(lane, { pallets, weight, vehicleType }) {
+function formatEur(amount) {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return '€0.00';
+  return `€${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatDateShort(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function metricApplicability(row, { pallets, weight, vehicleType }) {
+  if (!row) return { applicable: false, reason: '—' };
+  if (row.metric === 'ftl_truck_type') {
+    if (!vehicleType) return { applicable: false, reason: 'noVehicle' };
+    const vt = String(row.metricValue?.vehicle_type || '');
+    const match = vt === vehicleType || vt.split(',').map((s) => s.trim()).includes(vehicleType);
+    return { applicable: match, reason: match ? 'vehicleMatch' : 'vehicleMismatch' };
+  }
+  if (row.metric === 'unit_transport') {
+    const qty = Number(pallets || 0);
+    return qty > 0
+      ? { applicable: true, reason: 'palletsEntered' }
+      : { applicable: false, reason: 'noPallets' };
+  }
+  if (row.metric === 'weight') {
+    const qty = Number(weight || 0);
+    return qty > 0
+      ? { applicable: true, reason: 'weightEntered' }
+      : { applicable: false, reason: 'noWeight' };
+  }
+  if (row.metric === 'load_any_size') {
+    return { applicable: true, reason: 'perLoadFallback' };
+  }
+  return { applicable: false, reason: 'unsupported' };
+}
+
+function selectionReasonKey(reason) {
+  const map = {
+    vehicleMatch: 'priceLists.calculator.reasonVehicle',
+    palletsEntered: 'priceLists.calculator.reasonPallets',
+    weightEntered: 'priceLists.calculator.reasonWeight',
+    perLoadFallback: 'priceLists.calculator.reasonPerLoad',
+  };
+  return map[reason] || 'priceLists.calculator.reasonDefault';
+}
+
+function priceFromPricingRows(lane, inputs, t) {
+  const { pallets, weight, vehicleType } = inputs;
   const rows = resolveLanePricingRows(lane);
   const ordered = [...rows].sort(
     (a, b) => metricPriority(a, vehicleType, pallets, weight) - metricPriority(b, vehicleType, pallets, weight),
@@ -77,40 +128,81 @@ function priceFromPricingRows(lane, { pallets, weight, vehicleType }) {
   const selected = ordered.find((row) => metricPriority(row, vehicleType, pallets, weight) < 99);
   if (!selected) return null;
 
-  const base = Number(selected.priceEur || 0);
+  const unitRate = Number(selected.priceEur || 0);
+  const metricLabel = formatMetricLabel(selected.metric, t);
+  const valueLabel = formatMetricValueLabel(selected.metric, selected.metricValue, t);
+  let price = unitRate;
+  let quantity = null;
+  let quantityUnit = '';
+  let formula = '';
+  let unit = 'load';
 
   if (selected.metric === 'ftl_truck_type') {
-    return {
-      price: base,
-      unit: 'load',
-      matchedMetric: selected.metric,
-      matchedValue: selected.metricValue?.vehicle_type || vehicleType,
-    };
-  }
-  if (selected.metric === 'unit_transport') {
+    unit = 'load';
+    quantity = 1;
+    quantityUnit = t('priceLists.calculator.oneLoad', '1 load');
+    formula = `${formatEur(unitRate)} × ${quantityUnit}`;
+  } else if (selected.metric === 'unit_transport') {
     const qty = Number(pallets || 0);
-    return {
-      price: base * qty,
-      unit: 'pallet',
-      matchedMetric: selected.metric,
-      matchedValue: selected.metricValue?.type || 'eur_pallet',
-    };
+    unit = valueLabel;
+    quantity = qty;
+    quantityUnit = `${qty} ${valueLabel}`;
+    price = unitRate * qty;
+    formula = `${formatEur(unitRate)} × ${qty} ${valueLabel}`;
+  } else if (selected.metric === 'weight') {
+    const qtyTonnes = Number(weight || 0);
+    const isKgRate = selected.metricValue?.unit === 'kg';
+    unit = isKgRate ? 'kg' : 'ton';
+    if (isKgRate) {
+      const kg = qtyTonnes * 1000;
+      quantity = kg;
+      quantityUnit = `${qtyTonnes} t (${kg.toLocaleString()} kg)`;
+      price = unitRate * kg;
+      formula = `${formatEur(unitRate)}/kg × ${kg.toLocaleString()} kg`;
+    } else {
+      quantity = qtyTonnes;
+      quantityUnit = `${qtyTonnes} t`;
+      price = unitRate * qtyTonnes;
+      formula = `${formatEur(unitRate)}/t × ${qtyTonnes} t`;
+    }
+  } else {
+    unit = valueLabel;
+    quantity = 1;
+    quantityUnit = t('priceLists.calculator.oneLoad', '1 load');
+    formula = `${formatEur(unitRate)} ${valueLabel}`;
   }
-  if (selected.metric === 'weight') {
-    const qty = Number(weight || 0);
-    const multiplier = selected.metricValue?.unit === 'kg' ? 1000 : 1;
+
+  const selectedApplicability = metricApplicability(selected, inputs);
+
+  const allLaneRates = rows.map((row) => {
+    const { applicable, reason } = metricApplicability(row, inputs);
     return {
-      price: base * qty * multiplier,
-      unit: selected.metricValue?.unit || 'ton',
-      matchedMetric: selected.metric,
-      matchedValue: selected.metricValue?.unit || 'ton',
+      metric: row.metric,
+      metricLabel: formatMetricLabel(row.metric, t),
+      valueLabel: formatMetricValueLabel(row.metric, row.metricValue, t),
+      rateEur: Number(row.priceEur || 0),
+      selected: row === selected,
+      applicable,
+      reason,
     };
-  }
+  });
+
   return {
-    price: base,
-    unit: 'load',
+    price,
+    unit,
+    unitRate,
+    quantity,
+    quantityUnit,
+    formula,
     matchedMetric: selected.metric,
-    matchedValue: selected.metricValue?.type || 'per_load',
+    matchedValue: selected.metricValue?.vehicle_type
+      || selected.metricValue?.type
+      || selected.metricValue?.unit
+      || 'per_load',
+    matchedMetricLabel: metricLabel,
+    matchedValueLabel: valueLabel,
+    selectionReason: selectedApplicability.reason,
+    allLaneRates,
   };
 }
 
@@ -317,13 +409,14 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
       return;
     }
 
-    const pricingFromRows = priceFromPricingRows(matched, { pallets, weight, vehicleType });
+    const pricingFromRows = priceFromPricingRows(matched, { pallets, weight, vehicleType }, t);
     if (!pricingFromRows) {
       setResult({ error: 'noPricing' });
       return;
     }
 
     const price = Math.round(pricingFromRows.price * 100) / 100;
+    setExpanded(true);
     setResult({
       type: 'match',
       lane: matched,
@@ -332,8 +425,13 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
       total: price,
       unit: pricingFromRows.unit,
       matchedMetric: pricingFromRows.matchedMetric,
-      matchedMetricLabel: formatMetricLabel(pricingFromRows.matchedMetric, t),
-      breakdown: { base: price },
+      matchedMetricLabel: pricingFromRows.matchedMetricLabel,
+      detail: pricingFromRows,
+      inputs: {
+        pallets: pallets ? Number(pallets) : null,
+        weightTonnes: weight ? Number(weight) : null,
+        vehicleType: vehicleType || null,
+      },
     });
   }, [originStop, destinationStop, matchingOdLanes, pallets, weight, vehicleType, activeLanes, t]);
 
@@ -505,8 +603,13 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
                     <span style={{ fontSize: 11, color: T.t3 }}>{result.km} km</span>
                   </div>
                   <div style={{ fontSize: 28, fontWeight: 700, color: T.ac, marginBottom: 4 }}>
-                    €{result.total.toFixed(2)}
+                    {formatEur(result.total)}
                   </div>
+                  {result.detail?.formula && (
+                    <div style={{ fontSize: 10, color: T.t3, marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>
+                      {result.detail.formula}
+                    </div>
+                  )}
                   <button
                     onClick={() => setExpanded(!expanded)}
                     className="flex items-center gap-1 border-none cursor-pointer bg-transparent mt-2"
@@ -515,19 +618,147 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
                     {t('priceLists.calculator.breakdown', 'Breakdown')}
                     {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                   </button>
-                  {expanded && (
-                    <div className="mt-2 space-y-1" style={{ fontSize: 11 }}>
-                      <div className="flex justify-between" style={{ color: T.t2 }}>
-                        <span>
-                          {t('priceLists.calculator.basePrice', 'Base price')} ({result.unit})
-                          {result.matchedMetricLabel ? ` · ${result.matchedMetricLabel}` : ''}
-                        </span>
-                        <span>€{result.price.toFixed(2)}</span>
+                  {expanded && result.detail && (
+                    <div className="mt-3 space-y-3" style={{ fontSize: 11 }}>
+                      {/* Route & lane */}
+                      <div className="rounded-lg px-3 py-2" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+                        <div style={{ fontWeight: 600, color: T.t1, marginBottom: 6 }}>
+                          {t('priceLists.calculator.breakdownRoute', 'Route & lane')}
+                        </div>
+                        <div className="space-y-1" style={{ color: T.t2 }}>
+                          <div className="flex justify-between gap-2">
+                            <span>{t('priceLists.calculator.breakdownRouteLabel', 'Route')}</span>
+                            <span style={{ textAlign: 'right', color: T.t1 }}>{result.lane?.routeLabel || '—'}</span>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span>{t('priceLists.calculator.breakdownTrip', 'Trip type')}</span>
+                            <span style={{ color: T.t1 }}>
+                              {result.lane?.isRoundTrip || result.lane?.tripType === 'roundtrip'
+                                ? t('priceLists.modal.roundTrip', 'Round trip')
+                                : t('directTrip', 'Direct trip')}
+                            </span>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span>{t('priceLists.calculator.breakdownDistance', 'Distance')}</span>
+                            <span style={{ color: T.t1 }}>{result.km} km</span>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span>{t('priceLists.calculator.breakdownValidity', 'Valid')}</span>
+                            <span style={{ color: T.t1, textAlign: 'right' }}>
+                              {formatDateShort(result.lane?.effectiveFrom)}
+                              {' — '}
+                              {result.lane?.effectiveTo ? formatDateShort(result.lane.effectiveTo) : t('priceLists.calculator.openEnded', 'Open')}
+                            </span>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span>{t('priceLists.col.scope', 'Scope')}</span>
+                            <span style={{ color: T.t1 }}>{result.lane?.scopeLabel || result.lane?.scope || 'Default'}</span>
+                          </div>
+                        </div>
                       </div>
-                      {result.lane?.routeLabel && (
-                        <div className="flex justify-between pt-1" style={{ color: T.t3, borderTop: `1px solid ${T.bd}`, fontSize: 10 }}>
-                          <span>{result.lane.routeLabel}</span>
-                          <span>{result.lane.scopeLabel}</span>
+
+                      {/* Inputs used */}
+                      <div className="rounded-lg px-3 py-2" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+                        <div style={{ fontWeight: 600, color: T.t1, marginBottom: 6 }}>
+                          {t('priceLists.calculator.breakdownInputs', 'Your inputs')}
+                        </div>
+                        <div className="space-y-1" style={{ color: T.t2 }}>
+                          <div className="flex justify-between gap-2">
+                            <span>{t('priceLists.calculator.pallets', 'Pallets')}</span>
+                            <span style={{ color: T.t1 }}>{result.inputs?.pallets ?? '—'}</span>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span>{t('priceLists.calculator.weight', 'Weight (t)')}</span>
+                            <span style={{ color: T.t1 }}>{result.inputs?.weightTonnes ?? '—'}</span>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span>{t('priceLists.calculator.vehicle', 'Vehicle')}</span>
+                            <span style={{ color: T.t1 }}>{result.inputs?.vehicleType || '—'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Selected rate calculation */}
+                      <div className="rounded-lg px-3 py-2" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+                        <div style={{ fontWeight: 600, color: T.t1, marginBottom: 6 }}>
+                          {t('priceLists.calculator.breakdownCalculation', 'Price calculation')}
+                        </div>
+                        <div className="space-y-1" style={{ color: T.t2 }}>
+                          <div className="flex justify-between gap-2">
+                            <span>{t('priceLists.calculator.breakdownSelectedMetric', 'Pricing rule used')}</span>
+                            <span style={{ color: T.t1, textAlign: 'right' }}>
+                              {result.detail.matchedMetricLabel} · {result.detail.matchedValueLabel}
+                            </span>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span>{t('priceLists.calculator.breakdownLaneRate', 'Lane rate')}</span>
+                            <span style={{ color: T.t1 }}>{formatEur(result.detail.unitRate)}</span>
+                          </div>
+                          {result.detail.quantity != null && (
+                            <div className="flex justify-between gap-2">
+                              <span>{t('priceLists.calculator.breakdownQuantity', 'Quantity')}</span>
+                              <span style={{ color: T.t1 }}>{result.detail.quantityUnit}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between gap-2 pt-1" style={{ borderTop: `1px dashed ${T.bd}` }}>
+                            <span>{t('priceLists.calculator.breakdownFormula', 'Formula')}</span>
+                            <span style={{ color: T.t1, fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>
+                              {result.detail.formula}
+                            </span>
+                          </div>
+                          <div className="flex justify-between gap-2 pt-1 font-semibold" style={{ borderTop: `1px solid ${T.bd}`, color: T.t1 }}>
+                            <span>{t('priceLists.calculator.breakdownTotal', 'Quote total')}</span>
+                            <span style={{ color: T.ac }}>{formatEur(result.total)}</span>
+                          </div>
+                          <div style={{ fontSize: 10, color: T.t3, marginTop: 4 }}>
+                            {t(
+                              selectionReasonKey(result.detail.selectionReason),
+                              'Rate selected based on your inputs and lane pricing priority.',
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* All lane rates */}
+                      {result.detail.allLaneRates?.length > 0 && (
+                        <div className="rounded-lg px-3 py-2" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
+                          <div style={{ fontWeight: 600, color: T.t1, marginBottom: 6 }}>
+                            {t('priceLists.calculator.breakdownAllRates', 'All rates on this lane')}
+                          </div>
+                          <div className="space-y-1.5">
+                            {result.detail.allLaneRates.map((row, idx) => (
+                              <div
+                                key={`${row.metric}-${idx}`}
+                                className="flex items-start justify-between gap-2 py-1"
+                                style={{
+                                  borderTop: idx > 0 ? `1px solid ${T.bd}` : undefined,
+                                  opacity: row.applicable || row.selected ? 1 : 0.55,
+                                }}
+                              >
+                                <div className="min-w-0">
+                                  <div style={{ color: row.selected ? T.ac : T.t1, fontWeight: row.selected ? 600 : 500 }}>
+                                    {row.metricLabel} · {row.valueLabel}
+                                    {row.selected && (
+                                      <span style={{ marginLeft: 6, fontSize: 9, color: T.ac }}>
+                                        ({t('priceLists.calculator.breakdownUsed', 'used')})
+                                      </span>
+                                    )}
+                                  </div>
+                                  {!row.applicable && !row.selected && (
+                                    <div style={{ fontSize: 9, color: T.t3, marginTop: 2 }}>
+                                      {row.reason === 'noPallets' && t('priceLists.calculator.notApplicableNoPallets', 'Enter pallets to use this rate')}
+                                      {row.reason === 'noWeight' && t('priceLists.calculator.notApplicableNoWeight', 'Enter weight to use this rate')}
+                                      {row.reason === 'noVehicle' && t('priceLists.calculator.notApplicableNoVehicle', 'Select vehicle to use this rate')}
+                                      {row.reason === 'vehicleMismatch' && t('priceLists.calculator.notApplicableVehicle', 'Vehicle does not match lane rate')}
+                                    </div>
+                                  )}
+                                </div>
+                                <span style={{ color: T.t1, fontFamily: "'JetBrains Mono', monospace", fontSize: 10, whiteSpace: 'nowrap' }}>
+                                  {formatEur(row.rateEur)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>

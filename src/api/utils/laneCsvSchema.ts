@@ -139,6 +139,35 @@ export const SIMPLE_CSV_COLUMNS_EL = [
   'Σημειώσεις',
 ] as const;
 
+/** Export format — same as simple template plus status/scope for bulk edits. */
+export const EXPORT_CSV_COLUMNS_EN = [
+  'Origin',
+  'Destination',
+  'Trip Type',
+  'Metric',
+  'Metric Value',
+  'Price',
+  'Effective From',
+  'Effective To',
+  'Status',
+  'Scope',
+  'Notes',
+] as const;
+
+export const EXPORT_CSV_COLUMNS_EL = [
+  'Αφετηρία',
+  'Προορισμός',
+  'Τύπος Δρομολογίου',
+  'Μετρική',
+  'Τιμή Μετρικής',
+  'Τιμή',
+  'Ισχύς Από',
+  'Ισχύς Έως',
+  'Κατάσταση',
+  'Πεδίο',
+  'Σημειώσεις',
+] as const;
+
 export type CsvFormat = 'simple' | 'full';
 
 export const SIMPLE_CSV_TEMPLATE_SAMPLE_ROWS = {
@@ -390,7 +419,71 @@ export function scopeToCsvLabel(scope?: string): string {
 }
 
 export function scopeFromCsvLabel(scope: string): 'default' | 'specific' {
-  return normalizeText(scope) === 'specific' ? 'specific' : 'default';
+  const n = normalizeText(scope);
+  if (n === 'specific') return 'specific';
+  if (
+    n === 'default'
+    || n === 'all partners'
+    || n === 'all carriers'
+    || n === 'all shippers'
+    || n.includes('όλοι')
+    || n.includes('ολοι')
+  ) {
+    return 'default';
+  }
+  if (/[,;]/.test(scope)) return 'specific';
+  if (scope.trim()) return 'specific';
+  return 'default';
+}
+
+function scopeLabelToExportNames(scopeLabel?: string | null): string | null {
+  if (!scopeLabel) return null;
+  const trimmed = String(scopeLabel).trim();
+  if (!trimmed || trimmed === 'Specific' || trimmed === 'Default') return null;
+  if (/^\d+$/.test(trimmed)) return null;
+  return trimmed.replace(/,\s*/g, '; ');
+}
+
+/** Scope cell for CSV export — "All Partners" or partner names separated by semicolons. */
+export function scopeToCsvExportLabel(
+  lane: LaneLike & { scopeLabel?: string | null },
+  lang: 'en' | 'el' = 'en',
+  partnerNameById?: Map<string, string>,
+): string {
+  const ids = lane.scopePartnerIds || [];
+  if (lane.scope === 'default' || ids.length === 0) {
+    return lang === 'el' ? 'Όλοι οι συνεργάτες' : 'All Partners';
+  }
+  const fromStoredLabel = scopeLabelToExportNames(lane.scopeLabel);
+  if (fromStoredLabel) return fromStoredLabel;
+  return ids
+    .map((id) => partnerNameById?.get(String(id)) || String(id))
+    .filter(Boolean)
+    .join('; ');
+}
+
+/** Merge base partner labels with any scope IDs referenced by lanes. */
+export function buildPartnerNameMapForLanes(
+  lanes: Array<LaneLike & { scopeLabel?: string | null }>,
+  baseMap?: Map<string, string>,
+  extraLabels?: Record<string, string>,
+): Map<string, string> {
+  const map = new Map(baseMap || []);
+  Object.entries(extraLabels || {}).forEach(([id, name]) => {
+    if (name) map.set(String(id), String(name));
+  });
+  lanes.forEach((lane) => {
+    (lane.scopePartnerIds || []).forEach((id) => {
+      const key = String(id);
+      if (!map.has(key) && lane.scopeLabel) {
+        const names = scopeLabelToExportNames(lane.scopeLabel);
+        if (names && !names.includes(';')) {
+          map.set(key, names);
+        }
+      }
+    });
+  });
+  return map;
 }
 
 export function buildLaneGroupKey(row: {
@@ -907,40 +1000,31 @@ export function buildTemplateCsv(lang: 'en' | 'el' = 'en'): string {
   return `\uFEFF${hdr.join(',')}\n${rows.map((r) => r.map(escapeCsvCell).join(',')).join('\n')}`;
 }
 
-export function serializeLanesToCsv(lanes: LaneLike[], lang: 'en' | 'el' = 'en'): string {
-  const hdr = lang === 'el' ? CSV_COLUMNS_EL : CSV_COLUMNS_EN;
+export function serializeLanesToCsv(
+  lanes: LaneLike[],
+  lang: 'en' | 'el' = 'en',
+  partnerNameById?: Map<string, string>,
+): string {
+  const hdr = lang === 'el' ? EXPORT_CSV_COLUMNS_EL : EXPORT_CSV_COLUMNS_EN;
   const rows = lanes.flatMap((lane) => {
     const pricingRows = resolveLanePricingRows(lane);
     const stops = lane.stops || [];
-    const origin = formatStopLabelForCsv(stops[0], lang);
-    const destination = formatStopLabelForCsv(stops[stops.length - 1], lang);
-    const originCity = formatStopCityForCsv(stops[0], lang);
-    const destinationCity = formatStopCityForCsv(stops[stops.length - 1], lang);
-    const oCoords = stopLatLng(stops[0]);
-    const dCoords = stopLatLng(stops[stops.length - 1]);
+    const origin = formatStopLabelForCsv(stops[0], lang) || formatStopCityForCsv(stops[0], lang);
+    const destination = formatStopLabelForCsv(stops[stops.length - 1], lang)
+      || formatStopCityForCsv(stops[stops.length - 1], lang);
     const tripType = lane.tripType || (lane.isRoundTrip ? 'roundtrip' : 'direct');
 
     return pricingRows.map((row) => [
       origin,
-      originCity,
-      String(stops[0]?.address || ''),
-      oCoords.lat,
-      oCoords.lng,
       destination,
-      destinationCity,
-      String(stops[stops.length - 1]?.address || ''),
-      dCoords.lat,
-      dCoords.lng,
       tripType,
       formatMetricForCsv(String(row.metric)),
       metricValueToCsvCell(String(row.metric), row.metricValue),
       Number(row.priceEur || 0),
-      'EUR',
       lane.effectiveFrom || '',
       lane.effectiveTo || '',
       lane.status || 'active',
-      scopeToCsvLabel(lane.scope),
-      lane.scopeDirection || '',
+      scopeToCsvExportLabel(lane, lang, partnerNameById),
       lane.notes || '',
     ]);
   });

@@ -1145,7 +1145,13 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
             {t('common.cancel', 'Cancel')}
           </button>
           <button disabled={isSaving} onClick={handleSave} className="px-4 py-2 rounded-lg cursor-pointer border-none text-white disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: T.ac, fontSize: 13, fontWeight: 600 }}>
-            {isSaving ? t('common.saving', 'Saving...') : lane ? t('common.update', 'Update') : t('common.save', 'Save')}
+            {isSaving
+              ? t('common.saving', 'Saving...')
+              : mode === 'duplicate'
+                ? t('common.create', 'Create')
+                : mode === 'edit'
+                  ? t('common.update', 'Update')
+                  : t('common.create', 'Create')}
           </button>
         </div>
       </div>
