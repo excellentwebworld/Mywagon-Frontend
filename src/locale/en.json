@@ -2390,6 +2390,7 @@
   "satPendingLoadError": "Failed to load pending shipments",
   "satLoadingVehicleTypes": "Loading vehicle types…",
   "satVehicleType": "Vehicle type",
+  "satVehicleOnlyAvailability": "Truck availability",
   "satBidsCount": "{{count}} bids",
   "satExactMatch": "Exact match",
   "satCreateNewHint": "Continue to Create Shipment with this availability prefilled.",

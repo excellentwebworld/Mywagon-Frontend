@@ -18,6 +18,9 @@ export interface ApiAvailabilityProvider {
 
 export interface ApiAvailabilityListItem {
   id: number;
+  posting_mode?: 'driver' | 'vehicle';
+  truck_type_id?: number | null;
+  driver_name?: string | null;
   visibility: 'public' | 'private';
   start_date_time: string | null;
   end_date_time: string | null;

@@ -120,6 +120,10 @@ export interface AvailableTruck {
   bidsCount?: number | null;
   bestBid?: number | null;
   loadMatchScore?: number;
+  /** True when availability was posted by vehicle type without a driver assigned */
+  isVehicleOnly?: boolean;
+  postingMode?: 'driver' | 'vehicle';
+  truckTypeId?: number | null;
 }
 
 export interface PendingShipment {

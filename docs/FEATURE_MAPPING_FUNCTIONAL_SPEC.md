@@ -10,7 +10,7 @@
 | **Laravel reference** | Production Blade shipper panel (`MV_Backend_API` web routes `routes/shipper.php`) |
 | **React target** | `shipper/` SPA + Shipper API `routes/api/shipper.php` (`/api/shipper/v1/*`) |
 | **Supporting specs** | Miro docs `MV_Backend_API/miro/Shipper/*`, module parity docs in `shipper/docs/*` |
-| **Last reviewed** | 2026-07-20 |
+| **Last reviewed** | 2026-08-12 (see updated master spec) |
 | **Status legend** | ✅ Implemented · 🚧 Partial / In progress · ❌ Not started · ➖ Not required |
 
 ---

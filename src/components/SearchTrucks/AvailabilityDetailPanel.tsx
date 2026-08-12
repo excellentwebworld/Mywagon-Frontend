@@ -405,8 +405,12 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
 
         <div className="sat-mp-chips">
           <span className="sat-mp-chip">
-            {detailTruck.truckType} · {detailTruck.specs}
+            {detailTruck.truckType}
+            {detailTruck.specs ? ` · ${detailTruck.specs}` : ''}
           </span>
+          {detailTruck.isVehicleOnly ? (
+            <span className="sat-mp-chip sat-mp-chip--muted">{t('satVehicleOnlyAvailability')}</span>
+          ) : null}
           <span className="sat-mp-chip">{detailTruck.capacity}</span>
           <span className="sat-mp-chip">{detailTruck.trip}</span>
         </div>

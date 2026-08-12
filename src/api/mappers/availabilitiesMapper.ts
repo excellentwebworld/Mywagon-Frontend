@@ -176,6 +176,9 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
     bidsCount: item.bids_count,
     bestBid: item.best_bid,
     loadMatchScore: item.load_match_score ?? undefined,
+    isVehicleOnly: item.posting_mode === 'vehicle',
+    postingMode: item.posting_mode ?? 'driver',
+    truckTypeId: item.truck_type_id ?? null,
   };
 }
 

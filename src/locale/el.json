@@ -2390,6 +2390,7 @@
   "satPendingLoadError": "Αποτυχία φόρτωσης εκκρεμών αποστολών",
   "satLoadingVehicleTypes": "Φόρτωση τύπων οχημάτων…",
   "satVehicleType": "Τύπος οχήματος",
+  "satVehicleOnlyAvailability": "Διαθεσιμότητα φορτηγού",
   "satBidsCount": "{{count}} προσφορές",
   "satExactMatch": "Ακριβής αντιστοιχία",
   "satCreateNewHint": "Συνεχίστε στη Δημιουργία Αποστολής με προ-συμπληρωμένα στοιχεία.",

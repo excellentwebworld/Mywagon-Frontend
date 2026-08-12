@@ -6,7 +6,8 @@
 | **Laravel (production)** | Blade panel — `MV_Backend_API` · `routes/shipper.php` · Miro: `miro/Shipper/` |
 | **React (in development)** | SPA — `shipper/` · Vite + React Router · `src/router.tsx` |
 | **Shipper API (React backend)** | `MV_Backend_API/routes/api/shipper.php` · Base: `/api/shipper/v1` · Sanctum Bearer |
-| **Last updated** | 2026-07-20 |
+| **Last updated** | 2026-08-12 |
+| **Overall progress** | ~60% dev complete (modules built) · see §2 for remaining build work |
 | **Status keys** | ✅ Done · 🚧 Partial · ❌ Pending · ➖ N/A / Not required |
 
 ---
@@ -14,15 +15,16 @@
 ## Table of contents
 
 1. [Architecture overview](#1-architecture-overview)
-2. [Master comparison matrix](#2-master-comparison-matrix)
-3. [Cross-cutting rules (roles, permissions, gates)](#3-cross-cutting-rules)
-4. [React Shipper Panel — app map](#4-react-shipper-panel--app-map)
-5. [Shipper API catalog (`/api/shipper/v1`)](#5-shipper-api-catalog)
-6. [Module specifications (detailed)](#6-module-specifications-detailed)
-7. [React-only / enhanced features](#7-react-only--enhanced-features)
-8. [API gaps (needed for remaining modules)](#8-api-gaps-needed-for-remaining-modules)
-9. [Migration phases & cutover risks](#9-migration-phases--cutover-risks)
-10. [Related docs & source paths](#10-related-docs--source-paths)
+2. [Development status & go-live timeline](#2-development-status--go-live-timeline)
+3. [Master comparison matrix](#3-master-comparison-matrix)
+4. [Cross-cutting rules (roles, permissions, gates)](#4-cross-cutting-rules)
+5. [React Shipper Panel — app map](#5-react-shipper-panel--app-map)
+6. [Shipper API catalog (`/api/shipper/v1`)](#6-shipper-api-catalog)
+7. [Module specifications (detailed)](#7-module-specifications-detailed)
+8. [React-only / enhanced features](#8-react-only--enhanced-features)
+9. [API gaps (needed for remaining modules)](#9-api-gaps-needed-for-remaining-modules)
+10. [Migration phases & cutover risks](#10-migration-phases--cutover-risks)
+11. [Related docs & source paths](#11-related-docs--source-paths)
 
 ---
 
@@ -70,52 +72,92 @@ Priority order after login:
 6. Profile completion reminder / info-form after one month
 7. Past-due invoice → Billing (`Access Restricted`)
 
-React today: auth + some module `403` banners only. **Past-due / KYC / info-form SPA gates are missing.**
+React today: auth + 2FA + some module `403` banners + Settings KYC. **Post-login KYC redirect / info-form SPA gates still missing.** Past-due invoice blocking, load-limit modals, and upgrade gates are handled within **Shipment / Create Shipment** flows (not separate modules).
 
 ---
 
-## 2. Master comparison matrix
+## 2. Development status & go-live timeline
 
-| # | Module | Laravel | React UI | React API | Gap summary |
-|---|---|---|---|---|---|
-| 1 | Login & Auth | ✅ | 🚧 | ✅ | Forgot password / register still Laravel links; KYC gates not enforced in SPA |
-| 2 | Signup & KYC | ✅ | ❌ | ❌ | No React register/KYC |
-| 3 | Onboarding Tour | ✅ | ❌ | ❌ | |
-| 4 | Profile Information (questionnaire) | ✅ | ❌ | ❌ | Blocking modal |
-| 5 | Dashboard | ✅ | 🚧 | 🚧 | KPI summary partial; schedule/map/board mostly mock |
-| 6 | Manage Shipments | ✅ | 🚧 | ✅ | Strong list/actions; some Laravel nuances TBD |
-| 7 | Shipment Detail | ✅ | 🚧 | 🚧 | Read API; demo fallbacks; many actions stubbed |
-| 8 | Create Shipment | ✅ | 🚧 | ✅ | Wizard live; PDS-917 QA open |
-| 9 | Edit Shipment (published) | ✅ | 🚧 | 🚧 | Draft resume only; no full published edit |
-| 10 | Legacy Create Shipment | ✅ | ➖ | ➖ | Do not port |
-| 11 | Search Available Trucks | ✅ | ✅ | ✅ | Redesigned map/list |
-| 12 | Address Book | ✅ | ✅ | ✅ | Redesigned 3-pane |
-| 13 | Product Master | ✅ | ✅ | ✅ | + AI import |
-| 14 | Partners | ✅ | ✅ | ✅ | + notes/tags/lanes |
-| 15 | ERP Orders | ➖ | ✅ | ✅ | React-first |
-| 16 | User Management | ✅ | ❌ | ❌ | |
-| 17 | Profile Management | ✅ | ❌ | ❌ | `/auth/me` only |
-| 18 | Change Password | ✅ | ❌ | ❌ | |
-| 19 | Notifications | ✅ | 🚧 | ❌ | Header mock only |
-| 20 | Chat | ✅ | ❌ | ❌ | |
-| 21 | Subscription + Add-ons | ✅ | ❌ | ❌ | `#subscription` stub; upgrades deep-link Laravel |
-| 22 | Billing | ✅ | ❌ | ❌ | `#billing` stub |
-| 23 | Account Statement | ✅ | ❌ | ❌ | |
-| 24 | Past-Due Invoice gate | ✅ | ❌ | ❌ | Distinct from shipment `past_due` tab |
-| 25 | Load limit modals | ✅ | 🚧 | 🚧 | Public check in wizard; private modal TBD |
-| 26 | Upgrade modal (global) | ✅ | 🚧 | 🚧 | Module-local only |
-| 27 | Support & Feedback | ✅ | ❌ | ❌ | `#support` stub |
-| 28 | Tutorials | ✅ | ❌ | ❌ | `#tutorial` stub |
-| 29 | Refer MYVAGON | ✅ | ❌ | ❌ | |
-| 30 | CMS (Privacy/Terms/About) | ✅ | 🚧 | ❌ | Marketing About only |
-| 31 | Public Track Shipment | ✅ | ❌ | ❌ | Guest page |
-| 32 | Language & timezone | ✅ | 🚧 | ❌ | FE i18n yes; BE sync TBD |
+> **Scope:** This section tracks **development** (UI + API implementation) only. QA, staging validation, and release sign-off are separate and not included here.  
+> **No official go-live date** is committed in this repo. Timeline below is an engineering estimate from **remaining build work**. Confirm with Product / Jira before external communication.
+
+### Development completion (Aug 2026)
+
+| Bucket | Dev status |
+|---|---|
+| **Complete** | Search Trucks · Address Book · Product Master · Partners · ERP Orders · Tutorials · Change Password · Support & Feedback (PDS-950) · **Price Lists (PDS-935)** · **Profile Management (PDS-937)** · **CMS / Legal (PDS-937)** |
+| **Substantially built** | Settings hub (PDS-937) · Create Shipment wizard · Manage Shipments · Login + 2FA |
+| **Partial / in progress** | Shipment Detail · Dashboard · Notifications (**listing pending**; settings done) · KYC (Settings only) |
+| **Not started** | Published Edit Shipment · Billing · Subscription · Chat · Post-login gates · Signup · Onboarding · Profile Information · Refer · Account Statement |
+
+**Rough dev progress:** ~60% of modules built or substantially complete · ~70% when counting partial UI+API work on in-progress modules.
+
+### Estimated go-live (development-driven)
+
+| Scenario | Estimated window | What must be **developed** first |
+|---|---|---|
+| **Hybrid go-live** | **Late Sep – mid Oct 2026** (~6–8 weeks dev) | Finish core freight gaps (Detail, Dashboard, Create polish, Edit Shipment); keep Billing/Subscription/Signup on Laravel |
+| **Full SPA cutover** | **Oct – Dec 2026** (~10–14 weeks dev) | Above + Billing · Subscription · Chat · Notifications listing · access gates · Signup/onboarding (or accept permanent Laravel hybrid for onboarding) |
+
+### Remaining development by phase
+
+| Phase | Dev work still pending |
+|---|---|
+| **A — Core freight** | Published **Edit Shipment** (UI + API); Shipment Detail — remove demo data, wire Edit/co-owner/tracking/logs/GPS/POD; Dashboard — live ShipmentBoard/Schedule/LiveMap; Create Shipment — **private load limit modal** |
+| **B — Account & access** | Past-due invoice SPA gate + API; post-login redirect middleware (KYC, address, info-form); React **Signup/register** flow + API; Profile Information questionnaire (UI + API); Onboarding tour (UI + API); Settings — Subscription/Billing sections (currently placeholder) |
+| **C — Monetization** | Subscription page (UI + API); Billing page (UI + API); Account Statement (if product confirms) |
+| **D — Collaboration** | Notifications **listing** (UI + API; settings done); **Chat** messenger (UI + API); Refer MYVAGON modal (UI + API) |
+| **E — Polish** | Public Track (React route or keep Laravel); Settings Integrations + AI Settings (marked coming soon) |
+
+### Active development tracks (Jira)
+
+| Ticket | Module | Remaining **development** |
+|---|---|---|
+| PDS-917 | Create Shipment | Private load limit modal; any open wizard/API parity gaps |
+| PDS-935 | Price Lists | **Dev complete** |
+| PDS-937 | Settings | Subscription + Billing sections (placeholders today); Integrations + AI Settings |
+| PDS-950 | Support & Feedback | **Dev complete** (Aug 2026) — no further UI/API build required for v1 |
 
 ---
 
-## 3. Cross-cutting rules
+## 3. Master comparison matrix
 
-### 3.1 Roles
+| # | Module | Laravel | React API | Gap summary |
+|---|---|---|---|---|
+| 1 | Login & Auth | ✅ | ✅ | Login + 2FA challenge; forgot password / register → Laravel; post-login gates not enforced in SPA |
+| 2 | Signup & KYC | ✅ | 🚧 | No React register; KYC submit in Settings → Compliance (PDS-937) |
+| 3 | Onboarding Tour | ✅ | ❌ | |
+| 4 | Profile Information (questionnaire) | ✅ | ❌ | Blocking modal |
+| 5 | Dashboard | ✅ | 🚧 | KPI strip live via `/shipments/summary`; ShipmentBoard/Schedule/LiveMap mostly mock |
+| 6 | Manage Shipments | ✅ | ✅ | Strong list/actions; published edit missing; some Laravel nuances TBD |
+| 7 | Shipment Detail | ✅ | 🚧 | Read API; `detailViewModel` demo fallbacks; Edit toast-only; co-owner/logs/GPS/POD gaps |
+| 8 | Create Shipment | ✅ | ✅ | Wizard + drafts API; load limits + plan upgrade gates in wizard flow; private load limit modal still to build |
+| 9 | Edit Shipment (published) | ✅ | ❌ | Draft resume only; published-edit UI + API not started |
+| 10 | Search Available Trucks | ✅ | ✅ | Redesigned map/list |
+| 11 | Address Book | ✅ | ✅ | Redesigned 3-pane |
+| 12 | Product Master | ✅ | ✅ | + AI import |
+| 13 | Partners | ✅ | ✅ | + notes/tags/lanes |
+| 14 | ERP Orders | ➖ | ✅ | React-first |
+| 15 | Price Lists (Lane Prices) | ➖ | ✅ | PDS-935 — lane CRUD, import, audit log; **dev complete** |
+| 16 | Settings / User Management | ✅ | ✅ | PDS-937 dev largely complete; Subscription/Billing sections still placeholder |
+| 17 | Profile Management | ✅ | ✅ | Settings → Personal, Organization, KYC, Legal (PDS-937); **dev complete** |
+| 18 | Change Password | ✅ | ✅ | Settings → Security; `PUT /settings/security/password` |
+| 19 | Notifications | ✅ | 🚧 | Settings toggles **done**; notification **listing pending** (bell, badges, deep links) |
+| 20 | Chat | ✅ | ❌ | Header icon toast-only |
+| 21 | Subscription + Add-ons | ✅ | ❌ | `/subscription` placeholder; upgrades deep-link Laravel |
+| 22 | Billing | ✅ | ❌ | `/billing` placeholder |
+| 23 | Account Statement | ✅ | ❌ | |
+| 24 | Support & Feedback | ✅ | ✅ | PDS-950 — KB, tickets, Book a Call; **dev complete** |
+| 25 | Tutorials | ✅ | ✅ | `/tutorials` + contextual triggers |
+| 26 | Refer MYVAGON | ✅ | ❌ | |
+| 27 | CMS (Privacy/Terms/About) | ✅ | ✅ | Policies/Legal via Settings (`/settings/policies`); **dev complete** |
+| 28 | Public Track Shipment | ✅ | ❌ | Guest page — may stay Laravel-hosted |
+
+---
+
+## 4. Cross-cutting rules
+
+### 4.1 Roles
 
 | Role | Behaviour |
 |---|---|
@@ -123,7 +165,7 @@ React today: auth + some module `403` banners only. **Past-due / KYC / info-form
 | **Sub-user (dispatcher)** | Permissions from User Management; inherits parent subscription / past-due / KYC context |
 | **Guest** | Public track shipment only |
 
-### 3.2 Sub-user permission groups (Laravel)
+### 4.2 Sub-user permission groups (Laravel)
 
 - Create Shipment
 - Manage Shipments
@@ -135,7 +177,7 @@ React today: auth + some module `403` banners only. **Past-due / KYC / info-form
 
 Notable flags: `view_only_owned_shipments` / `view_all_existing_shipments`, `view_quotes`, `accept/Reject_partner_request`, `view_company_account_information`, `edit_company_account_information`.
 
-### 3.3 Subscription permission slugs
+### 4.3 Subscription permission slugs
 
 | Slug | Gates |
 |---|---|
@@ -169,7 +211,7 @@ Notable flags: `view_only_owned_shipments` / `view_all_existing_shipments`, `vie
 | `feedback_and_support` | Support & Feedback |
 | `manage_erp_orders` | ERP Orders (API/React) |
 
-### 3.4 Shipment status lifecycle
+### 4.4 Shipment status lifecycle
 
 ```
 Draft → Pending → Scheduled → Ready → Past Due → On Trip
@@ -180,9 +222,9 @@ Draft → Pending → Scheduled → Ready → Past Due → On Trip
 
 ---
 
-## 4. React Shipper Panel — app map
+## 5. React Shipper Panel — app map
 
-### 4.1 Project layout
+### 5.1 Project layout
 
 | Path | Role |
 |---|---|
@@ -195,7 +237,7 @@ Draft → Pending → Scheduled → Ready → Past Due → On Trip
 | `shipper/src/locale/` | EN / EL strings |
 | `shipper/docs/*` | Module parity / QA checklists |
 
-### 4.2 Routes
+### 5.2 Routes
 
 | Path | Page | Auth |
 |---|---|---|
@@ -209,11 +251,19 @@ Draft → Pending → Scheduled → Ready → Past Due → On Trip
 | `/address-book` | AddressBook | Protected |
 | `/products` | ProductMaster | Protected |
 | `/partners` | Partners | Protected |
+| `/pricing` | PriceListsPage | Protected |
 | `/erp-orders` | ErpOrders | Protected |
+| `/settings` · `/settings/:section` | Settings | Protected |
+| `/settings/:section/:tab` | User edit (Users & Roles) | Protected |
+| `/billing` | BillingPage (placeholder) | Protected |
+| `/subscription` | SubscriptionPage (placeholder) | Protected |
+| `/support` | SupportPage | Protected |
+| `/tutorials` | TutorialsPage | Protected |
+| `/trust` | Redirect → `/settings/trustCenter` | Protected |
 
 With `basename` set: `/` redirects to `/address-book`.
 
-### 4.3 Sidebar navigation
+### 5.3 Sidebar navigation
 
 | Nav item | Target | Status |
 |---|---|---|
@@ -224,48 +274,61 @@ With `basename` set: `/` redirects to `/address-book`.
 | Address Book | `/address-book` | ✅ |
 | Product Master | `/products` | ✅ |
 | Partners | `/partners` | ✅ |
+| Price Lists | `/pricing` | ✅ |
 | ERP Orders | `/erp-orders` | ✅ |
-| Subscription | `#subscription` | ❌ stub |
-| Billing | `#billing` | ❌ stub |
-| Support | `#support` | ❌ stub |
-| Tutorial | `#tutorial` | ❌ stub |
+| Settings | `/settings` | 🚧 |
+| Subscription | `/subscription` | ❌ placeholder |
+| Billing | `/billing` | ❌ placeholder |
+| Support | `/support` | ✅ |
+| Tutorial | `/tutorials` | ✅ |
 
-### 4.4 React API services ↔ backend
+### 5.4 React API services ↔ backend
 
 | Service file | API prefix | Module |
 |---|---|---|
-| (auth in `api/auth`) | `/auth/*` | Login |
+| (auth in `api/auth`) | `/auth/*`, `/auth/2fa/*` | Login + 2FA |
 | `addressBookService.ts` | `/address-book/*` | Address Book |
 | `productMasterService.ts` | `/product-master/*` | Product Master |
 | `partnersService.ts` | `/partners/*` | Partners |
+| `priceLanesService.ts` | `/price-lists/*` | Price Lists |
 | `availabilitiesService.ts` | `/availabilities/*` | Search Trucks |
 | `createShipmentService.ts` | `/create-shipment/*` | Create Wizard |
 | `shipmentsService.ts` | `/shipments/*` | Manage + Detail |
 | `erpOrdersService.ts` | `/erp-orders/*` | ERP Orders |
+| `supportService.ts` | `/support/*` | Support & Feedback |
+| `tutorialsService.ts` | `/tutorials/*` | Tutorials |
+| `*SettingsService.ts` | `/settings/*` | Settings (PDS-937) |
+| `usersSettingsService.ts` | `/settings/users/*`, `/settings/roles/*` | Users & Roles |
 
-### 4.5 Auth model (React)
+### 5.5 Auth model (React)
 
-- Login stores Sanctum token; `ProtectedRoute` guards app layout.
-- `GET /auth/me` returns profile fields including `kyc_status`, `is_sub_user`, `permissions[]` — **returned but mostly unused in UI**.
+- Login stores Sanctum token; optional **2FA challenge** (`POST /auth/2fa/verify`) before full session.
+- `ProtectedRoute` guards app layout (auth only — no KYC/past-due gates yet).
+- `GET /auth/me` returns profile fields including `kyc_status`, `is_sub_user`, `permissions[]`.
 - Forgot password / Register deep-link to Laravel (`VITE_LARAVEL_URL`).
+- Password change + 2FA setup live under Settings → Security.
 
 ---
 
-## 5. Shipper API catalog
+## 6. Shipper API catalog
 
 **Base URL:** `{host}/api/shipper/v1`  
-**Auth:** `Authorization: Bearer {token}` (except login)  
+**Auth:** `Authorization: Bearer {token}` (except login / 2FA challenge)  
 **Middleware (authenticated group):** `auth:sanctum` · `language.manager` · `EnsureShipperUser` · `last.active` · `ApiShipperSubUserRestricted`
 
-### 5.1 Auth
+### 6.1 Auth
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/auth/login` | Login · returns token |
+| POST | `/auth/login` | Login · returns token or 2FA challenge |
+| POST | `/auth/2fa/verify` | Complete 2FA challenge |
+| POST | `/auth/2fa/resend-email` | Resend 2FA email OTP |
+| POST | `/auth/2fa/recovery/send-email` | Recovery email |
+| POST | `/auth/2fa/recovery/verify` | Recovery verify |
 | GET | `/auth/me` | Current shipper profile |
 | POST | `/auth/logout` | Revoke token |
 
-### 5.2 Address Book
+### 6.2 Address Book
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -280,7 +343,7 @@ With `basename` set: `/` redirects to `/address-book`.
 | GET | `/address-book/locations/{id}/stats` | Usage stats |
 | POST | `/address-book/locations/{id}/restore` | Restore archived |
 
-### 5.3 Product Master
+### 6.3 Product Master
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -297,7 +360,7 @@ With `basename` set: `/` redirects to `/address-book`.
 | GET/PUT | `/product-master/skus/{id}` | Show / update |
 | POST | `/product-master/skus/{id}/toggle-status` | Active/Inactive |
 
-### 5.4 Partners
+### 6.4 Partners
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -314,7 +377,7 @@ With `basename` set: `/` redirects to `/address-book`.
 | POST | `/partners/{id}/tags` | Tags |
 | POST/DELETE | `/partners/{id}/contract-lanes[/{laneId}]` | Contract lanes |
 
-### 5.5 Availabilities (Search Trucks)
+### 6.5 Availabilities (Search Trucks)
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -325,7 +388,7 @@ With `basename` set: `/` redirects to `/address-book`.
 | GET | `/availabilities/{id}/pending-matches` | Match pending loads |
 | POST | `/availabilities/{id}/bids` | Place bid on pending shipment |
 
-### 5.6 Create Shipment (drafts)
+### 6.6 Create Shipment (drafts)
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -338,11 +401,12 @@ With `basename` set: `/` redirects to `/address-book`.
 | POST | `/create-shipment/check-public-limit` | Public quota |
 | DELETE | `/create-shipment/drafts/{id}` | Delete draft |
 
-### 5.7 Shipments (Manage / Detail)
+### 6.7 Shipments (Manage / Detail)
 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/shipments/summary` | KPI / status counts |
+| GET | `/shipments/filter-facets` | Filter facet options |
 | GET | `/shipments/export` | Excel export |
 | GET | `/shipments/` | Paginated list |
 | GET | `/shipments/{id}` | Detail |
@@ -351,11 +415,15 @@ With `basename` set: `/` redirects to `/address-book`.
 | POST | `/shipments/bulk-cancel` | Bulk cancel |
 | POST | `/shipments/bulk-extend-bid` | Bulk extend bid |
 | POST | `/shipments/{id}/offers/{offerId}/accept\|reject\|counter` | Offer actions |
+| GET | `/shipments/{id}/offers/{offerId}/negotiation-history` | Negotiation history |
 | POST | `/shipments/{id}/invites` | Invite partner |
 | POST | `/shipments/{id}/invites/{partnerId}/remind` | Remind |
 | DELETE | `/shipments/{id}/invites/{partnerId}` | Withdraw invite |
+| POST | `/shipments/{id}/rating` | Rate carrier |
+| GET | `/shipments/{id}/pickup-delay/pending` | Reportable pickup delays |
+| POST | `/shipments/{id}/locations/{locationId}/pickup-delay` | Submit pickup delay |
 
-### 5.8 ERP Orders
+### 6.8 ERP Orders
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -368,9 +436,66 @@ With `basename` set: `/` redirects to `/address-book`.
 | GET/POST | `/erp-orders/` | List / create |
 | GET/PUT/DELETE | `/erp-orders/{id}` | Show / update / delete |
 
+### 6.9 Price Lists (PDS-935)
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/price-lists/lanes` | Lane list |
+| GET | `/price-lists/lanes/summary` | KPI summary |
+| POST | `/price-lists/lanes` | Create lane |
+| PUT | `/price-lists/lanes/{id}` | Update lane |
+| POST | `/price-lists/lanes/import` | Import lanes |
+| GET | `/price-lists/audit-log` | Audit log |
+| GET | `/price-lists/audit-log/export` | Export audit log |
+
+### 6.10 Support & Feedback (PDS-950)
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/support/access` | Permission gate + upgrade URL |
+| GET | `/support/kb/categories` | KB categories |
+| GET | `/support/kb/articles` | KB article list |
+| GET | `/support/kb/articles/{id}` | KB article detail |
+| POST | `/support/kb/articles/{id}/feedback` | Helpful vote |
+| GET | `/support/form-options` | Feedback form options |
+| GET | `/support/meeting-options` | Book a Call options |
+| GET/POST | `/support/requests` | Ticket list / create |
+| GET | `/support/requests/{ticketNumber}` | Ticket detail + thread |
+| POST | `/support/requests/{ticketNumber}/replies` | Shipper reply |
+
+### 6.11 Tutorials
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/tutorials` | Full library |
+| GET | `/tutorials/by-section` | Contextual videos by module |
+
+### 6.12 Settings (PDS-937)
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET/PUT | `/settings/personal` | Personal profile |
+| POST | `/settings/personal/avatar` | Avatar upload |
+| GET | `/settings/personal/ratings` | Shipper ratings |
+| GET/PUT | `/settings/organization` | Company profile |
+| POST | `/settings/organization/logo` | Logo upload |
+| PUT | `/settings/security/password` | Change password |
+| GET/POST | `/settings/security/2fa/*` | 2FA setup / enable / disable / recovery |
+| GET/POST | `/settings/kyc` | KYC show / submit |
+| GET | `/settings/policies`, `/settings/policies/{key}` | Privacy / Terms |
+| GET | `/settings/trust` | Trust center data |
+| GET/PUT | `/settings/notifications` | Notification preferences |
+| GET | `/settings/audit`, `/settings/users/audit` | Platform + user audit logs |
+| GET | `/settings/users` | Sub-user list |
+| POST | `/settings/users/invite` | Invite sub-user |
+| GET/PUT | `/settings/users/{id}` | User detail / update |
+| POST | `/settings/users/{id}/deactivate\|reactivate\|…` | User lifecycle |
+| GET/POST/PUT/DELETE | `/settings/roles`, `/settings/roles/{name}` | Custom roles |
+| GET | `/settings/permissions` | Permissions catalog |
+
 ---
 
-## 6. Module specifications (detailed)
+## 7. Module specifications (detailed)
 
 Each module below uses the same checklist fields.
 
@@ -380,19 +505,19 @@ Each module below uses the same checklist fields.
 
 | Field | Detail |
 |---|---|
-| **Overview** | Sign-in for primary + sub-users; language; session; post-login gates. |
+| **Overview** | Sign-in for primary + sub-users; language; session; post-login gates; 2FA. |
 | **Laravel functionalities** | Email/password; EN/GR; Forgot password; inactive primary/sub-user messaging; logout; load sub-user permissions; free plan on first login; KYC/address redirects. |
-| **React functionalities** | Login page; validation; token session; logout confirm; EN/EL toggle; ProtectedRoute. |
+| **React functionalities** | Login page; validation; token session; **2FA challenge flow**; logout confirm; EN/EL toggle; ProtectedRoute. |
 | **Roles & permissions** | Active primary/sub-user required. |
 | **Business rules** | Wrong credentials message; inactive blocks; KYC pending/rejected → Profile; incomplete address after KYC → Profile. |
 | **Validation** | Email format; password required. |
-| **UI / screens** | Login; Forgot password (Laravel); Inactive modal (Laravel). |
-| **Actions** | Login, Logout, Reset password, Change language. |
-| **API** | `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`. |
+| **UI / screens** | Login; Forgot password (Laravel); Inactive modal (Laravel); 2FA verify screen. |
+| **Actions** | Login, Logout, 2FA verify, Reset password, Change language. |
+| **API** | `POST /auth/login`, `/auth/2fa/*`, `GET /auth/me`, `POST /auth/logout`. |
 | **Dependencies** | Signup/KYC, Profile, Billing, Subscription. |
-| **Edge cases** | Concurrent session; unused `permissions` / `kyc_status` on `/me`. |
+| **Edge cases** | Concurrent session; post-login gates not enforced in SPA yet. |
 | **Status** | Laravel ✅ · React 🚧 · API ✅ |
-| **Comparison** | React covers happy-path login only. Forgot password & register → Laravel URLs. Post-login KYC/address gates not enforced in SPA. |
+| **Comparison** | 2FA added (Aug 2026). Forgot password & register → Laravel URLs. Post-login KYC/address/info-form gates still missing. |
 
 ---
 
@@ -402,10 +527,10 @@ Each module below uses the same checklist fields.
 |---|---|
 | **Overview** | Registration + email/phone verify + VAT certificate; admin KYC review. |
 | **Laravel** | Full signup form; OTP verify; consent; KYC Pending→Accepted/Rejected; admin history. |
-| **React** | None (link to Laravel register). |
-| **API** | None under `/api/shipper/v1`. |
-| **Status** | Laravel ✅ · React ❌ · API ❌ |
-| **Comparison** | Must remain on Laravel until React signup + KYC APIs exist; or keep hybrid forever for onboarding. |
+| **React** | No self-registration; **KYC submit in Settings → Compliance** (PDS-937). |
+| **API** | `GET/POST /settings/kyc` — no public register endpoints. |
+| **Status** | Laravel ✅ · React 🚧 · API 🚧 |
+| **Comparison** | Existing shippers can complete KYC in SPA. New signup remains Laravel until register API exists. |
 
 ---
 
@@ -439,10 +564,10 @@ Each module below uses the same checklist fields.
 |---|---|
 | **Overview** | Home: status counts, recent loads, trucks widget, notifications, map. |
 | **Laravel** | Full live widgets; status cards → Manage Shipments; `view_map` / `view_quotes` / `manage_shipment` gates. |
-| **React** | Redesigned layout; `GET /shipments/summary` for some KPIs; Schedule / LiveMap / ShipmentBoard / Notifications largely mock (`companyNameDemo`, `mockData`). |
-| **API used** | `GET /shipments/summary` only. |
+| **React** | Redesigned layout; `GET /shipments/summary` wired in KpiStrip; Schedule / LiveMap / ShipmentBoard / Notifications largely mock (`companyNameDemo`, `mockData`). |
+| **API used** | `GET /shipments/summary` (KPI strip only). |
 | **Status** | Laravel ✅ · React 🚧 · API 🚧 |
-| **Comparison** | UI redesign ≠ parity. Need live recent shipments, map, trucks widget, notifications feed. |
+| **Comparison** | Aug 2026: KPI counts live; ShipmentBoard still uses `mockData`. Need live recent shipments, map, trucks widget, notifications feed. |
 
 ---
 
@@ -488,7 +613,7 @@ Each module below uses the same checklist fields.
 | **Validations** | Required order/product/qty/weight/locations/dates/truck; pickup before delivery; no same-location P/D; range end after start. |
 | **API** | Full `/create-shipment/*` (§5.6). |
 | **Status** | Laravel ✅ · React 🚧 · API ✅ |
-| **Comparison** | Feature-complete core; **PDS-917 QA not signed off**. Private load limit modal may still lag Laravel. |
+| **Comparison** | Core wizard dev complete; private load limit modal still to build. |
 
 ---
 
@@ -499,23 +624,13 @@ Each module below uses the same checklist fields.
 | **Overview** | Edit existing load; lock in-progress stops; old vs new itinerary. |
 | **Laravel** | Full update table; locked stops; inconvenience warning; Confirm Updated Itinerary. |
 | **React** | Draft resume via `?id=` on create wizard; Detail Edit often toast-only; **no published-load edit parity**. |
-| **API** | Draft PUT steps only — no dedicated published-edit API surface for SPA. |
-| **Status** | Laravel ✅ · React 🚧 · API 🚧 |
-| **Comparison** | Critical ops gap for production cutover. |
+| **API** | Draft PUT steps only — **no published-edit SPA API** (Aug 2026). |
+| **Status** | Laravel ✅ · React 🚧 · API ❌ |
+| **Comparison** | Critical ops gap for production cutover. Detail Edit button is toast-only. |
 
 ---
 
-### 6.10 Legacy Create Shipment
-
-| Field | Detail |
-|---|---|
-| **Overview** | Old `shipper/shipment/*` Blade flow. |
-| **Status** | Laravel ✅ · React ➖ · API ➖ |
-| **Comparison** | **Do not migrate.** React wizard replaces it. |
-
----
-
-### 6.11 Search Available Trucks
+### 6.10 Search Available Trucks
 
 | Field | Detail |
 |---|---|
@@ -529,7 +644,7 @@ Each module below uses the same checklist fields.
 
 ---
 
-### 6.12 Address Book
+### 6.11 Address Book
 
 | Field | Detail |
 |---|---|
@@ -544,7 +659,7 @@ Each module below uses the same checklist fields.
 
 ---
 
-### 6.13 Product Master
+### 6.12 Product Master
 
 | Field | Detail |
 |---|---|
@@ -558,7 +673,7 @@ Each module below uses the same checklist fields.
 
 ---
 
-### 6.14 Partners
+### 6.13 Partners
 
 | Field | Detail |
 |---|---|
@@ -572,7 +687,7 @@ Each module below uses the same checklist fields.
 
 ---
 
-### 6.15 ERP Orders (React-first)
+### 6.14 ERP Orders (React-first)
 
 | Field | Detail |
 |---|---|
@@ -586,16 +701,30 @@ Each module below uses the same checklist fields.
 
 ---
 
+### 6.15 Price Lists / Lane Prices (React-first, PDS-935)
+
+| Field | Detail |
+|---|---|
+| **Overview** | Contract lane pricing registry; used in Create Shipment Step 3 partner/lane matching. |
+| **Laravel web** | Not present as classic panel module. |
+| **React** | `/pricing` — lane list, add/edit modal, import, audit log; metric-row pricing model. |
+| **Permissions** | Plan/sub-user gated (module banners). |
+| **API** | `/price-lists/*` (§6.9). |
+| **Status** | Laravel ➖ · React ✅ · API ✅ |
+| **Comparison** | **Development complete** (PDS-935). Lane CRUD, import, audit log, overlap/conflict validation. See `PDS-935-Lane-Prices-UI-Revamp.md`. |
+
+---
+
 ### 6.16 User Management
 
 | Field | Detail |
 |---|---|
 | **Overview** | Dispatcher sub-users + permission matrix + seat limits. |
 | **Laravel** | Full CRUD; block/unblock; permission groups; credentials email; `dispatcher_users` limit. |
-| **React** | Not started (`mocks/userMgmtData.js` only). |
-| **API** | Not in `/api/shipper/v1`. |
-| **Status** | Laravel ✅ · React ❌ · API ❌ |
-| **Comparison** | Required for multi-dispatcher customers before Blade cutover. |
+| **React** | **Settings → Users & Roles** (PDS-937): invite, edit, deactivate/reactivate, custom roles, permission grid, seat banner, audit tab. |
+| **API** | `/settings/users/*`, `/settings/roles/*`, `/settings/permissions`. |
+| **Status** | Laravel ✅ · React 🚧 · API ✅ |
+| **Comparison** | Dev substantially complete Aug 2026 (Users/Roles, invite, audit, 2FA, KYC, org/personal). Settings → Subscription/Billing still placeholder. |
 
 ---
 
@@ -605,9 +734,10 @@ Each module below uses the same checklist fields.
 |---|---|
 | **Overview** | Personal / Company / Operations / KYC tabs; completion %. |
 | **Laravel** | Full forms; avatar; KYC upload; sub-user locks. |
-| **React** | Header avatar from `/auth/me`; Profile menu → toast. |
-| **API** | `/auth/me` read only — no update/KYC endpoints for SPA. |
-| **Status** | Laravel ✅ · React ❌ · API ❌ |
+| **React** | **Settings → Personal, Organization, Compliance (KYC), Legal** — not 1:1 legacy Profile page layout. |
+| **API** | `/settings/personal`, `/settings/organization`, `/settings/kyc`, `/settings/policies`. |
+| **Status** | Laravel ✅ · React ✅ · API ✅ |
+| **Comparison** | **Development complete** via Settings (PDS-937): Personal, Organization, KYC, Legal/policies. Profile Information questionnaire remains a separate module (§3 #4). |
 
 ---
 
@@ -617,9 +747,9 @@ Each module below uses the same checklist fields.
 |---|---|
 | **Overview** | Current / New / Confirm with complexity rules. |
 | **Laravel** | Full form in user menu. |
-| **React** | None (Laravel reset link from login). |
-| **API** | None. |
-| **Status** | Laravel ✅ · React ❌ · API ❌ |
+| **React** | Settings → Security password form. |
+| **API** | `PUT /settings/security/password`. |
+| **Status** | Laravel ✅ · React ✅ · API ✅ |
 
 ---
 
@@ -629,9 +759,10 @@ Each module below uses the same checklist fields.
 |---|---|
 | **Overview** | Bell dropdown; listing; push/email toggles; sidebar badges. |
 | **Laravel** | Full listing + settings + deep links + realtime badges. |
-| **React** | Header sample notifications; View all toast; Dashboard mock panel. |
-| **API** | None. |
-| **Status** | Laravel ✅ · React 🚧 · API ❌ |
+| **React** | **Settings → Notifications** toggles **done**; header bell + listing **pending**. |
+| **API** | `GET/PUT /settings/notifications` done; listing/badge endpoints **pending**. |
+| **Status** | Laravel ✅ · React 🚧 · API 🚧 |
+| **Comparison** | Settings complete; notification **listing pending** (bell dropdown, badges, deep links). |
 
 ---
 
@@ -654,7 +785,7 @@ Each module below uses the same checklist fields.
 |---|---|
 | **Overview** | Plans, upgrade/cancel, auto-pay, add-ons. |
 | **Laravel** | Full subscription page + payment handlers. |
-| **React** | Sidebar `#subscription`; module 403s deep-link Laravel plan URL. |
+| **React** | `/subscription` + Settings → Subscription show **placeholder**; module 403s deep-link Laravel plan URL. |
 | **API** | None for SPA. |
 | **Status** | Laravel ✅ · React ❌ · API ❌ |
 | **Comparison** | Hybrid acceptable short-term (upgrade opens Laravel). Full SPA later. |
@@ -667,7 +798,7 @@ Each module below uses the same checklist fields.
 |---|---|
 | **Overview** | Invoices, wallet pay, bank transfer receipt, print. |
 | **Laravel** | Full Billing History & Invoices. |
-| **React** | `#billing` stub. |
+| **React** | `/billing` + Settings → Billing **placeholder**. |
 | **API** | None. |
 | **Status** | Laravel ✅ · React ❌ · API ❌ |
 
@@ -685,66 +816,33 @@ Each module below uses the same checklist fields.
 
 ---
 
-### 6.24 Past-Due Invoice gate
+### 6.24 Support & Feedback
 
 | Field | Detail |
 |---|---|
-| **Overview** | Block panel when unpaid past-due invoices exist. |
-| **Laravel** | Middleware → Billing + Access Restricted modal. |
-| **React** | **Missing.** (Shipment list `past_due` tab is a different concept — overdue pickup, not invoice.) |
-| **API** | No SPA past-due check endpoint. |
-| **Status** | Laravel ✅ · React ❌ · API ❌ |
-| **Comparison** | **Cutover blocker** — revenue/access enforcement. |
+| **Overview** | Knowledge base, support tickets, Book a Call (HubSpot). |
+| **Laravel** | Feedback + Support pages; Calendly on feedback. |
+| **React** | `/support` — KB, Create Request, My Requests + thread, Book a Call (PDS-950). |
+| **API** | Full `/support/*` (§6.10). |
+| **Permissions** | `feedback_and_support`. |
+| **Status** | Laravel ✅ · React ✅ · API ✅ |
+| **Comparison** | **Development complete** for v1 (Aug 2026). KB, tickets, thread replies, Book a Call, permission gate. |
 
 ---
 
-### 6.25 Load limit modals (private / public)
-
-| Field | Detail |
-|---|---|
-| **Overview** | Quota exhausted while publishing private/public loads. |
-| **Laravel** | Private Load Limit modal; public quota message. |
-| **React** | `POST /create-shipment/check-public-limit` + Step 3 banner; private modal TBD. |
-| **Status** | Laravel ✅ · React 🚧 · API 🚧 |
-
----
-
-### 6.26 Upgrade (Subscribe) Modal
-
-| Field | Detail |
-|---|---|
-| **Overview** | Global “feature not in plan” gate. |
-| **Laravel** | Shared `#subscribe-modal` everywhere. |
-| **React** | Module-local (SAT gate, master banners); no single global component. |
-| **Status** | Laravel ✅ · React 🚧 · API 🚧 (403 bodies) |
-
----
-
-### 6.27 Support & Feedback
-
-| Field | Detail |
-|---|---|
-| **Overview** | Feedback form + support ticket + Calendly. |
-| **Laravel** | Two pages; `feedback_and_support` gate. |
-| **React** | `#support` stub. |
-| **API** | None. |
-| **Status** | Laravel ✅ · React ❌ · API ❌ |
-
----
-
-### 6.28 Tutorials
+### 6.25 Tutorials
 
 | Field | Detail |
 |---|---|
 | **Overview** | YouTube library + contextual help icons. |
 | **Laravel** | Full library + section fetch. |
-| **React** | `#tutorial` stub. |
-| **API** | None. |
-| **Status** | Laravel ✅ · React ❌ · API ❌ |
+| **React** | `/tutorials` page + `ContextualTutorialTrigger` on modules. |
+| **API** | `GET /tutorials`, `/tutorials/by-section`. |
+| **Status** | Laravel ✅ · React ✅ · API ✅ |
 
 ---
 
-### 6.29 Refer MYVAGON
+### 6.26 Refer MYVAGON
 
 | Field | Detail |
 |---|---|
@@ -755,18 +853,20 @@ Each module below uses the same checklist fields.
 
 ---
 
-### 6.30 CMS Pages
+### 6.27 CMS Pages
 
 | Field | Detail |
 |---|---|
 | **Overview** | Privacy, Terms, About (EN/EL CMS). |
 | **Laravel** | CMS-backed pages. |
-| **React** | Static Marketing About (dev without basename). |
-| **Status** | Laravel ✅ · React 🚧 · API ❌ |
+| **React** | **Settings → Legal / Agreements** loads CMS via `/settings/policies`. |
+| **API** | `GET /settings/policies`, `/settings/policies/{key}`. |
+| **Status** | Laravel ✅ · React ✅ · API ✅ |
+| **Comparison** | **Development complete** (PDS-937). |
 
 ---
 
-### 6.31 Public Track Shipment
+### 6.28 Public Track Shipment
 
 | Field | Detail |
 |---|---|
@@ -778,87 +878,83 @@ Each module below uses the same checklist fields.
 
 ---
 
-### 6.32 Language & Timezone
-
-| Field | Detail |
-|---|---|
-| **Overview** | EN/EL locale + default timezone + device token. |
-| **Laravel** | Login + in-panel language; set timezone; FCM token. |
-| **React** | FE i18n keys; no BE language/timezone sync API used. |
-| **Status** | Laravel ✅ · React 🚧 · API ❌ |
-
----
-
-## 7. React-only / enhanced features
+## 8. React-only / enhanced features
 
 | Feature | Notes |
 |---|---|
 | **ERP Orders module** | Full order registry + Create Load bridge |
+| **Price Lists (Lane Prices)** | PDS-935 contract lane registry + audit log |
+| **Settings hub (PDS-937)** | Unified Personal / Org / Security / KYC / Users / Audit / Trust |
+| **Support hub (PDS-950)** | KB + tickets + HubSpot Book a Call |
 | **Product Master AI Wizard** | Messy CSV → preview → confirm |
 | **ERP Orders AI Wizard** | Same pattern for orders |
 | **SAT map UX** | Airbnb pill, bounds search, Directions polylines, infinite scroll |
 | **Create ↔ SAT/ERP integration** | Prefill + `availability_id` on publish |
 | **Partners enhancements** | Notes, tags, preferred, contract lanes, supplier type |
 | **Address Book / Product redesign** | Client-approved 3-pane masters |
+| **2FA (login + settings)** | Email/authenticator + recovery flows |
 
 These are **not** Laravel parity debt — they are intentional React/API advances.
 
 ---
 
-## 8. API gaps (needed for remaining modules)
+## 9. API gaps (needed for remaining modules)
 
 | Domain | Needed for SPA | Suggested endpoints (illustrative) |
 |---|---|---|
-| Profile / KYC | Profile Management, gates | `GET/PUT /profile`, `POST /kyc`, company/ops forms |
-| Sub-users | User Management | `/sub-users` CRUD + permissions + toggle |
-| Notifications | Listing + settings + badges | `/notifications`, `/notification-settings`, badge mark-visited |
+| Signup / register | Self-registration | `POST /auth/register`, verify OTP endpoints |
+| Profile Information | Mandatory questionnaire modal | `GET/PUT /profile-information` |
+| Notifications listing | Bell dropdown, badges, deep links | `/notifications`, mark-visited |
 | Chat | Messages | `/chat/threads`, `/chat/messages`, upload |
 | Subscription | Plans / add-ons | `/subscription/plans`, purchase, cancel, auto-pay |
 | Billing | Invoices / pay | `/billing/invoices`, pay, bank-receipt, wallet |
 | Account statement | Wallet ledger | `/account-statement` |
-| Past-due gate | SPA middleware | `GET /auth/access-state` (kyc, past_due, info_form, onboarding) |
+| Past-due gate | SPA middleware | *(Tracked under Shipment / Billing flows — not a separate module)* |
 | Onboarding | Tour | `POST /onboarding/complete` |
-| Support | Feedback/tickets | `/feedback`, `/support` |
-| Tutorials | Video library | `/tutorials`, `/tutorials/by-section` |
-| CMS | Legal pages | `/cms/{slug}` |
 | Refer | Referral modal | `/referral` |
 | Edit published shipment | Edit flow | Extend create-shipment or `/shipments/{id}/edit-*` |
-| Detail extras | Co-owner, rating, POD, logs, tracking links | Dedicated shipment sub-resources |
+| Detail extras | Co-owner, POD list, logs, tracking links CRUD | Dedicated shipment sub-resources |
+| Load limits / upgrade gates | Create Shipment, SAT, masters | In-module 403 + modals (no standalone module) |
+
+**Recently closed (Aug 2026):** Profile/KYC update, Users/Roles, Change password, Support, Tutorials, Notification settings, Policies — see §6.12.
 
 ---
 
-## 9. Migration phases & cutover risks
+## 10. Migration phases & cutover risks
 
-### 9.1 Phases
+### 10.1 Phases
 
-| Phase | Focus | Modules |
-|---|---|---|
-| **A — Core freight** | Day-to-day ops | Address Book ✅ · Product ✅ · Partners ✅ · SAT ✅ · ERP ✅ · Create 🚧 · Manage 🚧 · Detail 🚧 |
-| **B — Account & access** | Hard gates | Auth complete · Signup/KYC · Past-due · Profile · Profile Info · Users · Change Password |
-| **C — Monetization** | Revenue | Subscription · Billing · Load limits · Global Upgrade |
-| **D — Collaboration** | Engagement | Notifications · Chat · Refer · Support · Tutorials · Onboarding |
-| **E — Polish** | Closeout | Dashboard live · Published Edit · CMS · Public Track strategy · Locale sync |
+| Phase | Focus | Modules | Progress (Aug 2026) |
+|---|---|---|---|
+| **A — Core freight** | Day-to-day ops | Address Book ✅ · Product ✅ · Partners ✅ · SAT ✅ · ERP ✅ · Price Lists ✅ · Create 🚧 · Manage 🚧 · Detail 🚧 | ~80% |
+| **B — Account & access** | Hard gates | Auth/2FA 🚧 · Signup ❌ · KYC 🚧 · Settings/Profile ✅ · Profile Info ❌ · Users 🚧 · Change Password ✅ | ~60% |
+| **C — Monetization** | Revenue | Subscription ❌ · Billing ❌ | ~15% |
+| **D — Collaboration** | Engagement | Notifications 🚧 (listing pending) · Chat ❌ · Refer ❌ · Support ✅ · Tutorials ✅ · Onboarding ❌ | ~55% |
+| **E — Polish** | Closeout | Dashboard 🚧 · Published Edit ❌ · CMS ✅ · Public Track strategy | ~35% |
 
-### 9.2 Cutover blockers (must close)
+### 10.2 Development blockers (must build before full cutover)
 
-1. Past-due invoice SPA gate  
-2. KYC / company address / info-form enforcement  
-3. Subscription + Billing path (embed Laravel or build SPA)  
-4. User Management for dispatcher customers  
-5. Shipment Detail without demo data + critical actions  
-6. Published Edit Shipment  
-7. Create Shipment PDS-917 QA sign-off  
+1. Post-login enforcement: KYC / company address / info-form redirects  
+2. Subscription + Billing SPA (or permanent Laravel embed decision)  
+3. Shipment Detail — remove demo fallbacks; wire critical actions  
+4. Published Edit Shipment (UI + API)  
+5. Create Shipment — private load limit modal (within wizard flow)  
+6. Notifications listing (settings done)  
+7. Chat (if required for parity at cutover)  
 
-### 9.3 Acceptable hybrid (short-term)
+**Not dev blockers if hybrid accepted:** Signup/register, Forgot password, Public Track, payment return URLs → can remain Laravel-hosted.
+
+### 10.3 Acceptable hybrid (short-term)
 
 - Forgot password / Register → Laravel  
 - Upgrade Now → Laravel subscription URL  
 - Public Track → Laravel page  
 - Payment gateway return URLs → Laravel handlers  
+- Billing / Subscription pages → Laravel until SPA built  
 
 ---
 
-## 10. Related docs & source paths
+## 11. Related docs & source paths
 
 | Resource | Path |
 |---|---|
@@ -868,8 +964,10 @@ These are **not** Laravel parity debt — they are intentional React/API advance
 | Product Master parity | `shipper/docs/PRODUCT_MASTER_PARITY.md` |
 | Partners parity | `shipper/docs/PARTNERS_PARITY.md` |
 | ERP Orders parity | `shipper/docs/ERP_ORDERS_PARITY.md` |
-| Search Trucks parity | `shipper/docs/SEARCH_TRUCKS_MAP_PARITY.md` |
+| Search Trucks map parity | `shipper/docs/SEARCH_TRUCKS_MAP_PARITY.md` |
 | Create Shipment QA | `shipper/docs/PDS-917-Steps-1-2-QA.md`, `PDS-917-Step-3-QA.md` |
+| Price Lists (PDS-935) | `shipper/docs/PDS-935-Lane-Prices-UI-Revamp.md` |
+| Support QA (PDS-950) | `shipper/docs/PDS-950-qa-checklist.md`, `MV_Backend_API/miro/Shipper/SupportAndFeedback/PDS-950-PHASE8-RELEASE-SIGNOFF.md` |
 | Miro Laravel specs | `MV_Backend_API/miro/Shipper/*/MYVAGON-Shipper-*.md` |
 | Laravel web routes | `MV_Backend_API/routes/shipper.php` |
 | React API routes | `MV_Backend_API/routes/api/shipper.php` |
@@ -883,7 +981,13 @@ These are **not** Laravel parity debt — they are intentional React/API advance
 | Date | Change |
 |---|---|
 | 2026-07-20 | Created complete section-wise Feature Mapping + API catalog + Laravel/React comparison |
+| 2026-08-12 | Added §2 development status + go-live timeline; refreshed matrix for PDS-937/935/950, Settings, 2FA, Tutorials, Support |
+| 2026-08-12 | Reframed §2/§10 around **development** only (removed QA/sign-off from timeline and blockers) |
+| 2026-08-12 | Removed **React UI** column from §3 master comparison matrix (Laravel + React API + gap only) |
+| 2026-08-12 | Removed Legacy Create Shipment from §3 matrix and §7 module specs (32 modules) |
+| 2026-08-12 | Marked **Price Lists (#15)** and **Profile Management (#17)** dev complete |
+| 2026-08-12 | Removed Past-Due gate, Load limits, Upgrade modal, Language/timezone (tracked under Shipment); CMS **done**; Notifications **listing pending** |
 
 ---
 
-*Update Status columns and §8 API gaps as work ships. Prefer linking PDS/PR tickets in module Comparison rows.*
+*Update Status columns and §9 API gaps as work ships. Prefer linking PDS/PR tickets in module Comparison rows.*

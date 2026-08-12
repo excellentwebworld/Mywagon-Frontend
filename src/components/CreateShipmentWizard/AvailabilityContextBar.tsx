@@ -155,6 +155,7 @@ export const AvailabilityContextBar: React.FC<AvailabilityContextBarProps> = ({
 
   const startLabel = formatDateTime(detail?.start_date_time);
   const summaryMeta = [
+    detail?.posting_mode === 'vehicle' ? (t('satVehicleOnlyAvailability') || 'Truck availability') : null,
     detail?.truck_type?.trim() || null,
     startLabel !== '—' ? startLabel : null,
     priceValue,
