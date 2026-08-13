@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BookOpen, LayoutGrid, PlayCircle, Sparkles } from 'lucide-react';
 import {
   ModuleCard,
@@ -14,6 +14,20 @@ import '../../styles/tutorials.css';
 
 export const TutorialsPage: React.FC = () => {
   const page = useTutorialsPage();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    const selectors = ['.page-body', '.main-content', '.app-layout', '.tut-page'];
+    selectors.forEach((sel) => {
+      const el = document.querySelector(sel);
+      if (el) {
+        el.scrollTop = 0;
+      }
+    });
+  }, []);
 
   return (
     <div className="tut-page animate-fade-in">

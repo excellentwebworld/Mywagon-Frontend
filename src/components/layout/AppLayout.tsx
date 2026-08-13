@@ -31,11 +31,28 @@ export const AppLayout: React.FC = () => {
   });
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-    const pageBody = document.querySelector('.page-body');
-    if (pageBody) {
-      pageBody.scrollTop = 0;
-    }
+    const resetAllScrolls = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+
+      const selectors = ['.page-body', '.main-content', '.app-layout', '.tut-page'];
+      selectors.forEach((sel) => {
+        const el = document.querySelector(sel);
+        if (el) {
+          el.scrollTop = 0;
+        }
+      });
+    };
+
+    resetAllScrolls();
+    const timer = setTimeout(resetAllScrolls, 0);
+    const raf = requestAnimationFrame(resetAllScrolls);
+
+    return () => {
+      clearTimeout(timer);
+      cancelAnimationFrame(raf);
+    };
   }, [location.pathname]);
   const isDesktop = useMediaQuery(DESKTOP_SIDEBAR_QUERY);
   const isSidebarCollapsed = sidebarCollapsed && isDesktop;
