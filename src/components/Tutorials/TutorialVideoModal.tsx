@@ -85,12 +85,16 @@ export const TutorialVideoModal: React.FC<TutorialVideoModalProps> = ({
             </div>
             <div className="tut-modal-actions">
               <div className="tut-modal-nav">
-                <button type="button" className="btn btn-secondary btn-sm" onClick={onPrev} disabled={!hasPrev}>
-                  {previousLabel}
-                </button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={onNext} disabled={!hasNext}>
-                  {nextLabel}
-                </button>
+                {hasPrev && (
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={onPrev}>
+                    {previousLabel}
+                  </button>
+                )}
+                {hasNext && (
+                  <button type="button" className="btn btn-primary btn-sm" onClick={onNext}>
+                    {nextLabel}
+                  </button>
+                )}
               </div>
             </div>
           </div>
