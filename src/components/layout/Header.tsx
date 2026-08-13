@@ -46,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
 
   useEffect(() => {
-    if (location.pathname.startsWith('/tutorials')) {
+    if (location.pathname.startsWith('/tutorials') || location.pathname.startsWith('/support')) {
       const q = searchParams.get('q') || searchParams.get('search') || '';
       setSearchValue(q);
     }
@@ -54,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleSearchChange = (val: string) => {
     setSearchValue(val);
-    if (location.pathname.startsWith('/tutorials')) {
+    if (location.pathname.startsWith('/tutorials') || location.pathname.startsWith('/support')) {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
@@ -72,8 +72,13 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchValue.trim() && !location.pathname.startsWith('/tutorials')) {
-      navigate(`/tutorials?q=${encodeURIComponent(searchValue.trim())}`);
+    if (
+      e.key === 'Enter' &&
+      searchValue.trim() &&
+      !location.pathname.startsWith('/tutorials') &&
+      !location.pathname.startsWith('/support')
+    ) {
+      navigate(`/support?q=${encodeURIComponent(searchValue.trim())}`);
     }
   };
 

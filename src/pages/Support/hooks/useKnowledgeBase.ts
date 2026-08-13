@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supportService } from '../../../api/services/supportService';
 import type { KbArticleDetail, KbArticleSummary, KbCategory } from '../types';
 
@@ -10,10 +11,31 @@ interface UseKnowledgeBaseOptions {
 }
 
 export function useKnowledgeBase({ lang, disabled = false }: UseKnowledgeBaseOptions) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState<KbCategory[]>([]);
   const [popularArticles, setPopularArticles] = useState<KbArticleSummary[]>([]);
   const [articles, setArticles] = useState<KbArticleSummary[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const searchQuery = searchParams.get('q') || searchParams.get('search') || '';
+
+  const setSearchQuery = useCallback(
+    (val: string) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (val.trim()) {
+            next.set('q', val);
+          } else {
+            next.delete('q');
+            next.delete('search');
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<KbArticleDetail | null>(null);
@@ -91,7 +113,15 @@ export function useKnowledgeBase({ lang, disabled = false }: UseKnowledgeBaseOpt
         if (debouncedQuery) {
           const results = await supportService.getKbArticles({ lang, q: debouncedQuery });
           if (!cancelled) {
-            setArticles(results);
+            const q = debouncedQuery.toLowerCase();
+            const sorted = [...results].sort((a, b) => {
+              const titleA = a.title.toLowerCase();
+              const titleB = b.title.toLowerCase();
+              const matchA = titleA.startsWith(q) ? 1 : titleA.includes(q) ? 2 : 3;
+              const matchB = titleB.startsWith(q) ? 1 : titleB.includes(q) ? 2 : 3;
+              return matchA - matchB;
+            });
+            setArticles(sorted);
             setSelectedCategoryId(null);
           }
           return;
