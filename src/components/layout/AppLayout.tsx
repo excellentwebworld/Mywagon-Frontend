@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { AlertCircle, CheckCircle, Info, X } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
@@ -20,6 +20,7 @@ const TOAST_ICON = {
 } as const;
 
 export const AppLayout: React.FC = () => {
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
@@ -28,6 +29,14 @@ export const AppLayout: React.FC = () => {
       return false;
     }
   });
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const pageBody = document.querySelector('.page-body');
+    if (pageBody) {
+      pageBody.scrollTop = 0;
+    }
+  }, [location.pathname]);
   const isDesktop = useMediaQuery(DESKTOP_SIDEBAR_QUERY);
   const isSidebarCollapsed = sidebarCollapsed && isDesktop;
   const { toast, hideToast } = useApp();
