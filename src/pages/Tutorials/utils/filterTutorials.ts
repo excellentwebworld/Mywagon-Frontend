@@ -49,21 +49,26 @@ export function filterTutorials(
       continue;
     }
 
-    const moduleTitle = getModuleTitle(mod.config).toLowerCase();
-
     if (!query) {
       result.push({ ...mod, videos: mod.videos });
       continue;
     }
 
-    if (moduleTitle.includes(query)) {
+    const moduleTitle = getModuleTitle(mod.config).toLowerCase();
+    const sectionName = (mod.section || '').toLowerCase();
+    const moduleSlug = (mod.slug || '').toLowerCase();
+
+    if (moduleTitle.includes(query) || sectionName.includes(query) || moduleSlug.includes(query)) {
       result.push({ ...mod, videos: mod.videos });
       continue;
     }
 
-    const matchedVideos = mod.videos.filter((video) =>
-      getTutorialVideoTitle(video, lang).toLowerCase().includes(query)
-    );
+    const matchedVideos = mod.videos.filter((video) => {
+      const topicEn = (video.topic_en || '').toLowerCase();
+      const topicEl = (video.topic_el || '').toLowerCase();
+      const videoSlug = (video.slug || '').toLowerCase();
+      return topicEn.includes(query) || topicEl.includes(query) || videoSlug.includes(query);
+    });
 
     if (matchedVideos.length > 0) {
       result.push({ ...mod, videos: matchedVideos });

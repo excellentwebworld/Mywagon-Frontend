@@ -2,8 +2,8 @@
  * Header — matches MV_Web_Panel TopBar layout:
  * [Logo?] Title | Search …… | Vagon AI | Bell | Messages | Profile | CTA | Trust
  */
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   Search,
   Sparkles,
@@ -20,18 +20,18 @@ import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { ProfileDropdown } from './ProfileDropdown';
 
 interface HeaderProps {
-  onToggleMobileMenu: () => void;
-  sidebarCollapsed: boolean;
-  onToggleSidebarCollapse: () => void;
-  isDesktop: boolean;
+  onToggleMobileMenu?: () => void;
+  sidebarCollapsed?: boolean;
+  onToggleSidebarCollapse?: () => void;
+  isDesktop?: boolean;
   navMode?: 'sidebar' | 'top';
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onToggleMobileMenu,
-  sidebarCollapsed,
+  sidebarCollapsed = false,
   onToggleSidebarCollapse,
-  isDesktop,
+  isDesktop = true,
   navMode = 'sidebar',
 }) => {
   const { showToast } = useApp();
@@ -39,10 +39,43 @@ export const Header: React.FC<HeaderProps> = ({
   const { T } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [searchValue, setSearchValue] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/tutorials')) {
+      const q = searchParams.get('q') || searchParams.get('search') || '';
+      setSearchValue(q);
+    }
+  }, [location.pathname, searchParams]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchValue(val);
+    if (location.pathname.startsWith('/tutorials')) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (val.trim()) {
+            next.set('q', val);
+          } else {
+            next.delete('q');
+            next.delete('search');
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchValue.trim() && !location.pathname.startsWith('/tutorials')) {
+      navigate(`/tutorials?q=${encodeURIComponent(searchValue.trim())}`);
+    }
+  };
 
   const isSideMode = navMode !== 'top';
   const showCta = location.pathname !== '/shipments/create';
@@ -157,7 +190,8 @@ export const Header: React.FC<HeaderProps> = ({
         <input
           type="text"
           value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
           placeholder={t('topbar.search') || 'Search anything..'}
           aria-label={t('topbar.search') || 'Search'}
           style={{

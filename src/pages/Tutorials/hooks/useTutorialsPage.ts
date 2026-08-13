@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useApp } from '../../../context/AppContext';
@@ -17,8 +17,28 @@ export function useTutorialsPage() {
   const { t, lang } = useTranslation();
   const navigate = useNavigate();
   const { showToast } = useApp();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const searchQuery = searchParams.get('q') || searchParams.get('search') || '';
+
+  const setSearchQuery = useCallback(
+    (val: string) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (val.trim()) {
+            next.set('q', val);
+          } else {
+            next.delete('q');
+            next.delete('search');
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
   const [activeModuleFilter, setActiveModuleFilter] = useState('all');
   const [modalVideo, setModalVideo] = useState<TutorialVideo | null>(null);
   const [modalPlaylist, setModalPlaylist] = useState<TutorialVideo[]>([]);
