@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookOpen, CalendarDays, ClipboardList, Lock } from 'lucide-react';
 import '../../styles/support.css';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -30,6 +30,20 @@ export default function SupportPage() {
   } = useSupportPage();
 
   const [kbArticleCount, setKbArticleCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    const selectors = ['.page-body', '.main-content', '.app-layout', '.support-page'];
+    selectors.forEach((sel) => {
+      const el = document.querySelector(sel);
+      if (el) {
+        el.scrollTop = 0;
+      }
+    });
+  }, []);
 
   return (
     <>
