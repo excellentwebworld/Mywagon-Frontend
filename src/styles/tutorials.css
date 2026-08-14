@@ -701,6 +701,7 @@
   transform: translateY(20px) scale(0.97);
   transition: transform 0.25s, opacity 0.25s;
   overflow: hidden;
+  position: relative;
 }
 
 .tut-modal-overlay.show .tut-modal {
@@ -772,6 +773,7 @@
   flex-direction: column;
   min-width: 0;
   background: #0a0a0b;
+  position: relative;
 }
 
 .tut-embed {
@@ -805,6 +807,123 @@
   align-items: center;
   gap: 8px;
   margin-left: auto;
+}
+
+.tut-share-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tut-share-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(10, 10, 11, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.tut-share-popup {
+  width: min(100%, 360px);
+  max-height: min(70vh, 420px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tut-share-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tut-share-head h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tut-share-close {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.tut-share-close:hover {
+  background: var(--surface-alt);
+  color: var(--text-primary);
+  border-color: var(--border-focus);
+}
+
+.tut-share-url-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tut-share-url {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: var(--surface-alt);
+}
+
+.tut-share-copy {
+  flex-shrink: 0;
+}
+
+.tut-share-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+  overflow-y: auto;
+}
+
+.tut-share-list li {
+  margin: 0;
+}
+
+.tut-share-link {
+  display: block;
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background 0.12s;
+}
+
+.tut-share-link:hover {
+  background: var(--accent-pale);
+  color: var(--accent);
 }
 
 .tut-playlist {

@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { Share2, X } from 'lucide-react';
 import type { TutorialVideo } from '../../api/types/tutorials';
 import { getTutorialVideoTitle } from '../../api/types/tutorials';
+import { useTranslation } from '../../hooks/useTranslation';
+import { TutorialSharePopup, type TutorialShareChannel } from './TutorialSharePopup';
 
 interface TutorialVideoModalProps {
   open: boolean;
@@ -21,6 +23,43 @@ interface TutorialVideoModalProps {
   playlistLabel: string;
 }
 
+function getTutorialVideoShareUrl(embedId: string): string {
+  return `https://youtu.be/${embedId}`;
+}
+
+function buildTutorialShareChannels(url: string, title: string): TutorialShareChannel[] {
+  const encodedUrl = encodeURIComponent(url);
+  const encodedText = encodeURIComponent(`${title} — ${url}`);
+
+  return [
+    {
+      id: 'whatsapp',
+      label: 'WhatsApp',
+      href: `https://wa.me/?text=${encodedText}`,
+    },
+    {
+      id: 'facebook',
+      label: 'Facebook',
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+    },
+    {
+      id: 'x',
+      label: 'X',
+      href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(title)}`,
+    },
+    {
+      id: 'email',
+      label: 'Email',
+      href: `mailto:?subject=${encodeURIComponent(title)}&body=${encodedText}`,
+    },
+    {
+      id: 'reddit',
+      label: 'Reddit',
+      href: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodeURIComponent(title)}`,
+    },
+  ];
+}
+
 export const TutorialVideoModal: React.FC<TutorialVideoModalProps> = ({
   open,
   video,
@@ -37,17 +76,38 @@ export const TutorialVideoModal: React.FC<TutorialVideoModalProps> = ({
   nextLabel,
   playlistLabel,
 }) => {
+  const { t } = useTranslation();
+  const [shareOpen, setShareOpen] = useState(false);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && open) onClose();
+      if (e.key === 'Escape' && open) {
+        if (shareOpen) {
+          setShareOpen(false);
+          return;
+        }
+        onClose();
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [open, onClose, shareOpen]);
+
+  useEffect(() => {
+    if (!open) {
+      setShareOpen(false);
+    }
+  }, [open, video?.id]);
+
+  const videoTitle = video ? getTutorialVideoTitle(video, lang) : '';
+  const shareUrl = video?.embed_id ? getTutorialVideoShareUrl(video.embed_id) : '';
+  const shareChannels = useMemo(
+    () => (shareUrl ? buildTutorialShareChannels(shareUrl, videoTitle) : []),
+    [shareUrl, videoTitle]
+  );
 
   if (!open || !video) return null;
 
-  const videoTitle = getTutorialVideoTitle(video, lang);
   const embedSrc = video.embed_id
     ? `https://www.youtube.com/embed/${video.embed_id}?rel=0&modestbranding=1`
     : '';
@@ -84,6 +144,16 @@ export const TutorialVideoModal: React.FC<TutorialVideoModalProps> = ({
               ) : null}
             </div>
             <div className="tut-modal-actions">
+              {video.embed_id ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm tut-share-trigger"
+                  onClick={() => setShareOpen(true)}
+                >
+                  <Share2 size={14} aria-hidden />
+                  {t('tutorials.share')}
+                </button>
+              ) : null}
               <div className="tut-modal-nav">
                 {hasPrev && (
                   <button type="button" className="btn btn-secondary btn-sm" onClick={onPrev}>
@@ -97,6 +167,16 @@ export const TutorialVideoModal: React.FC<TutorialVideoModalProps> = ({
                 )}
               </div>
             </div>
+
+            <TutorialSharePopup
+              open={shareOpen}
+              title={t('tutorials.share')}
+              url={shareUrl}
+              copyLabel={t('tutorials.shareCopyLink')}
+              copiedLabel={t('tutorials.linkCopied')}
+              channels={shareChannels}
+              onClose={() => setShareOpen(false)}
+            />
           </div>
           <div className="tut-playlist">
             <div className="tut-playlist-head">

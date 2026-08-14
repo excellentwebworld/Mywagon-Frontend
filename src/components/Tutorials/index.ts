@@ -6,5 +6,6 @@ export { ModuleCard } from './ModuleCard';
 export { TutorialsEmptyState } from './TutorialsEmptyState';
 export { NeedHelpCard } from './NeedHelpCard';
 export { TutorialVideoModal } from './TutorialVideoModal';
+export { TutorialSharePopup } from './TutorialSharePopup';
 export { ContextualTutorialTrigger } from './ContextualTutorialTrigger';
 export { TutorialsLoadingSkeleton } from './TutorialsLoadingSkeleton';

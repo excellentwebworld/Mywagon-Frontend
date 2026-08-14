@@ -4097,6 +4097,9 @@
     "modalPrevious": "Previous",
     "modalNext": "Next",
     "playlist": "Playlist",
+    "share": "Share",
+    "shareCopyLink": "Copy link",
+    "linkCopied": "Link copied!",
     "loading": "Loading tutorials…",
     "loadError": "Unable to load tutorials. Please try again.",
     "contextual": {
