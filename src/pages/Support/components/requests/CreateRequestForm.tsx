@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { SearchableSelect } from '../../../../components/ui/SearchableSelect';
@@ -16,6 +16,17 @@ interface CreateRequestFormProps {
 export function CreateRequestForm({ lang, disabled = false }: CreateRequestFormProps) {
   const { t } = useTranslation();
   const form = useCreateRequestForm({ lang, disabled });
+  const successBannerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!form.successTicketNumber) return undefined;
+
+    const timer = setTimeout(() => {
+      successBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [form.successTicketNumber]);
 
   useEffect(() => {
     const hasFieldErrors = Object.keys(form.fieldErrors).length > 0;
@@ -66,7 +77,7 @@ export function CreateRequestForm({ lang, disabled = false }: CreateRequestFormP
   return (
     <div className="ticket-form">
       {form.successTicketNumber ? (
-        <div className="request-success-banner" role="status">
+        <div ref={successBannerRef} className="request-success-banner" role="status">
           {t('support.request.success', { ticketNumber: form.successTicketNumber })}
         </div>
       ) : null}

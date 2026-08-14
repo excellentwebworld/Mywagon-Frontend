@@ -1466,6 +1466,7 @@ textarea.form-input {
   color: color-mix(in srgb, var(--success) 75%, #000);
   font-size: 13px;
   font-weight: 500;
+  scroll-margin-top: 96px;
 }
 
 @media (max-width: 768px) {
