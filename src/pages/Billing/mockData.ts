@@ -20,7 +20,7 @@ export function canSubmitBankReceipt(inv: import('./types').Invoice): boolean {
 }
 
 export function formatDate(dStr: string | null | undefined, locale: string = 'en'): string {
-  if (!dStr) return '—';
+  if (!dStr || dStr === 'null' || dStr === 'undefined') return '—';
   const d = new Date(dStr);
   if (isNaN(d.getTime())) return dStr;
   return d.toLocaleDateString(locale === 'el' ? 'el-GR' : 'en-GB', {
@@ -28,6 +28,11 @@ export function formatDate(dStr: string | null | undefined, locale: string = 'en
     month: 'short',
     year: 'numeric',
   });
+}
+
+export function csvDate(dStr: string | null | undefined): string {
+  if (!dStr || dStr === 'null' || dStr === 'undefined') return '';
+  return dStr;
 }
 
 export function downloadFileBlob(filename: string, content: string, mimeType: string = 'text/csv'): void {

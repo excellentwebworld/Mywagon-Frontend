@@ -21,7 +21,7 @@ import type {
   KpiFilterKey,
   BillingSummary,
 } from './types';
-import { downloadFileBlob, canSubmitBankReceipt } from './mockData';
+import { downloadFileBlob, canSubmitBankReceipt, csvDate } from './mockData';
 
 import './billing.css';
 import { UniverseBanner } from './components/UniverseBanner';
@@ -283,7 +283,7 @@ export const BillingPage: React.FC = () => {
   const handleExportInvoicesCsv = () => {
     const header = 'Invoice #,Type,Status,Issue Date,Due Date,Total,Remaining,Loads\n';
     const rows = invoices
-      .map((i) => `${i.id},${i.type},${i.status},${i.iDate},${i.dDate},${i.tot},${i.rem},${i.loads}`)
+      .map((i) => `${i.id},${i.type},${i.status},${csvDate(i.iDate)},${csvDate(i.dDate)},${i.tot},${i.rem},${i.loads}`)
       .join('\n');
     downloadFileBlob(`billing_invoices_${new Date().toISOString().slice(0, 10)}.csv`, header + rows);
     toast.success(t('billingPage.successExport', 'Invoices exported to CSV'));

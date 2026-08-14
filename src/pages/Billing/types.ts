@@ -11,7 +11,7 @@ export interface Invoice {
   sub: string;
   status: InvoiceStatus;
   iDate: string;
-  dDate: string;
+  dDate: string | null;
   pDate: string | null;
   subt: number;
   tax: number;
