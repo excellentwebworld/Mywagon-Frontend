@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { SearchableSelect } from '../../../../components/ui/SearchableSelect';
@@ -16,6 +16,19 @@ interface CreateRequestFormProps {
 export function CreateRequestForm({ lang, disabled = false }: CreateRequestFormProps) {
   const { t } = useTranslation();
   const form = useCreateRequestForm({ lang, disabled });
+
+  useEffect(() => {
+    const hasFieldErrors = Object.keys(form.fieldErrors).length > 0;
+    if (hasFieldErrors || form.submitError || form.attachmentError) {
+      const timer = setTimeout(() => {
+        const firstErrorEl = document.querySelector('.form-error, .kb-message--error');
+        if (firstErrorEl) {
+          firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [form.fieldErrors, form.submitError, form.attachmentError]);
 
   const fieldError = (key: string) =>
     form.fieldErrors[key] ? t(`support.request.errors.${form.fieldErrors[key]}`) : undefined;
