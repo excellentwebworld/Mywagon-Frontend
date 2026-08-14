@@ -11,6 +11,7 @@ import type {
   PurchasedAddon,
   SubscriptionAddonOffer,
   SubscriptionOverview,
+  SubscriptionPermissionItem,
   SubscriptionQuote,
 } from '../../api/types/subscription';
 import { formatDate, formatEuro, usageTone } from './mockData';
@@ -84,10 +85,53 @@ function CycleToggle({
 }
 
 function permissionDisplay(value: string, included: boolean, type: string): string {
-  if (!included || value === '0') return '—';
-  if (type === 'status') return Number(value) > 0 ? '✓' : '—';
-  if (Number(value) >= 10000) return '∞';
-  return value;
+  if (type === 'status') {
+    return included && Number(value) > 0 ? '✓' : '—';
+  }
+  const numeric = Number(value);
+  if (!included || value === '0' || Number.isNaN(numeric) || numeric <= 0) {
+    return type === 'percentage' ? '0%' : '0';
+  }
+  const label = numeric >= 10000 ? '∞' : value;
+  return type === 'percentage' && label !== '∞' ? `${label}%` : label;
+}
+
+function resolvePlanPermissions(
+  permissions: SubscriptionPermissionItem[],
+  isCurrentCard: boolean,
+  purchasedStatusSlugs: Set<string>,
+): SubscriptionPermissionItem[] {
+  return permissions
+    .map((row) => {
+      const granted = isCurrentCard && row.type === 'status' && purchasedStatusSlugs.has(row.slug);
+      return {
+        ...row,
+        included: row.included || granted,
+        value: granted && (!row.value || row.value === '0') ? '1' : row.value,
+      };
+    })
+    .sort((a, b) => Number(b.included) - Number(a.included));
+}
+
+const BETA_PERMISSION_SLUGS = new Set([
+  'post_loads_publicly',
+  'search_publicly_posted_trucks',
+  'bids_per_month',
+  'public_loads',
+  'search_available_trucks',
+  'count_of_bids_per_month',
+]);
+
+const BETA_PERMISSION_NAMES = new Set([
+  'post loads publicly',
+  'search publicly posted trucks',
+  'bids per month',
+]);
+
+function isBetaPermission(slug?: string | null, name?: string | null): boolean {
+  if (slug && BETA_PERMISSION_SLUGS.has(slug)) return true;
+  if (name && BETA_PERMISSION_NAMES.has(name.trim().toLowerCase())) return true;
+  return false;
 }
 
 export const SubscriptionPage: React.FC = () => {
@@ -288,25 +332,17 @@ export const SubscriptionPage: React.FC = () => {
       ? tf('saveTag', 'Best value')
       : '';
 
-  const highlightPermissions = useMemo(() => {
-    const slugs = [
-      'private_load_limit',
-      'partners',
-      'public_loads',
-      'search_available_trucks',
-      'manage_shipment',
-      'rating_and_review_for_transporter',
-      'chat_with_carriers_drivers',
-      'dispatcher_users',
-      'send_tracking_links_to_your_customers_per_month',
-      'count_of_bids_per_month',
-      'live_gps_shipment_tracking',
-      'view_electronic_pods',
-      'allow_multiple_stops',
-    ];
-    const fromApi = plans[0]?.permissions ?? [];
-    const matched = slugs.map((slug) => fromApi.find((p) => p.slug === slug)).filter(Boolean);
-    return (matched.length ? matched : fromApi.slice(0, 12)) as typeof fromApi;
+  const comparisonPermissions = useMemo(() => {
+    const seen = new Set<string>();
+    const rows: SubscriptionPermissionItem[] = [];
+    plans.forEach((plan) => {
+      plan.permissions.forEach((perm) => {
+        if (seen.has(perm.slug)) return;
+        seen.add(perm.slug);
+        rows.push(perm);
+      });
+    });
+    return rows;
   }, [plans]);
 
   const modalContent = useMemo(() => {
@@ -569,6 +605,7 @@ export const SubscriptionPage: React.FC = () => {
             const pr = cycle === 'yearly' ? p.price_yearly_monthly_rate : p.price_monthly;
             const isCurrentCard = p.id === current?.plan_id && cycle === subscribedCycle;
             const canUpgrade = cycle === 'yearly' ? p.upgrade_available_yearly : p.upgrade_available_monthly;
+            const planPermissions = resolvePlanPermissions(p.permissions, isCurrentCard, purchasedStatusSlugs);
             return (
               <div key={p.id} className={`pcard${isCurrentCard ? ' current' : ''}`}>
                 {isCurrentCard ? <span className="cur-tag">✓ {tf('currentPlanBtn', 'Current Plan')}</span> : null}
@@ -600,16 +637,18 @@ export const SubscriptionPage: React.FC = () => {
                 <div className="pcard-features">
                   <div className="flbl">{tf('includes', 'Includes')}</div>
                   <ul className="fl">
-                    {highlightPermissions.map((perm) => {
-                      const row = p.permissions.find((x) => x.slug === perm.slug) ?? perm;
-                      const granted = isCurrentCard && row.type === 'status' && purchasedStatusSlugs.has(row.slug);
-                      const val = permissionDisplay(granted && (!row.value || row.value === '0') ? '1' : row.value, row.included || granted, row.type);
-                      const on = val !== '—';
+                    {planPermissions.map((row) => {
+                      const val = permissionDisplay(row.value, row.included, row.type);
+                      const on = row.included;
+                      const showCount = row.type !== 'status';
                       return (
                         <li key={row.slug} className={`fi${on ? '' : ' off'}`}>
                           <span className={`ic ${on ? 'ok' : 'no'}`}>{on ? <CheckIcon /> : <DashIcon />}</span>
                           <span className="fi-label">{row.name}</span>
-                          {val !== '✓' && val !== '—' ? <span className="sub-feat-val">{val}</span> : null}
+                          {isBetaPermission(row.slug, row.name) ? (
+                            <span className="sub-beta">{tf('beta', 'BETA')}</span>
+                          ) : null}
+                          {showCount ? <span className="sub-feat-val">{val}</span> : null}
                         </li>
                       );
                     })}
@@ -635,18 +674,21 @@ export const SubscriptionPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {(plans[0]?.permissions ?? []).map((perm) => (
+              {comparisonPermissions.map((perm) => (
                 <tr key={perm.slug}>
-                  <td>{perm.name}</td>
+                  <td>
+                    <span className="inline-flex items-center gap-1.5">
+                      {perm.name}
+                      {isBetaPermission(perm.slug, perm.name) ? (
+                        <span className="sub-beta">{tf('beta', 'BETA')}</span>
+                      ) : null}
+                    </span>
+                  </td>
                   {plans.map((p) => {
                     const isCurrentCard = p.id === current?.plan_id && cycle === subscribedCycle;
-                    const row = p.permissions.find((x) => x.slug === perm.slug);
-                    const granted = isCurrentCard && (row?.type ?? perm.type) === 'status' && purchasedStatusSlugs.has(perm.slug);
-                    const val = permissionDisplay(
-                      granted && (!row?.value || row.value === '0') ? '1' : (row?.value ?? '0'),
-                      Boolean(row?.included) || granted,
-                      row?.type ?? perm.type,
-                    );
+                    const resolved = resolvePlanPermissions(p.permissions, isCurrentCard, purchasedStatusSlugs);
+                    const row = resolved.find((x) => x.slug === perm.slug);
+                    const val = permissionDisplay(row?.value ?? '0', Boolean(row?.included), row?.type ?? perm.type);
                     return (
                       <td key={p.id} className="feat-mono">
                         {val === '✓' ? <span className="check">✓</span> : val === '—' ? <span className="dash">—</span> : val}

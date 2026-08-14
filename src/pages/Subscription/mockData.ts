@@ -204,47 +204,10 @@ export const PLAN_FEATURES: { k: keyof PlanDef['limits']; f: string; beta?: bool
   { k: 'chat', f: 'fChat' },
   { k: 'dispatchers', f: 'fDispatchers' },
   { k: 'trackingLinks', f: 'fTrackingLinks' },
-  { k: 'bids', f: 'fBids' },
+  { k: 'bids', f: 'fBids', beta: true },
   { k: 'gps', f: 'fGPS' },
   { k: 'pods', f: 'fPODs' },
   { k: 'multistop', f: 'fMultistop' },
-];
-
-export const FEATURE_TABLE = [
-  {
-    name: 'Core Shipping',
-    features: [
-      { f: 'fPrivateLoads', e: '5', p: '200', r: '∞' },
-      { f: 'fManage', e: '✓', p: '✓', r: '✓' },
-      { f: 'fRating', e: '✓', p: '✓', r: '✓' },
-      { f: 'fChat', e: '✓', p: '✓', r: '✓' },
-    ],
-  },
-  {
-    name: 'Marketplace Access',
-    features: [
-      { f: 'fPublicLoads', e: '✓ BETA', p: '✓ BETA', r: '✓ BETA' },
-      { f: 'fSearchTrucks', e: '✓ BETA', p: '✓ BETA', r: '✓ BETA' },
-      { f: 'fMarketplace', e: '✓ BETA', p: '✓ BETA', r: '✓ BETA' },
-      { f: 'fBids', e: '1,000', p: '200', r: '∞' },
-    ],
-  },
-  {
-    name: 'Private Network',
-    features: [
-      { f: 'fPartners', e: '3', p: '20', r: '50' },
-      { f: 'fDispatchers', e: '1', p: '5', r: '10' },
-    ],
-  },
-  {
-    name: 'Tracking & POD',
-    features: [
-      { f: 'fTrackingLinks', e: '1', p: '5', r: '∞' },
-      { f: 'fGPS', e: '—', p: '—', r: '∞' },
-      { f: 'fPODs', e: '—', p: '—', r: '∞' },
-      { f: 'fMultistop', e: '—', p: '—', r: '∞' },
-    ],
-  },
 ];
 
 export const PRO_INCLUDED_ADDONS = ['gps', 'pods', 'multistop'];

@@ -13,6 +13,7 @@ export interface SubscriptionPermissionItem {
   type: string;
   value: string;
   included: boolean;
+  order_by?: number;
 }
 
 export interface SubscriptionPlanItem {
