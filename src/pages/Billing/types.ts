@@ -80,6 +80,7 @@ export interface BillingSummary {
   has_past_due: boolean;
   has_account_statement: boolean;
   has_filter_search: boolean;
+  registered_at?: string | null;
   currency: string;
   bank: {
     iban: string;

@@ -27,7 +27,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
   invoice,
   lineItems = [],
   isStatement = false,
-  statementPeriod = 'January 2026',
+  statementPeriod = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
   invoicesList = [],
 }) => {
   const { t, i18n } = useTranslation();

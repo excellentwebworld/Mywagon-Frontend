@@ -1,29 +1,37 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { X, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { BillingModalPortal } from './BillingModalPortal';
+import { buildStatementPeriodOptions } from '../../mockData';
 
 interface StatementDownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onGenerate: (month: string, format: 'PDF' | 'CSV' | 'XLSX') => void;
+  registeredAt?: string | null;
 }
 
 export const StatementDownloadModal: React.FC<StatementDownloadModalProps> = ({
   isOpen,
   onClose,
   onGenerate,
+  registeredAt,
 }) => {
   const { t } = useTranslation();
-  const [month, setMonth] = useState(
-    new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })
-  );
+  const periods = useMemo(() => buildStatementPeriodOptions(registeredAt), [registeredAt]);
+  const [month, setMonth] = useState(periods[0] ?? '');
   const [format, setFormat] = useState<'PDF' | 'CSV' | 'XLSX'>('PDF');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setMonth((prev) => (periods.includes(prev) ? prev : periods[0] ?? ''));
+  }, [isOpen, periods]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!month) return;
     onGenerate(month, format);
     onClose();
   };
@@ -49,11 +57,11 @@ export const StatementDownloadModal: React.FC<StatementDownloadModalProps> = ({
                 {t('billingPage.fldMonth', 'Statement Period')} <span className="req">*</span>
               </label>
               <select value={month} onChange={(e) => setMonth(e.target.value)} required>
-                <option value="January 2026">January 2026</option>
-                <option value="December 2025">December 2025</option>
-                <option value="November 2025">November 2025</option>
-                <option value="October 2025">October 2025</option>
-                <option value="Q4 2025 (Oct–Dec)">Q4 2025 (Oct–Dec)</option>
+                {periods.map((period) => (
+                  <option key={period} value={period}>
+                    {period}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -78,7 +86,7 @@ export const StatementDownloadModal: React.FC<StatementDownloadModalProps> = ({
             <button type="button" className="b-btn" onClick={onClose}>
               {t('common.cancel', 'Cancel')}
             </button>
-            <button type="submit" className="b-btn b-btn-primary">
+            <button type="submit" className="b-btn b-btn-primary" disabled={!month}>
               {t('billingPage.btnGenerate', 'Generate & Download')}
             </button>
           </div>

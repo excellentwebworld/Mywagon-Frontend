@@ -35,6 +35,37 @@ export function csvDate(dStr: string | null | undefined): string {
   return dStr;
 }
 
+/** Months from account registration through the current month, newest first. */
+export function buildStatementPeriodOptions(registeredAt?: string | null, now: Date = new Date()): string[] {
+  const end = new Date(now.getFullYear(), now.getMonth(), 1);
+  let start = new Date(end);
+
+  if (registeredAt) {
+    const match = /^(\d{4})-(\d{2})/.exec(registeredAt);
+    if (match) {
+      start = new Date(Number(match[1]), Number(match[2]) - 1, 1);
+    } else {
+      const parsed = new Date(registeredAt);
+      if (!Number.isNaN(parsed.getTime())) {
+        start = new Date(parsed.getFullYear(), parsed.getMonth(), 1);
+      }
+    }
+  }
+
+  if (start > end) {
+    start = new Date(end);
+  }
+
+  const options: string[] = [];
+  const cursor = new Date(end);
+  while (cursor >= start) {
+    options.push(cursor.toLocaleString('en-US', { month: 'long', year: 'numeric' }));
+    cursor.setMonth(cursor.getMonth() - 1);
+  }
+
+  return options;
+}
+
 export function downloadFileBlob(filename: string, content: string, mimeType: string = 'text/csv'): void {
   const blob = new Blob(['\ufeff' + content], { type: `${mimeType};charset=utf-8` });
   const url = URL.createObjectURL(blob);

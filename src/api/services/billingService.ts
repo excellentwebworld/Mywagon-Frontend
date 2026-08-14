@@ -118,10 +118,11 @@ export const billingService = {
     if (format === 'PDF') {
       return;
     }
+    const ext = format === 'XLSX' ? 'xlsx' : 'csv';
     await apiDownload(
       '/billing/statements/export',
-      `billing_statement_${month.replace(/\s+/g, '_')}.csv`,
-      { month, format: 'csv' }
+      `billing_statement_${month.replace(/\s+/g, '_')}.${ext}`,
+      { month, format: ext }
     );
   },
 };

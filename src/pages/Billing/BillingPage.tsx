@@ -559,6 +559,7 @@ export const BillingPage: React.FC = () => {
         isOpen={statementDownloadOpen}
         onClose={() => setStatementDownloadOpen(false)}
         onGenerate={handleGenerateStatement}
+        registeredAt={summary?.registered_at}
       />
 
       <PdfPreviewModal
