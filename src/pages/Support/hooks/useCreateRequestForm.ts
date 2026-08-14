@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError } from '../../../api/client';
 import { supportService } from '../../../api/services/supportService';
 import type { RequestAttachmentPreview, SupportFormOptions } from '../types';
-import { filesToBase64Attachments, isImageFile } from '../utils/attachments';
+import { filesToBase64Attachments, isImageFile, isWithinSizeLimit, MAX_ATTACHMENT_COUNT, MAX_ATTACHMENT_SIZE_MB } from '../utils/attachments';
 
-const MAX_ATTACHMENTS = 3;
+const MAX_ATTACHMENTS = MAX_ATTACHMENT_COUNT;
 
 interface UseCreateRequestFormOptions {
   lang: string;
@@ -80,6 +80,12 @@ export function useCreateRequestForm({ lang, disabled = false }: UseCreateReques
       const invalid = incoming.find((file) => !isImageFile(file));
       if (invalid) {
         setAttachmentError('invalid_type');
+        return;
+      }
+
+      const oversized = incoming.find((file) => !isWithinSizeLimit(file));
+      if (oversized) {
+        setAttachmentError('file_too_large');
         return;
       }
 
@@ -167,9 +173,22 @@ export function useCreateRequestForm({ lang, disabled = false }: UseCreateReques
       if (err instanceof ApiError && err.fieldErrors) {
         const mapped: Record<string, string> = {};
         Object.entries(err.fieldErrors).forEach(([key, messages]) => {
-          mapped[key] = messages[0] ?? 'invalid';
+          const message = messages[0] ?? '';
+          if (key.startsWith('attachments')) {
+            if (/mb|size|large/i.test(message)) {
+              setAttachmentError('file_too_large');
+            } else if (key === 'attachments') {
+              setAttachmentError('max_reached');
+            } else {
+              setAttachmentError('invalid_type');
+            }
+            return;
+          }
+          mapped[key] = message.toLowerCase().includes('required') ? 'required' : 'invalid';
         });
         setFieldErrors(mapped);
+      } else if (err instanceof Error && err.message === 'file_too_large') {
+        setAttachmentError('file_too_large');
       } else {
         setSubmitError('submit_failed');
       }
@@ -203,5 +222,6 @@ export function useCreateRequestForm({ lang, disabled = false }: UseCreateReques
     reset,
     submit,
     maxAttachments: MAX_ATTACHMENTS,
+    maxAttachmentSizeMb: MAX_ATTACHMENT_SIZE_MB,
   };
 }

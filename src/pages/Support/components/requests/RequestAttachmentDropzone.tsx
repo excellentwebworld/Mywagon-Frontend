@@ -6,6 +6,7 @@ import type { RequestAttachmentPreview } from '../../types';
 interface RequestAttachmentDropzoneProps {
   attachments: RequestAttachmentPreview[];
   maxAttachments: number;
+  maxAttachmentSizeMb: number;
   errorKey: string | null;
   disabled?: boolean;
   onAdd: (files: FileList | File[]) => void;
@@ -15,6 +16,7 @@ interface RequestAttachmentDropzoneProps {
 export function RequestAttachmentDropzone({
   attachments,
   maxAttachments,
+  maxAttachmentSizeMb,
   errorKey,
   disabled,
   onAdd,
@@ -97,7 +99,12 @@ export function RequestAttachmentDropzone({
         <div className="dz-text">
           {atMax ? t('support.request.attachmentsMaxReached') : t('support.request.attachmentsDrop')}
         </div>
-        <div className="dz-hint">{t('support.request.attachmentsHint', { max: maxAttachments })}</div>
+        <div className="dz-hint">
+          {t('support.request.attachmentsHint', {
+            max: maxAttachments,
+            maxMb: maxAttachmentSizeMb,
+          })}
+        </div>
       </div>
 
       <div

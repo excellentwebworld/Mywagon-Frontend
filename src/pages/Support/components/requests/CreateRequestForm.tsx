@@ -163,6 +163,7 @@ export function CreateRequestForm({ lang, disabled = false }: CreateRequestFormP
           <RequestAttachmentDropzone
             attachments={form.attachments}
             maxAttachments={form.maxAttachments}
+            maxAttachmentSizeMb={form.maxAttachmentSizeMb}
             errorKey={form.attachmentError}
             disabled={form.submitting}
             onAdd={form.addAttachments}
