@@ -98,7 +98,6 @@ export function CreateRequestForm({ lang, disabled = false }: CreateRequestFormP
             placeholder={t('support.request.selectType')}
             disabled={form.submitting}
             searchable={false}
-            menuFixed
             direction="auto"
             hasError={Boolean(fieldError('type'))}
           />
@@ -116,7 +115,6 @@ export function CreateRequestForm({ lang, disabled = false }: CreateRequestFormP
             placeholder={t('support.request.selectCategory')}
             disabled={form.submitting}
             searchable={false}
-            menuFixed
             direction="auto"
             hasError={Boolean(fieldError('category'))}
           />

@@ -25,61 +25,18 @@ export function RequestAttachmentDropzone({
   const [dragOver, setDragOver] = useState(false);
 
   const errorMessage = errorKey ? t(`support.request.errors.${errorKey}`) : null;
+  const atMax = attachments.length >= maxAttachments;
+  const dropDisabled = disabled || atMax;
 
   const handleFiles = (files: FileList | null) => {
-    if (!files || disabled) return;
+    if (!files || dropDisabled) return;
     onAdd(files);
   };
 
   return (
     <div className="request-attachments">
-      <div
-        className={`drop-zone${dragOver ? ' dragover' : ''}${disabled ? ' drop-zone--disabled' : ''}`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (!disabled) setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragOver(false);
-          handleFiles(e.dataTransfer.files);
-        }}
-        onClick={() => !disabled && inputRef.current?.click()}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            if (!disabled) inputRef.current?.click();
-          }
-        }}
-        role="button"
-        tabIndex={disabled ? -1 : 0}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-          multiple
-          hidden
-          disabled={disabled}
-          onChange={(e) => {
-            handleFiles(e.target.files);
-            e.target.value = '';
-          }}
-        />
-        <div className="dz-icon-wrap" aria-hidden>
-          <Paperclip size={22} strokeWidth={1.75} />
-        </div>
-        <div className="dz-text">{t('support.request.attachmentsDrop')}</div>
-        <div className="dz-hint">
-          {t('support.request.attachmentsHint', { max: maxAttachments })}
-        </div>
-      </div>
-
-      {errorMessage ? <div className="form-error">{errorMessage}</div> : null}
-
       {attachments.length > 0 ? (
-        <div className="attachment-previews">
+        <div className="attachment-previews" aria-live="polite">
           {attachments.map((item) => (
             <div key={item.id} className="attachment-preview">
               <img src={item.previewUrl} alt={item.file.name} />
@@ -98,6 +55,62 @@ export function RequestAttachmentDropzone({
           ))}
         </div>
       ) : null}
+
+      <div
+        className={`drop-zone${dragOver ? ' dragover' : ''}${dropDisabled ? ' drop-zone--disabled' : ''}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!dropDisabled) setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          handleFiles(e.dataTransfer.files);
+        }}
+        onClick={() => !dropDisabled && inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (!dropDisabled) inputRef.current?.click();
+          }
+        }}
+        role="button"
+        tabIndex={dropDisabled ? -1 : 0}
+        aria-disabled={dropDisabled}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+          multiple
+          hidden
+          disabled={dropDisabled}
+          onChange={(e) => {
+            handleFiles(e.target.files);
+            e.target.value = '';
+          }}
+        />
+        <div className="dz-icon-wrap" aria-hidden>
+          <Paperclip size={22} strokeWidth={1.75} />
+        </div>
+        <div className="dz-text">
+          {atMax ? t('support.request.attachmentsMaxReached') : t('support.request.attachmentsDrop')}
+        </div>
+        <div className="dz-hint">{t('support.request.attachmentsHint', { max: maxAttachments })}</div>
+      </div>
+
+      <div
+        className={`request-attachments-count${atMax ? ' is-full' : ''}`}
+        aria-live="polite"
+      >
+        {t('support.request.attachmentsCount', {
+          count: attachments.length,
+          max: maxAttachments,
+        })}
+      </div>
+
+      {errorMessage ? <div className="form-error">{errorMessage}</div> : null}
     </div>
   );
 }

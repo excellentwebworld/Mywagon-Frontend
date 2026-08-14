@@ -78,7 +78,6 @@
   border-radius: var(--radius-lg);
   background: var(--surface);
   border: 1px solid var(--border);
-  overflow: hidden;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
@@ -225,6 +224,10 @@
   transition: max-height 0.35s ease, opacity 0.25s ease;
   max-height: 3000px;
   opacity: 1;
+}
+
+.support-section-body:not(.collapsed) {
+  overflow: visible;
 }
 
 .support-section-body.collapsed {
@@ -1206,6 +1209,10 @@
   font-weight: 600;
 }
 
+.ticket-form .searchable-select-menu {
+  z-index: 40;
+}
+
 textarea.form-input {
   resize: vertical;
   min-height: 132px;
@@ -1270,6 +1277,22 @@ textarea.form-input {
   flex-shrink: 0;
 }
 
+.request-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.request-attachments-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.request-attachments-count.is-full {
+  color: var(--text-secondary);
+}
+
 .drop-zone {
   border: 2px dashed var(--border);
   border-radius: 12px;
@@ -1326,7 +1349,6 @@ textarea.form-input {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 12px;
 }
 
 .attachment-preview {
@@ -1359,15 +1381,16 @@ textarea.form-input {
   line-height: 1;
 }
 
-.form-footer {
+.ticket-form .form-footer {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   margin-top: 24px;
   padding-top: 18px;
   border-top: 1px solid var(--border);
   flex-wrap: wrap;
   gap: 12px;
+  clear: both;
 }
 
 .form-footer-note {

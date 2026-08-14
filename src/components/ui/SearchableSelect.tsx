@@ -203,24 +203,26 @@ export const SearchableSelect: React.FC<Props> = ({
 
   const menuNode =
     open &&
-    (menuFixed && menuRect ? (
-      createPortal(
-        <div
-          className={`searchable-select-menu menu-fixed${menuRect.openUp ? ' open-up' : ''}`}
-          role="listbox"
-          style={{
-            position: 'fixed',
-            left: menuRect.left,
-            width: menuRect.width,
-            top: menuRect.openUp ? undefined : menuRect.anchorBottom + 4,
-            bottom: menuRect.openUp ? window.innerHeight - menuRect.anchorTop + 4 : undefined,
-            zIndex: 10050,
-          }}
-        >
-          {menuInner}
-        </div>,
-        document.body
-      )
+    (menuFixed ? (
+      menuRect ? (
+        createPortal(
+          <div
+            className={`searchable-select-menu menu-fixed${menuRect.openUp ? ' open-up' : ''}`}
+            role="listbox"
+            style={{
+              position: 'fixed',
+              left: menuRect.left,
+              width: menuRect.width,
+              top: menuRect.openUp ? undefined : menuRect.anchorBottom + 4,
+              bottom: menuRect.openUp ? window.innerHeight - menuRect.anchorTop + 4 : undefined,
+              zIndex: 10050,
+            }}
+          >
+            {menuInner}
+          </div>,
+          document.body
+        )
+      ) : null
     ) : (
       <div className={`searchable-select-menu${openUp ? ' open-up' : ''}`} role="listbox">
         {menuInner}
