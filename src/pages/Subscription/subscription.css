@@ -246,7 +246,8 @@
   grid-template-columns: 1fr 1fr 1fr;
   gap: 14px;
   margin-bottom: 10px;
-  padding-top: 16px;
+  padding-top: 18px;
+  overflow: visible;
 }
 .subscription-page .pcard {
   background: #fff;
@@ -378,11 +379,17 @@
   gap: 7px;
   font-size: 12.5px;
   color: var(--sub-text2);
+  min-height: 28px;
   height: 28px;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
 }
-.subscription-page .fi > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.subscription-page .fi > .fi-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
 .subscription-page .fi .ic {
   flex-shrink: 0;
   width: 16px;
@@ -394,7 +401,7 @@
 .subscription-page .fi .ic.ok { color: var(--sub-green); }
 .subscription-page .fi .ic.no { color: var(--sub-border); }
 .subscription-page .fi .ic svg { width: 11px; height: 11px; }
-.subscription-page .fi .v {
+.subscription-page .fi .sub-feat-val {
   margin-left: auto;
   font-weight: 700;
   font-size: 11px;
@@ -406,16 +413,25 @@
   border: 1px solid var(--sub-border);
 }
 .subscription-page .fi.off { color: var(--sub-text3); opacity: 0.45; }
-.subscription-page .bt {
+.subscription-page .sub-beta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
   font-size: 8px;
   font-weight: 700;
+  line-height: 1;
   background: linear-gradient(135deg, var(--sub-purple), var(--sub-purple-lt));
   color: #fff;
-  padding: 1px 5px;
+  padding: 2px 5px;
   border-radius: 3px;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   flex-shrink: 0;
+  white-space: nowrap;
+  border: none;
+  box-sizing: border-box;
 }
 .subscription-page .fi.mp-feat {
   background: linear-gradient(90deg, rgba(108, 60, 224, 0.06), transparent);

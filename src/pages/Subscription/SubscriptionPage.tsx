@@ -470,9 +470,9 @@ export const SubscriptionPage: React.FC = () => {
                       return (
                         <li key={f.k} className={`fi${on ? '' : ' off'}${f.k === 'marketplace' ? ' mp-feat' : ''}`}>
                           <span className={`ic ${on ? 'ok' : 'no'}`}>{on ? <CheckIcon /> : <DashIcon />}</span>
-                          <span>{featureLabel(f.f)}</span>
-                          {f.beta ? <span className="bt">BETA</span> : null}
-                          {showVal ? <span className="v">{val}</span> : null}
+                          <span className="fi-label">{featureLabel(f.f)}</span>
+                          {f.beta ? <span className="sub-beta">BETA</span> : null}
+                          {showVal ? <span className="sub-feat-val">{val}</span> : null}
                         </li>
                       );
                     })}
@@ -518,7 +518,7 @@ export const SubscriptionPage: React.FC = () => {
                               {v.includes('BETA') ? (
                                 <>
                                   {' '}
-                                  <span className="bt">BETA</span>
+                                  <span className="sub-beta">BETA</span>
                                 </>
                               ) : null}
                             </td>
