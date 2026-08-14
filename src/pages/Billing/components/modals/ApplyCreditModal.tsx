@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { Wallet, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Invoice } from '../../types';
 import { formatCurrency } from '../../mockData';
@@ -37,10 +37,12 @@ export const ApplyCreditModal: React.FC<ApplyCreditModalProps> = ({
   }, [isOpen, invoices, walletBalance]);
 
   const selected = unpaidInvoices.find((i) => String(i.raw_id) === selectedInv);
+  const hasUnpaid = unpaidInvoices.length > 0;
   const canPaySelected = Boolean(selected?.raw_id && walletBalance >= selected.rem);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hasUnpaid) return;
     if (!selected?.raw_id) {
       setError(t('billingPage.selectInvoiceError', 'Please select an invoice'));
       return;
@@ -80,53 +82,65 @@ export const ApplyCreditModal: React.FC<ApplyCreditModalProps> = ({
                 </div>
               )}
 
-              {walletBalance <= 0 && (
-                <div className="mb-4 p-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs font-medium">
-                  {t(
-                    'billingPage.walletEmptyHint',
-                    'Wallet balance is currently €0.00. You can still open this dialog, but wallet payment requires available credit.'
+              {hasUnpaid ? (
+                <>
+                  {walletBalance <= 0 && (
+                    <div className="mb-4 p-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs font-medium">
+                      {t(
+                        'billingPage.walletEmptyHint',
+                        'Wallet balance is currently €0.00. You can still open this dialog, but wallet payment requires available credit.'
+                      )}
+                    </div>
                   )}
+
+                  <div className="billing-mf">
+                    <label>
+                      {t('billingPage.fldSelectInvoice', 'Select Invoice')} <span className="req">*</span>
+                    </label>
+                    <select value={selectedInv} onChange={(e) => setSelectedInv(e.target.value)}>
+                      {unpaidInvoices.map((inv) => (
+                        <option key={inv.raw_id} value={inv.raw_id}>
+                          {inv.id} — {formatCurrency(inv.rem, inv.cur)} ({inv.type})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selected && (
+                    <div className="helper">
+                      {t('billingPage.walletWillPay', 'Wallet will pay the full invoice amount')}{' '}
+                      <strong className="billing-mono">{formatCurrency(selected.rem, selected.cur)}</strong>
+                    </div>
+                  )}
+
+                  <div className="helper mt-2">
+                    {t('billingPage.kpiCredits', 'Credits Available')}:{' '}
+                    <strong className="billing-mono text-purple-700">{formatCurrency(walletBalance)}</strong>
+                  </div>
+                </>
+              ) : (
+                <div className="billing-empty-state">
+                  <Wallet size={28} />
+                  <p>{t('billingPage.noUnpaidInvoices', 'No unpaid invoices available')}</p>
+                  <span>
+                    {t(
+                      'billingPage.noUnpaidWalletHint',
+                      'There are no invoices to pay with wallet credit right now. You can use this balance when a new invoice is issued.'
+                    )}
+                  </span>
                 </div>
               )}
-
-              <div className="billing-mf">
-                <label>
-                  {t('billingPage.fldSelectInvoice', 'Select Invoice')} <span className="req">*</span>
-                </label>
-                <select value={selectedInv} onChange={(e) => setSelectedInv(e.target.value)}>
-                  {unpaidInvoices.length === 0 && (
-                    <option value="">
-                      {t('billingPage.noUnpaidInvoices', 'No unpaid invoices available')}
-                    </option>
-                  )}
-                  {unpaidInvoices.map((inv) => (
-                    <option key={inv.raw_id} value={inv.raw_id}>
-                      {inv.id} — {formatCurrency(inv.rem, inv.cur)} ({inv.type})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {selected && (
-                <div className="helper">
-                  {t('billingPage.walletWillPay', 'Wallet will pay the full invoice amount')}{' '}
-                  <strong className="billing-mono">{formatCurrency(selected.rem, selected.cur)}</strong>
-                </div>
-              )}
-
-              <div className="helper mt-2">
-                {t('billingPage.kpiCredits', 'Credits Available')}:{' '}
-                <strong className="billing-mono text-purple-700">{formatCurrency(walletBalance)}</strong>
-              </div>
             </div>
 
             <div className="billing-modal-ft">
               <button type="button" className="b-btn" onClick={onClose} disabled={submitting}>
-                {t('common.cancel', 'Cancel')}
+                {hasUnpaid ? t('common.cancel', 'Cancel') : t('common.close', 'Close')}
               </button>
-              <button type="submit" className="b-btn b-btn-primary" disabled={submitting || !canPaySelected}>
-                {t('billingPage.btnPayWallet', 'Pay using wallet')}
-              </button>
+              {hasUnpaid && (
+                <button type="submit" className="b-btn b-btn-primary" disabled={submitting || !canPaySelected}>
+                  {t('billingPage.btnPayWallet', 'Pay using wallet')}
+                </button>
+              )}
             </div>
           </form>
         </div>
