@@ -133,7 +133,14 @@ export function CreateRequestForm({ lang, disabled = false }: CreateRequestFormP
             onChange={(e) => form.setTitle(e.target.value)}
             placeholder={t('support.request.titlePlaceholder')}
             disabled={form.submitting}
+            maxLength={form.maxTitleLength}
           />
+          <div className="form-char-count" aria-live="polite">
+            {t('support.request.titleCount', {
+              count: form.title.length,
+              max: form.maxTitleLength,
+            })}
+          </div>
         </RequestFormField>
       </div>
 
@@ -149,7 +156,14 @@ export function CreateRequestForm({ lang, disabled = false }: CreateRequestFormP
             onChange={(e) => form.setDescription(e.target.value)}
             placeholder={t('support.request.descriptionPlaceholder')}
             disabled={form.submitting}
+            maxLength={form.maxDescriptionLength}
           />
+          <div className="form-char-count" aria-live="polite">
+            {t('support.request.descriptionCount', {
+              count: form.description.length,
+              max: form.maxDescriptionLength,
+            })}
+          </div>
           {form.guidedPromptKey ? (
             <div className="guided-prompt show">
               {t(`support.request.guide.${form.guidedPromptKey}`)}

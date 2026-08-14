@@ -3,6 +3,11 @@ import { ApiError } from '../../../api/client';
 import { supportService } from '../../../api/services/supportService';
 import type { RequestAttachmentPreview, SupportFormOptions } from '../types';
 import { filesToBase64Attachments, isImageFile, isWithinSizeLimit, MAX_ATTACHMENT_COUNT, MAX_ATTACHMENT_SIZE_MB } from '../utils/attachments';
+import {
+  MAX_DESCRIPTION_LENGTH,
+  MAX_TITLE_LENGTH,
+  mapSupportFieldValidationError,
+} from '../utils/requestValidation';
 
 const MAX_ATTACHMENTS = MAX_ATTACHMENT_COUNT;
 
@@ -142,7 +147,9 @@ export function useCreateRequestForm({ lang, disabled = false }: UseCreateReques
     if (!type) clientErrors.type = 'required';
     if (!category) clientErrors.category = 'required';
     if (!title.trim()) clientErrors.title = 'required';
+    else if (title.trim().length > MAX_TITLE_LENGTH) clientErrors.title = 'title_too_long';
     if (!description.trim()) clientErrors.description = 'required';
+    else if (description.trim().length > MAX_DESCRIPTION_LENGTH) clientErrors.description = 'description_too_long';
 
     if (Object.keys(clientErrors).length > 0) {
       setFieldErrors(clientErrors);
@@ -184,9 +191,23 @@ export function useCreateRequestForm({ lang, disabled = false }: UseCreateReques
             }
             return;
           }
-          mapped[key] = message.toLowerCase().includes('required') ? 'required' : 'invalid';
+          mapped[key] = mapSupportFieldValidationError(key, message);
         });
         setFieldErrors(mapped);
+      } else if (err instanceof ApiError && err.message) {
+        const message = err.message.toLowerCase();
+        const nextErrors: Record<string, string> = {};
+        if (message.includes('title')) {
+          nextErrors.title = mapSupportFieldValidationError('title', err.message);
+        }
+        if (message.includes('description')) {
+          nextErrors.description = mapSupportFieldValidationError('description', err.message);
+        }
+        if (Object.keys(nextErrors).length > 0) {
+          setFieldErrors(nextErrors);
+        } else {
+          setSubmitError('submit_failed');
+        }
       } else if (err instanceof Error && err.message === 'file_too_large') {
         setAttachmentError('file_too_large');
       } else {
@@ -223,5 +244,7 @@ export function useCreateRequestForm({ lang, disabled = false }: UseCreateReques
     submit,
     maxAttachments: MAX_ATTACHMENTS,
     maxAttachmentSizeMb: MAX_ATTACHMENT_SIZE_MB,
+    maxTitleLength: MAX_TITLE_LENGTH,
+    maxDescriptionLength: MAX_DESCRIPTION_LENGTH,
   };
 }

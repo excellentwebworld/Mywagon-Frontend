@@ -1219,6 +1219,18 @@ textarea.form-input {
   line-height: 1.6;
 }
 
+.form-char-count {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-align: right;
+}
+
+.form-char-count.is-over {
+  color: #dc2626;
+  font-weight: 600;
+}
+
 .form-error {
   font-size: 11px;
   color: #dc2626;
