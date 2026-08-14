@@ -10,6 +10,7 @@ export { priceListsService } from './services/priceListsService';
 export { availabilitiesService, SAT_PREFILL_KEY } from './services/availabilitiesService';
 export { supportService } from './services/supportService';
 export { billingService } from './services/billingService';
+export { subscriptionService } from './services/subscriptionService';
 export type { ApiAmenity, ApiCompanyEntity, ApiCompanyLookup, ApiAddressBookSummary, ApiListMeta } from './types/addressBook';
 export type { ApiProductSummary, ApiSkuListItem, ListSkusParams } from './types/productMaster';
 export type {

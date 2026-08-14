@@ -28,6 +28,14 @@ interface HeaderProps {
   navMode?: 'sidebar' | 'top';
 }
 
+function isHeaderPageSearchPath(pathname: string): boolean {
+  return (
+    pathname.startsWith('/tutorials') ||
+    pathname.startsWith('/support') ||
+    pathname.startsWith('/billing')
+  );
+}
+
 export const Header: React.FC<HeaderProps> = ({
   onToggleMobileMenu,
   sidebarCollapsed = false,
@@ -48,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
 
   useEffect(() => {
-    if (location.pathname.startsWith('/tutorials') || location.pathname.startsWith('/support')) {
+    if (isHeaderPageSearchPath(location.pathname)) {
       const q = searchParams.get('q') || searchParams.get('search') || '';
       setSearchValue(q);
     }
@@ -56,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleSearchChange = (val: string) => {
     setSearchValue(val);
-    if (location.pathname.startsWith('/tutorials') || location.pathname.startsWith('/support')) {
+    if (isHeaderPageSearchPath(location.pathname)) {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
@@ -74,12 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (
-      e.key === 'Enter' &&
-      searchValue.trim() &&
-      !location.pathname.startsWith('/tutorials') &&
-      !location.pathname.startsWith('/support')
-    ) {
+    if (e.key === 'Enter' && searchValue.trim() && !isHeaderPageSearchPath(location.pathname)) {
       navigate(`/support?q=${encodeURIComponent(searchValue.trim())}`);
     }
   };

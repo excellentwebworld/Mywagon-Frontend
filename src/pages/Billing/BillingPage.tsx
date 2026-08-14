@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Download,
   FileText,
@@ -63,6 +64,7 @@ export const BillingPage: React.FC = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { user, refreshUser } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
@@ -74,8 +76,12 @@ export const BillingPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabKey>('saas');
   const [subFilter, setSubFilter] = useState<SubFilterKey>('All');
   const [kpiFilter, setKpiFilter] = useState<KpiFilterKey>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState(
+    () => searchParams.get('q') || searchParams.get('search') || ''
+  );
+  const [debouncedSearch, setDebouncedSearch] = useState(
+    () => (searchParams.get('q') || searchParams.get('search') || '').trim()
+  );
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -101,7 +107,37 @@ export const BillingPage: React.FC = () => {
   const [pdfStatementPeriod, setPdfStatementPeriod] = useState(new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }));
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    const q = searchParams.get('q') || searchParams.get('search') || '';
+    setSearchQuery((prev) => (prev === q ? prev : q));
+  }, [searchParams]);
+
+  const updateSearchQuery = (val: string) => {
+    setSearchQuery(val);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (val.trim()) {
+          next.set('q', val);
+        } else {
+          next.delete('q');
+          next.delete('search');
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
+  useEffect(() => {
+    const next = searchQuery.trim();
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch((prev) => {
+        if (prev !== next) {
+          setPage(1);
+        }
+        return next;
+      });
+    }, 400);
     return () => window.clearTimeout(timer);
   }, [searchQuery]);
 
@@ -194,7 +230,7 @@ export const BillingPage: React.FC = () => {
     setActiveTab(tab);
     setKpiFilter(null);
     setSubFilter('All');
-    setSearchQuery('');
+    updateSearchQuery('');
     setPage(1);
   };
 
@@ -207,7 +243,7 @@ export const BillingPage: React.FC = () => {
   const handleClearFilters = () => {
     setKpiFilter(null);
     setSubFilter('All');
-    setSearchQuery('');
+    updateSearchQuery('');
     setPage(1);
   };
 
@@ -410,7 +446,7 @@ export const BillingPage: React.FC = () => {
               setPage(1);
             }}
             onToggleKpiFilter={handleToggleKpiFilter}
-            onSearchChange={setSearchQuery}
+            onSearchChange={updateSearchQuery}
             onClearFilters={handleClearFilters}
             onPageChange={setPage}
             onSelectInvoice={handleSelectInvoice}

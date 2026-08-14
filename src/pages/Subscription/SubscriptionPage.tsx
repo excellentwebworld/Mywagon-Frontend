@@ -1,52 +1,45 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../../hooks/useToast';
-import type { AddonTab, BillingCycle, PlanKey, SubModal } from './types';
-import {
-  BILLING_DETAILS,
-  FEATURE_TABLE,
-  INITIAL_PLAN,
-  INITIAL_RECURRING_ADDONS,
-  INITIAL_USAGE,
-  INITIAL_USAGE_ADDONS,
-  PLAN_FEATURES,
-  PLAN_ORDER,
-  PLANS,
-  PRO_INCLUDED_ADDONS,
-  RENEWAL_DATE,
-  USAGE_RESET_DATE,
-  formatDate,
-  formatEuro,
-  usageTone,
-} from './mockData';
+import { ApiError, getApiErrorMessage } from '../../api';
+import { subscriptionService } from '../../api/services/subscriptionService';
+import type {
+  AddonQuote,
+  BillingCycle as ApiCycle,
+  PurchasedAddon,
+  SubscriptionAddonOffer,
+  SubscriptionOverview,
+  SubscriptionQuote,
+} from '../../api/types/subscription';
+import { formatDate, formatEuro, usageTone } from './mockData';
 import './subscription.css';
 
-const FEATURE_LABELS: Record<string, string> = {
-  fPrivateLoads: 'Private loads / month',
-  fPartners: 'Partner carriers',
-  fPublicLoads: 'Post public loads',
-  fSearchTrucks: 'Search available trucks',
-  fMarketplace: 'Marketplace access',
-  fManage: 'Manage shipments',
-  fRating: 'Rate & review transporter',
-  fChat: 'Chat with transporter',
-  fDispatchers: 'Dispatcher accounts',
-  fTrackingLinks: 'Tracking links',
-  fBids: 'Bids / month',
-  fGPS: 'GPS tracked routes',
-  fPODs: 'Digital PODs',
-  fMultistop: 'Multi-stop routes',
-};
+type UiCycle = 'monthly' | 'yearly';
+type AddonTab = 'recurring' | 'usage';
+type SubModal =
+  | { kind: 'upgrade'; planId: number }
+  | { kind: 'cancel-plan' }
+  | { kind: 'buy-addon'; addon: SubscriptionAddonOffer; count: number }
+  | { kind: 'cancel-addon'; addon: PurchasedAddon };
 
 const USAGE_LABELS: Record<string, string> = {
-  privateLoads: 'Private Loads',
+  private_load_limit: 'Private Loads',
+  public_load_limit: 'Public Loads',
   partners: 'Partners',
-  dispatchers: 'Dispatchers',
-  trackingLinks: 'Tracking Links',
-  bids: 'Bids',
+  dispatcher_users: 'Dispatchers',
+  count_of_bids_per_month: 'Bids',
+  send_tracking_links_to_your_customers_per_month: 'Tracking Links',
 };
+
+function toApiCycle(cycle: UiCycle): ApiCycle {
+  return cycle === 'yearly' ? 'year' : 'month';
+}
+
+function currentIntervalToUi(interval?: string | null): UiCycle {
+  return interval === 'year' ? 'yearly' : 'monthly';
+}
 
 function CheckIcon() {
   return (
@@ -71,56 +64,120 @@ function CycleToggle({
   yearlyLabel,
   saveLabel,
 }: {
-  cycle: BillingCycle;
-  onChange: (c: BillingCycle) => void;
+  cycle: UiCycle;
+  onChange: (c: UiCycle) => void;
   monthlyLabel: string;
   yearlyLabel: string;
   saveLabel: string;
 }) {
   return (
     <div className="cycle-toggle">
-      <button
-        type="button"
-        className={`cycle-btn${cycle === 'monthly' ? ' active' : ''}`}
-        onClick={() => onChange('monthly')}
-      >
+      <button type="button" className={`cycle-btn${cycle === 'monthly' ? ' active' : ''}`} onClick={() => onChange('monthly')}>
         {monthlyLabel}
       </button>
-      <button
-        type="button"
-        className={`cycle-btn${cycle === 'yearly' ? ' active' : ''}`}
-        onClick={() => onChange('yearly')}
-      >
+      <button type="button" className={`cycle-btn${cycle === 'yearly' ? ' active' : ''}`} onClick={() => onChange('yearly')}>
         {yearlyLabel}
-        <span className="save-tag">{saveLabel}</span>
+        {saveLabel ? <span className="save-tag">{saveLabel}</span> : null}
       </button>
     </div>
   );
+}
+
+function permissionDisplay(value: string, included: boolean, type: string): string {
+  if (!included || value === '0') return '—';
+  if (type === 'status') return Number(value) > 0 ? '✓' : '—';
+  if (Number(value) >= 10000) return '∞';
+  return value;
 }
 
 export const SubscriptionPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const locale = i18n.language?.startsWith('el') ? 'el' : 'en';
-
-  const [cycle, setCycle] = useState<BillingCycle>('monthly');
-  const [planKey, setPlanKey] = useState<PlanKey>(INITIAL_PLAN);
-  const [addonTab, setAddonTab] = useState<AddonTab>('recurring');
-  const [featuresOpen, setFeaturesOpen] = useState(false);
-  const [usage, setUsage] = useState(INITIAL_USAGE);
-  const [recurring, setRecurring] = useState(INITIAL_RECURRING_ADDONS);
-  const [usageAddons, setUsageAddons] = useState(INITIAL_USAGE_ADDONS);
-  const [modal, setModal] = useState<SubModal | null>(null);
-
-  const plan = PLANS[planKey];
-  const price = plan.price[cycle];
-  const curIdx = PLAN_ORDER.indexOf(planKey);
-
   const tf = (key: string, fallback: string) => t(`subscriptionPage.${key}`, fallback);
 
-  const featureLabel = (f: string) => tf(f, FEATURE_LABELS[f] ?? f);
+  const [cycle, setCycle] = useState<UiCycle>('monthly');
+  const [addonTab, setAddonTab] = useState<AddonTab>('recurring');
+  const [featuresOpen, setFeaturesOpen] = useState(false);
+  const [data, setData] = useState<SubscriptionOverview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [modal, setModal] = useState<SubModal | null>(null);
+  const [quote, setQuote] = useState<SubscriptionQuote | AddonQuote | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [autoPayOnCheckout, setAutoPayOnCheckout] = useState(true);
+  const [addonCounts, setAddonCounts] = useState<Record<number, number>>({});
 
-  const closeModal = () => setModal(null);
+  const subscribedCycle: UiCycle = currentIntervalToUi(data?.current?.interval);
+  const planCheckoutCycle = toApiCycle(cycle);
+  const addonCheckoutCycle = toApiCycle(subscribedCycle);
+
+  const toError = useCallback(
+    (err: unknown, fallback: string) => {
+      if (err instanceof ApiError) {
+        return getApiErrorMessage(err, fallback, t as (key: string, options?: Record<string, string | number>) => string);
+      }
+      if (err instanceof Error && err.message) return err.message;
+      return fallback;
+    },
+    [t],
+  );
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const overview = await subscriptionService.getOverview();
+      setData(overview);
+    } catch (err) {
+      setError(toError(err, tf('loadError', 'Unable to load subscription.')));
+    } finally {
+      setLoading(false);
+    }
+  }, [toError, t]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    if (!data?.current) return;
+    setCycle(currentIntervalToUi(data.current.interval));
+  }, [data?.current?.user_subscription_id, data?.current?.interval]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get('payment');
+    const transactionId = params.get('t') || params.get('transaction_id');
+    const orderCode = params.get('s') || params.get('order_code');
+    const clearQuery = () => {
+      const url = new URL(window.location.href);
+      ['payment', 't', 's', 'transaction_id', 'order_code'].forEach((k) => url.searchParams.delete(k));
+      window.history.replaceState({}, '', url.pathname + url.search);
+    };
+    if (payment === 'success') {
+      toast.success(tf('successUpgrade', 'Plan updated successfully!'));
+      clearQuery();
+      void load();
+      return;
+    }
+    if (transactionId || orderCode) {
+      subscriptionService
+        .verifyPayment(transactionId || undefined, orderCode || undefined)
+        .then(() => {
+          toast.success(tf('successUpgrade', 'Payment completed successfully!'));
+          void load();
+        })
+        .catch((err) => toast.error(toError(err, tf('payFailed', 'Payment was not completed.'))))
+        .finally(clearQuery);
+    }
+  }, [load, t, toast, toError]);
+
+  const closeModal = () => {
+    setModal(null);
+    setQuote(null);
+  };
 
   useEffect(() => {
     if (!modal) return undefined;
@@ -136,163 +193,270 @@ export const SubscriptionPage: React.FC = () => {
     };
   }, [modal]);
 
-  const scrollToAddons = () => {
-    document.getElementById('addonsSection')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const applyPlanLimits = (next: PlanKey) => {
-    const limits = PLANS[next].limits;
-    setUsage((prev) =>
-      prev.map((item) => {
-        const raw = limits[item.key as keyof typeof limits];
-        const limit = typeof raw === 'number' ? raw : null;
-        return { ...item, limit };
-      }),
-    );
-  };
-
-  const confirmModal = () => {
+  useEffect(() => {
     if (!modal) return;
-    if (modal.kind === 'upgrade') {
-      setPlanKey(modal.planKey);
-      applyPlanLimits(modal.planKey);
-      toast.success(tf('successUpgrade', 'Plan upgraded successfully!'));
-    }
-    if (modal.kind === 'enable') {
-      setRecurring((prev) => prev.map((a) => (a.id === modal.addonId ? { ...a, enabled: true } : a)));
-      toast.success(tf('successAddon', 'Add-on enabled!'));
-    }
-    if (modal.kind === 'remove') {
-      setRecurring((prev) => prev.map((a) => (a.id === modal.addonId ? { ...a, enabled: false } : a)));
-      toast.success(tf('successRemoved', 'Add-on will be removed at end of cycle.'));
-    }
-    if (modal.kind === 'purchase') {
-      setUsageAddons((prev) =>
-        prev.map((a) => (a.id === modal.addonId ? { ...a, owned: a.owned + a.cart } : a)),
-      );
-      const bought = usageAddons.find((a) => a.id === modal.addonId);
-      if (bought) {
-        const map: Record<string, string> = {
-          extraTrackingLinks: 'trackingLinks',
-          extraBids: 'bids',
-          extraPrivateLoads: 'privateLoads',
-        };
-        const usageKey = map[bought.id];
-        if (usageKey) {
-          setUsage((prev) =>
-            prev.map((u) =>
-              u.key === usageKey && u.limit != null ? { ...u, limit: u.limit + bought.cart } : u,
-            ),
-          );
+    setQuote(null);
+    setQuoteLoading(true);
+    const run = async () => {
+      try {
+        if (modal.kind === 'upgrade') {
+          setQuote(await subscriptionService.quotePlan(modal.planId, planCheckoutCycle));
         }
+        if (modal.kind === 'buy-addon') {
+          setQuote(await subscriptionService.quoteAddon(modal.addon.addon_price_id, modal.count, addonCheckoutCycle));
+        }
+      } catch (err) {
+        toast.error(toError(err, tf('quoteFailed', 'Unable to calculate price.')));
+        closeModal();
+      } finally {
+        setQuoteLoading(false);
       }
-      toast.success(tf('successPurchase', 'Purchase completed!'));
+    };
+    void run();
+  }, [modal, planCheckoutCycle, addonCheckoutCycle, t, toError, toast]);
+
+  const startCheckout = async (url: string | null, activated?: boolean) => {
+    if (activated) {
+      toast.success(tf('successUpgrade', 'Plan updated successfully!'));
+      closeModal();
+      await load();
+      return;
     }
-    closeModal();
+    if (url) {
+      window.location.assign(url);
+      return;
+    }
+    toast.error(tf('payFailed', 'Payment could not be started.'));
   };
+
+  const confirmModal = async () => {
+    if (!modal || busy) return;
+    setBusy(true);
+    try {
+      if (modal.kind === 'upgrade') {
+        const result = await subscriptionService.checkoutPlan(modal.planId, planCheckoutCycle, autoPayOnCheckout);
+        await startCheckout(result.checkout_url, result.activated);
+        return;
+      }
+      if (modal.kind === 'buy-addon') {
+        const result = await subscriptionService.checkoutAddon(
+          modal.addon.addon_price_id,
+          modal.count,
+          addonCheckoutCycle,
+          autoPayOnCheckout && modal.addon.billing_type === 'recurring',
+        );
+        await startCheckout(result.checkout_url, result.activated);
+        return;
+      }
+      if (modal.kind === 'cancel-plan') {
+        await subscriptionService.cancelPlan();
+        toast.success(tf('successCancel', 'Plan cancelled. Access continues until the period ends.'));
+        closeModal();
+        await load();
+        return;
+      }
+      if (modal.kind === 'cancel-addon') {
+        await subscriptionService.cancelAddon(modal.addon.id);
+        toast.success(tf('successRemoved', 'Add-on will stop at the end of its period.'));
+        closeModal();
+        await load();
+      }
+    } catch (err) {
+      toast.error(toError(err, tf('actionFailed', 'Unable to complete this action.')));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const togglePlanAutoPay = async (enabled: boolean) => {
+    try {
+      await subscriptionService.setAutoPay(enabled);
+      toast.success(enabled ? tf('autopayOn', 'Auto-pay enabled.') : tf('autopayOff', 'Auto-pay disabled.'));
+      await load();
+    } catch (err) {
+      toast.error(toError(err, tf('actionFailed', 'Unable to complete this action.')));
+    }
+  };
+
+  const current = data?.current;
+  const plans = data?.plans ?? [];
+  const purchasedStatusSlugs = new Set(
+    (data?.purchased_addons ?? []).filter((addon) => !addon.is_cancelled).map((addon) => addon.slug),
+  );
+  const yearlySave =
+    plans.some((p) => p.price_monthly > 0 && p.price_yearly_monthly_rate > 0 && p.price_yearly_monthly_rate < p.price_monthly)
+      ? tf('saveTag', 'Best value')
+      : '';
+
+  const highlightPermissions = useMemo(() => {
+    const slugs = [
+      'private_load_limit',
+      'partners',
+      'public_loads',
+      'search_available_trucks',
+      'manage_shipment',
+      'rating_and_review_for_transporter',
+      'chat_with_carriers_drivers',
+      'dispatcher_users',
+      'send_tracking_links_to_your_customers_per_month',
+      'count_of_bids_per_month',
+      'live_gps_shipment_tracking',
+      'view_electronic_pods',
+      'allow_multiple_stops',
+    ];
+    const fromApi = plans[0]?.permissions ?? [];
+    const matched = slugs.map((slug) => fromApi.find((p) => p.slug === slug)).filter(Boolean);
+    return (matched.length ? matched : fromApi.slice(0, 12)) as typeof fromApi;
+  }, [plans]);
 
   const modalContent = useMemo(() => {
     if (!modal) return null;
     if (modal.kind === 'upgrade') {
-      const p = PLANS[modal.planKey];
-      const pr = p.price[cycle];
+      const plan = plans.find((p) => p.id === modal.planId);
+      const q = quote as SubscriptionQuote | null;
       return {
-        title: `${tf('upgradeTitle', 'Upgrade to')} ${p.name}`,
-        confirm: tf('confirmUpgrade', 'Confirm Upgrade'),
+        title: `${tf('upgradeTitle', 'Upgrade to')} ${plan?.name ?? ''}`,
+        confirm: busy ? tf('processing', 'Processing…') : tf('payNow', 'Pay Now'),
         danger: false,
-        body: (
+        body: quoteLoading ? (
+          <p>{tf('loading', 'Loading…')}</p>
+        ) : q ? (
           <>
             <div className="m-highlight">
-              <div className="mh-label">{tf('newPrice', 'New Monthly Price')}</div>
-              <div className="mh-val">{pr === 0 ? tf('free', 'Free forever') : `${formatEuro(pr)}${tf('perMonth', '/month')}`}</div>
+              <div className="mh-label">{tf('totalCost', 'Total Cost')}</div>
+              <div className="mh-val">{formatEuro(q.total)}</div>
               <div className="mh-sub">
-                {tf('effectiveDate', 'Effective')}: {tf('immediately', 'Immediately')}
+                {tf('subtotal', 'Subtotal')} {formatEuro(q.subtotal)}
+                {q.vat_percent > 0 ? ` · VAT ${q.vat_percent}% ${formatEuro(q.vat_amount)}` : ''}
               </div>
             </div>
-            <div className="m-info">
-              {tf(
-                'prorationNote',
-                'You will be charged a prorated amount for the remaining days of this billing cycle.',
-              )}
-            </div>
+            {q.prorated ? <div className="m-info">{tf('proratedNote', 'Price is prorated for the unused days in your current billing period.')}</div> : null}
+            <label className="m-info" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input type="checkbox" checked={autoPayOnCheckout} onChange={(e) => setAutoPayOnCheckout(e.target.checked)} />
+              {tf('enableAutopay', 'Enable auto-pay for renewals')}
+            </label>
           </>
-        ),
+        ) : null,
       };
     }
-    if (modal.kind === 'enable') {
-      const ao = recurring.find((a) => a.id === modal.addonId);
-      if (!ao) return null;
+    if (modal.kind === 'buy-addon') {
+      const q = quote as AddonQuote | null;
       return {
-        title: `${tf('enableTitle', 'Enable Add-On')} ${ao.name}`,
-        confirm: tf('confirmEnable', 'Enable & Agree'),
+        title: modal.addon.name,
+        confirm: busy ? tf('processing', 'Processing…') : tf('payNow', 'Pay Now'),
         danger: false,
-        body: (
+        body: quoteLoading ? (
+          <p>{tf('loading', 'Loading…')}</p>
+        ) : q ? (
           <>
-            <div style={{ textAlign: 'center', fontSize: 28, marginBottom: 12 }}>{ao.icon}</div>
-            <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 15, marginBottom: 16 }}>{ao.name}</div>
             <div className="m-highlight">
-              <div className="mh-label">{tf('monthlyCharge', 'Monthly Charge')}</div>
-              <div className="mh-val">
-                {formatEuro(ao.price)}
-                <span style={{ fontSize: 13, color: 'var(--t3)', fontWeight: 500 }}> {ao.unit}</span>
+              <div className="mh-label">{tf('totalCost', 'Total Cost')}</div>
+              <div className="mh-val">{formatEuro(q.total)}</div>
+              <div className="mh-sub">
+                {q.count} × {formatEuro(q.unit_price)}
+                {q.vat_percent > 0 ? ` · VAT ${q.vat_percent}%` : ''}
               </div>
-              <div className="mh-sub">{tf('chargedNextCycle', 'Charged on your next billing cycle')}</div>
             </div>
-            <div className="m-info">
-              {tf(
-                'enableNote',
-                'By enabling this add-on, you agree to be charged the amount shown above on each billing cycle. You can disable it at any time — charges stop at the end of the current cycle.',
-              )}
-            </div>
+            {q.is_recurring ? (
+              <label className="m-info" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input type="checkbox" checked={autoPayOnCheckout} onChange={(e) => setAutoPayOnCheckout(e.target.checked)} />
+                {tf('enableAutopay', 'Enable auto-pay for renewals')}
+              </label>
+            ) : (
+              <div className="m-info">{tf('purchaseNote', 'Units are added after payment and follow your current subscription cycle.')}</div>
+            )}
           </>
-        ),
+        ) : null,
       };
     }
-    if (modal.kind === 'remove') {
-      const ao = recurring.find((a) => a.id === modal.addonId);
-      if (!ao) return null;
+    if (modal.kind === 'cancel-plan') {
       return {
-        title: tf('removeTitle', 'Remove Add-On'),
-        confirm: tf('confirmRemove', 'Confirm Removal'),
+        title: tf('cancelPlanTitle', 'Cancel plan'),
+        confirm: tf('confirmCancel', 'Cancel plan'),
         danger: true,
-        body: (
-          <>
-            <div style={{ textAlign: 'center', fontSize: 28, marginBottom: 12 }}>{ao.icon}</div>
-            <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 15, marginBottom: 16 }}>{ao.name}</div>
-            <div className="m-info">
-              {tf(
-                'removeNote',
-                'This add-on will be deactivated at the end of your current billing cycle. You will not be charged again.',
-              )}
-            </div>
-          </>
-        ),
+        body: <div className="m-info">{tf('cancelPlanNote', 'You keep access until the current period ends. Auto-pay will be turned off.')}</div>,
       };
     }
-    const ao = usageAddons.find((a) => a.id === modal.addonId);
-    if (!ao) return null;
-    const total = ao.price * ao.cart;
     return {
-      title: `${tf('purchaseTitle', 'Purchase')} ${ao.name}`,
-      confirm: tf('confirmPurchase', 'Confirm Purchase'),
-      danger: false,
-      body: (
-        <>
-          <div style={{ textAlign: 'center', fontSize: 28, marginBottom: 12 }}>{ao.icon}</div>
-          <div className="m-highlight">
-            <div className="mh-label">{tf('totalCost', 'Total Cost')}</div>
-            <div className="mh-val">{formatEuro(total)}</div>
-            <div className="mh-sub">
-              {ao.cart} × {formatEuro(ao.price)} {ao.unit}
-            </div>
-          </div>
-          <div className="m-info">
-            {tf('purchaseNote', 'Units will be added to your account immediately and are non-refundable.')}
-          </div>
-        </>
-      ),
+      title: modal.addon.name,
+      confirm: tf('removeAddon', 'Remove'),
+      danger: true,
+      body: <div className="m-info">{tf('cancelAddonNote', 'The add-on stays active until its end date, then it will not renew.')}</div>,
     };
-  }, [modal, cycle, recurring, usageAddons, t]);
+  }, [modal, plans, quote, quoteLoading, busy, autoPayOnCheckout, t]);
+
+  const renderAddonCard = (ao: SubscriptionAddonOffer) => {
+    const price = cycle === 'yearly' ? ao.yearly_price : ao.monthly_price;
+    const count = addonCounts[ao.addon_price_id] ?? 1;
+    const purchased = (data?.purchased_addons ?? []).find((p) => p.slug === ao.slug && !p.is_cancelled);
+    const included = ao.included_in_plan || (ao.type !== 'count' && Boolean(purchased));
+    return (
+      <div key={ao.addon_price_id} className={`ao-card${purchased ? ' purchased' : ''}`}>
+        <div className="ao-top">
+          <div>
+            <span className="ao-name">{ao.name}</span>
+          </div>
+          <div className="ao-price">
+            {formatEuro(price)}
+            <span>{ao.type === 'count' ? ` / ${cycle === 'yearly' ? tf('year', 'year') : tf('month', 'month')}` : `/${cycle === 'yearly' ? 'yr' : 'mo'}`}</span>
+          </div>
+        </div>
+        {included ? (
+          <div className="ao-included">
+            <span className="plan-inc">✓</span> {tf('alreadyIncluded', 'Included in your plan')}
+          </div>
+        ) : (
+          <div className="ao-controls">
+            {ao.type === 'count' ? (
+              <div className="ao-counter">
+                <button type="button" onClick={() => setAddonCounts((prev) => ({ ...prev, [ao.addon_price_id]: Math.max(1, count - 1) }))}>
+                  −
+                </button>
+                <input className="qty" value={count} readOnly />
+                <button type="button" onClick={() => setAddonCounts((prev) => ({ ...prev, [ao.addon_price_id]: count + 1 }))}>
+                  +
+                </button>
+              </div>
+            ) : null}
+            <button
+              type="button"
+              className="ao-buy"
+              onClick={() => setModal({ kind: 'buy-addon', addon: ao, count: ao.type === 'count' ? count : 1 })}
+            >
+              {tf('buyNow', 'Purchase')}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  if (loading && !data) {
+    return (
+      <div className="subscription-page">
+        <div className="pg-t">{tf('pgTitle', 'Subscription')}</div>
+        <p className="pg-s">{tf('loading', 'Loading…')}</p>
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div className="subscription-page">
+        <div className="pg-t">{tf('pgTitle', 'Subscription')}</div>
+        <p className="pg-s">{error}</p>
+        <button type="button" className="sub-btn" onClick={() => void load()}>
+          {tf('retry', 'Retry')}
+        </button>
+      </div>
+    );
+  }
+
+  const displayPrice = current
+    ? subscribedCycle === 'yearly'
+      ? current.list_yearly_monthly_rate || current.list_monthly
+      : current.list_monthly
+    : 0;
 
   return (
     <div className="subscription-page">
@@ -311,45 +475,50 @@ export const SubscriptionPage: React.FC = () => {
       <div className="plan-summary">
         <div className="ps-card">
           <div className="ps-label">{tf('currentPlan', 'Current Plan')}</div>
-          <div className="ps-value">{plan.name}</div>
-          <div className="ps-sub">{price === 0 ? tf('free', 'Free forever') : `${formatEuro(price)}${tf('perMonth', '/month')}`}</div>
+          <div className="ps-value">{current?.plan_name ?? '—'}</div>
+          <div className="ps-sub">
+            {current?.is_free ? tf('freePlan', 'Free plan') : `${formatEuro(displayPrice)}${tf('perMonth', '/month')}`}
+          </div>
           <div className="ps-badge">
-            <span className="dot" /> {tf('active', 'Active')}
+            <span className="dot" /> {current?.is_cancelled ? tf('cancelled', 'Cancelled') : tf('active', 'Active')}
           </div>
         </div>
         <div className="ps-card">
           <div className="ps-label">{tf('billingCycle', 'Billing Cycle')}</div>
-          <div style={{ marginTop: 6 }}>
-            <CycleToggle
-              cycle={cycle}
-              onChange={setCycle}
-              monthlyLabel={tf('monthly', 'Monthly')}
-              yearlyLabel={tf('yearly', 'Yearly')}
-              saveLabel={tf('save9', '-9%')}
-            />
+          <div className="ps-value">{subscribedCycle === 'yearly' ? tf('yearly', 'Yearly') : tf('monthly', 'Monthly')}</div>
+          <div className="ps-sub">
+            {subscribedCycle === 'yearly' ? tf('billedYearly', 'Billed once per year') : tf('billedMonthly', 'Billed every month')}
           </div>
         </div>
         <div className="ps-card">
           <div className="ps-label">{tf('nextRenewal', 'Next Renewal')}</div>
           <div className="ps-value" style={{ fontSize: 15 }}>
-            {planKey === 'essential' ? '—' : formatDate(RENEWAL_DATE, locale)}
+            {current?.expire_date ? formatDate(current.expire_date, locale) : '—'}
           </div>
           <div className="ps-sub">
-            {planKey === 'essential' ? tf('free', 'Free forever') : `€${price}${tf('perMonth', '/month')}`}
+            {current?.days_left != null ? `${current.days_left} ${tf('daysLeft', 'days left')}` : ''}
           </div>
+          {current?.can_cancel ? (
+            <button type="button" className="ps-link" onClick={() => setModal({ kind: 'cancel-plan' })}>
+              {tf('cancelPlan', 'Cancel plan')}
+            </button>
+          ) : null}
         </div>
         <div className="ps-card">
           <div className="ps-label">{tf('paymentMethod', 'Payment')}</div>
           <div className="ps-value" style={{ fontSize: 14, color: 'var(--t3)' }}>
-            {tf('noPayment', 'No payment method')}
+            {current?.has_payment_method ? tf('cardOnFile', 'Saved via Viva Wallet') : tf('noPayment', 'No payment method')}
           </div>
           <div className="ps-sub" style={{ marginTop: 4 }}>
-            <button type="button" className="ps-link">
-              {tf('addPayment', 'Add payment method')}
-            </button>
-          </div>
-          <div className="ps-badge soon" style={{ marginTop: 6 }}>
-            <span className="dot" /> {tf('autopayLabel', 'Autopay')}: {tf('comingSoon', 'Coming Soon')}
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                checked={Boolean(current?.recurring_payment)}
+                disabled={!current || current.is_free}
+                onChange={(e) => void togglePlanAutoPay(e.target.checked)}
+              />
+              {tf('autopayLabel', 'Autopay')}
+            </label>
           </div>
         </div>
       </div>
@@ -358,18 +527,18 @@ export const SubscriptionPage: React.FC = () => {
         <div className="usage-title">
           📊 {tf('usageTitle', 'Usage This Period')}
           <span className="reset">
-            {tf('resetLabel', 'Resets')}: {formatDate(USAGE_RESET_DATE, locale)}
+            {tf('resetLabel', 'Resets')}: {current?.expire_date ? formatDate(current.expire_date, locale) : '—'}
           </span>
         </div>
         <div className="usage-grid">
-          {usage.map((u) => {
-            const unlimited = u.limit == null;
-            const pct = unlimited ? 0 : Math.round((u.used / u.limit) * 100);
-            const tone = usageTone(u.used, u.limit);
+          {(data?.usage ?? []).map((u) => {
+            const unlimited = u.unlimited || u.limit == null;
+            const pct = unlimited ? 0 : Math.round((u.used / Math.max(u.limit || 1, 1)) * 100);
+            const tone = usageTone(u.used, unlimited ? null : u.limit);
             return (
-              <div key={u.key} className={`usage-card ${tone === 'ok' ? '' : tone}`}>
+              <div key={u.slug} className={`usage-card ${tone === 'ok' ? '' : tone}`}>
                 <div className="uc-top">
-                  <div className="uc-name">{tf(u.key, USAGE_LABELS[u.key] ?? u.key)}</div>
+                  <div className="uc-name">{tf(u.slug, USAGE_LABELS[u.slug] ?? u.slug)}</div>
                   <div className="uc-vals">
                     <span className="used">{u.used}</span>
                     <span className="lim"> / {unlimited ? tf('unlimited', 'Unlimited') : u.limit}</span>
@@ -377,14 +546,6 @@ export const SubscriptionPage: React.FC = () => {
                 </div>
                 <div className="uc-bar">
                   <div className={`uc-fill ${tone}`} style={{ width: `${Math.min(pct, 100)}%` }} />
-                </div>
-                <div className="uc-bottom">
-                  <span className={`uc-pct ${tone}`}>{pct}%</span>
-                  {pct >= 70 ? (
-                    <button type="button" className="uc-action" onClick={scrollToAddons}>
-                      {tf('increase', 'Increase')}
-                    </button>
-                  ) : null}
                 </div>
               </div>
             );
@@ -400,79 +561,55 @@ export const SubscriptionPage: React.FC = () => {
             onChange={setCycle}
             monthlyLabel={tf('monthly', 'Monthly')}
             yearlyLabel={tf('yearly', 'Yearly')}
-            saveLabel={tf('save9', '-9%')}
+            saveLabel={yearlySave}
           />
         </div>
         <div className="plans-grid">
-          {PLAN_ORDER.map((pKey, i) => {
-            const p = PLANS[pKey];
-            const pr = p.price[cycle];
-            const isCurrent = pKey === planKey;
-            const isUpgrade = i > curIdx;
-            const yearlyOrig = pKey === 'plus' ? 550 : pKey === 'pro' ? 1100 : 0;
-            const showOrig = cycle === 'yearly' && pr > 0 && yearlyOrig > pr;
-            const note =
-              pKey === 'plus'
-                ? cycle === 'yearly'
-                  ? tf('saveYearPlus', 'Save €600/year')
-                  : tf('needsPlus', 'Everything for digital transformation')
-                : pKey === 'pro'
-                  ? cycle === 'yearly'
-                    ? tf('saveYearPro', 'Save €1,200/year')
-                    : tf('needsPro', 'For high-volume operations')
-                  : '';
-
+          {plans.map((p) => {
+            const pr = cycle === 'yearly' ? p.price_yearly_monthly_rate : p.price_monthly;
+            const isCurrentCard = p.id === current?.plan_id && cycle === subscribedCycle;
+            const canUpgrade = cycle === 'yearly' ? p.upgrade_available_yearly : p.upgrade_available_monthly;
             return (
-              <div key={pKey} className={`pcard${p.popular ? ' feat' : ''}${isCurrent ? ' current' : ''}`}>
-                {isCurrent ? (
-                  <span className="cur-tag">✓ {tf('currentPlanBtn', 'Current Plan')}</span>
-                ) : p.popular ? (
-                  <span className="pop-tag">{tf('popular', 'Popular')}</span>
-                ) : null}
+              <div key={p.id} className={`pcard${isCurrentCard ? ' current' : ''}`}>
+                {isCurrentCard ? <span className="cur-tag">✓ {tf('currentPlanBtn', 'Current Plan')}</span> : null}
                 <div className="pcard-top">
                   <div className="pnm">{p.name}</div>
-                  <div className="pds">{p.desc}</div>
+                  <div className="pds">{p.description}</div>
                   <div className="pr">
                     <span className="c">€</span>
                     <span className="a">{pr === 0 ? '0' : pr.toLocaleString('de-DE')}</span>
                     <span className="p">{tf('perMonth', '/month')}</span>
-                    {showOrig ? (
-                      <span className="o">
-                        €{yearlyOrig}
-                        {tf('perMonth', '/month')}
-                      </span>
-                    ) : null}
                   </div>
-                  <div className="pnt">{p.free ? tf('freeForever', 'Free forever') : note}</div>
+                  <div className="pnt">{p.is_free ? tf('freePlan', 'Free plan') : ''}</div>
                 </div>
                 <div className="pcard-cta">
-                  {isCurrent ? (
+                  {isCurrentCard ? (
                     <button type="button" className="cta cur">
                       ✓ {tf('currentPlanBtn', 'Current Plan')}
                     </button>
-                  ) : isUpgrade ? (
-                    <button type="button" className="cta pri" onClick={() => setModal({ kind: 'upgrade', planKey: pKey })}>
+                  ) : canUpgrade ? (
+                    <button type="button" className="cta pri" onClick={() => setModal({ kind: 'upgrade', planId: p.id })}>
                       {tf('upgradeTo', 'Upgrade to')} {p.name}
                     </button>
                   ) : (
-                    <button type="button" className="cta sec" onClick={() => setModal({ kind: 'upgrade', planKey: pKey })}>
-                      {tf('downgradeTo', 'Downgrade to')} {p.name}
+                    <button type="button" className="cta sec" disabled>
+                      {tf('notAvailable', 'Not available')}
                     </button>
                   )}
                 </div>
                 <div className="pcard-features">
                   <div className="flbl">{tf('includes', 'Includes')}</div>
                   <ul className="fl">
-                    {PLAN_FEATURES.map((f) => {
-                      const val = p.limits[f.k];
-                      const on = val !== '✗' && val !== 0;
-                      const showVal = (typeof val === 'number' || typeof val === 'string') && val !== '✓' && val !== '✗';
+                    {highlightPermissions.map((perm) => {
+                      const row = p.permissions.find((x) => x.slug === perm.slug) ?? perm;
+                      const granted = isCurrentCard && row.type === 'status' && purchasedStatusSlugs.has(row.slug);
+                      const val = permissionDisplay(granted && (!row.value || row.value === '0') ? '1' : row.value, row.included || granted, row.type);
+                      const on = val !== '—';
                       return (
-                        <li key={f.k} className={`fi${on ? '' : ' off'}${f.k === 'marketplace' ? ' mp-feat' : ''}`}>
+                        <li key={row.slug} className={`fi${on ? '' : ' off'}`}>
                           <span className={`ic ${on ? 'ok' : 'no'}`}>{on ? <CheckIcon /> : <DashIcon />}</span>
-                          <span className="fi-label">{featureLabel(f.f)}</span>
-                          {f.beta ? <span className="sub-beta">BETA</span> : null}
-                          {showVal ? <span className="sub-feat-val">{val}</span> : null}
+                          <span className="fi-label">{row.name}</span>
+                          {val !== '✓' && val !== '—' ? <span className="sub-feat-val">{val}</span> : null}
                         </li>
                       );
                     })}
@@ -483,11 +620,7 @@ export const SubscriptionPage: React.FC = () => {
           })}
         </div>
 
-        <button
-          type="button"
-          className={`feat-toggle${featuresOpen ? ' open' : ''}`}
-          onClick={() => setFeaturesOpen((v) => !v)}
-        >
+        <button type="button" className={`feat-toggle${featuresOpen ? ' open' : ''}`} onClick={() => setFeaturesOpen((v) => !v)}>
           <span className="chevron">▼</span>{' '}
           {featuresOpen ? tf('hideFeatures', 'Hide feature comparison') : tf('seeFeatures', 'See full feature comparison')}
         </button>
@@ -496,50 +629,31 @@ export const SubscriptionPage: React.FC = () => {
             <thead>
               <tr>
                 <th>{tf('featureLabel', 'Feature')}</th>
-                <th>Essential</th>
-                <th>Plus</th>
-                <th>Pro</th>
+                {plans.map((p) => (
+                  <th key={p.id}>{p.name}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {FEATURE_TABLE.map((cat) => (
-                <React.Fragment key={cat.name}>
-                  <tr className="cat-row">
-                    <td colSpan={4}>{cat.name}</td>
-                  </tr>
-                  {cat.features.map((row) => (
-                    <tr key={row.f}>
-                      <td>{featureLabel(row.f)}</td>
-                      {[row.e, row.p, row.r].map((v, idx) => {
-                        if (v === '✓' || v === '✓ BETA') {
-                          return (
-                            <td key={idx}>
-                              <span className="check">✓</span>
-                              {v.includes('BETA') ? (
-                                <>
-                                  {' '}
-                                  <span className="sub-beta">BETA</span>
-                                </>
-                              ) : null}
-                            </td>
-                          );
-                        }
-                        if (v === '—') {
-                          return (
-                            <td key={idx}>
-                              <span className="dash">—</span>
-                            </td>
-                          );
-                        }
-                        return (
-                          <td key={idx} className="feat-mono">
-                            {v}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </React.Fragment>
+              {(plans[0]?.permissions ?? []).map((perm) => (
+                <tr key={perm.slug}>
+                  <td>{perm.name}</td>
+                  {plans.map((p) => {
+                    const isCurrentCard = p.id === current?.plan_id && cycle === subscribedCycle;
+                    const row = p.permissions.find((x) => x.slug === perm.slug);
+                    const granted = isCurrentCard && (row?.type ?? perm.type) === 'status' && purchasedStatusSlugs.has(perm.slug);
+                    const val = permissionDisplay(
+                      granted && (!row?.value || row.value === '0') ? '1' : (row?.value ?? '0'),
+                      Boolean(row?.included) || granted,
+                      row?.type ?? perm.type,
+                    );
+                    return (
+                      <td key={p.id} className="feat-mono">
+                        {val === '✓' ? <span className="check">✓</span> : val === '—' ? <span className="dash">—</span> : val}
+                      </td>
+                    );
+                  })}
+                </tr>
               ))}
             </tbody>
           </table>
@@ -551,129 +665,45 @@ export const SubscriptionPage: React.FC = () => {
           <span className="st-icon">✦</span> {tf('addonsTitle', 'Add-Ons Marketplace')}
         </div>
         <div className="addons-tabs">
-          <button
-            type="button"
-            className={`ao-tab${addonTab === 'recurring' ? ' active' : ''}`}
-            onClick={() => setAddonTab('recurring')}
-          >
+          <button type="button" className={`ao-tab${addonTab === 'recurring' ? ' active' : ''}`} onClick={() => setAddonTab('recurring')}>
             {tf('recurringTab', 'Recurring Add-Ons')}
           </button>
-          <button
-            type="button"
-            className={`ao-tab${addonTab === 'usage' ? ' active' : ''}`}
-            onClick={() => setAddonTab('usage')}
-          >
+          <button type="button" className={`ao-tab${addonTab === 'usage' ? ' active' : ''}`} onClick={() => setAddonTab('usage')}>
             {tf('usageTab', 'Usage-Based Add-Ons')}
           </button>
         </div>
         <div className="ao-grid">
           {addonTab === 'recurring'
-            ? recurring.map((ao) => {
-                const included = planKey === 'pro' && PRO_INCLUDED_ADDONS.includes(ao.id);
-                return (
-                  <div key={ao.id} className={`ao-card${ao.enabled ? ' purchased' : ''}`}>
-                    <div className="ao-top">
-                      <div>
-                        <span style={{ fontSize: 18, marginRight: 6 }}>{ao.icon}</span>
-                        <span className="ao-name">{ao.name}</span>
-                      </div>
-                      <div className="ao-price">
-                        {formatEuro(ao.price)}
-                        <span>{ao.unit}</span>
-                      </div>
-                    </div>
-                    <div className="ao-desc">{ao.desc}</div>
-                    {included ? (
-                      <div className="ao-included">
-                        <span className="plan-inc">✓</span> {tf('alreadyIncluded', 'Included in your plan')}
-                      </div>
-                    ) : (
-                      <div className="ao-controls">
-                        <button
-                          type="button"
-                          className={`ao-toggle${ao.enabled ? ' on' : ''}`}
-                          onClick={() =>
-                            setModal({ kind: ao.enabled ? 'remove' : 'enable', addonId: ao.id })
-                          }
-                          aria-label={ao.enabled ? tf('disableAddon', 'Disable') : tf('enableAddon', 'Enable')}
-                        >
-                          <div className="knob" />
-                        </button>
-                        <span className={`ao-status${ao.enabled ? ' active' : ''}`}>
-                          {ao.enabled ? tf('disableAddon', 'Disable') : tf('enableAddon', 'Enable')}
-                        </span>
-                        {ao.enabled ? (
-                          <button
-                            type="button"
-                            className="ao-buy remove"
-                            onClick={() => setModal({ kind: 'remove', addonId: ao.id })}
-                          >
-                            {tf('removeAddon', 'Remove')}
-                          </button>
-                        ) : null}
-                      </div>
-                    )}
-                    {ao.enabled ? (
-                      <div className="ao-purchased-info">
-                        ✓ {tf('addedLabel', 'Added to your account')} · {tf('willCharge', 'Will be charged on next billing cycle')}
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })
-            : usageAddons.map((ao) => (
-                <div key={ao.id} className={`ao-card${ao.owned > 0 ? ' purchased' : ''}`}>
+            ? (data?.addons.recurring ?? []).map(renderAddonCard)
+            : (data?.addons.one_time ?? []).map(renderAddonCard)}
+        </div>
+        {(data?.purchased_addons ?? []).length > 0 ? (
+          <div style={{ marginTop: 24 }}>
+            <div className="section-title">{tf('purchasedTitle', 'Purchased add-ons')}</div>
+            <div className="ao-grid">
+              {(data?.purchased_addons ?? []).map((addon) => (
+                <div key={addon.id} className="ao-card purchased">
                   <div className="ao-top">
-                    <div>
-                      <span style={{ fontSize: 18, marginRight: 6 }}>{ao.icon}</span>
-                      <span className="ao-name">{ao.name}</span>
-                    </div>
-                    <div className="ao-price">
-                      {formatEuro(ao.price)}
-                      <span>{ao.unit}</span>
-                    </div>
+                    <span className="ao-name">{addon.name}</span>
+                    <div className="ao-price">{formatEuro(addon.total)}</div>
                   </div>
-                  <div className="ao-desc">{ao.desc}</div>
-                  {ao.owned > 0 ? (
-                    <div className="ao-purchased-info" style={{ marginBottom: 12 }}>
-                      <span className="qty-owned">{ao.owned}</span> {tf('ownedLabel', 'Owned')}
-                    </div>
-                  ) : null}
-                  <div className="ao-controls">
-                    <div className="ao-counter">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setUsageAddons((prev) =>
-                            prev.map((x) => (x.id === ao.id ? { ...x, cart: Math.max(1, x.cart - 1) } : x)),
-                          )
-                        }
-                      >
-                        −
-                      </button>
-                      <input className="qty" value={ao.cart} readOnly />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setUsageAddons((prev) =>
-                            prev.map((x) => (x.id === ao.id ? { ...x, cart: x.cart + 1 } : x)),
-                          )
-                        }
-                      >
-                        +
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      className="ao-buy"
-                      onClick={() => setModal({ kind: 'purchase', addonId: ao.id })}
-                    >
-                      {tf('buyNow', 'Purchase')} · {formatEuro(ao.price * ao.cart)}
+                  <div className="ao-desc">
+                    {tf('count', 'Count')}: {addon.count} · {addon.start_date} → {addon.end_date}
+                  </div>
+                  <div className="ao-purchased-info">
+                    {addon.is_cancelled ? tf('cancelled', 'Cancelled') : tf('active', 'Active')}
+                    {addon.auto_pay ? ` · ${tf('autopayLabel', 'Autopay')}` : ''}
+                  </div>
+                  {!addon.is_cancelled ? (
+                    <button type="button" className="ao-buy remove" onClick={() => setModal({ kind: 'cancel-addon', addon })}>
+                      {tf('removeAddon', 'Remove')}
                     </button>
-                  </div>
+                  ) : null}
                 </div>
               ))}
-        </div>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="billing-section">
@@ -681,19 +711,19 @@ export const SubscriptionPage: React.FC = () => {
         <div className="billing-grid">
           <div className="b-field">
             <div className="b-label">{tf('companyName', 'Company Name')}</div>
-            <div className="b-val">{BILLING_DETAILS.companyName}</div>
+            <div className="b-val">{data?.billing.company_name || '—'}</div>
           </div>
           <div className="b-field">
             <div className="b-label">{tf('vatId', 'VAT / Tax ID')}</div>
-            <div className="b-val">{BILLING_DETAILS.vatId}</div>
+            <div className="b-val">{data?.billing.vat_id || '—'}</div>
           </div>
           <div className="b-field">
             <div className="b-label">{tf('billingAddress', 'Billing Address')}</div>
-            <div className="b-val">{BILLING_DETAILS.address}</div>
+            <div className="b-val">{data?.billing.address || '—'}</div>
           </div>
           <div className="b-field">
             <div className="b-label">{tf('invoiceEmail', 'Invoice Email')}</div>
-            <div className="b-val">{BILLING_DETAILS.invoiceEmail}</div>
+            <div className="b-val">{data?.billing.invoice_email || '—'}</div>
             <Link to="/billing" className="b-link">
               {tf('viewInvoices', 'View Invoices →')}
             </Link>
@@ -719,7 +749,8 @@ export const SubscriptionPage: React.FC = () => {
                   <button
                     type="button"
                     className={modalContent.danger ? 'sub-btn sub-btn-danger' : 'sub-btn sub-btn-p'}
-                    onClick={confirmModal}
+                    disabled={busy || quoteLoading}
+                    onClick={() => void confirmModal()}
                   >
                     {modalContent.confirm}
                   </button>
