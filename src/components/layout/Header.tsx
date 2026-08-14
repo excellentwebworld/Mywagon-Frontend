@@ -3,7 +3,7 @@
  * [Logo?] Title | Search …… | Vagon AI | Bell | Messages | Profile | CTA | Trust
  */
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Search,
   Sparkles,
@@ -39,45 +39,23 @@ export const Header: React.FC<HeaderProps> = ({
   const { T } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const [searchValue, setSearchValue] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
 
-  useEffect(() => {
-    if (location.pathname.startsWith('/tutorials') || location.pathname.startsWith('/support')) {
-      const q = searchParams.get('q') || searchParams.get('search') || '';
-      setSearchValue(q);
-    }
-  }, [location.pathname, searchParams]);
+  const hideTopSearch =
+    location.pathname.startsWith('/tutorials') ||
+    location.pathname.startsWith('/support');
 
-  const handleSearchChange = (val: string) => {
-    setSearchValue(val);
-    if (location.pathname.startsWith('/tutorials') || location.pathname.startsWith('/support')) {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          if (val.trim()) {
-            next.set('q', val);
-          } else {
-            next.delete('q');
-            next.delete('search');
-          }
-          return next;
-        },
-        { replace: true }
-      );
+  useEffect(() => {
+    if (hideTopSearch) {
+      setSearchValue('');
     }
-  };
+  }, [hideTopSearch]);
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (
-      e.key === 'Enter' &&
-      searchValue.trim() &&
-      !location.pathname.startsWith('/tutorials') &&
-      !location.pathname.startsWith('/support')
-    ) {
+    if (e.key === 'Enter' && searchValue.trim()) {
       navigate(`/support?q=${encodeURIComponent(searchValue.trim())}`);
     }
   };
@@ -178,38 +156,39 @@ export const Header: React.FC<HeaderProps> = ({
         {getPageTitle()}
       </h1>
 
-      {/* Search — always visible like React TopBar */}
-      <div
-        className="mv-topbar-search"
-        style={{ background: T.sa, border: `1px solid ${T.bd}`, height: 34 }}
-        onFocus={(e) => {
-          e.currentTarget.style.borderColor = T.ac;
-          e.currentTarget.style.boxShadow = `0 0 0 2px ${T.ac}18`;
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.borderColor = T.bd;
-          e.currentTarget.style.boxShadow = 'none';
-        }}
-      >
-        <Search size={15} style={{ color: T.t3, flexShrink: 0 }} />
-        <input
-          type="text"
-          value={searchValue}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder={t('topbar.search') || 'Search anything..'}
-          aria-label={t('topbar.search') || 'Search'}
-          style={{
-            flex: 1,
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            fontSize: 12,
-            color: T.t1,
-            minWidth: 0,
+      {!hideTopSearch && (
+        <div
+          className="mv-topbar-search"
+          style={{ background: T.sa, border: `1px solid ${T.bd}`, height: 34 }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = T.ac;
+            e.currentTarget.style.boxShadow = `0 0 0 2px ${T.ac}18`;
           }}
-        />
-      </div>
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = T.bd;
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+        >
+          <Search size={15} style={{ color: T.t3, flexShrink: 0 }} />
+          <input
+            type="text"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder={t('topbar.search') || 'Search anything..'}
+            aria-label={t('topbar.search') || 'Search'}
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              fontSize: 12,
+              color: T.t1,
+              minWidth: 0,
+            }}
+          />
+        </div>
+      )}
 
       <div style={{ flex: 1 }} />
 
