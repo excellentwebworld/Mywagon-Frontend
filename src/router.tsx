@@ -18,10 +18,8 @@ import Settings from './pages/Settings/Settings';
 import SettingsSectionOrUserEdit from './pages/Settings/SettingsSectionOrUserEdit';
 import SupportPage from './pages/Support/SupportPage';
 import { TutorialsPage } from './pages/Tutorials/TutorialsPage';
-import {
-  SubscriptionPage,
-} from './pages/Placeholders/AccountPlaceholders';
 import { BillingPage } from './pages/Billing';
+import { SubscriptionPage } from './pages/Subscription';
 
 import PriceListsPage from './pages/PriceLists/PriceListsPage';
 

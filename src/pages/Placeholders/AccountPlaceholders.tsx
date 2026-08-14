@@ -29,7 +29,3 @@ export function PlaceholderPage({ titleKey, fallbackTitle, description }: Placeh
 export function BillingPage() {
   return <PlaceholderPage titleKey="sidebar.billing" fallbackTitle="Billing" />;
 }
-
-export function SubscriptionPage() {
-  return <PlaceholderPage titleKey="sidebar.subscription" fallbackTitle="Subscription" />;
-}
