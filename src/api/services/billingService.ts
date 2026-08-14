@@ -68,9 +68,22 @@ export const billingService = {
     }
   },
 
-  async getCreditNotes(): Promise<CreditNote[]> {
-    const res = await apiGet<CreditNote[]>('/billing/credit-notes');
-    return res.data ?? [];
+  async getCreditNotes(params?: { page?: number; per_page?: number }): Promise<{
+    items: CreditNote[];
+    total: number;
+    current_page: number;
+    last_page: number;
+    per_page: number;
+  }> {
+    const res = await apiGet<CreditNote[]>('/billing/credit-notes', params);
+    const items = (res.data ?? []).filter((row) => row.id !== 'WALLET');
+    return {
+      items,
+      total: res.meta?.total ?? items.length,
+      current_page: res.meta?.current_page ?? 1,
+      last_page: res.meta?.last_page ?? 1,
+      per_page: res.meta?.per_page ?? 15,
+    };
   },
 
   async applyCredit(invoiceId: string | number): Promise<void> {

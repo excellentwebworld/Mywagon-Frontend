@@ -466,6 +466,15 @@ table.billing-t {
   color: #065f46;
 }
 
+.b-debit {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.billing-t-static tbody tr {
+  cursor: default;
+}
+
 .b-open {
   background: #fffbeb;
   color: #92400e;

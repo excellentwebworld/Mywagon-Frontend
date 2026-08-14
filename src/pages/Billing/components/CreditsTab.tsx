@@ -7,11 +7,17 @@ import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 
 const sk = { baseColor: '#f0f0f3', highlightColor: '#fafafe' };
+const WALLET_PER_PAGE = 15;
 
 interface CreditsTabProps {
   creditNotes: CreditNote[];
   walletBalance: number;
   loading?: boolean;
+  tableLoading?: boolean;
+  page: number;
+  lastPage: number;
+  total: number;
+  onPageChange: (page: number) => void;
   onOpenApplyCredit: () => void;
   onOpenRequestAdj: () => void;
 }
@@ -20,13 +26,21 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
   creditNotes,
   walletBalance,
   loading = false,
+  tableLoading = false,
+  page,
+  lastPage,
+  total,
+  onPageChange,
   onOpenApplyCredit,
   onOpenRequestAdj,
 }) => {
   const { t, i18n } = useTranslation();
   const history = creditNotes.filter((c) => c.id !== 'WALLET');
+  const showTableSkeleton = tableLoading || (loading && history.length === 0);
+  const from = total === 0 ? 0 : (page - 1) * WALLET_PER_PAGE + 1;
+  const to = Math.min(page * WALLET_PER_PAGE, total);
 
-  if (loading && creditNotes.length === 0) {
+  if (loading && creditNotes.length === 0 && walletBalance === 0) {
     return <BillingCreditsSkeleton />;
   }
 
@@ -56,15 +70,15 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
         </div>
       </div>
 
-      <div className={`billing-tbl-card mt-4 ${loading ? 'is-loading' : ''}`}>
+      <div className={`billing-tbl-card ${showTableSkeleton ? 'is-loading' : ''}`}>
         <div className="billing-tbl-head font-bold text-sm text-gray-800">
           {t('billingPage.walletActivity', 'Wallet activity')}
         </div>
         <div className="overflow-x-auto">
-          <table className="billing-t">
+          <table className="billing-t billing-t-static">
             <thead>
               <tr>
-                <th>{t('billingPage.cnId', 'Reference')}</th>
+                <th>{t('billingPage.cnId', 'Credit Note #')}</th>
                 <th>{t('billingPage.cnDate', 'Date')}</th>
                 <th>{t('billingPage.cnAmount', 'Amount')}</th>
                 <th>{t('billingPage.cnReason', 'Reason')}</th>
@@ -72,8 +86,8 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
                 <th>{t('billingPage.debitCredit', 'Debit/Credit')}</th>
               </tr>
             </thead>
-            {loading ? (
-              <BillingTableSkeleton rows={6} columns={6} />
+            {showTableSkeleton ? (
+              <BillingTableSkeleton rows={8} columns={6} />
             ) : (
               <tbody>
                 {history.length === 0 && (
@@ -83,19 +97,79 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
                     </td>
                   </tr>
                 )}
-                {history.map((cn) => (
-                  <tr key={cn.id}>
-                    <td className="billing-mono text-purple-700 font-semibold text-xs">{cn.id}</td>
-                    <td className="text-xs text-gray-600">{formatDate(cn.date, i18n.language)}</td>
-                    <td className="billing-mono text-xs font-semibold">{formatCurrency(cn.amt)}</td>
-                    <td className="text-xs text-gray-700">{cn.reason}</td>
-                    <td className="text-xs">{cn.applied || '—'}</td>
-                    <td className="text-xs">{cn.type || (cn.applied ? 'Debit' : 'Credit')}</td>
-                  </tr>
-                ))}
+                {history.map((cn) => {
+                  const isCredit = (cn.type || (cn.applied ? 'Debit' : 'Credit')) === 'Credit';
+                  return (
+                    <tr key={cn.id}>
+                      <td className="billing-mono text-purple-700 font-semibold text-xs">{cn.id}</td>
+                      <td className="text-xs text-gray-600">{formatDate(cn.date, i18n.language)}</td>
+                      <td className={`billing-mono text-xs font-semibold ${isCredit ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {isCredit ? '+' : '−'}
+                        {formatCurrency(Math.abs(cn.amt))}
+                      </td>
+                      <td className="text-xs text-gray-700">{cn.reason}</td>
+                      <td className="text-xs">
+                        {cn.applied ? (
+                          <span className="billing-mono text-purple-700 font-semibold">{cn.applied}</span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`b-badge ${isCredit ? 'b-credit' : 'b-debit'}`}>
+                          {isCredit ? t('billingPage.credit', 'Credit') : t('billingPage.debit', 'Debit')}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             )}
           </table>
+        </div>
+        <div className="billing-tbl-ft">
+          <span>
+            {showTableSkeleton ? (
+              <Skeleton width={180} height={12} borderRadius={4} {...sk} />
+            ) : (
+              <>
+                {t('billingPage.showing', 'Showing')} {from}
+                {total > 0 ? `–${to}` : ''} {t('billingPage.of', 'of')} {total}{' '}
+                {t('billingPage.movements', 'movements')}
+              </>
+            )}
+          </span>
+          <div className="flex gap-2 items-center">
+            {showTableSkeleton ? (
+              <>
+                <Skeleton width={52} height={28} borderRadius={8} {...sk} />
+                <Skeleton width={40} height={12} borderRadius={4} {...sk} />
+                <Skeleton width={52} height={28} borderRadius={8} {...sk} />
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="b-btn b-btn-sm"
+                  disabled={page <= 1}
+                  onClick={() => onPageChange(page - 1)}
+                >
+                  {t('common.prev', 'Prev')}
+                </button>
+                <span className="text-xs text-gray-500 self-center">
+                  {page} / {lastPage}
+                </span>
+                <button
+                  type="button"
+                  className="b-btn b-btn-sm"
+                  disabled={page >= lastPage}
+                  onClick={() => onPageChange(page + 1)}
+                >
+                  {t('common.next', 'Next')}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

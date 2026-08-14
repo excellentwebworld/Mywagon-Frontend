@@ -79,6 +79,10 @@ export const BillingPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [walletPage, setWalletPage] = useState(1);
+  const [walletLastPage, setWalletLastPage] = useState(1);
+  const [walletTotal, setWalletTotal] = useState(0);
+  const [walletLoading, setWalletLoading] = useState(false);
   const [payingId, setPayingId] = useState<number | null>(null);
 
   const [drawerInvoice, setDrawerInvoice] = useState<Invoice | null>(null);
@@ -106,7 +110,7 @@ export const BillingPage: React.FC = () => {
     setError(null);
     try {
       const filters = mapSubFilter(subFilter, kpiFilter);
-      const [sumRes, invRes, cnRes] = await Promise.all([
+      const [sumRes, invRes] = await Promise.all([
         billingService.getSummary(),
         billingService.getInvoices({
           ...filters,
@@ -114,14 +118,12 @@ export const BillingPage: React.FC = () => {
           page,
           per_page: 15,
         }),
-        billingService.getCreditNotes(),
       ]);
       setSummary(sumRes);
       setUpgradeRequired(sumRes.has_account_statement === false);
       setInvoices(invRes.items);
       setTotal(invRes.total);
       setLastPage(invRes.last_page);
-      setCreditNotes(cnRes);
       if (sumRes.has_past_due !== Boolean(user?.has_past_due)) {
         void refreshUser();
       }
@@ -135,6 +137,25 @@ export const BillingPage: React.FC = () => {
   useEffect(() => {
     fetchBillingData();
   }, [fetchBillingData]);
+
+  const fetchWalletActivity = useCallback(async () => {
+    setWalletLoading(true);
+    try {
+      const cnRes = await billingService.getCreditNotes({ page: walletPage, per_page: 15 });
+      setCreditNotes(cnRes.items);
+      setWalletTotal(cnRes.total);
+      setWalletLastPage(cnRes.last_page);
+    } catch (err) {
+      setError(toBillingError(err, t('billingPage.loadError', 'Unable to load billing data.'), t));
+    } finally {
+      setWalletLoading(false);
+    }
+  }, [walletPage, t]);
+
+  useEffect(() => {
+    if (activeTab !== 'credits') return;
+    fetchWalletActivity();
+  }, [activeTab, fetchWalletActivity]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -213,12 +234,14 @@ export const BillingPage: React.FC = () => {
     await billingService.payWithWallet(rawId);
     toast.success(t('billingPage.successWallet', 'Invoice paid using wallet credit'));
     fetchBillingData();
+    if (activeTab === 'credits') fetchWalletActivity();
   };
 
   const handleBankReceipt = async (invoiceId: number, file: File) => {
     await billingService.uploadBankReceipt(invoiceId, file);
     toast.success(t('billingPage.successReceipt', 'Receipt uploaded successfully'));
     fetchBillingData();
+    if (activeTab === 'credits') fetchWalletActivity();
   };
 
   const handleExportInvoicesCsv = () => {
@@ -407,6 +430,11 @@ export const BillingPage: React.FC = () => {
             creditNotes={creditNotes}
             walletBalance={walletBalance}
             loading={loading}
+            tableLoading={walletLoading}
+            page={walletPage}
+            lastPage={walletLastPage}
+            total={walletTotal}
+            onPageChange={setWalletPage}
             onOpenApplyCredit={() => {
               setWalletInvoices(invoices.filter((i) => i.rem > 0));
               setApplyCreditOpen(true);
