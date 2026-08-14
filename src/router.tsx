@@ -19,9 +19,9 @@ import SettingsSectionOrUserEdit from './pages/Settings/SettingsSectionOrUserEdi
 import SupportPage from './pages/Support/SupportPage';
 import { TutorialsPage } from './pages/Tutorials/TutorialsPage';
 import {
-  BillingPage,
   SubscriptionPage,
 } from './pages/Placeholders/AccountPlaceholders';
+import { BillingPage } from './pages/Billing';
 
 import PriceListsPage from './pages/PriceLists/PriceListsPage';
 

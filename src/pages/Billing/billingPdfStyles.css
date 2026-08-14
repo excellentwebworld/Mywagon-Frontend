@@ -1,0 +1,220 @@
+.bpdf-doc { width: 100%; max-width: 700px; margin: 0 auto; }
+.bpdf-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.bpdf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #1e1b4b;
+}
+.bpdf-brand img {
+  display: block;
+  height: 36px;
+  width: auto;
+  max-width: 180px;
+  object-fit: contain;
+}
+.bpdf-brand-meta {
+  margin-top: 10px;
+  font-size: 10px;
+  color: #64748b;
+  line-height: 1.65;
+}
+.bpdf-title-block { text-align: right; flex-shrink: 0; }
+.bpdf-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #6d28d9;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.bpdf-invoice-id {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.bpdf-meta {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.7;
+}
+.bpdf-parties {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+  padding: 16px 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+.bpdf-party { flex: 1; min-width: 0; }
+.bpdf-party.right { text-align: right; }
+.bpdf-party-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+.bpdf-party-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+.bpdf-party-detail { font-size: 11px; color: #475569; line-height: 1.6; }
+.bpdf-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+.bpdf-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+  table-layout: fixed;
+}
+.bpdf-table th {
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 12px;
+  border-bottom: 2px solid #cbd5e1;
+  text-align: left;
+}
+.bpdf-table th.num { text-align: right; }
+.bpdf-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 11px;
+  color: #334155;
+  vertical-align: top;
+  word-wrap: break-word;
+}
+.bpdf-table td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+.bpdf-table td.amt {
+  text-align: right;
+  font-weight: 700;
+  color: #0f172a;
+}
+.bpdf-load-id {
+  margin-top: 3px;
+  font-size: 9px;
+  color: #7c3aed;
+  font-family: 'JetBrains Mono', monospace;
+}
+.bpdf-totals-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 28px;
+}
+.bpdf-totals {
+  width: 260px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+.bpdf-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 9px 14px;
+  font-size: 11px;
+  color: #475569;
+  border-bottom: 1px solid #f1f5f9;
+}
+.bpdf-total-row:last-child { border-bottom: none; }
+.bpdf-total-row.grand {
+  background: #f8fafc;
+  border-top: 2px solid #1e1b4b;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+.bpdf-total-row.grand .bpdf-mono { color: #6d28d9; }
+.bpdf-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.bpdf-summary-card {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.bpdf-summary-card.danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.bpdf-summary-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+.bpdf-summary-card.danger .bpdf-summary-label { color: #ef4444; }
+.bpdf-summary-value {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+.bpdf-summary-card.danger .bpdf-summary-value { color: #dc2626; }
+.bpdf-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.bpdf-badge.paid { background: #d1fae5; color: #047857; }
+.bpdf-badge.overdue { background: #fee2e2; color: #b91c1c; }
+.bpdf-badge.unpaid { background: #fef3c7; color: #b45309; }
+.bpdf-footer {
+  margin-top: 36px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+  font-size: 9px;
+  color: #94a3b8;
+  line-height: 1.7;
+}
+
+.pdf-page.billing-pdf-preview {
+  padding: 28px 24px;
+}
+
+@media print {
+  @page { size: A4 portrait; margin: 14mm 12mm; }
+  body { padding: 0; }
+  .bpdf-doc { max-width: none; }
+  .bpdf-parties, .bpdf-summary-card, .bpdf-totals, .bpdf-table th, .bpdf-badge {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

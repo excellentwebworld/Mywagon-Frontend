@@ -17,6 +17,7 @@ import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
+import { usePastDueLock } from '../../hooks/usePastDueLock';
 import { ProfileDropdown } from './ProfileDropdown';
 
 interface HeaderProps {
@@ -40,6 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const pastDueLocked = usePastDueLock();
 
   const [searchValue, setSearchValue] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
@@ -83,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const isSideMode = navMode !== 'top';
-  const showCta = location.pathname !== '/shipments/create';
+  const showCta = location.pathname !== '/shipments/create' && !pastDueLocked;
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -345,7 +347,7 @@ export const Header: React.FC<HeaderProps> = ({
       <button
         type="button"
         className="mv-topbar-icon-btn"
-        onClick={() => navigate('/support')}
+        onClick={() => navigate(pastDueLocked ? '/billing' : '/support')}
         aria-label={t('topbar.messages') || 'Messages'}
         style={{ color: T.t2, position: 'relative' }}
         onMouseEnter={(e) => {
@@ -394,7 +396,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Trust shield */}
       <button
         type="button"
-        onClick={() => navigate('/settings/trustCenter')}
+        onClick={() => navigate(pastDueLocked ? '/billing' : '/settings/trustCenter')}
         aria-label={t('settings.securityTrust') || 'Security & Trust'}
         title={t('settings.securityTrust') || 'Security & Trust'}
         className="mv-topbar-icon-btn"
