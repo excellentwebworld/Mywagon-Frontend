@@ -611,7 +611,7 @@ export const SubscriptionPage: React.FC = () => {
                 {isCurrentCard ? <span className="cur-tag">✓ {tf('currentPlanBtn', 'Current Plan')}</span> : null}
                 <div className="pcard-top">
                   <div className="pnm">{p.name}</div>
-                  <div className="pds">{p.description}</div>
+                 {/* <div className="pds">{p.description}</div> */}
                   <div className="pr">
                     <span className="c">€</span>
                     <span className="a">{pr === 0 ? '0' : pr.toLocaleString('de-DE')}</span>
