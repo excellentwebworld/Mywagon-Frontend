@@ -1,6 +1,12 @@
 import type { ApiListMeta } from './addressBook';
 import type { QuickFilterKey, SortKey, VisibilityFilter } from '../../pages/SearchTrucks/types';
 
+export interface ApiBilingualNameEntity {
+  id: number;
+  name: string;
+  name_greek: string;
+}
+
 export interface ApiAvailabilityProvider {
   type: 'carrier' | 'freelancer';
   id?: number | null;
@@ -36,7 +42,11 @@ export interface ApiAvailabilityListItem {
   dropoff_lng: number | null;
   dropoff_radius: number | null;
   truck_type: string | null;
+  truck_type_detail?: ApiBilingualNameEntity | null;
+  truck_category_id?: number | null;
+  truck_category_detail?: ApiBilingualNameEntity | null;
   cargo_categories: string[];
+  cargo_category_details?: ApiBilingualNameEntity[];
   capacity_qty: number | null;
   capacity_unit: string | null;
   trip_type: 'direct' | 'multi_stop';
@@ -204,7 +214,10 @@ export interface ApiAvailabilityPrefill {
   start_date_time: string | null;
   end_date_time: string | null;
   truck_type: string | null;
+  truck_type_detail?: ApiBilingualNameEntity | null;
   truck_type_id?: number | null;
+  truck_category_id?: number | null;
+  truck_category_detail?: ApiBilingualNameEntity | null;
   provider_name: string | null;
   availability_reach: string | null;
   price: number | null;
