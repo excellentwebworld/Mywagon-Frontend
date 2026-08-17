@@ -1,6 +1,6 @@
 import React from 'react';
 import type { StatementPayload } from '../../../api/types/billing';
-import { formatCurrency } from '../mockData';
+import { formatCurrency, formatDate } from '../mockData';
 
 interface StatementDocumentProps {
   statement: StatementPayload;
@@ -107,8 +107,8 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
                   <td>{invoice.id}</td>
                   <td>{invoice.type}</td>
                   <td>{invoice.status}</td>
-                  <td>{invoice.iDate || '—'}</td>
-                  <td>{invoice.dDate || '—'}</td>
+                  <td>{formatDate(invoice.iDate)}</td>
+                  <td>{formatDate(invoice.dDate)}</td>
                   <td className="num">{formatCurrency(invoice.tot, currency)}</td>
                   <td className="num">{formatCurrency(invoice.rem, currency)}</td>
                 </tr>
@@ -140,7 +140,7 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
             ) : (
               movements.map((row) => (
                 <tr key={row.id}>
-                  <td>{row.date}</td>
+                  <td>{formatDate(row.date)}</td>
                   <td>{row.reason}</td>
                   <td className="num">{formatCurrency(row.amt, currency)}</td>
                   <td>{row.type || '—'}</td>

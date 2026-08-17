@@ -1,6 +1,6 @@
 import React from 'react';
 import type { BillingIssuer, BillingParty, Invoice } from '../../../api/types/billing';
-import { formatCurrency } from '../mockData';
+import { formatCurrency, formatDate } from '../mockData';
 
 function statusClass(status: string): string {
   const value = status.toLowerCase();
@@ -70,11 +70,11 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
       <div className="mv-doc-meta-row">
         <div className="mv-doc-meta-cell">
           <div className="mv-doc-label">Issue date</div>
-          <div className="mv-doc-meta-value">{invoice.iDate || '—'}</div>
+          <div className="mv-doc-meta-value">{formatDate(invoice.iDate)}</div>
         </div>
         <div className="mv-doc-meta-cell">
           <div className="mv-doc-label">Due date</div>
-          <div className="mv-doc-meta-value">{invoice.dDate || '—'}</div>
+          <div className="mv-doc-meta-value">{formatDate(invoice.dDate)}</div>
         </div>
         <div className="mv-doc-meta-cell">
           <div className="mv-doc-label">Status</div>
@@ -85,7 +85,7 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
         <div className="mv-doc-meta-cell">
           <div className="mv-doc-label">{paid ? 'Paid date' : 'Type'}</div>
           <div className="mv-doc-meta-value">
-            {paid ? invoice.pDate || '—' : invoice.type}
+            {paid ? formatDate(invoice.pDate) : invoice.type}
           </div>
         </div>
       </div>

@@ -1,9 +1,9 @@
-export function formatDate(d: string, locale = 'en'): string {
-  return new Date(d).toLocaleDateString(locale === 'el' ? 'el-GR' : 'en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+import { formatDisplayDateFromIso } from '../../utils/dateDisplay';
+
+/** Display dates as dd/MM/yyyy — same as Create Shipment. */
+export function formatDate(d: string, _locale = 'en'): string {
+  if (!d) return '—';
+  return formatDisplayDateFromIso(d) || d;
 }
 
 export function formatMoney(amount: number, currency = 'EUR'): string {
