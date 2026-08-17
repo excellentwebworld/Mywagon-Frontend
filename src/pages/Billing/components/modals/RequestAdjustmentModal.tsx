@@ -1,42 +1,42 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, UploadCloud, Clock } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { Invoice, BillingSummary } from '../../types';
-import { formatCurrency, canSubmitBankReceipt } from '../../mockData';
+import type { Invoice } from '../../types';
+import { formatCurrency } from '../../mockData';
 import { BillingModalPortal } from './BillingModalPortal';
 
 interface RequestAdjustmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   invoices: Invoice[];
-  bank?: BillingSummary['bank'];
-  onSubmitReceipt: (invoiceId: number, file: File) => Promise<void>;
+  currency?: string;
+  onSubmit: (invoiceId: number, amount: number, reason: string) => Promise<void>;
 }
 
 export const RequestAdjustmentModal: React.FC<RequestAdjustmentModalProps> = ({
   isOpen,
   onClose,
   invoices,
-  bank,
-  onSubmitReceipt,
+  currency = 'EUR',
+  onSubmit,
 }) => {
   const { t } = useTranslation();
-  const unpaidInvoices = invoices.filter(canSubmitBankReceipt);
+  const unpaidInvoices = invoices.filter((inv) => inv.rem > 0 && inv.status !== 'Paid' && inv.status !== 'Voided');
 
   const [invoiceId, setInvoiceId] = useState('');
-  const [file, setFile] = useState<File | null>(null);
+  const [amount, setAmount] = useState('');
+  const [reason, setReason] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     const first = unpaidInvoices[0];
     setInvoiceId(first?.raw_id ? String(first.raw_id) : '');
-    setFile(null);
+    setAmount(first ? String(first.rem) : '');
+    setReason('');
     setError('');
     setSubmitting(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, invoices]);
 
   const selected = unpaidInvoices.find((inv) => String(inv.raw_id ?? inv.id) === invoiceId);
@@ -44,36 +44,29 @@ export const RequestAdjustmentModal: React.FC<RequestAdjustmentModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hasEligible) return;
-    if (!selected?.raw_id) {
+    if (!hasEligible || !selected?.raw_id) {
       setError(t('billingPage.selectUnpaidInvoice', 'Please select an unpaid invoice'));
       return;
     }
-    if (!canSubmitBankReceipt(selected)) {
-      setError(
-        t(
-          'billingPage.receiptUnderReview',
-          'This invoice is already under process. You can upload a new receipt only if the admin rejects it.'
-        )
-      );
+
+    const parsedAmount = Number(amount);
+    if (!parsedAmount || parsedAmount <= 0) {
+      setError(t('billingPage.adjustmentAmountRequired', 'Please enter a valid adjustment amount.'));
       return;
     }
-    if (!file) {
-      setError(t('billingPage.receiptRequired', 'Please upload a receipt.'));
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setError(t('billingPage.receiptTooLarge', 'The receipt size must not exceed 5MB.'));
+
+    if (reason.trim().length < 5) {
+      setError(t('billingPage.adjustmentReasonRequired', 'Please provide a reason (at least 5 characters).'));
       return;
     }
 
     setSubmitting(true);
     setError('');
     try {
-      await onSubmitReceipt(selected.raw_id, file);
+      await onSubmit(selected.raw_id, parsedAmount, reason.trim());
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('billingPage.uploadFailed', 'Unable to upload receipt.'));
+      setError(err instanceof Error ? err.message : t('billingPage.adjustmentFailed', 'Unable to submit adjustment.'));
     } finally {
       setSubmitting(false);
     }
@@ -82,9 +75,9 @@ export const RequestAdjustmentModal: React.FC<RequestAdjustmentModalProps> = ({
   return (
     <BillingModalPortal isOpen={isOpen} onClose={onClose}>
       <div className="billing-modal-bg show" onClick={(e) => e.target === e.currentTarget && onClose()}>
-        <div className="billing-modal billing-modal--receipt" onClick={(e) => e.stopPropagation()}>
+        <div className="billing-modal" onClick={(e) => e.stopPropagation()}>
           <div className="billing-modal-h">
-            <h3>{t('billingPage.modalBankTransfer', 'Bank Transfer Receipt')}</h3>
+            <h3>{t('billingPage.modalRequestAdjustment', 'Request Adjustment')}</h3>
             <button type="button" className="b-btn-ghost billing-modal-close" onClick={onClose} aria-label="Close">
               <X size={18} />
             </button>
@@ -104,86 +97,62 @@ export const RequestAdjustmentModal: React.FC<RequestAdjustmentModalProps> = ({
                     <label>
                       {t('billingPage.fldInvoice', 'Invoice')} <span className="req">*</span>
                     </label>
-                    <select value={invoiceId} onChange={(e) => setInvoiceId(e.target.value)} required>
+                    <select
+                      value={invoiceId}
+                      onChange={(e) => {
+                        setInvoiceId(e.target.value);
+                        const inv = unpaidInvoices.find((row) => String(row.raw_id ?? row.id) === e.target.value);
+                        if (inv) setAmount(String(inv.rem));
+                      }}
+                      required
+                    >
                       {unpaidInvoices.map((inv) => (
                         <option key={inv.raw_id ?? inv.id} value={inv.raw_id ?? inv.id}>
-                          {inv.id} ({inv.type} — {inv.status}) · {formatCurrency(inv.rem, inv.cur)}
+                          {inv.id} ({inv.type} — {inv.status}) · {formatCurrency(inv.rem, inv.cur || currency)}
                         </option>
                       ))}
                     </select>
                   </div>
 
+                  <div className="billing-mf">
+                    <label>
+                      {t('billingPage.fldAmount', 'Amount')} <span className="req">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="billing-mf">
+                    <label>
+                      {t('billingPage.fldReason', 'Reason')} <span className="req">*</span>
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder={t('billingPage.adjustmentReasonPlaceholder', 'Describe the billing issue or requested correction…')}
+                      required
+                    />
+                  </div>
+
                   {selected && (
-                    <>
-                      <div className="billing-bank-box">
-                        <div>
-                          <span className="font-semibold">{t('billingPage.iban', 'Account (IBAN)')}:</span>{' '}
-                          {bank?.iban}
-                        </div>
-                        <div>
-                          <span className="font-semibold">{t('billingPage.accountHolder', 'Account Holder')}:</span>{' '}
-                          {bank?.account_holder}
-                        </div>
-                        <div>
-                          <span className="font-semibold">{t('billingPage.bic', 'Bank BIC Code')}:</span>{' '}
-                          {bank?.bic}
-                        </div>
-                        <div>
-                          <span className="font-semibold">{t('billingPage.invoiceNumber', 'Invoice Number')}:</span>{' '}
-                          # {selected.raw_id ?? selected.id}
-                          <div className="billing-bank-note">
-                            {t(
-                              'billingPage.includeInvoiceMemo',
-                              'Please include the invoice number in the transfer memo'
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="billing-upload-hint">
-                        {t(
-                          'billingPage.uploadReceiptPrompt',
-                          'Please upload your bank transfer receipt. Accepted formats: PDF, JPG, PNG. Max size: 5MB.'
-                        )}
-                      </div>
-                    </>
+                    <div className="billing-upload-hint">
+                      {t(
+                        'billingPage.adjustmentHint',
+                        'Your request will be reviewed by our billing team. You will be notified once it is processed.',
+                      )}
+                    </div>
                   )}
-
-                  <input
-                    ref={inputRef}
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    className="hidden"
-                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                  />
-                  <button
-                    type="button"
-                    className="billing-upload-drop"
-                    onClick={() => inputRef.current?.click()}
-                  >
-                    <UploadCloud size={36} className="text-purple-600" />
-                    <span>
-                      {file
-                        ? file.name
-                        : t('billingPage.clickToUpload', 'Click to upload or tap here on mobile')}
-                    </span>
-                  </button>
                 </>
               ) : (
                 <div className="billing-empty-state">
-                  <Clock size={28} />
-                  <p>
-                    {t(
-                      'billingPage.noBankEligibleInvoices',
-                      'No invoices are available for bank transfer right now.'
-                    )}
-                  </p>
-                  <span>
-                    {t(
-                      'billingPage.underProcessHint',
-                      'Invoices already under process cannot be submitted again until an admin rejects the receipt.'
-                    )}
-                  </span>
+                  <p>{t('billingPage.noAdjustmentInvoices', 'No unpaid invoices are available for an adjustment request.')}</p>
                 </div>
               )}
             </div>
@@ -196,7 +165,7 @@ export const RequestAdjustmentModal: React.FC<RequestAdjustmentModalProps> = ({
                 <button type="submit" className="b-btn b-btn-primary" disabled={submitting || !selected}>
                   {submitting
                     ? t('common.saving', 'Saving…')
-                    : t('billingPage.btnSubmitReceipt', 'Submit Receipt')}
+                    : t('billingPage.btnSubmitAdjustment', 'Submit Request')}
                 </button>
               )}
             </div>

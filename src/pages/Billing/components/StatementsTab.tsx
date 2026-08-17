@@ -12,6 +12,8 @@ const sk = { baseColor: '#f0f0f3', highlightColor: '#fafafe' };
 interface StatementsTabProps {
   summary: BillingSummary | null;
   loading?: boolean;
+  exporting?: boolean;
+  canExport?: boolean;
   onExportInvoiceRegister: () => void;
   onExportLineItems: () => void;
   onOpenStatementModal: () => void;
@@ -20,6 +22,8 @@ interface StatementsTabProps {
 export const StatementsTab: React.FC<StatementsTabProps> = ({
   summary,
   loading = false,
+  exporting = false,
+  canExport = true,
   onExportInvoiceRegister,
   onExportLineItems,
   onOpenStatementModal,
@@ -100,9 +104,11 @@ export const StatementsTab: React.FC<StatementsTabProps> = ({
               type="button"
               className="b-btn b-btn-primary b-btn-sm mt-auto"
               onClick={card.action}
-              disabled={loading}
+              disabled={loading || exporting || !canExport}
             >
-              {t('billingPage.btnGenerate', 'Generate & Download')}
+              {exporting
+                ? t('billingPage.exporting', 'Exporting…')
+                : t('billingPage.btnGenerate', 'Generate & Download')}
             </button>
           </div>
         ))}

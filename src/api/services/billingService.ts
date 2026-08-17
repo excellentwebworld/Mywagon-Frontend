@@ -1,5 +1,12 @@
 import { apiGet, apiPost, apiDownload, AUTH_TOKEN_KEY, ApiError, axiosInstance } from '../client';
-import type { Invoice, CreditNote, BillingSummary, LineItem } from '../../pages/Billing/types';
+import { openHtmlPrintWindow } from '../../utils/printHtml';
+import type {
+  Invoice,
+  CreditNote,
+  BillingSummary,
+  LineItem,
+  StatementPayload,
+} from '../types/billing';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
@@ -22,6 +29,34 @@ export type VivaOrderResponse = {
   wallet_applied?: boolean;
   wallet_amount?: number;
 };
+
+export type StatementExportExtra = {
+  status?: string;
+  type?: string;
+  q?: string;
+  from?: string;
+  to?: string;
+  month?: string;
+  format?: string;
+};
+
+export function monthToDateRange(month: string): { from: string; to: string } | null {
+  const trimmed = month.trim();
+  if (!trimmed) return null;
+
+  const parsed = new Date(`${trimmed} 1`);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  const year = parsed.getFullYear();
+  const monthIndex = parsed.getMonth();
+  const from = new Date(year, monthIndex, 1);
+  const to = new Date(year, monthIndex + 1, 0);
+
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  return { from: fmt(from), to: fmt(to) };
+}
 
 export const billingService = {
   async getSummary(): Promise<BillingSummary> {
@@ -88,11 +123,7 @@ export const billingService = {
     };
   },
 
-  async applyCredit(invoiceId: string | number): Promise<void> {
-    await apiPost('/billing/apply-credit', { invoice_id: invoiceId });
-  },
-
-  async requestAdjustment(invoiceId: string, amount: number, reason: string): Promise<void> {
+  async requestAdjustment(invoiceId: string | number, amount: number, reason: string): Promise<void> {
     await apiPost('/billing/request-adjustment', {
       invoice_id: invoiceId,
       amount,
@@ -115,6 +146,20 @@ export const billingService = {
     return String(response.data ?? '');
   },
 
+  async getStatementPrintHtml(month: string, extra?: StatementExportExtra): Promise<string> {
+    const response = await axiosInstance.get('/billing/statements/print', {
+      headers: { Accept: 'text/html' },
+      responseType: 'text',
+      params: { month, ...extra },
+    });
+    return String(response.data ?? '');
+  },
+
+  async getStatement(month: string, extra?: StatementExportExtra): Promise<StatementPayload> {
+    const res = await apiGet<StatementPayload>('/billing/statements', { month, ...extra });
+    return res.data;
+  },
+
   async verifyVivaPayment(transactionId?: string, orderCode?: string): Promise<void> {
     await apiPost('/billing/viva/verify-payment', {
       transaction_id: transactionId,
@@ -127,16 +172,41 @@ export const billingService = {
   async exportStatement(
     month: string,
     format: 'PDF' | 'CSV' | 'XLSX',
-    extra?: { status?: string; type?: string; q?: string; from?: string; to?: string },
+    extra?: StatementExportExtra,
   ): Promise<void> {
     if (format === 'PDF') {
+      const html = await this.getStatementPrintHtml(month, { month, ...extra });
+      openHtmlPrintWindow(`Statement ${month}`, html);
       return;
     }
+
     const ext = format === 'XLSX' ? 'xlsx' : 'csv';
     await apiDownload(
       '/billing/statements/export',
       `billing_statement_${month.replace(/\s+/g, '_')}.${ext}`,
-      { month, format: ext, ...extra },
+      {
+        month,
+        format: ext,
+        ...extra,
+      },
     );
+  },
+
+  async exportInvoiceRegister(extra?: StatementExportExtra): Promise<void> {
+    const stamp = new Date().toISOString().slice(0, 10);
+    await apiDownload('/billing/statements/export', `billing_invoices_${stamp}.csv`, {
+      format: 'csv',
+      ...extra,
+    });
+  },
+
+  async exportLineItems(monthOrExtra?: string | StatementExportExtra, extra?: StatementExportExtra): Promise<void> {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const params: StatementExportExtra =
+      typeof monthOrExtra === 'string'
+        ? { month: monthOrExtra, format: 'csv', ...extra }
+        : { format: 'csv', ...monthOrExtra };
+
+    await apiDownload('/billing/statements/export/lines', `billing_line_items_${stamp}.csv`, params);
   },
 };

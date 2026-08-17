@@ -1,6 +1,4 @@
 /* MYVAGON Billing Panel Scoped Styles */
-@import './billingPdfStyles.css';
-
 .page-body:has(.billing-container) {
   padding: 0;
   background:
@@ -382,8 +380,18 @@
 .sub-bar {
   padding: 14px 24px 0;
   display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.sub-bar-left {
+  display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .sub-bar-pills {
@@ -393,27 +401,36 @@
   gap: 8px;
 }
 
-.sub-bar-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: flex-end;
-  gap: 10px;
-  width: 100%;
+.sub-bar-search {
+  flex: 0 0 auto;
+  align-self: flex-start;
 }
 
 .billing-date-range {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.billing-date-actions {
-  display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+.billing-date-range .date-picker {
+  width: 148px;
   flex-shrink: 0;
+}
+
+.billing-date-sep {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--t3, #8e8e9a);
+  line-height: 1;
+}
+
+.billing-filter-apply,
+.billing-filter-clear {
+  flex-shrink: 0;
+  height: 42px;
+  padding: 0 16px;
+  font-size: 13px;
 }
 
 .sub-pill {
@@ -470,33 +487,6 @@
   top: 50%;
   transform: translateY(-50%);
   color: var(--t3, #8e8e9a);
-}
-
-.billing-date-field {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--t3, #8e8e9a);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.billing-date-field .date-picker {
-  width: 148px;
-}
-.billing-date-field input {
-  border: 1px solid var(--bd, #e4e4e8);
-  border-radius: 8px;
-  padding: 7px 10px;
-  font-size: 13px;
-  font-family: inherit;
-  color: var(--t1, #121217);
-  background: var(--sf, #ffffff);
-}
-.billing-date-field input:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 /* TABLE CARD */
@@ -1435,5 +1425,20 @@ table.billing-t {
   }
   .pdf-page {
     padding: 24px 20px;
+  }
+  .sub-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sub-bar-search {
+    width: 100%;
+  }
+  .sub-bar-search .f-search,
+  .sub-bar-search .f-search input {
+    width: 100%;
+  }
+  .billing-date-range .date-picker {
+    flex: 1 1 calc(50% - 24px);
+    max-width: none;
   }
 }

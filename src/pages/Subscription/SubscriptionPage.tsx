@@ -27,12 +27,13 @@ import type {
   SubscriptionPermissionItem,
   SubscriptionQuote,
 } from '../../api/types/subscription';
-import { formatDate, formatEuro, usageTone } from './mockData';
+import { formatDate, formatMoney, usageTone } from './mockData';
 import { SubscriptionSkeleton } from './SubscriptionSkeleton';
 import './subscription.css';
 
 type UiCycle = 'monthly' | 'yearly';
 type AddonTab = 'recurring' | 'usage';
+type PaymentKind = 'plan' | 'addon';
 type SubModal =
   | { kind: 'upgrade'; planId: number }
   | { kind: 'cancel-plan' }
@@ -49,6 +50,10 @@ const USAGE_LABELS: Record<string, string> = {
   count_of_bids_per_month: 'Bids',
   send_tracking_links_to_your_customers_per_month: 'Tracking Links',
 };
+
+function formatEuro(n: number, currency?: string): string {
+  return formatMoney(n, currency ?? 'EUR');
+}
 
 function toApiCycle(cycle: UiCycle): ApiCycle {
   return cycle === 'yearly' ? 'year' : 'month';
@@ -129,22 +134,12 @@ function resolvePlanPermissions(
     .sort((a, b) => Number(b.included) - Number(a.included));
 }
 
-const BETA_PERMISSION_SLUGS = new Set([
-  'post_loads_publicly',
-  'search_publicly_posted_trucks',
-  'bids_per_month',
-  'public_loads',
-  'search_available_trucks',
-  'count_of_bids_per_month',
-]);
+const BETA_PERMISSION_SLUGS = new Set<string>();
 
-const BETA_PERMISSION_NAMES = new Set([
-  'post loads publicly',
-  'search publicly posted trucks',
-  'bids per month',
-]);
+const BETA_PERMISSION_NAMES = new Set<string>();
 
-function isBetaPermission(slug?: string | null, name?: string | null): boolean {
+function isBetaPermission(slug?: string | null, name?: string | null, isBeta?: boolean): boolean {
+  if (isBeta) return true;
   if (slug && BETA_PERMISSION_SLUGS.has(slug)) return true;
   if (name && BETA_PERMISSION_NAMES.has(name.trim().toLowerCase())) return true;
   return false;
@@ -174,6 +169,20 @@ export const SubscriptionPage: React.FC = () => {
   const subscribedCycle: UiCycle = currentIntervalToUi(data?.current?.interval);
   const planCheckoutCycle = toApiCycle(cycle);
   const addonCheckoutCycle = toApiCycle(subscribedCycle);
+
+  const paymentToastMessages = useCallback(
+    (kind: PaymentKind) => ({
+      success:
+        kind === 'addon'
+          ? tf('successAddon', 'Add-on purchased successfully!')
+          : tf('successUpgrade', 'Plan updated successfully!'),
+      failed:
+        kind === 'addon'
+          ? tf('payFailedAddon', 'Add-on purchase was not completed.')
+          : tf('payFailedPlan', 'Plan purchase was not completed.'),
+    }),
+    [t],
+  );
 
   const toError = useCallback(
     (err: unknown, fallback: string) => {
@@ -213,18 +222,22 @@ export const SubscriptionPage: React.FC = () => {
     const payment = params.get('payment');
     const transactionId = params.get('t') || params.get('transaction_id');
     const orderCode = params.get('s') || params.get('order_code');
+    const kindParam = params.get('kind');
+    const paymentKind: PaymentKind = kindParam === 'addon' ? 'addon' : 'plan';
+    const messages = paymentToastMessages(paymentKind);
+
     const clearQuery = () => {
       const url = new URL(window.location.href);
-      ['payment', 't', 's', 'transaction_id', 'order_code'].forEach((k) => url.searchParams.delete(k));
+      ['payment', 'kind', 't', 's', 'transaction_id', 'order_code'].forEach((k) => url.searchParams.delete(k));
       window.history.replaceState({}, '', url.pathname + url.search);
     };
     if (payment === 'failed' || payment === 'cancel' || payment === 'cancelled') {
-      toast.error(tf('payFailed', 'Payment was not completed.'));
+      toast.error(messages.failed);
       clearQuery();
       return;
     }
     if (payment === 'success') {
-      toast.success(tf('successUpgrade', 'Plan updated successfully!'));
+      toast.success(messages.success);
       clearQuery();
       void load();
       return;
@@ -232,14 +245,15 @@ export const SubscriptionPage: React.FC = () => {
     if (transactionId || orderCode) {
       subscriptionService
         .verifyPayment(transactionId || undefined, orderCode || undefined)
-        .then(() => {
-          toast.success(tf('successUpgrade', 'Payment completed successfully!'));
+        .then((result) => {
+          const verifyMessages = paymentToastMessages(result.kind === 'addon' ? 'addon' : 'plan');
+          toast.success(verifyMessages.success);
           void load();
         })
-        .catch((err) => toast.error(toError(err, tf('payFailed', 'Payment was not completed.'))))
+        .catch((err) => toast.error(toError(err, messages.failed)))
         .finally(clearQuery);
     }
-  }, [load, t, toast, toError]);
+  }, [load, paymentToastMessages, toast, toError]);
 
   const closeModal = () => {
     setModal(null);
@@ -282,9 +296,10 @@ export const SubscriptionPage: React.FC = () => {
     void run();
   }, [modal, planCheckoutCycle, addonCheckoutCycle, t, toError, toast]);
 
-  const startCheckout = async (url: string | null, activated?: boolean) => {
+  const startCheckout = async (url: string | null, activated?: boolean, kind: PaymentKind = 'plan') => {
+    const messages = paymentToastMessages(kind);
     if (activated) {
-      toast.success(tf('successUpgrade', 'Plan updated successfully!'));
+      toast.success(messages.success);
       closeModal();
       await load();
       return;
@@ -293,7 +308,7 @@ export const SubscriptionPage: React.FC = () => {
       window.location.assign(url);
       return;
     }
-    toast.error(tf('payFailed', 'Payment could not be started.'));
+    toast.error(messages.failed);
   };
 
   const submitContact = async () => {
@@ -333,7 +348,7 @@ export const SubscriptionPage: React.FC = () => {
     try {
       if (modal.kind === 'upgrade') {
         const result = await subscriptionService.checkoutPlan(modal.planId, planCheckoutCycle, autoPayOnCheckout);
-        await startCheckout(result.checkout_url, result.activated);
+        await startCheckout(result.checkout_url, result.activated, 'plan');
         return;
       }
       if (modal.kind === 'buy-addon') {
@@ -343,7 +358,7 @@ export const SubscriptionPage: React.FC = () => {
           addonCheckoutCycle,
           autoPayOnCheckout && modal.addon.billing_type === 'recurring',
         );
-        await startCheckout(result.checkout_url, result.activated);
+        await startCheckout(result.checkout_url, result.activated, 'addon');
         return;
       }
       if (modal.kind === 'cancel-plan') {
@@ -414,6 +429,7 @@ export const SubscriptionPage: React.FC = () => {
   const purchasedStatusSlugs = new Set(
     (data?.purchased_addons ?? []).filter((addon) => !addon.is_cancelled).map((addon) => addon.slug),
   );
+  const currency = data?.currency ?? 'EUR';
   const yearlySave =
     plans.some((p) => p.price_monthly > 0 && p.price_yearly_monthly_rate > 0 && p.price_yearly_monthly_rate < p.price_monthly)
       ? tf('saveTag', 'Best value')
@@ -447,10 +463,10 @@ export const SubscriptionPage: React.FC = () => {
           <>
             <div className="m-highlight">
               <div className="mh-label">{tf('totalCost', 'Total Cost')}</div>
-              <div className="mh-val">{formatEuro(q.total)}</div>
+              <div className="mh-val">{formatEuro(q.total, q.currency)}</div>
               <div className="mh-sub">
-                {tf('subtotal', 'Subtotal')} {formatEuro(q.subtotal)}
-                {q.vat_percent > 0 ? ` · VAT ${q.vat_percent}% ${formatEuro(q.vat_amount)}` : ''}
+                {tf('subtotal', 'Subtotal')} {formatEuro(q.subtotal, q.currency)}
+                {q.vat_percent > 0 ? ` · VAT ${q.vat_percent}% ${formatEuro(q.vat_amount, q.currency)}` : ''}
               </div>
             </div>
             {q.prorated ? <div className="m-info">{tf('proratedNote', 'Price is prorated for the unused days in your current billing period.')}</div> : null}
@@ -479,9 +495,9 @@ export const SubscriptionPage: React.FC = () => {
           <>
             <div className="m-highlight">
               <div className="mh-label">{tf('totalCost', 'Total Cost')}</div>
-              <div className="mh-val">{formatEuro(q.total)}</div>
+              <div className="mh-val">{formatEuro(q.total, q.currency ?? currency)}</div>
               <div className="mh-sub">
-                {q.count} × {formatEuro(q.unit_price)}
+                {q.count} × {formatEuro(q.unit_price, q.currency ?? currency)}
                 {q.vat_percent > 0 ? ` · VAT ${q.vat_percent}%` : ''}
               </div>
             </div>
@@ -580,7 +596,7 @@ export const SubscriptionPage: React.FC = () => {
             {ao.description && ao.description !== ao.name ? <div className="ao-desc">{ao.description}</div> : null}
           </div>
           <div className="ao-price">
-            {formatEuro(price)}
+            {formatEuro(price, currency)}
             <span>{ao.type === 'count' ? ` / ${cycle === 'yearly' ? tf('year', 'year') : tf('month', 'month')}` : `/${cycle === 'yearly' ? 'yr' : 'mo'}`}</span>
           </div>
         </div>
@@ -666,7 +682,7 @@ export const SubscriptionPage: React.FC = () => {
           </div>
           <div className="ps-value">{current?.plan_name ?? '—'}</div>
           <div className="ps-sub">
-            {current?.is_free ? tf('freePlan', 'Free plan') : `${formatEuro(displayPrice)}${tf('perMonth', '/month')}`}
+            {current?.is_free ? tf('freePlan', 'Free plan') : `${formatEuro(displayPrice, currency)}${tf('perMonth', '/month')}`}
           </div>
           <div className={`ps-badge${current?.is_cancelled ? ' cancelled' : ''}`}>
             <span className="dot" /> {current?.is_cancelled ? tf('cancelled', 'Cancelled') : tf('active', 'Active')}
@@ -716,7 +732,9 @@ export const SubscriptionPage: React.FC = () => {
             <div className="ps-label">{tf('paymentMethod', 'Payment')}</div>
           </div>
           <div className="ps-value ps-value--muted">
-            {current?.has_payment_method ? tf('cardOnFile', 'Saved via Viva Wallet') : tf('noPayment', 'No payment method')}
+            {current?.has_payment_method
+              ? current.payment_method_label || tf('cardOnFile', 'Saved via Viva Wallet')
+              : tf('noPayment', 'No payment method')}
           </div>
           <div className="ps-autopay">
             <span>{tf('autopayLabel', 'Autopay')}</span>
@@ -784,7 +802,7 @@ export const SubscriptionPage: React.FC = () => {
             return (
               <div key={u.slug} className={`usage-card ${tone === 'ok' ? '' : tone}`}>
                 <div className="uc-top">
-                  <div className="uc-name">{tf(u.slug, USAGE_LABELS[u.slug] ?? u.slug)}</div>
+                  <div className="uc-name">{u.name || tf(u.slug, USAGE_LABELS[u.slug] ?? u.slug)}</div>
                   <div className="uc-vals">
                     <span className="used">{u.used}</span>
                     <span className="lim"> / {unlimited ? tf('unlimited', 'Unlimited') : u.limit}</span>
@@ -827,7 +845,7 @@ export const SubscriptionPage: React.FC = () => {
                 {isCurrentCard ? <span className="cur-tag">✓ {tf('currentPlanBtn', 'Current Plan')}</span> : null}
                 <div className="pcard-top">
                   <div className="pnm">{p.name}</div>
-                 {/* <div className="pds">{p.description}</div> */}
+                 <div className="pds">{p.description}</div>
                   <div className="pr">
                     <span className="c">€</span>
                     <span className="a">{pr === 0 ? '0' : pr.toLocaleString('de-DE')}</span>
@@ -865,7 +883,7 @@ export const SubscriptionPage: React.FC = () => {
                         <li key={row.slug} className={`fi${on ? '' : ' off'}`}>
                           <span className={`ic ${on ? 'ok' : 'no'}`}>{on ? <CheckIcon /> : <DashIcon />}</span>
                           <span className="fi-label">{row.name}</span>
-                          {isBetaPermission(row.slug, row.name) ? (
+                          {isBetaPermission(row.slug, row.name, row.is_beta) ? (
                             <span className="sub-beta">{tf('beta', 'BETA')}</span>
                           ) : null}
                           {showCount ? <span className="sub-feat-val">{val}</span> : null}
@@ -899,7 +917,7 @@ export const SubscriptionPage: React.FC = () => {
                   <td>
                     <span className="inline-flex items-center gap-1.5">
                       {perm.name}
-                      {isBetaPermission(perm.slug, perm.name) ? (
+                      {isBetaPermission(perm.slug, perm.name, perm.is_beta) ? (
                         <span className="sub-beta">{tf('beta', 'BETA')}</span>
                       ) : null}
                     </span>
@@ -982,7 +1000,7 @@ export const SubscriptionPage: React.FC = () => {
                 <div key={addon.id} className="ao-card purchased">
                   <div className="ao-top">
                     <span className="ao-name">{addon.name}</span>
-                    <div className="ao-price">{formatEuro(addon.total)}</div>
+                    <div className="ao-price">{formatEuro(addon.total, currency)}</div>
                   </div>
                   <div className="ao-desc">
                     {tf('count', 'Count')}: {addon.count} · {formatDate(addon.start_date, locale)} → {formatDate(addon.end_date, locale)}
@@ -1046,7 +1064,14 @@ export const SubscriptionPage: React.FC = () => {
           </div>
           <div className="b-field">
             <div className="b-label">{tf('billingAddress', 'Billing Address')}</div>
-            <div className="b-val">{data?.billing.address || '—'}</div>
+            <div className="b-val">
+              {(data?.billing.address_lines?.length
+                ? data.billing.address_lines
+                : [data?.billing.address].filter(Boolean)).map((line) => (
+                <div key={line}>{line}</div>
+              ))}
+              {!data?.billing.address && !data?.billing.address_lines?.length ? '—' : null}
+            </div>
           </div>
           <div className="b-field">
             <div className="b-label">{tf('invoiceEmail', 'Invoice Email')}</div>

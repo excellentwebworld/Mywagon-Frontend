@@ -2,6 +2,7 @@ export type BillingCycle = 'month' | 'year';
 
 export interface SubscriptionUsageItem {
   slug: string;
+  name?: string;
   used: number;
   limit: number | null;
   unlimited: boolean;
@@ -14,6 +15,7 @@ export interface SubscriptionPermissionItem {
   value: string;
   included: boolean;
   order_by?: number;
+  is_beta?: boolean;
 }
 
 export interface SubscriptionPlanItem {
@@ -48,6 +50,7 @@ export interface SubscriptionCurrent {
   can_cancel: boolean;
   can_upgrade: boolean;
   has_payment_method: boolean;
+  payment_method_label?: string | null;
 }
 
 export interface SubscriptionAddonOffer {
@@ -79,9 +82,23 @@ export interface PurchasedAddon {
   billing_type: string;
 }
 
+export interface SubscriptionBillingDetails {
+  company_name: string | null;
+  vat_id: string | null;
+  address: string | null;
+  address_lines?: string[];
+  address_line_1?: string | null;
+  address_line_2?: string | null;
+  city?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+  invoice_email: string | null;
+}
+
 export interface SubscriptionOverview {
   vat_applies: boolean;
   vat_percent: number;
+  currency?: string;
   auto_pay_available: boolean;
   current: SubscriptionCurrent | null;
   usage: SubscriptionUsageItem[];
@@ -91,12 +108,7 @@ export interface SubscriptionOverview {
     one_time: SubscriptionAddonOffer[];
   };
   purchased_addons: PurchasedAddon[];
-  billing: {
-    company_name: string | null;
-    vat_id: string | null;
-    address: string | null;
-    invoice_email: string | null;
-  };
+  billing: SubscriptionBillingDetails;
   seats?: {
     active_users: number;
     paid_users: number;
@@ -134,6 +146,7 @@ export interface AddonQuote {
   vat_percent: number;
   vat_amount: number;
   total: number;
+  currency?: string;
   is_recurring: boolean;
 }
 

@@ -26,6 +26,7 @@ import type {
   BillingSummary,
 } from './types';
 import { downloadFileBlob, canSubmitBankReceipt, formatCurrency } from './mockData';
+import { openHtmlPrintWindow } from '../../utils/printHtml';
 
 import './billing.css';
 import { UniverseBanner } from './components/UniverseBanner';
@@ -50,7 +51,8 @@ function mapSubFilter(sub: SubFilterKey, kpi: KpiFilterKey): { status?: string; 
   if (sub === 'Paid') return { status: 'paid' };
   if (sub === 'Subscription') return { type: 'subscription' };
   if (sub === 'Commission') return { type: 'commission' };
-  if (sub === 'Add-on') return { type: 'addon' };
+  if (sub === 'Penalty') return { type: 'penalty' };
+  if (sub === 'Add-on') return { type: 'add-on' };
   return { status: 'all' };
 }
 
@@ -110,9 +112,27 @@ export const BillingPage: React.FC = () => {
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [statementDownloadOpen, setStatementDownloadOpen] = useState(false);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
-  const [pdfInvoice, setPdfInvoice] = useState<Invoice | null>(null);
+  const [pdfInvoiceId, setPdfInvoiceId] = useState<number | null>(null);
   const [pdfIsStatement, setPdfIsStatement] = useState(false);
-  const [pdfStatementPeriod, setPdfStatementPeriod] = useState(new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }));
+  const [pdfStatementPeriod, setPdfStatementPeriod] = useState(
+    new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+  );
+  const [exporting, setExporting] = useState(false);
+
+  const canExport = Boolean(summary?.has_account_statement);
+
+  const guardExport = useCallback((): boolean => {
+    if (!canExport) {
+      toast.error(
+        t(
+          'billingPage.upgradeRequired',
+          'Your current subscription plan does not support this feature. To unlock it, please upgrade to a higher tier plan.',
+        ),
+      );
+      return false;
+    }
+    return true;
+  }, [canExport, t, toast]);
 
   useEffect(() => {
     const q = searchParams.get('q') || searchParams.get('search') || '';
@@ -299,14 +319,7 @@ export const BillingPage: React.FC = () => {
     if (!inv.raw_id) return;
     try {
       const html = await billingService.getInvoicePrintHtml(inv.raw_id);
-      const win = window.open('', '_blank', 'noopener,noreferrer');
-      if (!win) {
-        toast.error(t('billingPage.printBlocked', 'Please allow pop-ups to print the official invoice.'));
-        return;
-      }
-      win.document.open();
-      win.document.write(html);
-      win.document.close();
+      openHtmlPrintWindow(inv.id, html);
     } catch (err) {
       toast.error(toBillingError(err, t('billingPage.printFailed', 'Unable to open the official invoice.'), t));
     }
@@ -355,55 +368,85 @@ export const BillingPage: React.FC = () => {
   };
 
   const handleExportInvoicesCsv = async () => {
+    if (!guardExport()) return;
+    setExporting(true);
     try {
-      await billingService.exportStatement(
-        pdfStatementPeriod,
-        'CSV',
-        currentExportFilters(),
-      );
+      await billingService.exportInvoiceRegister(currentExportFilters());
       toast.success(t('billingPage.successExport', 'Invoices exported to CSV'));
     } catch (err) {
       toast.error(toBillingError(err, t('billingPage.exportFailed', 'Export failed.'), t));
+    } finally {
+      setExporting(false);
     }
   };
 
-  const handleExportSingleInvoiceCsv = (inv: Invoice) => {
-    const lines = inv.line_items || drawerLines;
-    const header = 'Type,Description,Qty,Rate,Amount,Load SID\n';
-    const rows = lines
-      .map((l) => `${l.type},"${l.desc}",${l.qty},${l.rate},${l.amt},${l.sid || ''}`)
-      .join('\n');
-    downloadFileBlob(`${inv.id}_line_items.csv`, header + rows);
-    toast.success(t('billingPage.successExport', 'Invoice lines exported'));
-  };
-
-  const handleExportAllLineItemsCsv = async () => {
+  const handleExportSingleInvoiceCsv = async (inv: Invoice) => {
     try {
-      await billingService.exportStatement(pdfStatementPeriod, 'CSV', currentExportFilters());
-      toast.success(t('billingPage.successExport', 'Line items exported'));
+      let lines = inv.line_items;
+      if ((!lines || lines.length === 0) && inv.raw_id) {
+        if (drawerInvoice?.raw_id === inv.raw_id && drawerLines.length > 0) {
+          lines = drawerLines;
+        } else {
+          const detail = await billingService.getInvoiceDetail(inv.raw_id);
+          lines = detail.line_items || [];
+        }
+      }
+      if (!lines?.length) {
+        toast.error(t('billingPage.noLineItems', 'No line items to export for this invoice.'));
+        return;
+      }
+      const header = 'Type,Description,Qty,Rate,Amount,Load SID\n';
+      const rows = lines
+        .map((l) => `${l.type},"${(l.desc || '').replace(/"/g, '""')}",${l.qty},${l.rate},${l.amt},${l.sid || ''}`)
+        .join('\n');
+      downloadFileBlob(`${inv.id}_line_items.csv`, header + rows);
+      toast.success(t('billingPage.successExport', 'Invoice lines exported'));
     } catch (err) {
       toast.error(toBillingError(err, t('billingPage.exportFailed', 'Export failed.'), t));
     }
   };
 
+  const handleExportAllLineItemsCsv = async () => {
+    if (!guardExport()) return;
+    setExporting(true);
+    try {
+      await billingService.exportLineItems(currentExportFilters());
+      toast.success(t('billingPage.successExport', 'Line items exported'));
+    } catch (err) {
+      toast.error(toBillingError(err, t('billingPage.exportFailed', 'Export failed.'), t));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleRequestAdjustment = async (invoiceId: number, amount: number, reason: string) => {
+    await billingService.requestAdjustment(invoiceId, amount, reason);
+    toast.success(t('billingPage.successAdjustment', 'Adjustment request submitted'));
+  };
+
   const handleGenerateStatement = async (month: string, format: 'PDF' | 'CSV' | 'XLSX') => {
+    if (!guardExport()) return;
     if (format === 'PDF') {
       setPdfStatementPeriod(month);
       setPdfIsStatement(true);
-      setPdfInvoice(null);
+      setPdfInvoiceId(null);
       setPdfPreviewOpen(true);
       return;
     }
+    setExporting(true);
     try {
       await billingService.exportStatement(month, format, currentExportFilters());
       toast.success(t('billingPage.successStatement', 'Statement generated'));
     } catch (err) {
       toast.error(toBillingError(err, t('billingPage.exportFailed', 'Export failed.'), t));
+    } finally {
+      setExporting(false);
     }
   };
 
   const handleOpenPdfPreview = (inv: Invoice) => {
-    setPdfInvoice(inv);
+    if (!inv.raw_id) return;
+    setPdfInvoiceId(inv.raw_id);
     setPdfIsStatement(false);
     setPdfPreviewOpen(true);
   };
@@ -449,11 +492,16 @@ export const BillingPage: React.FC = () => {
             <Crown size={14} />
             <span>{t('billingPage.manageSubscription', 'Manage Subscription')}</span>
           </Link>
-          <button type="button" className="b-btn" onClick={handleExportInvoicesCsv}>
+          <button type="button" className="b-btn" onClick={handleExportInvoicesCsv} disabled={!canExport || exporting}>
             <Download size={14} />
-            <span>{t('billingPage.btnExport', 'Export')}</span>
+            <span>{exporting ? t('billingPage.exporting', 'Exporting…') : t('billingPage.btnExport', 'Export')}</span>
           </button>
-          <button type="button" className="b-btn b-btn-primary" onClick={() => setStatementDownloadOpen(true)}>
+          <button
+            type="button"
+            className="b-btn b-btn-primary"
+            onClick={() => setStatementDownloadOpen(true)}
+            disabled={!canExport || exporting}
+          >
             <FileText size={14} />
             <span>{t('billingPage.btnStatement', 'Download Statement')}</span>
           </button>
@@ -517,6 +565,7 @@ export const BillingPage: React.FC = () => {
           type="button"
           className={`billing-tab-btn ${activeTab === 'statements' ? 'active' : ''}`}
           onClick={() => handleTabChange('statements')}
+          disabled={summary?.has_account_statement === false}
         >
           <BarChart3 size={15} />
           <span>{t('billingPage.tabStatements', 'Statements & Exports')}</span>
@@ -604,6 +653,8 @@ export const BillingPage: React.FC = () => {
             onExportInvoiceRegister={handleExportInvoicesCsv}
             onExportLineItems={handleExportAllLineItemsCsv}
             onOpenStatementModal={() => setStatementDownloadOpen(true)}
+            exporting={exporting}
+            canExport={canExport}
           />
         )}
       </div>
@@ -645,10 +696,10 @@ export const BillingPage: React.FC = () => {
         invoices={
           walletInvoices.length
             ? walletInvoices
-            : invoices.filter(canSubmitBankReceipt)
+            : invoices.filter((i) => i.rem > 0 && i.status !== 'Paid')
         }
-        bank={summary?.bank}
-        onSubmitReceipt={handleBankReceipt}
+        currency={summary?.currency}
+        onSubmit={handleRequestAdjustment}
       />
 
       <BankTransferModal
@@ -670,14 +721,13 @@ export const BillingPage: React.FC = () => {
         isOpen={pdfPreviewOpen}
         onClose={() => {
           setPdfPreviewOpen(false);
-          setPdfInvoice(null);
+          setPdfInvoiceId(null);
           setPdfIsStatement(false);
         }}
-        invoice={pdfInvoice}
-        lineItems={pdfInvoice ? pdfInvoice.line_items || drawerLines : []}
+        invoiceId={pdfInvoiceId}
         isStatement={pdfIsStatement}
         statementPeriod={pdfStatementPeriod}
-        invoicesList={invoices}
+        statementFilters={{ month: pdfStatementPeriod, ...currentExportFilters() }}
       />
     </div>
   );

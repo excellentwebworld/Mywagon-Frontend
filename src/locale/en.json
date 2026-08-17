@@ -4221,7 +4221,11 @@
     "gotIt": "Got it",
     "vatNote": "As per EU tax regulations, customers from Greece are required to pay",
     "vatOnDigital": "VAT on digital services and products.",
-    "payFailed": "Payment was not completed."
+    "payFailed": "Payment was not completed.",
+    "payFailedPlan": "Plan purchase was not completed.",
+    "payFailedAddon": "Add-on purchase was not completed.",
+    "successUpgrade": "Plan updated successfully!",
+    "successAddon": "Add-on purchased successfully!"
   },
   "billingPage": {
     "pgTitle": "Billing",
@@ -4381,6 +4385,9 @@
     "successNote": "Note added",
     "successExport": "Export downloaded",
     "successStatement": "Statement generated",
+    "exportFailed": "Export failed.",
+    "exporting": "Exporting…",
+    "noLineItems": "No line items to export for this invoice.",
     "copiedToClipboard": "Copied to clipboard",
     "pdfInvoice": "INVOICE",
     "pdfBillTo": "Bill To",

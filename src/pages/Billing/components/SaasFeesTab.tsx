@@ -89,35 +89,35 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
   const kpis = [
     {
       label: t('billingPage.kpiOutstanding', 'Total Outstanding'),
-      val: formatCurrency(summary?.total_outstanding ?? 0),
+      val: formatCurrency(summary?.total_outstanding ?? 0, summary?.currency),
       sub: `${summary?.total_invoices_count ?? 0} ${t('billingPage.invoices', 'invoices')}`,
       key: 'outstanding' as const,
       icon: <AlertTriangle size={16} className="text-red-500" />,
     },
     {
       label: t('billingPage.kpiOverdue', 'Overdue'),
-      val: formatCurrency(summary?.overdue_amount ?? 0),
+      val: formatCurrency(summary?.overdue_amount ?? 0, summary?.currency),
       sub: `${summary?.overdue_count ?? 0} ${t('billingPage.invoices', 'invoices')}`,
       key: 'overdue' as const,
       icon: <Clock size={16} className="text-red-600" />,
     },
     {
       label: t('billingPage.kpiDueSoon', 'Due ≤ 7 days'),
-      val: formatCurrency(summary?.due_soon_amount ?? 0),
+      val: formatCurrency(summary?.due_soon_amount ?? 0, summary?.currency),
       sub: `${summary?.due_soon_count ?? 0} ${t('billingPage.invoices', 'invoices')}`,
       key: 'dueSoon' as const,
       icon: <Calendar size={16} className="text-amber-500" />,
     },
     {
       label: t('billingPage.kpiPaid', 'Paid this period'),
-      val: formatCurrency(summary?.paid_this_period_amount ?? 0),
+      val: formatCurrency(summary?.paid_this_period_amount ?? 0, summary?.currency),
       sub: summary?.paid_this_period_label ?? '',
       key: 'paid' as const,
       icon: <Check size={16} className="text-emerald-500" />,
     },
     {
       label: t('billingPage.kpiCredits', 'Credits Available'),
-      val: formatCurrency(summary?.available_credits_amount ?? 0),
+      val: formatCurrency(summary?.available_credits_amount ?? 0, summary?.currency),
       sub: `${summary?.available_credits_count ?? 0} ${t('billingPage.creditMovements', 'credit movements')}`,
       key: null,
       icon: <CreditCard size={16} className="text-purple-600" />,
@@ -215,20 +215,57 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
       ) : null}
 
       <div className={`sub-bar ${loading && !summary ? 'is-loading' : ''}`}>
-        <div className="sub-bar-pills">
-          {subTabs.map((st) => (
-            <button
-              key={st.key}
-              type="button"
-              className={`sub-pill ${subFilter === st.key ? 'active' : ''}`}
-              onClick={() => onSetSubFilter(st.key)}
-            >
-              {t(st.labelKey, st.defaultLabel)}
+        <div className="sub-bar-left">
+          <div className="sub-bar-pills">
+            {subTabs.map((st) => (
+              <button
+                key={st.key}
+                type="button"
+                className={`sub-pill ${subFilter === st.key ? 'active' : ''}`}
+                onClick={() => onSetSubFilter(st.key)}
+              >
+                {t(st.labelKey, st.defaultLabel)}
+              </button>
+            ))}
+          </div>
+
+          <div className="billing-date-range">
+            <DatePicker
+              value={dateFrom}
+              onChange={onDateFromChange}
+              max={dateTo || undefined}
+              disabled={!canDateFilter}
+              direction="auto"
+              placeholder={t('billingPage.fromDate', 'From')}
+            />
+            <span className="billing-date-sep" aria-hidden="true">
+              →
+            </span>
+            <DatePicker
+              value={dateTo}
+              onChange={onDateToChange}
+              min={dateFrom || undefined}
+              disabled={!canDateFilter}
+              direction="auto"
+              placeholder={t('billingPage.toDate', 'To')}
+            />
+            <button type="button" className="b-btn b-btn-primary billing-filter-apply" onClick={onApplyDateFilter}>
+              {t('billingPage.filter', 'Filter')}
             </button>
-          ))}
+            {(kpiFilter || searchQuery || dateFrom || dateTo) && (
+              <button
+                type="button"
+                className="b-btn b-btn-danger billing-filter-clear flex items-center gap-1"
+                onClick={onClearFilters}
+              >
+                <X size={12} />
+                <span>{t('common.clear', 'Clear')}</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="sub-bar-actions">
+        <div className="sub-bar-search">
           <div className="f-search">
             <Search size={14} />
             <input
@@ -237,46 +274,6 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={t('billingPage.searchPlaceholder', 'Search invoices, loads, descriptions…')}
             />
-          </div>
-
-          <div className="billing-date-range">
-            <label className="billing-date-field">
-              <span>{t('billingPage.fromDate', 'From')}</span>
-              <DatePicker
-                value={dateFrom}
-                onChange={onDateFromChange}
-                max={dateTo || undefined}
-                disabled={!canDateFilter}
-                direction="auto"
-                placeholder="dd/MM/yyyy"
-              />
-            </label>
-            <label className="billing-date-field">
-              <span>{t('billingPage.toDate', 'To')}</span>
-              <DatePicker
-                value={dateTo}
-                onChange={onDateToChange}
-                min={dateFrom || undefined}
-                disabled={!canDateFilter}
-                direction="auto"
-                placeholder="dd/MM/yyyy"
-              />
-            </label>
-            <div className="billing-date-actions">
-              <button type="button" className="b-btn b-btn-sm b-btn-primary" onClick={onApplyDateFilter}>
-                {t('billingPage.filter', 'Filter')}
-              </button>
-              {(kpiFilter || searchQuery || dateFrom || dateTo) && (
-                <button
-                  type="button"
-                  className="b-btn b-btn-sm b-btn-danger flex items-center gap-1"
-                  onClick={onClearFilters}
-                >
-                  <X size={12} />
-                  <span>{t('common.clear', 'Clear')}</span>
-                </button>
-              )}
-            </div>
           </div>
         </div>
       </div>

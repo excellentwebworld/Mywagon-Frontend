@@ -71,14 +71,17 @@ export const StatementDownloadModal: React.FC<StatementDownloadModalProps> = ({
                 value={format}
                 onChange={(e) => setFormat(e.target.value as 'PDF' | 'CSV' | 'XLSX')}
               >
-                <option value="PDF">PDF (Printable Statement)</option>
-                <option value="CSV">CSV (Comma-separated values)</option>
-                <option value="XLSX">Excel Spreadsheet (.xlsx)</option>
+                <option value="PDF">{t('billingPage.formatPdf', 'PDF (Printable Statement)')}</option>
+                <option value="CSV">{t('billingPage.formatCsv', 'CSV (Comma-separated values)')}</option>
+                <option value="XLSX">{t('billingPage.formatXlsx', 'Excel Spreadsheet (.xlsx)')}</option>
               </select>
             </div>
 
             <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-600 leading-normal">
-              Includes opening balance, invoices issued, adjustments, credit notes applied, payments recorded, and closing balance for the selected period.
+              {t(
+                'billingPage.statementIncludes',
+                'Includes opening balance, invoices issued, adjustments, credit notes applied, payments recorded, and closing balance for the selected period.',
+              )}
             </div>
           </div>
 
