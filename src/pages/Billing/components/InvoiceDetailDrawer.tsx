@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   X,
   Copy,
@@ -246,20 +247,33 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                     </td>
                   </tr>
                 )}
-                {lineItems.map((li, idx) => (
-                  <tr key={li.id || idx}>
-                    <td>
-                      <span className="b-badge b-commission">{li.type}</span>
-                    </td>
-                    <td className="text-xs text-gray-800">{li.desc}</td>
-                    <td className="text-xs text-gray-500">{li.qty}</td>
-                    <td className="text-xs text-gray-500">{li.rate}</td>
-                    <td className="billing-mono text-xs font-semibold text-gray-900">
-                      {formatCurrency(li.amt, invoice.cur)}
-                    </td>
-                    <td className="billing-mono text-xs text-purple-600 font-medium">{li.sid || '—'}</td>
-                  </tr>
-                ))}
+                {lineItems.map((li, idx) => {
+                  const lineTypeBadgeClass =
+                    li.type === 'Subscription'
+                      ? 'b-subscription'
+                      : li.type === 'Commission'
+                      ? 'b-commission'
+                      : li.type === 'Penalty'
+                      ? 'b-penalty'
+                      : li.type === 'Add-on'
+                      ? 'b-addon'
+                      : 'b-credit';
+
+                  return (
+                    <tr key={li.id || idx}>
+                      <td>
+                        <span className={`b-badge ${lineTypeBadgeClass}`}>{li.type}</span>
+                      </td>
+                      <td className="text-xs text-gray-800">{li.desc}</td>
+                      <td className="text-xs text-gray-500">{li.qty}</td>
+                      <td className="text-xs text-gray-500">{li.rate}</td>
+                      <td className="billing-mono text-xs font-semibold text-gray-900">
+                        {formatCurrency(li.amt, invoice.cur)}
+                      </td>
+                      <td className="billing-mono text-xs text-purple-600 font-medium">{li.sid || '—'}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           ) : (
@@ -271,26 +285,30 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
               )}
               {lineItems
                 .filter((l) => l.sid)
-                .map((li, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3.5 border border-gray-200 rounded-xl mb-2.5 flex items-center gap-3.5 bg-gray-50"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 flex-shrink-0">
-                      <Truck size={18} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="billing-mono font-bold text-purple-700 text-sm">{li.sid}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">{li.desc}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="billing-mono font-bold text-gray-900 text-sm">
-                        {formatCurrency(li.amt, invoice.cur)}
+                .map((li, idx) => {
+                  const rawShipmentId = li.sid?.replace('SHP-', '');
+                  return (
+                    <Link
+                      key={idx}
+                      to={`/manage-shipments?q=${rawShipmentId}`}
+                      className="p-3.5 border border-gray-200 rounded-xl mb-2.5 flex items-center gap-3.5 bg-gray-50 hover:bg-purple-50/50 transition-colors block no-underline text-inherit"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 flex-shrink-0">
+                        <Truck size={18} />
                       </div>
-                    </div>
-                    <ChevronRight size={16} className="text-gray-400" />
-                  </div>
-                ))}
+                      <div className="flex-1">
+                        <div className="billing-mono font-bold text-purple-700 text-sm">{li.sid}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">{li.desc}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="billing-mono font-bold text-gray-900 text-sm">
+                          {formatCurrency(li.amt, invoice.cur)}
+                        </div>
+                      </div>
+                      <ChevronRight size={16} className="text-gray-400" />
+                    </Link>
+                  );
+                })}
             </div>
           )}
         </div>
