@@ -27,6 +27,8 @@ import type {
 } from './types';
 import { downloadFileBlob, canSubmitBankReceipt, formatCurrency } from './mockData';
 import { fillPrintWindow, preparePrintWindow } from '../../utils/printHtml';
+import { InvoiceDocument } from './documents/InvoiceDocument';
+import { renderBillingDocumentHtml } from './documents/renderBillingDocument';
 
 import './billing.css';
 import { UniverseBanner } from './components/UniverseBanner';
@@ -329,8 +331,17 @@ export const BillingPage: React.FC = () => {
     }
 
     try {
-      const html = await billingService.getInvoicePrintHtml(inv.raw_id, false);
-      fillPrintWindow(printWindow, inv.id, html);
+      const payload = await billingService.getInvoicePrint(inv.raw_id);
+      const html = renderBillingDocumentHtml(
+        payload.invoice.id,
+        <InvoiceDocument
+          invoice={payload.invoice}
+          issuer={payload.issuer}
+          billTo={payload.bill_to}
+          currency={payload.currency}
+        />,
+      );
+      fillPrintWindow(printWindow, payload.invoice.id, html);
     } catch (err) {
       printWindow.close();
       toast.error(toBillingError(err, t('billingPage.printFailed', 'Unable to open the official invoice.'), t));

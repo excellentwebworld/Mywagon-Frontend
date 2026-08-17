@@ -1,13 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Download, Printer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { billingService } from '../../../../api/services/billingService';
-import {
-  downloadHtmlFile,
-  openHtmlPrintWindow,
-  sanitizeHtmlForPreview,
-} from '../../../../utils/printHtml';
+import type { InvoicePrintPayload, StatementPayload } from '../../../../api/types/billing';
+import { fillPrintWindow, preparePrintWindow } from '../../../../utils/printHtml';
+import { downloadElementAsPdf } from '../../../../utils/downloadPdf';
+import { InvoiceDocument } from '../../documents/InvoiceDocument';
+import { StatementDocument } from '../../documents/StatementDocument';
+import { BILLING_DOCUMENT_CSS } from '../../documents/documentStyles';
+import { renderBillingDocumentHtml } from '../../documents/renderBillingDocument';
 
 interface PdfPreviewModalProps {
   isOpen: boolean;
@@ -29,13 +31,17 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
   statementFilters,
 }) => {
   const { t } = useTranslation();
-  const [html, setHtml] = useState('');
+  const paperRef = useRef<HTMLDivElement>(null);
+  const [invoicePrint, setInvoicePrint] = useState<InvoicePrintPayload | null>(null);
+  const [statement, setStatement] = useState<StatementPayload | null>(null);
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
-      setHtml('');
+      setInvoicePrint(null);
+      setStatement(null);
       setError(null);
       return;
     }
@@ -47,15 +53,16 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
       try {
         if (isStatement) {
           const month = statementFilters?.month || statementPeriod;
-          setHtml(await billingService.getStatementPrintHtml(month, { month }, true));
+          setStatement(await billingService.getStatement(month, { month }));
+          setInvoicePrint(null);
         } else if (invoiceId) {
-          setHtml(await billingService.getInvoicePrintHtml(invoiceId, true));
-        } else {
-          setHtml('');
+          setInvoicePrint(await billingService.getInvoicePrint(invoiceId));
+          setStatement(null);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : t('billingPage.printFailed', 'Unable to load document.'));
-        setHtml('');
+        setInvoicePrint(null);
+        setStatement(null);
       } finally {
         setLoading(false);
       }
@@ -81,22 +88,51 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
     };
   }, [isOpen, onClose]);
 
-  const previewHtml = useMemo(() => sanitizeHtmlForPreview(html), [html]);
-
   if (!isOpen) return null;
 
   const title = isStatement
     ? `${t('billingPage.stMonthlyPDF', 'Monthly Statement')} — ${statementPeriod}`
-    : t('billingPage.pdfInvoice', 'INVOICE');
+    : invoicePrint?.invoice.id || t('billingPage.pdfInvoice', 'INVOICE');
 
-  const handlePrint = () => {
-    if (!html) return;
-    openHtmlPrintWindow(title, html);
+  const documentHtml = () => {
+    if (isStatement && statement) {
+      return renderBillingDocumentHtml(title, <StatementDocument statement={statement} />);
+    }
+    if (invoicePrint) {
+      return renderBillingDocumentHtml(
+        title,
+        <InvoiceDocument
+          invoice={invoicePrint.invoice}
+          issuer={invoicePrint.issuer}
+          billTo={invoicePrint.bill_to}
+          currency={invoicePrint.currency}
+        />,
+      );
+    }
+    return '';
   };
 
-  const handleDownload = () => {
+  const ready = Boolean((isStatement && statement) || invoicePrint);
+
+  const handlePrint = () => {
+    const html = documentHtml();
     if (!html) return;
-    downloadHtmlFile(title, html);
+    const printWindow = preparePrintWindow(title);
+    if (!printWindow) return;
+    fillPrintWindow(printWindow, title, html);
+  };
+
+  const handleDownload = async () => {
+    const node = paperRef.current?.querySelector('.mv-doc') as HTMLElement | null;
+    if (!node) return;
+    setDownloading(true);
+    try {
+      await downloadElementAsPdf(node, title);
+    } catch {
+      setError(t('billingPage.printFailed', 'Unable to download the PDF.'));
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return createPortal(
@@ -114,7 +150,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
             type="button"
             className="b-btn b-btn-sm inline-flex items-center gap-1"
             onClick={handlePrint}
-            disabled={!html || loading}
+            disabled={!ready || loading}
           >
             <Printer size={13} />
             <span>{t('billingPage.btnPrint', 'Print')}</span>
@@ -123,10 +159,14 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
             type="button"
             className="b-btn b-btn-sm b-btn-primary inline-flex items-center gap-1"
             onClick={handleDownload}
-            disabled={!html || loading}
+            disabled={!ready || loading || downloading}
           >
             <Download size={13} />
-            <span>{t('billingPage.btnDownloadPDF', 'Download PDF')}</span>
+            <span>
+              {downloading
+                ? t('billingPage.exporting', 'Exporting…')
+                : t('billingPage.btnDownloadPDF', 'Download PDF')}
+            </span>
           </button>
           <button type="button" className="b-btn-ghost" onClick={onClose}>
             <X size={18} />
@@ -139,11 +179,18 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
           ) : error ? (
             <div className="text-center py-16 text-red-600 text-sm">{error}</div>
           ) : (
-            <iframe
-              title={title}
-              className="billing-pdf-preview"
-              srcDoc={previewHtml}
-            />
+            <div className="billing-doc-paper" ref={paperRef}>
+              <style>{BILLING_DOCUMENT_CSS}</style>
+              {isStatement && statement ? <StatementDocument statement={statement} /> : null}
+              {invoicePrint ? (
+                <InvoiceDocument
+                  invoice={invoicePrint.invoice}
+                  issuer={invoicePrint.issuer}
+                  billTo={invoicePrint.bill_to}
+                  currency={invoicePrint.currency}
+                />
+              ) : null}
+            </div>
           )}
         </div>
       </div>

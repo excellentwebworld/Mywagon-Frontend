@@ -36,6 +36,8 @@ export interface LineItem {
   desc: string;
   qty: number;
   rate: string;
+  unit?: number;
+  vat?: number;
   amt: number;
   sid?: string;
   dates?: string;
@@ -111,6 +113,13 @@ export interface BillingSummary {
     d31_60: AgingBucket;
     d60: AgingBucket;
   };
+}
+
+export interface InvoicePrintPayload {
+  invoice: Invoice;
+  issuer: BillingIssuer;
+  bill_to: BillingParty;
+  currency: string;
 }
 
 export type TabKey = 'saas' | 'credits' | 'statements';

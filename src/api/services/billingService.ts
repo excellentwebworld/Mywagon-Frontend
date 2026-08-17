@@ -1,7 +1,7 @@
-import { apiGet, apiPost, apiDownload, AUTH_TOKEN_KEY, ApiError, axiosInstance } from '../client';
-import { openHtmlPrintWindow } from '../../utils/printHtml';
+import { apiGet, apiPost, apiDownload, AUTH_TOKEN_KEY, ApiError } from '../client';
 import type {
   Invoice,
+  InvoicePrintPayload,
   CreditNote,
   BillingSummary,
   LineItem,
@@ -138,22 +138,9 @@ export const billingService = {
     return res.data;
   },
 
-  async getInvoicePrintHtml(id: string | number, embed = true): Promise<string> {
-    const response = await axiosInstance.get(`/billing/invoices/${id}/print`, {
-      headers: { Accept: 'text/html' },
-      responseType: 'text',
-      params: { embed: embed ? 1 : undefined },
-    });
-    return String(response.data ?? '');
-  },
-
-  async getStatementPrintHtml(month: string, extra?: StatementExportExtra, embed = true): Promise<string> {
-    const response = await axiosInstance.get('/billing/statements/print', {
-      headers: { Accept: 'text/html' },
-      responseType: 'text',
-      params: { month, embed: embed ? 1 : undefined, ...extra },
-    });
-    return String(response.data ?? '');
+  async getInvoicePrint(id: string | number): Promise<InvoicePrintPayload> {
+    const res = await apiGet<InvoicePrintPayload>(`/billing/invoices/${id}/print`);
+    return res.data;
   },
 
   async getStatement(month: string, extra?: StatementExportExtra): Promise<StatementPayload> {
@@ -175,12 +162,6 @@ export const billingService = {
     format: 'PDF' | 'CSV' | 'XLSX',
     extra?: StatementExportExtra,
   ): Promise<void> {
-    if (format === 'PDF') {
-      const html = await this.getStatementPrintHtml(month, { month, ...extra }, false);
-      openHtmlPrintWindow(`Statement ${month}`, html);
-      return;
-    }
-
     const ext = format === 'XLSX' ? 'xlsx' : 'csv';
     await apiDownload(
       '/billing/statements/export',

@@ -1119,6 +1119,13 @@ table.billing-t {
   flex-shrink: 0;
 }
 
+.billing-doc-paper {
+  background: #ffffff;
+  width: min(794px, 100%);
+  box-shadow: 0 8px 28px rgba(26, 16, 64, 0.12);
+  flex-shrink: 0;
+}
+
 .billing-pdf-preview {
   display: block;
   width: min(860px, 100%);

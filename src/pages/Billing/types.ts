@@ -1,5 +1,6 @@
 export type {
   Invoice,
+  InvoicePrintPayload,
   LineItem,
   CreditNote,
   BillingSummary,
