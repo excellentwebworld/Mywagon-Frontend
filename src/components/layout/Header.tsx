@@ -3,7 +3,7 @@
  * [Logo?] Title | Search …… | Vagon AI | Bell | Messages | Profile | CTA | Trust
  */
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Search,
   Sparkles,
@@ -40,50 +40,22 @@ export const Header: React.FC<HeaderProps> = ({
   const { T } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
   const pastDueLocked = usePastDueLock();
 
   const [searchValue, setSearchValue] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
 
-  const hideTopSearch =
-    location.pathname.startsWith('/tutorials') ||
-    location.pathname.startsWith('/support');
-  const isBillingSearchPath = location.pathname.startsWith('/billing');
+  const showTopSearch = location.pathname.startsWith('/dashboard');
 
   useEffect(() => {
-    if (hideTopSearch) {
+    if (!showTopSearch) {
       setSearchValue('');
-      return;
     }
-    if (isBillingSearchPath) {
-      const q = searchParams.get('q') || searchParams.get('search') || '';
-      setSearchValue(q);
-    }
-  }, [hideTopSearch, isBillingSearchPath, searchParams]);
-
-  const handleSearchChange = (val: string) => {
-    setSearchValue(val);
-    if (isBillingSearchPath) {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          if (val.trim()) {
-            next.set('q', val);
-          } else {
-            next.delete('q');
-            next.delete('search');
-          }
-          return next;
-        },
-        { replace: true }
-      );
-    }
-  };
+  }, [showTopSearch]);
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchValue.trim() && !isBillingSearchPath) {
+    if (e.key === 'Enter' && searchValue.trim()) {
       navigate(`/support?q=${encodeURIComponent(searchValue.trim())}`);
     }
   };
@@ -184,7 +156,7 @@ export const Header: React.FC<HeaderProps> = ({
         {getPageTitle()}
       </h1>
 
-      {!hideTopSearch && (
+      {showTopSearch && (
         <div
           className="mv-topbar-search"
           style={{ background: T.sa, border: `1px solid ${T.bd}`, height: 34 }}
@@ -201,7 +173,7 @@ export const Header: React.FC<HeaderProps> = ({
           <input
             type="text"
             value={searchValue}
-            onChange={(e) => handleSearchChange(e.target.value)}
+            onChange={(e) => setSearchValue(e.target.value)}
             onKeyDown={handleSearchKeyDown}
             placeholder={t('topbar.search') || 'Search anything..'}
             aria-label={t('topbar.search') || 'Search'}
