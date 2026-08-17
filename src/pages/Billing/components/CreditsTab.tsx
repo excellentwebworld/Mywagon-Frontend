@@ -55,7 +55,7 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
           <div className="cc-sub">{t('billingPage.walletHint', 'Wallet / Rewards balance available to pay invoices in full')}</div>
         </div>
 
-        <div className="p-6 bg-white border border-gray-200 rounded-xl flex flex-col justify-center shadow-sm">
+        <div className="p-6 bg-white border border-gray-200 rounded-xl flex flex-col justify-center shadow-sm billing-quick-actions">
           <div className="font-semibold text-sm text-gray-900 mb-3.5">
             {t('billingPage.quickActions', 'Quick Actions')}
           </div>

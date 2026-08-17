@@ -82,7 +82,7 @@ function AddonCardSkeleton() {
 
 export const SubscriptionSkeleton: React.FC = () => (
   <div className="subscription-page sub-skeleton" aria-busy="true" aria-live="polite">
-    <div className="pg-head">
+    <header className="sub-head">
       <div>
         <div className="pg-t">
           <Skeleton width={180} height={24} borderRadius={4} {...sk} />
@@ -94,7 +94,7 @@ export const SubscriptionSkeleton: React.FC = () => (
       <div className="pg-head-r">
         <Skeleton width={118} height={36} borderRadius={8} {...sk} />
       </div>
-    </div>
+    </header>
 
     <div className="plan-summary">
       {Array.from({ length: 4 }).map((_, idx) => (

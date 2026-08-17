@@ -187,7 +187,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
 
       {(summary?.overdue_count || summary?.due_soon_count) ? (
         <div className="action-bar">
-          <span className="text-xl">⚠️</span>
+          <AlertTriangle size={20} className="action-bar-icon" aria-hidden="true" />
           <div className="ab-text">
             <strong>{t('billingPage.actionRequired', 'Action Required')}</strong> —{' '}
             {(summary?.overdue_count ?? 0) > 0 && (

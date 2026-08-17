@@ -1,6 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
+import {
+  BarChart3,
+  Building2,
+  CalendarClock,
+  CreditCard,
+  Crown,
+  Gem,
+  Puzzle,
+  Receipt,
+  RefreshCw,
+  Sparkles,
+  Users,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../../hooks/useToast';
 import { ApiError, getApiErrorMessage } from '../../api';
@@ -616,39 +629,60 @@ export const SubscriptionPage: React.FC = () => {
 
   return (
     <div className="subscription-page">
-      <div className="pg-head">
-        <div>
-          <div className="pg-t">{tf('pgTitle', 'Subscription')}</div>
-          <div className="pg-s">{tf('pgSub', 'Manage your plan, usage, and add-ons')}</div>
+      <header className="sub-head">
+        <div className="sub-head-l">
+          <div className="sub-head-title-row">
+            <span className="sub-head-icon" aria-hidden="true">
+              <Crown size={18} />
+            </span>
+            <h1 className="pg-t">{tf('pgTitle', 'Subscription')}</h1>
+          </div>
+          <p className="pg-s">{tf('pgSub', 'Manage your plan, usage, and add-ons')}</p>
         </div>
         <div className="pg-head-r">
-          <Link to="/billing" className="sub-btn">
+          <Link to="/billing" className="sub-btn sub-btn-outline">
+            <Receipt size={15} />
             {tf('viewInvoicesShort', 'View Invoices')}
           </Link>
         </div>
-      </div>
+      </header>
 
       <div className="plan-summary">
-        <div className="ps-card">
-          <div className="ps-label">{tf('currentPlan', 'Current Plan')}</div>
+        <div className="ps-card ps-card--plan">
+          <div className="ps-card-top">
+            <span className="ps-icon ps-icon--purple" aria-hidden="true">
+              <Sparkles size={16} />
+            </span>
+            <div className="ps-label">{tf('currentPlan', 'Current Plan')}</div>
+          </div>
           <div className="ps-value">{current?.plan_name ?? '—'}</div>
           <div className="ps-sub">
             {current?.is_free ? tf('freePlan', 'Free plan') : `${formatEuro(displayPrice)}${tf('perMonth', '/month')}`}
           </div>
-          <div className="ps-badge">
+          <div className={`ps-badge${current?.is_cancelled ? ' cancelled' : ''}`}>
             <span className="dot" /> {current?.is_cancelled ? tf('cancelled', 'Cancelled') : tf('active', 'Active')}
           </div>
         </div>
         <div className="ps-card">
-          <div className="ps-label">{tf('billingCycle', 'Billing Cycle')}</div>
+          <div className="ps-card-top">
+            <span className="ps-icon ps-icon--blue" aria-hidden="true">
+              <RefreshCw size={16} />
+            </span>
+            <div className="ps-label">{tf('billingCycle', 'Billing Cycle')}</div>
+          </div>
           <div className="ps-value">{subscribedCycle === 'yearly' ? tf('yearly', 'Yearly') : tf('monthly', 'Monthly')}</div>
           <div className="ps-sub">
             {subscribedCycle === 'yearly' ? tf('billedYearly', 'Billed once per year') : tf('billedMonthly', 'Billed every month')}
           </div>
         </div>
         <div className="ps-card">
-          <div className="ps-label">{tf('nextRenewal', 'Next Renewal')}</div>
-          <div className="ps-value" style={{ fontSize: 15 }}>
+          <div className="ps-card-top">
+            <span className="ps-icon ps-icon--amber" aria-hidden="true">
+              <CalendarClock size={16} />
+            </span>
+            <div className="ps-label">{tf('nextRenewal', 'Next Renewal')}</div>
+          </div>
+          <div className="ps-value ps-value--sm">
             {current?.is_free ? tf('renewalNa', 'N/A') : current?.expire_date ? formatDate(current.expire_date, locale) : '—'}
           </div>
           <div className="ps-sub">
@@ -666,8 +700,13 @@ export const SubscriptionPage: React.FC = () => {
           ) : null}
         </div>
         <div className="ps-card">
-          <div className="ps-label">{tf('paymentMethod', 'Payment')}</div>
-          <div className="ps-value" style={{ fontSize: 14, color: 'var(--t3)' }}>
+          <div className="ps-card-top">
+            <span className="ps-icon ps-icon--green" aria-hidden="true">
+              <CreditCard size={16} />
+            </span>
+            <div className="ps-label">{tf('paymentMethod', 'Payment')}</div>
+          </div>
+          <div className="ps-value ps-value--muted">
             {current?.has_payment_method ? tf('cardOnFile', 'Saved via Viva Wallet') : tf('noPayment', 'No payment method')}
           </div>
           <div className="ps-autopay">
@@ -687,25 +726,36 @@ export const SubscriptionPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="usage-section">
-        <div className="usage-title">
-          {tf('usageTitle', 'Usage This Period')}
-          <span className="reset">
-            {tf('resetLabel', 'Resets')}: {current?.is_free ? tf('renewalNa', 'N/A') : current?.expire_date ? formatDate(current.expire_date, locale) : '—'}
+      <section className="sub-panel usage-section">
+        <div className="sub-section-head">
+          <span className="sub-section-icon" aria-hidden="true">
+            <BarChart3 size={16} />
           </span>
+          <div className="usage-title">
+            {tf('usageTitle', 'Usage This Period')}
+            <span className="reset">
+              {tf('resetLabel', 'Resets')}: {current?.is_free ? tf('renewalNa', 'N/A') : current?.expire_date ? formatDate(current.expire_date, locale) : '—'}
+            </span>
+          </div>
         </div>
         <div className="usage-grid">
-          <div className="usage-card">
+          <div className="usage-card usage-card--seat">
             <div className="uc-top">
-              <div className="uc-name">{tf('activeUsers', 'Active Users')}</div>
+              <div className="uc-name">
+                <Users size={13} className="uc-icon" aria-hidden="true" />
+                {tf('activeUsers', 'Active Users')}
+              </div>
               <div className="uc-vals">
                 <span className="used">{data?.seats?.active_users ?? 0}</span>
               </div>
             </div>
           </div>
-          <div className="usage-card">
+          <div className="usage-card usage-card--seat">
             <div className="uc-top">
-              <div className="uc-name">{tf('paidUsers', 'Paid Users')}</div>
+              <div className="uc-name">
+                <Users size={13} className="uc-icon" aria-hidden="true" />
+                {tf('paidUsers', 'Paid Users')}
+              </div>
               <div className="uc-vals">
                 <span className="used">{data?.seats?.paid_users ?? 0}</span>
               </div>
@@ -731,11 +781,16 @@ export const SubscriptionPage: React.FC = () => {
             );
           })}
         </div>
-      </div>
+      </section>
 
-      <div style={{ marginBottom: 24 }}>
+      <section className="sub-panel plans-section">
         <div className="plans-header">
-          <h2>💎 {tf('choosePlan', 'Choose Your Plan')}</h2>
+          <div className="sub-section-head">
+            <span className="sub-section-icon sub-section-icon--gem" aria-hidden="true">
+              <Gem size={16} />
+            </span>
+            <h2>{tf('choosePlan', 'Choose Your Plan')}</h2>
+          </div>
           <CycleToggle
             cycle={cycle}
             onChange={setCycle}
@@ -849,12 +904,15 @@ export const SubscriptionPage: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
-      <div className="addons-section" id="addonsSection">
+      <section className="sub-panel addons-section" id="addonsSection">
         <div className="section-title">
-          <span className="st-icon">✦</span> {tf('addonsTitle', 'Add-Ons Marketplace')}
-          <button type="button" className="sub-btn" style={{ marginLeft: 'auto' }} onClick={openContact}>
+          <span className="st-icon" aria-hidden="true">
+            <Puzzle size={15} />
+          </span>
+          <span>{tf('addonsTitle', 'Add-Ons Marketplace')}</span>
+          <button type="button" className="sub-btn sub-btn-outline sub-btn-sm" onClick={openContact}>
             {tf('contactTitle', 'Contact us')}
           </button>
         </div>
@@ -943,10 +1001,15 @@ export const SubscriptionPage: React.FC = () => {
             </div>
           </div>
         ) : null}
-      </div>
+      </section>
 
-      <div className="billing-section">
-        <h3>🏢 {tf('billingDetails', 'Billing Details')}</h3>
+      <section className="sub-panel billing-section">
+        <div className="sub-section-head">
+          <span className="sub-section-icon" aria-hidden="true">
+            <Building2 size={16} />
+          </span>
+          <h3>{tf('billingDetails', 'Billing Details')}</h3>
+        </div>
         <div className="billing-grid">
           <div className="b-field">
             <div className="b-label">{tf('companyName', 'Company Name')}</div>
@@ -964,11 +1027,12 @@ export const SubscriptionPage: React.FC = () => {
             <div className="b-label">{tf('invoiceEmail', 'Invoice Email')}</div>
             <div className="b-val">{data?.billing.invoice_email || '—'}</div>
             <Link to="/billing" className="b-link">
-              {tf('viewInvoices', 'View Invoices →')}
+              <Receipt size={12} />
+              {tf('viewInvoices', 'View Invoices')}
             </Link>
           </div>
         </div>
-      </div>
+      </section>
 
       {modal && modalContent
         ? createPortal(

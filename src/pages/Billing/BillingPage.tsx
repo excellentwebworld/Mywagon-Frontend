@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Download,
   FileText,
   Layers,
   CreditCard,
   BarChart3,
+  Receipt,
+  AlertTriangle,
+  Crown,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -426,51 +429,69 @@ export const BillingPage: React.FC = () => {
 
   return (
     <div className="billing-container">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-6 pt-5">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-            {t('billingPage.pgTitle', 'Billing')}
-          </h1>
-          <p className="text-xs text-gray-500 mt-1">
-            {t('billingPage.pgSub', 'Manage invoices, wallet credit, and payment activity')}
-          </p>
+      <header className="billing-head">
+        <div className="billing-head-l">
+          <div className="billing-head-title-row">
+            <span className="billing-head-icon" aria-hidden="true">
+              <Receipt size={18} />
+            </span>
+            <div>
+              <h1 className="billing-title">{t('billingPage.pgTitle', 'Billing')}</h1>
+              <p className="billing-subtitle">
+                {t('billingPage.pgSub', 'Manage invoices, wallet credit, and payment activity')}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="billing-head-r">
+          <Link to="/subscription" className="b-btn">
+            <Crown size={14} />
+            <span>{t('billingPage.manageSubscription', 'Manage Subscription')}</span>
+          </Link>
           <button type="button" className="b-btn" onClick={handleExportInvoicesCsv}>
             <Download size={14} />
             <span>{t('billingPage.btnExport', 'Export')}</span>
           </button>
-          <button type="button" className="b-btn" onClick={() => setStatementDownloadOpen(true)}>
+          <button type="button" className="b-btn b-btn-primary" onClick={() => setStatementDownloadOpen(true)}>
             <FileText size={14} />
             <span>{t('billingPage.btnStatement', 'Download Statement')}</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {upgradeRequired && (
-        <div className="mx-6 mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-900">
-          {t(
-            'billingPage.upgradeRequired',
-            'Your current subscription plan does not support this feature. To unlock it, please upgrade to a higher tier plan.'
-          )}
-        </div>
-      )}
-
-      {summary?.has_past_due && (
-        <div className="mx-6 mt-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg text-sm text-red-800">
-          <strong>{t('billingPage.paymentOverdue', 'Payment Overdue')}</strong>
+        <div className="billing-alert billing-alert--warning" role="status">
+          <AlertTriangle size={18} />
           <p>
             {t(
-              'billingPage.paymentOverdueBody',
-              'You have a pending invoice that is past due. Immediate payment is required to avoid service interruption.'
+              'billingPage.upgradeRequired',
+              'Your current subscription plan does not support this feature. To unlock it, please upgrade to a higher tier plan.'
             )}
           </p>
         </div>
       )}
 
+      {summary?.has_past_due && (
+        <div className="billing-alert billing-alert--danger" role="alert">
+          <AlertTriangle size={18} />
+          <div>
+            <strong>{t('billingPage.paymentOverdue', 'Payment Overdue')}</strong>
+            <p>
+              {t(
+                'billingPage.paymentOverdueBody',
+                'You have a pending invoice that is past due. Immediate payment is required to avoid service interruption.'
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+
       {error && (
-        <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{error}</div>
+        <div className="billing-alert billing-alert--danger" role="alert">
+          <AlertTriangle size={18} />
+          <p>{error}</p>
+        </div>
       )}
 
       <UniverseBanner />
@@ -502,7 +523,7 @@ export const BillingPage: React.FC = () => {
         </button>
       </div>
 
-      <div className="mt-2">
+      <div className="billing-tab-content">
         {activeTab === 'saas' && (
           <SaasFeesTab
             invoices={invoices}
