@@ -11,6 +11,7 @@ import {
   X,
   Wallet,
   Building2,
+  Printer,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Invoice, SubFilterKey, KpiFilterKey, BillingSummary } from '../types';
@@ -28,6 +29,9 @@ interface SaasFeesTabProps {
   subFilter: SubFilterKey;
   kpiFilter: KpiFilterKey;
   searchQuery: string;
+  dateFrom: string;
+  dateTo: string;
+  canDateFilter: boolean;
   page: number;
   lastPage: number;
   total: number;
@@ -35,10 +39,14 @@ interface SaasFeesTabProps {
   onSetSubFilter: (filter: SubFilterKey) => void;
   onToggleKpiFilter: (filter: KpiFilterKey) => void;
   onSearchChange: (q: string) => void;
+  onDateFromChange: (v: string) => void;
+  onDateToChange: (v: string) => void;
+  onApplyDateFilter: () => void;
   onClearFilters: () => void;
   onPageChange: (page: number) => void;
   onSelectInvoice: (invoice: Invoice) => void;
   onPreviewPdf: (invoice: Invoice) => void;
+  onOfficialPrint: (invoice: Invoice) => void;
   onExportInvoiceCsv: (invoice: Invoice) => void;
   onPayNow: (invoice: Invoice) => void;
   onPayWallet: (invoice: Invoice) => void;
@@ -52,6 +60,9 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
   subFilter,
   kpiFilter,
   searchQuery,
+  dateFrom,
+  dateTo,
+  canDateFilter,
   page,
   lastPage,
   total,
@@ -59,10 +70,14 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
   onSetSubFilter,
   onToggleKpiFilter,
   onSearchChange,
+  onDateFromChange,
+  onDateToChange,
+  onApplyDateFilter,
   onClearFilters,
   onPageChange,
   onSelectInvoice,
   onPreviewPdf,
+  onOfficialPrint,
   onExportInvoiceCsv,
   onPayNow,
   onPayWallet,
@@ -222,7 +237,29 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
           />
         </div>
 
-        {(kpiFilter || searchQuery) && (
+        <label className="billing-date-field">
+          <span>{t('billingPage.fromDate', 'From')}</span>
+          <input
+            type="date"
+            value={dateFrom}
+            disabled={!canDateFilter}
+            onChange={(e) => onDateFromChange(e.target.value)}
+          />
+        </label>
+        <label className="billing-date-field">
+          <span>{t('billingPage.toDate', 'To')}</span>
+          <input
+            type="date"
+            value={dateTo}
+            disabled={!canDateFilter}
+            onChange={(e) => onDateToChange(e.target.value)}
+          />
+        </label>
+        <button type="button" className="b-btn b-btn-sm" onClick={onApplyDateFilter}>
+          {t('billingPage.filter', 'Filter')}
+        </button>
+
+        {(kpiFilter || searchQuery || dateFrom || dateTo) && (
           <button
             type="button"
             className="b-btn b-btn-sm b-btn-danger flex items-center gap-1"
@@ -261,7 +298,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
                     {inv.id}
                     {inv.under_process && (
                       <div className="text-[10px] text-amber-600 font-medium mt-0.5">
-                        {t('billingPage.underProcess', 'Under Process')}
+                        {t('billingPage.receiptUnderReview', 'Receipt under review')}
                       </div>
                     )}
                   </td>
@@ -323,6 +360,14 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
                           <Building2 size={15} />
                         </button>
                       )}
+                      <button
+                        type="button"
+                        className="b-btn-ghost p-1"
+                        title={t('billingPage.btnOfficialInvoice', 'Official invoice')}
+                        onClick={() => onOfficialPrint(inv)}
+                      >
+                        <Printer size={15} />
+                      </button>
                       <button
                         type="button"
                         className="b-btn-ghost p-1"

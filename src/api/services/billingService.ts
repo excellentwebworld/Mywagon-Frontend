@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDownload, AUTH_TOKEN_KEY, ApiError } from '../client';
+import { apiGet, apiPost, apiDownload, AUTH_TOKEN_KEY, ApiError, axiosInstance } from '../client';
 import type { Invoice, CreditNote, BillingSummary, LineItem } from '../../pages/Billing/types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
@@ -19,6 +19,8 @@ export type VivaOrderResponse = {
   amount?: number;
   invoice_id?: number;
   use_wallet?: boolean;
+  wallet_applied?: boolean;
+  wallet_amount?: number;
 };
 
 export const billingService = {
@@ -105,6 +107,14 @@ export const billingService = {
     return res.data;
   },
 
+  async getInvoicePrintHtml(id: string | number): Promise<string> {
+    const response = await axiosInstance.get(`/billing/invoices/${id}/print`, {
+      headers: { Accept: 'text/html' },
+      responseType: 'text',
+    });
+    return String(response.data ?? '');
+  },
+
   async verifyVivaPayment(transactionId?: string, orderCode?: string): Promise<void> {
     await apiPost('/billing/viva/verify-payment', {
       transaction_id: transactionId,
@@ -114,7 +124,11 @@ export const billingService = {
     });
   },
 
-  async exportStatement(month: string, format: 'PDF' | 'CSV' | 'XLSX'): Promise<void> {
+  async exportStatement(
+    month: string,
+    format: 'PDF' | 'CSV' | 'XLSX',
+    extra?: { status?: string; type?: string; q?: string; from?: string; to?: string },
+  ): Promise<void> {
     if (format === 'PDF') {
       return;
     }
@@ -122,7 +136,7 @@ export const billingService = {
     await apiDownload(
       '/billing/statements/export',
       `billing_statement_${month.replace(/\s+/g, '_')}.${ext}`,
-      { month, format: ext }
+      { month, format: ext, ...extra },
     );
   },
 };

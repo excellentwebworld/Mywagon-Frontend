@@ -329,6 +329,30 @@
   color: var(--t3, #8e8e9a);
 }
 
+.billing-date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--t3, #8e8e9a);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.billing-date-field input {
+  border: 1px solid var(--bd, #e4e4e8);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--t1, #121217);
+  background: var(--sf, #ffffff);
+}
+.billing-date-field input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* TABLE CARD */
 .billing-tbl-card {
   margin: 16px 24px 0;

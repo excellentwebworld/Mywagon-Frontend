@@ -69,4 +69,8 @@ export const subscriptionService = {
   setAddonAutoPay(id: number, enabled: boolean) {
     return apiPost(`/subscription/addons/${id}/auto-pay`, { enabled });
   },
+
+  contactUs(payload: { name: string; email: string; phone: string; description: string }) {
+    return apiPost('/subscription/contact-us', payload);
+  },
 };

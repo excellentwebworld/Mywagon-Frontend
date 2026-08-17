@@ -22,7 +22,7 @@ import type {
   KpiFilterKey,
   BillingSummary,
 } from './types';
-import { downloadFileBlob, canSubmitBankReceipt, csvDate } from './mockData';
+import { downloadFileBlob, canSubmitBankReceipt, formatCurrency } from './mockData';
 
 import './billing.css';
 import { UniverseBanner } from './components/UniverseBanner';
@@ -83,6 +83,10 @@ export const BillingPage: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = useState(
     () => (searchParams.get('q') || searchParams.get('search') || '').trim()
   );
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [appliedFrom, setAppliedFrom] = useState('');
+  const [appliedTo, setAppliedTo] = useState('');
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -152,6 +156,8 @@ export const BillingPage: React.FC = () => {
         billingService.getInvoices({
           ...filters,
           q: debouncedSearch.trim() || undefined,
+          from: appliedFrom || undefined,
+          to: appliedTo || undefined,
           page,
           per_page: 15,
         }),
@@ -169,7 +175,7 @@ export const BillingPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [subFilter, kpiFilter, debouncedSearch, page, t, user?.has_past_due, refreshUser]);
+  }, [subFilter, kpiFilter, debouncedSearch, appliedFrom, appliedTo, page, t, user?.has_past_due, refreshUser]);
 
   useEffect(() => {
     fetchBillingData();
@@ -206,6 +212,11 @@ export const BillingPage: React.FC = () => {
       window.history.replaceState({}, '', url.pathname + url.search);
     };
 
+    if (payment === 'failed' || payment === 'cancel' || payment === 'cancelled') {
+      toast.error(t('billingPage.vivaVerifyFailed', 'Payment was not completed.'));
+      clearQuery();
+      return;
+    }
     if (payment === 'success') {
       toast.success(t('billingPage.successViva', 'Payment completed successfully'));
       clearQuery();
@@ -232,6 +243,10 @@ export const BillingPage: React.FC = () => {
     setKpiFilter(null);
     setSubFilter('All');
     updateSearchQuery('');
+    setDateFrom('');
+    setDateTo('');
+    setAppliedFrom('');
+    setAppliedTo('');
     setPage(1);
   };
 
@@ -245,7 +260,53 @@ export const BillingPage: React.FC = () => {
     setKpiFilter(null);
     setSubFilter('All');
     updateSearchQuery('');
+    setDateFrom('');
+    setDateTo('');
+    setAppliedFrom('');
+    setAppliedTo('');
     setPage(1);
+  };
+
+  const currentExportFilters = () => {
+    const mapped = mapSubFilter(subFilter, kpiFilter);
+    return {
+      ...mapped,
+      q: debouncedSearch.trim() || undefined,
+      from: appliedFrom || undefined,
+      to: appliedTo || undefined,
+    };
+  };
+
+  const handleApplyDateFilter = () => {
+    if (summary?.has_filter_search === false) {
+      toast.error(
+        t(
+          'billingPage.upgradeRequired',
+          'Your current subscription plan does not support this feature. To unlock it, please upgrade to a higher tier plan.',
+        ),
+      );
+      return;
+    }
+    setAppliedFrom(dateFrom);
+    setAppliedTo(dateTo);
+    setPage(1);
+  };
+
+  const handleOfficialPrint = async (inv: Invoice) => {
+    if (!inv.raw_id) return;
+    try {
+      const html = await billingService.getInvoicePrintHtml(inv.raw_id);
+      const win = window.open('', '_blank', 'noopener,noreferrer');
+      if (!win) {
+        toast.error(t('billingPage.printBlocked', 'Please allow pop-ups to print the official invoice.'));
+        return;
+      }
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+    } catch (err) {
+      toast.error(toBillingError(err, t('billingPage.printFailed', 'Unable to open the official invoice.'), t));
+    }
   };
 
   const invoiceKey = (inv: Invoice) => inv.raw_id ?? inv.id;
@@ -256,6 +317,15 @@ export const BillingPage: React.FC = () => {
     try {
       const order = await billingService.createVivaOrder(inv.raw_id);
       if (order.checkoutUrl) {
+        if (order.wallet_applied && (order.wallet_amount ?? 0) > 0) {
+          toast.info(
+            t(
+              'billingPage.walletRemainderNote',
+              'Wallet credit of {{amount}} will be applied. The remainder is charged via Viva Wallet.',
+              { amount: formatCurrency(order.wallet_amount ?? 0) },
+            ),
+          );
+        }
         window.location.assign(order.checkoutUrl);
         return;
       }
@@ -281,13 +351,17 @@ export const BillingPage: React.FC = () => {
     if (activeTab === 'credits') fetchWalletActivity();
   };
 
-  const handleExportInvoicesCsv = () => {
-    const header = 'Invoice #,Type,Status,Issue Date,Due Date,Total,Remaining,Loads\n';
-    const rows = invoices
-      .map((i) => `${i.id},${i.type},${i.status},${csvDate(i.iDate)},${csvDate(i.dDate)},${i.tot},${i.rem},${i.loads}`)
-      .join('\n');
-    downloadFileBlob(`billing_invoices_${new Date().toISOString().slice(0, 10)}.csv`, header + rows);
-    toast.success(t('billingPage.successExport', 'Invoices exported to CSV'));
+  const handleExportInvoicesCsv = async () => {
+    try {
+      await billingService.exportStatement(
+        pdfStatementPeriod,
+        'CSV',
+        currentExportFilters(),
+      );
+      toast.success(t('billingPage.successExport', 'Invoices exported to CSV'));
+    } catch (err) {
+      toast.error(toBillingError(err, t('billingPage.exportFailed', 'Export failed.'), t));
+    }
   };
 
   const handleExportSingleInvoiceCsv = (inv: Invoice) => {
@@ -302,7 +376,7 @@ export const BillingPage: React.FC = () => {
 
   const handleExportAllLineItemsCsv = async () => {
     try {
-      await billingService.exportStatement(pdfStatementPeriod, 'CSV');
+      await billingService.exportStatement(pdfStatementPeriod, 'CSV', currentExportFilters());
       toast.success(t('billingPage.successExport', 'Line items exported'));
     } catch (err) {
       toast.error(toBillingError(err, t('billingPage.exportFailed', 'Export failed.'), t));
@@ -318,7 +392,7 @@ export const BillingPage: React.FC = () => {
       return;
     }
     try {
-      await billingService.exportStatement(month, format);
+      await billingService.exportStatement(month, format, currentExportFilters());
       toast.success(t('billingPage.successStatement', 'Statement generated'));
     } catch (err) {
       toast.error(toBillingError(err, t('billingPage.exportFailed', 'Export failed.'), t));
@@ -437,6 +511,9 @@ export const BillingPage: React.FC = () => {
             subFilter={subFilter}
             kpiFilter={kpiFilter}
             searchQuery={searchQuery}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            canDateFilter={summary?.has_filter_search !== false}
             page={page}
             lastPage={lastPage}
             total={total}
@@ -448,10 +525,14 @@ export const BillingPage: React.FC = () => {
             }}
             onToggleKpiFilter={handleToggleKpiFilter}
             onSearchChange={updateSearchQuery}
+            onDateFromChange={setDateFrom}
+            onDateToChange={setDateTo}
+            onApplyDateFilter={handleApplyDateFilter}
             onClearFilters={handleClearFilters}
             onPageChange={setPage}
             onSelectInvoice={handleSelectInvoice}
             onPreviewPdf={handleOpenPdfPreview}
+            onOfficialPrint={handleOfficialPrint}
             onExportInvoiceCsv={handleExportSingleInvoiceCsv}
             onPayNow={handlePayNow}
             onPayWallet={(inv) => inv.raw_id && handlePayWallet(inv.raw_id)}
@@ -518,6 +599,7 @@ export const BillingPage: React.FC = () => {
         payingId={payingId}
         onPreviewPdf={handleOpenPdfPreview}
         onDownloadPdf={handleOpenPdfPreview}
+        onOfficialPrint={handleOfficialPrint}
         onExportCsv={handleExportSingleInvoiceCsv}
         onPayNow={handlePayNow}
         onPayWallet={(inv) => inv.raw_id && handlePayWallet(inv.raw_id)}

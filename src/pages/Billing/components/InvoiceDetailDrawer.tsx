@@ -25,6 +25,7 @@ interface InvoiceDetailDrawerProps {
   payingId: number | null;
   onPreviewPdf: (invoice: Invoice) => void;
   onDownloadPdf: (invoice: Invoice) => void;
+  onOfficialPrint?: (invoice: Invoice) => void;
   onExportCsv: (invoice: Invoice) => void;
   onPayNow: (invoice: Invoice) => void;
   onPayWallet: (invoice: Invoice) => void;
@@ -41,6 +42,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
   payingId,
   onPreviewPdf,
   onDownloadPdf,
+  onOfficialPrint,
   onExportCsv,
   onPayNow,
   onPayWallet,
@@ -95,6 +97,9 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
               <div className="flex gap-2">
                 <span className={`b-badge ${typeBadgeClass}`}>{invoice.type}</span>
                 <span className={`b-badge ${statusBadgeClass}`}>{invoice.status}</span>
+                {invoice.under_process ? (
+                  <span className="b-badge b-unpaid">{t('billingPage.receiptUnderReview', 'Receipt under review')}</span>
+                ) : null}
               </div>
             </div>
             <button type="button" className="b-btn-ghost" onClick={onClose}>
@@ -157,6 +162,12 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
           </div>
 
           <div className="flex gap-1.5 mt-3.5 flex-wrap">
+            {onOfficialPrint && (
+              <button type="button" className="b-btn b-btn-sm b-btn-primary" onClick={() => onOfficialPrint(invoice)}>
+                <FileText size={13} />
+                <span>{t('billingPage.btnOfficialInvoice', 'Official invoice')}</span>
+              </button>
+            )}
             <button type="button" className="b-btn b-btn-sm" onClick={() => onPreviewPdf(invoice)}>
               <FileText size={13} />
               <span>{t('billingPage.btnPreviewPDF', 'Preview PDF')}</span>

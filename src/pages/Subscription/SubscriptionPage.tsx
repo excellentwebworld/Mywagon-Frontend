@@ -24,7 +24,9 @@ type SubModal =
   | { kind: 'upgrade'; planId: number }
   | { kind: 'cancel-plan' }
   | { kind: 'buy-addon'; addon: SubscriptionAddonOffer; count: number }
-  | { kind: 'cancel-addon'; addon: PurchasedAddon };
+  | { kind: 'cancel-addon'; addon: PurchasedAddon }
+  | { kind: 'contact' }
+  | { kind: 'tooltip'; which: AddonTab };
 
 const USAGE_LABELS: Record<string, string> = {
   private_load_limit: 'Private Loads',
@@ -153,6 +155,7 @@ export const SubscriptionPage: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [autoPayOnCheckout, setAutoPayOnCheckout] = useState(true);
   const [addonCounts, setAddonCounts] = useState<Record<number, number>>({});
+  const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', description: '' });
 
   const subscribedCycle: UiCycle = currentIntervalToUi(data?.current?.interval);
   const planCheckoutCycle = toApiCycle(cycle);
@@ -201,6 +204,11 @@ export const SubscriptionPage: React.FC = () => {
       ['payment', 't', 's', 'transaction_id', 'order_code'].forEach((k) => url.searchParams.delete(k));
       window.history.replaceState({}, '', url.pathname + url.search);
     };
+    if (payment === 'failed' || payment === 'cancel' || payment === 'cancelled') {
+      toast.error(tf('payFailed', 'Payment was not completed.'));
+      clearQuery();
+      return;
+    }
     if (payment === 'success') {
       toast.success(tf('successUpgrade', 'Plan updated successfully!'));
       clearQuery();
@@ -274,8 +282,39 @@ export const SubscriptionPage: React.FC = () => {
     toast.error(tf('payFailed', 'Payment could not be started.'));
   };
 
+  const submitContact = async () => {
+    if (busy) return;
+    if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.phone.trim() || contactForm.description.trim().length < 5) {
+      toast.error(tf('contactInvalid', 'Please fill in name, email, phone, and a short message.'));
+      return;
+    }
+    setBusy(true);
+    try {
+      await subscriptionService.contactUs({
+        name: contactForm.name.trim(),
+        email: contactForm.email.trim(),
+        phone: contactForm.phone.trim(),
+        description: contactForm.description.trim(),
+      });
+      toast.success(tf('contactSent', 'Contact request submitted successfully.'));
+      closeModal();
+    } catch (err) {
+      toast.error(toError(err, tf('actionFailed', 'Unable to complete this action.')));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const confirmModal = async () => {
     if (!modal || busy) return;
+    if (modal.kind === 'tooltip') {
+      closeModal();
+      return;
+    }
+    if (modal.kind === 'contact') {
+      await submitContact();
+      return;
+    }
     setBusy(true);
     try {
       if (modal.kind === 'upgrade') {
@@ -305,6 +344,7 @@ export const SubscriptionPage: React.FC = () => {
         toast.success(tf('successRemoved', 'Add-on will stop at the end of its period.'));
         closeModal();
         await load();
+        return;
       }
     } catch (err) {
       toast.error(toError(err, tf('actionFailed', 'Unable to complete this action.')));
@@ -314,6 +354,10 @@ export const SubscriptionPage: React.FC = () => {
   };
 
   const togglePlanAutoPay = async (enabled: boolean) => {
+    if (enabled && data?.current && !data.current.has_payment_method) {
+      toast.error(tf('autopayNeedsCheckout', 'Complete a checkout with auto-pay to store a payment method.'));
+      return;
+    }
     try {
       await subscriptionService.setAutoPay(enabled);
       toast.success(enabled ? tf('autopayOn', 'Auto-pay enabled.') : tf('autopayOff', 'Auto-pay disabled.'));
@@ -321,6 +365,26 @@ export const SubscriptionPage: React.FC = () => {
     } catch (err) {
       toast.error(toError(err, tf('actionFailed', 'Unable to complete this action.')));
     }
+  };
+
+  const toggleAddonAutoPay = async (addon: PurchasedAddon, enabled: boolean) => {
+    try {
+      await subscriptionService.setAddonAutoPay(addon.id, enabled);
+      toast.success(enabled ? tf('autopayOn', 'Auto-pay enabled.') : tf('autopayOff', 'Auto-pay disabled.'));
+      await load();
+    } catch (err) {
+      toast.error(toError(err, tf('actionFailed', 'Unable to complete this action.')));
+    }
+  };
+
+  const openContact = () => {
+    setContactForm({
+      name: data?.contact?.name || '',
+      email: data?.contact?.email || '',
+      phone: data?.contact?.phone || '',
+      description: '',
+    });
+    setModal({ kind: 'contact' });
   };
 
   const current = data?.current;
@@ -368,6 +432,11 @@ export const SubscriptionPage: React.FC = () => {
               </div>
             </div>
             {q.prorated ? <div className="m-info">{tf('proratedNote', 'Price is prorated for the unused days in your current billing period.')}</div> : null}
+            {q.vat_percent > 0 ? (
+              <div className="m-info">
+                {tf('vatNote', 'As per EU tax regulations, customers from Greece are required to pay')} {q.vat_percent}% {tf('vatOnDigital', 'VAT on digital services and products.')}
+              </div>
+            ) : null}
             <label className="m-info" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input type="checkbox" checked={autoPayOnCheckout} onChange={(e) => setAutoPayOnCheckout(e.target.checked)} />
               {tf('enableAutopay', 'Enable auto-pay for renewals')}
@@ -402,6 +471,11 @@ export const SubscriptionPage: React.FC = () => {
             ) : (
               <div className="m-info">{tf('purchaseNote', 'Units are added after payment and follow your current subscription cycle.')}</div>
             )}
+            {q.vat_percent > 0 ? (
+              <div className="m-info">
+                {tf('vatNote', 'As per EU tax regulations, customers from Greece are required to pay')} {q.vat_percent}% {tf('vatOnDigital', 'VAT on digital services and products.')}
+              </div>
+            ) : null}
           </>
         ) : null,
       };
@@ -414,13 +488,62 @@ export const SubscriptionPage: React.FC = () => {
         body: <div className="m-info">{tf('cancelPlanNote', 'You keep access until the current period ends. Auto-pay will be turned off.')}</div>,
       };
     }
+    if (modal.kind === 'contact') {
+      return {
+        title: tf('contactTitle', 'Contact us'),
+        confirm: busy ? tf('processing', 'Processing…') : tf('contactSubmit', 'Submit Request'),
+        danger: false,
+        body: (
+          <div className="sub-contact-form">
+            <label>
+              {tf('contactName', 'Full Name')}
+              <input value={contactForm.name} onChange={(e) => setContactForm((p) => ({ ...p, name: e.target.value }))} />
+            </label>
+            <label>
+              {tf('contactPhone', 'Phone Number')}
+              <input value={contactForm.phone} onChange={(e) => setContactForm((p) => ({ ...p, phone: e.target.value }))} />
+            </label>
+            <label>
+              {tf('contactEmail', 'Email ID')}
+              <input type="email" value={contactForm.email} onChange={(e) => setContactForm((p) => ({ ...p, email: e.target.value }))} />
+            </label>
+            <label>
+              {tf('contactMessage', 'Write your request here...')}
+              <textarea rows={4} value={contactForm.description} onChange={(e) => setContactForm((p) => ({ ...p, description: e.target.value }))} />
+            </label>
+          </div>
+        ),
+      };
+    }
+    if (modal.kind === 'tooltip') {
+      return {
+        title: modal.which === 'recurring' ? tf('recurringTab', 'Recurring Add-Ons') : tf('usageTab', 'Usage-Based Add-Ons'),
+        confirm: tf('gotIt', 'Got it'),
+        danger: false,
+        body: (
+          <div className="m-info">
+            {modal.which === 'recurring' ? (
+              <>
+                <p>{tf('recurringTip1', 'These add-on features are recurring.')}</p>
+                <p>{tf('recurringTip2', 'Purchasing one of these will unlock this feature and it will stay active for the billing period. Unless you cancel before the end of the period, the feature will auto-renew and you will be invoiced automatically for the subsequent period.')}</p>
+              </>
+            ) : (
+              <>
+                <p>{tf('oneTimeTip1', 'These add-on features are consumable.')}</p>
+                <p>{tf('oneTimeTip2', 'Purchasing one unit of each will give you one credit to use that feature, after which you will have to purchase more. You can buy multiple of those at once.')}</p>
+              </>
+            )}
+          </div>
+        ),
+      };
+    }
     return {
       title: modal.addon.name,
       confirm: tf('removeAddon', 'Remove'),
       danger: true,
       body: <div className="m-info">{tf('cancelAddonNote', 'The add-on stays active until its end date, then it will not renew.')}</div>,
     };
-  }, [modal, plans, quote, quoteLoading, busy, autoPayOnCheckout, t]);
+  }, [modal, plans, quote, quoteLoading, busy, autoPayOnCheckout, contactForm, t]);
 
   const renderAddonCard = (ao: SubscriptionAddonOffer) => {
     const price = cycle === 'yearly' ? ao.yearly_price : ao.monthly_price;
@@ -432,6 +555,7 @@ export const SubscriptionPage: React.FC = () => {
         <div className="ao-top">
           <div>
             <span className="ao-name">{ao.name}</span>
+            {ao.description && ao.description !== ao.name ? <div className="ao-desc">{ao.description}</div> : null}
           </div>
           <div className="ao-price">
             {formatEuro(price)}
@@ -525,11 +649,16 @@ export const SubscriptionPage: React.FC = () => {
         <div className="ps-card">
           <div className="ps-label">{tf('nextRenewal', 'Next Renewal')}</div>
           <div className="ps-value" style={{ fontSize: 15 }}>
-            {current?.expire_date ? formatDate(current.expire_date, locale) : '—'}
+            {current?.is_free ? tf('renewalNa', 'N/A') : current?.expire_date ? formatDate(current.expire_date, locale) : '—'}
           </div>
           <div className="ps-sub">
-            {current?.days_left != null ? `${current.days_left} ${tf('daysLeft', 'days left')}` : ''}
+            {current?.is_free
+              ? tf('unlimitedDays', 'Unlimited')
+              : current?.days_left != null
+                ? `${current.days_left} ${tf('daysLeft', 'days left')}`
+                : ''}
           </div>
+          {current?.is_custom ? <div className="ps-sub">{tf('customPlanNote', 'This plan is managed by MYVAGON.')}</div> : null}
           {current?.can_cancel ? (
             <button type="button" className="ps-link" onClick={() => setModal({ kind: 'cancel-plan' })}>
               {tf('cancelPlan', 'Cancel plan')}
@@ -560,12 +689,28 @@ export const SubscriptionPage: React.FC = () => {
 
       <div className="usage-section">
         <div className="usage-title">
-          📊 {tf('usageTitle', 'Usage This Period')}
+          {tf('usageTitle', 'Usage This Period')}
           <span className="reset">
-            {tf('resetLabel', 'Resets')}: {current?.expire_date ? formatDate(current.expire_date, locale) : '—'}
+            {tf('resetLabel', 'Resets')}: {current?.is_free ? tf('renewalNa', 'N/A') : current?.expire_date ? formatDate(current.expire_date, locale) : '—'}
           </span>
         </div>
         <div className="usage-grid">
+          <div className="usage-card">
+            <div className="uc-top">
+              <div className="uc-name">{tf('activeUsers', 'Active Users')}</div>
+              <div className="uc-vals">
+                <span className="used">{data?.seats?.active_users ?? 0}</span>
+              </div>
+            </div>
+          </div>
+          <div className="usage-card">
+            <div className="uc-top">
+              <div className="uc-name">{tf('paidUsers', 'Paid Users')}</div>
+              <div className="uc-vals">
+                <span className="used">{data?.seats?.paid_users ?? 0}</span>
+              </div>
+            </div>
+          </div>
           {(data?.usage ?? []).map((u) => {
             const unlimited = u.unlimited || u.limit == null;
             const pct = unlimited ? 0 : Math.round((u.used / Math.max(u.limit || 1, 1)) * 100);
@@ -603,7 +748,8 @@ export const SubscriptionPage: React.FC = () => {
           {plans.map((p) => {
             const pr = cycle === 'yearly' ? p.price_yearly_monthly_rate : p.price_monthly;
             const isCurrentCard = p.id === current?.plan_id && cycle === subscribedCycle;
-            const canUpgrade = cycle === 'yearly' ? p.upgrade_available_yearly : p.upgrade_available_monthly;
+            const canUpgrade =
+              !current?.is_custom && (cycle === 'yearly' ? p.upgrade_available_yearly : p.upgrade_available_monthly);
             const planPermissions = resolvePlanPermissions(p.permissions, isCurrentCard, purchasedStatusSlugs);
             return (
               <div key={p.id} className={`pcard${isCurrentCard ? ' current' : ''}`}>
@@ -626,6 +772,10 @@ export const SubscriptionPage: React.FC = () => {
                   ) : canUpgrade ? (
                     <button type="button" className="cta pri" onClick={() => setModal({ kind: 'upgrade', planId: p.id })}>
                       {tf('upgradeTo', 'Upgrade to')} {p.name}
+                    </button>
+                  ) : current?.is_custom ? (
+                    <button type="button" className="cta sec" disabled>
+                      {tf('customPlanCta', 'Managed plan')}
                     </button>
                   ) : (
                     <button type="button" className="cta sec" disabled>
@@ -704,20 +854,52 @@ export const SubscriptionPage: React.FC = () => {
       <div className="addons-section" id="addonsSection">
         <div className="section-title">
           <span className="st-icon">✦</span> {tf('addonsTitle', 'Add-Ons Marketplace')}
-        </div>
-        <div className="addons-tabs">
-          <button type="button" className={`ao-tab${addonTab === 'recurring' ? ' active' : ''}`} onClick={() => setAddonTab('recurring')}>
-            {tf('recurringTab', 'Recurring Add-Ons')}
-          </button>
-          <button type="button" className={`ao-tab${addonTab === 'usage' ? ' active' : ''}`} onClick={() => setAddonTab('usage')}>
-            {tf('usageTab', 'Usage-Based Add-Ons')}
+          <button type="button" className="sub-btn" style={{ marginLeft: 'auto' }} onClick={openContact}>
+            {tf('contactTitle', 'Contact us')}
           </button>
         </div>
-        <div className="ao-grid">
-          {addonTab === 'recurring'
-            ? (data?.addons.recurring ?? []).map(renderAddonCard)
-            : (data?.addons.one_time ?? []).map(renderAddonCard)}
-        </div>
+        {!current ? (
+          <div className="m-info">{tf('addonsNeedPlan', 'Add-ons are available after you have an active subscription.')}</div>
+        ) : (
+          <>
+            <div className="addons-tabs">
+              <div className={`ao-tab${addonTab === 'recurring' ? ' active' : ''}`}>
+                <button type="button" className="ao-tab-btn" onClick={() => setAddonTab('recurring')}>
+                  {tf('recurringTab', 'Recurring Add-Ons')}
+                </button>
+                <button
+                  type="button"
+                  className="ao-tip"
+                  aria-label={tf('addonInfo', 'Info')}
+                  onClick={() => setModal({ kind: 'tooltip', which: 'recurring' })}
+                >
+                  i
+                </button>
+              </div>
+              <div className={`ao-tab${addonTab === 'usage' ? ' active' : ''}`}>
+                <button type="button" className="ao-tab-btn" onClick={() => setAddonTab('usage')}>
+                  {tf('usageTab', 'Usage-Based Add-Ons')}
+                </button>
+                <button
+                  type="button"
+                  className="ao-tip"
+                  aria-label={tf('addonInfo', 'Info')}
+                  onClick={() => setModal({ kind: 'tooltip', which: 'usage' })}
+                >
+                  i
+                </button>
+              </div>
+            </div>
+            <div className="ao-grid">
+              {addonTab === 'recurring'
+                ? (data?.addons.recurring ?? []).map(renderAddonCard)
+                : (data?.addons.one_time ?? []).map(renderAddonCard)}
+            </div>
+            {(addonTab === 'recurring' ? data?.addons.recurring : data?.addons.one_time)?.length === 0 ? (
+              <div className="m-info">{tf('noAddons', 'No add-ons are priced for your current plan.')}</div>
+            ) : null}
+          </>
+        )}
         {(data?.purchased_addons ?? []).length > 0 ? (
           <div style={{ marginTop: 24 }}>
             <div className="section-title">{tf('purchasedTitle', 'Purchased add-ons')}</div>
@@ -733,7 +915,23 @@ export const SubscriptionPage: React.FC = () => {
                   </div>
                   <div className="ao-purchased-info">
                     {addon.is_cancelled ? tf('cancelled', 'Cancelled') : tf('active', 'Active')}
-                    {addon.auto_pay ? ` · ${tf('autopayLabel', 'Autopay')}` : ''}
+                    {addon.billing_type === 'recurring' && !addon.is_cancelled ? (
+                      <span className="ps-autopay" style={{ marginLeft: 8 }}>
+                        <span>{tf('autopayLabel', 'Autopay')}</span>
+                        <button
+                          type="button"
+                          className={`ao-toggle${addon.auto_pay ? ' on' : ''}`}
+                          role="switch"
+                          aria-checked={addon.auto_pay}
+                          disabled={busy}
+                          onClick={() => void toggleAddonAutoPay(addon, !addon.auto_pay)}
+                        >
+                          <span className="knob" />
+                        </button>
+                      </span>
+                    ) : addon.auto_pay ? (
+                      ` · ${tf('autopayLabel', 'Autopay')}`
+                    ) : null}
                   </div>
                   {!addon.is_cancelled ? (
                     <button type="button" className="ao-buy remove" onClick={() => setModal({ kind: 'cancel-addon', addon })}>

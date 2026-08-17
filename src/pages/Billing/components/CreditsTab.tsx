@@ -52,7 +52,7 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
           <div className="cc-val billing-mono">
             {loading ? <Skeleton width={100} height={28} borderRadius={4} {...sk} /> : formatCurrency(walletBalance)}
           </div>
-          <div className="cc-sub">{t('billingPage.walletHint', 'Wallet balance available to pay invoices in full')}</div>
+          <div className="cc-sub">{t('billingPage.walletHint', 'Wallet / Rewards balance available to pay invoices in full')}</div>
         </div>
 
         <div className="p-6 bg-white border border-gray-200 rounded-xl flex flex-col justify-center shadow-sm">

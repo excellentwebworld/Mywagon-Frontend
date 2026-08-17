@@ -55,6 +55,7 @@ export interface SubscriptionAddonOffer {
   addon_price_id: number;
   slug: string;
   name: string;
+  description?: string | null;
   type: 'count' | 'status' | string;
   billing_type: 'recurring' | 'one_time' | string;
   monthly_price: number;
@@ -95,6 +96,15 @@ export interface SubscriptionOverview {
     vat_id: string | null;
     address: string | null;
     invoice_email: string | null;
+  };
+  seats?: {
+    active_users: number;
+    paid_users: number;
+  };
+  contact?: {
+    name: string | null;
+    email: string | null;
+    phone: string | null;
   };
 }
 
