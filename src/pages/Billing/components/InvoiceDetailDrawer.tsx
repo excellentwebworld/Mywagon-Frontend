@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
   X,
@@ -53,6 +54,26 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<'details' | 'loads'>('details');
 
+  const drBodyRef = useRef<HTMLDivElement>(null);
+  const drawerContentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && invoice) {
+      if (drBodyRef.current) {
+        drBodyRef.current.scrollTop = 0;
+      }
+      if (drawerContentRef.current) {
+        drawerContentRef.current.scrollTop = 0;
+      }
+    }
+  }, [isOpen, invoice?.id, invoice?.raw_id, detailLoading]);
+
+  useEffect(() => {
+    if (drBodyRef.current) {
+      drBodyRef.current.scrollTop = 0;
+    }
+  }, [activeTab]);
+
   if (!isOpen || !invoice) return null;
 
   const typeBadgeClass =
@@ -80,12 +101,12 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
     onToast(t('billingPage.copiedToClipboard', 'Copied to clipboard'));
   };
 
-  return (
+  return createPortal(
     <div
       className={`drawer-bg ${isOpen ? 'show' : ''}`}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="drawer-content">
+      <div className="drawer-content" ref={drawerContentRef}>
         <div className="dr-head">
           <div className="flex justify-between items-start">
             <div>
@@ -224,7 +245,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
           </button>
         </div>
 
-        <div className="dr-body">
+        <div className="dr-body" ref={drBodyRef}>
           {detailLoading ? (
             <BillingDrawerSkeleton />
           ) : activeTab === 'details' ? (
@@ -313,6 +334,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
