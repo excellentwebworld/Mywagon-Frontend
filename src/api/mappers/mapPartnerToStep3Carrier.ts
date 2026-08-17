@@ -12,7 +12,7 @@ export interface Step3ContractLane {
 export interface Step3Carrier {
   id: string;
   name: string;
-  type: 'carrier_company' | 'freelancer_driver';
+  type: 'carrier_company' | 'freelancer_driver' | 'supplier';
   status: 'active' | 'invited' | 'pending' | 'suspended';
   region: string;
   rating: number | null;
@@ -37,7 +37,12 @@ export function mapPartnerToStep3Carrier(partner: Partner): Step3Carrier {
   return {
     id: partner.id,
     name: partner.name,
-    type: partner.type === 'freelancer_driver' ? 'freelancer_driver' : 'carrier_company',
+    type:
+      partner.type === 'freelancer_driver'
+        ? 'freelancer_driver'
+        : partner.type === 'supplier'
+        ? 'supplier'
+        : 'carrier_company',
     status: partner.status,
     region: partner.region,
     rating: partner.rating,

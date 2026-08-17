@@ -19,6 +19,8 @@ const TYPE_MAP: Record<string, PartnerType> = {
   carrier_company: 'carrier_company',
   freelancer_driver: 'freelancer_driver',
   supplier: 'supplier',
+  shipper: 'supplier',
+  shipper_partner: 'supplier',
 };
 
 export function mapApiStatus(status: string): PartnerStatus {
@@ -26,7 +28,7 @@ export function mapApiStatus(status: string): PartnerStatus {
 }
 
 export function mapApiType(type: string): PartnerType {
-  return TYPE_MAP[type] ?? 'carrier_company';
+  return TYPE_MAP[type] ?? (type?.includes('shipper') ? 'supplier' : 'carrier_company');
 }
 
 export function mapListItemToPartner(item: ApiPartnerListItem): Partner {
