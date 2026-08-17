@@ -344,6 +344,9 @@
   border-radius: var(--radius-sm, 10px);
   padding: 14px 16px;
   transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 .subscription-page .usage-card:hover {
   border-color: var(--border-focus, #c8c8cf);
@@ -352,25 +355,37 @@
 .subscription-page .usage-card--seat {
   background: linear-gradient(135deg, #faf5ff, #fff);
 }
-.subscription-page .uc-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary, #5e5e6e);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.subscription-page .uc-icon { color: var(--accent, #9b51e0); opacity: 0.85; }
-.subscription-page .usage-card.warn { border-color: #f59e0b; background: #fffdf5; }
-.subscription-page .usage-card.crit { border-color: #ef4444; background: #fef8f8; }
 .subscription-page .uc-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 10px;
   margin-bottom: 8px;
 }
-.subscription-page .uc-name { font-size: 12px; font-weight: 600; color: var(--t2, #5e5e6e); }
-.subscription-page .uc-vals { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; }
+.subscription-page .uc-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t2, #5e5e6e);
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.35;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.subscription-page .uc-icon { color: var(--accent, #9b51e0); opacity: 0.85; flex-shrink: 0; }
+.subscription-page .usage-card.warn { border-color: #f59e0b; background: #fffdf5; }
+.subscription-page .usage-card.crit { border-color: #ef4444; background: #fef8f8; }
+.subscription-page .uc-vals {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-align: right;
+}
 .subscription-page .uc-vals .used { color: var(--t1, #121217); }
 .subscription-page .uc-vals .lim { color: var(--t3, #8e8e9a); }
 .subscription-page .uc-bar { height: 6px; background: var(--sa, #f0f0f3); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
