@@ -15,6 +15,7 @@ import type {
   SubscriptionQuote,
 } from '../../api/types/subscription';
 import { formatDate, formatEuro, usageTone } from './mockData';
+import { SubscriptionSkeleton } from './SubscriptionSkeleton';
 import './subscription.css';
 
 type UiCycle = 'monthly' | 'yearly';
@@ -468,12 +469,7 @@ export const SubscriptionPage: React.FC = () => {
   };
 
   if (loading && !data) {
-    return (
-      <div className="subscription-page">
-        <div className="pg-t">{tf('pgTitle', 'Subscription')}</div>
-        <p className="pg-s">{tf('loading', 'Loading…')}</p>
-      </div>
-    );
+    return <SubscriptionSkeleton />;
   }
 
   if (error && !data) {
@@ -545,16 +541,19 @@ export const SubscriptionPage: React.FC = () => {
           <div className="ps-value" style={{ fontSize: 14, color: 'var(--t3)' }}>
             {current?.has_payment_method ? tf('cardOnFile', 'Saved via Viva Wallet') : tf('noPayment', 'No payment method')}
           </div>
-          <div className="ps-sub" style={{ marginTop: 4 }}>
-            <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input
-                type="checkbox"
-                checked={Boolean(current?.recurring_payment)}
-                disabled={!current || current.is_free}
-                onChange={(e) => void togglePlanAutoPay(e.target.checked)}
-              />
-              {tf('autopayLabel', 'Autopay')}
-            </label>
+          <div className="ps-autopay">
+            <span>{tf('autopayLabel', 'Autopay')}</span>
+            <button
+              type="button"
+              className={`ao-toggle${current?.recurring_payment ? ' on' : ''}`}
+              role="switch"
+              aria-checked={Boolean(current?.recurring_payment)}
+              aria-label={tf('autopayLabel', 'Autopay')}
+              disabled={!current || current.is_free || busy}
+              onClick={() => void togglePlanAutoPay(!current?.recurring_payment)}
+            >
+              <span className="knob" />
+            </button>
           </div>
         </div>
       </div>

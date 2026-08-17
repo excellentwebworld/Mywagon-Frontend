@@ -134,6 +134,19 @@
   font-size: 11px;
 }
 .subscription-page .ps-link:hover { color: var(--ah, #5b2bd4); }
+.subscription-page .ps-autopay {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t2, #5e5e6e);
+}
+.subscription-page .ao-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .subscription-page .cycle-toggle {
   display: flex;
@@ -862,4 +875,16 @@
 @media (max-width: 480px) {
   .subscription-page .plan-summary { grid-template-columns: 1fr; }
   .subscription-page .usage-grid { grid-template-columns: 1fr; }
+}
+
+.subscription-page.sub-skeleton {
+  pointer-events: none;
+}
+.subscription-page.sub-skeleton .react-loading-skeleton {
+  line-height: 1;
+}
+.subscription-page.sub-skeleton .pcard:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--sub-border);
 }
