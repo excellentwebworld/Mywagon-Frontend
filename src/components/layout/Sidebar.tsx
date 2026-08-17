@@ -1,8 +1,9 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "../../hooks/useTranslation";
 import { assetUrl } from "../../utils/assetUrl";
 import collapsedLogo from "../../assets/logo/logo.svg";
+import { usePastDueLock } from "../../hooks/usePastDueLock";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -18,7 +19,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile,
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { t } = useTranslation();
+  const pastDueLocked = usePastDueLock();
 
   const currentPath = location.pathname;
 
@@ -48,12 +51,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar aside panel */}
       <aside
-        className={`sidebar ${mobileOpen ? "mobile-open" : ""} ${collapsed ? "collapsed" : ""}`}
+        className={`sidebar ${mobileOpen ? "mobile-open" : ""} ${collapsed ? "collapsed" : ""} ${pastDueLocked ? "past-due-locked" : ""}`}
         id="sidebar"
         aria-label="Main navigation"
+        onClickCapture={(e) => {
+          if (!pastDueLocked) return;
+          const anchor = (e.target as HTMLElement).closest("a");
+          if (!anchor) return;
+          const href = anchor.getAttribute("href") || "";
+          if (!href.includes("/billing")) {
+            e.preventDefault();
+            e.stopPropagation();
+            navigate("/billing");
+            onCloseMobile();
+          }
+        }}
       >
         {/* Logo */}
-        <Link to="/dashboard" className="sb-logo" onClick={onCloseMobile} aria-label="MYVAGON">
+        <Link to={pastDueLocked ? "/billing" : "/dashboard"} className="sb-logo" onClick={onCloseMobile} aria-label="MYVAGON">
           <img
             src={collapsed ? collapsedLogo : assetUrl('gray_white.png')}
             alt=""
@@ -301,7 +316,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Link
             to="/billing"
             onClick={onCloseMobile}
-            className={`ni ${isLinkActive("/billing") ? "active" : ""}`}
+            className={`ni billing-allowed ${isLinkActive("/billing") ? "active" : ""}`}
             title={t("billing")}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"

@@ -43,6 +43,14 @@ axiosInstance.interceptors.response.use(
       clearStoredToken();
       window.dispatchEvent(new CustomEvent('shipper:unauthorized'));
     }
+    if (error.response?.status === 403 && error.response?.data?.code === 'past_due') {
+      window.dispatchEvent(new CustomEvent('shipper:past-due'));
+      const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+      const billingPath = `${base}/billing`;
+      if (!window.location.pathname.replace(/\/$/, '').endsWith('/billing')) {
+        window.location.assign(billingPath);
+      }
+    }
     return Promise.reject(error);
   }
 );

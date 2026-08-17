@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
+import { usePastDueLock } from '../../hooks/usePastDueLock';
 
 type NavItem = {
   id: string;
@@ -126,8 +127,13 @@ export function TopNav() {
   const { T } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const pastDueLocked = usePastDueLock();
   const [hoverSection, setHoverSection] = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const go = (route: string) => {
+    navigate(pastDueLocked && route !== '/billing' ? '/billing' : route);
+  };
 
   const isWhiteNav = T.nav === '#FFFFFF';
   const txtBase = T.navT;
@@ -174,7 +180,7 @@ export function TopNav() {
     >
       <button
         type="button"
-        onClick={() => navigate(TOP_ITEM.route)}
+        onClick={() => go(TOP_ITEM.route)}
         className="top-nav-item"
         style={{
           background: isActive(TOP_ITEM.route) ? bgActive : 'transparent',
@@ -212,7 +218,7 @@ export function TopNav() {
             <button
               type="button"
               onClick={() => {
-                navigate(section.items[0]?.route || '/dashboard');
+                go(section.items[0]?.route || '/dashboard');
                 setHoverSection(null);
               }}
               className="top-nav-item"
@@ -253,7 +259,7 @@ export function TopNav() {
                         key={item.id}
                         role="menuitem"
                         onClick={() => {
-                          navigate(item.route);
+                          go(item.route);
                           setHoverSection(null);
                         }}
                         className="top-nav-dropdown-item"
@@ -311,7 +317,7 @@ export function TopNav() {
           <button
             type="button"
             key={item.id}
-            onClick={() => navigate(item.route)}
+            onClick={() => go(item.route)}
             className="top-nav-item"
             style={{
               background: active ? bgActive : 'transparent',

@@ -3,7 +3,7 @@
  * [Logo?] Title | Search …… | Vagon AI | Bell | Messages | Profile | CTA | Trust
  */
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   Search,
   Sparkles,
@@ -17,6 +17,7 @@ import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
+import { usePastDueLock } from '../../hooks/usePastDueLock';
 import { ProfileDropdown } from './ProfileDropdown';
 
 interface HeaderProps {
@@ -39,6 +40,8 @@ export const Header: React.FC<HeaderProps> = ({
   const { T } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pastDueLocked = usePastDueLock();
 
   const [searchValue, setSearchValue] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
@@ -47,21 +50,46 @@ export const Header: React.FC<HeaderProps> = ({
   const hideTopSearch =
     location.pathname.startsWith('/tutorials') ||
     location.pathname.startsWith('/support');
+  const isBillingSearchPath = location.pathname.startsWith('/billing');
 
   useEffect(() => {
     if (hideTopSearch) {
       setSearchValue('');
+      return;
     }
-  }, [hideTopSearch]);
+    if (isBillingSearchPath) {
+      const q = searchParams.get('q') || searchParams.get('search') || '';
+      setSearchValue(q);
+    }
+  }, [hideTopSearch, isBillingSearchPath, searchParams]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchValue(val);
+    if (isBillingSearchPath) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (val.trim()) {
+            next.set('q', val);
+          } else {
+            next.delete('q');
+            next.delete('search');
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchValue.trim()) {
+    if (e.key === 'Enter' && searchValue.trim() && !isBillingSearchPath) {
       navigate(`/support?q=${encodeURIComponent(searchValue.trim())}`);
     }
   };
 
   const isSideMode = navMode !== 'top';
-  const showCta = location.pathname !== '/shipments/create';
+  const showCta = location.pathname !== '/shipments/create' && !pastDueLocked;
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -173,7 +201,7 @@ export const Header: React.FC<HeaderProps> = ({
           <input
             type="text"
             value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             onKeyDown={handleSearchKeyDown}
             placeholder={t('topbar.search') || 'Search anything..'}
             aria-label={t('topbar.search') || 'Search'}
@@ -324,7 +352,7 @@ export const Header: React.FC<HeaderProps> = ({
       <button
         type="button"
         className="mv-topbar-icon-btn"
-        onClick={() => navigate('/support')}
+        onClick={() => navigate(pastDueLocked ? '/billing' : '/support')}
         aria-label={t('topbar.messages') || 'Messages'}
         style={{ color: T.t2, position: 'relative' }}
         onMouseEnter={(e) => {
@@ -373,7 +401,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Trust shield */}
       <button
         type="button"
-        onClick={() => navigate('/settings/trustCenter')}
+        onClick={() => navigate(pastDueLocked ? '/billing' : '/settings/trustCenter')}
         aria-label={t('settings.securityTrust') || 'Security & Trust'}
         title={t('settings.securityTrust') || 'Security & Trust'}
         className="mv-topbar-icon-btn"

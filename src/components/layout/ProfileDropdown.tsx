@@ -11,6 +11,7 @@ import {
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
+import { usePastDueLock } from '../../hooks/usePastDueLock';
 import { useApp } from '../../context/AppContext';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
@@ -21,6 +22,7 @@ export function ProfileDropdown() {
   const { setLang, showToast } = useApp();
   const { T, isDark, toggleDark } = useTheme();
   const { user, logout } = useAuth();
+  const pastDueLocked = usePastDueLock();
   const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
@@ -120,7 +122,9 @@ export function ProfileDropdown() {
                   { icon: CreditCard, label: t('sidebar.billing') || t('billing') || 'Billing', route: '/billing' },
                   { icon: Star, label: t('sidebar.subscription') || t('navSubscription') || 'Subscription', route: '/subscription' },
                   { icon: HelpCircle, label: t('sidebar.support') || t('support') || 'Support', route: '/support' },
-                ].map((link) => (
+                ]
+                  .filter((link) => !pastDueLocked || link.route === '/billing')
+                  .map((link) => (
                   <button
                     type="button"
                     key={link.route}

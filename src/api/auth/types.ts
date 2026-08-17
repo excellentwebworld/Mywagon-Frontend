@@ -22,6 +22,7 @@ export interface ShipperUser {
   permissions?: string[] | ShipperPermission[];
   two_factor_enabled?: boolean;
   two_factor_method?: 'authenticator' | 'email' | null;
+  has_past_due?: boolean;
 }
 
 export interface LoginPayload {

@@ -79,9 +79,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     window.addEventListener('shipper:unauthorized', onUnauthorized);
 
+    const onPastDue = () => {
+      setUser((prev) => (prev && !prev.has_past_due ? { ...prev, has_past_due: true } : prev));
+    };
+    window.addEventListener('shipper:past-due', onPastDue);
+
     return () => {
       cancelled = true;
       window.removeEventListener('shipper:unauthorized', onUnauthorized);
+      window.removeEventListener('shipper:past-due', onPastDue);
     };
   }, [refreshUser]);
 
