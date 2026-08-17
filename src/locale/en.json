@@ -4199,7 +4199,7 @@
     "daysLeft": "days left",
     "cancelPlan": "Cancel plan",
     "customPlanNote": "This plan is managed by MYVAGON.",
-    "customPlanCta": "Managed plan",
+    "customPlanCta": "Current Plan",
     "autopayLabel": "Autopay",
     "autopayNeedsCheckout": "Complete a checkout with auto-pay to store a payment method.",
     "activeUsers": "Active Users",

@@ -838,7 +838,7 @@ export const SubscriptionPage: React.FC = () => {
             const pr = cycle === 'yearly' ? p.price_yearly_monthly_rate : p.price_monthly;
             const isCurrentCard = p.id === current?.plan_id && cycle === subscribedCycle;
             const canUpgrade =
-              !current?.is_custom && (cycle === 'yearly' ? p.upgrade_available_yearly : p.upgrade_available_monthly);
+              cycle === 'yearly' ? p.upgrade_available_yearly : p.upgrade_available_monthly;
             const planPermissions = resolvePlanPermissions(p.permissions, isCurrentCard, purchasedStatusSlugs);
             return (
               <div key={p.id} className={`pcard${isCurrentCard ? ' current' : ''}`}>
@@ -864,7 +864,7 @@ export const SubscriptionPage: React.FC = () => {
                     </button>
                   ) : current?.is_custom ? (
                     <button type="button" className="cta sec" disabled>
-                      {tf('customPlanCta', 'Managed plan')}
+                      {tf('customPlanCta', 'Current Plan')}
                     </button>
                   ) : (
                     <button type="button" className="cta sec" disabled>
