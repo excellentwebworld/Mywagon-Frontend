@@ -958,9 +958,6 @@ export const SubscriptionPage: React.FC = () => {
             <Puzzle size={15} />
           </span>
           <span>{tf('addonsTitle', 'Add-Ons Marketplace')}</span>
-          <button type="button" className="sub-btn sub-btn-outline sub-btn-sm" onClick={openContact}>
-            {tf('contactTitle', 'Contact us')}
-          </button>
         </div>
         {!current ? (
           <div className="m-info">{tf('addonsNeedPlan', 'Add-ons are available after you have an active subscription.')}</div>
