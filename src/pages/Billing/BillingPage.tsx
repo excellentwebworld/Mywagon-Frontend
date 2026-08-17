@@ -26,7 +26,7 @@ import type {
   BillingSummary,
 } from './types';
 import { downloadFileBlob, canSubmitBankReceipt, formatCurrency } from './mockData';
-import { openHtmlPrintWindow } from '../../utils/printHtml';
+import { fillPrintWindow, preparePrintWindow } from '../../utils/printHtml';
 
 import './billing.css';
 import { UniverseBanner } from './components/UniverseBanner';
@@ -317,10 +317,20 @@ export const BillingPage: React.FC = () => {
 
   const handleOfficialPrint = async (inv: Invoice) => {
     if (!inv.raw_id) return;
+
+    const printWindow = preparePrintWindow(inv.id);
+    if (!printWindow) {
+      toast.error(
+        t('billingPage.popupBlocked', 'Please allow popups in your browser to print invoices.'),
+      );
+      return;
+    }
+
     try {
       const html = await billingService.getInvoicePrintHtml(inv.raw_id);
-      openHtmlPrintWindow(inv.id, html);
+      fillPrintWindow(printWindow, inv.id, html);
     } catch (err) {
+      printWindow.close();
       toast.error(toBillingError(err, t('billingPage.printFailed', 'Unable to open the official invoice.'), t));
     }
   };
