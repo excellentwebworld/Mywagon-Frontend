@@ -418,9 +418,22 @@ export const BillingPage: React.FC = () => {
         toast.error(t('billingPage.noLineItems', 'No line items to export for this invoice.'));
         return;
       }
-      const header = 'Type,Description,Qty,Rate,Amount,Load SID\n';
+      const escapeCsv = (val: unknown): string => {
+        if (val === null || val === undefined) return '""';
+        return `"${String(val).replace(/"/g, '""')}"`;
+      };
+      const header = '"Type","Description","Qty","Rate","Amount","Load SID"\n';
       const rows = lines
-        .map((l) => `${l.type},"${(l.desc || '').replace(/"/g, '""')}",${l.qty},${l.rate},${l.amt},${l.sid || ''}`)
+        .map((l) =>
+          [
+            escapeCsv(l.type),
+            escapeCsv(l.desc),
+            escapeCsv(l.qty),
+            escapeCsv(l.rate || (l.unit !== undefined ? formatCurrency(l.unit, inv.cur) : '')),
+            escapeCsv(formatCurrency(l.amt, inv.cur)),
+            escapeCsv(l.sid || '—'),
+          ].join(',')
+        )
         .join('\n');
       downloadFileBlob(`${inv.id}_line_items.csv`, header + rows);
       toast.success(t('billingPage.successExport', 'Invoice lines exported'));
