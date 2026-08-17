@@ -16,6 +16,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import type { Invoice, SubFilterKey, KpiFilterKey, BillingSummary } from '../types';
 import { formatCurrency, formatDate } from '../mockData';
+import { DatePicker } from '../../../components/ui/DatePicker';
 import { BillingKpiSkeleton, BillingTableSkeleton } from './BillingSkeleton';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -130,7 +131,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
     { key: 'Paid', labelKey: 'billingPage.subPaid', defaultLabel: 'Paid' },
     { key: 'Subscription', labelKey: 'billingPage.subSubscription', defaultLabel: 'Subscription' },
     { key: 'Commission', labelKey: 'billingPage.subCommission', defaultLabel: 'Commission' },
-    { key: 'Penalty', labelKey: 'billingPage.subPenalty', defaultLabel: 'Penalty' },
+    { key: 'Add-on', labelKey: 'billingPage.subAddon', defaultLabel: 'Add-on' },
   ];
 
   const getTypeBadgeClass = (type: string) => {
@@ -214,61 +215,70 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
       ) : null}
 
       <div className={`sub-bar ${loading && !summary ? 'is-loading' : ''}`}>
-        {subTabs.map((st) => (
-          <button
-            key={st.key}
-            type="button"
-            className={`sub-pill ${subFilter === st.key ? 'active' : ''}`}
-            onClick={() => onSetSubFilter(st.key)}
-          >
-            {t(st.labelKey, st.defaultLabel)}
-          </button>
-        ))}
-
-        <div className="flex-1" />
-
-        <div className="f-search">
-          <Search size={14} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={t('billingPage.searchPlaceholder', 'Search invoices, loads, descriptions…')}
-          />
+        <div className="sub-bar-pills">
+          {subTabs.map((st) => (
+            <button
+              key={st.key}
+              type="button"
+              className={`sub-pill ${subFilter === st.key ? 'active' : ''}`}
+              onClick={() => onSetSubFilter(st.key)}
+            >
+              {t(st.labelKey, st.defaultLabel)}
+            </button>
+          ))}
         </div>
 
-        <label className="billing-date-field">
-          <span>{t('billingPage.fromDate', 'From')}</span>
-          <input
-            type="date"
-            value={dateFrom}
-            disabled={!canDateFilter}
-            onChange={(e) => onDateFromChange(e.target.value)}
-          />
-        </label>
-        <label className="billing-date-field">
-          <span>{t('billingPage.toDate', 'To')}</span>
-          <input
-            type="date"
-            value={dateTo}
-            disabled={!canDateFilter}
-            onChange={(e) => onDateToChange(e.target.value)}
-          />
-        </label>
-        <button type="button" className="b-btn b-btn-sm" onClick={onApplyDateFilter}>
-          {t('billingPage.filter', 'Filter')}
-        </button>
+        <div className="sub-bar-actions">
+          <div className="f-search">
+            <Search size={14} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder={t('billingPage.searchPlaceholder', 'Search invoices, loads, descriptions…')}
+            />
+          </div>
 
-        {(kpiFilter || searchQuery || dateFrom || dateTo) && (
-          <button
-            type="button"
-            className="b-btn b-btn-sm b-btn-danger flex items-center gap-1"
-            onClick={onClearFilters}
-          >
-            <X size={12} />
-            <span>{t('common.clear', 'Clear')}</span>
-          </button>
-        )}
+          <div className="billing-date-range">
+            <label className="billing-date-field">
+              <span>{t('billingPage.fromDate', 'From')}</span>
+              <DatePicker
+                value={dateFrom}
+                onChange={onDateFromChange}
+                max={dateTo || undefined}
+                disabled={!canDateFilter}
+                direction="auto"
+                placeholder="dd/MM/yyyy"
+              />
+            </label>
+            <label className="billing-date-field">
+              <span>{t('billingPage.toDate', 'To')}</span>
+              <DatePicker
+                value={dateTo}
+                onChange={onDateToChange}
+                min={dateFrom || undefined}
+                disabled={!canDateFilter}
+                direction="auto"
+                placeholder="dd/MM/yyyy"
+              />
+            </label>
+            <div className="billing-date-actions">
+              <button type="button" className="b-btn b-btn-sm b-btn-primary" onClick={onApplyDateFilter}>
+                {t('billingPage.filter', 'Filter')}
+              </button>
+              {(kpiFilter || searchQuery || dateFrom || dateTo) && (
+                <button
+                  type="button"
+                  className="b-btn b-btn-sm b-btn-danger flex items-center gap-1"
+                  onClick={onClearFilters}
+                >
+                  <X size={12} />
+                  <span>{t('common.clear', 'Clear')}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className={`billing-tbl-card ${loading ? 'is-loading' : ''}`}>

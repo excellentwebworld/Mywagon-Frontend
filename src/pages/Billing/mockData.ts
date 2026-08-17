@@ -1,3 +1,5 @@
+import { formatDisplayDateFromIso } from '../../utils/dateDisplay';
+
 export type { Invoice, LineItem, CreditNote, ActivityItem } from './types';
 
 export const INITIAL_LINE_ITEMS: Record<string, import('./types').LineItem[]> = {
@@ -19,15 +21,10 @@ export function canSubmitBankReceipt(inv: import('./types').Invoice): boolean {
   return true;
 }
 
-export function formatDate(dStr: string | null | undefined, locale: string = 'en'): string {
+export function formatDate(dStr: string | null | undefined, _locale: string = 'en'): string {
   if (!dStr || dStr === 'null' || dStr === 'undefined') return '—';
-  const d = new Date(dStr);
-  if (isNaN(d.getTime())) return dStr;
-  return d.toLocaleDateString(locale === 'el' ? 'el-GR' : 'en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  const formatted = formatDisplayDateFromIso(dStr);
+  return formatted || dStr;
 }
 
 export function csvDate(dStr: string | null | undefined): string {

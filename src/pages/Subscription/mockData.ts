@@ -1,4 +1,5 @@
 import type { PlanDef, PlanKey, RecurringAddon, UsageAddon, UsageItem } from './types';
+import { formatDisplayDateFromIso } from '../../utils/dateDisplay';
 
 export const PLAN_ORDER: PlanKey[] = ['essential', 'plus', 'pro'];
 
@@ -223,12 +224,10 @@ export function formatEuro(n: number): string {
   return `€${n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function formatDate(d: string, locale = 'en'): string {
-  return new Date(d).toLocaleDateString(locale === 'el' ? 'el-GR' : 'en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+export function formatDate(d: string | null | undefined, _locale = 'en'): string {
+  if (!d) return '—';
+  const formatted = formatDisplayDateFromIso(d);
+  return formatted || d;
 }
 
 export function usageTone(used: number, limit: number | null): 'ok' | 'warn' | 'crit' {

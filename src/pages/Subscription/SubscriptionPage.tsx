@@ -166,6 +166,7 @@ export const SubscriptionPage: React.FC = () => {
   const [quote, setQuote] = useState<SubscriptionQuote | AddonQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [autoPayProcessing, setAutoPayProcessing] = useState<'plan' | number | null>(null);
   const [autoPayOnCheckout, setAutoPayOnCheckout] = useState(true);
   const [addonCounts, setAddonCounts] = useState<Record<number, number>>({});
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', description: '' });
@@ -367,26 +368,34 @@ export const SubscriptionPage: React.FC = () => {
   };
 
   const togglePlanAutoPay = async (enabled: boolean) => {
+    if (autoPayProcessing) return;
     if (enabled && data?.current && !data.current.has_payment_method) {
       toast.error(tf('autopayNeedsCheckout', 'Complete a checkout with auto-pay to store a payment method.'));
       return;
     }
+    setAutoPayProcessing('plan');
     try {
       await subscriptionService.setAutoPay(enabled);
       toast.success(enabled ? tf('autopayOn', 'Auto-pay enabled.') : tf('autopayOff', 'Auto-pay disabled.'));
       await load();
     } catch (err) {
       toast.error(toError(err, tf('actionFailed', 'Unable to complete this action.')));
+    } finally {
+      setAutoPayProcessing(null);
     }
   };
 
   const toggleAddonAutoPay = async (addon: PurchasedAddon, enabled: boolean) => {
+    if (autoPayProcessing) return;
+    setAutoPayProcessing(addon.id);
     try {
       await subscriptionService.setAddonAutoPay(addon.id, enabled);
       toast.success(enabled ? tf('autopayOn', 'Auto-pay enabled.') : tf('autopayOff', 'Auto-pay disabled.'));
       await load();
     } catch (err) {
       toast.error(toError(err, tf('actionFailed', 'Unable to complete this action.')));
+    } finally {
+      setAutoPayProcessing(null);
     }
   };
 
@@ -711,17 +720,24 @@ export const SubscriptionPage: React.FC = () => {
           </div>
           <div className="ps-autopay">
             <span>{tf('autopayLabel', 'Autopay')}</span>
-            <button
-              type="button"
-              className={`ao-toggle${current?.recurring_payment ? ' on' : ''}`}
-              role="switch"
-              aria-checked={Boolean(current?.recurring_payment)}
-              aria-label={tf('autopayLabel', 'Autopay')}
-              disabled={!current || current.is_free || busy}
-              onClick={() => void togglePlanAutoPay(!current?.recurring_payment)}
-            >
-              <span className="knob" />
-            </button>
+            {autoPayProcessing === 'plan' ? (
+              <span className="ao-autopay-processing" aria-live="polite">
+                <RefreshCw size={12} className="ao-autopay-spinner" aria-hidden="true" />
+                {tf('processing', 'Processing…')}
+              </span>
+            ) : (
+              <button
+                type="button"
+                className={`ao-toggle${current?.recurring_payment ? ' on' : ''}`}
+                role="switch"
+                aria-checked={Boolean(current?.recurring_payment)}
+                aria-label={tf('autopayLabel', 'Autopay')}
+                disabled={!current || current.is_free || busy || autoPayProcessing !== null}
+                onClick={() => void togglePlanAutoPay(!current?.recurring_payment)}
+              >
+                <span className="knob" />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -969,33 +985,42 @@ export const SubscriptionPage: React.FC = () => {
                     <div className="ao-price">{formatEuro(addon.total)}</div>
                   </div>
                   <div className="ao-desc">
-                    {tf('count', 'Count')}: {addon.count} · {addon.start_date} → {addon.end_date}
+                    {tf('count', 'Count')}: {addon.count} · {formatDate(addon.start_date, locale)} → {formatDate(addon.end_date, locale)}
                   </div>
                   <div className="ao-purchased-info">
-                    {addon.is_cancelled ? tf('cancelled', 'Cancelled') : tf('active', 'Active')}
-                    {addon.billing_type === 'recurring' && !addon.is_cancelled ? (
-                      <span className="ps-autopay" style={{ marginLeft: 8 }}>
-                        <span>{tf('autopayLabel', 'Autopay')}</span>
-                        <button
-                          type="button"
-                          className={`ao-toggle${addon.auto_pay ? ' on' : ''}`}
-                          role="switch"
-                          aria-checked={addon.auto_pay}
-                          disabled={busy}
-                          onClick={() => void toggleAddonAutoPay(addon, !addon.auto_pay)}
-                        >
-                          <span className="knob" />
-                        </button>
-                      </span>
-                    ) : addon.auto_pay ? (
-                      ` · ${tf('autopayLabel', 'Autopay')}`
+                    <div className="ao-purchased-status">
+                      {addon.is_cancelled ? tf('cancelled', 'Cancelled') : tf('active', 'Active')}
+                      {addon.billing_type === 'recurring' && !addon.is_cancelled ? (
+                        <span className="ps-autopay">
+                          <span>{tf('autopayLabel', 'Autopay')}</span>
+                          {autoPayProcessing === addon.id ? (
+                            <span className="ao-autopay-processing" aria-live="polite">
+                              <RefreshCw size={12} className="ao-autopay-spinner" aria-hidden="true" />
+                              {tf('processing', 'Processing…')}
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              className={`ao-toggle${addon.auto_pay ? ' on' : ''}`}
+                              role="switch"
+                              aria-checked={addon.auto_pay}
+                              disabled={busy || autoPayProcessing !== null}
+                              onClick={() => void toggleAddonAutoPay(addon, !addon.auto_pay)}
+                            >
+                              <span className="knob" />
+                            </button>
+                          )}
+                        </span>
+                      ) : addon.auto_pay ? (
+                        ` · ${tf('autopayLabel', 'Autopay')}`
+                      ) : null}
+                    </div>
+                    {!addon.is_cancelled ? (
+                      <button type="button" className="ao-buy remove" onClick={() => setModal({ kind: 'cancel-addon', addon })}>
+                        {tf('removeAddon', 'Remove')}
+                      </button>
                     ) : null}
                   </div>
-                  {!addon.is_cancelled ? (
-                    <button type="button" className="ao-buy remove" onClick={() => setModal({ kind: 'cancel-addon', addon })}>
-                      {tf('removeAddon', 'Remove')}
-                    </button>
-                  ) : null}
                 </div>
               ))}
             </div>

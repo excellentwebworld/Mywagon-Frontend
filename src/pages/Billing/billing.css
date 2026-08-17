@@ -382,9 +382,38 @@
 .sub-bar {
   padding: 14px 24px 0;
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sub-bar-pills {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+.sub-bar-actions {
+  display: flex;
   flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+
+.billing-date-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.billing-date-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .sub-pill {
@@ -452,6 +481,9 @@
   color: var(--t3, #8e8e9a);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+.billing-date-field .date-picker {
+  width: 148px;
 }
 .billing-date-field input {
   border: 1px solid var(--bd, #e4e4e8);

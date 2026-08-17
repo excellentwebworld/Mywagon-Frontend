@@ -4252,7 +4252,7 @@
     "subPaid": "Paid",
     "subSubscription": "Subscription",
     "subCommission": "Commission",
-    "subPenalty": "Penalty",
+    "subAddon": "Add-on",
     "searchPlaceholder": "Search invoices, loads, descriptions…",
     "fromDate": "From",
     "toDate": "To",

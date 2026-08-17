@@ -22,6 +22,22 @@ function parseYmd(ymd: string): Date | null {
   return date;
 }
 
+/** Format ISO / date-parseable value as dd/MM/yyyy (same as create shipment). */
+export function formatDisplayDateFromIso(iso?: string | null): string {
+  if (!iso) return '';
+  const trimmed = iso.trim();
+  const ymd = trimmed.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    return formatDisplayDate(ymd);
+  }
+  const d = new Date(trimmed.replace(' ', 'T'));
+  if (Number.isNaN(d.getTime())) return trimmed;
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = String(d.getFullYear());
+  return `${dd}/${mm}/${yyyy}`;
+}
+
 /** Format YYYY-MM-DD for display as dd/MM/yyyy. */
 export function formatDisplayDate(ymd: string): string {
   const date = parseYmd(ymd);

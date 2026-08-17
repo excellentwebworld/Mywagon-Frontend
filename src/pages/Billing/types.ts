@@ -96,5 +96,5 @@ export interface BillingSummary {
 }
 
 export type TabKey = 'saas' | 'credits' | 'statements';
-export type SubFilterKey = 'All' | 'Unpaid' | 'Overdue' | 'Paid' | 'Subscription' | 'Commission' | 'Penalty';
+export type SubFilterKey = 'All' | 'Unpaid' | 'Overdue' | 'Paid' | 'Subscription' | 'Commission' | 'Add-on';
 export type KpiFilterKey = 'outstanding' | 'overdue' | 'dueSoon' | 'paid' | null;
