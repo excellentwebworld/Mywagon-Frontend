@@ -329,7 +329,7 @@ export const BillingPage: React.FC = () => {
     }
 
     try {
-      const html = await billingService.getInvoicePrintHtml(inv.raw_id);
+      const html = await billingService.getInvoicePrintHtml(inv.raw_id, false);
       fillPrintWindow(printWindow, inv.id, html);
     } catch (err) {
       printWindow.close();
@@ -436,6 +436,8 @@ export const BillingPage: React.FC = () => {
     toast.success(t('billingPage.successAdjustment', 'Adjustment request submitted'));
   };
 
+  const statementExportParams = (month: string) => ({ month });
+
   const handleGenerateStatement = async (month: string, format: 'PDF' | 'CSV' | 'XLSX') => {
     if (!guardExport()) return;
     if (format === 'PDF') {
@@ -447,7 +449,7 @@ export const BillingPage: React.FC = () => {
     }
     setExportingAction('statement');
     try {
-      await billingService.exportStatement(month, format, currentExportFilters());
+      await billingService.exportStatement(month, format, statementExportParams(month));
       toast.success(t('billingPage.successStatement', 'Statement generated'));
     } catch (err) {
       toast.error(toBillingError(err, t('billingPage.exportFailed', 'Export failed.'), t));
@@ -748,7 +750,7 @@ export const BillingPage: React.FC = () => {
         invoiceId={pdfInvoiceId}
         isStatement={pdfIsStatement}
         statementPeriod={pdfStatementPeriod}
-        statementFilters={{ month: pdfStatementPeriod, ...currentExportFilters() }}
+        statementFilters={{ month: pdfStatementPeriod }}
       />
     </div>
   );

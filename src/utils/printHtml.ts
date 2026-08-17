@@ -91,3 +91,25 @@ export function openHtmlPrintWindow(title: string, html: string, autoPrint = tru
   schedulePrint(printWindow, autoPrint);
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
+
+/** Remove inline print controls from server HTML before embedding in a preview iframe. */
+export function sanitizeHtmlForPreview(html: string): string {
+  return html.replace(/<div class="print-bar">[\s\S]*?<\/div>/gi, '');
+}
+
+/** Download printable HTML (user can open and print/save as PDF from the browser). */
+export function downloadHtmlFile(title: string, html: string): void {
+  if (!html?.trim()) return;
+
+  const content = wrapHtml(title, html);
+  const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const safeName = title.replace(/[^\w\-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  link.href = url;
+  link.download = `${safeName || 'document'}.html`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

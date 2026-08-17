@@ -138,19 +138,20 @@ export const billingService = {
     return res.data;
   },
 
-  async getInvoicePrintHtml(id: string | number): Promise<string> {
+  async getInvoicePrintHtml(id: string | number, embed = true): Promise<string> {
     const response = await axiosInstance.get(`/billing/invoices/${id}/print`, {
       headers: { Accept: 'text/html' },
       responseType: 'text',
+      params: { embed: embed ? 1 : undefined },
     });
     return String(response.data ?? '');
   },
 
-  async getStatementPrintHtml(month: string, extra?: StatementExportExtra): Promise<string> {
+  async getStatementPrintHtml(month: string, extra?: StatementExportExtra, embed = true): Promise<string> {
     const response = await axiosInstance.get('/billing/statements/print', {
       headers: { Accept: 'text/html' },
       responseType: 'text',
-      params: { month, ...extra },
+      params: { month, embed: embed ? 1 : undefined, ...extra },
     });
     return String(response.data ?? '');
   },
@@ -175,7 +176,7 @@ export const billingService = {
     extra?: StatementExportExtra,
   ): Promise<void> {
     if (format === 'PDF') {
-      const html = await this.getStatementPrintHtml(month, { month, ...extra });
+      const html = await this.getStatementPrintHtml(month, { month, ...extra }, false);
       openHtmlPrintWindow(`Statement ${month}`, html);
       return;
     }

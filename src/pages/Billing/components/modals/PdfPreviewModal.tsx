@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Download, Printer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { billingService } from '../../../../api/services/billingService';
-import { openHtmlPrintWindow } from '../../../../utils/printHtml';
+import {
+  downloadHtmlFile,
+  openHtmlPrintWindow,
+  sanitizeHtmlForPreview,
+} from '../../../../utils/printHtml';
 
 interface PdfPreviewModalProps {
   isOpen: boolean;
@@ -12,11 +16,6 @@ interface PdfPreviewModalProps {
   isStatement?: boolean;
   statementPeriod?: string;
   statementFilters?: {
-    status?: string;
-    type?: string;
-    q?: string;
-    from?: string;
-    to?: string;
     month?: string;
   };
 }
@@ -47,9 +46,10 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
     const load = async () => {
       try {
         if (isStatement) {
-          setHtml(await billingService.getStatementPrintHtml(statementPeriod, statementFilters));
+          const month = statementFilters?.month || statementPeriod;
+          setHtml(await billingService.getStatementPrintHtml(month, { month }, true));
         } else if (invoiceId) {
-          setHtml(await billingService.getInvoicePrintHtml(invoiceId));
+          setHtml(await billingService.getInvoicePrintHtml(invoiceId, true));
         } else {
           setHtml('');
         }
@@ -81,6 +81,8 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
     };
   }, [isOpen, onClose]);
 
+  const previewHtml = useMemo(() => sanitizeHtmlForPreview(html), [html]);
+
   if (!isOpen) return null;
 
   const title = isStatement
@@ -90,6 +92,11 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
   const handlePrint = () => {
     if (!html) return;
     openHtmlPrintWindow(title, html);
+  };
+
+  const handleDownload = () => {
+    if (!html) return;
+    downloadHtmlFile(title, html);
   };
 
   return createPortal(
@@ -115,7 +122,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
           <button
             type="button"
             className="b-btn b-btn-sm b-btn-primary inline-flex items-center gap-1"
-            onClick={handlePrint}
+            onClick={handleDownload}
             disabled={!html || loading}
           >
             <Download size={13} />
@@ -134,9 +141,8 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
           ) : (
             <iframe
               title={title}
-              className="pdf-page billing-pdf-preview"
-              srcDoc={html}
-              style={{ width: '100%', minHeight: '70vh', border: 'none', background: '#fff' }}
+              className="billing-pdf-preview"
+              srcDoc={previewHtml}
             />
           )}
         </div>

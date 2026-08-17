@@ -1119,6 +1119,17 @@ table.billing-t {
   flex-shrink: 0;
 }
 
+.billing-pdf-preview {
+  display: block;
+  width: min(860px, 100%);
+  min-height: 80vh;
+  height: 80vh;
+  border: none;
+  background: #ffffff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+
 /* MODAL FORM CONTROLS */
 .billing-modal-bg {
   position: fixed;

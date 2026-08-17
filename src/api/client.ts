@@ -191,8 +191,20 @@ export async function apiDownload(
   try {
     const response = await axiosInstance.get(`${path}${qs}`, {
       responseType: 'blob',
+      headers: {
+        Accept:
+          'application/octet-stream, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, */*',
+      },
     });
     const blob = response.data as Blob;
+
+    if (blob.type.includes('application/json') || blob.type.includes('text/json')) {
+      const text = await blob.text();
+      const parsed = JSON.parse(text) as { message?: string; success?: boolean };
+      if (parsed.success === false || response.status >= 400) {
+        throw new ApiError(parsed.message || 'Download failed', response.status);
+      }
+    }
     const filename = parseFilenameFromDisposition(
       response.headers['content-disposition'],
       fallbackFilename,
