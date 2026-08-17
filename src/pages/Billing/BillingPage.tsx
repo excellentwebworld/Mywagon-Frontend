@@ -117,7 +117,9 @@ export const BillingPage: React.FC = () => {
   const [pdfStatementPeriod, setPdfStatementPeriod] = useState(
     new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
   );
-  const [exporting, setExporting] = useState(false);
+  const [exportingAction, setExportingAction] = useState<
+    'invoice-register' | 'line-items' | 'statement' | null
+  >(null);
 
   const canExport = Boolean(summary?.has_account_statement);
 
@@ -379,14 +381,14 @@ export const BillingPage: React.FC = () => {
 
   const handleExportInvoicesCsv = async () => {
     if (!guardExport()) return;
-    setExporting(true);
+    setExportingAction('invoice-register');
     try {
       await billingService.exportInvoiceRegister(currentExportFilters());
       toast.success(t('billingPage.successExport', 'Invoices exported to CSV'));
     } catch (err) {
       toast.error(toBillingError(err, t('billingPage.exportFailed', 'Export failed.'), t));
     } finally {
-      setExporting(false);
+      setExportingAction(null);
     }
   };
 
@@ -418,14 +420,14 @@ export const BillingPage: React.FC = () => {
 
   const handleExportAllLineItemsCsv = async () => {
     if (!guardExport()) return;
-    setExporting(true);
+    setExportingAction('line-items');
     try {
       await billingService.exportLineItems(currentExportFilters());
       toast.success(t('billingPage.successExport', 'Line items exported'));
     } catch (err) {
       toast.error(toBillingError(err, t('billingPage.exportFailed', 'Export failed.'), t));
     } finally {
-      setExporting(false);
+      setExportingAction(null);
     }
   };
 
@@ -443,14 +445,14 @@ export const BillingPage: React.FC = () => {
       setPdfPreviewOpen(true);
       return;
     }
-    setExporting(true);
+    setExportingAction('statement');
     try {
       await billingService.exportStatement(month, format, currentExportFilters());
       toast.success(t('billingPage.successStatement', 'Statement generated'));
     } catch (err) {
       toast.error(toBillingError(err, t('billingPage.exportFailed', 'Export failed.'), t));
     } finally {
-      setExporting(false);
+      setExportingAction(null);
     }
   };
 
@@ -502,15 +504,24 @@ export const BillingPage: React.FC = () => {
             <Crown size={14} />
             <span>{t('billingPage.manageSubscription', 'Manage Subscription')}</span>
           </Link>
-          <button type="button" className="b-btn" onClick={handleExportInvoicesCsv} disabled={!canExport || exporting}>
+          <button
+            type="button"
+            className="b-btn"
+            onClick={handleExportInvoicesCsv}
+            disabled={!canExport || exportingAction !== null}
+          >
             <Download size={14} />
-            <span>{exporting ? t('billingPage.exporting', 'Exporting…') : t('billingPage.btnExport', 'Export')}</span>
+            <span>
+              {exportingAction === 'invoice-register'
+                ? t('billingPage.exporting', 'Exporting…')
+                : t('billingPage.btnExport', 'Export')}
+            </span>
           </button>
           <button
             type="button"
             className="b-btn b-btn-primary"
             onClick={() => setStatementDownloadOpen(true)}
-            disabled={!canExport || exporting}
+            disabled={!canExport || exportingAction !== null}
           >
             <FileText size={14} />
             <span>{t('billingPage.btnStatement', 'Download Statement')}</span>
@@ -663,7 +674,7 @@ export const BillingPage: React.FC = () => {
             onExportInvoiceRegister={handleExportInvoicesCsv}
             onExportLineItems={handleExportAllLineItemsCsv}
             onOpenStatementModal={() => setStatementDownloadOpen(true)}
-            exporting={exporting}
+            exportingAction={exportingAction}
             canExport={canExport}
           />
         )}

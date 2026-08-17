@@ -9,10 +9,12 @@ import 'react-loading-skeleton/dist/skeleton.css';
 
 const sk = { baseColor: '#f0f0f3', highlightColor: '#fafafe' };
 
+export type StatementExportAction = 'invoice-register' | 'line-items' | 'statement';
+
 interface StatementsTabProps {
   summary: BillingSummary | null;
   loading?: boolean;
-  exporting?: boolean;
+  exportingAction?: StatementExportAction | null;
   canExport?: boolean;
   onExportInvoiceRegister: () => void;
   onExportLineItems: () => void;
@@ -22,7 +24,7 @@ interface StatementsTabProps {
 export const StatementsTab: React.FC<StatementsTabProps> = ({
   summary,
   loading = false,
-  exporting = false,
+  exportingAction = null,
   canExport = true,
   onExportInvoiceRegister,
   onExportLineItems,
@@ -30,8 +32,16 @@ export const StatementsTab: React.FC<StatementsTabProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const exportCards = [
+  const exportCards: {
+    id: StatementExportAction;
+    title: string;
+    desc: string;
+    icon: React.ReactNode;
+    fmt: string;
+    action: () => void;
+  }[] = [
     {
+      id: 'invoice-register',
       title: t('billingPage.stInvRegister', 'Invoice Register Export'),
       desc: t('billingPage.stInvRegisterDesc', 'Full invoice list with all filters applied'),
       icon: <FileSpreadsheet size={22} className="text-purple-600" />,
@@ -39,6 +49,7 @@ export const StatementsTab: React.FC<StatementsTabProps> = ({
       action: onExportInvoiceRegister,
     },
     {
+      id: 'line-items',
       title: t('billingPage.stLineItem', 'Line Item Export'),
       desc: t('billingPage.stLineItemDesc', 'Detailed line items across all invoices and loads'),
       icon: <BarChart3 size={22} className="text-purple-600" />,
@@ -46,6 +57,7 @@ export const StatementsTab: React.FC<StatementsTabProps> = ({
       action: onExportLineItems,
     },
     {
+      id: 'statement',
       title: t('billingPage.stMonthlyPDF', 'Monthly Statement PDF'),
       desc: t(
         'billingPage.stMonthlyPDFDesc',
@@ -92,8 +104,8 @@ export const StatementsTab: React.FC<StatementsTabProps> = ({
   return (
     <div className={loading ? 'billing-skeleton-block' : ''}>
       <div className="exp-grid">
-        {exportCards.map((card, idx) => (
-          <div key={idx} className="exp-card">
+        {exportCards.map((card) => (
+          <div key={card.id} className="exp-card">
             <div className="flex justify-between items-start">
               <div className="exp-icon bg-purple-50">{card.icon}</div>
               <span className="exp-fmt">{card.fmt}</span>
@@ -104,9 +116,9 @@ export const StatementsTab: React.FC<StatementsTabProps> = ({
               type="button"
               className="b-btn b-btn-primary b-btn-sm mt-auto"
               onClick={card.action}
-              disabled={loading || exporting || !canExport}
+              disabled={loading || exportingAction !== null || !canExport}
             >
-              {exporting
+              {exportingAction === card.id
                 ? t('billingPage.exporting', 'Exporting…')
                 : t('billingPage.btnGenerate', 'Generate & Download')}
             </button>
