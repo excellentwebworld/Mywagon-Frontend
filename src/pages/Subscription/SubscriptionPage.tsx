@@ -886,7 +886,11 @@ export const SubscriptionPage: React.FC = () => {
                           {isBetaPermission(row.slug, row.name, row.is_beta) ? (
                             <span className="sub-beta">{tf('beta', 'BETA')}</span>
                           ) : null}
-                          {showCount ? <span className="sub-feat-val">{val}</span> : null}
+                          {showCount ? (
+                            <span className={`sub-feat-val${val === '∞' ? ' is-infinity' : ''}`}>
+                              {val === '∞' ? <span className="infinity-sign">∞</span> : val}
+                            </span>
+                          ) : null}
                         </li>
                       );
                     })}
@@ -929,7 +933,15 @@ export const SubscriptionPage: React.FC = () => {
                     const val = permissionDisplay(row?.value ?? '0', Boolean(row?.included), row?.type ?? perm.type);
                     return (
                       <td key={p.id} className="feat-mono">
-                        {val === '✓' ? <span className="check">✓</span> : val === '—' ? <span className="dash">—</span> : val}
+                        {val === '✓' ? (
+                          <span className="check">✓</span>
+                        ) : val === '—' ? (
+                          <span className="dash">—</span>
+                        ) : val === '∞' ? (
+                          <span className="infinity-sign">∞</span>
+                        ) : (
+                          val
+                        )}
                       </td>
                     );
                   })}

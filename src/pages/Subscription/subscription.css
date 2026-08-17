@@ -581,6 +581,24 @@
   border-radius: 4px;
   flex-shrink: 0;
   border: 1px solid var(--sub-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.subscription-page .fi .sub-feat-val.is-infinity {
+  font-size: 15px;
+  font-weight: 800;
+  padding: 0 7px;
+  min-width: 24px;
+  height: 20px;
+}
+.subscription-page .infinity-sign {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: middle;
+  transform: translateY(-0.5px);
 }
 .subscription-page .fi.off { color: var(--sub-text3); opacity: 0.45; }
 .subscription-page .sub-beta {
@@ -670,6 +688,14 @@
   font-weight: 600;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
+}
+.subscription-page .feat-mono .infinity-sign {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .subscription-page .addons-section { margin-bottom: 0; }
