@@ -8,6 +8,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../context/AuthContext';
 import { billingService } from '../../api/services/billingService';
@@ -50,9 +51,9 @@ function mapSubFilter(sub: SubFilterKey, kpi: KpiFilterKey): { status?: string; 
   return { status: 'all' };
 }
 
-function toBillingError(err: unknown, fallback: string, t: (key: string, defaultValue?: string) => string): string {
+function toBillingError(err: unknown, fallback: string, t: TFunction): string {
   if (err instanceof ApiError) {
-    return getApiErrorMessage(err, fallback, t as (key: string, options?: Record<string, string | number>) => string);
+    return getApiErrorMessage(err, fallback, (key, options) => String(t(key, options)));
   }
   if (err instanceof Error && err.message) {
     return err.message;
