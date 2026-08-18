@@ -130,10 +130,11 @@ export const DatePicker: React.FC<Props> = ({
   // Click outside listener (trigger + portaled menu)
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) {
-        setOpen(false);
+      const target = e.target as HTMLElement;
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target) || target?.closest?.('.date-picker-menu')) {
+        return;
       }
+      setOpen(false);
     };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
@@ -370,7 +371,7 @@ export const DatePicker: React.FC<Props> = ({
         <div
           ref={menuRef}
           className="date-picker-menu date-picker-menu--fixed"
-          style={{ top: menuStyle.top, left: menuStyle.left }}
+          style={{ top: menuStyle.top, left: menuStyle.left, zIndex: 10050 }}
           role="dialog"
         >
           <div className="date-picker-header">

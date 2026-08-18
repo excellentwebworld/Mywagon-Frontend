@@ -67,7 +67,7 @@
   --z-sidebar:        110;
   --z-sidebar-overlay: 109;
   --z-dropdown:       150;
-  --z-datepicker:     210;
+  --z-datepicker:     10050;
 
   /* Border Radius */
   --radius-sm:        8px;
@@ -2006,6 +2006,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   position: fixed;
   top: auto;
   left: auto;
+  z-index: var(--z-datepicker, 10050);
 }
 
 .date-picker-header {

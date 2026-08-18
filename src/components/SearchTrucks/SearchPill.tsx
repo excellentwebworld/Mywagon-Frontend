@@ -74,8 +74,9 @@ export const SearchPill: React.FC<SearchPillProps> = ({
   useEffect(() => {
     if (!expanded) return;
     const onDoc = (e: MouseEvent) => {
-      const target = e.target as Node;
+      const target = e.target as HTMLElement;
       if (panelRef.current?.contains(target)) return;
+      if (target?.closest?.('.date-picker-menu, .searchable-select-menu, .time-picker')) return;
       collapse();
     };
     const onKey = (e: KeyboardEvent) => {
