@@ -94,8 +94,8 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
               {truck.specs ? ` · ${truck.specs}` : null}
             </span>
             {truck.isVehicleOnly ? (
-              <span className="sat-grp-badge" title={t('satVehicleOnlyAvailability')}>
-                {t('satVehicleOnlyAvailability')}
+              <span className="sat-grp-badge sat-grp-badge--vehicle" title={t('satVehicleOnlyAvailability')}>
+                🚚 {t('satVehicleOnlyAvailability')}
               </span>
             ) : null}
           </span>

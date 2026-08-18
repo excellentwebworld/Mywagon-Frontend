@@ -409,7 +409,9 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
             {detailTruck.specs ? ` · ${detailTruck.specs}` : ''}
           </span>
           {detailTruck.isVehicleOnly ? (
-            <span className="sat-mp-chip sat-mp-chip--muted">{t('satVehicleOnlyAvailability')}</span>
+            <span className="sat-mp-chip sat-mp-chip--vehicle" title={t('satVehicleOnlyAvailability')}>
+              🚚 {t('satVehicleOnlyAvailability')}
+            </span>
           ) : null}
           <span className="sat-mp-chip">{detailTruck.capacity}</span>
           <span className="sat-mp-chip">{detailTruck.trip}</span>

@@ -88,6 +88,8 @@ export const MOCK_TRUCKS: AvailableTruck[] = [
     ...destCoords('Any'),
     hasBids: false,
     loadMatchScore: 62,
+    isVehicleOnly: true,
+    postingMode: 'vehicle',
   },
   {
     id: 'AV-003',

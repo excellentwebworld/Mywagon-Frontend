@@ -1024,6 +1024,24 @@
   border-radius: 4px;
 }
 
+.sat-grp-badge--vehicle {
+  background: #E0F2FE;
+  color: #0369A1;
+  border: 1px solid #BAE6FD;
+  font-weight: 600;
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.sat-mp-chip--vehicle {
+  background: #E0F2FE !important;
+  color: #0369A1 !important;
+  border: 1px solid #BAE6FD !important;
+  font-weight: 600 !important;
+}
+
 .sat-muted { color: var(--text-tertiary); font-size: 11px; }
 
 .sat-empty {
