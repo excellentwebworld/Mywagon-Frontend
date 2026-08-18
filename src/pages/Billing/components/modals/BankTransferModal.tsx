@@ -79,7 +79,7 @@ export const BankTransferModal: React.FC<BankTransferModalProps> = ({
             </button>
           </div>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="billing-modal-form">
             <div className="billing-modal-body">
               {error && (
                 <div className="mb-4 p-2.5 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-medium">

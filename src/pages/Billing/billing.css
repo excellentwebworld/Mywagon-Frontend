@@ -1177,6 +1177,15 @@ table.billing-t {
   overflow: hidden;
 }
 
+.billing-modal > form,
+.billing-modal-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .billing-modal-bg.show .billing-modal {
   transform: translateY(0);
 }
