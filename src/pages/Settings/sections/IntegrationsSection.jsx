@@ -10,6 +10,7 @@
  */
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Search, Zap, Code, Activity, X, Plus, Copy, Trash2,
@@ -41,11 +42,14 @@ export default function IntegrationsSection() {
   const { toast } = useToast();
   const isGreek = i18n.language === 'el';
 
+  const [searchParams] = useSearchParams();
   const [tab, setTab] = useState('directory');
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [expandedKey, setExpandedKey] = useState(null);
+  const [expandedKey, setExpandedKey] = useState(() => (
+    searchParams.get('code') || searchParams.get('error') ? 'business_central' : null
+  ));
   const [connectors, setConnectors] = useState(CONNECTORS.map((c) => (
     c.id === 'business_central' ? c : { ...c, status: 'coming_soon' }
   )));
