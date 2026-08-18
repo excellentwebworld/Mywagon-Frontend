@@ -1974,6 +1974,30 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   color: var(--text-primary, #121217);
   font-weight: 500;
 }
+.date-picker-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.date-picker-clear {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface-alt, #F1F1F4);
+  color: var(--text-tertiary, #8E8E9A);
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.date-picker-clear:hover {
+  background: var(--danger-light, #FEE2E2);
+  color: var(--danger, #EF4444);
+}
 .date-picker-icon {
   color: var(--text-tertiary, #8E8E9A);
   display: flex;
