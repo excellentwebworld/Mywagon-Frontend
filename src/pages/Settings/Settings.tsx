@@ -65,7 +65,7 @@ const MENU: SettingsMenuGroup[] = [
     { id: 'billing', icon: CreditCard, labelKey: 'settings.billingSettings' },
   ]},
   { group: 'settings.groupTools', items: [
-    { id: 'integrations', icon: Zap, labelKey: 'settings.integrations', comingSoon: true },
+    { id: 'integrations', icon: Zap, labelKey: 'settings.integrations' },
     { id: 'aiSettings', icon: Bot, labelKey: 'settings.aiSettings', comingSoon: true },
   ]},
   { group: 'settings.groupLegal', items: [

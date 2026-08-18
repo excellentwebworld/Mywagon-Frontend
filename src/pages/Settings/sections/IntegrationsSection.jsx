@@ -9,7 +9,7 @@
  * Used by roles: Shipper, Forwarder (org admins only)
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Search, Zap, Code, Activity, X, Plus, Copy, Trash2,
@@ -25,6 +25,8 @@ import {
   CONNECTORS, CONNECTOR_CATEGORIES, API_KEYS, WEBHOOKS,
   DATA_FLOW_HEALTH, SYNC_STATS, INTEGRATION_USAGE,
 } from '../../../mocks/toolsData';
+import { erpIntegrationService } from '../../../api/services/erpIntegrationService';
+import BusinessCentralConnectPanel from './BusinessCentralConnectPanel';
 
 const TABS = [
   { id: 'directory', icon: Zap, labelKey: 'integrations.tabs.directory' },
@@ -44,16 +46,54 @@ export default function IntegrationsSection() {
   const [catFilter, setCatFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [expandedKey, setExpandedKey] = useState(null);
+  const [connectors, setConnectors] = useState(CONNECTORS.map((c) => (
+    c.id === 'business_central' ? c : { ...c, status: 'coming_soon' }
+  )));
+
+  const loadCatalog = useCallback(async () => {
+    try {
+      const items = await erpIntegrationService.listConnections();
+      const byId = Object.fromEntries(items.map((i) => [i.id, i]));
+      const statusMap = {
+        disconnected: 'not_connected',
+        connected: 'connected',
+        error: 'error',
+        coming_soon: 'coming_soon',
+      };
+      setConnectors(CONNECTORS.map((c) => {
+        const api = byId[c.id];
+        if (!api) {
+          return { ...c, status: 'coming_soon' };
+        }
+        return {
+          ...c,
+          name: api.name || c.name,
+          status: statusMap[api.status] || 'not_connected',
+          lastSync: api.last_synced_at,
+          dataTypes: api.data_types?.length ? api.data_types : c.dataTypes,
+          syncDirection: api.sync_direction || c.syncDirection,
+          errorCount: api.last_error ? 1 : 0,
+          description: api.description || c.description,
+        };
+      }));
+    } catch {
+      setConnectors(CONNECTORS.map((c) => (
+        c.id === 'business_central' ? { ...c, status: 'not_connected' } : { ...c, status: 'coming_soon' }
+      )));
+    }
+  }, []);
+
+  useEffect(() => { loadCatalog(); }, [loadCatalog]);
 
   // ─── Directory Tab ───
-  const connected = CONNECTORS.filter(c => ['connected', 'error', 'syncing'].includes(c.status));
+  const connected = connectors.filter(c => ['connected', 'error', 'syncing'].includes(c.status));
   const filtered = useMemo(() => {
-    let list = CONNECTORS;
+    let list = connectors;
     if (search) { const q = search.toLowerCase(); list = list.filter(c => c.name.toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q)); }
     if (catFilter) list = list.filter(c => c.category === catFilter);
     if (statusFilter) list = list.filter(c => c.status === statusFilter);
     return list;
-  }, [search, catFilter, statusFilter]);
+  }, [search, catFilter, statusFilter, connectors]);
 
   const grouped = useMemo(() => {
     const groups = {};
@@ -91,7 +131,8 @@ export default function IntegrationsSection() {
         search={search} setSearch={setSearch} catFilter={catFilter} setCatFilter={setCatFilter}
         statusFilter={statusFilter} setStatusFilter={setStatusFilter}
         connected={connected} filtered={filtered} grouped={grouped}
-        expandedKey={expandedKey} setExpandedKey={setExpandedKey} />}
+        expandedKey={expandedKey} setExpandedKey={setExpandedKey}
+        onCatalogChanged={loadCatalog} />}
 
       {/* ═══ Tab 2: API & Webhooks ═══ */}
       {tab === 'api' && <ApiTab T={T} t={t} tUp={tUp} toast={toast} />}
@@ -109,7 +150,7 @@ export default function IntegrationsSection() {
 /* ═══════════════════════════════════════════
    Tab 1: Directory
    ═══════════════════════════════════════════ */
-function DirectoryTab({ T, t, tUp, toast, search, setSearch, catFilter, setCatFilter, statusFilter, setStatusFilter, connected, filtered, grouped, expandedKey, setExpandedKey }) {
+function DirectoryTab({ T, t, tUp, toast, search, setSearch, catFilter, setCatFilter, statusFilter, setStatusFilter, connected, filtered, grouped, expandedKey, setExpandedKey, onCatalogChanged }) {
   return (
     <div>
       {/* Filters */}
@@ -153,7 +194,8 @@ function DirectoryTab({ T, t, tUp, toast, search, setSearch, catFilter, setCatFi
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
             {connected.map(c => <ConnectorCard key={c.id} connector={c} T={T} t={t} toast={toast}
-              expanded={expandedKey === c.id} onToggle={() => setExpandedKey(expandedKey === c.id ? null : c.id)} />)}
+              expanded={expandedKey === c.id} onToggle={() => setExpandedKey(expandedKey === c.id ? null : c.id)}
+              onCatalogChanged={onCatalogChanged} />)}
           </div>
         </div>
       )}
@@ -171,7 +213,8 @@ function DirectoryTab({ T, t, tUp, toast, search, setSearch, catFilter, setCatFi
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {items.map(c => <ConnectorCard key={c.id} connector={c} T={T} t={t} toast={toast}
-                expanded={expandedKey === c.id} onToggle={() => setExpandedKey(expandedKey === c.id ? null : c.id)} />)}
+                expanded={expandedKey === c.id} onToggle={() => setExpandedKey(expandedKey === c.id ? null : c.id)}
+                onCatalogChanged={onCatalogChanged} />)}
             </div>
           </div>
         );
@@ -190,7 +233,8 @@ function DirectoryTab({ T, t, tUp, toast, search, setSearch, catFilter, setCatFi
 
 
 /* ── ConnectorCard — with description, data types, expandable details ── */
-function ConnectorCard({ connector: c, T, t, toast, expanded, onToggle }) {
+function ConnectorCard({ connector: c, T, t, toast, expanded, onToggle, onCatalogChanged }) {
+  const isBc = c.id === 'business_central';
   const isActive = ['connected', 'error', 'syncing'].includes(c.status);
   const statusConfig = {
     connected: { color: '#10B981', bg: '#ECFDF5', darkBg: '#064E3B', label: t('integrations.status.connected'), Icon: CheckCircle },
@@ -243,14 +287,14 @@ function ConnectorCard({ connector: c, T, t, toast, expanded, onToggle }) {
           </div>
           {/* Action */}
           {c.status === 'not_connected' && (
-            <button onClick={(e) => { e.stopPropagation(); toast.info(t('integrations.connectMock')); }}
+            <button onClick={(e) => { e.stopPropagation(); if (isBc) onToggle(); else toast.info(t('integrations.connectMock')); }}
               className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold shrink-0 transition-transform duration-200 hover:-translate-y-px"
               style={{ background: T.ac, color: '#fff', fontSize: 12 }}>
               {t('integrations.connect')}
             </button>
           )}
           {isActive && (
-            <button onClick={(e) => { e.stopPropagation(); }}
+            <button onClick={(e) => { e.stopPropagation(); onToggle(); }}
               className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none shrink-0"
               style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}>
               {t('integrations.configure')} <ChevronRight size={10} />
@@ -287,8 +331,12 @@ function ConnectorCard({ connector: c, T, t, toast, expanded, onToggle }) {
               </div>
             )}
 
+            {isBc && expanded && (
+              <BusinessCentralConnectPanel T={T} t={t} toast={toast} onChanged={onCatalogChanged} />
+            )}
+
             {/* Last sync + records (connected only) */}
-            {isActive && c.lastSync && (
+            {!isBc && isActive && c.lastSync && (
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1" style={{ fontSize: 11, color: T.t3 }}>
                   <Clock size={10} /> {t('integrations.lastSync')}: {new Date(c.lastSync).toLocaleString()}
