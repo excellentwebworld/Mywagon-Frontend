@@ -16,8 +16,8 @@ export async function downloadElementAsPdf(element: HTMLElement, title: string):
     scrollY: -window.scrollY,
     windowWidth: Math.max(element.scrollWidth, element.clientWidth),
     windowHeight: Math.max(element.scrollHeight, element.clientHeight),
-    onclone: (clonedDoc) => {
-      clonedDoc.querySelectorAll('.pdf-body, .pdf-viewer, .billing-doc-paper').forEach((node) => {
+    onclone: (clonedDoc: Document) => {
+      clonedDoc.querySelectorAll('.pdf-body, .pdf-viewer, .billing-doc-paper').forEach((node: Element) => {
         const el = node as HTMLElement;
         el.style.overflow = 'visible';
         el.style.height = 'auto';

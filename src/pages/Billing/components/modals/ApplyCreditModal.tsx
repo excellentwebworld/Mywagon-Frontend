@@ -24,7 +24,7 @@ export const ApplyCreditModal: React.FC<ApplyCreditModalProps> = ({
   onApply,
 }) => {
   const { t } = useTranslation();
-  const unpaidInvoices = invoices.filter((i) => i.rem > 0 && i.status !== 'Paid' && i.status !== 'Cancelled');
+  const unpaidInvoices = invoices.filter((i) => i.rem > 0 && i.status !== 'Paid' && i.status !== 'Voided');
   const payableInvoices = unpaidInvoices.filter((i) => i.rem <= walletBalance);
 
   const [selectedInv, setSelectedInv] = useState('');

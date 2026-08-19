@@ -672,7 +672,7 @@ export const BillingPage: React.FC = () => {
             total={walletTotal}
             onPageChange={setWalletPage}
             onOpenApplyCredit={() => {
-              const localUnpaid = invoices.filter((i) => i.rem > 0 && i.status !== 'Paid' && i.status !== 'Cancelled');
+              const localUnpaid = invoices.filter((i) => i.rem > 0 && i.status !== 'Paid' && i.status !== 'Voided');
               setWalletInvoices(localUnpaid);
               setWalletInvoicesLoading(true);
               setApplyCreditOpen(true);
