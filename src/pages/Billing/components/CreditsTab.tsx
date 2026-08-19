@@ -63,9 +63,6 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
             <button type="button" className="b-btn b-btn-primary" onClick={onOpenApplyCredit} disabled={loading}>
               {t('billingPage.btnPayWallet', 'Pay using wallet')}
             </button>
-            <button type="button" className="b-btn" onClick={onOpenRequestAdj} disabled={loading}>
-              {t('billingPage.btnRequestAdj', 'Request Adjustment')}
-            </button>
           </div>
         </div>
       </div>

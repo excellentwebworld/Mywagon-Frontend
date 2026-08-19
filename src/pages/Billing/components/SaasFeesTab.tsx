@@ -12,6 +12,7 @@ import {
   Wallet,
   Building2,
   Printer,
+  ChevronRight,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Invoice, SubFilterKey, KpiFilterKey, BillingSummary } from '../types';
@@ -188,28 +189,38 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
 
       {(summary?.overdue_count || summary?.due_soon_count) ? (
         <div className="action-bar">
-          <AlertTriangle size={20} className="action-bar-icon" aria-hidden="true" />
+          <div className="action-bar-icon-wrap">
+            <AlertTriangle size={18} className="action-bar-icon" aria-hidden="true" />
+          </div>
           <div className="ab-text">
-            <strong>{t('billingPage.actionRequired', 'Action Required')}</strong> —{' '}
+            <strong className="ab-title">{t('billingPage.actionRequired', 'Action Required')}</strong>
+            <span className="ab-sep">—</span>
             {(summary?.overdue_count ?? 0) > 0 && (
-              <span>
-                {summary?.overdue_count} {t('billingPage.overdueInvoices', 'overdue invoices')} (
-                {formatCurrency(summary?.overdue_amount ?? 0)})
+              <span className="ab-detail">
+                <strong>{summary?.overdue_count}</strong>{' '}
+                {(summary?.overdue_count ?? 0) === 1
+                  ? t('billingPage.overdueInvoiceSingle', 'overdue invoice')
+                  : t('billingPage.overdueInvoices', 'overdue invoices')}{' '}
+                <span className="billing-mono">({formatCurrency(summary?.overdue_amount ?? 0, summary?.currency)})</span>
               </span>
             )}
-            {(summary?.overdue_count ?? 0) > 0 && (summary?.due_soon_count ?? 0) > 0 && ' · '}
+            {(summary?.overdue_count ?? 0) > 0 && (summary?.due_soon_count ?? 0) > 0 && (
+              <span className="ab-dot">·</span>
+            )}
             {(summary?.due_soon_count ?? 0) > 0 && (
-              <span>
-                {summary?.due_soon_count} {t('billingPage.dueSoon', 'due within 7 days')}
+              <span className="ab-detail">
+                <strong>{summary?.due_soon_count}</strong>{' '}
+                {t('billingPage.dueSoon', 'due within 7 days')}
               </span>
             )}
           </div>
           <button
             type="button"
-            className="b-btn b-btn-primary b-btn-sm"
+            className="b-btn b-btn-warning-action action-bar-btn"
             onClick={() => onToggleKpiFilter('overdue')}
           >
-            {t('billingPage.reviewNow', 'Review Now')}
+            <span>{t('billingPage.reviewNow', 'Review Now')}</span>
+            <ChevronRight size={14} />
           </button>
         </div>
       ) : null}

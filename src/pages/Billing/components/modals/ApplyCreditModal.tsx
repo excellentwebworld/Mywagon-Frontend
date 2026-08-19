@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next';
 import type { Invoice } from '../../types';
 import { formatCurrency } from '../../mockData';
 import { BillingModalPortal } from './BillingModalPortal';
+import { ApplyCreditModalSkeleton } from '../BillingSkeleton';
 
 interface ApplyCreditModalProps {
   isOpen: boolean;
   onClose: () => void;
   invoices: Invoice[];
   walletBalance: number;
+  loading?: boolean;
   onApply: (rawId: number) => Promise<void>;
 }
 
@@ -18,10 +20,13 @@ export const ApplyCreditModal: React.FC<ApplyCreditModalProps> = ({
   onClose,
   invoices,
   walletBalance,
+  loading = false,
   onApply,
 }) => {
   const { t } = useTranslation();
-  const unpaidInvoices = invoices.filter((i) => i.rem > 0 && i.can_pay_wallet !== false);
+  const unpaidInvoices = invoices.filter((i) => i.rem > 0 && i.status !== 'Paid' && i.status !== 'Cancelled');
+  const payableInvoices = unpaidInvoices.filter((i) => i.rem <= walletBalance);
+
   const [selectedInv, setSelectedInv] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -30,23 +35,18 @@ export const ApplyCreditModal: React.FC<ApplyCreditModalProps> = ({
     if (!isOpen) return;
     setError('');
     setSubmitting(false);
-    const covered = unpaidInvoices.find((i) => i.rem <= walletBalance);
-    const first = covered?.raw_id ?? unpaidInvoices[0]?.raw_id;
+    const first = payableInvoices[0]?.raw_id;
     setSelectedInv(first ? String(first) : '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, invoices, walletBalance]);
 
-  const selected = unpaidInvoices.find((i) => String(i.raw_id) === selectedInv);
+  const selected = payableInvoices.find((i) => String(i.raw_id) === selectedInv) || payableInvoices[0];
   const hasUnpaid = unpaidInvoices.length > 0;
-  const canPaySelected = Boolean(selected?.raw_id && walletBalance >= selected.rem);
+  const hasPayable = payableInvoices.length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hasUnpaid) return;
-    if (!selected?.raw_id) {
-      setError(t('billingPage.selectInvoiceError', 'Please select an invoice'));
-      return;
-    }
+    if (!hasPayable || !selected?.raw_id || loading) return;
     if (walletBalance < selected.rem) {
       setError(t('billingPage.creditExceededError', 'Amount exceeds available credit balance'));
       return;
@@ -82,42 +82,44 @@ export const ApplyCreditModal: React.FC<ApplyCreditModalProps> = ({
                 </div>
               )}
 
-              {hasUnpaid ? (
-                <>
-                  {walletBalance <= 0 && (
-                    <div className="mb-4 p-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs font-medium">
-                      {t(
-                        'billingPage.walletEmptyHint',
-                        'Wallet balance is currently €0.00. You can still open this dialog, but wallet payment requires available credit.'
-                      )}
+              {loading ? (
+                <ApplyCreditModalSkeleton />
+              ) : hasUnpaid ? (
+                hasPayable ? (
+                  <>
+                    <div className="billing-mf">
+                      <label>
+                        {t('billingPage.fldSelectInvoice', 'Select Invoice')} <span className="req">*</span>
+                      </label>
+                      <select value={selectedInv} onChange={(e) => setSelectedInv(e.target.value)}>
+                        {payableInvoices.map((inv) => (
+                          <option key={inv.raw_id} value={inv.raw_id}>
+                            {inv.id} — {formatCurrency(inv.rem, inv.cur)} ({inv.type})
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                  )}
 
-                  <div className="billing-mf">
-                    <label>
-                      {t('billingPage.fldSelectInvoice', 'Select Invoice')} <span className="req">*</span>
-                    </label>
-                    <select value={selectedInv} onChange={(e) => setSelectedInv(e.target.value)}>
-                      {unpaidInvoices.map((inv) => (
-                        <option key={inv.raw_id} value={inv.raw_id}>
-                          {inv.id} — {formatCurrency(inv.rem, inv.cur)} ({inv.type})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                    {selected && (
+                      <div className="helper">
+                        {t('billingPage.walletWillPay', 'Wallet will pay the full invoice amount')}{' '}
+                        <strong className="billing-mono">{formatCurrency(selected.rem, selected.cur)}</strong>
+                      </div>
+                    )}
 
-                  {selected && (
-                    <div className="helper">
-                      {t('billingPage.walletWillPay', 'Wallet will pay the full invoice amount')}{' '}
-                      <strong className="billing-mono">{formatCurrency(selected.rem, selected.cur)}</strong>
+                    <div className="helper mt-2">
+                      {t('billingPage.kpiCredits', 'Credits Available')}:{' '}
+                      <strong className="billing-mono text-purple-700">{formatCurrency(walletBalance)}</strong>
                     </div>
-                  )}
-
-                  <div className="helper mt-2">
-                    {t('billingPage.kpiCredits', 'Credits Available')}:{' '}
-                    <strong className="billing-mono text-purple-700">{formatCurrency(walletBalance)}</strong>
+                  </>
+                ) : (
+                  <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs font-medium leading-relaxed">
+                    {t(
+                      'billingPage.walletInsufficientHint',
+                      'The invoice amount is higher than your available wallet balance. Therefore, this option is currently unavailable for use.'
+                    )}
                   </div>
-                </>
+                )
               ) : (
                 <div className="billing-empty-state">
                   <Wallet size={28} />
@@ -133,11 +135,11 @@ export const ApplyCreditModal: React.FC<ApplyCreditModalProps> = ({
             </div>
 
             <div className="billing-modal-ft">
-              <button type="button" className="b-btn" onClick={onClose} disabled={submitting}>
-                {hasUnpaid ? t('common.cancel', 'Cancel') : t('common.close', 'Close')}
+              <button type="button" className="b-btn" onClick={onClose} disabled={submitting || loading}>
+                {!loading && hasPayable ? t('common.cancel', 'Cancel') : t('common.close', 'Close')}
               </button>
-              {hasUnpaid && (
-                <button type="submit" className="b-btn b-btn-primary" disabled={submitting || !canPaySelected}>
+              {!loading && hasPayable && (
+                <button type="submit" className="b-btn b-btn-primary" disabled={submitting || !selected?.raw_id}>
                   {t('billingPage.btnPayWallet', 'Pay using wallet')}
                 </button>
               )}

@@ -147,3 +147,20 @@ export const BillingDrawerSkeleton: React.FC = () => (
     </table>
   </div>
 );
+
+export const ApplyCreditModalSkeleton: React.FC = () => (
+  <div className="billing-skeleton-block py-2" aria-hidden>
+    <div className="billing-mf">
+      <Skeleton width={110} height={12} borderRadius={4} {...sk} />
+      <div style={{ marginTop: 8 }}>
+        <Skeleton width="100%" height={38} borderRadius={8} {...sk} />
+      </div>
+    </div>
+    <div style={{ marginTop: 16 }}>
+      <Skeleton width={220} height={12} borderRadius={4} {...sk} />
+    </div>
+    <div style={{ marginTop: 10 }}>
+      <Skeleton width={160} height={12} borderRadius={4} {...sk} />
+    </div>
+  </div>
+);

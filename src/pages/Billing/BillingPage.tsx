@@ -108,6 +108,7 @@ export const BillingPage: React.FC = () => {
   const [detailLoading, setDetailLoading] = useState(false);
 
   const [walletInvoices, setWalletInvoices] = useState<Invoice[]>([]);
+  const [walletInvoicesLoading, setWalletInvoicesLoading] = useState(false);
   const [applyCreditOpen, setApplyCreditOpen] = useState(false);
   const [requestAdjOpen, setRequestAdjOpen] = useState(false);
   const [bankOpen, setBankOpen] = useState(false);
@@ -671,13 +672,18 @@ export const BillingPage: React.FC = () => {
             total={walletTotal}
             onPageChange={setWalletPage}
             onOpenApplyCredit={() => {
-              setWalletInvoices(invoices.filter((i) => i.rem > 0));
+              const localUnpaid = invoices.filter((i) => i.rem > 0 && i.status !== 'Paid' && i.status !== 'Cancelled');
+              setWalletInvoices(localUnpaid);
+              setWalletInvoicesLoading(true);
               setApplyCreditOpen(true);
               billingService
                 .getInvoices({ status: 'unpaid', per_page: 50 })
                 .then((unpaid) => setWalletInvoices(unpaid.items))
                 .catch(() => {
                   /* keep current unpaid list */
+                })
+                .finally(() => {
+                  setWalletInvoicesLoading(false);
                 });
             }}
             onOpenRequestAdj={() => {
@@ -734,6 +740,7 @@ export const BillingPage: React.FC = () => {
         onClose={() => setApplyCreditOpen(false)}
         invoices={walletInvoices}
         walletBalance={walletBalance}
+        loading={walletInvoicesLoading}
         onApply={handlePayWallet}
       />
 

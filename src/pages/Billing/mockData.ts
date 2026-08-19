@@ -1,8 +1,11 @@
+import i18n from 'i18next';
 import { formatDisplayDateFromIso } from '../../utils/dateDisplay';
 
-export function formatCurrency(val: number, cur: string = 'EUR'): string {
+export function formatCurrency(val: number, cur: string = 'EUR', overrideLocale?: string): string {
   const symbol = cur === 'USD' ? '$' : cur === 'GBP' ? '£' : '€';
-  return `${symbol}${Number(val || 0).toLocaleString('de-DE', {
+  const lang = overrideLocale || i18n.language || 'en';
+  const loc = lang === 'el' || lang === 'greek' ? 'el-GR' : 'en-US';
+  return `${symbol}${Number(val || 0).toLocaleString(loc, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
