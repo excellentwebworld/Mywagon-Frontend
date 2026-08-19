@@ -79,7 +79,9 @@ export function BookCallSection({
         </span>
       </div>
 
-      <div className="support-call-prep">{t('support.callPrep')}</div>
+      {!bookCall.loading && bookCall.hasMeetingUrl ? (
+        <div className="support-call-prep">{t('support.callPrep')}</div>
+      ) : null}
 
       {bookCall.loading ? (
         <div className="kb-message">{t('support.call.loading')}</div>
