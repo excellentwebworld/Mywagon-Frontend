@@ -722,6 +722,7 @@ export const BillingPage: React.FC = () => {
         lineItems={drawerLines}
         detailLoading={detailLoading}
         payingId={payingId}
+        walletBalance={walletBalance}
         onPreviewPdf={handleOpenPdfPreview}
         onDownloadPdf={handleOpenPdfPreview}
         onOfficialPrint={handleOfficialPrint}

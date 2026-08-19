@@ -25,6 +25,7 @@ interface InvoiceDetailDrawerProps {
   lineItems: LineItem[];
   detailLoading?: boolean;
   payingId: number | null;
+  walletBalance?: number;
   onPreviewPdf: (invoice: Invoice) => void;
   onDownloadPdf: (invoice: Invoice) => void;
   onOfficialPrint?: (invoice: Invoice) => void;
@@ -42,6 +43,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
   lineItems,
   detailLoading = false,
   payingId,
+  walletBalance = 0,
   onPreviewPdf,
   onDownloadPdf,
   onOfficialPrint,
@@ -213,7 +215,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                 <span>{t('billingPage.btnPayNow', 'Pay Now')}</span>
               </button>
             )}
-            {invoice.can_pay_wallet && (
+            {Boolean(invoice.can_pay_wallet) && walletBalance >= (invoice.rem > 0 ? invoice.rem : invoice.tot) && (
               <button type="button" className="b-btn b-btn-sm b-btn-success" onClick={() => onPayWallet(invoice)}>
                 <Wallet size={13} />
                 <span>{t('billingPage.btnPayWallet', 'Pay using wallet')}</span>

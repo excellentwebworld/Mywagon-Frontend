@@ -358,7 +358,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
                           {t('billingPage.btnPayNow', 'Pay Now')}
                         </button>
                       )}
-                      {inv.can_pay_wallet && (
+                      {Boolean(inv.can_pay_wallet) && (summary?.wallet_balance ?? 0) >= (inv.rem > 0 ? inv.rem : inv.tot) && (
                         <button
                           type="button"
                           className="b-btn-ghost p-1"
