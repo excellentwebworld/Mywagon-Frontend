@@ -597,7 +597,7 @@ export const SubscriptionPage: React.FC = () => {
           </div>
           <div className="ao-price">
             {formatEuro(price, currency)}
-            <span>{ao.type === 'count' ? ` / ${cycle === 'yearly' ? tf('year', 'year') : tf('month', 'month')}` : `/${cycle === 'yearly' ? 'yr' : 'mo'}`}</span>
+            <span> / {cycle === 'yearly' ? tf('year', 'year') : tf('month', 'month')}</span>
           </div>
         </div>
         {included ? (

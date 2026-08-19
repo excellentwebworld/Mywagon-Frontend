@@ -804,6 +804,7 @@
   font-weight: 700;
   color: var(--sub-purple);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .subscription-page .ao-price span { font-size: 11px; color: var(--t3, #8e8e9a); font-weight: 600; }
 .subscription-page .ao-desc {
