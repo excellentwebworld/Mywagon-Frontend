@@ -1262,7 +1262,7 @@
   max-width: 100%;
   padding: 8px 12px 24px;
 }
-.webview-subscription .sub-head { margin-bottom: 12px; }
+.webview-subscription .sub-head { display: none; }
 .webview-subscription .usage-section .sub-section-head { margin-bottom: 10px; }
 .webview-subscription .usage-card { padding: 10px 12px; }
 .webview-subscription .plan-summary { grid-template-columns: 1fr 1fr; }
