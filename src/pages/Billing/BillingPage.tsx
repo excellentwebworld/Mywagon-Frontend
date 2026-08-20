@@ -114,9 +114,11 @@ export const BillingPage: React.FC<BillingPageProps> = ({
   const [appliedFrom, setAppliedFrom] = useState('');
   const [appliedTo, setAppliedTo] = useState('');
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [walletPage, setWalletPage] = useState(1);
+  const [walletPerPage, setWalletPerPage] = useState(10);
   const [walletLastPage, setWalletLastPage] = useState(1);
   const [walletTotal, setWalletTotal] = useState(0);
   const [walletLoading, setWalletLoading] = useState(false);
@@ -195,7 +197,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
           from: appliedFrom || undefined,
           to: appliedTo || undefined,
           page,
-          per_page: 15,
+          per_page: perPage,
         }),
       ]);
       setSummary(sumRes);
@@ -210,7 +212,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [api, subFilter, kpiFilter, debouncedSearch, appliedFrom, appliedTo, page, t, user?.has_past_due, refreshUser]);
+  }, [api, subFilter, kpiFilter, debouncedSearch, appliedFrom, appliedTo, page, perPage, t, user?.has_past_due, refreshUser]);
 
   useEffect(() => {
     fetchBillingData();
@@ -219,7 +221,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
   const fetchWalletActivity = useCallback(async () => {
     setWalletLoading(true);
     try {
-      const cnRes = await api.getCreditNotes({ page: walletPage, per_page: 15 });
+      const cnRes = await api.getCreditNotes({ page: walletPage, per_page: walletPerPage });
       setCreditNotes(cnRes.items);
       setWalletTotal(cnRes.total);
       setWalletLastPage(cnRes.last_page);
@@ -228,7 +230,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
     } finally {
       setWalletLoading(false);
     }
-  }, [api, walletPage, t]);
+  }, [api, walletPage, walletPerPage, t]);
 
   useEffect(() => {
     if (activeTab !== 'credits') return;
@@ -659,6 +661,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
             page={page}
             lastPage={lastPage}
             total={total}
+            perPage={perPage}
             payingId={payingId}
             onSetSubFilter={(f) => {
               setSubFilter(f);
@@ -672,6 +675,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
             onApplyDateFilter={handleApplyDateFilter}
             onClearFilters={handleClearFilters}
             onPageChange={setPage}
+            onPerPageChange={setPerPage}
             onSelectInvoice={handleSelectInvoice}
             onPreviewPdf={handleOpenPdfPreview}
             onOfficialPrint={handleOfficialPrint}
@@ -695,7 +699,9 @@ export const BillingPage: React.FC<BillingPageProps> = ({
             page={walletPage}
             lastPage={walletLastPage}
             total={walletTotal}
+            perPage={walletPerPage}
             onPageChange={setWalletPage}
+            onPerPageChange={setWalletPerPage}
             onOpenApplyCredit={() => {
               const localUnpaid = invoices.filter((i) => i.rem > 0 && i.status !== 'Paid' && i.status !== 'Voided');
               setWalletInvoices(localUnpaid);
@@ -734,6 +740,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
             onOpenStatementModal={() => setStatementDownloadOpen(true)}
             exportingAction={exportingAction}
             canExport={canExport}
+            compact={isWebView}
           />
         )}
       </div>

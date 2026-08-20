@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import type { CreditNote } from '../types';
 import { formatCurrency, formatDate } from '../mockData';
 import { BillingCreditsSkeleton, BillingTableSkeleton } from './BillingSkeleton';
+import { BillingPagination } from './BillingPagination';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 
 const sk = { baseColor: '#f0f0f3', highlightColor: '#fafafe' };
-const WALLET_PER_PAGE = 15;
 
 interface CreditsTabProps {
   creditNotes: CreditNote[];
@@ -17,7 +17,9 @@ interface CreditsTabProps {
   page: number;
   lastPage: number;
   total: number;
+  perPage: number;
   onPageChange: (page: number) => void;
+  onPerPageChange: (perPage: number) => void;
   onOpenApplyCredit: () => void;
   onOpenRequestAdj: () => void;
   compact?: boolean;
@@ -31,7 +33,9 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
   page,
   lastPage,
   total,
+  perPage,
   onPageChange,
+  onPerPageChange,
   onOpenApplyCredit,
   onOpenRequestAdj,
   compact = false,
@@ -39,8 +43,6 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
   const { t, i18n } = useTranslation();
   const history = creditNotes.filter((c) => c.id !== 'WALLET');
   const showTableSkeleton = tableLoading || (loading && history.length === 0);
-  const from = total === 0 ? 0 : (page - 1) * WALLET_PER_PAGE + 1;
-  const to = Math.min(page * WALLET_PER_PAGE, total);
 
   if (loading && creditNotes.length === 0 && walletBalance === 0) {
     return <BillingCreditsSkeleton />;
@@ -166,50 +168,19 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
             </table>
           </div>
         )}
-        <div className="billing-tbl-ft">
-          <span>
-            {showTableSkeleton ? (
-              <Skeleton width={180} height={12} borderRadius={4} {...sk} />
-            ) : (
-              <>
-                {t('billingPage.showing', 'Showing')} {from}
-                {total > 0 ? `–${to}` : ''} {t('billingPage.of', 'of')} {total}{' '}
-                {t('billingPage.movements', 'movements')}
-              </>
-            )}
-          </span>
-          <div className="flex gap-2 items-center">
-            {showTableSkeleton ? (
-              <>
-                <Skeleton width={52} height={28} borderRadius={8} {...sk} />
-                <Skeleton width={40} height={12} borderRadius={4} {...sk} />
-                <Skeleton width={52} height={28} borderRadius={8} {...sk} />
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="b-btn b-btn-sm"
-                  disabled={page <= 1}
-                  onClick={() => onPageChange(page - 1)}
-                >
-                  {t('common.prev', 'Prev')}
-                </button>
-                <span className="text-xs text-gray-500 self-center">
-                  {page} / {lastPage}
-                </span>
-                <button
-                  type="button"
-                  className="b-btn b-btn-sm"
-                  disabled={page >= lastPage}
-                  onClick={() => onPageChange(page + 1)}
-                >
-                  {t('common.next', 'Next')}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+        <BillingPagination
+          page={page}
+          lastPage={lastPage}
+          total={total}
+          perPage={perPage}
+          loading={showTableSkeleton}
+          label={t('billingPage.movements', 'movements')}
+          onPageChange={onPageChange}
+          onPerPageChange={(next) => {
+            onPerPageChange(next);
+            onPageChange(1);
+          }}
+        />
       </div>
     </div>
   );

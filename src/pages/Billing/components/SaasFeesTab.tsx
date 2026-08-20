@@ -19,6 +19,7 @@ import type { Invoice, SubFilterKey, KpiFilterKey, BillingSummary } from '../typ
 import { formatCurrency, formatDate } from '../mockData';
 import { DatePicker } from '../../../components/ui/DatePicker';
 import { BillingKpiSkeleton, BillingTableSkeleton } from './BillingSkeleton';
+import { BillingPagination } from './BillingPagination';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 
@@ -37,6 +38,7 @@ interface SaasFeesTabProps {
   page: number;
   lastPage: number;
   total: number;
+  perPage: number;
   payingId: number | null;
   onSetSubFilter: (filter: SubFilterKey) => void;
   onToggleKpiFilter: (filter: KpiFilterKey) => void;
@@ -46,6 +48,7 @@ interface SaasFeesTabProps {
   onApplyDateFilter: () => void;
   onClearFilters: () => void;
   onPageChange: (page: number) => void;
+  onPerPageChange: (perPage: number) => void;
   onSelectInvoice: (invoice: Invoice) => void;
   onPreviewPdf: (invoice: Invoice) => void;
   onOfficialPrint: (invoice: Invoice) => void;
@@ -69,6 +72,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
   page,
   lastPage,
   total,
+  perPage,
   payingId,
   onSetSubFilter,
   onToggleKpiFilter,
@@ -78,6 +82,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
   onApplyDateFilter,
   onClearFilters,
   onPageChange,
+  onPerPageChange,
   onSelectInvoice,
   onPreviewPdf,
   onOfficialPrint,
@@ -228,49 +233,19 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
   );
 
   const pagination = (
-    <div className="billing-tbl-ft">
-      <span>
-        {loading ? (
-          <Skeleton width={160} height={12} borderRadius={4} {...sk} />
-        ) : (
-          <>
-            {t('billingPage.showing', 'Showing')} {invoices.length} {t('billingPage.of', 'of')} {total}{' '}
-            {t('billingPage.invoices', 'invoices')}
-          </>
-        )}
-      </span>
-      <div className="flex gap-2 items-center">
-        {loading ? (
-          <>
-            <Skeleton width={52} height={28} borderRadius={8} {...sk} />
-            <Skeleton width={40} height={12} borderRadius={4} {...sk} />
-            <Skeleton width={52} height={28} borderRadius={8} {...sk} />
-          </>
-        ) : (
-          <>
-            <button
-              type="button"
-              className="b-btn b-btn-sm"
-              disabled={page <= 1}
-              onClick={() => onPageChange(page - 1)}
-            >
-              {t('common.prev', 'Prev')}
-            </button>
-            <span className="text-xs text-gray-500 self-center">
-              {page} / {lastPage}
-            </span>
-            <button
-              type="button"
-              className="b-btn b-btn-sm"
-              disabled={page >= lastPage}
-              onClick={() => onPageChange(page + 1)}
-            >
-              {t('common.next', 'Next')}
-            </button>
-          </>
-        )}
-      </div>
-    </div>
+    <BillingPagination
+      page={page}
+      lastPage={lastPage}
+      total={total}
+      perPage={perPage}
+      loading={loading}
+      label={t('billingPage.invoices', 'invoices')}
+      onPageChange={onPageChange}
+      onPerPageChange={(next) => {
+        onPerPageChange(next);
+        onPageChange(1);
+      }}
+    />
   );
 
   return (

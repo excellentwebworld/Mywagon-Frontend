@@ -16,6 +16,7 @@ import type {
   VivaOrderResponse,
 } from './billingService';
 import { createWebViewApi, type WebViewRole } from '../webviewClient';
+import { downloadBlob } from '../../utils/webviewDownload';
 
 const BASE = '/webview/billing';
 
@@ -92,14 +93,7 @@ export function createWebViewBillingService(role: WebViewRole, userId: string): 
         fallbackFilename,
       );
       const truncated = response.headers['x-audit-export-truncated'] === 'true';
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      await downloadBlob(blob, filename, blob.type || 'application/octet-stream');
       return { filename, truncated };
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data instanceof Blob) {

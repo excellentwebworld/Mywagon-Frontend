@@ -2,6 +2,7 @@ import axios from 'axios';
 import type { ApiResponse } from './types/addressBook';
 import { getBrowserTimezone } from '../utils/timezone';
 import { safeLocalGet, safeLocalRemove, safeLocalSet } from '../utils/safeStorage';
+import { downloadBlob } from '../utils/webviewDownload';
 
 export const AUTH_TOKEN_KEY = 'shipper_auth_token';
 
@@ -211,14 +212,7 @@ export async function apiDownload(
       fallbackFilename,
     );
     const truncated = response.headers['x-audit-export-truncated'] === 'true';
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    await downloadBlob(blob, filename, blob.type || 'application/octet-stream');
     return { filename, truncated };
   } catch (err: unknown) {
     if (axios.isAxiosError(err) && err.response?.data instanceof Blob) {

@@ -158,32 +158,34 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
     >
       <div className="pdf-viewer" onClick={(e) => e.stopPropagation()}>
         <div className="pdf-header">
-          <h4 className="font-semibold text-sm text-gray-800 flex-1">{title}</h4>
-          <button
-            type="button"
-            className="b-btn b-btn-sm inline-flex items-center gap-1"
-            onClick={handlePrint}
-            disabled={!ready || loading}
-          >
-            <Printer size={13} />
-            <span>{t('billingPage.btnPrint', 'Print')}</span>
-          </button>
-          <button
-            type="button"
-            className="b-btn b-btn-sm b-btn-primary inline-flex items-center gap-1"
-            onClick={handleDownload}
-            disabled={!ready || loading || downloading}
-          >
-            <Download size={13} />
-            <span>
-              {downloading
-                ? t('billingPage.exporting', 'Exporting…')
-                : t('billingPage.btnDownloadPDF', 'Download PDF')}
-            </span>
-          </button>
-          <button type="button" className="b-btn-ghost" onClick={onClose}>
-            <X size={18} />
-          </button>
+          <h4 className="font-semibold text-sm text-gray-800 flex-1 pdf-header-title">{title}</h4>
+          <div className="pdf-header-actions">
+            <button
+              type="button"
+              className="b-btn b-btn-sm inline-flex items-center gap-1"
+              onClick={handlePrint}
+              disabled={!ready || loading}
+            >
+              <Printer size={13} />
+              <span>{t('billingPage.btnPrint', 'Print')}</span>
+            </button>
+            <button
+              type="button"
+              className="b-btn b-btn-sm b-btn-primary inline-flex items-center gap-1"
+              onClick={handleDownload}
+              disabled={!ready || loading || downloading}
+            >
+              <Download size={13} />
+              <span>
+                {downloading
+                  ? t('billingPage.exporting', 'Exporting…')
+                  : t('billingPage.btnDownloadPDF', 'Download PDF')}
+              </span>
+            </button>
+            <button type="button" className="b-btn-ghost pdf-header-close" onClick={onClose} aria-label={t('common.close', 'Close')}>
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="pdf-body">

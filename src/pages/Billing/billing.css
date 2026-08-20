@@ -498,6 +498,10 @@
   height: 42px;
   padding: 0 16px;
   font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .sub-pill {
@@ -668,6 +672,79 @@ table.billing-t {
   justify-content: space-between;
   font-size: 11px;
   color: var(--t3, #8e8e9a);
+}
+
+/* Address-book style pagination */
+.billing-pag.ab-pag {
+  padding: 9px 16px;
+  border-top: 1px solid var(--border, #e4e4e8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  background: var(--surface, #fff);
+}
+.billing-pag .pag-info {
+  font-size: 11px;
+  color: var(--text-tertiary, #8e8e9a);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.billing-pag .pag-length-sel {
+  font-size: 11px;
+  padding: 4px 8px;
+  border: 1px solid var(--border, #e4e4e8);
+  border-radius: 6px;
+  background: var(--surface, #fff);
+  color: var(--text-secondary, #5e5e6e);
+}
+.billing-pag .pag-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.billing-pag .pag-btns {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.billing-pag .pg-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border, #e4e4e8);
+  background: var(--surface, #fff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-secondary, #5e5e6e);
+  cursor: pointer;
+  font-family: inherit;
+}
+.billing-pag .pg-btn:hover:not(:disabled) {
+  border-color: var(--accent, #9b51e0);
+  color: var(--accent, #9b51e0);
+}
+.billing-pag .pg-btn.active {
+  background: var(--accent, #9b51e0);
+  border-color: var(--accent, #9b51e0);
+  color: #fff;
+}
+.billing-pag .pg-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.billing-pag .pg-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 2px;
+  color: var(--text-tertiary, #8e8e9a);
+  font-size: 12px;
 }
 
 /* BADGES */
@@ -1014,6 +1091,32 @@ table.billing-t {
 }
 
 /* AGING REPORT */
+.aging-panel {
+  margin: 16px 24px 0;
+  padding: 20px 22px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e4e4e8);
+  border-radius: var(--radius-md, 12px);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.04));
+}
+
+.aging-panel__head {
+  margin-bottom: 14px;
+}
+
+.aging-panel__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--t1, #121217);
+}
+
+.aging-panel__sub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--t3, #8e8e9a);
+}
+
 .aging-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1022,7 +1125,9 @@ table.billing-t {
 
 .aging-item {
   border-left: 3px solid;
-  padding-left: 14px;
+  padding: 14px 16px;
+  background: var(--surface-alt, #fafafe);
+  border-radius: 0 10px 10px 0;
 }
 
 .aging-v {
@@ -1171,6 +1276,20 @@ table.billing-t {
   gap: 10px;
   background: var(--se, #fafafe);
   flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.pdf-header-title {
+  min-width: 0;
+  margin: 0;
+}
+
+.pdf-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
 }
 
 .pdf-body {
@@ -1525,8 +1644,39 @@ table.billing-t {
     max-height: 100dvh;
     border-radius: 0;
   }
+  .pdf-header {
+    padding: 10px 12px;
+    align-items: flex-start;
+  }
+  .pdf-header-title {
+    width: 100%;
+    flex: 1 1 100%;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .pdf-header-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+  .pdf-header-actions .b-btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .pdf-header-actions .pdf-header-close {
+    flex: 0 0 auto;
+  }
   .pdf-body {
-    padding: 16px;
+    padding: 8px;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .billing-doc-paper {
+    width: 100%;
+    max-width: 100%;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
   }
   .pdf-page {
     padding: 24px 20px;
@@ -1794,6 +1944,10 @@ table.billing-t {
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .webview-billing .sub-bar-search {
@@ -1831,8 +1985,8 @@ table.billing-t {
 }
 
 .webview-billing .exp-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   padding: 0 !important;
 }
@@ -1842,9 +1996,156 @@ table.billing-t {
   padding: 14px;
 }
 
+.webview-billing .exp-grid--compact {
+  gap: 8px;
+}
+
+.webview-billing .exp-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e6e6ec;
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.webview-billing .exp-row:active:not(:disabled) {
+  background: #f8f6ff;
+  border-color: rgba(108, 58, 237, 0.28);
+}
+
+.webview-billing .exp-row:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.webview-billing .exp-icon--sm {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.webview-billing .exp-row__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.webview-billing .exp-row__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.webview-billing .exp-row .exp-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #121217;
+}
+
+.webview-billing .exp-row .exp-desc {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #6b7280;
+}
+
+.webview-billing .exp-row .exp-fmt {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #6c3aed;
+  background: #f3eaff;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.webview-billing .exp-row__cta {
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6c3aed;
+}
+
+.webview-billing .aging-panel,
+.webview-billing .aging-panel--compact {
+  margin: 12px 0 0 !important;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid #e6e6ec;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  width: 100%;
+  max-width: 100%;
+}
+
+.webview-billing .aging-panel__head {
+  margin-bottom: 10px;
+}
+
+.webview-billing .aging-panel__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #121217;
+}
+
+.webview-billing .aging-panel__sub {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #8e8e9a;
+}
+
 .webview-billing .aging-grid {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.webview-billing .aging-item {
+  padding: 10px 10px 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-left-width: 3px;
+  min-height: 76px;
+}
+
+.webview-billing .aging-l {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #6b7280;
+}
+
+.webview-billing .aging-v {
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.webview-billing .aging-c {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #8e8e9a;
+}
+
+.statements-tab--compact {
+  padding-bottom: 8px;
 }
 
 .webview-billing .credits-tab--compact .grid {
@@ -2057,6 +2358,47 @@ table.billing-t {
     height: 100dvh;
     max-height: 100dvh;
     border-radius: 0;
+  }
+
+  .pdf-header {
+    padding: 10px 12px;
+    align-items: flex-start;
+  }
+
+  .pdf-header-title {
+    width: 100%;
+    flex: 1 1 100%;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .pdf-header-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .pdf-header-actions .b-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .pdf-header-actions .pdf-header-close {
+    flex: 0 0 auto;
+  }
+
+  .pdf-body {
+    padding: 8px;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .billing-doc-paper {
+    width: 100%;
+    max-width: 100%;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
   }
 }
 

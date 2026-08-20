@@ -179,6 +179,40 @@ export const BILLING_DOCUMENT_CSS = `
     color: #6b7280;
     font-size: 11px;
   }
+  @media screen and (max-width: 768px) {
+    .mv-doc {
+      width: 100% !important;
+      max-width: 100% !important;
+      padding: 20px 14px 24px !important;
+    }
+    .mv-doc-top {
+      flex-direction: column;
+      gap: 12px;
+    }
+    .mv-doc-title-block { text-align: left; }
+    .mv-doc-title { font-size: 22px; }
+    .mv-doc-parties {
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin-top: 18px;
+    }
+    .mv-doc-kpi {
+      grid-template-columns: 1fr 1fr;
+    }
+    .mv-doc-kpi-card {
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .mv-doc-kpi-card:nth-child(2n) { border-right: 0; }
+    .mv-doc-kpi-value { font-size: 14px; }
+    .mv-doc-section { margin-top: 18px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .mv-doc table {
+      min-width: 560px;
+    }
+    .mv-doc th, .mv-doc td {
+      font-size: 11px;
+      padding: 8px 6px;
+    }
+  }
   @media print {
     body { background: #fff; }
     .mv-doc { width: auto; padding: 12mm; }

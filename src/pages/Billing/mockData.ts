@@ -1,5 +1,6 @@
 import i18n from 'i18next';
 import { formatDisplayDateFromIso } from '../../utils/dateDisplay';
+import { downloadBlob } from '../../utils/webviewDownload';
 
 export function formatCurrency(val: number, cur: string = 'EUR', overrideLocale?: string): string {
   const symbol = cur === 'USD' ? '$' : cur === 'GBP' ? '£' : '€';
@@ -62,12 +63,5 @@ export function buildStatementPeriodOptions(registeredAt?: string | null, now: D
 
 export function downloadFileBlob(filename: string, content: string, mimeType: string = 'text/csv'): void {
   const blob = new Blob(['\ufeff' + content], { type: `${mimeType};charset=utf-8` });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  void downloadBlob(blob, filename, `${mimeType};charset=utf-8`);
 }

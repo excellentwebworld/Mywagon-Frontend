@@ -1,11 +1,12 @@
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { downloadBlob } from './webviewDownload';
 
 function safeFilename(title: string): string {
   return title.replace(/[^\w\-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'document';
 }
 
-/** Renders a DOM node to a multi-page A4 PDF and downloads it. */
+/** Renders a DOM node to a multi-page A4 PDF and downloads it (browser or native WebView bridge). */
 export async function downloadElementAsPdf(element: HTMLElement, title: string): Promise<void> {
   const canvas = await html2canvas(element, {
     scale: 2,
@@ -22,6 +23,15 @@ export async function downloadElementAsPdf(element: HTMLElement, title: string):
         el.style.overflow = 'visible';
         el.style.height = 'auto';
         el.style.maxHeight = 'none';
+        el.style.transform = 'none';
+        el.style.zoom = 'normal';
+      });
+      clonedDoc.querySelectorAll('.mv-doc').forEach((node: Element) => {
+        const el = node as HTMLElement;
+        el.style.width = '794px';
+        el.style.maxWidth = '794px';
+        el.style.padding = '48px 52px 40px';
+        el.style.margin = '0 auto';
       });
     },
   });
@@ -46,5 +56,7 @@ export async function downloadElementAsPdf(element: HTMLElement, title: string):
     heightLeft -= pageHeight;
   }
 
-  pdf.save(`${safeFilename(title)}.pdf`);
+  const filename = `${safeFilename(title)}.pdf`;
+  const blob = pdf.output('blob');
+  await downloadBlob(blob, filename, 'application/pdf');
 }

@@ -4342,6 +4342,8 @@
     "stMonthlyPDF": "Monthly Statement PDF",
     "stMonthlyPDFDesc": "Opening balance, invoices, credits, payments, and closing summary",
     "stAgingReport": "Aging Report",
+    "stAgingReportSub": "Unpaid invoices by due-date age",
+    "btnGenerateShort": "Generate",
     "agingCurrent": "Current (0–7d)",
     "aging8": "8–30 days",
     "aging31": "31–60 days",
