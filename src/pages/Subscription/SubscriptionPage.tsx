@@ -83,8 +83,23 @@ function toApiCycle(cycle: UiCycle): ApiCycle {
   return cycle === 'yearly' ? 'year' : 'month';
 }
 
-function currentIntervalToUi(interval?: string | null): UiCycle {
-  return interval === 'year' ? 'yearly' : 'monthly';
+function currentIntervalToUi(
+  interval?: string | null,
+  startDate?: string | null,
+  expireDate?: string | null,
+): UiCycle {
+  const raw = (interval ?? '').toLowerCase().trim();
+  if (raw === 'year' || raw === 'yearly' || raw === 'annual' || raw === 'annually') {
+    return 'yearly';
+  }
+  if (startDate && expireDate) {
+    const start = Date.parse(startDate);
+    const expire = Date.parse(expireDate);
+    if (!Number.isNaN(start) && !Number.isNaN(expire) && (expire - start) / 86400000 >= 180) {
+      return 'yearly';
+    }
+  }
+  return 'monthly';
 }
 
 function CheckIcon() {
@@ -203,7 +218,11 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
   const [addonCounts, setAddonCounts] = useState<Record<number, number>>({});
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', description: '' });
 
-  const subscribedCycle: UiCycle = currentIntervalToUi(data?.current?.interval);
+  const subscribedCycle: UiCycle = currentIntervalToUi(
+    data?.current?.interval,
+    data?.current?.start_date,
+    data?.current?.expire_date,
+  );
   const planCheckoutCycle = toApiCycle(cycle);
   const addonCheckoutCycle = toApiCycle(subscribedCycle);
 
@@ -238,6 +257,9 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     try {
       const overview = await api.getOverview();
       setData(overview);
+      if (overview?.current) {
+        setCycle(currentIntervalToUi(overview.current.interval, overview.current.start_date, overview.current.expire_date));
+      }
     } catch (err) {
       setError(toError(err, tf('loadError', 'Unable to load subscription.')));
     } finally {
@@ -251,8 +273,8 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
 
   useEffect(() => {
     if (!data?.current) return;
-    setCycle(currentIntervalToUi(data.current.interval));
-  }, [data?.current?.user_subscription_id, data?.current?.interval]);
+    setCycle(currentIntervalToUi(data.current.interval, data.current.start_date, data.current.expire_date));
+  }, [data?.current?.user_subscription_id, data?.current?.interval, data?.current?.start_date, data?.current?.expire_date]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -909,10 +931,6 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                   ) : canUpgrade ? (
                     <button type="button" className="cta pri" onClick={() => setModal({ kind: 'upgrade', planId: p.id })}>
                       {tf('upgradeTo', 'Upgrade to')} {p.name}
-                    </button>
-                  ) : current?.is_custom ? (
-                    <button type="button" className="cta sec" disabled>
-                      {tf('customPlanCta', 'Current Plan')}
                     </button>
                   ) : (
                     <button type="button" className="cta sec" disabled>
