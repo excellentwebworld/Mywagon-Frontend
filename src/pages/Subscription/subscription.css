@@ -1157,3 +1157,38 @@
   box-shadow: none;
   border-color: var(--sub-border);
 }
+
+.webview-subscription-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(155, 81, 224, 0.08), transparent 55%),
+    var(--bg, #f5f5f7);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.webview-subscription-main {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.webview-subscription.subscription-page {
+  max-width: 100%;
+  padding: 12px 16px 32px;
+}
+
+.webview-subscription-error {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-primary, #121217);
+}
+
+.webview-subscription-error h2 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.webview-subscription-error p {
+  font-size: 14px;
+  color: var(--text-secondary, #5e5e6e);
+}

@@ -17,7 +17,9 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../../hooks/useToast';
 import { ApiError, getApiErrorMessage } from '../../api';
-import { subscriptionService } from '../../api/services/subscriptionService';
+import { subscriptionService as shipperSubscriptionService } from '../../api/services/subscriptionService';
+import type { WebViewSubscriptionService } from '../../api/services/webViewSubscriptionService';
+import type { WebViewRole } from '../../api/webviewClient';
 import type {
   AddonQuote,
   BillingCycle as ApiCycle,
@@ -49,6 +51,28 @@ const USAGE_LABELS: Record<string, string> = {
   dispatcher_users: 'Dispatchers',
   count_of_bids_per_month: 'Bids',
   send_tracking_links_to_your_customers_per_month: 'Tracking Links',
+};
+
+const CARRIER_USAGE_LABELS: Record<string, string> = {
+  number_of_fleet_manager_users: 'Fleet Managers',
+  number_of_driver_users: 'Drivers',
+  add_partners: 'Partners',
+  partners: 'Partners',
+};
+
+const DRIVER_USAGE_LABELS: Record<string, string> = {
+  partners_count: 'Partners',
+  post_private_availability: 'Private Availability',
+  post_public_availability: 'Public Availability',
+};
+
+type SubscriptionApi = typeof shipperSubscriptionService | WebViewSubscriptionService;
+
+type SubscriptionPageProps = {
+  variant?: 'shipper' | 'webview';
+  webviewRole?: WebViewRole;
+  subscriptionApi?: SubscriptionApi;
+  userId?: string;
 };
 
 function formatEuro(n: number, currency?: string): string {
@@ -145,7 +169,20 @@ function isBetaPermission(slug?: string | null, name?: string | null, isBeta?: b
   return false;
 }
 
-export const SubscriptionPage: React.FC = () => {
+export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
+  variant = 'shipper',
+  webviewRole,
+  subscriptionApi: subscriptionApiProp,
+  userId,
+}) => {
+  const api = subscriptionApiProp ?? shipperSubscriptionService;
+  const isWebView = variant === 'webview';
+  const usageLabels =
+    webviewRole === 'carrier'
+      ? CARRIER_USAGE_LABELS
+      : webviewRole === 'driver'
+        ? DRIVER_USAGE_LABELS
+        : USAGE_LABELS;
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const locale = i18n.language?.startsWith('el') ? 'el' : 'en';
@@ -199,7 +236,7 @@ export const SubscriptionPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const overview = await subscriptionService.getOverview();
+      const overview = await api.getOverview();
       setData(overview);
     } catch (err) {
       setError(toError(err, tf('loadError', 'Unable to load subscription.')));
@@ -229,6 +266,9 @@ export const SubscriptionPage: React.FC = () => {
     const clearQuery = () => {
       const url = new URL(window.location.href);
       ['payment', 'kind', 't', 's', 'transaction_id', 'order_code'].forEach((k) => url.searchParams.delete(k));
+      if (isWebView && userId) {
+        url.searchParams.set('user_id', userId);
+      }
       window.history.replaceState({}, '', url.pathname + url.search);
     };
     if (payment === 'failed' || payment === 'cancel' || payment === 'cancelled') {
@@ -243,7 +283,7 @@ export const SubscriptionPage: React.FC = () => {
       return;
     }
     if (transactionId || orderCode) {
-      subscriptionService
+      api
         .verifyPayment(transactionId || undefined, orderCode || undefined)
         .then((result) => {
           const verifyMessages = paymentToastMessages(result.kind === 'addon' ? 'addon' : 'plan');
@@ -253,7 +293,7 @@ export const SubscriptionPage: React.FC = () => {
         .catch((err) => toast.error(toError(err, messages.failed)))
         .finally(clearQuery);
     }
-  }, [load, paymentToastMessages, toast, toError]);
+  }, [load, paymentToastMessages, toast, toError, isWebView, userId]);
 
   const closeModal = () => {
     setModal(null);
@@ -281,10 +321,10 @@ export const SubscriptionPage: React.FC = () => {
     const run = async () => {
       try {
         if (modal.kind === 'upgrade') {
-          setQuote(await subscriptionService.quotePlan(modal.planId, planCheckoutCycle));
+          setQuote(await api.quotePlan(modal.planId, planCheckoutCycle));
         }
         if (modal.kind === 'buy-addon') {
-          setQuote(await subscriptionService.quoteAddon(modal.addon.addon_price_id, modal.count, addonCheckoutCycle));
+          setQuote(await api.quoteAddon(modal.addon.addon_price_id, modal.count, addonCheckoutCycle));
         }
       } catch (err) {
         toast.error(toError(err, tf('quoteFailed', 'Unable to calculate price.')));
@@ -319,7 +359,7 @@ export const SubscriptionPage: React.FC = () => {
     }
     setBusy(true);
     try {
-      await subscriptionService.contactUs({
+      await api.contactUs({
         name: contactForm.name.trim(),
         email: contactForm.email.trim(),
         phone: contactForm.phone.trim(),
@@ -347,12 +387,12 @@ export const SubscriptionPage: React.FC = () => {
     setBusy(true);
     try {
       if (modal.kind === 'upgrade') {
-        const result = await subscriptionService.checkoutPlan(modal.planId, planCheckoutCycle, autoPayOnCheckout);
+        const result = await api.checkoutPlan(modal.planId, planCheckoutCycle, autoPayOnCheckout);
         await startCheckout(result.checkout_url, result.activated, 'plan');
         return;
       }
       if (modal.kind === 'buy-addon') {
-        const result = await subscriptionService.checkoutAddon(
+        const result = await api.checkoutAddon(
           modal.addon.addon_price_id,
           modal.count,
           addonCheckoutCycle,
@@ -362,14 +402,14 @@ export const SubscriptionPage: React.FC = () => {
         return;
       }
       if (modal.kind === 'cancel-plan') {
-        await subscriptionService.cancelPlan();
+        await api.cancelPlan();
         toast.success(tf('successCancel', 'Plan cancelled. Access continues until the period ends.'));
         closeModal();
         await load();
         return;
       }
       if (modal.kind === 'cancel-addon') {
-        await subscriptionService.cancelAddon(modal.addon.id);
+        await api.cancelAddon(modal.addon.id);
         toast.success(tf('successRemoved', 'Add-on will stop at the end of its period.'));
         closeModal();
         await load();
@@ -390,7 +430,7 @@ export const SubscriptionPage: React.FC = () => {
     }
     setAutoPayProcessing('plan');
     try {
-      await subscriptionService.setAutoPay(enabled);
+      await api.setAutoPay(enabled);
       toast.success(enabled ? tf('autopayOn', 'Auto-pay enabled.') : tf('autopayOff', 'Auto-pay disabled.'));
       await load();
     } catch (err) {
@@ -404,7 +444,7 @@ export const SubscriptionPage: React.FC = () => {
     if (autoPayProcessing) return;
     setAutoPayProcessing(addon.id);
     try {
-      await subscriptionService.setAddonAutoPay(addon.id, enabled);
+      await api.setAddonAutoPay(addon.id, enabled);
       toast.success(enabled ? tf('autopayOn', 'Auto-pay enabled.') : tf('autopayOff', 'Auto-pay disabled.'));
       await load();
     } catch (err) {
@@ -634,9 +674,11 @@ export const SubscriptionPage: React.FC = () => {
     return <SubscriptionSkeleton />;
   }
 
+  const pageClass = isWebView ? 'subscription-page webview-subscription' : 'subscription-page';
+
   if (error && !data) {
     return (
-      <div className="subscription-page">
+      <div className={pageClass}>
         <div className="pg-t">{tf('pgTitle', 'Subscription')}</div>
         <p className="pg-s">{error}</p>
         <button type="button" className="sub-btn" onClick={() => void load()}>
@@ -653,7 +695,7 @@ export const SubscriptionPage: React.FC = () => {
     : 0;
 
   return (
-    <div className="subscription-page">
+    <div className={pageClass}>
       <header className="sub-head">
         <div className="sub-head-l">
           <div className="sub-head-title-row">
@@ -665,10 +707,12 @@ export const SubscriptionPage: React.FC = () => {
           <p className="pg-s">{tf('pgSub', 'Manage your plan, usage, and add-ons')}</p>
         </div>
         <div className="pg-head-r">
-          <Link to="/billing" className="sub-btn sub-btn-outline">
-            <Receipt size={15} />
-            {tf('viewInvoicesShort', 'View Invoices')}
-          </Link>
+          {!isWebView ? (
+            <Link to="/billing" className="sub-btn sub-btn-outline">
+              <Receipt size={15} />
+              {tf('viewInvoicesShort', 'View Invoices')}
+            </Link>
+          ) : null}
         </div>
       </header>
 
@@ -773,28 +817,32 @@ export const SubscriptionPage: React.FC = () => {
           </div>
         </div>
         <div className="usage-grid">
-          <div className="usage-card usage-card--seat">
-            <div className="uc-top">
-              <div className="uc-name">
-                <Users size={13} className="uc-icon" aria-hidden="true" />
-                {tf('activeUsers', 'Active Users')}
+          {!isWebView ? (
+            <>
+              <div className="usage-card usage-card--seat">
+                <div className="uc-top">
+                  <div className="uc-name">
+                    <Users size={13} className="uc-icon" aria-hidden="true" />
+                    {tf('activeUsers', 'Active Users')}
+                  </div>
+                  <div className="uc-vals">
+                    <span className="used">{data?.seats?.active_users ?? 0}</span>
+                  </div>
+                </div>
               </div>
-              <div className="uc-vals">
-                <span className="used">{data?.seats?.active_users ?? 0}</span>
+              <div className="usage-card usage-card--seat">
+                <div className="uc-top">
+                  <div className="uc-name">
+                    <Users size={13} className="uc-icon" aria-hidden="true" />
+                    {tf('paidUsers', 'Paid Users')}
+                  </div>
+                  <div className="uc-vals">
+                    <span className="used">{data?.seats?.paid_users ?? 0}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="usage-card usage-card--seat">
-            <div className="uc-top">
-              <div className="uc-name">
-                <Users size={13} className="uc-icon" aria-hidden="true" />
-                {tf('paidUsers', 'Paid Users')}
-              </div>
-              <div className="uc-vals">
-                <span className="used">{data?.seats?.paid_users ?? 0}</span>
-              </div>
-            </div>
-          </div>
+            </>
+          ) : null}
           {(data?.usage ?? []).map((u) => {
             const unlimited = u.unlimited || u.limit == null;
             const pct = unlimited ? 0 : Math.round((u.used / Math.max(u.limit || 1, 1)) * 100);
@@ -802,7 +850,7 @@ export const SubscriptionPage: React.FC = () => {
             return (
               <div key={u.slug} className={`usage-card ${tone === 'ok' ? '' : tone}`}>
                 <div className="uc-top">
-                  <div className="uc-name">{u.name || tf(u.slug, USAGE_LABELS[u.slug] ?? u.slug)}</div>
+                  <div className="uc-name">{u.name || tf(u.slug, usageLabels[u.slug] ?? u.slug)}</div>
                   <div className="uc-vals">
                     <span className="used">{u.used}</span>
                     <span className="lim"> / {unlimited ? tf('unlimited', 'Unlimited') : u.limit}</span>
@@ -1085,10 +1133,12 @@ export const SubscriptionPage: React.FC = () => {
           <div className="b-field">
             <div className="b-label">{tf('invoiceEmail', 'Invoice Email')}</div>
             <div className="b-val">{data?.billing.invoice_email || '—'}</div>
-            <Link to="/billing" className="b-link">
-              <Receipt size={12} />
-              {tf('viewInvoices', 'View Invoices')}
-            </Link>
+            {!isWebView ? (
+              <Link to="/billing" className="b-link">
+                <Receipt size={12} />
+                {tf('viewInvoices', 'View Invoices')}
+              </Link>
+            ) : null}
           </div>
         </div>
       </section>

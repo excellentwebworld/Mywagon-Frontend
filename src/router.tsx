@@ -20,6 +20,7 @@ import SupportPage from './pages/Support/SupportPage';
 import { TutorialsPage } from './pages/Tutorials/TutorialsPage';
 import { BillingPage } from './pages/Billing';
 import { SubscriptionPage } from './pages/Subscription';
+import { WebViewSubscriptionPage } from './pages/Subscription/WebViewSubscriptionPage';
 
 import PriceListsPage from './pages/PriceLists/PriceListsPage';
 
@@ -68,12 +69,16 @@ export const router = createBrowserRouter(
   basename
     ? [
         { path: '/login', element: <LoginPage /> },
+        { path: '/webview/carrier/subscription', element: <WebViewSubscriptionPage role="carrier" /> },
+        { path: '/webview/driver/subscription', element: <WebViewSubscriptionPage role="driver" /> },
         { path: '/', element: <Navigate to="/address-book" replace /> },
         protectedLayout,
         { path: '*', element: <Navigate to="/address-book" replace /> },
       ]
     : [
         { path: '/login', element: <LoginPage /> },
+        { path: '/webview/carrier/subscription', element: <WebViewSubscriptionPage role="carrier" /> },
+        { path: '/webview/driver/subscription', element: <WebViewSubscriptionPage role="driver" /> },
         { path: '/', element: <Navigate to="/login" replace /> },
         { path: '/about', element: <Navigate to="/login" replace /> },
         protectedLayout,
