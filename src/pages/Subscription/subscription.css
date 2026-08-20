@@ -1142,6 +1142,31 @@
   color: #ef4444;
   border: 1.5px solid #ef4444;
 }
+.sub-modal-skeleton-field + .sub-modal-skeleton-field { margin-top: 14px; }
+.sub-modal-foot-skel {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  justify-content: flex-end;
+}
+.sub-modal-skel-btn {
+  display: inline-block;
+  height: 38px;
+  width: 88px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f0f0f3 25%, #fafafe 50%, #f0f0f3 75%);
+  background-size: 200% 100%;
+  animation: sub-skel-shimmer 1.2s ease-in-out infinite;
+}
+.sub-modal-skel-btn--pri { width: 118px; }
+@keyframes sub-skel-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+.sub-modal-close:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
 @media (max-width: 768px) {
   .subscription-page { padding: 16px 16px 40px; }

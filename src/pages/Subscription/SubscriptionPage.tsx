@@ -30,7 +30,7 @@ import type {
   SubscriptionQuote,
 } from '../../api/types/subscription';
 import { formatDate, formatMoney, usageTone } from './mockData';
-import { SubscriptionSkeleton } from './SubscriptionSkeleton';
+import { SubscriptionModalSkeleton, SubscriptionSkeleton } from './SubscriptionSkeleton';
 import './subscription.css';
 
 type UiCycle = 'monthly' | 'yearly';
@@ -353,6 +353,11 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
 
   useEffect(() => {
     if (!modal) return;
+    if (modal.kind !== 'upgrade' && modal.kind !== 'buy-addon') {
+      setQuote(null);
+      setQuoteLoading(false);
+      return;
+    }
     setQuote(null);
     setQuoteLoading(true);
     const run = async () => {
@@ -534,8 +539,8 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
         title: `${tf('upgradeTitle', 'Upgrade to')} ${plan?.name ?? ''}`,
         confirm: busy ? tf('processing', 'Processing…') : tf('payNow', 'Pay Now'),
         danger: false,
-        body: quoteLoading ? (
-          <p>{tf('loading', 'Loading…')}</p>
+        body: quoteLoading || busy ? (
+          <SubscriptionModalSkeleton variant="quote" />
         ) : q ? (
           <>
             <div className="m-highlight">
@@ -566,8 +571,8 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
         title: modal.addon.name,
         confirm: busy ? tf('processing', 'Processing…') : tf('payNow', 'Pay Now'),
         danger: false,
-        body: quoteLoading ? (
-          <p>{tf('loading', 'Loading…')}</p>
+        body: quoteLoading || busy ? (
+          <SubscriptionModalSkeleton variant="quote" />
         ) : q ? (
           <>
             <div className="m-highlight">
@@ -598,9 +603,13 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     if (modal.kind === 'cancel-plan') {
       return {
         title: tf('cancelPlanTitle', 'Cancel plan'),
-        confirm: tf('confirmCancel', 'Cancel plan'),
+        confirm: busy ? tf('processing', 'Processing…') : tf('confirmCancel', 'Cancel plan'),
         danger: true,
-        body: <div className="m-info">{tf('cancelPlanNote', 'You keep access until the current period ends. Auto-pay will be turned off.')}</div>,
+        body: busy ? (
+          <SubscriptionModalSkeleton variant="confirm" />
+        ) : (
+          <div className="m-info">{tf('cancelPlanNote', 'You keep access until the current period ends. Auto-pay will be turned off.')}</div>
+        ),
       };
     }
     if (modal.kind === 'contact') {
@@ -608,7 +617,9 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
         title: tf('contactTitle', 'Contact us'),
         confirm: busy ? tf('processing', 'Processing…') : tf('contactSubmit', 'Submit Request'),
         danger: false,
-        body: (
+        body: busy ? (
+          <SubscriptionModalSkeleton variant="form" />
+        ) : (
           <div className="sub-contact-form">
             <label>
               {tf('contactName', 'Full Name')}
@@ -654,9 +665,13 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     }
     return {
       title: modal.addon.name,
-      confirm: tf('removeAddon', 'Remove'),
+      confirm: busy ? tf('processing', 'Processing…') : tf('removeAddon', 'Remove'),
       danger: true,
-      body: <div className="m-info">{tf('cancelAddonNote', 'The add-on stays active until its end date, then it will not renew.')}</div>,
+      body: busy ? (
+        <SubscriptionModalSkeleton variant="confirm" />
+      ) : (
+        <div className="m-info">{tf('cancelAddonNote', 'The add-on stays active until its end date, then it will not renew.')}</div>
+      ),
     };
   }, [modal, plans, quote, quoteLoading, busy, autoPayOnCheckout, contactForm, t]);
 
@@ -1198,27 +1213,45 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
 
       {modal && modalContent
         ? createPortal(
-            <div className="sub-modal-overlay" onClick={closeModal} role="presentation">
-              <div className="sub-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+            <div
+              className="sub-modal-overlay"
+              onClick={busy || quoteLoading ? undefined : closeModal}
+              role="presentation"
+            >
+              <div className="sub-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-busy={busy || quoteLoading}>
                 <div className="sub-modal-head">
                   <h3>{modalContent.title}</h3>
-                  <button type="button" className="sub-modal-close" onClick={closeModal} aria-label="Close">
+                  <button
+                    type="button"
+                    className="sub-modal-close"
+                    onClick={closeModal}
+                    aria-label="Close"
+                    disabled={busy || quoteLoading}
+                  >
                     ✕
                   </button>
                 </div>
                 <div className="sub-modal-body">{modalContent.body}</div>
                 <div className="sub-modal-foot">
-                  <button type="button" className="sub-btn" onClick={closeModal}>
-                    {tf('cancelBtn', 'Cancel')}
-                  </button>
-                  <button
-                    type="button"
-                    className={modalContent.danger ? 'sub-btn sub-btn-danger' : 'sub-btn sub-btn-p'}
-                    disabled={busy || quoteLoading}
-                    onClick={() => void confirmModal()}
-                  >
-                    {modalContent.confirm}
-                  </button>
+                  {busy || quoteLoading ? (
+                    <div className="sub-modal-foot-skel" aria-hidden="true">
+                      <span className="sub-modal-skel-btn" />
+                      <span className="sub-modal-skel-btn sub-modal-skel-btn--pri" />
+                    </div>
+                  ) : (
+                    <>
+                      <button type="button" className="sub-btn" onClick={closeModal}>
+                        {tf('cancelBtn', 'Cancel')}
+                      </button>
+                      <button
+                        type="button"
+                        className={modalContent.danger ? 'sub-btn sub-btn-danger' : 'sub-btn sub-btn-p'}
+                        onClick={() => void confirmModal()}
+                      >
+                        {modalContent.confirm}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>,

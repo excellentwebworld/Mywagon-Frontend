@@ -80,6 +80,69 @@ function AddonCardSkeleton() {
   );
 }
 
+type ModalSkeletonVariant = 'quote' | 'confirm' | 'form';
+
+/** Placeholder shown inside subscription dialogs while quote/checkout/cancel runs. */
+export const SubscriptionModalSkeleton: React.FC<{ variant?: ModalSkeletonVariant }> = ({
+  variant = 'quote',
+}) => {
+  if (variant === 'form') {
+    return (
+      <div className="sub-modal-skeleton" aria-busy="true" aria-live="polite">
+        {Array.from({ length: 4 }).map((_, idx) => (
+          <div key={idx} className="sub-modal-skeleton-field">
+            <Skeleton width={idx === 3 ? 160 : 90} height={11} borderRadius={4} {...sk} />
+            <div style={{ marginTop: 8 }}>
+              <Skeleton height={idx === 3 ? 88 : 40} borderRadius={8} {...sk} />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (variant === 'confirm') {
+    return (
+      <div className="sub-modal-skeleton" aria-busy="true" aria-live="polite">
+        <Skeleton width="92%" height={14} borderRadius={4} {...sk} />
+        <div style={{ marginTop: 10 }}>
+          <Skeleton width="78%" height={14} borderRadius={4} {...sk} />
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <Skeleton width="64%" height={14} borderRadius={4} {...sk} />
+        </div>
+        <div style={{ marginTop: 18 }}>
+          <Skeleton height={56} borderRadius={10} {...sk} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="sub-modal-skeleton" aria-busy="true" aria-live="polite">
+      <div className="m-highlight" style={{ border: 'none', background: 'transparent', padding: 0 }}>
+        <Skeleton width={88} height={11} borderRadius={4} {...sk} />
+        <div style={{ marginTop: 10 }}>
+          <Skeleton width={140} height={28} borderRadius={6} {...sk} />
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <Skeleton width={200} height={12} borderRadius={4} {...sk} />
+        </div>
+      </div>
+      <div style={{ marginTop: 16 }}>
+        <Skeleton width="100%" height={48} borderRadius={10} {...sk} />
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <Skeleton width="88%" height={13} borderRadius={4} {...sk} />
+      </div>
+      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Skeleton width={18} height={18} borderRadius={4} {...sk} />
+        <Skeleton width={210} height={13} borderRadius={4} {...sk} />
+      </div>
+    </div>
+  );
+};
+
 export const SubscriptionSkeleton: React.FC = () => (
   <div className="subscription-page sub-skeleton" aria-busy="true" aria-live="polite">
     <header className="sub-head">
