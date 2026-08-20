@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getBrowserTimezone } from '../utils/timezone';
+import { safeSessionGet, safeSessionSet } from '../utils/safeStorage';
 
 export type WebViewRole = 'carrier' | 'driver';
 
@@ -9,11 +10,11 @@ const SESSION_KEY: Record<WebViewRole, string> = {
 };
 
 export function getStoredWebViewUserId(role: WebViewRole): string | null {
-  return sessionStorage.getItem(SESSION_KEY[role]);
+  return safeSessionGet(SESSION_KEY[role]);
 }
 
 export function setStoredWebViewUserId(role: WebViewRole, userId: string): void {
-  sessionStorage.setItem(SESSION_KEY[role], userId);
+  safeSessionSet(SESSION_KEY[role], userId);
 }
 
 function laravelOrigin(): string {
@@ -37,13 +38,22 @@ export function createWebViewApi(role: WebViewRole, userId: string) {
   const instance = axios.create({
     baseURL: origin ? `${origin}/api/${role}` : `/api/${role}`,
     headers: { Accept: 'application/json' },
+    timeout: 25000,
   });
 
   instance.interceptors.request.use((config) => {
-    config.headers['X-Client-Timezone'] = getBrowserTimezone();
-    config.headers['X-WebView-User-Id'] = userId;
-    if (config.method === 'get' || config.method === 'delete') {
-      config.params = { ...config.params, user_id: userId };
+    // Query/body user_id only — extra headers force a CORS preflight that many
+    // in-app WebViews never complete, so the page stays on a loader forever.
+    config.params = {
+      ...config.params,
+      user_id: userId,
+      timezone: getBrowserTimezone(),
+    };
+    if (config.method !== 'get' && config.method !== 'delete') {
+      const data = config.data;
+      if (data && typeof data === 'object' && !(data instanceof FormData)) {
+        config.data = { ...data, user_id: userId };
+      }
     }
     return config;
   });

@@ -1,19 +1,20 @@
 import axios from 'axios';
 import type { ApiResponse } from './types/addressBook';
 import { getBrowserTimezone } from '../utils/timezone';
+import { safeLocalGet, safeLocalRemove, safeLocalSet } from '../utils/safeStorage';
 
 export const AUTH_TOKEN_KEY = 'shipper_auth_token';
 
 export function getStoredToken(): string | null {
-  return localStorage.getItem(AUTH_TOKEN_KEY);
+  return safeLocalGet(AUTH_TOKEN_KEY);
 }
 
 export function setStoredToken(token: string): void {
-  localStorage.setItem(AUTH_TOKEN_KEY, token);
+  safeLocalSet(AUTH_TOKEN_KEY, token);
 }
 
 export function clearStoredToken(): void {
-  localStorage.removeItem(AUTH_TOKEN_KEY);
+  safeLocalRemove(AUTH_TOKEN_KEY);
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';

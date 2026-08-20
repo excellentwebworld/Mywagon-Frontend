@@ -433,13 +433,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const prevAuthScopeKeyRef = useRef<string | null | undefined>(undefined);
 
   // Locale State
-  const [lang, setLangState] = useState<'en' | 'el'>(
-    (localStorage.getItem('shipment-lang') as 'en' | 'el') || 'en'
-  );
+  const [lang, setLangState] = useState<'en' | 'el'>(() => {
+    try {
+      return (localStorage.getItem('shipment-lang') as 'en' | 'el') || 'en';
+    } catch {
+      return 'en';
+    }
+  });
 
   const setLang = (l: 'en' | 'el') => {
     setLangState(l);
-    localStorage.setItem('shipment-lang', l);
+    try {
+      localStorage.setItem('shipment-lang', l);
+    } catch {
+      /* ignore */
+    }
   };
 
   // Toast State

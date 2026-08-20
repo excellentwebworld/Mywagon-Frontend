@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
@@ -217,6 +217,8 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
   const [autoPayOnCheckout, setAutoPayOnCheckout] = useState(true);
   const [addonCounts, setAddonCounts] = useState<Record<number, number>>({});
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', description: '' });
+  const dataRef = useRef(data);
+  dataRef.current = data;
 
   const subscribedCycle: UiCycle = currentIntervalToUi(
     data?.current?.interval,
@@ -252,12 +254,16 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
   );
 
   const load = useCallback(async () => {
-    setLoading(true);
+    const isFirstLoad = !dataRef.current;
+    if (isFirstLoad) setLoading(true);
     setError(null);
     try {
       const overview = await api.getOverview();
+      if (!overview) {
+        throw new Error('Unable to load subscription.');
+      }
       setData(overview);
-      if (overview?.current) {
+      if (overview.current) {
         setCycle(currentIntervalToUi(overview.current.interval, overview.current.start_date, overview.current.expire_date));
       }
     } catch (err) {
@@ -265,7 +271,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [toError, t]);
+  }, [api, toError, t]);
 
   useEffect(() => {
     void load();

@@ -70,7 +70,9 @@ export const router = createBrowserRouter(
     ? [
         { path: '/login', element: <LoginPage /> },
         { path: '/webview/carrier/subscription', element: <WebViewSubscriptionPage role="carrier" /> },
+        { path: '/webview/carrier/subscription/', element: <WebViewSubscriptionPage role="carrier" /> },
         { path: '/webview/driver/subscription', element: <WebViewSubscriptionPage role="driver" /> },
+        { path: '/webview/driver/subscription/', element: <WebViewSubscriptionPage role="driver" /> },
         { path: '/', element: <Navigate to="/address-book" replace /> },
         protectedLayout,
         { path: '*', element: <Navigate to="/address-book" replace /> },
@@ -78,7 +80,9 @@ export const router = createBrowserRouter(
     : [
         { path: '/login', element: <LoginPage /> },
         { path: '/webview/carrier/subscription', element: <WebViewSubscriptionPage role="carrier" /> },
+        { path: '/webview/carrier/subscription/', element: <WebViewSubscriptionPage role="carrier" /> },
         { path: '/webview/driver/subscription', element: <WebViewSubscriptionPage role="driver" /> },
+        { path: '/webview/driver/subscription/', element: <WebViewSubscriptionPage role="driver" /> },
         { path: '/', element: <Navigate to="/login" replace /> },
         { path: '/about', element: <Navigate to="/login" replace /> },
         protectedLayout,

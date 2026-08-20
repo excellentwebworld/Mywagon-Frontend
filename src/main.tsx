@@ -13,18 +13,18 @@ function hideBootLoader() {
   window.setTimeout(() => el.remove(), 300);
 }
 
-createRoot(document.getElementById("root")!).render(
-  <AuthProvider>
-    <AppProvider>
-      <ThemeProvider>
-        <LoaderProvider>
-          <App />
-        </LoaderProvider>
-      </ThemeProvider>
-    </AppProvider>
-  </AuthProvider>,
-);
-
-hideBootLoader();
-
-hideBootLoader();
+try {
+  createRoot(document.getElementById("root")!).render(
+    <AuthProvider>
+      <AppProvider>
+        <ThemeProvider>
+          <LoaderProvider>
+            <App />
+          </LoaderProvider>
+        </ThemeProvider>
+      </AppProvider>
+    </AuthProvider>,
+  );
+} finally {
+  hideBootLoader();
+}

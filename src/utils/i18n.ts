@@ -4,8 +4,9 @@ import LanguageDetector from "i18next-browser-languagedetector";
 
 import en from "../locale/en.json";
 import el from "../locale/el.json";
+import { safeLocalGet } from "./safeStorage";
 
-const locale = localStorage.getItem("i18nextLng") || "en";
+const locale = safeLocalGet("i18nextLng") || "en";
 
 i18n
   .use(LanguageDetector)
@@ -29,6 +30,10 @@ i18n
     fallbackLng: "en",
     interpolation: {
       escapeValue: false,
+    },
+    detection: {
+      order: ["querystring", "navigator"],
+      caches: [],
     },
   });
 

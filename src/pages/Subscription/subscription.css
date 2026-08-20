@@ -347,6 +347,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-width: 0;
 }
 .subscription-page .usage-card:hover {
   border-color: var(--border-focus, #c8c8cf);
@@ -388,7 +389,17 @@
 }
 .subscription-page .uc-vals .used { color: var(--t1, #121217); }
 .subscription-page .uc-vals .lim { color: var(--t3, #8e8e9a); }
-.subscription-page .uc-bar { height: 6px; background: var(--sa, #f0f0f3); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+.subscription-page .uc-bar {
+  height: 6px;
+  width: 100%;
+  min-width: 0;
+  align-self: stretch;
+  flex-shrink: 0;
+  background: var(--sa, #f0f0f3);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
 .subscription-page .uc-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
 .subscription-page .uc-fill.ok { background: #10b981; }
 .subscription-page .uc-fill.warn { background: #f59e0b; }
