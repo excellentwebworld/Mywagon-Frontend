@@ -16,9 +16,26 @@ export function setStoredWebViewUserId(role: WebViewRole, userId: string): void 
   sessionStorage.setItem(SESSION_KEY[role], userId);
 }
 
+function laravelOrigin(): string {
+  const fromLaravel = (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '');
+  if (fromLaravel) return fromLaravel;
+
+  const shipperBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  if (shipperBase?.startsWith('http')) {
+    try {
+      return new URL(shipperBase).origin;
+    } catch {
+      // ignore malformed env
+    }
+  }
+
+  return '';
+}
+
 export function createWebViewApi(role: WebViewRole, userId: string) {
+  const origin = laravelOrigin();
   const instance = axios.create({
-    baseURL: `/api/${role}`,
+    baseURL: origin ? `${origin}/api/${role}` : `/api/${role}`,
     headers: { Accept: 'application/json' },
   });
 
