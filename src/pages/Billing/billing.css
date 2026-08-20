@@ -1547,3 +1547,46 @@ table.billing-t {
     max-width: none;
   }
 }
+
+/* WebView shell (carrier / driver mobile) */
+.webview-billing.billing-container {
+  max-width: 100%;
+  padding: 8px 12px 28px;
+}
+.webview-billing .billing-head {
+  padding: 12px 0 10px;
+  gap: 10px;
+}
+.webview-billing .billing-head-r {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.webview-billing .billing-head-r .b-btn {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+.webview-billing .uni-strip {
+  margin: 0 0 12px;
+}
+.webview-billing-error {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-primary, #121217);
+}
+.webview-billing-error h2 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+.webview-billing-error p {
+  font-size: 14px;
+  color: var(--text-secondary, #5e5e6e);
+}
+
+@media (max-width: 768px) {
+  .webview-billing .billing-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

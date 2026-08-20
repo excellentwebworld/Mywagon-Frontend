@@ -14,8 +14,9 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../context/AuthContext';
-import { billingService } from '../../api/services/billingService';
+import { billingService, type BillingApi } from '../../api/services/billingService';
 import { ApiError, getApiErrorMessage } from '../../api';
+import type { WebViewRole } from '../../api/webviewClient';
 import type {
   Invoice,
   CreditNote,
@@ -43,6 +44,13 @@ import { BankTransferModal } from './components/modals/BankTransferModal';
 import { StatementDownloadModal } from './components/modals/StatementDownloadModal';
 import { PdfPreviewModal } from './components/modals/PdfPreviewModal';
 
+type BillingPageProps = {
+  variant?: 'shipper' | 'webview';
+  webviewRole?: WebViewRole;
+  billingApi?: BillingApi;
+  userId?: string;
+};
+
 function mapSubFilter(sub: SubFilterKey, kpi: KpiFilterKey): { status?: string; type?: string } {
   if (kpi === 'outstanding') return { status: 'unpaid' };
   if (kpi === 'overdue') return { status: 'overdue' };
@@ -68,11 +76,24 @@ function toBillingError(err: unknown, fallback: string, t: TFunction): string {
   return fallback;
 }
 
-export const BillingPage: React.FC = () => {
+export const BillingPage: React.FC<BillingPageProps> = ({
+  variant = 'shipper',
+  webviewRole,
+  billingApi: billingApiProp,
+  userId,
+}) => {
+  const api = billingApiProp ?? billingService;
+  const isWebView = variant === 'webview';
   const { t } = useTranslation();
   const { toast } = useToast();
-  const { user, refreshUser } = useAuth();
+  const auth = useAuth();
+  const user = isWebView ? null : auth.user;
+  const refreshUser = isWebView ? async () => {} : auth.refreshUser;
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const subscriptionHref = isWebView && webviewRole && userId
+    ? `/webview/${webviewRole}/subscription?user_id=${encodeURIComponent(userId)}`
+    : '/subscription';
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
@@ -180,8 +201,8 @@ export const BillingPage: React.FC = () => {
     try {
       const filters = mapSubFilter(subFilter, kpiFilter);
       const [sumRes, invRes] = await Promise.all([
-        billingService.getSummary(),
-        billingService.getInvoices({
+        api.getSummary(),
+        api.getInvoices({
           ...filters,
           q: debouncedSearch.trim() || undefined,
           from: appliedFrom || undefined,
@@ -212,7 +233,7 @@ export const BillingPage: React.FC = () => {
   const fetchWalletActivity = useCallback(async () => {
     setWalletLoading(true);
     try {
-      const cnRes = await billingService.getCreditNotes({ page: walletPage, per_page: 15 });
+      const cnRes = await api.getCreditNotes({ page: walletPage, per_page: 15 });
       setCreditNotes(cnRes.items);
       setWalletTotal(cnRes.total);
       setWalletLastPage(cnRes.last_page);
@@ -253,7 +274,7 @@ export const BillingPage: React.FC = () => {
     }
 
     if (transactionId || orderCode) {
-      billingService
+      api
         .verifyVivaPayment(transactionId || undefined, orderCode || undefined)
         .then(() => {
           toast.success(t('billingPage.successViva', 'Payment completed successfully'));
@@ -332,7 +353,7 @@ export const BillingPage: React.FC = () => {
     }
 
     try {
-      const payload = await billingService.getInvoicePrint(inv.raw_id);
+      const payload = await api.getInvoicePrint(inv.raw_id);
       const html = renderBillingDocumentHtml(
         payload.invoice.id,
         <InvoiceDocument
@@ -355,7 +376,7 @@ export const BillingPage: React.FC = () => {
     if (!inv.raw_id || payingId) return;
     setPayingId(inv.raw_id);
     try {
-      const order = await billingService.createVivaOrder(inv.raw_id);
+      const order = await api.createVivaOrder(inv.raw_id);
       if (order.checkoutUrl) {
         if (order.wallet_applied && (order.wallet_amount ?? 0) > 0) {
           toast.info(
@@ -378,14 +399,14 @@ export const BillingPage: React.FC = () => {
   };
 
   const handlePayWallet = async (rawId: number) => {
-    await billingService.payWithWallet(rawId);
+    await api.payWithWallet(rawId);
     toast.success(t('billingPage.successWallet', 'Invoice paid using wallet credit'));
     fetchBillingData();
     if (activeTab === 'credits') fetchWalletActivity();
   };
 
   const handleBankReceipt = async (invoiceId: number, file: File) => {
-    await billingService.uploadBankReceipt(invoiceId, file);
+    await api.uploadBankReceipt(invoiceId, file);
     toast.success(t('billingPage.successReceipt', 'Receipt uploaded successfully'));
     fetchBillingData();
     if (activeTab === 'credits') fetchWalletActivity();
@@ -395,7 +416,7 @@ export const BillingPage: React.FC = () => {
     if (!guardExport()) return;
     setExportingAction('invoice-register');
     try {
-      await billingService.exportInvoiceRegister(currentExportFilters());
+      await api.exportInvoiceRegister(currentExportFilters());
       toast.success(t('billingPage.successExport', 'Invoices exported to CSV'));
     } catch (err) {
       toast.error(toBillingError(err, t('billingPage.exportFailed', 'Export failed.'), t));
@@ -411,7 +432,7 @@ export const BillingPage: React.FC = () => {
         if (drawerInvoice?.raw_id === inv.raw_id && drawerLines.length > 0) {
           lines = drawerLines;
         } else {
-          const detail = await billingService.getInvoiceDetail(inv.raw_id);
+          const detail = await api.getInvoiceDetail(inv.raw_id);
           lines = detail.line_items || [];
         }
       }
@@ -447,7 +468,7 @@ export const BillingPage: React.FC = () => {
     if (!guardExport()) return;
     setExportingAction('line-items');
     try {
-      await billingService.exportLineItems(currentExportFilters());
+      await api.exportLineItems(currentExportFilters());
       toast.success(t('billingPage.successExport', 'Line items exported'));
     } catch (err) {
       toast.error(toBillingError(err, t('billingPage.exportFailed', 'Export failed.'), t));
@@ -457,7 +478,7 @@ export const BillingPage: React.FC = () => {
   };
 
   const handleRequestAdjustment = async (invoiceId: number, amount: number, reason: string) => {
-    await billingService.requestAdjustment(invoiceId, amount, reason);
+    await api.requestAdjustment(invoiceId, amount, reason);
     toast.success(t('billingPage.successAdjustment', 'Adjustment request submitted'));
   };
 
@@ -474,7 +495,7 @@ export const BillingPage: React.FC = () => {
     }
     setExportingAction('statement');
     try {
-      await billingService.exportStatement(month, format, statementExportParams(month));
+      await api.exportStatement(month, format, statementExportParams(month));
       toast.success(t('billingPage.successStatement', 'Statement generated'));
     } catch (err) {
       toast.error(toBillingError(err, t('billingPage.exportFailed', 'Export failed.'), t));
@@ -497,7 +518,7 @@ export const BillingPage: React.FC = () => {
 
     setDetailLoading(true);
     try {
-      const detail = await billingService.getInvoiceDetail(inv.raw_id);
+      const detail = await api.getInvoiceDetail(inv.raw_id);
       setDrawerInvoice(detail);
       setDrawerLines(detail.line_items || []);
     } catch {
@@ -510,7 +531,7 @@ export const BillingPage: React.FC = () => {
   const walletBalance = summary?.wallet_balance ?? 0;
 
   return (
-    <div className="billing-container">
+    <div className={isWebView ? 'billing-container webview-billing' : 'billing-container'}>
       <header className="billing-head">
         <div className="billing-head-l">
           <div className="billing-head-title-row">
@@ -519,15 +540,17 @@ export const BillingPage: React.FC = () => {
             </span>
             <div>
               <h1 className="billing-title">{t('billingPage.pgTitle', 'Billing')}</h1>
-              <p className="billing-subtitle">
-                {t('billingPage.pgSub', 'Manage invoices, wallet credit, and payment activity')}
-              </p>
+              {!isWebView ? (
+                <p className="billing-subtitle">
+                  {t('billingPage.pgSub', 'Manage invoices, wallet credit, and payment activity')}
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
 
         <div className="billing-head-r">
-          <Link to="/subscription" className="b-btn">
+          <Link to={subscriptionHref} className="b-btn">
             <Crown size={14} />
             <span>{t('billingPage.manageSubscription', 'Manage Subscription')}</span>
           </Link>
@@ -676,7 +699,7 @@ export const BillingPage: React.FC = () => {
               setWalletInvoices(localUnpaid);
               setWalletInvoicesLoading(true);
               setApplyCreditOpen(true);
-              billingService
+              api
                 .getInvoices({ status: 'unpaid', per_page: 50 })
                 .then((unpaid) => setWalletInvoices(unpaid.items))
                 .catch(() => {
@@ -689,7 +712,7 @@ export const BillingPage: React.FC = () => {
             onOpenRequestAdj={() => {
               setWalletInvoices(invoices.filter((i) => i.rem > 0 && i.status !== 'Paid'));
               setRequestAdjOpen(true);
-              billingService
+              api
                 .getInvoices({ status: 'unpaid', per_page: 50 })
                 .then((unpaid) => setWalletInvoices(unpaid.items))
                 .catch(() => {
@@ -783,6 +806,7 @@ export const BillingPage: React.FC = () => {
         isStatement={pdfIsStatement}
         statementPeriod={pdfStatementPeriod}
         statementFilters={{ month: pdfStatementPeriod }}
+        billingApi={api}
       />
     </div>
   );

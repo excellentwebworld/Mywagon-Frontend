@@ -21,6 +21,7 @@ import { TutorialsPage } from './pages/Tutorials/TutorialsPage';
 import { BillingPage } from './pages/Billing';
 import { SubscriptionPage } from './pages/Subscription';
 import { WebViewSubscriptionPage } from './pages/Subscription/WebViewSubscriptionPage';
+import { WebViewBillingPage } from './pages/Billing/WebViewBillingPage';
 
 import PriceListsPage from './pages/PriceLists/PriceListsPage';
 
@@ -65,24 +66,29 @@ const protectedLayout = {
   children: appRoutes,
 };
 
+const webViewRoutes = [
+  { path: '/webview/carrier/subscription', element: <WebViewSubscriptionPage role="carrier" /> },
+  { path: '/webview/carrier/subscription/', element: <WebViewSubscriptionPage role="carrier" /> },
+  { path: '/webview/driver/subscription', element: <WebViewSubscriptionPage role="driver" /> },
+  { path: '/webview/driver/subscription/', element: <WebViewSubscriptionPage role="driver" /> },
+  { path: '/webview/carrier/billing', element: <WebViewBillingPage role="carrier" /> },
+  { path: '/webview/carrier/billing/', element: <WebViewBillingPage role="carrier" /> },
+  { path: '/webview/driver/billing', element: <WebViewBillingPage role="driver" /> },
+  { path: '/webview/driver/billing/', element: <WebViewBillingPage role="driver" /> },
+];
+
 export const router = createBrowserRouter(
   basename
     ? [
         { path: '/login', element: <LoginPage /> },
-        { path: '/webview/carrier/subscription', element: <WebViewSubscriptionPage role="carrier" /> },
-        { path: '/webview/carrier/subscription/', element: <WebViewSubscriptionPage role="carrier" /> },
-        { path: '/webview/driver/subscription', element: <WebViewSubscriptionPage role="driver" /> },
-        { path: '/webview/driver/subscription/', element: <WebViewSubscriptionPage role="driver" /> },
+        ...webViewRoutes,
         { path: '/', element: <Navigate to="/address-book" replace /> },
         protectedLayout,
         { path: '*', element: <Navigate to="/address-book" replace /> },
       ]
     : [
         { path: '/login', element: <LoginPage /> },
-        { path: '/webview/carrier/subscription', element: <WebViewSubscriptionPage role="carrier" /> },
-        { path: '/webview/carrier/subscription/', element: <WebViewSubscriptionPage role="carrier" /> },
-        { path: '/webview/driver/subscription', element: <WebViewSubscriptionPage role="driver" /> },
-        { path: '/webview/driver/subscription/', element: <WebViewSubscriptionPage role="driver" /> },
+        ...webViewRoutes,
         { path: '/', element: <Navigate to="/login" replace /> },
         { path: '/about', element: <Navigate to="/login" replace /> },
         protectedLayout,

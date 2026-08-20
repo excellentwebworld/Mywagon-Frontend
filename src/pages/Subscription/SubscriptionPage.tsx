@@ -764,12 +764,17 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
           {!isWebView ? <p className="pg-s">{tf('pgSub', 'Manage your plan, usage, and add-ons')}</p> : null}
         </div>
         <div className="pg-head-r">
-          {!isWebView ? (
-            <Link to="/billing" className="sub-btn sub-btn-outline">
-              <Receipt size={15} />
-              {tf('viewInvoicesShort', 'View Invoices')}
-            </Link>
-          ) : null}
+          <Link
+            to={
+              isWebView && webviewRole && userId
+                ? `/webview/${webviewRole}/billing?user_id=${encodeURIComponent(userId)}`
+                : '/billing'
+            }
+            className="sub-btn sub-btn-outline"
+          >
+            <Receipt size={15} />
+            {tf('viewInvoicesShort', 'View Invoices')}
+          </Link>
         </div>
       </header>
 
@@ -1215,12 +1220,17 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
           <div className="b-field">
             <div className="b-label">{tf('invoiceEmail', 'Invoice Email')}</div>
             <div className="b-val">{data?.billing.invoice_email || '—'}</div>
-            {!isWebView ? (
-              <Link to="/billing" className="b-link">
-                <Receipt size={12} />
-                {tf('viewInvoices', 'View Invoices')}
-              </Link>
-            ) : null}
+            <Link
+              to={
+                isWebView && webviewRole && userId
+                  ? `/webview/${webviewRole}/billing?user_id=${encodeURIComponent(userId)}`
+                  : '/billing'
+              }
+              className="b-link"
+            >
+              <Receipt size={12} />
+              {tf('viewInvoices', 'View Invoices')}
+            </Link>
           </div>
         </div>
         </details>

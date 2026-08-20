@@ -192,3 +192,5 @@ export const billingService = {
     await apiDownload('/billing/statements/export/lines', `billing_line_items_${stamp}.csv`, params);
   },
 };
+
+export type BillingApi = typeof billingService;

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Download, Printer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { billingService } from '../../../../api/services/billingService';
+import { billingService, type BillingApi } from '../../../../api/services/billingService';
 import type { InvoicePrintPayload, StatementPayload } from '../../../../api/types/billing';
 import { fillPrintWindow, preparePrintWindow } from '../../../../utils/printHtml';
 import { downloadElementAsPdf } from '../../../../utils/downloadPdf';
@@ -20,6 +20,7 @@ interface PdfPreviewModalProps {
   statementFilters?: {
     month?: string;
   };
+  billingApi?: BillingApi;
 }
 
 export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
@@ -29,7 +30,9 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
   isStatement = false,
   statementPeriod = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
   statementFilters,
+  billingApi: billingApiProp,
 }) => {
+  const api = billingApiProp ?? billingService;
   const { t } = useTranslation();
   const paperRef = useRef<HTMLDivElement>(null);
   const [invoicePrint, setInvoicePrint] = useState<InvoicePrintPayload | null>(null);
@@ -53,10 +56,10 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
       try {
         if (isStatement) {
           const month = statementFilters?.month || statementPeriod;
-          setStatement(await billingService.getStatement(month, { month }));
+          setStatement(await api.getStatement(month, { month }));
           setInvoicePrint(null);
         } else if (invoiceId) {
-          setInvoicePrint(await billingService.getInvoicePrint(invoiceId));
+          setInvoicePrint(await api.getInvoicePrint(invoiceId));
           setStatement(null);
         }
       } catch (err) {
@@ -69,7 +72,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
     };
 
     void load();
-  }, [isOpen, isStatement, invoiceId, statementPeriod, statementFilters, t]);
+  }, [isOpen, isStatement, invoiceId, statementPeriod, statementFilters, t, api]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
