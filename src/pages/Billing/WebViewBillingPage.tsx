@@ -12,6 +12,8 @@ import {
   setStoredWebViewUserId,
   type WebViewRole,
 } from '../../api/webviewClient';
+import '../Subscription/subscription.css';
+import './billing.css';
 
 type Props = {
   role: WebViewRole;

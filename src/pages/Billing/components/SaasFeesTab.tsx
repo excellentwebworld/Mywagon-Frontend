@@ -278,8 +278,11 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
       {loading && !summary ? (
         <BillingKpiSkeleton />
       ) : (
-        <div className="kpi-strip">
-          {kpis.map((kp, idx) => (
+        <div className={`kpi-strip${compact ? ' kpi-strip--compact' : ''}`}>
+          {(compact
+            ? kpis.filter((kp) => kp.key === 'outstanding' || kp.key === 'overdue' || kp.key === null || kp.key === 'paid')
+            : kpis
+          ).map((kp, idx) => (
             <div
               key={idx}
               className={`kpi-card ${kpiFilter === kp.key && kp.key ? 'active' : ''}`}

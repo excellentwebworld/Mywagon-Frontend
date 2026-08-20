@@ -580,36 +580,71 @@ export const BillingPage: React.FC<BillingPageProps> = ({
         </div>
       )}
 
-      <UniverseBanner compact={isWebView} />
+      {!isWebView ? <UniverseBanner /> : null}
 
-      <div className="billing-tab-bar">
-        <button
-          type="button"
-          className={`billing-tab-btn ${activeTab === 'saas' ? 'active' : ''}`}
-          onClick={() => handleTabChange('saas')}
-        >
-          <Layers size={15} />
-          <span>{t('billingPage.tabSaas', 'SaaS & Fees')}</span>
-        </button>
-        <button
-          type="button"
-          className={`billing-tab-btn ${activeTab === 'credits' ? 'active' : ''}`}
-          onClick={() => handleTabChange('credits')}
-        >
-          <CreditCard size={15} />
-          <span>{t('billingPage.tabCredits', 'Credits & Adjustments')}</span>
-        </button>
-        <button
-          type="button"
-          className={`billing-tab-btn ${activeTab === 'statements' ? 'active' : ''}`}
-          onClick={() => handleTabChange('statements')}
-        >
-          <BarChart3 size={15} />
-          <span>{t('billingPage.tabStatements', 'Statements & Exports')}</span>
-        </button>
-      </div>
+      {isWebView ? (
+        <div className="wv-view-switch" role="tablist" aria-label={t('billingPage.pgTitle', 'Billing')}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'saas'}
+            className={`wv-view-switch__btn ${activeTab === 'saas' ? 'is-active' : ''}`}
+            onClick={() => handleTabChange('saas')}
+          >
+            <Layers size={14} />
+            <span>{t('billingPage.tabInvoicesShort', 'Invoices')}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'credits'}
+            className={`wv-view-switch__btn ${activeTab === 'credits' ? 'is-active' : ''}`}
+            onClick={() => handleTabChange('credits')}
+          >
+            <CreditCard size={14} />
+            <span>{t('billingPage.tabWalletShort', 'Wallet')}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'statements'}
+            className={`wv-view-switch__btn ${activeTab === 'statements' ? 'is-active' : ''}`}
+            onClick={() => handleTabChange('statements')}
+          >
+            <BarChart3 size={14} />
+            <span>{t('billingPage.tabExportsShort', 'Exports')}</span>
+          </button>
+        </div>
+      ) : (
+        <div className="billing-tab-bar">
+          <button
+            type="button"
+            className={`billing-tab-btn ${activeTab === 'saas' ? 'active' : ''}`}
+            onClick={() => handleTabChange('saas')}
+          >
+            <Layers size={15} />
+            <span>{t('billingPage.tabSaas', 'SaaS & Fees')}</span>
+          </button>
+          <button
+            type="button"
+            className={`billing-tab-btn ${activeTab === 'credits' ? 'active' : ''}`}
+            onClick={() => handleTabChange('credits')}
+          >
+            <CreditCard size={15} />
+            <span>{t('billingPage.tabCredits', 'Credits & Adjustments')}</span>
+          </button>
+          <button
+            type="button"
+            className={`billing-tab-btn ${activeTab === 'statements' ? 'active' : ''}`}
+            onClick={() => handleTabChange('statements')}
+          >
+            <BarChart3 size={15} />
+            <span>{t('billingPage.tabStatements', 'Statements & Exports')}</span>
+          </button>
+        </div>
+      )}
 
-      <div className="billing-tab-content">
+      <div className={`billing-tab-content${isWebView ? ' billing-tab-content--webview' : ''}`}>
         {activeTab === 'saas' && (
           <SaasFeesTab
             invoices={invoices}
