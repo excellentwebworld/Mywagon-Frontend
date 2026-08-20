@@ -1553,19 +1553,23 @@ table.billing-t {
   max-width: 100%;
   padding: 8px 12px 28px;
 }
-.webview-billing .billing-head {
-  padding: 12px 0 10px;
-  gap: 10px;
+.webview-billing .billing-head--actions-only {
+  padding: 8px 0 12px;
+  margin: 0;
+  justify-content: flex-end;
+  align-items: stretch;
 }
-.webview-billing .billing-head-r {
+.webview-billing .billing-head--actions-only .billing-head-r {
   width: 100%;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
-.webview-billing .billing-head-r .b-btn {
-  flex: 1 1 auto;
+.webview-billing .billing-head--actions-only .billing-head-r .b-btn {
+  width: 100%;
+  min-height: 40px;
   justify-content: center;
+  white-space: nowrap;
 }
 .webview-billing .uni-strip {
   margin: 0 0 12px;
@@ -1582,6 +1586,28 @@ table.billing-t {
 .webview-billing-error p {
   font-size: 14px;
   color: var(--text-secondary, #5e5e6e);
+}
+
+@media (max-width: 420px) {
+  .webview-billing .billing-head--actions-only .billing-head-r {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 641px) {
+  .webview-billing .billing-head--actions-only {
+    justify-content: flex-end;
+  }
+  .webview-billing .billing-head--actions-only .billing-head-r {
+    width: auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .webview-billing .billing-head--actions-only .billing-head-r .b-btn {
+    width: auto;
+    min-width: 140px;
+  }
 }
 
 @media (max-width: 768px) {

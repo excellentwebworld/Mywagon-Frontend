@@ -76,11 +76,11 @@ function toBillingError(err: unknown, fallback: string, t: TFunction): string {
   return fallback;
 }
 
+const noopRefreshUser = async (): Promise<void> => {};
+
 export const BillingPage: React.FC<BillingPageProps> = ({
   variant = 'shipper',
-  webviewRole,
   billingApi: billingApiProp,
-  userId,
 }) => {
   const api = billingApiProp ?? billingService;
   const isWebView = variant === 'webview';
@@ -88,12 +88,11 @@ export const BillingPage: React.FC<BillingPageProps> = ({
   const { toast } = useToast();
   const auth = useAuth();
   const user = isWebView ? null : auth.user;
-  const refreshUser = isWebView ? async () => {} : auth.refreshUser;
+  // Stable identity in WebView — inline `async () => {}` would recreate fetchBillingData every render.
+  const refreshUser = isWebView ? noopRefreshUser : auth.refreshUser;
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const subscriptionHref = isWebView && webviewRole && userId
-    ? `/webview/${webviewRole}/subscription?user_id=${encodeURIComponent(userId)}`
-    : '/subscription';
+  const subscriptionHref = '/subscription';
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
@@ -224,7 +223,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [subFilter, kpiFilter, debouncedSearch, appliedFrom, appliedTo, page, t, user?.has_past_due, refreshUser]);
+  }, [api, subFilter, kpiFilter, debouncedSearch, appliedFrom, appliedTo, page, t, user?.has_past_due, refreshUser]);
 
   useEffect(() => {
     fetchBillingData();
@@ -242,7 +241,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
     } finally {
       setWalletLoading(false);
     }
-  }, [walletPage, t]);
+  }, [api, walletPage, t]);
 
   useEffect(() => {
     if (activeTab !== 'credits') return;
@@ -532,28 +531,30 @@ export const BillingPage: React.FC<BillingPageProps> = ({
 
   return (
     <div className={isWebView ? 'billing-container webview-billing' : 'billing-container'}>
-      <header className="billing-head">
-        <div className="billing-head-l">
-          <div className="billing-head-title-row">
-            <span className="billing-head-icon" aria-hidden="true">
-              <Receipt size={18} />
-            </span>
-            <div>
-              <h1 className="billing-title">{t('billingPage.pgTitle', 'Billing')}</h1>
-              {!isWebView ? (
+      <header className={isWebView ? 'billing-head billing-head--actions-only' : 'billing-head'}>
+        {!isWebView ? (
+          <div className="billing-head-l">
+            <div className="billing-head-title-row">
+              <span className="billing-head-icon" aria-hidden="true">
+                <Receipt size={18} />
+              </span>
+              <div>
+                <h1 className="billing-title">{t('billingPage.pgTitle', 'Billing')}</h1>
                 <p className="billing-subtitle">
                   {t('billingPage.pgSub', 'Manage invoices, wallet credit, and payment activity')}
                 </p>
-              ) : null}
+              </div>
             </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="billing-head-r">
-          <Link to={subscriptionHref} className="b-btn">
-            <Crown size={14} />
-            <span>{t('billingPage.manageSubscription', 'Manage Subscription')}</span>
-          </Link>
+          {!isWebView ? (
+            <Link to={subscriptionHref} className="b-btn">
+              <Crown size={14} />
+              <span>{t('billingPage.manageSubscription', 'Manage Subscription')}</span>
+            </Link>
+          ) : null}
           <button
             type="button"
             className="b-btn"
@@ -579,7 +580,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
         </div>
       </header>
 
-      {upgradeRequired && (
+      {!isWebView && upgradeRequired ? (
         <div className="billing-alert billing-alert--warning" role="status">
           <AlertTriangle size={18} />
           <p>
@@ -589,7 +590,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
             )}
           </p>
         </div>
-      )}
+      ) : null}
 
       {summary?.has_past_due && (
         <div className="billing-alert billing-alert--danger" role="alert">
