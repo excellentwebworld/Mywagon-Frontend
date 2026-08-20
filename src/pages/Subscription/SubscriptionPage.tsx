@@ -217,6 +217,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
   const [autoPayOnCheckout, setAutoPayOnCheckout] = useState(true);
   const [addonCounts, setAddonCounts] = useState<Record<number, number>>({});
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', description: '' });
+  const [expandedPlanIds, setExpandedPlanIds] = useState<Record<number, boolean>>({});
   const dataRef = useRef(data);
   dataRef.current = data;
 
@@ -281,6 +282,14 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     if (!data?.current) return;
     setCycle(currentIntervalToUi(data.current.interval, data.current.start_date, data.current.expire_date));
   }, [data?.current?.user_subscription_id, data?.current?.interval, data?.current?.start_date, data?.current?.expire_date]);
+
+  useEffect(() => {
+    if (!data) return;
+    const currentCard = document.querySelector('.subscription-page .pcard.current');
+    if (currentCard instanceof HTMLElement) {
+      currentCard.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    }
+  }, [data?.current?.plan_id, cycle]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -732,7 +741,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
             </span>
             <h1 className="pg-t">{tf('pgTitle', 'Subscription')}</h1>
           </div>
-          <p className="pg-s">{tf('pgSub', 'Manage your plan, usage, and add-ons')}</p>
+          {!isWebView ? <p className="pg-s">{tf('pgSub', 'Manage your plan, usage, and add-ons')}</p> : null}
         </div>
         <div className="pg-head-r">
           {!isWebView ? (
@@ -916,12 +925,17 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
             const canUpgrade =
               cycle === 'yearly' ? p.upgrade_available_yearly : p.upgrade_available_monthly;
             const planPermissions = resolvePlanPermissions(p.permissions, isCurrentCard, purchasedStatusSlugs);
+            const included = planPermissions.filter((row) => row.included);
+            const planExpanded = Boolean(expandedPlanIds[p.id]);
+            const previewLimit = 6;
+            const shownPermissions = planExpanded ? planPermissions : included.slice(0, previewLimit);
+            const hiddenCount = planPermissions.length - shownPermissions.length;
             return (
               <div key={p.id} className={`pcard${isCurrentCard ? ' current' : ''}`}>
                 {isCurrentCard ? <span className="cur-tag">✓ {tf('currentPlanBtn', 'Current Plan')}</span> : null}
                 <div className="pcard-top">
                   <div className="pnm">{p.name}</div>
-                 <div className="pds">{p.description}</div>
+                  {!isWebView && p.description ? <div className="pds">{p.description}</div> : null}
                   <div className="pr">
                     <span className="c">€</span>
                     <span className="a">{pr === 0 ? '0' : pr.toLocaleString('de-DE')}</span>
@@ -947,7 +961,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                 <div className="pcard-features">
                   <div className="flbl">{tf('includes', 'Includes')}</div>
                   <ul className="fl">
-                    {planPermissions.map((row) => {
+                    {shownPermissions.map((row) => {
                       const val = permissionDisplay(row.value, row.included, row.type);
                       const on = row.included;
                       const showCount = row.type !== 'status';
@@ -967,6 +981,17 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                       );
                     })}
                   </ul>
+                  {hiddenCount > 0 || planExpanded ? (
+                    <button
+                      type="button"
+                      className="feat-more"
+                      onClick={() => setExpandedPlanIds((prev) => ({ ...prev, [p.id]: !planExpanded }))}
+                    >
+                      {planExpanded
+                        ? tf('showLessFeatures', 'Show less')
+                        : `+${hiddenCount} ${tf('moreFeatures', 'more')}`}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             );
@@ -1025,12 +1050,13 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
       </section>
 
       <section className="sub-panel addons-section" id="addonsSection">
-        <div className="section-title">
+        <details className="sub-fold" {...(!isWebView ? { open: true } : {})}>
+        <summary className="section-title">
           <span className="st-icon" aria-hidden="true">
             <Puzzle size={15} />
           </span>
           <span>{tf('addonsTitle', 'Add-Ons Marketplace')}</span>
-        </div>
+        </summary>
         {!current ? (
           <div className="m-info">{tf('addonsNeedPlan', 'Add-ons are available after you have an active subscription.')}</div>
         ) : (
@@ -1125,15 +1151,17 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
             </div>
           </div>
         ) : null}
+        </details>
       </section>
 
       <section className="sub-panel billing-section">
-        <div className="sub-section-head">
+        <details className="sub-fold" {...(!isWebView ? { open: true } : {})}>
+        <summary className="sub-section-head">
           <span className="sub-section-icon" aria-hidden="true">
             <Building2 size={16} />
           </span>
           <h3>{tf('billingDetails', 'Billing Details')}</h3>
-        </div>
+        </summary>
         <div className="billing-grid">
           <div className="b-field">
             <div className="b-label">{tf('companyName', 'Company Name')}</div>
@@ -1165,6 +1193,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
             ) : null}
           </div>
         </div>
+        </details>
       </section>
 
       {modal && modalContent
