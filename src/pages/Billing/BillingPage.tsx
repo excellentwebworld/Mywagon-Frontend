@@ -53,7 +53,7 @@ function mapSubFilter(sub: SubFilterKey, kpi: KpiFilterKey): { status?: string; 
   if (sub === 'Paid') return { status: 'paid' };
   if (sub === 'Subscription') return { type: 'subscription' };
   if (sub === 'Commission') return { type: 'commission' };
-  if (sub === 'Penalty') return { type: 'penalty' };
+  if (sub === 'Commission with penalty' || sub === 'Penalty') return { type: 'commission_with_penalty' };
   if (sub === 'Add-on') return { type: 'add-on' };
   return { status: 'all' };
 }

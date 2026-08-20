@@ -1,4 +1,4 @@
-export type InvoiceType = 'Commission' | 'Subscription' | 'Penalty' | 'Add-on' | 'Adjustment' | 'Credit note' | string;
+export type InvoiceType = 'Commission' | 'Subscription' | 'Commission with penalty' | 'Penalty' | 'Add-on' | 'Adjustment' | 'Credit note' | string;
 
 export type InvoiceStatus = 'Paid' | 'Unpaid' | 'Overdue' | 'Draft' | 'Voided';
 
@@ -84,6 +84,7 @@ export interface BillingIssuer {
 
 export interface BillingSummary {
   total_outstanding: number;
+  outstanding_count: number;
   overdue_count: number;
   overdue_amount: number;
   due_soon_count: number;
@@ -123,7 +124,7 @@ export interface InvoicePrintPayload {
 }
 
 export type TabKey = 'saas' | 'credits' | 'statements';
-export type SubFilterKey = 'All' | 'Unpaid' | 'Overdue' | 'Paid' | 'Subscription' | 'Commission' | 'Penalty' | 'Add-on';
+export type SubFilterKey = 'All' | 'Unpaid' | 'Overdue' | 'Paid' | 'Subscription' | 'Commission' | 'Commission with penalty' | 'Penalty' | 'Add-on';
 export type KpiFilterKey = 'outstanding' | 'overdue' | 'dueSoon' | 'paid' | null;
 
 export interface StatementPayload {

@@ -91,7 +91,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
     {
       label: t('billingPage.kpiOutstanding', 'Total Outstanding'),
       val: formatCurrency(summary?.total_outstanding ?? 0, summary?.currency),
-      sub: `${summary?.total_invoices_count ?? 0} ${t('billingPage.invoices', 'invoices')}`,
+      sub: `${summary?.outstanding_count ?? 0} ${t('billingPage.invoices', 'invoices')}`,
       key: 'outstanding' as const,
       icon: <AlertTriangle size={16} className="text-red-500" />,
     },
@@ -131,7 +131,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
     { key: 'Overdue', labelKey: 'billingPage.subOverdue', defaultLabel: 'Overdue' },
     { key: 'Paid', labelKey: 'billingPage.subPaid', defaultLabel: 'Paid' },
     { key: 'Subscription', labelKey: 'billingPage.subSubscription', defaultLabel: 'Subscription' },
-    { key: 'Commission', labelKey: 'billingPage.subCommission', defaultLabel: 'Commission' },
+    { key: 'Commission with penalty', labelKey: 'billingPage.subCommissionWithPenalty', defaultLabel: 'Commission with penalty' },
     { key: 'Add-on', labelKey: 'billingPage.subAddon', defaultLabel: 'Add-on' },
   ];
 
@@ -141,6 +141,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
         return 'b-subscription';
       case 'Commission':
         return 'b-commission';
+      case 'Commission with penalty':
       case 'Penalty':
         return 'b-penalty';
       case 'Add-on':
