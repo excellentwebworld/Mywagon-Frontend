@@ -8,6 +8,7 @@ See backend copy: `MV_Backend_API/docs/CARRIER-DRIVER-WEBVIEW.md`
 - **API:** `/api/carrier/webview/subscription/*` and `/api/driver/webview/subscription/*`
 - **Auth:** encrypted `user_id` (no Bearer token, no mobile app changes)
 - **Payment sources:** `carrier_react`, `driver_react`
+- **Parity:** same upgrade/VAT/proration/usage rules as Blade + shipper React (see backend doc)
 
 ## Phases
 

@@ -160,10 +160,15 @@ function resolvePlanPermissions(
   permissions: SubscriptionPermissionItem[],
   isCurrentCard: boolean,
   purchasedStatusSlugs: Set<string>,
+  applyPurchasedAddons = true,
 ): SubscriptionPermissionItem[] {
   return permissions
     .map((row) => {
-      const granted = isCurrentCard && row.type === 'status' && purchasedStatusSlugs.has(row.slug);
+      const granted =
+        applyPurchasedAddons &&
+        isCurrentCard &&
+        row.type === 'status' &&
+        purchasedStatusSlugs.has(row.slug);
       return {
         ...row,
         included: row.included || granted,
@@ -939,7 +944,12 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
             const isCurrentCard = p.id === current?.plan_id && cycle === subscribedCycle;
             const canUpgrade =
               cycle === 'yearly' ? p.upgrade_available_yearly : p.upgrade_available_monthly;
-            const planPermissions = resolvePlanPermissions(p.permissions, isCurrentCard, purchasedStatusSlugs);
+            const planPermissions = resolvePlanPermissions(
+              p.permissions,
+              isCurrentCard,
+              purchasedStatusSlugs,
+              !isWebView,
+            );
             const included = planPermissions.filter((row) => row.included);
             const planExpanded = Boolean(expandedPlanIds[p.id]);
             const previewLimit = 6;
@@ -1040,7 +1050,12 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                   </td>
                   {plans.map((p) => {
                     const isCurrentCard = p.id === current?.plan_id && cycle === subscribedCycle;
-                    const resolved = resolvePlanPermissions(p.permissions, isCurrentCard, purchasedStatusSlugs);
+                    const resolved = resolvePlanPermissions(
+                      p.permissions,
+                      isCurrentCard,
+                      purchasedStatusSlugs,
+                      !isWebView,
+                    );
                     const row = resolved.find((x) => x.slug === perm.slug);
                     const val = permissionDisplay(row?.value ?? '0', Boolean(row?.included), row?.type ?? perm.type);
                     return (
