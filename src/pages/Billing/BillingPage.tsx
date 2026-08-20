@@ -99,7 +99,6 @@ export const BillingPage: React.FC<BillingPageProps> = ({
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [upgradeRequired, setUpgradeRequired] = useState(false);
 
   const [activeTab, setActiveTab] = useState<TabKey>('saas');
   const [subFilter, setSubFilter] = useState<SubFilterKey>('All');
@@ -144,20 +143,9 @@ export const BillingPage: React.FC<BillingPageProps> = ({
     'invoice-register' | 'line-items' | 'statement' | null
   >(null);
 
-  const canExport = Boolean(summary?.has_account_statement);
+  const canExport = true;
 
-  const guardExport = useCallback((): boolean => {
-    if (!canExport) {
-      toast.error(
-        t(
-          'billingPage.upgradeRequired',
-          'Your current subscription plan does not support this feature. To unlock it, please upgrade to a higher tier plan.',
-        ),
-      );
-      return false;
-    }
-    return true;
-  }, [canExport, t, toast]);
+  const guardExport = useCallback((): boolean => true, []);
 
   useEffect(() => {
     const q = searchParams.get('q') || searchParams.get('search') || '';
@@ -211,7 +199,6 @@ export const BillingPage: React.FC<BillingPageProps> = ({
         }),
       ]);
       setSummary(sumRes);
-      setUpgradeRequired(sumRes.has_account_statement === false);
       setInvoices(invRes.items);
       setTotal(invRes.total);
       setLastPage(invRes.last_page);
@@ -326,15 +313,6 @@ export const BillingPage: React.FC<BillingPageProps> = ({
   };
 
   const handleApplyDateFilter = () => {
-    if (summary?.has_filter_search === false) {
-      toast.error(
-        t(
-          'billingPage.upgradeRequired',
-          'Your current subscription plan does not support this feature. To unlock it, please upgrade to a higher tier plan.',
-        ),
-      );
-      return;
-    }
     setAppliedFrom(dateFrom);
     setAppliedTo(dateTo);
     setPage(1);
@@ -580,18 +558,6 @@ export const BillingPage: React.FC<BillingPageProps> = ({
         </div>
       </header>
 
-      {!isWebView && upgradeRequired ? (
-        <div className="billing-alert billing-alert--warning" role="status">
-          <AlertTriangle size={18} />
-          <p>
-            {t(
-              'billingPage.upgradeRequired',
-              'Your current subscription plan does not support this feature. To unlock it, please upgrade to a higher tier plan.'
-            )}
-          </p>
-        </div>
-      ) : null}
-
       {summary?.has_past_due && (
         <div className="billing-alert billing-alert--danger" role="alert">
           <AlertTriangle size={18} />
@@ -614,7 +580,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
         </div>
       )}
 
-      <UniverseBanner />
+      <UniverseBanner compact={isWebView} />
 
       <div className="billing-tab-bar">
         <button
@@ -637,7 +603,6 @@ export const BillingPage: React.FC<BillingPageProps> = ({
           type="button"
           className={`billing-tab-btn ${activeTab === 'statements' ? 'active' : ''}`}
           onClick={() => handleTabChange('statements')}
-          disabled={summary?.has_account_statement === false}
         >
           <BarChart3 size={15} />
           <span>{t('billingPage.tabStatements', 'Statements & Exports')}</span>
@@ -655,7 +620,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
             searchQuery={searchQuery}
             dateFrom={dateFrom}
             dateTo={dateTo}
-            canDateFilter={summary?.has_filter_search !== false}
+            canDateFilter={true}
             page={page}
             lastPage={lastPage}
             total={total}
@@ -682,6 +647,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
               setPaymentInvoice(inv);
               setBankOpen(true);
             }}
+            compact={isWebView}
           />
         )}
 
@@ -720,6 +686,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
                   /* keep current unpaid list */
                 });
             }}
+            compact={isWebView}
           />
         )}
 

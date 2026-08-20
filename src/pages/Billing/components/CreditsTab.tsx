@@ -20,6 +20,7 @@ interface CreditsTabProps {
   onPageChange: (page: number) => void;
   onOpenApplyCredit: () => void;
   onOpenRequestAdj: () => void;
+  compact?: boolean;
 }
 
 export const CreditsTab: React.FC<CreditsTabProps> = ({
@@ -33,6 +34,7 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
   onPageChange,
   onOpenApplyCredit,
   onOpenRequestAdj,
+  compact = false,
 }) => {
   const { t, i18n } = useTranslation();
   const history = creditNotes.filter((c) => c.id !== 'WALLET');
@@ -45,8 +47,8 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
   }
 
   return (
-    <div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 px-6 pt-4">
+    <div className={compact ? 'credits-tab credits-tab--compact' : 'credits-tab'}>
+      <div className={`grid grid-cols-1 md:grid-cols-2 gap-3.5 ${compact ? 'px-0 pt-2' : 'px-6 pt-4'}`}>
         <div className={`credit-card ${loading ? 'billing-skeleton-block' : ''}`}>
           <div className="cc-label">{t('billingPage.creditBalance', 'Available Credit Balance')}</div>
           <div className="cc-val billing-mono">
@@ -71,59 +73,99 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
         <div className="billing-tbl-head font-bold text-sm text-gray-800">
           {t('billingPage.walletActivity', 'Wallet activity')}
         </div>
-        <div className="overflow-x-auto">
-          <table className="billing-t billing-t-static">
-            <thead>
-              <tr>
-                <th>{t('billingPage.cnId', 'Credit Note #')}</th>
-                <th>{t('billingPage.cnDate', 'Date')}</th>
-                <th>{t('billingPage.cnAmount', 'Amount')}</th>
-                <th>{t('billingPage.cnReason', 'Reason')}</th>
-                <th>{t('billingPage.cnApplied', 'Applied To')}</th>
-                <th>{t('billingPage.debitCredit', 'Debit/Credit')}</th>
-              </tr>
-            </thead>
+        {compact ? (
+          <div className="wv-wallet-list">
             {showTableSkeleton ? (
-              <BillingTableSkeleton rows={8} columns={6} />
+              Array.from({ length: 4 }).map((_, idx) => (
+                <div key={idx} className="wv-wallet-card">
+                  <Skeleton height={14} width="45%" {...sk} />
+                  <Skeleton height={12} width="60%" style={{ marginTop: 8 }} {...sk} />
+                </div>
+              ))
+            ) : history.length === 0 ? (
+              <div className="wv-invoice-empty">{t('billingPage.noCredits', 'No wallet movements')}</div>
             ) : (
-              <tbody>
-                {history.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="text-center py-10 text-gray-400 text-sm">
-                      {t('billingPage.noCredits', 'No wallet movements')}
-                    </td>
-                  </tr>
-                )}
-                {history.map((cn) => {
-                  const isCredit = (cn.type || (cn.applied ? 'Debit' : 'Credit')) === 'Credit';
-                  return (
-                    <tr key={cn.id}>
-                      <td className="billing-mono text-purple-700 font-semibold text-xs">{cn.id}</td>
-                      <td className="text-xs text-gray-600">{formatDate(cn.date, i18n.language)}</td>
-                      <td className={`billing-mono text-xs font-semibold ${isCredit ? 'text-emerald-600' : 'text-red-600'}`}>
+              history.map((cn) => {
+                const isCredit = (cn.type || (cn.applied ? 'Debit' : 'Credit')) === 'Credit';
+                return (
+                  <article key={cn.id} className="wv-wallet-card">
+                    <div className="wv-wallet-card__top">
+                      <span className="wv-wallet-card__id billing-mono">{cn.id}</span>
+                      <span className={`b-badge ${isCredit ? 'b-credit' : 'b-debit'}`}>
+                        {isCredit ? t('billingPage.credit', 'Credit') : t('billingPage.debit', 'Debit')}
+                      </span>
+                    </div>
+                    <div className="wv-wallet-card__row">
+                      <span>{formatDate(cn.date, i18n.language)}</span>
+                      <strong className={`billing-mono ${isCredit ? 'text-emerald-600' : 'text-red-600'}`}>
                         {isCredit ? '+' : '−'}
                         {formatCurrency(Math.abs(cn.amt))}
-                      </td>
-                      <td className="text-xs text-gray-700">{cn.reason}</td>
-                      <td className="text-xs">
-                        {cn.applied ? (
-                          <span className="billing-mono text-purple-700 font-semibold">{cn.applied}</span>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className={`b-badge ${isCredit ? 'b-credit' : 'b-debit'}`}>
-                          {isCredit ? t('billingPage.credit', 'Credit') : t('billingPage.debit', 'Debit')}
-                        </span>
+                      </strong>
+                    </div>
+                    <div className="wv-wallet-card__reason">{cn.reason}</div>
+                    {cn.applied ? (
+                      <div className="wv-wallet-card__applied billing-mono">{cn.applied}</div>
+                    ) : null}
+                  </article>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="billing-t billing-t-static">
+              <thead>
+                <tr>
+                  <th>{t('billingPage.cnId', 'Credit Note #')}</th>
+                  <th>{t('billingPage.cnDate', 'Date')}</th>
+                  <th>{t('billingPage.cnAmount', 'Amount')}</th>
+                  <th>{t('billingPage.cnReason', 'Reason')}</th>
+                  <th>{t('billingPage.cnApplied', 'Applied To')}</th>
+                  <th>{t('billingPage.debitCredit', 'Debit/Credit')}</th>
+                </tr>
+              </thead>
+              {showTableSkeleton ? (
+                <BillingTableSkeleton rows={8} columns={6} />
+              ) : (
+                <tbody>
+                  {history.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="text-center py-10 text-gray-400 text-sm">
+                        {t('billingPage.noCredits', 'No wallet movements')}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            )}
-          </table>
-        </div>
+                  )}
+                  {history.map((cn) => {
+                    const isCredit = (cn.type || (cn.applied ? 'Debit' : 'Credit')) === 'Credit';
+                    return (
+                      <tr key={cn.id}>
+                        <td className="billing-mono text-purple-700 font-semibold text-xs">{cn.id}</td>
+                        <td className="text-xs text-gray-600">{formatDate(cn.date, i18n.language)}</td>
+                        <td className={`billing-mono text-xs font-semibold ${isCredit ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {isCredit ? '+' : '−'}
+                          {formatCurrency(Math.abs(cn.amt))}
+                        </td>
+                        <td className="text-xs text-gray-700">{cn.reason}</td>
+                        <td className="text-xs">
+                          {cn.applied ? (
+                            <span className="billing-mono text-purple-700 font-semibold">{cn.applied}</span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td>
+                          <span className={`b-badge ${isCredit ? 'b-credit' : 'b-debit'}`}>
+                            {isCredit ? t('billingPage.credit', 'Credit') : t('billingPage.debit', 'Debit')}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              )}
+            </table>
+          </div>
+        )}
         <div className="billing-tbl-ft">
           <span>
             {showTableSkeleton ? (

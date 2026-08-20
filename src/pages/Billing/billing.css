@@ -1550,39 +1550,398 @@ table.billing-t {
 
 /* WebView shell (carrier / driver mobile) */
 .webview-billing.billing-container {
+  --wv-gap: 10px;
   max-width: 100%;
-  padding: 8px 12px 28px;
+  padding: 10px 12px 32px;
+  background: linear-gradient(180deg, #f7f7fb 0%, #f3f2f8 120px, #f7f7fb 100%);
 }
+
 .webview-billing .billing-head--actions-only {
-  padding: 8px 0 12px;
-  margin: 0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 8px 0 10px;
+  margin: 0 0 4px;
+  background: rgba(247, 247, 251, 0.92);
+  backdrop-filter: blur(8px);
   justify-content: flex-end;
-  align-items: stretch;
 }
+
 .webview-billing .billing-head--actions-only .billing-head-r {
   width: 100%;
   display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 8px;
+}
+
+.webview-billing .billing-head--actions-only .billing-head-r .b-btn {
+  width: 100%;
+  min-height: 42px;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.webview-billing .billing-head--actions-only .b-btn-primary {
+  box-shadow: 0 6px 16px rgba(108, 58, 237, 0.22);
+}
+
+.webview-billing .billing-alert {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.webview-billing .uni-strip,
+.webview-billing .billing-tab-bar,
+.webview-billing .kpi-strip,
+.webview-billing .sub-bar,
+.webview-billing .exp-grid,
+.webview-billing .action-bar,
+.webview-billing .billing-tbl-card,
+.webview-billing .mp-hero,
+.webview-billing .billing-container > .billing-tab-content {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.webview-billing .uni-strip--compact {
+  padding: 0 0 8px;
+  gap: 0;
+}
+
+.webview-billing .uni-strip--compact .uni-card {
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+
+.webview-billing .uni-strip--compact .uni-label {
+  font-size: 11px;
+}
+
+.webview-billing .uni-strip--compact .uni-desc {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.webview-billing .billing-tab-bar {
+  margin: 0 0 0;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 14px;
+  border: 1px solid #e7e7ee;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.webview-billing .billing-tab-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.webview-billing .billing-tab-btn {
+  flex: 1 0 auto;
+  min-width: max-content;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border-bottom: none;
+  font-size: 12px;
+  gap: 6px;
+}
+
+.webview-billing .billing-tab-btn.active {
+  background: #f4edff;
+  color: #6c3aed;
+  box-shadow: inset 0 0 0 1px rgba(108, 58, 237, 0.18);
+}
+
+.webview-billing .billing-tab-content {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.webview-billing .kpi-strip {
+  display: flex;
+  gap: 8px;
+  padding: 10px 0 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.webview-billing .kpi-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.webview-billing .kpi-card {
+  flex: 0 0 46%;
+  min-width: 148px;
+  scroll-snap-align: start;
+  padding: 12px;
+  border-radius: 14px;
+}
+
+.webview-billing .kpi-val {
+  font-size: 17px;
+}
+
+.webview-billing .kpi-sub {
+  font-size: 10px;
+}
+
+.webview-billing .action-bar {
+  margin: 10px 0 0;
+  padding: 12px;
+  border-radius: 14px;
+  flex-wrap: wrap;
+}
+
+.webview-billing .sub-bar {
+  padding: 12px 0 0;
+  gap: 10px;
+  flex-direction: column;
+}
+
+.webview-billing .sub-bar-pills {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.webview-billing .sub-bar-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.webview-billing .sub-pill {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.webview-billing .billing-date-range {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 6px;
+  align-items: center;
+}
+
+.webview-billing .billing-date-range .date-picker {
+  width: 100%;
+  max-width: none;
+}
+
+.webview-billing .billing-filter-apply,
+.webview-billing .billing-filter-clear {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.webview-billing .sub-bar-search {
+  width: 100%;
+  align-self: stretch;
+}
+
+.webview-billing .f-search,
+.webview-billing .f-search input {
+  width: 100%;
+}
+
+.webview-billing .f-search input {
+  border-radius: 12px;
+  min-height: 42px;
+  background: #fff;
+}
+
+.webview-billing .billing-tbl-card {
+  margin-top: 12px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e7e7ee;
+  box-shadow: 0 4px 18px rgba(16, 24, 40, 0.05);
+  background: #fff;
+}
+
+.webview-billing .billing-tbl-ft {
+  padding: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: #fafafc;
+}
+
+.webview-billing .exp-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding: 10px 0 0;
+}
+
+.webview-billing .exp-card {
+  border-radius: 14px;
+}
+
+.webview-billing .aging-grid {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
-.webview-billing .billing-head--actions-only .billing-head-r .b-btn {
-  width: 100%;
-  min-height: 40px;
-  justify-content: center;
-  white-space: nowrap;
+
+.webview-billing .credits-tab--compact .billing-quick-actions {
+  padding: 14px !important;
+  border-radius: 14px;
 }
-.webview-billing .uni-strip {
-  margin: 0 0 12px;
+
+.webview-billing .credits-tab--compact .credit-card {
+  border-radius: 14px;
 }
+
+/* Invoice cards (webview) */
+.wv-invoice-list,
+.wv-wallet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 0;
+}
+
+.wv-invoice-card,
+.wv-wallet-card {
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid #eef0f4;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.wv-invoice-card:active,
+.wv-wallet-card:active {
+  background: #f8f6ff;
+}
+
+.wv-invoice-card:last-child,
+.wv-wallet-card:last-child {
+  border-bottom: none;
+}
+
+.wv-invoice-card__top,
+.wv-wallet-card__top,
+.wv-invoice-card__meta,
+.wv-invoice-card__amounts,
+.wv-wallet-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wv-invoice-card__id,
+.wv-wallet-card__id {
+  color: #6c3aed;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.wv-invoice-card__hint {
+  margin-top: 2px;
+  font-size: 10px;
+  color: #d97706;
+  font-weight: 600;
+}
+
+.wv-invoice-card__meta {
+  margin-top: 8px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.wv-invoice-card__date {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.wv-invoice-card__amounts {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #ececf2;
+}
+
+.wv-invoice-card__amounts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wv-invoice-card__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8e8e9a;
+  font-weight: 600;
+}
+
+.wv-invoice-card__actions {
+  margin-top: 10px;
+}
+
+.wv-inv-actions .b-btn-sm {
+  min-height: 32px;
+}
+
+.wv-invoice-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.wv-wallet-card__row {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.wv-wallet-card__reason {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.35;
+}
+
+.wv-wallet-card__applied {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #6c3aed;
+  font-weight: 600;
+}
+
 .webview-billing-error {
   padding: 24px 16px;
   text-align: center;
   color: var(--text-primary, #121217);
 }
+
 .webview-billing-error h2 {
   font-size: 18px;
   margin-bottom: 8px;
 }
+
 .webview-billing-error p {
   font-size: 14px;
   color: var(--text-secondary, #5e5e6e);
@@ -1592,27 +1951,32 @@ table.billing-t {
   .webview-billing .billing-head--actions-only .billing-head-r {
     grid-template-columns: 1fr;
   }
+
+  .webview-billing .kpi-card {
+    flex-basis: 68%;
+  }
 }
 
 @media (min-width: 641px) {
-  .webview-billing .billing-head--actions-only {
-    justify-content: flex-end;
-  }
   .webview-billing .billing-head--actions-only .billing-head-r {
     width: auto;
     display: flex;
-    flex-wrap: wrap;
     justify-content: flex-end;
   }
+
   .webview-billing .billing-head--actions-only .billing-head-r .b-btn {
     width: auto;
-    min-width: 140px;
+    min-width: 150px;
   }
-}
 
-@media (max-width: 768px) {
-  .webview-billing .billing-tabs {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  .webview-billing .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .webview-billing .kpi-card {
+    flex: none;
+    min-width: 0;
   }
 }

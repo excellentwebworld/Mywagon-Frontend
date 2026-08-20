@@ -52,27 +52,37 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
     setLoading(true);
     setError(null);
 
+    const month = statementFilters?.month || statementPeriod;
+    let cancelled = false;
+
     const load = async () => {
       try {
         if (isStatement) {
-          const month = statementFilters?.month || statementPeriod;
-          setStatement(await api.getStatement(month, { month }));
+          const data = await api.getStatement(month, { month });
+          if (cancelled) return;
+          setStatement(data);
           setInvoicePrint(null);
         } else if (invoiceId) {
-          setInvoicePrint(await api.getInvoicePrint(invoiceId));
+          const data = await api.getInvoicePrint(invoiceId);
+          if (cancelled) return;
+          setInvoicePrint(data);
           setStatement(null);
         }
       } catch (err) {
+        if (cancelled) return;
         setError(err instanceof Error ? err.message : t('billingPage.printFailed', 'Unable to load document.'));
         setInvoicePrint(null);
         setStatement(null);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     void load();
-  }, [isOpen, isStatement, invoiceId, statementPeriod, statementFilters, t, api]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, isStatement, invoiceId, statementPeriod, statementFilters?.month, t, api]);
 
   useEffect(() => {
     if (!isOpen) return undefined;

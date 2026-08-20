@@ -53,6 +53,7 @@ interface SaasFeesTabProps {
   onPayNow: (invoice: Invoice) => void;
   onPayWallet: (invoice: Invoice) => void;
   onBankTransfer: (invoice: Invoice) => void;
+  compact?: boolean;
 }
 
 export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
@@ -84,6 +85,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
   onPayNow,
   onPayWallet,
   onBankTransfer,
+  compact = false,
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -164,8 +166,115 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
     }
   };
 
+  const renderInvoiceActions = (inv: Invoice) => (
+    <div className={`flex gap-1 flex-wrap${compact ? ' wv-inv-actions' : ''}`}>
+      {inv.can_pay_now && (
+        <button
+          type="button"
+          className="b-btn b-btn-sm b-btn-primary"
+          disabled={payingId === inv.raw_id}
+          onClick={() => onPayNow(inv)}
+        >
+          {t('billingPage.btnPayNow', 'Pay Now')}
+        </button>
+      )}
+      {Boolean(inv.can_pay_wallet) &&
+        (summary?.wallet_balance ?? 0) >= (inv.rem > 0 ? inv.rem : inv.tot) &&
+        (summary?.wallet_balance ?? 0) >= inv.tot && (
+          <button
+            type="button"
+            className="b-btn-ghost p-1"
+            title={t('billingPage.btnPayWallet', 'Pay using wallet')}
+            onClick={() => onPayWallet(inv)}
+          >
+            <Wallet size={15} />
+          </button>
+        )}
+      {inv.can_bank_transfer && (
+        <button
+          type="button"
+          className="b-btn-ghost p-1"
+          title={t('billingPage.btnBankTransfer', 'Bank Transfer')}
+          onClick={() => onBankTransfer(inv)}
+        >
+          <Building2 size={15} />
+        </button>
+      )}
+      <button
+        type="button"
+        className="b-btn-ghost p-1"
+        title={t('billingPage.btnOfficialInvoice', 'Official invoice')}
+        onClick={() => onOfficialPrint(inv)}
+      >
+        <Printer size={15} />
+      </button>
+      <button
+        type="button"
+        className="b-btn-ghost p-1"
+        title={t('billingPage.btnPreviewPDF', 'Preview PDF')}
+        onClick={() => onPreviewPdf(inv)}
+      >
+        <FileText size={15} />
+      </button>
+      <button
+        type="button"
+        className="b-btn-ghost p-1"
+        title={t('billingPage.btnCSV', 'Export CSV')}
+        onClick={() => onExportInvoiceCsv(inv)}
+      >
+        <Download size={15} />
+      </button>
+    </div>
+  );
+
+  const pagination = (
+    <div className="billing-tbl-ft">
+      <span>
+        {loading ? (
+          <Skeleton width={160} height={12} borderRadius={4} {...sk} />
+        ) : (
+          <>
+            {t('billingPage.showing', 'Showing')} {invoices.length} {t('billingPage.of', 'of')} {total}{' '}
+            {t('billingPage.invoices', 'invoices')}
+          </>
+        )}
+      </span>
+      <div className="flex gap-2 items-center">
+        {loading ? (
+          <>
+            <Skeleton width={52} height={28} borderRadius={8} {...sk} />
+            <Skeleton width={40} height={12} borderRadius={4} {...sk} />
+            <Skeleton width={52} height={28} borderRadius={8} {...sk} />
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="b-btn b-btn-sm"
+              disabled={page <= 1}
+              onClick={() => onPageChange(page - 1)}
+            >
+              {t('common.prev', 'Prev')}
+            </button>
+            <span className="text-xs text-gray-500 self-center">
+              {page} / {lastPage}
+            </span>
+            <button
+              type="button"
+              className="b-btn b-btn-sm"
+              disabled={page >= lastPage}
+              onClick={() => onPageChange(page + 1)}
+            >
+              {t('common.next', 'Next')}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div>
+    <div className={compact ? 'saas-fees-tab saas-fees-tab--compact' : 'saas-fees-tab'}>
       {loading && !summary ? (
         <BillingKpiSkeleton />
       ) : (
@@ -291,177 +400,140 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
       </div>
 
       <div className={`billing-tbl-card ${loading ? 'is-loading' : ''}`}>
-        <div className="overflow-x-auto">
-          <table className="billing-t">
-            <thead>
-              <tr>
-                <th>{t('billingPage.thInvoice', 'Invoice #')}</th>
-                <th>{t('billingPage.thType', 'Type')}</th>
-                <th>{t('billingPage.thStatus', 'Status')}</th>
-                <th>{t('billingPage.thIssueDate', 'Issue Date')}</th>
-                <th>{t('billingPage.thDueDate', 'Due Date')}</th>
-                <th>{t('billingPage.thPaidDate', 'Paid Date')}</th>
-                <th>{t('billingPage.thTotal', 'Total')}</th>
-                <th>{t('billingPage.thRemaining', 'Remaining')}</th>
-                <th>{t('billingPage.thLoads', 'Loads')}</th>
-                <th>{t('billingPage.thActions', 'Actions')}</th>
-              </tr>
-            </thead>
+        {compact ? (
+          <div className="wv-invoice-list">
             {loading ? (
-              <BillingTableSkeleton rows={8} columns={10} />
+              Array.from({ length: 5 }).map((_, idx) => (
+                <div key={idx} className="wv-invoice-card wv-invoice-card--skeleton">
+                  <Skeleton height={14} width="40%" {...sk} />
+                  <Skeleton height={12} width="70%" style={{ marginTop: 10 }} {...sk} />
+                  <Skeleton height={12} width="55%" style={{ marginTop: 8 }} {...sk} />
+                </div>
+              ))
+            ) : invoices.length === 0 ? (
+              <div className="wv-invoice-empty">
+                {t('billingPage.noMatchingInvoices', 'No invoices match your filters')}
+              </div>
             ) : (
-              <tbody>
-                {invoices.map((inv) => (
-                <tr key={inv.raw_id ?? inv.id} onClick={() => onSelectInvoice(inv)}>
-                  <td className="billing-mono text-purple-700 font-semibold text-xs">
-                    {inv.id}
-                    {inv.under_process && (
-                      <div className="text-[10px] text-amber-600 font-medium mt-0.5">
-                        {t('billingPage.receiptUnderReview', 'Receipt under review')}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    <span className={`b-badge ${getTypeBadgeClass(inv.type)}`}>{inv.type}</span>
-                  </td>
-                  <td>
-                    <span className={`b-badge ${getStatusBadgeClass(inv.status)}`}>{inv.status}</span>
-                  </td>
-                  <td className="text-gray-600 text-xs">{formatDate(inv.iDate, i18n.language)}</td>
-                  <td className={`text-xs ${inv.status === 'Overdue' ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
-                    {formatDate(inv.dDate, i18n.language)}
-                  </td>
-                  <td className="text-gray-400 text-xs">{formatDate(inv.pDate, i18n.language)}</td>
-                  <td className="billing-mono font-semibold text-xs text-gray-900">
-                    {formatCurrency(inv.tot, inv.cur)}
-                  </td>
-                  <td className={`billing-mono font-semibold text-xs ${inv.rem > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                    {formatCurrency(inv.rem, inv.cur)}
-                  </td>
-                  <td>
-                    {inv.loads > 0 ? (
-                      <span className="text-purple-700 font-medium text-xs">
-                        {inv.loads} {t('billingPage.loads', 'loads')}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <div className="flex gap-1 flex-wrap">
-                      {inv.can_pay_now && (
-                        <button
-                          type="button"
-                          className="b-btn b-btn-sm b-btn-primary"
-                          disabled={payingId === inv.raw_id}
-                          onClick={() => onPayNow(inv)}
-                        >
-                          {t('billingPage.btnPayNow', 'Pay Now')}
-                        </button>
-                      )}
-                      {Boolean(inv.can_pay_wallet) && (summary?.wallet_balance ?? 0) >= (inv.rem > 0 ? inv.rem : inv.tot) && (summary?.wallet_balance ?? 0) >= inv.tot && (
-                        <button
-                          type="button"
-                          className="b-btn-ghost p-1"
-                          title={t('billingPage.btnPayWallet', 'Pay using wallet')}
-                          onClick={() => onPayWallet(inv)}
-                        >
-                          <Wallet size={15} />
-                        </button>
-                      )}
-                      {inv.can_bank_transfer && (
-                        <button
-                          type="button"
-                          className="b-btn-ghost p-1"
-                          title={t('billingPage.btnBankTransfer', 'Bank Transfer')}
-                          onClick={() => onBankTransfer(inv)}
-                        >
-                          <Building2 size={15} />
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="b-btn-ghost p-1"
-                        title={t('billingPage.btnOfficialInvoice', 'Official invoice')}
-                        onClick={() => onOfficialPrint(inv)}
-                      >
-                        <Printer size={15} />
-                      </button>
-                      <button
-                        type="button"
-                        className="b-btn-ghost p-1"
-                        title={t('billingPage.btnPreviewPDF', 'Preview PDF')}
-                        onClick={() => onPreviewPdf(inv)}
-                      >
-                        <FileText size={15} />
-                      </button>
-                      <button
-                        type="button"
-                        className="b-btn-ghost p-1"
-                        title={t('billingPage.btnCSV', 'Export CSV')}
-                        onClick={() => onExportInvoiceCsv(inv)}
-                      >
-                        <Download size={15} />
-                      </button>
+              invoices.map((inv) => (
+                <article
+                  key={inv.raw_id ?? inv.id}
+                  className="wv-invoice-card"
+                  onClick={() => onSelectInvoice(inv)}
+                >
+                  <div className="wv-invoice-card__top">
+                    <div>
+                      <div className="wv-invoice-card__id billing-mono">{inv.id}</div>
+                      {inv.under_process ? (
+                        <div className="wv-invoice-card__hint">
+                          {t('billingPage.receiptUnderReview', 'Receipt under review')}
+                        </div>
+                      ) : null}
                     </div>
-                  </td>
-                </tr>
-              ))}
-                {invoices.length === 0 && (
-                  <tr>
-                    <td colSpan={10} className="text-center py-12 text-gray-400 text-sm">
-                      {t('billingPage.noMatchingInvoices', 'No invoices match your filters')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            )}
-          </table>
-        </div>
-
-        <div className="billing-tbl-ft">
-          <span>
-            {loading ? (
-              <Skeleton width={160} height={12} borderRadius={4} {...sk} />
-            ) : (
-              <>
-                {t('billingPage.showing', 'Showing')} {invoices.length} {t('billingPage.of', 'of')} {total}{' '}
-                {t('billingPage.invoices', 'invoices')}
-              </>
-            )}
-          </span>
-          <div className="flex gap-2 items-center">
-            {loading ? (
-              <>
-                <Skeleton width={52} height={28} borderRadius={8} {...sk} />
-                <Skeleton width={40} height={12} borderRadius={4} {...sk} />
-                <Skeleton width={52} height={28} borderRadius={8} {...sk} />
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="b-btn b-btn-sm"
-                  disabled={page <= 1}
-                  onClick={() => onPageChange(page - 1)}
-                >
-                  {t('common.prev', 'Prev')}
-                </button>
-                <span className="text-xs text-gray-500 self-center">
-                  {page} / {lastPage}
-                </span>
-                <button
-                  type="button"
-                  className="b-btn b-btn-sm"
-                  disabled={page >= lastPage}
-                  onClick={() => onPageChange(page + 1)}
-                >
-                  {t('common.next', 'Next')}
-                </button>
-              </>
+                    <span className={`b-badge ${getStatusBadgeClass(inv.status)}`}>{inv.status}</span>
+                  </div>
+                  <div className="wv-invoice-card__meta">
+                    <span className={`b-badge ${getTypeBadgeClass(inv.type)}`}>{inv.type}</span>
+                    <span className="wv-invoice-card__date">
+                      {t('billingPage.thDueDate', 'Due')} {formatDate(inv.dDate, i18n.language)}
+                    </span>
+                  </div>
+                  <div className="wv-invoice-card__amounts">
+                    <div>
+                      <span className="wv-invoice-card__label">{t('billingPage.thTotal', 'Total')}</span>
+                      <strong className="billing-mono">{formatCurrency(inv.tot, inv.cur)}</strong>
+                    </div>
+                    <div>
+                      <span className="wv-invoice-card__label">{t('billingPage.thRemaining', 'Remaining')}</span>
+                      <strong className={`billing-mono ${inv.rem > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {formatCurrency(inv.rem, inv.cur)}
+                      </strong>
+                    </div>
+                  </div>
+                  <div
+                    className="wv-invoice-card__actions"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {renderInvoiceActions(inv)}
+                  </div>
+                </article>
+              ))
             )}
           </div>
-        </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="billing-t">
+              <thead>
+                <tr>
+                  <th>{t('billingPage.thInvoice', 'Invoice #')}</th>
+                  <th>{t('billingPage.thType', 'Type')}</th>
+                  <th>{t('billingPage.thStatus', 'Status')}</th>
+                  <th>{t('billingPage.thIssueDate', 'Issue Date')}</th>
+                  <th>{t('billingPage.thDueDate', 'Due Date')}</th>
+                  <th>{t('billingPage.thPaidDate', 'Paid Date')}</th>
+                  <th>{t('billingPage.thTotal', 'Total')}</th>
+                  <th>{t('billingPage.thRemaining', 'Remaining')}</th>
+                  <th>{t('billingPage.thLoads', 'Loads')}</th>
+                  <th>{t('billingPage.thActions', 'Actions')}</th>
+                </tr>
+              </thead>
+              {loading ? (
+                <BillingTableSkeleton rows={8} columns={10} />
+              ) : (
+                <tbody>
+                  {invoices.map((inv) => (
+                    <tr key={inv.raw_id ?? inv.id} onClick={() => onSelectInvoice(inv)}>
+                      <td className="billing-mono text-purple-700 font-semibold text-xs">
+                        {inv.id}
+                        {inv.under_process && (
+                          <div className="text-[10px] text-amber-600 font-medium mt-0.5">
+                            {t('billingPage.receiptUnderReview', 'Receipt under review')}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`b-badge ${getTypeBadgeClass(inv.type)}`}>{inv.type}</span>
+                      </td>
+                      <td>
+                        <span className={`b-badge ${getStatusBadgeClass(inv.status)}`}>{inv.status}</span>
+                      </td>
+                      <td className="text-gray-600 text-xs">{formatDate(inv.iDate, i18n.language)}</td>
+                      <td className={`text-xs ${inv.status === 'Overdue' ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
+                        {formatDate(inv.dDate, i18n.language)}
+                      </td>
+                      <td className="text-gray-400 text-xs">{formatDate(inv.pDate, i18n.language)}</td>
+                      <td className="billing-mono font-semibold text-xs text-gray-900">
+                        {formatCurrency(inv.tot, inv.cur)}
+                      </td>
+                      <td className={`billing-mono font-semibold text-xs ${inv.rem > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {formatCurrency(inv.rem, inv.cur)}
+                      </td>
+                      <td>
+                        {inv.loads > 0 ? (
+                          <span className="text-purple-700 font-medium text-xs">
+                            {inv.loads} {t('billingPage.loads', 'loads')}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td onClick={(e) => e.stopPropagation()}>{renderInvoiceActions(inv)}</td>
+                    </tr>
+                  ))}
+                  {invoices.length === 0 && (
+                    <tr>
+                      <td colSpan={10} className="text-center py-12 text-gray-400 text-sm">
+                        {t('billingPage.noMatchingInvoices', 'No invoices match your filters')}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              )}
+            </table>
+          </div>
+        )}
+
+        {pagination}
       </div>
     </div>
   );

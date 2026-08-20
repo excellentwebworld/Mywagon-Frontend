@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { ApiError } from '../client';
 import type { ApiResponse } from '../types/addressBook';
 import type {
@@ -101,6 +102,16 @@ export function createWebViewBillingService(role: WebViewRole, userId: string): 
       URL.revokeObjectURL(url);
       return { filename, truncated };
     } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const parsed = JSON.parse(text) as { message?: string };
+          throw new ApiError(parsed.message || 'Download failed', err.response.status);
+        } catch (parsedErr) {
+          if (parsedErr instanceof ApiError) throw parsedErr;
+          throw new ApiError('Download failed', err.response?.status || 500);
+        }
+      }
       if (err instanceof ApiError) throw err;
       throw new ApiError('Download failed', 500);
     }
