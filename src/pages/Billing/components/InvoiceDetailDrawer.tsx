@@ -215,7 +215,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                 <span>{t('billingPage.btnPayNow', 'Pay Now')}</span>
               </button>
             )}
-            {Boolean(invoice.can_pay_wallet) && walletBalance >= (invoice.rem > 0 ? invoice.rem : invoice.tot) && (
+            {Boolean(invoice.can_pay_wallet) && walletBalance >= (invoice.rem > 0 ? invoice.rem : invoice.tot) && walletBalance >= invoice.tot && (
               <button type="button" className="b-btn b-btn-sm b-btn-success" onClick={() => onPayWallet(invoice)}>
                 <Wallet size={13} />
                 <span>{t('billingPage.btnPayWallet', 'Pay using wallet')}</span>

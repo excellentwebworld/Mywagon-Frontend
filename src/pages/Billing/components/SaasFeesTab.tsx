@@ -218,7 +218,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
           <button
             type="button"
             className="b-btn b-btn-warning-action action-bar-btn"
-            onClick={() => onToggleKpiFilter('overdue')}
+            onClick={() => onToggleKpiFilter((summary?.overdue_count ?? 0) > 0 ? 'overdue' : 'dueSoon')}
           >
             <span>{t('billingPage.reviewNow', 'Review Now')}</span>
             <ChevronRight size={14} />
@@ -359,7 +359,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
                           {t('billingPage.btnPayNow', 'Pay Now')}
                         </button>
                       )}
-                      {Boolean(inv.can_pay_wallet) && (summary?.wallet_balance ?? 0) >= (inv.rem > 0 ? inv.rem : inv.tot) && (
+                      {Boolean(inv.can_pay_wallet) && (summary?.wallet_balance ?? 0) >= (inv.rem > 0 ? inv.rem : inv.tot) && (summary?.wallet_balance ?? 0) >= inv.tot && (
                         <button
                           type="button"
                           className="b-btn-ghost p-1"
