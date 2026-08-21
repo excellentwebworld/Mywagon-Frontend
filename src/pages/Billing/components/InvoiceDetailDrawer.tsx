@@ -121,6 +121,20 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
     return { sid: null, shipmentId: null };
   };
 
+  const lineTypeBadgeClass = (type: string) =>
+    type === 'Subscription'
+      ? 'b-subscription'
+      : type === 'Commission'
+        ? 'b-commission'
+        : type === 'Penalty' || type === 'Commission with penalty'
+          ? 'b-penalty'
+          : type === 'Add-on'
+            ? 'b-addon'
+            : 'b-credit';
+
+  const lineRateLabel = (li: LineItem) =>
+    li.rate || formatCurrency(li.unit ?? li.amt, invoice.cur);
+
   return createPortal(
     <div
       className={`drawer-bg ${isOpen ? 'show' : ''}`}
@@ -149,40 +163,40 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-5 gap-2 mt-4 pt-3 border-t border-gray-100">
+          <div className="dr-summary-grid">
             <div>
-              <div className="text-[10px] text-gray-400 font-semibold uppercase">
+              <div className="dr-summary-label">
                 {t('billingPage.subtotal', 'Subtotal')}
               </div>
-              <div className="billing-mono text-xs font-medium text-gray-800 mt-0.5">
+              <div className="billing-mono dr-summary-value">
                 {formatCurrency(invoice.subt, invoice.cur)}
               </div>
             </div>
             <div>
-              <div className="text-[10px] text-gray-400 font-semibold uppercase">
+              <div className="dr-summary-label">
                 {t('billingPage.taxVat', 'Tax / VAT')}
               </div>
-              <div className="billing-mono text-xs font-medium text-gray-800 mt-0.5">
+              <div className="billing-mono dr-summary-value">
                 {formatCurrency(invoice.tax, invoice.cur)}
               </div>
             </div>
             <div>
-              <div className="text-[10px] text-gray-400 font-semibold uppercase">{t('billingPage.total', 'Total')}</div>
-              <div className="billing-mono text-xs font-medium text-gray-800 mt-0.5">
+              <div className="dr-summary-label">{t('billingPage.total', 'Total')}</div>
+              <div className="billing-mono dr-summary-value">
                 {formatCurrency(invoice.tot, invoice.cur)}
               </div>
             </div>
             <div>
-              <div className="text-[10px] text-gray-400 font-semibold uppercase">{t('billingPage.credits', 'Credits')}</div>
-              <div className="billing-mono text-xs font-medium text-gray-800 mt-0.5">
+              <div className="dr-summary-label">{t('billingPage.credits', 'Credits')}</div>
+              <div className="billing-mono dr-summary-value">
                 {formatCurrency(invoice.cred, invoice.cur)}
               </div>
             </div>
             <div>
-              <div className="text-[10px] text-gray-400 font-semibold uppercase">
+              <div className="dr-summary-label">
                 {t('billingPage.remaining', 'Remaining')}
               </div>
-              <div className="billing-mono text-xs font-bold text-red-600 mt-0.5">
+              <div className="billing-mono dr-summary-value dr-summary-value--remain">
                 {formatCurrency(invoice.rem, invoice.cur)}
               </div>
             </div>
@@ -203,7 +217,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
             )}
           </div>
 
-          <div className="flex gap-1.5 mt-3.5 flex-wrap">
+          <div className="dr-actions flex gap-1.5 mt-3.5 flex-wrap">
             {onOfficialPrint && (
               <button type="button" className="b-btn b-btn-sm b-btn-primary" onClick={() => onOfficialPrint(invoice)}>
                 <FileText size={13} />
@@ -269,56 +283,82 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
           {detailLoading ? (
             <BillingDrawerSkeleton />
           ) : activeTab === 'details' ? (
-            <table className="billing-t">
-              <thead>
-                <tr>
-                  <th>{t('billingPage.liType', 'Type')}</th>
-                  <th>{t('billingPage.liDesc', 'Description')}</th>
-                  <th>{t('billingPage.liQty', 'Qty')}</th>
-                  <th>{t('billingPage.liRate', 'Rate')}</th>
-                  <th>{t('billingPage.liAmount', 'Amount')}</th>
-                  <th>{t('billingPage.liLoadSID', 'Load SID')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lineItems.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="text-center py-8 text-gray-400 text-sm">
-                      {t('billingPage.noLineItems', 'No line items')}
-                    </td>
-                  </tr>
-                )}
-                {lineItems.map((li, idx) => {
-                  const lineTypeBadgeClass =
-                    li.type === 'Subscription'
-                      ? 'b-subscription'
-                      : li.type === 'Commission'
-                      ? 'b-commission'
-                      : li.type === 'Penalty' || li.type === 'Commission with penalty'
-                      ? 'b-penalty'
-                      : li.type === 'Add-on'
-                      ? 'b-addon'
-                      : 'b-credit';
+            <>
+              {lineItems.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 text-sm">
+                  {t('billingPage.noLineItems', 'No line items')}
+                </div>
+              ) : (
+                <>
+                  <div className="dr-line-cards">
+                    {lineItems.map((li, idx) => {
+                      const loadInfo = resolveLoadSid(li);
+                      return (
+                        <article key={li.id || idx} className="dr-line-card">
+                          <div className="dr-line-card__top">
+                            <span className={`b-badge ${lineTypeBadgeClass(li.type)}`}>{li.type}</span>
+                            <span className="billing-mono dr-line-card__amount">
+                              {formatCurrency(li.amt, invoice.cur)}
+                            </span>
+                          </div>
+                          <p className="dr-line-card__desc">{li.desc || '—'}</p>
+                          <div className="dr-line-card__meta">
+                            <div>
+                              <span className="dr-line-card__label">{t('billingPage.liQty', 'Qty')}</span>
+                              <span>{li.qty ?? 1}</span>
+                            </div>
+                            <div>
+                              <span className="dr-line-card__label">{t('billingPage.liRate', 'Rate')}</span>
+                              <span className="billing-mono">{lineRateLabel(li)}</span>
+                            </div>
+                            <div>
+                              <span className="dr-line-card__label">{t('billingPage.liLoadSID', 'Load SID')}</span>
+                              <span className="billing-mono dr-line-card__sid">{loadInfo.sid || '—'}</span>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
 
-                  const loadInfo = resolveLoadSid(li);
-
-                  return (
-                    <tr key={li.id || idx}>
-                      <td>
-                        <span className={`b-badge ${lineTypeBadgeClass}`}>{li.type}</span>
-                      </td>
-                      <td className="text-xs text-gray-800">{li.desc}</td>
-                      <td className="text-xs text-gray-500">{li.qty}</td>
-                      <td className="text-xs text-gray-500">{li.rate}</td>
-                      <td className="billing-mono text-xs font-semibold text-gray-900">
-                        {formatCurrency(li.amt, invoice.cur)}
-                      </td>
-                      <td className="billing-mono text-xs text-purple-600 font-medium">{loadInfo.sid || '—'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  <div className="dr-line-table-wrap">
+                    <table className="billing-t billing-t-static">
+                      <thead>
+                        <tr>
+                          <th>{t('billingPage.liType', 'Type')}</th>
+                          <th>{t('billingPage.liDesc', 'Description')}</th>
+                          <th>{t('billingPage.liQty', 'Qty')}</th>
+                          <th>{t('billingPage.liRate', 'Rate')}</th>
+                          <th>{t('billingPage.liAmount', 'Amount')}</th>
+                          <th>{t('billingPage.liLoadSID', 'Load SID')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {lineItems.map((li, idx) => {
+                          const loadInfo = resolveLoadSid(li);
+                          return (
+                            <tr key={li.id || idx}>
+                              <td>
+                                <span className={`b-badge ${lineTypeBadgeClass(li.type)}`}>{li.type}</span>
+                              </td>
+                              <td className="text-xs text-gray-800">{li.desc}</td>
+                              <td className="text-xs text-gray-500 whitespace-nowrap">{li.qty}</td>
+                              <td className="text-xs text-gray-500 whitespace-nowrap">{lineRateLabel(li)}</td>
+                              <td className="billing-mono text-xs font-semibold text-gray-900 whitespace-nowrap">
+                                {formatCurrency(li.amt, invoice.cur)}
+                              </td>
+                              <td className="billing-mono text-xs text-purple-600 font-medium whitespace-nowrap">
+                                {loadInfo.sid || '—'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </>
           ) : (
             <div>
               {lineItems.filter((l) => resolveLoadSid(l).sid).length === 0 && (
