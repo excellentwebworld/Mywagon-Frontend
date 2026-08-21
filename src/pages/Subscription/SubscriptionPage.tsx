@@ -756,7 +756,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
           </div>
           <div className="ao-price">
             {formatEuro(price, currency)}
-            <span> / {cycle === 'yearly' ? tf('year', 'year') : tf('month', 'month')}</span>
+            <span> / {tf('month', 'month')}</span>
           </div>
         </div>
         {included ? (
