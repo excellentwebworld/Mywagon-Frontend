@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Download,
@@ -129,6 +129,13 @@ export const BillingPage: React.FC<BillingPageProps> = ({
   const [walletTotal, setWalletTotal] = useState(0);
   const [walletLoading, setWalletLoading] = useState(false);
   const [payingId, setPayingId] = useState<number | null>(null);
+  const [paymentSettling, setPaymentSettling] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    return Boolean(params.get('payment') || params.get('t') || params.get('transaction_id'));
+  });
+  const paymentSettlingRef = useRef(paymentSettling);
+  paymentSettlingRef.current = paymentSettling;
 
   const [drawerInvoice, setDrawerInvoice] = useState<Invoice | null>(null);
   const [drawerLines, setDrawerLines] = useState<LineItem[]>([]);
@@ -259,18 +266,39 @@ export const BillingPage: React.FC<BillingPageProps> = ({
       window.history.replaceState({}, '', url.pathname + url.search);
     };
 
+    /**
+     * Persist/verify first, refresh billing data, then show success.
+     */
     const finishSuccess = async () => {
       if (cancelled) return;
-      clearPendingCheckout();
-      toast.success(t('billingPage.successViva', 'Payment completed successfully'));
-      clearQuery();
-      await fetchBillingData();
+      try {
+        await fetchBillingData();
+        if (cancelled) return;
+        clearPendingCheckout();
+        clearQuery();
+        toast.success(t('billingPage.successViva', 'Payment completed successfully'));
+      } finally {
+        if (!cancelled) setPaymentSettling(false);
+      }
     };
 
-    if (payment === 'failed' || payment === 'cancel' || payment === 'cancelled') {
-      toast.error(t('billingPage.vivaVerifyFailed', 'Payment was not completed.'));
+    const settleFailure = (message: string) => {
+      if (cancelled) return;
       clearPendingCheckout();
       clearQuery();
+      setPaymentSettling(false);
+      toast.error(message);
+    };
+
+    if (!payment && !transactionId && !orderCode) {
+      setPaymentSettling(false);
+      return;
+    }
+
+    setPaymentSettling(true);
+
+    if (payment === 'failed' || payment === 'cancel' || payment === 'cancelled') {
+      settleFailure(t('billingPage.vivaVerifyFailed', 'Payment was not completed.'));
       return;
     }
 
@@ -286,8 +314,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
             await finishSuccess();
             return;
           }
-          toast.error(toBillingError(err, t('billingPage.vivaVerifyFailed', 'Payment was not completed.'), t));
-          clearQuery();
+          settleFailure(toBillingError(err, t('billingPage.vivaVerifyFailed', 'Payment was not completed.'), t));
         });
       return () => {
         cancelled = true;
@@ -296,6 +323,8 @@ export const BillingPage: React.FC<BillingPageProps> = ({
 
     if (payment === 'success') {
       void finishSuccess();
+    } else {
+      setPaymentSettling(false);
     }
 
     return () => {
@@ -307,6 +336,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
     if (!isWebView) return undefined;
 
     const refresh = () => {
+      if (paymentSettlingRef.current) return;
       if (document.visibilityState && document.visibilityState !== 'visible') return;
       void fetchBillingData();
     };
@@ -563,6 +593,11 @@ export const BillingPage: React.FC<BillingPageProps> = ({
 
   return (
     <div className={isWebView ? 'billing-container webview-billing' : 'billing-container'}>
+      {paymentSettling ? (
+        <div className="billing-alert" role="status" aria-live="polite">
+          {t('billingPage.settlingPayment', 'Confirming your payment…')}
+        </div>
+      ) : null}
       <header className={isWebView ? 'billing-head billing-head--actions-only' : 'billing-head'}>
         {!isWebView ? (
           <div className="billing-head-l">

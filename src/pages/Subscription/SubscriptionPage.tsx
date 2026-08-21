@@ -237,6 +237,13 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     return fromApi;
   };
 
+  const [paymentSettling, setPaymentSettling] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    return Boolean(params.get('payment') || params.get('t') || params.get('transaction_id'));
+  });
+  const paymentSettlingRef = useRef(paymentSettling);
+  paymentSettlingRef.current = paymentSettling;
   const [cycle, setCycle] = useState<UiCycle>('monthly');
   const [addonTab, setAddonTab] = useState<AddonTab>('recurring');
   const [featuresOpen, setFeaturesOpen] = useState(false);
@@ -355,23 +362,47 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
       notifyNativeForceLogout(paymentKind === 'addon' ? 'addon_purchased' : 'plan_purchased');
     };
 
+    /**
+     * Order matters for WebView:
+     * 1) Persist/verify payment in DB
+     * 2) Refresh subscription data from API
+     * 3) Only then show success UI / native callbacks
+     */
     const finishSuccess = async (kind: PaymentKind, shouldForceLogout = forceLogout) => {
       if (cancelled) return;
-      clearPendingCheckout();
-      toast.success(paymentToastMessages(kind).success);
-      clearQuery();
-      await load();
-      maybeForceLogout(shouldForceLogout);
+      try {
+        await load();
+        if (cancelled) return;
+        clearPendingCheckout();
+        clearQuery();
+        toast.success(paymentToastMessages(kind).success);
+        maybeForceLogout(shouldForceLogout);
+      } finally {
+        if (!cancelled) setPaymentSettling(false);
+      }
     };
 
-    if (payment === 'failed' || payment === 'cancel' || payment === 'cancelled') {
-      toast.error(messages.failed);
+    const settleFailure = (message: string) => {
+      if (cancelled) return;
       clearPendingCheckout();
       clearQuery();
+      setPaymentSettling(false);
+      toast.error(message);
+    };
+
+    if (!payment && !transactionId && !orderCode) {
+      setPaymentSettling(false);
       return;
     }
 
-    // Prefer client verify when Viva transaction id is present (WebView may miss Laravel settle).
+    setPaymentSettling(true);
+
+    if (payment === 'failed' || payment === 'cancel' || payment === 'cancelled') {
+      settleFailure(messages.failed);
+      return;
+    }
+
+    // Prefer client verify when Viva transaction id is present (ensures DB is updated before success UI).
     if (transactionId) {
       api
         .verifyPayment(transactionId, orderCode || undefined)
@@ -383,12 +414,11 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
         .catch(async (err) => {
           if (cancelled) return;
           if (payment === 'success') {
-            // Server redirect already applied purchase; refresh UI even if verify races/duplicates.
+            // Laravel payment-success already persisted; still refresh before toasting.
             await finishSuccess(paymentKind, forceLogout);
             return;
           }
-          toast.error(toError(err, messages.failed));
-          clearQuery();
+          settleFailure(toError(err, messages.failed));
         });
       return () => {
         cancelled = true;
@@ -397,6 +427,8 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
 
     if (payment === 'success') {
       void finishSuccess(paymentKind, forceLogout);
+    } else {
+      setPaymentSettling(false);
     }
 
     return () => {
@@ -404,11 +436,12 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     };
   }, [api, load, paymentToastMessages, toast, toError, isWebView, userId]);
 
-  // WebView only: after returning from Viva, refresh subscription (do not attach on shipper browser).
+  // WebView only: after returning from Viva, refresh subscription (skip while payment is settling).
   useEffect(() => {
     if (!isWebView) return undefined;
 
     const refresh = () => {
+      if (paymentSettlingRef.current) return;
       if (document.visibilityState && document.visibilityState !== 'visible') return;
       void load();
     };
@@ -884,7 +917,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     );
   };
 
-  if (loading && !data) {
+  if ((loading && !data) || (paymentSettling && !data)) {
     return <SubscriptionSkeleton />;
   }
 
@@ -910,6 +943,11 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
 
   return (
     <div className={pageClass}>
+      {paymentSettling ? (
+        <div className="m-info" style={{ marginBottom: 12 }} role="status" aria-live="polite">
+          {tf('settlingPayment', 'Confirming your payment…')}
+        </div>
+      ) : null}
       <header className="sub-head">
         <div className="sub-head-l">
           <div className="sub-head-title-row">
