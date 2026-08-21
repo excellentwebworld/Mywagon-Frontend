@@ -51,7 +51,7 @@ interface SaasFeesTabProps {
   onPerPageChange: (perPage: number) => void;
   onSelectInvoice: (invoice: Invoice) => void;
   onPreviewPdf: (invoice: Invoice) => void;
-  onOfficialPrint: (invoice: Invoice) => void;
+  onOfficialPrint?: (invoice: Invoice) => void;
   onExportInvoiceCsv: (invoice: Invoice) => void;
   onPayNow: (invoice: Invoice) => void;
   onPayWallet: (invoice: Invoice) => void;
@@ -205,14 +205,16 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
           <Building2 size={15} />
         </button>
       )}
-      <button
-        type="button"
-        className="b-btn-ghost p-1"
-        title={t('billingPage.btnOfficialInvoice', 'Official invoice')}
-        onClick={() => onOfficialPrint(inv)}
-      >
-        <Printer size={15} />
-      </button>
+      {onOfficialPrint && (
+        <button
+          type="button"
+          className="b-btn-ghost p-1"
+          title={t('billingPage.btnOfficialInvoice', 'Official invoice')}
+          onClick={() => onOfficialPrint(inv)}
+        >
+          <Printer size={15} />
+        </button>
+      )}
       <button
         type="button"
         className="b-btn-ghost p-1"

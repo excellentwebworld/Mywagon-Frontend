@@ -678,7 +678,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
             onPerPageChange={setPerPage}
             onSelectInvoice={handleSelectInvoice}
             onPreviewPdf={handleOpenPdfPreview}
-            onOfficialPrint={handleOfficialPrint}
+            onOfficialPrint={isWebView ? undefined : handleOfficialPrint}
             onExportInvoiceCsv={handleExportSingleInvoiceCsv}
             onPayNow={handlePayNow}
             onPayWallet={(inv) => inv.raw_id && handlePayWallet(inv.raw_id)}
@@ -758,7 +758,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
         walletBalance={walletBalance}
         onPreviewPdf={handleOpenPdfPreview}
         onDownloadPdf={handleOpenPdfPreview}
-        onOfficialPrint={handleOfficialPrint}
+        onOfficialPrint={isWebView ? undefined : handleOfficialPrint}
         onExportCsv={handleExportSingleInvoiceCsv}
         onPayNow={handlePayNow}
         onPayWallet={(inv) => inv.raw_id && handlePayWallet(inv.raw_id)}
@@ -817,6 +817,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
         statementPeriod={pdfStatementPeriod}
         statementFilters={{ month: pdfStatementPeriod }}
         billingApi={api}
+        hidePrint={isWebView}
       />
     </div>
   );

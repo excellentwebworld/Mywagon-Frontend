@@ -21,6 +21,7 @@ interface PdfPreviewModalProps {
     month?: string;
   };
   billingApi?: BillingApi;
+  hidePrint?: boolean;
 }
 
 export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
@@ -31,6 +32,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
   statementPeriod = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
   statementFilters,
   billingApi: billingApiProp,
+  hidePrint = false,
 }) => {
   const api = billingApiProp ?? billingService;
   const { t } = useTranslation();
@@ -159,15 +161,17 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
         <div className="pdf-header">
           <h4 className="font-semibold text-sm text-gray-800 flex-1 pdf-header-title">{title}</h4>
           <div className="pdf-header-actions">
-            <button
-              type="button"
-              className="b-btn b-btn-sm inline-flex items-center gap-1"
-              onClick={handlePrint}
-              disabled={!ready || loading}
-            >
-              <Printer size={13} />
-              <span>{t('billingPage.btnPrint', 'Print')}</span>
-            </button>
+            {!hidePrint && (
+              <button
+                type="button"
+                className="b-btn b-btn-sm inline-flex items-center gap-1"
+                onClick={handlePrint}
+                disabled={!ready || loading}
+              >
+                <Printer size={13} />
+                <span>{t('billingPage.btnPrint', 'Print')}</span>
+              </button>
+            )}
             <button
               type="button"
               className="b-btn b-btn-sm b-btn-primary inline-flex items-center gap-1"
