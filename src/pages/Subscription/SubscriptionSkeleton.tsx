@@ -120,24 +120,28 @@ export const SubscriptionModalSkeleton: React.FC<{ variant?: ModalSkeletonVarian
 
   return (
     <div className="sub-modal-skeleton" aria-busy="true" aria-live="polite">
-      <div className="m-highlight" style={{ border: 'none', background: 'transparent', padding: 0 }}>
-        <Skeleton width={88} height={11} borderRadius={4} {...sk} />
-        <div style={{ marginTop: 10 }}>
-          <Skeleton width={140} height={28} borderRadius={6} {...sk} />
+      <div className="price-breakdown" style={{ pointerEvents: 'none' }}>
+        <div className="pb-head">
+          <Skeleton width={88} height={11} borderRadius={4} {...sk} />
+          <span aria-hidden="true" />
         </div>
-        <div style={{ marginTop: 8 }}>
-          <Skeleton width={200} height={12} borderRadius={4} {...sk} />
+        <div className="pb-body">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div key={idx} className={`pb-row${idx === 1 || idx === 3 ? ' pb-row-divider' : ''}`}>
+              <Skeleton width={idx === 0 ? '72%' : idx === 3 ? 100 : 140} height={13} borderRadius={4} {...sk} />
+              <Skeleton width={64} height={13} borderRadius={4} {...sk} />
+            </div>
+          ))}
         </div>
-      </div>
-      <div style={{ marginTop: 16 }}>
-        <Skeleton width="100%" height={48} borderRadius={10} {...sk} />
+        <div className="pb-footer">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Skeleton width={120} height={13} borderRadius={4} {...sk} />
+            <Skeleton width={18} height={18} borderRadius={4} {...sk} />
+          </div>
+        </div>
       </div>
       <div style={{ marginTop: 10 }}>
         <Skeleton width="88%" height={13} borderRadius={4} {...sk} />
-      </div>
-      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Skeleton width={18} height={18} borderRadius={4} {...sk} />
-        <Skeleton width={210} height={13} borderRadius={4} {...sk} />
       </div>
     </div>
   );

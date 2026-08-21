@@ -1109,6 +1109,80 @@
   color: var(--ac, #6c3aed);
 }
 .sub-modal .mh-sub { font-size: 11px; color: var(--t3, #8e8e9a); margin-top: 4px; }
+
+/* Legacy-style price breakdown (addon + plan purchase) */
+.sub-modal .price-breakdown {
+  border: 1px solid var(--bd, #e4e4e8);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  background: #fff;
+}
+.sub-modal .pb-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t3, #8e8e9a);
+  background: var(--se, #fafafe);
+  border-bottom: 1px solid var(--bd, #e4e4e8);
+}
+.sub-modal .pb-body { padding: 2px 0; }
+.sub-modal .pb-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: start;
+  padding: 11px 14px;
+  font-size: 13px;
+  color: var(--t1, #1a1a24);
+  line-height: 1.45;
+}
+.sub-modal .pb-row-divider {
+  border-top: 1px solid var(--bd, #e4e4e8);
+}
+.sub-modal .pb-row-strong .pb-label,
+.sub-modal .pb-row-strong .pb-value {
+  font-weight: 700;
+}
+.sub-modal .pb-label {
+  min-width: 0;
+  word-break: break-word;
+  color: var(--t2, #5e5e6e);
+}
+.sub-modal .pb-row-strong .pb-label { color: var(--t1, #1a1a24); }
+.sub-modal .pb-value {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--t1, #1a1a24);
+}
+.sub-modal .pb-footer {
+  padding: 12px 14px;
+  border-top: 1px solid var(--bd, #e4e4e8);
+  background: var(--se, #fafafe);
+}
+.sub-modal .pb-autopay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t1, #1a1a24);
+  margin: 0;
+  cursor: pointer;
+}
+.sub-modal .pb-autopay input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ac, #6c3aed);
+  cursor: pointer;
+}
+
 .sub-modal .m-info {
   font-size: 12px;
   color: var(--t2, #5e5e6e);
@@ -1118,6 +1192,7 @@
   background: var(--se, #fafafe);
   border-radius: 8px;
 }
+.sub-modal .m-info + .m-info { margin-top: 10px; }
 .sub-modal .sub-btn {
   display: inline-flex;
   align-items: center;

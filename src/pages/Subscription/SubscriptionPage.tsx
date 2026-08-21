@@ -30,6 +30,7 @@ import type {
   SubscriptionQuote,
 } from '../../api/types/subscription';
 import { formatDate, formatMoney, usageTone } from './mockData';
+import { PriceBreakdown, type PriceBreakdownRow } from './PriceBreakdown';
 import { SubscriptionModalSkeleton, SubscriptionSkeleton } from './SubscriptionSkeleton';
 import './subscription.css';
 
@@ -542,38 +543,65 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     if (modal.kind === 'upgrade') {
       const plan = plans.find((p) => p.id === modal.planId);
       const q = quote as SubscriptionQuote | null;
+      const planLabel = plan?.name ?? q?.plan_name ?? '';
+      const periodLabel = q?.period === 'year' ? tf('yearly', 'Yearly') : tf('monthly', 'Monthly');
       return {
-        title: `${tf('upgradeTitle', 'Upgrade to')} ${plan?.name ?? ''}`,
+        title: `${tf('upgradeTitle', 'Upgrade to')} ${planLabel}`,
         confirm: busy ? tf('processing', 'Processing…') : tf('payNow', 'Pay Now'),
         danger: false,
         body: quoteLoading || busy ? (
           <SubscriptionModalSkeleton variant="quote" />
         ) : q ? (
           <>
-            <div className="m-highlight">
-              <div className="mh-label">{tf('totalCost', 'Total Cost')}</div>
-              <div className="mh-val">{formatEuro(q.total, q.currency)}</div>
-              <div className="mh-sub">
-                {tf('subtotal', 'Subtotal')} {formatEuro(q.subtotal, q.currency)}
-                {q.vat_percent > 0 ? ` · VAT ${q.vat_percent}% ${formatEuro(q.vat_amount, q.currency)}` : ''}
-              </div>
-            </div>
+            <PriceBreakdown
+              descriptionLabel={tf('description', 'Description')}
+              rows={[
+                {
+                  id: 'plan',
+                  label: `${tf('planPrice', 'Plan Price')} - ${planLabel} (${periodLabel})`,
+                  value: formatEuro(q.subtotal, q.currency),
+                },
+                {
+                  id: 'vat',
+                  divider: true,
+                  label: `${tf('vatTax', 'VAT Tax')} (${q.vat_percent}%)`,
+                  value: formatEuro(q.vat_amount, q.currency),
+                },
+                {
+                  id: 'grand',
+                  divider: true,
+                  strong: true,
+                  label: tf('grandTotal', 'Grand Total'),
+                  value: formatEuro(q.total, q.currency),
+                },
+              ]}
+              footer={
+                <label className="pb-autopay">
+                  <span>{tf('enableAutopay', 'Enable Auto Pay')}</span>
+                  <input type="checkbox" checked={autoPayOnCheckout} onChange={(e) => setAutoPayOnCheckout(e.target.checked)} />
+                </label>
+              }
+            />
             {q.prorated ? <div className="m-info">{tf('proratedNote', 'Price is prorated for the unused days in your current billing period.')}</div> : null}
             {q.vat_percent > 0 ? (
               <div className="m-info">
                 {tf('vatNote', 'As per EU tax regulations, customers from Greece are required to pay')} {q.vat_percent}% {tf('vatOnDigital', 'VAT on digital services and products.')}
               </div>
             ) : null}
-            <label className="m-info" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input type="checkbox" checked={autoPayOnCheckout} onChange={(e) => setAutoPayOnCheckout(e.target.checked)} />
-              {tf('enableAutopay', 'Enable auto-pay for renewals')}
-            </label>
           </>
         ) : null,
       };
     }
     if (modal.kind === 'buy-addon') {
       const q = quote as AddonQuote | null;
+      const cur = q?.currency ?? currency;
+      const months = q?.interval === 'year' ? 12 : 1;
+      const count = q?.count ?? modal.count;
+      const unit = q?.unit_price ?? 0;
+      const totalExpr =
+        count > 1
+          ? `${count} × ${months} ${tf('month', 'Month')} × ${formatEuro(unit, cur)}`
+          : `${months} ${tf('month', 'Month')} × ${formatEuro(unit, cur)}`;
       return {
         title: modal.addon.name,
         confirm: busy ? tf('processing', 'Processing…') : tf('payNow', 'Pay Now'),
@@ -582,23 +610,54 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
           <SubscriptionModalSkeleton variant="quote" />
         ) : q ? (
           <>
-            <div className="m-highlight">
-              <div className="mh-label">{tf('totalCost', 'Total Cost')}</div>
-              <div className="mh-val">{formatEuro(q.total, q.currency ?? currency)}</div>
-              <div className="mh-sub">
-                {q.count} × {formatEuro(q.unit_price, q.currency ?? currency)}
-                {q.interval === 'year' ? ` × 12 ${tf('months', 'months')}` : ` / ${tf('month', 'month')}`}
-                {q.vat_percent > 0 ? ` · VAT ${q.vat_percent}%` : ''}
-              </div>
-            </div>
-            {q.is_recurring ? (
-              <label className="m-info" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input type="checkbox" checked={autoPayOnCheckout} onChange={(e) => setAutoPayOnCheckout(e.target.checked)} />
-                {tf('enableAutopay', 'Enable auto-pay for renewals')}
-              </label>
-            ) : (
+            <PriceBreakdown
+              descriptionLabel={tf('description', 'Description')}
+              rows={[
+                {
+                  id: 'addon',
+                  label: `${tf('addonFeatures', 'Add-On Features')} - ${q.name || modal.addon.name}`,
+                  value: formatEuro(unit, cur),
+                },
+                ...(modal.addon.type === 'count' || count > 1
+                  ? ([
+                      {
+                        id: 'count',
+                        label: tf('count', 'Count'),
+                        value: String(count),
+                      },
+                    ] satisfies PriceBreakdownRow[])
+                  : []),
+                {
+                  id: 'total',
+                  divider: true,
+                  label: `${tf('total', 'Total')} (${totalExpr})`,
+                  value: formatEuro(q.subtotal, cur),
+                },
+                {
+                  id: 'vat',
+                  label: `${tf('vatTax', 'VAT Tax')} (${q.vat_percent}%)`,
+                  value: formatEuro(q.vat_amount, cur),
+                },
+                {
+                  id: 'grand',
+                  divider: true,
+                  strong: true,
+                  label: tf('grandTotal', 'Grand Total'),
+                  value: formatEuro(q.total, cur),
+                },
+              ]}
+              footer={
+                q.is_recurring ? (
+                  <label className="pb-autopay">
+                    <span>{tf('enableAutopay', 'Enable Auto Pay')}</span>
+                    <input type="checkbox" checked={autoPayOnCheckout} onChange={(e) => setAutoPayOnCheckout(e.target.checked)} />
+                  </label>
+                ) : undefined
+              }
+            />
+            {!q.is_recurring ? (
               <div className="m-info">{tf('purchaseNote', 'Units are added after payment according to the billing option you selected.')}</div>
-            )}
+            ) : null}
             {q.vat_percent > 0 ? (
               <div className="m-info">
                 {tf('vatNote', 'As per EU tax regulations, customers from Greece are required to pay')} {q.vat_percent}% {tf('vatOnDigital', 'VAT on digital services and products.')}
@@ -681,7 +740,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
         <div className="m-info">{tf('cancelAddonNote', 'The add-on stays active until its end date, then it will not renew.')}</div>
       ),
     };
-  }, [modal, plans, quote, quoteLoading, busy, autoPayOnCheckout, contactForm, t]);
+  }, [modal, plans, quote, quoteLoading, busy, autoPayOnCheckout, contactForm, currency, t]);
 
   const renderAddonCard = (ao: SubscriptionAddonOffer) => {
     const price = cycle === 'yearly' ? ao.yearly_price : ao.monthly_price;
