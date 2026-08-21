@@ -307,13 +307,14 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                 </div>
               )}
               {lineItems
-                .filter((l) => l.sid)
+                .filter((l) => l.sid || l.shipment_id)
                 .map((li, idx) => {
-                  const rawShipmentId = li.sid?.replace('SHP-', '');
+                  const targetShipmentId = li.shipment_id || li.sid?.replace('SHP-', '') || li.sid;
                   return (
                     <Link
                       key={idx}
-                      to={`/manage-shipments?q=${rawShipmentId}`}
+                      to={`/shipments/${targetShipmentId}`}
+                      onClick={onClose}
                       className="p-3.5 border border-gray-200 rounded-xl mb-2.5 flex items-center gap-3.5 bg-gray-50 hover:bg-purple-50/50 transition-colors block no-underline text-inherit"
                     >
                       <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 flex-shrink-0">

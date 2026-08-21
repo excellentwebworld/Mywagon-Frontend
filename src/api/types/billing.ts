@@ -40,6 +40,7 @@ export interface LineItem {
   vat?: number;
   amt: number;
   sid?: string;
+  shipment_id?: string;
   dates?: string;
   notes?: string;
 }
