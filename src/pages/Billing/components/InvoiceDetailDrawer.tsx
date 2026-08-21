@@ -103,6 +103,24 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
     onToast(t('billingPage.copiedToClipboard', 'Copied to clipboard'));
   };
 
+  const resolveLoadSid = (li: LineItem): { sid: string | null; shipmentId: string | null } => {
+    if (li.sid) {
+      const raw = li.shipment_id || li.sid.replace(/^(SHP|SID)-?/i, '');
+      const formattedSid = li.sid.startsWith('SHP-') ? li.sid : `SHP-${li.sid.replace(/^(SID)-?/i, '')}`;
+      return { sid: formattedSid, shipmentId: raw };
+    }
+    if (li.shipment_id) {
+      return { sid: `SHP-${li.shipment_id}`, shipmentId: li.shipment_id };
+    }
+    if (li.desc) {
+      const match = li.desc.match(/(?:SID|SHP)-?(\d+)/i);
+      if (match && match[1]) {
+        return { sid: `SHP-${match[1]}`, shipmentId: match[1] };
+      }
+    }
+    return { sid: null, shipmentId: null };
+  };
+
   return createPortal(
     <div
       className={`drawer-bg ${isOpen ? 'show' : ''}`}
@@ -282,6 +300,8 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                       ? 'b-addon'
                       : 'b-credit';
 
+                  const loadInfo = resolveLoadSid(li);
+
                   return (
                     <tr key={li.id || idx}>
                       <td>
@@ -293,7 +313,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                       <td className="billing-mono text-xs font-semibold text-gray-900">
                         {formatCurrency(li.amt, invoice.cur)}
                       </td>
-                      <td className="billing-mono text-xs text-purple-600 font-medium">{li.sid || '—'}</td>
+                      <td className="billing-mono text-xs text-purple-600 font-medium">{loadInfo.sid || '—'}</td>
                     </tr>
                   );
                 })}
@@ -301,19 +321,19 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
             </table>
           ) : (
             <div>
-              {lineItems.filter((l) => l.sid).length === 0 && (
+              {lineItems.filter((l) => resolveLoadSid(l).sid).length === 0 && (
                 <div className="text-center py-8 text-gray-400 text-sm">
                   {t('billingPage.noLinkedLoads', 'No linked loads')}
                 </div>
               )}
               {lineItems
-                .filter((l) => l.sid || l.shipment_id)
+                .filter((l) => resolveLoadSid(l).sid)
                 .map((li, idx) => {
-                  const targetShipmentId = li.shipment_id || li.sid?.replace('SHP-', '') || li.sid;
+                  const { sid, shipmentId } = resolveLoadSid(li);
                   return (
                     <Link
                       key={idx}
-                      to={`/shipments/${targetShipmentId}`}
+                      to={`/shipments/${shipmentId}`}
                       onClick={onClose}
                       className="p-3.5 border border-gray-200 rounded-xl mb-2.5 flex items-center gap-3.5 bg-gray-50 hover:bg-purple-50/50 transition-colors block no-underline text-inherit"
                     >
@@ -321,7 +341,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                         <Truck size={18} />
                       </div>
                       <div className="flex-1">
-                        <div className="billing-mono font-bold text-purple-700 text-sm">{li.sid}</div>
+                        <div className="billing-mono font-bold text-purple-700 text-sm">{sid}</div>
                         <div className="text-xs text-gray-500 mt-0.5">{li.desc}</div>
                       </div>
                       <div className="text-right">
