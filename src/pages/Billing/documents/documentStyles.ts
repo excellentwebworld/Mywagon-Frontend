@@ -84,6 +84,8 @@ export const BILLING_DOCUMENT_CSS = `
     font-size: 13px;
     font-weight: 700;
     margin-top: 2px;
+    word-break: break-word;
+    overflow-wrap: break-word;
   }
   .mv-doc-badge {
     display: inline-block;
@@ -120,6 +122,7 @@ export const BILLING_DOCUMENT_CSS = `
     border-bottom: 1px solid #e5e7eb;
     font-size: 12px;
     vertical-align: top;
+    word-break: break-word;
   }
   .mv-doc-empty {
     text-align: center;
@@ -138,20 +141,18 @@ export const BILLING_DOCUMENT_CSS = `
     gap: 16px;
     padding: 8px 0;
     font-size: 13px;
-    border-bottom: 1px solid #e5e7eb;
   }
+  .mv-doc-total-row:last-child { border-bottom: 0; }
   .mv-doc-total-grand {
-    border-bottom: 0;
-    border-top: 2px solid #111827;
-    margin-top: 4px;
-    padding-top: 10px;
-    font-size: 15px;
     font-weight: 800;
+    font-size: 15px;
+    border-top: 2px solid #111827;
+    padding-top: 10px;
+    margin-top: 4px;
   }
   .mv-doc-kpi {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 0;
     margin-top: 24px;
     border: 1px solid #e5e7eb;
   }
@@ -196,6 +197,13 @@ export const BILLING_DOCUMENT_CSS = `
       gap: 16px;
       margin-top: 18px;
     }
+    .mv-doc-meta-row {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .mv-doc-meta-cell {
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .mv-doc-meta-cell:nth-child(2n) { border-right: 0; }
     .mv-doc-kpi {
       grid-template-columns: 1fr 1fr;
     }
@@ -206,7 +214,7 @@ export const BILLING_DOCUMENT_CSS = `
     .mv-doc-kpi-value { font-size: 14px; }
     .mv-doc-section { margin-top: 18px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .mv-doc table {
-      min-width: 560px;
+      min-width: 500px;
     }
     .mv-doc th, .mv-doc td {
       font-size: 11px;
@@ -215,6 +223,9 @@ export const BILLING_DOCUMENT_CSS = `
   }
   @media print {
     body { background: #fff; }
-    .mv-doc { width: auto; padding: 12mm; }
+    .mv-doc { width: 100% !important; max-width: none !important; padding: 0 !important; }
+    .mv-doc-meta-row { grid-template-columns: repeat(4, 1fr) !important; }
+    .mv-doc-section { overflow: visible !important; }
+    .mv-doc table { min-width: 100% !important; width: 100% !important; }
   }
 `;

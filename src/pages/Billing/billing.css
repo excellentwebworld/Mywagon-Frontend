@@ -662,6 +662,16 @@ table.billing-t {
   padding: 10px 14px;
   font-size: 13px;
   vertical-align: middle;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.billing-t td .b-badge {
+  white-space: normal;
+  word-break: break-word;
+  max-width: 100%;
+  display: inline-block;
+  text-align: center;
 }
 
 .billing-tbl-ft {

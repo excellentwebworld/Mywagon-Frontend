@@ -51,6 +51,27 @@ export function preparePrintWindow(title = 'Document'): Window | null {
   return printWindow;
 }
 
+export function tryNativeAppPrint(html: string): boolean {
+  if (!html?.trim()) return false;
+  try {
+    const win = window as unknown as {
+      webkit?: { messageHandlers?: { printHandler?: { postMessage: (msg: unknown) => void } } };
+      Android?: { printHtml?: (html: string) => void };
+    };
+    if (win.webkit?.messageHandlers?.printHandler) {
+      win.webkit.messageHandlers.printHandler.postMessage({ html });
+      return true;
+    }
+    if (win.Android && typeof win.Android.printHtml === 'function') {
+      win.Android.printHtml(html);
+      return true;
+    }
+  } catch {
+    /* native message handler failed or not available */
+  }
+  return false;
+}
+
 /** Write fetched HTML into a tab opened via preparePrintWindow. */
 export function fillPrintWindow(
   printWindow: Window | null,
@@ -58,6 +79,13 @@ export function fillPrintWindow(
   html: string,
   autoPrint = true,
 ): void {
+  if (tryNativeAppPrint(html)) {
+    if (printWindow && !printWindow.closed) {
+      printWindow.close();
+    }
+    return;
+  }
+
   if (!printWindow || printWindow.closed) return;
 
   if (!html?.trim()) {
