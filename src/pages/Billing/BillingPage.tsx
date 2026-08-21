@@ -98,6 +98,18 @@ export const BillingPage: React.FC<BillingPageProps> = ({
   const refreshUser = isWebView ? noopRefreshUser : auth.refreshUser;
   const [searchParams, setSearchParams] = useSearchParams();
 
+  useEffect(() => {
+    if (!isWebView) return undefined;
+    const toTop = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    toTop();
+    const timers = [0, 100, 350].map((ms) => window.setTimeout(toTop, ms));
+    return () => timers.forEach((id) => window.clearTimeout(id));
+  }, [isWebView]);
+
   const subscriptionHref = '/subscription';
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);

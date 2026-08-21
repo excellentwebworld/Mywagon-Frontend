@@ -12,7 +12,7 @@ function resetScroll(root?: HTMLElement | null) {
 
   document
     .querySelectorAll<HTMLElement>(
-      '.webview-subscription-shell, .webview-subscription-main, .billing-page, .subscription-page',
+      '.webview-subscription-shell, .webview-subscription-main, .billing-container, .subscription-page',
     )
     .forEach((el) => {
       el.scrollTop = 0;
@@ -25,14 +25,16 @@ export const WebViewLayout: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     resetScroll(shellRef.current);
-    const timer = window.setTimeout(() => resetScroll(shellRef.current), 0);
+    const timers = [0, 50, 150, 400].map((ms) =>
+      window.setTimeout(() => resetScroll(shellRef.current), ms),
+    );
     const raf = requestAnimationFrame(() => resetScroll(shellRef.current));
 
     return () => {
-      window.clearTimeout(timer);
+      timers.forEach((id) => window.clearTimeout(id));
       cancelAnimationFrame(raf);
     };
-  }, [location.pathname, location.search]);
+  }, [location.pathname]);
 
   return (
     <div ref={shellRef} className="webview-subscription-shell">

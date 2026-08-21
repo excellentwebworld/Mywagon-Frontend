@@ -326,13 +326,47 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     setCycle(currentIntervalToUi(data.current.interval, data.current.start_date, data.current.expire_date));
   }, [data?.current?.user_subscription_id, data?.current?.interval, data?.current?.start_date, data?.current?.expire_date]);
 
+  // Center current plan in the horizontal carousel only — never move page vertical scroll.
   useEffect(() => {
     if (!data) return;
     const currentCard = document.querySelector('.subscription-page .pcard.current');
-    if (currentCard instanceof HTMLElement) {
-      currentCard.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    if (!(currentCard instanceof HTMLElement)) return;
+
+    const track = currentCard.closest('.plans-grid');
+    if (track instanceof HTMLElement) {
+      const cardRect = currentCard.getBoundingClientRect();
+      const trackRect = track.getBoundingClientRect();
+      const nextLeft =
+        track.scrollLeft +
+        (cardRect.left - trackRect.left) -
+        (track.clientWidth - currentCard.clientWidth) / 2;
+      track.scrollTo({ left: Math.max(0, nextLeft), behavior: 'smooth' });
     }
-  }, [data?.current?.plan_id, cycle]);
+
+    if (isWebView) {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, [data?.current?.plan_id, cycle, isWebView]);
+
+  useEffect(() => {
+    if (!isWebView) return undefined;
+    const toTop = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    toTop();
+    const t0 = window.setTimeout(toTop, 0);
+    const t1 = window.setTimeout(toTop, 100);
+    const t2 = window.setTimeout(toTop, 350);
+    return () => {
+      window.clearTimeout(t0);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [isWebView]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
