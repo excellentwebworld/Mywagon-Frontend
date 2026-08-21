@@ -30,6 +30,12 @@ import { downloadFileBlob, canSubmitBankReceipt, formatCurrency } from './mockDa
 import { fillPrintWindow, preparePrintWindow } from '../../utils/printHtml';
 import { InvoiceDocument } from './documents/InvoiceDocument';
 import { renderBillingDocumentHtml } from './documents/renderBillingDocument';
+import {
+  clearPendingCheckout,
+  isLikelyInAppWebView,
+  rememberPendingCheckout,
+  notifyNativeOpenCheckout,
+} from '../../utils/webviewCheckout';
 
 import './billing.css';
 import { UniverseBanner } from './components/UniverseBanner';
@@ -81,6 +87,7 @@ const noopRefreshUser = async (): Promise<void> => {};
 export const BillingPage: React.FC<BillingPageProps> = ({
   variant = 'shipper',
   billingApi: billingApiProp,
+  userId,
 }) => {
   const api = billingApiProp ?? billingService;
   const isWebView = variant === 'webview';
@@ -242,38 +249,82 @@ export const BillingPage: React.FC<BillingPageProps> = ({
     const payment = params.get('payment');
     const transactionId = params.get('t') || params.get('transaction_id');
     const orderCode = params.get('s') || params.get('order_code');
+    let cancelled = false;
 
     const clearQuery = () => {
       const url = new URL(window.location.href);
       ['payment', 't', 's', 'transaction_id', 'order_code'].forEach((k) => url.searchParams.delete(k));
+      if (isWebView && userId) {
+        url.searchParams.set('user_id', userId);
+      }
       window.history.replaceState({}, '', url.pathname + url.search);
+    };
+
+    const finishSuccess = async () => {
+      if (cancelled) return;
+      clearPendingCheckout();
+      toast.success(t('billingPage.successViva', 'Payment completed successfully'));
+      clearQuery();
+      await fetchBillingData();
     };
 
     if (payment === 'failed' || payment === 'cancel' || payment === 'cancelled') {
       toast.error(t('billingPage.vivaVerifyFailed', 'Payment was not completed.'));
+      clearPendingCheckout();
       clearQuery();
-      return;
-    }
-    if (payment === 'success') {
-      toast.success(t('billingPage.successViva', 'Payment completed successfully'));
-      clearQuery();
-      fetchBillingData();
       return;
     }
 
-    if (transactionId || orderCode) {
+    if (transactionId) {
       api
-        .verifyVivaPayment(transactionId || undefined, orderCode || undefined)
-        .then(() => {
-          toast.success(t('billingPage.successViva', 'Payment completed successfully'));
-          fetchBillingData();
+        .verifyVivaPayment(transactionId, orderCode || undefined)
+        .then(async () => {
+          await finishSuccess();
         })
-        .catch((err) => {
+        .catch(async (err) => {
+          if (cancelled) return;
+          if (payment === 'success') {
+            await finishSuccess();
+            return;
+          }
           toast.error(toBillingError(err, t('billingPage.vivaVerifyFailed', 'Payment was not completed.'), t));
-        })
-        .finally(clearQuery);
+          clearQuery();
+        });
+      return () => {
+        cancelled = true;
+      };
     }
-  }, [fetchBillingData, t, toast]);
+
+    if (payment === 'success') {
+      void finishSuccess();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [api, fetchBillingData, isWebView, t, toast, userId]);
+
+  useEffect(() => {
+    if (!isWebView && !isLikelyInAppWebView()) return undefined;
+
+    const refresh = () => {
+      if (document.visibilityState && document.visibilityState !== 'visible') return;
+      void fetchBillingData();
+    };
+
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) refresh();
+    };
+
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('pageshow', onPageShow);
+    };
+  }, [fetchBillingData, isWebView]);
 
   const handleTabChange = (tab: TabKey) => {
     setActiveTab(tab);
@@ -366,6 +417,8 @@ export const BillingPage: React.FC<BillingPageProps> = ({
             ),
           );
         }
+        rememberPendingCheckout(order.orderCode ?? null, 'invoice');
+        notifyNativeOpenCheckout(order.checkoutUrl, order.orderCode ?? null);
         window.location.assign(order.checkoutUrl);
         return;
       }

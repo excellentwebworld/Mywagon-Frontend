@@ -43,3 +43,7 @@ export function safeSessionGet(key: string): string | null {
 export function safeSessionSet(key: string, value: string): void {
   storageSet(typeof sessionStorage === 'undefined' ? undefined : sessionStorage, key, value);
 }
+
+export function safeSessionRemove(key: string): void {
+  storageRemove(typeof sessionStorage === 'undefined' ? undefined : sessionStorage, key);
+}

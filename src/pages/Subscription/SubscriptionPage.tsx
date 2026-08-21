@@ -32,6 +32,13 @@ import type {
 import { formatDate, formatMoney, usageTone } from './mockData';
 import { PriceBreakdown, type PriceBreakdownRow } from './PriceBreakdown';
 import { SubscriptionModalSkeleton, SubscriptionSkeleton } from './SubscriptionSkeleton';
+import {
+  clearPendingCheckout,
+  isLikelyInAppWebView,
+  rememberPendingCheckout,
+  notifyNativeOpenCheckout,
+  notifyNativeForceLogout,
+} from '../../utils/webviewCheckout';
 import './subscription.css';
 
 type UiCycle = 'monthly' | 'yearly';
@@ -327,40 +334,100 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     const transactionId = params.get('t') || params.get('transaction_id');
     const orderCode = params.get('s') || params.get('order_code');
     const kindParam = params.get('kind');
+    const forceLogout = params.get('force_logout') === '1';
     const paymentKind: PaymentKind = kindParam === 'addon' ? 'addon' : 'plan';
     const messages = paymentToastMessages(paymentKind);
+    let cancelled = false;
 
     const clearQuery = () => {
       const url = new URL(window.location.href);
-      ['payment', 'kind', 't', 's', 'transaction_id', 'order_code'].forEach((k) => url.searchParams.delete(k));
+      ['payment', 'kind', 't', 's', 'transaction_id', 'order_code', 'force_logout'].forEach((k) =>
+        url.searchParams.delete(k),
+      );
       if (isWebView && userId) {
         url.searchParams.set('user_id', userId);
       }
       window.history.replaceState({}, '', url.pathname + url.search);
     };
+
+    const maybeForceLogout = (shouldLogout: boolean) => {
+      if (!shouldLogout) return;
+      if (isWebView || isLikelyInAppWebView()) {
+        notifyNativeForceLogout(paymentKind === 'addon' ? 'addon_purchased' : 'plan_purchased');
+      }
+    };
+
+    const finishSuccess = async (kind: PaymentKind, shouldForceLogout = forceLogout) => {
+      if (cancelled) return;
+      clearPendingCheckout();
+      toast.success(paymentToastMessages(kind).success);
+      clearQuery();
+      await load();
+      maybeForceLogout(shouldForceLogout);
+    };
+
     if (payment === 'failed' || payment === 'cancel' || payment === 'cancelled') {
       toast.error(messages.failed);
+      clearPendingCheckout();
       clearQuery();
       return;
     }
-    if (payment === 'success') {
-      toast.success(messages.success);
-      clearQuery();
-      void load();
-      return;
-    }
-    if (transactionId || orderCode) {
+
+    // Prefer client verify when Viva transaction id is present (WebView may miss Laravel settle).
+    if (transactionId) {
       api
-        .verifyPayment(transactionId || undefined, orderCode || undefined)
-        .then((result) => {
-          const verifyMessages = paymentToastMessages(result.kind === 'addon' ? 'addon' : 'plan');
-          toast.success(verifyMessages.success);
-          void load();
+        .verifyPayment(transactionId, orderCode || undefined)
+        .then(async (result) => {
+          if (cancelled) return;
+          const shouldLogout = forceLogout || Boolean(result.force_logout);
+          await finishSuccess(result.kind === 'addon' ? 'addon' : 'plan', shouldLogout);
         })
-        .catch((err) => toast.error(toError(err, messages.failed)))
-        .finally(clearQuery);
+        .catch(async (err) => {
+          if (cancelled) return;
+          if (payment === 'success') {
+            // Server redirect already applied purchase; refresh UI even if verify races/duplicates.
+            await finishSuccess(paymentKind, forceLogout);
+            return;
+          }
+          toast.error(toError(err, messages.failed));
+          clearQuery();
+        });
+      return () => {
+        cancelled = true;
+      };
     }
-  }, [load, paymentToastMessages, toast, toError, isWebView, userId]);
+
+    if (payment === 'success') {
+      void finishSuccess(paymentKind, forceLogout);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [api, load, paymentToastMessages, toast, toError, isWebView, userId]);
+
+  // WebView: after returning from Viva (external tab / same webview), refresh subscription state.
+  useEffect(() => {
+    if (!isWebView && !isLikelyInAppWebView()) return undefined;
+
+    const refresh = () => {
+      if (document.visibilityState && document.visibilityState !== 'visible') return;
+      void load();
+    };
+
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) refresh();
+    };
+
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('pageshow', onPageShow);
+    };
+  }, [isWebView, load]);
 
   const closeModal = () => {
     setModal(null);
@@ -408,15 +475,23 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     void run();
   }, [modal, planCheckoutCycle, addonCheckoutCycle, t, toError, toast]);
 
-  const startCheckout = async (url: string | null, activated?: boolean, kind: PaymentKind = 'plan') => {
+  const startCheckout = async (
+    url: string | null,
+    activated?: boolean,
+    kind: PaymentKind = 'plan',
+    orderCode?: string | null,
+  ) => {
     const messages = paymentToastMessages(kind);
     if (activated) {
+      clearPendingCheckout();
       toast.success(messages.success);
       closeModal();
       await load();
       return;
     }
     if (url) {
+      rememberPendingCheckout(orderCode, kind);
+      notifyNativeOpenCheckout(url, orderCode);
       window.location.assign(url);
       return;
     }
@@ -460,7 +535,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     try {
       if (modal.kind === 'upgrade') {
         const result = await api.checkoutPlan(modal.planId, planCheckoutCycle, autoPayOnCheckout);
-        await startCheckout(result.checkout_url, result.activated, 'plan');
+        await startCheckout(result.checkout_url, result.activated, 'plan', result.order_code);
         return;
       }
       if (modal.kind === 'buy-addon') {
@@ -470,7 +545,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
           addonCheckoutCycle,
           autoPayOnCheckout && modal.addon.billing_type === 'recurring',
         );
-        await startCheckout(result.checkout_url, result.activated, 'addon');
+        await startCheckout(result.checkout_url, result.activated, 'addon', result.order_code);
         return;
       }
       if (modal.kind === 'cancel-plan') {

@@ -163,4 +163,5 @@ export interface SubscriptionVerifyResult {
   kind: 'plan' | 'addon';
   verified: boolean;
   duplicate?: boolean;
+  force_logout?: boolean;
 }
