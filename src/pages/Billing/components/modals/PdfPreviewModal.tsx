@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Download, Printer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { billingService, type BillingApi } from '../../../../api/services/billingService';
 import type { InvoicePrintPayload, StatementPayload } from '../../../../api/types/billing';
 import { fillPrintWindow, preparePrintWindow } from '../../../../utils/printHtml';
-import { downloadElementAsPdf } from '../../../../utils/downloadPdf';
+import { downloadHtmlAsPdf } from '../../../../utils/downloadPdf';
 import { InvoiceDocument } from '../../documents/InvoiceDocument';
 import { StatementDocument } from '../../documents/StatementDocument';
 import { BILLING_DOCUMENT_CSS } from '../../documents/documentStyles';
@@ -34,7 +34,6 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
 }) => {
   const api = billingApiProp ?? billingService;
   const { t } = useTranslation();
-  const paperRef = useRef<HTMLDivElement>(null);
   const [invoicePrint, setInvoicePrint] = useState<InvoicePrintPayload | null>(null);
   const [statement, setStatement] = useState<StatementPayload | null>(null);
   const [loading, setLoading] = useState(false);
@@ -136,11 +135,11 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
   };
 
   const handleDownload = async () => {
-    const node = paperRef.current?.querySelector('.mv-doc') as HTMLElement | null;
-    if (!node) return;
+    const html = documentHtml();
+    if (!html) return;
     setDownloading(true);
     try {
-      await downloadElementAsPdf(node, title);
+      await downloadHtmlAsPdf(html, title);
     } catch {
       setError(t('billingPage.printFailed', 'Unable to download the PDF.'));
     } finally {
@@ -194,7 +193,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
           ) : error ? (
             <div className="text-center py-16 text-red-600 text-sm">{error}</div>
           ) : (
-            <div className="billing-doc-paper" ref={paperRef}>
+            <div className="billing-doc-paper">
               <style>{BILLING_DOCUMENT_CSS}</style>
               {isStatement && statement ? <StatementDocument statement={statement} /> : null}
               {invoicePrint ? (

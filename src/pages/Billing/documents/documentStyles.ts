@@ -230,8 +230,69 @@ export const BILLING_DOCUMENT_CSS = `
   @media print {
     body { background: #fff; }
     .mv-doc { width: 100% !important; max-width: none !important; padding: 0 !important; }
+    .mv-doc-top { flex-direction: row !important; }
+    .mv-doc-title-block { text-align: right !important; }
+    .mv-doc-title { font-size: 34px !important; }
+    .mv-doc-parties { grid-template-columns: 1fr 1fr !important; gap: 40px !important; }
     .mv-doc-meta-row { grid-template-columns: 1fr 1fr 0.9fr 1.3fr !important; }
+    .mv-doc-meta-cell { border-bottom: 0 !important; border-right: 1px solid #e5e7eb !important; }
+    .mv-doc-meta-cell:last-child { border-right: 0 !important; }
+    .mv-doc-kpi { grid-template-columns: repeat(4, 1fr) !important; }
+    .mv-doc-kpi-card { border-bottom: 0 !important; border-right: 1px solid #e5e7eb !important; }
+    .mv-doc-kpi-card:last-child { border-right: 0 !important; }
     .mv-doc-section { overflow: visible !important; }
-    .mv-doc table { min-width: 100% !important; width: 100% !important; }
+    .mv-doc table { min-width: 0 !important; width: 100% !important; }
+  }
+
+  /* Forced desktop layout for html2canvas / iframe PDF export (ignores mobile viewport). */
+  .mv-pdf-export .mv-doc,
+  .mv-pdf-export.mv-doc {
+    width: 794px !important;
+    max-width: 794px !important;
+    padding: 48px 52px 40px !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+  .mv-pdf-export .mv-doc-top { flex-direction: row !important; gap: 32px !important; }
+  .mv-pdf-export .mv-doc-title-block { text-align: right !important; }
+  .mv-pdf-export .mv-doc-title { font-size: 34px !important; }
+  .mv-pdf-export .mv-doc-parties {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 40px !important;
+    margin-top: 28px !important;
+  }
+  .mv-pdf-export .mv-doc-meta-row {
+    grid-template-columns: 1fr 1fr 0.9fr 1.3fr !important;
+  }
+  .mv-pdf-export .mv-doc-meta-cell {
+    border-bottom: 0 !important;
+    border-right: 1px solid #e5e7eb !important;
+  }
+  .mv-pdf-export .mv-doc-meta-cell:last-child { border-right: 0 !important; }
+  .mv-pdf-export .mv-doc-kpi {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+  .mv-pdf-export .mv-doc-kpi-card {
+    border-bottom: 0 !important;
+    border-right: 1px solid #e5e7eb !important;
+  }
+  .mv-pdf-export .mv-doc-kpi-card:last-child { border-right: 0 !important; }
+  .mv-pdf-export .mv-doc-kpi-value { font-size: 16px !important; }
+  .mv-pdf-export .mv-doc-section {
+    margin-top: 28px !important;
+    overflow: visible !important;
+  }
+  .mv-pdf-export .mv-doc table {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  .mv-pdf-export .mv-doc th,
+  .mv-pdf-export .mv-doc td {
+    font-size: 12px !important;
+    padding: 11px 8px !important;
+  }
+  .mv-pdf-export .mv-doc th {
+    font-size: 10px !important;
+    padding: 8px 8px 10px !important;
   }
 `;
