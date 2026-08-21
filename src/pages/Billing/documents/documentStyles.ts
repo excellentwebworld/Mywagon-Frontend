@@ -70,19 +70,25 @@ export const BILLING_DOCUMENT_CSS = `
   }
   .mv-doc-meta-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr 1fr 0.9fr 1.3fr;
     gap: 0;
     margin-top: 24px;
     border: 1px solid #e5e7eb;
+    min-height: max-content;
   }
   .mv-doc-meta-cell {
-    padding: 10px 12px;
+    padding: 8px 10px;
     border-right: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow: visible;
   }
   .mv-doc-meta-cell:last-child { border-right: 0; }
   .mv-doc-meta-value {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
+    line-height: 1.35;
     margin-top: 2px;
     word-break: break-word;
     overflow-wrap: break-word;
@@ -224,7 +230,7 @@ export const BILLING_DOCUMENT_CSS = `
   @media print {
     body { background: #fff; }
     .mv-doc { width: 100% !important; max-width: none !important; padding: 0 !important; }
-    .mv-doc-meta-row { grid-template-columns: repeat(4, 1fr) !important; }
+    .mv-doc-meta-row { grid-template-columns: 1fr 1fr 0.9fr 1.3fr !important; }
     .mv-doc-section { overflow: visible !important; }
     .mv-doc table { min-width: 100% !important; width: 100% !important; }
   }
