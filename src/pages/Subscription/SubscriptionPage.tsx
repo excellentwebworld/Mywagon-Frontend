@@ -55,17 +55,30 @@ const USAGE_LABELS: Record<string, string> = {
 };
 
 const CARRIER_USAGE_LABELS: Record<string, string> = {
-  number_of_fleet_manager_users: 'Fleet Managers',
-  number_of_driver_users: 'Drivers',
-  add_partners: 'Partners',
+  number_of_fleet_manager_users: 'Number of Fleet Manager Users',
+  number_of_driver_users: 'Number of Driver Users',
+  add_partners: 'Add partners',
   partners: 'Partners',
 };
 
 const DRIVER_USAGE_LABELS: Record<string, string> = {
   partners_count: 'Partners',
+  add_partners: 'Add partners',
   post_private_availability: 'Private Availability',
   post_public_availability: 'Public Availability',
 };
+
+function looksLikeSlug(value: string): boolean {
+  return /^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(value.trim());
+}
+
+function humanizeSlug(slug: string): string {
+  return slug
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 type SubscriptionApi = typeof shipperSubscriptionService | WebViewSubscriptionService;
 
@@ -207,7 +220,16 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const locale = i18n.language?.startsWith('el') ? 'el' : 'en';
-  const tf = (key: string, fallback: string) => t(`subscriptionPage.${key}`, fallback);
+  const tf = (key: string, fallback: string) => t(`subscriptionPage.${key}`, { defaultValue: fallback });
+  const usageLabel = (slug: string, apiName?: string | null) => {
+    const mapped = usageLabels[slug];
+    const fallback = mapped ?? humanizeSlug(slug);
+    const fromApi = (apiName || '').trim();
+    if (!fromApi || fromApi === slug || looksLikeSlug(fromApi)) {
+      return t(`subscriptionPage.usage.${slug}`, { defaultValue: fallback });
+    }
+    return fromApi;
+  };
 
   const [cycle, setCycle] = useState<UiCycle>('monthly');
   const [addonTab, setAddonTab] = useState<AddonTab>('recurring');
@@ -974,7 +996,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
             return (
               <div key={u.slug} className={`usage-card ${tone === 'ok' ? '' : tone}`}>
                 <div className="uc-top">
-                  <div className="uc-name">{u.name || tf(u.slug, usageLabels[u.slug] ?? u.slug)}</div>
+                  <div className="uc-name">{usageLabel(u.slug, u.name)}</div>
                   <div className="uc-vals">
                     <span className="used">{u.used}</span>
                     <span className="lim"> / {unlimited ? tf('unlimited', 'Unlimited') : u.limit}</span>

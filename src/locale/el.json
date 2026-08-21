@@ -4225,7 +4225,21 @@
     "payFailedPlan": "Η αγορά πλάνου δεν ολοκληρώθηκε.",
     "payFailedAddon": "Η αγορά πρόσθετου δεν ολοκληρώθηκε.",
     "successUpgrade": "Το πλάνο ενημερώθηκε επιτυχώς!",
-    "successAddon": "Το πρόσθετο αγοράστηκε επιτυχώς!"
+    "successAddon": "Το πρόσθετο αγοράστηκε επιτυχώς!",
+    "usage": {
+      "number_of_fleet_manager_users": "Αριθμός διαχειριστών στόλου",
+      "number_of_driver_users": "Αριθμός οδηγών",
+      "add_partners": "Προσθήκη συνεργατών",
+      "partners": "Συνεργάτες",
+      "partners_count": "Συνεργάτες",
+      "private_load_limit": "Ιδιωτικά φορτία",
+      "public_load_limit": "Δημόσια φορτία",
+      "dispatcher_users": "Διαχειριστές αποστολών",
+      "count_of_bids_per_month": "Προσφορές",
+      "send_tracking_links_to_your_customers_per_month": "Σύνδεσμοι παρακολούθησης",
+      "post_private_availability": "Ιδιωτική διαθεσιμότητα",
+      "post_public_availability": "Δημόσια διαθεσιμότητα"
+    }
   },
   "billingPage": {
     "pgTitle": "Τιμολόγηση",

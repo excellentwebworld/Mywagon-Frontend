@@ -4225,7 +4225,21 @@
     "payFailedPlan": "Plan purchase was not completed.",
     "payFailedAddon": "Add-on purchase was not completed.",
     "successUpgrade": "Plan updated successfully!",
-    "successAddon": "Add-on purchased successfully!"
+    "successAddon": "Add-on purchased successfully!",
+    "usage": {
+      "number_of_fleet_manager_users": "Number of Fleet Manager Users",
+      "number_of_driver_users": "Number of Driver Users",
+      "add_partners": "Add partners",
+      "partners": "Partners",
+      "partners_count": "Partners",
+      "private_load_limit": "Private Loads",
+      "public_load_limit": "Public Loads",
+      "dispatcher_users": "Dispatchers",
+      "count_of_bids_per_month": "Bids",
+      "send_tracking_links_to_your_customers_per_month": "Tracking Links",
+      "post_private_availability": "Private Availability",
+      "post_public_availability": "Public Availability"
+    }
   },
   "billingPage": {
     "pgTitle": "Billing",
