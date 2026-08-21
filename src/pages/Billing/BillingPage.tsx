@@ -32,7 +32,6 @@ import { InvoiceDocument } from './documents/InvoiceDocument';
 import { renderBillingDocumentHtml } from './documents/renderBillingDocument';
 import {
   clearPendingCheckout,
-  isLikelyInAppWebView,
   rememberPendingCheckout,
   notifyNativeOpenCheckout,
 } from '../../utils/webviewCheckout';
@@ -305,7 +304,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
   }, [api, fetchBillingData, isWebView, t, toast, userId]);
 
   useEffect(() => {
-    if (!isWebView && !isLikelyInAppWebView()) return undefined;
+    if (!isWebView) return undefined;
 
     const refresh = () => {
       if (document.visibilityState && document.visibilityState !== 'visible') return;

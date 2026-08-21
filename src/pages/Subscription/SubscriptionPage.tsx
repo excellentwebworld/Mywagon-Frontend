@@ -34,7 +34,6 @@ import { PriceBreakdown, type PriceBreakdownRow } from './PriceBreakdown';
 import { SubscriptionModalSkeleton, SubscriptionSkeleton } from './SubscriptionSkeleton';
 import {
   clearPendingCheckout,
-  isLikelyInAppWebView,
   rememberPendingCheckout,
   notifyNativeOpenCheckout,
   notifyNativeForceLogout,
@@ -351,10 +350,9 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     };
 
     const maybeForceLogout = (shouldLogout: boolean) => {
-      if (!shouldLogout) return;
-      if (isWebView || isLikelyInAppWebView()) {
-        notifyNativeForceLogout(paymentKind === 'addon' ? 'addon_purchased' : 'plan_purchased');
-      }
+      // Only native carrier/driver WebViews — never shipper browser / Blade.
+      if (!shouldLogout || !isWebView) return;
+      notifyNativeForceLogout(paymentKind === 'addon' ? 'addon_purchased' : 'plan_purchased');
     };
 
     const finishSuccess = async (kind: PaymentKind, shouldForceLogout = forceLogout) => {
@@ -406,9 +404,9 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     };
   }, [api, load, paymentToastMessages, toast, toError, isWebView, userId]);
 
-  // WebView: after returning from Viva (external tab / same webview), refresh subscription state.
+  // WebView only: after returning from Viva, refresh subscription (do not attach on shipper browser).
   useEffect(() => {
-    if (!isWebView && !isLikelyInAppWebView()) return undefined;
+    if (!isWebView) return undefined;
 
     const refresh = () => {
       if (document.visibilityState && document.visibilityState !== 'visible') return;
