@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
@@ -326,47 +326,40 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     setCycle(currentIntervalToUi(data.current.interval, data.current.start_date, data.current.expire_date));
   }, [data?.current?.user_subscription_id, data?.current?.interval, data?.current?.start_date, data?.current?.expire_date]);
 
-  // Center current plan in the horizontal carousel only — never move page vertical scroll.
+  // Shipper only: center current plan in the horizontal carousel.
+  // WebView: never auto-scroll — it also moves the page vertically in mobile WebViews.
   useEffect(() => {
-    if (!data) return;
+    if (isWebView || !data) return;
     const currentCard = document.querySelector('.subscription-page .pcard.current');
     if (!(currentCard instanceof HTMLElement)) return;
 
     const track = currentCard.closest('.plans-grid');
-    if (track instanceof HTMLElement) {
-      const cardRect = currentCard.getBoundingClientRect();
-      const trackRect = track.getBoundingClientRect();
-      const nextLeft =
-        track.scrollLeft +
-        (cardRect.left - trackRect.left) -
-        (track.clientWidth - currentCard.clientWidth) / 2;
-      track.scrollTo({ left: Math.max(0, nextLeft), behavior: 'smooth' });
-    }
+    if (!(track instanceof HTMLElement)) return;
 
-    if (isWebView) {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    }
+    const cardRect = currentCard.getBoundingClientRect();
+    const trackRect = track.getBoundingClientRect();
+    const nextLeft =
+      track.scrollLeft +
+      (cardRect.left - trackRect.left) -
+      (track.clientWidth - currentCard.clientWidth) / 2;
+    track.scrollLeft = Math.max(0, nextLeft);
   }, [data?.current?.plan_id, cycle, isWebView]);
 
-  useEffect(() => {
+  // WebView: always pin to top after mount and after content replaces the skeleton.
+  useLayoutEffect(() => {
     if (!isWebView) return undefined;
     const toTop = () => {
       window.scrollTo(0, 0);
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
+      document.querySelectorAll<HTMLElement>('.webview-subscription-shell, .webview-subscription-main').forEach((el) => {
+        el.scrollTop = 0;
+      });
     };
     toTop();
-    const t0 = window.setTimeout(toTop, 0);
-    const t1 = window.setTimeout(toTop, 100);
-    const t2 = window.setTimeout(toTop, 350);
-    return () => {
-      window.clearTimeout(t0);
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-    };
-  }, [isWebView]);
+    const timers = [0, 100, 300, 600].map((ms) => window.setTimeout(toTop, ms));
+    return () => timers.forEach((id) => window.clearTimeout(id));
+  }, [isWebView, loading, data]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

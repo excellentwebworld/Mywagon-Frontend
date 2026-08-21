@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 
 function resetScroll(root?: HTMLElement | null) {
@@ -23,16 +23,29 @@ export const WebViewLayout: React.FC<{ children: React.ReactNode }> = ({ childre
   const location = useLocation();
   const shellRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    resetScroll(shellRef.current);
-    const timers = [0, 50, 150, 400].map((ms) =>
-      window.setTimeout(() => resetScroll(shellRef.current), ms),
-    );
-    const raf = requestAnimationFrame(() => resetScroll(shellRef.current));
+  useLayoutEffect(() => {
+    try {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual';
+      }
+    } catch {
+      /* ignore */
+    }
+
+    const run = () => resetScroll(shellRef.current);
+    run();
+
+    const timers = [0, 50, 150, 400, 800].map((ms) => window.setTimeout(run, ms));
+    const onPageShow = () => run();
+    const onPopState = () => run();
+
+    window.addEventListener('pageshow', onPageShow);
+    window.addEventListener('popstate', onPopState);
 
     return () => {
       timers.forEach((id) => window.clearTimeout(id));
-      cancelAnimationFrame(raf);
+      window.removeEventListener('pageshow', onPageShow);
+      window.removeEventListener('popstate', onPopState);
     };
   }, [location.pathname]);
 

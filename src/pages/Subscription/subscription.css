@@ -1361,6 +1361,16 @@
 .webview-subscription.subscription-page {
   max-width: 100%;
   padding: 8px 12px 24px;
+  overflow-anchor: none;
+}
+.webview-subscription .plans-header {
+  position: static;
+}
+.webview-subscription .plans-grid {
+  scroll-snap-type: none;
+}
+.webview-subscription .pcard {
+  scroll-snap-align: none;
 }
 .webview-subscription .sub-head { display: none; }
 .webview-subscription .usage-section .sub-section-head { margin-bottom: 10px; }
