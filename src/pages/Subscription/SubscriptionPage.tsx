@@ -232,7 +232,9 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     data?.current?.expire_date,
   );
   const planCheckoutCycle = toApiCycle(cycle);
-  const addonCheckoutCycle = toApiCycle(subscribedCycle);
+  // Add-ons must use the UI billing toggle, not the plan's interval, so a yearly
+  // subscriber can still purchase at the monthly add-on rate when Monthly is selected.
+  const addonCheckoutCycle = toApiCycle(cycle);
 
   const paymentToastMessages = useCallback(
     (kind: PaymentKind) => ({
@@ -585,6 +587,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
               <div className="mh-val">{formatEuro(q.total, q.currency ?? currency)}</div>
               <div className="mh-sub">
                 {q.count} × {formatEuro(q.unit_price, q.currency ?? currency)}
+                {q.interval === 'year' ? ` × 12 ${tf('months', 'months')}` : ` / ${tf('month', 'month')}`}
                 {q.vat_percent > 0 ? ` · VAT ${q.vat_percent}%` : ''}
               </div>
             </div>
@@ -594,7 +597,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                 {tf('enableAutopay', 'Enable auto-pay for renewals')}
               </label>
             ) : (
-              <div className="m-info">{tf('purchaseNote', 'Units are added after payment and follow your current subscription cycle.')}</div>
+              <div className="m-info">{tf('purchaseNote', 'Units are added after payment according to the billing option you selected.')}</div>
             )}
             {q.vat_percent > 0 ? (
               <div className="m-info">
