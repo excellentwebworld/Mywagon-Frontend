@@ -19,9 +19,11 @@ export const AUDIT_CATEGORIES = [
   { key: 'profile', icon: '👤', labelKey: 'compliance.audit.cat.profile' },
   { key: 'organization', icon: '🏢', labelKey: 'compliance.audit.cat.organization' },
   { key: 'users', icon: '👥', labelKey: 'compliance.audit.cat.users' },
-  { key: 'kyc', icon: '📋', labelKey: 'compliance.audit.cat.kyc' },
+  { key: 'kyc', icon: '🪪', labelKey: 'compliance.audit.cat.kyc' },
   { key: 'security', icon: '🔒', labelKey: 'compliance.audit.cat.security' },
   { key: 'notifications', icon: '🔔', labelKey: 'compliance.audit.cat.notifications' },
+  { key: 'import', icon: '📥', labelKey: 'compliance.audit.cat.import' },
+  { key: 'export', icon: '📤', labelKey: 'compliance.audit.cat.export' },
 ];
 
 export const SEVERITY_CONFIG = {

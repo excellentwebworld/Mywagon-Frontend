@@ -2771,7 +2771,8 @@
         "masterData": "Κύρια Δεδομένα",
         "documents": "Έγγραφα",
         "settings": "Ρυθμίσεις",
-        "export": "Εξαγωγή"
+        "export": "Εξαγωγή",
+        "import": "Εισαγωγή"
       }
     }
   },
@@ -3196,6 +3197,8 @@
       "type_roleChanged": "Αλλαγή Ρόλου",
       "type_roleCreated": "Δημιουργία Ρόλου",
       "type_roleEdited": "Επεξεργασία Ρόλου",
+      "type_roleDeleted": "Διαγραφή Ρόλου",
+      "type_userUpdated": "Ενημέρωση Χρήστη",
       "type_suspended": "Αναστολή Χρήστη",
       "type_deactivated": "Απενεργοποίηση Χρήστη",
       "type_reactivated": "Επανενεργοποίηση Χρήστη",

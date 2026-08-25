@@ -2771,7 +2771,8 @@
         "masterData": "Master Data",
         "documents": "Documents",
         "settings": "Settings",
-        "export": "Export"
+        "export": "Export",
+        "import": "Import"
       }
     }
   },
@@ -3196,6 +3197,8 @@
       "type_roleChanged": "Role Changed",
       "type_roleCreated": "Role Created",
       "type_roleEdited": "Role Edited",
+      "type_roleDeleted": "Role Deleted",
+      "type_userUpdated": "User Updated",
       "type_suspended": "User Suspended",
       "type_deactivated": "User Deactivated",
       "type_reactivated": "User Reactivated",

@@ -34,6 +34,8 @@ const ACTION_ICONS = {
   roleChanged: ShieldCheck,
   roleCreated: Shield,
   roleEdited: Shield,
+  roleDeleted: Trash2,
+  userUpdated: Settings,
   suspended: Ban,
   deactivated: UserX,
   reactivated: RefreshCw,
@@ -51,6 +53,8 @@ const ACTION_COLORS = {
   roleChanged: '#8B5CF6',
   roleCreated: '#10B981',
   roleEdited: '#F59E0B',
+  roleDeleted: '#EF4444',
+  userUpdated: '#6B7280',
   suspended: '#F97316',
   deactivated: '#EF4444',
   reactivated: '#10B981',
@@ -63,7 +67,7 @@ const ACTION_COLORS = {
 };
 
 const ACTION_TYPES = [
-  'login', 'invited', 'roleChanged', 'roleCreated', 'roleEdited',
+  'login', 'invited', 'roleChanged', 'roleCreated', 'roleEdited', 'roleDeleted', 'userUpdated',
   'deactivated', 'reactivated', 'permissionsEdited',
   'passwordReset', 'mfaChanged', 'signedOut',
 ];
