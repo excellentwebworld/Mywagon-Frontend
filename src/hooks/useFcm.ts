@@ -25,6 +25,17 @@ import { notificationService } from '../api/services/notificationService';
 
 const SESSION_KEY = 'mv_fcm_token';
 
+// ── In-Memory Deduplication Cache for Foreground Messages ─────────────────
+const recentMessageSignatures = new Set<string>();
+
+function isDuplicateMessage(key: string): boolean {
+  if (!key) return false;
+  if (recentMessageSignatures.has(key)) return true;
+  recentMessageSignatures.add(key);
+  setTimeout(() => recentMessageSignatures.delete(key), 8000);
+  return false;
+}
+
 /**
  * Retrieve the previously registered token from sessionStorage so we skip
  * redundant API calls across soft re-mounts in the same browser tab session.
@@ -63,6 +74,17 @@ export function useFcm({ onForegroundMessage }: UseFcmOptions = {}): void {
     if (!isFirebaseConfigured) return;
 
     let cancelled = false;
+
+    // ── 0. Listen for navigation messages from Service Worker ─────────
+    const handleSwMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'FCM_NAVIGATE' && event.data.url) {
+        navigate(event.data.url);
+      }
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleSwMessage);
+    }
 
     async function init() {
       // ── 1. Service Worker registration ──────────────────────────────
@@ -108,8 +130,8 @@ export function useFcm({ onForegroundMessage }: UseFcmOptions = {}): void {
 
       if (cancelled) return;
 
-      // ── 4. Register token with backend ──────────────────
-      if (token) {
+      // ── 4. Register token with backend (deduplicated) ─────────────────
+      if (token && token !== getCachedToken()) {
         try {
           await notificationService.updateDeviceToken(token);
           setCachedToken(token);
@@ -130,6 +152,12 @@ export function useFcm({ onForegroundMessage }: UseFcmOptions = {}): void {
         const action_id = payload.data?.action_id ?? type_id ?? '';
         const external_url = payload.data?.external_url ?? '';
         const redirect_slug = payload.data?.redirect_slug ?? '';
+
+        // Deduplication check
+        const msgKey = payload.messageId || `${title}_${body}_${type}_${type_id}`;
+        if (isDuplicateMessage(msgKey)) {
+          return;
+        }
 
         const notifData: FcmNotificationPayload = {
           title,
@@ -158,14 +186,17 @@ export function useFcm({ onForegroundMessage }: UseFcmOptions = {}): void {
       unsubscribeRef.current = unsubscribe;
     }
 
-
     void init();
 
     return () => {
       cancelled = true;
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleSwMessage);
+      }
       unsubscribeRef.current?.();
       unsubscribeRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once per mounted session
+
 }
