@@ -134,12 +134,15 @@ messaging.onBackgroundMessage((payload) => {
 
   const targetUrl = resolveTargetUrl(payload.data);
 
+  const tag = payload.data?.id
+    || (payload.data?.type && payload.data?.type_id ? `myvagon-${payload.data.type}-${payload.data.type_id}` : null)
+    || (payload.data?.type ? `myvagon-${payload.data.type}` : 'myvagon-notification');
+
   const notificationOptions = {
     body,
     icon: '/favicon.ico',
     badge: '/favicon.ico',
-    tag: payload.data?.type ? `myvagon-${payload.data.type}` : 'myvagon-notification',
-    renotify: true,
+    tag,
     data: {
       url:          targetUrl,
       type:         payload.data?.type      ?? '',
@@ -150,6 +153,7 @@ messaging.onBackgroundMessage((payload) => {
 
   self.registration.showNotification(title, notificationOptions);
 });
+
 
 // ── Notification click handler ────────────────────────────────────────────
 self.addEventListener('notificationclick', (event) => {
