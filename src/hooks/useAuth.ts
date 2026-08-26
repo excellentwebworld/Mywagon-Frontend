@@ -20,8 +20,10 @@ export function useAuth() {
       company: shipperUser?.company_name || '',
       avatarUrl: shipperUser?.profile_picture || null,
       role: shipperUser?.is_sub_user ? 'member' : 'admin',
+      referralCode: shipperUser?.referral_code || null,
     };
   }, [shipperUser]);
+
 
   return {
     user,

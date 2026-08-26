@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Bell,
   Menu,
+  Users,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../hooks/useTheme';
@@ -19,6 +20,8 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { usePastDueLock } from '../../hooks/usePastDueLock';
 import { ProfileDropdown } from './ProfileDropdown';
+import { ReferralModal } from '../referral';
+
 
 interface HeaderProps {
   onToggleMobileMenu?: () => void;
@@ -44,6 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const [searchValue, setSearchValue] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
+  const [referralOpen, setReferralOpen] = useState(false);
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
 
   const showTopSearch = location.pathname.startsWith('/dashboard');
@@ -214,6 +218,50 @@ export const Header: React.FC<HeaderProps> = ({
         <Sparkles size={14} />
         <span className="mv-topbar-ai-label">{t('vagonai.title') || 'Vagon AI'}</span>
       </button>
+
+      {/* Refer & Earn */}
+      <button
+        type="button"
+        onClick={() => setReferralOpen(true)}
+        aria-label={t('referral.referBtn', 'Refer & Earn')}
+        className="mv-topbar-refer-btn"
+        style={{
+          height: 36,
+          padding: '0 13px',
+          borderRadius: 8,
+          fontSize: 12,
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          border: `1px solid ${T.bd}`,
+          background: T.sf,
+          color: T.t1,
+          transition: 'all 0.15s ease',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+          flexShrink: 0,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = T.sa;
+          e.currentTarget.style.borderColor = T.ac;
+          e.currentTarget.style.color = T.ac;
+          e.currentTarget.style.transform = 'translateY(-1px)';
+          e.currentTarget.style.boxShadow = '0 3px 8px rgba(0,0,0,0.06)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = T.sf;
+          e.currentTarget.style.borderColor = T.bd;
+          e.currentTarget.style.color = T.t1;
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
+        }}
+      >
+        <Users size={15} style={{ color: T.ac, flexShrink: 0 }} />
+        <span>{t('referral.referBtn', 'Refer & Earn')}</span>
+      </button>
+
 
       {/* Notifications */}
       <div ref={notifRef} style={{ position: 'relative' }}>
@@ -393,6 +441,12 @@ export const Header: React.FC<HeaderProps> = ({
           style={{ background: '#10B981', boxShadow: '0 0 4px #10B981', top: 6, right: 6 }}
         />
       </button>
+
+      <ReferralModal
+        isOpen={referralOpen}
+        onClose={() => setReferralOpen(false)}
+      />
     </header>
+
   );
 };

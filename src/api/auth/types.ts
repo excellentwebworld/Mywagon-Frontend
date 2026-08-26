@@ -23,7 +23,9 @@ export interface ShipperUser {
   two_factor_enabled?: boolean;
   two_factor_method?: 'authenticator' | 'email' | null;
   has_past_due?: boolean;
+  referral_code?: string | null;
 }
+
 
 export interface LoginPayload {
   email: string;

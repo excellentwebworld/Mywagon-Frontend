@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Users } from 'lucide-react';
 import type { CreditNote } from '../types';
 import { formatCurrency, formatDate } from '../mockData';
 import { BillingCreditsSkeleton, BillingTableSkeleton } from './BillingSkeleton';
 import { BillingPagination } from './BillingPagination';
+import { ReferralModal } from '../../../components/referral';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 
@@ -41,8 +43,10 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
   compact = false,
 }) => {
   const { t, i18n } = useTranslation();
+  const [referralOpen, setReferralOpen] = useState(false);
   const history = creditNotes.filter((c) => c.id !== 'WALLET');
   const showTableSkeleton = tableLoading || (loading && history.length === 0);
+
 
   if (loading && creditNotes.length === 0 && walletBalance === 0) {
     return <BillingCreditsSkeleton />;
@@ -67,7 +71,17 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
             <button type="button" className="b-btn b-btn-primary" onClick={onOpenApplyCredit} disabled={loading}>
               {t('billingPage.btnPayWallet', 'Pay using wallet')}
             </button>
+            <button
+              type="button"
+              className="b-btn"
+              onClick={() => setReferralOpen(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <Users size={14} />
+              <span>{t('referral.referBtn', 'Refer & Earn')}</span>
+            </button>
           </div>
+
         </div>
       </div>
 
@@ -182,6 +196,13 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
           }}
         />
       </div>
+
+      <ReferralModal
+        isOpen={referralOpen}
+        onClose={() => setReferralOpen(false)}
+        availableCredit={walletBalance}
+      />
     </div>
   );
 };
+
