@@ -1,10 +1,12 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 
 export const Notifications: React.FC = () => {
   const { showToast } = useApp();
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const handleAction = (action: string, sid: string) => {
     showToast(t('notifAction', { action, sid }), 'info');
@@ -20,7 +22,7 @@ export const Notifications: React.FC = () => {
           </svg>
           <span>{t('notifications')}</span>
         </h3>
-        <span className="card-link" style={{ cursor: 'pointer' }} onClick={() => handleAction("View All", "all")}>
+        <span className="card-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/notifications')}>
           {t('all')}
         </span>
       </div>

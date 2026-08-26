@@ -21,6 +21,8 @@ import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { usePastDueLock } from '../../hooks/usePastDueLock';
 import { ProfileDropdown } from './ProfileDropdown';
 import { ReferralModal } from '../referral';
+import { notificationService } from '../../api/services/notificationService';
+import type { ApiNotification } from '../../api/services/notificationService';
 
 
 interface HeaderProps {
@@ -31,6 +33,25 @@ interface HeaderProps {
   navMode?: 'sidebar' | 'top';
 }
 
+function formatRelativeTime(created_at?: string, fallback = ''): string {
+  if (!created_at) return fallback;
+  try {
+    const d = new Date(created_at);
+    if (isNaN(d.getTime())) return fallback;
+    const now = new Date();
+    const diff = Math.max(0, Math.floor((now.getTime() - d.getTime()) / 1000));
+
+    if (diff < 45) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 172800) return 'Yesterday';
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+    return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return fallback;
+  }
+}
+
 export const Header: React.FC<HeaderProps> = ({
   onToggleMobileMenu,
   sidebarCollapsed = false,
@@ -38,9 +59,11 @@ export const Header: React.FC<HeaderProps> = ({
   isDesktop = true,
   navMode = 'sidebar',
 }) => {
+
   const { showToast } = useApp();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const { T } = useTheme();
+
   const navigate = useNavigate();
   const location = useLocation();
   const pastDueLocked = usePastDueLock();
@@ -48,7 +71,52 @@ export const Header: React.FC<HeaderProps> = ({
   const [searchValue, setSearchValue] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [headerNotifs, setHeaderNotifs] = useState<ApiNotification[]>([]);
+  const [loadingNotifs, setLoadingNotifs] = useState<boolean>(false);
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
+
+  // Fetch unread count & recent notifications
+  const loadHeaderNotifications = () => {
+    notificationService.unreadCount()
+      .then((count) => setUnreadCount(count))
+      .catch(() => {});
+
+    setLoadingNotifs(true);
+    notificationService.list({ tab: 'inbox', per_page: 5 })
+      .then((res) => {
+        setHeaderNotifs(res.data);
+      })
+      .catch(() => {
+        setHeaderNotifs([]);
+      })
+      .finally(() => {
+        setLoadingNotifs(false);
+      });
+  };
+
+  useEffect(() => {
+    loadHeaderNotifications();
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (notifOpen) {
+      loadHeaderNotifications();
+    }
+  }, [notifOpen]);
+
+  useEffect(() => {
+    const handlePushReceived = () => {
+      loadHeaderNotifications();
+    };
+
+    window.addEventListener('shipper:notification-received', handlePushReceived);
+    return () => {
+      window.removeEventListener('shipper:notification-received', handlePushReceived);
+    };
+  }, []);
+
+
 
   const showTopSearch = location.pathname.startsWith('/dashboard');
 
@@ -70,6 +138,7 @@ export const Header: React.FC<HeaderProps> = ({
   const getPageTitle = () => {
     const path = location.pathname;
     if (path.startsWith('/dashboard')) return t('dashboard');
+    if (path.startsWith('/notifications')) return t('notifications') || 'Notifications';
     if (path.startsWith('/shipments/create')) return t('createShipment');
     if (path.startsWith('/shipments')) return t('manageShipments');
     if (path.startsWith('/search-trucks')) return t('satPageTitle') || t('truckAvailability') || 'Search Trucks';
@@ -282,90 +351,332 @@ export const Header: React.FC<HeaderProps> = ({
           }}
         >
           <Bell size={18} />
-          <span
-            className="mv-topbar-dot"
-            style={{ background: '#EF4444' }}
-            aria-label="Unread notifications"
-          />
+          {unreadCount > 0 && (
+            <span
+              className="mv-topbar-dot"
+              style={{ background: '#EF4444' }}
+              aria-label={`${unreadCount} unread notifications`}
+            />
+          )}
         </button>
 
         {notifOpen && (
           <div
             className="mv-topbar-panel"
             role="menu"
-            style={{ background: T.sf, border: `1px solid ${T.bd}` }}
+            style={{
+              background: T.sf,
+              border: `1px solid ${T.bd}`,
+              width: 360,
+              maxHeight: 460,
+              display: 'flex',
+              flexDirection: 'column',
+              borderRadius: 12,
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+              overflow: 'hidden',
+            }}
           >
+            {/* Header */}
             <div
               style={{
-                padding: '12px 14px',
+                padding: '12px 16px',
                 borderBottom: `1px solid ${T.bd}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                flexShrink: 0,
+                background: T.sf,
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>
-                {t('notifications')}
-              </span>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  background: '#FEF2F2',
-                  color: '#EF4444',
-                  padding: '1px 7px',
-                  borderRadius: 99,
-                }}
-              >
-                3 {t('new') || 'new'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: T.t1 }}>
+                  {t('notifications') || 'Notifications'}
+                </span>
+                {unreadCount > 0 && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      background: '#FEF2F2',
+                      color: '#EF4444',
+                      padding: '2px 8px',
+                      borderRadius: 99,
+                      border: '1px solid #FECACA',
+                    }}
+                  >
+                    {unreadCount} {t('new') || 'new'}
+                  </span>
+                )}
+              </div>
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      await notificationService.markAllRead();
+                      setUnreadCount(0);
+                      setHeaderNotifs((prev) => prev.map((item) => ({ ...item, read: true })));
+                      showToast(lang === 'el' ? 'Σημειώθηκαν όλα ως αναγνωσμένα' : 'Marked all as read', 'success');
+                    } catch {
+                      showToast('Failed to mark all as read', 'error');
+                    }
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: T.ac,
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  {lang === 'el' ? 'Σήμανση όλων' : 'Mark all as read'}
+                </button>
+              )}
             </div>
-            {[
-              { title: t('notifBidReceived') || 'New bid received', time: '2m ago' },
-              { title: t('notifShipmentUpdate') || 'Shipment updated', time: '1h ago' },
-            ].map((n) => (
-              <button
-                type="button"
-                key={n.title}
-                className="mv-topbar-panel-item"
-                style={{ color: T.t1 }}
-                onClick={() => {
-                  setNotifOpen(false);
-                  showToast(t('openingNotifications') || 'Notifications', 'info');
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = T.sa;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                <div style={{ fontSize: 13, fontWeight: 500 }}>{n.title}</div>
-                <div style={{ fontSize: 11, color: T.t3 }}>{n.time}</div>
-              </button>
-            ))}
+
+            {/* Scrollable Content Body */}
+            <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+              {loadingNotifs ? (
+                <div style={{ padding: '8px 16px' }}>
+                  {[1, 2, 3].map((k) => (
+                    <div
+                      key={k}
+                      style={{
+                        padding: '12px 0',
+                        borderBottom: k < 3 ? `1px solid ${T.bd}33` : 'none',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div
+                          style={{
+                            height: 13,
+                            width: '60%',
+                            background: T.sa,
+                            borderRadius: 4,
+                            animation: 'pulse 1.5s infinite ease-in-out',
+                          }}
+                        />
+                        <div
+                          style={{
+                            height: 10,
+                            width: '20%',
+                            background: T.sa,
+                            borderRadius: 4,
+                            animation: 'pulse 1.5s infinite ease-in-out',
+                          }}
+                        />
+                      </div>
+                      <div
+                        style={{
+                          height: 11,
+                          width: '90%',
+                          background: T.sa,
+                          borderRadius: 4,
+                          opacity: 0.8,
+                          animation: 'pulse 1.5s infinite ease-in-out',
+                        }}
+                      />
+                      <div
+                        style={{
+                          height: 11,
+                          width: '75%',
+                          background: T.sa,
+                          borderRadius: 4,
+                          opacity: 0.7,
+                          animation: 'pulse 1.5s infinite ease-in-out',
+                        }}
+                      />
+                      <div
+                        style={{
+                          height: 16,
+                          width: 54,
+                          background: T.sa,
+                          borderRadius: 4,
+                          marginTop: 2,
+                          animation: 'pulse 1.5s infinite ease-in-out',
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : headerNotifs.length === 0 ? (
+                <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+                  <Bell size={24} style={{ color: T.t3, margin: '0 auto 8px', opacity: 0.6 }} />
+                  <div style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>
+                    {lang === 'el' ? 'Δεν υπάρχουν ειδοποιήσεις' : 'No notifications'}
+                  </div>
+                  <div style={{ fontSize: 12, color: T.t3, marginTop: 4 }}>
+                    {lang === 'el' ? 'Είστε πλήρως ενημερωμένοι!' : "You're all caught up!"}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: '4px 0' }}>
+                  {headerNotifs.map((n) => {
+                    return (
+                      <button
+                        type="button"
+                        key={n.id}
+                        className="mv-topbar-panel-item"
+                        style={{
+                          color: T.t1,
+                          padding: '10px 16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-start',
+                          gap: 4,
+                          background: !n.read ? `${T.ac}08` : 'transparent',
+                          borderLeft: !n.read ? `3px solid ${T.ac}` : '3px solid transparent',
+                          width: '100%',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          borderBottom: `1px solid ${T.bd}33`,
+                        }}
+                        onClick={() => {
+                          if (!n.read) {
+                            void notificationService.markRead(n.id).catch(() => {});
+                            setUnreadCount((c) => Math.max(0, c - 1));
+                          }
+                          setNotifOpen(false);
+
+                          if (n.external_url) {
+                            window.open(n.external_url, '_blank', 'noopener,noreferrer');
+                            return;
+                          }
+
+                          let actionId = n.action_id;
+                          if (!actionId && n.chips && n.chips.length > 0) {
+                            const sid = n.chips.find((c) => c.startsWith('SID-'));
+                            if (sid) actionId = sid.replace('SID-', '');
+                          }
+
+                          let target = n.redirect_slug ? (n.redirect_slug.startsWith('/') ? n.redirect_slug : `/${n.redirect_slug}`) : '/notifications';
+
+                          if (n.action_type === 'manageShipments') {
+                            target = '/shipments';
+                          } else if (n.action_type === 'viewDashboard') {
+                            target = '/dashboard';
+                          } else if (n.action_type === 'createShipment') {
+                            target = '/shipments/create';
+                          } else if (n.action_type === 'searchTrucks') {
+                            target = '/search-trucks';
+                          } else if (n.action_type === 'viewPartners') {
+                            target = '/partners';
+                          } else if (n.action_type === 'viewLoad' || n.action_type === 'viewBids' || n.action_type === 'viewDocs') {
+                            target = actionId ? `/shipments/${actionId}` : '/shipments';
+                          } else if (n.action_type === 'viewInvoice') {
+                            target = actionId ? `/billing?invoice=${actionId}` : '/billing';
+                          } else if (n.action_type === 'viewOrder') {
+                            target = actionId ? `/erp-orders?id=${actionId}` : '/erp-orders';
+                          } else if (n.action_type === 'viewSubscription') {
+                            target = '/subscription';
+                          } else if (n.action_type === 'openSupport') {
+                            target = '/support';
+                          } else if (n.action_type === 'viewProfile') {
+                            target = '/settings/personal';
+                          } else if (n.action_type === 'viewOrganization') {
+                            target = '/settings/organization';
+                          } else if (n.action_type === 'viewUsers') {
+                            target = '/settings/users';
+                          } else if (n.action_type === 'viewPrivacy') {
+                            target = '/settings/privacy';
+                          } else if (n.action_type === 'viewTerms') {
+                            target = '/settings/terms';
+                          } else if (n.action_type === 'viewAddressBook') {
+                            target = '/address-book';
+                          } else if (n.action_type === 'viewProducts') {
+                            target = '/product-master';
+                          } else if (n.action_type === 'viewTutorials') {
+                            target = '/tutorials';
+                          } else if (n.action_type === 'viewNotifications') {
+                            target = '/notifications';
+                          }
+
+                          navigate(target);
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = T.sa;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = !n.read ? `${T.ac}08` : 'transparent';
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 8, alignItems: 'center' }}>
+                          <span style={{ fontSize: 13, fontWeight: !n.read ? 700 : 500, color: T.t1, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {n.title}
+                          </span>
+                          <span style={{ fontSize: 11, color: T.t3, flexShrink: 0 }}>
+                            {n.relative_time || formatRelativeTime(n.created_at)}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: T.t2, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {n.body}
+                        </div>
+                        {n.chips && n.chips.length > 0 && (
+                          <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
+                            {n.chips.map((chip) => (
+                              <span
+                                key={chip}
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  background: T.sa,
+                                  color: T.ac,
+                                  padding: '1px 6px',
+                                  borderRadius: 4,
+                                }}
+                              >
+                                {chip}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Sticky Footer */}
             <button
               type="button"
               style={{
                 width: '100%',
-                padding: '10px 14px',
+                padding: '12px 16px',
                 border: 'none',
                 borderTop: `1px solid ${T.bd}`,
-                background: 'transparent',
+                background: T.sf,
                 color: T.ac,
                 fontSize: 12,
-                fontWeight: 600,
+                fontWeight: 700,
                 cursor: 'pointer',
+                textAlign: 'center',
+                display: 'block',
+                flexShrink: 0,
               }}
               onClick={() => {
                 setNotifOpen(false);
-                showToast(t('viewAllNotifications') || 'View all', 'info');
+                navigate('/notifications');
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = T.sa;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = T.sf;
               }}
             >
-              {t('viewAllNotifications') || 'View all notifications'}
+              {lang === 'el' ? 'Δείτε όλες τις ειδοποιήσεις →' : 'View all notifications →'}
             </button>
           </div>
         )}
+
+
       </div>
 
       {/* Messages */}

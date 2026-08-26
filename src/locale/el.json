@@ -1,5 +1,11 @@
 {
+  "notifications": "Ειδοποιήσεις",
+  "noNotifications": "Δεν υπάρχουν ειδοποιήσεις",
+  "allCaughtUp": "Είστε πλήρως ενημερωμένοι!",
+  "markAllAsRead": "Σήμανση όλων ως αναγνωσμένα",
+  "viewAllNotifications": "Δείτε όλες τις ειδοποιήσεις",
   "dashboard": "Ταμπλό",
+
   "appName": "MY VAGON",
   "createShipment": "Δημιουργία Φορτίου",
   "newShipment": "Νέα Αποστολή",

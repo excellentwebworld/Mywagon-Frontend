@@ -9,6 +9,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { UserMgmtProvider } from '../../context/UserMgmtContext';
 import { TransporterProfileProvider } from '../TransporterProfile/TransporterProfileContext';
 import { DESKTOP_SIDEBAR_QUERY, useMediaQuery } from '../../hooks/useMediaQuery';
+import { useFcm, type FcmNotificationPayload } from '../../hooks/useFcm';
+import { RealtimeNotificationToast, type PushNotificationData } from '../notifications/RealtimeNotificationToast';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
 
@@ -29,6 +31,7 @@ export const AppLayout: React.FC = () => {
       return false;
     }
   });
+  const [activePushNotif, setActivePushNotif] = useState<PushNotificationData | null>(null);
 
   useEffect(() => {
     const resetAllScrolls = () => {
@@ -59,6 +62,14 @@ export const AppLayout: React.FC = () => {
   const { toast, hideToast } = useApp();
   const { navMode } = useTheme();
   const isSideMode = navMode !== 'top';
+
+  // Initialize FCM for web push notifications
+  useFcm({
+    onForegroundMessage: (payload) => {
+      setActivePushNotif(payload);
+    },
+  });
+
 
   useEffect(() => {
     try {
@@ -139,8 +150,15 @@ export const AppLayout: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Real-time FCM Push Notification Banner */}
+      <RealtimeNotificationToast
+        notification={activePushNotif}
+        onDismiss={() => setActivePushNotif(null)}
+      />
     </div>
     </TransporterProfileProvider>
     </UserMgmtProvider>
   );
 };
+

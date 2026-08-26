@@ -1,5 +1,11 @@
 {
+  "notifications": "Notifications",
+  "noNotifications": "No notifications",
+  "allCaughtUp": "You're all caught up!",
+  "markAllAsRead": "Mark all as read",
+  "viewAllNotifications": "View all notifications",
   "dashboard": "Dashboard",
+
   "appName": "MY VAGON",
   "createShipment": "Create Shipment",
   "newShipment": "New Shipment",

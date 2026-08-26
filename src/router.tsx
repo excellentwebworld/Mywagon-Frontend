@@ -24,11 +24,13 @@ import { WebViewSubscriptionPage } from './pages/Subscription/WebViewSubscriptio
 import { WebViewBillingPage } from './pages/Billing/WebViewBillingPage';
 
 import PriceListsPage from './pages/PriceLists/PriceListsPage';
+import NotificationsPage from './pages/Notifications/NotificationsPage';
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
 
 const appRoutes = [
   { path: '/dashboard', element: <Dashboard /> },
+  { path: '/notifications', element: <NotificationsPage /> },
   { path: '/shipments', element: <ManageShipments /> },
   { path: '/search-trucks', element: <SearchTrucks /> },
   { path: '/shipments/:id', element: <ShipmentDetail /> },
