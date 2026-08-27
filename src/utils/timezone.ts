@@ -247,3 +247,73 @@ export function calendarDaysFromToday(ymd: string): number | null {
   target.setHours(0, 0, 0, 0);
   return Math.round((target.getTime() - today.getTime()) / 86400000);
 }
+
+/**
+ * Format a message timestamp to local 24h `HH:mm`.
+ * Correctly parses UTC ISO strings from API/Socket and converts to user's browser local time.
+ */
+export function formatMessageTime(input?: string | Date | null): string {
+  if (!input) return '';
+  if (input instanceof Date) {
+    if (Number.isNaN(input.getTime())) return '';
+    return formatInTimeZone(input, { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+  const str = String(input).trim();
+  if (!str) return '';
+
+  // If already pure HH:mm (e.g. from local optimistic insert), verify if it has date info
+  const parsed = parseUtcInstant(str);
+  if (parsed && !Number.isNaN(parsed.getTime())) {
+    return formatInTimeZone(parsed, { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+  return str;
+}
+
+/**
+ * Format conversation list last activity time to local time representation:
+ * - Today: `Today HH:mm`
+ * - Yesterday: `Yesterday HH:mm`
+ * - Older: `dd/MM HH:mm`
+ */
+export function formatConversationTime(
+  input?: string | Date | number | null,
+  timestampSeconds?: number | null
+): string {
+  let date: Date | null = null;
+  if (typeof timestampSeconds === 'number' && timestampSeconds > 0) {
+    date = new Date(timestampSeconds * 1000);
+  } else if (typeof input === 'number' && input > 0) {
+    date = new Date(input > 1e11 ? input : input * 1000);
+  } else if (input instanceof Date) {
+    date = input;
+  } else if (typeof input === 'string') {
+    const trimmed = input.trim();
+    if (trimmed === 'Just now' || trimmed === 'Τώρα') {
+      return trimmed;
+    }
+    date = parseUtcInstant(trimmed);
+  }
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return typeof input === 'string' ? input : '';
+  }
+
+  const now = new Date();
+  const dateLocalStr = toCalendarYmd(date);
+  const nowLocalStr = toCalendarYmd(now);
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const yesterdayLocalStr = toCalendarYmd(yesterday);
+
+  const timeStr = formatInTimeZone(date, { hour: '2-digit', minute: '2-digit', hour12: false });
+
+  if (dateLocalStr === nowLocalStr) {
+    return `Today ${timeStr}`;
+  }
+  if (dateLocalStr === yesterdayLocalStr) {
+    return `Yesterday ${timeStr}`;
+  }
+  const dateFormatted = formatUtcToDisplayDate(date.toISOString());
+  return `${dateFormatted} ${timeStr}`;
+}

@@ -559,10 +559,10 @@ export function useManageShipments() {
   const [alreadyInvitedPartnerIds, setAlreadyInvitedPartnerIds] = useState<Set<string>>(new Set());
 
   const handleMessage = useCallback(
-    (_s: Shipment, _offerId?: string) => {
-      showToast(t('chatComingSoon') || 'Chat will be available soon.', 'info');
+    (s: Shipment, _offerId?: string) => {
+      navigate(`/messages?sid=${encodeURIComponent(s.id)}`);
     },
-    [showToast, t]
+    [navigate]
   );
 
   const handleAcceptOffer = useCallback(

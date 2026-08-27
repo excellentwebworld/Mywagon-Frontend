@@ -18,6 +18,7 @@ import {
   CreditCard,
   Star,
   HelpCircle,
+  MessageSquare,
   type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';

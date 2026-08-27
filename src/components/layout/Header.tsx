@@ -23,6 +23,8 @@ import { ProfileDropdown } from './ProfileDropdown';
 import { ReferralModal } from '../referral';
 import { notificationService } from '../../api/services/notificationService';
 import type { ApiNotification } from '../../api/services/notificationService';
+import { chatService } from '../../api/services/chatService';
+import { socketService } from '../../services/socketService';
 
 
 interface HeaderProps {
@@ -72,9 +74,36 @@ export const Header: React.FC<HeaderProps> = ({
   const [notifOpen, setNotifOpen] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [unreadMessages, setUnreadMessages] = useState<number>(0);
   const [headerNotifs, setHeaderNotifs] = useState<ApiNotification[]>([]);
   const [loadingNotifs, setLoadingNotifs] = useState<boolean>(false);
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
+
+  // Fetch unread messages count & listen to real-time socket events
+  useEffect(() => {
+    if (location.pathname === '/messages') {
+      setUnreadMessages(0);
+    } else {
+      chatService.getUnreadCount().then((count) => {
+        setUnreadMessages(count);
+      });
+    }
+
+    const unsubscribeMsg = socketService.onMessage(() => {
+      if (location.pathname !== '/messages') {
+        setUnreadMessages((prev) => prev + 1);
+      }
+    });
+
+    const unsubscribeRead = socketService.onRead(() => {
+      setUnreadMessages(0);
+    });
+
+    return () => {
+      unsubscribeMsg();
+      unsubscribeRead();
+    };
+  }, [location.pathname]);
 
   // Fetch unread count & recent notifications
   const loadHeaderNotifications = () => {
@@ -139,6 +168,7 @@ export const Header: React.FC<HeaderProps> = ({
     const path = location.pathname;
     if (path.startsWith('/dashboard')) return t('dashboard');
     if (path.startsWith('/notifications')) return t('notifications') || 'Notifications';
+    if (path.startsWith('/messages')) return t('navMessages') || 'Messages';
     if (path.startsWith('/shipments/create')) return t('createShipment');
     if (path.startsWith('/shipments')) return t('manageShipments');
     if (path.startsWith('/search-trucks')) return t('satPageTitle') || t('truckAvailability') || 'Search Trucks';
@@ -683,7 +713,7 @@ export const Header: React.FC<HeaderProps> = ({
       <button
         type="button"
         className="mv-topbar-icon-btn"
-        onClick={() => navigate(pastDueLocked ? '/billing' : '/support')}
+        onClick={() => navigate(pastDueLocked ? '/billing' : '/messages')}
         aria-label={t('topbar.messages') || 'Messages'}
         style={{ color: T.t2, position: 'relative' }}
         onMouseEnter={(e) => {
@@ -696,7 +726,9 @@ export const Header: React.FC<HeaderProps> = ({
         }}
       >
         <MessageSquare size={18} />
-        <span className="mv-topbar-dot" style={{ background: '#EF4444' }} />
+        {unreadMessages > 0 && (
+          <span className="mv-topbar-dot" style={{ background: '#EF4444' }} />
+        )}
       </button>
 
       {/* Profile dropdown */}

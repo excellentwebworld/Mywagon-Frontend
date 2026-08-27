@@ -107,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={`ni ${isLinkActive("/shipments/create") ? "active" : ""}`}
             title={t("createShipment")}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M5 12h14" />
             </svg>
             <span>{t("createShipment")}</span>
@@ -119,7 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={`ni ${isLinkActive("/shipments") ? "active" : ""}`}
             title={t("navManageShipments")}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
               <rect x="9" y="3" width="6" height="4" rx="1" />
               <path d="M9 12h6M9 16h4" />
@@ -156,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={`ni ${isLinkActive("/address-book") ? "active" : ""}`}
             title={t("addressBook")}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
             </svg>
@@ -232,7 +232,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={`ni ${isLinkActive('/erp-orders') ? 'active' : ''}`}
             title={t('navErpOrders') || 'ERP Orders'}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
             </svg>
             <span>{t('navErpOrders') || 'ERP Orders'}</span>

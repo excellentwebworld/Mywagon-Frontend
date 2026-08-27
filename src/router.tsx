@@ -25,12 +25,15 @@ import { WebViewBillingPage } from './pages/Billing/WebViewBillingPage';
 
 import PriceListsPage from './pages/PriceLists/PriceListsPage';
 import NotificationsPage from './pages/Notifications/NotificationsPage';
+import { MessagesPage } from './pages/Messages';
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
 
 const appRoutes = [
   { path: '/dashboard', element: <Dashboard /> },
   { path: '/notifications', element: <NotificationsPage /> },
+  { path: '/messages', element: <MessagesPage /> },
+  { path: '/chat', element: <Navigate to="/messages" replace /> },
   { path: '/shipments', element: <ManageShipments /> },
   { path: '/search-trucks', element: <SearchTrucks /> },
   { path: '/shipments/:id', element: <ShipmentDetail /> },
