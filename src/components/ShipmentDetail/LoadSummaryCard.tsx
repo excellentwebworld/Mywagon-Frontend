@@ -1,13 +1,22 @@
 import React from 'react';
-import { Package, Copy } from 'lucide-react';
-import type { ShipmentDetailViewModel } from '../../pages/ShipmentDetail/detailViewModel';
+import { Package } from 'lucide-react';
 import { CollapsibleCard } from './CollapsibleCard';
 
+export interface LoadSummaryData {
+  vehicleTypes: string[];
+  cargoSpecs: string[];
+  quote: string;
+  loadValue: string;
+  channel: string;
+  negotiable: boolean;
+  liveNavigation: boolean;
+  specialInstructions?: string;
+}
+
 interface LoadSummaryCardProps {
-  loadSummary: ShipmentDetailViewModel['loadSummary'];
+  loadSummary: LoadSummaryData;
   expanded: boolean;
   onToggle: () => void;
-  onCopy: (text: string) => void;
   t: (key: string, fallback?: string) => string;
 }
 
@@ -15,9 +24,16 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
   loadSummary,
   expanded,
   onToggle,
-  onCopy,
   t,
 }) => {
+  const vehicleTypes = loadSummary.vehicleTypes?.length
+    ? loadSummary.vehicleTypes
+    : ['Semi-Trailer'];
+
+  const cargoSpecs = loadSummary.cargoSpecs?.length
+    ? loadSummary.cargoSpecs
+    : ['Curtainside'];
+
   return (
     <CollapsibleCard
       id="load"
@@ -26,31 +42,47 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
       expanded={expanded}
       onToggle={onToggle}
     >
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3.5">
+        {/* Vehicle Type & Cargo Specs (Clear badge list UI for multiple items) */}
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: '#8E8E9A' }}>
-            {t('vehicleType', 'Vehicle type')}
+          <div
+            className="text-[10px] font-bold uppercase tracking-wider mb-1"
+            style={{ color: '#8E8E9A' }}
+          >
+            {t('vehicleTypeCargoSpec', 'Vehicle type & cargo specs')}
           </div>
-          <div className="text-[13px] font-semibold" style={{ color: '#18181B' }}>
-            {loadSummary.vehicleType || 'Semi-Trailer'}
+          <div className="flex flex-wrap gap-1">
+            {vehicleTypes.map((v, i) => (
+              <span
+                key={`vt-${i}`}
+                className="text-[12px] font-semibold px-2 py-0.5 rounded"
+                style={{ background: '#F0F0F3', color: '#18181B' }}
+              >
+                {v}
+              </span>
+            ))}
+            {cargoSpecs.map((c, i) => (
+              <span
+                key={`cs-${i}`}
+                className="text-[12px] font-medium px-2 py-0.5 rounded"
+                style={{ background: '#F3E8FF', color: '#7C3AED' }}
+              >
+                {c}
+              </span>
+            ))}
           </div>
         </div>
 
+        {/* Quoted Price */}
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: '#8E8E9A' }}>
-            {t('cargoSpecs', 'Cargo specs')}
-          </div>
-          <div className="text-[13px] font-semibold" style={{ color: '#18181B' }}>
-            {loadSummary.cargoSpecs || 'Curtainside'}
-          </div>
-        </div>
-
-        <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: '#8E8E9A' }}>
-            {t('quote', 'Quote')}
+          <div
+            className="text-[10px] font-bold uppercase tracking-wider mb-1"
+            style={{ color: '#8E8E9A' }}
+          >
+            {t('quotedPrice', 'Quoted price')}
           </div>
           <div
-            className="text-[13px] font-semibold"
+            className="text-[14px] font-bold"
             style={{
               fontFamily: "'JetBrains Mono', monospace",
               color: '#18181B',
@@ -60,63 +92,85 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
           </div>
         </div>
 
+        {/* Load Value */}
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: '#8E8E9A' }}>
-            {t('shipmentType', 'Shipment type')}
+          <div
+            className="text-[10px] font-bold uppercase tracking-wider mb-1"
+            style={{ color: '#8E8E9A' }}
+          >
+            {t('loadValue', 'Load value')}
           </div>
-          <div className="text-[13px] font-semibold" style={{ color: '#18181B' }}>
-            {loadSummary.shipmentType || 'PRIVATE'}
+          <div
+            className="text-[14px] font-bold"
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              color: '#18181B',
+            }}
+          >
+            {loadSummary.loadValue || '—'}
           </div>
         </div>
 
+        {/* Channel (Shipment Type) */}
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: '#8E8E9A' }}>
-            {t('customer', 'Customer')}
+          <div
+            className="text-[10px] font-bold uppercase tracking-wider mb-1"
+            style={{ color: '#8E8E9A' }}
+          >
+            {t('channel', 'Channel')}
           </div>
           <div className="text-[13px] font-semibold" style={{ color: '#18181B' }}>
-            {loadSummary.customer || 'Alpha Foods Ltd'}
-          </div>
-        </div>
-
-        <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: '#8E8E9A' }}>
-            {t('orderIds', 'Order IDs')}
-          </div>
-          <div className="text-[13px] font-semibold flex items-center gap-1" style={{ color: '#18181B' }}>
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px' }}>
-              {loadSummary.orderIds || '—'}
+            <span
+              className="px-2 py-0.5 rounded text-[11px] font-bold"
+              style={{
+                background: loadSummary.channel?.toLowerCase() === 'public' ? '#EFF6FF' : '#FAF5FF',
+                color: loadSummary.channel?.toLowerCase() === 'public' ? '#2563EB' : '#7C3AED',
+              }}
+            >
+              {loadSummary.channel?.toUpperCase() || 'PRIVATE'}
             </span>
-            {loadSummary.orderIds && loadSummary.orderIds !== '—' && (
-              <button
-                type="button"
-                onClick={() => onCopy(loadSummary.orderIds)}
-                title={t('copy', 'Copy')}
-                className="p-0.5 rounded hover:bg-black/5 cursor-pointer transition-colors"
-                style={{ background: 'none', border: 'none', color: '#8E8E9A' }}
-              >
-                <Copy size={11} />
-              </button>
+          </div>
+        </div>
+
+        {/* Negotiable OR Non-Negotiable */}
+        <div>
+          <div
+            className="text-[10px] font-bold uppercase tracking-wider mb-1"
+            style={{ color: '#8E8E9A' }}
+          >
+            {t('pricingFlexibility', 'Pricing negotiation')}
+          </div>
+          <div className="text-[13px] font-semibold" style={{ color: '#18181B' }}>
+            {loadSummary.negotiable ? (
+              <span className="text-[#059669] font-bold">
+                {t('negotiable', 'Negotiable')}
+              </span>
+            ) : (
+              <span className="text-[#5E5E6E]">
+                {t('nonNegotiable', 'Non-Negotiable')}
+              </span>
             )}
           </div>
         </div>
 
+        {/* Live Navigation: Required OR Not Required */}
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: '#8E8E9A' }}>
-            {t('reference', 'Reference')}
+          <div
+            className="text-[10px] font-bold uppercase tracking-wider mb-1"
+            style={{ color: '#8E8E9A' }}
+          >
+            {t('liveNavigation', 'Live navigation')}
           </div>
           <div className="text-[13px] font-semibold" style={{ color: '#18181B' }}>
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px' }}>
-              {loadSummary.reference || '—'}
-            </span>
-          </div>
-        </div>
-
-        <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: '#8E8E9A' }}>
-            {t('contact', 'Contact')}
-          </div>
-          <div className="text-[13px] font-semibold truncate" style={{ color: '#18181B' }}>
-            {loadSummary.contact || '—'}
+            {loadSummary.liveNavigation ? (
+              <span className="text-[#2563EB] font-bold">
+                {t('required', 'Required')}
+              </span>
+            ) : (
+              <span className="text-[#8E8E9A]">
+                {t('notRequired', 'Not required')}
+              </span>
+            )}
           </div>
         </div>
       </div>

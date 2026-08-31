@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigation, Map, Share2, Radio, MapPin } from 'lucide-react';
+import { Map, Share2, Radio, MapPin, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import type {
   TrackingStats,
   TripSummary,
@@ -10,9 +10,12 @@ interface TrackingMapCardProps {
   status: string;
   tracking: TrackingStats;
   trip?: TripSummary;
+  isDelayed?: boolean;
+  delayText?: string;
   expanded: boolean;
   onToggle: () => void;
   onShare: () => void;
+  onReportDelay?: () => void;
   t: (key: string, fallback?: string) => string;
 }
 
@@ -20,9 +23,12 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
   status,
   tracking,
   trip,
+  isDelayed = false,
+  delayText = '+15 min delay',
   expanded,
   onToggle,
   onShare,
+  onReportDelay,
   t,
 }) => {
   const normStatus = (status || '').toLowerCase();
@@ -38,8 +44,8 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
             style={{
               width: 8,
               height: 8,
-              background: '#10B981',
-              boxShadow: '0 0 0 3px #D1FAE5',
+              background: isDelayed ? '#F59E0B' : '#10B981',
+              boxShadow: isDelayed ? '0 0 0 3px #FEF3C7' : '0 0 0 3px #D1FAE5',
             }}
             aria-hidden="true"
           />
@@ -49,27 +55,38 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
         onToggle={onToggle}
       >
         <div>
-          {/* Live stats header */}
+          {/* Top Status: On Time vs Delayed */}
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <span
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
-              style={{ background: '#ECFDF5', color: '#059669' }}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
+              style={{
+                background: isDelayed ? '#FEF3C7' : '#ECFDF5',
+                color: isDelayed ? '#B45309' : '#059669',
+              }}
             >
               <span
                 className="rounded-full animate-pulse"
                 style={{ width: 6, height: 6, background: 'currentColor' }}
               />
-              {tracking.movement || 'Moving 68 km/h'}
+              {isDelayed ? t('delayed', `Delayed (${delayText})`) : t('onTime', 'On Time')}
             </span>
-            <span className="text-[11px]" style={{ color: '#8E8E9A' }}>
-              {t('lastGpsPing', 'Last GPS ping')}:{' '}
-              <strong style={{ color: '#18181B' }}>1 min ago</strong>
-            </span>
+
+            {onReportDelay && (
+              <button
+                type="button"
+                onClick={onReportDelay}
+                className="flex items-center gap-1 text-[11px] font-semibold text-[#D97706] hover:underline cursor-pointer"
+                style={{ background: 'none', border: 'none' }}
+              >
+                <Clock size={12} />
+                <span>{t('reportDelay', 'Report delay')}</span>
+              </button>
+            )}
           </div>
 
-          {/* Map viewport preview */}
+          {/* Map Viewport Preview */}
           <div
-            className="relative rounded-xl overflow-hidden mb-3 bg-[#EEF2F6] flex flex-col items-center justify-center p-4 text-center min-h-[150px]"
+            className="relative rounded-xl overflow-hidden mb-3 bg-[#EEF2F6] flex flex-col items-center justify-center p-4 text-center min-h-[160px]"
             style={{
               border: '1px solid #E4E4E8',
               backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)',
@@ -77,49 +94,40 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
             }}
           >
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-white shadow-md mb-1"
+              className="w-9 h-9 rounded-full flex items-center justify-center bg-white shadow-md mb-1.5"
               style={{ color: '#7C3AED' }}
             >
-              <Radio size={16} className="animate-pulse" />
+              <Radio size={18} className="animate-pulse" />
             </div>
-            <div className="text-[12px] font-semibold" style={{ color: '#18181B' }}>
-              {t('liveVehicleTracking', 'Live vehicle on route (E75)')}
+            <div className="text-[13px] font-bold text-[#18181B]">
+              {t('vehicleActiveOnRoute', 'Vehicle active on route (E75 highway)')}
             </div>
-            <div className="text-[10px] mt-0.5" style={{ color: '#8E8E9A' }}>
-              {tracking.speed || '68 km/h'} · {tracking.kmRemaining || '87 km'} {t('remaining', 'remaining')}
-            </div>
-          </div>
-
-          {/* Metrics */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-2 rounded-lg" style={{ background: '#F5F5F7' }}>
-              <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: '#8E8E9A' }}>
-                {t('distanceRemaining', 'Distance remaining')}
-              </div>
-              <div className="text-[13px] font-bold mt-0.5" style={{ color: '#18181B' }}>
-                {tracking.kmRemaining || '87 km'}
-              </div>
-            </div>
-            <div className="p-2 rounded-lg" style={{ background: '#F5F5F7' }}>
-              <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: '#8E8E9A' }}>
-                {t('etaStatus', 'ETA status')}
-              </div>
-              <div
-                className="text-[13px] font-bold mt-0.5"
-                style={{
-                  color: tracking.etaVariance?.includes('delay') || tracking.etaVariance?.includes('+') ? '#D97706' : '#059669',
-                }}
-              >
-                {tracking.etaVariance || 'On time'}
-              </div>
+            <div className="text-[11px] text-[#64748B] mt-0.5">
+              {trip ? `${trip.distanceKm} km · ${trip.duration}` : 'Live GPS telemetry streaming'}
             </div>
           </div>
 
-          {/* Action button */}
+          {/* Performance on this Load */}
+          <div className="p-2.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] mb-3">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] mb-1">
+              {t('performanceOnThisLoad', 'Performance on this load')}
+            </div>
+            <div className="flex items-center justify-between text-[12px] font-medium text-[#18181B] flex-wrap gap-2">
+              <span className="flex items-center gap-1 text-[#059669]">
+                <CheckCircle2 size={13} />
+                <span>{t('pickupOnTime', 'Pickup completed on schedule')}</span>
+              </span>
+              <span className="text-[11px] text-[#64748B]">
+                {t('drivingSpeedNormal', 'Normal transit speed')}
+              </span>
+            </div>
+          </div>
+
+          {/* Share live tracking button */}
           <button
             type="button"
             onClick={onShare}
-            className="w-full mt-3 py-2 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-colors hover:bg-black/5 cursor-pointer"
+            className="w-full py-2 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-colors hover:bg-black/5 cursor-pointer"
             style={{
               background: '#FFFFFF',
               border: '1px solid #E4E4E8',
@@ -127,7 +135,7 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
             }}
           >
             <Share2 size={13} />
-            <span>{t('shareTrackingLink', 'Share live tracking link')}</span>
+            <span>{t('shareLiveTracking', 'Share live tracking')}</span>
           </button>
         </div>
       </CollapsibleCard>
@@ -145,7 +153,7 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
     >
       <div>
         <div
-          className="relative rounded-xl overflow-hidden bg-[#EEF2F6] flex flex-col items-center justify-center p-4 text-center min-h-[140px]"
+          className="relative rounded-xl overflow-hidden bg-[#EEF2F6] flex flex-col items-center justify-center p-4 text-center min-h-[160px]"
           style={{
             border: '1px solid #E4E4E8',
             backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)',
@@ -153,16 +161,16 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
           }}
         >
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center bg-white shadow-md mb-1"
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-white shadow-md mb-1.5"
             style={{ color: '#9B51E0' }}
           >
-            <MapPin size={16} />
+            <MapPin size={18} />
           </div>
-          <div className="text-[12px] font-semibold" style={{ color: '#18181B' }}>
+          <div className="text-[13px] font-bold text-[#18181B]">
             {t('plannedRoutePreview', 'Planned Route Preview')}
           </div>
-          <div className="text-[10px] mt-0.5" style={{ color: '#8E8E9A' }}>
-            {trip ? `${trip.distanceKm} km · ${trip.duration} ${t('transit', 'transit')}` : 'Transit route planned'}
+          <div className="text-[11px] text-[#64748B] mt-0.5">
+            {trip ? `${trip.distanceKm} km · ${trip.duration} transit` : 'Itinerary itinerary route'}
           </div>
         </div>
       </div>

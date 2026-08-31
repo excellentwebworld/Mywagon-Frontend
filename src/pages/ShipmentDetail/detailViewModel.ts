@@ -1,5 +1,6 @@
 import type { Shipment, ShipmentStop } from '../../context/AppContext';
 import type { PartnerBidItem } from '../../components/ShipmentDetail/BidsCard';
+import type { LoadSummaryData } from '../../components/ShipmentDetail/LoadSummaryCard';
 
 export type MilestoneState = 'done' | 'cur' | 'skip';
 
@@ -32,7 +33,7 @@ export interface AuditEntry {
   id: string;
   time: string;
   text: string;
-  category: 'all' | 'bidding' | 'operations' | 'docs' | 'billing' | 'messages';
+  category: 'all' | 'bidding' | 'operations';
   tone?: 'bid' | 'counter' | 'reject' | 'accept' | 'default';
   priceBadge?: string;
 }
@@ -51,7 +52,6 @@ export interface CarrierDetail {
   onTimeDelivery: string;
   cancelRate: string;
   avgPickupDelay: string;
-  avgResponse: string;
   plates: string[];
   templates: string[];
   canRate?: boolean;
@@ -128,7 +128,13 @@ export interface ShipmentDetailViewModel {
   stopsCount: number;
   statusLabel: string;
   status: Shipment['status'];
+  isPrivateLoad: boolean;
+  isEditingRequested?: boolean;
+  editingRequestDetails?: string | null;
   onTrack: boolean;
+  isDelayed: boolean;
+  delayText: string;
+  isPickedUp: boolean;
   primaryCustomer: string;
   owner: string;
   etaChip: string;
@@ -141,19 +147,8 @@ export interface ShipmentDetailViewModel {
   milestones: MilestoneItem[];
   exceptionChips: { label: string; target: string }[];
   stops: ShipmentStop[];
-  interestedPartners: PartnerBidItem[];
-  invitedPartners: PartnerBidItem[];
-  loadSummary: {
-    vehicleType: string;
-    cargoSpecs: string;
-    quote: string;
-    shipmentType: string;
-    customer: string;
-    orderIds: string;
-    reference: string;
-    contact: string;
-    specialInstructions: string;
-  };
+  partners: PartnerBidItem[];
+  loadSummary: LoadSummaryData;
   notes: DetailNote[];
   documents: DetailDocument[];
   tracking: TrackingStats;
@@ -217,6 +212,7 @@ function buildDefaultStops(shipment: Shipment): ShipmentStop[] {
       date: shipment.delDt || '20/02/2026',
       timeStart: '14:00',
       timeEnd: '18:00',
+      pod: shipment.status === 'fullfilled' ? '1' : '0',
       customers: [
         {
           name: customerName,
@@ -281,7 +277,7 @@ function buildMilestones(shipment: Shipment): MilestoneItem[] {
     ready: { en: 'Ready', el: 'Έτοιμο', time: '27/02 · 08:00' },
     inTransit: { en: 'In Transit', el: 'Σε διαδρομή', time: '27/02 · 09:30' },
     pickup: { en: `Pickup ${shipment.origin || ''}`, el: 'Παραλαβή', time: '27/02 · 10:15' },
-    delivery: { en: `Delivery ${shipment.dest || ''}`, el: 'Παράδοση', time: '28/02 · 14:00' },
+    delivery: { en: `Dropoff ${shipment.dest || ''}`, el: 'Παράδοση', time: '28/02 · 14:00' },
     pod: { en: 'POD / Done', el: 'POD / Ολοκλήρωση', time: '28/02 · 14:45' },
   };
 
@@ -316,6 +312,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
   const fmtMin = (v: number | null | undefined, fallback = '—') => (v == null ? fallback : `${v}m`);
 
   const status = shipment.status || 'draft';
+  const isPrivateLoad = shipment.vis !== 'public' && shipment.channel !== 'public';
   const hasCarrier = Boolean(shipment.carrier || shipment.carrierId || shipment.assignedDriverName);
 
   const carrier: CarrierDetail | null = hasCarrier
@@ -327,26 +324,23 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
         name: shipment.carrier || 'Transmed Logistics S.A.',
         partner: true,
         rating: shipment.carrierRating != null ? shipment.carrierRating.toFixed(1) : '4.9',
-        meta: shipment.carrierType === 'driver' ? 'Freelancer' : 'Carrier · 240 completed trips',
-        userId: shipment.carrierId ?? null,
+        meta: shipment.carrierType === 'driver' ? 'Freelancer' : 'Carrier Company · 240 completed trips',
+        userId: shipment.carrierId ?? 101,
         userType:
-          shipment.carrierType === 'driver' || shipment.carrierType === 'carrier'
-            ? shipment.carrierType
-            : 'carrier',
+          shipment.carrierType === 'driver' ? 'driver' : 'carrier',
         showDeliveryOnTime: true,
         onTimePickup: fmtPct(shipment.carrierOnTimeDeliveryPct, '98%'),
         onTimeDelivery: fmtPct(shipment.carrierOnTimeDeliveryPct, '96%'),
         cancelRate: fmtPct(shipment.carrierCancellationRatePct, '0.5%'),
         avgPickupDelay: fmtMin(shipment.carrierAvgPickupDelayMinutes, '8m'),
-        avgResponse: '12m',
         plates: shipment.assignedDriverPlates?.length ? shipment.assignedDriverPlates : ['ΙΧΕ-7890', 'ΤΡ-4512'],
-        templates: ['Confirm pickup', 'Running late — update ETA', 'Send POD after delivery'],
+        templates: [],
         canRate: true,
       }
     : null;
 
   const assignedDriver: AssignedDriverDetail | null =
-    shipment.assignedDriverName || hasCarrier
+    shipment.assignedDriverName || (hasCarrier && shipment.carrierType !== 'driver')
       ? {
           initials:
             shipment.assignedDriverInitials ||
@@ -358,49 +352,51 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
             shipment.assignedDriverRating != null
               ? shipment.assignedDriverRating.toFixed(1)
               : '4.8',
-          meta: 'Assigned driver · +30 697 1234567',
-          userId: shipment.assignedDriverId ?? null,
-          plates: shipment.assignedDriverPlates ?? ['ΙΧΕ-7890'],
+          meta: 'Company Driver · +30 697 1234567',
+          userId: shipment.assignedDriverId ?? 201,
+          plates: shipment.assignedDriverPlates ?? ['ΙΧΕ-7890', 'ΤΡ-4512'],
           canRate: true,
         }
       : null;
 
-  const interestedPartners: PartnerBidItem[] =
-    shipment.offers?.map((o, i) => ({
-      id: o.id || `bid-${i}`,
-      name: o.type === 'bid' ? 'Hellas Freight Express' : 'Aegean Transport Hub',
-      rating: '4.8',
-      tripsCount: 145,
-      bidAmount: 420,
-      statusText: o.type === 'bid' ? 'Bid submitted' : 'Interested partner',
-      time: '26/02 · 12:15',
-    })) || [];
-
-  const invitedPartners: PartnerBidItem[] = [
+  const partners: PartnerBidItem[] = [
     {
       id: 'inv1',
+      userId: 101,
+      userType: 'carrier',
       name: 'Transmed Logistics S.A.',
+      transporterType: 'carrier',
       initials: 'TL',
       rating: '4.9',
       tripsCount: 320,
-      statusText: 'Invited · Waiting response',
+      hasBid: true,
+      bidAmount: 410,
+      statusText: 'Bid submitted',
       time: '26/02 11:45',
     },
     {
       id: 'inv2',
+      userId: 102,
+      userType: 'carrier',
       name: 'Hellas Freight Express',
+      transporterType: 'carrier',
       initials: 'HF',
       rating: '4.8',
       tripsCount: 145,
+      hasBid: false,
       statusText: 'Invited · Waiting response',
       time: '26/02 11:46',
     },
     {
       id: 'inv3',
-      name: 'Aegean Transport Hub',
-      initials: 'AT',
+      userId: 103,
+      userType: 'driver',
+      name: 'Nikos Georgiou',
+      transporterType: 'freelancer',
+      initials: 'NG',
       rating: '4.7',
       tripsCount: 88,
+      hasBid: false,
       statusText: 'Invited · Waiting response',
       time: '26/02 11:48',
     },
@@ -429,6 +425,13 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     status === 'delivered' ||
     status === 'not_fullfilled';
 
+  const isPickedUp = status === 'on_trip' || status === 'in_progress' || isCompleted;
+
+  // Load value sum of orders
+  const loadValue = shipment.cargoValue != null
+    ? `€ ${Number(shipment.cargoValue).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+    : '€ 12,500.00';
+
   return {
     id: shipment.id,
     displayId,
@@ -437,14 +440,20 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     stopsCount: stops.length,
     statusLabel: status,
     status,
+    isPrivateLoad,
+    isEditingRequested: false, // only shown if edit requested
+    editingRequestDetails: null,
     onTrack: !shipment.at_risk,
+    isDelayed: Boolean(shipment.at_risk),
+    delayText: '+15 min delay',
+    isPickedUp,
     primaryCustomer,
     owner: 'Ηρακλής Σακκάς',
     etaChip: '🔵 ETA: 20/02 · 16:00',
-    etaStatusChip: shipment.at_risk ? '⚠️ +12 min delay' : '✅ ETA on schedule',
+    etaStatusChip: shipment.at_risk ? '⚠️ Delayed (+15 min)' : '✅ On Time',
     cancellationReason: shipment.riskReason || 'Equipment breakdown / shipper requested cancellation',
     cancellationDate: shipment.updatedAt || '16/02/2026 · 16:45',
-    cancellationDetails: 'Full refund issued · Read-only audit state',
+    cancellationDetails: 'Cancelled by Ηρακλής Σακκάς · Full refund issued',
     unfulfilledReason: 'Carrier vehicle breakdown — delivery could not be completed',
     unfulfilledDate: '20/02/2026 · 15:30',
     milestones: buildMilestones(shipment),
@@ -452,17 +461,15 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       ? [{ label: 'Delay Warning', target: 'tracking' }]
       : [{ label: 'POD Verified', target: 'docs' }],
     stops,
-    interestedPartners,
-    invitedPartners,
+    partners,
     loadSummary: {
-      vehicleType: shipment.truckTypes?.[0] || 'Semi-Trailer',
-      cargoSpecs: 'Curtainside',
+      vehicleTypes: shipment.truckTypes?.length ? shipment.truckTypes : ['Semi-Trailer'],
+      cargoSpecs: ['Curtainside'],
       quote,
-      shipmentType: shipment.vis === 'public' ? 'PUBLIC' : 'PRIVATE',
-      customer: primaryCustomer,
-      orderIds,
-      reference: shipment.ref || '11PAP-1031801',
-      contact: 'contact@alphafoods.com',
+      loadValue,
+      channel: isPrivateLoad ? 'Private' : 'Public',
+      negotiable: shipment.negotiable !== false,
+      liveNavigation: shipment.navigation !== false,
       specialInstructions: shipment.driverNotes || 'Handle with care. Call 30 min before arrival.',
     },
     notes: [
@@ -577,7 +584,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
         id: 'a5',
         time: '17/02 · 14:42',
         text: 'POD uploaded by **Ανδρέας Λύτρας**',
-        category: 'docs',
+        category: 'operations',
         tone: 'default',
       },
       {

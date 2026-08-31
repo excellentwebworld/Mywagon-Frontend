@@ -5,11 +5,8 @@ import { CollapsibleCard } from './CollapsibleCard';
 
 const FILTER_CATEGORIES = [
   { key: 'all', labelKey: 'all', fallback: 'All' },
-  { key: 'bidding', labelKey: 'bidding', fallback: 'Bidding' },
-  { key: 'operations', labelKey: 'operations', fallback: 'Operations' },
-  { key: 'docs', labelKey: 'docs', fallback: 'Docs' },
-  { key: 'billing', labelKey: 'billing', fallback: 'Billing' },
-  { key: 'messages', labelKey: 'messages', fallback: 'Messages' },
+  { key: 'bidding', labelKey: 'bidsHistory', fallback: 'Bidding' },
+  { key: 'operations', labelKey: 'shipmentLogs', fallback: 'Operations' },
 ] as const;
 
 interface AuditLogCardProps {
@@ -30,7 +27,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
   const filteredEntries =
     selectedCat === 'all'
       ? entries
-      : entries.filter((e) => e.category === selectedCat || e.category === 'all');
+      : entries.filter((e) => e.category === selectedCat);
 
   const getToneBackground = (tone?: AuditEntry['tone']) => {
     switch (tone) {
@@ -57,7 +54,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
       onToggle={onToggle}
     >
       <div>
-        {/* Category filters */}
+        {/* Category filters: ONLY All, Bidding, Operations */}
         <div className="flex gap-1.5 mb-3 flex-wrap">
           {FILTER_CATEGORIES.map((cat) => {
             const isAct = selectedCat === cat.key;
@@ -65,7 +62,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
               <button
                 key={cat.key}
                 type="button"
-                className="px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all duration-150 cursor-pointer"
+                className="px-3 py-1 rounded-full text-[11px] font-semibold transition-all duration-150 cursor-pointer"
                 style={{
                   background: isAct ? '#9B51E0' : '#FFFFFF',
                   color: isAct ? '#FFFFFF' : '#5E5E6E',
@@ -105,7 +102,11 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                 </span>
 
                 <div className="flex-1 min-w-0" style={{ color: '#18181B' }}>
-                  <span dangerouslySetInnerHTML={{ __html: e.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: e.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'),
+                    }}
+                  />
                   {e.priceBadge && (
                     <span
                       className="ml-2 px-1.5 py-0.5 rounded text-[11px] font-bold"

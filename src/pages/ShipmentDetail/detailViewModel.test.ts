@@ -18,6 +18,7 @@ const baseMockShipment: Shipment = {
   carrier: null,
   price: 410,
   price_type: 'contract',
+  cargoValue: 12500,
   updated: '18/02/2026',
   timeline: [],
   tl_cur: 0,
@@ -46,7 +47,8 @@ describe('buildShipmentDetailViewModel', () => {
     });
     expect(vm.status).toBe('pending');
     expect(vm.availableNavSections).toContain('bids');
-    expect(vm.invitedPartners.length).toBeGreaterThan(0);
+    expect(vm.partners.length).toBeGreaterThan(0);
+    expect(vm.loadSummary.loadValue).toBe('€ 12,500.00');
   });
 
   it('builds view model for scheduled / ready shipment with carrier', () => {
@@ -72,8 +74,8 @@ describe('buildShipmentDetailViewModel', () => {
     });
     expect(vm.status).toBe('on_trip');
     expect(vm.availableNavSections).toContain('tracking');
-    expect(vm.etaStatusChip).toContain('delay');
-    expect(vm.tracking.movement).toBeDefined();
+    expect(vm.isDelayed).toBe(true);
+    expect(vm.etaStatusChip).toContain('Delayed');
   });
 
   it('builds view model for fulfilled shipment with rating', () => {

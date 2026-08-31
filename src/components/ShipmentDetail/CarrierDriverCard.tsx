@@ -1,10 +1,11 @@
-import React from 'react';
-import { Truck, Phone, MessageSquare, Star, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { Truck, Phone, MessageSquare, Mail, Star, ShieldCheck, Check, Copy } from 'lucide-react';
 import type {
   CarrierDetail,
   AssignedDriverDetail,
 } from '../../pages/ShipmentDetail/detailViewModel';
 import { CollapsibleCard } from './CollapsibleCard';
+import { useTransporterProfileOptional } from '../TransporterProfile/TransporterProfileContext';
 
 interface CarrierDriverCardProps {
   carrier: CarrierDetail | null;
@@ -13,7 +14,6 @@ interface CarrierDriverCardProps {
   onToggle: () => void;
   onToast: (msg: string) => void;
   onRate?: () => void;
-  onOpenProfile?: () => void;
   t: (key: string, fallback?: string) => string;
 }
 
@@ -23,28 +23,45 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
   expanded,
   onToggle,
   onToast,
-  onRate,
-  onOpenProfile,
   t,
 }) => {
+  const { openTransporterProfile } = useTransporterProfileOptional();
+  const [carrierPhoneRevealed, setCarrierPhoneRevealed] = useState(false);
+  const [driverPhoneRevealed, setDriverPhoneRevealed] = useState(false);
+
   if (!carrier && !driver) {
     return null;
   }
+
+  const isFreelancer =
+    carrier?.userType === 'driver' ||
+    carrier?.meta?.toLowerCase().includes('freelancer');
+
+  const handleCopyPhone = (phone: string, isCarrier = true) => {
+    navigator.clipboard.writeText(phone);
+    onToast(`${t('phoneCopied', 'Phone copied')}: ${phone}`);
+    if (isCarrier) setCarrierPhoneRevealed(true);
+    else setDriverPhoneRevealed(true);
+  };
+
+  const handleOpenProfile = (id?: number | null, type?: 'carrier' | 'driver' | null, name?: string) => {
+    if (id && type) {
+      openTransporterProfile({ id, type, name });
+    }
+  };
 
   return (
     <CollapsibleCard
       id="carrier"
       icon={<Truck size={15} />}
-      title={t('carrierDriver', 'Carrier & driver')}
+      title={t('transporter', 'Transporter')}
       expanded={expanded}
       onToggle={onToggle}
     >
       <div className="space-y-3">
-        {carrier && (
-          <div
-            className="flex items-start gap-3 pb-3"
-            style={{ borderBottom: driver ? '1px solid #E4E4E8' : 'none' }}
-          >
+        {/* If Transporter is a Freelancer */}
+        {isFreelancer && carrier ? (
+          <div className="flex items-start gap-3">
             {carrier.avatar ? (
               <img
                 src={carrier.avatar}
@@ -58,8 +75,8 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                   width: 40,
                   height: 40,
                   fontSize: 14,
-                  background: '#F3E8FF',
-                  color: '#9B51E0',
+                  background: '#FEF3C7',
+                  color: '#B45309',
                 }}
               >
                 {carrier.initials || carrier.name.substring(0, 2).toUpperCase()}
@@ -71,7 +88,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
-                    onClick={onOpenProfile || (() => onToast(carrier.name))}
+                    onClick={() => handleOpenProfile(carrier.userId, 'driver', carrier.name)}
                     className="font-bold text-[14px] text-left hover:underline cursor-pointer"
                     style={{ color: '#18181B', background: 'none', border: 'none', padding: 0 }}
                   >
@@ -80,31 +97,20 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
 
                   {carrier.rating && carrier.rating !== '—' && (
                     <span className="text-[11px] font-bold inline-flex items-center gap-0.5" style={{ color: '#9B51E0' }}>
-                      <Star size={11} fill="#9B51E0" /> {carrier.rating}
+                      <Star size={11} fill="#9B51E0" /> {carrier.rating} (85)
                     </span>
                   )}
 
-                  {carrier.partner && (
-                    <span
-                      className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                      style={{ background: '#ECFDF5', color: '#059669' }}
-                    >
-                      <ShieldCheck size={10} />
-                      <span>{t('partner', 'PARTNER')}</span>
-                    </span>
-                  )}
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded"
+                    style={{ background: '#FEF3C7', color: '#B45309' }}
+                  >
+                    {t('freelancer', 'Freelancer')}
+                  </span>
                 </div>
 
+                {/* Email, Message, Copy Phone Buttons */}
                 <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => onToast(`${t('calling', 'Calling')} ${carrier.name}`)}
-                    title={t('call', 'Call')}
-                    className="p-1.5 rounded-lg hover:bg-black/5 transition-colors cursor-pointer"
-                    style={{ border: '1px solid #E4E4E8', color: '#5E5E6E', background: '#FFFFFF' }}
-                  >
-                    <Phone size={13} />
-                  </button>
                   <button
                     type="button"
                     onClick={() => onToast(`${t('message', 'Message')} ${carrier.name}`)}
@@ -114,77 +120,223 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                   >
                     <MessageSquare size={13} />
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onToast(`${t('emailing', 'Email')} ${carrier.name}`)}
+                    title={t('email', 'Email')}
+                    className="p-1.5 rounded-lg hover:bg-black/5 transition-colors cursor-pointer"
+                    style={{ border: '1px solid #E4E4E8', color: '#5E5E6E', background: '#FFFFFF' }}
+                  >
+                    <Mail size={13} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopyPhone('+30 697 8889999', true)}
+                    title={t('copyPhone', 'Click to copy phone')}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold hover:bg-black/5 transition-colors cursor-pointer"
+                    style={{ border: '1px solid #E4E4E8', color: '#5E5E6E', background: '#FFFFFF' }}
+                  >
+                    <Phone size={12} />
+                    <span>{carrierPhoneRevealed ? '+30 697 8889999' : t('phone', 'Phone')}</span>
+                  </button>
                 </div>
               </div>
 
               <div className="text-[12px] mt-0.5" style={{ color: '#8E8E9A' }}>
-                {carrier.meta || 'Carrier'} · {t('verifiedCarrier', 'Verified carrier')}
+                {t('completedTrips', 'Completed trips')}: <strong>85</strong> · Semi-Trailer Truck
               </div>
 
-              {/* Performance Metrics Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2.5">
-                <div className="p-2 rounded-lg" style={{ background: '#F5F5F7' }}>
-                  <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: '#8E8E9A' }}>
-                    {t('onTimePickup', 'On-time pickup')}
-                  </div>
-                  <div className="text-[12px] font-bold mt-0.5" style={{ color: '#18181B' }}>
-                    {carrier.onTimePickup || '98%'}
-                  </div>
-                </div>
-
-                <div className="p-2 rounded-lg" style={{ background: '#F5F5F7' }}>
-                  <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: '#8E8E9A' }}>
-                    {t('onTimeDelivery', 'On-time delivery')}
-                  </div>
-                  <div className="text-[12px] font-bold mt-0.5" style={{ color: '#18181B' }}>
-                    {carrier.onTimeDelivery || '96%'}
-                  </div>
-                </div>
-
-                <div className="p-2 rounded-lg" style={{ background: '#F5F5F7' }}>
-                  <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: '#8E8E9A' }}>
-                    {t('cancelRate', 'Cancel rate')}
-                  </div>
-                  <div className="text-[12px] font-bold mt-0.5" style={{ color: '#18181B' }}>
-                    {carrier.cancelRate || '0.5%'}
-                  </div>
-                </div>
-
-                <div className="p-2 rounded-lg" style={{ background: '#F5F5F7' }}>
-                  <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: '#8E8E9A' }}>
-                    {t('avgPickupDelay', 'Avg delay')}
-                  </div>
-                  <div className="text-[12px] font-bold mt-0.5" style={{ color: '#18181B' }}>
-                    {carrier.avgPickupDelay || '8m'}
-                  </div>
-                </div>
+              {/* License plates: Vehicle + Trailer */}
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <span
+                  className="text-[11px] font-semibold px-2 py-0.5 rounded"
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    background: '#F0F0F3',
+                    color: '#18181B',
+                  }}
+                >
+                  Vehicle: ΙΧΕ-7890
+                </span>
+                <span
+                  className="text-[11px] font-semibold px-2 py-0.5 rounded"
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    background: '#F0F0F3',
+                    color: '#18181B',
+                  }}
+                >
+                  Trailer: ΤΡ-4512
+                </span>
               </div>
-
-              {/* License plates */}
-              {carrier.plates && carrier.plates.length > 0 && (
-                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                  {carrier.plates.map((plate, pIdx) => (
-                    <span
-                      key={pIdx}
-                      className="text-[11px] font-semibold px-2 py-0.5 rounded"
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        background: '#F0F0F3',
-                        color: '#18181B',
-                      }}
-                    >
-                      {plate}
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
+        ) : (
+          /* Carrier Company Rectangle */
+          carrier && (
+            <div
+              className="flex items-start gap-3 pb-3"
+              style={{ borderBottom: driver ? '1px solid #E4E4E8' : 'none' }}
+            >
+              {carrier.avatar ? (
+                <img
+                  src={carrier.avatar}
+                  alt={carrier.name}
+                  className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                />
+              ) : (
+                <div
+                  className="rounded-full flex items-center justify-center font-bold flex-shrink-0"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    fontSize: 14,
+                    background: '#F3E8FF',
+                    color: '#9B51E0',
+                  }}
+                >
+                  {carrier.initials || carrier.name.substring(0, 2).toUpperCase()}
+                </div>
+              )}
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenProfile(carrier.userId, 'carrier', carrier.name)}
+                      className="font-bold text-[14px] text-left hover:underline cursor-pointer"
+                      style={{ color: '#18181B', background: 'none', border: 'none', padding: 0 }}
+                    >
+                      {carrier.name}
+                    </button>
+
+                    {carrier.rating && carrier.rating !== '—' && (
+                      <span className="text-[11px] font-bold inline-flex items-center gap-0.5" style={{ color: '#9B51E0' }}>
+                        <Star size={11} fill="#9B51E0" /> {carrier.rating} (142)
+                      </span>
+                    )}
+
+                    {carrier.partner && (
+                      <span
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: '#ECFDF5', color: '#059669' }}
+                      >
+                        <ShieldCheck size={10} />
+                        <span>{t('partner', 'PARTNER')}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Buttons: Message, Email, Copy Phone */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onToast(`${t('message', 'Message')} ${carrier.name}`)}
+                      title={t('message', 'Message')}
+                      className="p-1.5 rounded-lg hover:bg-black/5 transition-colors cursor-pointer"
+                      style={{ border: '1px solid #E4E4E8', color: '#5E5E6E', background: '#FFFFFF' }}
+                    >
+                      <MessageSquare size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onToast(`${t('emailing', 'Email')} ${carrier.name}`)}
+                      title={t('email', 'Email')}
+                      className="p-1.5 rounded-lg hover:bg-black/5 transition-colors cursor-pointer"
+                      style={{ border: '1px solid #E4E4E8', color: '#5E5E6E', background: '#FFFFFF' }}
+                    >
+                      <Mail size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyPhone('+30 210 5551234', true)}
+                      title={t('copyPhone', 'Click to copy phone')}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold hover:bg-black/5 transition-colors cursor-pointer"
+                      style={{ border: '1px solid #E4E4E8', color: '#5E5E6E', background: '#FFFFFF' }}
+                    >
+                      <Phone size={12} />
+                      <span>{carrierPhoneRevealed ? '+30 210 5551234' : t('phone', 'Phone')}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-[12px] mt-0.5" style={{ color: '#8E8E9A' }}>
+                  Carrier Company · 240 completed trips
+                </div>
+
+                {/* 3-4 Performance Metrics (Removed Average response time) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2.5">
+                  <div className="p-2 rounded-lg" style={{ background: '#F5F5F7' }}>
+                    <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: '#8E8E9A' }}>
+                      {t('onTimePickup', 'On-time pickup')}
+                    </div>
+                    <div className="text-[12px] font-bold mt-0.5" style={{ color: '#18181B' }}>
+                      {carrier.onTimePickup || '98%'}
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded-lg" style={{ background: '#F5F5F7' }}>
+                    <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: '#8E8E9A' }}>
+                      {t('onTimeDelivery', 'On-time delivery')}
+                    </div>
+                    <div className="text-[12px] font-bold mt-0.5" style={{ color: '#18181B' }}>
+                      {carrier.onTimeDelivery || '96%'}
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded-lg" style={{ background: '#F5F5F7' }}>
+                    <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: '#8E8E9A' }}>
+                      {t('cancelRate', 'Cancel rate')}
+                    </div>
+                    <div className="text-[12px] font-bold mt-0.5" style={{ color: '#18181B' }}>
+                      {carrier.cancelRate || '0.5%'}
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded-lg" style={{ background: '#F5F5F7' }}>
+                    <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: '#8E8E9A' }}>
+                      {t('avgPickupDelay', 'Avg delay')}
+                    </div>
+                    <div className="text-[12px] font-bold mt-0.5" style={{ color: '#18181B' }}>
+                      {carrier.avgPickupDelay || '8m'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* License plates: Vehicle + Trailer */}
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <span
+                    className="text-[11px] font-semibold px-2 py-0.5 rounded"
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      background: '#F0F0F3',
+                      color: '#18181B',
+                    }}
+                  >
+                    Vehicle: ΙΧΕ-7890
+                  </span>
+                  <span
+                    className="text-[11px] font-semibold px-2 py-0.5 rounded"
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      background: '#F0F0F3',
+                      color: '#18181B',
+                    }}
+                  >
+                    Trailer: ΤΡ-4512
+                  </span>
+                </div>
+              </div>
+            </div>
+          )
         )}
 
-        {/* Assigned driver info */}
-        {driver && (
-          <div className="flex items-center justify-between gap-3 pt-1">
+        {/* Company Driver (Nested inside Carrier Company) */}
+        {!isFreelancer && driver && (
+          <div className="flex items-center justify-between gap-3 pt-2 p-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex-wrap">
             <div className="flex items-center gap-3 min-w-0">
               {driver.avatar ? (
                 <img
@@ -208,28 +360,39 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
               )}
 
               <div className="min-w-0">
-                <div className="text-[13px] font-semibold truncate" style={{ color: '#18181B' }}>
-                  {driver.name}
+                <div className="text-[13px] font-semibold text-[#18181B] flex items-center gap-1.5">
+                  <span>{driver.name}</span>
+                  {driver.rating && driver.rating !== '—' && (
+                    <span className="text-[11px] font-semibold text-[#9B51E0] inline-flex items-center gap-0.5">
+                      <Star size={10} fill="#9B51E0" /> {driver.rating} (85)
+                    </span>
+                  )}
                 </div>
-                <div className="text-[11px] truncate" style={{ color: '#8E8E9A' }}>
-                  {t('assignedDriver', 'Assigned driver')}
-                  {driver.rating && driver.rating !== '—' ? ` · ★ ${driver.rating}` : ''}
+                <div className="text-[11px] text-[#64748B]">
+                  Company Driver · 120 trips completed · Vehicle: ΙΧΕ-7890 · Trailer: ΤΡ-4512
                 </div>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => onToast(`${t('message', 'Message')} ${driver.name}`)}
-              className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap cursor-pointer transition-colors hover:bg-black/5"
-              style={{
-                background: '#FFFFFF',
-                border: '1px solid #E4E4E8',
-                color: '#5E5E6E',
-              }}
-            >
-              {t('messageDriver', 'Message driver')}
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => handleCopyPhone('+30 697 1234567', false)}
+                title={t('copyPhone', 'Click to copy phone')}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#CBD5E1] text-[#334155] hover:bg-slate-50 cursor-pointer"
+              >
+                <Phone size={12} />
+                <span>{driverPhoneRevealed ? '+30 697 1234567' : t('phone', 'Phone')}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onToast(`${t('message', 'Message')} ${driver.name}`)}
+                className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#CBD5E1] text-[#334155] hover:bg-slate-50 cursor-pointer"
+              >
+                {t('message', 'Message')}
+              </button>
+            </div>
           </div>
         )}
       </div>

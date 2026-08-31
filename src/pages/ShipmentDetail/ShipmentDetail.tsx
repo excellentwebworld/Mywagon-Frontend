@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
 import {
   ActivityLogModal,
   AuditLogCard,
@@ -33,18 +33,17 @@ import { shipmentsService } from '../../api';
 
 const DEFAULT_SECTIONS: Record<string, boolean> = {
   bids: true,
-  invited: true,
   stops: true,
   pickupDelay: true,
   carrier: true,
+  rate: true,
   load: true,
   notes: true,
+  docs: true,
   tracking: true,
   trip: true,
-  rate: true,
   billing: true,
   incidents: true,
-  docs: true,
   audit: true,
 };
 
@@ -246,12 +245,30 @@ export const ShipmentDetail: React.FC = () => {
           t={t}
         />
 
-        {/* Milestones Bar */}
+        {/* Milestones Bar (Events that already happened / in progress) */}
         <MilestonesBar
           vm={vm}
           lang={lang}
           onExceptionClick={handleJump}
         />
+
+        {/* If Shipment is being edited / Update Request active */}
+        {vm.isEditingRequested && (
+          <div
+            className="rounded-2xl p-4 mb-4 flex items-start gap-3"
+            style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}
+          >
+            <AlertCircle size={18} className="text-[#2563EB] shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0 text-xs">
+              <div className="font-bold text-[#1E40AF]">
+                {t('updateRequestPending', 'Carrier update request pending review')}
+              </div>
+              <div className="text-[#1E40AF] mt-0.5">
+                {vm.editingRequestDetails || t('carrierRequestedScheduleChange', 'The transporter has requested an itinerary adjustment.')}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Two-Column Responsive Flex Container (≥1024px: 2 columns, <1024px: single column) */}
         <div className="flex flex-col lg:flex-row gap-4 items-start w-full">
@@ -260,12 +277,10 @@ export const ShipmentDetail: React.FC = () => {
             {/* 1. Bids Section (Pending status only) */}
             {isPending && (
               <BidsCard
-                interestedPartners={vm.interestedPartners}
-                invitedPartners={vm.invitedPartners}
-                expandedInterested={sections.bids}
-                expandedInvited={sections.invited}
-                onToggleInterested={() => toggleSection('bids')}
-                onToggleInvited={() => toggleSection('invited')}
+                isPrivateLoad={vm.isPrivateLoad}
+                partners={vm.partners}
+                expanded={sections.bids}
+                onToggle={() => toggleSection('bids')}
                 onAcceptBid={(bid) => {
                   showToast(`${t('bidAccepted', 'Bid accepted from')} ${bid.name}`, 'success');
                   refetch?.();
@@ -273,28 +288,37 @@ export const ShipmentDetail: React.FC = () => {
                 onRejectBid={(bid) => {
                   showToast(`${t('bidDeclined', 'Bid declined for')} ${bid.name}`, 'info');
                 }}
+                onCounterBid={(bid, amt) => {
+                  showToast(`${t('counterSent', 'Counter offer of €')} ${amt} ${t('sentTo', 'sent to')} ${bid.name}`, 'success');
+                }}
                 onCancelInvite={(p) => {
                   showToast(`${t('inviteCancelled', 'Invite cancelled for')} ${p.name}`, 'info');
                 }}
-                onInvitePartners={() => showToast(t('invitePartners', 'Invite partners modal opening…'), 'info')}
+                onViewHistory={(p) => {
+                  showToast(`${t('viewingBidsHistoryFor', 'Bids history for')} ${p.name}`, 'info');
+                }}
+                onInviteMore={() => showToast(t('invitePartners', 'Invite partners modal opening…'), 'info')}
                 t={t}
               />
             )}
 
-            {/* 2. Stops & Appointments */}
+            {/* 2. Stops & Appointments (White Pickup, Black Dropoff, Collapsible Orders, Inline POD Request) */}
             <StopsCard
               stops={vm.stops}
               expanded={sections.stops}
               onToggle={() => toggleSection('stops')}
               onCopy={handleCopy}
               onToast={(msg) => showToast(msg, 'info')}
+              onRequestPod={(stop) => {
+                showToast(t('podRequestedSent', 'Push notification sent to driver requesting POD'), 'success');
+              }}
               onReportDelay={(stop) =>
                 setPendingDelay({ location_id: stop.id, location_name: stop.location })
               }
               t={t}
             />
 
-            {/* 3. Pickup Delay Reports Card */}
+            {/* 3. Pickup Delay Reports Card (PDS-938) */}
             <PickupDelayReportsCard
               pickups={reportablePickups}
               expanded={sections.pickupDelay}
@@ -303,7 +327,7 @@ export const ShipmentDetail: React.FC = () => {
               t={t}
             />
 
-            {/* 4. Carrier & Driver (when assigned) */}
+            {/* 4. Transporter (Carrier / Driver / Freelancer) */}
             {hasCarrier && (
               <CarrierDriverCard
                 carrier={vm.carrier}
@@ -312,21 +336,32 @@ export const ShipmentDetail: React.FC = () => {
                 onToggle={() => toggleSection('carrier')}
                 onToast={(msg) => showToast(msg, 'info')}
                 onRate={() => setIsRatingOpen(true)}
-                onOpenProfile={() => showToast(vm.carrier?.name || 'Carrier', 'info')}
                 t={t}
               />
             )}
 
-            {/* 5. Load Summary */}
+            {/* 5. Rate this trip (Positioned underneath the Transporter rectangle) */}
+            {isCompleted && (
+              <RateTripCard
+                carrierName={vm.carrier?.name || 'Transporter'}
+                expanded={sections.rate}
+                onToggle={() => toggleSection('rate')}
+                submitting={ratingSubmitting}
+                isAlreadyRated={vm.isAlreadyRated}
+                onSubmitRating={handleSubmitRating}
+                t={t}
+              />
+            )}
+
+            {/* 6. Load Summary */}
             <LoadSummaryCard
               loadSummary={vm.loadSummary}
               expanded={sections.load}
               onToggle={() => toggleSection('load')}
-              onCopy={handleCopy}
               t={t}
             />
 
-            {/* 6. Notes & Instructions */}
+            {/* 7. Notes & Instructions */}
             <NotesCard
               notes={vm.notes}
               expanded={sections.notes}
@@ -334,6 +369,17 @@ export const ShipmentDetail: React.FC = () => {
               onAddNote={() => {
                 showToast(t('noteAdded', 'Note saved'), 'success');
               }}
+              onToast={(msg) => showToast(msg, 'info')}
+              t={t}
+            />
+
+            {/* 8. Documents & Attachments (Positioned under Notes in Left Column) */}
+            <DocumentsCard
+              documents={vm.documents}
+              expanded={sections.docs}
+              onToggle={() => toggleSection('docs')}
+              onUpload={() => showToast(t('uploadDocument', 'Upload document dialog…'), 'info')}
+              onDownload={(doc) => showToast(`${t('downloading', 'Downloading')} ${doc.name}…`, 'success')}
               onToast={(msg) => showToast(msg, 'info')}
               t={t}
             />
@@ -346,9 +392,12 @@ export const ShipmentDetail: React.FC = () => {
               status={vm.status}
               tracking={vm.tracking}
               trip={vm.trip}
+              isDelayed={vm.isDelayed}
+              delayText={vm.delayText}
               expanded={sections.tracking}
               onToggle={() => toggleSection('tracking')}
               onShare={() => setIsShareOpen(true)}
+              onReportDelay={() => setPendingDelay({ location_id: 1, location_name: 'Athens' })}
               t={t}
             />
 
@@ -360,20 +409,7 @@ export const ShipmentDetail: React.FC = () => {
               t={t}
             />
 
-            {/* 3. Rate this trip (fulfilled, partially_fulfilled, unfulfilled, delivered) */}
-            {isCompleted && (
-              <RateTripCard
-                carrierName={vm.carrier?.name || 'Transmed Logistics'}
-                expanded={sections.rate}
-                onToggle={() => toggleSection('rate')}
-                submitting={ratingSubmitting}
-                isAlreadyRated={vm.isAlreadyRated}
-                onSubmitRating={handleSubmitRating}
-                t={t}
-              />
-            )}
-
-            {/* 4. Billing Card */}
+            {/* 3. Billing Card */}
             <BillingCard
               billing={vm.billing}
               expanded={sections.billing}
@@ -382,7 +418,7 @@ export const ShipmentDetail: React.FC = () => {
               t={t}
             />
 
-            {/* 5. Incidents & Exceptions (if applicable) */}
+            {/* 4. Incidents & Exceptions (if applicable) */}
             {canShowIncidents && (
               <IncidentsCard
                 incidents={vm.incidents}
@@ -392,21 +428,10 @@ export const ShipmentDetail: React.FC = () => {
                 t={t}
               />
             )}
-
-            {/* 6. Documents & Attachments */}
-            <DocumentsCard
-              documents={vm.documents}
-              expanded={sections.docs}
-              onToggle={() => toggleSection('docs')}
-              onUpload={() => showToast(t('uploadDocument', 'Upload document dialog…'), 'info')}
-              onDownload={(doc) => showToast(`${t('downloading', 'Downloading')} ${doc.name}…`, 'success')}
-              onToast={(msg) => showToast(msg, 'info')}
-              t={t}
-            />
           </div>
         </div>
 
-        {/* Full-Width Bottom Section: Audit Log / Activity Timeline */}
+        {/* Full-Width Bottom Section: Audit Log (All, Bidding, Operations) */}
         <AuditLogCard
           entries={vm.auditEntries}
           expanded={sections.audit}
@@ -415,18 +440,20 @@ export const ShipmentDetail: React.FC = () => {
         />
       </div>
 
-      {/* Modals */}
+      {/* Share Tracking Modal (Multiple emails + copy link) */}
       <ShareTrackingModal
         open={isShareOpen}
         groups={vm.shareGroups}
+        isPickedUp={vm.isPickedUp}
         onClose={() => setIsShareOpen(false)}
         onSend={() => {
-          showToast(t('trackingLinkShared', 'Tracking link shared'), 'success');
+          showToast(t('trackingLinkShared', 'Tracking links sent successfully'), 'success');
           setIsShareOpen(false);
         }}
         t={t}
       />
 
+      {/* Activity Log Modal */}
       <ActivityLogModal
         open={isLogOpen}
         entries={vm.auditEntries}
@@ -434,6 +461,7 @@ export const ShipmentDetail: React.FC = () => {
         t={t}
       />
 
+      {/* Carrier Rating Modal */}
       <RatingModal
         open={isRatingOpen}
         carrierName={vm.carrier?.name || ''}
@@ -444,6 +472,7 @@ export const ShipmentDetail: React.FC = () => {
         t={t}
       />
 
+      {/* Pickup Delay Modal */}
       <PickupDelayModal
         open={Boolean(pendingDelay)}
         locationLabel={pendingDelay?.location_name || pendingDelay?.company_name}

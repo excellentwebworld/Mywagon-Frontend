@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star } from 'lucide-react';
+import { Star, CheckCircle2, Clock } from 'lucide-react';
 import { CollapsibleCard } from './CollapsibleCard';
 
 interface RateTripCardProps {
@@ -15,6 +15,7 @@ interface RateTripCardProps {
   initialRating?: number;
   initialReview?: string;
   isAlreadyRated?: boolean;
+  wasOnTime?: boolean;
   t: (key: string, fallback?: string) => string;
 }
 
@@ -27,12 +28,13 @@ export const RateTripCard: React.FC<RateTripCardProps> = ({
   initialRating = 5,
   initialReview = '',
   isAlreadyRated = false,
+  wasOnTime = true,
   t,
 }) => {
   const [rating, setRating] = useState<number>(initialRating);
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [review, setReview] = useState<string>(initialReview);
-  const [onTime, setOnTime] = useState<boolean>(true);
+  const [onTime, setOnTime] = useState<boolean>(wasOnTime);
   const [submitted, setSubmitted] = useState<boolean>(isAlreadyRated);
 
   const handleSubmit = () => {
@@ -56,58 +58,94 @@ export const RateTripCard: React.FC<RateTripCardProps> = ({
     >
       <div
         className="p-3.5 rounded-xl"
-        style={{ background: '#FAF5FF', border: '1px solid #E9D5FF' }}
+        style={{
+          background: submitted ? '#F0FDF4' : '#FAF5FF',
+          border: submitted ? '1px solid #BBF7D0' : '1px solid #E9D5FF',
+        }}
       >
-        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-          <div className="text-[13px] font-semibold" style={{ color: '#18181B' }}>
-            {submitted
-              ? t('ratingSubmittedTitle', 'Rating submitted')
-              : t('rateCarrierPerformance', 'Rate carrier performance')}
-          </div>
+        {submitted ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-1.5 font-bold text-[13px] text-[#065F46]">
+                <CheckCircle2 size={16} />
+                <span>{t('ratingSubmittedTitle', 'Rating submitted')}</span>
+              </div>
 
-          {/* Star Selector */}
-          <div className="flex items-center gap-1">
-            {[1, 2, 3, 4, 5].map((star) => {
-              const active = (hoverRating || rating) >= star;
-              return (
-                <button
-                  key={star}
-                  type="button"
-                  disabled={submitted}
-                  onMouseEnter={() => !submitted && setHoverRating(star)}
-                  onMouseLeave={() => !submitted && setHoverRating(0)}
-                  onClick={() => setRating(star)}
-                  className="p-0.5 transition-transform hover:scale-110 cursor-pointer disabled:cursor-default"
-                  style={{ background: 'none', border: 'none' }}
-                >
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
                   <Star
-                    size={18}
-                    fill={active ? '#F59E0B' : 'transparent'}
-                    stroke={active ? '#F59E0B' : '#C4B5FD'}
+                    key={star}
+                    size={15}
+                    fill={rating >= star ? '#F59E0B' : 'transparent'}
+                    stroke={rating >= star ? '#F59E0B' : '#CBD5E1'}
                   />
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                ))}
+                <span className="ml-1 font-bold text-xs text-[#18181B] font-mono">
+                  {rating.toFixed(1)}
+                </span>
+              </div>
+            </div>
 
-        <div className="text-[11px] mb-2.5" style={{ color: '#5E5E6E' }}>
-          {submitted ? (
-            <span>
-              {t('thankYouForFeedback', 'Thank you for your rating of')}{' '}
-              <strong style={{ color: '#18181B' }}>{carrierName || 'the carrier'}</strong>.
-            </span>
-          ) : (
-            <span>
+            <div className="text-xs text-[#334155] flex items-center gap-3 flex-wrap">
+              <span>
+                {t('carrier', 'Carrier')}: <strong>{carrierName || 'Transporter'}</strong>
+              </span>
+              <span>·</span>
+              <span className="flex items-center gap-1">
+                <Clock size={12} />
+                <span>
+                  {t('deliveryOnTime', 'Delivered on time')}:{' '}
+                  <strong className={onTime ? 'text-[#059669]' : 'text-[#DC2626]'}>
+                    {onTime ? t('yes', 'Yes') : t('no', 'No (Delayed)')}
+                  </strong>
+                </span>
+              </span>
+            </div>
+
+            {review && (
+              <div className="mt-1.5 p-2 rounded-lg bg-white/80 border border-[#DCFCE7] text-xs text-[#1E293B] italic">
+                "{review}"
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+              <div className="text-[13px] font-semibold" style={{ color: '#18181B' }}>
+                {t('rateCarrierPerformance', 'Rate carrier performance')}
+              </div>
+
+              {/* Star Selector */}
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => {
+                  const active = (hoverRating || rating) >= star;
+                  return (
+                    <button
+                      key={star}
+                      type="button"
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onClick={() => setRating(star)}
+                      className="p-0.5 transition-transform hover:scale-110 cursor-pointer"
+                      style={{ background: 'none', border: 'none' }}
+                    >
+                      <Star
+                        size={18}
+                        fill={active ? '#F59E0B' : 'transparent'}
+                        stroke={active ? '#F59E0B' : '#C4B5FD'}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="text-[11px] mb-2.5" style={{ color: '#5E5E6E' }}>
               {t('howWasExperienceWith', 'How was your overall experience with')}{' '}
               <strong style={{ color: '#18181B' }}>{carrierName || 'the carrier'}</strong>{' '}
               {t('onThisRoute', 'on this route?')}
-            </span>
-          )}
-        </div>
+            </div>
 
-        {!submitted && (
-          <>
             <div className="flex items-center gap-2 mb-2.5">
               <span className="text-[11px] font-medium" style={{ color: '#5E5E6E' }}>
                 {t('deliveredOnTimeQuestion', 'Delivered on time?')}
@@ -155,7 +193,7 @@ export const RateTripCard: React.FC<RateTripCardProps> = ({
             >
               {submitting ? t('submitting', 'Submitting…') : t('submitReview', 'Submit review')}
             </button>
-          </>
+          </div>
         )}
       </div>
     </CollapsibleCard>
