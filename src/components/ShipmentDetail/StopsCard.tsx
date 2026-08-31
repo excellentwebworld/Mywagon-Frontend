@@ -149,11 +149,19 @@ export const StopsCard: React.FC<StopsCardProps> = ({
   t,
 }) => {
   const [expandedStopOrders, setExpandedStopOrders] = useState<Record<number, boolean>>({});
+  const [copiedStopIndex, setCopiedStopIndex] = useState<number | null>(null);
 
   const physicalStops = useMemo(() => groupPhysicalStops(stops), [stops]);
 
   const toggleStopOrders = (idx: number) => {
     setExpandedStopOrders((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  };
+
+  const handleCopyAddress = (stop: PhysicalStop, idx: number) => {
+    const fullAddress = [stop.location, stop.address].filter(Boolean).join(', ');
+    onCopy(fullAddress);
+    setCopiedStopIndex(idx);
+    setTimeout(() => setCopiedStopIndex(null), 2000);
   };
 
   return (
@@ -165,30 +173,28 @@ export const StopsCard: React.FC<StopsCardProps> = ({
       expanded={expanded}
       onToggle={onToggle}
     >
-      <div className="space-y-0">
+      <div className="space-y-0 divide-y divide-[#E4E4E8]">
         {physicalStops.map((stop, idx) => {
           const isPickup = stop.type === 'pickup';
           const isDone = stop.locationStatus === '3' || stop.locationStatus === '7' || stop.pod === '1';
           const isOrdersExpanded = Boolean(expandedStopOrders[idx]);
           const hasMultipleItems = stop.totalProductCount > 1 || stop.totalOrderCount > 1;
+          const isCopied = copiedStopIndex === idx;
 
           return (
             <div
               key={stop.key || stop.id || idx}
-              className="py-3.5"
-              style={{ borderTop: idx > 0 ? '1px solid #E4E4E8' : 'none' }}
+              className="py-4 first:pt-1 last:pb-1"
             >
               <div className="flex items-start gap-3">
-                {/* Stop number badge: Pickup is White with black border, Dropoff is Black with white text */}
+                {/* Stop number badge */}
                 <span
-                  className="rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5"
-                  style={{
-                    width: 26,
-                    height: 26,
-                    background: isPickup ? '#FFFFFF' : '#18181B',
-                    color: isPickup ? '#18181B' : '#FFFFFF',
-                    border: isPickup ? '1.5px solid #18181B' : '1.5px solid #18181B',
-                  }}
+                  className={`rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5 shadow-2xs ${
+                    isPickup
+                      ? 'bg-white text-[#18181B] border-[1.5px] border-[#18181B]'
+                      : 'bg-[#18181B] text-white border-[1.5px] border-[#18181B]'
+                  }`}
+                  style={{ width: 26, height: 26 }}
                 >
                   {idx + 1}
                 </span>
@@ -196,24 +202,23 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                 <div className="flex-1 min-w-0">
                   {/* Header: Location name in bold at the top */}
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="text-[14px] font-bold" style={{ color: '#18181B' }}>
+                    <div className="text-[14px] font-bold text-[#18181B] leading-tight">
                       {stop.location}
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
-                      {/* Stop Type Tag: White for Pickup, Black for Dropoff */}
+                      {/* Stop Type Tag */}
                       <span
-                        className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider"
-                        style={{
-                          background: isPickup ? '#FFFFFF' : '#18181B',
-                          color: isPickup ? '#18181B' : '#FFFFFF',
-                          border: isPickup ? '1px solid #D4D4D8' : 'none',
-                        }}
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${
+                          isPickup
+                            ? 'bg-white text-[#18181B] border border-[#D4D4D8]'
+                            : 'bg-[#18181B] text-white'
+                        }`}
                       >
                         {isPickup ? t('pickup', 'PICKUP') : t('dropoff', 'DROPOFF')}
                       </span>
 
-                      <span className="text-[11px] font-semibold" style={{ color: '#5E5E6E' }}>
+                      <span className="text-[11px] font-semibold text-[#5E5E6E]">
                         {stop.date ? `${stop.date} · ` : ''}
                         {stop.timeStart && stop.timeEnd
                           ? `${stop.timeStart} – ${stop.timeEnd}`
@@ -221,10 +226,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                       </span>
 
                       {isDone && (
-                        <span
-                          className="inline-flex items-center gap-1 text-[11px] font-semibold"
-                          style={{ color: '#059669' }}
-                        >
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#059669]">
                           <CheckCircle2 size={13} />
                           <span>{t('completed', 'Completed')}</span>
                         </span>
@@ -232,9 +234,9 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                     </div>
                   </div>
 
-                  {/* Address below in smaller grey font */}
+                  {/* Address below */}
                   {stop.address && (
-                    <div className="text-[12px] mt-0.5" style={{ color: '#8E8E9A' }}>
+                    <div className="text-[12px] mt-0.5 text-[#8E8E9A]">
                       {stop.address}
                     </div>
                   )}
@@ -242,10 +244,8 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                   {/* Orders & Products list */}
                   <div className="mt-2.5 space-y-2">
                     {stop.orders.map((order, oIdx) => {
-                      // If collapsed and this is subsequent order, hide it
                       if (!isOrdersExpanded && oIdx > 0) return null;
 
-                      // Visible products for this order
                       const visibleProducts = isOrdersExpanded
                         ? order.products
                         : oIdx === 0
@@ -257,25 +257,20 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                       return (
                         <div
                           key={`${order.orderId}-${oIdx}`}
-                          className="p-2.5 rounded-lg"
-                          style={{ background: '#F5F5F7' }}
+                          className="p-2.5 rounded-xl bg-[#F8F9FA] border border-[#EBEBF0] transition-colors hover:border-[#DDDDE5]"
                         >
-                          {/* Products for this order */}
                           <div className="space-y-1.5">
                             {visibleProducts.map((prod, pIdx) => (
                               <div
                                 key={pIdx}
                                 className="flex items-center gap-2 flex-wrap text-[11px]"
                               >
-                                <span
-                                  className="font-semibold font-mono"
-                                  style={{ color: '#18181B' }}
-                                >
+                                <span className="font-semibold font-mono text-[#18181B]">
                                   Order: {order.orderId}
                                 </span>
                                 {prod.name && prod.name !== '—' && (
                                   <>
-                                    <span style={{ color: '#8E8E9A' }}>·</span>
+                                    <span className="text-[#8E8E9A]">·</span>
                                     <span className="font-medium text-[#18181B]">
                                       {prod.name}
                                     </span>
@@ -283,7 +278,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                 )}
                                 {(Boolean(prod.qty) || Boolean(prod.weight)) && (
                                   <>
-                                    <span style={{ color: '#8E8E9A' }}>·</span>
+                                    <span className="text-[#8E8E9A]">·</span>
                                     <span className="text-[#5E5E6E]">
                                       {prod.qty ? `${prod.qty} ${prod.qtyUnit || 'EUR Pallets'}` : ''}
                                       {prod.qty && prod.weight ? ' · ' : ''}
@@ -295,12 +290,8 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                             ))}
                           </div>
 
-                          {/* Customer Name underneath the order's product line(s) */}
                           {order.customerName && (
-                            <div
-                              className="mt-1.5 pt-1.5 border-t border-black/5 text-[11px] font-medium flex items-center gap-1.5"
-                              style={{ color: '#059669' }}
-                            >
+                            <div className="mt-1.5 pt-1.5 border-t border-black/5 text-[11px] font-semibold text-[#059669] flex items-center gap-1.5">
                               <span>🏪</span>
                               <span>{order.customerName}</span>
                             </div>
@@ -314,17 +305,16 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                       <button
                         type="button"
                         onClick={() => toggleStopOrders(idx)}
-                        className="flex items-center gap-1 text-[11px] font-semibold text-[#9B51E0] hover:underline cursor-pointer pt-0.5"
-                        style={{ background: 'none', border: 'none' }}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#9B51E0] hover:text-[#7C3AED] hover:underline cursor-pointer pt-0.5 transition-colors focus:outline-none"
                       >
                         {isOrdersExpanded ? (
                           <>
-                            <ChevronUp size={12} />
+                            <ChevronUp size={13} />
                             <span>{t('showLess', 'Show less')}</span>
                           </>
                         ) : (
                           <>
-                            <ChevronDown size={12} />
+                            <ChevronDown size={13} />
                             <span>
                               {t(
                                 'showMoreOrders',
@@ -337,58 +327,54 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                     )}
                   </div>
 
-                  {/* POD (Proof of Delivery) section on Dropoff stop when uploaded */}
+                  {/* POD section on Dropoff stop when uploaded */}
                   {!isPickup && stop.pod === '1' && (
-                    <div
-                      className="mt-2.5 p-2 rounded-lg flex items-center justify-between gap-2 flex-wrap"
-                      style={{ background: '#ECFDF5', border: '1px solid #E2E8F0' }}
-                    >
+                    <div className="mt-2.5 p-2.5 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2">
-                        <FileText size={14} style={{ color: '#059669' }} />
-                        <span className="text-[11px] font-semibold" style={{ color: '#065F46' }}>
+                        <FileText size={15} className="text-[#059669]" />
+                        <span className="text-[12px] font-bold text-[#065F46]">
                           POD (Proof of Delivery)
                         </span>
-                        <span
-                          className="text-[10px] px-1.5 py-0.2 rounded font-semibold"
-                          style={{
-                            background: '#D1FAE5',
-                            color: '#047857',
-                          }}
-                        >
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#D1FAE5] text-[#047857]">
                           {t('uploaded', 'Uploaded')}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (onViewPod) {
-                              onViewPod(stop);
-                            } else {
-                              onToast(t('viewingPod', 'Viewing Proof of Delivery...'));
-                            }
-                          }}
-                          className="px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-80"
-                          style={{ background: '#10B981', color: '#FFFFFF', border: 'none' }}
-                        >
-                          <FileText size={11} />
-                          <span>{t('viewPod', 'View POD')}</span>
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onViewPod) {
+                            onViewPod(stop);
+                          } else {
+                            onToast(t('viewingPod', 'Viewing Proof of Delivery...'));
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 bg-[#10B981] hover:bg-[#059669] active:scale-95 text-white shadow-xs transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]/50"
+                      >
+                        <FileText size={12} />
+                        <span>{t('viewPod', 'View POD')}</span>
+                      </button>
                     </div>
                   )}
 
                   {/* Actions: Copy Address */}
-                  <div className="flex items-center gap-4 mt-2.5 text-[11px] font-semibold flex-wrap">
+                  <div className="flex items-center gap-4 mt-3 text-[11px] font-semibold flex-wrap">
                     <button
                       type="button"
-                      onClick={() => onCopy(`${stop.location}, ${stop.address}`)}
-                      className="flex items-center gap-1 text-[#9B51E0] hover:underline cursor-pointer"
-                      style={{ background: 'none', border: 'none' }}
+                      onClick={() => handleCopyAddress(stop, idx)}
+                      className="inline-flex items-center gap-1.5 text-[#9B51E0] hover:text-[#7C3AED] hover:underline cursor-pointer transition-colors active:scale-95 focus:outline-none"
                     >
-                      <Copy size={12} />
-                      <span>{t('copyAddress', 'Copy Address')}</span>
+                      {isCopied ? (
+                        <span className="inline-flex items-center gap-1 text-[#10B981] font-bold animate-in fade-in duration-150">
+                          <CheckCircle2 size={13} />
+                          <span>{t('copied', 'Address Copied!')}</span>
+                        </span>
+                      ) : (
+                        <>
+                          <Copy size={13} />
+                          <span>{t('copyAddress', 'Copy Address')}</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

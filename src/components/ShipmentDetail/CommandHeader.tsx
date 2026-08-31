@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Copy,
   Pencil,
@@ -49,6 +49,21 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
 
   const handleCopy = () => {
     onCopyId();
@@ -81,57 +96,41 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
   const isCancelled = status === 'canceled' || status === 'cancelled';
 
   return (
-    <div
-      className="rounded-2xl px-5 py-4 mb-4"
-      style={{ background: '#FFFFFF', border: '1px solid #E4E4E8' }}
-    >
-      <div className="flex items-start gap-4 flex-wrap">
+    <div className="rounded-2xl px-5 py-4 mb-4 bg-white border border-[#E4E4E8] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex-1 min-w-[260px]">
-          <div
-            className="flex items-center gap-2 font-bold"
-            style={{
-              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-              fontSize: '19px',
-              color: '#18181B',
-            }}
-          >
+          <div className="flex items-center gap-2 font-bold font-mono text-[19px] text-[#18181B] leading-none">
             <span>#{vm.displayId}</span>
             <button
               type="button"
               onClick={handleCopy}
               title={copied ? t('copied', 'Copied!') : t('copyId', 'Copy ID')}
               aria-label="Copy ID"
-              className="p-1 rounded hover:bg-black/5 transition-colors"
-              style={{ background: 'none', border: 'none', color: '#8E8E9A' }}
+              className="p-1.5 rounded-md text-[#8E8E9A] hover:text-[#18181B] hover:bg-[#F8F7FC] active:scale-90 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
             >
-              {copied ? <Check size={14} style={{ color: '#10B981' }} /> : <Copy size={14} />}
+              {copied ? <Check size={15} className="text-[#10B981] animate-in zoom-in-50 duration-150" /> : <Copy size={15} />}
             </button>
 
             {onLangChange && (
-              <div
-                className="inline-flex rounded-lg overflow-hidden ml-2"
-                style={{ border: '1px solid #E4E4E8' }}
-              >
+              <div className="inline-flex rounded-lg overflow-hidden ml-2 border border-[#E4E4E8] bg-[#F8F7FC] p-0.5">
                 <button
                   type="button"
-                  className="px-2 py-0.5 text-[11px] font-semibold transition-colors"
-                  style={{
-                    background: lang === 'en' ? '#18181B' : 'transparent',
-                    color: lang === 'en' ? '#FFFFFF' : '#8E8E9A',
-                    border: 'none',
-                  }}
+                  className={`px-2 py-0.5 text-[11px] font-bold rounded-md transition-all duration-150 cursor-pointer ${
+                    lang === 'en'
+                      ? 'bg-[#18181B] text-white shadow-xs'
+                      : 'text-[#8E8E9A] hover:text-[#18181B]'
+                  }`}
                   onClick={() => onLangChange('en')}
                 >
                   EN
                 </button>
                 <button
                   type="button"
-                  className="px-2 py-0.5 text-[11px] font-semibold transition-colors"
-                  style={{
-                    background: lang === 'el' ? '#18181B' : 'transparent',
-                    color: lang === 'el' ? '#FFFFFF' : '#8E8E9A',
-                    border: 'none',
-                  }}
+                  className={`px-2 py-0.5 text-[11px] font-bold rounded-md transition-all duration-150 cursor-pointer ${
+                    lang === 'el'
+                      ? 'bg-[#18181B] text-white shadow-xs'
+                      : 'text-[#8E8E9A] hover:text-[#18181B]'
+                  }`}
                   onClick={() => onLangChange('el')}
                 >
                   EL
@@ -140,23 +139,14 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
             )}
           </div>
 
-          <div
-            className="text-[14px] font-medium mt-1 flex items-center gap-2 flex-wrap"
-            style={{ color: '#18181B' }}
-          >
-            <span>{vm.lane}</span>
+          <div className="text-[14px] font-medium mt-1.5 flex items-center gap-2 flex-wrap text-[#18181B]">
+            <span className="font-semibold">{vm.lane}</span>
             {vm.viaLabel && (
-              <span
-                className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                style={{ background: '#F0F0F3', color: '#8E8E9A' }}
-              >
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#F0F0F3] text-[#5E5E6E]">
                 via {vm.viaLabel}
               </span>
             )}
-            <span
-              className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-              style={{ background: '#F0F0F3', color: '#8E8E9A' }}
-            >
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#F0F0F3] text-[#5E5E6E]">
               {vm.stopsCount} {vm.stopsCount === 1 ? 'stop' : 'stops'}
             </span>
           </div>
@@ -164,29 +154,19 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <StatusBadge status={vm.statusLabel} />
 
-            <span
-              className="text-[10px] font-bold tracking-wider"
-              style={{ color: '#8E8E9A' }}
-            >
+            <span className="text-[10px] font-bold tracking-wider text-[#8E8E9A]">
               {(vm.loadSummary?.channel || (vm.isPrivateLoad ? 'PRIVATE' : 'PUBLIC')).toUpperCase()}
             </span>
 
             {vm.primaryCustomer && (
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                style={{
-                  color: '#059669',
-                  background: '#F0FDF9',
-                  border: '1px solid #A7F3D0',
-                }}
-              >
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold text-[#059669] bg-[#F0FDF9] border border-[#A7F3D0]">
                 <span>🏪</span> {vm.primaryCustomer}
               </span>
             )}
 
-            <span className="text-[12px]" style={{ color: '#5E5E6E' }}>
+            <span className="text-[12px] text-[#5E5E6E]">
               {t('owner', 'Owner')}:{' '}
-              <strong style={{ color: '#18181B' }}>{vm.owner || 'My Vagon'}</strong>
+              <strong className="text-[#18181B] font-semibold">{vm.owner || 'My Vagon'}</strong>
             </span>
           </div>
         </div>
@@ -194,20 +174,17 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
         {isOnTrip && (
           <div className="flex flex-col gap-1.5">
             {vm.etaChip && (
-              <span
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
-                style={{ background: '#F3E8FF', color: '#7C3AED' }}
-              >
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#F3E8FF] text-[#7C3AED]">
                 {vm.etaChip}
               </span>
             )}
             {vm.etaStatusChip && (
               <span
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
-                style={{
-                  background: vm.onTrack ? '#ECFDF5' : '#FEF3C7',
-                  color: vm.onTrack ? '#059669' : '#92400E',
-                }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                  vm.onTrack
+                    ? 'bg-[#ECFDF5] text-[#059669]'
+                    : 'bg-[#FEF3C7] text-[#92400E]'
+                }`}
               >
                 {vm.etaStatusChip}
               </span>
@@ -220,8 +197,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
             <button
               type="button"
               onClick={onEdit || (() => onToast(t('editShipment', 'Edit shipment')))}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-opacity hover:opacity-90 cursor-pointer"
-              style={{ background: '#9B51E0', color: '#fff', border: 'none' }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold whitespace-nowrap bg-[#9B51E0] hover:bg-[#883cd1] text-white shadow-sm active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
             >
               <Pencil size={14} />
               <span>{t('editShipment', 'Edit shipment')}</span>
@@ -231,12 +207,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
           <button
             type="button"
             onClick={onMessage || (() => onToast(t('message', 'Message')))}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors hover:bg-black/5 cursor-pointer"
-            style={{
-              background: '#FFFFFF',
-              border: '1px solid #E4E4E8',
-              color: '#5E5E6E',
-            }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-semibold whitespace-nowrap bg-white text-[#5E5E6E] border border-[#E4E4E8] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
           >
             <MessageSquare size={14} />
             <span>{t('message', 'Message')}</span>
@@ -246,13 +217,8 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
             type="button"
             onClick={onShare}
             title={t('shareTracking', 'Share tracking')}
-            className="flex items-center justify-center rounded-lg text-[13px] font-semibold transition-colors hover:bg-black/5 cursor-pointer"
-            style={{
-              background: '#FFFFFF',
-              border: '1px solid #E4E4E8',
-              color: '#5E5E6E',
-              padding: '8px 10px',
-            }}
+            className="flex items-center justify-center p-2 rounded-lg text-[13px] font-semibold bg-white text-[#5E5E6E] border border-[#E4E4E8] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+            aria-label={t('shareTracking', 'Share tracking')}
           >
             <Share2 size={14} />
           </button>
@@ -261,13 +227,8 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
             type="button"
             onClick={onAuditLog}
             title={t('shipmentLogs', 'Shipment Logs')}
-            className="flex items-center justify-center rounded-lg text-[13px] font-semibold transition-colors hover:bg-black/5 cursor-pointer"
-            style={{
-              background: '#FFFFFF',
-              border: '1px solid #E4E4E8',
-              color: '#5E5E6E',
-              padding: '8px 10px',
-            }}
+            className="flex items-center justify-center p-2 rounded-lg text-[13px] font-semibold bg-white text-[#5E5E6E] border border-[#E4E4E8] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+            aria-label={t('shipmentLogs', 'Shipment Logs')}
           >
             <ClipboardList size={14} />
           </button>
@@ -277,43 +238,32 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
               type="button"
               onClick={onBidsHistory}
               title={t('bidsHistory', 'Bids History')}
-              className="flex items-center justify-center rounded-lg text-[13px] font-semibold transition-colors hover:bg-black/5 cursor-pointer"
-              style={{
-                background: '#FFFFFF',
-                border: '1px solid #E4E4E8',
-                color: '#5E5E6E',
-                padding: '8px 10px',
-              }}
+              className="flex items-center justify-center p-2 rounded-lg text-[13px] font-semibold bg-white text-[#5E5E6E] border border-[#E4E4E8] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+              aria-label={t('bidsHistory', 'Bids History')}
             >
               <Receipt size={14} />
             </button>
           )}
 
-          <div className="relative">
+          <div className="relative" ref={menuRef}>
             <button
               type="button"
               onClick={() => setMenuOpen(!menuOpen)}
               title={t('moreActions', 'More actions')}
-              className="flex items-center justify-center rounded-lg text-[13px] font-semibold transition-colors hover:bg-black/5 cursor-pointer"
-              style={{
-                background: '#FFFFFF',
-                border: '1px solid #E4E4E8',
-                color: '#5E5E6E',
-                padding: '8px 10px',
-              }}
+              className="flex items-center justify-center p-2 rounded-lg text-[13px] font-semibold bg-white text-[#5E5E6E] border border-[#E4E4E8] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+              aria-expanded={menuOpen}
+              aria-haspopup="true"
+              aria-label={t('moreActions', 'More actions')}
             >
               <MoreHorizontal size={14} />
             </button>
 
             {menuOpen && (
-              <div
-                className="absolute right-0 top-full mt-1.5 w-48 rounded-xl bg-white p-1 shadow-lg z-30"
-                style={{ border: '1px solid #E4E4E8' }}
-              >
+              <div className="absolute right-0 top-full mt-1.5 w-48 rounded-xl bg-white p-1 shadow-xl border border-[#E4E4E8] z-30 animate-in fade-in zoom-in-95 duration-150">
                 {onDuplicate && (
                   <button
                     type="button"
-                    className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-[#18181B] hover:bg-[#F5F5F7] transition-colors"
+                    className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-[#18181B] hover:bg-[#F8F7FC] hover:text-[#9B51E0] transition-colors cursor-pointer"
                     onClick={() => {
                       setMenuOpen(false);
                       onDuplicate();
@@ -325,7 +275,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
                 {canCancel && onCancelShipment && (
                   <button
                     type="button"
-                    className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+                    className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                     onClick={() => {
                       setMenuOpen(false);
                       onCancelShipment();

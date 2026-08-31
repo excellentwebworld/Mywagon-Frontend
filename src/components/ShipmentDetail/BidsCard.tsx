@@ -30,7 +30,7 @@ interface BidsCardProps {
   onToggle?: () => void;
   onAcceptBid?: (bid: PartnerBidItem) => void;
   onRejectBid?: (bid: PartnerBidItem) => void;
-  onCounterBid?: (bid: PartnerBidItem, amount: number) => void;
+  onCounterBid?: (bid: PartnerBidItem, amount: number, notes?: string) => void;
   onCancelInvite?: (partner: PartnerBidItem) => void;
   onViewHistory?: (partner: PartnerBidItem) => void;
   onInviteMore?: () => void;
@@ -54,6 +54,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
   const { openTransporterProfile } = useTransporterProfileOptional();
   const [counterOpenId, setCounterOpenId] = useState<string | null>(null);
   const [counterAmounts, setCounterAmounts] = useState<Record<string, string>>({});
+  const [counterNotes, setCounterNotes] = useState<Record<string, string>>({});
   const [historyOpenId, setHistoryOpenId] = useState<string | null>(null);
 
   // Sort: active bids/interests first, then invited partners
@@ -82,8 +83,11 @@ export const BidsCard: React.FC<BidsCardProps> = ({
   const handleSendCounter = (partner: PartnerBidItem) => {
     const val = parseFloat(counterAmounts[partner.id]);
     if (!isNaN(val) && val > 0 && onCounterBid) {
-      onCounterBid(partner, val);
+      const notes = (counterNotes[partner.id] || '').trim() || undefined;
+      onCounterBid(partner, val, notes);
       setCounterOpenId(null);
+      setCounterAmounts((prev) => { const next = { ...prev }; delete next[partner.id]; return next; });
+      setCounterNotes((prev) => { const next = { ...prev }; delete next[partner.id]; return next; });
     }
   };
 
@@ -248,33 +252,72 @@ export const BidsCard: React.FC<BidsCardProps> = ({
 
                   {/* Inline Counter-Offer Drawer */}
                   {isCountering && (
-                    <div className="mt-2 p-2.5 rounded-lg bg-[#FAF5FF] border border-[#E9D5FF] flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] font-semibold text-[#18181B]">
-                        {t('yourCounterOffer', 'Your counter (€):')}
-                      </span>
-                      <input
-                        type="number"
-                        placeholder="e.g. 400"
-                        value={counterAmounts[item.id] || ''}
-                        onChange={(e) =>
-                          setCounterAmounts((prev) => ({ ...prev, [item.id]: e.target.value }))
-                        }
-                        className="w-24 px-2 py-1 text-xs rounded border border-[#CBD5E1] bg-white outline-none focus:border-[#9B51E0]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleSendCounter(item)}
-                        className="px-3 py-1 rounded text-xs font-semibold text-white bg-[#9B51E0] hover:opacity-90 cursor-pointer"
-                      >
-                        {t('sendCounter', 'Send counter')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCounterOpenId(null)}
-                        className="px-2 py-1 rounded text-xs font-medium text-[#5E5E6E] hover:underline cursor-pointer"
-                      >
-                        {t('cancel', 'Cancel')}
-                      </button>
+                    <div className="mt-2.5 p-3.5 rounded-xl bg-[#FAF5FF] border border-[#E9D5FF] flex flex-col gap-3">
+                      {/* Header */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-[13px] font-bold text-[#18181B]">
+                          {t('counterBidTitle', 'Counter-Bid')}
+                        </span>
+                        {item.bidAmount != null && (
+                          <span className="text-[11px] text-[#5E5E6E]">
+                            {t('currentOfferPrice', 'Current Offer Price')}:{' '}
+                            <strong className="text-[#9B51E0] font-bold">
+                              € {item.bidAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </strong>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Price Input */}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[11px] font-semibold text-[#18181B]">
+                          {t('yourCounterPrice', 'Your Counter Price (€)')} <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          placeholder={t('enterCounterPrice', 'Enter your counter price')}
+                          value={counterAmounts[item.id] || ''}
+                          onChange={(e) =>
+                            setCounterAmounts((prev) => ({ ...prev, [item.id]: e.target.value }))
+                          }
+                          className="w-full px-3 py-2 text-[13px] rounded-lg border border-[#CBD5E1] bg-white outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/30 transition-all"
+                        />
+                      </div>
+
+                      {/* Notes Textarea */}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[11px] font-semibold text-[#18181B]">
+                          {t('notesOptional', 'Notes (Optional)')}
+                        </label>
+                        <textarea
+                          placeholder={t('addNoteForCarrier', 'Add a note for the carrier/driver...')}
+                          value={counterNotes[item.id] || ''}
+                          onChange={(e) =>
+                            setCounterNotes((prev) => ({ ...prev, [item.id]: e.target.value }))
+                          }
+                          rows={3}
+                          className="w-full px-3 py-2 text-[13px] rounded-lg border border-[#CBD5E1] bg-white outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/30 transition-all resize-none"
+                        />
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setCounterOpenId(null)}
+                          className="px-4 py-1.5 rounded-lg text-[12px] font-semibold text-[#5E5E6E] border border-[#E4E4E8] bg-white hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+                        >
+                          {t('cancel', 'Cancel')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSendCounter(item)}
+                          disabled={!counterAmounts[item.id] || parseFloat(counterAmounts[item.id]) <= 0}
+                          className="px-4 py-1.5 rounded-lg text-[12px] font-bold text-white bg-[#18181B] hover:bg-[#2D2D2D] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                        >
+                          {t('sendCounterBid', 'Send Counter-Bid')}
+                        </button>
+                      </div>
                     </div>
                   )}
 

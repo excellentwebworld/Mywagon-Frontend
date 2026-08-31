@@ -329,10 +329,10 @@ export const ShipmentDetail: React.FC = () => {
     }
   }, [id, refetch, showToast, t]);
 
-  const handleCounterBid = useCallback(async (bid: PartnerBidItem, amount: number) => {
+  const handleCounterBid = useCallback(async (bid: PartnerBidItem, amount: number, notes?: string) => {
     if (!id) return;
     try {
-      await shipmentsService.counterOffer(id, bid.id, { amount });
+      await shipmentsService.counterOffer(id, bid.id, { amount, notes });
       showToast(`${t('counterSent', 'Counter offer of €')} ${amount} ${t('sentTo', 'sent to')} ${bid.name}`, 'success');
       refetch?.();
     } catch (err) {
@@ -731,22 +731,6 @@ export const ShipmentDetail: React.FC = () => {
         open={isBidsHistoryOpen}
         bids={vm.bidsHistory}
         onClose={() => setIsBidsHistoryOpen(false)}
-        t={t}
-      />
-
-      {/* Carrier / Driver Rating Modal */}
-      <RatingModal
-        open={isRatingOpen}
-        targetName={ratingTarget?.name || vm.carrier?.name || ''}
-        targetType={ratingTarget?.type || 'carrier'}
-        showDeliveryOnTime={
-          ratingTarget?.type === 'driver'
-            ? false
-            : vm.carrier?.showDeliveryOnTime !== false
-        }
-        submitting={ratingSubmitting}
-        onClose={() => setIsRatingOpen(false)}
-        onSubmit={handleSubmitRating}
         t={t}
       />
 

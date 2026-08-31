@@ -42,21 +42,17 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
       expanded={expanded}
       onToggle={onToggle}
     >
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3.5">
-        {/* Vehicle Type & Cargo Specs (Clear badge list UI for multiple items) */}
-        <div>
-          <div
-            className="text-[10px] font-bold uppercase tracking-wider mb-1"
-            style={{ color: '#8E8E9A' }}
-          >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {/* Vehicle Type & Cargo Specs */}
+        <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#EBEBF0]">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#8E8E9A] mb-1.5">
             {t('vehicleTypeCargoSpec', 'Vehicle type & cargo specs')}
           </div>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {vehicleTypes.map((v, i) => (
               <span
                 key={`vt-${i}`}
-                className="text-[12px] font-semibold px-2 py-0.5 rounded"
-                style={{ background: '#F0F0F3', color: '#18181B' }}
+                className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-[#F0F0F3] text-[#18181B] border border-[#E4E4E8]"
               >
                 {v}
               </span>
@@ -64,8 +60,7 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
             {cargoSpecs.map((c, i) => (
               <span
                 key={`cs-${i}`}
-                className="text-[12px] font-medium px-2 py-0.5 rounded"
-                style={{ background: '#F3E8FF', color: '#7C3AED' }}
+                className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-[#F3E8FF] text-[#7C3AED] border border-[#E9D5FF]"
               >
                 {c}
               </span>
@@ -74,106 +69,87 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
         </div>
 
         {/* Quoted Price */}
-        <div>
-          <div
-            className="text-[10px] font-bold uppercase tracking-wider mb-1"
-            style={{ color: '#8E8E9A' }}
-          >
+        <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#EBEBF0]">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#8E8E9A] mb-1">
             {t('quotedPrice', 'Quoted price')}
           </div>
-          <div
-            className="text-[14px] font-bold"
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              color: '#18181B',
-            }}
-          >
+          <div className="text-[15px] font-bold font-mono text-[#18181B]">
             {loadSummary.quote || '—'}
           </div>
         </div>
 
         {/* Load Value */}
-        <div>
-          <div
-            className="text-[10px] font-bold uppercase tracking-wider mb-1"
-            style={{ color: '#8E8E9A' }}
-          >
+        <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#EBEBF0]">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#8E8E9A] mb-1">
             {t('loadValue', 'Load value')}
           </div>
-          <div
-            className="text-[14px] font-bold"
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              color: '#18181B',
-            }}
-          >
+          <div className="text-[15px] font-bold font-mono text-[#18181B]">
             {loadSummary.loadValue || '—'}
           </div>
         </div>
 
         {/* Channel (Shipment Type) */}
-        <div>
-          <div
-            className="text-[10px] font-bold uppercase tracking-wider mb-1"
-            style={{ color: '#8E8E9A' }}
-          >
+        <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#EBEBF0]">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#8E8E9A] mb-1.5">
             {t('channel', 'Channel')}
           </div>
-          <div className="text-[13px] font-semibold" style={{ color: '#18181B' }}>
+          <div>
             <span
-              className="px-2 py-0.5 rounded text-[11px] font-bold"
-              style={{
-                background: loadSummary.channel?.toLowerCase() === 'public' ? '#EFF6FF' : '#FAF5FF',
-                color: loadSummary.channel?.toLowerCase() === 'public' ? '#2563EB' : '#7C3AED',
-              }}
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider ${
+                loadSummary.channel?.toLowerCase() === 'public'
+                  ? 'bg-[#EFF6FF] text-[#2563EB] border border-[#BFDBFE]'
+                  : 'bg-[#FAF5FF] text-[#7C3AED] border border-[#E9D5FF]'
+              }`}
             >
               {loadSummary.channel?.toUpperCase() || 'PRIVATE'}
             </span>
           </div>
         </div>
 
-        {/* Negotiable OR Non-Negotiable */}
-        <div>
-          <div
-            className="text-[10px] font-bold uppercase tracking-wider mb-1"
-            style={{ color: '#8E8E9A' }}
-          >
+        {/* Pricing Negotiation */}
+        <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#EBEBF0]">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#8E8E9A] mb-1.5">
             {t('pricingFlexibility', 'Pricing negotiation')}
           </div>
-          <div className="text-[13px] font-semibold" style={{ color: '#18181B' }}>
+          <div>
             {loadSummary.negotiable ? (
-              <span className="text-[#059669] font-bold">
-                {t('negotiable', 'Negotiable')}
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#059669]">
+                <span>✓</span> {t('negotiable', 'Negotiable')}
               </span>
             ) : (
-              <span className="text-[#5E5E6E]">
+              <span className="inline-flex items-center text-[11px] font-medium text-[#5E5E6E]">
                 {t('nonNegotiable', 'Non-Negotiable')}
               </span>
             )}
           </div>
         </div>
 
-        {/* Live Navigation: Required OR Not Required */}
-        <div>
-          <div
-            className="text-[10px] font-bold uppercase tracking-wider mb-1"
-            style={{ color: '#8E8E9A' }}
-          >
-            {t('liveNavigation', 'Live navigation')}
+        {/* Live GPS Navigation */}
+        <div className="p-3 rounded-xl bg-[#F8F9FA] border border-[#EBEBF0]">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#8E8E9A] mb-1.5">
+            {t('liveNavigation', 'GPS Live Tracking')}
           </div>
-          <div className="text-[13px] font-semibold" style={{ color: '#18181B' }}>
+          <div>
             {loadSummary.liveNavigation ? (
-              <span className="text-[#2563EB] font-bold">
-                {t('required', 'Required')}
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-[#059669] bg-[#ECFDF5] border border-[#A7F3D0]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+                <span>{t('enabled', 'Enabled')}</span>
               </span>
             ) : (
-              <span className="text-[#8E8E9A]">
-                {t('notRequired', 'Not required')}
+              <span className="text-[11px] font-medium text-[#8E8E9A]">
+                {t('disabled', 'Disabled')}
               </span>
             )}
           </div>
         </div>
       </div>
+
+      {loadSummary.specialInstructions && (
+        <div className="mt-3 p-3 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] text-[12px] text-[#92400E]">
+          <strong className="font-semibold">{t('specialInstructions', 'Special Instructions')}:</strong>{' '}
+          {loadSummary.specialInstructions}
+        </div>
+      )}
     </CollapsibleCard>
   );
 };

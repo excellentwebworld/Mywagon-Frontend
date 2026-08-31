@@ -55,50 +55,52 @@ export const DocumentsCard: React.FC<DocumentsCardProps> = ({
       count={documents.length > 0 ? documents.length : undefined}
       expanded={expanded}
       onToggle={onToggle}
-    >
-      <div>
+      headerExtra={
         <button
           type="button"
-          onClick={onUpload || (() => onToast(t('uploadDocument', 'Upload document')))}
-          className="text-[12px] font-semibold mb-3 flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-80"
-          style={{ color: '#9B51E0', background: 'none', border: 'none', padding: 0 }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onUpload) onUpload();
+            else onToast(t('uploadDocument', 'Upload document'));
+          }}
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 shadow-xs transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
         >
-          <Plus size={13} />
-          <span>{t('upload', '+ Upload')}</span>
+          <Plus size={12} />
+          <span>{t('upload', 'Upload')}</span>
         </button>
-
+      }
+    >
+      <div>
         {documents.length === 0 ? (
-          <p className="text-[12px] m-0 py-2" style={{ color: '#8E8E9A' }}>
-            {t('noDocumentsUploaded', 'No documents uploaded yet. Click + Upload to attach documents.')}
-          </p>
+          <div className="text-center py-6 px-4 rounded-xl border border-dashed border-[#E4E4E8] bg-[#F8F7FC]/50">
+            <p className="text-[12px] m-0 text-[#8E8E9A] font-medium">
+              {t('noDocumentsUploaded', 'No documents uploaded yet. Click Upload to attach files.')}
+            </p>
+          </div>
         ) : (
-          <div className="space-y-0">
+          <div className="divide-y divide-[#E4E4E8]">
             {documents.map((doc, idx) => {
               const image = isImageDoc(doc.fileType, doc.fileName);
 
               return (
                 <div
                   key={doc.id || idx}
-                  className="flex items-center justify-between gap-3 py-3"
-                  style={{ borderTop: idx > 0 ? '1px solid #E4E4E8' : 'none' }}
+                  className="flex items-center justify-between gap-3 py-3 first:pt-1 last:pb-1 group"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <span
-                      className="rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{
-                        width: 36,
-                        height: 36,
-                        background: image ? '#EFF6FF' : '#FEF2F2',
-                        color: image ? '#3B82F6' : '#EF4444',
-                        border: image ? '1px solid #DBEAFE' : '1px solid #FEE2E2',
-                      }}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105 shadow-2xs ${
+                        image
+                          ? 'bg-[#EFF6FF] text-[#3B82F6] border border-[#DBEAFE]'
+                          : 'bg-[#FEF2F2] text-[#EF4444] border border-[#FEE2E2]'
+                      }`}
                     >
                       {image ? <ImageIcon size={18} /> : <FileText size={18} />}
                     </span>
 
                     <div className="flex-1 min-w-0">
                       <div className="text-[13px] font-semibold text-[#18181B] truncate flex items-center gap-1.5">
-                        <span>{doc.name}</span>
+                        <span className="truncate">{doc.name}</span>
                         {doc.fileName && (
                           <span className="text-[11px] font-normal text-[#8E8E9A] truncate">
                             ({doc.fileName})
@@ -137,7 +139,7 @@ export const DocumentsCard: React.FC<DocumentsCardProps> = ({
                         href={doc.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 text-[#5E5E6E] bg-[#FAFAFC] hover:bg-[#F0F0F3] border border-[#E4E4E8] transition-colors cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 text-[#5E5E6E] bg-white hover:bg-[#F8F7FC] hover:text-[#18181B] border border-[#E4E4E8] active:scale-95 transition-all cursor-pointer focus:outline-none"
                         title={t('viewInTab', 'View file in new tab')}
                       >
                         <ExternalLink size={12} />
@@ -154,7 +156,7 @@ export const DocumentsCard: React.FC<DocumentsCardProps> = ({
                           window.open(doc.url, '_blank');
                         }
                       }}
-                      className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 text-[#9B51E0] bg-[#9B51E0]/5 hover:bg-[#9B51E0]/10 border border-[#9B51E0]/20 transition-colors cursor-pointer"
+                      className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 text-[#9B51E0] bg-[#F8F7FC] hover:bg-[#9B51E0]/15 border border-[#E9D5FF] active:scale-95 transition-all cursor-pointer focus:outline-none"
                       title={t('downloadDocument', 'Download document')}
                     >
                       <Download size={12} />
@@ -165,8 +167,7 @@ export const DocumentsCard: React.FC<DocumentsCardProps> = ({
                       <button
                         type="button"
                         onClick={() => onDelete(doc)}
-                        className="p-1.5 rounded-lg text-[#8E8E9A] hover:text-[#EF4444] hover:bg-red-50 transition-colors cursor-pointer"
-                        style={{ background: 'none', border: 'none' }}
+                        className="p-1.5 rounded-lg text-[#EF4444] bg-white hover:bg-red-50 border border-[#FEE2E2] active:scale-95 transition-all cursor-pointer focus:outline-none"
                         title={t('deleteDocument', 'Delete document')}
                       >
                         <Trash2 size={13} />
