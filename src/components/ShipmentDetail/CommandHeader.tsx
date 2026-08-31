@@ -111,7 +111,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
               {copied ? <Check size={15} className="text-[#10B981] animate-in zoom-in-50 duration-150" /> : <Copy size={15} />}
             </button>
 
-            {onLangChange && (
+            {/* {onLangChange && (
               <div className="inline-flex rounded-lg overflow-hidden ml-2 border border-[#E4E4E8] bg-[#F8F7FC] p-0.5">
                 <button
                   type="button"
@@ -136,7 +136,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
                   EL
                 </button>
               </div>
-            )}
+            )} */}
           </div>
 
           <div className="text-[14px] font-medium mt-1.5 flex items-center gap-2 flex-wrap text-[#18181B]">

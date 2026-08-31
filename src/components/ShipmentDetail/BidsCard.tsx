@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Star, ArrowRightLeft, Check, X, History } from 'lucide-react';
+import { Users, Star, ArrowRightLeft, Check, X, History, MessageSquare } from 'lucide-react';
 import { CollapsibleCard } from './CollapsibleCard';
 import { useTransporterProfileOptional } from '../TransporterProfile/TransporterProfileContext';
 import { NegotiationHistoryPanel } from '../ManageShipments/NegotiationHistoryPanel';
@@ -33,6 +33,7 @@ interface BidsCardProps {
   onCounterBid?: (bid: PartnerBidItem, amount: number, notes?: string) => void;
   onCancelInvite?: (partner: PartnerBidItem) => void;
   onViewHistory?: (partner: PartnerBidItem) => void;
+  onChat?: (partner: PartnerBidItem) => void;
   onInviteMore?: () => void;
   t: (key: string, fallback?: string) => string;
 }
@@ -48,6 +49,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
   onCounterBid,
   onCancelInvite,
   onViewHistory,
+  onChat,
   onInviteMore,
   t,
 }) => {
@@ -246,6 +248,17 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                         }`}
                       >
                         <History size={13} />
+                      </button>
+
+                      {/* Chat button */}
+                      <button
+                        type="button"
+                        onClick={() => onChat ? onChat(item) : undefined}
+                        title={t('chat', 'Chat')}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-slate-50 cursor-pointer transition-colors"
+                      >
+                        <MessageSquare size={12} />
+                        <span>{t('chat', 'Chat')}</span>
                       </button>
                     </div>
                   )}

@@ -509,6 +509,7 @@ export const ShipmentDetail: React.FC = () => {
                 onCounterBid={handleCounterBid}
                 onCancelInvite={handleCancelInvite}
                 onViewHistory={() => setIsBidsHistoryOpen(true)}
+                onChat={() => navigate('/messages')}
                 onInviteMore={() => showToast(t('invitePartners', 'Invite partners modal opening…'), 'info')}
                 t={t}
               />
