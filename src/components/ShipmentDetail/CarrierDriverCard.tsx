@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Truck, Phone, MessageSquare, Mail, Star, ShieldCheck, Check, Copy } from 'lucide-react';
+import { Truck, Phone, MessageSquare, Mail, Star, ShieldCheck } from 'lucide-react';
 import type {
   CarrierDetail,
   AssignedDriverDetail,
@@ -37,6 +37,9 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
     carrier?.userType === 'driver' ||
     carrier?.meta?.toLowerCase().includes('freelancer');
 
+  const carrierPhone = carrier?.phone || '+30 210 5551234';
+  const driverPhone = driver?.phone || '+30 697 1234567';
+
   const handleCopyPhone = (phone: string, isCarrier = true) => {
     navigator.clipboard.writeText(phone);
     onToast(`${t('phoneCopied', 'Phone copied')}: ${phone}`);
@@ -49,6 +52,9 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
       openTransporterProfile({ id, type, name });
     }
   };
+
+  const carrierPlates = carrier?.plates?.length ? carrier.plates : ['ΙΧΕ-7890', 'ΤΡ-4512'];
+  const driverPlates = driver?.plates?.length ? driver.plates : ['ΙΧΕ-7890', 'ΤΡ-4512'];
 
   return (
     <CollapsibleCard
@@ -97,7 +103,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
 
                   {carrier.rating && carrier.rating !== '—' && (
                     <span className="text-[11px] font-bold inline-flex items-center gap-0.5" style={{ color: '#9B51E0' }}>
-                      <Star size={11} fill="#9B51E0" /> {carrier.rating} (85)
+                      <Star size={11} fill="#9B51E0" /> {carrier.rating} ({carrier.tripsCount || 85})
                     </span>
                   )}
 
@@ -133,43 +139,36 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
 
                   <button
                     type="button"
-                    onClick={() => handleCopyPhone('+30 697 8889999', true)}
+                    onClick={() => handleCopyPhone(carrierPhone, true)}
                     title={t('copyPhone', 'Click to copy phone')}
                     className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold hover:bg-black/5 transition-colors cursor-pointer"
                     style={{ border: '1px solid #E4E4E8', color: '#5E5E6E', background: '#FFFFFF' }}
                   >
                     <Phone size={12} />
-                    <span>{carrierPhoneRevealed ? '+30 697 8889999' : t('phone', 'Phone')}</span>
+                    <span>{carrierPhoneRevealed ? carrierPhone : t('phone', 'Phone')}</span>
                   </button>
                 </div>
               </div>
 
               <div className="text-[12px] mt-0.5" style={{ color: '#8E8E9A' }}>
-                {t('completedTrips', 'Completed trips')}: <strong>85</strong> · Semi-Trailer Truck
+                {t('completedTrips', 'Completed trips')}: <strong>{carrier.tripsCount || 85}</strong> · Semi-Trailer Truck
               </div>
 
               {/* License plates: Vehicle + Trailer */}
               <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <span
-                  className="text-[11px] font-semibold px-2 py-0.5 rounded"
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    background: '#F0F0F3',
-                    color: '#18181B',
-                  }}
-                >
-                  Vehicle: ΙΧΕ-7890
-                </span>
-                <span
-                  className="text-[11px] font-semibold px-2 py-0.5 rounded"
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    background: '#F0F0F3',
-                    color: '#18181B',
-                  }}
-                >
-                  Trailer: ΤΡ-4512
-                </span>
+                {carrierPlates.map((plate, pIdx) => (
+                  <span
+                    key={pIdx}
+                    className="text-[11px] font-semibold px-2 py-0.5 rounded"
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      background: '#F0F0F3',
+                      color: '#18181B',
+                    }}
+                  >
+                    {pIdx === 0 ? `Vehicle: ${plate}` : `Trailer: ${plate}`}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
@@ -215,7 +214,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
 
                     {carrier.rating && carrier.rating !== '—' && (
                       <span className="text-[11px] font-bold inline-flex items-center gap-0.5" style={{ color: '#9B51E0' }}>
-                        <Star size={11} fill="#9B51E0" /> {carrier.rating} (142)
+                        <Star size={11} fill="#9B51E0" /> {carrier.rating} ({carrier.tripsCount || 142})
                       </span>
                     )}
 
@@ -252,19 +251,19 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleCopyPhone('+30 210 5551234', true)}
+                      onClick={() => handleCopyPhone(carrierPhone, true)}
                       title={t('copyPhone', 'Click to copy phone')}
                       className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold hover:bg-black/5 transition-colors cursor-pointer"
                       style={{ border: '1px solid #E4E4E8', color: '#5E5E6E', background: '#FFFFFF' }}
                     >
                       <Phone size={12} />
-                      <span>{carrierPhoneRevealed ? '+30 210 5551234' : t('phone', 'Phone')}</span>
+                      <span>{carrierPhoneRevealed ? carrierPhone : t('phone', 'Phone')}</span>
                     </button>
                   </div>
                 </div>
 
                 <div className="text-[12px] mt-0.5" style={{ color: '#8E8E9A' }}>
-                  Carrier Company · 240 completed trips
+                  Carrier Company · {carrier.tripsCount || 240} completed trips
                 </div>
 
                 {/* 3-4 Performance Metrics (Removed Average response time) */}
@@ -308,26 +307,19 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
 
                 {/* License plates: Vehicle + Trailer */}
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <span
-                    className="text-[11px] font-semibold px-2 py-0.5 rounded"
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      background: '#F0F0F3',
-                      color: '#18181B',
-                    }}
-                  >
-                    Vehicle: ΙΧΕ-7890
-                  </span>
-                  <span
-                    className="text-[11px] font-semibold px-2 py-0.5 rounded"
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      background: '#F0F0F3',
-                      color: '#18181B',
-                    }}
-                  >
-                    Trailer: ΤΡ-4512
-                  </span>
+                  {carrierPlates.map((plate, pIdx) => (
+                    <span
+                      key={pIdx}
+                      className="text-[11px] font-semibold px-2 py-0.5 rounded"
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        background: '#F0F0F3',
+                        color: '#18181B',
+                      }}
+                    >
+                      {pIdx === 0 ? `Vehicle: ${plate}` : `Trailer: ${plate}`}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -364,12 +356,12 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                   <span>{driver.name}</span>
                   {driver.rating && driver.rating !== '—' && (
                     <span className="text-[11px] font-semibold text-[#9B51E0] inline-flex items-center gap-0.5">
-                      <Star size={10} fill="#9B51E0" /> {driver.rating} (85)
+                      <Star size={10} fill="#9B51E0" /> {driver.rating} ({driver.tripsCount || 85})
                     </span>
                   )}
                 </div>
                 <div className="text-[11px] text-[#64748B]">
-                  Company Driver · 120 trips completed · Vehicle: ΙΧΕ-7890 · Trailer: ΤΡ-4512
+                  Company Driver · {driver.tripsCount || 120} trips completed · Vehicle: {driverPlates[0] || 'ΙΧΕ-7890'} · Trailer: {driverPlates[1] || 'ΤΡ-4512'}
                 </div>
               </div>
             </div>
@@ -377,12 +369,12 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => handleCopyPhone('+30 697 1234567', false)}
+                onClick={() => handleCopyPhone(driverPhone, false)}
                 title={t('copyPhone', 'Click to copy phone')}
                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#CBD5E1] text-[#334155] hover:bg-slate-50 cursor-pointer"
               >
                 <Phone size={12} />
-                <span>{driverPhoneRevealed ? '+30 697 1234567' : t('phone', 'Phone')}</span>
+                <span>{driverPhoneRevealed ? driverPhone : t('phone', 'Phone')}</span>
               </button>
 
               <button

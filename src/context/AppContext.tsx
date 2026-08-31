@@ -234,6 +234,44 @@ export interface Shipment {
   driverNotes?: string;
   negotiable?: boolean;
   navigation?: boolean;
+  loadSummary?: {
+    vehicleTypes: string[];
+    cargoSpecs: string[];
+    quote: string;
+    loadValue: string;
+    channel: string;
+    negotiable: boolean;
+    liveNavigation: boolean;
+    specialInstructions?: string;
+  } | null;
+  tripSummary?: {
+    distanceKm: number;
+    duration: string;
+    stops: number;
+    weight: string;
+    customers: number;
+    orders: number;
+  } | null;
+  auditEntries?: Array<{
+    id: string;
+    time: string;
+    text: string;
+    category: 'all' | 'bidding' | 'operations';
+    tone?: 'bid' | 'counter' | 'reject' | 'accept' | 'default';
+    priceBadge?: string;
+  }> | null;
+  cancellationReason?: string | null;
+  cancellationDate?: string | null;
+  cancellationDetails?: string | null;
+  unfulfilledReason?: string | null;
+  unfulfilledDate?: string | null;
+  shipperRating?: {
+    id: number;
+    rating: number;
+    review?: string;
+    deliveryOnTime?: boolean | null;
+    createdAt?: string;
+  } | null;
   counter?: { yours: number; theirs: number; pct: string; dir: 'up' | 'down' };
   offers?: Array<{
     id: string;

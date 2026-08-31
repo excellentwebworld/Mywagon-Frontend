@@ -205,6 +205,44 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
   offers?: ApiShipmentOffer[];
   invitees?: ApiShipmentInvitee[];
   bid_window_ends_at?: string | null;
+  load_summary?: {
+    vehicle_types?: string[];
+    cargo_specs?: string[];
+    quote?: string | null;
+    load_value?: string | null;
+    channel?: string;
+    negotiable?: boolean;
+    live_navigation?: boolean;
+    special_instructions?: string | null;
+  } | null;
+  trip_summary?: {
+    distance_km?: number;
+    duration?: string;
+    stops_count?: number;
+    total_weight?: string | null;
+    customers_count?: number;
+    orders_count?: number;
+  } | null;
+  audit_entries?: Array<{
+    id: string;
+    time: string;
+    text: string;
+    category: 'all' | 'bidding' | 'operations';
+    tone?: 'bid' | 'counter' | 'reject' | 'accept' | 'default';
+    price_badge?: string | null;
+  }> | null;
+  cancellation_reason?: string | null;
+  cancellation_date?: string | null;
+  cancellation_details?: string | null;
+  unfulfilled_reason?: string | null;
+  unfulfilled_date?: string | null;
+  shipper_rating?: {
+    id: number;
+    rating: number;
+    review?: string;
+    delivery_on_time?: boolean | null;
+    created_at?: string;
+  } | null;
 }
 
 export interface ListShipmentsParams {

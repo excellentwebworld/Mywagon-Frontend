@@ -362,5 +362,51 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
       status: i.status,
       role: i.role,
     })),
+    loadSummary: detail.load_summary
+      ? {
+          vehicleTypes: detail.load_summary.vehicle_types || [],
+          cargoSpecs: detail.load_summary.cargo_specs || [],
+          quote: detail.load_summary.quote || '',
+          loadValue: detail.load_summary.load_value || '',
+          channel: detail.load_summary.channel || 'Private',
+          negotiable: detail.load_summary.negotiable !== false,
+          liveNavigation: Boolean(detail.load_summary.live_navigation),
+          specialInstructions: detail.load_summary.special_instructions || undefined,
+        }
+      : null,
+    tripSummary: detail.trip_summary
+      ? {
+          distanceKm: detail.trip_summary.distance_km || 0,
+          duration: detail.trip_summary.duration || '—',
+          stops: detail.trip_summary.stops_count || 0,
+          weight: detail.trip_summary.total_weight || '—',
+          customers: detail.trip_summary.customers_count || 1,
+          orders: detail.trip_summary.orders_count || 1,
+        }
+      : null,
+    auditEntries: detail.audit_entries
+      ? detail.audit_entries.map((a) => ({
+          id: a.id,
+          time: a.time,
+          text: a.text,
+          category: a.category || 'all',
+          tone: a.tone || 'default',
+          priceBadge: a.price_badge || undefined,
+        }))
+      : null,
+    cancellationReason: detail.cancellation_reason ?? null,
+    cancellationDate: detail.cancellation_date ?? null,
+    cancellationDetails: detail.cancellation_details ?? null,
+    unfulfilledReason: detail.unfulfilled_reason ?? null,
+    unfulfilledDate: detail.unfulfilled_date ?? null,
+    shipperRating: detail.shipper_rating
+      ? {
+          id: detail.shipper_rating.id,
+          rating: detail.shipper_rating.rating,
+          review: detail.shipper_rating.review,
+          deliveryOnTime: detail.shipper_rating.delivery_on_time,
+          createdAt: detail.shipper_rating.created_at,
+        }
+      : null,
   };
 }

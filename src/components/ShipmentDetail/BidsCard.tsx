@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Users, UserPlus, Star, ArrowRightLeft, Check, X, History } from 'lucide-react';
 import { CollapsibleCard } from './CollapsibleCard';
 import { useTransporterProfileOptional } from '../TransporterProfile/TransporterProfileContext';
+import { NegotiationHistoryPanel } from '../ManageShipments/NegotiationHistoryPanel';
 
 export interface PartnerBidItem {
   id: string;
@@ -21,6 +22,7 @@ export interface PartnerBidItem {
 }
 
 interface BidsCardProps {
+  shipmentId?: string | number;
   isPrivateLoad?: boolean;
   partners?: PartnerBidItem[];
   expanded?: boolean;
@@ -35,49 +37,9 @@ interface BidsCardProps {
 }
 
 export const BidsCard: React.FC<BidsCardProps> = ({
+  shipmentId,
   isPrivateLoad = true,
-  partners = [
-    {
-      id: 'inv1',
-      userId: 101,
-      userType: 'carrier',
-      name: 'Transmed Logistics S.A.',
-      transporterType: 'carrier',
-      initials: 'TL',
-      rating: '4.9',
-      tripsCount: 320,
-      hasBid: true,
-      bidAmount: 410,
-      statusText: 'Bid submitted',
-      time: '26/02 11:45',
-    },
-    {
-      id: 'inv2',
-      userId: 102,
-      userType: 'carrier',
-      name: 'Hellas Freight Express',
-      transporterType: 'carrier',
-      initials: 'HF',
-      rating: '4.8',
-      tripsCount: 145,
-      hasBid: false,
-      statusText: 'Invited · Waiting response',
-      time: '26/02 11:46',
-    },
-    {
-      id: 'inv3',
-      userId: 103,
-      userType: 'driver',
-      name: 'Nikos Georgiou',
-      transporterType: 'freelancer',
-      initials: 'NG',
-      rating: '4.7',
-      tripsCount: 88,
-      hasBid: false,
-      statusText: 'Invited · Waiting response',
-      time: '26/02 11:48',
-    },
-  ],
+  partners = [],
   expanded = true,
   onToggle = () => {},
   onAcceptBid,
@@ -91,6 +53,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
   const { openTransporterProfile } = useTransporterProfileOptional();
   const [counterOpenId, setCounterOpenId] = useState<string | null>(null);
   const [counterAmounts, setCounterAmounts] = useState<Record<string, string>>({});
+  const [historyOpenId, setHistoryOpenId] = useState<string | null>(null);
 
   // Sort: active bids/interests first, then invited partners
   const sortedPartners = [...partners].sort((a, b) => {
@@ -123,6 +86,13 @@ export const BidsCard: React.FC<BidsCardProps> = ({
     }
   };
 
+  const toggleHistory = (partner: PartnerBidItem) => {
+    if (onViewHistory) {
+      onViewHistory(partner);
+    }
+    setHistoryOpenId((prev) => (prev === partner.id ? null : partner.id));
+  };
+
   return (
     <CollapsibleCard
       id="bids"
@@ -149,6 +119,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
         {sortedPartners.map((item, idx) => {
           const isFreelancer = item.transporterType === 'freelancer' || item.userType === 'driver';
           const isCountering = counterOpenId === item.id;
+          const isHistoryOpen = historyOpenId === item.id;
 
           return (
             <div
@@ -185,7 +156,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                       </button>
 
                       {/* Rating and completed trips in parenthesis: ★ 4.9 (320) */}
-                      {item.rating && (
+                      {item.rating && item.rating !== '—' && (
                         <span className="text-[11px] font-semibold inline-flex items-center gap-0.5" style={{ color: '#9B51E0' }}>
                           <Star size={11} fill="#9B51E0" />
                           <span>
@@ -262,16 +233,18 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                         </button>
                       )}
 
-                      {onViewHistory && (
-                        <button
-                          type="button"
-                          onClick={() => onViewHistory(item)}
-                          title={t('biddingHistory', 'Bidding history')}
-                          className="p-1.5 rounded-lg bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-slate-50 cursor-pointer"
-                        >
-                          <History size={13} />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => toggleHistory(item)}
+                        title={t('biddingHistory', 'Bidding history')}
+                        className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                          isHistoryOpen
+                            ? 'bg-[#9B51E0] text-white border-[#9B51E0]'
+                            : 'bg-white border-[#E4E4E8] text-[#5E5E6E] hover:bg-slate-50'
+                        }`}
+                      >
+                        <History size={13} />
+                      </button>
                     </div>
                   ) : (
                     onCancelInvite && (
@@ -316,6 +289,18 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                       >
                         {t('cancel', 'Cancel')}
                       </button>
+                    </div>
+                  )}
+
+                  {/* Inline Negotiation History Timeline */}
+                  {isHistoryOpen && shipmentId && (
+                    <div className="mt-2.5">
+                      <NegotiationHistoryPanel
+                        open={true}
+                        shipmentId={shipmentId}
+                        offerId={item.id}
+                        t={t}
+                      />
                     </div>
                   )}
                 </div>

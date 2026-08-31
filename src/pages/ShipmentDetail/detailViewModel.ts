@@ -44,6 +44,9 @@ export interface CarrierDetail {
   name: string;
   partner: boolean;
   rating: string;
+  tripsCount?: number;
+  phone?: string;
+  email?: string;
   meta: string;
   userId?: number | null;
   userType?: 'carrier' | 'driver' | null;
@@ -63,6 +66,9 @@ export interface AssignedDriverDetail {
   name: string;
   partner: boolean;
   rating: string;
+  tripsCount?: number;
+  phone?: string;
+  email?: string;
   meta: string;
   userId?: number | null;
   plates: string[];
@@ -162,6 +168,8 @@ export interface ShipmentDetailViewModel {
   availableNavSections: string[];
   canRate: boolean;
   isAlreadyRated: boolean;
+  userRating?: number | null;
+  ratingDeliveryOnTime?: boolean | null;
 }
 
 const MILESTONE_KEYS = [
@@ -359,48 +367,84 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
         }
       : null;
 
-  const partners: PartnerBidItem[] = [
-    {
-      id: 'inv1',
-      userId: 101,
-      userType: 'carrier',
-      name: 'Transmed Logistics S.A.',
-      transporterType: 'carrier',
-      initials: 'TL',
-      rating: '4.9',
-      tripsCount: 320,
-      hasBid: true,
-      bidAmount: 410,
-      statusText: 'Bid submitted',
-      time: '26/02 11:45',
-    },
-    {
-      id: 'inv2',
-      userId: 102,
-      userType: 'carrier',
-      name: 'Hellas Freight Express',
-      transporterType: 'carrier',
-      initials: 'HF',
-      rating: '4.8',
-      tripsCount: 145,
-      hasBid: false,
-      statusText: 'Invited · Waiting response',
-      time: '26/02 11:46',
-    },
-    {
-      id: 'inv3',
-      userId: 103,
-      userType: 'driver',
-      name: 'Nikos Georgiou',
-      transporterType: 'freelancer',
-      initials: 'NG',
-      rating: '4.7',
-      tripsCount: 88,
-      hasBid: false,
-      statusText: 'Invited · Waiting response',
-      time: '26/02 11:48',
-    },
-  ];
+  const mappedOffers: PartnerBidItem[] = (shipment.offers || []).map((o) => {
+    const name = o.name || 'Transporter';
+    return {
+      id: o.id || `offer-${Math.random()}`,
+      userId: o.transporterId ?? undefined,
+      userType: o.transporterType ?? 'carrier',
+      name,
+      transporterType: o.transporterType === 'driver' || o.role === 'freelancer' ? 'freelancer' : 'carrier',
+      initials: o.initials || name.substring(0, 2).toUpperCase(),
+      avatar: o.avatar ?? null,
+      rating: o.rating != null ? o.rating.toFixed(1) : '—',
+      tripsCount: o.ratingCount ?? 0,
+      hasBid: o.type === 'bid' || o.price != null,
+      isInterested: o.type === 'interest',
+      bidAmount: o.price ?? null,
+      statusText: o.type === 'bid' ? 'Bid submitted' : 'Interested partner',
+      time: o.respondedAt || undefined,
+    };
+  });
+
+  const offerNames = new Set(mappedOffers.map((m) => m.name.toLowerCase().trim()));
+
+  const mappedInvitees: PartnerBidItem[] = (shipment.invitees || [])
+    .filter((inv) => !offerNames.has((inv.name || '').toLowerCase().trim()))
+    .map((inv) => {
+      const name = inv.name || 'Invited Partner';
+      return {
+        id: `invitee-${inv.id}`,
+        userId: inv.id,
+        userType: inv.role === 'freelancer' ? 'driver' : 'carrier',
+        name,
+        transporterType: inv.role === 'freelancer' ? 'freelancer' : 'carrier',
+        initials: inv.initials || name.substring(0, 2).toUpperCase(),
+        avatar: inv.avatar ?? null,
+        rating: '—',
+        tripsCount: 0,
+        hasBid: false,
+        isInterested: false,
+        bidAmount: null,
+        statusText: 'Invited · Waiting response',
+        time: inv.invitedAt || undefined,
+      };
+    });
+
+  const partners: PartnerBidItem[] =
+    mappedOffers.length > 0 || mappedInvitees.length > 0
+      ? [...mappedOffers, ...mappedInvitees]
+      : isPrivateLoad
+        ? [
+            {
+              id: 'inv1',
+              userId: 101,
+              userType: 'carrier',
+              name: 'Transmed Logistics S.A.',
+              transporterType: 'carrier',
+              initials: 'TL',
+              rating: '4.9',
+              tripsCount: 320,
+              hasBid: true,
+              bidAmount: 410,
+              statusText: 'Bid submitted',
+              time: '26/02 11:45',
+            },
+            {
+              id: 'inv2',
+              userId: 102,
+              userType: 'carrier',
+              name: 'Hellas Freight Express',
+              transporterType: 'carrier',
+              initials: 'HF',
+              rating: '4.8',
+              tripsCount: 145,
+              hasBid: false,
+              statusText: 'Invited · Waiting response',
+              time: '26/02 11:46',
+            },
+          ]
+        : [];
 
   const distanceKm = shipment.journeyDistanceKm || 232;
   const duration = typeof shipment.journeyTime === 'string' ? shipment.journeyTime : '3h 45m';
@@ -451,18 +495,18 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     owner: 'Ηρακλής Σακκάς',
     etaChip: '🔵 ETA: 20/02 · 16:00',
     etaStatusChip: shipment.at_risk ? '⚠️ Delayed (+15 min)' : '✅ On Time',
-    cancellationReason: shipment.riskReason || 'Equipment breakdown / shipper requested cancellation',
-    cancellationDate: shipment.updatedAt || '16/02/2026 · 16:45',
-    cancellationDetails: 'Cancelled by Ηρακλής Σακκάς · Full refund issued',
-    unfulfilledReason: 'Carrier vehicle breakdown — delivery could not be completed',
-    unfulfilledDate: '20/02/2026 · 15:30',
+    cancellationReason: shipment.cancellationReason || shipment.riskReason || 'Equipment breakdown / shipper requested cancellation',
+    cancellationDate: shipment.cancellationDate || shipment.updatedAt || '16/02/2026 · 16:45',
+    cancellationDetails: shipment.cancellationDetails || 'Cancelled · Full refund issued',
+    unfulfilledReason: shipment.unfulfilledReason || 'Carrier vehicle breakdown — delivery could not be completed',
+    unfulfilledDate: shipment.unfulfilledDate || '20/02/2026 · 15:30',
     milestones: buildMilestones(shipment),
     exceptionChips: shipment.at_risk
       ? [{ label: 'Delay Warning', target: 'tracking' }]
       : [{ label: 'POD Verified', target: 'docs' }],
     stops,
     partners,
-    loadSummary: {
+    loadSummary: shipment.loadSummary || {
       vehicleTypes: shipment.truckTypes?.length ? shipment.truckTypes : ['Semi-Trailer'],
       cargoSpecs: ['Curtainside'],
       quote,
@@ -517,7 +561,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       kmRemaining: '87 km',
       speed: '68 km/h',
     },
-    trip: {
+    trip: shipment.tripSummary || {
       distanceKm,
       duration,
       stops: stops.length,
@@ -550,51 +594,53 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       invoiceStatus: isCompleted ? 'Paid' : 'Not settled',
       disputeStatus: 'No disputes',
     },
-    auditEntries: [
-      {
-        id: 'a1',
-        time: '14/02 · 12:00',
-        text: 'Shipment **Created** by Ηρακλής Σακκάς',
-        category: 'operations',
-        tone: 'default',
-      },
-      {
-        id: 'a2',
-        time: '15/02 · 10:00',
-        text: 'Bid accepted — **Transmed Logistics** booked at € 410 by Ηρακλής Σακκάς',
-        category: 'bidding',
-        tone: 'accept',
-        priceBadge: '€ 410',
-      },
-      {
-        id: 'a3',
-        time: '17/02 · 07:10',
-        text: 'Pickup completed: **Ιωάννινα** (stop #1)',
-        category: 'operations',
-        tone: 'default',
-      },
-      {
-        id: 'a4',
-        time: '17/02 · 14:40',
-        text: 'Delivery completed: **Βόλος** (stop #2)',
-        category: 'operations',
-        tone: 'default',
-      },
-      {
-        id: 'a5',
-        time: '17/02 · 14:42',
-        text: 'POD uploaded by **Ανδρέας Λύτρας**',
-        category: 'operations',
-        tone: 'default',
-      },
-      {
-        id: 'a6',
-        time: '17/02 · 14:50',
-        text: 'Trip concluded — **fulfilled**',
-        category: 'operations',
-        tone: 'accept',
-      },
-    ],
+    auditEntries: shipment.auditEntries?.length
+      ? shipment.auditEntries
+      : [
+          {
+            id: 'a1',
+            time: '14/02 · 12:00',
+            text: 'Shipment **Created** by Ηρακλής Σακκάς',
+            category: 'operations',
+            tone: 'default',
+          },
+          {
+            id: 'a2',
+            time: '15/02 · 10:00',
+            text: 'Bid accepted — **Transmed Logistics** booked at € 410 by Ηρακλής Σακκάς',
+            category: 'bidding',
+            tone: 'accept',
+            priceBadge: '€ 410',
+          },
+          {
+            id: 'a3',
+            time: '17/02 · 07:10',
+            text: 'Pickup completed: **Ιωάννινα** (stop #1)',
+            category: 'operations',
+            tone: 'default',
+          },
+          {
+            id: 'a4',
+            time: '17/02 · 14:40',
+            text: 'Delivery completed: **Βόλος** (stop #2)',
+            category: 'operations',
+            tone: 'default',
+          },
+          {
+            id: 'a5',
+            time: '17/02 · 14:42',
+            text: 'POD uploaded by **Ανδρέας Λύτρας**',
+            category: 'operations',
+            tone: 'default',
+          },
+          {
+            id: 'a6',
+            time: '17/02 · 14:50',
+            text: 'Trip concluded — **fulfilled**',
+            category: 'operations',
+            tone: 'accept',
+          },
+        ],
     shareGroups: [
       {
         name: primaryCustomer,
@@ -610,6 +656,8 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     ],
     availableNavSections,
     canRate: isCompleted && hasCarrier,
-    isAlreadyRated: status === 'fullfilled',
+    isAlreadyRated: Boolean(shipment.shipperRating) || status === 'fullfilled',
+    userRating: shipment.shipperRating?.rating ?? (status === 'fullfilled' ? 5 : null),
+    ratingDeliveryOnTime: shipment.shipperRating?.deliveryOnTime ?? (status === 'fullfilled' ? true : null),
   };
 }

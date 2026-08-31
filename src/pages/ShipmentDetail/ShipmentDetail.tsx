@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import {
   ActivityLogModal,
@@ -30,6 +30,7 @@ import { useShipment } from '../../hooks/useShipments';
 import { ShipmentDetailSkeleton } from '../../components/skeletons/ShipmentDetailSkeleton';
 import { buildShipmentDetailViewModel } from './detailViewModel';
 import { shipmentsService } from '../../api';
+import { CancelShipmentModal } from '../../components/ManageShipments/CancelShipmentModal';
 
 const DEFAULT_SECTIONS: Record<string, boolean> = {
   bids: true,
@@ -48,6 +49,7 @@ const DEFAULT_SECTIONS: Record<string, boolean> = {
 };
 
 export const ShipmentDetail: React.FC = () => {
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { showToast } = useApp();
   const { t } = useTranslation();
@@ -56,6 +58,7 @@ export const ShipmentDetail: React.FC = () => {
   const [activeNav, setActiveNav] = useState('stops');
   const [sections, setSections] = useState(DEFAULT_SECTIONS);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
@@ -164,6 +167,50 @@ export const ShipmentDetail: React.FC = () => {
     [id, loadReportablePickups, pendingDelay, refetch, showToast, t]
   );
 
+  const handleAcceptBid = useCallback(async (bid: PartnerBidItem) => {
+    if (!id) return;
+    try {
+      await shipmentsService.acceptOffer(id, bid.id);
+      showToast(`${t('bidAccepted', 'Bid accepted from')} ${bid.name}`, 'success');
+      refetch?.();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : t('bidAcceptFailed', 'Failed to accept bid'), 'error');
+    }
+  }, [id, refetch, showToast, t]);
+
+  const handleRejectBid = useCallback(async (bid: PartnerBidItem) => {
+    if (!id) return;
+    try {
+      await shipmentsService.rejectOffer(id, bid.id);
+      showToast(`${t('bidDeclined', 'Bid declined for')} ${bid.name}`, 'info');
+      refetch?.();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : t('bidRejectFailed', 'Failed to decline bid'), 'error');
+    }
+  }, [id, refetch, showToast, t]);
+
+  const handleCounterBid = useCallback(async (bid: PartnerBidItem, amount: number) => {
+    if (!id) return;
+    try {
+      await shipmentsService.counterOffer(id, bid.id, { amount });
+      showToast(`${t('counterSent', 'Counter offer of €')} ${amount} ${t('sentTo', 'sent to')} ${bid.name}`, 'success');
+      refetch?.();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : t('counterOfferFailed', 'Failed to send counter offer'), 'error');
+    }
+  }, [id, refetch, showToast, t]);
+
+  const handleCancelInvite = useCallback(async (partner: PartnerBidItem) => {
+    if (!id || !partner.userId) return;
+    try {
+      await shipmentsService.removeInvite(id, partner.userId);
+      showToast(`${t('inviteCancelled', 'Invite cancelled for')} ${partner.name}`, 'info');
+      refetch?.();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : t('cancelInviteFailed', 'Failed to cancel invite'), 'error');
+    }
+  }, [id, refetch, showToast, t]);
+
   if (loading) {
     return <ShipmentDetailSkeleton t={t} />;
   }
@@ -231,8 +278,16 @@ export const ShipmentDetail: React.FC = () => {
           lang={lang}
           onLangChange={setLang}
           onCopyId={() => handleCopy(vm.displayId)}
+          onEdit={() => {
+            if (vm.status === 'draft') {
+              navigate(`/create-shipment?draftId=${vm.id}`);
+            } else {
+              navigate(`/create-shipment?editId=${vm.id}`);
+            }
+          }}
           onShare={() => setIsShareOpen(true)}
           onAuditLog={() => handleJump('audit')}
+          onCancelShipment={() => setIsCancelOpen(true)}
           onToast={(msg) => showToast(msg, 'info')}
           t={t}
         />
@@ -277,26 +332,15 @@ export const ShipmentDetail: React.FC = () => {
             {/* 1. Bids Section (Pending status only) */}
             {isPending && (
               <BidsCard
+                shipmentId={id}
                 isPrivateLoad={vm.isPrivateLoad}
                 partners={vm.partners}
                 expanded={sections.bids}
                 onToggle={() => toggleSection('bids')}
-                onAcceptBid={(bid) => {
-                  showToast(`${t('bidAccepted', 'Bid accepted from')} ${bid.name}`, 'success');
-                  refetch?.();
-                }}
-                onRejectBid={(bid) => {
-                  showToast(`${t('bidDeclined', 'Bid declined for')} ${bid.name}`, 'info');
-                }}
-                onCounterBid={(bid, amt) => {
-                  showToast(`${t('counterSent', 'Counter offer of €')} ${amt} ${t('sentTo', 'sent to')} ${bid.name}`, 'success');
-                }}
-                onCancelInvite={(p) => {
-                  showToast(`${t('inviteCancelled', 'Invite cancelled for')} ${p.name}`, 'info');
-                }}
-                onViewHistory={(p) => {
-                  showToast(`${t('viewingBidsHistoryFor', 'Bids history for')} ${p.name}`, 'info');
-                }}
+                onAcceptBid={handleAcceptBid}
+                onRejectBid={handleRejectBid}
+                onCounterBid={handleCounterBid}
+                onCancelInvite={handleCancelInvite}
                 onInviteMore={() => showToast(t('invitePartners', 'Invite partners modal opening…'), 'info')}
                 t={t}
               />
@@ -397,7 +441,14 @@ export const ShipmentDetail: React.FC = () => {
               expanded={sections.tracking}
               onToggle={() => toggleSection('tracking')}
               onShare={() => setIsShareOpen(true)}
-              onReportDelay={() => setPendingDelay({ location_id: 1, location_name: 'Athens' })}
+              onReportDelay={() => {
+                if (reportablePickups.length > 0) {
+                  setPendingDelay(reportablePickups[0]);
+                } else if (vm.stops.length > 0) {
+                  const firstStop = vm.stops.find((s) => s.type === 'pickup') || vm.stops[0];
+                  setPendingDelay({ location_id: firstStop.id, location_name: firstStop.location });
+                }
+              }}
               t={t}
             />
 
@@ -479,6 +530,19 @@ export const ShipmentDetail: React.FC = () => {
         submitting={delaySubmitting}
         onClose={() => setPendingDelay(null)}
         onSubmit={handleSubmitPickupDelay}
+        t={t}
+      />
+
+      {/* Cancel Shipment Modal */}
+      <CancelShipmentModal
+        open={isCancelOpen}
+        shipment={shipment}
+        onClose={() => setIsCancelOpen(false)}
+        onCancelled={() => {
+          setIsCancelOpen(false);
+          showToast(t('shipmentCancelledSuccess', 'Shipment cancelled successfully'), 'success');
+          refetch?.();
+        }}
         t={t}
       />
     </div>
