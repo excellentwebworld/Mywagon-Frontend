@@ -4,8 +4,8 @@ import {
   Pencil,
   MessageSquare,
   Share2,
-  FileText,
   ClipboardList,
+  Receipt,
   MoreHorizontal,
   Check,
 } from 'lucide-react';
@@ -22,8 +22,11 @@ interface CommandHeaderProps {
   onShare: () => void;
   onPdfExport?: () => void;
   onAuditLog: () => void;
+  onBidsHistory?: () => void;
   onCancelShipment?: () => void;
   onDuplicate?: () => void;
+  onAssignCoOwner?: () => void;
+  onUploadDocument?: () => void;
   onToast: (msg: string) => void;
   t: (key: string, fallback?: string) => string;
 }
@@ -38,6 +41,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
   onShare,
   onPdfExport,
   onAuditLog,
+  onBidsHistory,
   onCancelShipment,
   onDuplicate,
   onToast,
@@ -58,7 +62,20 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
     status === 'pending' ||
     status === 'scheduled' ||
     status === 'ready' ||
-    status === 'upcoming';
+    status === 'upcoming' ||
+    status === 'past_due' ||
+    status === 'on_trip' ||
+    status === 'in_progress';
+
+  const canCancel =
+    status === 'draft' ||
+    status === 'pending' ||
+    status === 'scheduled' ||
+    status === 'ready' ||
+    status === 'upcoming' ||
+    status === 'past_due' ||
+    status === 'on_trip' ||
+    status === 'in_progress';
 
   const isOnTrip = status === 'on_trip' || status === 'in_progress';
   const isCancelled = status === 'canceled' || status === 'cancelled';
@@ -151,7 +168,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
               className="text-[10px] font-bold tracking-wider"
               style={{ color: '#8E8E9A' }}
             >
-              {vm.loadSummary.shipmentType ? vm.loadSummary.shipmentType.toUpperCase() : 'PRIVATE'}
+              {(vm.loadSummary?.channel || (vm.isPrivateLoad ? 'PRIVATE' : 'PUBLIC')).toUpperCase()}
             </span>
 
             {vm.primaryCustomer && (
@@ -242,23 +259,8 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
 
           <button
             type="button"
-            onClick={onPdfExport || (() => onToast(t('pdfExported', 'PDF exported')))}
-            title={t('documentsPdf', 'Export PDF / Docs')}
-            className="flex items-center justify-center rounded-lg text-[13px] font-semibold transition-colors hover:bg-black/5 cursor-pointer"
-            style={{
-              background: '#FFFFFF',
-              border: '1px solid #E4E4E8',
-              color: '#5E5E6E',
-              padding: '8px 10px',
-            }}
-          >
-            <FileText size={14} />
-          </button>
-
-          <button
-            type="button"
             onClick={onAuditLog}
-            title={t('auditLog', 'Activity log')}
+            title={t('shipmentLogs', 'Shipment Logs')}
             className="flex items-center justify-center rounded-lg text-[13px] font-semibold transition-colors hover:bg-black/5 cursor-pointer"
             style={{
               background: '#FFFFFF',
@@ -269,6 +271,23 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
           >
             <ClipboardList size={14} />
           </button>
+
+          {onBidsHistory && (
+            <button
+              type="button"
+              onClick={onBidsHistory}
+              title={t('bidsHistory', 'Bids History')}
+              className="flex items-center justify-center rounded-lg text-[13px] font-semibold transition-colors hover:bg-black/5 cursor-pointer"
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid #E4E4E8',
+                color: '#5E5E6E',
+                padding: '8px 10px',
+              }}
+            >
+              <Receipt size={14} />
+            </button>
+          )}
 
           <div className="relative">
             <button
@@ -303,7 +322,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
                     {t('duplicateShipment', 'Duplicate load')}
                   </button>
                 )}
-                {!isCancelled && onCancelShipment && (
+                {canCancel && onCancelShipment && (
                   <button
                     type="button"
                     className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Truck, Phone, MessageSquare, Mail, Star, ShieldCheck } from 'lucide-react';
+import { Truck, Phone, MessageSquare, Star, ShieldCheck } from 'lucide-react';
 import type {
   CarrierDetail,
   AssignedDriverDetail,
@@ -10,6 +10,14 @@ import { useTransporterProfileOptional } from '../TransporterProfile/Transporter
 interface CarrierDriverCardProps {
   carrier: CarrierDetail | null;
   driver?: AssignedDriverDetail | null;
+  status?: string;
+  isPaid?: boolean;
+  isCarrierRated?: boolean;
+  isDriverRated?: boolean;
+  onRateCarrier?: (carrier: CarrierDetail) => void;
+  onRateDriver?: (driver: AssignedDriverDetail) => void;
+  onChatCarrier?: (carrier: CarrierDetail) => void;
+  onChatDriver?: (driver: AssignedDriverDetail) => void;
   expanded: boolean;
   onToggle: () => void;
   onToast: (msg: string) => void;
@@ -20,9 +28,18 @@ interface CarrierDriverCardProps {
 export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
   carrier,
   driver,
+  status = '',
+  isPaid = false,
+  isCarrierRated = false,
+  isDriverRated = false,
+  onRateCarrier,
+  onRateDriver,
+  onChatCarrier,
+  onChatDriver,
   expanded,
   onToggle,
   onToast,
+  onRate,
   t,
 }) => {
   const { openTransporterProfile } = useTransporterProfileOptional();
@@ -36,6 +53,9 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
   const isFreelancer =
     carrier?.userType === 'driver' ||
     carrier?.meta?.toLowerCase().includes('freelancer');
+
+  const handleRateCarrier = onRateCarrier || (onRate ? () => carrier && onRate() : undefined);
+  const handleRateDriver = onRateDriver || (onRate ? () => driver && onRate() : undefined);
 
   const carrierPhone = carrier?.phone || '+30 210 5551234';
   const driverPhone = driver?.phone || '+30 697 1234567';
@@ -113,28 +133,45 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                   >
                     {t('freelancer', 'Freelancer')}
                   </span>
+
+                  {carrier.partner && (
+                    <span
+                      className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                      style={{ background: '#ECFDF5', color: '#059669' }}
+                    >
+                      <ShieldCheck size={10} />
+                      <span>{t('partner', 'PARTNER')}</span>
+                    </span>
+                  )}
                 </div>
 
-                {/* Email, Message, Copy Phone Buttons */}
-                <div className="flex items-center gap-1.5">
+                {/* Email, Message, Copy Phone, Rate Buttons */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {handleRateCarrier && !isCarrierRated && (
+                    <button
+                      type="button"
+                      onClick={() => handleRateCarrier(carrier)}
+                      title={t('rateCarrierCompany', 'Rate the Carrier Company')}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer shadow-sm"
+                      style={{ background: '#9B51E0' }}
+                    >
+                      <Star size={11} fill="#fff" />
+                      <span>{t('rate', 'Rate')}</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
-                    onClick={() => onToast(`${t('message', 'Message')} ${carrier.name}`)}
+                    onClick={() =>
+                      onChatCarrier
+                        ? onChatCarrier(carrier)
+                        : onToast(`${t('message', 'Message')} ${carrier.name}`)
+                    }
                     title={t('message', 'Message')}
                     className="p-1.5 rounded-lg hover:bg-black/5 transition-colors cursor-pointer"
                     style={{ border: '1px solid #E4E4E8', color: '#5E5E6E', background: '#FFFFFF' }}
                   >
                     <MessageSquare size={13} />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onToast(`${t('emailing', 'Email')} ${carrier.name}`)}
-                    title={t('email', 'Email')}
-                    className="p-1.5 rounded-lg hover:bg-black/5 transition-colors cursor-pointer"
-                    style={{ border: '1px solid #E4E4E8', color: '#5E5E6E', background: '#FFFFFF' }}
-                  >
-                    <Mail size={13} />
                   </button>
 
                   <button
@@ -229,25 +266,33 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     )}
                   </div>
 
-                  {/* Buttons: Message, Email, Copy Phone */}
-                  <div className="flex items-center gap-1.5">
+                  {/* Buttons: Rate, Message, Copy Phone */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {handleRateCarrier && !isCarrierRated && (
+                      <button
+                        type="button"
+                        onClick={() => handleRateCarrier(carrier)}
+                        title={t('rateCarrierCompany', 'Rate the Carrier Company')}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer shadow-sm"
+                        style={{ background: '#9B51E0' }}
+                      >
+                        <Star size={11} fill="#fff" />
+                        <span>{t('rate', 'Rate')}</span>
+                      </button>
+                    )}
+
                     <button
                       type="button"
-                      onClick={() => onToast(`${t('message', 'Message')} ${carrier.name}`)}
+                      onClick={() =>
+                        onChatCarrier
+                          ? onChatCarrier(carrier)
+                          : onToast(`${t('message', 'Message')} ${carrier.name}`)
+                      }
                       title={t('message', 'Message')}
                       className="p-1.5 rounded-lg hover:bg-black/5 transition-colors cursor-pointer"
                       style={{ border: '1px solid #E4E4E8', color: '#5E5E6E', background: '#FFFFFF' }}
                     >
                       <MessageSquare size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onToast(`${t('emailing', 'Email')} ${carrier.name}`)}
-                      title={t('email', 'Email')}
-                      className="p-1.5 rounded-lg hover:bg-black/5 transition-colors cursor-pointer"
-                      style={{ border: '1px solid #E4E4E8', color: '#5E5E6E', background: '#FFFFFF' }}
-                    >
-                      <Mail size={13} />
                     </button>
                     <button
                       type="button"
@@ -266,7 +311,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                   Carrier Company · {carrier.tripsCount || 240} completed trips
                 </div>
 
-                {/* 3-4 Performance Metrics (Removed Average response time) */}
+                {/* 3-4 Performance Metrics */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2.5">
                   <div className="p-2 rounded-lg" style={{ background: '#F5F5F7' }}>
                     <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: '#8E8E9A' }}>
@@ -366,7 +411,20 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {handleRateDriver && !isDriverRated && (
+                <button
+                  type="button"
+                  onClick={() => handleRateDriver(driver)}
+                  title={t('rateTheDriver', 'Rate the Driver')}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer shadow-sm"
+                  style={{ background: '#9B51E0' }}
+                >
+                  <Star size={11} fill="#fff" />
+                  <span>{t('rate', 'Rate')}</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => handleCopyPhone(driverPhone, false)}
@@ -379,7 +437,12 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
 
               <button
                 type="button"
-                onClick={() => onToast(`${t('message', 'Message')} ${driver.name}`)}
+                onClick={() =>
+                  onChatDriver
+                    ? onChatDriver(driver)
+                    : onToast(`${t('message', 'Message')} ${driver.name}`)
+                }
+                title={t('message', 'Message')}
                 className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#CBD5E1] text-[#334155] hover:bg-slate-50 cursor-pointer"
               >
                 {t('message', 'Message')}

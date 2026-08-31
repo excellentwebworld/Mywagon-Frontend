@@ -108,6 +108,8 @@ export interface ApiShipmentStop {
   location?: string | null;
   address?: string | null;
   city?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   date?: string | null;
   time_start?: string | null;
   time_end?: string | null;
@@ -180,12 +182,18 @@ export interface ApiNegotiationHistoryItem {
 
 export interface ApiShipmentInvitee {
   id: number;
+  partner_id?: number;
   name: string;
   initials?: string;
   avatar?: string | null;
   invited_at?: string | null;
   status?: string;
   role?: 'company' | 'freelancer' | string;
+  rating?: number | null;
+  rating_count?: number | null;
+  vat?: string | null;
+  transporter_id?: number | null;
+  transporter_type?: 'carrier' | 'driver' | null;
 }
 
 export interface ApiShipmentDetail extends ApiShipmentListItem {
@@ -194,6 +202,13 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
   journey_distance?: string | number | null;
   journey_time?: string | number | null;
   tracking_required_by_shipper?: boolean;
+  started_by?: string | null;
+  is_manual_trip?: boolean;
+  mark_as_paid?: string | null;
+  is_paid?: boolean;
+  paid_date?: string | null;
+  owner_name?: string | null;
+  carrier_partner?: boolean;
   stops?: ApiShipmentStop[];
   partners_count?: number;
   cargo_value?: number | null;
@@ -236,6 +251,38 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
   cancellation_details?: string | null;
   unfulfilled_reason?: string | null;
   unfulfilled_date?: string | null;
+  notes?: Array<{
+    id: string;
+    timestamp: string;
+    author: string;
+    visibility: string;
+    body: string;
+  }> | null;
+  documents?: ApiShipmentDocument[] | null;
+  shipment_logs?: Array<{
+    id: number;
+    action: string;
+    actor: string;
+    date: string;
+    is_rejection?: boolean;
+    rejection_reason?: string | null;
+  }> | null;
+  bids_history?: Array<{
+    bid_number: number;
+    initiator_name: string;
+    date: string;
+    price: string;
+    raw_price?: number;
+    negotiations?: Array<{
+      id: number;
+      action: string;
+      user_name: string;
+      date: string;
+      price?: string | null;
+      raw_price?: number | null;
+      notes?: string | null;
+    }>;
+  }> | null;
   shipper_rating?: {
     id: number;
     rating: number;
@@ -243,6 +290,18 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
     delivery_on_time?: boolean | null;
     created_at?: string;
   } | null;
+}
+
+export interface ApiShipmentDocument {
+  id: string;
+  name: string;
+  description?: string | null;
+  file_name: string;
+  file_type?: string | null;
+  file_size?: number | null;
+  url?: string | null;
+  uploaded_by?: string | null;
+  created_at?: string | null;
 }
 
 export interface ListShipmentsParams {

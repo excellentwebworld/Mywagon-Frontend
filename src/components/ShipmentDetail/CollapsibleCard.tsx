@@ -37,49 +37,58 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
         breakInside: 'avoid',
       }}
     >
-      <button
-        type="button"
-        aria-expanded={expanded}
-        onClick={onToggle}
-        className="w-full flex items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-black/[0.01]"
-        style={{ background: 'transparent', border: 'none' }}
-      >
-        {icon && (
-          <span className="flex-shrink-0 flex items-center" style={{ color: '#9B51E0' }}>
-            {icon}
-          </span>
-        )}
-        <h3
-          className="font-semibold flex-1 flex items-center gap-2 m-0"
-          style={{ fontSize: '14px', color: '#18181B' }}
+      <div className="w-full flex items-center justify-between px-4 py-3">
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={onToggle}
+          className="flex-1 flex items-center gap-2 text-left transition-colors hover:bg-black/[0.01] cursor-pointer"
+          style={{ background: 'transparent', border: 'none', padding: 0 }}
         >
-          {title}
-          {count != null && count !== '' && (
-            <span
-              className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-              style={{ background: '#F0F0F3', color: '#8E8E9A' }}
-            >
-              {count}
+          {icon && (
+            <span className="flex-shrink-0 flex items-center" style={{ color: '#9B51E0' }}>
+              {icon}
             </span>
           )}
-        </h3>
-        {headerExtra && (
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1.5 mr-2"
+          <h3
+            className="font-semibold flex-1 flex items-center gap-2 m-0"
+            style={{ fontSize: '14px', color: '#18181B' }}
           >
-            {headerExtra}
-          </div>
-        )}
-        <ChevronDown
-          size={15}
-          style={{
-            color: '#8E8E9A',
-            transform: expanded ? 'none' : 'rotate(-90deg)',
-            transition: 'transform .15s',
-          }}
-        />
-      </button>
+            {title}
+            {count != null && count !== '' && (
+              <span
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                style={{ background: '#F0F0F3', color: '#8E8E9A' }}
+              >
+                {count}
+              </span>
+            )}
+          </h3>
+        </button>
+
+        <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+          {headerExtra && (
+            <div className="flex items-center gap-1.5">
+              {headerExtra}
+            </div>
+          )}
+          <button
+            type="button"
+            aria-expanded={expanded}
+            onClick={onToggle}
+            className="p-1 text-[#8E8E9A] hover:text-[#18181B] cursor-pointer"
+            style={{ background: 'transparent', border: 'none' }}
+          >
+            <ChevronDown
+              size={15}
+              style={{
+                transform: expanded ? 'none' : 'rotate(-90deg)',
+                transition: 'transform .15s',
+              }}
+            />
+          </button>
+        </div>
+      </div>
 
       {expanded && <div className={bodyClassName}>{children}</div>}
     </section>

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, Star, ArrowRightLeft, Check, X, History } from 'lucide-react';
+import { Users, Star, ArrowRightLeft, Check, X, History } from 'lucide-react';
 import { CollapsibleCard } from './CollapsibleCard';
 import { useTransporterProfileOptional } from '../TransporterProfile/TransporterProfileContext';
 import { NegotiationHistoryPanel } from '../ManageShipments/NegotiationHistoryPanel';
+import { CarrierAvatar } from '../ManageShipments/CarrierAvatar';
 
 export interface PartnerBidItem {
   id: string;
@@ -101,22 +102,14 @@ export const BidsCard: React.FC<BidsCardProps> = ({
       count={sortedPartners.length}
       expanded={expanded}
       onToggle={onToggle}
-      headerExtra={
-        isPrivateLoad && onInviteMore && (
-          <button
-            type="button"
-            onClick={onInviteMore}
-            className="flex items-center gap-1 text-[11px] font-semibold text-[#9B51E0] hover:underline cursor-pointer"
-            style={{ background: 'none', border: 'none' }}
-          >
-            <UserPlus size={12} />
-            <span>{t('inviteMore', '+ Invite')}</span>
-          </button>
-        )
-      }
     >
-      <div className="space-y-1">
-        {sortedPartners.map((item, idx) => {
+      {sortedPartners.length === 0 ? (
+        <p className="text-[12px] m-0 py-2" style={{ color: '#8E8E9A' }}>
+          {t('noPartnersInvited', 'No partners invited yet.')}
+        </p>
+      ) : (
+        <div className="space-y-1">
+          {sortedPartners.map((item, idx) => {
           const isFreelancer = item.transporterType === 'freelancer' || item.userType === 'driver';
           const isCountering = counterOpenId === item.id;
           const isHistoryOpen = historyOpenId === item.id;
@@ -129,18 +122,13 @@ export const BidsCard: React.FC<BidsCardProps> = ({
             >
               <div className="flex items-start gap-3">
                 {/* Transporter Avatar */}
-                <div
-                  className="rounded-full flex items-center justify-center font-bold flex-shrink-0 mt-0.5"
-                  style={{
-                    width: 34,
-                    height: 34,
-                    fontSize: 12,
-                    background: item.hasBid ? '#F3E8FF' : '#F4F4F5',
-                    color: item.hasBid ? '#9B51E0' : '#71717A',
-                  }}
-                >
-                  {item.initials || item.name.substring(0, 2).toUpperCase()}
-                </div>
+                <CarrierAvatar
+                  size={34}
+                  avatar={item.avatar}
+                  name={item.name}
+                  initials={item.initials}
+                  className="carrier-av rounded-full flex items-center justify-center font-bold flex-shrink-0 mt-0.5 overflow-hidden text-xs"
+                />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -177,8 +165,8 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                       </span>
                     </div>
 
-                    {/* Bid Price Display if submitted */}
-                    {item.bidAmount != null && (
+                    {/* Right Side: Bid Price OR Cancel Invite Button */}
+                    {item.bidAmount != null ? (
                       <span
                         className="font-bold text-[15px]"
                         style={{
@@ -188,6 +176,16 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                       >
                         € {item.bidAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </span>
+                    ) : (
+                      !item.hasBid && onCancelInvite && (
+                        <button
+                          type="button"
+                          onClick={() => onCancelInvite(item)}
+                          className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer border border-[#E4E4E8] bg-white text-[#DC2626] hover:bg-red-50 hover:border-[#FECACA]"
+                        >
+                          {t('cancelInvite', 'Cancel invite')}
+                        </button>
+                      )
                     )}
                   </div>
 
@@ -197,7 +195,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                   </div>
 
                   {/* Actions when bid is received: Accept, Reject, Counter, History */}
-                  {item.hasBid ? (
+                  {item.hasBid && (
                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                       {onAcceptBid && (
                         <button
@@ -246,18 +244,6 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                         <History size={13} />
                       </button>
                     </div>
-                  ) : (
-                    onCancelInvite && (
-                      <div className="mt-2">
-                        <button
-                          type="button"
-                          onClick={() => onCancelInvite(item)}
-                          className="px-2.5 py-1 rounded text-[11px] font-semibold bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-slate-50 cursor-pointer"
-                        >
-                          {t('cancelInvite', 'Cancel invite')}
-                        </button>
-                      </div>
-                    )
                   )}
 
                   {/* Inline Counter-Offer Drawer */}
@@ -309,6 +295,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
           );
         })}
       </div>
+      )}
     </CollapsibleCard>
   );
 };

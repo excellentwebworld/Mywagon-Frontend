@@ -174,18 +174,6 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
           </div>
         </div>
       </div>
-
-      {loadSummary.specialInstructions && (
-        <div
-          className="mt-3 p-2.5 rounded-lg text-[12px]"
-          style={{ background: '#F5F5F7', color: '#5E5E6E' }}
-        >
-          <strong style={{ color: '#18181B' }}>
-            {t('specialInstructions', 'Special instructions')}:
-          </strong>{' '}
-          {loadSummary.specialInstructions}
-        </div>
-      )}
     </CollapsibleCard>
   );
 };

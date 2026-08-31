@@ -3,6 +3,7 @@ import type { TrackingStats, TripSummary } from '../../pages/ShipmentDetail/deta
 import { TrackingMapCard } from './TrackingMapCard';
 
 interface TrackingCardProps {
+  stops?: any[];
   status?: string;
   tracking: TrackingStats;
   trip?: TripSummary;

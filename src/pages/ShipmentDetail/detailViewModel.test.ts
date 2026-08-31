@@ -110,6 +110,32 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
     expect(vm.status).toBe('pending');
     expect(vm.isPrivateLoad).toBe(false);
     expect(vm.partners.length).toBe(0);
+    expect(vm.availableNavSections).not.toContain('bids');
+    expect(vm.availableNavSections).not.toContain('invited');
+  });
+
+  it('Phase 2: handles private load with invited partners but 0 bids', () => {
+    const vm = buildShipmentDetailViewModel({
+      ...baseMockShipment,
+      status: 'pending',
+      channel: 'private',
+      vis: 'private',
+      offers: [],
+      invitees: [
+        {
+          id: 1,
+          name: 'Hellas Freight Express',
+          role: 'carrier',
+          invitedAt: '2026-02-26T11:46:00Z',
+        },
+      ],
+    });
+
+    expect(vm.status).toBe('pending');
+    expect(vm.isPrivateLoad).toBe(true);
+    expect(vm.partners.length).toBe(1);
+    expect(vm.availableNavSections).toContain('invited');
+    expect(vm.availableNavSections).not.toContain('bids');
   });
 
   // Phase 3: Scheduled, Ready & Transporter Management
@@ -260,6 +286,6 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
 
     expect(vmPartiallyFulfilled.status).toBe('partially_fullfilled');
     expect(vmPartiallyFulfilled.availableNavSections).toContain('docs');
-    expect(vmPartiallyFulfilled.availableNavSections).toContain('billing');
+    expect(vmPartiallyFulfilled.availableNavSections).toContain('audit');
   });
 });

@@ -10,9 +10,8 @@ interface MilestonesBarProps {
 export const MilestonesBar: React.FC<MilestonesBarProps> = ({
   vm,
   lang = 'en',
-  onExceptionClick,
 }) => {
-  // Only show events that have happened or are currently in progress
+  // Only show events that have happened or are currently active
   const pastAndCurrentMilestones = vm.milestones.filter(
     (ms) => ms.state === 'done' || ms.state === 'cur'
   );
@@ -21,135 +20,137 @@ export const MilestonesBar: React.FC<MilestonesBarProps> = ({
     return null;
   }
 
+  const isCompleted =
+    vm.status === 'fullfilled' ||
+    vm.status === 'delivered';
+
+  const isCanceled =
+    vm.status === 'canceled' ||
+    vm.status === 'cancelled' ||
+    vm.status === 'not_fullfilled';
+
   return (
-    <div
-      className="rounded-2xl px-5 py-4 mb-4"
-      style={{ background: '#FFFFFF', border: '1px solid #E4E4E8' }}
-    >
-      <div className="flex items-center w-full overflow-x-auto overflow-y-visible pb-1 pt-3">
-        {pastAndCurrentMilestones.map((ms, idx) => {
-          const isFirst = idx === 0;
-          const label = lang === 'el' ? ms.labelEl : ms.labelEn;
-          const tooltip = ms.time || 'Completed';
+    <div className="rounded-2xl px-6 py-5 mb-4 bg-white border border-[#E4E4E8] shadow-sm">
+      <div className="overflow-x-auto py-1">
+        <div className="flex items-start w-full min-w-max">
+          {pastAndCurrentMilestones.map((ms, idx) => {
+            const isLast = idx === pastAndCurrentMilestones.length - 1;
+            const label = lang === 'el' ? ms.labelEl : ms.labelEn;
+            const isCur = ms.state === 'cur';
 
-          const isCur = ms.state === 'cur';
-          const dotBg = isCur ? '#9B51E0' : '#10B981';
-          const dotShadow = isCur ? '0 0 0 4px #F3E8FF' : 'none';
-          const labelColor = '#18181B';
+            let dotBg = '#9B51E0';
+            let ringClass = 'ring-4 ring-[#9B51E0]/20';
+            let labelColor = isCur ? '#9B51E0' : '#18181B';
 
-          if (isFirst) {
+            if (ms.tone === 'green') {
+              dotBg = '#10B981';
+              ringClass = 'ring-4 ring-[#10B981]/20';
+              labelColor = '#10B981';
+            } else if (ms.tone === 'red') {
+              dotBg = '#EF4444';
+              ringClass = 'ring-4 ring-[#EF4444]/20';
+              labelColor = '#EF4444';
+            }
+
             return (
               <div
                 key={ms.key}
-                className="flex items-center"
-                style={{ flex: '0 0 auto', minWidth: 72 }}
+                className={`flex flex-col items-start ${
+                  isLast ? 'flex-1 min-w-[130px]' : 'flex-1 min-w-[140px] max-w-[240px] pr-2'
+                }`}
               >
-                <div
-                  className="relative flex flex-col items-center px-1 flex-shrink-0 group cursor-default"
-                  style={{ minWidth: 72 }}
-                >
+                {/* Track Row (Dot + Connecting line to next milestone) */}
+                <div className="flex items-center w-full h-6">
+                  {/* Dot */}
                   <span
-                    className="rounded-full"
-                    style={{ width: 11, height: 11, background: dotBg, boxShadow: dotShadow }}
+                    className={`w-3 h-3 rounded-full flex-shrink-0 z-10 ${ringClass}`}
+                    style={{ backgroundColor: dotBg }}
                     aria-hidden="true"
                   />
-                  <span
-                    className="pointer-events-none absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 hidden group-hover:block px-2 py-1 rounded-md text-[10px] font-semibold whitespace-nowrap z-20"
-                    style={{
-                      background: '#18181B',
-                      color: '#fff',
-                      boxShadow: '0 4px 12px rgba(0,0,0,.2)',
-                    }}
-                    role="tooltip"
-                  >
-                    {tooltip}
-                  </span>
-                  <span
-                    className="mt-1.5 text-[10px] font-semibold text-center"
-                    style={{ color: labelColor }}
-                  >
-                    {label}
-                  </span>
-                  {ms.time && (
+
+                  {/* Line to next step */}
+                  {!isLast && (
                     <span
-                      className="text-[9px] mt-0.5 text-[#8E8E9A] font-mono tabular-nums"
-                    >
+                      className="flex-1 h-[2px]"
+                      style={{
+                        backgroundColor: '#9B51E0',
+                      }}
+                      aria-hidden="true"
+                    />
+                  )}
+
+                  {/* Dashed Trailing Line */}
+                  {isLast && !isCompleted && !isCanceled && (
+                    <span
+                      className="flex-1 h-0 mr-2"
+                      style={{
+                        borderTop: '1.5px dashed #9B51E0',
+                        opacity: 0.45,
+                      }}
+                      aria-hidden="true"
+                    />
+                  )}
+                </div>
+
+                {/* Text Label & Timestamp */}
+                <div className="flex flex-col items-start mt-2 w-full pr-2">
+                  {ms.actorName ? (
+                    <div>
+                      <div className="text-[12px] font-normal text-[#18181B] leading-tight">
+                        {ms.actorRole || 'Transporter:'}
+                      </div>
+                      <div className="flex items-center flex-wrap gap-1 mt-0.5">
+                        <span
+                          className="text-[13px] font-bold leading-snug break-words"
+                          style={{ color: '#9B51E0' }}
+                        >
+                          {ms.actorName}
+                        </span>
+                        {ms.badge && (
+                          <span className="inline-block uppercase px-1.5 py-0.5 text-[9px] font-bold bg-[#E4E4E8] text-[#5E5E6E] rounded-md tracking-wider">
+                            {ms.badge}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center flex-wrap gap-1">
+                      <span
+                        className="text-[13px] font-semibold leading-snug break-words max-w-full"
+                        style={{ color: labelColor }}
+                        title={label}
+                      >
+                        {label}
+                      </span>
+                      {ms.badge && (
+                        <span className="inline-block uppercase px-1.5 py-0.5 text-[10px] font-bold bg-[#E4E4E8] text-[#5E5E6E] rounded-md tracking-wider">
+                          {ms.badge}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {ms.date && (
+                    <span className="text-[11px] text-[#8E8E9A] mt-1 leading-tight whitespace-nowrap">
+                      {ms.date}
+                    </span>
+                  )}
+                  {ms.time && (
+                    <span className="text-[11px] text-[#8E8E9A] mt-0.5 leading-tight whitespace-nowrap">
                       {ms.time}
+                    </span>
+                  )}
+                  {ms.subtitle && (
+                    <span className="text-[11px] text-[#8E8E9A] mt-0.5 leading-tight">
+                      {ms.subtitle}
                     </span>
                   )}
                 </div>
               </div>
             );
-          }
-
-          return (
-            <div
-              key={ms.key}
-              className="flex items-center"
-              style={{ flex: '1 1 0%', minWidth: 96 }}
-            >
-              <span
-                className="relative flex-1 group cursor-default"
-                style={{ minWidth: 20, padding: '6px 0' }}
-              >
-                <span className="block" style={{ height: 2, background: '#10B981' }} aria-hidden="true" />
-              </span>
-
-              <div
-                className="relative flex flex-col items-center px-1 flex-shrink-0 group cursor-default"
-                style={{ minWidth: 72 }}
-              >
-                <span
-                  className="rounded-full"
-                  style={{ width: 11, height: 11, background: dotBg, boxShadow: dotShadow }}
-                  aria-hidden="true"
-                />
-                <span
-                  className="pointer-events-none absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 hidden group-hover:block px-2 py-1 rounded-md text-[10px] font-semibold whitespace-nowrap z-20"
-                  style={{
-                    background: '#18181B',
-                    color: '#fff',
-                    boxShadow: '0 4px 12px rgba(0,0,0,.2)',
-                  }}
-                  role="tooltip"
-                >
-                  {tooltip}
-                </span>
-                <span
-                  className="mt-1.5 text-[10px] font-semibold text-center"
-                  style={{ color: labelColor }}
-                >
-                  {label}
-                </span>
-                {ms.time && (
-                  <span
-                    className="text-[9px] mt-0.5 text-[#8E8E9A] font-mono tabular-nums"
-                  >
-                    {ms.time}
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {vm.exceptionChips && vm.exceptionChips.length > 0 && (
-        <div className="flex gap-2 mt-3 flex-wrap">
-          {vm.exceptionChips.map((chip, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => onExceptionClick?.(chip.target)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-opacity hover:opacity-80"
-              style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}
-            >
-              <span>⚠️</span>
-              <span>{chip.label}</span>
-            </button>
-          ))}
+          })}
         </div>
-      )}
+      </div>
     </div>
   );
 };

@@ -142,6 +142,8 @@ export interface ShipmentStop {
   type: 'pickup' | 'delivery';
   location: string;
   address: string;
+  lat?: number | null;
+  lng?: number | null;
   date: string;
   timeStart: string;
   timeEnd: string;
@@ -183,6 +185,8 @@ export interface Shipment {
   carrierAvatar?: string | null;
   carrierId?: number | null;
   carrierType?: 'carrier' | 'driver' | string | null;
+  carrierRole?: 'carrier' | 'freelancer' | 'company_driver' | string | null;
+  carrierPartner?: boolean;
   carrierRating?: number | null;
   carrierOnTimeDeliveryPct?: number | null;
   carrierCancellationRatePct?: number | null;
@@ -232,6 +236,12 @@ export interface Shipment {
   weightUnit?: string | null;
   qtyUnit?: string | null;
   driverNotes?: string;
+  startedBy?: 'carrier' | 'driver' | string | null;
+  isManualTrip?: boolean;
+  markAsPaid?: string;
+  isPaid?: boolean;
+  paidDate?: string | null;
+  ownerName?: string | null;
   negotiable?: boolean;
   navigation?: boolean;
   loadSummary?: {
@@ -244,6 +254,90 @@ export interface Shipment {
     liveNavigation: boolean;
     specialInstructions?: string;
   } | null;
+  notesList?: Array<{
+    id: string;
+    timestamp: string;
+    author: string;
+    visibility: 'internal' | 'carrier';
+    body: string;
+  }>;
+  documentsList?: Array<{
+    id: string;
+    name: string;
+    description?: string | null;
+    fileName: string;
+    fileType?: string | null;
+    fileSize?: number | null;
+    url?: string | null;
+    uploadedBy?: string | null;
+    createdAt?: string | null;
+  }>;
+  shipmentLogs?: Array<{
+    id: number;
+    action: string;
+    actor: string;
+    date: string;
+    isRejection?: boolean;
+    rejectionReason?: string | null;
+  }>;
+  bidsHistory?: Array<{
+    bidNumber: number;
+    initiatorName: string;
+    date: string;
+    price: string;
+    rawPrice?: number;
+    negotiations?: Array<{
+      id: number;
+      action: string;
+      userName: string;
+      date: string;
+      price?: string | null;
+      rawPrice?: number | null;
+      notes?: string | null;
+    }>;
+  }>;
+  offers?: Array<{
+    id: string;
+    type: 'bid' | 'interest';
+    kind: 'received' | 'sent';
+    availabilityId?: number | null;
+    lastActionBy?: 'shipper' | 'transporter' | string | null;
+    name: string;
+    initials?: string;
+    avatar?: string | null;
+    rating?: number | null;
+    ratingCount?: number;
+    vat?: string | null;
+    transporterId?: number | null;
+    transporterType?: 'carrier' | 'driver' | null;
+    isPartner?: boolean;
+    hasHistory?: boolean;
+    role?: 'company' | 'freelancer' | string;
+    price?: number | null;
+    respondedAt?: string;
+    status: string;
+    partnerStatus?: string | null;
+    counter?: {
+      amount: number;
+      actor: string;
+      at: string;
+    } | null;
+  }>;
+  invitees?: Array<{
+    id: number;
+    partnerId?: number;
+    name: string;
+    initials?: string;
+    avatar?: string | null;
+    invitedAt?: string | null;
+    status?: string;
+    role?: 'company' | 'freelancer' | string;
+    rating?: number | null;
+    ratingCount?: number | null;
+    vat?: string | null;
+    transporterId?: number | null;
+    transporterType?: 'carrier' | 'driver' | null;
+  }>;
   tripSummary?: {
     distanceKm: number;
     duration: string;

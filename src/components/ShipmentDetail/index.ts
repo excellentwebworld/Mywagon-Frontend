@@ -22,5 +22,8 @@ export { AuditLogCard } from './AuditLogCard';
 export { PickupDelayReportsCard } from './PickupDelayReportsCard';
 export { ShareTrackingModal } from './ShareTrackingModal';
 export { ActivityLogModal } from './ActivityLogModal';
+export { BidsHistoryModal } from './BidsHistoryModal';
 export { RatingModal } from './RatingModal';
 export { PickupDelayModal } from './PickupDelayModal';
+export { UploadDocumentModal } from './UploadDocumentModal';
+export { ViewPodModal } from './ViewPodModal';

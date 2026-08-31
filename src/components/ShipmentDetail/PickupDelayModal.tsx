@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { X, Clock } from 'lucide-react';
 
 const DELAY_BUCKETS = [
   { value: 'under_10', labelKey: 'delayUnder10', fallback: 'Under 10 minutes' },
@@ -22,7 +24,7 @@ interface PickupDelayModalProps {
     hours?: number;
     minutes?: number;
   }) => void;
-  t: (key: string) => string;
+  t: (key: string, fallback?: string) => string;
 }
 
 export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
@@ -34,14 +36,14 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
   t,
 }) => {
   const [onTime, setOnTime] = useState(true);
-  const [bucket, setBucket] = useState<string>('10_30');
+  const [bucket, setBucket] = useState<string>('under_10');
   const [hours, setHours] = useState(0);
   const [minutes, setMinutes] = useState(0);
 
   useEffect(() => {
     if (open) {
       setOnTime(true);
-      setBucket('10_30');
+      setBucket('under_10');
       setHours(0);
       setMinutes(0);
     }
@@ -61,83 +63,152 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
     onSubmit({ was_on_time: false, delay_bucket: bucket });
   };
 
-  return (
-    <div className="ld-modal-bg" onClick={onClose}>
-      <div className="ld-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="ld-modal-h">
-          <h3>{t('driverPickupDelay') || 'Driver Pickup Delay'}</h3>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
-            ✕
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-[480px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-[#E4E4E8] flex items-center justify-between bg-[#F9FAFB]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#9B51E0]/10 text-[#9B51E0] flex items-center justify-center">
+              <Clock size={18} />
+            </div>
+            <div>
+              <h2 className="text-[16px] font-bold text-[#18181B] m-0">
+                {t('driverPickupDelay', 'Driver Pickup Delay')}
+              </h2>
+              {locationLabel && (
+                <p className="text-[12px] text-[#6B7280] m-0 mt-0.5">{locationLabel}</p>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            className="w-8 h-8 rounded-lg border border-[#E4E4E8] flex items-center justify-center text-[#9CA3AF] hover:text-[#4B5563] hover:bg-[#F4F4F5] transition-colors cursor-pointer bg-white"
+            onClick={onClose}
+            aria-label={t('close', 'Close')}
+          >
+            <X size={16} />
           </button>
         </div>
-        <div className="ld-modal-body">
-          <p style={{ marginBottom: 16, color: 'var(--text-secondary)', fontSize: 14 }}>
-            {t('wasDriverOnTimePickup') || 'Was the driver on time for pickup?'}
-            {locationLabel ? ` — ${locationLabel}` : ''}
+
+        {/* Body */}
+        <div className="p-6 flex flex-col gap-4">
+          <p className="text-[14px] text-[#374151] m-0 font-medium leading-relaxed">
+            {t('wasDriverOnTimePickup', 'Was the driver on time for pickup?')}
           </p>
-          <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-              <input type="radio" checked={onTime} onChange={() => setOnTime(true)} />
-              {t('yes') || 'Yes'}
+
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2.5 text-[14px] text-[#18181B] cursor-pointer font-medium select-none">
+              <input
+                type="radio"
+                name="was_on_time"
+                checked={onTime}
+                onChange={() => setOnTime(true)}
+                className="w-4 h-4 text-[#9B51E0] accent-[#9B51E0] cursor-pointer"
+              />
+              <span>{t('yes', 'Yes')}</span>
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-              <input type="radio" checked={!onTime} onChange={() => setOnTime(false)} />
-              {t('no') || 'No'}
+
+            <label className="flex items-center gap-2.5 text-[14px] text-[#18181B] cursor-pointer font-medium select-none">
+              <input
+                type="radio"
+                name="was_on_time"
+                checked={!onTime}
+                onChange={() => setOnTime(false)}
+                className="w-4 h-4 text-[#9B51E0] accent-[#9B51E0] cursor-pointer"
+              />
+              <span>{t('no', 'No')}</span>
             </label>
           </div>
+
           {!onTime && (
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-                {t('howLongWasDelay') || 'How long was the delay?'}
-              </div>
+            <div className="flex flex-col gap-2.5 pt-2 border-t border-[#E5E7EB] animate-in fade-in duration-150">
+              <label htmlFor="delay-bucket" className="text-[13px] font-semibold text-[#18181B]">
+                {t('howLongWasDelay', 'How long was the delay?')}
+              </label>
+
               <select
-                className="ld-share-email"
-                style={{ width: '100%', marginBottom: 12 }}
+                id="delay-bucket"
                 value={bucket}
                 onChange={(e) => setBucket(e.target.value)}
+                className="text-[13px] p-2.5 rounded-lg border border-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9B51E0]/20 focus:border-[#9B51E0] bg-white text-[#18181B] w-full"
               >
                 {DELAY_BUCKETS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
-                    {t(opt.labelKey) || opt.fallback}
+                    {t(opt.labelKey, opt.fallback)}
                   </option>
                 ))}
               </select>
+
               {bucket === 'exact' && (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input
-                    type="number"
-                    min={0}
-                    max={24}
-                    className="ld-share-email"
-                    style={{ flex: 1 }}
-                    placeholder={t('hours') || 'Hours'}
-                    value={hours}
-                    onChange={(e) => setHours(Number(e.target.value) || 0)}
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    max={59}
-                    className="ld-share-email"
-                    style={{ flex: 1 }}
-                    placeholder={t('minutes') || 'Minutes'}
-                    value={minutes}
-                    onChange={(e) => setMinutes(Number(e.target.value) || 0)}
-                  />
+                <div className="flex items-center gap-3 mt-1">
+                  <div className="flex-1 flex flex-col gap-1">
+                    <label htmlFor="delay-hours" className="text-[11px] text-[#6B7280]">
+                      {t('hours', 'Hours')}
+                    </label>
+                    <input
+                      id="delay-hours"
+                      type="number"
+                      min={0}
+                      max={24}
+                      placeholder="0"
+                      value={hours || ''}
+                      onChange={(e) => setHours(Number(e.target.value) || 0)}
+                      className="text-[13px] p-2 rounded-lg border border-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9B51E0]/20 focus:border-[#9B51E0] w-full"
+                    />
+                  </div>
+
+                  <div className="flex-1 flex flex-col gap-1">
+                    <label htmlFor="delay-minutes" className="text-[11px] text-[#6B7280]">
+                      {t('minutes', 'Minutes')}
+                    </label>
+                    <input
+                      id="delay-minutes"
+                      type="number"
+                      min={0}
+                      max={59}
+                      placeholder="0"
+                      value={minutes || ''}
+                      onChange={(e) => setMinutes(Number(e.target.value) || 0)}
+                      className="text-[13px] p-2 rounded-lg border border-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9B51E0]/20 focus:border-[#9B51E0] w-full"
+                    />
+                  </div>
                 </div>
               )}
             </div>
           )}
         </div>
-        <div className="ld-modal-foot">
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={submitting}>
-            {t('notNow') || 'Not now'}
+
+        {/* Footer */}
+        <div className="px-6 py-3.5 border-t border-[#E4E4E8] bg-[#F9FAFB] flex items-center justify-end gap-3">
+          <button
+            type="button"
+            className="px-4 py-2 rounded-lg border border-[#E5E7EB] bg-white text-[#374151] font-semibold text-[13px] hover:bg-gray-50 transition-colors cursor-pointer"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            {t('notNow', 'Not now')}
           </button>
-          <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={submitting}>
-            {t('submit') || 'Submit'}
+          <button
+            type="button"
+            className="px-5 py-2 rounded-lg bg-[#9B51E0] text-white font-semibold text-[13px] hover:bg-[#8A3FD4] disabled:opacity-50 transition-colors cursor-pointer shadow-sm"
+            onClick={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting ? t('submitting', 'Submitting…') : t('submit', 'Submit')}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
+

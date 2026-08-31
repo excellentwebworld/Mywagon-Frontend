@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, AlertTriangle } from 'lucide-react';
 import {
   ActivityLogModal,
   AuditLogCard,
   BidsCard,
+  BidsHistoryModal,
   BillingCard,
   CarrierDriverCard,
   CommandHeader,
@@ -23,12 +24,16 @@ import {
   StopsCard,
   TrackingMapCard,
   TripSummaryCard,
+  UploadDocumentModal,
+  ViewPodModal,
 } from '../../components/ShipmentDetail';
+import type { PhysicalStop } from '../../components/ShipmentDetail/StopsCard';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useShipment } from '../../hooks/useShipments';
 import { ShipmentDetailSkeleton } from '../../components/skeletons/ShipmentDetailSkeleton';
-import { buildShipmentDetailViewModel } from './detailViewModel';
+import { buildShipmentDetailViewModel, type DetailNote, type DetailDocument } from './detailViewModel';
 import { shipmentsService } from '../../api';
 import { CancelShipmentModal } from '../../components/ManageShipments/CancelShipmentModal';
 
@@ -51,6 +56,7 @@ const DEFAULT_SECTIONS: Record<string, boolean> = {
 export const ShipmentDetail: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const { showToast } = useApp();
   const { t } = useTranslation();
   const { shipment, loading, error, refetch } = useShipment(id);
@@ -60,8 +66,16 @@ export const ShipmentDetail: React.FC = () => {
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [isLogOpen, setIsLogOpen] = useState(false);
+  const [isBidsHistoryOpen, setIsBidsHistoryOpen] = useState(false);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
+  const [isUploadDocOpen, setIsUploadDocOpen] = useState(false);
+  const [viewPodStop, setViewPodStop] = useState<PhysicalStop | null>(null);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [ratingTarget, setRatingTarget] = useState<{
+    id: number;
+    type: 'carrier' | 'driver';
+    name: string;
+  } | null>(null);
   const [pendingDelay, setPendingDelay] = useState<{
     location_id: number;
     location_name?: string | null;
@@ -81,6 +95,117 @@ export const ShipmentDetail: React.FC = () => {
     [shipment]
   );
 
+  const [localNotes, setLocalNotes] = useState<DetailNote[]>([]);
+  const [localDocs, setLocalDocs] = useState<DetailDocument[]>([]);
+
+  useEffect(() => {
+    if (vm?.notes) {
+      setLocalNotes(vm.notes);
+    }
+  }, [vm?.notes]);
+
+  useEffect(() => {
+    if (vm?.documents) {
+      setLocalDocs(vm.documents);
+    }
+  }, [vm?.documents]);
+
+  const handleUploadDocument = useCallback(
+    async (formData: FormData) => {
+      if (!id) return;
+      const created = await shipmentsService.uploadDocument(id, formData);
+      const newDocItem: DetailDocument = {
+        id: created.id,
+        name: created.name,
+        description: created.description,
+        fileName: created.file_name,
+        fileType: created.file_type,
+        fileSize: created.file_size,
+        url: created.url,
+        uploadedBy: created.uploaded_by,
+        createdAt: created.created_at,
+      };
+      setLocalDocs((prev) => [newDocItem, ...prev]);
+      showToast(t('documentUploadedSuccess', 'Document uploaded successfully'), 'success');
+    },
+    [id, showToast, t]
+  );
+
+  const handleDownloadDocument = useCallback(
+    async (doc: DetailDocument) => {
+      if (!id) return;
+      try {
+        await shipmentsService.downloadDocument(id, doc.id, doc.fileName);
+      } catch {
+        if (doc.url) {
+          window.open(doc.url, '_blank');
+        } else {
+          showToast(t('downloadFailed', 'Failed to download document'), 'error');
+        }
+      }
+    },
+    [id, showToast, t]
+  );
+
+  const handleDeleteDocument = useCallback(
+    async (doc: DetailDocument) => {
+      if (!id) return;
+      try {
+        await shipmentsService.deleteDocument(id, doc.id);
+        setLocalDocs((prev) => prev.filter((d) => d.id !== doc.id));
+        showToast(t('documentDeleted', 'Document deleted successfully'), 'success');
+      } catch {
+        showToast(t('deleteFailed', 'Failed to delete document'), 'error');
+      }
+    },
+    [id, showToast, t]
+  );
+
+  const handleAddNote = useCallback(
+    async (body: string, visibility: 'internal' | 'carrier') => {
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, '0');
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = now.getFullYear();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const optimisticNote: DetailNote = {
+        id: `note-${Date.now()}`,
+        author: user?.name || vm?.owner || 'You',
+        timestamp: `${day}/${month}/${year} ${hours}:${minutes}`,
+        body,
+        visibility,
+      };
+
+      setLocalNotes((prev) => [optimisticNote, ...prev]);
+
+      if (id) {
+        try {
+          const res = await shipmentsService.addNote(id, { body, visibility });
+          if (res?.id) {
+            setLocalNotes((prev) =>
+              prev.map((n) =>
+                n.id === optimisticNote.id
+                  ? {
+                      ...n,
+                      id: res.id,
+                      timestamp: res.timestamp || n.timestamp,
+                      author: res.author || n.author,
+                    }
+                  : n
+              )
+            );
+          }
+        } catch {
+          // Note is still stored in local optimistic state
+        }
+      }
+
+      showToast(t('noteAdded', 'Note added successfully'), 'success');
+    },
+    [id, user?.name, vm?.owner, showToast, t]
+  );
+
   const loadReportablePickups = useCallback(async () => {
     if (!id) return;
     try {
@@ -95,13 +220,46 @@ export const ShipmentDetail: React.FC = () => {
     void loadReportablePickups();
   }, [loadReportablePickups]);
 
+  const handleSubmitPickupDelay = useCallback(
+    async (data: {
+      was_on_time: boolean;
+      delay_bucket?: string;
+      hours?: number;
+      minutes?: number;
+    }) => {
+      if (!id || !pendingDelay) return;
+      setDelaySubmitting(true);
+      try {
+        await shipmentsService.submitPickupDelay(id, pendingDelay.location_id, data);
+        showToast(
+          data.was_on_time
+            ? t('pickupOnTimeRecorded', 'Recorded driver was on time for pickup')
+            : t('pickupDelayReported', 'Pickup delay reported successfully'),
+          'success'
+        );
+        setPendingDelay(null);
+        await loadReportablePickups();
+        refetch?.();
+      } catch (err: unknown) {
+        showToast(
+          err instanceof Error ? err.message : t('pickupDelayFailed', 'Failed to report delay'),
+          'error'
+        );
+      } finally {
+        setDelaySubmitting(false);
+      }
+    },
+    [id, pendingDelay, loadReportablePickups, refetch, showToast, t]
+  );
+
   const toggleSection = useCallback((key: string) => {
     setSections((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
   const handleJump = useCallback((targetId: string) => {
     setActiveNav(targetId);
-    const el = document.getElementById(targetId);
+    const lookupId = targetId === 'invited' ? 'bids' : targetId;
+    const el = document.getElementById(lookupId);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -117,7 +275,12 @@ export const ShipmentDetail: React.FC = () => {
 
   const handleSubmitRating = useCallback(
     async (payload: { rating: number; review: string; delivery_on_time?: boolean }) => {
-      if (!id || !vm?.carrier?.userId || !vm.carrier.userType) {
+      const target = ratingTarget || {
+        id: vm?.carrier?.userId || 0,
+        type: (vm?.carrier?.userType === 'driver' ? 'driver' : 'carrier') as 'carrier' | 'driver',
+        name: vm?.carrier?.name || 'Transporter',
+      };
+      if (!id || !target.id) {
         showToast(t('ratingSubmitted', 'Rating submitted'), 'success');
         setIsRatingOpen(false);
         return;
@@ -125,14 +288,15 @@ export const ShipmentDetail: React.FC = () => {
       setRatingSubmitting(true);
       try {
         await shipmentsService.submitRating(id, {
-          user_id: vm.carrier.userId,
-          user_type: vm.carrier.userType,
+          user_id: target.id,
+          user_type: target.type,
           rating: payload.rating,
           review: payload.review || undefined,
           delivery_on_time: payload.delivery_on_time,
         });
-        showToast(t('ratingSubmitted', 'Rating submitted'), 'success');
+        showToast(t('ratingSubmitted', 'Rating submitted successfully'), 'success');
         setIsRatingOpen(false);
+        setRatingTarget(null);
         refetch?.();
       } catch {
         showToast(t('ratingFailed', 'Failed to submit rating'), 'error');
@@ -140,31 +304,7 @@ export const ShipmentDetail: React.FC = () => {
         setRatingSubmitting(false);
       }
     },
-    [id, refetch, showToast, t, vm?.carrier]
-  );
-
-  const handleSubmitPickupDelay = useCallback(
-    async (payload: {
-      was_on_time: boolean;
-      delay_bucket?: string;
-      hours?: number;
-      minutes?: number;
-    }) => {
-      if (!id || !pendingDelay) return;
-      setDelaySubmitting(true);
-      try {
-        await shipmentsService.submitPickupDelay(id, pendingDelay.location_id, payload);
-        showToast(t('pickupDelaySaved', 'Pickup delay report saved'), 'success');
-        setPendingDelay(null);
-        await loadReportablePickups();
-        refetch?.();
-      } catch {
-        showToast(t('pickupDelayFailed', 'Failed to save pickup delay'), 'error');
-      } finally {
-        setDelaySubmitting(false);
-      }
-    },
-    [id, loadReportablePickups, pendingDelay, refetch, showToast, t]
+    [id, ratingTarget, refetch, showToast, t, vm?.carrier]
   );
 
   const handleAcceptBid = useCallback(async (bid: PartnerBidItem) => {
@@ -285,8 +425,10 @@ export const ShipmentDetail: React.FC = () => {
               navigate(`/create-shipment?editId=${vm.id}`);
             }
           }}
+          onMessage={() => navigate('/messages')}
           onShare={() => setIsShareOpen(true)}
-          onAuditLog={() => handleJump('audit')}
+          onAuditLog={() => setIsLogOpen(true)}
+          onBidsHistory={() => setIsBidsHistoryOpen(true)}
           onCancelShipment={() => setIsCancelOpen(true)}
           onToast={(msg) => showToast(msg, 'info')}
           t={t}
@@ -299,6 +441,31 @@ export const ShipmentDetail: React.FC = () => {
           onJump={handleJump}
           t={t}
         />
+
+        {/* Manually Executed Trip Warning Banner */}
+        {vm.isManualTrip && (
+          <div
+            className="flex items-center gap-3.5 mb-4 px-5 py-3.5 rounded-xl transition-all"
+            style={{
+              backgroundColor: '#FFFBEB',
+              border: '1px solid #FDE047',
+            }}
+            role="alert"
+          >
+            <AlertTriangle size={20} className="text-[#D97706] shrink-0" />
+            <div>
+              <div className="font-semibold text-[13px] md:text-[14px] text-[#92400E]">
+                {t('manuallyExecutedTrip', 'Manually Executed Trip')}
+              </div>
+              <p className="text-[12px] text-[#B45309] mt-0.5 m-0 leading-normal">
+                {t(
+                  'manuallyExecutedTripDesc',
+                  'Live GPS tracking and actual route data are not available.'
+                )}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Milestones Bar (Events that already happened / in progress) */}
         <MilestonesBar
@@ -341,6 +508,7 @@ export const ShipmentDetail: React.FC = () => {
                 onRejectBid={handleRejectBid}
                 onCounterBid={handleCounterBid}
                 onCancelInvite={handleCancelInvite}
+                onViewHistory={() => setIsBidsHistoryOpen(true)}
                 onInviteMore={() => showToast(t('invitePartners', 'Invite partners modal opening…'), 'info')}
                 t={t}
               />
@@ -353,6 +521,7 @@ export const ShipmentDetail: React.FC = () => {
               onToggle={() => toggleSection('stops')}
               onCopy={handleCopy}
               onToast={(msg) => showToast(msg, 'info')}
+              onViewPod={(stop) => setViewPodStop(stop)}
               onRequestPod={(stop) => {
                 showToast(t('podRequestedSent', 'Push notification sent to driver requesting POD'), 'success');
               }}
@@ -376,10 +545,51 @@ export const ShipmentDetail: React.FC = () => {
               <CarrierDriverCard
                 carrier={vm.carrier}
                 driver={vm.assignedDriver}
+                status={vm.status}
+                isPaid={vm.isPaid}
+                isCarrierRated={vm.isAlreadyRated}
+                isDriverRated={false}
                 expanded={sections.carrier}
                 onToggle={() => toggleSection('carrier')}
                 onToast={(msg) => showToast(msg, 'info')}
-                onRate={() => setIsRatingOpen(true)}
+                onRateCarrier={(c) => {
+                  setRatingTarget({
+                    id: c.userId,
+                    type: c.userType === 'driver' ? 'driver' : 'carrier',
+                    name: c.name,
+                  });
+                  setIsRatingOpen(true);
+                }}
+                onRateDriver={(d) => {
+                  setRatingTarget({
+                    id: d.userId,
+                    type: 'driver',
+                    name: d.name,
+                  });
+                  setIsRatingOpen(true);
+                }}
+                onChatCarrier={(c) => {
+                  navigate('/messages', {
+                    state: {
+                      userId: c.userId,
+                      userType: c.userType === 'driver' ? 'driver' : 'carrier',
+                      userName: c.name,
+                      userAvatar: c.avatar,
+                      sid: id,
+                    },
+                  });
+                }}
+                onChatDriver={(d) => {
+                  navigate('/messages', {
+                    state: {
+                      userId: d.userId,
+                      userType: 'driver',
+                      userName: d.name,
+                      userAvatar: d.avatar,
+                      sid: id,
+                    },
+                  });
+                }}
                 t={t}
               />
             )}
@@ -404,35 +614,13 @@ export const ShipmentDetail: React.FC = () => {
               onToggle={() => toggleSection('load')}
               t={t}
             />
-
-            {/* 7. Notes & Instructions */}
-            <NotesCard
-              notes={vm.notes}
-              expanded={sections.notes}
-              onToggle={() => toggleSection('notes')}
-              onAddNote={() => {
-                showToast(t('noteAdded', 'Note saved'), 'success');
-              }}
-              onToast={(msg) => showToast(msg, 'info')}
-              t={t}
-            />
-
-            {/* 8. Documents & Attachments (Positioned under Notes in Left Column) */}
-            <DocumentsCard
-              documents={vm.documents}
-              expanded={sections.docs}
-              onToggle={() => toggleSection('docs')}
-              onUpload={() => showToast(t('uploadDocument', 'Upload document dialog…'), 'info')}
-              onDownload={(doc) => showToast(`${t('downloading', 'Downloading')} ${doc.name}…`, 'success')}
-              onToast={(msg) => showToast(msg, 'info')}
-              t={t}
-            />
           </div>
 
           {/* Right Column (w-full lg:w-[380px] xl:w-[420px] shrink-0) */}
           <div className="w-full lg:w-[380px] xl:w-[420px] shrink-0 flex flex-col gap-0">
             {/* 1. Live Tracking (on-trip) OR Route Map (other statuses) */}
             <TrackingMapCard
+              stops={vm.stops}
               status={vm.status}
               tracking={vm.tracking}
               trip={vm.trip}
@@ -460,17 +648,41 @@ export const ShipmentDetail: React.FC = () => {
               t={t}
             />
 
-            {/* 3. Billing Card */}
-            <BillingCard
-              billing={vm.billing}
-              expanded={sections.billing}
-              onToggle={() => toggleSection('billing')}
-              onMarkPaid={() => showToast(t('invoiceMarkedPaid', 'Marked as paid'), 'success')}
+            {/* 3. Notes & Instructions (Positioned below Trip Summary) */}
+            <NotesCard
+              notes={localNotes}
+              expanded={sections.notes}
+              onToggle={() => toggleSection('notes')}
+              onAddNote={handleAddNote}
+              onToast={(msg) => showToast(msg, 'info')}
               t={t}
             />
 
-            {/* 4. Incidents & Exceptions (if applicable) */}
-            {canShowIncidents && (
+            {/* 4. Documents & Attachments (Positioned below Notes in Right Column) */}
+            <DocumentsCard
+              documents={localDocs}
+              expanded={sections.docs}
+              onToggle={() => toggleSection('docs')}
+              onUpload={() => setIsUploadDocOpen(true)}
+              onDownload={handleDownloadDocument}
+              onDelete={handleDeleteDocument}
+              onToast={(msg) => showToast(msg, 'info')}
+              t={t}
+            />
+
+            {/* 5. Billing Card (Hidden per request) */}
+            {false && (
+              <BillingCard
+                billing={vm.billing}
+                expanded={sections.billing}
+                onToggle={() => toggleSection('billing')}
+                onMarkPaid={() => showToast(t('invoiceMarkedPaid', 'Marked as paid'), 'success')}
+                t={t}
+              />
+            )}
+
+            {/* 6. Incidents & Exceptions (Hidden per request) */}
+            {false && canShowIncidents && (
               <IncidentsCard
                 incidents={vm.incidents}
                 expanded={sections.incidents}
@@ -485,6 +697,7 @@ export const ShipmentDetail: React.FC = () => {
         {/* Full-Width Bottom Section: Audit Log (All, Bidding, Operations) */}
         <AuditLogCard
           entries={vm.auditEntries}
+          bidsHistory={vm.bidsHistory}
           expanded={sections.audit}
           onToggle={() => toggleSection('audit')}
           t={t}
@@ -504,19 +717,33 @@ export const ShipmentDetail: React.FC = () => {
         t={t}
       />
 
-      {/* Activity Log Modal */}
+      {/* Shipment Logs Modal */}
       <ActivityLogModal
         open={isLogOpen}
+        logs={vm.shipmentLogs}
         entries={vm.auditEntries}
         onClose={() => setIsLogOpen(false)}
         t={t}
       />
 
-      {/* Carrier Rating Modal */}
+      {/* Bids History Modal */}
+      <BidsHistoryModal
+        open={isBidsHistoryOpen}
+        bids={vm.bidsHistory}
+        onClose={() => setIsBidsHistoryOpen(false)}
+        t={t}
+      />
+
+      {/* Carrier / Driver Rating Modal */}
       <RatingModal
         open={isRatingOpen}
-        carrierName={vm.carrier?.name || ''}
-        showDeliveryOnTime={vm.carrier?.showDeliveryOnTime !== false}
+        targetName={ratingTarget?.name || vm.carrier?.name || ''}
+        targetType={ratingTarget?.type || 'carrier'}
+        showDeliveryOnTime={
+          ratingTarget?.type === 'driver'
+            ? false
+            : vm.carrier?.showDeliveryOnTime !== false
+        }
         submitting={ratingSubmitting}
         onClose={() => setIsRatingOpen(false)}
         onSubmit={handleSubmitRating}
@@ -543,6 +770,37 @@ export const ShipmentDetail: React.FC = () => {
           showToast(t('shipmentCancelledSuccess', 'Shipment cancelled successfully'), 'success');
           refetch?.();
         }}
+        t={t}
+      />
+
+      {/* Upload Document Modal */}
+      <UploadDocumentModal
+        isOpen={isUploadDocOpen}
+        onClose={() => setIsUploadDocOpen(false)}
+        onUpload={handleUploadDocument}
+        t={t}
+      />
+
+      {/* View Proof of Delivery (POD) Modal */}
+      <ViewPodModal
+        open={Boolean(viewPodStop)}
+        stop={viewPodStop}
+        onClose={() => setViewPodStop(null)}
+        t={t}
+      />
+
+      {/* Carrier / Driver Rating Modal */}
+      <RatingModal
+        open={isRatingOpen}
+        targetName={ratingTarget?.name || vm?.carrier?.name || 'Transporter'}
+        targetType={ratingTarget?.type || 'carrier'}
+        showDeliveryOnTime={ratingTarget?.type !== 'driver'}
+        submitting={ratingSubmitting}
+        onClose={() => {
+          setIsRatingOpen(false);
+          setRatingTarget(null);
+        }}
+        onSubmit={handleSubmitRating}
         t={t}
       />
     </div>

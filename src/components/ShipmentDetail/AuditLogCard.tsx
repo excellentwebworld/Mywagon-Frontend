@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ClipboardList } from 'lucide-react';
-import type { AuditEntry } from '../../pages/ShipmentDetail/detailViewModel';
+import type { AuditEntry, BidHistoryItem } from '../../pages/ShipmentDetail/detailViewModel';
 import { CollapsibleCard } from './CollapsibleCard';
 
 const FILTER_CATEGORIES = [
@@ -11,6 +11,7 @@ const FILTER_CATEGORIES = [
 
 interface AuditLogCardProps {
   entries: AuditEntry[];
+  bidsHistory?: BidHistoryItem[];
   expanded: boolean;
   onToggle: () => void;
   t: (key: string, fallback?: string) => string;
@@ -18,6 +19,7 @@ interface AuditLogCardProps {
 
 export const AuditLogCard: React.FC<AuditLogCardProps> = ({
   entries,
+  bidsHistory = [],
   expanded,
   onToggle,
   t,
@@ -76,8 +78,68 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
           })}
         </div>
 
-        {/* Timeline list */}
-        {filteredEntries.length === 0 ? (
+        {/* Group-wise Bidding History View */}
+        {selectedCat === 'bidding' && bidsHistory && bidsHistory.length > 0 ? (
+          <div className="space-y-6 pt-2">
+            {bidsHistory.map((bid) => (
+              <div
+                key={bid.bidNumber}
+                className="border-l-[3px] border-[#9B51E0] pl-4 mb-6"
+              >
+                {/* Bid Group Header */}
+                <h4 className="text-[15px] font-bold text-[#2D2766] mb-2.5">
+                  {t('bid', 'Bid')} #{bid.bidNumber} – {bid.initiatorName}
+                </h4>
+
+                {/* Root Bid Card */}
+                <div className="bg-[#F8F7FC] rounded-lg p-3 mb-2.5">
+                  <div className="text-[13px] text-[#374151]">
+                    <strong>{t('offerPlaced', 'Offer Placed')}</strong>{' '}
+                    {t('by', 'by')}{' '}
+                    <strong>{bid.initiatorName}</strong>{' '}
+                    {t('on', 'on')}{' '}
+                    <strong>{bid.date}</strong>
+                  </div>
+                  <div className="font-bold text-[#9B51E0] text-[16px] mt-1">
+                    € {bid.price}
+                  </div>
+                </div>
+
+                {/* Negotiations Timeline for this Bid */}
+                {bid.negotiations && bid.negotiations.length > 0 && (
+                  <div className="ml-4 space-y-2 mt-2.5">
+                    {bid.negotiations.map((neg) => (
+                      <div
+                        key={neg.id}
+                        className="bg-white border-l-2 border-[#DDD] rounded p-2.5 px-3.5 text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                      >
+                        <div className="text-[#374151]">
+                          <strong>{neg.action}</strong>{' '}
+                          {t('by', 'by')}{' '}
+                          <strong>{neg.userName}</strong>{' '}
+                          {t('on', 'on')}{' '}
+                          <strong>{neg.date}</strong>
+                        </div>
+
+                        {neg.price && (
+                          <div className="font-bold text-[#7C5BC4] text-[14px] mt-0.5">
+                            € {neg.price}
+                          </div>
+                        )}
+
+                        {neg.notes && (
+                          <div className="text-[#666] text-[12px] italic mt-0.5">
+                            ({neg.notes})
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : filteredEntries.length === 0 ? (
           <p className="text-[12px] py-2" style={{ color: '#8E8E9A' }}>
             {t('noAuditEntries', 'No events recorded in this category.')}
           </p>
@@ -128,3 +190,4 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
     </CollapsibleCard>
   );
 };
+
