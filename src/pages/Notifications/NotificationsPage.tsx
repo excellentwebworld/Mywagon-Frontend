@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 
@@ -109,6 +109,11 @@ const DICT: Record<string, { en: string; el: string }> = {
   showing:            { en: 'Showing', el: 'Εμφάνιση' },
   of:                 { en: 'of', el: 'από' },
   entries:            { en: 'notifications', el: 'ειδοποιήσεις' },
+  perPage:            { en: 'Per page', el: 'Ανά σελίδα' },
+  firstPage:          { en: 'First page', el: 'Πρώτη σελίδα' },
+  prevPage:           { en: 'Previous page', el: 'Προηγούμενη σελίδα' },
+  nextPage:           { en: 'Next page', el: 'Επόμενη σελίδα' },
+  lastPage:           { en: 'Last page', el: 'Τελευταία σελίδα' },
   loadMore:           { en: 'Load More', el: 'Φόρτωση Περισσότερων' },
   loading:            { en: 'Loading…', el: 'Φόρτωση…' },
 };
@@ -228,21 +233,34 @@ function formatRelativeTime(created_at?: string, fallback = ''): string {
   }
 }
 
-function formatFullDateTime(created_at?: string): string {
-  if (!created_at) return '';
+function formatFullDateTime(dateStr: string): string {
   try {
-    const d = new Date(created_at);
-    if (isNaN(d.getTime())) return created_at;
-    return d.toLocaleString(undefined, {
-      day: '2-digit',
+    return new Date(dateStr).toLocaleString('en-GB', {
+      day: 'numeric',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
     });
   } catch {
-    return created_at;
+    return dateStr;
   }
+}
+
+function buildPageList(current: number, last: number): number[] {
+  if (last <= 7) return Array.from({ length: last }, (_, i) => i + 1);
+  const pages = new Set<number>([1, last, current, current - 1, current + 1]);
+  if (current <= 3) {
+    pages.add(2);
+    pages.add(3);
+    pages.add(4);
+  }
+  if (current >= last - 2) {
+    pages.add(last - 1);
+    pages.add(last - 2);
+    pages.add(last - 3);
+  }
+  return [...pages].filter((p) => p >= 1 && p <= last).sort((a, b) => a - b);
 }
 
 // ─── Map ApiNotification to internal NotificationItem ────────────────────────
@@ -274,6 +292,8 @@ export const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
 
   // ── State ──────────────────────────────────────────────────────────────
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(20);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [meta, setMeta] = useState<NotificationMeta>({
     current_page: 1,
@@ -286,7 +306,6 @@ export const NotificationsPage: React.FC = () => {
   });
 
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
 
   const [activeCat, setActiveCat] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -310,36 +329,38 @@ export const NotificationsPage: React.FC = () => {
     category: string,
     search: string,
     page: number,
-    append: boolean,
+    pageSize: number,
   ) => {
     try {
-      if (append) setLoadingMore(true);
-      else setLoading(true);
+      setLoading(true);
 
       const res = await notificationService.list({
         tab: 'all',
         category: category !== 'All' ? category : undefined,
         search: search.trim() || undefined,
         page,
-        per_page: 20,
+        per_page: pageSize,
       });
 
       const items = res.data.map(mapApiItem);
-      setNotifications(prev => append ? [...prev, ...items] : items);
+      setNotifications(items);
       setMeta(res.meta);
     } catch {
       // Handled
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   }, []);
 
-  // ── Reload when filters change ─────────────────────────────────────────
+  // ── Reset page to 1 when filters change ────────────────────────────────
   useEffect(() => {
-    setNotifications([]);
-    void fetchNotifications(activeCat, debouncedSearch, 1, false);
-  }, [activeCat, debouncedSearch, fetchNotifications]);
+    setCurrentPage(1);
+  }, [activeCat, debouncedSearch]);
+
+  // ── Reload data when activeCat, debouncedSearch, currentPage or perPage changes ───
+  useEffect(() => {
+    void fetchNotifications(activeCat, debouncedSearch, currentPage, perPage);
+  }, [activeCat, debouncedSearch, currentPage, perPage, fetchNotifications]);
 
   // ── Search debounce ────────────────────────────────────────────────────
   useEffect(() => {
@@ -361,13 +382,6 @@ export const NotificationsPage: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  // ── Load more ──────────────────────────────────────────────────────────
-  const handleLoadMore = () => {
-    if (meta.current_page < meta.last_page && !loadingMore) {
-      void fetchNotifications(activeCat, debouncedSearch, meta.current_page + 1, true);
-    }
-  };
 
   // ── Handlers ───────────────────────────────────────────────────────────
   const handleMarkAllRead = async () => {
@@ -399,14 +413,7 @@ export const NotificationsPage: React.FC = () => {
 
     try {
       await notificationService.archive(id);
-      setNotifications(prev => prev.filter(n => n.id !== id));
-      setMeta(prev => ({
-        ...prev,
-        total: Math.max(0, prev.total - 1),
-        archived_count: wasArchived
-          ? Math.max(0, (prev.archived_count ?? 1) - 1)
-          : (prev.archived_count ?? 0) + 1,
-      }));
+      void fetchNotifications(activeCat, debouncedSearch, currentPage, perPage);
       if (selectedNotif?.id === id) {
         setSelectedNotif(null);
       }
@@ -506,6 +513,11 @@ export const NotificationsPage: React.FC = () => {
     navigate(target);
   };
 
+  const total = meta.total ?? 0;
+  const lastPage = Math.max(meta.last_page ?? 1, 1);
+  const start = total === 0 ? 0 : (currentPage - 1) * perPage + 1;
+  const end = Math.min(currentPage * perPage, total);
+  const pageList = useMemo(() => buildPageList(currentPage, lastPage), [currentPage, lastPage]);
 
   // ──────────────────────────────────────────────────────────────────────
   // RENDER
@@ -768,23 +780,117 @@ export const NotificationsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Pagination / Load more */}
-      {!loading && notifications.length > 0 && (
-        <div className="flex items-center justify-between gap-4 pt-2 text-xs text-slate-500 dark:text-slate-400">
-          <span>
-            {loc('showing')} <strong className="text-slate-700 dark:text-slate-200">{notifications.length}</strong> {loc('of')} <strong className="text-slate-700 dark:text-slate-200">{meta.total}</strong> {loc('entries')}
-          </span>
+      {/* Pagination */}
+      {!loading && total > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span>
+              {loc('showing')} <strong className="text-slate-900 dark:text-white font-bold">{start}–{end}</strong> {loc('of')} <strong className="text-slate-900 dark:text-white font-bold">{total}</strong> {loc('entries')}
+            </span>
 
-          {meta.current_page < meta.last_page && (
+            <div className="flex items-center gap-1.5 pl-3 border-l border-slate-200 dark:border-slate-700">
+              <span className="text-slate-400 text-[11px]">
+                {loc('perPage')}:
+              </span>
+              <select
+                value={perPage}
+                onChange={(e) => {
+                  setPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                disabled={loading}
+                aria-label={loc('perPage')}
+                className="px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 outline-none cursor-pointer focus:border-indigo-500 transition-all"
+              >
+                {[10, 20, 50].map((n) => (
+                  <option key={n} value={n}>
+                    {n} / {loc('perPage')}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 shadow-xs transition-all cursor-pointer"
+              disabled={currentPage <= 1 || loading}
+              onClick={() => {
+                setCurrentPage(1);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              title={loc('firstPage')}
+              className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
-              {loadingMore ? loc('loading') : loc('loadMore')}
+              «
             </button>
-          )}
+            <button
+              type="button"
+              disabled={currentPage <= 1 || loading}
+              onClick={() => {
+                setCurrentPage((p) => Math.max(1, p - 1));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              title={loc('prevPage')}
+              className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              ‹
+            </button>
+
+            {pageList.map((p, idx) => {
+              const prev = pageList[idx - 1];
+              const gap = prev !== undefined && p - prev > 1;
+              return (
+                <React.Fragment key={p}>
+                  {gap && (
+                    <span className="w-6 h-8 flex items-center justify-center text-xs text-slate-400 font-semibold select-none">
+                      …
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => {
+                      setCurrentPage(p);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+                      p === currentPage
+                        ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                </React.Fragment>
+              );
+            })}
+
+            <button
+              type="button"
+              disabled={currentPage >= lastPage || loading}
+              onClick={() => {
+                setCurrentPage((p) => Math.min(lastPage, p + 1));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              title={loc('nextPage')}
+              className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              ›
+            </button>
+            <button
+              type="button"
+              disabled={currentPage >= lastPage || loading}
+              onClick={() => {
+                setCurrentPage(lastPage);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              title={loc('lastPage')}
+              className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              »
+            </button>
+          </div>
         </div>
       )}
 
