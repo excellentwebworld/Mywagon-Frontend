@@ -969,30 +969,6 @@ export const NotificationsPage: React.FC = () => {
                       </div>
                     </div>
                   )}
-
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                      {loc('activity')}
-                    </h4>
-                    <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
-                      <div className="relative">
-                        <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-indigo-600 ring-4 ring-white dark:ring-slate-900" />
-                        <p className="text-[11px] font-semibold text-slate-400">
-                          {formatFullDateTime(selectedNotif.created_at)}
-                        </p>
-                        <p className="text-xs font-medium text-slate-800 dark:text-slate-200">
-                          {selectedNotif.title}
-                        </p>
-                      </div>
-                      <div className="relative">
-                        <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600 ring-4 ring-white dark:ring-slate-900" />
-                        <p className="text-[11px] font-semibold text-slate-400">System Event</p>
-                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                          Notification recorded in database
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Drawer Footer */}
