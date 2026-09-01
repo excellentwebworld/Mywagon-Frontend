@@ -108,6 +108,8 @@ export interface ApiShipmentStop {
   location?: string | null;
   address?: string | null;
   city?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   date?: string | null;
   time_start?: string | null;
   time_end?: string | null;
@@ -180,12 +182,18 @@ export interface ApiNegotiationHistoryItem {
 
 export interface ApiShipmentInvitee {
   id: number;
+  partner_id?: number;
   name: string;
   initials?: string;
   avatar?: string | null;
   invited_at?: string | null;
   status?: string;
   role?: 'company' | 'freelancer' | string;
+  rating?: number | null;
+  rating_count?: number | null;
+  vat?: string | null;
+  transporter_id?: number | null;
+  transporter_type?: 'carrier' | 'driver' | null;
 }
 
 export interface ApiShipmentDetail extends ApiShipmentListItem {
@@ -194,6 +202,13 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
   journey_distance?: string | number | null;
   journey_time?: string | number | null;
   tracking_required_by_shipper?: boolean;
+  started_by?: string | null;
+  is_manual_trip?: boolean;
+  mark_as_paid?: string | null;
+  is_paid?: boolean;
+  paid_date?: string | null;
+  owner_name?: string | null;
+  carrier_partner?: boolean;
   stops?: ApiShipmentStop[];
   partners_count?: number;
   cargo_value?: number | null;
@@ -205,6 +220,88 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
   offers?: ApiShipmentOffer[];
   invitees?: ApiShipmentInvitee[];
   bid_window_ends_at?: string | null;
+  load_summary?: {
+    vehicle_types?: string[];
+    cargo_specs?: string[];
+    quote?: string | null;
+    load_value?: string | null;
+    channel?: string;
+    negotiable?: boolean;
+    live_navigation?: boolean;
+    special_instructions?: string | null;
+  } | null;
+  trip_summary?: {
+    distance_km?: number;
+    duration?: string;
+    stops_count?: number;
+    total_weight?: string | null;
+    customers_count?: number;
+    orders_count?: number;
+  } | null;
+  audit_entries?: Array<{
+    id: string;
+    time: string;
+    text: string;
+    category: 'all' | 'bidding' | 'operations';
+    tone?: 'bid' | 'counter' | 'reject' | 'accept' | 'default';
+    price_badge?: string | null;
+  }> | null;
+  cancellation_reason?: string | null;
+  cancellation_date?: string | null;
+  cancellation_details?: string | null;
+  unfulfilled_reason?: string | null;
+  unfulfilled_date?: string | null;
+  notes?: Array<{
+    id: string;
+    timestamp: string;
+    author: string;
+    visibility: string;
+    body: string;
+  }> | null;
+  documents?: ApiShipmentDocument[] | null;
+  shipment_logs?: Array<{
+    id: number;
+    action: string;
+    actor: string;
+    date: string;
+    is_rejection?: boolean;
+    rejection_reason?: string | null;
+  }> | null;
+  bids_history?: Array<{
+    bid_number: number;
+    initiator_name: string;
+    date: string;
+    price: string;
+    raw_price?: number;
+    negotiations?: Array<{
+      id: number;
+      action: string;
+      user_name: string;
+      date: string;
+      price?: string | null;
+      raw_price?: number | null;
+      notes?: string | null;
+    }>;
+  }> | null;
+  shipper_rating?: {
+    id: number;
+    rating: number;
+    review?: string;
+    delivery_on_time?: boolean | null;
+    created_at?: string;
+  } | null;
+}
+
+export interface ApiShipmentDocument {
+  id: string;
+  name: string;
+  description?: string | null;
+  file_name: string;
+  file_type?: string | null;
+  file_size?: number | null;
+  url?: string | null;
+  uploaded_by?: string | null;
+  created_at?: string | null;
 }
 
 export interface ListShipmentsParams {

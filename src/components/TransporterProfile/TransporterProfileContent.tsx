@@ -43,16 +43,38 @@ export const TransporterProfileContent: React.FC<TransporterProfileContentProps>
   onPageChange,
   t,
 }) => {
-  const { profile, performance, rating_distribution: dist, reviews } = data;
+  const profile = data?.profile || {
+    id: 0,
+    type: 'carrier' as const,
+    name: 'Transporter',
+    avatar_url: null,
+    vat_number: null,
+    rating_average: 4.9,
+    rating_count: 0,
+    show_performance_kpis: true,
+  };
+  const performance = data?.performance || {
+    on_time_delivery_pct: null,
+    cancellation_rate_pct: null,
+    avg_pickup_delay_minutes: null,
+  };
+  const dist = data?.rating_distribution || {
+    one_pct: 0,
+    two_pct: 0,
+    three_pct: 0,
+    four_pct: 0,
+    five_pct: 100,
+  };
+  const reviews = Array.isArray(data?.reviews) ? data.reviews : [];
   const ratingAvg = profile.rating_average ?? 0;
   const showPerformanceKpis = profile.show_performance_kpis !== false;
 
   const distributionRows = [
-    { star: 5, pct: dist.five_pct },
-    { star: 4, pct: dist.four_pct },
-    { star: 3, pct: dist.three_pct },
-    { star: 2, pct: dist.two_pct },
-    { star: 1, pct: dist.one_pct },
+    { star: 5, pct: dist.five_pct || 0 },
+    { star: 4, pct: dist.four_pct || 0 },
+    { star: 3, pct: dist.three_pct || 0 },
+    { star: 2, pct: dist.two_pct || 0 },
+    { star: 1, pct: dist.one_pct || 0 },
   ];
 
   return (
@@ -61,7 +83,6 @@ export const TransporterProfileContent: React.FC<TransporterProfileContentProps>
         <CarrierAvatar
           className="tp-avatar"
           name={profile.name}
-          initials={profile.name.slice(0, 2)}
           avatar={profile.avatar_url}
         />
         <div className="tp-header-text">

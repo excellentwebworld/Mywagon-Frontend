@@ -1,0 +1,357 @@
+import React, { useState } from 'react';
+import { Users, Star, ArrowRightLeft, Check, X, History, MessageSquare } from 'lucide-react';
+import { CollapsibleCard } from './CollapsibleCard';
+import { useTransporterProfileOptional } from '../TransporterProfile/TransporterProfileContext';
+import { NegotiationHistoryPanel } from '../ManageShipments/NegotiationHistoryPanel';
+import { CarrierAvatar } from '../ManageShipments/CarrierAvatar';
+
+export interface PartnerBidItem {
+  id: string;
+  userId?: number;
+  userType?: 'carrier' | 'driver';
+  name: string;
+  transporterType?: 'carrier' | 'driver' | 'freelancer';
+  initials?: string;
+  avatar?: string | null;
+  rating?: number | string;
+  tripsCount?: number;
+  bidAmount?: number | null;
+  statusText?: string;
+  time?: string;
+  hasBid?: boolean;
+  isInterested?: boolean;
+}
+
+interface BidsCardProps {
+  shipmentId?: string | number;
+  isPrivateLoad?: boolean;
+  partners?: PartnerBidItem[];
+  expanded?: boolean;
+  onToggle?: () => void;
+  onAcceptBid?: (bid: PartnerBidItem) => void;
+  onRejectBid?: (bid: PartnerBidItem) => void;
+  onCounterBid?: (bid: PartnerBidItem, amount: number, notes?: string) => void;
+  onCancelInvite?: (partner: PartnerBidItem) => void;
+  onViewHistory?: (partner: PartnerBidItem) => void;
+  onChat?: (partner: PartnerBidItem) => void;
+  onInviteMore?: () => void;
+  t: (key: string, fallback?: string) => string;
+}
+
+export const BidsCard: React.FC<BidsCardProps> = ({
+  shipmentId,
+  isPrivateLoad = true,
+  partners = [],
+  expanded = true,
+  onToggle = () => {},
+  onAcceptBid,
+  onRejectBid,
+  onCounterBid,
+  onCancelInvite,
+  onViewHistory,
+  onChat,
+  onInviteMore,
+  t,
+}) => {
+  const { openTransporterProfile } = useTransporterProfileOptional();
+  const [counterOpenId, setCounterOpenId] = useState<string | null>(null);
+  const [counterAmounts, setCounterAmounts] = useState<Record<string, string>>({});
+  const [counterNotes, setCounterNotes] = useState<Record<string, string>>({});
+  const [historyOpenId, setHistoryOpenId] = useState<string | null>(null);
+
+  // Sort: active bids/interests first, then invited partners
+  const sortedPartners = [...partners].sort((a, b) => {
+    if (a.hasBid && !b.hasBid) return -1;
+    if (!a.hasBid && b.hasBid) return 1;
+    return 0;
+  });
+
+  // For public loads: do not show table unless at least one bid/interest is present
+  const hasActiveBidsOrInterests = partners.some((p) => p.hasBid || p.isInterested);
+  if (!isPrivateLoad && !hasActiveBidsOrInterests) {
+    return null;
+  }
+
+  const handleOpenProfile = (partner: PartnerBidItem) => {
+    if (partner.userId && partner.userType) {
+      openTransporterProfile({
+        id: partner.userId,
+        type: partner.userType,
+        name: partner.name,
+      });
+    }
+  };
+
+  const handleSendCounter = (partner: PartnerBidItem) => {
+    const val = parseFloat(counterAmounts[partner.id]);
+    if (!isNaN(val) && val > 0 && onCounterBid) {
+      const notes = (counterNotes[partner.id] || '').trim() || undefined;
+      onCounterBid(partner, val, notes);
+      setCounterOpenId(null);
+      setCounterAmounts((prev) => { const next = { ...prev }; delete next[partner.id]; return next; });
+      setCounterNotes((prev) => { const next = { ...prev }; delete next[partner.id]; return next; });
+    }
+  };
+
+  const toggleHistory = (partner: PartnerBidItem) => {
+    if (onViewHistory) {
+      onViewHistory(partner);
+    }
+    setHistoryOpenId((prev) => (prev === partner.id ? null : partner.id));
+  };
+
+  return (
+    <CollapsibleCard
+      id="bids"
+      icon={<Users size={15} />}
+      title={isPrivateLoad ? t('invitedPartners', 'Invited partners') : t('bidsReceived', 'Bids & partners')}
+      count={sortedPartners.length}
+      expanded={expanded}
+      onToggle={onToggle}
+    >
+      {sortedPartners.length === 0 ? (
+        <p className="text-[12px] m-0 py-2" style={{ color: '#8E8E9A' }}>
+          {t('noPartnersInvited', 'No partners invited yet.')}
+        </p>
+      ) : (
+        <div className="space-y-1">
+          {sortedPartners.map((item, idx) => {
+          const isFreelancer = item.transporterType === 'freelancer' || item.userType === 'driver';
+          const isCountering = counterOpenId === item.id;
+          const isHistoryOpen = historyOpenId === item.id;
+
+          return (
+            <div
+              key={item.id}
+              className="py-2.5"
+              style={{ borderTop: idx > 0 ? '1px solid #E4E4E8' : 'none' }}
+            >
+              <div className="flex items-start gap-3">
+                {/* Transporter Avatar */}
+                <CarrierAvatar
+                  size={34}
+                  avatar={item.avatar}
+                  name={item.name}
+                  initials={item.initials}
+                  className="carrier-av rounded-full flex items-center justify-center font-bold flex-shrink-0 mt-0.5 overflow-hidden text-xs"
+                />
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* Clickable Transporter Name driving to profile */}
+                      <button
+                        type="button"
+                        onClick={() => handleOpenProfile(item)}
+                        className="font-bold text-[13px] text-left hover:underline cursor-pointer"
+                        style={{ color: '#18181B', background: 'none', border: 'none', padding: 0 }}
+                      >
+                        {item.name}
+                      </button>
+
+                      {/* Rating and completed trips in parenthesis: ★ 4.9 (320) */}
+                      {item.rating && item.rating !== '—' && (
+                        <span className="text-[11px] font-semibold inline-flex items-center gap-0.5" style={{ color: '#9B51E0' }}>
+                          <Star size={11} fill="#9B51E0" />
+                          <span>
+                            {item.rating} ({item.tripsCount || 0})
+                          </span>
+                        </span>
+                      )}
+
+                      {/* Type Badge: Carrier vs Freelancer */}
+                      <span
+                        className="text-[10px] font-semibold px-1.5 py-0.2 rounded"
+                        style={{
+                          background: isFreelancer ? '#FEF3C7' : '#EFF6FF',
+                          color: isFreelancer ? '#B45309' : '#2563EB',
+                        }}
+                      >
+                        {isFreelancer ? t('freelancer', 'Freelancer') : t('carrier', 'Carrier')}
+                      </span>
+                    </div>
+
+                    {/* Right Side: Bid Price OR Cancel Invite Button */}
+                    {item.bidAmount != null ? (
+                      <span
+                        className="font-bold text-[15px]"
+                        style={{
+                          fontFamily: "'JetBrains Mono', monospace",
+                          color: '#18181B',
+                        }}
+                      >
+                        € {item.bidAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </span>
+                    ) : (
+                      !item.hasBid && onCancelInvite && (
+                        <button
+                          type="button"
+                          onClick={() => onCancelInvite(item)}
+                          className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer border border-[#E4E4E8] bg-white text-[#DC2626] hover:bg-red-50 hover:border-[#FECACA]"
+                        >
+                          {t('cancelInvite', 'Cancel invite')}
+                        </button>
+                      )
+                    )}
+                  </div>
+
+                  <div className="text-[11px] mt-0.5" style={{ color: '#8E8E9A' }}>
+                    {item.statusText || (item.hasBid ? 'Bid submitted' : 'Invited · Waiting response')}
+                    {item.time ? ` · ${item.time}` : ''}
+                  </div>
+
+                  {/* Actions when bid is received: Accept, Reject, Counter, History */}
+                  {item.hasBid && (
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      {onAcceptBid && (
+                        <button
+                          type="button"
+                          onClick={() => onAcceptBid(item)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white bg-[#059669] hover:opacity-90 cursor-pointer"
+                          style={{ border: 'none' }}
+                        >
+                          <Check size={12} />
+                          <span>{t('accept', 'Accept')}</span>
+                        </button>
+                      )}
+
+                      {onCounterBid && (
+                        <button
+                          type="button"
+                          onClick={() => setCounterOpenId(isCountering ? null : item.id)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#E4E4E8] text-[#18181B] hover:bg-slate-50 cursor-pointer"
+                        >
+                          <ArrowRightLeft size={12} />
+                          <span>{t('counterBid', 'Counter')}</span>
+                        </button>
+                      )}
+
+                      {onRejectBid && (
+                        <button
+                          type="button"
+                          onClick={() => onRejectBid(item)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#FECACA] text-[#DC2626] hover:bg-red-50 cursor-pointer"
+                        >
+                          <X size={12} />
+                          <span>{t('decline', 'Decline')}</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => toggleHistory(item)}
+                        title={t('biddingHistory', 'Bidding history')}
+                        className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                          isHistoryOpen
+                            ? 'bg-[#9B51E0] text-white border-[#9B51E0]'
+                            : 'bg-white border-[#E4E4E8] text-[#5E5E6E] hover:bg-slate-50'
+                        }`}
+                      >
+                        <History size={13} />
+                      </button>
+
+                      {/* Chat button */}
+                      <button
+                        type="button"
+                        onClick={() => onChat ? onChat(item) : undefined}
+                        title={t('chat', 'Chat')}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-slate-50 cursor-pointer transition-colors"
+                      >
+                        <MessageSquare size={12} />
+                        <span>{t('chat', 'Chat')}</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Inline Counter-Offer Drawer */}
+                  {isCountering && (
+                    <div className="mt-2.5 p-3.5 rounded-xl bg-[#FAF5FF] border border-[#E9D5FF] flex flex-col gap-3">
+                      {/* Header */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-[13px] font-bold text-[#18181B]">
+                          {t('counterBidTitle', 'Counter-Bid')}
+                        </span>
+                        {item.bidAmount != null && (
+                          <span className="text-[11px] text-[#5E5E6E]">
+                            {t('currentOfferPrice', 'Current Offer Price')}:{' '}
+                            <strong className="text-[#9B51E0] font-bold">
+                              € {item.bidAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </strong>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Price Input */}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[11px] font-semibold text-[#18181B]">
+                          {t('yourCounterPrice', 'Your Counter Price (€)')} <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          placeholder={t('enterCounterPrice', 'Enter your counter price')}
+                          value={counterAmounts[item.id] || ''}
+                          onChange={(e) =>
+                            setCounterAmounts((prev) => ({ ...prev, [item.id]: e.target.value }))
+                          }
+                          className="w-full px-3 py-2 text-[13px] rounded-lg border border-[#CBD5E1] bg-white outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/30 transition-all"
+                        />
+                      </div>
+
+                      {/* Notes Textarea */}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[11px] font-semibold text-[#18181B]">
+                          {t('notesOptional', 'Notes (Optional)')}
+                        </label>
+                        <textarea
+                          placeholder={t('addNoteForCarrier', 'Add a note for the carrier/driver...')}
+                          value={counterNotes[item.id] || ''}
+                          onChange={(e) =>
+                            setCounterNotes((prev) => ({ ...prev, [item.id]: e.target.value }))
+                          }
+                          rows={3}
+                          className="w-full px-3 py-2 text-[13px] rounded-lg border border-[#CBD5E1] bg-white outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/30 transition-all resize-none"
+                        />
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setCounterOpenId(null)}
+                          className="px-4 py-1.5 rounded-lg text-[12px] font-semibold text-[#5E5E6E] border border-[#E4E4E8] bg-white hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+                        >
+                          {t('cancel', 'Cancel')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSendCounter(item)}
+                          disabled={!counterAmounts[item.id] || parseFloat(counterAmounts[item.id]) <= 0}
+                          className="px-4 py-1.5 rounded-lg text-[12px] font-bold text-white bg-[#18181B] hover:bg-[#2D2D2D] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                        >
+                          {t('sendCounterBid', 'Send Counter-Bid')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Inline Negotiation History Timeline */}
+                  {isHistoryOpen && shipmentId && (
+                    <div className="mt-2.5">
+                      <NegotiationHistoryPanel
+                        open={true}
+                        shipmentId={shipmentId}
+                        offerId={item.id}
+                        t={t}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      )}
+    </CollapsibleCard>
+  );
+};

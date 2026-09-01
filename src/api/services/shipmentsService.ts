@@ -4,6 +4,7 @@ import type {
   ApiCancelReasonsPayload,
   ApiNegotiationHistoryItem,
   ApiShipmentDetail,
+  ApiShipmentDocument,
   ApiShipmentListItem,
   ApiShipmentsSummary,
   ApiShipmentsFilterFacets,
@@ -266,5 +267,57 @@ export const shipmentsService = {
     }
   ): Promise<void> {
     await apiPost(`/shipments/${id}/locations/${locationId}/pickup-delay`, body);
+  },
+
+  async addNote(
+    id: string | number,
+    body: {
+      body: string;
+      visibility?: 'internal' | 'carrier';
+    }
+  ): Promise<{ id: string; author: string; timestamp: string; body: string; visibility: string }> {
+    const res = await apiPost<{ id: string; author: string; timestamp: string; body: string; visibility: string }>(
+      `/shipments/${id}/notes`,
+      body
+    );
+    return res.data;
+  },
+
+  async getDocuments(id: string | number): Promise<ApiShipmentDocument[]> {
+    const res = await apiGet<ApiShipmentDocument[]>(`/shipments/${id}/documents`);
+    return res.data ?? [];
+  },
+
+  async uploadDocument(
+    id: string | number,
+    formData: FormData
+  ): Promise<ApiShipmentDocument> {
+    const res = await apiPost<ApiShipmentDocument>(`/shipments/${id}/documents`, formData);
+    return res.data;
+  },
+
+  async deleteDocument(id: string | number, documentId: string | number): Promise<void> {
+    await apiDelete(`/shipments/${id}/documents/${documentId}`);
+  },
+
+  async downloadDocument(id: string | number, documentId: string | number, fileName: string): Promise<void> {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY) || sessionStorage.getItem(AUTH_TOKEN_KEY) || '';
+    const cleanBase = API_BASE.replace(/\/+$/, '');
+    const downloadUrl = `${cleanBase}/shipments/${id}/documents/${documentId}/download`;
+
+    const res = await fetch(downloadUrl, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (!res.ok) throw new Error('Download failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName || 'document';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   },
 };

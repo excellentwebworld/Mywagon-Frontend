@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { useApp } from '../../../context/AppContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -22,6 +22,14 @@ export function useMessages() {
   const { user } = useAuth();
   const { t, lang } = useTranslation();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const locationState = location.state as {
+    userId?: number | string;
+    userType?: 'carrier' | 'driver';
+    userName?: string;
+    userAvatar?: string;
+    sid?: string;
+  } | null;
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<number | string | null>(null);
@@ -69,20 +77,72 @@ export function useMessages() {
     try {
       setLoadingConversations(true);
       const list = await chatService.getConversations('all', debouncedSearch);
-      setConversations(list);
 
-      // Auto-select first conversation or query param match if none selected
-      if (list.length > 0) {
+      const targetUserId =
+        searchParams.get('userId') ||
+        searchParams.get('partner') ||
+        (locationState?.userId ? String(locationState.userId) : null);
+      const targetUserType =
+        searchParams.get('userType') ||
+        locationState?.userType ||
+        'carrier';
+      const targetUserName =
+        searchParams.get('name') ||
+        locationState?.userName ||
+        '';
+      const targetUserAvatar =
+        searchParams.get('avatar') ||
+        locationState?.userAvatar ||
+        '';
+      const targetSid =
+        searchParams.get('sid') ||
+        locationState?.sid ||
+        '';
+
+      if (targetUserId) {
+        setMobileChatOpen(true);
+        const match = list.find(
+          (c) =>
+            String(c.partnerId) === String(targetUserId) ||
+            String(c.id) === String(targetUserId) ||
+            (targetUserName && c.name.toLowerCase() === targetUserName.toLowerCase())
+        );
+
+        if (match) {
+          setConversations(list);
+          setActiveConvId(match.id);
+        } else {
+          // First time message to this user! Create a synthetic conversation immediately
+          const syntheticId = `user-${targetUserId}-${targetUserType}`;
+          const newConv: Conversation = {
+            id: syntheticId,
+            partnerId: Number(targetUserId),
+            partnerType: targetUserType as 'carrier' | 'driver',
+            name: targetUserName || (targetUserType === 'driver' ? 'Driver' : 'Carrier Company'),
+            initials: (targetUserName || 'U').substring(0, 2).toUpperCase(),
+            avatarUrl: targetUserAvatar || '',
+            role: targetUserType === 'driver' ? 'Driver' : 'Carrier',
+            rating: '5.0',
+            tripsCount: 0,
+            type: targetUserType === 'driver' ? 'freelancer' : 'company',
+            lastMsg: '',
+            lastTime: 'Just now',
+            lastTimestamp: Math.floor(Date.now() / 1000),
+            unread: 0,
+            online: true,
+            latestSid: targetSid || undefined,
+            activeShipmentId: targetSid || undefined,
+          };
+          setConversations([newConv, ...list]);
+          setActiveConvId(newConv.id);
+        }
+      } else if (list.length > 0) {
+        setConversations(list);
         setActiveConvId((prev) => {
           if (prev && list.some((c) => String(c.id) === String(prev))) {
             return prev;
           }
-          const partnerParam = searchParams.get('partner');
           const sidParam = searchParams.get('sid');
-          if (partnerParam) {
-            const match = list.find((c) => String(c.id) === partnerParam || String(c.partnerId) === partnerParam || c.name.toLowerCase().includes(partnerParam.toLowerCase()));
-            if (match) return match.id;
-          }
           if (sidParam) {
             const match = list.find((c) => c.chips?.includes(sidParam) || c.latestSid === sidParam);
             if (match) return match.id;
@@ -90,6 +150,7 @@ export function useMessages() {
           return list[0].id;
         });
       } else {
+        setConversations([]);
         setActiveConvId(null);
         setMessages([]);
       }
@@ -98,7 +159,7 @@ export function useMessages() {
     } finally {
       setLoadingConversations(false);
     }
-  }, [debouncedSearch, searchParams]);
+  }, [debouncedSearch, searchParams, locationState]);
 
   useEffect(() => {
     void loadConversations();
