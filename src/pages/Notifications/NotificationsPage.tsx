@@ -316,6 +316,31 @@ export const NotificationsPage: React.FC = () => {
   // Debounce search
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const isFirstRender = useRef(true);
+
+  // ── Scroll to Top Helper ───────────────────────────────────────────────
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    const selectors = ['.page-body', '.main-content', '.app-layout'];
+    selectors.forEach((sel) => {
+      const el = document.querySelector(sel);
+      if (el) {
+        if ('scrollTo' in el) {
+          el.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          el.scrollTop = 0;
+        }
+      }
+    });
+  }, []);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    scrollToTop();
+  };
 
   // ── i18n ───────────────────────────────────────────────────────────────
   const currentLang = (lang === 'el' ? 'el' : 'en') as 'en' | 'el';
@@ -356,6 +381,15 @@ export const NotificationsPage: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [activeCat, debouncedSearch]);
+
+  // ── Scroll to top on page change ───────────────────────────────────────
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    scrollToTop();
+  }, [currentPage, scrollToTop]);
 
   // ── Reload data when activeCat, debouncedSearch, currentPage or perPage changes ───
   useEffect(() => {
@@ -796,7 +830,7 @@ export const NotificationsPage: React.FC = () => {
                 value={perPage}
                 onChange={(e) => {
                   setPerPage(Number(e.target.value));
-                  setCurrentPage(1);
+                  handlePageChange(1);
                 }}
                 disabled={loading}
                 aria-label={loc('perPage')}
@@ -815,10 +849,7 @@ export const NotificationsPage: React.FC = () => {
             <button
               type="button"
               disabled={currentPage <= 1 || loading}
-              onClick={() => {
-                setCurrentPage(1);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onClick={() => handlePageChange(1)}
               title={loc('firstPage')}
               className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
@@ -827,10 +858,7 @@ export const NotificationsPage: React.FC = () => {
             <button
               type="button"
               disabled={currentPage <= 1 || loading}
-              onClick={() => {
-                setCurrentPage((p) => Math.max(1, p - 1));
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
               title={loc('prevPage')}
               className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
@@ -850,10 +878,7 @@ export const NotificationsPage: React.FC = () => {
                   <button
                     type="button"
                     disabled={loading}
-                    onClick={() => {
-                      setCurrentPage(p);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
+                    onClick={() => handlePageChange(p)}
                     className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
                       p === currentPage
                         ? 'bg-indigo-600 text-white shadow-xs font-bold'
@@ -869,10 +894,7 @@ export const NotificationsPage: React.FC = () => {
             <button
               type="button"
               disabled={currentPage >= lastPage || loading}
-              onClick={() => {
-                setCurrentPage((p) => Math.min(lastPage, p + 1));
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onClick={() => handlePageChange(Math.min(lastPage, currentPage + 1))}
               title={loc('nextPage')}
               className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
@@ -881,10 +903,7 @@ export const NotificationsPage: React.FC = () => {
             <button
               type="button"
               disabled={currentPage >= lastPage || loading}
-              onClick={() => {
-                setCurrentPage(lastPage);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onClick={() => handlePageChange(lastPage)}
               title={loc('lastPage')}
               className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
