@@ -122,6 +122,11 @@ export const ShipmentDetail: React.FC = () => {
     return vm.stops || [];
   }, [vm, itineraryViewMode]);
 
+  const timelineShipment = useMemo(() => {
+    if (!shipment) return null;
+    return { ...shipment, stops: displayedStops };
+  }, [shipment, displayedStops]);
+
   const [localNotes, setLocalNotes] = useState<DetailNote[]>([]);
   const [localDocs, setLocalDocs] = useState<DetailDocument[]>([]);
 
@@ -526,11 +531,13 @@ export const ShipmentDetail: React.FC = () => {
         )}
 
         {/* Milestones Bar (Events that already happened / in progress) */}
-        <MilestonesBar
-          vm={vm}
-          lang={lang}
-          onExceptionClick={handleJump}
-        />
+        {timelineShipment && (
+          <MilestonesBar
+            shipment={timelineShipment}
+            t={t}
+            lang={lang}
+          />
+        )}
 
         {/* Modern React Itinerary Version Switcher */}
         {vm.hasUpdatedItinerary && (

@@ -752,6 +752,8 @@ export type LaravelProgressStep = {
   dateLine?: string;
   /** Laravel-style time line under the date (e.g. 18:49). */
   timeLine?: string;
+  /** Unable-to-complete reason shown below the label (Laravel detail timeline). */
+  reason?: string;
 };
 
 export type ItineraryStopGroup = {
@@ -770,6 +772,7 @@ export type ItineraryStopGroup = {
   /** Event logs from first (merged) location row — Laravel timeline source. */
   logs?: Array<{ status: string; createdAt: string }>;
   unableStatus?: number;
+  reason?: string | null;
   lines: Array<{
     customerName: string;
     orderId: string;
@@ -969,6 +972,20 @@ export function itineraryRailFilled(
   return index < currentIndex;
 }
 
+function mergeLocationStatusCode(current?: string, incoming?: string): string {
+  const cur = Number(current ?? 0);
+  const next = Number(incoming ?? 0);
+  const failed = new Set([2, 4, 6, 8]);
+  const success = new Set([5, 7]);
+  if (failed.has(cur) || failed.has(next)) {
+    return String(failed.has(next) ? next : cur);
+  }
+  if (success.has(cur) || success.has(next)) {
+    return String(success.has(next) ? next : cur);
+  }
+  return String(Math.max(cur, next));
+}
+
 /** Group consecutive same location+type+schedule rows into physical itinerary stops. */
 export function groupItineraryStops(
   stops: Shipment['stops'],
@@ -1050,6 +1067,17 @@ export function groupItineraryStops(
         existingUrls.add(img.url);
         last.podImages = [...(last.podImages || []), img];
       });
+      last.locationStatus = mergeLocationStatusCode(last.locationStatus, stop.locationStatus);
+      if (stop.pod === '1') last.pod = '1';
+      if (stop.unableStatus) last.unableStatus = stop.unableStatus;
+      if (stop.reason) last.reason = stop.reason;
+      const seenLogs = new Set((last.logs || []).map((log) => `${log.status}|${log.createdAt}`));
+      (stop.logs || []).forEach((log) => {
+        const logKey = `${log.status}|${log.createdAt}`;
+        if (seenLogs.has(logKey)) return;
+        seenLogs.add(logKey);
+        last.logs = [...(last.logs || []), log];
+      });
       return;
     }
 
@@ -1062,12 +1090,12 @@ export function groupItineraryStops(
       timeStart: stop.timeStart || '',
       timeEnd: stop.timeEnd || '',
       customers: [...customers],
-      // location[0] — keep first row's status when merging products
       locationStatus: stop.locationStatus ?? '0',
       pod: stop.pod ?? '0',
       podImages: stop.podImages ?? [],
       logs: stop.logs ?? [],
       unableStatus: stop.unableStatus ?? 0,
+      reason: stop.reason || null,
       lines,
     });
   });
@@ -1121,8 +1149,11 @@ function progressDateTimeParts(
 
 /** ShipmentLocationLog status codes used by Laravel detail timeline. */
 const LOG_START_TRIP = '1';
+const LOG_UNABLE_START = '2';
 const LOG_ARRIVAL = '3';
+const LOG_UNABLE_ARRIVAL = '4';
 const LOG_COMPLETE_STOP = '5';
+const LOG_UNABLE_STOP = '6';
 const LOG_POD = '9';
 const LOG_PAID = '10';
 const LOG_ACCEPTED = '11';
@@ -1221,34 +1252,84 @@ export function buildLaravelProgressSteps(
     },
   ];
 
-  const pushItinerarySteps = (stateForIndex: (idx: number) => LaravelProgressState) => {
-    itineraryStops.forEach((stop, idx) => {
-      const state = stateForIndex(idx);
-      const arrivalAt = findLogCreatedAt(stop.logs, LOG_ARRIVAL);
-      const completeAt = findLogCreatedAt(stop.logs, LOG_COMPLETE_STOP);
-      const action = stop.type === 'pickup' ? t('pickup') : t('delivery');
+  const currentItinIndex = onTrip ? findCurrentItineraryIndex(itineraryStops) : -1;
 
-      // Laravel detail: Arrival step only when arrival log (status 3) exists.
+  const pushItinerarySteps = () => {
+    const manualTrip = shipment.isManualTrip || shipment.startedBy === 'carrier';
+
+    if (manualTrip && fulfilledLike) {
+      const tripParts = progressDateTimeParts(shipment.updatedAt || shipment.updated || null);
+      steps.push({
+        id: 'trip_completed',
+        label: t('tripCompleted', { defaultValue: 'Trip Completed' }),
+        state: 'done',
+        dateLine: tripParts.dateLine,
+        timeLine: tripParts.timeLine,
+        sub: tripParts.sub,
+      });
+      return;
+    }
+
+    if (manualTrip) return;
+
+    itineraryStops.forEach((stop, idx) => {
+      const arrivalAt = findLogCreatedAt(stop.logs, LOG_ARRIVAL);
+      const unableArrivalAt = findLogCreatedAt(stop.logs, LOG_UNABLE_ARRIVAL);
+      const completeAt = findLogCreatedAt(stop.logs, LOG_COMPLETE_STOP);
+      const unableCompleteAt = findLogCreatedAt(stop.logs, LOG_UNABLE_STOP);
+      const action = stop.type === 'pickup' ? t('pickup') : t('dropoff');
+
       if (arrivalAt) {
         const arrivalParts = progressDateTimeParts(arrivalAt);
         steps.push({
           id: `arrival-${idx}`,
-          label: `${t('arrival')} · ${stop.location}`,
+          label: `${t('arrival')} - ${stop.location}`,
           state: 'done',
           dateLine: arrivalParts.dateLine,
           timeLine: arrivalParts.timeLine,
           sub: arrivalParts.sub,
         });
+      } else if (unableArrivalAt) {
+        const arrivalParts = progressDateTimeParts(unableArrivalAt);
+        steps.push({
+          id: `arrival-unable-${idx}`,
+          label: `${t('arrival')} - ${stop.location}`,
+          state: 'pending',
+          dateLine: arrivalParts.dateLine,
+          timeLine: arrivalParts.timeLine,
+          sub: arrivalParts.sub,
+          reason: stop.reason || undefined,
+        });
       }
 
-      const completeParts = progressDateTimeParts(completeAt);
+      if (!completeAt && !unableCompleteAt) return;
+
+      const isUnable =
+        Boolean(unableCompleteAt) ||
+        productLineVisual(stop.type, stop.locationStatus, stop.pod, stop.unableStatus) === 'failed';
+      const completeParts = progressDateTimeParts(unableCompleteAt || completeAt);
+      let stepState: LaravelProgressState = 'done';
+
+      if (isUnable) {
+        stepState = 'pending';
+      } else if (fulfilledLike) {
+        stepState = 'done';
+      } else if (onTrip) {
+        if (idx < currentItinIndex) stepState = 'done';
+        else if (idx === currentItinIndex) stepState = 'cur';
+        else return;
+      } else {
+        return;
+      }
+
       steps.push({
         id: `itin-${idx}`,
-        label: `${action} · ${stop.location}`,
-        state,
+        label: `${action} - ${stop.location}`,
+        state: stepState,
         dateLine: completeParts.dateLine,
         timeLine: completeParts.timeLine,
         sub: completeParts.sub,
+        reason: isUnable ? stop.reason || undefined : undefined,
       });
     });
   };
@@ -1259,13 +1340,13 @@ export function buildLaravelProgressSteps(
       label: t(status === 'cancelled' ? 'cancelled' : 'canceled'),
       state: 'pending',
     });
-    pushItinerarySteps(() => 'skip');
+    pushItinerarySteps();
     return steps;
   }
 
   if (isPending) {
     steps.push({ id: 'waiting', label: waitingLabel, state: 'cur' });
-    pushItinerarySteps(() => 'skip');
+    pushItinerarySteps();
     return steps;
   }
 
@@ -1305,20 +1386,14 @@ export function buildLaravelProgressSteps(
     sub: startTripParts.sub,
   });
 
-  const currentItinIndex = onTrip ? findCurrentItineraryIndex(itineraryStops) : -1;
+  pushItinerarySteps();
 
-  pushItinerarySteps((idx) => {
-    if (fulfilledLike && status !== 'not_fullfilled') return 'done';
-    if (status === 'not_fullfilled') return 'pending';
-    if (onTrip) {
-      if (idx < currentItinIndex) return 'done';
-      if (idx === currentItinIndex) return 'cur';
-      return 'skip';
-    }
-    return 'skip';
-  });
+  const podEligibleCount = (shipment.stops || []).filter((stop) => {
+    if (stop.type !== 'delivery') return false;
+    return (stop.logs || []).some((log) => String(log.status) === LOG_COMPLETE_STOP);
+  }).length;
 
-  if (fulfilledLike) {
+  if (fulfilledLike && podEligibleCount > 0) {
     const podParts = progressDateTimeParts(podAt);
     const allPodsUploaded =
       Boolean(podAt) ||

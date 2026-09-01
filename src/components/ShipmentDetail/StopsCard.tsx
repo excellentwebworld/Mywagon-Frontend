@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { MapPin, Copy, CheckCircle2, Clock, FileText, ChevronDown, ChevronUp, Loader2, X, AlertTriangle } from 'lucide-react';
+import { MapPin, Copy, CheckCircle2, FileText, ChevronDown, ChevronUp, Loader2, X, AlertTriangle } from 'lucide-react';
 import type { ShipmentStop } from '../../context/AppContext';
+import { productLineVisual, type ProductLineVisual } from '../../pages/ManageShipments/utils/listingUtils';
 import { CollapsibleCard } from './CollapsibleCard';
 
 interface StopsCardProps {
@@ -27,6 +28,10 @@ export interface GroupedOrder {
   orderId: string;
   customerName?: string;
   products: GroupedProduct[];
+  locationStatus?: string;
+  pod?: string;
+  unableStatus?: number;
+  reason?: string | null;
 }
 
 export interface PhysicalStop {
@@ -48,6 +53,21 @@ export interface PhysicalStop {
   orders: GroupedOrder[];
   totalProductCount: number;
   totalOrderCount: number;
+}
+
+/** Merge driver location status when grouping rows at the same physical stop (Laravel per-line rules). */
+function mergeLocationStatus(current?: string, incoming?: string): string {
+  const cur = Number(current ?? 0);
+  const next = Number(incoming ?? 0);
+  const failed = new Set([2, 4, 6, 8]);
+  const success = new Set([5, 7]);
+  if (failed.has(cur) || failed.has(next)) {
+    return String(failed.has(next) ? next : cur);
+  }
+  if (success.has(cur) || success.has(next)) {
+    return String(success.has(next) ? next : cur);
+  }
+  return String(Math.max(cur, next));
 }
 
 function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
@@ -87,9 +107,7 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
       if (stop.podImages && stop.podImages.length > 0) {
         physical.podImages = [...(physical.podImages || []), ...stop.podImages];
       }
-      if (stop.locationStatus === '6' || stop.locationStatus === '4' || stop.locationStatus === '8') {
-        physical.locationStatus = stop.locationStatus;
-      }
+      physical.locationStatus = mergeLocationStatus(physical.locationStatus, stop.locationStatus);
       if (stop.reason || (stop as any).unable_reason) {
         physical.reason = stop.reason || (stop as any).unable_reason;
       }
@@ -103,8 +121,18 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
       const orderId = '—';
       let ord = physical.orders.find((o) => o.orderId === orderId);
       if (!ord) {
-        ord = { orderId, customerName: '', products: [] };
+        ord = {
+          orderId,
+          customerName: '',
+          products: [],
+          locationStatus: stop.locationStatus ?? '0',
+          pod: stop.pod ?? '0',
+          unableStatus: stop.unableStatus ?? 0,
+          reason: stop.reason || (stop as any).unable_reason || null,
+        };
         physical.orders.push(ord);
+      } else {
+        ord.locationStatus = mergeLocationStatus(ord.locationStatus, stop.locationStatus);
       }
       if (ord.products.length === 0) {
         ord.products.push({
@@ -128,10 +156,26 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
             (o) => o.orderId === orderId
           );
           if (!ord) {
-            ord = { orderId, customerName: custName, products: [] };
+            ord = {
+              orderId,
+              customerName: custName,
+              products: [],
+              locationStatus: stop.locationStatus ?? '0',
+              pod: stop.pod ?? '0',
+              unableStatus: stop.unableStatus ?? 0,
+              reason: stop.reason || (stop as any).unable_reason || null,
+            };
             physical.orders.push(ord);
-          } else if (!ord.customerName && custName) {
-            ord.customerName = custName;
+          } else {
+            if (!ord.customerName && custName) {
+              ord.customerName = custName;
+            }
+            ord.locationStatus = mergeLocationStatus(ord.locationStatus, stop.locationStatus);
+            if (stop.pod === '1') ord.pod = '1';
+            if (stop.unableStatus) ord.unableStatus = stop.unableStatus;
+            if (stop.reason || (stop as any).unable_reason) {
+              ord.reason = stop.reason || (stop as any).unable_reason;
+            }
           }
 
           const prodName = ordObj.products && ordObj.products !== '—' ? ordObj.products : 'General Cargo';
@@ -167,6 +211,36 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
   });
 
   return Array.from(map.values());
+}
+
+function OrderStatusIcon({ visual }: { visual: ProductLineVisual }) {
+  if (visual === 'failed') {
+    return (
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] text-[#EF4444]">
+        <X size={18} strokeWidth={2.5} />
+      </div>
+    );
+  }
+  if (visual === 'done-pod') {
+    return (
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E0EAFF] bg-[#F0F5FF] text-[#2876F3]">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 9.5L5.5 14L16 3" />
+          <path d="M1 5.5L5.5 10L16 -1" opacity="0.6" />
+        </svg>
+      </div>
+    );
+  }
+  if (visual === 'done') {
+    return (
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E0EAFF] bg-[#F0F5FF] text-[#2876F3]">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+    );
+  }
+  return null;
 }
 
 export const StopsCard: React.FC<StopsCardProps> = ({
@@ -208,20 +282,6 @@ export const StopsCard: React.FC<StopsCardProps> = ({
       <div className="space-y-4 divide-y divide-[#EBEBF0]">
         {physicalStops.map((stop, idx) => {
           const isPickup = stop.type === 'pickup';
-          const isUnable =
-            stop.locationStatus === '6' ||
-            stop.locationStatus === '4' ||
-            stop.locationStatus === '8' ||
-            stop.unableStatus === 1 ||
-            Boolean(stop.reason);
-
-          const isSuccess = !isUnable && (
-            stop.locationStatus === '5' ||
-            stop.locationStatus === '7' ||
-            stop.pod === '1'
-          );
-
-          const issueReason = stop.reason || (stop.rawStop as any)?.reason || (stop.rawStop as any)?.unable_reason || null;
           const isOrdersExpanded = Boolean(expandedStopOrders[idx]);
           const hasMultipleItems = stop.totalProductCount > 1 || stop.totalOrderCount > 1;
           const isCopied = copiedStopIndex === idx;
@@ -292,11 +352,25 @@ export const StopsCard: React.FC<StopsCardProps> = ({
 
                       if (visibleProducts.length === 0) return null;
 
+                      const orderVisual = productLineVisual(
+                        stop.type,
+                        order.locationStatus ?? stop.locationStatus,
+                        order.pod ?? stop.pod,
+                        order.unableStatus ?? stop.unableStatus
+                      );
+                      const issueReason =
+                        order.reason ||
+                        stop.reason ||
+                        (stop.rawStop as any)?.reason ||
+                        (stop.rawStop as any)?.unable_reason ||
+                        null;
+                      const orderHasIssue = orderVisual === 'failed';
+
                       return (
                         <div
                           key={`${order.orderId}-${oIdx}`}
                           className={`p-2.5 rounded-xl border transition-colors ${
-                            isUnable
+                            orderHasIssue
                               ? 'bg-[#FEF2F2]/30 border-[#FECACA]'
                               : 'bg-[#F8F9FA] border-[#EBEBF0] hover:border-[#DDDDE5]'
                           }`}
@@ -333,33 +407,11 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                               ))}
                             </div>
 
-                            {/* Status Icon Indicator on the Right */}
-                            {isUnable ? (
-                              /* Red Cross Indicator when stop has an issue / undelivered */
-                              <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] text-[#EF4444]">
-                                <X size={18} strokeWidth={2.5} />
-                              </div>
-                            ) : isSuccess ? (
-                              /* Blue/Green Checkmark Tick Symbol (like in Laravel Blade) */
-                              <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E0EAFF] bg-[#F0F5FF] text-[#2876F3]">
-                                {stop.pod === '1' ? (
-                                  /* Double checkmark if POD is uploaded */
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M1 9.5L5.5 14L16 3" />
-                                    <path d="M1 5.5L5.5 10L16 -1" opacity="0.6" />
-                                  </svg>
-                                ) : (
-                                  /* Single checkmark for completed pickup/delivery */
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                  </svg>
-                                )}
-                              </div>
-                            ) : null}
+                            <OrderStatusIcon visual={orderVisual} />
                           </div>
 
                           {/* Issue Reason Alert in Red if present */}
-                          {isUnable && issueReason && (
+                          {orderHasIssue && issueReason && (
                             <div className="mt-2.5 p-2 rounded-lg bg-[#FEF2F2] border border-[#FECACA] text-xs font-semibold text-[#DC2626] flex items-center gap-1.5">
                               <AlertTriangle size={14} className="shrink-0 text-[#EF4444]" />
                               <span>{issueReason}</span>
