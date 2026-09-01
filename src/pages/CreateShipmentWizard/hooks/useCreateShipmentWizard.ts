@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMatch, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { createShipmentService, erpOrdersService, ApiError, SAT_PREFILL_KEY } from '../../../api';
+import { createShipmentService, erpOrdersService, shipmentsService, ApiError, SAT_PREFILL_KEY } from '../../../api';
 import type { ApiProceedResult } from '../../../api/types/availabilities';
 import {
   draftToFormValues,
@@ -336,7 +336,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         if (!orders.length) {
           showToastRef.current(
             tRef.current('createLoadOrderLoadError') ||
-              'Could not load order details.',
+            'Could not load order details.',
             'error'
           );
           sessionStorage.removeItem(ERP_ORDERS_PREFILL_KEY);
@@ -364,7 +364,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         if (!cancelled) {
           showToastRef.current(
             tRef.current('createLoadOrderLoadError') ||
-              'Could not load order details.',
+            'Could not load order details.',
             'error'
           );
           try {
@@ -633,6 +633,26 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       setIsSaving(true);
       try {
         const id = await ensureDraftId();
+
+        // If a document was attached in local state, upload it to the draft
+        if (values.documentsList && values.documentsList.length > 0) {
+          const doc = values.documentsList[0];
+          if (doc.file && typeof doc.id === 'string' && doc.id.startsWith('temp-')) {
+            try {
+              const fd = new FormData();
+              fd.append('file', doc.file);
+              fd.append('name', doc.name || 'Document');
+              if (doc.description) fd.append('description', doc.description);
+              const created = await shipmentsService.uploadDocument(id, fd);
+              doc.id = created.id;
+              doc.url = created.url || undefined;
+              delete doc.file;
+            } catch {
+              // Continue
+            }
+          }
+        }
+
         const payload = formValuesToStepThreePayload(values, mode);
         const draft = await createShipmentService.saveStepThree(id, payload);
         // Preserve Step 1/2 vehicle + stops from the live form (never wipe on Step 3 save).
@@ -678,6 +698,26 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       setIsSaving(true);
       try {
         const id = await ensureDraftId();
+
+        // If a document was attached in local state, upload it to the draft
+        if (values.documentsList && values.documentsList.length > 0) {
+          const doc = values.documentsList[0];
+          if (doc.file && typeof doc.id === 'string' && doc.id.startsWith('temp-')) {
+            try {
+              const fd = new FormData();
+              fd.append('file', doc.file);
+              fd.append('name', doc.name || 'Document');
+              if (doc.description) fd.append('description', doc.description);
+              const created = await shipmentsService.uploadDocument(id, fd);
+              doc.id = created.id;
+              doc.url = created.url || undefined;
+              delete doc.file;
+            } catch {
+              // Continue
+            }
+          }
+        }
+
         await createShipmentService.saveStepThree(id, formValuesToStepThreePayload(values, 'complete'));
         const published = await createShipmentService.publishDraft(id);
         showToast(t('shipmentCreatedSuccess') || 'Shipment created successfully!', 'success');
