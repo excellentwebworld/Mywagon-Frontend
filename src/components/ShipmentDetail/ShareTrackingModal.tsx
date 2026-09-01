@@ -1,62 +1,96 @@
-import React, { useState } from 'react';
-import { Share2, Plus, Trash2, Copy, Check, X, AlertCircle } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { X, Calendar, Clock } from 'lucide-react';
+import type { ShipmentStop } from '../../context/AppContext';
 import type { ShareCustomerGroup } from '../../pages/ShipmentDetail/detailViewModel';
 
 interface ShareTrackingModalProps {
   open: boolean;
-  groups: ShareCustomerGroup[];
+  stops?: ShipmentStop[];
+  groups?: ShareCustomerGroup[];
   isPickedUp?: boolean;
   onClose: () => void;
-  onSend: () => void;
+  onSend?: (emailsByLocationId: Record<string | number, string>) => void;
   t: (key: string, fallback?: string) => string;
 }
 
 export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
   open,
+  stops,
   groups,
-  isPickedUp = true,
   onClose,
   onSend,
   t,
 }) => {
-  const [emailsState, setEmailsState] = useState<Record<string, string[]>>({});
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const deliveryRows = useMemo(() => {
+    if (stops && stops.length > 0) {
+      return stops
+        .filter((s) => s.type === 'delivery')
+        .map((s, idx) => {
+          const orderId =
+            s.customers?.[0]?.orders?.[0]?.id ||
+            (typeof s.customers?.[0]?.orders?.[0] === 'string' ? s.customers[0].orders[0] : '') ||
+            '';
+          const date = s.date || '';
+          const time =
+            s.timeStart && s.timeEnd
+              ? `${s.timeStart} - ${s.timeEnd}`
+              : s.timeStart || s.timeEnd || '';
+          const initialEmail =
+            (s as any).tracking_email ||
+            (s as any).email ||
+            (s.customers?.[0] as any)?.email ||
+            '';
+          return {
+            id: s.id || `delivery-${idx}`,
+            locationName: s.location || '',
+            address: s.address && s.address !== s.location ? s.address : '',
+            date,
+            time,
+            orderId: String(orderId || ''),
+            defaultEmail: String(initialEmail || ''),
+          };
+        });
+    }
+
+    if (groups && groups.length > 0) {
+      return groups.flatMap((g) =>
+        g.rows.map((r, idx) => ({
+          id: `${r.location}-${r.orderRef}-${idx}`,
+          locationName: r.location,
+          address: '',
+          date: '',
+          time: '',
+          orderId: r.orderRef,
+          defaultEmail: r.email || '',
+        }))
+      );
+    }
+
+    return [];
+  }, [stops, groups]);
+
+  const [emails, setEmails] = useState<Record<string | number, string>>({});
+
+  useEffect(() => {
+    if (open) {
+      const initial: Record<string | number, string> = {};
+      deliveryRows.forEach((r) => {
+        initial[r.id] = r.defaultEmail;
+      });
+      setEmails(initial);
+    }
+  }, [open, deliveryRows]);
 
   if (!open) return null;
 
-  const getEmailsForRow = (key: string, defaultEmail: string) => {
-    return emailsState[key] || [defaultEmail];
+  const handleEmailChange = (id: string | number, value: string) => {
+    setEmails((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleAddEmail = (key: string) => {
-    setEmailsState((prev) => {
-      const current = prev[key] || [''];
-      return { ...prev, [key]: [...current, ''] };
-    });
-  };
-
-  const handleEmailChange = (key: string, index: number, value: string) => {
-    setEmailsState((prev) => {
-      const current = [...(prev[key] || [''])];
-      current[index] = value;
-      return { ...prev, [key]: current };
-    });
-  };
-
-  const handleRemoveEmail = (key: string, index: number) => {
-    setEmailsState((prev) => {
-      const current = [...(prev[key] || [''])];
-      current.splice(index, 1);
-      return { ...prev, [key]: current.length > 0 ? current : [''] };
-    });
-  };
-
-  const handleCopyLink = (rowKey: string, location: string) => {
-    if (!isPickedUp) return;
-    const url = `${window.location.origin}/track/${encodeURIComponent(rowKey)}`;
-    navigator.clipboard.writeText(url);
-    setCopiedKey(rowKey);
-    setTimeout(() => setCopiedKey(null), 2000);
+  const handleSubmit = () => {
+    if (onSend) {
+      onSend(emails);
+    }
   };
 
   return (
@@ -65,153 +99,108 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl flex flex-col"
+        className="bg-white rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{ border: '1px solid #E4E4E8' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E4E4E8]">
-          <div className="flex items-center gap-2">
-            <Share2 size={18} style={{ color: '#9B51E0' }} />
-            <h3 className="font-bold text-[16px] text-[#18181B]">
-              {t('shareTrackingLinks', 'Share tracking links')}
-            </h3>
-          </div>
+          <h3 className="font-bold text-[16px] text-[#9B51E0] m-0">
+            {t('trackingLinks', 'Tracking Links')}
+          </h3>
           <button
             type="button"
             onClick={onClose}
             className="p-1 rounded-lg hover:bg-black/5 text-[#8E8E9A] cursor-pointer"
+            aria-label="Close"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
-          {!isPickedUp && (
-            <div className="p-3 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] flex items-start gap-2.5 text-xs text-[#92400E]">
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
-              <span>
-                {t(
-                  'trackingLinkActiveAfterPickup',
-                  'Tracking links become active and copyable once goods have been picked up from at least one location.'
-                )}
-              </span>
-            </div>
-          )}
-
-          {groups.map((group) => (
-            <div key={group.name} className="space-y-3">
-              <div
-                className="flex items-center justify-between px-3 py-2 rounded-xl"
-                style={{ background: '#F0FDF9', border: '1px solid #A7F3D0', color: '#059669' }}
-              >
-                <div className="font-semibold text-xs flex items-center gap-1.5">
-                  <span>🏪</span>
-                  <span>{group.name}</span>
-                </div>
-                <span className="text-[10px] font-bold text-[#059669]">
-                  {group.deliveryCount} {t('deliveries', 'deliveries')}
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {group.rows.map((row) => {
-                  const rowKey = `${row.location}-${row.orderRef}`;
-                  const emails = getEmailsForRow(rowKey, row.email);
-
-                  return (
-                    <div
-                      key={rowKey}
-                      className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2.5"
-                    >
-                      <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
-                        <div className="font-bold text-[#18181B] flex items-center gap-1.5">
-                          <span>📍 {row.location}</span>
-                          <span className="text-[10px] font-mono text-[#64748B]">
-                            ({row.orderRef})
-                          </span>
-                        </div>
-
-                        {/* Copy tracking link button */}
-                        <button
-                          type="button"
-                          disabled={!isPickedUp}
-                          onClick={() => handleCopyLink(rowKey, row.location)}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-[#CBD5E1] text-[#334155] hover:bg-slate-50 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                        >
-                          {copiedKey === rowKey ? (
-                            <>
-                              <Check size={12} style={{ color: '#10B981' }} />
-                              <span style={{ color: '#10B981' }}>{t('copied', 'Copied!')}</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy size={12} />
-                              <span>{t('copyTrackingLink', 'Copy link')}</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-
-                      {/* Multiple Emails for this stop */}
-                      <div className="space-y-1.5">
-                        <div className="text-[11px] font-medium text-[#64748B]">
-                          {t('recipientsEmail', 'Recipient emails for live notifications:')}
-                        </div>
-                        {emails.map((em, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <input
-                              type="email"
-                              value={em}
-                              placeholder="customer@example.com"
-                              onChange={(e) => handleEmailChange(rowKey, idx, e.target.value)}
-                              className="flex-1 px-2.5 py-1.5 text-xs rounded-lg bg-white border border-[#CBD5E1] outline-none focus:border-[#9B51E0]"
-                            />
-                            {emails.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveEmail(rowKey, idx)}
-                                className="p-1.5 rounded text-[#94A3B8] hover:text-[#EF4444] cursor-pointer"
-                              >
-                                <Trash2 size={13} />
-                              </button>
+        {/* Table Body */}
+        <div className="p-6 overflow-y-auto max-h-[60vh] flex-1">
+          {deliveryRows.length === 0 ? (
+            <p className="text-center text-xs text-[#8E8E9A] py-6 m-0">
+              {t('noDeliveryLocations', 'No delivery locations found for this shipment.')}
+            </p>
+          ) : (
+            <div className="border border-[#E4E4E8] rounded-xl overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#F8F9FA] border-b border-[#E4E4E8]">
+                    <th className="py-3 px-4 text-[12px] font-semibold text-[#5E5E6E] w-5/12">
+                      {t('deliveryLocation', 'Delivery Location')}
+                    </th>
+                    <th className="py-3 px-4 text-[12px] font-semibold text-[#5E5E6E] w-5/12">
+                      {t('email', 'Email')}
+                    </th>
+                    <th className="py-3 px-4 text-[12px] font-semibold text-[#5E5E6E] w-2/12 text-center">
+                      {t('orderId', 'Order ID')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E4E4E8] bg-white">
+                  {deliveryRows.map((row) => {
+                    const currentEmail = emails[row.id] ?? '';
+                    return (
+                      <tr key={row.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3.5 px-4 align-middle">
+                          <div className="text-[13px] font-semibold text-[#18181B] leading-snug">
+                            {row.locationName}
+                            {row.address && (
+                              <span className="font-normal text-[#5E5E6E] ml-1.5">
+                                {row.address}
+                              </span>
                             )}
                           </div>
-                        ))}
-
-                        <button
-                          type="button"
-                          onClick={() => handleAddEmail(rowKey)}
-                          className="flex items-center gap-1 text-[11px] font-semibold text-[#9B51E0] hover:underline cursor-pointer pt-1"
-                        >
-                          <Plus size={12} />
-                          <span>{t('addAnotherEmail', '+ Add another email')}</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                          {(row.date || row.time) && (
+                            <div className="flex items-center gap-3.5 text-[11px] text-[#71717A] mt-1.5">
+                              {row.date && (
+                                <span className="flex items-center gap-1">
+                                  <Calendar size={12} className="text-[#9B51E0]" />
+                                  <span>{row.date}</span>
+                                </span>
+                              )}
+                              {row.time && (
+                                <span className="flex items-center gap-1">
+                                  <Clock size={12} className="text-[#9B51E0]" />
+                                  <span>{row.time}</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 align-middle">
+                          <input
+                            type="email"
+                            value={currentEmail}
+                            placeholder={t('enterEmail', 'Enter Email')}
+                            onChange={(e) => handleEmailChange(row.id, e.target.value)}
+                            style={{ backgroundColor: currentEmail ? '#E4E4E8' : '#FFFFFF' }}
+                            className="w-full px-3 py-2 text-[12px] rounded-lg border border-[#9B51E0] outline-none focus:ring-1 focus:ring-[#9B51E0] text-[#18181B] placeholder-[#A1A1AA] transition-colors"
+                          />
+                        </td>
+                        <td className="py-3.5 px-4 align-middle text-center text-[12px] font-semibold text-[#18181B]">
+                          {row.orderId || '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          ))}
+          )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[#E4E4E8] bg-[#F8FAFC]">
+        <div className="flex items-center justify-center gap-3 px-6 py-4 border-t border-[#E4E4E8] bg-white">
           <button
             type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-xs font-semibold bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-black/5 cursor-pointer"
+            onClick={handleSubmit}
+            className="px-8 py-2 rounded-lg text-sm font-semibold text-white bg-[#9B51E0] hover:opacity-90 transition-all cursor-pointer shadow-sm"
           >
-            {t('cancel', 'Cancel')}
-          </button>
-          <button
-            type="button"
-            onClick={onSend}
-            className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#9B51E0] hover:opacity-90 cursor-pointer"
-          >
-            {t('sendLinks', 'Send tracking links')}
+            {t('done', 'Done')}
           </button>
         </div>
       </div>

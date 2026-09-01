@@ -357,72 +357,104 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
 
         {/* Company Driver (Nested inside Carrier Company) */}
         {!isFreelancer && driver && (
-          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex-wrap">
-            <div className="flex items-center gap-3 min-w-0">
-              {driver.avatar ? (
-                <img
-                  src={driver.avatar}
-                  alt={driver.name}
-                  className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-1 ring-blue-100"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-[12px] bg-[#EFF6FF] text-[#2563EB] flex-shrink-0">
-                  {driver.initials || driver.name.substring(0, 2).toUpperCase()}
-                </div>
-              )}
+          <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                {driver.avatar ? (
+                  <img
+                    src={driver.avatar}
+                    alt={driver.name}
+                    className="w-11 h-11 rounded-full object-cover flex-shrink-0 ring-2 ring-blue-100 shadow-2xs"
+                  />
+                ) : (
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-[14px] bg-[#EFF6FF] text-[#2563EB] flex-shrink-0 shadow-2xs">
+                    {driver.initials || driver.name.substring(0, 2).toUpperCase()}
+                  </div>
+                )}
 
-              <div className="min-w-0">
-                <div className="text-[13px] font-semibold text-[#18181B] flex items-center gap-1.5">
-                  <span>{driver.name}</span>
-                  {driver.rating && driver.rating !== '—' && (
-                    <span className="text-[11px] font-semibold text-[#9B51E0] inline-flex items-center gap-0.5">
-                      <Star size={10} fill="#9B51E0" /> {driver.rating} ({driver.tripsCount || 85})
-                    </span>
-                  )}
-                </div>
-                <div className="text-[11px] text-[#64748B]">
-                  Company Driver · {driver.tripsCount || 120} trips completed · Vehicle: {driverPlates[0] || 'ΙΧΕ-7890'} · Trailer: {driverPlates[1] || 'ΤΡ-4512'}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenProfile(driver.userId, 'driver', driver.name)}
+                      className="font-bold text-[14px] text-[#18181B] hover:text-[#9B51E0] hover:underline cursor-pointer transition-colors focus:outline-none"
+                    >
+                      {driver.name}
+                    </button>
+
+                    {driver.rating && driver.rating !== '—' && (
+                      <span className="text-[11px] font-bold text-[#9B51E0] inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#F8F7FC] border border-[#E9D5FF]">
+                        <Star size={11} fill="#9B51E0" /> {driver.rating} ({driver.tripsCount ?? 22})
+                      </span>
+                    )}
+
+                    {driver.partner && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]">
+                        <ShieldCheck size={11} />
+                        <span>{t('partner', 'PARTNER')}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-[12px] mt-1 text-[#64748B]">
+                    {t('companyDriver', 'Company Driver')} · {driver.tripsCount ?? 22} {t('tripsCompleted', 'trips completed')}
+                    {driver.vehicleType ? ` · ${driver.vehicleType}` : ' · Semi-Trailer Truck'}
+                    {driver.cargoSpecs ? ` · ${driver.cargoSpecs}` : ''}
+                  </div>
+
+                  {/* License plates */}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    {driverPlates.map((plate, pIdx) => (
+                      <span
+                        key={pIdx}
+                        className="text-[11px] font-semibold font-mono px-2.5 py-1 rounded-md bg-[#F0F0F3] text-[#18181B] border border-[#E4E4E8]"
+                      >
+                        {pIdx === 0 ? `Vehicle: ${plate}` : `Trailer: ${plate}`}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {canRateDriver && (
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {canRateDriver && (
+                  <button
+                    type="button"
+                    onClick={() => handleRateDriver?.(driver)}
+                    title={t('rateTheDriver', 'Rate the Driver')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                  >
+                    <Star size={12} fill="#fff" />
+                    <span>{t('rate', 'Rate')}</span>
+                  </button>
+                )}
+
+                {canChat && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onChatDriver
+                        ? onChatDriver(driver)
+                        : onToast(`${t('message', 'Message')} ${driver.name}`)
+                    }
+                    title={t('message', 'Message')}
+                    className="p-1.5 rounded-lg bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                  >
+                    <MessageSquare size={14} />
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  onClick={() => handleRateDriver?.(driver)}
-                  title={t('rateTheDriver', 'Rate the Driver')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                  onClick={() => handleCopyPhone(driverPhone, false)}
+                  title={t('copyPhone', 'Click to copy phone')}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
                 >
-                  <Star size={12} fill="#fff" />
-                  <span>{t('rate', 'Rate')}</span>
+                  <Phone size={12} />
+                  <span>{driverPhoneCopied ? t('copied', 'Copied!') : driverPhone}</span>
                 </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => handleCopyPhone(driverPhone, false)}
-                title={t('copyPhone', 'Click to copy phone')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white border border-[#CBD5E1] text-[#334155] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer focus:outline-none"
-              >
-                <Phone size={12} />
-                <span>{driverPhoneCopied ? t('copied', 'Copied!') : driverPhone}</span>
-              </button>
-
-              {canChat && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    onChatDriver
-                      ? onChatDriver(driver)
-                      : onToast(`${t('message', 'Message')} ${driver.name}`)
-                  }
-                  title={t('message', 'Message')}
-                  className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white border border-[#CBD5E1] text-[#334155] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer focus:outline-none"
-                >
-                  {t('message', 'Message')}
-                </button>
-              )}
+              </div>
             </div>
           </div>
         )}

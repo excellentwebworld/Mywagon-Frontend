@@ -134,6 +134,7 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
         createdAt: String(log.created_at),
       })),
     unableStatus: Number(stop.unable_status ?? 0) || 0,
+    reason: stop.reason || null,
     customers:
       stop.order_id || stop.product_name || stop.qty || stop.weight || name
         ? [
@@ -152,7 +153,9 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
             },
           ]
         : [],
-  };
+    tracking_email: (stop as any).tracking_email || null,
+    send_tracking_link: (stop as any).send_tracking_link || '0',
+  } as any;
 }
 
 function customersFromStops(detail: ApiShipmentDetail): Shipment['customer'] {
@@ -336,6 +339,11 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     assignedDriverRating: detail.assigned_driver?.rating ?? null,
     assignedDriverPartner: Boolean(detail.assigned_driver?.is_partner),
     assignedDriverPlates: detail.assigned_driver?.vehicle_plates ?? [],
+    assignedDriverTripsCount: detail.assigned_driver?.trips_count ?? null,
+    assignedDriverPhone: detail.assigned_driver?.phone ?? null,
+    assignedDriverEmail: detail.assigned_driver?.email ?? null,
+    assignedDriverVehicleType: detail.assigned_driver?.vehicle_type ?? null,
+    assignedDriverCargoSpecs: detail.assigned_driver?.cargo_specs ?? null,
     offers: dedupeShipmentOffers(
       (detail.offers || []).map((o) => ({
         id: o.id,
@@ -417,8 +425,11 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     cancellationReason: detail.cancellation_reason ?? null,
     cancellationDate: detail.cancellation_date ?? null,
     cancellationDetails: detail.cancellation_details ?? null,
+    cancelledBy: detail.cancelled_by ?? null,
+    cancellationNotes: detail.cancellation_notes ?? null,
     unfulfilledReason: detail.unfulfilled_reason ?? null,
     unfulfilledDate: detail.unfulfilled_date ?? null,
+    unable_to_complete_reason: detail.unable_to_complete_reason ?? null,
     notesList: (detail.notes || []).map((n) => ({
       id: n.id,
       timestamp: n.timestamp,

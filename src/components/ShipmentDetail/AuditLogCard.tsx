@@ -96,7 +96,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
 
   const getBiddingTone = (action: string): UnifiedEvent['tone'] => {
     const act = (action || '').toLowerCase();
-    if (act.includes('reject') || act.includes('decline')) return 'reject';
+    if (act.includes('cancel') || act.includes('reject') || act.includes('decline') || act.includes('ακύρωσ')) return 'reject';
     if (act.includes('accept')) return 'accept';
     if (act.includes('counter')) return 'counter';
     if (act.includes('bid') || act.includes('offer')) return 'bid';
@@ -113,6 +113,10 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
       : entries.filter((e) => e.category === 'operations' || e.category === 'all');
 
     rawOps.forEach((op: any) => {
+      const act = (op.action || op.text || '').toLowerCase();
+      const isCancel = act.includes('cancel') || act.includes('ακύρωσ') || act.includes('canceled') || act.includes('cancelled');
+      const isReject = Boolean(op.isRejection || op.is_rejection || act.includes('reject') || act.includes('decline'));
+
       list.push({
         id: `op-${op.id}`,
         category: 'operations',
@@ -120,9 +124,9 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
         date: op.date || op.time || '',
         action: op.action || op.text || '',
         actor: op.actor || 'System',
-        isRejection: Boolean(op.isRejection || op.is_rejection),
+        isRejection: isCancel || isReject,
         rejectionReason: op.rejectionReason || op.rejection_reason || null,
-        tone: op.isRejection || op.is_rejection ? 'reject' : 'operations',
+        tone: isCancel || isReject ? 'reject' : 'operations',
       });
     });
 
@@ -170,24 +174,28 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
         return {
           pill: 'bg-[#D1FAE5] text-[#065F46] border-[#A7F3D0]',
           border: 'border-[#A7F3D0]',
+          rowBg: 'bg-white border-[#E2E8F0]',
           icon: <CheckCircle2 size={11} className="text-[#065F46]" />,
         };
       case 'counter':
         return {
           pill: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]',
           border: 'border-[#FDE68A]',
+          rowBg: 'bg-white border-[#E2E8F0]',
           icon: <ArrowRight size={11} className="text-[#92400E]" />,
         };
       case 'reject':
         return {
           pill: 'bg-[#FEE2E2] text-[#991B1B] border-[#FECACA]',
           border: 'border-[#FECACA]',
+          rowBg: 'bg-[#FEF2F2]/40 border-[#FECACA]',
           icon: <AlertCircle size={11} className="text-[#991B1B]" />,
         };
       case 'bid':
         return {
           pill: 'bg-[#EDE9FE] text-[#5B21B6] border-[#DDD6FE]',
           border: 'border-[#DDD6FE]',
+          rowBg: 'bg-white border-[#E2E8F0]',
           icon: <Tag size={11} className="text-[#5B21B6]" />,
         };
       case 'operations':
@@ -195,6 +203,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
         return {
           pill: 'bg-[#F1F5F9] text-[#334155] border-[#CBD5E1]',
           border: 'border-[#E2E8F0]',
+          rowBg: 'bg-white border-[#E2E8F0]',
           icon: <Activity size={11} className="text-[#64748B]" />,
         };
     }
@@ -447,8 +456,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                 return (
                   <div
                     key={evt.id}
-                    className="flex items-start gap-3 p-3 rounded-xl border bg-white shadow-2xs transition-all hover:border-[#CBD5E1]"
-                    style={{ borderColor: '#E2E8F0' }}
+                    className={`flex items-start gap-3 p-3 rounded-xl border shadow-2xs transition-all hover:border-[#CBD5E1] ${b.rowBg || 'bg-white border-[#E2E8F0]'}`}
                   >
                     <div className="flex items-center gap-1.5 text-[11px] text-[#64748B] font-mono min-w-[105px] flex-shrink-0 pt-0.5 font-semibold">
                       <Clock size={12} className="text-[#94A3B8]" />
@@ -494,8 +502,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                 return (
                   <div
                     key={evt.id}
-                    className="flex items-start gap-3 p-3 rounded-xl border bg-white shadow-2xs transition-all hover:border-[#CBD5E1]"
-                    style={{ borderColor: '#E2E8F0' }}
+                    className={`flex items-start gap-3 p-3 rounded-xl border shadow-2xs transition-all hover:border-[#CBD5E1] ${b.rowBg || 'bg-white border-[#E2E8F0]'}`}
                   >
                     {/* Timestamp */}
                     <div className="flex items-center gap-1.5 text-[11px] text-[#64748B] font-mono min-w-[110px] flex-shrink-0 pt-0.5 font-semibold">

@@ -18,6 +18,11 @@ export interface ApiAssignedDriver {
   avatar?: string | null;
   rating?: number | null;
   rating_count?: number | null;
+  trips_count?: number | null;
+  phone?: string | null;
+  email?: string | null;
+  vehicle_type?: string | null;
+  cargo_specs?: string | null;
   vehicle_plates?: string[];
   is_partner?: boolean;
 }
@@ -129,6 +134,7 @@ export interface ApiShipmentStop {
   /** Location event logs (ShipmentLocationLog status + created_at). */
   logs?: Array<{ status?: string | number | null; created_at?: string | null }> | null;
   unable_status?: string | number | null;
+  reason?: string | null;
   sort_order?: number;
 }
 
@@ -209,6 +215,7 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
   paid_date?: string | null;
   owner_name?: string | null;
   carrier_partner?: boolean;
+  unable_to_complete_reason?: string | null;
   stops?: ApiShipmentStop[];
   partners_count?: number;
   cargo_value?: number | null;
@@ -249,6 +256,8 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
   cancellation_reason?: string | null;
   cancellation_date?: string | null;
   cancellation_details?: string | null;
+  cancelled_by?: string | null;
+  cancellation_notes?: string | null;
   unfulfilled_reason?: string | null;
   unfulfilled_date?: string | null;
   notes?: Array<{

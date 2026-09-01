@@ -173,17 +173,6 @@ export const ViewPodModal: React.FC<ViewPodModalProps> = ({
             )}
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="px-6 py-3 border-t border-[#E4E4E8] bg-[#F9FAFB] flex items-center justify-end">
-          <button
-            type="button"
-            className="px-5 py-2 rounded-lg bg-[#1E1B4B] text-white font-semibold text-[13px] hover:bg-[#2D286B] transition-colors cursor-pointer"
-            onClick={onClose}
-          >
-            {t('close', 'Close')}
-          </button>
-        </div>
       </div>
 
       {/* Full Size Image Preview Modal */}

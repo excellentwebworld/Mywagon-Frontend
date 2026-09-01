@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import { useReferralSummary } from '../../hooks/useReferral';
 import type { ReferralStatus, ReferralActivityItem } from '../../api/services/referralService';
+import { formatCurrency } from '../../pages/Billing/mockData';
 import '../../styles/referral-modal.css';
 
 export type { ReferralStatus };
@@ -60,10 +61,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
   const pendingPoints = summaryQuery.data?.stats.points_pending ?? 0;
   const availableCredit = summaryQuery.data?.stats.available_credit_balance ?? propAvailableCredit ?? 0;
 
-  const isSummaryLoading = summaryQuery.isLoading && !summaryQuery.data;
-
-
-
+  const formatReferralAmount = (amount: number) => formatCurrency(amount, 'EUR', currentLang);
   // Close on ESC
   useEffect(() => {
     if (!isOpen) return;
@@ -205,9 +203,9 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
               {summaryQuery.isLoading && !summaryQuery.data ? (
                 <span className="ref-skel ref-skel--dark ref-skel-hdr" />
               ) : (
-                <strong>{maxPoints} {t('referral.creditPoints', 'Credit Points')}</strong>
+                <strong>{formatReferralAmount(maxPoints)}</strong>
               )}{' '}
-              — {t('referral.refSubtitleSuffix', 'credits apply to subscription & commission invoices')}
+              — {t('referral.refSubtitleSuffix', 'rewards apply to subscription & commission invoices')}
             </p>
           </div>
           <button
@@ -329,7 +327,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
                     {summaryQuery.isLoading && !summaryQuery.data ? (
                       <div className="ref-skel ref-skel-rw" />
                     ) : (
-                      `${earnedPoints} pts`
+                      formatReferralAmount(earnedPoints)
                     )}
                   </div>
                   <div className="rw-lbl">{t('referral.rwEarned', 'Earned')}</div>
@@ -339,7 +337,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
                     {summaryQuery.isLoading && !summaryQuery.data ? (
                       <div className="ref-skel ref-skel-rw" />
                     ) : (
-                      `${pendingPoints} pts`
+                      formatReferralAmount(pendingPoints)
                     )}
                   </div>
                   <div className="rw-lbl">{t('referral.rwPending', 'Pending')}</div>
@@ -356,7 +354,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
                   {summaryQuery.isLoading && !summaryQuery.data ? (
                     <div className="ref-skel ref-skel--green ref-skel-cm" style={{ marginTop: 3 }} />
                   ) : (
-                    <div className="cm-val">{availableCredit} pts</div>
+                    <div className="cm-val">{formatReferralAmount(availableCredit)}</div>
                   )}
                 </div>
               </div>

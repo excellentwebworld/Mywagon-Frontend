@@ -320,4 +320,18 @@ export const shipmentsService = {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   },
+
+  async saveTrackingLinks(
+    id: string | number,
+    emails: Record<string | number, string>
+  ): Promise<void> {
+    await apiPost(`/shipments/${id}/tracking-links`, { emails });
+  },
+
+  async requestPod(
+    id: string | number,
+    locationId?: string | number
+  ): Promise<void> {
+    await apiPost(`/shipments/${id}/request-pod`, { location_id: locationId });
+  },
 };

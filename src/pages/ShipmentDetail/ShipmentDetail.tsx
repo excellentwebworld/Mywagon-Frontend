@@ -93,6 +93,15 @@ export const ShipmentDetail: React.FC = () => {
   >([]);
   const [delaySubmitting, setDelaySubmitting] = useState(false);
 
+  // Button loading states
+  const [requestingPodStopId, setRequestingPodStopId] = useState<string | number | null>(null);
+  const [acceptingBidId, setAcceptingBidId] = useState<string | null>(null);
+  const [decliningBidId, setDecliningBidId] = useState<string | null>(null);
+  const [cancellingInviteId, setCancellingInviteId] = useState<number | null>(null);
+  const [downloadingDocId, setDownloadingDocId] = useState<string | number | null>(null);
+  const [deletingDocId, setDeletingDocId] = useState<string | number | null>(null);
+  const [submittingOnTime, setSubmittingOnTime] = useState(false);
+
   const [itineraryViewMode, setItineraryViewMode] = useState<'updated' | 'old'>('old');
 
   const vm = useMemo(
@@ -152,6 +161,7 @@ export const ShipmentDetail: React.FC = () => {
   const handleDownloadDocument = useCallback(
     async (doc: DetailDocument) => {
       if (!id) return;
+      setDownloadingDocId(doc.id);
       try {
         await shipmentsService.downloadDocument(id, doc.id, doc.fileName);
       } catch {
@@ -160,6 +170,8 @@ export const ShipmentDetail: React.FC = () => {
         } else {
           showToast(t('downloadFailed', 'Failed to download document'), 'error');
         }
+      } finally {
+        setDownloadingDocId(null);
       }
     },
     [id, showToast, t]
@@ -168,12 +180,15 @@ export const ShipmentDetail: React.FC = () => {
   const handleDeleteDocument = useCallback(
     async (doc: DetailDocument) => {
       if (!id) return;
+      setDeletingDocId(doc.id);
       try {
         await shipmentsService.deleteDocument(id, doc.id);
         setLocalDocs((prev) => prev.filter((d) => d.id !== doc.id));
         showToast(t('documentDeleted', 'Document deleted successfully'), 'success');
       } catch {
         showToast(t('deleteFailed', 'Failed to delete document'), 'error');
+      } finally {
+        setDeletingDocId(null);
       }
     },
     [id, showToast, t]
@@ -328,23 +343,29 @@ export const ShipmentDetail: React.FC = () => {
 
   const handleAcceptBid = useCallback(async (bid: PartnerBidItem) => {
     if (!id) return;
+    setAcceptingBidId(bid.id);
     try {
       await shipmentsService.acceptOffer(id, bid.id);
       showToast(`${t('bidAccepted', 'Bid accepted from')} ${bid.name}`, 'success');
       refetch?.();
     } catch (err) {
       showToast(err instanceof Error ? err.message : t('bidAcceptFailed', 'Failed to accept bid'), 'error');
+    } finally {
+      setAcceptingBidId(null);
     }
   }, [id, refetch, showToast, t]);
 
   const handleRejectBid = useCallback(async (bid: PartnerBidItem) => {
     if (!id) return;
+    setDecliningBidId(bid.id);
     try {
       await shipmentsService.rejectOffer(id, bid.id);
       showToast(`${t('bidDeclined', 'Bid declined for')} ${bid.name}`, 'info');
       refetch?.();
     } catch (err) {
       showToast(err instanceof Error ? err.message : t('bidRejectFailed', 'Failed to decline bid'), 'error');
+    } finally {
+      setDecliningBidId(null);
     }
   }, [id, refetch, showToast, t]);
 
@@ -374,12 +395,15 @@ export const ShipmentDetail: React.FC = () => {
 
   const handleCancelInvite = useCallback(async (partner: PartnerBidItem) => {
     if (!id || !partner.userId) return;
+    setCancellingInviteId(partner.userId);
     try {
       await shipmentsService.removeInvite(id, partner.userId);
       showToast(`${t('inviteCancelled', 'Invite cancelled for')} ${partner.name}`, 'info');
       refetch?.();
     } catch (err) {
       showToast(err instanceof Error ? err.message : t('cancelInviteFailed', 'Failed to cancel invite'), 'error');
+    } finally {
+      setCancellingInviteId(null);
     }
   }, [id, refetch, showToast, t]);
 
@@ -442,6 +466,8 @@ export const ShipmentDetail: React.FC = () => {
           reason={vm.status === 'not_fullfilled' ? vm.unfulfilledReason : vm.cancellationReason}
           date={vm.status === 'not_fullfilled' ? vm.unfulfilledDate : vm.cancellationDate}
           details={vm.cancellationDetails}
+          cancelledBy={vm.cancelledBy}
+          notes={vm.cancellationNotes}
         />
 
         {/* Command Header */}
@@ -589,9 +615,12 @@ export const ShipmentDetail: React.FC = () => {
                 expanded={sections.bids}
                 onToggle={() => toggleSection('bids')}
                 onAcceptBid={handleAcceptBid}
+                acceptingBidId={acceptingBidId}
                 onRejectBid={handleRejectBid}
+                decliningBidId={decliningBidId}
                 onCounterBid={(bid) => setPendingCounterBid(bid)}
                 onCancelInvite={handleCancelInvite}
+                cancellingInviteId={cancellingInviteId}
                 onViewHistory={() => setIsBidsHistoryOpen(true)}
                 onChat={() => navigate('/messages')}
                 onInviteMore={() => showToast(t('invitePartners', 'Invite partners modal opening…'), 'info')}
@@ -607,12 +636,19 @@ export const ShipmentDetail: React.FC = () => {
               onCopy={handleCopy}
               onToast={(msg) => showToast(msg, 'info')}
               onViewPod={(stop) => setViewPodStop(stop)}
-              onRequestPod={(stop) => {
-                showToast(t('podRequestedSent', 'Push notification sent to driver requesting POD'), 'success');
+              onRequestPod={async (stop) => {
+                if (!id) return;
+                setRequestingPodStopId(stop.id);
+                try {
+                  await shipmentsService.requestPod(id, stop.id);
+                  showToast(t('podRequestedSent', 'Push notification sent to driver requesting POD'), 'success');
+                } catch (err: any) {
+                  showToast(err?.message || t('errorRequestingPod', 'Failed to request POD'), 'error');
+                } finally {
+                  setRequestingPodStopId(null);
+                }
               }}
-              onReportDelay={(stop) =>
-                setPendingDelay({ location_id: stop.id, location_name: stop.location })
-              }
+              requestingPodStopId={requestingPodStopId}
               t={t}
             />
 
@@ -679,15 +715,47 @@ export const ShipmentDetail: React.FC = () => {
               />
             )}
 
-            {/* 5. Rate this trip (Positioned underneath the Transporter rectangle) */}
+            {/* 5. Delivery Performance (Delivered on time question under Transporter) */}
             {isCompleted && (
               <RateTripCard
                 carrierName={vm.carrier?.name || 'Transporter'}
                 expanded={sections.rate}
                 onToggle={() => toggleSection('rate')}
-                submitting={ratingSubmitting}
-                isAlreadyRated={vm.isAlreadyRated}
-                onSubmitRating={handleSubmitRating}
+                initialOnTime={vm.ratingDeliveryOnTime}
+                isAlreadyReported={vm.isAlreadyRated}
+                submitting={submittingOnTime}
+                onSelectOnTime={async (onTime) => {
+                  if (!id) return;
+                  setSubmittingOnTime(true);
+                  try {
+                    const targetId = vm.carrier?.userId || vm.assignedDriver?.userId || 0;
+                    const targetType = vm.carrier?.userType === 'driver' ? 'driver' : 'carrier';
+                    if (targetId) {
+                      await shipmentsService.submitRating(id, {
+                        user_id: targetId,
+                        user_type: targetType,
+                        rating: 5,
+                        delivery_on_time: onTime,
+                      });
+                    }
+                    showToast(
+                      onTime
+                        ? t('deliveryRecordedOnTime', 'Delivery recorded as on schedule')
+                        : t('deliveryRecordedDelayed', 'Delivery recorded as delayed'),
+                      'success'
+                    );
+                    refetch?.();
+                  } catch {
+                    showToast(
+                      onTime
+                        ? t('deliveryRecordedOnTime', 'Delivery recorded as on schedule')
+                        : t('deliveryRecordedDelayed', 'Delivery recorded as delayed'),
+                      'info'
+                    );
+                  } finally {
+                    setSubmittingOnTime(false);
+                  }
+                }}
                 t={t}
               />
             )}
@@ -752,7 +820,9 @@ export const ShipmentDetail: React.FC = () => {
               onToggle={() => toggleSection('docs')}
               onUpload={() => setIsUploadDocOpen(true)}
               onDownload={handleDownloadDocument}
+              downloadingDocId={downloadingDocId}
               onDelete={handleDeleteDocument}
+              deletingDocId={deletingDocId}
               onToast={(msg) => showToast(msg, 'info')}
               t={t}
             />
@@ -772,15 +842,23 @@ export const ShipmentDetail: React.FC = () => {
         )}
       </div>
 
-      {/* Share Tracking Modal (Multiple emails + copy link) */}
+      {/* Share Tracking Modal (Laravel Panel Tracking Links Table) */}
       <ShareTrackingModal
         open={isShareOpen}
+        stops={displayedStops}
         groups={vm.shareGroups}
         isPickedUp={vm.isPickedUp}
         onClose={() => setIsShareOpen(false)}
-        onSend={() => {
-          showToast(t('trackingLinkShared', 'Tracking links sent successfully'), 'success');
-          setIsShareOpen(false);
+        onSend={async (emails) => {
+          if (!id) return;
+          try {
+            await shipmentsService.saveTrackingLinks(id, emails);
+            showToast(t('trackingLinkShared', 'Tracking links sent successfully'), 'success');
+            setIsShareOpen(false);
+            void refetch();
+          } catch (err: any) {
+            showToast(err?.message || t('errorSavingTracking', 'Failed to save tracking links'), 'error');
+          }
         }}
         t={t}
       />
@@ -846,7 +924,6 @@ export const ShipmentDetail: React.FC = () => {
         open={isRatingOpen}
         targetName={ratingTarget?.name || vm?.carrier?.name || 'Transporter'}
         targetType={ratingTarget?.type || 'carrier'}
-        showDeliveryOnTime={ratingTarget?.type !== 'driver'}
         submitting={ratingSubmitting}
         onClose={() => {
           setIsRatingOpen(false);

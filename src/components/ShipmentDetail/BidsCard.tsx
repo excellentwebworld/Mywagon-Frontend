@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Star, ArrowRightLeft, Check, X, History, MessageSquare } from 'lucide-react';
+import { Users, Star, ArrowRightLeft, Check, X, History, MessageSquare, Loader2 } from 'lucide-react';
 import { CollapsibleCard } from './CollapsibleCard';
 import { useTransporterProfileOptional } from '../TransporterProfile/TransporterProfileContext';
 import { CarrierAvatar } from '../ManageShipments/CarrierAvatar';
@@ -31,9 +31,12 @@ interface BidsCardProps {
   expanded?: boolean;
   onToggle?: () => void;
   onAcceptBid?: (bid: PartnerBidItem) => void;
+  acceptingBidId?: string | null;
   onRejectBid?: (bid: PartnerBidItem) => void;
+  decliningBidId?: string | null;
   onCounterBid?: (bid: PartnerBidItem) => void;
   onCancelInvite?: (partner: PartnerBidItem) => void;
+  cancellingInviteId?: number | null;
   onViewHistory?: (partner: PartnerBidItem) => void;
   onChat?: (partner: PartnerBidItem) => void;
   onInviteMore?: () => void;
@@ -48,9 +51,12 @@ export const BidsCard: React.FC<BidsCardProps> = ({
   expanded = true,
   onToggle = () => {},
   onAcceptBid,
+  acceptingBidId = null,
   onRejectBid,
+  decliningBidId = null,
   onCounterBid,
   onCancelInvite,
+  cancellingInviteId = null,
   onViewHistory,
   onChat,
   onInviteMore,
@@ -64,12 +70,6 @@ export const BidsCard: React.FC<BidsCardProps> = ({
     if (!a.hasBid && b.hasBid) return 1;
     return 0;
   });
-
-  // For public loads: do not show table unless at least one bid/interest is present
-  const hasActiveBidsOrInterests = partners.some((p) => p.hasBid || p.isInterested);
-  if (!isPrivateLoad && !hasActiveBidsOrInterests) {
-    return null;
-  }
 
   const handleOpenProfile = (partner: PartnerBidItem) => {
     if (partner.userId && partner.userType) {
@@ -107,8 +107,10 @@ export const BidsCard: React.FC<BidsCardProps> = ({
       onToggle={onToggle}
     >
       {sortedPartners.length === 0 ? (
-        <p className="text-[12px] m-0 py-2" style={{ color: '#8E8E9A' }}>
-          {t('noPartnersInvited', 'No partners invited yet.')}
+        <p className="text-[12px] m-0 py-2.5 text-center text-[#71717A]">
+          {isPrivateLoad
+            ? t('noPartnersInvited', 'No partners invited yet.')
+            : t('noBidsReceivedYet', 'No bids received yet. Transporters will appear here once they place a bid.')}
         </p>
       ) : (
         <div className="space-y-1">
@@ -160,10 +162,14 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                       onCancelInvite && (
                         <button
                           type="button"
+                          disabled={cancellingInviteId === item.userId}
                           onClick={() => onCancelInvite(item)}
-                          className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer border border-[#E4E4E8] bg-white text-[#DC2626] hover:bg-red-50 hover:border-[#FECACA]"
+                          className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer border border-[#E4E4E8] bg-white text-[#DC2626] hover:bg-red-50 hover:border-[#FECACA] flex items-center gap-1 disabled:opacity-60"
                         >
-                          {t('cancelInvite', 'Cancel invite')}
+                          {cancellingInviteId === item.userId ? (
+                            <Loader2 size={11} className="animate-spin" />
+                          ) : null}
+                          <span>{t('cancelInvite', 'Cancel invite')}</span>
                         </button>
                       )
                     )}
@@ -185,20 +191,26 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                       {onAcceptBid && (
                         <button
                           type="button"
+                          disabled={acceptingBidId === item.id || decliningBidId === item.id}
                           onClick={() => onAcceptBid(item)}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white bg-[#059669] hover:opacity-90 cursor-pointer shadow-2xs"
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white bg-[#059669] hover:opacity-90 cursor-pointer shadow-2xs disabled:opacity-60"
                           style={{ border: 'none' }}
                         >
-                          <Check size={12} />
-                          <span>{t('accept', 'Accept')}</span>
+                          {acceptingBidId === item.id ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Check size={12} />
+                          )}
+                          <span>{acceptingBidId === item.id ? t('accepting', 'Accepting...') : t('accept', 'Accept')}</span>
                         </button>
                       )}
 
                       {canCounter && onCounterBid && (
                         <button
                           type="button"
+                          disabled={acceptingBidId === item.id || decliningBidId === item.id}
                           onClick={() => onCounterBid(item)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#E4E4E8] text-[#18181B] hover:bg-slate-50 cursor-pointer transition-colors shadow-2xs"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#E4E4E8] text-[#18181B] hover:bg-slate-50 cursor-pointer transition-colors shadow-2xs disabled:opacity-60"
                         >
                           <ArrowRightLeft size={12} />
                           <span>{t('counterBid', 'Counter')}</span>
@@ -208,11 +220,16 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                       {onRejectBid && (
                         <button
                           type="button"
+                          disabled={acceptingBidId === item.id || decliningBidId === item.id}
                           onClick={() => onRejectBid(item)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#FECACA] text-[#DC2626] hover:bg-red-50 cursor-pointer transition-colors shadow-2xs"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#FECACA] text-[#DC2626] hover:bg-red-50 cursor-pointer transition-colors shadow-2xs disabled:opacity-60"
                         >
-                          <X size={12} />
-                          <span>{t('decline', 'Decline')}</span>
+                          {decliningBidId === item.id ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <X size={12} />
+                          )}
+                          <span>{decliningBidId === item.id ? t('declining', 'Declining...') : t('decline', 'Decline')}</span>
                         </button>
                       )}
 

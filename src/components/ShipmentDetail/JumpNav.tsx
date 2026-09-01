@@ -14,7 +14,6 @@ const DEFAULT_TABS: JumpNavTab[] = [
   { id: 'tracking', labelKey: 'liveTracking', fallback: 'Tracking' },
   { id: 'carrier', labelKey: 'carrierDriver', fallback: 'Transporter' },
   { id: 'docs', labelKey: 'documentsAttachments', fallback: 'Documents & Attachments' },
-  { id: 'billing', labelKey: 'billing', fallback: 'Billing' },
   { id: 'audit', labelKey: 'auditLog', fallback: 'Audit Log' },
 ];
 

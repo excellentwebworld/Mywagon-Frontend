@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Star, X } from 'lucide-react';
+import { Star, X, Loader2 } from 'lucide-react';
 
 interface RatingModalProps {
   open: boolean;
   targetName: string;
   targetType?: 'carrier' | 'driver';
-  showDeliveryOnTime?: boolean;
   submitting?: boolean;
   onClose: () => void;
   onSubmit: (payload: {
@@ -21,7 +20,6 @@ export const RatingModal: React.FC<RatingModalProps> = ({
   open,
   targetName,
   targetType = 'carrier',
-  showDeliveryOnTime = true,
   submitting = false,
   onClose,
   onSubmit,
@@ -30,7 +28,6 @@ export const RatingModal: React.FC<RatingModalProps> = ({
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [review, setReview] = useState('');
-  const [onTime, setOnTime] = useState<'yes' | 'no' | ''>('');
 
   if (!open) return null;
 
@@ -39,8 +36,6 @@ export const RatingModal: React.FC<RatingModalProps> = ({
     onSubmit({
       rating,
       review: review.trim(),
-      delivery_on_time:
-        showDeliveryOnTime && onTime !== '' ? onTime === 'yes' : undefined,
     });
   };
 
@@ -116,37 +111,6 @@ export const RatingModal: React.FC<RatingModalProps> = ({
           )}
         </div>
 
-        {/* On Time Radio (Carrier/Freelancer only) */}
-        {showDeliveryOnTime && (
-          <div className="mb-4">
-            <label className="block text-[13px] font-semibold text-[#18181B] mb-2">
-              {t('wasDeliveryOnTime', 'Was the delivery on time?')}
-            </label>
-            <div className="flex items-center gap-6">
-              <label className="inline-flex items-center gap-2 text-[13px] font-medium text-[#374151] cursor-pointer">
-                <input
-                  type="radio"
-                  name="delivery_on_time"
-                  className="accent-[#9B51E0] w-4 h-4 cursor-pointer"
-                  checked={onTime === 'yes'}
-                  onChange={() => setOnTime('yes')}
-                />
-                <span>{t('yes', 'Yes')}</span>
-              </label>
-              <label className="inline-flex items-center gap-2 text-[13px] font-medium text-[#374151] cursor-pointer">
-                <input
-                  type="radio"
-                  name="delivery_on_time"
-                  className="accent-[#9B51E0] w-4 h-4 cursor-pointer"
-                  checked={onTime === 'no'}
-                  onChange={() => setOnTime('no')}
-                />
-                <span>{t('no', 'No')}</span>
-              </label>
-            </div>
-          </div>
-        )}
-
         {/* Review Textarea */}
         <div className="mb-6">
           <textarea
@@ -162,12 +126,13 @@ export const RatingModal: React.FC<RatingModalProps> = ({
         <div className="text-center space-y-2">
           <button
             type="button"
-            className="w-full max-w-[280px] mx-auto py-3 px-6 rounded-xl text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer shadow-sm block"
+            className="w-full max-w-[280px] mx-auto py-3 px-6 rounded-xl text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer shadow-sm flex items-center justify-center gap-2"
             style={{ background: '#9B51E0' }}
             onClick={handleSubmit}
             disabled={submitting || rating < 1}
           >
-            {submitting ? t('submitting', 'Submitting…') : t('submit', 'Submit')}
+            {submitting && <Loader2 size={16} className="animate-spin" />}
+            <span>{submitting ? t('submitting', 'Submitting…') : t('submit', 'Submit')}</span>
           </button>
           <button
             type="button"
@@ -183,5 +148,3 @@ export const RatingModal: React.FC<RatingModalProps> = ({
     document.body
   );
 };
-
-

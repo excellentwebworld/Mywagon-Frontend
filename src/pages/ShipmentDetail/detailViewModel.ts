@@ -80,6 +80,8 @@ export interface AssignedDriverDetail {
   tripsCount?: number;
   phone?: string;
   email?: string;
+  vehicleType?: string | null;
+  cargoSpecs?: string | null;
   meta: string;
   userId?: number | null;
   plates: string[];
@@ -192,6 +194,8 @@ export interface ShipmentDetailViewModel {
   cancellationReason?: string | null;
   cancellationDate?: string | null;
   cancellationDetails?: string | null;
+  cancelledBy?: string | null;
+  cancellationNotes?: string | null;
   unfulfilledReason?: string | null;
   unfulfilledDate?: string | null;
   milestones: MilestoneItem[];
@@ -241,59 +245,56 @@ const MILESTONE_KEYS = [
 ] as const;
 
 function buildDefaultStops(shipment: Shipment): ShipmentStop[] {
-  const customerName = shipment.customer?.[0]?.name || 'Alpha Foods Ltd';
-  const orderId = shipment.customer?.[0]?.orders?.[0] || 'ORD-1091';
-  return [
-    {
+  const customerName = shipment.customer?.[0]?.name || '';
+  const orderId = shipment.customer?.[0]?.orders?.[0] || '';
+  const list: ShipmentStop[] = [];
+
+  const defaultCustomers: ShipmentStop['customers'] = customerName
+    ? [
+        {
+          name: customerName,
+          orders: [
+            {
+              id: orderId || '1',
+              products: 'General Cargo',
+              qty: 0,
+              qtyUnit: 'Eur',
+              weight: 0,
+              weightUnit: 'T',
+            },
+          ],
+        },
+      ]
+    : [];
+
+  if (shipment.origin) {
+    list.push({
       id: 1,
       type: 'pickup',
-      location: shipment.origin || 'Athens',
-      address: `${shipment.origin || 'Athens'} Logistics Center, Area A`,
-      date: shipment.pickDt || '18/02/2026',
-      timeStart: '08:00',
-      timeEnd: '12:00',
-      customers: [
-        {
-          name: customerName,
-          orders: [
-            {
-              id: orderId,
-              products: 'General Cargo',
-              qty: 16,
-              qtyUnit: 'Eur',
-              weight: 13,
-              weightUnit: 'T',
-            },
-          ],
-        },
-      ],
-    },
-    {
+      location: shipment.origin,
+      address: shipment.origin,
+      date: shipment.pickDt || shipment.date || '',
+      timeStart: '',
+      timeEnd: '',
+      customers: defaultCustomers,
+    });
+  }
+
+  if (shipment.dest) {
+    list.push({
       id: 2,
       type: 'delivery',
-      location: shipment.dest || 'Thessaloniki',
-      address: `${shipment.dest || 'Thessaloniki'} Distribution Hub, Dock 4`,
-      date: shipment.delDt || '20/02/2026',
-      timeStart: '14:00',
-      timeEnd: '18:00',
-      pod: shipment.status === 'fullfilled' ? '1' : '0',
-      customers: [
-        {
-          name: customerName,
-          orders: [
-            {
-              id: orderId,
-              products: 'General Cargo',
-              qty: 16,
-              qtyUnit: 'Eur',
-              weight: 13,
-              weightUnit: 'T',
-            },
-          ],
-        },
-      ],
-    },
-  ];
+      location: shipment.dest,
+      address: shipment.dest,
+      date: shipment.delDt || shipment.date || '',
+      timeStart: '',
+      timeEnd: '',
+      pod: shipment.status === 'fullfilled' || shipment.status === 'delivered' ? '1' : '0',
+      customers: defaultCustomers,
+    });
+  }
+
+  return list;
 }
 
 function formatTimestamp(ts?: string | null): { date: string; time: string } | null {
@@ -462,13 +463,24 @@ function buildMilestones(shipment: Shipment): MilestoneItem[] {
         });
 
         // Pickup / Drop-off milestone
+        const isStopUnable =
+          stop.unableStatus === 1 ||
+          stop.locationStatus === '4' ||
+          stop.locationStatus === '6' ||
+          stop.locationStatus === '8' ||
+          (stop.logs && stop.logs.some((l) => l.status === '4' || l.status === '6' || l.status === '8')) ||
+          Boolean(stop.reason);
+
+        const stopReason = stop.reason || shipment.unable_to_complete_reason || null;
+
         milestones.push({
           key: `complete_${stop.id || idx}`,
           labelEn: `${isPickup ? 'Pickup' : 'Drop-off'} - ${stop.location}`,
           labelEl: `${isPickup ? 'Παραλαβή' : 'Παράδοση'} - ${stop.location}`,
           date: completeStamp.date,
           time: completeStamp.time,
-          tone: 'purple',
+          subtitle: isStopUnable && stopReason ? stopReason : undefined,
+          tone: isStopUnable ? 'red' : 'purple',
           state: 'done',
         });
       });
@@ -646,11 +658,15 @@ function buildMilestones(shipment: Shipment): MilestoneItem[] {
 export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetailViewModel {
   const stops = shipment.stops?.length ? shipment.stops : buildDefaultStops(shipment);
   const displayId = shipment.autoId || shipment.id || 'SHP-00';
-  const primaryCustomer = shipment.customer?.[0]?.name || 'Alpha Foods Ltd';
+  const primaryCustomer =
+    shipment.customer?.[0]?.name ||
+    stops.flatMap((s) => s.customers).find((c) => c?.name)?.name ||
+    '';
   const orderIds =
     shipment.orderIds?.join(', ') ||
-    shipment.customer?.flatMap((c) => c.orders?.map((o) => (typeof o === 'string' ? o : (o as any).id))).join(', ') ||
-    'PAP-70112';
+    shipment.customer?.flatMap((c) => c.orders?.map((o) => (typeof o === 'string' ? o : (o as any).id))).filter(Boolean).join(', ') ||
+    stops.flatMap((s) => s.customers).flatMap((c) => c.orders).map((o) => (typeof o === 'string' ? o : (o as any).id)).filter(Boolean).join(', ') ||
+    '';
 
   const fmtPct = (v: number | null | undefined, fallback = '—') => (v == null ? fallback : `${v}%`);
   const fmtMin = (v: number | null | undefined, fallback = '—') => (v == null ? fallback : `${v}m`);
@@ -681,9 +697,9 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     ? {
         initials:
           shipment.carrier_init ||
-          (shipment.carrier ? shipment.carrier.substring(0, 2).toUpperCase() : 'TL'),
+          (shipment.carrier ? shipment.carrier.substring(0, 2).toUpperCase() : 'TR'),
         avatar: shipment.carrierAvatar ?? null,
-        name: shipment.carrier || 'Transmed Logistics S.A.',
+        name: shipment.carrier || 'Transporter',
         partner: isPartner,
         role: isFreelancer ? 'freelancer' : 'carrier',
         rating:
@@ -691,37 +707,42 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
             ? shipment.carrierRating.toFixed(1)
             : typeof shipment.carrierRating === 'object' && shipment.carrierRating
             ? Number((shipment.carrierRating as any).rating).toFixed(1)
-            : '4.9',
-        meta: isFreelancer ? 'Freelancer' : 'Carrier Company · 240 completed trips',
-        userId: shipment.carrierId ?? 101,
+            : '—',
+        meta: isFreelancer ? 'Freelancer' : 'Carrier Company',
+        userId: shipment.carrierId ?? null,
         userType: isFreelancer ? 'driver' : 'carrier',
-        showDeliveryOnTime: true,
-        onTimePickup: fmtPct(shipment.carrierOnTimeDeliveryPct, '98%'),
-        onTimeDelivery: fmtPct(shipment.carrierOnTimeDeliveryPct, '96%'),
-        cancelRate: fmtPct(shipment.carrierCancellationRatePct, '0.5%'),
-        avgPickupDelay: fmtMin(shipment.carrierAvgPickupDelayMinutes, '8m'),
-        plates: shipment.assignedDriverPlates ?? ['ΙΧΕ-7890', 'ΤΡ-4512'],
+        showDeliveryOnTime: Boolean(shipment.carrierOnTimeDeliveryPct != null),
+        onTimePickup: fmtPct(shipment.carrierOnTimeDeliveryPct, '—'),
+        onTimeDelivery: fmtPct(shipment.carrierOnTimeDeliveryPct, '—'),
+        cancelRate: fmtPct(shipment.carrierCancellationRatePct, '—'),
+        avgPickupDelay: fmtMin(shipment.carrierAvgPickupDelayMinutes, '—'),
+        plates: shipment.assignedDriverPlates ?? [],
         templates: [],
         canRate: true,
       }
     : null;
 
   const assignedDriver: AssignedDriverDetail | null =
-    shipment.assignedDriverName || (hasCarrier && !isFreelancer)
+    shipment.assignedDriverName || (hasCarrier && !isFreelancer && (shipment.assignedDriverId || shipment.assignedDriverPlates?.length))
       ? {
           initials:
             shipment.assignedDriverInitials ||
-            (shipment.assignedDriverName ? shipment.assignedDriverName.substring(0, 2).toUpperCase() : 'AL'),
+            (shipment.assignedDriverName ? shipment.assignedDriverName.substring(0, 2).toUpperCase() : 'DR'),
           avatar: shipment.assignedDriverAvatar ?? null,
-          name: shipment.assignedDriverName || 'Ανδρέας Λύτρας',
-          partner: isPartner,
+          name: shipment.assignedDriverName || (isFreelancer ? shipment.carrier || 'Driver' : 'Assigned Driver'),
+          partner: Boolean(shipment.assignedDriverPartner ?? isPartner),
           rating:
             shipment.assignedDriverRating != null
               ? shipment.assignedDriverRating.toFixed(1)
-              : '4.8',
-          meta: 'Company Driver · +30 697 1234567',
-          userId: shipment.assignedDriverId ?? 201,
-          plates: shipment.assignedDriverPlates ?? ['ΙΧΕ-7890', 'ΤΡ-4512'],
+              : '—',
+          tripsCount: shipment.assignedDriverTripsCount ?? undefined,
+          phone: shipment.assignedDriverPhone || undefined,
+          email: shipment.assignedDriverEmail || undefined,
+          vehicleType: shipment.assignedDriverVehicleType ?? null,
+          cargoSpecs: shipment.assignedDriverCargoSpecs ?? null,
+          meta: shipment.assignedDriverPhone ? `Company Driver · ${shipment.assignedDriverPhone}` : 'Company Driver',
+          userId: shipment.assignedDriverId ?? null,
+          plates: shipment.assignedDriverPlates ?? [],
           canRate: true,
         }
       : null;
@@ -733,18 +754,35 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     const name = o.name || 'Transporter';
     const lastActionBy = o.lastActionBy || null;
     const canCounter = isNegotiable && lastActionBy !== 'shipper';
+    const hasBid = Boolean(o.price != null || o.counter != null || o.status === 'bid' || o.status === 'offered' || o.status === 'pending');
+    const isInterested = Boolean(o.status === 'interested' || (o as any).isInterested);
 
     return {
-      id: o.id || `offer-${Math.random()}`,
+      id: String(o.id || `offer-${Math.random()}`),
       userId: o.transporterId ?? undefined,
       userType: o.transporterType ?? 'carrier',
       name,
+      initials: o.initials || (name ? name.substring(0, 2).toUpperCase() : 'TR'),
+      avatar: o.avatar ?? null,
       transporterType: o.transporterType === 'driver' || o.role === 'freelancer' ? 'freelancer' : 'carrier',
       isPartner: Boolean(o.isPartner),
       status: o.status ?? null,
+      statusText: o.counter
+        ? (lastActionBy === 'shipper' ? 'Counter-bid sent · Waiting response' : 'Counter-bid received')
+        : o.price != null
+        ? `Bid submitted`
+        : isInterested
+        ? 'Interested'
+        : 'Bid submitted',
       price: o.price ?? null,
+      bidAmount: o.price != null ? Number(o.price) : null,
+      hasBid,
+      isInterested,
+      canCounter,
+      lastActionBy,
       rating: o.rating ?? 4.8,
       tripsCount: o.ratingCount ?? 45,
+      time: o.respondedAt || '02/02/2026',
       invitedDate: o.respondedAt || '02/02/2026',
       counter: o.counter
         ? {
@@ -772,15 +810,19 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       : (shipment.invitees || []).map((i) => ({
           id: `inv-${i.id}`,
           name: i.name || 'Transporter',
-          initials: i.initials || 'TR',
+          initials: i.initials || (i.name ? i.name.substring(0, 2).toUpperCase() : 'TR'),
           avatar: i.avatar || null,
           transporterType: i.role === 'freelancer' ? 'freelancer' : 'carrier',
           isPartner: true,
           status: i.status || 'invited',
+          statusText: 'Invited · Waiting response',
+          hasBid: false,
+          isInterested: false,
           rating: (i as any).rating ?? 4.8,
           tripsCount: (i as any).ratingCount ?? 32,
           invitedDate: i.invitedAt || '01/02/2026',
           price: null,
+          bidAmount: null,
           userId: (i as any).transporterId ?? i.id,
         }));
 
@@ -797,15 +839,57 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     status === 'partially_fullfilled' ||
     status === 'delivered';
 
+  const dropoffStops = stops.filter((s) => s.type === 'delivery');
+  const lastDropoff = dropoffStops.length > 0 ? dropoffStops[dropoffStops.length - 1] : stops[stops.length - 1];
+
+  let isPastDelivery = false;
+  let delayMinutes = 0;
+
+  if (lastDropoff) {
+    const rawDeliveryStr = (lastDropoff as any).datetime || lastDropoff.date;
+    const timeStr = lastDropoff.timeEnd || lastDropoff.timeStart;
+    const fullDateStr = timeStr && rawDeliveryStr && !rawDeliveryStr.includes(' ') && !rawDeliveryStr.includes('T')
+      ? `${rawDeliveryStr} ${timeStr}`
+      : rawDeliveryStr;
+
+    if (fullDateStr) {
+      const deliveryDate = new Date(fullDateStr);
+      if (!isNaN(deliveryDate.getTime())) {
+        const now = new Date();
+        if (now.getTime() > deliveryDate.getTime()) {
+          isPastDelivery = true;
+          delayMinutes = Math.floor((now.getTime() - deliveryDate.getTime()) / 60000);
+        }
+      }
+    }
+  }
+
+  const isTripOngoing = status === 'on_trip' || status === 'in_progress';
+  const isTripCompleted = status === 'fullfilled' || status === 'partially_fullfilled' || status === 'delivered';
+
+  const isDelayed = isTripOngoing
+    ? (isPastDelivery || Boolean(shipment.at_risk))
+    : (isTripCompleted ? false : Boolean(shipment.at_risk));
+
+  const delayText = isDelayed
+    ? delayMinutes >= 60
+      ? `+${Math.floor(delayMinutes / 60)}h ${delayMinutes % 60}m delay`
+      : delayMinutes > 0
+      ? `+${delayMinutes} min delay`
+      : '+15 min delay'
+    : '';
+
+  const etaStatusChip = isDelayed ? `⚠️ Delayed (${delayText})` : '✅ On Time';
+  const onTrack = !isDelayed;
+
   const availableNavSections: string[] = ['stops', 'load', 'carrier', 'docs', 'notes', 'audit'];
   if (isPending) availableNavSections.unshift('bids');
   if (status === 'on_trip' || status === 'in_progress') availableNavSections.splice(2, 0, 'tracking');
-  if (isCompleted || status === 'cancelled') availableNavSections.push('billing');
 
   return {
     id: shipment.id,
     displayId,
-    lane: `${shipment.origin || 'Athens'} → ${shipment.dest || 'Thessaloniki'}`,
+    lane: shipment.origin && shipment.dest ? `${shipment.origin} → ${shipment.dest}` : shipment.origin || shipment.dest || 'Shipment Route',
     viaLabel: shipment.via,
     stopsCount: stops.length,
     statusLabel: status,
@@ -821,20 +905,22 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       shipment.editingRequestDetails ||
       (typeof (shipment as any).updated_shipment === 'object' && (shipment as any).updated_shipment ? (shipment as any).updated_shipment?.note : null) ||
       null,
-    onTrack: !shipment.at_risk,
-    isDelayed: Boolean(shipment.at_risk),
-    delayText: '+15 min delay',
+    onTrack,
+    isDelayed,
+    delayText,
     isPickedUp,
     primaryCustomer,
     owner: shipment.ownerName || (shipment as any).owner || 'My Vagon',
-    etaChip: '🔵 ETA: 20/02 · 16:00',
-    etaStatusChip: shipment.at_risk ? '⚠️ Delayed (+15 min)' : '✅ On Time',
+    etaChip: lastDropoff?.date ? `🔵 ETA: ${lastDropoff.date}${lastDropoff.timeStart ? ` · ${lastDropoff.timeStart}` : ''}` : '🔵 ETA: On Schedule',
+    etaStatusChip,
     isPaid: Boolean(shipment.isPaid ?? (shipment.markAsPaid === '1')),
-    cancellationReason: shipment.cancellationReason || shipment.riskReason || 'Equipment breakdown / shipper requested cancellation',
-    cancellationDate: shipment.cancellationDate || shipment.updatedAt || '16/02/2026 · 16:45',
-    cancellationDetails: shipment.cancellationDetails || 'Cancelled · Full refund issued',
-    unfulfilledReason: shipment.unfulfilledReason || 'Carrier vehicle breakdown — delivery could not be completed',
-    unfulfilledDate: shipment.unfulfilledDate || '20/02/2026 · 15:30',
+    cancellationReason: shipment.cancellationReason || shipment.riskReason || null,
+    cancellationDate: shipment.cancellationDate || shipment.updatedAt || null,
+    cancellationDetails: shipment.cancellationDetails || null,
+    cancelledBy: shipment.cancelledBy || null,
+    cancellationNotes: shipment.cancellationNotes || null,
+    unfulfilledReason: shipment.unfulfilledReason || null,
+    unfulfilledDate: shipment.unfulfilledDate || null,
     milestones: buildMilestones(shipment),
     exceptionChips: shipment.at_risk
       ? [{ label: 'Delay Warning', target: 'tracking' }]
@@ -851,10 +937,10 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     partners,
     startingPrice: (shipment as any).total ?? shipment.price ?? null,
     loadSummary: shipment.loadSummary || {
-      vehicleTypes: shipment.truckTypes?.length ? shipment.truckTypes : ['Semi-Trailer'],
-      cargoSpecs: ['Curtainside'],
-      quote: '€ 410,00',
-      loadValue: '€ 12,500.00',
+      vehicleTypes: shipment.truckTypes?.length ? shipment.truckTypes : [],
+      cargoSpecs: (shipment as any).cargoSpecs?.length ? (shipment as any).cargoSpecs : (shipment as any).cargo_specs?.length ? (shipment as any).cargo_specs : [],
+      quote: shipment.price != null ? `€ ${Number(shipment.price).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—',
+      loadValue: (shipment as any).load_value != null ? `€ ${Number((shipment as any).load_value).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—',
       channel: isPrivateLoad ? 'Private' : 'Public',
       negotiable: shipment.negotiable !== false,
       liveNavigation: shipment.navigation !== false,
@@ -873,59 +959,45 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
           },
         ]
       : [],
-    documents: shipment.documentsList && shipment.documentsList.length > 0
-      ? shipment.documentsList
-      : [
-          {
-            id: 'doc-1',
-            name: 'CMR Consignment Note (Draft)',
-            fileName: 'CMR_Draft_Auto.pdf',
-            fileType: 'application/pdf',
-            fileSize: 245000,
-            uploadedBy: 'System',
-            createdAt: shipment.createdAt || '2026-02-18T10:00:00Z',
-          },
-        ],
+    documents: shipment.documentsList || [],
     shipmentLogs: shipment.shipmentLogs || [],
     tracking: {
-      movement: 'Cruising · 82 km/h',
-      etaVariance: shipment.at_risk ? '+15 min delay' : 'On Schedule',
-      kmRemaining: '142 km remaining',
-      speed: '82 km/h',
-      traffic: 'Moderate traffic near Lamia bypass',
-      signal: 'GPS Live (Cellular 4G) · Updated 2 min ago',
-      heading: 'South-East (Athens Corridor)',
+      movement: shipment.status === 'on_trip' || shipment.status === 'in_progress' ? 'In Transit' : 'Scheduled',
+      etaVariance: shipment.at_risk ? delayText || 'Delayed' : 'On Schedule',
+      kmRemaining: '—',
+      speed: '—',
+      traffic: '',
+      signal: 'GPS Live',
+      heading: '',
     },
     trip: {
-      distanceKm: shipment.journeyDistanceKm || 504,
-      duration: shipment.journeyTime != null ? String(shipment.journeyTime) : '5h 45m',
+      distanceKm: shipment.journeyDistanceKm || 0,
+      duration: shipment.journeyTime != null ? String(shipment.journeyTime) : '—',
       stops: stops.length,
-      weight: shipment.totalWeight != null ? `${shipment.totalWeight} ${shipment.weightUnit || 'Tonnes'}` : '24.5 Tonnes',
-      customers: shipment.customer?.length || 1,
-      orders: shipment.orderIds?.length || 1,
+      weight: shipment.totalWeight != null ? `${shipment.totalWeight} ${shipment.weightUnit || 'Tonnes'}` : '—',
+      customers: shipment.customer?.length || stops.flatMap((s) => s.customers).length || 0,
+      orders: shipment.orderIds?.length || stops.flatMap((s) => s.customers).flatMap((c) => c.orders).length || 0,
     },
     carrier,
     assignedDriver,
-    incidents: [
-      {
-        id: 'i1',
-        title: 'Καθυστέρηση 45 λεπτών',
-        meta: '20/02 · 12:05 — Στάση εκτός προγράμματος στη Λαμία',
-        severity: 'med',
-        resolved: status === 'fullfilled',
-      },
-    ],
+    incidents: ((shipment as any).incidents || []).map((inc: any, idx: number) => ({
+      id: inc.id || `inc-${idx}`,
+      title: inc.title || inc.description || 'Incident',
+      meta: inc.meta || inc.createdAt || inc.created_at || '',
+      severity: inc.severity || 'med',
+      resolved: Boolean(inc.resolved || status === 'fullfilled' || status === 'delivered'),
+    })),
     billing: {
-      agreedPrice: '€ 410,00',
+      agreedPrice: shipment.price != null ? `€ ${Number(shipment.price).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : (shipment as any).total != null ? `€ ${Number((shipment as any).total).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—',
       priceType: shipment.price_type === 'contract' ? 'CONTRACT' : 'SPOT',
-      costPerKm: '€ 1,77',
-      costPerPallet: '€ 17,08',
-      costPerTonne: '€ 22,78',
-      costPerStop: '€ 205,00',
-      kmDetail: `${shipment.journeyDistanceKm || 504} km`,
-      palletDetail: '24 pal.',
-      tonneDetail: shipment.totalWeight ? `${shipment.totalWeight} T` : '24.5 T',
-      stopDetail: `${stops.length} stops`,
+      costPerKm: shipment.journeyDistanceKm && shipment.price ? `€ ${(Number(shipment.price) / Number(shipment.journeyDistanceKm)).toFixed(2)}` : '—',
+      costPerPallet: (shipment as any).totalPallets && shipment.price ? `€ ${(Number(shipment.price) / Number((shipment as any).totalPallets)).toFixed(2)}` : '—',
+      costPerTonne: shipment.totalWeight && shipment.price ? `€ ${(Number(shipment.price) / Number(shipment.totalWeight)).toFixed(2)}` : '—',
+      costPerStop: stops.length && shipment.price ? `€ ${(Number(shipment.price) / stops.length).toFixed(2)}` : '—',
+      kmDetail: shipment.journeyDistanceKm ? `${shipment.journeyDistanceKm} km` : '—',
+      palletDetail: (shipment as any).totalPallets ? `${(shipment as any).totalPallets} pal.` : '—',
+      tonneDetail: shipment.totalWeight ? `${shipment.totalWeight} ${shipment.weightUnit || 'T'}` : '—',
+      stopDetail: `${stops.length} ${stops.length === 1 ? 'stop' : 'stops'}`,
       invoiceStatus: isCompleted ? 'Paid' : 'Not settled',
       disputeStatus: 'No disputes',
     },
@@ -933,14 +1005,14 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     shareGroups: [
       {
         id: 'cust-1',
-        customerName: primaryCustomer,
-        deliveryCount: 2,
+        customerName: primaryCustomer || 'Customer',
+        deliveryCount: stops.filter((s) => s.type === 'delivery').length,
         rows: stops
           .filter((s) => s.type === 'delivery')
           .map((s) => ({
-            location: s.location,
-            email: 'contact@alphafoods.com',
-            orderRef: orderIds.split(',')[0] || displayId,
+            location: s.location || s.address || '',
+            email: (s.customers?.[0] as any)?.email || '',
+            orderRef: s.customers?.[0]?.orders?.[0]?.id || orderIds.split(',')[0]?.trim() || displayId,
           })),
       },
     ],

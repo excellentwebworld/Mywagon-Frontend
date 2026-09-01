@@ -1,11 +1,29 @@
 import React from 'react';
-import { AlertTriangle, AlertCircle, Clock } from 'lucide-react';
+import { Ban, AlertCircle, Clock } from 'lucide-react';
 
 interface StatusBannerProps {
   status: string;
   reason?: string | null;
   date?: string | null;
   details?: string | null;
+  cancelledBy?: string | null;
+  notes?: string | null;
+}
+
+function formatDisplayDateTime(dateStr?: string | null): string {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  } catch {
+    return dateStr;
+  }
 }
 
 export const StatusBanner: React.FC<StatusBannerProps> = ({
@@ -13,6 +31,8 @@ export const StatusBanner: React.FC<StatusBannerProps> = ({
   reason,
   date,
   details,
+  cancelledBy,
+  notes,
 }) => {
   const isCancelled = status === 'canceled' || status === 'cancelled';
   const isUnfulfilled = status === 'not_fullfilled';
@@ -23,101 +43,70 @@ export const StatusBanner: React.FC<StatusBannerProps> = ({
   }
 
   if (isCancelled) {
+    const formattedDate = formatDisplayDateTime(date);
+    const cancelInfo = [
+      cancelledBy ? `Cancelled by ${cancelledBy}` : 'Cancelled',
+      formattedDate ? `on ${formattedDate}` : '',
+    ].filter(Boolean).join(' ');
+
+    const cleanedReason = (reason && !reason.includes('Read-only'))
+      ? reason
+      : (notes && !notes.includes('Read-only'))
+      ? notes
+      : (details && !details.includes('Read-only'))
+      ? details
+      : null;
+
     return (
       <div
-        className="rounded-2xl px-5 py-4 mb-4"
+        className="rounded-xl px-4 py-3 mb-4 flex items-center gap-2.5 shadow-2xs"
         style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}
       >
-        <div className="flex items-start gap-3">
-          <div
-            className="rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ width: 32, height: 32, background: '#FEE2E2', color: '#DC2626' }}
-          >
-            <AlertTriangle size={18} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <h4 className="font-bold text-[14px]" style={{ color: '#991B1B' }}>
-                Shipment cancelled
-              </h4>
-              {date && (
-                <span className="text-[11px] font-medium" style={{ color: '#B91C1C' }}>
-                  Cancelled on {date}
-                </span>
-              )}
-            </div>
-            <p className="text-[12px] mt-1" style={{ color: '#B91C1C' }}>
-              Reason: <strong>{reason || 'Shipper requested cancellation'}</strong>
-              {details ? ` · ${details}` : ' · Read-only audit state'}
-            </p>
-          </div>
-        </div>
+        <Ban size={16} className="shrink-0" style={{ color: '#991B1B' }} />
+        <p className="m-0 text-[13px] leading-normal" style={{ color: '#991B1B' }}>
+          <strong>This shipment is cancelled.</strong>
+          <span className="ml-1.5 font-normal" style={{ color: '#B91C1C' }}>
+            {cancelInfo}
+            {cleanedReason ? ` — ${cleanedReason}` : ''}
+          </span>
+        </p>
       </div>
     );
   }
 
   if (isUnfulfilled) {
+    const formattedDate = formatDisplayDateTime(date);
+
     return (
       <div
-        className="rounded-2xl px-5 py-4 mb-4"
+        className="rounded-xl px-4 py-3 mb-4 flex items-center gap-2.5 shadow-2xs"
         style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}
       >
-        <div className="flex items-start gap-3">
-          <div
-            className="rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ width: 32, height: 32, background: '#FEF3C7', color: '#D97706' }}
-          >
-            <AlertCircle size={18} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <h4 className="font-bold text-[14px]" style={{ color: '#92400E' }}>
-                Trip concluded — Unfulfilled
-              </h4>
-              {date && (
-                <span className="text-[11px] font-medium" style={{ color: '#B45309' }}>
-                  Finalized on {date}
-                </span>
-              )}
-            </div>
-            <p className="text-[12px] mt-1" style={{ color: '#B45309' }}>
-              Reason: <strong>{reason || 'Carrier vehicle breakdown / delivery could not be completed'}</strong>
-              {details ? ` · ${details}` : ' · Incident recorded · Billing review required'}
-            </p>
-          </div>
-        </div>
+        <AlertCircle size={16} className="shrink-0" style={{ color: '#92400E' }} />
+        <p className="m-0 text-[13px] leading-normal" style={{ color: '#92400E' }}>
+          <strong>This trip concluded unfulfilled.</strong>
+          <span className="ml-1.5 font-normal" style={{ color: '#B45309' }}>
+            {`Finalized on ${formattedDate}${reason ? ` — ${reason}` : ''}`}
+          </span>
+        </p>
       </div>
     );
   }
 
   return (
     <div
-      className="rounded-2xl px-5 py-4 mb-4"
+      className="rounded-xl px-4 py-3 mb-4 flex items-center gap-2.5 shadow-2xs"
       style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className="rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ width: 32, height: 32, background: '#FEE2E2', color: '#DC2626' }}
-        >
-          <Clock size={18} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <h4 className="font-bold text-[14px]" style={{ color: '#991B1B' }}>
-              Past Due Pickup
-            </h4>
-            {date && (
-              <span className="text-[11px] font-medium" style={{ color: '#B91C1C' }}>
-                Due {date}
-              </span>
-            )}
-          </div>
-          <p className="text-[12px] mt-1" style={{ color: '#B91C1C' }}>
-            Scheduled pickup window has passed without carrier check-in. Contact carrier or update schedule.
-          </p>
-        </div>
-      </div>
+      <Clock size={16} className="shrink-0" style={{ color: '#DC2626' }} />
+      <p className="m-0 text-[13px] leading-normal" style={{ color: '#991B1B' }}>
+        <strong>Past Due Pickup.</strong>
+        {date && (
+          <span className="ml-1.5 font-normal" style={{ color: '#B91C1C' }}>
+            Scheduled for {formatDisplayDateTime(date)}
+          </span>
+        )}
+      </p>
     </div>
   );
 };

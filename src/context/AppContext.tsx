@@ -157,6 +157,7 @@ export interface ShipmentStop {
   /** Driver location event logs (status codes match Laravel ShipmentLocationLog). */
   logs?: Array<{ status: string; createdAt: string }>;
   unableStatus?: number;
+  reason?: string | null;
 }
 
 export interface Shipment {
@@ -178,6 +179,7 @@ export interface Shipment {
   customer: { name: string; orders: string[] }[];
   bids: number;
   best_bid: number | null;
+  unable_to_complete_reason?: string | null;
   bid_exp: string | null;
   carrier: string | null;
   carrier_init?: string;
@@ -204,6 +206,11 @@ export interface Shipment {
   assignedDriverRating?: number | null;
   assignedDriverPartner?: boolean;
   assignedDriverPlates?: string[];
+  assignedDriverTripsCount?: number | null;
+  assignedDriverPhone?: string | null;
+  assignedDriverEmail?: string | null;
+  assignedDriverVehicleType?: string | null;
+  assignedDriverCargoSpecs?: string | null;
   price: number | null;
   price_type: 'spot' | 'contract' | 'bidding';
   updated: string;
@@ -379,6 +386,8 @@ export interface Shipment {
   cancellationReason?: string | null;
   cancellationDate?: string | null;
   cancellationDetails?: string | null;
+  cancelledBy?: string | null;
+  cancellationNotes?: string | null;
   unfulfilledReason?: string | null;
   unfulfilledDate?: string | null;
   shipperRating?: {

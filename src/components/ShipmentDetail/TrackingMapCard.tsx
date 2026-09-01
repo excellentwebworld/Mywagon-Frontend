@@ -194,18 +194,6 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
               />
               {isDelayed ? t('delayed', `Delayed (${delayText})`) : t('onTime', 'On Time')}
             </span>
-
-            {onReportDelay && (
-              <button
-                type="button"
-                onClick={onReportDelay}
-                className="flex items-center gap-1 text-[11px] font-semibold text-[#D97706] hover:underline cursor-pointer"
-                style={{ background: 'none', border: 'none' }}
-              >
-                <Clock size={12} />
-                <span>{t('reportDelay', 'Report delay')}</span>
-              </button>
-            )}
           </div>
 
           {/* Real Route Map */}
@@ -265,31 +253,49 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
       expanded={expanded}
       onToggle={onToggle}
     >
-      {/* Route type toggle: visible ONLY for completed shipments, matching Laravel */}
+      {/* Final status & Route type toggle: visible for completed shipments */}
       {isCompleted && (
-        <div className="flex items-center gap-2 mb-3 p-1 rounded-full bg-[#F6F7FB] border border-[#E5E7EB] w-fit">
-          <button
-            type="button"
-            onClick={() => setRouteMode('actual')}
-            className={`px-3.5 py-1 rounded-full text-[12px] font-semibold transition-all cursor-pointer ${
-              routeMode === 'actual'
-                ? 'bg-[#C5915D] text-white shadow-xs'
-                : 'bg-white text-[#475569] border border-[#D1D5DB] hover:bg-gray-50'
-            }`}
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          {/* Final Delivery Status: On Time vs Delayed */}
+          <span
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
+            style={{
+              background: isDelayed ? '#FEF3C7' : '#ECFDF5',
+              color: isDelayed ? '#B45309' : '#059669',
+            }}
           >
-            {t('actualRoute', 'Actual Route')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setRouteMode('suggested')}
-            className={`px-3.5 py-1 rounded-full text-[12px] font-semibold transition-all cursor-pointer ${
-              routeMode === 'suggested'
-                ? 'bg-[#8B5CF6] text-white shadow-xs'
-                : 'bg-white text-[#475569] border border-[#D1D5DB] hover:bg-gray-50'
-            }`}
-          >
-            {t('suggestedRoute', 'Suggested Route')}
-          </button>
+            <span
+              className="rounded-full"
+              style={{ width: 6, height: 6, background: 'currentColor' }}
+            />
+            {isDelayed ? t('delayed', `Delayed (${delayText})`) : t('onTime', 'On Time')}
+          </span>
+
+          {/* Route toggle */}
+          <div className="flex items-center gap-2 p-1 rounded-full bg-[#F6F7FB] border border-[#E5E7EB] w-fit">
+            <button
+              type="button"
+              onClick={() => setRouteMode('actual')}
+              className={`px-3.5 py-1 rounded-full text-[12px] font-semibold transition-all cursor-pointer ${
+                routeMode === 'actual'
+                  ? 'bg-[#C5915D] text-white shadow-xs'
+                  : 'bg-white text-[#475569] border border-[#D1D5DB] hover:bg-gray-50'
+              }`}
+            >
+              {t('actualRoute', 'Actual Route')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setRouteMode('suggested')}
+              className={`px-3.5 py-1 rounded-full text-[12px] font-semibold transition-all cursor-pointer ${
+                routeMode === 'suggested'
+                  ? 'bg-[#8B5CF6] text-white shadow-xs'
+                  : 'bg-white text-[#475569] border border-[#D1D5DB] hover:bg-gray-50'
+              }`}
+            >
+              {t('suggestedRoute', 'Suggested Route')}
+            </button>
+          </div>
         </div>
       )}
 

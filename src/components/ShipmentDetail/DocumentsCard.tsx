@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paperclip, Plus, FileText, Image as ImageIcon, Download, ExternalLink, Trash2 } from 'lucide-react';
+import { Paperclip, Plus, FileText, Image as ImageIcon, Download, ExternalLink, Trash2, Loader2 } from 'lucide-react';
 import type { DetailDocument } from '../../pages/ShipmentDetail/detailViewModel';
 import { CollapsibleCard } from './CollapsibleCard';
 
@@ -9,7 +9,9 @@ interface DocumentsCardProps {
   onToggle: () => void;
   onUpload?: () => void;
   onDownload?: (doc: DetailDocument) => void;
+  downloadingDocId?: string | number | null;
   onDelete?: (doc: DetailDocument) => void;
+  deletingDocId?: string | number | null;
   onToast: (msg: string) => void;
   t: (key: string, fallback?: string) => string;
 }
@@ -20,7 +22,9 @@ export const DocumentsCard: React.FC<DocumentsCardProps> = ({
   onToggle,
   onUpload,
   onDownload,
+  downloadingDocId = null,
   onDelete,
+  deletingDocId = null,
   onToast,
   t,
 }) => {
@@ -149,6 +153,7 @@ export const DocumentsCard: React.FC<DocumentsCardProps> = ({
 
                     <button
                       type="button"
+                      disabled={downloadingDocId === doc.id || deletingDocId === doc.id}
                       onClick={() => {
                         if (onDownload) {
                           onDownload(doc);
@@ -156,21 +161,30 @@ export const DocumentsCard: React.FC<DocumentsCardProps> = ({
                           window.open(doc.url, '_blank');
                         }
                       }}
-                      className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 text-[#9B51E0] bg-[#F8F7FC] hover:bg-[#9B51E0]/15 border border-[#E9D5FF] active:scale-95 transition-all cursor-pointer focus:outline-none"
+                      className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 text-[#9B51E0] bg-[#F8F7FC] hover:bg-[#9B51E0]/15 border border-[#E9D5FF] active:scale-95 transition-all cursor-pointer focus:outline-none disabled:opacity-60"
                       title={t('downloadDocument', 'Download document')}
                     >
-                      <Download size={12} />
-                      <span>{t('download', 'Download')}</span>
+                      {downloadingDocId === doc.id ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Download size={12} />
+                      )}
+                      <span>{downloadingDocId === doc.id ? t('downloading', 'Downloading...') : t('download', 'Download')}</span>
                     </button>
 
                     {onDelete && (
                       <button
                         type="button"
+                        disabled={downloadingDocId === doc.id || deletingDocId === doc.id}
                         onClick={() => onDelete(doc)}
-                        className="p-1.5 rounded-lg text-[#EF4444] bg-white hover:bg-red-50 border border-[#FEE2E2] active:scale-95 transition-all cursor-pointer focus:outline-none"
+                        className="p-1.5 rounded-lg text-[#EF4444] bg-white hover:bg-red-50 border border-[#FEE2E2] active:scale-95 transition-all cursor-pointer focus:outline-none disabled:opacity-60"
                         title={t('deleteDocument', 'Delete document')}
                       >
-                        <Trash2 size={13} />
+                        {deletingDocId === doc.id ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={13} />
+                        )}
                       </button>
                     )}
                   </div>

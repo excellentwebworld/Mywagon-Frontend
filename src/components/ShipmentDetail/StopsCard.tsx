@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { MapPin, Copy, CheckCircle2, Clock, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, Copy, CheckCircle2, Clock, FileText, ChevronDown, ChevronUp, Loader2, X, AlertTriangle } from 'lucide-react';
 import type { ShipmentStop } from '../../context/AppContext';
 import { CollapsibleCard } from './CollapsibleCard';
 
@@ -11,7 +11,7 @@ interface StopsCardProps {
   onToast: (msg: string) => void;
   onViewPod?: (stop: PhysicalStop) => void;
   onRequestPod?: (stop: ShipmentStop) => void;
-  onReportDelay?: (stop: ShipmentStop) => void;
+  requestingPodStopId?: string | number | null;
   t: (key: string, fallback?: string) => string;
 }
 
@@ -44,6 +44,7 @@ export interface PhysicalStop {
   podImages?: Array<{ id?: number | null; url: string }>;
   logs?: Array<{ status: string; createdAt: string }>;
   unableStatus?: number;
+  reason?: string | null;
   orders: GroupedOrder[];
   totalProductCount: number;
   totalOrderCount: number;
@@ -76,13 +77,25 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
         podImages: stop.podImages ?? [],
         logs: stop.logs ?? [],
         unableStatus: stop.unableStatus ?? 0,
+        reason: stop.reason || (stop as any).unable_reason || null,
         orders: [],
         totalProductCount: 0,
         totalOrderCount: 0,
       };
       map.set(groupKey, physical);
-    } else if (stop.podImages && stop.podImages.length > 0) {
-      physical.podImages = [...(physical.podImages || []), ...stop.podImages];
+    } else {
+      if (stop.podImages && stop.podImages.length > 0) {
+        physical.podImages = [...(physical.podImages || []), ...stop.podImages];
+      }
+      if (stop.locationStatus === '6' || stop.locationStatus === '4' || stop.locationStatus === '8') {
+        physical.locationStatus = stop.locationStatus;
+      }
+      if (stop.reason || (stop as any).unable_reason) {
+        physical.reason = stop.reason || (stop as any).unable_reason;
+      }
+      if (stop.unableStatus) {
+        physical.unableStatus = stop.unableStatus;
+      }
     }
 
     const customers = stop.customers || [];
@@ -93,15 +106,17 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
         ord = { orderId, customerName: '', products: [] };
         physical.orders.push(ord);
       }
-      ord.products.push({
-        name: 'General Cargo',
-        qty: 0,
-        weight: 0,
-      });
-      physical.totalProductCount++;
+      if (ord.products.length === 0) {
+        ord.products.push({
+          name: 'General Cargo',
+          qty: 0,
+          weight: 0,
+        });
+        physical.totalProductCount++;
+      }
     } else {
       customers.forEach((cust) => {
-        const custName = cust.name && cust.name !== '—' ? cust.name : '';
+        const custName = cust.name && cust.name !== '—' && cust.name.toLowerCase() !== stop.location.toLowerCase() ? cust.name : '';
         (cust.orders || []).forEach((orderItem) => {
           const ordObj =
             typeof orderItem === 'string'
@@ -110,7 +125,7 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
 
           const orderId = ordObj.id || '—';
           let ord = physical.orders.find(
-            (o) => o.orderId === orderId && (!custName || !o.customerName || o.customerName === custName)
+            (o) => o.orderId === orderId
           );
           if (!ord) {
             ord = { orderId, customerName: custName, products: [] };
@@ -119,14 +134,31 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
             ord.customerName = custName;
           }
 
-          ord.products.push({
-            name: ordObj.products && ordObj.products !== '—' ? ordObj.products : 'General Cargo',
-            qty: ordObj.qty || 0,
-            qtyUnit: ordObj.qtyUnit || '',
-            weight: ordObj.weight || 0,
-            weightUnit: ordObj.weightUnit || '',
-          });
-          physical.totalProductCount++;
+          const prodName = ordObj.products && ordObj.products !== '—' ? ordObj.products : 'General Cargo';
+          const qty = ordObj.qty || 0;
+          const qtyUnit = ordObj.qtyUnit || '';
+          const weight = ordObj.weight || 0;
+          const weightUnit = ordObj.weightUnit || '';
+
+          const isDuplicate = ord.products.some(
+            (p) =>
+              p.name === prodName &&
+              Number(p.qty) === Number(qty) &&
+              p.qtyUnit === qtyUnit &&
+              Number(p.weight) === Number(weight) &&
+              p.weightUnit === weightUnit
+          );
+
+          if (!isDuplicate) {
+            ord.products.push({
+              name: prodName,
+              qty,
+              qtyUnit,
+              weight,
+              weightUnit,
+            });
+            physical.totalProductCount++;
+          }
         });
       });
     }
@@ -145,7 +177,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
   onToast,
   onViewPod,
   onRequestPod,
-  onReportDelay,
+  requestingPodStopId = null,
   t,
 }) => {
   const [expandedStopOrders, setExpandedStopOrders] = useState<Record<number, boolean>>({});
@@ -173,10 +205,23 @@ export const StopsCard: React.FC<StopsCardProps> = ({
       expanded={expanded}
       onToggle={onToggle}
     >
-      <div className="space-y-0 divide-y divide-[#E4E4E8]">
+      <div className="space-y-4 divide-y divide-[#EBEBF0]">
         {physicalStops.map((stop, idx) => {
           const isPickup = stop.type === 'pickup';
-          const isDone = stop.locationStatus === '3' || stop.locationStatus === '7' || stop.pod === '1';
+          const isUnable =
+            stop.locationStatus === '6' ||
+            stop.locationStatus === '4' ||
+            stop.locationStatus === '8' ||
+            stop.unableStatus === 1 ||
+            Boolean(stop.reason);
+
+          const isSuccess = !isUnable && (
+            stop.locationStatus === '5' ||
+            stop.locationStatus === '7' ||
+            stop.pod === '1'
+          );
+
+          const issueReason = stop.reason || (stop.rawStop as any)?.reason || (stop.rawStop as any)?.unable_reason || null;
           const isOrdersExpanded = Boolean(expandedStopOrders[idx]);
           const hasMultipleItems = stop.totalProductCount > 1 || stop.totalOrderCount > 1;
           const isCopied = copiedStopIndex === idx;
@@ -224,13 +269,6 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                           ? `${stop.timeStart} – ${stop.timeEnd}`
                           : stop.timeStart || '08:00 – 18:00'}
                       </span>
-
-                      {isDone && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#059669]">
-                          <CheckCircle2 size={13} />
-                          <span>{t('completed', 'Completed')}</span>
-                        </span>
-                      )}
                     </div>
                   </div>
 
@@ -257,38 +295,76 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                       return (
                         <div
                           key={`${order.orderId}-${oIdx}`}
-                          className="p-2.5 rounded-xl bg-[#F8F9FA] border border-[#EBEBF0] transition-colors hover:border-[#DDDDE5]"
+                          className={`p-2.5 rounded-xl border transition-colors ${
+                            isUnable
+                              ? 'bg-[#FEF2F2]/30 border-[#FECACA]'
+                              : 'bg-[#F8F9FA] border-[#EBEBF0] hover:border-[#DDDDE5]'
+                          }`}
                         >
-                          <div className="space-y-1.5">
-                            {visibleProducts.map((prod, pIdx) => (
-                              <div
-                                key={pIdx}
-                                className="flex items-center gap-2 flex-wrap text-[11px]"
-                              >
-                                <span className="font-semibold font-mono text-[#18181B]">
-                                  Order: {order.orderId}
-                                </span>
-                                {prod.name && prod.name !== '—' && (
-                                  <>
-                                    <span className="text-[#8E8E9A]">·</span>
-                                    <span className="font-medium text-[#18181B]">
-                                      {prod.name}
-                                    </span>
-                                  </>
-                                )}
-                                {(Boolean(prod.qty) || Boolean(prod.weight)) && (
-                                  <>
-                                    <span className="text-[#8E8E9A]">·</span>
-                                    <span className="text-[#5E5E6E]">
-                                      {prod.qty ? `${prod.qty} ${prod.qtyUnit || 'EUR Pallets'}` : ''}
-                                      {prod.qty && prod.weight ? ' · ' : ''}
-                                      {prod.weight ? `${prod.weight} ${prod.weightUnit || 'Tonnes'}` : ''}
-                                    </span>
-                                  </>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="space-y-1.5 flex-1 min-w-0">
+                              {visibleProducts.map((prod, pIdx) => (
+                                <div
+                                  key={pIdx}
+                                  className="flex items-center gap-2 flex-wrap text-[11px]"
+                                >
+                                  <span className="font-semibold font-mono text-[#18181B]">
+                                    Order: {order.orderId}
+                                  </span>
+                                  {prod.name && prod.name !== '—' && (
+                                    <>
+                                      <span className="text-[#8E8E9A]">·</span>
+                                      <span className="font-medium text-[#18181B]">
+                                        {prod.name}
+                                      </span>
+                                    </>
+                                  )}
+                                  {(Boolean(prod.qty) || Boolean(prod.weight)) && (
+                                    <>
+                                      <span className="text-[#8E8E9A]">·</span>
+                                      <span className="text-[#5E5E6E]">
+                                        {prod.qty ? `${prod.qty} ${prod.qtyUnit || 'EUR Pallets'}` : ''}
+                                        {prod.qty && prod.weight ? ' · ' : ''}
+                                        {prod.weight ? `${prod.weight} ${prod.weightUnit || 'Tonnes'}` : ''}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Status Icon Indicator on the Right */}
+                            {isUnable ? (
+                              /* Red Cross Indicator when stop has an issue / undelivered */
+                              <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] text-[#EF4444]">
+                                <X size={18} strokeWidth={2.5} />
+                              </div>
+                            ) : isSuccess ? (
+                              /* Blue/Green Checkmark Tick Symbol (like in Laravel Blade) */
+                              <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E0EAFF] bg-[#F0F5FF] text-[#2876F3]">
+                                {stop.pod === '1' ? (
+                                  /* Double checkmark if POD is uploaded */
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M1 9.5L5.5 14L16 3" />
+                                    <path d="M1 5.5L5.5 10L16 -1" opacity="0.6" />
+                                  </svg>
+                                ) : (
+                                  /* Single checkmark for completed pickup/delivery */
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                  </svg>
                                 )}
                               </div>
-                            ))}
+                            ) : null}
                           </div>
+
+                          {/* Issue Reason Alert in Red if present */}
+                          {isUnable && issueReason && (
+                            <div className="mt-2.5 p-2 rounded-lg bg-[#FEF2F2] border border-[#FECACA] text-xs font-semibold text-[#DC2626] flex items-center gap-1.5">
+                              <AlertTriangle size={14} className="shrink-0 text-[#EF4444]" />
+                              <span>{issueReason}</span>
+                            </div>
+                          )}
 
                           {order.customerName && (
                             <div className="mt-1.5 pt-1.5 border-t border-black/5 text-[11px] font-semibold text-[#059669] flex items-center gap-1.5">
@@ -327,33 +403,84 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                     )}
                   </div>
 
-                  {/* POD section on Dropoff stop when uploaded */}
-                  {!isPickup && stop.pod === '1' && (
-                    <div className="mt-2.5 p-2.5 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] flex items-center justify-between gap-2 flex-wrap">
+                  {/* POD section on Dropoff stop directly inside the rectangle */}
+                  {!isPickup && (
+                    <div
+                      className="mt-2.5 p-2.5 rounded-xl border flex items-center justify-between gap-2 flex-wrap"
+                      style={{
+                        backgroundColor: stop.pod === '1' || (stop.podImages && stop.podImages.length > 0) ? '#ECFDF5' : '#F8FAFC',
+                        borderColor: stop.pod === '1' || (stop.podImages && stop.podImages.length > 0) ? '#A7F3D0' : '#E2E8F0',
+                      }}
+                    >
                       <div className="flex items-center gap-2">
-                        <FileText size={15} className="text-[#059669]" />
-                        <span className="text-[12px] font-bold text-[#065F46]">
+                        <FileText
+                          size={15}
+                          className={stop.pod === '1' || (stop.podImages && stop.podImages.length > 0) ? 'text-[#059669]' : 'text-[#64748B]'}
+                        />
+                        <span
+                          className={`text-[12px] font-bold ${
+                            stop.pod === '1' || (stop.podImages && stop.podImages.length > 0)
+                              ? 'text-[#065F46]'
+                              : 'text-[#334155]'
+                          }`}
+                        >
                           POD (Proof of Delivery)
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#D1FAE5] text-[#047857]">
-                          {t('uploaded', 'Uploaded')}
-                        </span>
+                        {stop.pod === '1' || (stop.podImages && stop.podImages.length > 0) ? (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#D1FAE5] text-[#047857]">
+                            {t('uploaded', 'Uploaded')}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#F1F5F9] text-[#64748B]">
+                            {t('notUploaded', 'Not uploaded')}
+                          </span>
+                        )}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onViewPod) {
-                            onViewPod(stop);
-                          } else {
-                            onToast(t('viewingPod', 'Viewing Proof of Delivery...'));
-                          }
-                        }}
-                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 bg-[#10B981] hover:bg-[#059669] active:scale-95 text-white shadow-xs transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]/50"
-                      >
-                        <FileText size={12} />
-                        <span>{t('viewPod', 'View POD')}</span>
-                      </button>
+                      {stop.pod === '1' || (stop.podImages && stop.podImages.length > 0) ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onViewPod) {
+                              onViewPod(stop);
+                            } else {
+                              onToast(t('viewingPod', 'Viewing Proof of Delivery...'));
+                            }
+                          }}
+                          className="px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 bg-[#10B981] hover:bg-[#059669] active:scale-95 text-white shadow-xs transition-all cursor-pointer focus:outline-none"
+                        >
+                          <FileText size={12} />
+                          <span>{t('viewPod', 'View POD')}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={requestingPodStopId === stop.id || requestingPodStopId === stop.rawStop?.id}
+                          onClick={() => {
+                            if (onRequestPod) {
+                              onRequestPod(stop.rawStop);
+                            } else {
+                              onToast(t('podRequestedSent', 'Push notification sent to driver requesting POD'));
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 bg-[#9B51E0] hover:bg-[#8B3FE0] active:scale-95 text-white shadow-xs transition-all focus:outline-none ${
+                            requestingPodStopId === stop.id || requestingPodStopId === stop.rawStop?.id
+                              ? 'opacity-70 cursor-not-allowed'
+                              : 'cursor-pointer'
+                          }`}
+                        >
+                          {requestingPodStopId === stop.id || requestingPodStopId === stop.rawStop?.id ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <FileText size={12} />
+                          )}
+                          <span>
+                            {requestingPodStopId === stop.id || requestingPodStopId === stop.rawStop?.id
+                              ? t('requesting', 'Requesting...')
+                              : t('requestPod', 'Request POD')}
+                          </span>
+                        </button>
+                      )}
                     </div>
                   )}
 
