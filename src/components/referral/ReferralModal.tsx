@@ -7,7 +7,6 @@ import {
   Share2,
   TrendingUp,
   Award,
-  Zap,
   HelpCircle,
   X,
 } from 'lucide-react';
@@ -51,8 +50,8 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
   // Derive dynamic data with fallbacks
   const referralCode = summaryQuery.data?.referral_code || authUser?.referralCode || defaultReferralCode || '—';
 
-  const maxPoints = summaryQuery.data?.program_rules.max_points_cap ?? propMaxPoints ?? 60;
-  const pointsPerReferral = summaryQuery.data?.program_rules.points_per_referral ?? propPointsPerReferral ?? 60;
+  const pointsPerReferral = summaryQuery.data?.program_rules.points_per_referral ?? propPointsPerReferral ?? 50;
+  const maxPoints = summaryQuery.data?.program_rules.max_points_cap ?? propMaxPoints ?? pointsPerReferral;
   const requiredShipments = summaryQuery.data?.program_rules.required_shipments ?? 1;
 
   const countSignedUp = summaryQuery.data?.stats.signed_up_count ?? 0;
@@ -178,7 +177,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
   };
 
 
-  const neededForMax = Math.max(0, Math.ceil((maxPoints - earnedPoints) / pointsPerReferral));
+
 
 
   if (!isOpen) return null;
@@ -360,29 +359,6 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
                     <div className="cm-val">{availableCredit} pts</div>
                   )}
                 </div>
-              </div>
-
-              {/* Motivational Nudge */}
-              <div className="progress-nudge">
-                <Zap size={15} />
-                {summaryQuery.isLoading && !summaryQuery.data ? (
-                  <div className="ref-skel ref-skel-nudge" />
-                ) : (
-                  <span>
-                    {neededForMax > 0 ? (
-                      <>
-                        {t('referral.nudgePrefix', "You're")}{' '}
-                        <strong>
-                          {neededForMax} {neededForMax === 1 ? t('referral.referralSingular', 'referral') : t('referral.referralPlural', 'referrals')}
-                        </strong>{' '}
-                        {t('referral.nudgeSuffix', 'away from reaching')}{' '}
-                        <strong>{maxPoints} {t('referral.points', 'points!')}</strong>
-                      </>
-                    ) : (
-                      <strong>{t('referral.nudgeMaxReached', '🎉 Congratulations! You reached the maximum points.')}</strong>
-                    )}
-                  </span>
-                )}
               </div>
             </div>
           </div>

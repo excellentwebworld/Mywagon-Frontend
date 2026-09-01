@@ -445,7 +445,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 
 .credit-mini .cm-icon {
@@ -476,29 +476,6 @@
   font-weight: 700;
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
   margin-top: 1px;
-}
-
-/* Motivational Nudge */
-.progress-nudge {
-  padding: 8px 12px;
-  border-radius: var(--ref-rs);
-  background: var(--ref-ap);
-  border: 1px solid #ddd6fe;
-  font-size: 11.5px;
-  color: #5b21b6;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.progress-nudge svg {
-  color: var(--ref-ac);
-  flex-shrink: 0;
-}
-
-.progress-nudge strong {
-  font-weight: 700;
 }
 
 /* Modal Footer */
