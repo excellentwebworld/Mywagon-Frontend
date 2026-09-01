@@ -328,11 +328,8 @@ export const NotificationsPage: React.FC = () => {
     selectors.forEach((sel) => {
       const el = document.querySelector(sel);
       if (el) {
-        if ('scrollTo' in el) {
-          el.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-          el.scrollTop = 0;
-        }
+        el.scrollTo({ top: 0, behavior: 'smooth' });
+        el.scrollTop = 0;
       }
     });
   }, []);
