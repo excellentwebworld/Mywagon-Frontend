@@ -42,7 +42,6 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
   const currentLang = (i18n.language || 'en').startsWith('el') ? 'el' : 'en';
   const { user: authUser } = useAuth();
 
-  const [audience, setAudience] = useState<'shipper' | 'forwarder'>('shipper');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimerRef = useRef<number | null>(null);
 
@@ -94,21 +93,11 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
     }, 2800);
   };
 
-  const getShareMessage = (aud: 'shipper' | 'forwarder', lang: string) => {
+  const getShareMessage = (lang: string) => {
     if (lang === 'el') {
-      switch (aud) {
-        case 'shipper':
-          return `Εγγραφείτε στο MYVAGON, την 1η ψηφιακή πλατφόρμα διαχείρισης φορτίων. Χρησιμοποιήστε τον κωδικό σύστασής μου "${referralCode}" κατά την εγγραφή σας στο https://myvagon.com για να κερδίσουμε και οι δύο ανταμοιβές!`;
-        case 'forwarder':
-          return `Βελτιστοποιήστε τη διαμεταφορά σας με το MYVAGON — παρακολούθηση σε πραγματικό χρόνο, ψηφιακά έγγραφα και έξυπνες κρατήσεις. Εγγραφείτε στο https://myvagon.com χρησιμοποιώντας τον κωδικό σύστασής μου: ${referralCode}`;
-      }
+      return `Εγγραφείτε στο MYVAGON, την 1η ψηφιακή πλατφόρμα διαχείρισης φορτίων. Χρησιμοποιήστε τον κωδικό σύστασής μου "${referralCode}" κατά την εγγραφή σας στο https://myvagon.com για να κερδίσουμε και οι δύο ανταμοιβές!`;
     }
-    switch (aud) {
-      case 'shipper':
-        return `Join MYVAGON, Greece's premier digital freight platform. Use my Referral Code "${referralCode}" when you sign up at https://myvagon.com to start booking trucks and earn rewards!`;
-      case 'forwarder':
-        return `Streamline your freight forwarding with MYVAGON — real-time tracking, digital docs, and smart booking. Sign up at https://myvagon.com using my Referral Code: ${referralCode}`;
-    }
+    return `Join MYVAGON, Greece's premier digital freight platform. Use my Referral Code "${referralCode}" when you sign up at https://myvagon.com to start booking trucks and earn rewards!`;
   };
 
   const copyToClipboard = async (text: string, labelType: 'code' | 'msg') => {
@@ -132,7 +121,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
   };
 
   const handleShare = (channel: 'email' | 'whatsapp' | 'viber' | 'linkedin') => {
-    const msg = getShareMessage(audience, currentLang);
+    const msg = getShareMessage(currentLang);
     let shareUrl = '';
     const emailSubject = currentLang === 'el'
       ? 'Δοκιμάστε το MYVAGON — Έξυπνη Πλατφόρμα Logistics'
@@ -266,23 +255,11 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
                 </div>
               </div>
 
-              {/* Target Audience Dropdown (Shippers, Forwarders) */}
-              <div className="share-audience">
-                <select
-                  value={audience}
-                  onChange={(e) => setAudience(e.target.value as 'shipper' | 'forwarder')}
-                  aria-label="Target audience"
-                >
-                  <option value="shipper">{t('referral.audShipper', 'Share to: Shippers')}</option>
-                  <option value="forwarder">{t('referral.audForwarder', 'Share to: Forwarders')}</option>
-                </select>
-              </div>
-
               {/* Copy Full Message Button */}
               <button
                 type="button"
                 className="share-msg-btn"
-                onClick={() => copyToClipboard(getShareMessage(audience, currentLang), 'msg')}
+                onClick={() => copyToClipboard(getShareMessage(currentLang), 'msg')}
               >
                 <Copy size={14} />
                 <span>{t('referral.copyMsg', 'Copy Referral Message')}</span>
