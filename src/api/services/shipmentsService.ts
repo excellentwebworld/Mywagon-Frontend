@@ -171,7 +171,7 @@ export const shipmentsService = {
 
   async cancel(
     id: string | number,
-    body: { cancel_reason_id: number; cancel_notes?: string }
+    body: { cancel_reason_id?: number; cancel_notes?: string }
   ): Promise<void> {
     await apiPost(`/shipments/${id}/cancel`, body);
   },
@@ -216,7 +216,7 @@ export const shipmentsService = {
 
   async bulkCancel(body: {
     ids: number[];
-    cancel_reason_id: number;
+    cancel_reason_id?: number;
     cancel_notes?: string;
   }): Promise<void> {
     await apiPost('/shipments/bulk-cancel', body);

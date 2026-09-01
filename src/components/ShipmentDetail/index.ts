@@ -27,3 +27,4 @@ export { RatingModal } from './RatingModal';
 export { PickupDelayModal } from './PickupDelayModal';
 export { UploadDocumentModal } from './UploadDocumentModal';
 export { ViewPodModal } from './ViewPodModal';
+export { CounterOfferModal } from './CounterOfferModal';

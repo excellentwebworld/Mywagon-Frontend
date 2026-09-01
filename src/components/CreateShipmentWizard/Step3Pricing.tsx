@@ -23,7 +23,15 @@ import {
   Navigation,
   Truck,
   Loader2,
+  Paperclip,
+  Upload,
+  Trash2,
+  Image as ImageIcon,
+  Plus,
+  Send,
 } from 'lucide-react';
+import { shipmentsService } from '../../api';
+import { UploadDocumentModal } from '../ShipmentDetail/UploadDocumentModal';
 
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { useCreateShipmentPartners } from '../../hooks/useCreateShipmentPartners';
@@ -79,7 +87,7 @@ interface Step3PricingProps {
 
 export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBackStep, onSubmit, onSaveDraft, isSaving = false }) => {
   const { t, lang } = useTranslation();
-  const { locations } = useApp();
+  const { locations, showToast } = useApp();
   const { values, setFieldValue, isSubmitting } = useFormikContext<any>();
   const stops = values.stops || [];
   const { carriersList, loading: partnersLoading, error: partnersError } = useCreateShipmentPartners();
@@ -96,7 +104,176 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
   const [activeStopIndex, setActiveStopIndex] = useState<number | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [uploadingDoc, setUploadingDoc] = useState(false);
   const orderValuePrefilledRef = useRef(false);
+
+  const attachedDocs = useMemo<Array<{
+    id: string | number;
+    name: string;
+    fileName?: string;
+    fileSize?: number;
+    fileType?: string;
+    url?: string;
+    file?: File;
+  }>>(() => values.documentsList || [], [values.documentsList]);
+
+  const formatDocSize = (bytes?: number | null) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const isImageDoc = (fileType?: string | null, fileName?: string) => {
+    const ft = (fileType || '').toLowerCase();
+    const fn = (fileName || '').toLowerCase();
+    return (
+      ft.includes('image') ||
+      ft === 'png' ||
+      ft === 'jpg' ||
+      ft === 'jpeg' ||
+      ft === 'webp' ||
+      fn.endsWith('.png') ||
+      fn.endsWith('.jpg') ||
+      fn.endsWith('.jpeg') ||
+      fn.endsWith('.webp')
+    );
+  };
+
+  const [isUploadDocOpen, setIsUploadDocOpen] = useState(false);
+  const [newNoteText, setNewNoteText] = useState('');
+  const [noteVisibility, setNoteVisibility] = useState<'internal' | 'carrier'>('internal');
+
+  const notesList = useMemo(() => {
+    const list = [...(values.notesList || [])];
+    if (list.length === 0 && values.driverNotes && values.driverNotes.trim()) {
+      const now = new Date();
+      const formattedDate =
+        String(now.getDate()).padStart(2, '0') +
+        '/' +
+        String(now.getMonth() + 1).padStart(2, '0') +
+        '/' +
+        now.getFullYear() +
+        ' ' +
+        String(now.getHours()).padStart(2, '0') +
+        ':' +
+        String(now.getMinutes()).padStart(2, '0');
+
+      return [
+        {
+          id: 'initial-note',
+          text: values.driverNotes.trim(),
+          visibility: 'carrier' as const,
+          date: formattedDate,
+        },
+      ];
+    }
+    return list;
+  }, [values.notesList, values.driverNotes]);
+
+  const handleSaveNote = () => {
+    if (!newNoteText.trim()) return;
+    const now = new Date();
+    const formattedDate =
+      String(now.getDate()).padStart(2, '0') +
+      '/' +
+      String(now.getMonth() + 1).padStart(2, '0') +
+      '/' +
+      now.getFullYear() +
+      ' ' +
+      String(now.getHours()).padStart(2, '0') +
+      ':' +
+      String(now.getMinutes()).padStart(2, '0');
+
+    const createdNote = {
+      id: `note-${Date.now()}`,
+      text: newNoteText.trim(),
+      visibility: noteVisibility,
+      date: formattedDate,
+    };
+
+    const updatedNotes = [...(values.notesList || []), createdNote];
+    setFieldValue('notesList', updatedNotes);
+
+    const carrierVisibleNotes = updatedNotes
+      .filter((n) => n.visibility === 'carrier')
+      .map((n) => n.text)
+      .join('\n');
+    setFieldValue('driverNotes', carrierVisibleNotes || updatedNotes.map((n) => n.text).join('\n'));
+
+    setNewNoteText('');
+    showToast(t('noteAdded', 'Note added successfully'), 'success');
+  };
+
+  const handleRemoveNote = (noteId: string | number) => {
+    const updatedNotes = (values.notesList || []).filter((n: { id: string | number; text: string; visibility: 'internal' | 'carrier'; date: string }) => n.id !== noteId);
+    setFieldValue('notesList', updatedNotes);
+    const carrierVisibleNotes = updatedNotes
+      .filter((n: { id: string | number; text: string; visibility: 'internal' | 'carrier'; date: string }) => n.visibility === 'carrier')
+      .map((n: { id: string | number; text: string; visibility: 'internal' | 'carrier'; date: string }) => n.text)
+      .join('\n');
+    setFieldValue('driverNotes', carrierVisibleNotes || (updatedNotes.length > 0 ? updatedNotes.map((n: { id: string | number; text: string; visibility: 'internal' | 'carrier'; date: string }) => n.text).join('\n') : ''));
+    showToast(t('noteRemoved', 'Note removed'), 'info');
+  };
+
+  const handleModalUpload = async (formData: FormData) => {
+    const file = formData.get('file') as File;
+    const name = (formData.get('name') as string) || (file ? file.name.replace(/\.[^/.]+$/, '') : 'Document');
+    const description = (formData.get('description') as string) || '';
+
+    const newDocs = [...(values.documentsList || [])];
+
+    if (draftId && file) {
+      try {
+        const created = await shipmentsService.uploadDocument(draftId, formData);
+        newDocs.push({
+          id: created.id,
+          name: created.name || name,
+          fileName: created.file_name || file.name,
+          fileSize: created.file_size || file.size,
+          fileType: created.file_type || file.type,
+          url: created.url,
+          description,
+        });
+      } catch {
+        newDocs.push({
+          id: `temp-${Date.now()}`,
+          name,
+          description,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          file,
+        });
+      }
+    } else if (file) {
+      newDocs.push({
+        id: `temp-${Date.now()}`,
+        name,
+        description,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        file,
+      });
+    }
+
+    setFieldValue('documentsList', newDocs);
+    showToast(t('documentUploadedSuccess', 'Document attached successfully'), 'success');
+  };
+
+  const handleRemoveDoc = async (doc: { id: string | number; file?: File }) => {
+    if (draftId && typeof doc.id === 'number') {
+      try {
+        await shipmentsService.deleteDocument(draftId, doc.id);
+      } catch {
+        // Continue removing locally
+      }
+    }
+    const updated = (values.documentsList || []).filter((d: any) => d.id !== doc.id);
+    setFieldValue('documentsList', updated);
+    showToast(t('documentDeleted', 'Document removed'), 'info');
+  };
   const trackingEmailsInitializedRef = useRef('');
   const trackingEmailsRepairRef = useRef('');
   const trackingOrderIds = useMemo(() => extractTrackingOrderIds(stops), [stops]);
@@ -1166,30 +1343,222 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
             </div>
           </div>
 
-          {/* DRIVER NOTES */}
+          {/* NOTES & INSTRUCTIONS */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
-            <div className="ch flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: T.bd }}>
-              <span className="font-semibold text-sm">{t('driverNotes') || 'Driver Notes'}</span>
-              <span className="ov-sub-inline text-xs font-normal" style={{ color: T.t3 }}>
-                ({t('orderValueOptional') || 'Optional'})
-              </span>
-            </div>
-            <div className="cb p-4">
-              <textarea
-                rows={3}
-                className="w-full p-2 border rounded-lg text-xs outline-none resize-y"
-                placeholder={t('driverNotesPlaceholder') || 'e.g. Driver must wear safety equipment on arrival...'}
-                value={values.driverNotes}
-                onChange={(e) => {
-                  if (e.target.value.length <= 500) {
-                    setFieldValue('driverNotes', e.target.value);
-                  }
-                }}
-                maxLength={500}
-              />
-              <div className="text-right text-[10px] text-slate-400 mt-1">
-                {(values.driverNotes || '').length} / 500
+            <div className="ch flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: T.bd }}>
+              <div className="flex items-center gap-2">
+                <FileText size={15} style={{ color: T.ac }} />
+                <span className="font-semibold text-sm">{t('notesInstructions', 'Notes & Instructions')}</span>
+                {notesList.length > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F0F0F3] text-[#5E5E6E]">
+                    {notesList.length}
+                  </span>
+                )}
               </div>
+            </div>
+            <div className="cb p-4 space-y-3">
+              {/* Note input box matching Detail Page */}
+              <div className="p-3 rounded-xl bg-[#F5F5F7] space-y-2.5 border border-[#E4E4E8]/60">
+                <textarea
+                  rows={2}
+                  className="w-full p-2.5 bg-white border border-[#E4E4E8] rounded-lg text-xs outline-none resize-y transition-colors focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/20"
+                  placeholder={t('enterNotePlaceholder', 'Type note instructions…')}
+                  value={newNoteText}
+                  onChange={(e) => setNewNoteText(e.target.value)}
+                  maxLength={500}
+                />
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <label className="text-[11px] font-medium text-[#5E5E6E] flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="wizard-note-vis"
+                        className="accent-[#9B51E0]"
+                        checked={noteVisibility === 'internal'}
+                        onChange={() => setNoteVisibility('internal')}
+                      />
+                      <span>{t('internal', 'Internal')}</span>
+                    </label>
+                    <label className="text-[11px] font-medium text-[#5E5E6E] flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="wizard-note-vis"
+                        className="accent-[#9B51E0]"
+                        checked={noteVisibility === 'carrier'}
+                        onChange={() => setNoteVisibility('carrier')}
+                      />
+                      <span>{t('carrierVisible', 'Carrier-visible')}</span>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {newNoteText && (
+                      <button
+                        type="button"
+                        onClick={() => setNewNoteText('')}
+                        className="px-3 py-1 rounded-lg text-xs font-semibold bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-slate-50 cursor-pointer"
+                      >
+                        {t('cancel', 'Cancel')}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleSaveNote}
+                      disabled={!newNoteText.trim()}
+                      className="px-3.5 py-1 rounded-lg text-xs font-semibold bg-[#9B51E0] text-white hover:bg-[#8837D8] cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
+                    >
+                      <Send size={11} />
+                      <span>{t('save', 'Save')}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes list */}
+              {notesList.length === 0 ? (
+                <div className="text-[11px] text-[#8E8E9A] py-1">
+                  {t('noSpecialNotes', 'No special notes recorded for this load.')}
+                </div>
+              ) : (
+                <div className="space-y-2 pt-1">
+                  {notesList.map((note) => {
+                    const isInternal = note.visibility === 'internal';
+                    return (
+                      <div
+                        key={note.id}
+                        className="p-3 rounded-xl bg-white border border-[#E4E4E8] flex items-start justify-between gap-3 shadow-2xs"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                isInternal
+                                  ? 'bg-[#F3E8FF] text-[#7C3AED] border-[#E9D5FF]'
+                                  : 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0]'
+                              }`}
+                            >
+                              {isInternal ? t('internal', 'Internal') : t('carrierVisible', 'Carrier-visible')}
+                            </span>
+                            {note.date && (
+                              <span className="text-[10px] text-[#8E8E9A]">{note.date}</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-[#18181B] m-0 whitespace-pre-wrap leading-relaxed">
+                            {note.text}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveNote(note.id)}
+                          className="w-6 h-6 rounded-md flex items-center justify-center text-[#9CA3AF] hover:text-[#DC2626] hover:bg-[#FEF2F2] transition-colors cursor-pointer border border-transparent hover:border-[#FECACA]"
+                          title={t('remove', 'Remove')}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* DOCUMENTS & ATTACHMENTS */}
+          <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+            <div className="ch flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: T.bd }}>
+              <div className="flex items-center gap-2">
+                <Paperclip size={15} style={{ color: T.ac }} />
+                <span className="font-semibold text-sm">{t('documentsAttachments', 'Documents & attachments')}</span>
+                {attachedDocs.length > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F0F0F3] text-[#5E5E6E]">
+                    {attachedDocs.length}
+                  </span>
+                )}
+              </div>
+
+              {/* Open Upload Modal button */}
+              <button
+                type="button"
+                onClick={() => setIsUploadDocOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold text-white cursor-pointer transition-all active:scale-95 shadow-xs"
+                style={{ background: T.ac }}
+              >
+                <Plus size={12} />
+                <span>{t('uploadDocument', 'Upload Document')}</span>
+              </button>
+            </div>
+
+            <div className="cb p-4 space-y-3">
+              {attachedDocs.length === 0 ? (
+                <div
+                  onClick={() => setIsUploadDocOpen(true)}
+                  className="flex flex-col items-center justify-center p-6 rounded-xl border border-dashed cursor-pointer transition-colors hover:bg-[#F8F7FC]/70 text-center"
+                  style={{ borderColor: T.bd, background: '#FAF9FD' }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center mb-2 shadow-2xs"
+                    style={{ background: '#FAF5FF', color: T.ac }}
+                  >
+                    <Upload size={18} />
+                  </div>
+                  <p className="text-xs font-semibold text-[#18181B] m-0 mb-1">
+                    {t('clickOrDragToUpload', 'Click or drag files here to upload')}
+                  </p>
+                  <p className="text-[11px] text-[#8E8E9A] m-0">
+                    PDF, PNG, JPG, WEBP, DOCX ({t('upTo', 'up to')} 20MB)
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-[#E4E4E8]">
+                  {attachedDocs.map((doc, idx) => {
+                    const isImg = isImageDoc(doc.fileType, doc.fileName);
+                    return (
+                      <div
+                        key={doc.id || idx}
+                        className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <span
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs shadow-2xs ${
+                              isImg
+                                ? 'bg-[#EFF6FF] text-[#3B82F6] border border-[#DBEAFE]'
+                                : 'bg-[#FEF2F2] text-[#EF4444] border border-[#FEE2E2]'
+                            }`}
+                          >
+                            {isImg ? <ImageIcon size={15} /> : <FileText size={15} />}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-bold text-[#18181B] truncate">
+                              {doc.name || doc.fileName}
+                            </div>
+                            <div className="text-[10px] text-[#8E8E9A] mt-0.5 flex items-center gap-2 flex-wrap">
+                              {doc.fileName && doc.fileName !== doc.name && (
+                                <span className="font-mono">{doc.fileName}</span>
+                              )}
+                              {doc.fileSize && (
+                                <span>{formatDocSize(doc.fileSize)}</span>
+                              )}
+                            </div>
+                            {(doc as any).description && (
+                              <div className="text-[11px] text-[#64748B] italic mt-0.5">
+                                {(doc as any).description}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDoc(doc)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#DC2626] hover:bg-[#FEF2F2] transition-colors cursor-pointer border border-transparent hover:border-[#FECACA]"
+                          title={t('remove', 'Remove')}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1581,6 +1950,14 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
           </button>
         </div>
       </footer>
+
+      {/* Upload Document Modal */}
+      <UploadDocumentModal
+        isOpen={isUploadDocOpen}
+        onClose={() => setIsUploadDocOpen(false)}
+        onUpload={handleModalUpload}
+        t={t}
+      />
     </div>
   );
 };

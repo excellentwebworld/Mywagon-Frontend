@@ -18,6 +18,8 @@ interface TrackingMapCardProps {
   trip?: TripSummary;
   isDelayed?: boolean;
   delayText?: string;
+  actualRouteCoordinates?: Array<{ lat: number; lng: number }> | null;
+  hasActualRoute?: boolean;
   expanded: boolean;
   onToggle: () => void;
   onShare: () => void;
@@ -57,6 +59,8 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
   trip,
   isDelayed = false,
   delayText = '+15 min delay',
+  actualRouteCoordinates = [],
+  hasActualRoute = false,
   expanded,
   onToggle,
   onShare,
@@ -65,6 +69,12 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
 }) => {
   const normStatus = (status || '').toLowerCase();
   const isOnTrip = normStatus === 'on_trip' || normStatus === 'in_progress';
+  const isCompleted =
+    normStatus === 'fullfilled' ||
+    normStatus === 'partially_fullfilled' ||
+    normStatus === 'delivered' ||
+    normStatus === 'not_fullfilled';
+
   const [routeMode, setRouteMode] = useState<'actual' | 'suggested'>('suggested');
   const [geocodedCoords, setGeocodedCoords] = useState<Record<number, { lat: number; lng: number }>>({});
 
@@ -139,6 +149,14 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
   }, [stops, geocodedCoords]);
 
   const routeLegs = useRouteLegs(enrichedStops);
+
+  const activePolylinePath =
+    routeMode === 'actual' && actualRouteCoordinates && actualRouteCoordinates.length > 0
+      ? actualRouteCoordinates
+      : routeLegs.polylinePath;
+
+  const activeDirectionsResult =
+    routeMode === 'actual' ? null : routeLegs.directionsResult;
 
   if (isOnTrip) {
     return (
@@ -238,7 +256,7 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
     );
   }
 
-  // Not on-trip: Interactive Route map
+  // Route map for other statuses (Ready, Scheduled, Pending, Draft, Completed, etc.)
   return (
     <CollapsibleCard
       id="map"
@@ -247,36 +265,39 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
       expanded={expanded}
       onToggle={onToggle}
     >
-      <div className="flex items-center gap-2 mb-3">
-        <button
-          type="button"
-          onClick={() => setRouteMode('actual')}
-          className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all cursor-pointer ${
-            routeMode === 'actual'
-              ? 'bg-[#9B51E0] text-white shadow-sm'
-              : 'bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-gray-50'
-          }`}
-        >
-          {t('actualRoute', 'Actual Route')}
-        </button>
-        <button
-          type="button"
-          onClick={() => setRouteMode('suggested')}
-          className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all cursor-pointer ${
-            routeMode === 'suggested'
-              ? 'bg-[#9B51E0] text-white shadow-sm'
-              : 'bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-gray-50'
-          }`}
-        >
-          {t('suggestedRoute', 'Suggested Route')}
-        </button>
-      </div>
+      {/* Route type toggle: visible ONLY for completed shipments, matching Laravel */}
+      {isCompleted && (
+        <div className="flex items-center gap-2 mb-3 p-1 rounded-full bg-[#F6F7FB] border border-[#E5E7EB] w-fit">
+          <button
+            type="button"
+            onClick={() => setRouteMode('actual')}
+            className={`px-3.5 py-1 rounded-full text-[12px] font-semibold transition-all cursor-pointer ${
+              routeMode === 'actual'
+                ? 'bg-[#C5915D] text-white shadow-xs'
+                : 'bg-white text-[#475569] border border-[#D1D5DB] hover:bg-gray-50'
+            }`}
+          >
+            {t('actualRoute', 'Actual Route')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setRouteMode('suggested')}
+            className={`px-3.5 py-1 rounded-full text-[12px] font-semibold transition-all cursor-pointer ${
+              routeMode === 'suggested'
+                ? 'bg-[#8B5CF6] text-white shadow-xs'
+                : 'bg-white text-[#475569] border border-[#D1D5DB] hover:bg-gray-50'
+            }`}
+          >
+            {t('suggestedRoute', 'Suggested Route')}
+          </button>
+        </div>
+      )}
 
       <div className="rounded-xl overflow-hidden border border-[#E4E4E8] bg-slate-50">
         <RouteMap
           stops={enrichedStops}
-          polylinePath={routeLegs.polylinePath}
-          directionsResult={routeLegs.directionsResult}
+          polylinePath={activePolylinePath}
+          directionsResult={activeDirectionsResult}
           loading={routeLegs.loading}
           height={280}
           expanded={expanded}

@@ -60,7 +60,11 @@ export function buildDefaultWizardValues(loadId = 'SID-NEW') {
     negotiable: true,
     trackingEmails: {} as Record<string, string[]>,
     driverNotes: '',
+    notesList: [] as Array<{ id: string | number; text: string; visibility: 'internal' | 'carrier'; date: string }>,
     gpsRequired: true,
     orderValue: '',
+    documentsList: [] as Array<{ id: string | number; name: string; fileName?: string; fileSize?: number; fileType?: string; url?: string; description?: string; file?: File }>,
   };
 }
+
+export type WizardFormValues = ReturnType<typeof buildDefaultWizardValues>;

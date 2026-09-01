@@ -121,6 +121,8 @@ export function useMessages() {
             name: targetUserName || (targetUserType === 'driver' ? 'Driver' : 'Carrier Company'),
             initials: (targetUserName || 'U').substring(0, 2).toUpperCase(),
             avatarUrl: targetUserAvatar || '',
+            avatarClass: targetUserType === 'driver' ? 'driver' : 'carrier',
+            chips: [],
             role: targetUserType === 'driver' ? 'Driver' : 'Carrier',
             rating: '5.0',
             tripsCount: 0,

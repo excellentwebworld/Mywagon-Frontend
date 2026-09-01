@@ -54,8 +54,30 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
     carrier?.userType === 'driver' ||
     carrier?.meta?.toLowerCase().includes('freelancer');
 
+  const normalizedStatus = (status || '').toLowerCase();
+  const isCompleted = [
+    'fullfilled',
+    'partially_fullfilled',
+    'not_fullfilled',
+    'unfullfilled',
+    'canceled',
+    'delivered',
+  ].includes(normalizedStatus);
+
+  // In Laravel shipper panel: Rate button only displays on ended/completed loads when not yet rated
   const handleRateCarrier = onRateCarrier || (onRate ? () => carrier && onRate() : undefined);
   const handleRateDriver = onRateDriver || (onRate ? () => driver && onRate() : undefined);
+  const canRateCarrier = isCompleted && Boolean(handleRateCarrier) && !isCarrierRated;
+  const canRateDriver = isCompleted && Boolean(handleRateDriver) && !isDriverRated;
+
+  // In Laravel shipper panel: Chat button displays on active trips (scheduled, ready, past_due, on_trip, or fulfilled when unpaid)
+  const canChat =
+    normalizedStatus === 'scheduled' ||
+    normalizedStatus === 'ready' ||
+    normalizedStatus === 'past_due' ||
+    normalizedStatus === 'on_trip' ||
+    normalizedStatus === 'in_progress' ||
+    ((normalizedStatus === 'fullfilled' || normalizedStatus === 'partially_fullfilled') && !isPaid);
 
   const carrierPhone = carrier?.phone || '+30 210 5551234';
   const driverPhone = driver?.phone || '+30 697 1234567';
@@ -136,11 +158,11 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
 
                 {/* Rate, Message, Copy Phone Buttons */}
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  {handleRateCarrier && !isCarrierRated && (
+                  {canRateCarrier && (
                     <button
                       type="button"
-                      onClick={() => handleRateCarrier(carrier)}
-                      title={t('rateCarrierCompany', 'Rate the Carrier Company')}
+                      onClick={() => handleRateCarrier?.(carrier)}
+                      title={t('rateTheDriver', 'Rate the Driver')}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
                     >
                       <Star size={12} fill="#fff" />
@@ -148,18 +170,20 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     </button>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onChatCarrier
-                        ? onChatCarrier(carrier)
-                        : onToast(`${t('message', 'Message')} ${carrier.name}`)
-                    }
-                    title={t('message', 'Message')}
-                    className="p-1.5 rounded-lg bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
-                  >
-                    <MessageSquare size={14} />
-                  </button>
+                  {canChat && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onChatCarrier
+                          ? onChatCarrier(carrier)
+                          : onToast(`${t('message', 'Message')} ${carrier.name}`)
+                      }
+                      title={t('message', 'Message')}
+                      className="p-1.5 rounded-lg bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                    >
+                      <MessageSquare size={14} />
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -233,10 +257,10 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
 
                   {/* Buttons: Rate, Message, Copy Phone */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {handleRateCarrier && !isCarrierRated && (
+                    {canRateCarrier && (
                       <button
                         type="button"
-                        onClick={() => handleRateCarrier(carrier)}
+                        onClick={() => handleRateCarrier?.(carrier)}
                         title={t('rateCarrierCompany', 'Rate the Carrier Company')}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
                       >
@@ -245,18 +269,20 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       </button>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onChatCarrier
-                          ? onChatCarrier(carrier)
-                          : onToast(`${t('message', 'Message')} ${carrier.name}`)
-                      }
-                      title={t('message', 'Message')}
-                      className="p-1.5 rounded-lg bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
-                    >
-                      <MessageSquare size={14} />
-                    </button>
+                    {canChat && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onChatCarrier
+                            ? onChatCarrier(carrier)
+                            : onToast(`${t('message', 'Message')} ${carrier.name}`)
+                        }
+                        title={t('message', 'Message')}
+                        className="p-1.5 rounded-lg bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                      >
+                        <MessageSquare size={14} />
+                      </button>
+                    )}
 
                     <button
                       type="button"
@@ -361,10 +387,10 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
             </div>
 
             <div className="flex items-center gap-1.5 flex-wrap">
-              {handleRateDriver && !isDriverRated && (
+              {canRateDriver && (
                 <button
                   type="button"
-                  onClick={() => handleRateDriver(driver)}
+                  onClick={() => handleRateDriver?.(driver)}
                   title={t('rateTheDriver', 'Rate the Driver')}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
                 >
@@ -383,18 +409,20 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                 <span>{driverPhoneCopied ? t('copied', 'Copied!') : driverPhone}</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() =>
-                  onChatDriver
-                    ? onChatDriver(driver)
-                    : onToast(`${t('message', 'Message')} ${driver.name}`)
-                }
-                title={t('message', 'Message')}
-                className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white border border-[#CBD5E1] text-[#334155] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer focus:outline-none"
-              >
-                {t('message', 'Message')}
-              </button>
+              {canChat && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onChatDriver
+                      ? onChatDriver(driver)
+                      : onToast(`${t('message', 'Message')} ${driver.name}`)
+                  }
+                  title={t('message', 'Message')}
+                  className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white border border-[#CBD5E1] text-[#334155] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer focus:outline-none"
+                >
+                  {t('message', 'Message')}
+                </button>
+              )}
             </div>
           </div>
         )}

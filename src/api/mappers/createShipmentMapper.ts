@@ -184,8 +184,10 @@ export interface WizardFormValues {
   negotiable: boolean;
   trackingEmails: Record<string, string[]>;
   driverNotes: string;
+  notesList?: Array<{ id: string | number; text: string; visibility: 'internal' | 'carrier'; date: string }>;
   gpsRequired: boolean;
   orderValue: string;
+  documentsList?: Array<{ id: string | number; name: string; fileName?: string; fileSize?: number; fileType?: string; url?: string; description?: string; file?: File }>;
 }
 
 export function formValuesToStepOnePayload(
@@ -273,8 +275,10 @@ export function draftToFormValues(
       extractTrackingOrderIds(stops)
     ),
     driverNotes: state.driverNotes ?? defaults.driverNotes,
+    notesList: state.notesList ?? defaults.notesList ?? [],
     gpsRequired: state.gpsRequired ?? defaults.gpsRequired,
     orderValue: state.orderValue ?? defaults.orderValue,
+    documentsList: state.documentsList ?? defaults.documentsList ?? [],
   };
 }
 
@@ -382,7 +386,9 @@ export function formValuesToWizardState(values: WizardFormValues): ApiWizardStat
     negotiable: values.negotiable,
     trackingEmails: values.trackingEmails,
     driverNotes: values.driverNotes,
+    notesList: values.notesList,
     gpsRequired: values.gpsRequired,
     orderValue: values.orderValue,
+    documentsList: values.documentsList,
   };
 }

@@ -4,8 +4,6 @@ import {
   Pencil,
   MessageSquare,
   Share2,
-  ClipboardList,
-  Receipt,
   MoreHorizontal,
   Check,
 } from 'lucide-react';
@@ -222,28 +220,6 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
           >
             <Share2 size={14} />
           </button>
-
-          <button
-            type="button"
-            onClick={onAuditLog}
-            title={t('shipmentLogs', 'Shipment Logs')}
-            className="flex items-center justify-center p-2 rounded-lg text-[13px] font-semibold bg-white text-[#5E5E6E] border border-[#E4E4E8] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
-            aria-label={t('shipmentLogs', 'Shipment Logs')}
-          >
-            <ClipboardList size={14} />
-          </button>
-
-          {onBidsHistory && (
-            <button
-              type="button"
-              onClick={onBidsHistory}
-              title={t('bidsHistory', 'Bids History')}
-              className="flex items-center justify-center p-2 rounded-lg text-[13px] font-semibold bg-white text-[#5E5E6E] border border-[#E4E4E8] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
-              aria-label={t('bidsHistory', 'Bids History')}
-            >
-              <Receipt size={14} />
-            </button>
-          )}
 
           <div className="relative" ref={menuRef}>
             <button

@@ -187,7 +187,13 @@ export interface Shipment {
   carrierType?: 'carrier' | 'driver' | string | null;
   carrierRole?: 'carrier' | 'freelancer' | 'company_driver' | string | null;
   carrierPartner?: boolean;
-  carrierRating?: number | null;
+  carrierRating?: number | {
+    id: number;
+    rating: number;
+    review?: string;
+    deliveryOnTime?: boolean | null;
+    createdAt?: string;
+  } | null;
   carrierOnTimeDeliveryPct?: number | null;
   carrierCancellationRatePct?: number | null;
   carrierAvgPickupDelayMinutes?: number | null;
@@ -227,6 +233,16 @@ export interface Shipment {
   /** ISO created_at for progress timeline (Created step). */
   createdAt?: string | null;
   stops?: ShipmentStop[];
+  oldStops?: ShipmentStop[];
+  old_stops?: ShipmentStop[];
+  updatedStops?: ShipmentStop[];
+  updated_stops?: ShipmentStop[];
+  hasUpdatedItinerary?: boolean;
+  has_updated_itinerary?: boolean;
+  is_being_edited?: boolean;
+  isEditingRequested?: boolean;
+  editing_details?: string | null;
+  editingRequestDetails?: string | null;
   journeyDistanceKm?: number | null;
   journeyTime?: string | number | null;
   cargoValue?: number | null;
@@ -318,9 +334,15 @@ export interface Shipment {
     status: string;
     partnerStatus?: string | null;
     counter?: {
-      amount: number;
-      actor: string;
-      at: string;
+      amount?: number;
+      actor?: string;
+      at?: string;
+      yours?: number;
+      theirs?: number;
+      from?: number;
+      to?: number;
+      pct?: number;
+      dir?: 'up' | 'down';
     } | null;
   }>;
   invitees?: Array<{
@@ -366,46 +388,18 @@ export interface Shipment {
     deliveryOnTime?: boolean | null;
     createdAt?: string;
   } | null;
-  counter?: { yours: number; theirs: number; pct: string; dir: 'up' | 'down' };
-  offers?: Array<{
-    id: string;
-    type: 'bid' | 'interest';
-    kind?: 'received' | 'sent' | string | null;
-    availabilityId?: string | null;
-    lastActionBy?: string | null;
-    name: string;
-    initials?: string;
-    avatar?: string | null;
-    rating?: number | null;
-    ratingCount?: number | null;
-    vat?: string | null;
-    transporterId?: number | null;
-    transporterType?: 'carrier' | 'driver' | null;
-    isPartner?: boolean;
-    hasHistory?: boolean;
-    role?: string;
-    price?: number | null;
-    respondedAt?: string | null;
-    status?: string | null;
-    partnerStatus?: string | null;
-    counter?: {
-      yours: number;
-      theirs: number;
-      from?: number;
-      to?: number;
-      pct: number;
-      dir: 'up' | 'down';
-    } | null;
-  }>;
-  invitees?: Array<{
+  isCarrierRated?: boolean;
+  actualRouteCoordinates?: Array<{ lat: number; lng: number }> | null;
+  hasActualRoute?: boolean;
+  isDriverRated?: boolean;
+  driverRating?: {
     id: number;
-    name: string;
-    initials?: string;
-    avatar?: string | null;
-    invitedAt?: string | null;
-    status?: string;
-    role?: string;
-  }>;
+    rating: number;
+    review?: string;
+    deliveryOnTime?: boolean | null;
+    createdAt?: string;
+  } | null;
+  counter?: { yours: number; theirs: number; pct: string; dir: 'up' | 'down' };
 }
 
 export interface Carrier {

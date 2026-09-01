@@ -237,8 +237,8 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     carrierAvatar: item.carrier?.avatar ?? null,
     carrierId: item.carrier?.id ?? null,
     carrierType: item.carrier?.type ?? null,
-    carrierRole: item.carrier?.role ?? (item.carrier?.type === 'driver' ? 'freelancer' : null),
-    carrierPartner: Boolean(item.carrier?.is_partner ?? item.carrier?.partner),
+    carrierRole: (item.carrier as any)?.role ?? (item.carrier?.type === 'driver' ? 'freelancer' : null),
+    carrierPartner: Boolean((item.carrier as any)?.is_partner ?? (item.carrier as any)?.partner),
     carrierRating: item.carrier?.rating ?? null,
     carrierOnTimeDeliveryPct: item.carrier?.on_time_delivery_pct ?? null,
     carrierCancellationRatePct: item.carrier?.cancellation_rate_pct ?? null,
@@ -327,8 +327,8 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     totalWeight: detail.total_weight ?? null,
     totalQty: detail.total_qty ?? null,
     weightUnit: detail.weight_unit ?? null,
-    carrierRole: detail.carrier?.role ?? base.carrierRole ?? (detail.carrier?.type === 'driver' ? 'freelancer' : null),
-    carrierPartner: Boolean(detail.carrier?.is_partner ?? detail.carrier?.partner ?? base.carrierPartner),
+    carrierRole: (detail.carrier as any)?.role ?? base.carrierRole ?? (detail.carrier?.type === 'driver' ? 'freelancer' : null),
+    carrierPartner: Boolean((detail.carrier as any)?.is_partner ?? (detail.carrier as any)?.partner ?? base.carrierPartner),
     assignedDriverId: detail.assigned_driver?.id ?? null,
     assignedDriverName: detail.assigned_driver?.name ?? null,
     assignedDriverInitials: detail.assigned_driver?.initials ?? null,
@@ -340,8 +340,8 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
       (detail.offers || []).map((o) => ({
         id: o.id,
         type: o.type,
-        kind: o.kind ?? (o.availability_id ? 'sent' : 'received'),
-        availabilityId: o.availability_id ?? null,
+        kind: (o.kind === 'sent' || (!o.kind && o.availability_id) ? 'sent' : 'received') as 'sent' | 'received',
+        availabilityId: o.availability_id ? Number(o.availability_id) : null,
         lastActionBy: o.last_action_by ?? null,
         name: o.name,
         initials: o.initials,
@@ -358,7 +358,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
         hasHistory: o.has_history !== false,
         role: o.role,
         price: o.price,
-        respondedAt: o.responded_at,
+        respondedAt: o.responded_at || undefined,
         status: o.status ?? 'pending',
         partnerStatus: o.partner_status ?? null,
         counter: o.counter ?? null,
@@ -470,5 +470,51 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
           createdAt: detail.shipper_rating.created_at,
         }
       : null,
+    isCarrierRated: Boolean((detail as any).is_carrier_rated ?? (detail.carrier as any)?.is_rated ?? detail.shipper_rating),
+    carrierRating: (detail as any).carrier_rating
+      ? {
+          id: (detail as any).carrier_rating.id,
+          rating: (detail as any).carrier_rating.rating,
+          review: (detail as any).carrier_rating.review,
+          deliveryOnTime: (detail as any).carrier_rating.delivery_on_time,
+          createdAt: (detail as any).carrier_rating.created_at,
+        }
+      : (detail.shipper_rating ? {
+          id: detail.shipper_rating.id,
+          rating: detail.shipper_rating.rating,
+          review: detail.shipper_rating.review,
+          deliveryOnTime: detail.shipper_rating.delivery_on_time,
+          createdAt: detail.shipper_rating.created_at,
+        } : null),
+    actualRouteCoordinates: (detail as any).actual_route_coordinates || [],
+    hasActualRoute: Boolean((detail as any).has_actual_route ?? (detail as any).actual_route_coordinates?.length),
+    isDriverRated: Boolean((detail as any).is_driver_rated ?? (detail.assigned_driver as any)?.is_rated),
+    driverRating: (detail as any).driver_rating
+      ? {
+          id: (detail as any).driver_rating.id,
+          rating: (detail as any).driver_rating.rating,
+          review: (detail as any).driver_rating.review,
+          deliveryOnTime: (detail as any).driver_rating.delivery_on_time,
+          createdAt: (detail as any).driver_rating.created_at,
+        }
+      : null,
+    hasUpdatedItinerary: Boolean((detail as any).has_updated_itinerary),
+    has_updated_itinerary: Boolean((detail as any).has_updated_itinerary),
+    is_being_edited: Boolean((detail as any).is_being_edited),
+    isEditingRequested: Boolean((detail as any).is_being_edited),
+    editing_details: (detail as any).editing_details || null,
+    editingRequestDetails: (detail as any).editing_details || null,
+    oldStops: ((detail as any).old_stops || []).map((stop: any, idx: number) =>
+      mapStop(stop, idx, detail.customer_reference)
+    ),
+    old_stops: ((detail as any).old_stops || []).map((stop: any, idx: number) =>
+      mapStop(stop, idx, detail.customer_reference)
+    ),
+    updatedStops: ((detail as any).updated_stops || []).map((stop: any, idx: number) =>
+      mapStop(stop, idx, detail.customer_reference)
+    ),
+    updated_stops: ((detail as any).updated_stops || []).map((stop: any, idx: number) =>
+      mapStop(stop, idx, detail.customer_reference)
+    ),
   };
 }

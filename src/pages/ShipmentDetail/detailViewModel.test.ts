@@ -282,10 +282,14 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
     const vmPartiallyFulfilled = buildShipmentDetailViewModel({
       ...baseMockShipment,
       status: 'partially_fullfilled',
+      auditEntries: [
+        { id: '1', time: '12:00', text: 'Trip partially fulfilled', category: 'operations', tone: 'accept' },
+      ],
     });
 
     expect(vmPartiallyFulfilled.status).toBe('partially_fullfilled');
     expect(vmPartiallyFulfilled.availableNavSections).toContain('docs');
     expect(vmPartiallyFulfilled.availableNavSections).toContain('audit');
+    expect(vmUnfulfilled.availableNavSections).not.toContain('audit');
   });
 });

@@ -53,6 +53,9 @@ export interface Conversation {
   hasAction?: boolean;
   phone?: string;
   email?: string;
+  role?: string;
+  rating?: string;
+  tripsCount?: number;
   activeShipmentId?: string;
   /** FCM device token of the partner for Firebase push notifications */
   device_token?: string;

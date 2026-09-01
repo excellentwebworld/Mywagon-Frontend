@@ -14,7 +14,7 @@ interface CancelShipmentModalProps {
   shipmentIds?: number[] | null;
   onClose: () => void;
   onCancelled: () => void;
-  t: (key: string, opts?: Record<string, unknown>) => string;
+  t: (key: string, fallbackOrOpts?: string | Record<string, unknown>, opts?: Record<string, unknown>) => string;
 }
 
 export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({

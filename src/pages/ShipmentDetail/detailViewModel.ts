@@ -1,5 +1,6 @@
 import type { Shipment, ShipmentStop } from '../../context/AppContext';
 import type { PartnerBidItem } from '../../components/ShipmentDetail/BidsCard';
+export type { PartnerBidItem };
 import type { LoadSummaryData } from '../../components/ShipmentDetail/LoadSummaryCard';
 
 export type MilestoneState = 'done' | 'cur' | 'skip';
@@ -66,6 +67,7 @@ export interface CarrierDetail {
   avgPickupDelay: string;
   plates: string[];
   templates: string[];
+  role?: string;
   canRate?: boolean;
 }
 
@@ -113,6 +115,9 @@ export interface TrackingStats {
   etaVariance: string;
   kmRemaining: string;
   speed: string;
+  traffic?: string;
+  signal?: string;
+  heading?: string;
 }
 
 export interface IncidentItem {
@@ -130,7 +135,9 @@ export interface ShareDeliveryRow {
 }
 
 export interface ShareCustomerGroup {
-  name: string;
+  id?: string;
+  name?: string;
+  customerName?: string;
   deliveryCount: number;
   rows: ShareDeliveryRow[];
 }
@@ -192,6 +199,9 @@ export interface ShipmentDetailViewModel {
   isPaid?: boolean;
   exceptionChips: { label: string; target: string }[];
   stops: ShipmentStop[];
+  oldStops?: ShipmentStop[];
+  updatedStops?: ShipmentStop[];
+  hasUpdatedItinerary?: boolean;
   partners: PartnerBidItem[];
   loadSummary: LoadSummaryData;
   notes: DetailNote[];
@@ -206,9 +216,13 @@ export interface ShipmentDetailViewModel {
   auditEntries: AuditEntry[];
   shareGroups: ShareCustomerGroup[];
   availableNavSections: string[];
-  shipmentLogs?: ShipmentLogItem[];
   bidsHistory?: BidHistoryItem[];
+  actualRouteCoordinates?: Array<{ lat: number; lng: number }> | null;
+  hasActualRoute?: boolean;
+  startingPrice?: number | string | null;
   canRate: boolean;
+  isCarrierRated: boolean;
+  isDriverRated: boolean;
   isAlreadyRated: boolean;
   userRating?: number | null;
   ratingDeliveryOnTime?: boolean | null;
@@ -631,19 +645,18 @@ function buildMilestones(shipment: Shipment): MilestoneItem[] {
 
 export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetailViewModel {
   const stops = shipment.stops?.length ? shipment.stops : buildDefaultStops(shipment);
-  const displayId = shipment.autoId || shipment.id || 'SHP-0000';
-  const price = shipment.price ?? shipment.agreedPrice ?? shipment.quotedPrice ?? shipment.best_bid;
-  const quote = price != null ? `€ ${Number(price).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '€ 410,00';
+  const displayId = shipment.autoId || shipment.id || 'SHP-00';
   const primaryCustomer = shipment.customer?.[0]?.name || 'Alpha Foods Ltd';
   const orderIds =
     shipment.orderIds?.join(', ') ||
-    shipment.customer?.flatMap((c) => c.orders?.map((o) => (typeof o === 'string' ? o : o.id))).join(', ') ||
+    shipment.customer?.flatMap((c) => c.orders?.map((o) => (typeof o === 'string' ? o : (o as any).id))).join(', ') ||
     'PAP-70112';
 
   const fmtPct = (v: number | null | undefined, fallback = '—') => (v == null ? fallback : `${v}%`);
   const fmtMin = (v: number | null | undefined, fallback = '—') => (v == null ? fallback : `${v}m`);
 
   const status = shipment.status || 'draft';
+  const isPending = status === 'pending';
   const isPrivateLoad =
     shipment.vis !== 'public' &&
     shipment.channel !== 'public' &&
@@ -673,7 +686,12 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
         name: shipment.carrier || 'Transmed Logistics S.A.',
         partner: isPartner,
         role: isFreelancer ? 'freelancer' : 'carrier',
-        rating: shipment.carrierRating != null ? shipment.carrierRating.toFixed(1) : '4.9',
+        rating:
+          typeof shipment.carrierRating === 'number'
+            ? shipment.carrierRating.toFixed(1)
+            : typeof shipment.carrierRating === 'object' && shipment.carrierRating
+            ? Number((shipment.carrierRating as any).rating).toFixed(1)
+            : '4.9',
         meta: isFreelancer ? 'Freelancer' : 'Carrier Company · 240 completed trips',
         userId: shipment.carrierId ?? 101,
         userType: isFreelancer ? 'driver' : 'carrier',
@@ -682,7 +700,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
         onTimeDelivery: fmtPct(shipment.carrierOnTimeDeliveryPct, '96%'),
         cancelRate: fmtPct(shipment.carrierCancellationRatePct, '0.5%'),
         avgPickupDelay: fmtMin(shipment.carrierAvgPickupDelayMinutes, '8m'),
-        plates: shipment.assignedDriverPlates?.length ? shipment.assignedDriverPlates : ['ΙΧΕ-7890', 'ΤΡ-4512'],
+        plates: shipment.assignedDriverPlates ?? ['ΙΧΕ-7890', 'ΤΡ-4512'],
         templates: [],
         canRate: true,
       }
@@ -708,75 +726,63 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
         }
       : null;
 
+  const isNegotiable =
+    shipment.negotiable !== false &&
+    (shipment.price_type === 'spot' || (shipment.price_type as any) === 1 || shipment.price_type == null);
   const mappedOffers: PartnerBidItem[] = (shipment.offers || []).map((o) => {
     const name = o.name || 'Transporter';
+    const lastActionBy = o.lastActionBy || null;
+    const canCounter = isNegotiable && lastActionBy !== 'shipper';
+
     return {
       id: o.id || `offer-${Math.random()}`,
       userId: o.transporterId ?? undefined,
       userType: o.transporterType ?? 'carrier',
       name,
       transporterType: o.transporterType === 'driver' || o.role === 'freelancer' ? 'freelancer' : 'carrier',
-      initials: o.initials || name.substring(0, 2).toUpperCase(),
-      avatar: o.avatar ?? null,
-      rating: o.rating != null ? o.rating.toFixed(1) : '—',
-      tripsCount: o.ratingCount ?? 0,
-      hasBid: o.type === 'bid' || o.price != null,
-      isInterested: o.type === 'interest',
-      bidAmount: o.price ?? null,
-      statusText: o.type === 'bid' ? 'Bid submitted' : 'Interested partner',
-      time: o.respondedAt || undefined,
+      isPartner: Boolean(o.isPartner),
+      status: o.status ?? null,
+      price: o.price ?? null,
+      rating: o.rating ?? 4.8,
+      tripsCount: o.ratingCount ?? 45,
+      invitedDate: o.respondedAt || '02/02/2026',
+      counter: o.counter
+        ? {
+            yours: typeof (o.counter as any).yours === 'number' ? (o.counter as any).yours : typeof (o.counter as any).amount === 'number' ? (o.counter as any).amount : 0,
+            theirs: typeof (o.counter as any).theirs === 'number' ? (o.counter as any).theirs : typeof (o.counter as any).amount === 'number' ? (o.counter as any).amount : 0,
+            pct: typeof (o.counter as any).pct === 'number' ? (o.counter as any).pct : 0,
+            dir: (o.counter as any).dir || 'up',
+            from: (o.counter as any).from,
+            to: (o.counter as any).to,
+          }
+        : canCounter && o.price
+        ? {
+            yours: Math.round(Number(o.price) * 0.95),
+            theirs: Number(o.price),
+            pct: 5,
+            dir: 'down',
+          }
+        : null,
     };
   });
 
-  const offerNames = new Set(mappedOffers.map((m) => m.name.toLowerCase().trim()));
-
-  const mappedInvitees: PartnerBidItem[] = (shipment.invitees || [])
-    .filter((inv) => !offerNames.has((inv.name || '').toLowerCase().trim()))
-    .map((inv) => {
-      const name = inv.name || 'Invited Partner';
-      const isFreelancer = inv.transporterType === 'driver' || inv.role === 'freelancer';
-      return {
-        id: `invitee-${inv.id}`,
-        userId: inv.transporterId ?? inv.id,
-        userType: isFreelancer ? 'driver' : 'carrier',
-        name,
-        transporterType: isFreelancer ? 'freelancer' : 'carrier',
-        initials: inv.initials || name.substring(0, 2).toUpperCase(),
-        avatar: inv.avatar ?? null,
-        rating: inv.rating != null ? Number(inv.rating).toFixed(1) : '4.9',
-        tripsCount: inv.ratingCount ?? 120,
-        hasBid: false,
-        isInterested: false,
-        bidAmount: null,
-        statusText: 'Invited · Waiting response',
-        time: inv.invitedAt ? String(inv.invitedAt).replace('T', ' ').substring(0, 16) : undefined,
-      };
-    });
-
-  const partners: PartnerBidItem[] = [...mappedOffers, ...mappedInvitees];
-
-  const distanceKm = shipment.journeyDistanceKm || 232;
-  const duration = typeof shipment.journeyTime === 'string' ? shipment.journeyTime : '3h 45m';
-  const totalWeight = shipment.totalWeight ? `${shipment.totalWeight} T` : '18 T';
-
-  // Navigation sections active based on status
-  const availableNavSections: string[] = [];
-  const hasActiveBids = partners.some((p) => p.hasBid || p.isInterested);
-  if (status === 'pending') {
-    if (hasActiveBids) {
-      availableNavSections.push('bids');
-    } else if (isPrivateLoad && partners.length > 0) {
-      availableNavSections.push('invited');
-    }
-  }
-  availableNavSections.push('stops', 'load');
-  if (status === 'on_trip' || status === 'in_progress') {
-    availableNavSections.push('tracking');
-  }
-  if (hasCarrier && status !== 'draft' && status !== 'pending') {
-    availableNavSections.push('carrier');
-  }
-  availableNavSections.push('docs', 'audit');
+  const partners: PartnerBidItem[] =
+    mappedOffers.length > 0
+      ? mappedOffers
+      : (shipment.invitees || []).map((i) => ({
+          id: `inv-${i.id}`,
+          name: i.name || 'Transporter',
+          initials: i.initials || 'TR',
+          avatar: i.avatar || null,
+          transporterType: i.role === 'freelancer' ? 'freelancer' : 'carrier',
+          isPartner: true,
+          status: i.status || 'invited',
+          rating: (i as any).rating ?? 4.8,
+          tripsCount: (i as any).ratingCount ?? 32,
+          invitedDate: i.invitedAt || '01/02/2026',
+          price: null,
+          userId: (i as any).transporterId ?? i.id,
+        }));
 
   const isCompleted =
     status === 'fullfilled' ||
@@ -784,12 +790,17 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     status === 'delivered' ||
     status === 'not_fullfilled';
 
-  const isPickedUp = status === 'on_trip' || status === 'in_progress' || isCompleted;
+  const isPickedUp =
+    status === 'on_trip' ||
+    status === 'in_progress' ||
+    status === 'fullfilled' ||
+    status === 'partially_fullfilled' ||
+    status === 'delivered';
 
-  // Load value sum of orders
-  const loadValue = shipment.cargoValue != null
-    ? `€ ${Number(shipment.cargoValue).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-    : '€ 12,500.00';
+  const availableNavSections: string[] = ['stops', 'load', 'carrier', 'docs', 'notes', 'audit'];
+  if (isPending) availableNavSections.unshift('bids');
+  if (status === 'on_trip' || status === 'in_progress') availableNavSections.splice(2, 0, 'tracking');
+  if (isCompleted || status === 'cancelled') availableNavSections.push('billing');
 
   return {
     id: shipment.id,
@@ -800,14 +811,22 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     statusLabel: status,
     status,
     isPrivateLoad,
-    isEditingRequested: false, // only shown if edit requested
-    editingRequestDetails: null,
+    isEditingRequested: Boolean(
+      (shipment as any).is_being_edited ??
+      shipment.isEditingRequested ??
+      ((shipment as any).updated_shipment && (shipment as any).updated_shipment !== '0' && (shipment as any).updated_shipment !== 0)
+    ),
+    editingRequestDetails:
+      (shipment as any).editing_details ||
+      shipment.editingRequestDetails ||
+      (typeof (shipment as any).updated_shipment === 'object' && (shipment as any).updated_shipment ? (shipment as any).updated_shipment?.note : null) ||
+      null,
     onTrack: !shipment.at_risk,
     isDelayed: Boolean(shipment.at_risk),
     delayText: '+15 min delay',
     isPickedUp,
     primaryCustomer,
-    owner: shipment.ownerName || shipment.owner || 'My Vagon',
+    owner: shipment.ownerName || (shipment as any).owner || 'My Vagon',
     etaChip: '🔵 ETA: 20/02 · 16:00',
     etaStatusChip: shipment.at_risk ? '⚠️ Delayed (+15 min)' : '✅ On Time',
     isPaid: Boolean(shipment.isPaid ?? (shipment.markAsPaid === '1')),
@@ -821,12 +840,21 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       ? [{ label: 'Delay Warning', target: 'tracking' }]
       : [{ label: 'POD Verified', target: 'docs' }],
     stops,
+    oldStops: ((shipment.oldStops?.length ? shipment.oldStops : (shipment as any).old_stops?.length ? (shipment as any).old_stops : stops)) as ShipmentStop[],
+    updatedStops: ((shipment.updatedStops?.length ? shipment.updatedStops : (shipment as any).updated_stops || [])) as ShipmentStop[],
+    hasUpdatedItinerary: Boolean(
+      shipment.hasUpdatedItinerary ??
+      (shipment as any).has_updated_itinerary ??
+      (shipment.updatedStops && shipment.updatedStops.length > 0) ??
+      ((shipment as any).updated_stops && (shipment as any).updated_stops.length > 0)
+    ),
     partners,
+    startingPrice: (shipment as any).total ?? shipment.price ?? null,
     loadSummary: shipment.loadSummary || {
       vehicleTypes: shipment.truckTypes?.length ? shipment.truckTypes : ['Semi-Trailer'],
       cargoSpecs: ['Curtainside'],
-      quote,
-      loadValue,
+      quote: '€ 410,00',
+      loadValue: '€ 12,500.00',
       channel: isPrivateLoad ? 'Private' : 'Public',
       negotiable: shipment.negotiable !== false,
       liveNavigation: shipment.navigation !== false,
@@ -838,38 +866,43 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       ? [
           {
             id: 'note-1',
-            author: shipment.owner || 'Shipper',
+            author: (shipment as any).owner || 'Shipper',
             timestamp: shipment.createdAt ? String(shipment.createdAt).replace('T', ' ').substring(0, 16) : 'Creation',
             body: shipment.driverNotes,
             visibility: 'carrier',
           },
         ]
       : [],
-    documents: (shipment.documentsList || []).map((d) => ({
-      id: d.id,
-      name: d.name,
-      description: d.description,
-      fileName: d.fileName,
-      fileType: d.fileType,
-      fileSize: d.fileSize,
-      url: d.url,
-      uploadedBy: d.uploadedBy,
-      createdAt: d.createdAt,
-    })),
+    documents: shipment.documentsList && shipment.documentsList.length > 0
+      ? shipment.documentsList
+      : [
+          {
+            id: 'doc-1',
+            name: 'CMR Consignment Note (Draft)',
+            fileName: 'CMR_Draft_Auto.pdf',
+            fileType: 'application/pdf',
+            fileSize: 245000,
+            uploadedBy: 'System',
+            createdAt: shipment.createdAt || '2026-02-18T10:00:00Z',
+          },
+        ],
     shipmentLogs: shipment.shipmentLogs || [],
     tracking: {
-      movement: 'Moving 68 km/h',
-      etaVariance: shipment.at_risk ? '+12 min delay' : 'On time',
-      kmRemaining: '87 km',
-      speed: '68 km/h',
+      movement: 'Cruising · 82 km/h',
+      etaVariance: shipment.at_risk ? '+15 min delay' : 'On Schedule',
+      kmRemaining: '142 km remaining',
+      speed: '82 km/h',
+      traffic: 'Moderate traffic near Lamia bypass',
+      signal: 'GPS Live (Cellular 4G) · Updated 2 min ago',
+      heading: 'South-East (Athens Corridor)',
     },
-    trip: shipment.tripSummary || {
-      distanceKm,
-      duration,
+    trip: {
+      distanceKm: shipment.journeyDistanceKm || 504,
+      duration: shipment.journeyTime != null ? String(shipment.journeyTime) : '5h 45m',
       stops: stops.length,
-      weight: totalWeight,
+      weight: shipment.totalWeight != null ? `${shipment.totalWeight} ${shipment.weightUnit || 'Tonnes'}` : '24.5 Tonnes',
       customers: shipment.customer?.length || 1,
-      orders: shipment.customer?.reduce((sum, c) => sum + (c.orders?.length || 0), 0) || 1,
+      orders: shipment.orderIds?.length || 1,
     },
     carrier,
     assignedDriver,
@@ -883,69 +916,24 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       },
     ],
     billing: {
-      agreedPrice: quote,
+      agreedPrice: '€ 410,00',
       priceType: shipment.price_type === 'contract' ? 'CONTRACT' : 'SPOT',
       costPerKm: '€ 1,77',
       costPerPallet: '€ 17,08',
       costPerTonne: '€ 22,78',
       costPerStop: '€ 205,00',
-      kmDetail: `${distanceKm} km`,
+      kmDetail: `${shipment.journeyDistanceKm || 504} km`,
       palletDetail: '24 pal.',
-      tonneDetail: totalWeight,
+      tonneDetail: shipment.totalWeight ? `${shipment.totalWeight} T` : '24.5 T',
       stopDetail: `${stops.length} stops`,
       invoiceStatus: isCompleted ? 'Paid' : 'Not settled',
       disputeStatus: 'No disputes',
     },
-    auditEntries: shipment.auditEntries?.length
-      ? shipment.auditEntries
-      : [
-          {
-            id: 'a1',
-            time: '14/02 · 12:00',
-            text: 'Shipment **Created** by Ηρακλής Σακκάς',
-            category: 'operations',
-            tone: 'default',
-          },
-          {
-            id: 'a2',
-            time: '15/02 · 10:00',
-            text: 'Bid accepted — **Transmed Logistics** booked at € 410 by Ηρακλής Σακκάς',
-            category: 'bidding',
-            tone: 'accept',
-            priceBadge: '€ 410',
-          },
-          {
-            id: 'a3',
-            time: '17/02 · 07:10',
-            text: 'Pickup completed: **Ιωάννινα** (stop #1)',
-            category: 'operations',
-            tone: 'default',
-          },
-          {
-            id: 'a4',
-            time: '17/02 · 14:40',
-            text: 'Delivery completed: **Βόλος** (stop #2)',
-            category: 'operations',
-            tone: 'default',
-          },
-          {
-            id: 'a5',
-            time: '17/02 · 14:42',
-            text: 'POD uploaded by **Ανδρέας Λύτρας**',
-            category: 'operations',
-            tone: 'default',
-          },
-          {
-            id: 'a6',
-            time: '17/02 · 14:50',
-            text: 'Trip concluded — **fulfilled**',
-            category: 'operations',
-            tone: 'accept',
-          },
-        ],
+    auditEntries: shipment.auditEntries || [],
     shareGroups: [
       {
-        name: primaryCustomer,
+        id: 'cust-1',
+        customerName: primaryCustomer,
         deliveryCount: 2,
         rows: stops
           .filter((s) => s.type === 'delivery')
@@ -959,9 +947,17 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     availableNavSections,
     isManualTrip: Boolean(shipment.isManualTrip || shipment.startedBy === 'carrier'),
     bidsHistory: shipment.bidsHistory || [],
+    actualRouteCoordinates: shipment.actualRouteCoordinates || [],
+    hasActualRoute: Boolean(shipment.hasActualRoute ?? shipment.actualRouteCoordinates?.length),
     canRate: isCompleted && hasCarrier,
-    isAlreadyRated: Boolean(shipment.shipperRating),
-    userRating: shipment.shipperRating?.rating ?? null,
-    ratingDeliveryOnTime: shipment.shipperRating?.deliveryOnTime ?? null,
+    isCarrierRated: Boolean(shipment.isCarrierRated ?? shipment.shipperRating),
+    isDriverRated: Boolean(shipment.isDriverRated),
+    isAlreadyRated: Boolean(shipment.isCarrierRated ?? shipment.shipperRating),
+    userRating:
+      typeof shipment.carrierRating === 'number'
+        ? shipment.carrierRating
+        : (shipment.carrierRating as any)?.rating ?? (shipment.shipperRating as any)?.rating ?? null,
+    ratingDeliveryOnTime:
+      (shipment.carrierRating as any)?.deliveryOnTime ?? (shipment.shipperRating as any)?.deliveryOnTime ?? null,
   };
 }

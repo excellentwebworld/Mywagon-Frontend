@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, AlertCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, AlertTriangle, GitCompare, Sparkles, History } from 'lucide-react';
 import {
   ActivityLogModal,
   AuditLogCard,
@@ -26,6 +26,7 @@ import {
   TripSummaryCard,
   UploadDocumentModal,
   ViewPodModal,
+  CounterOfferModal,
 } from '../../components/ShipmentDetail';
 import type { PhysicalStop } from '../../components/ShipmentDetail/StopsCard';
 import { useApp } from '../../context/AppContext';
@@ -33,7 +34,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useShipment } from '../../hooks/useShipments';
 import { ShipmentDetailSkeleton } from '../../components/skeletons/ShipmentDetailSkeleton';
-import { buildShipmentDetailViewModel, type DetailNote, type DetailDocument } from './detailViewModel';
+import { buildShipmentDetailViewModel, type DetailNote, type DetailDocument, type PartnerBidItem } from './detailViewModel';
 import { shipmentsService } from '../../api';
 import { CancelShipmentModal } from '../../components/ManageShipments/CancelShipmentModal';
 
@@ -81,6 +82,8 @@ export const ShipmentDetail: React.FC = () => {
     location_name?: string | null;
     company_name?: string | null;
   } | null>(null);
+  const [pendingCounterBid, setPendingCounterBid] = useState<PartnerBidItem | null>(null);
+  const [counterSubmitting, setCounterSubmitting] = useState(false);
   const [reportablePickups, setReportablePickups] = useState<
     Array<{
       location_id: number;
@@ -90,10 +93,25 @@ export const ShipmentDetail: React.FC = () => {
   >([]);
   const [delaySubmitting, setDelaySubmitting] = useState(false);
 
+  const [itineraryViewMode, setItineraryViewMode] = useState<'updated' | 'old'>('old');
+
   const vm = useMemo(
     () => (shipment ? buildShipmentDetailViewModel(shipment) : null),
     [shipment]
   );
+
+  const displayedStops = useMemo(() => {
+    if (!vm) return [];
+    if (vm.hasUpdatedItinerary) {
+      if (itineraryViewMode === 'updated' && vm.updatedStops && vm.updatedStops.length > 0) {
+        return vm.updatedStops;
+      }
+      if (vm.oldStops && vm.oldStops.length > 0) {
+        return vm.oldStops;
+      }
+    }
+    return vm.stops || [];
+  }, [vm, itineraryViewMode]);
 
   const [localNotes, setLocalNotes] = useState<DetailNote[]>([]);
   const [localDocs, setLocalDocs] = useState<DetailDocument[]>([]);
@@ -169,9 +187,10 @@ export const ShipmentDetail: React.FC = () => {
       const year = now.getFullYear();
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
+      const authorName = user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user as any)?.name || vm?.owner || 'You';
       const optimisticNote: DetailNote = {
         id: `note-${Date.now()}`,
-        author: user?.name || vm?.owner || 'You',
+        author: authorName,
         timestamp: `${day}/${month}/${year} ${hours}:${minutes}`,
         body,
         visibility,
@@ -203,7 +222,7 @@ export const ShipmentDetail: React.FC = () => {
 
       showToast(t('noteAdded', 'Note added successfully'), 'success');
     },
-    [id, user?.name, vm?.owner, showToast, t]
+    [id, user, vm?.owner, showToast, t]
   );
 
   const loadReportablePickups = useCallback(async () => {
@@ -329,16 +348,29 @@ export const ShipmentDetail: React.FC = () => {
     }
   }, [id, refetch, showToast, t]);
 
-  const handleCounterBid = useCallback(async (bid: PartnerBidItem, amount: number, notes?: string) => {
-    if (!id) return;
-    try {
-      await shipmentsService.counterOffer(id, bid.id, { amount, notes });
-      showToast(`${t('counterSent', 'Counter offer of €')} ${amount} ${t('sentTo', 'sent to')} ${bid.name}`, 'success');
-      refetch?.();
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : t('counterOfferFailed', 'Failed to send counter offer'), 'error');
-    }
-  }, [id, refetch, showToast, t]);
+  const handleSendCounterBid = useCallback(
+    async (amount: number, notes?: string) => {
+      if (!id || !pendingCounterBid) return;
+      setCounterSubmitting(true);
+      try {
+        await shipmentsService.counterOffer(id, pendingCounterBid.id, { amount, notes });
+        showToast(
+          `${t('counterBidSentSuccess', 'Counter-bid sent successfully to')} ${pendingCounterBid.name}`,
+          'success'
+        );
+        setPendingCounterBid(null);
+        refetch?.();
+      } catch (err) {
+        showToast(
+          err instanceof Error ? err.message : t('counterOfferFailed', 'Failed to send counter offer'),
+          'error'
+        );
+      } finally {
+        setCounterSubmitting(false);
+      }
+    },
+    [id, pendingCounterBid, refetch, showToast, t]
+  );
 
   const handleCancelInvite = useCallback(async (partner: PartnerBidItem) => {
     if (!id || !partner.userId) return;
@@ -474,8 +506,59 @@ export const ShipmentDetail: React.FC = () => {
           onExceptionClick={handleJump}
         />
 
+        {/* Modern React Itinerary Version Switcher */}
+        {vm.hasUpdatedItinerary && (
+          <div className="bg-white border border-[#E4E4E8] rounded-2xl p-3 sm:p-3.5 mb-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-[#9B51E0]/10 flex items-center justify-center text-[#9B51E0] shrink-0">
+                <GitCompare size={19} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm font-bold text-[#18181B]">
+                    {t('itineraryVersions', 'Itinerary Versions')}
+                  </span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#9B51E0]/10 text-[#9B51E0]">
+                    {itineraryViewMode === 'updated' ? t('viewingUpdated', 'Updated Active') : t('viewingOriginal', 'Original')}
+                  </span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-[#8E8E9A] truncate mt-0.5">
+                  {t('itineraryCompareDesc', 'Compare the modified stops and schedule with the original booking.')}
+                </p>
+              </div>
+            </div>
+
+            <div className="inline-flex p-1 bg-[#F4F4F6] rounded-xl border border-[#E4E4E8]/80 w-full sm:w-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => setItineraryViewMode('updated')}
+                className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  itineraryViewMode === 'updated'
+                    ? 'bg-[#9B51E0] text-white shadow-xs'
+                    : 'text-[#5E5E6E] hover:text-[#18181B] hover:bg-white/60'
+                }`}
+              >
+                <Sparkles size={13} className={itineraryViewMode === 'updated' ? 'text-white' : 'text-[#9B51E0]'} />
+                <span>{t('updatedShipment', 'Updated Shipment')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setItineraryViewMode('old')}
+                className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  itineraryViewMode === 'old'
+                    ? 'bg-[#18181B] text-white shadow-xs'
+                    : 'text-[#5E5E6E] hover:text-[#18181B] hover:bg-white/60'
+                }`}
+              >
+                <History size={13} className={itineraryViewMode === 'old' ? 'text-white' : 'text-[#8E8E9A]'} />
+                <span>{t('oldShipment', 'Old Shipment')}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* If Shipment is being edited / Update Request active */}
-        {vm.isEditingRequested && (
+        {vm.isEditingRequested && !vm.hasUpdatedItinerary && (
           <div
             className="rounded-2xl p-4 mb-4 flex items-start gap-3"
             style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}
@@ -501,12 +584,13 @@ export const ShipmentDetail: React.FC = () => {
               <BidsCard
                 shipmentId={id}
                 isPrivateLoad={vm.isPrivateLoad}
+                startingPrice={vm.startingPrice}
                 partners={vm.partners}
                 expanded={sections.bids}
                 onToggle={() => toggleSection('bids')}
                 onAcceptBid={handleAcceptBid}
                 onRejectBid={handleRejectBid}
-                onCounterBid={handleCounterBid}
+                onCounterBid={(bid) => setPendingCounterBid(bid)}
                 onCancelInvite={handleCancelInvite}
                 onViewHistory={() => setIsBidsHistoryOpen(true)}
                 onChat={() => navigate('/messages')}
@@ -517,7 +601,7 @@ export const ShipmentDetail: React.FC = () => {
 
             {/* 2. Stops & Appointments (White Pickup, Black Dropoff, Collapsible Orders, Inline POD Request) */}
             <StopsCard
-              stops={vm.stops}
+              stops={displayedStops}
               expanded={sections.stops}
               onToggle={() => toggleSection('stops')}
               onCopy={handleCopy}
@@ -548,14 +632,14 @@ export const ShipmentDetail: React.FC = () => {
                 driver={vm.assignedDriver}
                 status={vm.status}
                 isPaid={vm.isPaid}
-                isCarrierRated={vm.isAlreadyRated}
-                isDriverRated={false}
+                isCarrierRated={vm.isCarrierRated}
+                isDriverRated={vm.isDriverRated}
                 expanded={sections.carrier}
                 onToggle={() => toggleSection('carrier')}
                 onToast={(msg) => showToast(msg, 'info')}
                 onRateCarrier={(c) => {
                   setRatingTarget({
-                    id: c.userId,
+                    id: c.userId ?? 0,
                     type: c.userType === 'driver' ? 'driver' : 'carrier',
                     name: c.name,
                   });
@@ -563,7 +647,7 @@ export const ShipmentDetail: React.FC = () => {
                 }}
                 onRateDriver={(d) => {
                   setRatingTarget({
-                    id: d.userId,
+                    id: d.userId ?? 0,
                     type: 'driver',
                     name: d.name,
                   });
@@ -621,12 +705,14 @@ export const ShipmentDetail: React.FC = () => {
           <div className="w-full lg:w-[380px] xl:w-[420px] shrink-0 flex flex-col gap-0">
             {/* 1. Live Tracking (on-trip) OR Route Map (other statuses) */}
             <TrackingMapCard
-              stops={vm.stops}
+              stops={displayedStops}
               status={vm.status}
               tracking={vm.tracking}
               trip={vm.trip}
               isDelayed={vm.isDelayed}
               delayText={vm.delayText}
+              actualRouteCoordinates={vm.actualRouteCoordinates}
+              hasActualRoute={vm.hasActualRoute}
               expanded={sections.tracking}
               onToggle={() => toggleSection('tracking')}
               onShare={() => setIsShareOpen(true)}
@@ -670,39 +756,20 @@ export const ShipmentDetail: React.FC = () => {
               onToast={(msg) => showToast(msg, 'info')}
               t={t}
             />
-
-            {/* 5. Billing Card (Hidden per request) */}
-            {false && (
-              <BillingCard
-                billing={vm.billing}
-                expanded={sections.billing}
-                onToggle={() => toggleSection('billing')}
-                onMarkPaid={() => showToast(t('invoiceMarkedPaid', 'Marked as paid'), 'success')}
-                t={t}
-              />
-            )}
-
-            {/* 6. Incidents & Exceptions (Hidden per request) */}
-            {false && canShowIncidents && (
-              <IncidentsCard
-                incidents={vm.incidents}
-                expanded={sections.incidents}
-                onToggle={() => toggleSection('incidents')}
-                onReportIncident={() => showToast(t('reportIncidentModal', 'Opening incident report…'), 'info')}
-                t={t}
-              />
-            )}
           </div>
         </div>
 
         {/* Full-Width Bottom Section: Audit Log (All, Bidding, Operations) */}
-        <AuditLogCard
-          entries={vm.auditEntries}
-          bidsHistory={vm.bidsHistory}
-          expanded={sections.audit}
-          onToggle={() => toggleSection('audit')}
-          t={t}
-        />
+        {(vm.auditEntries.length > 0 || (vm.shipmentLogs && vm.shipmentLogs.length > 0) || (vm.bidsHistory && vm.bidsHistory.length > 0)) && (
+          <AuditLogCard
+            entries={vm.auditEntries}
+            shipmentLogs={vm.shipmentLogs}
+            bidsHistory={vm.bidsHistory}
+            expanded={sections.audit}
+            onToggle={() => toggleSection('audit')}
+            t={t}
+          />
+        )}
       </div>
 
       {/* Share Tracking Modal (Multiple emails + copy link) */}
@@ -786,6 +853,16 @@ export const ShipmentDetail: React.FC = () => {
           setRatingTarget(null);
         }}
         onSubmit={handleSubmitRating}
+        t={t}
+      />
+
+      {/* Counter-Offer / Negotiation Modal */}
+      <CounterOfferModal
+        open={Boolean(pendingCounterBid)}
+        bid={pendingCounterBid}
+        submitting={counterSubmitting}
+        onClose={() => setPendingCounterBid(null)}
+        onSubmit={handleSendCounterBid}
         t={t}
       />
     </div>

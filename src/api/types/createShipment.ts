@@ -60,6 +60,8 @@ export interface ApiWizardState {
   targetPrice?: string;
   trackingEmails?: Record<string, string[]>;
   driverNotes?: string;
+  notesList?: Array<{ id: string | number; text: string; visibility: 'internal' | 'carrier'; date: string }>;
+  documentsList?: Array<{ id: string | number; name: string; fileName?: string; fileSize?: number; fileType?: string; url?: string; description?: string }>;
   gpsRequired?: boolean;
   negotiable?: boolean;
   orderValue?: string;
