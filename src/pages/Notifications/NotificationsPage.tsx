@@ -473,7 +473,7 @@ export const NotificationsPage: React.FC = () => {
       externalUrl = itemOrAction.external_url;
       redirectSlug = itemOrAction.redirect_slug;
 
-      if (!actionId && itemOrAction.chips && itemOrAction.chips.length > 0) {
+      if (!actionId && itemOrAction.chips && itemOrAction.chips.length > 0 && itemOrAction.action_type !== 'viewBids') {
         const sidChip = itemOrAction.chips.find(c => c.startsWith('SID-'));
         if (sidChip) {
           actionId = sidChip.replace('SID-', '');
@@ -509,8 +509,14 @@ export const NotificationsPage: React.FC = () => {
     } else if (action === 'viewPartners') {
       target = '/partners';
     } else if (action === 'viewLoad' || action === 'viewBids' || action === 'viewDocs') {
-      target = actionId ? `/shipments/${actionId}` : '/shipments';
-
+      const base = actionId ? `/shipments/${actionId}` : '/shipments';
+      if (action === 'viewBids') {
+        target = `${base}?focus=bids`;
+      } else if (action === 'viewDocs') {
+        target = `${base}?focus=docs`;
+      } else {
+        target = base;
+      }
     } else if (action === 'viewInvoice') {
       target = actionId ? `/billing?invoice=${actionId}` : '/billing';
     } else if (action === 'viewOrder') {

@@ -580,7 +580,7 @@ export const Header: React.FC<HeaderProps> = ({
                           }
 
                           let actionId = n.action_id;
-                          if (!actionId && n.chips && n.chips.length > 0) {
+                          if (!actionId && n.action_type !== 'viewBids' && n.chips && n.chips.length > 0) {
                             const sid = n.chips.find((c) => c.startsWith('SID-'));
                             if (sid) actionId = sid.replace('SID-', '');
                           }
@@ -598,7 +598,14 @@ export const Header: React.FC<HeaderProps> = ({
                           } else if (n.action_type === 'viewPartners') {
                             target = '/partners';
                           } else if (n.action_type === 'viewLoad' || n.action_type === 'viewBids' || n.action_type === 'viewDocs') {
-                            target = actionId ? `/shipments/${actionId}` : '/shipments';
+                            const base = actionId ? `/shipments/${actionId}` : '/shipments';
+                            if (n.action_type === 'viewBids') {
+                              target = `${base}?focus=bids`;
+                            } else if (n.action_type === 'viewDocs') {
+                              target = `${base}?focus=docs`;
+                            } else {
+                              target = base;
+                            }
                           } else if (n.action_type === 'viewInvoice') {
                             target = actionId ? `/billing?invoice=${actionId}` : '/billing';
                           } else if (n.action_type === 'viewOrder') {

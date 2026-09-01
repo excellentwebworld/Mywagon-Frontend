@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, AlertCircle, AlertTriangle, GitCompare, Sparkles, History } from 'lucide-react';
 import {
   ActivityLogModal,
@@ -57,6 +57,7 @@ const DEFAULT_SECTIONS: Record<string, boolean> = {
 export const ShipmentDetail: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { showToast } = useApp();
   const { t } = useTranslation();
@@ -303,6 +304,25 @@ export const ShipmentDetail: React.FC = () => {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, []);
+
+  useEffect(() => {
+    const focus = searchParams.get('focus');
+    if (!focus || loading || !vm) return;
+
+    const section = focus === 'invited' ? 'bids' : focus;
+    setSections((prev) => ({ ...prev, [section]: true }));
+    setActiveNav(section);
+
+    const timer = window.setTimeout(() => {
+      handleJump(section);
+    }, 150);
+
+    const next = new URLSearchParams(searchParams);
+    next.delete('focus');
+    setSearchParams(next, { replace: true });
+
+    return () => window.clearTimeout(timer);
+  }, [searchParams, loading, vm, handleJump, setSearchParams]);
 
   const handleCopy = useCallback(
     (text: string) => {
