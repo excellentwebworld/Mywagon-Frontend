@@ -473,7 +473,7 @@ export const NotificationsPage: React.FC = () => {
       externalUrl = itemOrAction.external_url;
       redirectSlug = itemOrAction.redirect_slug;
 
-      if (!actionId && itemOrAction.chips && itemOrAction.chips.length > 0 && itemOrAction.action_type !== 'viewBids') {
+      if (!actionId && itemOrAction.chips && itemOrAction.chips.length > 0 && (itemOrAction as any).action_type !== 'viewBids') {
         const sidChip = itemOrAction.chips.find(c => c.startsWith('SID-'));
         if (sidChip) {
           actionId = sidChip.replace('SID-', '');

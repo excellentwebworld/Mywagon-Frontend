@@ -169,7 +169,8 @@ export function useFcm({ onForegroundMessage }: UseFcmOptions = {}): void {
       // ── 5. Foreground message listener ───────────────────────────────
       const unsubscribe = onMessage(messaging, (payload) => {
         const rawType = (payload.data?.type ?? '').toLowerCase();
-        if (rawType === 'logged_out') {
+        const notifTitle = (payload.notification?.title ?? payload.data?.title ?? '').toLowerCase();
+        if (rawType === 'logged_out' || notifTitle === 'logged out') {
           window.dispatchEvent(new CustomEvent('shipper:force-logout'));
           return;
         }

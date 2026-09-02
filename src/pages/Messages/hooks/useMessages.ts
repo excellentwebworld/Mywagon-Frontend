@@ -6,6 +6,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import {
   chatService,
   QUICK_TEMPLATES,
+  extractInitials,
 } from '../../../api/services/chatService';
 import { socketService, type SocketMessagePayload } from '../../../services/socketService';
 import type {
@@ -21,6 +22,21 @@ export function useMessages() {
   const { showToast } = useApp();
   const { user } = useAuth();
   const { t, lang } = useTranslation();
+
+  const userInitials = useMemo(() => {
+    const first = (user?.first_name || '').trim();
+    const last = (user?.last_name || '').trim();
+    if (first || last) {
+      const i1 = first ? Array.from(first)[0] : '';
+      const i2 = last ? Array.from(last)[0] : '';
+      const combined = `${i1}${i2}`.trim().toUpperCase();
+      if (combined) return combined;
+    }
+    if (user?.company_name?.trim()) {
+      return extractInitials(user.company_name);
+    }
+    return 'SV';
+  }, [user?.first_name, user?.last_name, user?.company_name]);
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const locationState = location.state as {
@@ -119,7 +135,7 @@ export function useMessages() {
             partnerId: Number(targetUserId),
             partnerType: targetUserType as 'carrier' | 'driver',
             name: targetUserName || (targetUserType === 'driver' ? 'Driver' : 'Carrier Company'),
-            initials: (targetUserName || 'U').substring(0, 2).toUpperCase(),
+            initials: extractInitials(targetUserName) || (targetUserName || 'U').substring(0, 2).toUpperCase(),
             avatarUrl: targetUserAvatar || '',
             avatarClass: targetUserType === 'driver' ? 'driver' : 'carrier',
             chips: [],
@@ -215,7 +231,7 @@ export function useMessages() {
           id: incoming.id || Date.now(),
           type: 'received',
           sender: active?.name || 'Partner',
-          initials: active?.initials || 'P',
+          initials: active?.initials || extractInitials(active?.name) || 'P',
           time: timeFormatted,
           created_at: typeof incoming.created_at === 'string' ? incoming.created_at : new Date().toISOString(),
           text: incoming.message,
@@ -446,7 +462,7 @@ export function useMessages() {
         id: msgTempId,
         type: 'sent',
         sender: 'You',
-        initials: 'ΗΕ',
+        initials: userInitials,
         time: timeStr,
         created_at: now.toISOString(),
         text,
@@ -559,7 +575,7 @@ export function useMessages() {
         id: msgTempId,
         type: 'sent',
         sender: 'You',
-        initials: 'ΗΕ',
+        initials: userInitials,
         time: timeStr,
         created_at: now.toISOString(),
         text: localAudioUrl,
@@ -667,7 +683,7 @@ export function useMessages() {
         id: msgTempId,
         type: 'sent',
         sender: 'You',
-        initials: 'ΗΕ',
+        initials: userInitials,
         time: timeStr,
         created_at: now.toISOString(),
         text: file.name,

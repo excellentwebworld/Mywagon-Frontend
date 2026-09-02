@@ -9,6 +9,7 @@ import {
 import type { ChatMessage, Conversation } from '../types';
 import { VoicePlayer } from './VoicePlayer';
 import { useAuth } from '../../../context/AuthContext';
+import { extractInitials } from '../../../api/services/chatService';
 import { formatMessageTime } from '../../../utils/timezone';
 
 interface ChatThreadProps {
@@ -35,6 +36,21 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
   const { user } = useAuth();
   const msgEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  const userInitials = React.useMemo(() => {
+    const first = (user?.first_name || '').trim();
+    const last = (user?.last_name || '').trim();
+    if (first || last) {
+      const i1 = first ? Array.from(first)[0] : '';
+      const i2 = last ? Array.from(last)[0] : '';
+      const combined = `${i1}${i2}`.trim().toUpperCase();
+      if (combined) return combined;
+    }
+    if (user?.company_name?.trim()) {
+      return extractInitials(user.company_name);
+    }
+    return 'SV';
+  }, [user?.first_name, user?.last_name, user?.company_name]);
 
   useEffect(() => {
     msgEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -152,13 +168,13 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                   user?.profile_picture ? (
                     <img src={user.profile_picture} alt="You" style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />
                   ) : (
-                    m.initials || 'ΕΓ'
+                    userInitials || m.initials || 'SV'
                   )
                 ) : (
                   conversation.avatarUrl ? (
                     <img src={conversation.avatarUrl} alt={conversation.name} style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />
                   ) : (
-                    conversation.initials || 'ΗΔ'
+                    conversation.initials || extractInitials(conversation.name)
                   )
                 )}
               </div>
@@ -210,7 +226,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
               className="msg-av"
               style={{ background: 'linear-gradient(135deg, #6C3AED, #8B5CF6)' }}
             >
-              {conversation.initials}
+              {conversation.initials || extractInitials(conversation.name)}
             </div>
             <div className="typing-dots">
               <span />

@@ -160,6 +160,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  useEffect(() => {
+    const onForceLogout = () => {
+      void logout().finally(() => {
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+      });
+    };
+
+    window.addEventListener('shipper:force-logout', onForceLogout);
+    return () => window.removeEventListener('shipper:force-logout', onForceLogout);
+  }, [logout]);
+
   const clearLoginError = useCallback(() => setLoginError(null), []);
 
   const value = useMemo(

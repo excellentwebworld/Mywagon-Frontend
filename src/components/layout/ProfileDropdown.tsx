@@ -2,7 +2,7 @@
  * ProfileDropdown — click-triggered (shipper UX), visual match to MV_Web_Panel.
  * Dev-tools / multi-role switcher omitted for shipper SPA.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sun, Moon, ChevronDown, LogOut, Building2,
@@ -32,6 +32,11 @@ export function ProfileDropdown() {
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
 
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [user.avatarUrl]);
 
   const menuRef = useOutsideClick<HTMLDivElement>(() => {
     setOpen(false);
@@ -42,7 +47,6 @@ export function ProfileDropdown() {
     LANGUAGES.find((l) => l.code === (i18n.language || lang)) || LANGUAGES[0];
 
   const displayName = `${user.firstName} ${user.lastName}`.trim();
-  // Match reference TopBar: always use gradient initials (no broken photo placeholders)
   const initials = user.initials || 'SV';
 
   const changeLang = (code: string, dir: string) => {
@@ -89,7 +93,16 @@ export function ProfileDropdown() {
               fontSize: 11,
             }}
           >
-            {initials}
+            {user.avatarUrl && !imgError ? (
+              <img
+                src={user.avatarUrl}
+                alt={displayName}
+                className="w-full h-full object-cover"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              initials
+            )}
           </div>
           <ChevronDown size={12} style={{ color: T.t3 }} />
         </button>
@@ -111,7 +124,16 @@ export function ProfileDropdown() {
                     fontSize: 13,
                   }}
                 >
-                  {initials}
+                  {user.avatarUrl && !imgError ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={displayName}
+                      className="w-full h-full object-cover"
+                      onError={() => setImgError(true)}
+                    />
+                  ) : (
+                    initials
+                  )}
                 </div>
                 <div>
                   <div className="font-semibold" style={{ fontSize: 13, color: T.t1 }}>{displayName}</div>

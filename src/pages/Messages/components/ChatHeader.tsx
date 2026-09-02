@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { Conversation } from '../types';
 import { useTransporterProfileOptional } from '../../../components/TransporterProfile/TransporterProfileContext';
+import { extractInitials } from '../../../api/services/chatService';
 
 interface ChatHeaderProps {
   conversation: Conversation;
@@ -114,7 +115,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             style={{ width: '100%', height: '100%', borderRadius: 10, objectFit: 'cover' }}
           />
         ) : (
-          conversation.initials || 'ΗΔ'
+          conversation.initials || extractInitials(conversation.name)
         )}
       </div>
 

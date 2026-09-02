@@ -2,6 +2,7 @@ import React from 'react';
 import { Search } from 'lucide-react';
 import type { Conversation, MessageFilterType } from '../types';
 import { ConversationListSkeleton } from './ChatSkeleton';
+import { extractInitials } from '../../../api/services/chatService';
 import { formatConversationTime } from '../../../utils/timezone';
 
 interface ConversationListProps {
@@ -131,7 +132,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                       }}
                     />
                   ) : (
-                    c.initials || 'ΗΔ'
+                    c.initials || extractInitials(c.name)
                   )}
                   {c.online && <span className="ci-online" />}
                 </div>

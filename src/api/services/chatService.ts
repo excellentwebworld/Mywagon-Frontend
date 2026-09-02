@@ -12,7 +12,7 @@ export const QUICK_TEMPLATES: QuickTemplate[] = [
   { id: 5, nameKey: 'tpl5Name', descKey: 'tpl5Desc', textKey: 'tpl5Text', iconType: 'truck' },
 ];
 
-function extractInitials(name: string): string {
+export function extractInitials(name?: string | null): string {
   if (!name) return 'P';
   const clean = name.trim();
   const words = clean.split(/\s+/).filter(Boolean);
@@ -85,7 +85,7 @@ export const chatService = {
           partnerId: 8,
           partnerType: 'carrier',
           name: 'Ηώ Ddd Αποστολόπουλο',
-          initials: 'ΗΔ',
+          initials: extractInitials('Ηώ Ddd Αποστολόπουλο'),
           type: 'company',
           avatarClass: 'carrier',
           avatarUrl: 'https://staging.myvagon.com/storage/carrier/profile_picture/sample.jpg',
@@ -226,7 +226,7 @@ export const chatService = {
       id: Date.now(),
       type: 'sent',
       sender: 'You',
-      initials: 'ΗΕ',
+      initials: 'SV',
       time: formatMessageTime(new Date()),
       created_at: new Date().toISOString(),
       text: payload.message,

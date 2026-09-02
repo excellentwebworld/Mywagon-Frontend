@@ -124,8 +124,8 @@ messaging.onBackgroundMessage((payload) => {
   }
 
   const rawType = (payload.data?.type || '').toLowerCase();
-  if (rawType === 'logged_out') {
-    // Force-logout signal (e.g. signed in on another device) — do not show a push toast.
+  const notifTitle = (payload.notification?.title || payload.data?.title || '').toLowerCase();
+  if (rawType === 'logged_out' || notifTitle === 'logged out') {
     return clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       clientList.forEach((client) => {
         client.postMessage({ type: 'FCM_FORCE_LOGOUT' });
