@@ -9,12 +9,18 @@ export function extractShipmentDbId(sid?: string | null): string | undefined {
   return numeric || undefined;
 }
 
-/** Socket room type — must be carrier, driver, or admin (never freelancer/company). */
-export function normalizeSocketUserType(userType?: string | null): 'carrier' | 'driver' | 'admin' {
+/** Normalize partner types for comparisons (socket, API, UI labels). */
+export function normalizePartnerType(userType?: string | null): 'carrier' | 'driver' | 'admin' | string {
   const t = (userType || 'carrier').toLowerCase();
   if (t === 'admin') return 'admin';
   if (t === 'driver' || t === 'freelancer' || t === 'company_driver') return 'driver';
-  return 'carrier';
+  if (t === 'carrier' || t === 'company') return 'carrier';
+  return t;
+}
+
+/** Socket room type — must be carrier, driver, or admin (never freelancer/company). */
+export function normalizeSocketUserType(userType?: string | null): 'carrier' | 'driver' | 'admin' {
+  return normalizePartnerType(userType) as 'carrier' | 'driver' | 'admin';
 }
 
 export function resolveSocketReceiverType(conv: { partnerType?: string; type?: string } | null): 'carrier' | 'driver' | 'admin' {
@@ -110,16 +116,7 @@ export function isMessageFromPartner(
     return false;
   }
 
-  const incoming = senderType.toLowerCase();
-  const active = partnerType.toLowerCase();
-
-  return (
-    incoming === active ||
-    (incoming === 'carrier' && active === 'company') ||
-    (incoming === 'company' && active === 'carrier') ||
-    (incoming === 'driver' && active === 'freelancer') ||
-    (incoming === 'freelancer' && active === 'driver')
-  );
+  return normalizePartnerType(senderType) === normalizePartnerType(partnerType);
 }
 
 export interface ChatFcmMeta {

@@ -75,16 +75,78 @@ function dedupeMessages(msgs: ChatMessage[]): ChatMessage[] {
   const seenContent = new Set<string>();
   return msgs.filter((m) => {
     if (m.type === 'date' || m.type === 'system') return true;
+    if (m.type === 'received' || m.type === 'sent') {
+      const hasBody =
+        Boolean(String(m.text || '').trim()) ||
+        m.messages_type === 'voice' ||
+        m.messages_type === 'media' ||
+        Boolean(m.voiceUrl) ||
+        Boolean(m.attachments?.length);
+      if (!hasBody) return false;
+    }
     if (m.id != null) {
       const idKey = `id:${m.id}`;
       if (seenIds.has(idKey)) return false;
       seenIds.add(idKey);
     }
-    const contentKey = `c:${m.type}:${m.text}:${m.time}:${m.messages_type ?? 'text'}`;
+    const contentKey = `c:${m.type}:${m.text}:${m.created_at ?? m.time}:${m.messages_type ?? 'text'}`;
     if (seenContent.has(contentKey)) return false;
     seenContent.add(contentKey);
     return true;
   });
+}
+
+function buildReceivedMessageFromSocket(
+  incoming: SocketMessagePayload,
+  conversation: Conversation | null
+): ChatMessage | null {
+  const rawText = String(
+    incoming.message ||
+    (incoming as { notification_body?: string }).notification_body ||
+    ''
+  ).trim();
+
+  const isVoice =
+    incoming.messages_type === 'voice' ||
+    (rawText && (rawText.includes('chat-voices') || /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(rawText)));
+
+  const isMedia = incoming.messages_type === 'media';
+
+  if (!rawText && !isVoice && !isMedia) {
+    return null;
+  }
+
+  const createdAt =
+    typeof incoming.created_at === 'string'
+      ? incoming.created_at
+      : incoming.created_at instanceof Date
+        ? incoming.created_at.toISOString()
+        : new Date().toISOString();
+
+  return {
+    id: incoming.id || Date.now(),
+    type: 'received',
+    sender: conversation?.name || incoming.request_data?.sender_name || 'Partner',
+    initials: conversation?.initials || extractInitials(conversation?.name) || 'P',
+    time: formatMessageTime(incoming.created_at || new Date()),
+    created_at: createdAt,
+    text: rawText,
+    messages_type: isVoice ? 'voice' : ((incoming.messages_type as ChatMessage['messages_type']) || 'text'),
+    voiceUrl: isVoice ? rawText : undefined,
+    duration: incoming.duration,
+    shipmentId: incoming.shipment_id ? String(incoming.shipment_id) : undefined,
+  };
+}
+
+function shouldAppendIncomingMessage(prev: ChatMessage[], next: ChatMessage): boolean {
+  return !prev.some(
+    (m) =>
+      (next.id != null && m.id === next.id) ||
+      (m.type === 'received' &&
+        m.type === next.type &&
+        m.text === next.text &&
+        (m.created_at === next.created_at || m.time === next.time))
+  );
 }
 
 export function useMessages() {
@@ -137,6 +199,8 @@ export function useMessages() {
 
   // Active conversation reference
   const activeConvRef = useRef<Conversation | null>(null);
+  const conversationsRef = useRef<Conversation[]>([]);
+  const activeConvIdRef = useRef<number | string | null>(null);
   // Latest partner device token (FCM) fetched from history endpoint
   const partnerDeviceTokenRef = useRef<string>('');
 
@@ -254,6 +318,8 @@ export function useMessages() {
   const activeConversation = useMemo(() => {
     const found = conversations.find((c) => String(c.id) === String(activeConvId)) || null;
     activeConvRef.current = found;
+    conversationsRef.current = conversations;
+    activeConvIdRef.current = activeConvId;
     return found;
   }, [conversations, activeConvId]);
 
@@ -278,25 +344,19 @@ export function useMessages() {
 
   // Listen to incoming real-time socket messages
   useEffect(() => {
-    const unsubscribe = socketService.onMessage((incoming: SocketMessagePayload) => {
-      const active = activeConvRef.current;
+    const processIncomingMessage = (incoming: SocketMessagePayload) => {
+      const active =
+        activeConvRef.current ||
+        conversationsRef.current.find((c) => String(c.id) === String(activeConvIdRef.current)) ||
+        null;
       const activePartnerId = parsePartnerId(active?.partnerId || active?.id);
-      const incomingSenderId = parsePartnerId(incoming.sender_id || (incoming as any).senderable_id);
-      const incomingReceiverId = parsePartnerId(incoming.receiver_id || (incoming as any).receiverable_id);
+      const incomingSenderId = parsePartnerId(incoming.sender_id || (incoming as { senderable_id?: number }).senderable_id);
+      const incomingReceiverId = parsePartnerId(incoming.receiver_id || (incoming as { receiverable_id?: number }).receiverable_id);
       const myId = parsePartnerId(user?.id);
-      const incomingSenderType = (incoming.sender_type || (incoming as any).senderable_type || 'carrier').toLowerCase();
+      const incomingSenderType = (incoming.sender_type || (incoming as { senderable_type?: string }).senderable_type || 'carrier').toLowerCase();
       const activePartnerType = resolveActivePartnerType(active);
+      const voiceLabel = t('chatModule.voiceNote') || 'Voice note';
 
-      // Detect if this is a message received FROM the active partner (incoming from them)
-      const isFromActivePartner = isMessageFromPartner(
-        incomingSenderId,
-        incomingSenderType,
-        activePartnerId,
-        activePartnerType
-      );
-
-      // Detect if this is a server echo of OUR OWN sent message (socket server echoes back to sender too)
-      // In this case sender_id == myId and receiver_id == partner_id
       const isOwnMessageEcho = Boolean(
         myId > 0 &&
         incomingSenderId === myId &&
@@ -304,34 +364,41 @@ export function useMessages() {
         incomingReceiverId === activePartnerId
       );
 
-      // Only append to the chat thread if it's from the partner (not our own echo which REST API already handled)
+      if (isOwnMessageEcho) {
+        const isVoiceEcho =
+          incoming.messages_type === 'voice' ||
+          (incoming.message &&
+            (incoming.message.includes('chat-voices') ||
+              /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(incoming.message)));
+        if (isVoiceEcho && incoming.message && incoming.message.startsWith('http')) {
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.type === 'sent' && m.messages_type === 'voice' && m.voiceUrl && m.voiceUrl.startsWith('blob:')) {
+                return { ...m, voiceUrl: incoming.message, text: incoming.message };
+              }
+              return m;
+            })
+          );
+        }
+        return;
+      }
+
+      if (!isIncomingChatToShipper(incoming, myId)) {
+        return;
+      }
+
+      const isFromActivePartner =
+        activePartnerId > 0 &&
+        isMessageFromPartner(incomingSenderId, incomingSenderType, activePartnerId, activePartnerType);
+
       if (isFromActivePartner) {
-        const timeFormatted = formatMessageTime(incoming.created_at || new Date());
+        const newMsg = buildReceivedMessageFromSocket(incoming, active);
+        if (newMsg) {
+          setMessages((prev) => {
+            if (!shouldAppendIncomingMessage(prev, newMsg)) return prev;
+            return [...prev, newMsg];
+          });
 
-        const isVoice = incoming.messages_type === 'voice' || (incoming.message && incoming.message.includes('chat-voices'));
-
-        const newMsg: ChatMessage = {
-          id: incoming.id || Date.now(),
-          type: 'received',
-          sender: active?.name || 'Partner',
-          initials: active?.initials || extractInitials(active?.name) || 'P',
-          time: timeFormatted,
-          created_at: typeof incoming.created_at === 'string' ? incoming.created_at : new Date().toISOString(),
-          text: incoming.message,
-          messages_type: isVoice ? 'voice' : ((incoming.messages_type as any) || 'text'),
-          voiceUrl: isVoice ? incoming.message : undefined,
-          duration: incoming.duration,
-          shipmentId: incoming.shipment_id ? String(incoming.shipment_id) : undefined,
-        };
-
-        setMessages((prev) => {
-          if (prev.some((m) => m.id === newMsg.id || (m.text === newMsg.text && m.time === newMsg.time && m.type === 'received'))) {
-            return prev;
-          }
-          return [...prev, newMsg];
-        });
-
-        if (activePartnerId) {
           void chatService.markAsRead(activePartnerId, activePartnerType);
           socketService.markAsRead({
             sender_id: user?.id || 0,
@@ -342,56 +409,34 @@ export function useMessages() {
         }
       }
 
-      // Handle own voice note echo from socket server:
-      // Laravel shows own voice via socket echo (server broadcasts back to sender room too).
-      // When we receive our own voice echo, update the temp blob URL to the real S3 URL.
-      // This ensures the player has a persistent URL even if the ack arrived out of order.
-      if (isOwnMessageEcho) {
-        const isVoiceEcho = incoming.messages_type === 'voice' ||
-          (incoming.message && (incoming.message.includes('chat-voices') || /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(incoming.message)));
-        if (isVoiceEcho && incoming.message && incoming.message.startsWith('http')) {
-          // Replace any temp blob voice message that still has a blob URL with the real S3 URL
-          setMessages((prev) =>
-            prev.map((m) => {
-              if (m.type === 'sent' && m.messages_type === 'voice' && m.voiceUrl && m.voiceUrl.startsWith('blob:')) {
-                return { ...m, voiceUrl: incoming.message, text: incoming.message };
-              }
-              return m;
-            })
+      setConversations((prev) =>
+        prev.map((c) => {
+          const cPartnerId = parsePartnerId(c.partnerId || c.id);
+          const cPartnerType = resolveActivePartnerType(c);
+
+          if (!isMessageFromPartner(incomingSenderId, incomingSenderType, cPartnerId, cPartnerType)) {
+            return c;
+          }
+
+          const isActiveChat = isMessageFromPartner(
+            incomingSenderId,
+            incomingSenderType,
+            activePartnerId,
+            activePartnerType
           );
-        }
-      }
 
-      // Update conversation last message preview and unread count for any partner thread
-      if (isIncomingChatToShipper(incoming, myId) && !isOwnMessageEcho) {
-        const voiceLabel = t('chatModule.voiceNote') || 'Voice note';
-        setConversations((prev) =>
-          prev.map((c) => {
-            const cPartnerId = parsePartnerId(c.partnerId || c.id);
-            const cPartnerType = resolveActivePartnerType(c);
+          return {
+            ...c,
+            lastMsg: getChatMessagePreview(incoming.message || '', incoming.messages_type, voiceLabel),
+            lastTime: 'Just now',
+            lastTimestamp: Math.floor(Date.now() / 1000),
+            unread: isActiveChat ? 0 : (c.unread || 0) + 1,
+          };
+        })
+      );
+    };
 
-            if (!isMessageFromPartner(incomingSenderId, incomingSenderType, cPartnerId, cPartnerType)) {
-              return c;
-            }
-
-            const isActiveChat = isMessageFromPartner(
-              incomingSenderId,
-              incomingSenderType,
-              activePartnerId,
-              activePartnerType
-            );
-
-            return {
-              ...c,
-              lastMsg: getChatMessagePreview(incoming.message || '', incoming.messages_type, voiceLabel),
-              lastTime: 'Just now',
-              lastTimestamp: Math.floor(Date.now() / 1000),
-              unread: isActiveChat ? 0 : (c.unread || 0) + 1,
-            };
-          })
-        );
-      }
-    });
+    const unsubscribe = socketService.onMessage(processIncomingMessage);
 
     return () => {
       unsubscribe();
@@ -412,8 +457,8 @@ export function useMessages() {
     if (!currentConv) return;
 
     let mounted = true;
-    const partnerType = currentConv.partnerType || (currentConv.type === 'company' ? 'carrier' : 'driver');
-    const partnerId = currentConv.partnerId || currentConv.id;
+    const partnerType = resolveActivePartnerType(currentConv);
+    const partnerId = parsePartnerId(currentConv.partnerId || currentConv.id);
 
     // Seed device_token from conversation data immediately
     partnerDeviceTokenRef.current = currentConv.device_token || '';

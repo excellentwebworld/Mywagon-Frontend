@@ -153,6 +153,14 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
 
           const isSent = m.type === 'sent';
           const isVoice = m.messages_type === 'voice' || !!m.voiceUrl || (typeof m.text === 'string' && (m.text.includes('chat-voices') || /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(m.text)));
+          const hasRenderableBody =
+            isVoice ||
+            Boolean(m.attachments?.length) ||
+            Boolean(String(m.text || '').trim());
+
+          if (!isSent && !hasRenderableBody) {
+            return null;
+          }
 
           return (
             <div key={idx} className={`msg-row ${m.type} ${m.isFailed ? 'failed' : ''}`}>

@@ -26,6 +26,8 @@ import type { ApiNotification } from '../../api/services/notificationService';
 import { chatService } from '../../api/services/chatService';
 import { socketService } from '../../services/socketService';
 import { CHAT_MESSAGE_RECEIVED_EVENT } from '../../hooks/useGlobalChatSocket';
+import { getActiveChatPartner } from '../../utils/chatNotificationGuard';
+import { isMessageFromPartner } from '../../utils/chatPartnerUtils';
 
 
 interface HeaderProps {
@@ -82,16 +84,20 @@ export const Header: React.FC<HeaderProps> = ({
 
   // Fetch unread messages count & listen to real-time chat events
   useEffect(() => {
-    if (location.pathname === '/messages') {
-      setUnreadMessages(0);
-    } else {
-      chatService.getUnreadCount().then((count) => {
-        setUnreadMessages(count);
-      });
-    }
+    chatService.getUnreadCount().then((count) => {
+      setUnreadMessages(count);
+    });
 
-    const onChatReceived = () => {
-      if (location.pathname !== '/messages') {
+    const onChatReceived = (event: Event) => {
+      const detail = (event as CustomEvent<{ senderId: number; senderType: string }>).detail;
+      if (!detail) return;
+
+      const active = getActiveChatPartner();
+      const isViewingThread =
+        active &&
+        isMessageFromPartner(detail.senderId, detail.senderType, active.partnerId, active.partnerType);
+
+      if (!isViewingThread) {
         setUnreadMessages((prev) => prev + 1);
       }
     };
