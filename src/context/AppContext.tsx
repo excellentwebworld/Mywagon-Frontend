@@ -304,7 +304,11 @@ export interface Shipment {
     rejectionReason?: string | null;
   }>;
   bidsHistory?: Array<{
+    bidId?: number;
     bidNumber: number;
+    bidableId?: number;
+    bidableType?: string;
+    driverId?: number | null;
     initiatorName: string;
     avatar?: string | null;
     date: string;

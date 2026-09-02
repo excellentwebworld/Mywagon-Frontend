@@ -204,7 +204,11 @@ export interface BidHistoryNegotiation {
 }
 
 export interface BidHistoryItem {
+  bidId?: number;
   bidNumber: number;
+  bidableId?: number;
+  bidableType?: string;
+  driverId?: number | null;
   initiatorName: string;
   avatar?: string | null;
   date: string;

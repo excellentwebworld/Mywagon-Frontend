@@ -457,7 +457,11 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
       rejectionReason: l.rejection_reason ?? null,
     })),
     bidsHistory: (detail.bids_history || []).map((b: any) => ({
+      bidId: b.bid_id != null ? Number(b.bid_id) : undefined,
       bidNumber: b.bid_number,
+      bidableId: b.bidable_id != null ? Number(b.bidable_id) : undefined,
+      bidableType: b.bidable_type || undefined,
+      driverId: b.driver_id != null ? Number(b.driver_id) : null,
       initiatorName: b.initiator_name,
       avatar: b.initiator_avatar ?? b.avatar ?? null,
       date: b.date,

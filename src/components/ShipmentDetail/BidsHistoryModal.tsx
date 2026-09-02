@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, History, ArrowRightLeft, Check, Tag, Clock, MessageSquare, AlertCircle } from 'lucide-react';
-import type { BidHistoryItem, BidHistoryNegotiation } from '../../pages/ShipmentDetail/detailViewModel';
+import type { BidHistoryItem } from '../../pages/ShipmentDetail/detailViewModel';
+import type { PartnerBidItem } from './BidsCard';
 import { CarrierAvatar } from '../ManageShipments/CarrierAvatar';
 
 interface BidsHistoryModalProps {
   open: boolean;
   bids?: BidHistoryItem[];
+  partner?: PartnerBidItem | null;
   onClose: () => void;
   t: (key: string, fallback?: string) => string;
 }
@@ -14,6 +16,7 @@ interface BidsHistoryModalProps {
 export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
   open,
   bids = [],
+  partner = null,
   onClose,
   t,
 }) => {
@@ -61,6 +64,41 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
     };
   };
 
+  const filteredBids = useMemo(() => {
+    if (!partner) return bids;
+
+    // 1. Match by numeric userId / bidableId / driverId
+    if (partner.userId) {
+      const matched = bids.filter(
+        (b) => b.bidableId === partner.userId || b.driverId === partner.userId
+      );
+      if (matched.length > 0) return matched;
+    }
+
+    // 2. Match by bid id if partner.id is a numeric bid id
+    const partnerNumId = Number(partner.id);
+    if (!isNaN(partnerNumId) && partnerNumId > 0) {
+      const matched = bids.filter((b) => b.bidId === partnerNumId);
+      if (matched.length > 0) return matched;
+    }
+
+    // 3. Match by name
+    const partnerName = (partner.name || '').trim().toLowerCase();
+    if (partnerName) {
+      const matched = bids.filter((b) => {
+        const initName = (b.initiatorName || '').trim().toLowerCase();
+        return (
+          initName === partnerName ||
+          initName.includes(partnerName) ||
+          partnerName.includes(initName)
+        );
+      });
+      if (matched.length > 0) return matched;
+    }
+
+    return [];
+  }, [bids, partner]);
+
   return createPortal(
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
@@ -74,22 +112,35 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
       >
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-[#E4E4E8] flex items-center justify-between bg-[#FAF9FD]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#FAF5FF] border border-[#E9D5FF] text-[#9B51E0] flex items-center justify-center shadow-2xs">
-              <History size={16} />
-            </div>
-            <div>
-              <h2 className="text-[16px] font-bold text-[#18181B] m-0 leading-tight">
+          <div className="flex items-center gap-3 min-w-0">
+            {partner ? (
+              <CarrierAvatar
+                size={36}
+                avatar={partner.avatar}
+                name={partner.name}
+                initials={partner.initials}
+                className="carrier-av rounded-full flex items-center justify-center font-bold flex-shrink-0 overflow-hidden text-xs shadow-2xs"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-[#FAF5FF] border border-[#E9D5FF] text-[#9B51E0] flex items-center justify-center shadow-2xs shrink-0">
+                <History size={16} />
+              </div>
+            )}
+            <div className="min-w-0">
+              <h2 className="text-[16px] font-bold text-[#18181B] m-0 leading-tight truncate">
                 {t('negotiationHistory', 'Negotiation History')}
+                {partner?.name ? ` · ${partner.name}` : ''}
               </h2>
-              <span className="text-[11px] text-[#64748B]">
-                {t('negotiationTimelineSubtitle', 'Timeline of all offers, counter-bids, and responses')}
+              <span className="text-[11px] text-[#64748B] block truncate">
+                {partner?.name
+                  ? t('userNegotiationLog', 'Bidding and negotiation log for this transporter')
+                  : t('negotiationTimelineSubtitle', 'Timeline of all offers, counter-bids, and responses')}
               </span>
             </div>
           </div>
           <button
             type="button"
-            className="w-8 h-8 rounded-lg border border-[#E4E4E8] flex items-center justify-center text-[#9CA3AF] hover:text-[#4B5563] hover:bg-[#F4F4F5] transition-colors cursor-pointer bg-white"
+            className="w-8 h-8 rounded-lg border border-[#E4E4E8] flex items-center justify-center text-[#9CA3AF] hover:text-[#4B5563] hover:bg-[#F4F4F5] transition-colors cursor-pointer bg-white shrink-0 ml-2"
             onClick={onClose}
             aria-label={t('close', 'Close')}
           >
@@ -99,8 +150,8 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto max-h-[65vh] space-y-5">
-          {bids && bids.length > 0 ? (
-            bids.map((bid) => {
+          {filteredBids && filteredBids.length > 0 ? (
+            filteredBids.map((bid) => {
               // Ensure we have a timeline list without redundant duplicate initial root cards
               const timelineEvents: Array<{
                 id: number | string;
@@ -226,7 +277,9 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
             <div className="text-center py-12 text-[#9CA3AF]">
               <AlertCircle size={32} className="mx-auto mb-2 text-[#CBD5E1]" />
               <p className="text-[13px] font-medium m-0">
-                {t('noBidsHistoryFound', 'No bids history found.')}
+                {partner?.name
+                  ? t('noBidsHistoryForPartner', `No negotiation history recorded yet for ${partner.name}.`)
+                  : t('noBidsHistoryFound', 'No bids history found.')}
               </p>
             </div>
           )}

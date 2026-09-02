@@ -69,6 +69,7 @@ export const ShipmentDetail: React.FC = () => {
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [isBidsHistoryOpen, setIsBidsHistoryOpen] = useState(false);
+  const [selectedPartnerForHistory, setSelectedPartnerForHistory] = useState<PartnerBidItem | null>(null);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
   const [isUploadDocOpen, setIsUploadDocOpen] = useState(false);
   const [viewPodStop, setViewPodStop] = useState<PhysicalStop | null>(null);
@@ -511,7 +512,10 @@ export const ShipmentDetail: React.FC = () => {
           onMessage={() => navigate('/messages')}
           onShare={() => setIsShareOpen(true)}
           onAuditLog={() => setIsLogOpen(true)}
-          onBidsHistory={() => setIsBidsHistoryOpen(true)}
+          onBidsHistory={() => {
+            setSelectedPartnerForHistory(null);
+            setIsBidsHistoryOpen(true);
+          }}
           onCancelShipment={() => setIsCancelOpen(true)}
           onToast={(msg) => showToast(msg, 'info')}
           t={t}
@@ -648,7 +652,10 @@ export const ShipmentDetail: React.FC = () => {
                 onCounterBid={(bid) => setPendingCounterBid(bid)}
                 onCancelInvite={handleCancelInvite}
                 cancellingInviteId={cancellingInviteId}
-                onViewHistory={() => setIsBidsHistoryOpen(true)}
+                onViewHistory={(partner) => {
+                  setSelectedPartnerForHistory(partner);
+                  setIsBidsHistoryOpen(true);
+                }}
                 onChat={() => navigate('/messages')}
                 onInviteMore={() => showToast(t('invitePartners', 'Invite partners modal opening…'), 'info')}
                 t={t}
@@ -905,7 +912,11 @@ export const ShipmentDetail: React.FC = () => {
       <BidsHistoryModal
         open={isBidsHistoryOpen}
         bids={vm.bidsHistory}
-        onClose={() => setIsBidsHistoryOpen(false)}
+        partner={selectedPartnerForHistory}
+        onClose={() => {
+          setIsBidsHistoryOpen(false);
+          setSelectedPartnerForHistory(null);
+        }}
         t={t}
       />
 
