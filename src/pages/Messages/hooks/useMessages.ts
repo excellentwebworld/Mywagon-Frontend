@@ -20,7 +20,6 @@ import { formatMessageTime, formatConversationTime } from '../../../utils/timezo
 import { setActiveChatPartner } from '../../../utils/chatNotificationGuard';
 import {
   buildLaravelChatRequestData,
-  extractShipmentDbId,
   getShipperDeviceToken,
   isMessageFromPartner,
   parsePartnerId,
@@ -67,6 +66,23 @@ function buildShipperSocketChatPayload(params: {
       senderableToken: getShipperDeviceToken(),
     }),
   };
+}
+
+function dedupeMessages(msgs: ChatMessage[]): ChatMessage[] {
+  const seenIds = new Set<string>();
+  const seenContent = new Set<string>();
+  return msgs.filter((m) => {
+    if (m.type === 'date' || m.type === 'system') return true;
+    if (m.id != null) {
+      const idKey = `id:${m.id}`;
+      if (seenIds.has(idKey)) return false;
+      seenIds.add(idKey);
+    }
+    const contentKey = `c:${m.type}:${m.text}:${m.time}:${m.messages_type ?? 'text'}`;
+    if (seenContent.has(contentKey)) return false;
+    seenContent.add(contentKey);
+    return true;
+  });
 }
 
 export function useMessages() {
@@ -397,7 +413,7 @@ export function useMessages() {
       .getMessages(partnerId, partnerType)
       .then(({ messages: msgs, device_token }) => {
         if (mounted) {
-          setMessages(msgs);
+          setMessages(dedupeMessages(msgs));
           setLoadingMessages(false);
           // Update device token from history endpoint (more reliable, always fresh)
           if (device_token) {
@@ -524,7 +540,6 @@ export function useMessages() {
       const timeStr = formatMessageTime(now);
       const msgTempId = Date.now();
       const sid = activeConversation.latestSid || activeConversation.activeShipmentId;
-      const shipmentDbId = extractShipmentDbId(sid);
 
       const newMsg: ChatMessage = {
         id: msgTempId,
@@ -550,21 +565,10 @@ export function useMessages() {
         )
       );
 
-      const receiverId = parsePartnerId(activeConversation.partnerId || activeConversation.id);
-      const receiverType = resolveSocketReceiverType(activeConversation);
       const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
 
       try {
-        const sentRes = await chatService.sendMessage({
-          receiver_id: receiverId,
-          receiver_type: receiverType,
-          message: text,
-          messages_type: 'text',
-          ...(shipmentDbId ? { shipment_id: shipmentDbId } : {}),
-        });
-
-        // Laravel shipper panel: socket only, minimal request_data (chat_history.js).
-        void socketService.sendMessage(
+        const response = await socketService.sendMessage(
           buildShipperSocketChatPayload({
             user: user || {},
             conversation: activeConversation,
@@ -573,16 +577,8 @@ export function useMessages() {
           })
         );
 
-        if (sentRes && sentRes.id) {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === msgTempId ? {
-              ...m,
-              id: sentRes.id,
-              created_at: sentRes.created_at || m.created_at,
-              status: 'delivered',
-              time: m.time,
-            } : m))
-          );
+        if (!response) {
+          throw new Error('Socket not connected');
         }
       } catch {
         setErrorMessage(t('chatModule.messageSendFailed') || 'Message failed to send. Please check your connection and try again.');
@@ -618,7 +614,6 @@ export function useMessages() {
       const timeStr = formatMessageTime(now);
       const msgTempId = Date.now();
       const sid = activeConversation.latestSid || activeConversation.activeShipmentId;
-      const shipmentDbId = extractShipmentDbId(sid);
       const localAudioUrl = URL.createObjectURL(audioBlob);
 
       const newMsg: ChatMessage = {
@@ -647,24 +642,13 @@ export function useMessages() {
         )
       );
 
-      const receiverId = parsePartnerId(activeConversation.partnerId || activeConversation.id);
-      const receiverType = resolveSocketReceiverType(activeConversation);
       const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
 
       try {
         const uploadRes = await chatService.uploadVoice(audioBlob);
         const uploadedUrl = uploadRes?.url || localAudioUrl;
 
-        const sentRes = await chatService.sendMessage({
-          receiver_id: receiverId,
-          receiver_type: receiverType,
-          message: uploadedUrl,
-          messages_type: 'voice',
-          duration: durationMsSend, // milliseconds string — same as Laravel
-          ...(shipmentDbId ? { shipment_id: shipmentDbId } : {}),
-        });
-
-        void socketService.sendMessage(
+        const response = await socketService.sendMessage(
           buildShipperSocketChatPayload({
             user: user || {},
             conversation: activeConversation,
@@ -675,17 +659,13 @@ export function useMessages() {
           })
         );
 
-        if (sentRes && sentRes.id) {
-          // Update the temp message with the real server ID and the uploaded S3 URL
-          setMessages((prev) =>
-            prev.map((m) => (m.id === msgTempId ? { ...m, id: sentRes.id, voiceUrl: uploadedUrl, text: uploadedUrl, status: 'delivered' } : m))
-          );
-        } else {
-          // Update URL even without server ID (at least show real URL instead of blob)
-          setMessages((prev) =>
-            prev.map((m) => (m.id === msgTempId ? { ...m, voiceUrl: uploadedUrl, text: uploadedUrl, status: 'delivered' } : m))
-          );
+        if (!response) {
+          throw new Error('Socket not connected');
         }
+
+        setMessages((prev) =>
+          prev.map((m) => (m.id === msgTempId ? { ...m, voiceUrl: uploadedUrl, text: uploadedUrl, status: 'delivered' } : m))
+        );
 
         showToast(`🎙️ ${t('chatModule.voiceSent') || 'Voice note sent'}`, 'success');
       } catch {
@@ -708,7 +688,6 @@ export function useMessages() {
       const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       const msgTempId = Date.now();
       const sid = activeConversation.latestSid || activeConversation.activeShipmentId;
-      const shipmentDbId = extractShipmentDbId(sid);
 
       const newMsg: ChatMessage = {
         id: msgTempId,
@@ -739,8 +718,6 @@ export function useMessages() {
         )
       );
 
-      const receiverId = parsePartnerId(activeConversation.partnerId || activeConversation.id);
-      const receiverType = resolveSocketReceiverType(activeConversation);
       const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
 
       try {
@@ -754,15 +731,7 @@ export function useMessages() {
           // fallback
         }
 
-        await chatService.sendMessage({
-          receiver_id: receiverId,
-          receiver_type: receiverType,
-          message: uploadedUrl || file.name,
-          messages_type: 'media',
-          ...(shipmentDbId ? { shipment_id: shipmentDbId } : {}),
-        });
-
-        void socketService.sendMessage(
+        const response = await socketService.sendMessage(
           buildShipperSocketChatPayload({
             user: user || {},
             conversation: activeConversation,
@@ -771,6 +740,10 @@ export function useMessages() {
             messagesType: 'media',
           })
         );
+
+        if (!response) {
+          throw new Error('Socket not connected');
+        }
 
         showToast(`📎 ${t('chatModule.toastAttach') || 'Attached'}: ${file.name}`, 'success');
       } catch {
@@ -793,19 +766,24 @@ export function useMessages() {
         prev.map((m) => (m.id === failedMsg.id ? { ...m, isFailed: false } : m))
       );
 
-      const receiverId = parsePartnerId(activeConversation.partnerId || activeConversation.id);
-      const receiverType = resolveSocketReceiverType(activeConversation);
+      const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
 
       try {
-        const shipmentDbId = extractShipmentDbId(failedMsg.shipmentId);
-        await chatService.sendMessage({
-          receiver_id: receiverId,
-          receiver_type: receiverType,
-          message: failedMsg.text,
-          messages_type: failedMsg.messages_type || 'text',
-          duration: failedMsg.duration,
-          ...(shipmentDbId ? { shipment_id: shipmentDbId } : {}),
-        });
+        const response = await socketService.sendMessage(
+          buildShipperSocketChatPayload({
+            user: user || {},
+            conversation: activeConversation,
+            partnerToken,
+            message: failedMsg.text,
+            ...(failedMsg.messages_type === 'voice' ? { messagesType: 'voice' as const, duration: failedMsg.duration } : {}),
+            ...(failedMsg.messages_type === 'media' ? { messagesType: 'media' as const } : {}),
+          })
+        );
+
+        if (!response) {
+          throw new Error('Socket not connected');
+        }
+
         showToast(t('chatModule.messageSent') || 'Message sent', 'success');
       } catch {
         setErrorMessage(t('chatModule.messageSendFailed') || 'Message failed to send. Please check your connection and try again.');
