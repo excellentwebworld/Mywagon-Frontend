@@ -791,6 +791,7 @@ export const ShipmentDetail: React.FC = () => {
             {/* 6. Load Summary */}
             <LoadSummaryCard
               loadSummary={vm.loadSummary}
+              notes={vm.notes}
               expanded={sections.load}
               onToggle={() => toggleSection('load')}
               t={t}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Plus, Send } from 'lucide-react';
+import { FileText, Plus, Send, ChevronDown, ChevronUp } from 'lucide-react';
 import type { DetailNote } from '../../pages/ShipmentDetail/detailViewModel';
 import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { CollapsibleCard } from './CollapsibleCard';
@@ -11,6 +11,70 @@ interface NotesCardProps {
   onAddNote?: (body: string, visibility: 'internal' | 'carrier') => void;
   onToast: (msg: string) => void;
   t: (key: string, fallback?: string) => string;
+}
+
+const NOTE_MAX_LEN = 130;
+
+function NoteItem({
+  note,
+  t,
+}: {
+  note: DetailNote;
+  t: (key: string, fallback?: string) => string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const text = note.body || '';
+  const isLong = text.length > NOTE_MAX_LEN;
+
+  return (
+    <div
+      key={note.id}
+      className="p-3 rounded-xl border border-[#EAEAEF] transition-all bg-[#F8F8FA] hover:bg-[#F2F2F6]"
+    >
+      <div className="text-[13px] text-[#18181B] leading-relaxed break-words font-medium">
+        <span>{isLong && !expanded ? `${text.slice(0, NOTE_MAX_LEN)}…` : text}</span>
+        {isLong && (
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            className="ml-1.5 text-[11px] font-bold text-[#9B51E0] hover:text-[#7E38C4] hover:underline inline-flex items-center gap-0.5 cursor-pointer"
+            style={{ background: 'none', border: 'none' }}
+          >
+            {expanded ? (
+              <>
+                <span>{t('readLess', 'Read less')}</span>
+                <ChevronUp size={11} />
+              </>
+            ) : (
+              <>
+                <span>{t('readMore', 'Read more')}</span>
+                <ChevronDown size={11} />
+              </>
+            )}
+          </button>
+        )}
+      </div>
+      <div className="text-[11px] mt-1.5 flex items-center gap-2 flex-wrap text-[#8E8E9A]">
+        <span className="font-semibold text-[#5E5E6E]">{note.author}</span>
+        <span>·</span>
+        <span className="font-mono text-[10px] text-[#71717A]">
+          {formatUtcToDisplayDateTime(note.timestamp)}
+        </span>
+        <span>·</span>
+        <span
+          className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+            note.visibility === 'carrier'
+              ? 'bg-[#EFF6FF] text-[#1D4ED8]'
+              : 'bg-[#F0F0F3] text-[#5E5E6E]'
+          }`}
+        >
+          {note.visibility === 'carrier'
+            ? t('carrierVisible', 'Carrier visible')
+            : t('internal', 'Internal')}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export const NotesCard: React.FC<NotesCardProps> = ({
@@ -113,37 +177,9 @@ export const NotesCard: React.FC<NotesCardProps> = ({
             {t('noNotesRecorded', 'No special notes recorded for this load.')}
           </p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {notes.map((n) => (
-              <div
-                key={n.id}
-                className="p-2.5 rounded-lg"
-                style={{ background: '#F5F5F7' }}
-              >
-                <div className="text-[13px] font-medium" style={{ color: '#18181B' }}>
-                  {n.body}
-                </div>
-                <div
-                  className="text-[11px] mt-1 flex items-center gap-2 flex-wrap"
-                  style={{ color: '#8E8E9A' }}
-                >
-                  <span>{n.author}</span>
-                  <span>·</span>
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px' }}>
-                    {formatUtcToDisplayDateTime(n.timestamp)}
-                  </span>
-                  <span>·</span>
-                  <span
-                    className="px-1.5 py-0.2 rounded text-[10px] font-semibold"
-                    style={{
-                      background: n.visibility === 'carrier' ? '#EFF6FF' : '#F0F0F3',
-                      color: n.visibility === 'carrier' ? '#2563EB' : '#5E5E6E',
-                    }}
-                  >
-                    {n.visibility === 'carrier' ? t('carrier', 'Carrier') : t('internal', 'Internal')}
-                  </span>
-                </div>
-              </div>
+              <NoteItem key={n.id} note={n} t={t} />
             ))}
           </div>
         )}

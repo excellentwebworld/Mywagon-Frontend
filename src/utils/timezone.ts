@@ -326,3 +326,65 @@ export function formatConversationTime(
   const dateFormatted = formatUtcToDisplayDate(date.toISOString());
   return `${dateFormatted} ${timeStr}`;
 }
+
+/**
+ * Replace raw UTC ISO timestamps embedded inside notes or special instructions text
+ * (e.g. `[2026-09-02T10:01:59+00:00 · Shipper (internal)]: ...`)
+ * with localized browser datetime strings (`[02/09/2026 15:31 · Shipper (internal)]: ...`).
+ */
+export function formatEmbeddedTimestamps(text?: string | null): string {
+  if (!text) return '';
+  return text.replace(
+    /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})|\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g,
+    (match) => {
+      const formatted = formatUtcToDisplayDateTime(match);
+      return formatted || match;
+    }
+  );
+}
+
+export interface ParsedInstructionNote {
+  id: string;
+  timestamp?: string | null;
+  author?: string | null;
+  visibility?: 'internal' | 'carrier' | string | null;
+  body: string;
+}
+
+/**
+ * Parses a combined special instructions/notes string into separate structured note objects.
+ */
+export function parseSpecialInstructions(raw?: string | null): ParsedInstructionNote[] {
+  if (!raw || raw.trim() === '' || raw.trim() === '—') return [];
+  const text = raw.trim();
+
+  // Split strictly before any embedded bracket note header `[...]:`
+  const chunks = text.split(/(?=\[(?:\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})[^\]]*\]:?)/g);
+  const results: ParsedInstructionNote[] = [];
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i].trim();
+    if (!chunk) continue;
+
+    const match = chunk.match(/^\[([\d\/:\sT\-Z+]+)\s*(?:·|:)\s*([^()]+?)(?:\s*\((internal|carrier)\))?\]:?\s*([\s\S]*)$/i);
+    if (match) {
+      const [, rawTs, author, vis, body] = match;
+      results.push({
+        id: `inst-${i}`,
+        timestamp: formatUtcToDisplayDateTime(rawTs.trim()) || rawTs.trim(),
+        author: author.trim(),
+        visibility: vis ? vis.toLowerCase() : null,
+        body: body.trim(),
+      });
+    } else {
+      results.push({
+        id: `inst-${i}`,
+        body: chunk,
+      });
+    }
+  }
+
+  return results;
+}
+
+
