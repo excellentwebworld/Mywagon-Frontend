@@ -48,6 +48,29 @@ export interface AuditEntry {
   priceBadge?: string;
 }
 
+export function formatJourneyDuration(input: string | number | null | undefined): string {
+  if (input == null || input === '' || input === '—' || input === 'N/A' || input === '0') return '—';
+  const str = String(input).trim();
+  if (/hour|minute|hr|min|d/i.test(str)) {
+    return str;
+  }
+  const num = parseFloat(str);
+  if (isNaN(num) || num <= 0) return '—';
+
+  const hours = Math.floor(num / 3600);
+  const minutes = Math.floor((num % 3600) / 60);
+
+  const parts: string[] = [];
+  if (hours > 0) {
+    parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
+  }
+  if (minutes > 0 || hours === 0) {
+    parts.push(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`);
+  }
+
+  return parts.join(', ');
+}
+
 export interface CarrierDetail {
   initials: string;
   avatar?: string | null;
@@ -972,7 +995,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     },
     trip: {
       distanceKm: shipment.journeyDistanceKm || 0,
-      duration: shipment.journeyTime != null ? String(shipment.journeyTime) : '—',
+      duration: formatJourneyDuration(shipment.journeyTime),
       stops: stops.length,
       weight: shipment.totalWeight != null ? `${shipment.totalWeight} ${shipment.weightUnit || 'Tonnes'}` : '—',
       customers: shipment.customer?.length || stops.flatMap((s) => s.customers).length || 0,

@@ -374,7 +374,42 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                         (stop.rawStop as any)?.reason ||
                         (stop.rawStop as any)?.unable_reason ||
                         null;
-                      const orderHasIssue = orderVisual === 'failed';
+                      const orderHasIssue =
+                        orderVisual === 'failed' ||
+                        order.unableStatus === 1 ||
+                        stop.unableStatus === 1 ||
+                        order.locationStatus === '6' ||
+                        order.locationStatus === '4' ||
+                        order.locationStatus === '8' ||
+                        stop.locationStatus === '6' ||
+                        stop.locationStatus === '4' ||
+                        stop.locationStatus === '8' ||
+                        Boolean(issueReason);
+
+                      const isStopDone =
+                        !orderHasIssue &&
+                        (orderVisual === 'done' ||
+                          orderVisual === 'done-pod' ||
+                          stop.locationStatus === '5' ||
+                          stop.locationStatus === '7' ||
+                          order.locationStatus === '5' ||
+                          order.locationStatus === '7' ||
+                          stop.pod === '1' ||
+                          order.pod === '1' ||
+                          (stop.type === 'pickup' &&
+                            (normalizedStatus === 'on_trip' ||
+                              normalizedStatus === 'in_progress' ||
+                              normalizedStatus === 'fullfilled' ||
+                              normalizedStatus === 'fulfilled' ||
+                              normalizedStatus === 'partially_fullfilled' ||
+                              normalizedStatus === 'partially_fulfilled' ||
+                              normalizedStatus === 'delivered')));
+
+                      const effectiveVisual: ProductLineVisual = orderHasIssue
+                        ? 'failed'
+                        : isStopDone
+                        ? ((order.pod === '1' || stop.pod === '1') ? 'done-pod' : 'done')
+                        : orderVisual;
 
                       return (
                         <div
@@ -417,7 +452,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                               ))}
                             </div>
 
-                            <OrderStatusIcon visual={orderVisual} />
+                            <OrderStatusIcon visual={effectiveVisual} />
                           </div>
 
                           {/* Issue Reason Alert in Red if present */}
