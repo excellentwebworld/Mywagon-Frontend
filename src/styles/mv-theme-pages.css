@@ -1,0 +1,140 @@
+/* ==========================================================================
+   MYVAGON — Themed pages & modals (Notifications, Shipment Detail)
+   Dark mode surfaces match referral modal (--bg / --surface / --surface-alt)
+   ========================================================================== */
+
+/* ── Page shell ── */
+.mv-themed-page {
+  background: var(--bg) !important;
+  color: var(--text-primary);
+}
+
+/* ── Modal backdrop (referral modal style) ── */
+.mv-modal-bg {
+  background: rgba(15, 15, 20, 0.45) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* ── Modal panel ── */
+.mv-modal {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary);
+}
+
+.dark .mv-modal {
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5) !important;
+}
+
+.mv-modal-header {
+  background: var(--surface-alt) !important;
+  border-color: var(--border) !important;
+}
+
+.mv-modal-body {
+  background: var(--bg);
+}
+
+.mv-modal-footer {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+/* ── Drawer panel (notifications detail) ── */
+.mv-drawer-panel {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+.mv-drawer-body {
+  background: var(--bg);
+}
+
+/* ── Dark mode: remap Tailwind slate → design tokens (themed pages) ── */
+.dark .mv-themed-page .dark\:bg-slate-900,
+.dark .mv-modal .dark\:bg-slate-900,
+.dark .mv-drawer-panel .dark\:bg-slate-900 {
+  background-color: var(--surface) !important;
+}
+
+.dark .mv-themed-page .dark\:bg-slate-850,
+.dark .mv-modal .dark\:bg-slate-850,
+.dark .mv-modal-header {
+  background-color: var(--surface-alt) !important;
+}
+
+.dark .mv-themed-page .dark\:bg-slate-800,
+.dark .mv-modal .dark\:bg-slate-800,
+.dark .mv-drawer-panel .dark\:bg-slate-800 {
+  background-color: var(--surface-alt) !important;
+}
+
+.dark .mv-themed-page .dark\:bg-slate-800\/80,
+.dark .mv-themed-page .dark\:bg-slate-800\/60,
+.dark .mv-themed-page .dark\:bg-slate-800\/50,
+.dark .mv-modal .dark\:bg-slate-800\/80,
+.dark .mv-modal .dark\:bg-slate-800\/60,
+.dark .mv-drawer-panel .dark\:bg-slate-800\/60 {
+  background-color: color-mix(in srgb, var(--surface-alt) 88%, transparent) !important;
+}
+
+.dark .mv-themed-page .dark\:bg-slate-850\/40,
+.dark .mv-modal .dark\:bg-slate-850\/40 {
+  background-color: color-mix(in srgb, var(--surface-alt) 55%, transparent) !important;
+}
+
+.dark .mv-themed-page .dark\:bg-slate-950\/60,
+.dark .mv-modal .dark\:bg-slate-950\/60 {
+  background-color: color-mix(in srgb, var(--bg) 75%, transparent) !important;
+}
+
+.dark .mv-themed-page .dark\:border-slate-800,
+.dark .mv-themed-page .dark\:border-slate-700,
+.dark .mv-themed-page .dark\:border-slate-700\/80,
+.dark .mv-themed-page .dark\:border-slate-700\/60,
+.dark .mv-modal .dark\:border-slate-800,
+.dark .mv-modal .dark\:border-slate-700,
+.dark .mv-drawer-panel .dark\:border-slate-800,
+.dark .mv-drawer-panel .dark\:border-slate-700 {
+  border-color: var(--border) !important;
+}
+
+.dark .mv-themed-page .dark\:divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+.dark .mv-modal .dark\:divide-slate-800 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border);
+}
+
+.dark .mv-themed-page .dark\:hover\:bg-slate-800:hover,
+.dark .mv-themed-page .dark\:hover\:bg-slate-700:hover,
+.dark .mv-modal .dark\:hover\:bg-slate-800:hover,
+.dark .mv-modal .dark\:hover\:bg-slate-700:hover,
+.dark .mv-drawer-panel .dark\:hover\:bg-slate-700:hover {
+  background-color: var(--surface-alt) !important;
+}
+
+.dark .mv-themed-page .dark\:hover\:border-slate-700:hover {
+  border-color: var(--border-focus) !important;
+}
+
+.dark .mv-themed-page .dark\:focus\:bg-slate-800:focus,
+.dark .mv-modal .dark\:focus\:bg-slate-800:focus {
+  background-color: var(--surface-alt) !important;
+}
+
+/* Cards inside themed pages */
+.dark .mv-themed-page .sd-card,
+.dark .mv-themed-page .mv-surface-card {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+/* Fix light backgrounds that clash with forced white text in dark mode */
+.dark .mv-themed-page .bg-slate-50,
+.dark .mv-themed-page .bg-slate-100 {
+  background-color: var(--surface-alt) !important;
+}
+
+.dark .mv-themed-page .bg-white:not(.dark\:bg-white) {
+  background-color: var(--surface-alt) !important;
+}

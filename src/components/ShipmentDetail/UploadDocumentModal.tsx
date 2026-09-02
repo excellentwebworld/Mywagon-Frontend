@@ -122,25 +122,24 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/50 backdrop-blur-sm animate-fade-in overflow-y-auto"
+      className="mv-modal-bg fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 animate-fade-in overflow-y-auto"
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-lg max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto animate-scale-up"
+        className="mv-modal w-full max-w-lg max-h-[90vh] bg-[var(--surface)] rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto animate-scale-up border border-[var(--border)]"
         onClick={(e) => e.stopPropagation()}
-        style={{ border: '1px solid #E4E4E8' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E4E4E8] bg-[#FAFAFC] flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#9B51E0]/10 flex items-center justify-center text-[#9B51E0]">
+            <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-300">
               <UploadCloud size={18} />
             </div>
             <div>
-              <h3 className="text-[15px] font-bold text-[#18181B] m-0">
+              <h3 className="text-[15px] font-bold text-slate-900 dark:text-white m-0">
                 {t('uploadDocument', 'Upload Document')}
               </h3>
-              <p className="text-[11px] text-[#8E8E9A] m-0">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 m-0">
                 {t('uploadDocSub', 'Attach PDF or images for this shipment')}
               </p>
             </div>
@@ -148,8 +147,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
           <button
             type="button"
             onClick={handleClose}
-            className="p-1 text-[#8E8E9A] hover:text-[#18181B] rounded-lg transition-colors cursor-pointer"
-            style={{ background: 'none', border: 'none' }}
+            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer bg-transparent border-0"
           >
             <X size={18} />
           </button>
@@ -159,7 +157,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden m-0">
           <div className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
             {error && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
                 <AlertCircle size={15} className="flex-shrink-0" />
                 <span>{error}</span>
               </div>
@@ -167,7 +165,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
 
           {/* Document Name */}
           <div>
-            <label className="block text-xs font-semibold text-[#18181B] mb-1.5">
+            <label className="block text-xs font-semibold text-slate-900 dark:text-white mb-1.5">
               {t('documentName', 'Document Name')} <span className="text-red-500">*</span>
             </label>
             <input
@@ -175,21 +173,20 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t('docNamePlaceholder', 'e.g., CMR, Delivery Note, Invoice, Customs Declaration')}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-[#E4E4E8] text-xs text-[#18181B] bg-white outline-none focus:border-[#9B51E0] focus:ring-2 focus:ring-[#9B51E0]/10 transition-all"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white bg-white dark:bg-slate-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
               required
             />
           </div>
 
           {/* Quick preset suggestions */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-medium text-[#8E8E9A]">{t('quickFill', 'Quick fill:')}</span>
+            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{t('quickFill', 'Quick fill:')}</span>
             {['CMR', 'POD', 'Invoice', 'Delivery Note', 'Customs Doc'].map((preset) => (
               <button
                 key={preset}
                 type="button"
                 onClick={() => setName(preset)}
-                className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#F0F0F3] hover:bg-[#E4E4E8] text-[#5E5E6E] transition-colors cursor-pointer"
-                style={{ border: 'none' }}
+                className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer border-0"
               >
                 {preset}
               </button>
@@ -198,21 +195,21 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-semibold text-[#18181B] mb-1.5">
-              {t('description', 'Description / Notes')} <span className="text-[#8E8E9A] font-normal">({t('optional', 'Optional')})</span>
+            <label className="block text-xs font-semibold text-slate-900 dark:text-white mb-1.5">
+              {t('description', 'Description / Notes')} <span className="text-slate-400 dark:text-slate-500 font-normal">({t('optional', 'Optional')})</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t('docDescPlaceholder', 'Add extra details, reference numbers or notes about this document…')}
               rows={2}
-              className="w-full px-3.5 py-2 rounded-xl border border-[#E4E4E8] text-xs text-[#18181B] bg-white outline-none focus:border-[#9B51E0] focus:ring-2 focus:ring-[#9B51E0]/10 transition-all resize-none"
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white bg-white dark:bg-slate-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all resize-none"
             />
           </div>
 
           {/* File Upload Dropzone */}
           <div>
-            <label className="block text-xs font-semibold text-[#18181B] mb-1.5">
+            <label className="block text-xs font-semibold text-slate-900 dark:text-white mb-1.5">
               {t('file', 'File (PDF, Images)')} <span className="text-red-500">*</span>
             </label>
 
@@ -233,40 +230,40 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
                 onClick={() => fileInputRef.current?.click()}
                 className={`p-6 border-2 border-dashed rounded-2xl text-center cursor-pointer transition-all ${
                   dragActive
-                    ? 'border-[#9B51E0] bg-[#9B51E0]/5'
-                    : 'border-[#D4D4D8] hover:border-[#9B51E0] hover:bg-[#FAFAFC]'
+                    ? 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/20'
+                    : 'border-slate-300 dark:border-slate-700 hover:border-purple-500 hover:bg-slate-50 dark:hover:bg-slate-850'
                 }`}
               >
-                <div className="w-10 h-10 mx-auto rounded-full bg-[#F0F0F3] flex items-center justify-center text-[#9B51E0] mb-2">
+                <div className="w-10 h-10 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-2">
                   <UploadCloud size={20} />
                 </div>
-                <div className="text-xs font-semibold text-[#18181B]">
+                <div className="text-xs font-semibold text-slate-900 dark:text-white">
                   {t('clickToUpload', 'Click to choose file or drag and drop')}
                 </div>
-                <div className="text-[11px] text-[#8E8E9A] mt-1">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                   PDF, JPG, PNG, WEBP or DOC (Max 20MB)
                 </div>
               </div>
             ) : (
-              <div className="p-3.5 rounded-xl border border-[#E4E4E8] bg-[#FAFAFC] flex items-center justify-between gap-3">
+              <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{
-                      background: isImage ? '#EFF6FF' : '#FEF2F2',
+                      background: isImage ? 'rgba(59,130,246,0.15)' : 'rgba(239,68,68,0.15)',
                       color: isImage ? '#3B82F6' : '#EF4444',
                     }}
                   >
                     {isImage ? <ImageIcon size={20} /> : <FileText size={20} />}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-[#18181B] truncate">
+                    <div className="text-xs font-semibold text-slate-900 dark:text-white truncate">
                       {file.name}
                     </div>
-                    <div className="text-[11px] text-[#8E8E9A] flex items-center gap-1.5">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                       <span>{formatFileSize(file.size)}</span>
                       <span>·</span>
-                      <span className="text-emerald-600 font-medium flex items-center gap-0.5">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-0.5">
                         <CheckCircle size={10} /> {t('readyToUpload', 'Ready')}
                       </span>
                     </div>
@@ -276,8 +273,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setFile(null)}
-                  className="px-2 py-1 text-[11px] font-semibold text-[#EF4444] hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                  style={{ background: 'none', border: 'none' }}
+                  className="px-2 py-1 text-[11px] font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors cursor-pointer bg-transparent border-0"
                 >
                   {t('remove', 'Remove')}
                 </button>
@@ -287,21 +283,19 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-2.5 px-6 py-3.5 border-t border-[#E4E4E8] bg-[#FAFAFC] flex-shrink-0">
+          <div className="flex items-center justify-end gap-2.5 px-6 py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 flex-shrink-0">
             <button
               type="button"
               onClick={handleClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-[#5E5E6E] bg-[#F5F5F7] hover:bg-[#E4E4E8] transition-colors cursor-pointer"
-              style={{ border: 'none' }}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer border-0"
             >
               {t('cancel', 'Cancel')}
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !file}
-              className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-[#9B51E0] hover:bg-[#8A3FD5] transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-              style={{ border: 'none' }}
+              className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm border-0"
             >
               {isSubmitting ? (
                 <>

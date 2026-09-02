@@ -40,21 +40,19 @@ export const PickupDelayReportsCard: React.FC<PickupDelayReportsCardProps> = ({
           return (
             <div
               key={pickup.location_id}
-              className="flex items-center justify-between gap-3 p-3 rounded-xl"
-              style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}
+              className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800"
             >
               <div className="min-w-0">
-                <div className="text-[13px] font-semibold" style={{ color: '#18181B' }}>
+                <div className="text-[13px] font-semibold text-slate-900 dark:text-white">
                   {label}
                 </div>
-                <div className="text-[11px] mt-0.5" style={{ color: '#92400E' }}>
+                <div className="text-[11px] mt-0.5 text-amber-800 dark:text-amber-300">
                   {t('pickupDelayPendingHint', 'Pickup completed — report whether the driver was on time.')}
                 </div>
               </div>
               <button
                 type="button"
-                className="px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white cursor-pointer flex-shrink-0 transition-opacity hover:opacity-90"
-                style={{ background: '#9B51E0', border: 'none' }}
+                className="px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] cursor-pointer flex-shrink-0 transition-opacity shadow-xs border-0"
                 onClick={() => onReport(pickup)}
               >
                 {t('reportDelay', 'Report delay')}

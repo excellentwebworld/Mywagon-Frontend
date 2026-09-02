@@ -146,7 +146,7 @@ const DocItem: React.FC<DocItemProps> = ({
   const hasLongDesc = desc.length > DESCRIPTION_MAX_LEN;
 
   return (
-    <div className="p-3.5 rounded-xl bg-[#F8F8FA] hover:bg-[#F2F2F6] border border-[#EAEAEF] transition-all group">
+    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 transition-all group">
       <div className="flex items-start gap-3">
         <DocIcon kind={kind} />
 
@@ -155,7 +155,7 @@ const DocItem: React.FC<DocItemProps> = ({
           <div className="flex items-start justify-between gap-2 flex-wrap sm:flex-nowrap">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[13px] font-bold text-[#18181B] leading-snug break-words">
+                <span className="text-[13px] font-bold text-slate-900 dark:text-white leading-snug break-words">
                   {doc.name}
                 </span>
                 <span
@@ -167,7 +167,7 @@ const DocItem: React.FC<DocItemProps> = ({
 
               {doc.fileName && doc.fileName !== doc.name && (
                 <div
-                  className="text-[11px] text-[#8E8E9A] mt-0.5 truncate font-mono"
+                  className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate font-mono"
                   title={doc.fileName}
                 >
                   {doc.fileName}
@@ -182,7 +182,7 @@ const DocItem: React.FC<DocItemProps> = ({
                   href={doc.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#5E5E6E] bg-white hover:bg-gray-50 hover:text-[#18181B] border border-[#DCDCE2] shadow-2xs active:scale-95 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-2xs active:scale-95 transition-all cursor-pointer"
                   title={t('viewInTab', 'View file')}
                 >
                   <ExternalLink size={12} />
@@ -197,7 +197,7 @@ const DocItem: React.FC<DocItemProps> = ({
                   if (onDownload) onDownload(doc);
                   else if (doc.url) window.open(doc.url, '_blank');
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#9B51E0] bg-white hover:bg-[#9B51E0]/10 border border-[#E9D5FF] shadow-2xs active:scale-95 transition-all cursor-pointer disabled:opacity-60"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-purple-700 dark:text-purple-300 bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-950/60 border border-purple-200 dark:border-purple-800 shadow-2xs active:scale-95 transition-all cursor-pointer disabled:opacity-60"
                 title={t('downloadDocument', 'Download')}
               >
                 {downloadingDocId === doc.id ? (
@@ -213,9 +213,8 @@ const DocItem: React.FC<DocItemProps> = ({
                   type="button"
                   disabled={isBusy}
                   onClick={() => onDelete(doc)}
-                  className="p-1.5 rounded-lg text-[#8E8E9A] hover:text-[#EF4444] hover:bg-red-50 active:scale-95 transition-all cursor-pointer disabled:opacity-60"
+                  className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 active:scale-95 transition-all cursor-pointer disabled:opacity-60 bg-transparent border-0"
                   title={t('deleteDocument', 'Delete document')}
-                  style={{ background: 'none', border: 'none' }}
                 >
                   {deletingDocId === doc.id ? (
                     <Loader2 size={13} className="animate-spin text-red-500" />
@@ -229,7 +228,7 @@ const DocItem: React.FC<DocItemProps> = ({
 
           {/* Description with Show More / Show Less */}
           {desc && (
-            <div className="mt-2 text-[12px] text-[#4B4B58] leading-relaxed break-words bg-white/70 p-2 rounded-lg border border-[#ECECEF]">
+            <div className="mt-2 text-[12px] text-slate-700 dark:text-slate-300 leading-relaxed break-words bg-white/70 dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200 dark:border-slate-700/60">
               <span>
                 {hasLongDesc && !descExpanded
                   ? `${desc.slice(0, DESCRIPTION_MAX_LEN)}…`
@@ -239,8 +238,7 @@ const DocItem: React.FC<DocItemProps> = ({
                 <button
                   type="button"
                   onClick={() => setDescExpanded(!descExpanded)}
-                  className="ml-1 text-[11px] font-bold text-[#9B51E0] hover:text-[#7E38C4] hover:underline inline-flex items-center gap-0.5 cursor-pointer"
-                  style={{ background: 'none', border: 'none' }}
+                  className="ml-1 text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline inline-flex items-center gap-0.5 cursor-pointer bg-transparent border-0"
                 >
                   {descExpanded ? (
                     <>
@@ -259,19 +257,19 @@ const DocItem: React.FC<DocItemProps> = ({
           )}
 
           {/* Meta Info Row */}
-          <div className="text-[11px] mt-2 flex items-center gap-2 flex-wrap text-[#8E8E9A]">
+          <div className="text-[11px] mt-2 flex items-center gap-2 flex-wrap text-slate-500 dark:text-slate-400">
             {doc.uploadedBy && (
-              <span className="font-semibold text-[#5E5E6E]">{doc.uploadedBy}</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">{doc.uploadedBy}</span>
             )}
             {doc.uploadedBy && uploadedAt && <span>·</span>}
             {uploadedAt && (
-              <span className="font-mono text-[10px] text-[#71717A] tracking-tight">
+              <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 tracking-tight">
                 {uploadedAt}
               </span>
             )}
             {sizeLabel && (doc.uploadedBy || uploadedAt) && <span>·</span>}
             {sizeLabel && (
-              <span className="font-medium text-[#71717A]">{sizeLabel}</span>
+              <span className="font-medium text-slate-500 dark:text-slate-400">{sizeLabel}</span>
             )}
           </div>
         </div>
@@ -308,7 +306,7 @@ export const DocumentsCard: React.FC<DocumentsCardProps> = ({
             if (onUpload) onUpload();
             else onToast(t('uploadDocument', 'Upload document'));
           }}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 shadow-xs transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 shadow-xs transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
         >
           <Plus size={12} />
           <span>{t('upload', 'Upload')}</span>
@@ -317,11 +315,11 @@ export const DocumentsCard: React.FC<DocumentsCardProps> = ({
     >
       <div>
         {documents.length === 0 ? (
-          <div className="text-center py-8 px-4 rounded-xl border border-dashed border-[#E4E4E8] bg-[#F8F7FC]/50">
-            <div className="w-10 h-10 mx-auto mb-2.5 rounded-xl bg-[#F0F0F3] flex items-center justify-center text-[#8E8E9A]">
+          <div className="text-center py-8 px-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/30">
+            <div className="w-10 h-10 mx-auto mb-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500">
               <Paperclip size={18} />
             </div>
-            <p className="text-[12px] m-0 text-[#8E8E9A] font-medium leading-relaxed">
+            <p className="text-[12px] m-0 text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
               {t('noDocumentsUploaded', 'No documents uploaded yet. Click Upload to attach files.')}
             </p>
           </div>

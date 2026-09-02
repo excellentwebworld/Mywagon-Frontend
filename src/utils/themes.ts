@@ -58,14 +58,14 @@ export const THEMES: Record<ThemeKey, ThemeDefinition> = {
       grad1: '#562C7C', grad2: '#9B51E0',
     },
     dark: {
-      bg: '#0C0C14', sf: '#16162A', sa: '#1E1E36', sh: '#1A1A30',
-      bd: '#2A2A48', bf: '#3A3A58',
-      t1: '#E8E8F0', t2: '#A0A0B8', t3: '#6E6E88',
+      bg: '#16162A', sf: '#1E1E36', sa: '#252544', sh: '#20203C',
+      bd: '#2E2E52', bf: '#3E3E68',
+      t1: '#FFFFFF', t2: '#A5A5C4', t3: '#727294',
       ac: '#B07AE8', al: '#2A1F50', ah: '#C490FF', ap: '#1A1235',
-      nav: '#0A0A0E', navT: 'rgba(255,255,255,0.45)', navH: 'rgba(255,255,255,0.65)',
-      navA: 'rgba(176,122,232,0.22)', navAT: '#FFFFFF', navSec: 'rgba(255,255,255,0.18)',
-      navBd: 'rgba(255,255,255,0.06)', navHov: 'rgba(255,255,255,0.05)',
-      logoC1: '#8B8A8F', logoC2: '#E8E8F0',
+      nav: '#0F0F1D', navT: 'rgba(255,255,255,0.50)', navH: 'rgba(255,255,255,0.75)',
+      navA: 'rgba(176,122,232,0.22)', navAT: '#FFFFFF', navSec: 'rgba(255,255,255,0.22)',
+      navBd: 'rgba(255,255,255,0.08)', navHov: 'rgba(255,255,255,0.06)',
+      logoC1: '#8B8A8F', logoC2: '#FFFFFF',
       grad1: '#562C7C', grad2: '#9B51E0',
     },
   },
@@ -226,7 +226,11 @@ export function applyThemeToDOM(tokens: ThemeTokens) {
   const keys: (keyof ThemeTokens)[] = [
     'bg', 'sf', 'sa', 'sh', 'bd', 'bf', 't1', 't2', 't3', 'ac', 'al', 'ah', 'ap',
   ];
-  keys.forEach((k) => root.style.setProperty(`--mv-${k}`, tokens[k]));
+  keys.forEach((k) => {
+    root.style.setProperty(`--mv-${k}`, tokens[k]);
+    root.style.setProperty(`--${k}`, tokens[k]);
+  });
+  root.style.setProperty('--se', tokens.sh || tokens.sa);
   root.style.setProperty('--mv-nav', tokens.nav);
   root.style.setProperty('--mv-nav-t', tokens.navT);
   root.style.setProperty('--mv-nav-h', tokens.navH);

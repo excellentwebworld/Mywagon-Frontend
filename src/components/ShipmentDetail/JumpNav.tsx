@@ -46,10 +46,10 @@ export const JumpNav: React.FC<JumpNavProps> = ({
           <button
             key={tab.id}
             type="button"
-            className={`px-3.5 py-1.5 rounded-lg text-[12px] font-semibold whitespace-nowrap flex-shrink-0 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50 active:scale-95 ${
+            className={`px-3.5 py-1.5 rounded-lg text-[12px] font-semibold whitespace-nowrap flex-shrink-0 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 active:scale-95 ${
               isAct
-                ? 'bg-[#18181B] text-white shadow-sm border border-[#18181B]'
-                : 'bg-white text-[#5E5E6E] border border-[#E4E4E8] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8]'
+                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-sm border border-slate-900 dark:border-white font-bold'
+                : 'bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--surface-alt)] hover:text-[var(--text-primary)]'
             }`}
             onClick={() => onJump(tab.id)}
           >

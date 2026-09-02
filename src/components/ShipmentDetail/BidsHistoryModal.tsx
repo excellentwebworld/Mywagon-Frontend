@@ -28,39 +28,39 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
       return {
         label: t('counterOffer', 'Counter Offer'),
         dotBg: 'bg-[#F59E0B]',
-        badgeBg: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]',
-        icon: <ArrowRightLeft size={12} className="text-[#92400E]" />,
+        badgeBg: 'bg-[#FEF3C7] dark:bg-amber-950/60 text-[#92400E] dark:text-amber-300 border-[#FDE68A] dark:border-amber-800/60',
+        icon: <ArrowRightLeft size={12} className="text-[#92400E] dark:text-amber-400" />,
       };
     }
     if (act.includes('accept')) {
       return {
         label: t('accepted', 'Accepted'),
         dotBg: 'bg-[#10B981]',
-        badgeBg: 'bg-[#D1FAE5] text-[#065F46] border-[#A7F3D0]',
-        icon: <Check size={12} className="text-[#065F46]" />,
+        badgeBg: 'bg-[#D1FAE5] dark:bg-emerald-950/60 text-[#065F46] dark:text-emerald-300 border-[#A7F3D0] dark:border-emerald-800/60',
+        icon: <Check size={12} className="text-[#065F46] dark:text-emerald-400" />,
       };
     }
     if (act.includes('reject') || act.includes('decline')) {
       return {
         label: t('rejected', 'Rejected'),
         dotBg: 'bg-[#EF4444]',
-        badgeBg: 'bg-[#FEE2E2] text-[#991B1B] border-[#FECACA]',
-        icon: <X size={12} className="text-[#991B1B]" />,
+        badgeBg: 'bg-[#FEE2E2] dark:bg-rose-950/60 text-[#991B1B] dark:text-rose-300 border-[#FECACA] dark:border-rose-800/60',
+        icon: <X size={12} className="text-[#991B1B] dark:text-rose-400" />,
       };
     }
     if (act.includes('interest')) {
       return {
         label: t('interestExpressed', 'Interest Expressed'),
         dotBg: 'bg-[#8B5CF6]',
-        badgeBg: 'bg-[#EDE9FE] text-[#5B21B6] border-[#DDD6FE]',
-        icon: <Tag size={12} className="text-[#5B21B6]" />,
+        badgeBg: 'bg-[#EDE9FE] dark:bg-purple-950/60 text-[#5B21B6] dark:text-purple-300 border-[#DDD6FE] dark:border-purple-800/60',
+        icon: <Tag size={12} className="text-[#5B21B6] dark:text-purple-400" />,
       };
     }
     return {
       label: t('bidPlaced', 'Bid Placed'),
       dotBg: 'bg-[#3B82F6]',
-      badgeBg: 'bg-[#DBEAFE] text-[#1E40AF] border-[#BFDBFE]',
-      icon: <Tag size={12} className="text-[#1E40AF]" />,
+      badgeBg: 'bg-[#DBEAFE] dark:bg-blue-950/60 text-[#1E40AF] dark:text-blue-300 border-[#BFDBFE] dark:border-blue-800/60',
+      icon: <Tag size={12} className="text-[#1E40AF] dark:text-blue-400" />,
     };
   };
 
@@ -101,17 +101,17 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
+      className="mv-modal-bg fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-150"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-[620px] max-h-[85vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 relative"
+        className="mv-modal bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-[620px] max-h-[85vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 relative border border-[var(--border)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-[#E4E4E8] flex items-center justify-between bg-[#FAF9FD]">
+        <div className="mv-modal-header px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             {partner ? (
               <CarrierAvatar
@@ -122,16 +122,16 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
                 className="carrier-av rounded-full flex items-center justify-center font-bold flex-shrink-0 overflow-hidden text-xs shadow-2xs"
               />
             ) : (
-              <div className="w-8 h-8 rounded-lg bg-[#FAF5FF] border border-[#E9D5FF] text-[#9B51E0] flex items-center justify-center shadow-2xs shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 flex items-center justify-center shadow-2xs shrink-0">
                 <History size={16} />
               </div>
             )}
             <div className="min-w-0">
-              <h2 className="text-[16px] font-bold text-[#18181B] m-0 leading-tight truncate">
+              <h2 className="text-[16px] font-bold text-slate-900 dark:text-white m-0 leading-tight truncate">
                 {t('negotiationHistory', 'Negotiation History')}
                 {partner?.name ? ` · ${partner.name}` : ''}
               </h2>
-              <span className="text-[11px] text-[#64748B] block truncate">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block truncate">
                 {partner?.name
                   ? t('userNegotiationLog', 'Bidding and negotiation log for this transporter')
                   : t('negotiationTimelineSubtitle', 'Timeline of all offers, counter-bids, and responses')}
@@ -140,7 +140,7 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
           </div>
           <button
             type="button"
-            className="w-8 h-8 rounded-lg border border-[#E4E4E8] flex items-center justify-center text-[#9CA3AF] hover:text-[#4B5563] hover:bg-[#F4F4F5] transition-colors cursor-pointer bg-white shrink-0 ml-2"
+            className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer bg-white dark:bg-slate-800 shrink-0 ml-2"
             onClick={onClose}
             aria-label={t('close', 'Close')}
           >
@@ -176,10 +176,10 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
               return (
                 <div
                   key={bid.bidNumber}
-                  className="rounded-2xl border border-[#E9D5FF] bg-[#FAF9FE] p-4 sm:p-5 transition-all shadow-[0_2px_8px_rgba(155,81,224,0.03)]"
+                  className="rounded-2xl border border-purple-200 dark:border-purple-900/60 bg-purple-50/30 dark:bg-slate-950/60 p-4 sm:p-5 transition-all shadow-[0_2px_8px_rgba(155,81,224,0.03)]"
                 >
                   {/* Bid Group Header */}
-                  <div className="flex items-center justify-between gap-3 pb-3.5 mb-4 border-b border-[#EDE9FE] flex-wrap">
+                  <div className="flex items-center justify-between gap-3 pb-3.5 mb-4 border-b border-purple-200 dark:border-purple-900/60 flex-wrap">
                     <div className="flex items-center gap-2.5">
                       <CarrierAvatar
                         size={32}
@@ -193,7 +193,7 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#9B51E0] text-white">
                             {t('bid', 'Bid')} #{bid.bidNumber}
                           </span>
-                          <span className="font-bold text-[14px] text-[#18181B]">
+                          <span className="font-bold text-[14px] text-slate-900 dark:text-white">
                             {bid.initiatorName}
                           </span>
                         </div>
@@ -201,17 +201,17 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
                     </div>
 
                     <div className="text-right">
-                      <span className="text-[10px] font-semibold text-[#64748B] block uppercase tracking-wider">
+                      <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">
                         {t('initialBidPrice', 'Initial Bid')}
                       </span>
-                      <span className="font-bold font-mono text-[14px] text-[#9B51E0]">
+                      <span className="font-bold font-mono text-[14px] text-purple-700 dark:text-purple-300">
                         € {bid.price}
                       </span>
                     </div>
                   </div>
 
                   {/* Vertical Timeline Stepper */}
-                  <div className="relative pl-6 space-y-4 before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-[#E2E8F0]">
+                  <div className="relative pl-6 space-y-4 before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-200 dark:before:bg-slate-800">
                     {timelineEvents.map((neg, nIdx) => {
                       const badge = getActionBadge(neg.action);
                       const isLast = nIdx === timelineEvents.length - 1;
@@ -220,12 +220,12 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
                         <div key={neg.id || nIdx} className="relative group">
                           {/* Timeline Dot */}
                           <div
-                            className={`absolute -left-[24px] top-1.5 w-[14px] h-[14px] rounded-full border-2 border-white shadow-xs flex items-center justify-center ${badge.dotBg}`}
+                            className={`absolute -left-[24px] top-1.5 w-[14px] h-[14px] rounded-full border-2 border-white dark:border-slate-900 shadow-xs flex items-center justify-center ${badge.dotBg}`}
                           />
 
                           {/* Event Card */}
-                          <div className={`rounded-xl border p-3 bg-white transition-all shadow-2xs ${
-                            isLast ? 'border-[#D8B4FE] ring-1 ring-[#9B51E0]/15' : 'border-[#E2E8F0]'
+                          <div className={`rounded-xl border p-3 bg-white dark:bg-slate-900 transition-all shadow-2xs ${
+                            isLast ? 'border-purple-300 dark:border-purple-700 ring-1 ring-purple-500/15' : 'border-slate-200 dark:border-slate-800'
                           }`}>
                             <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
                               <div className="flex items-center gap-1.5">
@@ -233,13 +233,13 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
                                   {badge.icon}
                                   <span>{badge.label}</span>
                                 </span>
-                                <span className="text-[12px] font-semibold text-[#18181B]">
+                                <span className="text-[12px] font-semibold text-slate-900 dark:text-white">
                                   {neg.userName}
                                 </span>
                               </div>
 
                               {neg.date && (
-                                <div className="flex items-center gap-1 text-[11px] text-[#8E8E9A]">
+                                <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
                                   <Clock size={11} />
                                   <span>{neg.date}</span>
                                 </div>
@@ -249,10 +249,10 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
                             {/* Price Badge */}
                             {neg.price && (
                               <div className="mt-2 flex items-center gap-2">
-                                <span className="text-[11px] text-[#64748B] font-medium">
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                                   {t('amount', 'Amount')}:
                                 </span>
-                                <span className="px-2.5 py-0.5 rounded-md text-[13px] font-bold font-mono bg-[#FAF5FF] text-[#9B51E0] border border-[#E9D5FF]">
+                                <span className="px-2.5 py-0.5 rounded-md text-[13px] font-bold font-mono bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                                   € {neg.price}
                                 </span>
                               </div>
@@ -260,8 +260,8 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
 
                             {/* Optional Notes Box */}
                             {neg.notes && (
-                              <div className="mt-2 p-2.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-[12px] text-[#475569] flex items-start gap-1.5">
-                                <MessageSquare size={13} className="text-[#94A3B8] flex-shrink-0 mt-0.5" />
+                              <div className="mt-2 p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[12px] text-slate-700 dark:text-slate-300 flex items-start gap-1.5">
+                                <MessageSquare size={13} className="text-slate-400 dark:text-slate-500 flex-shrink-0 mt-0.5" />
                                 <span className="italic leading-relaxed">“{neg.notes}”</span>
                               </div>
                             )}
@@ -274,8 +274,8 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
               );
             })
           ) : (
-            <div className="text-center py-12 text-[#9CA3AF]">
-              <AlertCircle size={32} className="mx-auto mb-2 text-[#CBD5E1]" />
+            <div className="text-center py-12 text-slate-400 dark:text-slate-500">
+              <AlertCircle size={32} className="mx-auto mb-2 text-slate-400 dark:text-slate-600" />
               <p className="text-[13px] font-medium m-0">
                 {partner?.name
                   ? t('noBidsHistoryForPartner', `No negotiation history recorded yet for ${partner.name}.`)

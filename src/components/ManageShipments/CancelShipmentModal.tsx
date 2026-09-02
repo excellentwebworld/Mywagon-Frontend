@@ -162,11 +162,11 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      className="mv-modal-bg fixed inset-0 z-[9999] flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-[540px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 relative"
+        className="mv-modal bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-[540px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 relative border border-[var(--border)]"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -175,7 +175,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
         {/* Close Icon Button at Top Right */}
         <button
           type="button"
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer bg-transparent border-0 p-1"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer bg-transparent border-0 p-1"
           onClick={onClose}
           aria-label={t('cancel', 'Close')}
         >
@@ -187,13 +187,13 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
           {/* Centered Title */}
           <h2
             id="cancel-shipment-title"
-            className="text-[17px] md:text-[19px] font-bold text-[#1E1B4B] text-center mb-6 mt-2 leading-snug"
+            className="text-[17px] md:text-[19px] font-bold text-slate-900 dark:text-white text-center mb-6 mt-2 leading-snug"
           >
             {title}
           </h2>
 
           {isDraft ? (
-            <p className="text-sm text-gray-600 text-center mb-6">
+            <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-6">
               {t('draftDeleteIntro', { id: shipment?.autoId || shipment?.id || '' }) ||
                 `Are you sure you want to permanently delete draft ${shipment?.autoId || shipment?.id || ''}? This cannot be undone.`}
             </p>
@@ -205,7 +205,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
             <div className="flex flex-col gap-4">
               {/* Radio options list */}
               {reasons.length === 0 ? (
-                <p className="text-sm text-gray-600 text-center">
+                <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
                   {t('cancelNoReasons', 'No cancellation reasons are available for this status. Please add any optional notes below.')}
                 </p>
               ) : (
@@ -216,7 +216,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
                       <label
                         key={r.id}
                         className={`flex items-center gap-3 text-[14px] cursor-pointer select-none transition-colors ${
-                          isChecked ? 'text-[#DC2626] font-medium' : 'text-[#374151] hover:text-[#18181B]'
+                          isChecked ? 'text-red-600 dark:text-red-400 font-medium' : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                         }`}
                       >
                         <input
@@ -227,7 +227,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
                             setReasonId(r.id);
                             setError(null);
                           }}
-                          className="w-4 h-4 text-[#DC2626] accent-[#DC2626] cursor-pointer"
+                          className="w-4 h-4 text-red-600 accent-red-600 cursor-pointer"
                         />
                         <span>{r.reason}</span>
                       </label>
@@ -239,10 +239,10 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
               {/* Additional Notes Field (Always Rendered, matching Laravel shipper panel) */}
               <div className="flex flex-col gap-1.5 mt-3">
                 <div className="flex items-center justify-center gap-1.5 text-center">
-                  <label htmlFor="cancel-notes" className="text-[13px] font-semibold text-[#1E1B4B]">
+                  <label htmlFor="cancel-notes" className="text-[13px] font-semibold text-slate-900 dark:text-white">
                     {t('cancelNotesLabel', 'Additional Notes')}
                   </label>
-                  <span className="text-[12px] text-[#6B7280]">
+                  <span className="text-[12px] text-slate-500 dark:text-slate-400">
                     ({isOther ? t('required', 'Required') : t('optional', 'Optional')})
                   </span>
                 </div>
@@ -260,20 +260,20 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
                     setNotes(e.target.value);
                     if (e.target.value.trim()) setError(null);
                   }}
-                  className="text-[13px] p-3 rounded-lg border border-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9B51E0]/20 focus:border-[#9B51E0] resize-y w-full text-[#18181B]"
+                  className="text-[13px] p-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 resize-y w-full"
                 />
 
                 <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-[11px] text-[#6B7280]">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     {t('cancelNotesHelp', 'Explain what happened to help us improve our service')}
                   </span>
-                  <span className="text-[11px] text-[#6B7280] font-mono">{notes.length}/100</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{notes.length}/100</span>
                 </div>
               </div>
 
               {/* Cancellation Charge Notice Banner */}
-              <div className="mt-2 bg-[#FEF2F2] border-l-[3px] border-[#DC2626] rounded-md p-3">
-                <p className="text-[11px] text-[#DC2626] italic leading-relaxed m-0">
+              <div className="mt-2 bg-red-50 dark:bg-red-950/40 border-l-[3px] border-red-500 rounded-md p-3">
+                <p className="text-[11px] text-red-600 dark:text-red-300 italic leading-relaxed m-0">
                   {chargeMessage || defaultChargeMsg}
                 </p>
               </div>
@@ -281,7 +281,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
           )}
 
           {error && (
-            <p className="text-xs text-[#DC2626] text-center font-medium mt-3 m-0 bg-red-50 p-2 rounded-lg border border-red-100">
+            <p className="text-xs text-red-600 dark:text-red-400 text-center font-medium mt-3 m-0 bg-red-50 dark:bg-red-950/50 p-2 rounded-lg border border-red-200 dark:border-red-800">
               {error}
             </p>
           )}
@@ -290,7 +290,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
           <div className="flex items-center justify-center gap-4 mt-6">
             <button
               type="button"
-              className="w-40 py-2.5 rounded-lg border border-[#E5E7EB] bg-white text-[#1E1B4B] font-semibold text-[13px] hover:bg-gray-50 transition-colors cursor-pointer"
+              className="w-40 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-[13px] hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
               onClick={onClose}
               disabled={submitting}
             >
@@ -298,7 +298,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
             </button>
             <button
               type="button"
-              className="w-40 py-2.5 rounded-lg bg-[#1E1B4B] text-white font-semibold text-[13px] hover:bg-[#2D286B] disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-sm"
+              className="w-40 py-2.5 rounded-lg bg-slate-900 dark:bg-purple-600 text-white font-semibold text-[13px] hover:bg-slate-800 dark:hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-sm border-0"
               disabled={submitting || (isDraft ? false : loading)}
               onClick={() => void handleSubmit()}
             >

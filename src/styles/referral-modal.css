@@ -147,7 +147,7 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
-  background: #FAFAFC;
+  background: var(--ref-bg);
 }
 
 .ref-body::-webkit-scrollbar {
@@ -214,15 +214,15 @@
 
 .ref-input-row {
   display: flex;
-  border: 1.5px dashed #c4b5fd;
+  border: 1.5px dashed var(--ref-ac);
   border-radius: var(--ref-rs);
   overflow: hidden;
-  background: #faf5ff;
+  background: var(--ref-ap);
   transition: border-color 0.15s ease;
 }
 
 .ref-input-row:focus-within {
-  border-color: var(--ref-ac);
+  border-color: var(--ref-ah);
 }
 
 .ref-input-row input {
@@ -233,14 +233,14 @@
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
   font-size: 13px;
   font-weight: 600;
-  color: #5b21b6;
+  color: var(--ref-ac);
   outline: none;
 }
 
 .ref-input-row button {
   padding: 0 14px;
   border: none;
-  background: rgba(108, 58, 237, 0.08);
+  background: var(--ref-al);
   color: var(--ref-ac);
   font-size: 11.5px;
   font-weight: 600;
@@ -359,7 +359,7 @@
 
 .stat-box {
   padding: 10px 8px;
-  background: #FAFAFC;
+  background: var(--ref-sa);
   border: 1px solid var(--ref-bd);
   border-radius: var(--ref-rs);
   text-align: center;
@@ -435,6 +435,45 @@
 
 .reward-card.earned .rw-lbl { color: #047857; }
 .reward-card.pending .rw-lbl { color: #92400e; }
+
+/* Dark Mode Overrides */
+.dark .ref-modal {
+  border: 1px solid var(--ref-bd);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+.dark .reward-card.earned {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+.dark .reward-card.earned .rw-val,
+.dark .reward-card.earned .rw-lbl {
+  color: #34D399;
+}
+
+.dark .reward-card.pending {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+.dark .reward-card.pending .rw-val,
+.dark .reward-card.pending .rw-lbl {
+  color: #FBBF24;
+}
+
+.dark .share-msg-btn {
+  background: var(--ref-ac);
+  color: #ffffff;
+}
+
+.dark .share-msg-btn:hover {
+  background: var(--ref-ah);
+  box-shadow: 0 4px 14px rgba(155, 81, 224, 0.35);
+}
+
+.dark .ref-skel {
+  background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.14) 50%, rgba(255,255,255,0.06) 75%);
+  background-size: 200% 100%;
+}
 
 /* Available Credit Balance */
 .credit-mini {

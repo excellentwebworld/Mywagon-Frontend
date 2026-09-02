@@ -95,9 +95,9 @@ export const BidsCard: React.FC<BidsCardProps> = ({
       count={sortedPartners.length}
       headerExtra={
         numStartingPrice != null && numStartingPrice > 0 ? (
-          <div className="flex items-center gap-1.5 text-[13px] bg-[#FAF5FF] border border-[#E9D5FF] px-2.5 py-1 rounded-lg">
-            <span className="text-[#64748B] font-medium text-[11px]">{t('startingPrice', 'Starting Price')}:</span>
-            <span className="font-bold font-mono text-[#9B51E0] text-[13px]">
+          <div className="flex items-center gap-1.5 text-[13px] bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 px-2.5 py-1 rounded-lg">
+            <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px]">{t('startingPrice', 'Starting Price')}:</span>
+            <span className="font-bold font-mono text-purple-700 dark:text-purple-300 text-[13px]">
               € {numStartingPrice.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
@@ -107,7 +107,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
       onToggle={onToggle}
     >
       {sortedPartners.length === 0 ? (
-        <p className="text-[12px] m-0 py-2.5 text-center text-[#71717A]">
+        <p className="text-[12px] m-0 py-2.5 text-center text-slate-500 dark:text-slate-400">
           {isPrivateLoad
             ? t('noPartnersInvited', 'No partners invited yet.')
             : t('noBidsReceivedYet', 'No bids received yet. Transporters will appear here once they place a bid.')}
@@ -122,8 +122,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
           return (
             <div
               key={item.id}
-              className="py-2.5"
-              style={{ borderTop: idx > 0 ? '1px solid #E4E4E8' : 'none' }}
+              className={`py-2.5 ${idx > 0 ? 'border-t border-slate-200 dark:border-slate-800' : ''}`}
             >
               <div className="flex items-start gap-3">
                 {/* Transporter Avatar */}
@@ -141,12 +140,11 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                       <button
                         type="button"
                         onClick={() => handleOpenProfile(item)}
-                        className="font-bold text-[13px] text-left hover:underline cursor-pointer"
-                        style={{ color: '#18181B', background: 'none', border: 'none', padding: 0 }}
+                        className="font-bold text-[13px] text-left text-slate-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 hover:underline cursor-pointer bg-transparent border-0 p-0"
                       >
                         {item.name}
                       </button>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#F0F0F3] text-[#5E5E6E]">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                         {isFreelancer ? 'Freelancer' : 'Carrier'}
                       </span>
                     </div>
@@ -154,7 +152,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                     {/* Price or Actions */}
                     {item.bidAmount != null ? (
                       <div className="text-right">
-                        <span className="font-bold font-mono text-[14px]" style={{ color: '#9B51E0' }}>
+                        <span className="font-bold font-mono text-[14px] text-purple-700 dark:text-purple-300">
                           € {item.bidAmount.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -164,7 +162,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                           type="button"
                           disabled={cancellingInviteId === item.userId}
                           onClick={() => onCancelInvite(item)}
-                          className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer border border-[#E4E4E8] bg-white text-[#DC2626] hover:bg-red-50 hover:border-[#FECACA] flex items-center gap-1 disabled:opacity-60"
+                          className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 hover:border-red-200 dark:hover:border-red-900 flex items-center gap-1 disabled:opacity-60"
                         >
                           {cancellingInviteId === item.userId ? (
                             <Loader2 size={11} className="animate-spin" />
@@ -175,9 +173,9 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                     )}
                   </div>
 
-                  <div className="text-[11px] mt-0.5 flex items-center gap-1.5 flex-wrap" style={{ color: '#8E8E9A' }}>
+                  <div className="text-[11px] mt-0.5 flex items-center gap-1.5 flex-wrap text-slate-500 dark:text-slate-400">
                     {isShipperWaiting ? (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                         {t('counterBidSentWaiting', 'Counter-bid sent · Waiting response')}
                       </span>
                     ) : (
@@ -193,8 +191,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                           type="button"
                           disabled={acceptingBidId === item.id || decliningBidId === item.id}
                           onClick={() => onAcceptBid(item)}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white bg-[#059669] hover:opacity-90 cursor-pointer shadow-2xs disabled:opacity-60"
-                          style={{ border: 'none' }}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 cursor-pointer shadow-2xs disabled:opacity-60 border-0"
                         >
                           {acceptingBidId === item.id ? (
                             <Loader2 size={12} className="animate-spin" />
@@ -210,7 +207,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                           type="button"
                           disabled={acceptingBidId === item.id || decliningBidId === item.id}
                           onClick={() => onCounterBid(item)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#E4E4E8] text-[#18181B] hover:bg-slate-50 cursor-pointer transition-colors shadow-2xs disabled:opacity-60"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors shadow-2xs disabled:opacity-60"
                         >
                           <ArrowRightLeft size={12} />
                           <span>{t('counterBid', 'Counter')}</span>
@@ -222,7 +219,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                           type="button"
                           disabled={acceptingBidId === item.id || decliningBidId === item.id}
                           onClick={() => onRejectBid(item)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#FECACA] text-[#DC2626] hover:bg-red-50 cursor-pointer transition-colors shadow-2xs disabled:opacity-60"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white dark:bg-slate-800 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer transition-colors shadow-2xs disabled:opacity-60"
                         >
                           {decliningBidId === item.id ? (
                             <Loader2 size={12} className="animate-spin" />
@@ -237,7 +234,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                         type="button"
                         onClick={() => onViewHistory && onViewHistory(item)}
                         title={t('biddingHistory', 'Bidding history')}
-                        className="p-1.5 rounded-lg border bg-white border-[#E4E4E8] text-[#5E5E6E] hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
+                        className="p-1.5 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer shadow-2xs"
                       >
                         <History size={13} />
                       </button>
@@ -247,7 +244,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                         type="button"
                         onClick={() => onChat ? onChat(item) : undefined}
                         title={t('chat', 'Chat')}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-slate-50 cursor-pointer transition-colors shadow-2xs"
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors shadow-2xs"
                       >
                         <MessageSquare size={12} />
                         <span>{t('chat', 'Chat')}</span>

@@ -197,7 +197,7 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
           </div>
 
           {/* Real Route Map */}
-          <div className="rounded-xl overflow-hidden mb-3 border border-[#E4E4E8] bg-slate-50">
+          <div className="rounded-xl overflow-hidden mb-3 border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900">
             <RouteMap
               stops={enrichedStops}
               polylinePath={routeLegs.polylinePath}
@@ -210,16 +210,16 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
           </div>
 
           {/* Performance on this Load */}
-          <div className="p-2.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] mb-3">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] mb-1">
+          <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 mb-3">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
               {t('performanceOnThisLoad', 'Performance on this load')}
             </div>
-            <div className="flex items-center justify-between text-[12px] font-medium text-[#18181B] flex-wrap gap-2">
-              <span className="flex items-center gap-1 text-[#059669]">
+            <div className="flex items-center justify-between text-[12px] font-medium text-slate-900 dark:text-white flex-wrap gap-2">
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 size={13} />
                 <span>{t('pickupOnTime', 'Pickup completed on schedule')}</span>
               </span>
-              <span className="text-[11px] text-[#64748B]">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
                 {t('drivingSpeedNormal', 'Normal transit speed')}
               </span>
             </div>
@@ -229,12 +229,7 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
           <button
             type="button"
             onClick={onShare}
-            className="w-full py-2 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-colors hover:bg-black/5 cursor-pointer"
-            style={{
-              background: '#FFFFFF',
-              border: '1px solid #E4E4E8',
-              color: '#5E5E6E',
-            }}
+            className="w-full py-2 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-colors bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer shadow-2xs"
           >
             <Share2 size={13} />
             <span>{t('shareLiveTracking', 'Share live tracking')}</span>
@@ -258,11 +253,11 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           {/* Final Delivery Status: On Time vs Delayed */}
           <span
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
-            style={{
-              background: isDelayed ? '#FEF3C7' : '#ECFDF5',
-              color: isDelayed ? '#B45309' : '#059669',
-            }}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+              isDelayed
+                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+            }`}
           >
             <span
               className="rounded-full"
@@ -272,14 +267,14 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
           </span>
 
           {/* Route toggle */}
-          <div className="flex items-center gap-2 p-1 rounded-full bg-[#F6F7FB] border border-[#E5E7EB] w-fit">
+          <div className="flex items-center gap-2 p-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 w-fit">
             <button
               type="button"
               onClick={() => setRouteMode('actual')}
               className={`px-3.5 py-1 rounded-full text-[12px] font-semibold transition-all cursor-pointer ${
                 routeMode === 'actual'
-                  ? 'bg-[#C5915D] text-white shadow-xs'
-                  : 'bg-white text-[#475569] border border-[#D1D5DB] hover:bg-gray-50'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
               {t('actualRoute', 'Actual Route')}
@@ -289,8 +284,8 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
               onClick={() => setRouteMode('suggested')}
               className={`px-3.5 py-1 rounded-full text-[12px] font-semibold transition-all cursor-pointer ${
                 routeMode === 'suggested'
-                  ? 'bg-[#8B5CF6] text-white shadow-xs'
-                  : 'bg-white text-[#475569] border border-[#D1D5DB] hover:bg-gray-50'
+                  ? 'bg-purple-600 text-white shadow-xs'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
               {t('suggestedRoute', 'Suggested Route')}
@@ -299,7 +294,7 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
         </div>
       )}
 
-      <div className="rounded-xl overflow-hidden border border-[#E4E4E8] bg-slate-50">
+      <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900">
         <RouteMap
           stops={enrichedStops}
           polylinePath={activePolylinePath}

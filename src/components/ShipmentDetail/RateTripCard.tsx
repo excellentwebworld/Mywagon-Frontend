@@ -56,27 +56,26 @@ export const RateTripCard: React.FC<RateTripCardProps> = ({
       expanded={expanded}
       onToggle={onToggle}
     >
-      <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+      <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
         {isDone ? (
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-semibold text-[#18181B]">
+              <span className="text-[13px] font-semibold text-slate-900 dark:text-white">
                 {t('deliveredOnTime', 'Delivered on time?')}
               </span>
               {carrierName && (
-                <span className="text-[11px] text-[#64748B]">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
                   ({carrierName})
                 </span>
               )}
             </div>
 
             <span
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
-              style={{
-                background: selectedOnTime !== false ? '#ECFDF5' : '#FEF2F2',
-                color: selectedOnTime !== false ? '#059669' : '#DC2626',
-                border: selectedOnTime !== false ? '1px solid #A7F3D0' : '1px solid #FECACA',
-              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+                selectedOnTime !== false
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                  : 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
+              }`}
             >
               {selectedOnTime !== false ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
               <span>
@@ -89,11 +88,11 @@ export const RateTripCard: React.FC<RateTripCardProps> = ({
         ) : (
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-semibold text-[#18181B]">
+              <span className="text-[13px] font-semibold text-slate-900 dark:text-white">
                 {t('wasDeliveryOnTime', 'Was the delivery on time?')}
               </span>
               {carrierName && (
-                <span className="text-[11px] text-[#64748B]">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
                   ({carrierName})
                 </span>
               )}
@@ -104,7 +103,7 @@ export const RateTripCard: React.FC<RateTripCardProps> = ({
                 type="button"
                 disabled={submitting}
                 onClick={() => handleSelect(true)}
-                className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer bg-white text-[#334155] border border-[#CBD5E1] hover:bg-slate-50 hover:border-[#10B981] hover:text-[#10B981] flex items-center gap-1.5 disabled:opacity-60"
+                className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-emerald-500 hover:text-emerald-500 flex items-center gap-1.5 disabled:opacity-60"
               >
                 {submitting && selectedOnTime === true ? <Loader2 size={12} className="animate-spin" /> : null}
                 <span>{t('yes', 'Yes')}</span>
@@ -114,7 +113,7 @@ export const RateTripCard: React.FC<RateTripCardProps> = ({
                 type="button"
                 disabled={submitting}
                 onClick={() => handleSelect(false)}
-                className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer bg-white text-[#334155] border border-[#CBD5E1] hover:bg-slate-50 hover:border-[#EF4444] hover:text-[#EF4444] flex items-center gap-1.5 disabled:opacity-60"
+                className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-red-500 hover:text-red-500 flex items-center gap-1.5 disabled:opacity-60"
               >
                 {submitting && selectedOnTime === false ? <Loader2 size={12} className="animate-spin" /> : null}
                 <span>{t('no', 'No')}</span>

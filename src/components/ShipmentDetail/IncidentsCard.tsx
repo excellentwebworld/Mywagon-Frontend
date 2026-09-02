@@ -53,7 +53,7 @@ export const IncidentsCard: React.FC<IncidentsCardProps> = ({
     >
       <div>
         {incidents.length === 0 ? (
-          <p className="text-[12px]" style={{ color: '#8E8E9A' }}>
+          <p className="text-[12px] text-slate-500 dark:text-slate-400">
             {t('noIncidentsReported', 'No incidents or active exceptions on this trip.')}
           </p>
         ) : (
@@ -61,8 +61,7 @@ export const IncidentsCard: React.FC<IncidentsCardProps> = ({
             {incidents.map((inc, idx) => (
               <div
                 key={inc.id}
-                className="flex items-start gap-2.5 py-2"
-                style={{ borderTop: idx > 0 ? '1px solid #E4E4E8' : 'none' }}
+                className={`flex items-start gap-2.5 py-2 ${idx > 0 ? 'border-t border-slate-200 dark:border-slate-800' : ''}`}
               >
                 <span
                   className="rounded-full flex-shrink-0 mt-1.5"
@@ -74,14 +73,13 @@ export const IncidentsCard: React.FC<IncidentsCardProps> = ({
                   aria-hidden="true"
                 />
                 <div className="text-[12px] flex-1 min-w-0">
-                  <div className="font-semibold" style={{ color: '#18181B' }}>
+                  <div className="font-semibold text-slate-900 dark:text-white">
                     {inc.title}
                   </div>
-                  <div className="mt-0.5" style={{ color: '#8E8E9A' }}>
+                  <div className="mt-0.5 text-slate-500 dark:text-slate-400">
                     {inc.meta} · {t('severity', 'Severity')}: {inc.severity} ·{' '}
                     <span
-                      className="font-semibold"
-                      style={{ color: inc.resolved ? '#059669' : '#EF4444' }}
+                      className={`font-semibold ${inc.resolved ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}
                     >
                       {inc.resolved ? t('resolved', 'Resolved') : t('open', 'Open')}
                     </span>

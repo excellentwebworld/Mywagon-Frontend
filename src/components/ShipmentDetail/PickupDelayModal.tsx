@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Clock } from 'lucide-react';
+import { X, Clock, Loader2 } from 'lucide-react';
 
 const DELAY_BUCKETS = [
   { value: 'under_10', labelKey: 'delayUnder10', fallback: 'Under 10 minutes' },
@@ -65,33 +65,35 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="mv-modal-bg fixed inset-0 z-[9999] flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-[480px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 relative"
+        className="mv-modal bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-[480px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 relative border border-[var(--border)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-[#E4E4E8] flex items-center justify-between bg-[#F9FAFB]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#9B51E0]/10 text-[#9B51E0] flex items-center justify-center">
+        <div className="mv-modal-header px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center">
               <Clock size={18} />
             </div>
             <div>
-              <h2 className="text-[16px] font-bold text-[#18181B] m-0">
-                {t('driverPickupDelay', 'Driver Pickup Delay')}
+              <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white m-0">
+                {t('pickupDelayReport', 'Pickup Delay Report')}
               </h2>
               {locationLabel && (
-                <p className="text-[12px] text-[#6B7280] m-0 mt-0.5">{locationLabel}</p>
+                <p className="text-[12px] text-slate-500 dark:text-slate-400 m-0 truncate max-w-[280px]">
+                  {locationLabel}
+                </p>
               )}
             </div>
           </div>
           <button
             type="button"
-            className="w-8 h-8 rounded-lg border border-[#E4E4E8] flex items-center justify-center text-[#9CA3AF] hover:text-[#4B5563] hover:bg-[#F4F4F5] transition-colors cursor-pointer bg-white"
+            className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer bg-white dark:bg-slate-800"
             onClick={onClose}
             aria-label={t('close', 'Close')}
           >
@@ -101,37 +103,37 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
 
         {/* Body */}
         <div className="p-6 flex flex-col gap-4">
-          <p className="text-[14px] text-[#374151] m-0 font-medium leading-relaxed">
+          <p className="text-[14px] text-slate-700 dark:text-slate-300 m-0 font-medium leading-relaxed">
             {t('wasDriverOnTimePickup', 'Was the driver on time for pickup?')}
           </p>
 
           <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2.5 text-[14px] text-[#18181B] cursor-pointer font-medium select-none">
+            <label className="flex items-center gap-2.5 text-[14px] text-slate-900 dark:text-slate-100 cursor-pointer font-medium select-none">
               <input
                 type="radio"
                 name="was_on_time"
                 checked={onTime}
                 onChange={() => setOnTime(true)}
-                className="w-4 h-4 text-[#9B51E0] accent-[#9B51E0] cursor-pointer"
+                className="w-4 h-4 text-purple-600 accent-purple-600 cursor-pointer"
               />
               <span>{t('yes', 'Yes')}</span>
             </label>
 
-            <label className="flex items-center gap-2.5 text-[14px] text-[#18181B] cursor-pointer font-medium select-none">
+            <label className="flex items-center gap-2.5 text-slate-900 dark:text-slate-100 text-[14px] cursor-pointer font-medium select-none">
               <input
                 type="radio"
                 name="was_on_time"
                 checked={!onTime}
                 onChange={() => setOnTime(false)}
-                className="w-4 h-4 text-[#9B51E0] accent-[#9B51E0] cursor-pointer"
+                className="w-4 h-4 text-purple-600 accent-purple-600 cursor-pointer"
               />
               <span>{t('no', 'No')}</span>
             </label>
           </div>
 
           {!onTime && (
-            <div className="flex flex-col gap-2.5 pt-2 border-t border-[#E5E7EB] animate-in fade-in duration-150">
-              <label htmlFor="delay-bucket" className="text-[13px] font-semibold text-[#18181B]">
+            <div className="flex flex-col gap-2.5 pt-2 border-t border-slate-200 dark:border-slate-800 animate-in fade-in duration-150">
+              <label htmlFor="delay-bucket" className="text-[13px] font-semibold text-slate-900 dark:text-white">
                 {t('howLongWasDelay', 'How long was the delay?')}
               </label>
 
@@ -139,7 +141,7 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
                 id="delay-bucket"
                 value={bucket}
                 onChange={(e) => setBucket(e.target.value)}
-                className="text-[13px] p-2.5 rounded-lg border border-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9B51E0]/20 focus:border-[#9B51E0] bg-white text-[#18181B] w-full"
+                className="text-[13px] p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white w-full"
               >
                 {DELAY_BUCKETS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -151,7 +153,7 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
               {bucket === 'exact' && (
                 <div className="flex items-center gap-3 mt-1">
                   <div className="flex-1 flex flex-col gap-1">
-                    <label htmlFor="delay-hours" className="text-[11px] text-[#6B7280]">
+                    <label htmlFor="delay-hours" className="text-[11px] text-slate-500 dark:text-slate-400">
                       {t('hours', 'Hours')}
                     </label>
                     <input
@@ -162,12 +164,12 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
                       placeholder="0"
                       value={hours || ''}
                       onChange={(e) => setHours(Number(e.target.value) || 0)}
-                      className="text-[13px] p-2 rounded-lg border border-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9B51E0]/20 focus:border-[#9B51E0] w-full"
+                      className="text-[13px] p-2 rounded-lg border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white w-full"
                     />
                   </div>
 
                   <div className="flex-1 flex flex-col gap-1">
-                    <label htmlFor="delay-minutes" className="text-[11px] text-[#6B7280]">
+                    <label htmlFor="delay-minutes" className="text-[11px] text-slate-500 dark:text-slate-400">
                       {t('minutes', 'Minutes')}
                     </label>
                     <input
@@ -178,7 +180,7 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
                       placeholder="0"
                       value={minutes || ''}
                       onChange={(e) => setMinutes(Number(e.target.value) || 0)}
-                      className="text-[13px] p-2 rounded-lg border border-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9B51E0]/20 focus:border-[#9B51E0] w-full"
+                      className="text-[13px] p-2 rounded-lg border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white w-full"
                     />
                   </div>
                 </div>
@@ -188,10 +190,10 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-[#E4E4E8] bg-[#F9FAFB] flex items-center justify-end gap-3">
+        <div className="mv-modal-footer px-6 py-3.5 border-t border-[var(--border)] flex items-center justify-end gap-3">
           <button
             type="button"
-            className="px-4 py-2 rounded-lg border border-[#E5E7EB] bg-white text-[#374151] font-semibold text-[13px] hover:bg-gray-50 transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-[13px] hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             onClick={onClose}
             disabled={submitting}
           >
@@ -199,11 +201,19 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
           </button>
           <button
             type="button"
-            className="px-5 py-2 rounded-lg bg-[#9B51E0] text-white font-semibold text-[13px] hover:bg-[#8A3FD4] disabled:opacity-50 transition-colors cursor-pointer shadow-sm"
+            className="px-5 py-2 rounded-lg text-white font-semibold text-[13px] flex items-center gap-2 cursor-pointer shadow-sm transition-all disabled:opacity-50"
+            style={{ background: '#9B51E0' }}
             onClick={handleSubmit}
             disabled={submitting}
           >
-            {submitting ? t('submitting', 'Submitting…') : t('submit', 'Submit')}
+            {submitting ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                <span>{t('submitting', 'Submitting...')}</span>
+              </>
+            ) : (
+              <span>{t('submitReport', 'Submit Report')}</span>
+            )}
           </button>
         </div>
       </div>
@@ -211,4 +221,3 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
     document.body
   );
 };
-

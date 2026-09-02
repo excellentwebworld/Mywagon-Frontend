@@ -29,7 +29,7 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
   return (
     <section
       id={id}
-      className={`rounded-2xl mb-4 overflow-hidden bg-white border border-[#E4E4E8] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 ${className}`}
+      className={`mv-surface-card rounded-2xl mb-4 overflow-hidden bg-[var(--surface)] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 ${className}`}
       style={{ breakInside: 'avoid' }}
     >
       <div className="w-full flex items-center justify-between px-4 py-3 select-none">
@@ -37,17 +37,17 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
           type="button"
           aria-expanded={expanded}
           onClick={onToggle}
-          className="flex-1 flex items-center gap-2.5 text-left rounded-lg p-1 -m-1 transition-colors hover:bg-[#F8F7FC] active:scale-[0.998] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+          className="flex-1 flex items-center gap-2.5 text-left rounded-lg p-1 -m-1 transition-colors hover:bg-[var(--surface-alt)] active:scale-[0.998] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
         >
           {icon && (
-            <span className="flex-shrink-0 flex items-center text-[#9B51E0]">
+            <span className="flex-shrink-0 flex items-center text-purple-600 dark:text-purple-400">
               {icon}
             </span>
           )}
-          <h3 className="font-semibold text-[14px] text-[#18181B] flex-1 flex items-center gap-2 m-0 leading-tight">
+          <h3 className="font-semibold text-[14px] text-slate-900 dark:text-white flex-1 flex items-center gap-2 m-0 leading-tight">
             {title}
             {count != null && count !== '' && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F0F0F3] text-[#5E5E6E] tracking-tight">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-alt)] text-[var(--text-secondary)] tracking-tight">
                 {count}
               </span>
             )}
@@ -64,7 +64,7 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
             type="button"
             aria-expanded={expanded}
             onClick={onToggle}
-            className="p-1.5 rounded-lg text-[#8E8E9A] hover:text-[#18181B] hover:bg-[#F8F7FC] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+            className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
             aria-label={expanded ? 'Collapse section' : 'Expand section'}
           >
             <ChevronDown

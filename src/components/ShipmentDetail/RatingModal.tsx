@@ -47,19 +47,19 @@ export const RatingModal: React.FC<RatingModalProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="mv-modal-bg fixed inset-0 z-[9999] flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-[480px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 relative p-6 sm:p-8"
+        className="mv-modal bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-[480px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 relative p-6 sm:p-8 border border-[var(--border)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           type="button"
-          className="absolute top-4 right-4 text-[#8E8E9A] hover:text-[#18181B] transition-colors p-1 cursor-pointer"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 cursor-pointer"
           onClick={onClose}
           aria-label={t('close', 'Close')}
         >
@@ -68,12 +68,12 @@ export const RatingModal: React.FC<RatingModalProps> = ({
 
         {/* Modal Header */}
         <div className="text-center mb-6">
-          <h2 className="text-[18px] font-bold text-[#18181B] m-0">
+          <h2 className="text-[18px] font-bold text-slate-900 dark:text-white m-0">
             {t('ratingsAndReviews', 'Ratings & Reviews')}
           </h2>
-          <p className="text-[13px] text-[#5E5E6E] mt-2 mb-0">
+          <p className="text-[13px] text-slate-600 dark:text-slate-400 mt-2 mb-0">
             {t('rateAndReviewThe', 'Rate & Review the')}{' '}
-            <span className="text-[#9B51E0] font-semibold">
+            <span className="text-purple-600 dark:text-purple-400 font-semibold">
               {targetName ? `${targetLabel} (${targetName})` : targetLabel}
             </span>{' '}
             {t('forCompletedLoad', 'for the completed load')}
@@ -81,7 +81,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
         </div>
 
         {/* Star Rating Area */}
-        <div className="bg-[#F8FAFC] rounded-xl p-4 border border-[#E2E8F0] mb-5">
+        <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-4 border border-slate-200 dark:border-slate-700 mb-5">
           <div className="flex items-center justify-center gap-3">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
@@ -97,15 +97,15 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                   size={36}
                   className={`transition-colors ${
                     star <= activeRating
-                      ? 'text-[#F59E0B] fill-[#F59E0B]'
-                      : 'text-[#D1D5DB] fill-transparent'
+                      ? 'text-amber-500 fill-amber-500'
+                      : 'text-slate-300 dark:text-slate-600 fill-transparent'
                   }`}
                 />
               </button>
             ))}
           </div>
           {rating > 0 && (
-            <div className="text-center text-[12px] font-bold text-[#F59E0B] mt-2">
+            <div className="text-center text-[12px] font-bold text-amber-500 mt-2">
               {rating} / 5 {t('stars', 'Stars')}
             </div>
           )}
@@ -114,7 +114,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
         {/* Review Textarea */}
         <div className="mb-6">
           <textarea
-            className="w-full p-3.5 rounded-xl border border-[#E4E4E8] bg-[#F9FAFB] text-[13px] text-[#18181B] placeholder-[#9CA3AF] focus:bg-white focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0] outline-none transition-all resize-none min-h-[95px]"
+            className="w-full p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-[13px] text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all resize-none min-h-[95px]"
             maxLength={300}
             placeholder={t('writeYourReview', 'Write your Review')}
             value={review}
@@ -136,11 +136,11 @@ export const RatingModal: React.FC<RatingModalProps> = ({
           </button>
           <button
             type="button"
-            className="w-full max-w-[280px] mx-auto py-2 text-[13px] font-semibold text-[#9B51E0] hover:underline cursor-pointer bg-transparent border-none block"
+            className="w-full max-w-[280px] mx-auto py-2 text-[13px] font-semibold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer bg-transparent border-none block"
             onClick={onClose}
             disabled={submitting}
           >
-            {t('notNow', 'Not Now')}
+            {t('notNow', 'Not now')}
           </button>
         </div>
       </div>

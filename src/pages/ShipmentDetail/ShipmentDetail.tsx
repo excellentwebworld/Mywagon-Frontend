@@ -440,11 +440,11 @@ export const ShipmentDetail: React.FC = () => {
   if (!shipment || !vm) {
     return (
       <div className="max-w-md mx-auto py-16 px-4 text-center">
-        <h2 className="text-xl font-bold text-[#18181B]">{t('shipmentNotFound', 'Shipment not found')}</h2>
-        <p className="mt-2 text-sm text-[#5E5E6E]">{error || t('shipmentNotFoundDesc', 'The requested load details could not be found.')}</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('shipmentNotFound', 'Shipment not found')}</h2>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{error || t('shipmentNotFoundDesc', 'The requested load details could not be found.')}</p>
         <Link
           to="/shipments"
-          className="mt-6 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#9B51E0] hover:opacity-90"
+          className="mt-6 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#9B51E0] hover:opacity-90 shadow-xs"
         >
           <ArrowLeft size={14} />
           <span>{t('backToShipments', 'Back to shipments')}</span>
@@ -470,14 +470,13 @@ export const ShipmentDetail: React.FC = () => {
     status === 'not_fullfilled';
 
   return (
-    <div className="w-full min-h-screen bg-[#F7F7FA] font-sans antialiased">
+    <div className="mv-themed-page w-full min-h-screen bg-[var(--bg)] font-sans antialiased text-slate-900 dark:text-white">
       <div className="max-w-[1280px] mx-auto px-5 lg:px-7 py-4 pb-10 w-full">
         {/* Breadcrumbs */}
-        <div className="flex items-center gap-1.5 text-[12px] mb-3" style={{ color: '#8E8E9A' }}>
+        <div className="flex items-center gap-1.5 text-[12px] mb-3 text-slate-500 dark:text-slate-400">
           <Link
             to="/shipments"
-            className="flex items-center gap-1 font-medium transition-colors hover:underline"
-            style={{ color: '#9B51E0' }}
+            className="flex items-center gap-1 font-medium text-purple-600 dark:text-purple-400 hover:underline"
           >
             <ArrowLeft size={12} />
             <span>{t('manageShipments', 'Manage shipments')}</span>
@@ -565,37 +564,37 @@ export const ShipmentDetail: React.FC = () => {
 
         {/* Modern React Itinerary Version Switcher */}
         {vm.hasUpdatedItinerary && (
-          <div className="bg-white border border-[#E4E4E8] rounded-2xl p-3 sm:p-3.5 mb-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all">
+          <div className="bg-[var(--surface)] dark:bg-[var(--surface)] border border-[var(--border)] dark:border-[var(--border)] rounded-2xl p-3 sm:p-3.5 mb-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-[#9B51E0]/10 flex items-center justify-center text-[#9B51E0] shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
                 <GitCompare size={19} />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs sm:text-sm font-bold text-[#18181B]">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
                     {t('itineraryVersions', 'Itinerary Versions')}
                   </span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#9B51E0]/10 text-[#9B51E0]">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400">
                     {itineraryViewMode === 'updated' ? t('viewingUpdated', 'Updated Active') : t('viewingOriginal', 'Original')}
                   </span>
                 </div>
-                <p className="text-[11px] sm:text-xs text-[#8E8E9A] truncate mt-0.5">
+                <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
                   {t('itineraryCompareDesc', 'Compare the modified stops and schedule with the original booking.')}
                 </p>
               </div>
             </div>
 
-            <div className="inline-flex p-1 bg-[#F4F4F6] rounded-xl border border-[#E4E4E8]/80 w-full sm:w-auto shrink-0">
+            <div className="inline-flex p-1 bg-[var(--surface-alt)] rounded-xl border border-[var(--border)] w-full sm:w-auto shrink-0">
               <button
                 type="button"
                 onClick={() => setItineraryViewMode('updated')}
                 className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                   itineraryViewMode === 'updated'
                     ? 'bg-[#9B51E0] text-white shadow-xs'
-                    : 'text-[#5E5E6E] hover:text-[#18181B] hover:bg-white/60'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-700/60'
                 }`}
               >
-                <Sparkles size={13} className={itineraryViewMode === 'updated' ? 'text-white' : 'text-[#9B51E0]'} />
+                <Sparkles size={13} className={itineraryViewMode === 'updated' ? 'text-white' : 'text-purple-600 dark:text-purple-400'} />
                 <span>{t('updatedShipment', 'Updated Shipment')}</span>
               </button>
               <button
@@ -603,11 +602,11 @@ export const ShipmentDetail: React.FC = () => {
                 onClick={() => setItineraryViewMode('old')}
                 className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                   itineraryViewMode === 'old'
-                    ? 'bg-[#18181B] text-white shadow-xs'
-                    : 'text-[#5E5E6E] hover:text-[#18181B] hover:bg-white/60'
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-700/60'
                 }`}
               >
-                <History size={13} className={itineraryViewMode === 'old' ? 'text-white' : 'text-[#8E8E9A]'} />
+                <History size={13} className={itineraryViewMode === 'old' ? 'text-white dark:text-slate-950' : 'text-slate-400 dark:text-slate-500'} />
                 <span>{t('oldShipment', 'Old Shipment')}</span>
               </button>
             </div>

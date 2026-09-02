@@ -60,7 +60,7 @@ export const MilestonesBar: React.FC<MilestonesBarProps> = ({
     status === 'not_fullfilled';
 
   return (
-    <div className="rounded-2xl px-6 py-5 mb-4 bg-white border border-[#E4E4E8] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
+    <div className="mv-surface-card rounded-2xl px-6 py-5 mb-4 bg-[var(--surface)] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
       <div className="overflow-x-auto py-1 scrollbar-thin scrollbar-thumb-gray-200">
         <div className="flex items-start w-full min-w-max">
           {steps.map((step, idx) => {
@@ -84,10 +84,11 @@ export const MilestonesBar: React.FC<MilestonesBarProps> = ({
 
                   {!isLast && (
                     <span
-                      className="flex-1 h-[2px] rounded-full transition-colors"
-                      style={{
-                        backgroundColor: step.state === 'done' || step.state === 'success' ? '#9B51E0' : '#E4E4E8',
-                      }}
+                      className={`flex-1 h-[2px] rounded-full transition-colors ${
+                        step.state === 'done' || step.state === 'success'
+                          ? 'bg-purple-600'
+                          : 'bg-slate-200 dark:bg-slate-700'
+                      }`}
                       aria-hidden="true"
                     />
                   )}
@@ -106,10 +107,10 @@ export const MilestonesBar: React.FC<MilestonesBarProps> = ({
 
                 <div className="flex flex-col items-start mt-2 w-full pr-2">
                   <span
-                    className={`text-[13px] leading-snug break-words max-w-full ${
+                    className={`text-[13px] leading-snug break-words max-w-full text-slate-900 dark:text-white ${
                       isCur || isRed ? 'font-bold' : 'font-semibold'
                     }`}
-                    style={{ color: labelColor }}
+                    style={isCur || isRed ? { color: labelColor } : undefined}
                     title={step.label}
                   >
                     {step.label}
@@ -117,25 +118,24 @@ export const MilestonesBar: React.FC<MilestonesBarProps> = ({
 
                   {reasonLabel && (
                     <span
-                      className="text-[12px] font-semibold mt-0.5 leading-tight"
-                      style={{ color: '#EF4444' }}
+                      className="text-[12px] font-semibold mt-0.5 leading-tight text-red-600 dark:text-red-400"
                     >
                       {reasonLabel}
                     </span>
                   )}
 
                   {step.dateLine && (
-                    <span className="text-[11px] font-medium text-[#8E8E9A] mt-1 leading-tight whitespace-nowrap">
+                    <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1 leading-tight whitespace-nowrap">
                       {step.dateLine}
                     </span>
                   )}
                   {step.timeLine && (
-                    <span className="text-[11px] text-[#8E8E9A] mt-0.5 leading-tight whitespace-nowrap">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight whitespace-nowrap">
                       {step.timeLine}
                     </span>
                   )}
                   {!step.dateLine && !step.timeLine && step.sub ? (
-                    <span className="text-[11px] text-[#8E8E9A] mt-1 leading-tight whitespace-nowrap">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-tight whitespace-nowrap">
                       {step.sub}
                     </span>
                   ) : null}

@@ -119,10 +119,10 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
               <img
                 src={carrier.avatar}
                 alt={carrier.name}
-                className="w-11 h-11 rounded-full object-cover flex-shrink-0 ring-2 ring-amber-100 shadow-2xs"
+                className="w-11 h-11 rounded-full object-cover flex-shrink-0 ring-2 ring-amber-100 dark:ring-amber-900/50 shadow-2xs"
               />
             ) : (
-              <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-[14px] bg-[#FEF3C7] text-[#B45309] flex-shrink-0 shadow-2xs">
+              <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-[14px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 flex-shrink-0 shadow-2xs">
                 {carrier.initials || carrier.name.substring(0, 2).toUpperCase()}
               </div>
             )}
@@ -133,23 +133,23 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                   <button
                     type="button"
                     onClick={() => handleOpenProfile(carrier.userId, 'driver', carrier.name)}
-                    className="font-bold text-[14px] text-[#18181B] hover:text-[#9B51E0] hover:underline cursor-pointer transition-colors focus:outline-none"
+                    className="font-bold text-[14px] text-slate-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 hover:underline cursor-pointer transition-colors focus:outline-none"
                   >
                     {carrier.name}
                   </button>
 
                   {carrier.rating && carrier.rating !== '—' && (
-                    <span className="text-[11px] font-bold text-[#9B51E0] inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#F8F7FC] border border-[#E9D5FF]">
-                      <Star size={11} fill="#9B51E0" /> {carrier.rating} ({carrier.tripsCount || 85})
+                    <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
+                      <Star size={11} fill="currentColor" /> {carrier.rating} ({carrier.tripsCount || 85})
                     </span>
                   )}
 
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#B45309]">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                     {t('freelancer', 'Freelancer')}
                   </span>
 
                   {carrier.partner && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                       <ShieldCheck size={11} />
                       <span>{t('partner', 'PARTNER')}</span>
                     </span>
@@ -163,7 +163,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       type="button"
                       onClick={() => handleRateCarrier?.(carrier)}
                       title={t('rateTheDriver', 'Rate the Driver')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                     >
                       <Star size={12} fill="#fff" />
                       <span>{t('rate', 'Rate')}</span>
@@ -179,7 +179,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                           : onToast(`${t('message', 'Message')} ${carrier.name}`)
                       }
                       title={t('message', 'Message')}
-                      className="p-1.5 rounded-lg bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                      className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                     >
                       <MessageSquare size={14} />
                     </button>
@@ -189,7 +189,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     type="button"
                     onClick={() => handleCopyPhone(carrierPhone, true)}
                     title={t('copyPhone', 'Click to copy phone')}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                   >
                     <Phone size={12} />
                     <span>{carrierPhoneCopied ? t('copied', 'Copied!') : carrierPhone}</span>
@@ -197,8 +197,8 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                 </div>
               </div>
 
-              <div className="text-[12px] mt-1 text-[#8E8E9A]">
-                {t('completedTrips', 'Completed trips')}: <strong className="text-[#18181B]">{carrier.tripsCount || 85}</strong> · Semi-Trailer Truck
+              <div className="text-[12px] mt-1 text-slate-500 dark:text-slate-400">
+                {t('completedTrips', 'Completed trips')}: <strong className="text-slate-900 dark:text-white">{carrier.tripsCount || 85}</strong> · Semi-Trailer Truck
               </div>
 
               {/* License plates */}
@@ -206,7 +206,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                 {carrierPlates.map((plate, pIdx) => (
                   <span
                     key={pIdx}
-                    className="text-[11px] font-semibold font-mono px-2.5 py-1 rounded-md bg-[#F0F0F3] text-[#18181B] border border-[#E4E4E8]"
+                    className="text-[11px] font-semibold font-mono px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
                   >
                     {pIdx === 0 ? `Vehicle: ${plate}` : `Trailer: ${plate}`}
                   </span>
@@ -217,15 +217,15 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
         ) : (
           /* Carrier Company Block */
           carrier && (
-            <div className={`flex items-start gap-3.5 ${driver ? 'pb-4 border-b border-[#E4E4E8]' : ''}`}>
+            <div className={`flex items-start gap-3.5 ${driver ? 'pb-4 border-b border-slate-200 dark:border-slate-800' : ''}`}>
               {carrier.avatar ? (
                 <img
                   src={carrier.avatar}
                   alt={carrier.name}
-                  className="w-11 h-11 rounded-full object-cover flex-shrink-0 ring-2 ring-purple-100 shadow-2xs"
+                  className="w-11 h-11 rounded-full object-cover flex-shrink-0 ring-2 ring-purple-100 dark:ring-purple-900/50 shadow-2xs"
                 />
               ) : (
-                <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-[14px] bg-[#F3E8FF] text-[#9B51E0] flex-shrink-0 shadow-2xs">
+                <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-[14px] bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex-shrink-0 shadow-2xs">
                   {carrier.initials || carrier.name.substring(0, 2).toUpperCase()}
                 </div>
               )}
@@ -236,19 +236,19 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     <button
                       type="button"
                       onClick={() => handleOpenProfile(carrier.userId, 'carrier', carrier.name)}
-                      className="font-bold text-[14px] text-[#18181B] hover:text-[#9B51E0] hover:underline cursor-pointer transition-colors focus:outline-none"
+                      className="font-bold text-[14px] text-slate-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 hover:underline cursor-pointer transition-colors focus:outline-none"
                     >
                       {carrier.name}
                     </button>
 
                     {carrier.rating && carrier.rating !== '—' && (
-                      <span className="text-[11px] font-bold text-[#9B51E0] inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#F8F7FC] border border-[#E9D5FF]">
-                        <Star size={11} fill="#9B51E0" /> {carrier.rating} ({carrier.tripsCount || 142})
+                      <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
+                        <Star size={11} fill="currentColor" /> {carrier.rating} ({carrier.tripsCount || 142})
                       </span>
                     )}
 
                     {carrier.partner && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                         <ShieldCheck size={11} />
                         <span>{t('partner', 'PARTNER')}</span>
                       </span>
@@ -262,7 +262,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                         type="button"
                         onClick={() => handleRateCarrier?.(carrier)}
                         title={t('rateCarrierCompany', 'Rate the Carrier Company')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                       >
                         <Star size={12} fill="#fff" />
                         <span>{t('rate', 'Rate')}</span>
@@ -278,7 +278,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                             : onToast(`${t('message', 'Message')} ${carrier.name}`)
                         }
                         title={t('message', 'Message')}
-                        className="p-1.5 rounded-lg bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                        className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                       >
                         <MessageSquare size={14} />
                       </button>
@@ -288,7 +288,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       type="button"
                       onClick={() => handleCopyPhone(carrierPhone, true)}
                       title={t('copyPhone', 'Click to copy phone')}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                     >
                       <Phone size={12} />
                       <span>{carrierPhoneCopied ? t('copied', 'Copied!') : carrierPhone}</span>
@@ -296,44 +296,44 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                   </div>
                 </div>
 
-                <div className="text-[12px] mt-1 text-[#8E8E9A]">
+                <div className="text-[12px] mt-1 text-slate-500 dark:text-slate-400">
                   Carrier Company · {carrier.tripsCount || 240} completed trips
                 </div>
 
                 {/* Performance Metrics Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-                  <div className="p-2.5 rounded-xl bg-[#F8F9FA] border border-[#EBEBF0]">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-[#8E8E9A]">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       {t('onTimePickup', 'On-time pickup')}
                     </div>
-                    <div className="text-[13px] font-bold text-[#18181B] mt-0.5">
+                    <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
                       {carrier.onTimePickup || '98%'}
                     </div>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-[#F8F9FA] border border-[#EBEBF0]">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-[#8E8E9A]">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       {t('onTimeDelivery', 'On-time delivery')}
                     </div>
-                    <div className="text-[13px] font-bold text-[#18181B] mt-0.5">
+                    <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
                       {carrier.onTimeDelivery || '96%'}
                     </div>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-[#F8F9FA] border border-[#EBEBF0]">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-[#8E8E9A]">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       {t('cancelRate', 'Cancel rate')}
                     </div>
-                    <div className="text-[13px] font-bold text-[#18181B] mt-0.5">
+                    <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
                       {carrier.cancelRate || '0.5%'}
                     </div>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-[#F8F9FA] border border-[#EBEBF0]">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-[#8E8E9A]">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       {t('avgPickupDelay', 'Avg delay')}
                     </div>
-                    <div className="text-[13px] font-bold text-[#18181B] mt-0.5">
+                    <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
                       {carrier.avgPickupDelay || '8m'}
                     </div>
                   </div>
@@ -344,7 +344,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                   {carrierPlates.map((plate, pIdx) => (
                     <span
                       key={pIdx}
-                      className="text-[11px] font-semibold font-mono px-2.5 py-1 rounded-md bg-[#F0F0F3] text-[#18181B] border border-[#E4E4E8]"
+                      className="text-[11px] font-semibold font-mono px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
                     >
                       {pIdx === 0 ? `Vehicle: ${plate}` : `Trailer: ${plate}`}
                     </span>
@@ -357,17 +357,17 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
 
         {/* Company Driver (Nested inside Carrier Company) */}
         {!isFreelancer && driver && (
-          <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/70 space-y-3">
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="flex items-start gap-3.5 min-w-0 flex-1">
                 {driver.avatar ? (
                   <img
                     src={driver.avatar}
                     alt={driver.name}
-                    className="w-11 h-11 rounded-full object-cover flex-shrink-0 ring-2 ring-blue-100 shadow-2xs"
+                    className="w-11 h-11 rounded-full object-cover flex-shrink-0 ring-2 ring-blue-100 dark:ring-blue-900/50 shadow-2xs"
                   />
                 ) : (
-                  <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-[14px] bg-[#EFF6FF] text-[#2563EB] flex-shrink-0 shadow-2xs">
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-[14px] bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 flex-shrink-0 shadow-2xs">
                     {driver.initials || driver.name.substring(0, 2).toUpperCase()}
                   </div>
                 )}
@@ -377,26 +377,26 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     <button
                       type="button"
                       onClick={() => handleOpenProfile(driver.userId, 'driver', driver.name)}
-                      className="font-bold text-[14px] text-[#18181B] hover:text-[#9B51E0] hover:underline cursor-pointer transition-colors focus:outline-none"
+                      className="font-bold text-[14px] text-slate-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 hover:underline cursor-pointer transition-colors focus:outline-none"
                     >
                       {driver.name}
                     </button>
 
                     {driver.rating && driver.rating !== '—' && (
-                      <span className="text-[11px] font-bold text-[#9B51E0] inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#F8F7FC] border border-[#E9D5FF]">
-                        <Star size={11} fill="#9B51E0" /> {driver.rating} ({driver.tripsCount ?? 22})
+                      <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
+                        <Star size={11} fill="currentColor" /> {driver.rating} ({driver.tripsCount ?? 22})
                       </span>
                     )}
 
                     {driver.partner && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                         <ShieldCheck size={11} />
                         <span>{t('partner', 'PARTNER')}</span>
                       </span>
                     )}
                   </div>
 
-                  <div className="text-[12px] mt-1 text-[#64748B]">
+                  <div className="text-[12px] mt-1 text-slate-500 dark:text-slate-400">
                     {t('companyDriver', 'Company Driver')} · {driver.tripsCount ?? 22} {t('tripsCompleted', 'trips completed')}
                     {driver.vehicleType ? ` · ${driver.vehicleType}` : ' · Semi-Trailer Truck'}
                     {driver.cargoSpecs ? ` · ${driver.cargoSpecs}` : ''}
@@ -407,7 +407,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     {driverPlates.map((plate, pIdx) => (
                       <span
                         key={pIdx}
-                        className="text-[11px] font-semibold font-mono px-2.5 py-1 rounded-md bg-[#F0F0F3] text-[#18181B] border border-[#E4E4E8]"
+                        className="text-[11px] font-semibold font-mono px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
                       >
                         {pIdx === 0 ? `Vehicle: ${plate}` : `Trailer: ${plate}`}
                       </span>
@@ -423,7 +423,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     type="button"
                     onClick={() => handleRateDriver?.(driver)}
                     title={t('rateTheDriver', 'Rate the Driver')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                   >
                     <Star size={12} fill="#fff" />
                     <span>{t('rate', 'Rate')}</span>
@@ -439,7 +439,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                         : onToast(`${t('message', 'Message')} ${driver.name}`)
                     }
                     title={t('message', 'Message')}
-                    className="p-1.5 rounded-lg bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                    className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                   >
                     <MessageSquare size={14} />
                   </button>
@@ -449,7 +449,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                   type="button"
                   onClick={() => handleCopyPhone(driverPhone, false)}
                   title={t('copyPhone', 'Click to copy phone')}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white border border-[#E4E4E8] text-[#5E5E6E] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8] active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                 >
                   <Phone size={12} />
                   <span>{driverPhoneCopied ? t('copied', 'Copied!') : driverPhone}</span>

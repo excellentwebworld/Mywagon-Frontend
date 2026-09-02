@@ -227,17 +227,17 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
     >
       <div className="space-y-4">
         {/* Category filters (All, Bidding, Operations) */}
-        <div className="flex items-center gap-2 flex-wrap pb-1 border-b border-[#F0F0F3]">
+        <div className="flex items-center gap-2 flex-wrap pb-1 border-b border-slate-200 dark:border-slate-800">
           {FILTER_CATEGORIES.map((cat) => {
             const isAct = selectedCat === cat.key;
             return (
               <button
                 key={cat.key}
                 type="button"
-                className={`px-3.5 py-1.5 rounded-lg text-[12px] font-bold transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50 active:scale-95 flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-lg text-[12px] font-bold transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 active:scale-95 flex items-center gap-1.5 ${
                   isAct
-                    ? 'bg-[#18181B] text-white shadow-xs border border-[#18181B]'
-                    : 'bg-white text-[#5E5E6E] border border-[#E4E4E8] hover:bg-[#F8F7FC] hover:text-[#18181B] hover:border-[#D4D4D8]'
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-xs border border-slate-900 dark:border-white font-bold'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                 }`}
                 onClick={() => setSelectedCat(cat.key as any)}
               >
@@ -269,13 +269,13 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                 return (
                   <div
                     key={bidKey}
-                    className="rounded-xl border border-[#E4E4E8] bg-white shadow-xs overflow-hidden transition-all duration-200 hover:border-[#D4D4D8]"
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-700"
                   >
                     {/* Collapsible Header */}
                     <button
                       type="button"
                       onClick={() => toggleBid(bidKey)}
-                      className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left hover:bg-[#FAF9FD] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
+                      className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <CarrierAvatar
@@ -288,14 +288,14 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#EDE9FE] text-[#7C3AED]">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                               {t('bid', 'Bid')} #{bid.bidNumber}
                             </span>
-                            <h4 className="text-[13px] font-bold text-[#18181B] truncate m-0">
+                            <h4 className="text-[13px] font-bold text-slate-900 dark:text-white truncate m-0">
                               {bid.initiatorName}
                             </h4>
                           </div>
-                          <div className="text-[11px] text-[#64748B] mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
                             <span>{bid.date}</span>
                             <span>·</span>
                             <span>
@@ -310,12 +310,12 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
 
                       <div className="flex items-center gap-2.5 flex-shrink-0">
                         {displayPrice && (
-                          <span className="px-2.5 py-1 rounded-lg text-[12px] font-bold font-mono bg-[#FAF5FF] text-[#7C3AED] border border-[#E9D5FF] shadow-2xs">
+                          <span className="px-2.5 py-1 rounded-lg text-[12px] font-bold font-mono bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs">
                             {displayPrice}
                           </span>
                         )}
                         <div
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center text-[#71717A] bg-[#F4F4F5] hover:bg-[#E4E4E7] transition-transform duration-200 ${
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-transform duration-200 ${
                             open ? 'rotate-180' : ''
                           }`}
                         >
@@ -326,7 +326,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
 
                     {/* Expanded Negotiations Body */}
                     {open && (
-                      <div className="border-t border-[#F0F0F3] bg-[#FAFAFC] p-4 space-y-3">
+                      <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-4 space-y-3">
                         {(() => {
                           const timelineList =
                             bid.negotiations && bid.negotiations.length > 0
@@ -350,17 +350,17 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                             return (
                               <div
                                 key={neg.id || nIdx}
-                                className="relative pl-6 pb-2 before:absolute before:left-2 before:top-2 before:bottom-0 before:w-0.5 before:bg-[#E2E8F0] last:before:hidden"
+                                className="relative pl-6 pb-2 before:absolute before:left-2 before:top-2 before:bottom-0 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800 last:before:hidden"
                               >
                                 <div
                                   className={`absolute left-0 top-1 w-4 h-4 rounded-full text-white flex items-center justify-center text-[9px] font-bold ${
                                     isReject
-                                      ? 'bg-[#EF4444]'
+                                      ? 'bg-red-500'
                                       : isAccept
-                                      ? 'bg-[#10B981]'
+                                      ? 'bg-emerald-500'
                                       : isCounter
-                                      ? 'bg-[#F59E0B]'
-                                      : 'bg-[#6366F1]'
+                                      ? 'bg-amber-500'
+                                      : 'bg-indigo-500'
                                   }`}
                                 >
                                   {nIdx + 1}
@@ -369,26 +369,26 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                                 <div
                                   className={`p-3 rounded-xl border shadow-2xs ${
                                     isReject
-                                      ? 'bg-[#FEF2F2] border-[#FECACA]'
+                                      ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800'
                                       : isAccept
-                                      ? 'bg-[#ECFDF5] border-[#A7F3D0]'
+                                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800'
                                       : isCounter
-                                      ? 'bg-white border-[#E2E8F0]'
-                                      : 'bg-white border-[#E2E8F0]'
+                                      ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
                                   }`}
                                 >
                                   <div className="flex items-start justify-between gap-2 flex-wrap">
                                     <div className="min-w-0 flex-1">
-                                      <div className="text-[12px] font-semibold text-[#18181B] flex items-center gap-1.5 flex-wrap">
+                                      <div className="text-[12px] font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
                                         <span
                                           className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
                                             isReject
-                                              ? 'bg-[#FEE2E2] text-[#991B1B]'
+                                              ? 'bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-300'
                                               : isAccept
-                                              ? 'bg-[#D1FAE5] text-[#065F46]'
+                                              ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300'
                                               : isCounter
-                                              ? 'bg-[#FEF3C7] text-[#92400E]'
-                                              : 'bg-[#EDE9FE] text-[#7C3AED]'
+                                              ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300'
+                                              : 'bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300'
                                           }`}
                                         >
                                           {isReject ? (
@@ -402,19 +402,19 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                                           )}
                                           {neg.action}
                                         </span>
-                                        <span>
+                                        <span className="text-slate-600 dark:text-slate-300">
                                           {t('by', 'by')}{' '}
-                                          <strong className="font-semibold text-[#18181B]">
+                                          <strong className="font-semibold text-slate-900 dark:text-white">
                                             {neg.userName}
                                           </strong>
                                         </span>
                                       </div>
-                                      <div className="text-[11px] text-[#64748B] mt-0.5">
+                                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                                         {neg.date}
                                       </div>
 
                                       {neg.notes && (
-                                        <div className="text-[11px] text-[#64748B] mt-1.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-2 italic">
+                                        <div className="text-[11px] text-slate-600 dark:text-slate-300 mt-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 italic">
                                           {neg.notes}
                                         </div>
                                       )}
@@ -424,10 +424,10 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                                       <div
                                         className={`font-bold font-mono text-[14px] ${
                                           isReject
-                                            ? 'text-[#991B1B]'
+                                            ? 'text-red-600 dark:text-red-400'
                                             : isAccept
-                                            ? 'text-[#059669]'
-                                            : 'text-[#7C3AED]'
+                                            ? 'text-emerald-600 dark:text-emerald-400'
+                                            : 'text-purple-600 dark:text-purple-400'
                                         }`}
                                       >
                                         {formatPrice(neg.price)}
@@ -446,7 +446,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
               })}
             </div>
           ) : (
-            <div className="py-8 text-center text-[#8E8E9A] text-[13px] bg-[#FAF9FD] rounded-xl border border-dashed border-[#E4E4E8]">
+            <div className="py-8 text-center text-slate-500 dark:text-slate-400 text-[13px] bg-slate-50/50 dark:bg-slate-850/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
               {t('noBidsHistoryFound', 'No bids history found.')}
             </div>
           )
@@ -461,10 +461,10 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                 return (
                   <div
                     key={evt.id}
-                    className={`flex items-start gap-3 p-3 rounded-xl border shadow-2xs transition-all hover:border-[#CBD5E1] ${b.rowBg || 'bg-white border-[#E2E8F0]'}`}
+                    className={`flex items-start gap-3 p-3 rounded-xl border shadow-2xs transition-all hover:border-slate-300 dark:hover:border-slate-700 ${b.rowBg || 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'}`}
                   >
-                    <div className="flex items-center gap-1.5 text-[11px] text-[#64748B] font-mono min-w-[105px] flex-shrink-0 pt-0.5 font-semibold">
-                      <Clock size={12} className="text-[#94A3B8]" />
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-mono min-w-[105px] flex-shrink-0 pt-0.5 font-semibold">
+                      <Clock size={12} className="text-slate-400 dark:text-slate-500" />
                       <span>{evt.date}</span>
                     </div>
 
@@ -474,13 +474,13 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                           {b.icon}
                           {evt.action}
                         </span>
-                        <span className="text-[12px] text-[#475569]">
-                          {t('by', 'by')} <strong className="text-[#18181B] font-semibold">{evt.actor}</strong>
+                        <span className="text-[12px] text-slate-600 dark:text-slate-300">
+                          {t('by', 'by')} <strong className="text-slate-900 dark:text-white font-semibold">{evt.actor}</strong>
                         </span>
                       </div>
 
                       {evt.rejectionReason && (
-                        <div className="mt-1.5 text-[11px] text-[#991B1B] bg-[#FEF2F2] border border-[#FECACA] rounded-lg p-2">
+                        <div className="mt-1.5 text-[11px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-2">
                           <strong>{t('reason', 'Reason')}:</strong> {evt.rejectionReason}
                         </div>
                       )}
@@ -490,7 +490,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
               })}
             </div>
           ) : (
-            <div className="py-8 text-center text-[#8E8E9A] text-[13px] bg-[#FAF9FD] rounded-xl border border-dashed border-[#E4E4E8]">
+            <div className="py-8 text-center text-slate-500 dark:text-slate-400 text-[13px] bg-slate-50/50 dark:bg-slate-850/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
               {t('noShipmentLogs', 'No shipment logs recorded yet.')}
             </div>
           )
@@ -507,11 +507,11 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                 return (
                   <div
                     key={evt.id}
-                    className={`flex items-start gap-3 p-3 rounded-xl border shadow-2xs transition-all hover:border-[#CBD5E1] ${b.rowBg || 'bg-white border-[#E2E8F0]'}`}
+                    className={`flex items-start gap-3 p-3 rounded-xl border shadow-2xs transition-all hover:border-slate-300 dark:hover:border-slate-700 ${b.rowBg || 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'}`}
                   >
                     {/* Timestamp */}
-                    <div className="flex items-center gap-1.5 text-[11px] text-[#64748B] font-mono min-w-[110px] flex-shrink-0 pt-0.5 font-semibold">
-                      <Clock size={12} className="text-[#94A3B8]" />
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-mono min-w-[110px] flex-shrink-0 pt-0.5 font-semibold">
+                      <Clock size={12} className="text-slate-400 dark:text-slate-500" />
                       <span>{evt.date}</span>
                     </div>
 
@@ -522,8 +522,8 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                           <span
                             className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded tracking-wider ${
                               isBidding
-                                ? 'bg-[#FAF5FF] text-[#9B51E0] border border-[#E9D5FF]'
-                                : 'bg-[#F1F5F9] text-[#475569] border border-[#E2E8F0]'
+                                ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                             }`}
                           >
                             {isBidding ? t('bidding', 'Bidding') : t('operations', 'Operations')}
@@ -534,26 +534,26 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                             {evt.action}
                           </span>
 
-                          <span className="text-[12px] text-[#475569]">
-                            {t('by', 'by')} <strong className="text-[#18181B] font-semibold">{evt.actor}</strong>
+                          <span className="text-[12px] text-slate-600 dark:text-slate-300">
+                            {t('by', 'by')} <strong className="text-slate-900 dark:text-white font-semibold">{evt.actor}</strong>
                           </span>
                         </div>
 
                         {evt.priceBadge && (
-                          <span className="font-bold font-mono text-[13px] px-2.5 py-0.5 rounded-md bg-[#FAF5FF] text-[#7C3AED] border border-[#E9D5FF]">
+                          <span className="font-bold font-mono text-[13px] px-2.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                             {evt.priceBadge}
                           </span>
                         )}
                       </div>
 
                       {evt.notes && (
-                        <div className="mt-1.5 text-[11px] text-[#475569] bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-2 italic">
+                        <div className="mt-1.5 text-[11px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 italic">
                           “{evt.notes}”
                         </div>
                       )}
 
                       {evt.rejectionReason && (
-                        <div className="mt-1.5 text-[11px] text-[#991B1B] bg-[#FEF2F2] border border-[#FECACA] rounded-lg p-2">
+                        <div className="mt-1.5 text-[11px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-2">
                           <strong>{t('reason', 'Reason')}:</strong> {evt.rejectionReason}
                         </div>
                       )}
@@ -563,7 +563,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
               })}
             </div>
           ) : (
-            <div className="py-8 text-center text-[#8E8E9A] text-[13px] bg-[#FAF9FD] rounded-xl border border-dashed border-[#E4E4E8]">
+            <div className="py-8 text-center text-slate-500 dark:text-slate-400 text-[13px] bg-slate-50/50 dark:bg-slate-850/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
               {t('noAuditEntries', 'No activity recorded yet.')}
             </div>
           )

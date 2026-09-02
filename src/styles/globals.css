@@ -2246,6 +2246,172 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   margin-left: 2px;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   MYVAGON Globals.css Dark Mode Theme Overrides
+   ═══════════════════════════════════════════════════════════════ */
+html.dark,
+.dark {
+  --accent:           #B07AE8;
+  --accent-hover:     #9B51E0;
+  --accent-light:     #2D1A4E;
+  --accent-pale:      #1F1635;
+  --brand-navy:       #0F0F1D;
+  --brand-blue:       #6366F1;
+  --brand-grey:       #727294;
+  --brand-gold:       #D9A066;
+
+  /* Surface */
+  --bg:               #16162A;
+  --surface:          #1E1E36;
+  --surface-alt:      #252544;
+  --border:           #2E2E52;
+  --border-focus:     #3E3E68;
+
+  /* Text */
+  --text-primary:     #FFFFFF;
+  --text-secondary:   #A5A5C4;
+  --text-tertiary:    #727294;
+
+  /* Nav (sidebar) */
+  --nav-bg:           #0F0F1D;
+  --nav-text:         rgba(255,255,255,0.50);
+  --nav-text-hover:   rgba(255,255,255,0.75);
+  --nav-active:       rgba(176,122,232,0.22);
+  --nav-active-text:  #FFFFFF;
+  --nav-section:      rgba(255,255,255,0.22);
+  --nav-border:       rgba(255,255,255,0.08);
+  --nav-hover:        rgba(255,255,255,0.06);
+
+  /* Status */
+  --success:          #10B981;
+  --success-bg:       rgba(16,185,129,0.15);
+  --warning:          #F59E0B;
+  --warning-bg:       rgba(245,158,11,0.15);
+  --danger:           #EF4444;
+  --danger-bg:        rgba(239,68,68,0.15);
+  --info:             #0EA5E9;
+  --info-bg:          rgba(14,165,233,0.15);
+  --pickup:           #0EA5E9;
+  --pickup-bg:        rgba(14,165,233,0.15);
+  --delivery:         #10B981;
+  --delivery-bg:      rgba(16,185,129,0.15);
+
+  color-scheme: dark;
+}
+
+.dark .card,
+.dark .card-hd,
+.dark .card-header,
+.dark .modal,
+.dark .modal-header,
+.dark .modal-footer,
+.dark .modal-h,
+.dark .modal-ft,
+.dark .table-wrap,
+.dark .dropdown-menu,
+.dark .form-input,
+.dark .kpi-card,
+.dark .kpi,
+.dark .qa-card,
+.dark .top-nav-dropdown-panel {
+  background: var(--surface, #16162A);
+  border-color: var(--border, #2A2A48);
+  color: var(--text-primary, #E8E8F0);
+}
+
+.dark .data-table thead th {
+  background: var(--surface-alt, #1E1E36);
+  border-color: var(--border, #2A2A48);
+  color: var(--text-tertiary, #6E6E88);
+}
+
+.dark .data-table tbody td {
+  border-color: var(--border, #2A2A48);
+  color: var(--text-primary, #E8E8F0);
+}
+
+.dark .data-table tbody tr:hover {
+  background: var(--surface-alt, #1E1E36);
+}
+
+.dark .filter-chip {
+  background: var(--surface, #16162A);
+  border-color: var(--border, #2A2A48);
+  color: var(--text-secondary, #A0A0B8);
+}
+
+.dark .filter-chip:hover {
+  border-color: var(--border-focus, #3A3A58);
+  color: var(--text-primary, #E8E8F0);
+}
+
+.dark .filter-chip.active {
+  background: var(--accent, #B07AE8);
+  border-color: var(--accent, #B07AE8);
+  color: #FFFFFF;
+}
+
+.dark .tab {
+  color: var(--text-tertiary, #6E6E88);
+}
+
+.dark .tab:hover {
+  color: var(--text-primary, #E8E8F0);
+}
+
+.dark .tab.active {
+  color: #FFFFFF;
+  border-bottom-color: var(--accent, #B07AE8);
+}
+
+.dark .btn.btn-secondary,
+.dark .btn-secondary {
+  background: var(--surface, #16162A);
+  border-color: var(--border, #2A2A48);
+  color: var(--text-secondary, #A0A0B8);
+}
+
+.dark .btn.btn-secondary:hover,
+.dark .btn-secondary:hover {
+  background: var(--surface-alt, #1E1E36);
+  border-color: var(--border-focus, #3A3A58);
+  color: #FFFFFF;
+}
+
+.dark .modal-close {
+  background: var(--surface, #16162A);
+  border-color: var(--border, #2A2A48);
+  color: var(--text-secondary, #A0A0B8);
+}
+
+.dark .modal-close:hover {
+  background: var(--surface-alt, #1E1E36);
+  color: #FFFFFF;
+}
+
+.dark .toast {
+  background: var(--surface, #16162A);
+  border-color: var(--border, #2A2A48);
+  color: var(--text-primary, #E8E8F0);
+}
+
+.dark .sched-item {
+  border-color: var(--border, #2A2A48);
+}
+
+.dark .sched-item:hover {
+  background: var(--surface-alt, #1E1E36);
+}
+
+.dark .sched-item.at-risk {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.dark .sched-item.at-risk:hover {
+  background: rgba(245, 158, 11, 0.16);
+}
+
+
 
 
 

@@ -314,7 +314,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
       expanded={expanded}
       onToggle={onToggle}
     >
-      <div className="space-y-4 divide-y divide-[#EBEBF0]">
+      <div className="space-y-4 divide-y divide-[var(--border)]">
         {physicalStops.map((stop, idx) => {
           const isPickup = stop.type === 'pickup';
           const isOrdersExpanded = Boolean(expandedStopOrders[idx]);
@@ -331,8 +331,8 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                 <span
                   className={`rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5 shadow-2xs ${
                     isPickup
-                      ? 'bg-white text-[#18181B] border-[1.5px] border-[#18181B]'
-                      : 'bg-[#18181B] text-white border-[1.5px] border-[#18181B]'
+                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-[1.5px] border-slate-900 dark:border-slate-400'
+                      : 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-[1.5px] border-slate-900 dark:border-white'
                   }`}
                   style={{ width: 26, height: 26 }}
                 >
@@ -342,7 +342,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                 <div className="flex-1 min-w-0">
                   {/* Header: Location name in bold at the top */}
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="text-[14px] font-bold text-[#18181B] leading-tight">
+                    <div className="text-[14px] font-bold text-slate-900 dark:text-white leading-tight">
                       {stop.location}
                     </div>
 
@@ -351,15 +351,15 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${
                           isPickup
-                            ? 'bg-white text-[#18181B] border border-[#D4D4D8]'
-                            : 'bg-[#18181B] text-white'
+                            ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700'
+                            : 'bg-slate-900 dark:bg-white text-white dark:text-slate-950'
                         }`}
                       >
                         {isPickup ? t('pickup', 'PICKUP') : t('dropoff', 'DROPOFF')}
                       </span>
 
                       {formatStopSchedule(stop.date, stop.timeStart, stop.timeEnd) && (
-                        <span className="text-[11px] font-semibold text-[#5E5E6E]">
+                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
                           {formatStopSchedule(stop.date, stop.timeStart, stop.timeEnd)}
                         </span>
                       )}
@@ -368,7 +368,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
 
                   {/* Address below */}
                   {stop.address && (
-                    <div className="text-[12px] mt-0.5 text-[#8E8E9A]">
+                    <div className="text-[12px] mt-0.5 text-slate-500 dark:text-slate-400">
                       {stop.address}
                     </div>
                   )}
@@ -440,8 +440,8 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                           key={`${order.orderId}-${oIdx}`}
                           className={`p-2.5 rounded-xl border transition-colors ${
                             orderHasIssue
-                              ? 'bg-[#FEF2F2]/30 border-[#FECACA]'
-                              : 'bg-[#F8F9FA] border-[#EBEBF0] hover:border-[#DDDDE5]'
+                              ? 'bg-red-50/50 dark:bg-red-950/30 border-red-200 dark:border-red-800'
+                              : 'bg-[var(--surface-alt)] border-[var(--border)] hover:border-[var(--border-focus)]'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2">
@@ -451,21 +451,21 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                   key={pIdx}
                                   className="flex items-center gap-2 flex-wrap text-[11px]"
                                 >
-                                  <span className="font-semibold font-mono text-[#18181B]">
+                                  <span className="font-semibold font-mono text-[var(--text-primary)]">
                                     Order: {order.orderId}
                                   </span>
                                   {prod.name && prod.name !== '—' && (
                                     <>
-                                      <span className="text-[#8E8E9A]">·</span>
-                                      <span className="font-medium text-[#18181B]">
+                                      <span className="text-[var(--text-tertiary)]">·</span>
+                                      <span className="font-medium text-[var(--text-primary)]">
                                         {prod.name}
                                       </span>
                                     </>
                                   )}
                                   {(Boolean(prod.qty) || Boolean(prod.weight)) && (
                                     <>
-                                      <span className="text-[#8E8E9A]">·</span>
-                                      <span className="text-[#5E5E6E]">
+                                      <span className="text-[var(--text-tertiary)]">·</span>
+                                      <span className="text-[var(--text-secondary)]">
                                         {prod.qty ? `${prod.qty} ${prod.qtyUnit || 'EUR Pallets'}` : ''}
                                         {prod.qty && prod.weight ? ' · ' : ''}
                                         {prod.weight ? `${prod.weight} ${prod.weightUnit || 'Tonnes'}` : ''}
@@ -481,14 +481,14 @@ export const StopsCard: React.FC<StopsCardProps> = ({
 
                           {/* Issue Reason Alert in Red if present */}
                           {orderHasIssue && issueReason && (
-                            <div className="mt-2.5 p-2 rounded-lg bg-[#FEF2F2] border border-[#FECACA] text-xs font-semibold text-[#DC2626] flex items-center gap-1.5">
-                              <AlertTriangle size={14} className="shrink-0 text-[#EF4444]" />
+                            <div className="mt-2.5 p-2 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                              <AlertTriangle size={14} className="shrink-0 text-red-500" />
                               <span>{issueReason}</span>
                             </div>
                           )}
 
                           {order.customerName && (
-                            <div className="mt-1.5 pt-1.5 border-t border-black/5 text-[11px] font-semibold text-[#059669] flex items-center gap-1.5">
+                            <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                               <span>🏪</span>
                               <span>{order.customerName}</span>
                             </div>
@@ -502,7 +502,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                       <button
                         type="button"
                         onClick={() => toggleStopOrders(idx)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#9B51E0] hover:text-[#7C3AED] hover:underline cursor-pointer pt-0.5 transition-colors focus:outline-none"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline cursor-pointer pt-0.5 transition-colors focus:outline-none"
                       >
                         {isOrdersExpanded ? (
                           <>
@@ -527,32 +527,32 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                   {/* POD section on Dropoff stop directly inside the rectangle */}
                   {!isPickup && (
                     <div
-                      className="mt-2.5 p-2.5 rounded-xl border flex items-center justify-between gap-2 flex-wrap"
-                      style={{
-                        backgroundColor: stop.pod === '1' || (stop.podImages && stop.podImages.length > 0) ? '#ECFDF5' : '#F8FAFC',
-                        borderColor: stop.pod === '1' || (stop.podImages && stop.podImages.length > 0) ? '#A7F3D0' : '#E2E8F0',
-                      }}
+                      className={`mt-2.5 p-2.5 rounded-xl border flex items-center justify-between gap-2 flex-wrap ${
+                        stop.pod === '1' || (stop.podImages && stop.podImages.length > 0)
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/70 text-emerald-800 dark:text-emerald-200'
+                          : 'bg-[var(--surface-alt)] border-[var(--border)] text-[var(--text-secondary)]'
+                      }`}
                     >
                       <div className="flex items-center gap-2">
                         <FileText
                           size={15}
-                          className={stop.pod === '1' || (stop.podImages && stop.podImages.length > 0) ? 'text-[#059669]' : 'text-[#64748B]'}
+                          className={stop.pod === '1' || (stop.podImages && stop.podImages.length > 0) ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--text-tertiary)]'}
                         />
                         <span
                           className={`text-[12px] font-bold ${
                             stop.pod === '1' || (stop.podImages && stop.podImages.length > 0)
-                              ? 'text-[#065F46]'
-                              : 'text-[#334155]'
+                              ? 'text-emerald-800 dark:text-emerald-200'
+                              : 'text-[var(--text-secondary)]'
                           }`}
                         >
                           POD (Proof of Delivery)
                         </span>
                         {stop.pod === '1' || (stop.podImages && stop.podImages.length > 0) ? (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#D1FAE5] text-[#047857]">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
                             {t('uploaded', 'Uploaded')}
                           </span>
                         ) : (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#F1F5F9] text-[#64748B]">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[var(--surface-alt)] text-[var(--text-secondary)] border border-[var(--border)]">
                             {t('notUploaded', 'Not uploaded')}
                           </span>
                         )}
@@ -610,10 +610,10 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                     <button
                       type="button"
                       onClick={() => handleCopyAddress(stop, idx)}
-                      className="inline-flex items-center gap-1.5 text-[#9B51E0] hover:text-[#7C3AED] hover:underline cursor-pointer transition-colors active:scale-95 focus:outline-none"
+                      className="inline-flex items-center gap-1.5 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline cursor-pointer transition-colors active:scale-95 focus:outline-none"
                     >
                       {isCopied ? (
-                        <span className="inline-flex items-center gap-1 text-[#10B981] font-bold animate-in fade-in duration-150">
+                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold animate-in fade-in duration-150">
                           <CheckCircle2 size={13} />
                           <span>{t('copied', 'Address Copied!')}</span>
                         </span>
