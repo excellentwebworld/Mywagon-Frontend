@@ -53,6 +53,24 @@ function clearCachedToken(): void {
 }
 
 /**
+ * Remove local FCM registration without touching the backend token list.
+ */
+export async function cleanupLocalFcmDevice(): Promise<void> {
+  clearCachedToken();
+
+  if (!isFirebaseConfigured) return;
+
+  const messaging = getMessagingOrNull();
+  if (!messaging) return;
+
+  try {
+    await deleteToken(messaging);
+  } catch (err) {
+    console.warn('[FCM] deleteToken failed:', err);
+  }
+}
+
+/**
  * Unregister this browser from FCM push on logout.
  * Clears the cached token and deletes the local FCM registration.
  */
@@ -132,7 +150,6 @@ export function useFcm({ onForegroundMessage }: UseFcmOptions = {}): void {
       // ── 2. Notification permission ───────────────────────────────────
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
-        // User denied — clear any stale token
         clearCachedToken();
         await notificationService.updateDeviceToken(null).catch(() => {});
         return;

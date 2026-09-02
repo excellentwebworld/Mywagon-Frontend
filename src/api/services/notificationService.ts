@@ -157,9 +157,6 @@ export const notificationService = {
 
   /**
    * Idempotently register (or clear) the FCM device token.
-   * Called by the `useFcm` hook after permission is granted and a token is resolved.
-   *
-   * @param token - FCM registration token, or null to clear it.
    */
   async updateDeviceToken(token: string | null): Promise<void> {
     await apiPost('/auth/device-token', { device_token: token });

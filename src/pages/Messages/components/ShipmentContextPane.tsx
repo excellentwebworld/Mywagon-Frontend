@@ -186,14 +186,19 @@ export const ShipmentContextPane: React.FC<ShipmentContextPaneProps> = ({
 
         {/* Action Buttons */}
         <div className="ctx-actions">
-          <button
-            type="button"
-            className="ctx-btn primary"
-            onClick={handleRequestPod}
-          >
-            <FileText size={15} />
-            <span>{t('chatModule.ctxRequestPOD')}</span>
-          </button>
+          {shipmentContext.podStatus === 'missing' &&
+            ['fullfilled', 'fulfilled', 'partially_fullfilled', 'partially_fulfilled', 'delivered'].includes(
+              (shipmentContext.status || '').toLowerCase()
+            ) && (
+              <button
+                type="button"
+                className="ctx-btn primary"
+                onClick={handleRequestPod}
+              >
+                <FileText size={15} />
+                <span>{t('chatModule.ctxRequestPOD')}</span>
+              </button>
+            )}
           <button type="button" className="ctx-btn" onClick={handleOpenLoad}>
             <ExternalLink size={15} />
             <span>{t('chatModule.ctxOpenLoad')}</span>

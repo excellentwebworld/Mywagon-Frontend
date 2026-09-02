@@ -13,6 +13,7 @@ interface StopsCardProps {
   onViewPod?: (stop: PhysicalStop) => void;
   onRequestPod?: (stop: ShipmentStop) => void;
   requestingPodStopId?: string | number | null;
+  shipmentStatus?: string;
   t: (key: string, fallback?: string) => string;
 }
 
@@ -252,10 +253,19 @@ export const StopsCard: React.FC<StopsCardProps> = ({
   onViewPod,
   onRequestPod,
   requestingPodStopId = null,
+  shipmentStatus,
   t,
 }) => {
   const [expandedStopOrders, setExpandedStopOrders] = useState<Record<number, boolean>>({});
   const [copiedStopIndex, setCopiedStopIndex] = useState<number | null>(null);
+
+  const normalizedStatus = (shipmentStatus || '').toLowerCase().trim();
+  const canRequestPod =
+    normalizedStatus === 'fullfilled' ||
+    normalizedStatus === 'fulfilled' ||
+    normalizedStatus === 'partially_fullfilled' ||
+    normalizedStatus === 'partially_fulfilled' ||
+    normalizedStatus === 'delivered';
 
   const physicalStops = useMemo(() => groupPhysicalStops(stops), [stops]);
 
@@ -504,7 +514,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                           <FileText size={12} />
                           <span>{t('viewPod', 'View POD')}</span>
                         </button>
-                      ) : (
+                      ) : canRequestPod ? (
                         <button
                           type="button"
                           disabled={requestingPodStopId === stop.id || requestingPodStopId === stop.rawStop?.id}
@@ -532,7 +542,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                               : t('requestPod', 'Request POD')}
                           </span>
                         </button>
-                      )}
+                      ) : null}
                     </div>
                   )}
 

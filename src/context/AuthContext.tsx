@@ -7,7 +7,7 @@ import {
   type ShipperUser,
   type TwoFactorChallenge,
 } from '../api/auth';
-import { unregisterFcmDevice } from '../hooks/useFcm';
+import { cleanupLocalFcmDevice, unregisterFcmDevice } from '../hooks/useFcm';
 
 interface AuthContextValue {
   user: ShipperUser | null;
@@ -162,7 +162,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const onForceLogout = () => {
-      void logout().finally(() => {
+      clearStoredToken();
+      void cleanupLocalFcmDevice().finally(() => {
+        setUser(null);
+        setToken(null);
         if (window.location.pathname !== '/login') {
           window.location.href = '/login';
         }

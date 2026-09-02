@@ -676,6 +676,7 @@ export const ShipmentDetail: React.FC = () => {
                 }
               }}
               requestingPodStopId={requestingPodStopId}
+              shipmentStatus={vm.status}
               t={t}
             />
 
