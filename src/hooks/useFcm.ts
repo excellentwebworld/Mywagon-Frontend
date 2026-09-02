@@ -19,7 +19,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getToken, onMessage } from 'firebase/messaging';
+import { getToken, onMessage, deleteToken } from 'firebase/messaging';
 import { getMessagingOrNull, vapidKey, isFirebaseConfigured } from '../config/firebase';
 import { notificationService } from '../api/services/notificationService';
 
@@ -50,6 +50,25 @@ function clearCachedToken(): void {
   try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
 }
 
+/**
+ * Unregister this browser from FCM push on logout.
+ * Clears the cached token and deletes the local FCM registration.
+ */
+export async function unregisterFcmDevice(): Promise<void> {
+  clearCachedToken();
+
+  if (!isFirebaseConfigured) return;
+
+  const messaging = getMessagingOrNull();
+  if (!messaging) return;
+
+  try {
+    await deleteToken(messaging);
+  } catch (err) {
+    console.warn('[FCM] deleteToken failed:', err);
+  }
+}
+
 export interface FcmNotificationPayload {
   title: string;
   body: string;
@@ -77,6 +96,10 @@ export function useFcm({ onForegroundMessage }: UseFcmOptions = {}): void {
 
     // ── 0. Listen for navigation messages from Service Worker ─────────
     const handleSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'FCM_FORCE_LOGOUT') {
+        window.dispatchEvent(new CustomEvent('shipper:force-logout'));
+        return;
+      }
       if (event.data && event.data.type === 'FCM_NAVIGATE' && event.data.url) {
         navigate(event.data.url);
       }
@@ -145,6 +168,12 @@ export function useFcm({ onForegroundMessage }: UseFcmOptions = {}): void {
 
       // ── 5. Foreground message listener ───────────────────────────────
       const unsubscribe = onMessage(messaging, (payload) => {
+        const rawType = (payload.data?.type ?? '').toLowerCase();
+        if (rawType === 'logged_out') {
+          window.dispatchEvent(new CustomEvent('shipper:force-logout'));
+          return;
+        }
+
         const title = payload.notification?.title ?? payload.data?.title ?? 'New Notification';
         const body  = payload.notification?.body  ?? payload.data?.body ?? payload.data?.notification_body ?? '';
         const type = payload.data?.type ?? '';

@@ -123,6 +123,16 @@ messaging.onBackgroundMessage((payload) => {
     return;
   }
 
+  const rawType = (payload.data?.type || '').toLowerCase();
+  if (rawType === 'logged_out') {
+    // Force-logout signal (e.g. signed in on another device) — do not show a push toast.
+    return clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      clientList.forEach((client) => {
+        client.postMessage({ type: 'FCM_FORCE_LOGOUT' });
+      });
+    });
+  }
+
   const title = payload.notification?.title
     ?? payload.data?.title
     ?? 'MYVAGON Notification';

@@ -7,6 +7,7 @@ import {
   type ShipperUser,
   type TwoFactorChallenge,
 } from '../api/auth';
+import { unregisterFcmDevice } from '../hooks/useFcm';
 
 interface AuthContextValue {
   user: ShipperUser | null;
@@ -153,6 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       clearStoredToken();
     } finally {
+      await unregisterFcmDevice().catch(() => {});
       setUser(null);
       setToken(null);
     }
