@@ -24,6 +24,8 @@ export interface PushNotificationData {
   external_url?: string;
   redirect_slug?: string;
   created_at?: string;
+  chat_partner_id?: string;
+  chat_partner_type?: string;
 }
 
 interface ToastConfig {
@@ -191,7 +193,25 @@ export function resolveNotificationConfig(data: PushNotificationData): ToastConf
         route: '/tutorials',
       };
 
-    case rawTarget.includes('support') || rawTarget.includes('chat') || rawTarget.includes('feedback') || rawTarget.includes('message'):
+    case rawTarget === 'message': {
+      const partnerId = data.chat_partner_id;
+      const partnerType = data.chat_partner_type || 'carrier';
+      const route = partnerId
+        ? `/messages?userId=${encodeURIComponent(partnerId)}&userType=${encodeURIComponent(partnerType)}`
+        : '/messages';
+      return {
+        icon: MessageSquare,
+        iconBg: 'bg-blue-50 dark:bg-blue-950/60',
+        iconColor: 'text-blue-600 dark:text-blue-400',
+        badgeBg: 'bg-blue-50 dark:bg-blue-950/50',
+        badgeColor: 'text-blue-700 dark:text-blue-300',
+        categoryName: 'Messages',
+        actionLabel: 'Open Chat',
+        route,
+      };
+    }
+
+    case rawTarget.includes('support') || rawTarget.includes('chat') || rawTarget.includes('feedback'):
       return {
         icon: MessageSquare,
         iconBg: 'bg-blue-50 dark:bg-blue-950/60',

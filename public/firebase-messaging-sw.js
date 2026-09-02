@@ -84,6 +84,19 @@ function resolveTargetUrl(data) {
   if (rawType.includes('subscription')) {
     return '/subscription';
   }
+  if (rawType === 'message') {
+    let partnerId = '';
+    let partnerType = 'carrier';
+    try {
+      const meta = JSON.parse(data.data || '{}');
+      partnerId = String(meta.sender_id || meta.carrier_id || '');
+      partnerType = String(meta.sender_type || meta.chat_type || 'carrier');
+    } catch (e) { /* ignore */ }
+    if (partnerId) {
+      return `/messages?userId=${encodeURIComponent(partnerId)}&userType=${encodeURIComponent(partnerType)}`;
+    }
+    return '/messages';
+  }
   if (rawType.includes('support') || rawType.includes('chat') || rawType.includes('feedback')) {
     return '/support';
   }

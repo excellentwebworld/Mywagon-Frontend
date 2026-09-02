@@ -22,6 +22,8 @@ import { useNavigate } from 'react-router-dom';
 import { getToken, onMessage, deleteToken } from 'firebase/messaging';
 import { getMessagingOrNull, vapidKey, isFirebaseConfigured } from '../config/firebase';
 import { notificationService } from '../api/services/notificationService';
+import { shouldSuppressChatForegroundNotification } from '../utils/chatNotificationGuard';
+import { parseChatMetaFromFcmData } from '../utils/chatPartnerUtils';
 
 const SESSION_KEY = 'mv_fcm_token';
 
@@ -78,6 +80,8 @@ export interface FcmNotificationPayload {
   external_url?: string;
   redirect_slug?: string;
   created_at?: string;
+  chat_partner_id?: string;
+  chat_partner_type?: string;
 }
 
 interface UseFcmOptions {
@@ -189,6 +193,12 @@ export function useFcm({ onForegroundMessage }: UseFcmOptions = {}): void {
           return;
         }
 
+        if (shouldSuppressChatForegroundNotification(type, payload.data)) {
+          return;
+        }
+
+        const chatMeta = parseChatMetaFromFcmData(payload.data);
+
         const notifData: FcmNotificationPayload = {
           title,
           body,
@@ -197,6 +207,8 @@ export function useFcm({ onForegroundMessage }: UseFcmOptions = {}): void {
           action_id,
           external_url,
           redirect_slug,
+          chat_partner_id: chatMeta ? String(chatMeta.senderId) : undefined,
+          chat_partner_type: chatMeta?.senderType,
         };
 
         // Notify topbar / notifications page to refresh counters

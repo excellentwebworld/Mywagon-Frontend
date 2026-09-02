@@ -17,6 +17,12 @@ import type {
   QuickTemplate,
 } from '../types';
 import { formatMessageTime, formatConversationTime } from '../../../utils/timezone';
+import { setActiveChatPartner } from '../../../utils/chatNotificationGuard';
+import {
+  isMessageFromPartner,
+  parsePartnerId,
+  resolveActivePartnerType,
+} from '../../../utils/chatPartnerUtils';
 
 export function useMessages() {
   const { showToast } = useApp();
@@ -190,26 +196,42 @@ export function useMessages() {
     return found;
   }, [conversations, activeConvId]);
 
+  // Track open chat so foreground FCM toasts are suppressed for the active thread
+  useEffect(() => {
+    if (!activeConvId || !activeConversation) {
+      setActiveChatPartner(null);
+      return;
+    }
+
+    const partnerId = parsePartnerId(activeConversation.partnerId || activeConversation.id);
+    const partnerType = resolveActivePartnerType(activeConversation);
+
+    if (partnerId > 0) {
+      setActiveChatPartner({ partnerId, partnerType });
+    } else {
+      setActiveChatPartner(null);
+    }
+
+    return () => setActiveChatPartner(null);
+  }, [activeConvId, activeConversation]);
+
   // Listen to incoming real-time socket messages
   useEffect(() => {
     const unsubscribe = socketService.onMessage((incoming: SocketMessagePayload) => {
       const active = activeConvRef.current;
-      const activePartnerId = parseInt(String(active?.partnerId || active?.id || '0').replace(/\D/g, ''), 10);
-      const incomingSenderId = parseInt(String(incoming.sender_id || (incoming as any).senderable_id || '0').replace(/\D/g, ''), 10);
-      const incomingReceiverId = parseInt(String(incoming.receiver_id || (incoming as any).receiverable_id || '0').replace(/\D/g, ''), 10);
-      const myId = parseInt(String(user?.id || '0'), 10);
+      const activePartnerId = parsePartnerId(active?.partnerId || active?.id);
+      const incomingSenderId = parsePartnerId(incoming.sender_id || (incoming as any).senderable_id);
+      const incomingReceiverId = parsePartnerId(incoming.receiver_id || (incoming as any).receiverable_id);
+      const myId = parsePartnerId(user?.id);
       const incomingSenderType = (incoming.sender_type || (incoming as any).senderable_type || 'carrier').toLowerCase();
-      const activePartnerType = (active?.partnerType || (active?.type === 'company' ? 'carrier' : active?.type) || 'carrier').toLowerCase();
+      const activePartnerType = resolveActivePartnerType(active);
 
       // Detect if this is a message received FROM the active partner (incoming from them)
-      const isFromActivePartner = Boolean(
-        activePartnerId > 0 &&
-        incomingSenderId === activePartnerId &&
-        (
-          incomingSenderType === activePartnerType ||
-          (incomingSenderType === 'carrier' && activePartnerType === 'company') ||
-          (incomingSenderType === 'company' && activePartnerType === 'carrier')
-        )
+      const isFromActivePartner = isMessageFromPartner(
+        incomingSenderId,
+        incomingSenderType,
+        activePartnerId,
+        activePartnerType
       );
 
       // Detect if this is a server echo of OUR OWN sent message (socket server echoes back to sender too)
