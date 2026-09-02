@@ -122,16 +122,16 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/50 backdrop-blur-sm animate-fade-in overflow-y-auto"
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-scale-up"
+        className="w-full max-w-lg max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto animate-scale-up"
         onClick={(e) => e.stopPropagation()}
         style={{ border: '1px solid #E4E4E8' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E4E4E8] bg-[#FAFAFC]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E4E4E8] bg-[#FAFAFC] flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-[#9B51E0]/10 flex items-center justify-center text-[#9B51E0]">
               <UploadCloud size={18} />
@@ -155,14 +155,15 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-              <AlertCircle size={15} className="flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden m-0">
+          <div className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
+            {error && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                <AlertCircle size={15} className="flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
           {/* Document Name */}
           <div>
@@ -282,10 +283,11 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
                 </button>
               </div>
             )}
+            </div>
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#E4E4E8]">
+          <div className="flex items-center justify-end gap-2.5 px-6 py-3.5 border-t border-[#E4E4E8] bg-[#FAFAFC] flex-shrink-0">
             <button
               type="button"
               onClick={handleClose}
