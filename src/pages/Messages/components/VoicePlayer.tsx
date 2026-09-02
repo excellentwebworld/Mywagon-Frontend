@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Play, Pause } from 'lucide-react';
+import { getVoiceAudioMime } from '../../../utils/voiceAudioUtils';
 
 interface VoicePlayerProps {
   voiceUrl: string;
@@ -13,7 +14,6 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({ voiceUrl, duration, is
   const [totalDuration, setTotalDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Format seconds to M:SS
   const formatTime = (sec: number) => {
     if (!Number.isFinite(sec) || Number.isNaN(sec) || sec < 0) return '0:00';
     const m = Math.floor(sec / 60);
@@ -30,42 +30,43 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({ voiceUrl, duration, is
     return formatTime(sec);
   };
 
+  const audioMime = getVoiceAudioMime(voiceUrl);
+
   useEffect(() => {
-    const audio = new Audio(voiceUrl);
-    audioRef.current = audio;
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    const onLoadedMetadata = () => {
-      if (Number.isFinite(audio.duration) && !Number.isNaN(audio.duration) && audio.duration > 0) {
-        setTotalDuration(audio.duration);
-      }
-    };
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setTotalDuration(0);
+    audio.pause();
+    audio.currentTime = 0;
+    audio.load();
+  }, [voiceUrl, audioMime]);
 
-    const onTimeUpdate = () => {
-      if (Number.isFinite(audio.currentTime) && !Number.isNaN(audio.currentTime)) {
-        setCurrentTime(audio.currentTime);
-      }
-      if (Number.isFinite(audio.duration) && !Number.isNaN(audio.duration) && audio.duration > 0) {
-        setTotalDuration((prev) => (prev > 0 ? prev : audio.duration));
-      }
-    };
+  const onLoadedMetadata = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (Number.isFinite(audio.duration) && !Number.isNaN(audio.duration) && audio.duration > 0) {
+      setTotalDuration(audio.duration);
+    }
+  }, []);
 
-    const onEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
+  const onTimeUpdate = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (Number.isFinite(audio.currentTime) && !Number.isNaN(audio.currentTime)) {
+      setCurrentTime(audio.currentTime);
+    }
+    if (Number.isFinite(audio.duration) && !Number.isNaN(audio.duration) && audio.duration > 0) {
+      setTotalDuration((prev) => (prev > 0 ? prev : audio.duration));
+    }
+  }, []);
 
-    audio.addEventListener('loadedmetadata', onLoadedMetadata);
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    audio.addEventListener('ended', onEnded);
-
-    return () => {
-      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
-      audio.removeEventListener('timeupdate', onTimeUpdate);
-      audio.removeEventListener('ended', onEnded);
-      audio.pause();
-      audioRef.current = null;
-    };
-  }, [voiceUrl]);
+  const onEnded = useCallback(() => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+  }, []);
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
@@ -74,13 +75,14 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({ voiceUrl, duration, is
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
-    } else {
-      audio.play().then(() => {
-        setIsPlaying(true);
-      }).catch((e) => {
-        console.error('Playback error:', e);
-      });
+      return;
     }
+
+    audio.play().then(() => {
+      setIsPlaying(true);
+    }).catch((e) => {
+      console.error('Playback error:', e);
+    });
   }, [isPlaying]);
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -107,6 +109,17 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({ voiceUrl, duration, is
 
   return (
     <div className={`voice-player ${isSent ? 'sent' : 'received'}`}>
+      <audio
+        ref={audioRef}
+        preload="metadata"
+        onLoadedMetadata={onLoadedMetadata}
+        onTimeUpdate={onTimeUpdate}
+        onEnded={onEnded}
+        onError={() => console.error('Voice message failed to load:', voiceUrl)}
+      >
+        <source src={voiceUrl} type={audioMime} />
+      </audio>
+
       <button
         type="button"
         className="vp-btn"
@@ -119,7 +132,6 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({ voiceUrl, duration, is
 
       <div className="vp-track" onClick={handleSeek} role="progressbar" aria-valuenow={progressPercent} aria-valuemin={0} aria-valuemax={100}>
         <div className="vp-progress" style={{ width: `${progressPercent}%` }} />
-        {/* Waveform bars */}
         <div className="vp-waveform">
           {[40, 75, 30, 90, 60, 45, 80, 55, 70, 35, 85, 60, 40, 95, 50, 65, 30, 80].map((h, i) => (
             <span

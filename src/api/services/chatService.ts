@@ -3,6 +3,7 @@ import { partnersService } from './partnersService';
 import type { Conversation, ChatMessage, ShipmentContextInfo, QuickTemplate } from '../../pages/Messages/types';
 import { formatMessageTime } from '../../utils/timezone';
 import { extractShipmentDbId } from '../../utils/chatPartnerUtils';
+import { getVoiceUploadFileName, normalizeVoiceBlob } from '../../utils/voiceAudioUtils';
 
 export const QUICK_TEMPLATES: QuickTemplate[] = [
   { id: 0, nameKey: 'tpl0Name', descKey: 'tpl0Desc', textKey: 'tpl0Text', iconType: 'clock' },
@@ -243,9 +244,10 @@ export const chatService = {
    * Upload Voice Note audio file to S3
    */
   async uploadVoice(audioBlob: Blob): Promise<{ url: string; filename: string }> {
-    const ext = audioBlob.type.includes('wav') ? 'wav' : (audioBlob.type.includes('mp4') || audioBlob.type.includes('m4a') ? 'm4a' : 'webm');
+    const normalizedBlob = normalizeVoiceBlob(audioBlob);
+    const uploadFileName = getVoiceUploadFileName(normalizedBlob);
     const formData = new FormData();
-    formData.append('audio', audioBlob, `voice_${Date.now()}.${ext}`);
+    formData.append('audio', normalizedBlob, uploadFileName);
 
     try {
       const res = await axiosInstance.post<{
@@ -260,14 +262,14 @@ export const chatService = {
       if (d && (d.url || (d as any).audio_url)) {
         return {
           url: d.url || (d as any).audio_url,
-          filename: d.filename || `voice_${Date.now()}.${ext}`,
+          filename: d.filename || uploadFileName,
         };
       }
     } catch {
       try {
         const res2 = await axiosInstance.post<{ success?: boolean; url?: string }>('/shipper/chat/upload-voice', formData);
         if (res2.data?.url) {
-          return { url: res2.data.url, filename: `voice_${Date.now()}.${ext}` };
+          return { url: res2.data.url, filename: uploadFileName };
         }
       } catch {}
     }

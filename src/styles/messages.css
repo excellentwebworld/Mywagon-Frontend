@@ -1862,6 +1862,10 @@
   padding: 4px 2px;
 }
 
+.voice-player audio {
+  display: none;
+}
+
 .vp-btn {
   width: 32px;
   height: 32px;

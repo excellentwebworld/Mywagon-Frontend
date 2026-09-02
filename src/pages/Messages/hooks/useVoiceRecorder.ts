@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import RecordRTC, { StereoAudioRecorder } from 'recordrtc';
+import { normalizeVoiceBlob } from '../../../utils/voiceAudioUtils';
 
 export interface UseVoiceRecorderReturn {
   isRecording: boolean;
@@ -130,7 +131,24 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     setIsRecording(false);
 
     recorder.stopRecording(() => {
-      const blob = recorder.getBlob();
+      const rawBlob = recorder.getBlob();
+      const blob = normalizeVoiceBlob(rawBlob);
+
+      if (!blob || blob.size === 0) {
+        alert('Recording failed. No audio was captured. Please try again.');
+        try {
+          recorder.destroy();
+        } catch {}
+        recorderRef.current = null;
+        setIsPreviewing(false);
+        return;
+      }
+
+      try {
+        recorder.destroy();
+      } catch {}
+      recorderRef.current = null;
+
       const url = URL.createObjectURL(blob);
 
       setAudioBlob(blob);
@@ -146,11 +164,20 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       }
 
       const audio = new Audio(url);
+      audio.preload = 'auto';
       previewAudioRef.current = audio;
       audio.onloadedmetadata = () => {
         if (Number.isFinite(audio.duration) && !Number.isNaN(audio.duration) && audio.duration > 0) {
           setPreviewDuration(audio.duration);
         }
+      };
+      audio.oncanplaythrough = () => {
+        if (Number.isFinite(audio.duration) && !Number.isNaN(audio.duration) && audio.duration > 0) {
+          setPreviewDuration(audio.duration);
+        }
+      };
+      audio.onerror = () => {
+        console.error('Voice preview failed to load');
       };
       audio.ontimeupdate = () => {
         if (Number.isFinite(audio.currentTime) && !Number.isNaN(audio.currentTime)) {
@@ -161,6 +188,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
         setIsPlayingPreview(false);
         setPreviewCurrentTime(0);
       };
+      audio.load();
     });
   }, []);
 
