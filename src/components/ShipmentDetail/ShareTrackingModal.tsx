@@ -31,10 +31,12 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
             (typeof s.customers?.[0]?.orders?.[0] === 'string' ? s.customers[0].orders[0] : '') ||
             '';
           const date = s.date || '';
+          const sTime = (s.timeStart || '').trim();
+          const eTime = (s.timeEnd || '').trim();
           const time =
-            s.timeStart && s.timeEnd
-              ? `${s.timeStart} - ${s.timeEnd}`
-              : s.timeStart || s.timeEnd || '';
+            sTime && eTime && sTime !== eTime
+              ? `${sTime} - ${eTime}`
+              : sTime || eTime || '';
           const initialEmail =
             (s as any).tracking_email ||
             (s as any).email ||

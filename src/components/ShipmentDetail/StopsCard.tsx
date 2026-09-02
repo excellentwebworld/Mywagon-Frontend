@@ -56,6 +56,31 @@ export interface PhysicalStop {
   totalOrderCount: number;
 }
 
+function formatStopSchedule(date?: string, timeStart?: string, timeEnd?: string): string {
+  const parts: string[] = [];
+  if (date) {
+    parts.push(date);
+  }
+
+  const s = (timeStart || '').trim();
+  const e = (timeEnd || '').trim();
+
+  let timeText = '';
+  if (s && e && s !== e) {
+    timeText = `${s} – ${e}`;
+  } else if (s) {
+    timeText = s;
+  } else if (e) {
+    timeText = e;
+  }
+
+  if (timeText) {
+    parts.push(timeText);
+  }
+
+  return parts.join(' · ');
+}
+
 /** Merge driver location status when grouping rows at the same physical stop (Laravel per-line rules). */
 function mergeLocationStatus(current?: string, incoming?: string): string {
   const cur = Number(current ?? 0);
@@ -333,12 +358,11 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                         {isPickup ? t('pickup', 'PICKUP') : t('dropoff', 'DROPOFF')}
                       </span>
 
-                      <span className="text-[11px] font-semibold text-[#5E5E6E]">
-                        {stop.date ? `${stop.date} · ` : ''}
-                        {stop.timeStart && stop.timeEnd
-                          ? `${stop.timeStart} – ${stop.timeEnd}`
-                          : stop.timeStart || '08:00 – 18:00'}
-                      </span>
+                      {formatStopSchedule(stop.date, stop.timeStart, stop.timeEnd) && (
+                        <span className="text-[11px] font-semibold text-[#5E5E6E]">
+                          {formatStopSchedule(stop.date, stop.timeStart, stop.timeEnd)}
+                        </span>
+                      )}
                     </div>
                   </div>
 

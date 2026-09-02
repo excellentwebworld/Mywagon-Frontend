@@ -135,11 +135,12 @@ export function getStopBadgeType(stop: EnrichedStop): 'pickup' | 'delivery' {
 
 export function formatStopDateTime(stop: ApiStop): string {
   if (!stop.dateFrom) return '—';
-  if (stop.timeFrom && stop.timeTo) {
+  if (stop.timeFrom && stop.timeTo && stop.timeFrom !== stop.timeTo) {
     return `${formatDisplayDate(stop.dateFrom)} ${formatDisplayTime(stop.timeFrom)}–${formatDisplayTime(stop.timeTo)}`;
   }
-  if (stop.timeFrom) {
-    return `${formatDisplayDate(stop.dateFrom)} ${formatDisplayTime(stop.timeFrom)}`;
+  const singleTime = stop.timeFrom || stop.timeTo;
+  if (singleTime) {
+    return `${formatDisplayDate(stop.dateFrom)} ${formatDisplayTime(singleTime)}`;
   }
   return formatDisplayDate(stop.dateFrom);
 }
