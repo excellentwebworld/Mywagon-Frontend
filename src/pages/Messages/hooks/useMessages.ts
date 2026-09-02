@@ -516,8 +516,8 @@ export function useMessages() {
 
   // Send text message
   const handleSendMessage = useCallback(
-    async (overrideText?: string) => {
-      const text = (overrideText !== undefined ? overrideText : messageInput).trim();
+    async (overrideText?: string | unknown) => {
+      const text = (typeof overrideText === 'string' ? overrideText : messageInput).trim();
       if (!text || !activeConvId || !activeConversation) return;
 
       const now = new Date();

@@ -293,7 +293,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           <button
             type="button"
             className="cmp-send"
-            onClick={onSendMessage}
+            onClick={() => onSendMessage()}
             disabled={!messageInput.trim()}
             title="Send message"
           >
