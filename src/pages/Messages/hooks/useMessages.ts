@@ -19,11 +19,55 @@ import type {
 import { formatMessageTime, formatConversationTime } from '../../../utils/timezone';
 import { setActiveChatPartner } from '../../../utils/chatNotificationGuard';
 import {
+  buildLaravelChatRequestData,
   extractShipmentDbId,
+  getShipperDeviceToken,
   isMessageFromPartner,
   parsePartnerId,
   resolveActivePartnerType,
+  resolveSocketReceiverType,
 } from '../../../utils/chatPartnerUtils';
+
+function buildShipperSocketChatPayload(params: {
+  user: {
+    id?: number | string;
+    company_name?: string;
+    first_name?: string;
+    last_name?: string;
+    profile_picture?: string | null;
+  };
+  conversation: Conversation;
+  partnerToken: string;
+  message: string;
+  messagesType?: 'voice' | 'media';
+  duration?: string;
+}): SocketMessagePayload {
+  const receiverId = parsePartnerId(params.conversation.partnerId || params.conversation.id);
+  const receiverType = resolveSocketReceiverType(params.conversation);
+  const senderId = parsePartnerId(params.user.id);
+  const senderName =
+    params.user.company_name ||
+    `${params.user.first_name || ''} ${params.user.last_name || ''}`.trim() ||
+    'Shipper';
+
+  return {
+    sender_id: String(senderId),
+    sender_type: 'shipper',
+    receiver_id: String(receiverId),
+    receiver_type: receiverType,
+    message: params.message,
+    ...(params.messagesType ? { messages_type: params.messagesType } : {}),
+    ...(params.duration ? { duration: params.duration } : {}),
+    request_data: buildLaravelChatRequestData({
+      senderId: String(senderId),
+      senderName,
+      senderType: 'shipper',
+      senderImg: params.user.profile_picture || '',
+      receiverableToken: params.partnerToken,
+      senderableToken: getShipperDeviceToken(),
+    }),
+  };
+}
 
 export function useMessages() {
   const { showToast } = useApp();
@@ -506,12 +550,8 @@ export function useMessages() {
         )
       );
 
-      const receiverId = parseInt(String(activeConversation.partnerId || activeConversation.id).replace(/\D/g, ''), 10);
-      const receiverType = (activeConversation.partnerType || (activeConversation.type === 'company' ? 'carrier' : activeConversation.type) || 'carrier').toLowerCase();
-      const currentSenderName = user?.company_name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Shipper';
-      const partnerName = activeConversation.name || 'Partner';
-      const partnerImg = activeConversation.avatarUrl || '';
-      // Use device_token fetched from history endpoint (guaranteed fresh FCM token)
+      const receiverId = parsePartnerId(activeConversation.partnerId || activeConversation.id);
+      const receiverType = resolveSocketReceiverType(activeConversation);
       const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
 
       try {
@@ -523,30 +563,15 @@ export function useMessages() {
           ...(shipmentDbId ? { shipment_id: shipmentDbId } : {}),
         });
 
-        // Emit via socket for real-time delivery + Firebase push notifications
-        // Laravel shipper panel does not send shipment_id over socket.
-        void socketService.sendMessage({
-          sender_id: user?.id || 0,
-          sender_type: 'shipper',
-          receiver_id: receiverId,
-          receiver_type: receiverType,
-          message: text,
-          messages_type: 'text',
-          request_data: {
-            sender_id: user?.id || 0,
-            sender_name: currentSenderName,
-            sender_type: 'shipper',
-            sender_img: user?.profile_picture || '',
-            receiverable_token: partnerToken,
-            senderable_token: '',
-            carrier_id: receiverId,
-            chat_type: receiverType,
-            carrier_name: partnerName,
-            carrier_picture: partnerImg,
-            receiverable_type: receiverType,
-            type: 'message',
-          },
-        });
+        // Laravel shipper panel: socket only, minimal request_data (chat_history.js).
+        void socketService.sendMessage(
+          buildShipperSocketChatPayload({
+            user: user || {},
+            conversation: activeConversation,
+            partnerToken,
+            message: text,
+          })
+        );
 
         if (sentRes && sentRes.id) {
           setMessages((prev) =>
@@ -622,12 +647,8 @@ export function useMessages() {
         )
       );
 
-      const receiverId = parseInt(String(activeConversation.partnerId || activeConversation.id).replace(/\D/g, ''), 10);
-      const receiverType = (activeConversation.partnerType || (activeConversation.type === 'company' ? 'carrier' : activeConversation.type) || 'carrier').toLowerCase();
-      const currentSenderName = user?.company_name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Shipper';
-      const partnerName = activeConversation.name || 'Partner';
-      const partnerImg = activeConversation.avatarUrl || '';
-      // Use device_token fetched from history endpoint (guaranteed fresh FCM token)
+      const receiverId = parsePartnerId(activeConversation.partnerId || activeConversation.id);
+      const receiverType = resolveSocketReceiverType(activeConversation);
       const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
 
       try {
@@ -643,31 +664,16 @@ export function useMessages() {
           ...(shipmentDbId ? { shipment_id: shipmentDbId } : {}),
         });
 
-        // Also emit via socket with full Firebase metadata
-        // duration sent as ms string — matches exactly what Laravel chat_history.js sends
-        void socketService.sendMessage({
-          sender_id: user?.id || 0,
-          sender_type: 'shipper',
-          receiver_id: receiverId,
-          receiver_type: receiverType,
-          message: uploadedUrl,
-          messages_type: 'voice',
-          duration: durationMsSend,
-          request_data: {
-            sender_id: user?.id || 0,
-            sender_name: currentSenderName,
-            sender_type: 'shipper',
-            sender_img: user?.profile_picture || '',
-            receiverable_token: partnerToken,
-            senderable_token: '',
-            carrier_id: receiverId,
-            chat_type: receiverType,
-            carrier_name: partnerName,
-            carrier_picture: partnerImg,
-            receiverable_type: receiverType,
-            type: 'message',
-          },
-        });
+        void socketService.sendMessage(
+          buildShipperSocketChatPayload({
+            user: user || {},
+            conversation: activeConversation,
+            partnerToken,
+            message: uploadedUrl,
+            messagesType: 'voice',
+            duration: durationMsSend,
+          })
+        );
 
         if (sentRes && sentRes.id) {
           // Update the temp message with the real server ID and the uploaded S3 URL
@@ -733,12 +739,8 @@ export function useMessages() {
         )
       );
 
-      const receiverId = parseInt(String(activeConversation.partnerId || activeConversation.id).replace(/\D/g, ''), 10);
-      const receiverType = (activeConversation.partnerType || (activeConversation.type === 'company' ? 'carrier' : activeConversation.type) || 'carrier').toLowerCase();
-      const currentSenderName = user?.company_name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Shipper';
-      const partnerName = activeConversation.name || 'Partner';
-      const partnerImg = activeConversation.avatarUrl || '';
-      // Use device_token fetched from history endpoint (guaranteed fresh FCM token)
+      const receiverId = parsePartnerId(activeConversation.partnerId || activeConversation.id);
+      const receiverType = resolveSocketReceiverType(activeConversation);
       const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
 
       try {
@@ -760,28 +762,15 @@ export function useMessages() {
           ...(shipmentDbId ? { shipment_id: shipmentDbId } : {}),
         });
 
-        void socketService.sendMessage({
-          sender_id: user?.id || 0,
-          sender_type: 'shipper',
-          receiver_id: receiverId,
-          receiver_type: receiverType,
-          message: uploadedUrl || file.name,
-          messages_type: 'media',
-          request_data: {
-            sender_id: user?.id || 0,
-            sender_name: currentSenderName,
-            sender_type: 'shipper',
-            sender_img: user?.profile_picture || '',
-            receiverable_token: partnerToken,
-            senderable_token: '',
-            carrier_id: receiverId,
-            chat_type: receiverType,
-            carrier_name: partnerName,
-            carrier_picture: partnerImg,
-            receiverable_type: receiverType,
-            type: 'message',
-          },
-        });
+        void socketService.sendMessage(
+          buildShipperSocketChatPayload({
+            user: user || {},
+            conversation: activeConversation,
+            partnerToken,
+            message: uploadedUrl || file.name,
+            messagesType: 'media',
+          })
+        );
 
         showToast(`📎 ${t('chatModule.toastAttach') || 'Attached'}: ${file.name}`, 'success');
       } catch {
@@ -804,8 +793,8 @@ export function useMessages() {
         prev.map((m) => (m.id === failedMsg.id ? { ...m, isFailed: false } : m))
       );
 
-      const receiverId = activeConversation.partnerId || activeConversation.id;
-      const receiverType = activeConversation.partnerType || (activeConversation.type === 'company' ? 'carrier' : 'driver');
+      const receiverId = parsePartnerId(activeConversation.partnerId || activeConversation.id);
+      const receiverType = resolveSocketReceiverType(activeConversation);
 
       try {
         const shipmentDbId = extractShipmentDbId(failedMsg.shipmentId);

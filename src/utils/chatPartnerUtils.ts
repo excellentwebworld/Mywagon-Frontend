@@ -9,9 +9,65 @@ export function extractShipmentDbId(sid?: string | null): string | undefined {
   return numeric || undefined;
 }
 
-export function resolveActivePartnerType(conv: { partnerType?: string; type?: string } | null): string {
+/** Socket room type — must be carrier, driver, or admin (never freelancer/company). */
+export function normalizeSocketUserType(userType?: string | null): 'carrier' | 'driver' | 'admin' {
+  const t = (userType || 'carrier').toLowerCase();
+  if (t === 'admin') return 'admin';
+  if (t === 'driver' || t === 'freelancer' || t === 'company_driver') return 'driver';
+  return 'carrier';
+}
+
+export function resolveSocketReceiverType(conv: { partnerType?: string; type?: string } | null): 'carrier' | 'driver' | 'admin' {
   if (!conv) return 'carrier';
-  return (conv.partnerType || (conv.type === 'company' ? 'carrier' : conv.type) || 'carrier').toLowerCase();
+  if (conv.partnerType) {
+    return normalizeSocketUserType(conv.partnerType);
+  }
+  if (conv.type === 'company') return 'carrier';
+  if (conv.type === 'freelancer' || conv.type === 'driver') return 'driver';
+  return 'carrier';
+}
+
+export function resolveActivePartnerType(conv: { partnerType?: string; type?: string } | null): string {
+  return resolveSocketReceiverType(conv);
+}
+
+/** Laravel shipper panel socket `request_data` shape (chat_history.js). */
+export interface LaravelChatRequestData {
+  sender_id: string | number;
+  sender_name: string;
+  sender_type: string;
+  sender_img: string;
+  receiverable_token: string;
+  senderable_token: string;
+  type: 'message';
+}
+
+export function buildLaravelChatRequestData(params: {
+  senderId: string | number;
+  senderName: string;
+  senderType: string;
+  senderImg: string;
+  receiverableToken?: string;
+  senderableToken?: string;
+}): LaravelChatRequestData {
+  return {
+    sender_id: params.senderId,
+    sender_name: params.senderName,
+    sender_type: params.senderType,
+    sender_img: params.senderImg,
+    receiverable_token: params.receiverableToken || '',
+    senderable_token: params.senderableToken || '',
+    type: 'message',
+  };
+}
+
+/** Shipper FCM token stored by useFcm — sent as senderable_token like Laravel blade chat. */
+export function getShipperDeviceToken(): string {
+  try {
+    return sessionStorage.getItem('mv_fcm_token') || '';
+  } catch {
+    return '';
+  }
 }
 
 export function isMessageFromPartner(
@@ -30,7 +86,9 @@ export function isMessageFromPartner(
   return (
     incoming === active ||
     (incoming === 'carrier' && active === 'company') ||
-    (incoming === 'company' && active === 'carrier')
+    (incoming === 'company' && active === 'carrier') ||
+    (incoming === 'driver' && active === 'freelancer') ||
+    (incoming === 'freelancer' && active === 'driver')
   );
 }
 

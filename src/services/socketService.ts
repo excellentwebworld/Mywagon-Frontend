@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { normalizeSocketUserType } from '../utils/chatPartnerUtils';
 
 export interface SocketMessagePayload {
   id?: number;
@@ -115,27 +116,28 @@ class SocketService {
         this.connect(this.currentUserId || undefined);
       }
 
-      const cleanSenderId = parseInt(String(payload.sender_id || this.currentUserId || '0').replace(/\D/g, ''), 10);
-      const cleanReceiverId = parseInt(String(payload.receiver_id || '0').replace(/\D/g, ''), 10);
-      const cleanReceiverType = (payload.receiver_type === 'company' ? 'carrier' : payload.receiver_type) || 'carrier';
-      const cleanSenderType = payload.sender_type || 'shipper';
+      const cleanSenderId = String(
+        parseInt(String(payload.sender_id || this.currentUserId || '0').replace(/\D/g, ''), 10) || 0
+      );
+      const cleanReceiverId = String(
+        parseInt(String(payload.receiver_id || '0').replace(/\D/g, ''), 10) || 0
+      );
+      const cleanSenderType = (payload.sender_type || 'shipper').toLowerCase();
+      const cleanReceiverType = normalizeSocketUserType(payload.receiver_type);
 
-      const fullPayload = {
+      const fullPayload: SocketMessagePayload = {
         ...payload,
         sender_id: cleanSenderId,
         sender_type: cleanSenderType,
         receiver_id: cleanReceiverId,
         receiver_type: cleanReceiverType,
-        request_data: {
-          sender_id: cleanSenderId,
-          sender_name: payload.request_data?.sender_name || 'Shipper',
-          sender_type: cleanSenderType,
-          carrier_name: payload.request_data?.sender_name || 'Shipper',
-          receiverable_type: cleanReceiverType,
-          type: 'message',
-          ...(payload.request_data || {}),
-        },
+        request_data: payload.request_data || {},
       };
+
+      // Laravel text chat omits messages_type on the socket payload.
+      if (fullPayload.messages_type === 'text') {
+        delete fullPayload.messages_type;
+      }
 
       if (this.socket && this.socket.connected) {
         this.socket.emit('send_message', fullPayload, (response: any) => {
