@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FileText, Plus, Send } from 'lucide-react';
 import type { DetailNote } from '../../pages/ShipmentDetail/detailViewModel';
+import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { CollapsibleCard } from './CollapsibleCard';
 
 interface NotesCardProps {
@@ -129,7 +130,7 @@ export const NotesCard: React.FC<NotesCardProps> = ({
                   <span>{n.author}</span>
                   <span>·</span>
                   <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px' }}>
-                    {n.timestamp}
+                    {formatUtcToDisplayDateTime(n.timestamp)}
                   </span>
                   <span>·</span>
                   <span

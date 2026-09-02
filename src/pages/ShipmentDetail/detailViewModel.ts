@@ -51,9 +51,25 @@ export interface AuditEntry {
 export function formatJourneyDuration(input: string | number | null | undefined): string {
   if (input == null || input === '' || input === '—' || input === 'N/A' || input === '0') return '—';
   const str = String(input).trim();
-  if (/hour|minute|hr|min|d/i.test(str)) {
+
+  // If already formatted like "5h 27m", return it
+  if (/^\d+h(?:\s*\d+m)?$/i.test(str) || /^\d+m$/i.test(str)) {
     return str;
   }
+
+  // If formatted like "5 hours, 27 minutes" or "5 hours 27 mins"
+  const hourMatch = str.match(/(\d+)\s*(?:hours?|hrs?|h)/i);
+  const minMatch = str.match(/(\d+)\s*(?:minutes?|mins?|m)/i);
+
+  if (hourMatch || minMatch) {
+    const h = hourMatch ? parseInt(hourMatch[1], 10) : 0;
+    const m = minMatch ? parseInt(minMatch[1], 10) : 0;
+    const parts: string[] = [];
+    if (h > 0) parts.push(`${h}h`);
+    if (m > 0 || h === 0) parts.push(`${m}m`);
+    return parts.join(' ') || '—';
+  }
+
   const num = parseFloat(str);
   if (isNaN(num) || num <= 0) return '—';
 
@@ -62,13 +78,13 @@ export function formatJourneyDuration(input: string | number | null | undefined)
 
   const parts: string[] = [];
   if (hours > 0) {
-    parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
+    parts.push(`${hours}h`);
   }
   if (minutes > 0 || hours === 0) {
-    parts.push(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`);
+    parts.push(`${minutes}m`);
   }
 
-  return parts.join(', ');
+  return parts.join(' ');
 }
 
 export interface CarrierDetail {

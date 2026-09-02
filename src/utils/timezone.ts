@@ -33,6 +33,15 @@ export function parseUtcInstant(input: string | null | undefined): Date | null {
   const trimmed = String(input).trim();
   if (!trimmed) return null;
 
+  // Handle dd/MM/yyyy HH:mm or dd/MM/yyyy HH:mm:ss format
+  const dmyMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (dmyMatch) {
+    const [, d, m, y, h = '00', min = '00', s = '00'] = dmyMatch;
+    const isoString = `${y}-${pad2(m)}-${pad2(d)}T${pad2(h)}:${pad2(min)}:${pad2(s)}Z`;
+    const parsed = new Date(isoString);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
   const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(trimmed);
   const normalized = hasTimezone
     ? trimmed
