@@ -19,6 +19,7 @@ import type {
 import { formatMessageTime, formatConversationTime } from '../../../utils/timezone';
 import { setActiveChatPartner } from '../../../utils/chatNotificationGuard';
 import {
+  extractShipmentDbId,
   isMessageFromPartner,
   parsePartnerId,
   resolveActivePartnerType,
@@ -479,6 +480,7 @@ export function useMessages() {
       const timeStr = formatMessageTime(now);
       const msgTempId = Date.now();
       const sid = activeConversation.latestSid || activeConversation.activeShipmentId;
+      const shipmentDbId = extractShipmentDbId(sid);
 
       const newMsg: ChatMessage = {
         id: msgTempId,
@@ -518,10 +520,11 @@ export function useMessages() {
           receiver_type: receiverType,
           message: text,
           messages_type: 'text',
-          shipment_id: sid,
+          ...(shipmentDbId ? { shipment_id: shipmentDbId } : {}),
         });
 
         // Emit via socket for real-time delivery + Firebase push notifications
+        // Laravel shipper panel does not send shipment_id over socket.
         void socketService.sendMessage({
           sender_id: user?.id || 0,
           sender_type: 'shipper',
@@ -529,7 +532,6 @@ export function useMessages() {
           receiver_type: receiverType,
           message: text,
           messages_type: 'text',
-          shipment_id: sid,
           request_data: {
             sender_id: user?.id || 0,
             sender_name: currentSenderName,
@@ -591,6 +593,7 @@ export function useMessages() {
       const timeStr = formatMessageTime(now);
       const msgTempId = Date.now();
       const sid = activeConversation.latestSid || activeConversation.activeShipmentId;
+      const shipmentDbId = extractShipmentDbId(sid);
       const localAudioUrl = URL.createObjectURL(audioBlob);
 
       const newMsg: ChatMessage = {
@@ -637,7 +640,7 @@ export function useMessages() {
           message: uploadedUrl,
           messages_type: 'voice',
           duration: durationMsSend, // milliseconds string — same as Laravel
-          shipment_id: sid,
+          ...(shipmentDbId ? { shipment_id: shipmentDbId } : {}),
         });
 
         // Also emit via socket with full Firebase metadata
@@ -650,7 +653,6 @@ export function useMessages() {
           message: uploadedUrl,
           messages_type: 'voice',
           duration: durationMsSend,
-          shipment_id: sid,
           request_data: {
             sender_id: user?.id || 0,
             sender_name: currentSenderName,
@@ -700,6 +702,7 @@ export function useMessages() {
       const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       const msgTempId = Date.now();
       const sid = activeConversation.latestSid || activeConversation.activeShipmentId;
+      const shipmentDbId = extractShipmentDbId(sid);
 
       const newMsg: ChatMessage = {
         id: msgTempId,
@@ -754,7 +757,7 @@ export function useMessages() {
           receiver_type: receiverType,
           message: uploadedUrl || file.name,
           messages_type: 'media',
-          shipment_id: sid,
+          ...(shipmentDbId ? { shipment_id: shipmentDbId } : {}),
         });
 
         void socketService.sendMessage({
@@ -764,7 +767,6 @@ export function useMessages() {
           receiver_type: receiverType,
           message: uploadedUrl || file.name,
           messages_type: 'media',
-          shipment_id: sid,
           request_data: {
             sender_id: user?.id || 0,
             sender_name: currentSenderName,
@@ -806,13 +808,14 @@ export function useMessages() {
       const receiverType = activeConversation.partnerType || (activeConversation.type === 'company' ? 'carrier' : 'driver');
 
       try {
+        const shipmentDbId = extractShipmentDbId(failedMsg.shipmentId);
         await chatService.sendMessage({
           receiver_id: receiverId,
           receiver_type: receiverType,
           message: failedMsg.text,
           messages_type: failedMsg.messages_type || 'text',
           duration: failedMsg.duration,
-          shipment_id: failedMsg.shipmentId,
+          ...(shipmentDbId ? { shipment_id: shipmentDbId } : {}),
         });
         showToast(t('chatModule.messageSent') || 'Message sent', 'success');
       } catch {

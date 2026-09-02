@@ -2,6 +2,7 @@ import { axiosInstance } from '../client';
 import { partnersService } from './partnersService';
 import type { Conversation, ChatMessage, ShipmentContextInfo, QuickTemplate } from '../../pages/Messages/types';
 import { formatMessageTime } from '../../utils/timezone';
+import { extractShipmentDbId } from '../../utils/chatPartnerUtils';
 
 export const QUICK_TEMPLATES: QuickTemplate[] = [
   { id: 0, nameKey: 'tpl0Name', descKey: 'tpl0Desc', textKey: 'tpl0Text', iconType: 'clock' },
@@ -200,6 +201,7 @@ export const chatService = {
     const cleanReceiverId = typeof payload.receiver_id === 'number'
       ? payload.receiver_id
       : parseInt(String(payload.receiver_id).replace(/\D/g, '') || '0', 10);
+    const shipmentDbId = extractShipmentDbId(payload.shipment_id);
 
     try {
       const res = await axiosInstance.post<{ status: boolean; data: ChatMessage }>('/chat/send', {
@@ -208,7 +210,7 @@ export const chatService = {
         message: payload.message,
         messages_type: payload.messages_type || 'text',
         duration: payload.duration,
-        shipment_id: payload.shipment_id,
+        ...(shipmentDbId ? { shipment_id: shipmentDbId } : {}),
       });
 
       if (res.data && res.data.data) {

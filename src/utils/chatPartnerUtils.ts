@@ -2,6 +2,13 @@ export function parsePartnerId(value: unknown): number {
   return parseInt(String(value || '0').replace(/\D/g, ''), 10);
 }
 
+/** Laravel ChatController strips non-digits before storing shipment_id. */
+export function extractShipmentDbId(sid?: string | null): string | undefined {
+  if (!sid) return undefined;
+  const numeric = String(sid).replace(/\D/g, '');
+  return numeric || undefined;
+}
+
 export function resolveActivePartnerType(conv: { partnerType?: string; type?: string } | null): string {
   if (!conv) return 'carrier';
   return (conv.partnerType || (conv.type === 'company' ? 'carrier' : conv.type) || 'carrier').toLowerCase();
