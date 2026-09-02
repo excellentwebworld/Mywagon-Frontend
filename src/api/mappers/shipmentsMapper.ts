@@ -497,7 +497,20 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
           deliveryOnTime: detail.shipper_rating.delivery_on_time,
           createdAt: detail.shipper_rating.created_at,
         } : null),
-    actualRouteCoordinates: (detail as any).actual_route_coordinates || [],
+    actualRouteCoordinates: Array.isArray((detail as any).actual_route_coordinates)
+      ? (detail as any).actual_route_coordinates
+          .map((pt: any) => {
+            const lat = typeof pt?.lat === 'number' ? pt.lat : parseFloat(pt?.lat ?? pt?.latitude);
+            const lng = typeof pt?.lng === 'number' ? pt.lng : parseFloat(pt?.lng ?? pt?.long ?? pt?.longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+            return {
+              ...pt,
+              lat,
+              lng,
+            };
+          })
+          .filter((pt: any): pt is { lat: number; lng: number } => pt !== null)
+      : [],
     hasActualRoute: Boolean((detail as any).has_actual_route ?? (detail as any).actual_route_coordinates?.length),
     isDriverRated: Boolean((detail as any).is_driver_rated ?? (detail.assigned_driver as any)?.is_rated),
     driverRating: (detail as any).driver_rating

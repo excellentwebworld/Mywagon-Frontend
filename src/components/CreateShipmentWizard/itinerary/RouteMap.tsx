@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { MapPin } from 'lucide-react';
 import { loadGoogleMaps } from '../../AddressBook/GoogleMapAddressField';
 import { numberedMarkerIconUrl } from './stopColors';
@@ -115,9 +115,21 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   const mapRef = useRef<any>(null);
   const onStopSelectRef = useRef(onStopSelect);
   onStopSelectRef.current = onStopSelect;
-
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
-  const pathSignature = polylinePath.map((p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join('|');
+
+  const safePolylinePath = useMemo(() => {
+    if (!Array.isArray(polylinePath)) return [];
+    return polylinePath
+      .map((p: any) => {
+        const lat = typeof p?.lat === 'number' ? p.lat : parseFloat(p?.lat ?? p?.latitude);
+        const lng = typeof p?.lng === 'number' ? p.lng : parseFloat(p?.lng ?? p?.long ?? p?.longitude);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        return { lat, lng };
+      })
+      .filter((p): p is { lat: number; lng: number } => p !== null);
+  }, [polylinePath]);
+
+  const pathSignature = safePolylinePath.map((p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join('|');
   const stopMarkerSignature = stops
     .map(
       (s, i) =>
@@ -133,7 +145,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       .join(' → ');
 
   useEffect(() => {
-    if (!mapsKey || !containerRef.current || polylinePath.length === 0) return;
+    if (!mapsKey || !containerRef.current || safePolylinePath.length === 0) return;
 
     let renderer: any = null;
     let polyline: any = null;
@@ -148,72 +160,68 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 
     loadGoogleMaps(mapsKey)
       .then(() => {
-        if (!containerRef.current || !(window as any).google) return;
         const google = (window as any).google;
+        if (!google?.maps || !containerRef.current) return;
 
         map = new google.maps.Map(containerRef.current, {
-          zoom: 8,
           mapTypeId: mapType,
           mapTypeControl: false,
           streetViewControl: false,
-          fullscreenControl: false,
+          fullscreenControl: true,
+          zoomControl: true,
+          gestureHandling: 'cooperative',
         });
         mapRef.current = map;
 
-        mapClickListener = map.addListener('click', closeAllInfoWindows);
+        mapClickListener = map.addListener('click', () => {
+          closeAllInfoWindows();
+        });
 
         const addStopMarkers = () => {
-          markersByIndexRef.current = {};
-          infoWindowsByIndexRef.current = {};
+          stops.forEach((stop, index) => {
+            const rawLat = parseFloat(String(stop.lat));
+            const rawLng = parseFloat(String(stop.lng));
+            if (!Number.isFinite(rawLat) || !Number.isFinite(rawLng)) return;
 
-          markers = stops
-            .map((s, idx) => ({ stop: s, idx }))
-            .filter(({ stop }) => stop.lat != null && stop.lng != null)
-            .map(({ stop, idx }) => {
-              const isDropoff = !!stop.hasDropoff;
-              const iconUrl = numberedMarkerIconUrl(idx + 1, !!stop.hasPickup, isDropoff);
-              const size = idx + 1 >= 10 ? 32 : 28;
-              const marker = new google.maps.Marker({
-                position: { lat: stop.lat as number, lng: stop.lng as number },
-                map,
-                icon: {
-                  url: iconUrl,
-                  scaledSize: new google.maps.Size(size, 28),
-                  anchor: new google.maps.Point(size / 2, 14),
-                },
-                title: '',
-                zIndex: isDropoff ? 2 : 1,
-              });
+            const position = { lat: rawLat, lng: rawLng };
+            const markerNum = index + 1;
+            const iconUrl = numberedMarkerIconUrl(markerNum, stop.hasPickup, stop.hasDropoff);
 
-              const infoWindow = new google.maps.InfoWindow({
-                content: buildStopInfoContent(stop, t),
-                maxWidth: 260,
-                headerDisabled: true,
-                disableAutoPan: false,
-              });
-              infoWindows.push(infoWindow);
-              markersByIndexRef.current[idx] = marker;
-              infoWindowsByIndexRef.current[idx] = infoWindow;
-
-              const openInfo = () => {
-                closeAllInfoWindows();
-                infoWindow.open({ anchor: marker, map });
-              };
-
-              marker.addListener('click', () => {
-                openInfo();
-                onStopSelectRef.current?.(idx);
-              });
-
-              return marker;
+            const marker = new google.maps.Marker({
+              position,
+              map,
+              title: `${stop.resolvedName || `Stop ${markerNum}`}`,
+              icon: {
+                url: iconUrl,
+                scaledSize: new google.maps.Size(32, 40),
+                anchor: new google.maps.Point(16, 40),
+              },
+              zIndex: 100 + index,
             });
+
+            const infoContent = buildStopInfoContent(stop, t);
+            const infoWindow = new google.maps.InfoWindow({
+              content: infoContent,
+            });
+
+            marker.addListener('click', () => {
+              closeAllInfoWindows();
+              infoWindow.open({ anchor: marker, map });
+              onStopSelectRef.current?.(index);
+            });
+
+            markers.push(marker);
+            infoWindows.push(infoWindow);
+            markersByIndexRef.current[index] = marker;
+            infoWindowsByIndexRef.current[index] = infoWindow;
+          });
         };
 
-        if (directionsResult && google.maps.DirectionsRenderer) {
+        if (directionsResult) {
           renderer = new google.maps.DirectionsRenderer({
             map,
             suppressMarkers: true,
-            preserveViewport: true,
+            preserveViewport: false,
             polylineOptions: {
               strokeColor: '#5E3BEE',
               strokeOpacity: 0.9,
@@ -223,17 +231,17 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           renderer.setDirections(directionsResult);
           addStopMarkers();
           const bounds = new google.maps.LatLngBounds();
-          polylinePath.forEach((p) => bounds.extend(new google.maps.LatLng(p.lat, p.lng)));
+          safePolylinePath.forEach((p) => bounds.extend(new google.maps.LatLng(p.lat, p.lng)));
           if (!bounds.isEmpty()) map.fitBounds(bounds);
           return;
         }
 
         const bounds = new google.maps.LatLngBounds();
-        polylinePath.forEach((p) => bounds.extend(new google.maps.LatLng(p.lat, p.lng)));
+        safePolylinePath.forEach((p) => bounds.extend(new google.maps.LatLng(p.lat, p.lng)));
         map.fitBounds(bounds);
 
         polyline = new google.maps.Polyline({
-          path: polylinePath.map((p) => ({ lat: p.lat, lng: p.lng })),
+          path: safePolylinePath.map((p) => ({ lat: p.lat, lng: p.lng })),
           geodesic: false,
           strokeColor: '#5E3BEE',
           strokeOpacity: 0.9,
@@ -258,7 +266,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       infoWindowsByIndexRef.current = {};
       mapRef.current = null;
     };
-  }, [mapsKey, pathSignature, stopMarkerSignature, directionsResult, stops, mapType, t]);
+  }, [mapsKey, pathSignature, stopMarkerSignature, directionsResult, stops, mapType, t, safePolylinePath]);
 
   // Sync list → map: open info + bounce the selected stop marker
   useEffect(() => {
@@ -280,11 +288,11 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 
   const height = heightProp ?? (expanded ? 340 : 300);
 
-  if (!mapsKey || polylinePath.length === 0) {
-    const center = polylinePath[0] || { lat: 37.983819, lng: 23.727539 };
+  if (!mapsKey || safePolylinePath.length === 0) {
+    const center = safePolylinePath[0] || { lat: 37.983819, lng: 23.727539 };
     const osmUrl =
-      polylinePath.length >= 2
-        ? `https://www.openstreetmap.org/export/embed.html?bbox=${Math.min(...polylinePath.map((p) => p.lng)) - 0.5}%2C${Math.min(...polylinePath.map((p) => p.lat)) - 0.3}%2C${Math.max(...polylinePath.map((p) => p.lng)) + 0.5}%2C${Math.max(...polylinePath.map((p) => p.lat)) + 0.3}&layer=mapnik`
+      safePolylinePath.length >= 2
+        ? `https://www.openstreetmap.org/export/embed.html?bbox=${Math.min(...safePolylinePath.map((p) => p.lng)) - 0.5}%2C${Math.min(...safePolylinePath.map((p) => p.lat)) - 0.3}%2C${Math.max(...safePolylinePath.map((p) => p.lng)) + 0.5}%2C${Math.max(...safePolylinePath.map((p) => p.lat)) + 0.3}&layer=mapnik`
         : `https://www.openstreetmap.org/export/embed.html?bbox=${center.lng - 0.08}%2C${center.lat - 0.05}%2C${center.lng + 0.08}%2C${center.lat + 0.05}&layer=mapnik&marker=${center.lat}%2C${center.lng}`;
 
     return (
