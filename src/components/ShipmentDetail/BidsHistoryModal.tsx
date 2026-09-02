@@ -133,8 +133,9 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
                       <CarrierAvatar
                         size={32}
                         name={bid.initiatorName}
+                        avatar={bid.avatar}
                         initials={bid.initiatorName.substring(0, 2).toUpperCase()}
-                        className="carrier-av rounded-full flex items-center justify-center font-bold flex-shrink-0 text-xs shadow-2xs"
+                        className="carrier-av rounded-full flex items-center justify-center font-bold flex-shrink-0 text-xs shadow-2xs overflow-hidden"
                       />
                       <div>
                         <div className="flex items-center gap-2">

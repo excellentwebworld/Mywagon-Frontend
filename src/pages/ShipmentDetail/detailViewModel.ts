@@ -196,6 +196,7 @@ export interface BidHistoryNegotiation {
   id: number;
   action: string;
   userName: string;
+  userAvatar?: string | null;
   date: string;
   price?: string | null;
   rawPrice?: number | null;
@@ -205,6 +206,7 @@ export interface BidHistoryNegotiation {
 export interface BidHistoryItem {
   bidNumber: number;
   initiatorName: string;
+  avatar?: string | null;
   date: string;
   price: string;
   rawPrice?: number;

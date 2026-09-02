@@ -12,6 +12,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import type { AuditEntry, BidHistoryItem, ShipmentLogItem } from '../../pages/ShipmentDetail/detailViewModel';
+import { CarrierAvatar } from '../ManageShipments/CarrierAvatar';
 import { CollapsibleCard } from './CollapsibleCard';
 
 const FILTER_CATEGORIES = [
@@ -277,9 +278,13 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                       className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left hover:bg-[#FAF9FD] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B51E0]/50"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-8 h-8 rounded-full bg-[#F3E8FF] text-[#9B51E0] font-bold text-[12px] flex items-center justify-center flex-shrink-0 shadow-2xs">
-                          {bid.initiatorName?.substring(0, 2).toUpperCase() || 'TR'}
-                        </div>
+                        <CarrierAvatar
+                          size={32}
+                          name={bid.initiatorName}
+                          avatar={bid.avatar}
+                          initials={bid.initiatorName?.substring(0, 2).toUpperCase() || 'TR'}
+                          className="carrier-av rounded-full flex items-center justify-center font-bold flex-shrink-0 text-[12px] shadow-2xs overflow-hidden"
+                        />
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">

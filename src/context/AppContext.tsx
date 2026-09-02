@@ -306,6 +306,7 @@ export interface Shipment {
   bidsHistory?: Array<{
     bidNumber: number;
     initiatorName: string;
+    avatar?: string | null;
     date: string;
     price: string;
     rawPrice?: number;
@@ -313,6 +314,7 @@ export interface Shipment {
       id: number;
       action: string;
       userName: string;
+      userAvatar?: string | null;
       date: string;
       price?: string | null;
       rawPrice?: number | null;

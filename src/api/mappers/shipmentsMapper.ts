@@ -456,16 +456,18 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
       isRejection: Boolean(l.is_rejection),
       rejectionReason: l.rejection_reason ?? null,
     })),
-    bidsHistory: (detail.bids_history || []).map((b) => ({
+    bidsHistory: (detail.bids_history || []).map((b: any) => ({
       bidNumber: b.bid_number,
       initiatorName: b.initiator_name,
+      avatar: b.initiator_avatar ?? b.avatar ?? null,
       date: b.date,
       price: b.price,
       rawPrice: b.raw_price,
-      negotiations: (b.negotiations || []).map((n) => ({
+      negotiations: (b.negotiations || []).map((n: any) => ({
         id: n.id,
         action: n.action,
         userName: n.user_name,
+        userAvatar: n.user_avatar ?? n.avatar ?? null,
         date: n.date,
         price: n.price ?? null,
         rawPrice: n.raw_price ?? null,
