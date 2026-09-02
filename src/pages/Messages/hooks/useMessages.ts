@@ -20,7 +20,9 @@ import { formatMessageTime, formatConversationTime } from '../../../utils/timezo
 import { setActiveChatPartner } from '../../../utils/chatNotificationGuard';
 import {
   buildLaravelChatRequestData,
+  getChatMessagePreview,
   getShipperDeviceToken,
+  isIncomingChatToShipper,
   isMessageFromPartner,
   parsePartnerId,
   resolveActivePartnerType,
@@ -146,12 +148,10 @@ export function useMessages() {
     return () => clearTimeout(timer);
   }, [convSearch]);
 
-  // Connect Socket.IO on mount
+  // Connect Socket.IO when on messages page (global connect also runs from AppLayout)
   useEffect(() => {
     if (user?.id) {
       socketService.setUserId(user.id);
-    } else {
-      socketService.connect();
     }
   }, [user?.id]);
 
@@ -362,25 +362,35 @@ export function useMessages() {
         }
       }
 
-      // Update conversation last message preview and unread count
-      // For incoming messages from partner: update preview + increment unread if not in active chat
-      // For our own echoed messages: don't change unread
-      setConversations((prev) =>
-        prev.map((c) => {
-          const cPartnerId = parseInt(String(c.partnerId || c.id || '0').replace(/\D/g, ''), 10);
-          if (isFromActivePartner && cPartnerId > 0 && cPartnerId === incomingSenderId) {
-            const isVoice = incoming.messages_type === 'voice' || (incoming.message && incoming.message.includes('chat-voices'));
-            const preview = isVoice ? `🎙️ ${t('chatModule.voiceNote') || 'Voice note'}` : incoming.message;
+      // Update conversation last message preview and unread count for any partner thread
+      if (isIncomingChatToShipper(incoming, myId) && !isOwnMessageEcho) {
+        const voiceLabel = t('chatModule.voiceNote') || 'Voice note';
+        setConversations((prev) =>
+          prev.map((c) => {
+            const cPartnerId = parsePartnerId(c.partnerId || c.id);
+            const cPartnerType = resolveActivePartnerType(c);
+
+            if (!isMessageFromPartner(incomingSenderId, incomingSenderType, cPartnerId, cPartnerType)) {
+              return c;
+            }
+
+            const isActiveChat = isMessageFromPartner(
+              incomingSenderId,
+              incomingSenderType,
+              activePartnerId,
+              activePartnerType
+            );
+
             return {
               ...c,
-              lastMsg: preview,
+              lastMsg: getChatMessagePreview(incoming.message || '', incoming.messages_type, voiceLabel),
               lastTime: 'Just now',
-              unread: isOwnMessageEcho ? 0 : (isFromActivePartner ? 0 : c.unread + 1),
+              lastTimestamp: Math.floor(Date.now() / 1000),
+              unread: isActiveChat ? 0 : (c.unread || 0) + 1,
             };
-          }
-          return c;
-        })
-      );
+          })
+        );
+      }
     });
 
     return () => {

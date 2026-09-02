@@ -103,16 +103,18 @@ export interface FcmNotificationPayload {
 }
 
 interface UseFcmOptions {
+  /** When false, skip FCM init (e.g. before auth session is ready). */
+  enabled?: boolean;
   /** Called when a foreground FCM message arrives (for rich toast display). */
   onForegroundMessage?: (payload: FcmNotificationPayload) => void;
 }
 
-export function useFcm({ onForegroundMessage }: UseFcmOptions = {}): void {
+export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = {}): void {
   const navigate = useNavigate();
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (!isFirebaseConfigured) return;
+    if (!enabled || !isFirebaseConfigured) return;
 
     let cancelled = false;
 
@@ -256,6 +258,6 @@ export function useFcm({ onForegroundMessage }: UseFcmOptions = {}): void {
       unsubscribeRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once per mounted session
+  }, [enabled]); // Re-run when auth session becomes available
 
 }

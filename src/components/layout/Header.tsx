@@ -25,6 +25,7 @@ import { notificationService } from '../../api/services/notificationService';
 import type { ApiNotification } from '../../api/services/notificationService';
 import { chatService } from '../../api/services/chatService';
 import { socketService } from '../../services/socketService';
+import { CHAT_MESSAGE_RECEIVED_EVENT } from '../../hooks/useGlobalChatSocket';
 
 
 interface HeaderProps {
@@ -79,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [loadingNotifs, setLoadingNotifs] = useState<boolean>(false);
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
 
-  // Fetch unread messages count & listen to real-time socket events
+  // Fetch unread messages count & listen to real-time chat events
   useEffect(() => {
     if (location.pathname === '/messages') {
       setUnreadMessages(0);
@@ -89,18 +90,20 @@ export const Header: React.FC<HeaderProps> = ({
       });
     }
 
-    const unsubscribeMsg = socketService.onMessage(() => {
+    const onChatReceived = () => {
       if (location.pathname !== '/messages') {
         setUnreadMessages((prev) => prev + 1);
       }
-    });
+    };
+
+    window.addEventListener(CHAT_MESSAGE_RECEIVED_EVENT, onChatReceived as EventListener);
 
     const unsubscribeRead = socketService.onRead(() => {
       setUnreadMessages(0);
     });
 
     return () => {
-      unsubscribeMsg();
+      window.removeEventListener(CHAT_MESSAGE_RECEIVED_EVENT, onChatReceived as EventListener);
       unsubscribeRead();
     };
   }, [location.pathname]);

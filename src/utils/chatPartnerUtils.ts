@@ -70,6 +70,36 @@ export function getShipperDeviceToken(): string {
   }
 }
 
+export function isIncomingChatToShipper(
+  incoming: { receiver_id?: number | string; receiver_type?: string; sender_type?: string },
+  shipperId: number
+): boolean {
+  if (shipperId <= 0) return false;
+
+  const receiverId = parsePartnerId(incoming.receiver_id);
+  const receiverType = (incoming.receiver_type || '').toLowerCase();
+  const senderType = (incoming.sender_type || '').toLowerCase();
+
+  if (receiverType !== 'shipper' || receiverId !== shipperId) return false;
+  if (senderType === 'shipper') return false;
+
+  return true;
+}
+
+export function getChatMessagePreview(
+  message: string,
+  messagesType?: string | null,
+  voiceLabel = 'Voice note'
+): string {
+  const isVoice =
+    messagesType === 'voice' ||
+    (message && (message.includes('chat-voices') || /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(message)));
+
+  if (isVoice) return `🎙️ ${voiceLabel}`;
+  if (messagesType === 'media' || /^https?:\/\//i.test(message || '')) return `📎 ${message?.split('/').pop() || 'Attachment'}`;
+  return message || '';
+}
+
 export function isMessageFromPartner(
   senderId: number,
   senderType: string,

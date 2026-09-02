@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AlertCircle, CheckCircle, Info, X } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { TopNav } from './TopNav';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../hooks/useTheme';
+import { useTranslation } from '../../hooks/useTranslation';
 import { UserMgmtProvider } from '../../context/UserMgmtContext';
 import { TransporterProfileProvider } from '../TransporterProfile/TransporterProfileContext';
 import { DESKTOP_SIDEBAR_QUERY, useMediaQuery } from '../../hooks/useMediaQuery';
 import { useFcm, type FcmNotificationPayload } from '../../hooks/useFcm';
+import { useGlobalChatSocket } from '../../hooks/useGlobalChatSocket';
 import { RealtimeNotificationToast, type PushNotificationData } from '../notifications/RealtimeNotificationToast';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
@@ -60,13 +63,29 @@ export const AppLayout: React.FC = () => {
   const isDesktop = useMediaQuery(DESKTOP_SIDEBAR_QUERY);
   const isSidebarCollapsed = sidebarCollapsed && isDesktop;
   const { toast, hideToast } = useApp();
+  const { user, isAuthenticated } = useAuth();
+  const { t } = useTranslation();
   const { navMode } = useTheme();
   const isSideMode = navMode !== 'top';
 
-  // Initialize FCM for web push notifications
+  const handleChatSocketNotification = useCallback((payload: FcmNotificationPayload) => {
+    setActivePushNotif(payload);
+  }, []);
+
+  // Initialize FCM for web push notifications (after auth session is ready)
   useFcm({
+    enabled: isAuthenticated && !!user,
     onForegroundMessage: (payload) => {
       setActivePushNotif(payload);
+    },
+  });
+
+  // Global socket room + in-app chat toasts (same socket server as Laravel panel)
+  useGlobalChatSocket({
+    userId: user?.id,
+    voiceLabel: t('chatModule.voiceNote') || 'Voice note',
+    onIncomingMessage: (notification) => {
+      handleChatSocketNotification(notification.toast);
     },
   });
 
