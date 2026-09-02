@@ -638,17 +638,22 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         if (values.documentsList && values.documentsList.length > 0) {
           const doc = values.documentsList[0];
           if (doc.file && typeof doc.id === 'string' && doc.id.startsWith('temp-')) {
+            const fd = new FormData();
+            fd.append('file', doc.file);
+            fd.append('name', doc.name || 'Document');
+            if (doc.description) fd.append('description', doc.description);
             try {
-              const fd = new FormData();
-              fd.append('file', doc.file);
-              fd.append('name', doc.name || 'Document');
-              if (doc.description) fd.append('description', doc.description);
               const created = await shipmentsService.uploadDocument(id, fd);
               doc.id = created.id;
               doc.url = created.url || undefined;
               delete doc.file;
-            } catch {
-              // Continue
+            } catch (err: unknown) {
+              const message =
+                err instanceof ApiError
+                  ? err.message
+                  : t('documentUploadFailed') || 'Failed to upload document.';
+              showToast(message, 'error');
+              throw err;
             }
           }
         }
@@ -703,17 +708,22 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         if (values.documentsList && values.documentsList.length > 0) {
           const doc = values.documentsList[0];
           if (doc.file && typeof doc.id === 'string' && doc.id.startsWith('temp-')) {
+            const fd = new FormData();
+            fd.append('file', doc.file);
+            fd.append('name', doc.name || 'Document');
+            if (doc.description) fd.append('description', doc.description);
             try {
-              const fd = new FormData();
-              fd.append('file', doc.file);
-              fd.append('name', doc.name || 'Document');
-              if (doc.description) fd.append('description', doc.description);
               const created = await shipmentsService.uploadDocument(id, fd);
               doc.id = created.id;
               doc.url = created.url || undefined;
               delete doc.file;
-            } catch {
-              // Continue
+            } catch (err: unknown) {
+              const message =
+                err instanceof ApiError
+                  ? err.message
+                  : t('documentUploadFailed') || 'Failed to upload document.';
+              showToast(message, 'error');
+              throw err;
             }
           }
         }
