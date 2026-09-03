@@ -849,28 +849,29 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     };
   });
 
-  const partners: PartnerBidItem[] =
-    mappedOffers.length > 0
-      ? mappedOffers
-      : (shipment.invitees || []).map((i) => ({
-          id: `inv-${i.id}`,
-          name: i.name || 'Transporter',
-          initials: i.initials || (i.name ? i.name.substring(0, 2).toUpperCase() : 'TR'),
-          avatar: i.avatar || null,
-          transporterType: i.role === 'freelancer' || i.transporterType === 'driver' ? 'freelancer' : 'carrier',
-          userType: i.transporterType === 'driver' || i.role === 'freelancer' ? 'driver' : (i.transporterType ?? 'carrier'),
-          isPartner: true,
-          status: i.status || 'invited',
-          statusText: 'Invited · Waiting response',
-          hasBid: false,
-          isInterested: false,
-          rating: (i as any).rating ?? 4.8,
-          tripsCount: (i as any).ratingCount ?? 32,
-          invitedDate: i.invitedAt || '01/02/2026',
-          price: null,
-          bidAmount: null,
-          userId: (i as any).transporterId ?? i.id,
-        }));
+  const mappedInvitees: PartnerBidItem[] = (shipment.invitees || [])
+    .filter((inv) => !mappedOffers.some((o) => o.userId === (inv.transporterId ?? inv.id) || o.name === inv.name))
+    .map((i) => ({
+      id: `inv-${i.id}`,
+      name: i.name || 'Transporter',
+      initials: i.initials || (i.name ? i.name.substring(0, 2).toUpperCase() : 'TR'),
+      avatar: i.avatar || null,
+      transporterType: i.role === 'freelancer' || i.transporterType === 'driver' ? 'freelancer' : 'carrier',
+      userType: i.transporterType === 'driver' || i.role === 'freelancer' ? 'driver' : (i.transporterType ?? 'carrier'),
+      isPartner: true,
+      status: i.status || 'invited',
+      statusText: 'Invited · Waiting response',
+      hasBid: false,
+      isInterested: false,
+      rating: (i as any).rating ?? 4.8,
+      tripsCount: (i as any).ratingCount ?? 32,
+      invitedDate: i.invitedAt || '01/02/2026',
+      price: null,
+      bidAmount: null,
+      userId: (i as any).transporterId ?? i.id,
+    }));
+
+  const partners: PartnerBidItem[] = [...mappedOffers, ...mappedInvitees];
 
   const isCompleted =
     status === 'fullfilled' ||
@@ -910,27 +911,31 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     }
   }
 
-  const isTripOngoing = status === 'on_trip' || status === 'in_progress';
-  const isTripCompleted = status === 'fullfilled' || status === 'partially_fullfilled' || status === 'delivered';
-
-  const isDelayed = isTripOngoing
-    ? (isPastDelivery || Boolean(shipment.at_risk))
-    : (isTripCompleted ? false : Boolean(shipment.at_risk));
-
+  const isDelayed = Boolean(shipment.at_risk || isPastDelivery || (shipment as any).isDelayed);
   const delayText = isDelayed
-    ? delayMinutes >= 60
-      ? `+${Math.floor(delayMinutes / 60)}h ${delayMinutes % 60}m delay`
-      : delayMinutes > 0
+    ? delayMinutes > 0
       ? `+${delayMinutes} min delay`
-      : '+15 min delay'
+      : shipment.riskReason || (shipment as any).delayReason || '+15 min delay'
     : '';
 
   const etaStatusChip = isDelayed ? `⚠️ Delayed (${delayText})` : '✅ On Time';
   const onTrack = !isDelayed;
 
-  const availableNavSections: string[] = ['stops', 'load', 'carrier', 'docs', 'notes', 'audit'];
-  if (isPending) availableNavSections.unshift('bids');
-  if (status === 'on_trip' || status === 'in_progress') availableNavSections.splice(2, 0, 'tracking');
+  const hasCarrierSection = Boolean(carrier && !isPending && status !== 'draft');
+  const availableNavSections: string[] = ['stops', 'load'];
+  if (isPending) {
+    if (mappedOffers.length > 0 || (shipment.offers && shipment.offers.length > 0)) {
+      availableNavSections.unshift('bids');
+    } else if (shipment.invitees && shipment.invitees.length > 0) {
+      availableNavSections.unshift('invited');
+    }
+  }
+  if (status === 'on_trip' || status === 'in_progress') availableNavSections.push('tracking');
+  if (hasCarrierSection) availableNavSections.push('carrier');
+  availableNavSections.push('docs', 'notes');
+  if (status !== 'not_fullfilled') {
+    availableNavSections.push('audit');
+  }
 
   return {
     id: shipment.id,
@@ -1021,8 +1026,8 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       duration: formatJourneyDuration(shipment.journeyTime),
       stops: stops.length,
       weight: shipment.totalWeight != null ? `${shipment.totalWeight} ${shipment.weightUnit || 'Tonnes'}` : '—',
-      customers: shipment.customer?.length || stops.flatMap((s) => s.customers).length || 0,
-      orders: shipment.orderIds?.length || stops.flatMap((s) => s.customers).flatMap((c) => c.orders).length || 0,
+      customers: shipment.customer?.length || stops.flatMap((s) => s.customers || []).length || 0,
+      orders: shipment.orderIds?.length || stops.flatMap((s) => (s.customers || []).flatMap((c) => c?.orders || [])).length || 0,
     },
     carrier,
     assignedDriver,
