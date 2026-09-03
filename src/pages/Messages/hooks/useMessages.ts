@@ -686,6 +686,57 @@ export function useMessages() {
     };
   }, [user?.id, t]);
 
+  // Load active conversation messages helper
+  const loadActiveMessages = useCallback((convId: number | string, currentConv?: Conversation) => {
+    const conv = currentConv || conversationsRef.current.find((c) => String(c.id) === String(convId));
+    if (!conv) return;
+
+    const partnerType = resolveActivePartnerType(conv);
+    const partnerId = parsePartnerId(conv.partnerId || conv.id);
+
+    // Seed device_token from conversation data immediately
+    partnerDeviceTokenRef.current = conv.device_token || '';
+
+    setLoadingMessages(true);
+    chatService
+      .getMessages(partnerId, partnerType)
+      .then(({ messages: msgs, device_token }) => {
+        const deduped = dedupeMessages(msgs);
+        setMessages(deduped);
+        setLoadingMessages(false);
+
+        const voiceLabel = t('chatModule.voiceNote', 'Voice note');
+        const photoLabel = t('chatModule.photo', 'Photo');
+        const docLabel = t('chatModule.document', 'Document');
+        const confirmedPreview = getLastNonFailedMessagePreview(
+          deduped,
+          conv.lastMsg,
+          voiceLabel,
+          photoLabel,
+          docLabel
+        );
+
+        if (device_token) {
+          partnerDeviceTokenRef.current = device_token;
+        }
+
+        setConversations((prev) =>
+          prev.map((c) =>
+            String(c.id) === String(convId)
+              ? {
+                  ...c,
+                  lastMsg: confirmedPreview || c.lastMsg,
+                  ...(device_token ? { device_token } : {}),
+                }
+              : c
+          )
+        );
+      })
+      .catch(() => {
+        setLoadingMessages(false);
+      });
+  }, [t]);
+
   // Load active conversation messages dynamically when activeConvId changes
   useEffect(() => {
     if (!activeConvId) {
@@ -696,56 +747,10 @@ export function useMessages() {
       return;
     }
 
-    const currentConv = conversations.find((c) => String(c.id) === String(activeConvId));
+    const currentConv = conversationsRef.current.find((c) => String(c.id) === String(activeConvId));
     if (!currentConv) return;
 
-    let mounted = true;
-    const partnerType = resolveActivePartnerType(currentConv);
-    const partnerId = parsePartnerId(currentConv.partnerId || currentConv.id);
-
-    // Seed device_token from conversation data immediately
-    partnerDeviceTokenRef.current = currentConv.device_token || '';
-
-    setLoadingMessages(true);
-    chatService
-      .getMessages(partnerId, partnerType)
-      .then(({ messages: msgs, device_token }) => {
-        if (mounted) {
-          const deduped = dedupeMessages(msgs);
-          setMessages(deduped);
-          setLoadingMessages(false);
-
-          const voiceLabel = t('chatModule.voiceNote', 'Voice note');
-          const photoLabel = t('chatModule.photo', 'Photo');
-          const docLabel = t('chatModule.document', 'Document');
-          const confirmedPreview = getLastNonFailedMessagePreview(
-            deduped,
-            currentConv.lastMsg,
-            voiceLabel,
-            photoLabel,
-            docLabel
-          );
-
-          if (device_token) {
-            partnerDeviceTokenRef.current = device_token;
-          }
-
-          setConversations((prev) =>
-            prev.map((c) =>
-              String(c.id) === String(activeConvId)
-                ? {
-                    ...c,
-                    lastMsg: confirmedPreview || c.lastMsg,
-                    ...(device_token ? { device_token } : {}),
-                  }
-                : c
-            )
-          );
-        }
-      })
-      .catch(() => {
-        if (mounted) setLoadingMessages(false);
-      });
+    loadActiveMessages(activeConvId, currentConv);
 
     // Mark as read in list & DB & Socket without infinite render loop
     if (currentConv.unread > 0) {
@@ -754,6 +759,8 @@ export function useMessages() {
       );
     }
 
+    const partnerId = parsePartnerId(currentConv.partnerId || currentConv.id);
+    const partnerType = resolveActivePartnerType(currentConv);
     void chatService.markAsRead(partnerId, partnerType);
     socketService.markAsRead({
       sender_id: user?.id || 0,
@@ -761,11 +768,7 @@ export function useMessages() {
       receiver_id: partnerId,
       receiver_type: partnerType,
     });
-
-    return () => {
-      mounted = false;
-    };
-  }, [activeConvId, user?.id]);
+  }, [activeConvId, loadActiveMessages, user?.id]);
 
   // Fetch shipment context for the SID the user picked in this chat.
   // Depend on the selected label/filter only — filling shipmentDbId after fetch must not skip a swap.
@@ -941,10 +944,10 @@ export function useMessages() {
 
   // Select conversation (defaults to direct user-to-user conversation)
   const selectConversation = useCallback((id: number | string) => {
-    setActiveConvId(id);
+    const isSameConv = String(id) === String(activeConvIdRef.current);
+
     setMobileChatOpen(true);
     setTplDropdownOpen(false);
-    setMessages([]);
     setDynamicShipmentCtx(null);
     setCtxPaneOpen(false);
     setChatContext({
@@ -962,7 +965,23 @@ export function useMessages() {
       next.delete('autoid');
       return next;
     }, { replace: true });
-  }, [setSearchParams]);
+
+    if (isSameConv) {
+      // If clicking the currently active conversation a second time,
+      // do NOT wipe messages! Reload if messages are empty; otherwise retain loaded messages.
+      setMessages((prev) => {
+        if (prev.length === 0) {
+          loadActiveMessages(id);
+        }
+        return prev;
+      });
+      return;
+    }
+
+    // Switching to a different conversation: clear and set new active ID
+    setMessages([]);
+    setActiveConvId(id);
+  }, [setSearchParams, loadActiveMessages]);
 
   const handleShipmentFilterChange = useCallback((sid: string) => {
     setShipmentFilter(sid);
