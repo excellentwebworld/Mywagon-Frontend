@@ -508,7 +508,37 @@ export const ShipmentDetail: React.FC = () => {
               navigate(`/create-shipment?editId=${vm.id}`);
             }
           }}
-          onMessage={() => navigate('/messages')}
+          onMessage={() => {
+            const driver = vm.assignedDriver;
+            const carrier = vm.carrier;
+            const partner = driver || carrier;
+            const params = new URLSearchParams();
+            if (id) params.set('sid', String(id));
+
+            if (partner?.userId || partner?.name) {
+              const resolvedType = driver ? 'driver' : (carrier?.userType === 'driver' ? 'driver' : 'carrier');
+              if (partner.userId) params.set('userId', String(partner.userId));
+              if (partner.name) params.set('name', partner.name);
+              params.set('userType', resolvedType);
+              if (partner.avatar) params.set('avatar', partner.avatar);
+
+              navigate(`/messages?${params.toString()}`, {
+                state: {
+                  userId: partner.userId,
+                  userType: resolvedType,
+                  userName: partner.name,
+                  userAvatar: partner.avatar,
+                  sid: id,
+                },
+              });
+            } else {
+              navigate(`/messages?${params.toString()}`, {
+                state: {
+                  sid: id,
+                },
+              });
+            }
+          }}
           onShare={() => setIsShareOpen(true)}
           onAuditLog={() => setIsLogOpen(true)}
           onBidsHistory={() => {
@@ -655,7 +685,30 @@ export const ShipmentDetail: React.FC = () => {
                   setSelectedPartnerForHistory(partner);
                   setIsBidsHistoryOpen(true);
                 }}
-                onChat={() => navigate('/messages')}
+                onChat={(partner) => {
+                  const resolvedType =
+                    partner.userType === 'driver' ||
+                    partner.transporterType === 'freelancer' ||
+                    partner.transporterType === 'driver'
+                      ? 'driver'
+                      : 'carrier';
+                  const params = new URLSearchParams();
+                  if (partner.userId) params.set('userId', String(partner.userId));
+                  if (partner.name) params.set('name', partner.name);
+                  params.set('userType', resolvedType);
+                  if (id) params.set('sid', String(id));
+                  if (partner.avatar) params.set('avatar', partner.avatar);
+
+                  navigate(`/messages?${params.toString()}`, {
+                    state: {
+                      userId: partner.userId,
+                      userType: resolvedType,
+                      userName: partner.name,
+                      userAvatar: partner.avatar,
+                      sid: id,
+                    },
+                  });
+                }}
                 onInviteMore={() => showToast(t('invitePartners', 'Invite partners modal opening…'), 'info')}
                 t={t}
               />
@@ -724,10 +777,18 @@ export const ShipmentDetail: React.FC = () => {
                   setIsRatingOpen(true);
                 }}
                 onChatCarrier={(c) => {
-                  navigate('/messages', {
+                  const resolvedType = c.userType === 'driver' ? 'driver' : 'carrier';
+                  const params = new URLSearchParams();
+                  if (c.userId) params.set('userId', String(c.userId));
+                  if (c.name) params.set('name', c.name);
+                  params.set('userType', resolvedType);
+                  if (id) params.set('sid', String(id));
+                  if (c.avatar) params.set('avatar', c.avatar);
+
+                  navigate(`/messages?${params.toString()}`, {
                     state: {
                       userId: c.userId,
-                      userType: c.userType === 'driver' ? 'driver' : 'carrier',
+                      userType: resolvedType,
                       userName: c.name,
                       userAvatar: c.avatar,
                       sid: id,
@@ -735,7 +796,14 @@ export const ShipmentDetail: React.FC = () => {
                   });
                 }}
                 onChatDriver={(d) => {
-                  navigate('/messages', {
+                  const params = new URLSearchParams();
+                  if (d.userId) params.set('userId', String(d.userId));
+                  if (d.name) params.set('name', d.name);
+                  params.set('userType', 'driver');
+                  if (id) params.set('sid', String(id));
+                  if (d.avatar) params.set('avatar', d.avatar);
+
+                  navigate(`/messages?${params.toString()}`, {
                     state: {
                       userId: d.userId,
                       userType: 'driver',

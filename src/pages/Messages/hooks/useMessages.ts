@@ -246,55 +246,77 @@ export function useMessages() {
         locationState?.sid ||
         '';
 
-      if (targetUserId) {
-        setMobileChatOpen(true);
-        const match = list.find(
-          (c) =>
-            String(c.partnerId) === String(targetUserId) ||
-            String(c.id) === String(targetUserId) ||
-            (targetUserName && c.name.toLowerCase() === targetUserName.toLowerCase())
-        );
+      let match: Conversation | undefined;
 
-        if (match) {
-          setConversations(list);
-          setActiveConvId(match.id);
-        } else {
-          // First time message to this user! Create a synthetic conversation immediately
-          const syntheticId = `user-${targetUserId}-${targetUserType}`;
-          const newConv: Conversation = {
-            id: syntheticId,
-            partnerId: Number(targetUserId),
-            partnerType: targetUserType as 'carrier' | 'driver',
-            name: targetUserName || (targetUserType === 'driver' ? 'Driver' : 'Carrier Company'),
-            initials: extractInitials(targetUserName) || (targetUserName || 'U').substring(0, 2).toUpperCase(),
-            avatarUrl: targetUserAvatar || '',
-            avatarClass: targetUserType === 'driver' ? 'driver' : 'carrier',
-            chips: [],
-            role: targetUserType === 'driver' ? 'Driver' : 'Carrier',
-            rating: '5.0',
-            tripsCount: 0,
-            type: targetUserType === 'driver' ? 'freelancer' : 'company',
-            lastMsg: '',
-            lastTime: 'Just now',
-            lastTimestamp: Math.floor(Date.now() / 1000),
-            unread: 0,
-            online: true,
-            latestSid: targetSid || undefined,
-            activeShipmentId: targetSid || undefined,
-          };
-          setConversations([newConv, ...list]);
-          setActiveConvId(newConv.id);
-        }
+      const targetIdNum = targetUserId ? parsePartnerId(targetUserId) : null;
+      const normTargetName = targetUserName ? targetUserName.trim().toLowerCase() : '';
+      const normTargetSid = targetSid ? String(targetSid).replace(/^SID-/i, '').trim() : '';
+
+      // 1. Try matching by targetUserId (partnerId or id)
+      if (targetUserId) {
+        match = list.find((c) => {
+          if (String(c.partnerId) === String(targetUserId)) return true;
+          if (String(c.id) === String(targetUserId)) return true;
+          if (targetIdNum && parsePartnerId(c.partnerId || c.id) === targetIdNum) {
+            if (c.partnerType && targetUserType && c.partnerType !== targetUserType) return false;
+            return true;
+          }
+          if (c.id === `${targetUserType}_${targetUserId}`) return true;
+          return false;
+        });
+      }
+
+      // 2. Try matching by targetUserName (e.g. "IOS Driver")
+      if (!match && normTargetName) {
+        match = list.find((c) => c.name && c.name.trim().toLowerCase() === normTargetName);
+      }
+
+      // 3. Try matching by targetSid
+      if (!match && normTargetSid) {
+        match = list.find((c) => {
+          if (c.chips?.some((chip) => chip.replace(/^SID-/i, '').trim() === normTargetSid)) return true;
+          if (c.latestSid && String(c.latestSid).replace(/^SID-/i, '').trim() === normTargetSid) return true;
+          if (c.activeShipmentId && String(c.activeShipmentId).replace(/^SID-/i, '').trim() === normTargetSid) return true;
+          return false;
+        });
+      }
+
+      if (match) {
+        setMobileChatOpen(true);
+        setConversations(list);
+        setActiveConvId(match.id);
+      } else if (targetUserId || normTargetName) {
+        // First time message to this user! Create a synthetic conversation immediately
+        setMobileChatOpen(true);
+        const syntheticId = `user-${targetUserId || normTargetName.replace(/\s+/g, '_')}-${targetUserType}`;
+        const newConv: Conversation = {
+          id: syntheticId,
+          partnerId: targetIdNum || Number(targetUserId) || 0,
+          partnerType: targetUserType as 'carrier' | 'driver',
+          name: targetUserName || (targetUserType === 'driver' ? 'Driver' : 'Carrier Company'),
+          initials: extractInitials(targetUserName) || (targetUserName || 'U').substring(0, 2).toUpperCase(),
+          avatarUrl: targetUserAvatar || '',
+          avatarClass: targetUserType === 'driver' ? 'driver' : 'carrier',
+          chips: normTargetSid ? [`SID-${normTargetSid}`] : [],
+          role: targetUserType === 'driver' ? 'Driver' : 'Carrier',
+          rating: '5.0',
+          tripsCount: 0,
+          type: targetUserType === 'driver' ? 'freelancer' : 'company',
+          lastMsg: '',
+          lastTime: 'Just now',
+          lastTimestamp: Math.floor(Date.now() / 1000),
+          unread: 0,
+          online: true,
+          latestSid: normTargetSid ? `SID-${normTargetSid}` : undefined,
+          activeShipmentId: normTargetSid || undefined,
+        };
+        setConversations([newConv, ...list]);
+        setActiveConvId(newConv.id);
       } else if (list.length > 0) {
         setConversations(list);
         setActiveConvId((prev) => {
           if (prev && list.some((c) => String(c.id) === String(prev))) {
             return prev;
-          }
-          const sidParam = searchParams.get('sid');
-          if (sidParam) {
-            const match = list.find((c) => c.chips?.includes(sidParam) || c.latestSid === sidParam);
-            if (match) return match.id;
           }
           return list[0].id;
         });

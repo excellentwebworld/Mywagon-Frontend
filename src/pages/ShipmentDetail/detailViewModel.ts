@@ -805,7 +805,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     return {
       id: String(o.id || `offer-${Math.random()}`),
       userId: o.transporterId ?? undefined,
-      userType: o.transporterType ?? 'carrier',
+      userType: o.transporterType === 'driver' || o.role === 'freelancer' ? 'driver' : (o.transporterType ?? 'carrier'),
       name,
       initials: o.initials || (name ? name.substring(0, 2).toUpperCase() : 'TR'),
       avatar: o.avatar ?? null,
@@ -857,7 +857,8 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
           name: i.name || 'Transporter',
           initials: i.initials || (i.name ? i.name.substring(0, 2).toUpperCase() : 'TR'),
           avatar: i.avatar || null,
-          transporterType: i.role === 'freelancer' ? 'freelancer' : 'carrier',
+          transporterType: i.role === 'freelancer' || i.transporterType === 'driver' ? 'freelancer' : 'carrier',
+          userType: i.transporterType === 'driver' || i.role === 'freelancer' ? 'driver' : (i.transporterType ?? 'carrier'),
           isPartner: true,
           status: i.status || 'invited',
           statusText: 'Invited · Waiting response',
