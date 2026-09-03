@@ -26,6 +26,7 @@ import {
   formatShipmentAutoId,
   getChatMessagePreview,
   getShipperDeviceToken,
+  isChatImageMessage,
   isIncomingChatToShipper,
   isMessageFromPartner,
   isShipmentAutoId,
@@ -46,7 +47,7 @@ function buildShipperSocketChatPayload(params: {
   conversation: Conversation;
   partnerToken: string;
   message: string;
-  messagesType?: 'voice' | 'media';
+  messagesType?: 'voice' | 'media' | 'image';
   duration?: string;
   shipmentId?: string | number;
 }): SocketMessagePayload {
@@ -89,7 +90,9 @@ function dedupeMessages(msgs: ChatMessage[]): ChatMessage[] {
         Boolean(String(m.text || '').trim()) ||
         m.messages_type === 'voice' ||
         m.messages_type === 'media' ||
+        m.messages_type === 'image' ||
         Boolean(m.voiceUrl) ||
+        Boolean(m.imageUrl) ||
         Boolean(m.attachments?.length);
       if (!hasBody) return false;
     }
@@ -119,9 +122,10 @@ function buildReceivedMessageFromSocket(
     incoming.messages_type === 'voice' ||
     (rawText && (rawText.includes('chat-voices') || /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(rawText)));
 
-  const isMedia = incoming.messages_type === 'media';
+  const isImage = !isVoice && isChatImageMessage(incoming.messages_type, rawText);
+  const isMedia = incoming.messages_type === 'media' && !isImage;
 
-  if (!rawText && !isVoice && !isMedia) {
+  if (!rawText && !isVoice && !isImage && !isMedia) {
     return null;
   }
 
@@ -132,6 +136,12 @@ function buildReceivedMessageFromSocket(
         ? incoming.created_at.toISOString()
         : new Date().toISOString();
 
+  const resolvedType: ChatMessage['messages_type'] = isVoice
+    ? 'voice'
+    : isImage
+      ? 'image'
+      : ((incoming.messages_type as ChatMessage['messages_type']) || 'text');
+
   return {
     id: incoming.id || Date.now(),
     type: 'received',
@@ -140,8 +150,9 @@ function buildReceivedMessageFromSocket(
     time: formatMessageTime(incoming.created_at || new Date()),
     created_at: createdAt,
     text: rawText,
-    messages_type: isVoice ? 'voice' : ((incoming.messages_type as ChatMessage['messages_type']) || 'text'),
+    messages_type: resolvedType,
     voiceUrl: isVoice ? rawText : undefined,
+    imageUrl: isImage ? rawText : undefined,
     duration: incoming.duration,
     shipmentId: incoming.shipment_id ? String(incoming.shipment_id) : undefined,
     shipment_id: incoming.shipment_id,
@@ -526,7 +537,8 @@ export function useMessages() {
       const myId = parsePartnerId(user?.id);
       const incomingSenderType = (incoming.sender_type || (incoming as { senderable_type?: string }).senderable_type || 'carrier').toLowerCase();
       const activePartnerType = resolveActivePartnerType(active);
-      const voiceLabel = t('chatModule.voiceNote') || 'Voice note';
+      const voiceLabel = t('chatModule.voiceNote', 'Voice note');
+      const photoLabel = t('chatModule.photo', 'Photo');
 
       const isOwnMessageEcho = Boolean(
         myId > 0 &&
@@ -541,11 +553,35 @@ export function useMessages() {
           (incoming.message &&
             (incoming.message.includes('chat-voices') ||
               /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(incoming.message)));
-        if (isVoiceEcho && incoming.message && incoming.message.startsWith('http')) {
+        const isImageEcho =
+          !isVoiceEcho &&
+          isChatImageMessage(incoming.messages_type, incoming.message);
+
+        if (incoming.message && incoming.message.startsWith('http')) {
           setMessages((prev) =>
             prev.map((m) => {
-              if (m.type === 'sent' && m.messages_type === 'voice' && m.voiceUrl && m.voiceUrl.startsWith('blob:')) {
+              if (
+                isVoiceEcho &&
+                m.type === 'sent' &&
+                m.messages_type === 'voice' &&
+                m.voiceUrl &&
+                m.voiceUrl.startsWith('blob:')
+              ) {
                 return { ...m, voiceUrl: incoming.message, text: incoming.message };
+              }
+              if (
+                isImageEcho &&
+                m.type === 'sent' &&
+                m.messages_type === 'image' &&
+                m.imageUrl &&
+                m.imageUrl.startsWith('blob:')
+              ) {
+                return {
+                  ...m,
+                  imageUrl: incoming.message,
+                  text: incoming.message,
+                  id: incoming.id || m.id,
+                };
               }
               return m;
             })
@@ -598,7 +634,7 @@ export function useMessages() {
 
           return {
             ...c,
-            lastMsg: getChatMessagePreview(incoming.message || '', incoming.messages_type, voiceLabel),
+            lastMsg: getChatMessagePreview(incoming.message || '', incoming.messages_type, voiceLabel, photoLabel),
             lastTime: 'Just now',
             lastTimestamp: Math.floor(Date.now() / 1000),
             unread: isActiveChat ? 0 : (c.unread || 0) + 1,
@@ -1069,9 +1105,9 @@ export function useMessages() {
           prev.map((m) => (m.id === msgTempId ? { ...m, voiceUrl: uploadedUrl, text: uploadedUrl, status: 'delivered' } : m))
         );
 
-        showToast(`🎙️ ${t('chatModule.voiceSent') || 'Voice note sent'}`, 'success');
+        showToast(`🎙️ ${t('chatModule.voiceSent', 'Voice note sent')}`, 'success');
       } catch {
-        setErrorMessage(t('chatModule.messageSendFailed') || 'Message failed to send. Please check your connection and try again.');
+        setErrorMessage(t('chatModule.messageSendFailed', 'Message failed to send. Please check your connection and try again.'));
         setSendErrorModalOpen(true);
         setMessages((prev) =>
           prev.map((m) => (m.id === msgTempId ? { ...m, isFailed: true } : m))
@@ -1081,15 +1117,17 @@ export function useMessages() {
     [activeConvId, activeConversation, user, t, showToast]
   );
 
-  // Send Attachment
+  // Send Image Attachment (upload to S3 first, then socket — same as voice notes)
   const handleAttachFile = useCallback(
     async (file: File) => {
       if (!activeConvId || !activeConversation) return;
 
       const now = new Date();
-      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      const timeStr = formatMessageTime(now);
       const msgTempId = Date.now();
       const { shipmentId: activeSid, shipmentDbId: activeSidDb } = resolveActiveShipment();
+      const localImageUrl = URL.createObjectURL(file);
+      const photoLabel = t('chatModule.photo', 'Photo');
 
       const newMsg: ChatMessage = {
         id: msgTempId,
@@ -1098,14 +1136,9 @@ export function useMessages() {
         initials: userInitials,
         time: timeStr,
         created_at: now.toISOString(),
-        text: file.name,
-        attachments: [
-          {
-            name: file.name,
-            size: `${(file.size / 1024).toFixed(1)} KB`,
-            url: URL.createObjectURL(file),
-          },
-        ],
+        text: localImageUrl,
+        messages_type: 'image',
+        imageUrl: localImageUrl,
         status: 'delivered',
         shipmentId: activeSid,
         shipment_id: activeSidDb,
@@ -1116,7 +1149,12 @@ export function useMessages() {
       setConversations((prev) =>
         prev.map((c) =>
           String(c.id) === String(activeConvId)
-            ? { ...c, lastMsg: `📎 ${file.name}`, lastTime: formatConversationTime(now), lastTimestamp: Math.floor(now.getTime() / 1000) }
+            ? {
+                ...c,
+                lastMsg: `📷 ${photoLabel}`,
+                lastTime: formatConversationTime(now),
+                lastTimestamp: Math.floor(now.getTime() / 1000),
+              }
             : c
         )
       );
@@ -1124,23 +1162,28 @@ export function useMessages() {
       const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
 
       try {
-        let uploadedUrl = '';
-        try {
-          const uploadRes = await chatService.uploadAttachment(file);
-          if (uploadRes?.url) {
-            uploadedUrl = uploadRes.url;
-          }
-        } catch {
-          // fallback
+        const uploadRes = await chatService.uploadAttachment(file);
+        const uploadedUrl = uploadRes?.url;
+        if (!uploadedUrl) {
+          throw new Error('Failed to upload image');
         }
+
+        // Persist S3 URL on the bubble before socket send so retry can re-send the link
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === msgTempId
+              ? { ...m, imageUrl: uploadedUrl, text: uploadedUrl }
+              : m
+          )
+        );
 
         const response = await socketService.sendMessage(
           buildShipperSocketChatPayload({
             user: user || {},
             conversation: activeConversation,
             partnerToken,
-            message: uploadedUrl || file.name,
-            messagesType: 'media',
+            message: uploadedUrl,
+            messagesType: 'image',
             shipmentId: activeSidDb,
           })
         );
@@ -1149,9 +1192,23 @@ export function useMessages() {
           throw new Error('Socket not connected');
         }
 
-        showToast(`📎 ${t('chatModule.toastAttach') || 'Attached'}: ${file.name}`, 'success');
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === msgTempId
+              ? {
+                  ...m,
+                  imageUrl: uploadedUrl,
+                  text: uploadedUrl,
+                  status: 'delivered',
+                  id: (response as { id?: number | string })?.id || m.id,
+                }
+              : m
+          )
+        );
+
+        showToast(`📷 ${t('chatModule.imageSent', 'Image sent')}`, 'success');
       } catch {
-        setErrorMessage(t('chatModule.messageSendFailed') || 'Message failed to send. Please check your connection and try again.');
+        setErrorMessage(t('chatModule.messageSendFailed', 'Message failed to send. Please check your connection and try again.'));
         setSendErrorModalOpen(true);
         setMessages((prev) =>
           prev.map((m) => (m.id === msgTempId ? { ...m, isFailed: true } : m))
@@ -1164,7 +1221,10 @@ export function useMessages() {
   // Retry sending failed message
   const handleRetryMessage = useCallback(
     async (failedMsg: ChatMessage) => {
-      if (!failedMsg.text || !activeConvId || !activeConversation) return;
+      const retryPayload = failedMsg.imageUrl || failedMsg.voiceUrl || failedMsg.text || '';
+      if (!retryPayload || !activeConvId || !activeConversation) return;
+      // Don't retry blob: URLs — upload must succeed first
+      if (retryPayload.startsWith('blob:')) return;
 
       setMessages((prev) =>
         prev.map((m) => (m.id === failedMsg.id ? { ...m, isFailed: false } : m))
@@ -1182,9 +1242,10 @@ export function useMessages() {
             user: user || {},
             conversation: activeConversation,
             partnerToken,
-            message: failedMsg.text,
+            message: retryPayload,
             ...(failedMsg.messages_type === 'voice' ? { messagesType: 'voice' as const, duration: failedMsg.duration } : {}),
             ...(failedMsg.messages_type === 'media' ? { messagesType: 'media' as const } : {}),
+            ...(failedMsg.messages_type === 'image' ? { messagesType: 'image' as const } : {}),
             shipmentId: retrySidDb,
           })
         );
@@ -1193,9 +1254,9 @@ export function useMessages() {
           throw new Error('Socket not connected');
         }
 
-        showToast(t('chatModule.messageSent') || 'Message sent', 'success');
+        showToast(t('chatModule.messageSent', 'Message sent'), 'success');
       } catch {
-        setErrorMessage(t('chatModule.messageSendFailed') || 'Message failed to send. Please check your connection and try again.');
+        setErrorMessage(t('chatModule.messageSendFailed', 'Message failed to send. Please check your connection and try again.'));
         setSendErrorModalOpen(true);
         setMessages((prev) =>
           prev.map((m) => (m.id === failedMsg.id ? { ...m, isFailed: true } : m))

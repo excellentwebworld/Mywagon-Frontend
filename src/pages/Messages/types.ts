@@ -25,8 +25,9 @@ export interface ChatMessage {
   attachments?: ChatAttachment[];
   shipmentId?: string;
   shipment_id?: string | number;
-  messages_type?: 'text' | 'voice' | 'media' | 'system';
+  messages_type?: 'text' | 'voice' | 'media' | 'image' | 'system';
   voiceUrl?: string;
+  imageUrl?: string;
   duration?: string;
   created_at?: string | Date;
   isFailed?: boolean;

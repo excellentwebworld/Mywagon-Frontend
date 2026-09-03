@@ -84,6 +84,7 @@ export const AppLayout: React.FC = () => {
   useGlobalChatSocket({
     userId: user?.id,
     voiceLabel: t('chatModule.voiceNote') || 'Voice note',
+    photoLabel: t('chatModule.photo') || 'Photo',
     onIncomingMessage: (notification) => {
       handleChatSocketNotification(notification.toast);
     },

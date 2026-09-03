@@ -168,15 +168,43 @@ export function isIncomingChatToShipper(
 export function getChatMessagePreview(
   message: string,
   messagesType?: string | null,
-  voiceLabel = 'Voice note'
+  voiceLabel = 'Voice note',
+  photoLabel = 'Photo'
 ): string {
   const isVoice =
     messagesType === 'voice' ||
     (message && (message.includes('chat-voices') || /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(message)));
 
   if (isVoice) return `🎙️ ${voiceLabel}`;
-  if (messagesType === 'media' || /^https?:\/\//i.test(message || '')) return `📎 ${message?.split('/').pop() || 'Attachment'}`;
+
+  const isImage =
+    messagesType === 'image' ||
+    (messagesType === 'media' && /\.(jpe?g|png|gif|webp)(\?|$)/i.test(message || '')) ||
+    /\.(jpe?g|png|gif|webp)(\?|$)/i.test(message || '');
+
+  if (isImage) return `📷 ${photoLabel}`;
+  if (messagesType === 'media' || /^https?:\/\//i.test(message || '')) {
+    return `📎 ${message?.split('/').pop() || 'Attachment'}`;
+  }
   return message || '';
+}
+
+export function isChatImageUrl(url?: string | null): boolean {
+  if (!url) return false;
+  if (url.startsWith('blob:')) return true;
+  return /\.(jpe?g|png|gif|webp)(\?|$)/i.test(url);
+}
+
+export function isChatImageMessage(
+  messagesType?: string | null,
+  text?: string | null,
+  imageUrl?: string | null
+): boolean {
+  if (messagesType === 'image') return true;
+  if (imageUrl && isChatImageUrl(imageUrl)) return true;
+  if (messagesType === 'media' && isChatImageUrl(text)) return true;
+  if (isChatImageUrl(text) && /^https?:\/\//i.test(text || '')) return true;
+  return false;
 }
 
 export function isMessageFromPartner(

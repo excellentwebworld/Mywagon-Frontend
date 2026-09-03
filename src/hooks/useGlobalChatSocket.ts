@@ -32,7 +32,8 @@ function shouldSuppressForActiveThread(senderId: number, senderType: string): bo
 
 function buildIncomingChatNotification(
   incoming: SocketMessagePayload,
-  voiceLabel: string
+  voiceLabel: string,
+  photoLabel = 'Photo'
 ): IncomingChatNotification | null {
   const senderId = parsePartnerId(incoming.sender_id || (incoming as { senderable_id?: number }).senderable_id);
   const senderType = (incoming.sender_type || (incoming as { senderable_type?: string }).senderable_type || 'carrier').toLowerCase();
@@ -40,7 +41,7 @@ function buildIncomingChatNotification(
     incoming.request_data?.sender_name ||
     incoming.request_data?.carrier_name ||
     'New message';
-  const preview = getChatMessagePreview(incoming.message || '', incoming.messages_type, voiceLabel);
+  const preview = getChatMessagePreview(incoming.message || '', incoming.messages_type, voiceLabel, photoLabel);
   const body =
     (incoming as { notification_body?: string }).notification_body ||
     preview ||
@@ -66,6 +67,7 @@ function buildIncomingChatNotification(
 interface UseGlobalChatSocketOptions {
   userId?: number | string;
   voiceLabel?: string;
+  photoLabel?: string;
   onIncomingMessage?: (notification: IncomingChatNotification) => void;
 }
 
@@ -76,6 +78,7 @@ interface UseGlobalChatSocketOptions {
 export function useGlobalChatSocket({
   userId,
   voiceLabel = 'Voice note',
+  photoLabel = 'Photo',
   onIncomingMessage,
 }: UseGlobalChatSocketOptions): void {
   const onIncomingRef = useRef(onIncomingMessage);
@@ -90,7 +93,7 @@ export function useGlobalChatSocket({
       const shipperId = parsePartnerId(userId);
       if (!isIncomingChatToShipper(incoming, shipperId)) return;
 
-      const notification = buildIncomingChatNotification(incoming, voiceLabel);
+      const notification = buildIncomingChatNotification(incoming, voiceLabel, photoLabel);
       if (!notification) return;
 
       if (shouldSuppressForActiveThread(notification.senderId, notification.senderType)) {
@@ -107,5 +110,5 @@ export function useGlobalChatSocket({
     });
 
     return unsubscribe;
-  }, [userId, voiceLabel]);
+  }, [userId, voiceLabel, photoLabel]);
 }

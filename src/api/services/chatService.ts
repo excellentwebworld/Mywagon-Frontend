@@ -127,10 +127,21 @@ export const chatService = {
 
       if (res.data && res.data.data && Array.isArray(res.data.data.messages)) {
         return {
-          messages: res.data.data.messages.map((m: ChatMessage) => ({
-            ...m,
-            time: formatMessageTime(m.created_at || m.time),
-          })),
+          messages: res.data.data.messages.map((m: ChatMessage) => {
+            const text = String(m.text || '');
+            const isImage =
+              m.messages_type === 'image' ||
+              Boolean(m.imageUrl) ||
+              (m.messages_type === 'media' && /\.(jpe?g|png|gif|webp)(\?|$)/i.test(text)) ||
+              (/\.(jpe?g|png|gif|webp)(\?|$)/i.test(text) && /^https?:\/\//i.test(text));
+
+            return {
+              ...m,
+              time: formatMessageTime(m.created_at || m.time),
+              messages_type: isImage ? 'image' : m.messages_type,
+              imageUrl: isImage ? (m.imageUrl || text) : m.imageUrl,
+            };
+          }),
           sids: res.data.data.sids || [],
           device_token: res.data.data.device_token || '',
           partner_name: res.data.data.partner_name || '',
@@ -262,7 +273,7 @@ export const chatService = {
     receiver_id: number | string;
     receiver_type: string;
     message: string;
-    messages_type?: 'text' | 'voice' | 'media' | 'system';
+    messages_type?: 'text' | 'voice' | 'media' | 'image' | 'system';
     duration?: string;
     shipment_id?: string;
   }): Promise<ChatMessage> {
@@ -295,6 +306,7 @@ export const chatService = {
         return {
           ...d,
           time: formatMessageTime(d.created_at || d.time || new Date()),
+          imageUrl: d.messages_type === 'image' ? (d.imageUrl || d.text) : d.imageUrl,
         };
       }
     } catch {
@@ -311,6 +323,7 @@ export const chatService = {
       text: payload.message,
       messages_type: payload.messages_type || 'text',
       voiceUrl: payload.messages_type === 'voice' ? payload.message : undefined,
+      imageUrl: payload.messages_type === 'image' ? payload.message : undefined,
       duration: payload.duration,
       shipmentId: payload.shipment_id,
     };

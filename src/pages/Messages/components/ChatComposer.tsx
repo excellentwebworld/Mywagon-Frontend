@@ -116,15 +116,32 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     fileInputRef.current?.click();
   };
 
+  const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (onAttachFile) {
-        onAttachFile(file);
-      } else {
-        onShowToast(`📎 ${t('chatModule.toastAttach') || 'Attached'}: ${file.name}`);
-      }
-      e.target.value = '';
+    e.target.value = '';
+    if (!file) return;
+
+    const isAllowedType =
+      ALLOWED_IMAGE_TYPES.includes(file.type) ||
+      /\.(jpe?g|png|gif|webp)$/i.test(file.name);
+
+    if (!isAllowedType) {
+      onShowToast(t('chatModule.imageTypeInvalid', 'Please select an image (JPG, PNG, GIF, or WebP).'));
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_BYTES) {
+      onShowToast(t('chatModule.imageTooLarge', 'Image must be 10 MB or smaller.'));
+      return;
+    }
+
+    if (onAttachFile) {
+      onAttachFile(file);
+    } else {
+      onShowToast(`📷 ${t('chatModule.toastAttach', 'Attached')}: ${file.name}`);
     }
   };
 
@@ -159,6 +176,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         type="file"
         ref={fileInputRef}
         style={{ display: 'none' }}
+        accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp"
         onChange={handleFileChange}
       />
 
@@ -282,7 +300,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             <button
               type="button"
               className="cmp-tool"
-              title="Attach file"
+              title={t('chatModule.attachImage') || 'Attach image'}
               onClick={handleAttachClick}
             >
               <Paperclip size={18} />
