@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MapPin, Copy, CheckCircle2, FileText, ChevronDown, ChevronUp, Loader2, X, AlertTriangle } from 'lucide-react';
 import type { ShipmentStop } from '../../context/AppContext';
-import { productLineVisual, type ProductLineVisual } from '../../pages/ManageShipments/utils/listingUtils';
+import { productLineVisual, formatReason, type ProductLineVisual } from '../../pages/ManageShipments/utils/listingUtils';
 import { CollapsibleCard } from './CollapsibleCard';
 
 interface StopsCardProps {
@@ -483,7 +483,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                           {orderHasIssue && issueReason && (
                             <div className="mt-2.5 p-2 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5">
                               <AlertTriangle size={14} className="shrink-0 text-red-500" />
-                              <span>{issueReason}</span>
+                              <span>{formatReason(issueReason, t)}</span>
                             </div>
                           )}
 

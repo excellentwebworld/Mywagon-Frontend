@@ -498,7 +498,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
       const line = new maps.Polyline({
         path: [origin, destination],
         geodesic: true,
-        strokeColor: '#6C3AED',
+        strokeColor: '#9B51E0',
         strokeOpacity: 0.65,
         strokeWeight: 3,
         map,
@@ -522,7 +522,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
               suppressMarkers: true,
               preserveViewport: true,
               polylineOptions: {
-                strokeColor: '#6C3AED',
+                strokeColor: '#9B51E0',
                 strokeOpacity: 0.85,
                 strokeWeight: 4,
               },

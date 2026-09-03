@@ -12,6 +12,7 @@ interface RouteMapProps {
   loading?: boolean;
   routeLabel?: string;
   mapType?: 'roadmap' | 'satellite';
+  strokeColor?: string;
   height?: number;
   /** Highlight / open this stop’s marker (0-based). */
   activeStopIndex?: number | null;
@@ -104,6 +105,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   loading = false,
   routeLabel,
   mapType = 'roadmap',
+  strokeColor = '#9B51E0',
   height: heightProp,
   activeStopIndex = null,
   onStopSelect,
@@ -223,7 +225,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
             suppressMarkers: true,
             preserveViewport: false,
             polylineOptions: {
-              strokeColor: '#5E3BEE',
+              strokeColor: strokeColor || '#9B51E0',
               strokeOpacity: 0.9,
               strokeWeight: 4,
             },
@@ -243,7 +245,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         polyline = new google.maps.Polyline({
           path: safePolylinePath.map((p) => ({ lat: p.lat, lng: p.lng })),
           geodesic: false,
-          strokeColor: '#5E3BEE',
+          strokeColor: strokeColor || '#9B51E0',
           strokeOpacity: 0.9,
           strokeWeight: 4,
         });

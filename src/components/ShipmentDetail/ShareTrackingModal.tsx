@@ -8,6 +8,8 @@ interface ShareTrackingModalProps {
   stops?: ShipmentStop[];
   groups?: ShareCustomerGroup[];
   isPickedUp?: boolean;
+  status?: string;
+  isReadOnly?: boolean;
   onClose: () => void;
   onSend?: (emailsByLocationId: Record<string | number, string>) => void;
   t: (key: string, fallback?: string) => string;
@@ -17,10 +19,24 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
   open,
   stops,
   groups,
+  status,
+  isReadOnly: explicitReadOnly,
   onClose,
   onSend,
   t,
 }) => {
+  const normStatus = (status || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
+  const isFulfilledOrPartial =
+    normStatus === 'fullfilled' ||
+    normStatus === 'fulfilled' ||
+    normStatus === 'partially_fullfilled' ||
+    normStatus === 'partially_fulfilled' ||
+    normStatus === 'partial_fullfilled' ||
+    normStatus === 'partial_fulfilled' ||
+    normStatus === 'delivered';
+
+  const isReadOnly = explicitReadOnly ?? isFulfilledOrPartial;
+
   const deliveryRows = useMemo(() => {
     if (stops && stops.length > 0) {
       return stops
@@ -177,8 +193,14 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
                             type="email"
                             value={currentEmail}
                             placeholder={t('enterEmail', 'Enter Email')}
-                            onChange={(e) => handleEmailChange(row.id, e.target.value)}
-                            className="w-full px-3 py-2 text-[12px] rounded-lg border border-purple-500 outline-none focus:ring-1 focus:ring-purple-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 transition-colors"
+                            readOnly={isReadOnly}
+                            disabled={isReadOnly}
+                            onChange={(e) => !isReadOnly && handleEmailChange(row.id, e.target.value)}
+                            className={`w-full px-3 py-2 text-[12px] rounded-lg border outline-none text-slate-900 dark:text-white placeholder-slate-400 transition-colors ${
+                              isReadOnly
+                                ? 'border-slate-200 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-800/60 cursor-not-allowed text-slate-600 dark:text-slate-400 select-all'
+                                : 'border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white dark:bg-slate-800'
+                            }`}
                           />
                         </td>
                         <td className="py-3.5 px-4 align-middle text-center text-[12px] font-semibold text-slate-900 dark:text-white">
@@ -194,15 +216,17 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="mv-modal-footer flex items-center justify-center gap-3 px-6 py-4 border-t border-[var(--border)]">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="px-8 py-2 rounded-lg text-sm font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] transition-all cursor-pointer shadow-sm"
-          >
-            {t('done', 'Done')}
-          </button>
-        </div>
+        {!isReadOnly && (
+          <div className="mv-modal-footer flex items-center justify-center gap-3 px-6 py-4 border-t border-[var(--border)]">
+            <button
+              type="button"
+              onClick={handleSubmit}
+              className="px-8 py-2 rounded-lg text-sm font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] transition-all cursor-pointer shadow-sm"
+            >
+              {t('done', 'Done')}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

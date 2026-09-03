@@ -8,7 +8,8 @@ import {
 import { groupItineraryStops } from '../../pages/ManageShipments/utils/listingUtils';
 
 function mapApiStatus(status: string): Shipment['status'] {
-  switch (status) {
+  const norm = (status || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
+  switch (norm) {
     case 'pending':
       return 'pending';
     case 'scheduled':
@@ -19,13 +20,23 @@ function mapApiStatus(status: string): Shipment['status'] {
       return 'past_due';
     case 'on_trip':
       return 'on_trip';
+    case 'in_progress':
+      return 'in_progress';
     case 'draft':
       return 'draft';
     case 'fullfilled':
+    case 'fulfilled':
+    case 'delivered':
       return 'fullfilled';
     case 'partially_fullfilled':
+    case 'partially_fulfilled':
+    case 'partial_fullfilled':
+    case 'partial_fulfilled':
+    case 'part_fulfilled':
       return 'partially_fullfilled';
     case 'not_fullfilled':
+    case 'not_fulfilled':
+    case 'unfulfilled':
       return 'not_fullfilled';
     case 'canceled':
     case 'cancelled':

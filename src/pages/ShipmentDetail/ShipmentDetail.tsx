@@ -493,6 +493,7 @@ export const ShipmentDetail: React.FC = () => {
           details={vm.cancellationDetails}
           cancelledBy={vm.cancelledBy}
           notes={vm.cancellationNotes}
+          t={t}
         />
 
         {/* Command Header */}
@@ -951,6 +952,7 @@ export const ShipmentDetail: React.FC = () => {
         stops={displayedStops}
         groups={vm.shareGroups}
         isPickedUp={vm.isPickedUp}
+        status={vm.status}
         onClose={() => setIsShareOpen(false)}
         onSend={async (emails) => {
           if (!id) return;

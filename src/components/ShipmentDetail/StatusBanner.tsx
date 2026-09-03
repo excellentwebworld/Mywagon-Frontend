@@ -1,5 +1,6 @@
 import React from 'react';
 import { Ban, AlertCircle, Clock } from 'lucide-react';
+import { formatReason } from '../../pages/ManageShipments/utils/listingUtils';
 
 interface StatusBannerProps {
   status: string;
@@ -8,6 +9,7 @@ interface StatusBannerProps {
   details?: string | null;
   cancelledBy?: string | null;
   notes?: string | null;
+  t?: (key: string, fallback?: string) => string;
 }
 
 function formatDisplayDateTime(dateStr?: string | null): string {
@@ -33,6 +35,7 @@ export const StatusBanner: React.FC<StatusBannerProps> = ({
   details,
   cancelledBy,
   notes,
+  t,
 }) => {
   const isCancelled = status === 'canceled' || status === 'cancelled';
   const isUnfulfilled = status === 'not_fullfilled';
@@ -49,13 +52,15 @@ export const StatusBanner: React.FC<StatusBannerProps> = ({
       formattedDate ? `on ${formattedDate}` : '',
     ].filter(Boolean).join(' ');
 
-    const cleanedReason = (reason && !reason.includes('Read-only'))
+    const rawReason = (reason && !reason.includes('Read-only'))
       ? reason
       : (notes && !notes.includes('Read-only'))
       ? notes
       : (details && !details.includes('Read-only'))
       ? details
       : null;
+
+    const cleanedReason = rawReason ? formatReason(rawReason, t) : null;
 
     return (
       <div
@@ -76,6 +81,7 @@ export const StatusBanner: React.FC<StatusBannerProps> = ({
 
   if (isUnfulfilled) {
     const formattedDate = formatDisplayDateTime(date);
+    const formattedUnfulfilledReason = reason ? formatReason(reason, t) : null;
 
     return (
       <div
@@ -86,7 +92,7 @@ export const StatusBanner: React.FC<StatusBannerProps> = ({
         <p className="m-0 text-[13px] leading-normal" style={{ color: '#92400E' }}>
           <strong>This trip concluded unfulfilled.</strong>
           <span className="ml-1.5 font-normal" style={{ color: '#B45309' }}>
-            {`Finalized on ${formattedDate}${reason ? ` — ${reason}` : ''}`}
+            {`Finalized on ${formattedDate}${formattedUnfulfilledReason ? ` — ${formattedUnfulfilledReason}` : ''}`}
           </span>
         </p>
       </div>

@@ -652,6 +652,59 @@ export function isShipmentCancellable(status: Shipment['status']): boolean {
   return SHIPMENT_EDIT_CANCEL_STATUSES.has(status);
 }
 
+export const KNOWN_REASON_LABELS: Record<string, string> = {
+  'traffic-road-issue': 'Traffic/Road Issue',
+  'rate-too-low': 'Rate Too Low',
+  'rate-offered-too-low': 'Rate offered too low',
+  'equipment-issue': 'Equipment Issue',
+  'wrong-location': 'Wrong Location',
+  'load-transportation-issue': 'Load Transportation Issue',
+  'carrier-company-issue': 'Carrier Company Issue',
+  'delayed-by-receiver': 'Delayed by previous location',
+  'load-not-ready': 'Load Not Ready',
+  'shipper-misinformation': 'Shipper Misinformation',
+  'material-issue': 'Material Issue',
+  'vehicle-issue': 'Vehicle Issue',
+  'pickup-delay': 'Pickup Delay',
+  'wrong-pickup-location': 'Wrong Pickup Location',
+  'dropoff-delay': 'Dropoff Delay',
+  'delivery-window': 'Delivery Window',
+  'pickup-window': 'Pickup Window',
+  'change-too-short-noticed': 'Change too short noticed',
+  'inconvenient-itinerary': 'Inconvenient Itinerary',
+  'load-capacity': 'Load capacity',
+  'impossible-timing': 'Impossible timing',
+};
+
+export function humanizeReason(key?: string | null): string {
+  if (!key) return '';
+  const trimmed = String(key).trim();
+  const norm = trimmed.toLowerCase().replace(/_/g, '-');
+  if (KNOWN_REASON_LABELS[norm]) return KNOWN_REASON_LABELS[norm];
+  if (norm.includes('-') || norm.includes('_')) {
+    return norm
+      .split(/[-_]+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  }
+  return trimmed;
+}
+
+export function formatReason(
+  key?: string | null,
+  t?: (key: string, fallback?: string) => string
+): string {
+  if (!key) return '';
+  const trimmed = String(key).trim();
+  const norm = trimmed.toLowerCase().replace(/_/g, '-');
+  const fallback = KNOWN_REASON_LABELS[norm] || humanizeReason(trimmed);
+  if (t) {
+    const translated = t(norm, fallback);
+    return translated || fallback;
+  }
+  return fallback;
+}
+
 export function statusBadgeClass(
   status: Shipment['status'],
   _atRisk?: boolean,

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import type { Shipment } from '../../context/AppContext';
 import {
   buildLaravelProgressSteps,
+  formatReason,
   type LaravelProgressStep,
 } from '../../pages/ManageShipments/utils/listingUtils';
 
@@ -66,7 +67,7 @@ export const MilestonesBar: React.FC<MilestonesBarProps> = ({
           {steps.map((step, idx) => {
             const isLast = idx === steps.length - 1;
             const { dotBg, ringClass, labelColor, isCur, isRed } = stepStyle(step);
-            const reasonLabel = step.reason ? t(step.reason, step.reason) : null;
+            const reasonLabel = step.reason ? formatReason(step.reason, t) : null;
 
             return (
               <div

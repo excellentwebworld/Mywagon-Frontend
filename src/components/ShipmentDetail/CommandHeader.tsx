@@ -69,29 +69,49 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const status = (vm.statusLabel || '').toLowerCase();
+  const normStatus = (vm.statusLabel || vm.status || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
+  const isFulfilledOrPartial =
+    normStatus === 'fullfilled' ||
+    normStatus === 'fulfilled' ||
+    normStatus === 'partially_fullfilled' ||
+    normStatus === 'partially_fulfilled' ||
+    normStatus === 'partial_fullfilled' ||
+    normStatus === 'partial_fulfilled' ||
+    normStatus === 'delivered';
+
+  const isCancelled = normStatus === 'canceled' || normStatus === 'cancelled';
+  const isUnfulfilled = normStatus === 'not_fullfilled' || normStatus === 'not_fulfilled' || normStatus === 'unfulfilled';
+
   const canEdit =
-    status === 'draft' ||
-    status === 'pending' ||
-    status === 'scheduled' ||
-    status === 'ready' ||
-    status === 'upcoming' ||
-    status === 'past_due' ||
-    status === 'on_trip' ||
-    status === 'in_progress';
+    !isFulfilledOrPartial &&
+    !isCancelled &&
+    !isUnfulfilled &&
+    (normStatus === 'draft' ||
+      normStatus === 'pending' ||
+      normStatus === 'scheduled' ||
+      normStatus === 'ready' ||
+      normStatus === 'upcoming' ||
+      normStatus === 'past_due' ||
+      normStatus === 'on_trip' ||
+      normStatus === 'in_progress' ||
+      normStatus === 'awarded');
 
   const canCancel =
-    status === 'draft' ||
-    status === 'pending' ||
-    status === 'scheduled' ||
-    status === 'ready' ||
-    status === 'upcoming' ||
-    status === 'past_due' ||
-    status === 'on_trip' ||
-    status === 'in_progress';
+    !isFulfilledOrPartial &&
+    !isCancelled &&
+    !isUnfulfilled &&
+    (normStatus === 'draft' ||
+      normStatus === 'pending' ||
+      normStatus === 'scheduled' ||
+      normStatus === 'ready' ||
+      normStatus === 'upcoming' ||
+      normStatus === 'past_due' ||
+      normStatus === 'on_trip' ||
+      normStatus === 'in_progress' ||
+      normStatus === 'awarded');
 
-  const isOnTrip = status === 'on_trip' || status === 'in_progress';
-  const isCancelled = status === 'canceled' || status === 'cancelled';
+  const isOnTrip = normStatus === 'on_trip' || normStatus === 'in_progress';
+  const hasMenuActions = Boolean(onDuplicate || (canCancel && onCancelShipment));
 
   return (
     <div className="mv-surface-card rounded-2xl px-5 py-4 mb-4 bg-[var(--surface)] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
@@ -164,7 +184,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
         )}
 
         <div className="flex items-center gap-1.5 flex-wrap">
-          {canEdit && !isCancelled && (
+          {canEdit && (
             <button
               type="button"
               onClick={onEdit || (() => onToast(t('editShipment', 'Edit shipment')))}
@@ -194,48 +214,50 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
             <Share2 size={14} />
           </button>
 
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              onClick={() => setMenuOpen(!menuOpen)}
-              title={t('moreActions', 'More actions')}
-              className="flex items-center justify-center p-2 rounded-lg text-[13px] font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
-              aria-expanded={menuOpen}
-              aria-haspopup="true"
-              aria-label={t('moreActions', 'More actions')}
-            >
-              <MoreHorizontal size={14} />
-            </button>
+          {hasMenuActions && (
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen(!menuOpen)}
+                title={t('moreActions', 'More actions')}
+                className="flex items-center justify-center p-2 rounded-lg text-[13px] font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+                aria-expanded={menuOpen}
+                aria-haspopup="true"
+                aria-label={t('moreActions', 'More actions')}
+              >
+                <MoreHorizontal size={14} />
+              </button>
 
-            {menuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-48 rounded-xl bg-white dark:bg-slate-800 p-1 shadow-xl border border-slate-200 dark:border-slate-700 z-30 animate-in fade-in zoom-in-95 duration-150">
-                {onDuplicate && (
-                  <button
-                    type="button"
-                    className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onDuplicate();
-                    }}
-                  >
-                    {t('duplicateShipment', 'Duplicate load')}
-                  </button>
-                )}
-                {canCancel && onCancelShipment && (
-                  <button
-                    type="button"
-                    className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors cursor-pointer"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onCancelShipment();
-                    }}
-                  >
-                    {t('cancelShipment', 'Cancel shipment')}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+              {menuOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-48 rounded-xl bg-white dark:bg-slate-800 p-1 shadow-xl border border-slate-200 dark:border-slate-700 z-30 animate-in fade-in zoom-in-95 duration-150">
+                  {onDuplicate && (
+                    <button
+                      type="button"
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onDuplicate();
+                      }}
+                    >
+                      {t('duplicateShipment', 'Duplicate load')}
+                    </button>
+                  )}
+                  {canCancel && onCancelShipment && (
+                    <button
+                      type="button"
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onCancelShipment();
+                      }}
+                    >
+                      {t('cancelShipment', 'Cancel shipment')}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
