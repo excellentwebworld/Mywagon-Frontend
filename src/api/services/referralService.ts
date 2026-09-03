@@ -12,6 +12,7 @@ export interface ReferralSummaryResponse {
     points_earned: number;
     points_pending: number;
     available_credit_balance: number;
+    wallet_balance?: number;
   };
   program_rules: {
     points_per_referral: number;

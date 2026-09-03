@@ -59,7 +59,13 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
   const countQualified = summaryQuery.data?.stats.qualified_count ?? 0;
   const earnedPoints = summaryQuery.data?.stats.points_earned ?? 0;
   const pendingPoints = summaryQuery.data?.stats.points_pending ?? 0;
-  const availableCredit = summaryQuery.data?.stats.available_credit_balance ?? propAvailableCredit ?? 0;
+  const availableCredit =
+    summaryQuery.data?.stats.wallet_balance ??
+    summaryQuery.data?.stats.available_credit_balance ??
+    propAvailableCredit ??
+    (authUser as any)?.walletBalance ??
+    (authUser as any)?.balance ??
+    0;
 
   const formatReferralAmount = (amount: number) => formatCurrency(amount, 'EUR', currentLang);
   // Close on ESC
