@@ -34,7 +34,7 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
           <div className="mv-doc-number">{statement.period}</div>
           {statement.from || statement.to ? (
             <div className="mv-doc-muted">
-              {statement.from || ''} — {statement.to || ''}
+              {formatDate(statement.from)} — {formatDate(statement.to)}
             </div>
           ) : null}
         </div>
