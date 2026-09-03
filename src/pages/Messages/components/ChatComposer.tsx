@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Link2,
@@ -13,8 +13,9 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { TemplateDropdown } from './TemplateDropdown';
-import type { QuickTemplate, ShipmentContextInfo } from '../types';
+import type { QuickTemplate, ShipmentContextInfo, ChatContext } from '../types';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
+import { formatShipmentAutoId } from '../../../utils/chatPartnerUtils';
 
 interface ChatComposerProps {
   messageInput: string;
@@ -29,6 +30,7 @@ interface ChatComposerProps {
   onSelectTemplate: (tpl: QuickTemplate) => void;
   shipmentContext: ShipmentContextInfo | null;
   activeShipmentId?: string;
+  chatContext?: ChatContext | null;
   onShowToast: (msg: string) => void;
   t: (key: string) => string;
 }
@@ -46,11 +48,14 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   onSelectTemplate,
   shipmentContext,
   activeShipmentId,
+  chatContext,
   onShowToast,
   t,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const tplToggleRef = useRef<HTMLButtonElement>(null);
+  const tplDropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   const {
@@ -69,6 +74,28 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     seekPreview,
     formatTimer,
   } = useVoiceRecorder();
+
+  useEffect(() => {
+    if (!tplDropdownOpen) return;
+
+    const onPointerDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (tplDropdownRef.current?.contains(target)) return;
+      if (tplToggleRef.current?.contains(target)) return;
+      onCloseTemplates();
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCloseTemplates();
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [tplDropdownOpen, onCloseTemplates]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -119,7 +146,12 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     navigate(`/manage-shipments?sid=${encodeURIComponent(sid)}`);
   };
 
-  const linkedSid = shipmentContext?.sid || activeShipmentId;
+  const linkedSid =
+    chatContext?.mode === 'shipment'
+      ? (formatShipmentAutoId(shipmentContext?.sid) ||
+          formatShipmentAutoId(chatContext?.shipmentLabel) ||
+          formatShipmentAutoId(activeShipmentId))
+      : null;
 
   return (
     <div className="composer">
@@ -142,9 +174,14 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           <strong className="cmp-link-sid">
             {linkedSid}
           </strong>{' '}
-          {shipmentContext?.origin && shipmentContext?.destination && (
-            <span>· {shipmentContext.origin} → {shipmentContext.destination}</span>
-          )}
+          {shipmentContext?.origin &&
+            shipmentContext?.destination &&
+            shipmentContext.origin !== '—' &&
+            shipmentContext.destination !== '—' &&
+            shipmentContext.origin !== 'Origin' &&
+            shipmentContext.destination !== 'Destination' && (
+              <span>· {shipmentContext.origin} → {shipmentContext.destination}</span>
+            )}
           <ExternalLink size={11} style={{ marginLeft: 4, opacity: 0.7 }} />
         </div>
       )}
@@ -253,7 +290,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
 
             <button
               type="button"
-              className="cmp-tool"
+              ref={tplToggleRef}
+              className={`cmp-tool ${tplDropdownOpen ? 'active' : ''}`}
               title="Templates"
               onClick={onToggleTemplates}
             >
@@ -281,13 +319,15 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               placeholder={t('chatModule.composerPlaceholder')}
             />
 
-            <TemplateDropdown
-              templates={templates}
-              isOpen={tplDropdownOpen}
-              onSelectTemplate={onSelectTemplate}
-              onClose={onCloseTemplates}
-              t={t}
-            />
+            <div ref={tplDropdownRef}>
+              <TemplateDropdown
+                templates={templates}
+                isOpen={tplDropdownOpen}
+                onSelectTemplate={onSelectTemplate}
+                onClose={onCloseTemplates}
+                t={t}
+              />
+            </div>
           </div>
 
           <button

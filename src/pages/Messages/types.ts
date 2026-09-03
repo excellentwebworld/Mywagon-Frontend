@@ -24,11 +24,21 @@ export interface ChatMessage {
   status?: 'delivered' | 'read' | 'sending' | 'failed';
   attachments?: ChatAttachment[];
   shipmentId?: string;
+  shipment_id?: string | number;
   messages_type?: 'text' | 'voice' | 'media' | 'system';
   voiceUrl?: string;
   duration?: string;
   created_at?: string | Date;
   isFailed?: boolean;
+}
+
+export type ChatContextMode = 'direct' | 'shipment';
+
+export interface ChatContext {
+  mode: ChatContextMode;
+  shipmentId: string | null;
+  shipmentDbId: string | null;
+  shipmentLabel: string | null;
 }
 
 export interface Conversation {
@@ -49,6 +59,8 @@ export interface Conversation {
   lastTimestamp?: number;
   chips: string[];
   latestSid?: string;
+  /** shipments.id for the latest linked load (storage / API lookup). */
+  latestShipmentDbId?: string | number | null;
   isPartner?: boolean;
   hasAction?: boolean;
   phone?: string;
@@ -79,6 +91,8 @@ export interface ActionLogEntry {
 
 export interface ShipmentContextInfo {
   sid: string;
+  primaryId?: number | string | null;
+  autoId?: string | null;
   status: 'transit' | 'delivered' | 'pending' | 'issue';
   statusLabel: string;
   origin: string;

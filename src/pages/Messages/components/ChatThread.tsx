@@ -11,12 +11,16 @@ import { VoicePlayer } from './VoicePlayer';
 import { useAuth } from '../../../context/AuthContext';
 import { extractInitials } from '../../../api/services/chatService';
 import { formatMessageTime } from '../../../utils/timezone';
+import { formatShipmentAutoId } from '../../../utils/chatPartnerUtils';
 
 interface ChatThreadProps {
   messages: ChatMessage[];
   conversation: Conversation;
   isTyping: boolean;
   shipmentFilter: string;
+  activeShipmentLabel?: string | null;
+  activeShipmentDbId?: string | null;
+  filterSids?: string[];
   onShipmentFilterChange: (sid: string) => void;
   onRetryMessage?: (msg: ChatMessage) => void;
   t: (key: string) => string;
@@ -28,6 +32,9 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
   conversation,
   isTyping,
   shipmentFilter,
+  activeShipmentLabel,
+  activeShipmentDbId,
+  filterSids = [],
   onShipmentFilterChange,
   onRetryMessage,
   t,
@@ -56,25 +63,37 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
     msgEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // Build unique chronological SIDs list from conversation chips and messages (most recent at top)
-  const allSids = React.useMemo(() => {
-    const sids: string[] = [];
-    if (conversation.chips && Array.isArray(conversation.chips)) {
-      conversation.chips.forEach((sid) => {
-        if (sid && !sids.includes(sid)) sids.push(sid);
-      });
+  const formatDisplaySid = (sid: string) => {
+    if (sid === 'all') return t('chatModule.filterAllMessages') || 'All Messages';
+    const formatted = formatShipmentAutoId(sid);
+    if (formatted) return formatted;
+    if (
+      activeShipmentDbId &&
+      /^\d+$/.test(String(sid).trim()) &&
+      String(sid).trim() === String(activeShipmentDbId) &&
+      activeShipmentLabel
+    ) {
+      return activeShipmentLabel;
     }
-    messages.forEach((m) => {
-      if (m.shipmentId && !sids.includes(m.shipmentId)) {
-        sids.push(m.shipmentId);
-      }
-    });
+    return sid;
+  };
+
+  const allSids = React.useMemo(() => {
+    const seen = new Set<string>();
+    const sids: string[] = [];
+    for (const sid of filterSids) {
+      const display = formatShipmentAutoId(sid) || sid;
+      const key = display.toUpperCase();
+      if (!display || seen.has(key)) continue;
+      seen.add(key);
+      sids.push(display);
+    }
     return sids;
-  }, [conversation.chips, messages]);
+  }, [filterSids]);
 
   const handleSidClick = (e: React.MouseEvent, sid: string) => {
     e.stopPropagation();
-    navigate(`/manage-shipments?sid=${encodeURIComponent(sid)}`);
+    navigate(`/manage-shipments?sid=${encodeURIComponent(formatDisplaySid(sid))}`);
   };
 
   return (
@@ -90,7 +109,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
           <option value="all">{t('chatModule.filterAllMessages') || 'All Messages'}</option>
           {allSids.map((sid) => (
             <option key={sid} value={sid}>
-              {sid}
+              {formatDisplaySid(sid)}
             </option>
           ))}
         </select>
@@ -127,7 +146,9 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
           }
 
           if (m.type === 'system') {
-            const sidText = m.shipmentId || conversation.activeShipmentId || (allSids.length > 0 ? allSids[0] : null);
+            const sidText = formatDisplaySid(
+              m.shipmentId || conversation.activeShipmentId || (allSids.length > 0 ? allSids[0] : '') || ''
+            );
 
             return (
               <div key={idx} className="msg-system-wrap">

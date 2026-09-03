@@ -15,17 +15,23 @@ import type {
   MessageFilterType,
   ShipmentContextInfo,
   QuickTemplate,
+  ChatContext,
 } from '../types';
 import { formatMessageTime, formatConversationTime } from '../../../utils/timezone';
 import { setActiveChatPartner } from '../../../utils/chatNotificationGuard';
 import {
+  buildChatFilterSids,
   buildLaravelChatRequestData,
+  extractShipmentDbId,
+  formatShipmentAutoId,
   getChatMessagePreview,
   getShipperDeviceToken,
   isIncomingChatToShipper,
   isMessageFromPartner,
+  isShipmentAutoId,
   parsePartnerId,
   resolveActivePartnerType,
+  resolveNavigatedShipmentIds,
   resolveSocketReceiverType,
 } from '../../../utils/chatPartnerUtils';
 
@@ -42,6 +48,7 @@ function buildShipperSocketChatPayload(params: {
   message: string;
   messagesType?: 'voice' | 'media';
   duration?: string;
+  shipmentId?: string | number;
 }): SocketMessagePayload {
   const receiverId = parsePartnerId(params.conversation.partnerId || params.conversation.id);
   const receiverType = resolveSocketReceiverType(params.conversation);
@@ -50,6 +57,7 @@ function buildShipperSocketChatPayload(params: {
     params.user.company_name ||
     `${params.user.first_name || ''} ${params.user.last_name || ''}`.trim() ||
     'Shipper';
+  const cleanShipmentId = params.shipmentId != null ? extractShipmentDbId(String(params.shipmentId)) : undefined;
 
   return {
     sender_id: String(senderId),
@@ -57,6 +65,7 @@ function buildShipperSocketChatPayload(params: {
     receiver_id: String(receiverId),
     receiver_type: receiverType,
     message: params.message,
+    ...(cleanShipmentId ? { shipment_id: cleanShipmentId } : {}),
     ...(params.messagesType ? { messages_type: params.messagesType } : {}),
     ...(params.duration ? { duration: params.duration } : {}),
     request_data: buildLaravelChatRequestData({
@@ -135,7 +144,78 @@ function buildReceivedMessageFromSocket(
     voiceUrl: isVoice ? rawText : undefined,
     duration: incoming.duration,
     shipmentId: incoming.shipment_id ? String(incoming.shipment_id) : undefined,
+    shipment_id: incoming.shipment_id,
   };
+}
+
+export function isMatchingShipment(
+  msg: ChatMessage,
+  targetSid: string,
+  contextDbId?: string | number | null,
+  contextLabel?: string | null
+): boolean {
+  if (!targetSid || targetSid === 'all') return true;
+  const targetNorm = extractShipmentDbId(targetSid) || targetSid.toLowerCase().trim();
+  const rawMsgSid = msg.shipmentId || (msg as any).shipment_id;
+  if (!rawMsgSid) return false;
+  const msgNorm = extractShipmentDbId(String(rawMsgSid)) || String(rawMsgSid).toLowerCase().trim();
+  if (msgNorm === targetNorm || String(rawMsgSid).toLowerCase().trim() === targetSid.toLowerCase().trim()) {
+    return true;
+  }
+  if (contextDbId) {
+    const dbNorm = extractShipmentDbId(String(contextDbId));
+    const filterIsContextShipment =
+      !contextLabel ||
+      String(targetSid).toLowerCase().trim() === String(contextLabel).toLowerCase().trim() ||
+      Boolean(dbNorm && targetNorm === dbNorm);
+    if (
+      filterIsContextShipment &&
+      dbNorm &&
+      (msgNorm === dbNorm || String(rawMsgSid).toLowerCase().trim() === dbNorm.toLowerCase().trim())
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function filterMessagesByShipmentContext(
+  messages: ChatMessage[],
+  shipmentFilter: string,
+  contextDbId?: string | number | null,
+  contextLabel?: string | null
+): ChatMessage[] {
+  if (shipmentFilter === 'all') return messages;
+
+  const result: ChatMessage[] = [];
+  let currentDateSep: ChatMessage | null = null;
+  let hasContentForDate = false;
+
+  for (const m of messages) {
+    if (m.type === 'date') {
+      currentDateSep = m;
+      hasContentForDate = false;
+      continue;
+    }
+
+    if (m.type === 'system') {
+      if (m.shipmentId && !isMatchingShipment(m, shipmentFilter, contextDbId, contextLabel)) {
+        continue;
+      }
+    } else {
+      if (!isMatchingShipment(m, shipmentFilter, contextDbId, contextLabel)) {
+        continue;
+      }
+    }
+
+    if (currentDateSep && !hasContentForDate) {
+      result.push(currentDateSep);
+      hasContentForDate = true;
+    }
+    result.push(m);
+  }
+
+  return result;
 }
 
 function shouldAppendIncomingMessage(prev: ChatMessage[], next: ChatMessage): boolean {
@@ -168,7 +248,7 @@ export function useMessages() {
     }
     return 'SV';
   }, [user?.first_name, user?.last_name, user?.company_name]);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const locationState = location.state as {
     userId?: number | string;
@@ -176,6 +256,7 @@ export function useMessages() {
     userName?: string;
     userAvatar?: string;
     sid?: string;
+    autoId?: string;
   } | null;
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -190,6 +271,12 @@ export function useMessages() {
   const [isTyping, setIsTyping] = useState(false);
   const [ctxPaneOpen, setCtxPaneOpen] = useState(true);
   const [shipmentFilter, setShipmentFilter] = useState<string>('all');
+  const [chatContext, setChatContext] = useState<ChatContext>({
+    mode: 'direct',
+    shipmentId: null,
+    shipmentDbId: null,
+    shipmentLabel: null,
+  });
   const [tplDropdownOpen, setTplDropdownOpen] = useState(false);
   const [messageInput, setMessageInput] = useState('');
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
@@ -243,14 +330,24 @@ export function useMessages() {
         '';
       const targetSid =
         searchParams.get('sid') ||
+        searchParams.get('tsid') ||
         locationState?.sid ||
         '';
+      const targetAutoId =
+        searchParams.get('autoId') ||
+        searchParams.get('autoid') ||
+        locationState?.autoId ||
+        '';
+      const { primaryId: navPrimaryId, autoId: navAutoId } = resolveNavigatedShipmentIds(
+        targetSid,
+        targetAutoId
+      );
 
       let match: Conversation | undefined;
 
       const targetIdNum = targetUserId ? parsePartnerId(targetUserId) : null;
       const normTargetName = targetUserName ? targetUserName.trim().toLowerCase() : '';
-      const normTargetSid = targetSid ? String(targetSid).replace(/^SID-/i, '').trim() : '';
+      const normTargetSid = navAutoId ? navAutoId.replace(/^SID-/i, '').trim() : '';
 
       // 1. Try matching by targetUserId (partnerId or id)
       if (targetUserId) {
@@ -271,19 +368,45 @@ export function useMessages() {
         match = list.find((c) => c.name && c.name.trim().toLowerCase() === normTargetName);
       }
 
-      // 3. Try matching by targetSid
-      if (!match && normTargetSid) {
+      // 3. Try matching by navigated auto_id (never by SID-{primaryId})
+      if (!match && (normTargetSid || navPrimaryId)) {
         match = list.find((c) => {
-          if (c.chips?.some((chip) => chip.replace(/^SID-/i, '').trim() === normTargetSid)) return true;
-          if (c.latestSid && String(c.latestSid).replace(/^SID-/i, '').trim() === normTargetSid) return true;
-          if (c.activeShipmentId && String(c.activeShipmentId).replace(/^SID-/i, '').trim() === normTargetSid) return true;
+          if (normTargetSid) {
+            if (c.chips?.some((chip) => chip.replace(/^SID-/i, '').trim() === normTargetSid)) return true;
+            if (c.latestSid && String(c.latestSid).replace(/^SID-/i, '').trim() === normTargetSid) return true;
+            if (c.activeShipmentId && String(c.activeShipmentId).replace(/^SID-/i, '').trim() === normTargetSid) return true;
+          }
+          if (navPrimaryId && String(c.latestShipmentDbId || '') === navPrimaryId) return true;
           return false;
         });
       }
 
+      const applyNavigatedShipment = (conversations: Conversation[], conv: Conversation): Conversation[] => {
+        if (!navPrimaryId && !navAutoId) {
+          setChatContext({
+            mode: 'direct',
+            shipmentId: null,
+            shipmentDbId: null,
+            shipmentLabel: null,
+          });
+          setShipmentFilter('all');
+          return conversations;
+        }
+
+        setChatContext({
+          mode: 'shipment',
+          shipmentId: navAutoId || navPrimaryId,
+          shipmentDbId: navPrimaryId,
+          shipmentLabel: navAutoId,
+        });
+        setShipmentFilter(navAutoId || 'all');
+        setCtxPaneOpen(true);
+        return conversations;
+      };
+
       if (match) {
         setMobileChatOpen(true);
-        setConversations(list);
+        setConversations(applyNavigatedShipment(list, match));
         setActiveConvId(match.id);
       } else if (targetUserId || normTargetName) {
         // First time message to this user! Create a synthetic conversation immediately
@@ -297,7 +420,7 @@ export function useMessages() {
           initials: extractInitials(targetUserName) || (targetUserName || 'U').substring(0, 2).toUpperCase(),
           avatarUrl: targetUserAvatar || '',
           avatarClass: targetUserType === 'driver' ? 'driver' : 'carrier',
-          chips: normTargetSid ? [`SID-${normTargetSid}`] : [],
+          chips: navAutoId ? [navAutoId] : [],
           role: targetUserType === 'driver' ? 'Driver' : 'Carrier',
           rating: '5.0',
           tripsCount: 0,
@@ -307,13 +430,32 @@ export function useMessages() {
           lastTimestamp: Math.floor(Date.now() / 1000),
           unread: 0,
           online: true,
-          latestSid: normTargetSid ? `SID-${normTargetSid}` : undefined,
-          activeShipmentId: normTargetSid || undefined,
+          latestSid: navAutoId || undefined,
+          latestShipmentDbId: navPrimaryId || undefined,
+          activeShipmentId: navAutoId || undefined,
         };
-        setConversations([newConv, ...list]);
+        setConversations(applyNavigatedShipment([newConv, ...list], newConv));
         setActiveConvId(newConv.id);
       } else if (list.length > 0) {
         setConversations(list);
+        if (navPrimaryId || navAutoId) {
+          setChatContext({
+            mode: 'shipment',
+            shipmentId: navAutoId || navPrimaryId,
+            shipmentDbId: navPrimaryId,
+            shipmentLabel: navAutoId,
+          });
+          setShipmentFilter(navAutoId || 'all');
+          setCtxPaneOpen(true);
+        } else {
+          setChatContext({
+            mode: 'direct',
+            shipmentId: null,
+            shipmentDbId: null,
+            shipmentLabel: null,
+          });
+          setShipmentFilter('all');
+        }
         setActiveConvId((prev) => {
           if (prev && list.some((c) => String(c.id) === String(prev))) {
             return prev;
@@ -324,6 +466,13 @@ export function useMessages() {
         setConversations([]);
         setActiveConvId(null);
         setMessages([]);
+        setChatContext({
+          mode: 'direct',
+          shipmentId: null,
+          shipmentDbId: null,
+          shipmentLabel: null,
+        });
+        setShipmentFilter('all');
       }
     } catch (err) {
       console.warn('Error loading conversations:', err);
@@ -523,30 +672,94 @@ export function useMessages() {
       receiver_type: partnerType,
     });
 
-    // Load dynamic shipment context if latest SID is present
-    const sid = currentConv.latestSid || currentConv.activeShipmentId;
-    if (sid) {
-      setLoadingShipmentContext(true);
-      chatService
-        .getShipmentContext(sid)
-        .then((ctx) => {
-          if (mounted) {
-            setDynamicShipmentCtx(ctx);
-            setLoadingShipmentContext(false);
-          }
-        })
-        .catch(() => {
-          if (mounted) setLoadingShipmentContext(false);
-        });
-    } else {
-      setDynamicShipmentCtx(null);
-      setLoadingShipmentContext(false);
-    }
-
     return () => {
       mounted = false;
     };
   }, [activeConvId, user?.id]);
+
+  // Fetch shipment context for the SID the user picked in this chat.
+  // Depend on the selected label/filter only — filling shipmentDbId after fetch must not skip a swap.
+  useEffect(() => {
+    if (chatContext.mode !== 'shipment' || !shipmentFilter || shipmentFilter === 'all') {
+      setDynamicShipmentCtx(null);
+      setLoadingShipmentContext(false);
+      return;
+    }
+
+    const requested =
+      formatShipmentAutoId(shipmentFilter) ||
+      formatShipmentAutoId(chatContext.shipmentLabel) ||
+      (isShipmentAutoId(String(chatContext.shipmentId || ''))
+        ? formatShipmentAutoId(String(chatContext.shipmentId))
+        : null) ||
+      String(chatContext.shipmentId || shipmentFilter);
+
+    if (!requested) {
+      setDynamicShipmentCtx(null);
+      setLoadingShipmentContext(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingShipmentContext(true);
+    setDynamicShipmentCtx((prev) => {
+      const prevSid = formatShipmentAutoId(prev?.autoId || prev?.sid);
+      if (prevSid && prevSid.toUpperCase() === requested.toUpperCase()) return prev;
+      return null;
+    });
+
+    chatService
+      .getShipmentContext(requested)
+      .then((ctx) => {
+        if (cancelled) return;
+        setLoadingShipmentContext(false);
+        if (!ctx) {
+          setDynamicShipmentCtx(null);
+          return;
+        }
+        const autoId = formatShipmentAutoId(ctx.autoId || ctx.sid);
+        const dbId = ctx.primaryId != null ? String(ctx.primaryId) : null;
+        const requestedAuto = isShipmentAutoId(requested)
+          ? formatShipmentAutoId(requested)
+          : null;
+        if (
+          requestedAuto &&
+          autoId &&
+          requestedAuto.toUpperCase() !== autoId.toUpperCase()
+        ) {
+          setDynamicShipmentCtx(null);
+          return;
+        }
+        setDynamicShipmentCtx(ctx);
+        setChatContext((prev) => {
+          if (prev.mode !== 'shipment') return prev;
+          const currentLabel =
+            formatShipmentAutoId(prev.shipmentLabel) || prev.shipmentLabel;
+          if (
+            currentLabel &&
+            autoId &&
+            currentLabel.toUpperCase() !== autoId.toUpperCase()
+          ) {
+            return prev;
+          }
+          if (prev.shipmentDbId === dbId && prev.shipmentLabel === autoId) return prev;
+          return {
+            ...prev,
+            shipmentDbId: dbId || prev.shipmentDbId,
+            shipmentLabel: autoId || prev.shipmentLabel,
+          };
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLoadingShipmentContext(false);
+        setDynamicShipmentCtx(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chatContext.mode, chatContext.shipmentId, shipmentFilter]);
 
   // Total unread count
   const totalUnreadCount = useMemo(() => {
@@ -590,17 +803,125 @@ export function useMessages() {
 
   // Filtered messages in active thread (by shipment if selected)
   const filteredMessages = useMemo(() => {
-    if (shipmentFilter === 'all') return messages;
-    return messages.filter((m) => !m.shipmentId || m.shipmentId === shipmentFilter);
-  }, [messages, shipmentFilter]);
+    return filterMessagesByShipmentContext(
+      messages,
+      shipmentFilter,
+      chatContext.shipmentDbId,
+      chatContext.shipmentLabel
+    );
+  }, [messages, shipmentFilter, chatContext.shipmentDbId, chatContext.shipmentLabel]);
 
-  // Select conversation
+  const loadScopedAutoId = useMemo(() => {
+    const { autoId } = resolveNavigatedShipmentIds(
+      searchParams.get('sid') || searchParams.get('tsid') || locationState?.sid,
+      searchParams.get('autoId') || searchParams.get('autoid') || locationState?.autoId
+    );
+    return autoId;
+  }, [searchParams, locationState]);
+
+  const conversationShipmentSids = useMemo(() => {
+    const messageSids = messages
+      .filter((m) => m.type !== 'date' && m.type !== 'system')
+      .map((m) => m.shipmentId ?? null);
+
+    return buildChatFilterSids({
+      loadScopedAutoId,
+      messageSids,
+      currentFilter: shipmentFilter,
+    });
+  }, [messages, shipmentFilter, loadScopedAutoId]);
+
+  useEffect(() => {
+    if (!loadScopedAutoId) return;
+    const current = formatShipmentAutoId(shipmentFilter);
+    if (
+      shipmentFilter !== 'all' &&
+      current?.toUpperCase() !== loadScopedAutoId.toUpperCase()
+    ) {
+      setShipmentFilter(loadScopedAutoId);
+      setChatContext({
+        mode: 'shipment',
+        shipmentId: loadScopedAutoId,
+        shipmentLabel: loadScopedAutoId,
+        shipmentDbId: null,
+      });
+      setCtxPaneOpen(true);
+    }
+  }, [loadScopedAutoId, shipmentFilter]);
+
+  // Select conversation (defaults to direct user-to-user conversation)
   const selectConversation = useCallback((id: number | string) => {
     setActiveConvId(id);
     setMobileChatOpen(true);
     setTplDropdownOpen(false);
+    setMessages([]);
+    setDynamicShipmentCtx(null);
+    setCtxPaneOpen(false);
+    setChatContext({
+      mode: 'direct',
+      shipmentId: null,
+      shipmentDbId: null,
+      shipmentLabel: null,
+    });
     setShipmentFilter('all');
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('sid');
+      next.delete('tsid');
+      next.delete('autoId');
+      next.delete('autoid');
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const handleShipmentFilterChange = useCallback((sid: string) => {
+    setShipmentFilter(sid);
+    if (!sid || sid === 'all') {
+      setDynamicShipmentCtx(null);
+      setLoadingShipmentContext(false);
+      setCtxPaneOpen(false);
+      setChatContext({
+        mode: 'direct',
+        shipmentId: null,
+        shipmentDbId: null,
+        shipmentLabel: null,
+      });
+      return;
+    }
+
+    const autoId = formatShipmentAutoId(sid) || sid;
+    setCtxPaneOpen(true);
+    setChatContext((prev) => ({
+      mode: 'shipment',
+      shipmentId: autoId,
+      shipmentLabel: autoId,
+      shipmentDbId:
+        prev.shipmentLabel === autoId || prev.shipmentId === autoId
+          ? prev.shipmentDbId
+          : null,
+    }));
   }, []);
+
+  // Resolve active shipment only when this thread is explicitly scoped to a load
+  const resolveActiveShipment = useCallback(() => {
+    if (chatContext.mode === 'shipment' && chatContext.shipmentDbId) {
+      return {
+        shipmentId: chatContext.shipmentLabel || formatShipmentAutoId(chatContext.shipmentId) || undefined,
+        shipmentDbId: chatContext.shipmentDbId,
+      };
+    }
+    if (chatContext.mode === 'shipment' && shipmentFilter !== 'all') {
+      const dbId = chatContext.shipmentDbId || (dynamicShipmentCtx?.primaryId ? String(dynamicShipmentCtx.primaryId) : null);
+      return {
+        shipmentId: chatContext.shipmentLabel || formatShipmentAutoId(shipmentFilter) || shipmentFilter,
+        shipmentDbId: dbId || undefined,
+      };
+    }
+    return {
+      shipmentId: undefined,
+      shipmentDbId: undefined,
+    };
+  }, [chatContext, shipmentFilter, dynamicShipmentCtx]);
 
   // Back button on mobile
   const handleMobileBack = useCallback(() => {
@@ -616,7 +937,7 @@ export function useMessages() {
       const now = new Date();
       const timeStr = formatMessageTime(now);
       const msgTempId = Date.now();
-      const sid = activeConversation.latestSid || activeConversation.activeShipmentId;
+      const { shipmentId: activeSid, shipmentDbId: activeSidDb } = resolveActiveShipment();
 
       const newMsg: ChatMessage = {
         id: msgTempId,
@@ -627,7 +948,8 @@ export function useMessages() {
         created_at: now.toISOString(),
         text,
         status: 'delivered',
-        shipmentId: sid,
+        shipmentId: activeSid,
+        shipment_id: activeSidDb,
       };
 
       setMessages((prev) => [...prev, newMsg]);
@@ -651,6 +973,7 @@ export function useMessages() {
             conversation: activeConversation,
             partnerToken,
             message: text,
+            shipmentId: activeSidDb,
           })
         );
 
@@ -690,7 +1013,7 @@ export function useMessages() {
       const now = new Date();
       const timeStr = formatMessageTime(now);
       const msgTempId = Date.now();
-      const sid = activeConversation.latestSid || activeConversation.activeShipmentId;
+      const { shipmentId: activeSid, shipmentDbId: activeSidDb } = resolveActiveShipment();
       const localAudioUrl = URL.createObjectURL(audioBlob);
 
       const newMsg: ChatMessage = {
@@ -705,7 +1028,8 @@ export function useMessages() {
         voiceUrl: localAudioUrl,
         duration: durationMsSend, // ms string — VoicePlayer.sanitizeDuration handles this
         status: 'delivered',
-        shipmentId: sid,
+        shipmentId: activeSid,
+        shipment_id: activeSidDb,
       };
 
       setMessages((prev) => [...prev, newMsg]);
@@ -733,6 +1057,7 @@ export function useMessages() {
             message: uploadedUrl,
             messagesType: 'voice',
             duration: durationMsSend,
+            shipmentId: activeSidDb,
           })
         );
 
@@ -764,7 +1089,7 @@ export function useMessages() {
       const now = new Date();
       const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       const msgTempId = Date.now();
-      const sid = activeConversation.latestSid || activeConversation.activeShipmentId;
+      const { shipmentId: activeSid, shipmentDbId: activeSidDb } = resolveActiveShipment();
 
       const newMsg: ChatMessage = {
         id: msgTempId,
@@ -782,7 +1107,8 @@ export function useMessages() {
           },
         ],
         status: 'delivered',
-        shipmentId: sid,
+        shipmentId: activeSid,
+        shipment_id: activeSidDb,
       };
 
       setMessages((prev) => [...prev, newMsg]);
@@ -815,6 +1141,7 @@ export function useMessages() {
             partnerToken,
             message: uploadedUrl || file.name,
             messagesType: 'media',
+            shipmentId: activeSidDb,
           })
         );
 
@@ -844,6 +1171,10 @@ export function useMessages() {
       );
 
       const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
+      const { shipmentDbId: activeSidDb } = resolveActiveShipment();
+      const retrySidDb = failedMsg.shipment_id != null
+        ? String(failedMsg.shipment_id)
+        : (failedMsg.shipmentId ? extractShipmentDbId(failedMsg.shipmentId) : activeSidDb);
 
       try {
         const response = await socketService.sendMessage(
@@ -854,6 +1185,7 @@ export function useMessages() {
             message: failedMsg.text,
             ...(failedMsg.messages_type === 'voice' ? { messagesType: 'voice' as const, duration: failedMsg.duration } : {}),
             ...(failedMsg.messages_type === 'media' ? { messagesType: 'media' as const } : {}),
+            shipmentId: retrySidDb,
           })
         );
 
@@ -878,7 +1210,10 @@ export function useMessages() {
     (template: QuickTemplate) => {
       const rawText = t(`chatModule.${template.textKey}`);
       const partnerName = activeConversation?.name || 'Partner';
-      const sid = dynamicShipmentCtx?.sid || activeConversation?.latestSid || 'SID-77478';
+      const sid =
+        (chatContext.mode === 'shipment' && (chatContext.shipmentLabel || formatShipmentAutoId(chatContext.shipmentId))) ||
+        (chatContext.mode === 'shipment' ? dynamicShipmentCtx?.sid : null) ||
+        '';
       const origin = dynamicShipmentCtx?.origin || 'Athens';
       const dest = dynamicShipmentCtx?.destination || 'Thessaloniki';
       const pTime = dynamicShipmentCtx?.pickupTime || '10:00';
@@ -895,7 +1230,7 @@ export function useMessages() {
       setMessageInput(interpolated);
       setTplDropdownOpen(false);
     },
-    [t, activeConversation, dynamicShipmentCtx]
+    [t, activeConversation, dynamicShipmentCtx, chatContext]
   );
 
   return {
@@ -904,6 +1239,8 @@ export function useMessages() {
     conversations,
     activeConvId,
     activeConversation,
+    chatContext,
+    setChatContext,
     activeShipmentContext: dynamicShipmentCtx,
     messages: filteredMessages,
     loadingConversations,
@@ -919,7 +1256,8 @@ export function useMessages() {
     ctxPaneOpen,
     toggleCtxPane: () => setCtxPaneOpen((prev) => !prev),
     shipmentFilter,
-    setShipmentFilter,
+    handleShipmentFilterChange,
+    conversationShipmentSids,
     tplDropdownOpen,
     toggleTemplates: () => setTplDropdownOpen((prev) => !prev),
     closeTemplates: () => setTplDropdownOpen(false),

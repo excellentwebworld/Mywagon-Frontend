@@ -8,6 +8,7 @@ import { ChatThread } from './components/ChatThread';
 import { ChatComposer } from './components/ChatComposer';
 import { ShipmentContextPane } from './components/ShipmentContextPane';
 import { ChatThreadSkeleton } from './components/ChatSkeleton';
+import { formatShipmentAutoId } from '../../utils/chatPartnerUtils';
 
 export const MessagesPage: React.FC = () => {
   const {
@@ -16,6 +17,7 @@ export const MessagesPage: React.FC = () => {
     conversations,
     activeConvId,
     activeConversation,
+    chatContext,
     activeShipmentContext,
     messages,
     loadingConversations,
@@ -31,7 +33,8 @@ export const MessagesPage: React.FC = () => {
     ctxPaneOpen,
     toggleCtxPane,
     shipmentFilter,
-    setShipmentFilter,
+    handleShipmentFilterChange,
+    conversationShipmentSids,
     tplDropdownOpen,
     toggleTemplates,
     closeTemplates,
@@ -67,6 +70,11 @@ export const MessagesPage: React.FC = () => {
             onFilterChange={setCurrentFilter}
             onSearchChange={setConvSearch}
             onSelectConversation={selectConversation}
+            activeShipmentLabel={
+              shipmentFilter !== 'all'
+                ? (chatContext?.shipmentLabel || shipmentFilter)
+                : null
+            }
             loading={loadingConversations}
             t={t}
           />
@@ -88,6 +96,8 @@ export const MessagesPage: React.FC = () => {
             >
               <ChatHeader
                 conversation={activeConversation}
+                chatContext={chatContext}
+                shipmentFilter={shipmentFilter}
                 ctxPaneOpen={ctxPaneOpen}
                 onToggleCtxPane={toggleCtxPane}
                 onBackMobile={handleMobileBack}
@@ -100,12 +110,21 @@ export const MessagesPage: React.FC = () => {
                 conversation={activeConversation}
                 isTyping={isTyping}
                 shipmentFilter={shipmentFilter}
+                activeShipmentLabel={chatContext?.shipmentLabel}
+                activeShipmentDbId={chatContext?.shipmentDbId}
+                filterSids={conversationShipmentSids}
                 onShipmentFilterChange={(sid) => {
-                  setShipmentFilter(sid);
+                  handleShipmentFilterChange(sid);
+                  const displaySid =
+                    chatContext?.shipmentLabel &&
+                    (sid === chatContext.shipmentLabel ||
+                      chatContext.shipmentDbId === sid.replace(/\D/g, ''))
+                      ? chatContext.shipmentLabel
+                      : (formatShipmentAutoId(sid) || sid);
                   showToast(
                     sid === 'all'
                       ? (t('chatModule.toastAllMessages') || 'Showing all messages')
-                      : `${t('chatModule.toastFiltered') || 'Filtered by'}: ${sid}`,
+                      : `${t('chatModule.toastFiltered') || 'Filtered by'}: ${displaySid}`,
                     'info'
                   );
                 }}
@@ -126,7 +145,12 @@ export const MessagesPage: React.FC = () => {
                 onCloseTemplates={closeTemplates}
                 onSelectTemplate={handleUseTemplate}
                 shipmentContext={activeShipmentContext}
-                activeShipmentId={activeConversation.latestSid || activeConversation.activeShipmentId}
+                activeShipmentId={
+                  chatContext?.mode === 'shipment'
+                    ? (chatContext.shipmentLabel || undefined)
+                    : undefined
+                }
+                chatContext={chatContext}
                 onShowToast={(msg) => showToast(msg, 'info')}
                 t={t}
               />
@@ -137,11 +161,8 @@ export const MessagesPage: React.FC = () => {
         {/* Right Pane: Shipment Context & Details */}
         <ShipmentContextPane
           shipmentContext={activeShipmentContext}
-          isOpen={ctxPaneOpen && !!activeConversation}
+          isOpen={ctxPaneOpen && !!activeConversation && chatContext?.mode === 'shipment' && shipmentFilter !== 'all'}
           onClose={toggleCtxPane}
-          onUseTemplate={handleUseTemplate}
-          templates={templates}
-          onShowToast={(msg) => showToast(msg, 'info')}
           loading={loadingShipmentContext}
           t={t}
         />

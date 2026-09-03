@@ -15,6 +15,7 @@ interface ConversationListProps {
   onFilterChange: (filter: MessageFilterType) => void;
   onSearchChange: (query: string) => void;
   onSelectConversation: (id: number | string) => void;
+  activeShipmentLabel?: string | null;
   loading?: boolean;
   t: (key: string) => string;
 }
@@ -29,6 +30,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   onFilterChange,
   onSearchChange,
   onSelectConversation,
+  activeShipmentLabel = null,
   loading,
   t,
 }) => {
@@ -112,9 +114,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({
           </div>
         ) : (
           conversations.map((c) => {
-            const isActive = c.id === activeConvId;
+            const isActive = String(c.id) === String(activeConvId);
             const isUnread = c.unread > 0;
-            const latestSid = c.latestSid || (c.chips && c.chips[0]);
 
             return (
               <div
@@ -154,9 +155,9 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                         {t('chatModule.partnerBadge') || 'Partner'}
                       </span>
                     )}
-                    {latestSid && (
+                    {isActive && activeShipmentLabel && (
                       <span className="ci-chip sid">
-                        {latestSid}
+                        {activeShipmentLabel}
                       </span>
                     )}
                   </div>

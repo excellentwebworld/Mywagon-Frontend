@@ -7,12 +7,14 @@ import {
   Copy,
   Check,
 } from 'lucide-react';
-import type { Conversation } from '../types';
+import type { Conversation, ChatContext } from '../types';
 import { useTransporterProfileOptional } from '../../../components/TransporterProfile/TransporterProfileContext';
 import { extractInitials } from '../../../api/services/chatService';
 
 interface ChatHeaderProps {
   conversation: Conversation;
+  chatContext?: ChatContext | null;
+  shipmentFilter?: string;
   ctxPaneOpen: boolean;
   onToggleCtxPane: () => void;
   onBackMobile: () => void;
@@ -22,6 +24,8 @@ interface ChatHeaderProps {
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
   conversation,
+  chatContext,
+  shipmentFilter,
   ctxPaneOpen,
   onToggleCtxPane,
   onBackMobile,
@@ -130,6 +134,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               {t('chatModule.partnerBadge') || 'Partner'}
             </span>
           )}
+          {shipmentFilter && shipmentFilter !== 'all' && chatContext?.shipmentLabel && (
+            <span
+              className="ci-badge shipment-badge"
+              title={`Shipment context: ${chatContext.shipmentLabel}`}
+            >
+              📦 {chatContext.shipmentLabel}
+            </span>
+          )}
         </div>
       </div>
 
@@ -208,20 +220,21 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <User size={16} />
         </button>
 
-        {/* Context Pane Toggle */}
-        <button
-          type="button"
-          className={`ch-btn ${ctxPaneOpen ? 'active' : ''}`}
-          id="ctxToggle"
-          title="Shipment context"
-          onClick={onToggleCtxPane}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-            <rect x="2" y="3" width="20" height="14" rx="2" />
-            <line x1="8" y1="21" x2="16" y2="21" />
-            <line x1="12" y1="17" x2="12" y2="21" />
-          </svg>
-        </button>
+        {shipmentFilter && shipmentFilter !== 'all' && (
+          <button
+            type="button"
+            className={`ch-btn ${ctxPaneOpen ? 'active' : ''}`}
+            id="ctxToggle"
+            title="Shipment context"
+            onClick={onToggleCtxPane}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <line x1="8" y1="21" x2="16" y2="21" />
+              <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );

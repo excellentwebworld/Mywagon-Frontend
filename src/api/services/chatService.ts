@@ -2,7 +2,7 @@ import { axiosInstance } from '../client';
 import { partnersService } from './partnersService';
 import type { Conversation, ChatMessage, ShipmentContextInfo, QuickTemplate } from '../../pages/Messages/types';
 import { formatMessageTime } from '../../utils/timezone';
-import { extractShipmentDbId } from '../../utils/chatPartnerUtils';
+import { formatShipmentAutoId, isShipmentAutoId } from '../../utils/chatPartnerUtils';
 import { getVoiceUploadFileName, normalizeVoiceBlob } from '../../utils/voiceAudioUtils';
 
 export const QUICK_TEMPLATES: QuickTemplate[] = [
@@ -72,6 +72,7 @@ export const chatService = {
           lastTimestamp: c.last_timestamp ?? c.lastTimestamp,
           chips: c.chips ?? [],
           latestSid: c.latest_sid ?? c.latestSid,
+          latestShipmentDbId: c.latest_shipment_id ?? c.latestShipmentDbId ?? null,
           activeShipmentId: c.active_shipment_id ?? c.activeShipmentId,
           isPartner: c.is_partner ?? c.isPartner ?? false,
           phone: c.phone ?? '',
@@ -144,45 +145,114 @@ export const chatService = {
   },
 
   /**
-   * Fetch dynamic shipment context
+   * Fetch dynamic shipment context.
+   * Look up by shipments.id (numeric) or shipments.auto_id (SID-xxxxx).
+   * Never strip SID-90828 down to 90828 first — that can hit a different row.
    */
   async getShipmentContext(sid: string): Promise<ShipmentContextInfo | null> {
-    try {
-      const cleanId = sid.replace(/\D/g, '');
-      if (!cleanId) return null;
+    const trimmed = String(sid || '').trim();
+    if (!trimmed) return null;
 
-      const res = await axiosInstance.get<{ status: boolean; data: any }>(`/shipments/${cleanId}`);
-      const d = res.data?.data;
+    const identifiers: string[] = [];
+    if (isShipmentAutoId(trimmed)) {
+      // Look up by auto_id only. Digits of SID-387137 are not shipments.id.
+      identifiers.push(trimmed);
+    } else {
+      identifiers.push(trimmed);
+    }
+
+    const mapDetail = (d: any): ShipmentContextInfo | null => {
       if (!d) return null;
 
+      const rawStops = Array.isArray(d.stops) && d.stops.length > 0
+        ? d.stops
+        : (Array.isArray(d.locations) ? d.locations : []);
+
+      const originStr =
+        (typeof d.origin === 'string' && d.origin.trim())
+          ? d.origin.trim()
+          : (d.origin?.city || rawStops[0]?.location || rawStops[0]?.city || rawStops[0]?.address || '');
+
+      const destStr =
+        (typeof d.dest === 'string' && d.dest.trim())
+          ? d.dest.trim()
+          : (typeof d.destination === 'string' && d.destination.trim())
+          ? d.destination.trim()
+          : (d.dest?.city || d.destination?.city || rawStops[rawStops.length - 1]?.location || rawStops[rawStops.length - 1]?.city || rawStops[rawStops.length - 1]?.address || '');
+
+      const pickupStop = rawStops.find((s: any) => s.type === 'pickup') || rawStops[0];
+      const deliveryStop = [...rawStops].reverse().find((s: any) => s.type === 'delivery') || rawStops[rawStops.length - 1];
+
+      const pickupTime = pickupStop
+        ? (pickupStop.date ? `${pickupStop.date}${pickupStop.timeStart || pickupStop.time_start ? ` · ${pickupStop.timeStart || pickupStop.time_start}` : ''}` : (pickupStop.timeStart || pickupStop.time_start || ''))
+        : (d.pickup_date || d.pickup_at || '');
+
+      const deliveryTime = deliveryStop
+        ? (deliveryStop.date ? `${deliveryStop.date}${deliveryStop.timeStart || deliveryStop.time_end || deliveryStop.time_start ? ` · ${deliveryStop.timeStart || deliveryStop.time_end || deliveryStop.time_start}` : ''}` : (deliveryStop.timeStart || deliveryStop.time_end || deliveryStop.time_start || ''))
+        : (d.delivery_date || d.delivery_at || '');
+
+      const autoId = formatShipmentAutoId(d.auto_id) || (isShipmentAutoId(trimmed) ? formatShipmentAutoId(trimmed) : null);
+
+      const hasCmr = Boolean(
+        d.cmr_file ||
+        (Array.isArray(d.documents) && d.documents.some((doc: any) => String(doc.type || doc.name || '').toLowerCase().includes('cmr')))
+      );
+      const hasPod = Boolean(
+        d.pod_file ||
+        rawStops.some((s: any) => String(s.pod) === '1' || (Array.isArray(s.pod_images) && s.pod_images.length > 0) || (Array.isArray(s.podImages) && s.podImages.length > 0)) ||
+        (Array.isArray(d.documents) && d.documents.some((doc: any) => String(doc.type || doc.name || '').toLowerCase().includes('pod')))
+      );
+
+      const mappedStops = rawStops.map((loc: any, idx: number) => ({
+        id: loc.id || idx + 1,
+        num: idx + 1,
+        type: (loc.type === 'pickup' ? 'pickup' : 'delivery') as 'pickup' | 'delivery',
+        address: loc.address || loc.location || loc.city || '',
+        time: loc.timeStart ? `${loc.date || ''} ${loc.timeStart}`.trim() : (loc.date || loc.time || loc.expected_time || ''),
+      }));
+
       return {
-        sid: d.shipment_number || sid,
+        sid: autoId || String(d.auto_id || ''),
+        primaryId: d.id ?? null,
+        autoId,
         status: d.status || 'transit',
-        statusLabel: (d.status || 'IN TRANSIT').toUpperCase(),
-        origin: d.origin?.city || d.locations?.[0]?.city || 'Origin',
-        destination: d.destination?.city || d.locations?.[d.locations?.length - 1]?.city || 'Destination',
-        pickupTime: d.pickup_date || '',
-        deliveryTime: d.delivery_date || '',
-        eta: d.eta || 'On Time',
-        etaStatus: 'ok',
-        risk: 'Low',
-        riskStatus: 'ok',
-        cmrStatus: d.cmr_file ? 'received' : 'missing',
-        podStatus: d.pod_file ? 'received' : 'missing',
-        stops: Array.isArray(d.locations)
-          ? d.locations.map((loc: any, idx: number) => ({
-              id: loc.id || idx + 1,
-              num: idx + 1,
-              type: idx === 0 ? 'pickup' : 'delivery',
-              address: loc.address || loc.city || '',
-              time: loc.expected_time || '',
+        statusLabel: (d.status || 'PENDING').toUpperCase(),
+        origin: originStr || '—',
+        destination: destStr || '—',
+        pickupTime: pickupTime || '—',
+        deliveryTime: deliveryTime || '—',
+        eta: d.eta || (d.status === 'fullfilled' ? 'Delivered' : 'On Time'),
+        etaStatus: (d.at_risk || d.is_delayed) ? 'risk' : 'ok',
+        risk: (d.at_risk || d.is_delayed) ? 'Medium' : 'Low',
+        riskStatus: (d.at_risk || d.is_delayed) ? 'risk' : 'ok',
+        cmrStatus: hasCmr ? 'received' : 'missing',
+        podStatus: hasPod ? 'received' : 'missing',
+        stops: mappedStops,
+        actionLog: Array.isArray(d.audit_entries)
+          ? d.audit_entries.slice(0, 5).map((log: any, idx: number) => ({
+              id: log.id || idx + 1,
+              type: 'upd',
+              textKey: '',
+              defaultText: log.action || log.description || 'Shipment update',
+              time: log.created_at || '',
             }))
           : [],
-        actionLog: [],
       };
-    } catch {
-      return null;
+    };
+
+    for (const identifier of identifiers) {
+      try {
+        const res = await axiosInstance.get<{ status: boolean; data: any }>(
+          `/shipments/${encodeURIComponent(identifier)}`
+        );
+        const mapped = mapDetail(res.data?.data);
+        if (mapped) return mapped;
+      } catch {
+        // try next identifier (auto_id first, then legacy primary)
+      }
     }
+
+    return null;
   },
 
   /**
@@ -202,7 +272,13 @@ export const chatService = {
     const cleanReceiverId = typeof payload.receiver_id === 'number'
       ? payload.receiver_id
       : parseInt(String(payload.receiver_id).replace(/\D/g, '') || '0', 10);
-    const shipmentDbId = extractShipmentDbId(payload.shipment_id);
+    const shipmentDbId = (() => {
+      const raw = String(payload.shipment_id || '').trim();
+      if (!raw) return undefined;
+      if (isShipmentAutoId(raw)) return formatShipmentAutoId(raw) || raw;
+      if (/^\d+$/.test(raw)) return raw;
+      return undefined;
+    })();
 
     try {
       const res = await axiosInstance.post<{ status: boolean; data: ChatMessage }>('/chat/send', {

@@ -305,6 +305,20 @@
   color: #047857;
 }
 
+.ci-badge.shipment-badge {
+  background: var(--ap, #F5F3FF);
+  color: var(--ac, #6C3AED);
+  border: 1px solid rgba(108, 58, 237, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  text-transform: none;
+  font-weight: 600;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
 .ci-mid {
   display: flex;
   align-items: center;
@@ -880,6 +894,11 @@
   color: var(--t1, #121217);
 }
 
+.cmp-tool.active {
+  background: var(--ap, #F5F3FF);
+  color: var(--ac, #6C3AED);
+}
+
 .cmp-tool svg {
   width: 18px;
   height: 18px;
@@ -978,6 +997,29 @@
   position: sticky;
   top: 0;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tpl-head-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--t3, #8E8E9A);
+  cursor: pointer;
+}
+
+.tpl-head-close:hover {
+  background: var(--ap, #F5F3FF);
+  color: var(--t1, #121217);
 }
 
 .tpl-item {
@@ -2342,6 +2384,12 @@
   color: #6EE7B7;
 }
 
+.dark .ci-badge.shipment-badge {
+  background: rgba(108, 58, 237, 0.25);
+  color: #C4B5FD;
+  border-color: rgba(108, 58, 237, 0.4);
+}
+
 .dark .ci-chip-role {
   background: var(--sa, #1E1E36);
   border-color: var(--bd, #2A2A48);
@@ -2454,6 +2502,11 @@
 .dark .tpl-head {
   background: var(--se, #1A1A30);
   border-color: var(--bd, #2A2A48);
+}
+
+.dark .tpl-head-close:hover {
+  background: rgba(176, 122, 232, 0.15);
+  color: var(--t1, #F5F5F7);
 }
 
 .dark .tpl-item {

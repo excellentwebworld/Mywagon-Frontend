@@ -6,6 +6,7 @@ import {
   Calendar,
   Camera,
   Truck,
+  X,
 } from 'lucide-react';
 import type { QuickTemplate } from '../types';
 
@@ -21,6 +22,7 @@ export const TemplateDropdown: React.FC<TemplateDropdownProps> = ({
   templates,
   isOpen,
   onSelectTemplate,
+  onClose,
   t,
 }) => {
   if (!isOpen) return null;
@@ -46,7 +48,18 @@ export const TemplateDropdown: React.FC<TemplateDropdownProps> = ({
 
   return (
     <div className="tpl-dropdown" style={{ display: 'block' }}>
-      <div className="tpl-head">{t('chatModule.tplTitle')}</div>
+      <div className="tpl-head">
+        <span>{t('chatModule.tplTitle')}</span>
+        <button
+          type="button"
+          className="tpl-head-close"
+          onClick={onClose}
+          title={t('chatModule.close') || 'Close'}
+          aria-label={t('chatModule.close') || 'Close'}
+        >
+          <X size={14} />
+        </button>
+      </div>
       {templates.map((tpl) => (
         <div
           key={tpl.id}

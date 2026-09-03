@@ -560,7 +560,9 @@ export function useManageShipments() {
 
   const handleMessage = useCallback(
     (s: Shipment, _offerId?: string) => {
-      navigate(`/messages?sid=${encodeURIComponent(s.id)}`);
+      navigate(
+        `/messages?sid=${encodeURIComponent(s.id)}${s.autoId ? `&autoId=${encodeURIComponent(s.autoId)}` : ''}`
+      );
     },
     [navigate]
   );
