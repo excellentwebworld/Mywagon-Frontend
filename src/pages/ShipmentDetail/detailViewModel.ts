@@ -87,6 +87,17 @@ export function formatJourneyDuration(input: string | number | null | undefined)
   return parts.join(' ');
 }
 
+/** Format delay minutes as "1h 32m" (same style as est. duration). */
+export function formatDelayMinutes(totalMinutes: number): string {
+  const mins = Math.max(0, Math.floor(totalMinutes));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  const parts: string[] = [];
+  if (h > 0) parts.push(`${h}h`);
+  if (m > 0 || h === 0) parts.push(`${m}m`);
+  return parts.join(' ');
+}
+
 export interface CarrierDetail {
   initials: string;
   avatar?: string | null;
@@ -914,8 +925,8 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
   const isDelayed = Boolean(shipment.at_risk || isPastDelivery || (shipment as any).isDelayed);
   const delayText = isDelayed
     ? delayMinutes > 0
-      ? `+${delayMinutes} min delay`
-      : shipment.riskReason || (shipment as any).delayReason || '+15 min delay'
+      ? `+${formatDelayMinutes(delayMinutes)} delay`
+      : shipment.riskReason || (shipment as any).delayReason || `+${formatDelayMinutes(15)} delay`
     : '';
 
   const etaStatusChip = isDelayed ? `⚠️ Delayed (${delayText})` : '✅ On Time';

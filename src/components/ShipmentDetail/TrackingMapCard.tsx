@@ -58,7 +58,7 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
   status,
   trip,
   isDelayed = false,
-  delayText = '+15 min delay',
+  delayText = '+15m delay',
   actualRouteCoordinates = [],
   hasActualRoute = false,
   expanded,

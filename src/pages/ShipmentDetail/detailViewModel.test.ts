@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildShipmentDetailViewModel } from './detailViewModel';
+import { buildShipmentDetailViewModel, formatDelayMinutes } from './detailViewModel';
 import type { Shipment } from '../../context/AppContext';
 
 const baseMockShipment: Shipment = {
@@ -24,6 +24,15 @@ const baseMockShipment: Shipment = {
   timeline: [],
   tl_cur: 0,
 };
+
+describe('formatDelayMinutes', () => {
+  it('formats minutes as hours and minutes like est. duration', () => {
+    expect(formatDelayMinutes(92)).toBe('1h 32m');
+    expect(formatDelayMinutes(60)).toBe('1h');
+    expect(formatDelayMinutes(15)).toBe('15m');
+    expect(formatDelayMinutes(38773)).toBe('646h 13m');
+  });
+});
 
 describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => {
   // Phase 1: Draft Lifecycle
