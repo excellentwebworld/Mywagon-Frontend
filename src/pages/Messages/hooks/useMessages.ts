@@ -23,15 +23,22 @@ import {
   buildChatFilterSids,
   buildLaravelChatRequestData,
   extractShipmentDbId,
+  extractChatErrorMessage,
   formatShipmentAutoId,
   getChatMessagePreview,
+  getDocumentDisplayName,
+  getLastNonFailedMessagePreview,
   getShipperDeviceToken,
+  isChatDocumentMessage,
+  isChatDocumentUrl,
   isChatImageMessage,
   isIncomingChatToShipper,
   isMessageFromPartner,
   isShipmentAutoId,
   parsePartnerId,
   resolveActivePartnerType,
+  resolveBlobFromBlobUrl,
+  resolveFileFromBlobUrl,
   resolveNavigatedShipmentIds,
   resolveSocketReceiverType,
 } from '../../../utils/chatPartnerUtils';
@@ -47,7 +54,7 @@ function buildShipperSocketChatPayload(params: {
   conversation: Conversation;
   partnerToken: string;
   message: string;
-  messagesType?: 'voice' | 'media' | 'image';
+  messagesType?: 'voice' | 'media' | 'image' | 'document';
   duration?: string;
   shipmentId?: string | number;
 }): SocketMessagePayload {
@@ -91,8 +98,10 @@ function dedupeMessages(msgs: ChatMessage[]): ChatMessage[] {
         m.messages_type === 'voice' ||
         m.messages_type === 'media' ||
         m.messages_type === 'image' ||
+        m.messages_type === 'document' ||
         Boolean(m.voiceUrl) ||
         Boolean(m.imageUrl) ||
+        Boolean(m.fileUrl) ||
         Boolean(m.attachments?.length);
       if (!hasBody) return false;
     }
@@ -123,9 +132,10 @@ function buildReceivedMessageFromSocket(
     (rawText && (rawText.includes('chat-voices') || /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(rawText)));
 
   const isImage = !isVoice && isChatImageMessage(incoming.messages_type, rawText);
-  const isMedia = incoming.messages_type === 'media' && !isImage;
+  const isDoc = !isVoice && !isImage && isChatDocumentMessage(incoming.messages_type, rawText);
+  const isMedia = incoming.messages_type === 'media' && !isImage && !isDoc;
 
-  if (!rawText && !isVoice && !isImage && !isMedia) {
+  if (!rawText && !isVoice && !isImage && !isDoc && !isMedia) {
     return null;
   }
 
@@ -140,7 +150,9 @@ function buildReceivedMessageFromSocket(
     ? 'voice'
     : isImage
       ? 'image'
-      : ((incoming.messages_type as ChatMessage['messages_type']) || 'text');
+      : isDoc
+        ? 'document'
+        : ((incoming.messages_type as ChatMessage['messages_type']) || 'text');
 
   return {
     id: incoming.id || Date.now(),
@@ -153,6 +165,8 @@ function buildReceivedMessageFromSocket(
     messages_type: resolvedType,
     voiceUrl: isVoice ? rawText : undefined,
     imageUrl: isImage ? rawText : undefined,
+    fileUrl: isDoc ? rawText : undefined,
+    fileName: isDoc ? getDocumentDisplayName(rawText) : undefined,
     duration: incoming.duration,
     shipmentId: incoming.shipment_id ? String(incoming.shipment_id) : undefined,
     shipment_id: incoming.shipment_id,
@@ -301,6 +315,9 @@ export function useMessages() {
   const activeConvIdRef = useRef<number | string | null>(null);
   // Latest partner device token (FCM) fetched from history endpoint
   const partnerDeviceTokenRef = useRef<string>('');
+  // Pending file & voice blob caches to allow retrying failed uploads
+  const pendingFilesRef = useRef<Map<number | string, File>>(new Map());
+  const pendingVoiceBlobsRef = useRef<Map<number | string, Blob>>(new Map());
 
   // Debounce search query
   useEffect(() => {
@@ -539,6 +556,7 @@ export function useMessages() {
       const activePartnerType = resolveActivePartnerType(active);
       const voiceLabel = t('chatModule.voiceNote', 'Voice note');
       const photoLabel = t('chatModule.photo', 'Photo');
+      const docLabel = t('chatModule.document', 'Document');
 
       const isOwnMessageEcho = Boolean(
         myId > 0 &&
@@ -556,6 +574,10 @@ export function useMessages() {
         const isImageEcho =
           !isVoiceEcho &&
           isChatImageMessage(incoming.messages_type, incoming.message);
+        const isDocEcho =
+          !isVoiceEcho &&
+          !isImageEcho &&
+          (incoming.messages_type === 'document' || isChatDocumentUrl(incoming.message));
 
         if (incoming.message && incoming.message.startsWith('http')) {
           setMessages((prev) =>
@@ -579,6 +601,20 @@ export function useMessages() {
                 return {
                   ...m,
                   imageUrl: incoming.message,
+                  text: incoming.message,
+                  id: incoming.id || m.id,
+                };
+              }
+              if (
+                isDocEcho &&
+                m.type === 'sent' &&
+                m.messages_type === 'document' &&
+                m.fileUrl &&
+                m.fileUrl.startsWith('blob:')
+              ) {
+                return {
+                  ...m,
+                  fileUrl: incoming.message,
                   text: incoming.message,
                   id: incoming.id || m.id,
                 };
@@ -634,7 +670,7 @@ export function useMessages() {
 
           return {
             ...c,
-            lastMsg: getChatMessagePreview(incoming.message || '', incoming.messages_type, voiceLabel, photoLabel),
+            lastMsg: getChatMessagePreview(incoming.message || '', incoming.messages_type, voiceLabel, photoLabel, docLabel),
             lastTime: 'Just now',
             lastTimestamp: Math.floor(Date.now() / 1000),
             unread: isActiveChat ? 0 : (c.unread || 0) + 1,
@@ -675,18 +711,36 @@ export function useMessages() {
       .getMessages(partnerId, partnerType)
       .then(({ messages: msgs, device_token }) => {
         if (mounted) {
-          setMessages(dedupeMessages(msgs));
+          const deduped = dedupeMessages(msgs);
+          setMessages(deduped);
           setLoadingMessages(false);
-          // Update device token from history endpoint (more reliable, always fresh)
+
+          const voiceLabel = t('chatModule.voiceNote', 'Voice note');
+          const photoLabel = t('chatModule.photo', 'Photo');
+          const docLabel = t('chatModule.document', 'Document');
+          const confirmedPreview = getLastNonFailedMessagePreview(
+            deduped,
+            currentConv.lastMsg,
+            voiceLabel,
+            photoLabel,
+            docLabel
+          );
+
           if (device_token) {
             partnerDeviceTokenRef.current = device_token;
-            // Also update the conversation in state so it's available for sending
-            setConversations((prev) =>
-              prev.map((c) =>
-                String(c.id) === String(activeConvId) ? { ...c, device_token } : c
-              )
-            );
           }
+
+          setConversations((prev) =>
+            prev.map((c) =>
+              String(c.id) === String(activeConvId)
+                ? {
+                    ...c,
+                    lastMsg: confirmedPreview || c.lastMsg,
+                    ...(device_token ? { device_token } : {}),
+                  }
+                : c
+            )
+          );
         }
       })
       .catch(() => {
@@ -991,15 +1045,6 @@ export function useMessages() {
       setMessages((prev) => [...prev, newMsg]);
       setMessageInput('');
 
-      // Update last message in conversation list
-      setConversations((prev) =>
-        prev.map((c) =>
-          String(c.id) === String(activeConvId)
-            ? { ...c, lastMsg: text, lastTime: formatConversationTime(now), lastTimestamp: Math.floor(now.getTime() / 1000) }
-            : c
-        )
-      );
-
       const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
 
       try {
@@ -1016,15 +1061,41 @@ export function useMessages() {
         if (!response) {
           throw new Error('Socket not connected');
         }
-      } catch {
-        setErrorMessage(t('chatModule.messageSendFailed') || 'Message failed to send. Please check your connection and try again.');
-        setSendErrorModalOpen(true);
-        setMessages((prev) =>
-          prev.map((m) => (m.id === msgTempId ? { ...m, isFailed: true } : m))
+
+        // Only update conversation last message after successful send
+        setConversations((prev) =>
+          prev.map((c) =>
+            String(c.id) === String(activeConvId)
+              ? { ...c, lastMsg: text, lastTime: formatConversationTime(now), lastTimestamp: Math.floor(now.getTime() / 1000) }
+              : c
+          )
         );
+      } catch (err: unknown) {
+        const errorMsg = extractChatErrorMessage(
+          err,
+          t('chatModule.messageSendFailed', 'Message failed to send. Please check your connection and try again.')
+        );
+        setErrorMessage(errorMsg);
+        setSendErrorModalOpen(true);
+        setMessages((prev) => {
+          const updated = prev.map((m) => (m.id === msgTempId ? { ...m, isFailed: true } : m));
+          const lastGoodMsg = getLastNonFailedMessagePreview(
+            updated,
+            activeConversation.lastMsg,
+            t('chatModule.voiceNote', 'Voice note'),
+            t('chatModule.photo', 'Photo'),
+            t('chatModule.document', 'Document')
+          );
+          setConversations((cList) =>
+            cList.map((c) =>
+              String(c.id) === String(activeConvId) ? { ...c, lastMsg: lastGoodMsg } : c
+            )
+          );
+          return updated;
+        });
       }
     },
-    [messageInput, activeConvId, activeConversation, user, t]
+    [messageInput, activeConvId, activeConversation, user, t, resolveActiveShipment, userInitials]
   );
 
   // Send Voice Note
@@ -1051,6 +1122,7 @@ export function useMessages() {
       const msgTempId = Date.now();
       const { shipmentId: activeSid, shipmentDbId: activeSidDb } = resolveActiveShipment();
       const localAudioUrl = URL.createObjectURL(audioBlob);
+      pendingVoiceBlobsRef.current.set(msgTempId, audioBlob);
 
       const newMsg: ChatMessage = {
         id: msgTempId,
@@ -1069,15 +1141,6 @@ export function useMessages() {
       };
 
       setMessages((prev) => [...prev, newMsg]);
-
-      // Update conversation last message preview with voice icon
-      setConversations((prev) =>
-        prev.map((c) =>
-          String(c.id) === String(activeConvId)
-            ? { ...c, lastMsg: `🎙️ ${t('chatModule.voiceNote') || 'Voice note'} (${durationDisplay})`, lastTime: formatConversationTime(now), lastTimestamp: Math.floor(now.getTime() / 1000) }
-            : c
-        )
-      );
 
       const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
 
@@ -1105,19 +1168,51 @@ export function useMessages() {
           prev.map((m) => (m.id === msgTempId ? { ...m, voiceUrl: uploadedUrl, text: uploadedUrl, status: 'delivered' } : m))
         );
 
-        showToast(`🎙️ ${t('chatModule.voiceSent', 'Voice note sent')}`, 'success');
-      } catch {
-        setErrorMessage(t('chatModule.messageSendFailed', 'Message failed to send. Please check your connection and try again.'));
-        setSendErrorModalOpen(true);
-        setMessages((prev) =>
-          prev.map((m) => (m.id === msgTempId ? { ...m, isFailed: true } : m))
+        // Only update conversation last message preview after successful send
+        const voiceLabel = t('chatModule.voiceNote', 'Voice note');
+        setConversations((prev) =>
+          prev.map((c) =>
+            String(c.id) === String(activeConvId)
+              ? {
+                  ...c,
+                  lastMsg: `🎙️ ${voiceLabel} (${durationDisplay})`,
+                  lastTime: formatConversationTime(now),
+                  lastTimestamp: Math.floor(now.getTime() / 1000),
+                }
+              : c
+          )
         );
+
+        showToast(`🎙️ ${t('chatModule.voiceSent', 'Voice note sent')}`, 'success');
+      } catch (err: unknown) {
+        const errorMsg = extractChatErrorMessage(
+          err,
+          t('chatModule.messageSendFailed', 'Message failed to send. Please check your connection and try again.')
+        );
+        setErrorMessage(errorMsg);
+        setSendErrorModalOpen(true);
+        setMessages((prev) => {
+          const updated = prev.map((m) => (m.id === msgTempId ? { ...m, isFailed: true } : m));
+          const lastGoodMsg = getLastNonFailedMessagePreview(
+            updated,
+            activeConversation.lastMsg,
+            t('chatModule.voiceNote', 'Voice note'),
+            t('chatModule.photo', 'Photo'),
+            t('chatModule.document', 'Document')
+          );
+          setConversations((cList) =>
+            cList.map((c) =>
+              String(c.id) === String(activeConvId) ? { ...c, lastMsg: lastGoodMsg } : c
+            )
+          );
+          return updated;
+        });
       }
     },
-    [activeConvId, activeConversation, user, t, showToast]
+    [activeConvId, activeConversation, user, t, showToast, resolveActiveShipment, userInitials]
   );
 
-  // Send Image Attachment (upload to S3 first, then socket — same as voice notes)
+  // Send Attachment (Images and Documents up to 1 MB)
   const handleAttachFile = useCallback(
     async (file: File) => {
       if (!activeConvId || !activeConversation) return;
@@ -1126,8 +1221,16 @@ export function useMessages() {
       const timeStr = formatMessageTime(now);
       const msgTempId = Date.now();
       const { shipmentId: activeSid, shipmentDbId: activeSidDb } = resolveActiveShipment();
-      const localImageUrl = URL.createObjectURL(file);
+      const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|gif|webp)$/i.test(file.name);
+      const msgType: 'image' | 'document' = isImage ? 'image' : 'document';
+      const localUrl = URL.createObjectURL(file);
+      pendingFilesRef.current.set(msgTempId, file);
       const photoLabel = t('chatModule.photo', 'Photo');
+      const docLabel = t('chatModule.document', 'Document');
+      const formattedSize =
+        file.size >= 1048576
+          ? `${(file.size / 1048576).toFixed(1)} MB`
+          : `${Math.round(file.size / 1024)} KB`;
 
       const newMsg: ChatMessage = {
         id: msgTempId,
@@ -1136,9 +1239,13 @@ export function useMessages() {
         initials: userInitials,
         time: timeStr,
         created_at: now.toISOString(),
-        text: localImageUrl,
-        messages_type: 'image',
-        imageUrl: localImageUrl,
+        text: localUrl,
+        messages_type: msgType,
+        imageUrl: isImage ? localUrl : undefined,
+        fileUrl: !isImage ? localUrl : undefined,
+        fileName: file.name,
+        fileSize: formattedSize,
+        fileType: file.type,
         status: 'delivered',
         shipmentId: activeSid,
         shipment_id: activeSidDb,
@@ -1146,33 +1253,27 @@ export function useMessages() {
 
       setMessages((prev) => [...prev, newMsg]);
 
-      setConversations((prev) =>
-        prev.map((c) =>
-          String(c.id) === String(activeConvId)
-            ? {
-                ...c,
-                lastMsg: `📷 ${photoLabel}`,
-                lastTime: formatConversationTime(now),
-                lastTimestamp: Math.floor(now.getTime() / 1000),
-              }
-            : c
-        )
-      );
-
       const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
 
       try {
         const uploadRes = await chatService.uploadAttachment(file);
         const uploadedUrl = uploadRes?.url;
         if (!uploadedUrl) {
-          throw new Error('Failed to upload image');
+          throw new Error('Failed to upload attachment');
         }
 
         // Persist S3 URL on the bubble before socket send so retry can re-send the link
         setMessages((prev) =>
           prev.map((m) =>
             m.id === msgTempId
-              ? { ...m, imageUrl: uploadedUrl, text: uploadedUrl }
+              ? {
+                  ...m,
+                  imageUrl: isImage ? uploadedUrl : undefined,
+                  fileUrl: !isImage ? uploadedUrl : undefined,
+                  fileName: uploadRes.name || file.name,
+                  fileSize: uploadRes.size || formattedSize,
+                  text: uploadedUrl,
+                }
               : m
           )
         );
@@ -1183,7 +1284,7 @@ export function useMessages() {
             conversation: activeConversation,
             partnerToken,
             message: uploadedUrl,
-            messagesType: 'image',
+            messagesType: msgType,
             shipmentId: activeSidDb,
           })
         );
@@ -1197,7 +1298,8 @@ export function useMessages() {
             m.id === msgTempId
               ? {
                   ...m,
-                  imageUrl: uploadedUrl,
+                  imageUrl: isImage ? uploadedUrl : undefined,
+                  fileUrl: !isImage ? uploadedUrl : undefined,
                   text: uploadedUrl,
                   status: 'delivered',
                   id: (response as { id?: number | string })?.id || m.id,
@@ -1206,25 +1308,58 @@ export function useMessages() {
           )
         );
 
-        showToast(`📷 ${t('chatModule.imageSent', 'Image sent')}`, 'success');
-      } catch {
-        setErrorMessage(t('chatModule.messageSendFailed', 'Message failed to send. Please check your connection and try again.'));
-        setSendErrorModalOpen(true);
-        setMessages((prev) =>
-          prev.map((m) => (m.id === msgTempId ? { ...m, isFailed: true } : m))
+        // Only update conversation last message preview after successful send
+        setConversations((prev) =>
+          prev.map((c) =>
+            String(c.id) === String(activeConvId)
+              ? {
+                  ...c,
+                  lastMsg: isImage ? `📷 ${photoLabel}` : `📄 ${file.name || docLabel}`,
+                  lastTime: formatConversationTime(now),
+                  lastTimestamp: Math.floor(now.getTime() / 1000),
+                }
+              : c
+          )
         );
+
+        if (isImage) {
+          showToast(`📷 ${t('chatModule.imageSent', 'Image sent')}`, 'success');
+        } else {
+          showToast(`📄 ${t('chatModule.documentSent', 'Document sent')}`, 'success');
+        }
+      } catch (err: unknown) {
+        const errorMsg = extractChatErrorMessage(
+          err,
+          t('chatModule.messageSendFailed', 'Message failed to send. Please check your connection and try again.')
+        );
+        setErrorMessage(errorMsg);
+        setSendErrorModalOpen(true);
+        setMessages((prev) => {
+          const updated = prev.map((m) => (m.id === msgTempId ? { ...m, isFailed: true } : m));
+          const lastGoodMsg = getLastNonFailedMessagePreview(
+            updated,
+            activeConversation.lastMsg,
+            t('chatModule.voiceNote', 'Voice note'),
+            photoLabel,
+            docLabel
+          );
+          setConversations((cList) =>
+            cList.map((c) =>
+              String(c.id) === String(activeConvId) ? { ...c, lastMsg: lastGoodMsg } : c
+            )
+          );
+          return updated;
+        });
       }
     },
-    [activeConvId, activeConversation, user, t, showToast]
+    [activeConvId, activeConversation, user, t, showToast, resolveActiveShipment, userInitials]
   );
 
   // Retry sending failed message
   const handleRetryMessage = useCallback(
     async (failedMsg: ChatMessage) => {
-      const retryPayload = failedMsg.imageUrl || failedMsg.voiceUrl || failedMsg.text || '';
+      let retryPayload = failedMsg.imageUrl || failedMsg.fileUrl || failedMsg.voiceUrl || failedMsg.text || '';
       if (!retryPayload || !activeConvId || !activeConversation) return;
-      // Don't retry blob: URLs — upload must succeed first
-      if (retryPayload.startsWith('blob:')) return;
 
       setMessages((prev) =>
         prev.map((m) => (m.id === failedMsg.id ? { ...m, isFailed: false } : m))
@@ -1237,15 +1372,58 @@ export function useMessages() {
         : (failedMsg.shipmentId ? extractShipmentDbId(failedMsg.shipmentId) : activeSidDb);
 
       try {
+        const isVoice = failedMsg.messages_type === 'voice';
+        const isImage = failedMsg.messages_type === 'image';
+        const isDoc = failedMsg.messages_type === 'document';
+
+        // If upload previously failed, the payload is still a local blob: URL. Re-attempt upload!
+        if (retryPayload.startsWith('blob:')) {
+          if (isVoice) {
+            let audioBlob = pendingVoiceBlobsRef.current.get(failedMsg.id);
+            if (!audioBlob) {
+              audioBlob = await resolveBlobFromBlobUrl(retryPayload);
+            }
+            const uploadRes = await chatService.uploadVoice(audioBlob);
+            const uploadedUrl = uploadRes?.url;
+            if (!uploadedUrl) throw new Error('Failed to upload voice note.');
+            retryPayload = uploadedUrl;
+            setMessages((prev) =>
+              prev.map((m) => (m.id === failedMsg.id ? { ...m, voiceUrl: uploadedUrl, text: uploadedUrl } : m))
+            );
+          } else if (isImage || isDoc) {
+            let file = pendingFilesRef.current.get(failedMsg.id);
+            if (!file) {
+              file = await resolveFileFromBlobUrl(retryPayload, failedMsg.fileName, failedMsg.fileType);
+            }
+            const uploadRes = await chatService.uploadAttachment(file);
+            const uploadedUrl = uploadRes?.url;
+            if (!uploadedUrl) throw new Error('Failed to upload attachment.');
+            retryPayload = uploadedUrl;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === failedMsg.id
+                  ? {
+                      ...m,
+                      imageUrl: isImage ? uploadedUrl : undefined,
+                      fileUrl: isDoc ? uploadedUrl : undefined,
+                      text: uploadedUrl,
+                    }
+                  : m
+              )
+            );
+          }
+        }
+
         const response = await socketService.sendMessage(
           buildShipperSocketChatPayload({
             user: user || {},
             conversation: activeConversation,
             partnerToken,
             message: retryPayload,
-            ...(failedMsg.messages_type === 'voice' ? { messagesType: 'voice' as const, duration: failedMsg.duration } : {}),
+            ...(isVoice ? { messagesType: 'voice' as const, duration: failedMsg.duration } : {}),
             ...(failedMsg.messages_type === 'media' ? { messagesType: 'media' as const } : {}),
-            ...(failedMsg.messages_type === 'image' ? { messagesType: 'image' as const } : {}),
+            ...(isImage ? { messagesType: 'image' as const } : {}),
+            ...(isDoc ? { messagesType: 'document' as const } : {}),
             shipmentId: retrySidDb,
           })
         );
@@ -1254,16 +1432,58 @@ export function useMessages() {
           throw new Error('Socket not connected');
         }
 
-        showToast(t('chatModule.messageSent', 'Message sent'), 'success');
-      } catch {
-        setErrorMessage(t('chatModule.messageSendFailed', 'Message failed to send. Please check your connection and try again.'));
-        setSendErrorModalOpen(true);
-        setMessages((prev) =>
-          prev.map((m) => (m.id === failedMsg.id ? { ...m, isFailed: true } : m))
+        pendingFilesRef.current.delete(failedMsg.id);
+        pendingVoiceBlobsRef.current.delete(failedMsg.id);
+
+        const now = new Date();
+        const retryPreview = isVoice
+          ? `🎙️ ${t('chatModule.voiceNote', 'Voice note')}`
+          : isImage
+            ? `📷 ${t('chatModule.photo', 'Photo')}`
+            : isDoc
+              ? `📄 ${failedMsg.fileName || getDocumentDisplayName(retryPayload) || t('chatModule.document', 'Document')}`
+              : retryPayload;
+
+        setConversations((prev) =>
+          prev.map((c) =>
+            String(c.id) === String(activeConvId)
+              ? {
+                  ...c,
+                  lastMsg: retryPreview,
+                  lastTime: formatConversationTime(now),
+                  lastTimestamp: Math.floor(now.getTime() / 1000),
+                }
+              : c
+          )
         );
+
+        showToast(t('chatModule.messageSent', 'Message sent'), 'success');
+      } catch (err: unknown) {
+        const errorMsg = extractChatErrorMessage(
+          err,
+          t('chatModule.messageSendFailed', 'Message failed to send. Please check your connection and try again.')
+        );
+        setErrorMessage(errorMsg);
+        setSendErrorModalOpen(true);
+        setMessages((prev) => {
+          const updated = prev.map((m) => (m.id === failedMsg.id ? { ...m, isFailed: true } : m));
+          const lastGoodMsg = getLastNonFailedMessagePreview(
+            updated,
+            activeConversation.lastMsg,
+            t('chatModule.voiceNote', 'Voice note'),
+            t('chatModule.photo', 'Photo'),
+            t('chatModule.document', 'Document')
+          );
+          setConversations((cList) =>
+            cList.map((c) =>
+              String(c.id) === String(activeConvId) ? { ...c, lastMsg: lastGoodMsg } : c
+            )
+          );
+          return updated;
+        });
       }
     },
-    [activeConvId, activeConversation, t, showToast]
+    [activeConvId, activeConversation, t, showToast, resolveActiveShipment, user]
   );
 
   // Insert template text into message composer

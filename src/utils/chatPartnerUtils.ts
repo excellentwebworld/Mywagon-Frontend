@@ -169,7 +169,8 @@ export function getChatMessagePreview(
   message: string,
   messagesType?: string | null,
   voiceLabel = 'Voice note',
-  photoLabel = 'Photo'
+  photoLabel = 'Photo',
+  docLabel = 'Document'
 ): string {
   const isVoice =
     messagesType === 'voice' ||
@@ -183,6 +184,16 @@ export function getChatMessagePreview(
     /\.(jpe?g|png|gif|webp)(\?|$)/i.test(message || '');
 
   if (isImage) return `📷 ${photoLabel}`;
+
+  const isDoc =
+    messagesType === 'document' ||
+    isChatDocumentUrl(message);
+
+  if (isDoc) {
+    const name = getDocumentDisplayName(message);
+    return `📄 ${name && name !== 'Document' ? name : docLabel}`;
+  }
+
   if (messagesType === 'media' || /^https?:\/\//i.test(message || '')) {
     return `📎 ${message?.split('/').pop() || 'Attachment'}`;
   }
@@ -191,7 +202,7 @@ export function getChatMessagePreview(
 
 export function isChatImageUrl(url?: string | null): boolean {
   if (!url) return false;
-  if (url.startsWith('blob:')) return true;
+  if (url.startsWith('blob:') && !isChatDocumentUrl(url)) return true;
   return /\.(jpe?g|png|gif|webp)(\?|$)/i.test(url);
 }
 
@@ -205,6 +216,33 @@ export function isChatImageMessage(
   if (messagesType === 'media' && isChatImageUrl(text)) return true;
   if (isChatImageUrl(text) && /^https?:\/\//i.test(text || '')) return true;
   return false;
+}
+
+export function isChatDocumentUrl(url?: string | null): boolean {
+  if (!url) return false;
+  return /\.(pdf|docx?|xlsx?|txt|csv)(\?|$)/i.test(url);
+}
+
+export function isChatDocumentMessage(
+  messagesType?: string | null,
+  text?: string | null,
+  fileUrl?: string | null
+): boolean {
+  if (messagesType === 'document') return true;
+  if (fileUrl && isChatDocumentUrl(fileUrl)) return true;
+  if ((messagesType === 'media' || !messagesType || messagesType === 'text') && isChatDocumentUrl(text)) return true;
+  return false;
+}
+
+export function getDocumentDisplayName(urlOrName?: string | null): string {
+  if (!urlOrName) return 'Document';
+  const clean = urlOrName.split('?')[0].split('#')[0];
+  const raw = clean.split('/').pop() || 'Document';
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
 }
 
 export function isMessageFromPartner(
@@ -243,4 +281,94 @@ export function parseChatMetaFromFcmData(data: Record<string, string> | undefine
   if (senderId <= 0) return null;
 
   return { senderId, senderType };
+}
+
+export function getLastNonFailedMessagePreview(
+  messages: Array<{
+    type?: string;
+    isFailed?: boolean;
+    messages_type?: string | null;
+    text?: string | null;
+    voiceUrl?: string | null;
+    imageUrl?: string | null;
+    fileUrl?: string | null;
+    fileName?: string | null;
+  }>,
+  fallback = '',
+  voiceLabel = 'Voice note',
+  photoLabel = 'Photo',
+  docLabel = 'Document'
+): string {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.type === 'date' || m.type === 'system' || m.isFailed) {
+      continue;
+    }
+    const isVoice =
+      m.messages_type === 'voice' ||
+      Boolean(m.voiceUrl) ||
+      (typeof m.text === 'string' && (m.text.includes('chat-voices') || /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(m.text)));
+    if (isVoice) return `🎙️ ${voiceLabel}`;
+
+    const isImage = isChatImageMessage(m.messages_type, m.text, m.imageUrl);
+    if (isImage) return `📷 ${photoLabel}`;
+
+    const isDoc = isChatDocumentMessage(m.messages_type, m.text, m.fileUrl);
+    if (isDoc) {
+      const name = m.fileName || getDocumentDisplayName(m.fileUrl || m.text);
+      return `📄 ${name && name !== 'Document' ? name : docLabel}`;
+    }
+
+    if (m.text) {
+      return getChatMessagePreview(m.text, m.messages_type, voiceLabel, photoLabel, docLabel);
+    }
+  }
+  return fallback;
+}
+
+export function extractChatErrorMessage(err: unknown, fallback: string): string {
+  if (!err) return fallback;
+  const anyErr = err as any;
+  const data = anyErr?.response?.data;
+  if (data) {
+    if (data.errors) {
+      if (typeof data.errors === 'string') return data.errors;
+      if (Array.isArray(data.errors) && data.errors.length > 0) {
+        return String(data.errors[0]);
+      }
+      if (typeof data.errors === 'object') {
+        const firstKey = Object.keys(data.errors)[0];
+        const val = data.errors[firstKey];
+        if (Array.isArray(val) && val.length > 0) return String(val[0]);
+        if (typeof val === 'string') return val;
+      }
+    }
+    if (data.message && typeof data.message === 'string') {
+      return data.message;
+    }
+    if (data.error && typeof data.error === 'string') {
+      return data.error;
+    }
+  }
+  if (anyErr?.message && typeof anyErr.message === 'string' && !anyErr.message.includes('object Object')) {
+    return anyErr.message;
+  }
+  return fallback;
+}
+
+export async function resolveFileFromBlobUrl(
+  blobUrl: string,
+  fileName?: string | null,
+  fileType?: string | null
+): Promise<File> {
+  const res = await fetch(blobUrl);
+  const blob = await res.blob();
+  const name = fileName || 'attachment';
+  const type = fileType || blob.type || 'application/octet-stream';
+  return new File([blob], name, { type });
+}
+
+export async function resolveBlobFromBlobUrl(blobUrl: string): Promise<Blob> {
+  const res = await fetch(blobUrl);
+  return await res.blob();
 }

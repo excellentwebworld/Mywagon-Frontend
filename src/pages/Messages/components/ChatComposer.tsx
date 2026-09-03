@@ -116,32 +116,46 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     fileInputRef.current?.click();
   };
 
-  const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+  const MAX_FILE_BYTES = 1 * 1024 * 1024; // 1 MB (as requested)
   const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const ALLOWED_DOC_TYPES = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain',
+    'text/csv',
+  ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
 
-    const isAllowedType =
+    const isImage =
       ALLOWED_IMAGE_TYPES.includes(file.type) ||
       /\.(jpe?g|png|gif|webp)$/i.test(file.name);
 
-    if (!isAllowedType) {
-      onShowToast(t('chatModule.imageTypeInvalid', 'Please select an image (JPG, PNG, GIF, or WebP).'));
+    const isDocument =
+      ALLOWED_DOC_TYPES.includes(file.type) ||
+      /\.(pdf|docx?|xlsx?|txt|csv)$/i.test(file.name);
+
+    if (!isImage && !isDocument) {
+      onShowToast(t('chatModule.fileTypeInvalid', 'Please select an image or document (JPG, PNG, PDF, DOC, XLS, TXT, CSV).'));
       return;
     }
 
-    if (file.size > MAX_IMAGE_BYTES) {
-      onShowToast(t('chatModule.imageTooLarge', 'Image must be 10 MB or smaller.'));
+    if (file.size > MAX_FILE_BYTES) {
+      onShowToast(t('chatModule.fileTooLarge', 'File size must be 1 MB or smaller.'));
       return;
     }
 
     if (onAttachFile) {
       onAttachFile(file);
     } else {
-      onShowToast(`📷 ${t('chatModule.toastAttach', 'Attached')}: ${file.name}`);
+      const icon = isImage ? '📷' : '📄';
+      onShowToast(`${icon} ${t('chatModule.toastAttach', 'Attached')}: ${file.name}`);
     }
   };
 
@@ -176,7 +190,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         type="file"
         ref={fileInputRef}
         style={{ display: 'none' }}
-        accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp"
+        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv"
         onChange={handleFileChange}
       />
 

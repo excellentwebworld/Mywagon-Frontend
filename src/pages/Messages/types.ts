@@ -25,9 +25,13 @@ export interface ChatMessage {
   attachments?: ChatAttachment[];
   shipmentId?: string;
   shipment_id?: string | number;
-  messages_type?: 'text' | 'voice' | 'media' | 'image' | 'system';
+  messages_type?: 'text' | 'voice' | 'media' | 'image' | 'document' | 'system';
   voiceUrl?: string;
   imageUrl?: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: string;
+  fileType?: string;
   duration?: string;
   created_at?: string | Date;
   isFailed?: boolean;

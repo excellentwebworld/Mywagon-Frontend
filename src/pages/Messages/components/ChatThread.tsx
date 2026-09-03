@@ -6,13 +6,20 @@ import {
   RotateCcw,
   ExternalLink,
   X,
+  FileText,
+  Download,
 } from 'lucide-react';
 import type { ChatMessage, Conversation } from '../types';
 import { VoicePlayer } from './VoicePlayer';
 import { useAuth } from '../../../context/AuthContext';
 import { extractInitials } from '../../../api/services/chatService';
 import { formatMessageTime } from '../../../utils/timezone';
-import { formatShipmentAutoId, isChatImageMessage } from '../../../utils/chatPartnerUtils';
+import {
+  formatShipmentAutoId,
+  getDocumentDisplayName,
+  isChatDocumentMessage,
+  isChatImageMessage,
+} from '../../../utils/chatPartnerUtils';
 
 interface ChatThreadProps {
   messages: ChatMessage[];
@@ -247,6 +254,13 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
           const isImage =
             !isVoice &&
             isChatImageMessage(m.messages_type, m.text, m.imageUrl);
+          const isDocument =
+            !isVoice &&
+            !isImage &&
+            (m.messages_type === 'document' || isChatDocumentMessage(m.messages_type, m.text, m.fileUrl));
+          const docUrl = m.fileUrl || m.text || '';
+          const docName = m.fileName || getDocumentDisplayName(docUrl);
+          const docExt = (docName.split('.').pop() || 'file').toUpperCase();
           const imageSrc = m.imageUrl || m.text || '';
           const nonImageAttachments = (m.attachments || []).filter(
             (att) => !isChatImageMessage('media', att.url || att.name)
@@ -254,6 +268,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
           const hasRenderableBody =
             isVoice ||
             isImage ||
+            isDocument ||
             Boolean(m.attachments?.length) ||
             Boolean(String(m.text || '').trim());
 
@@ -287,7 +302,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
               </div>
               <div className="msg-content">
                 <div className="msg-sender">{isSent ? 'You' : conversation.name}</div>
-                <div className={`msg-bubble ${isImage ? 'msg-bubble-image' : ''}`}>
+                <div className={`msg-bubble ${isImage ? 'msg-bubble-image' : ''} ${isDocument ? 'msg-bubble-doc' : ''}`}>
                   {isVoice ? (
                     <VoicePlayer voiceUrl={m.voiceUrl || m.text || ''} duration={m.duration} isSent={isSent} />
                   ) : isImage ? (
@@ -308,6 +323,31 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                         }}
                       />
                     </button>
+                  ) : isDocument ? (
+                    <a
+                      href={docUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="msg-doc-card"
+                      title={docName}
+                      download={docName}
+                    >
+                      <div className={`msg-doc-icon-wrap ${docExt.toLowerCase()}`}>
+                        <FileText size={20} />
+                        <span className="msg-doc-badge">{docExt.slice(0, 4)}</span>
+                      </div>
+                      <div className="msg-doc-info">
+                        <span className="msg-doc-name">{docName}</span>
+                        <div className="msg-doc-meta">
+                          {m.fileSize && <span className="msg-doc-size">{m.fileSize}</span>}
+                          {m.fileSize && <span className="msg-doc-dot">•</span>}
+                          <span className="msg-doc-action-text">{t('chatModule.openDocument', 'Open')}</span>
+                        </div>
+                      </div>
+                      <div className="msg-doc-action-btn" title={t('chatModule.downloadDocument', 'Download')}>
+                        <Download size={15} />
+                      </div>
+                    </a>
                   ) : (
                     <span>{m.text}</span>
                   )}
