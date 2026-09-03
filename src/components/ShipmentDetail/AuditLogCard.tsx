@@ -69,22 +69,22 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
   t,
 }) => {
   const [selectedCat, setSelectedCat] = useState<'all' | 'bidding' | 'operations'>('all');
-  const [expandedBids, setExpandedBids] = useState<Record<string | number, boolean>>({
-    0: true,
-  });
-
-  const toggleBid = (key: string | number) => {
-    setExpandedBids((prev) => ({
-      ...prev,
-      [key]: prev[key] === undefined ? false : !prev[key],
-    }));
-  };
-
+  const [expandedBids, setExpandedBids] = useState<Record<string | number, boolean>>({});
   const isBidOpen = (key: string | number, idx: number) => {
     if (expandedBids[key] !== undefined) {
       return expandedBids[key];
     }
     return idx === 0;
+  };
+
+  const toggleBid = (key: string | number, idx: number) => {
+    setExpandedBids((prev) => {
+      const currentOpen = prev[key] !== undefined ? prev[key] : (idx === 0);
+      return {
+        ...prev,
+        [key]: !currentOpen,
+      };
+    });
   };
 
   const formatPrice = (val?: string | number | null) => {
@@ -274,8 +274,8 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                     {/* Collapsible Header */}
                     <button
                       type="button"
-                      onClick={() => toggleBid(bidKey)}
-                      className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+                      onClick={() => toggleBid(bidKey, bIdx)}
+                      className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 select-none"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <CarrierAvatar
@@ -324,9 +324,14 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                       </div>
                     </button>
 
-                    {/* Expanded Negotiations Body */}
-                    {open && (
-                      <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-4 space-y-3">
+                    {/* Expanded Negotiations Body with Smooth Slide Transition */}
+                    <div
+                      className={`grid transition-all duration-200 ease-in-out ${
+                        open ? 'grid-rows-[1fr] opacity-100 border-t border-slate-200 dark:border-slate-800' : 'grid-rows-[0fr] opacity-0'
+                      }`}
+                    >
+                      <div className="overflow-hidden">
+                        <div className="bg-slate-50 dark:bg-slate-950/60 p-4 space-y-3">
                         {(() => {
                           const timelineList =
                             bid.negotiations && bid.negotiations.length > 0
@@ -439,8 +444,9 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                             );
                           });
                         })()}
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}
