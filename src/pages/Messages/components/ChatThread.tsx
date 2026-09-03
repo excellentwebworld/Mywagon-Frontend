@@ -31,7 +31,7 @@ interface ChatThreadProps {
   filterSids?: string[];
   onShipmentFilterChange: (sid: string) => void;
   onRetryMessage?: (msg: ChatMessage) => void;
-  t: (key: string) => string;
+  t: (key: string, defaultValue?: string) => string;
   lang: string;
 }
 
@@ -432,7 +432,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
           >
-            {t('chatModule.openInNewTab') || 'Open in new tab'}
+            {t('chatModule.openInNewTab', 'Open in new tab')}
           </a>
         </div>
       )}

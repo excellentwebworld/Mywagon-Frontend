@@ -4583,6 +4583,7 @@
     "fileTooLarge": "Το αρχείο πρέπει να είναι έως 1 MB.",
     "openDocument": "Άνοιγμα",
     "downloadDocument": "Λήψη",
+    "openInNewTab": "Άνοιγμα σε νέα καρτέλα",
     "toastAttach": "Επισυνάφθηκε",
     "retrySend": "Επανάληψη",
     "messageSendFailed": "Η αποστολή του μηνύματος απέτυχε. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.",

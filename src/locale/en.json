@@ -4581,6 +4581,7 @@
     "fileTooLarge": "File size must be 1 MB or smaller.",
     "openDocument": "Open",
     "downloadDocument": "Download",
+    "openInNewTab": "Open in new tab",
     "toastAttach": "Attached",
     "retrySend": "Retry",
     "messageSendFailed": "Message failed to send. Please check your connection and try again.",
