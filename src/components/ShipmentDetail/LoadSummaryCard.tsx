@@ -96,6 +96,8 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
   onToggle,
   t,
 }) => {
+  const [cargoSpecsExpanded, setCargoSpecsExpanded] = useState(false);
+
   const vehicleTypes = loadSummary.vehicleTypes?.length
     ? loadSummary.vehicleTypes
     : ['Semi-Trailer'];
@@ -126,31 +128,82 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
       onToggle={onToggle}
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {/* Vehicle Type & Cargo Specs */}
+        {/* Vehicle Type & Cargo Specs (Separated & Collapsible) */}
         <div className="p-3.5 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider block mb-2">
-            {t('vehicleTypeCargoSpec', 'Vehicle type & cargo specs')}
-          </span>
-          <div className="flex flex-wrap gap-1.5 mt-auto">
-            {vehicleTypes.map((v, i) => (
-              <span
-                key={`vt-${i}`}
-                className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)]"
-              >
-                {v}
+          <div>
+            {/* 1. Vehicle Type */}
+            <div className="mb-2.5">
+              <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider block mb-1.5">
+                {t('vehicleType', 'Vehicle Type')}
               </span>
-            ))}
-            {cargoSpecs.map((c, i) => (
-              <span
-                key={`cs-${i}`}
-                className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
-              >
-                {c}
-              </span>
-            ))}
-            {!vehicleTypes.length && !cargoSpecs.length && (
-              <span className="text-[12px] text-slate-400 dark:text-slate-500">—</span>
-            )}
+              <div className="flex flex-wrap gap-1.5">
+                {vehicleTypes.length ? (
+                  vehicleTypes.map((v, i) => (
+                    <span
+                      key={`vt-${i}`}
+                      className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)]"
+                    >
+                      {v}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-[12px] text-slate-400 dark:text-slate-500">—</span>
+                )}
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-[var(--border)] my-2.5" />
+
+            {/* 2. Cargo Specs (Collapsible) */}
+            <div>
+              <div className="flex items-center justify-between gap-1 mb-1.5">
+                <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
+                  {t('cargoSpecs', 'Cargo Specs')}
+                  {cargoSpecs.length > 0 && (
+                    <span className="ml-1 text-[10px] font-semibold text-[var(--text-tertiary)]">
+                      ({cargoSpecs.length})
+                    </span>
+                  )}
+                </span>
+                {cargoSpecs.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setCargoSpecsExpanded(!cargoSpecsExpanded)}
+                    className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline inline-flex items-center gap-0.5 cursor-pointer bg-transparent border-0 p-0"
+                  >
+                    <span>
+                      {cargoSpecsExpanded
+                        ? t('showLess', 'Show less')
+                        : `+${cargoSpecs.length - 2} ${t('more', 'more')}`}
+                    </span>
+                    {cargoSpecsExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {(cargoSpecsExpanded ? cargoSpecs : cargoSpecs.slice(0, 2)).map((c, i) => (
+                  <span
+                    key={`cs-${i}`}
+                    className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                  >
+                    {c}
+                  </span>
+                ))}
+                {!cargoSpecsExpanded && cargoSpecs.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setCargoSpecsExpanded(true)}
+                    className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 hover:bg-purple-200 dark:hover:bg-purple-900 cursor-pointer transition-colors"
+                  >
+                    +{cargoSpecs.length - 2} {t('more', 'more')}
+                  </button>
+                )}
+                {!cargoSpecs.length && (
+                  <span className="text-[12px] text-slate-400 dark:text-slate-500">—</span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 

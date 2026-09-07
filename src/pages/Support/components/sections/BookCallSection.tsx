@@ -12,6 +12,8 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import type { SupportCallType } from '../../types';
 import { useBookCall } from '../../hooks/useBookCall';
 import { HubSpotMeetingEmbed } from '../call/HubSpotMeetingEmbed';
+import { CalendlyMeetingEmbed } from '../call/CalendlyMeetingEmbed';
+import { ExternalLink } from 'lucide-react';
 
 interface BookCallSectionProps {
   callType: SupportCallType;
@@ -19,6 +21,8 @@ interface BookCallSectionProps {
   active?: boolean;
   disabled?: boolean;
 }
+
+const CALENDLY_URL = 'https://calendly.com/edoardo-myvagon/myvagon-carrier-introduction-call';
 
 const CALL_TYPES: {
   id: SupportCallType;
@@ -49,6 +53,10 @@ export function BookCallSection({
 
   return (
     <div>
+      {/* 
+        PREVIOUS DESIGN (COMMENTED OUT AS REQUESTED - DO NOT REMOVE CODE)
+      */}
+      {/*
       <div className="support-call-types" role="group" aria-label={t('support.sections.bookCall')}>
         {CALL_TYPES.map((item) => {
           const Icon = item.icon;
@@ -102,6 +110,37 @@ export function BookCallSection({
           <p className="support-meeting-fallback-text">{t('support.call.notConfigured')}</p>
         </div>
       )}
+      */}
+      {/* END PREVIOUS DESIGN */}
+
+      {/* Calendly Integration (Like Laravel Shipper Panel) */}
+      <div className="support-calendly-wrapper">
+        <div className="support-calendly-header">
+          <div className="support-calendly-header-info">
+            <h4 className="support-calendly-title">
+              {t('support.call.scheduleTitle', 'Schedule a Call')}
+            </h4>
+            <p className="support-calendly-desc">
+              {t(
+                'support.call.scheduleDesc',
+                'Book an introduction, onboarding, or support session directly with our team.'
+              )}
+            </p>
+          </div>
+          <a
+            href={CALENDLY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="support-calendly-badge-btn"
+          >
+            <CalendarDays size={16} strokeWidth={2} />
+            <span>{t('support.call.scheduleButton', 'Schedule a Call')}</span>
+            <ExternalLink size={14} strokeWidth={2} style={{ opacity: 0.85 }} />
+          </a>
+        </div>
+
+        <CalendlyMeetingEmbed url={CALENDLY_URL} />
+      </div>
     </div>
   );
 }

@@ -1967,3 +1967,81 @@ textarea.form-input {
 .support-meeting-fallback-link:hover {
   text-decoration: underline;
 }
+
+/* Calendly Embed & Header (matching Laravel shipper panel #9B51E0 branding) */
+.support-calendly-wrapper {
+  margin-top: 4px;
+}
+
+.support-calendly-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.support-calendly-header-info {
+  flex: 1;
+  min-width: 220px;
+}
+
+.support-calendly-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.support-calendly-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.support-calendly-badge-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 100px;
+  background-color: #9B51E0;
+  color: #ffffff !important;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none !important;
+  box-shadow: 0 2px 8px rgba(155, 81, 224, 0.28);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.support-calendly-badge-btn:hover {
+  background-color: #8736d8;
+  box-shadow: 0 4px 14px rgba(155, 81, 224, 0.38);
+  transform: translateY(-1px);
+  color: #ffffff !important;
+}
+
+.support-calendly-badge-btn:active {
+  transform: translateY(0);
+}
+
+.support-calendly-container {
+  min-height: 700px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.support-calendly-container .calendly-inline-widget {
+  width: 100% !important;
+  min-height: 700px !important;
+}
+
