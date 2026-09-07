@@ -11,6 +11,10 @@ export type SignupReference = {
   vehicle_types: IdNameOption[];
   country_codes: CountryCodeOption[];
   countries_domicile: CountryDomicileOption[];
+  videos?: {
+    shipper?: string;
+    carrier?: string;
+  };
 };
 
 export type SignupResult = {

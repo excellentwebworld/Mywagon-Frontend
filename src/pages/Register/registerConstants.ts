@@ -29,12 +29,13 @@ export function sampleDocUrl(): string {
   return `${base}/sample_documents/sample_documents.pdf`;
 }
 
-export function signupVideoUrl(): string {
-  // Same stock video used on Laravel shipper register (relative CDN path via Laravel AWS_URL is
-  // not available here; fall back to known staging CDN if env unset).
+export function signupVideoUrl(variant: 'shipper' | 'carrier' = 'shipper'): string {
   const aws = (import.meta.env.VITE_AWS_URL as string | undefined)?.replace(/\/$/, '');
-  if (aws) return `${aws}/stock-video-sign-up-shipper-no-mockup.mp4`;
-  return '';
+  if (!aws) return '';
+  if (variant === 'carrier') {
+    return `${aws}/stock-videosign-up-carrier-no-mockup.mp4`;
+  }
+  return `${aws}/stock-video-sign-up-shipper-no-mockup.mp4`;
 }
 
 export function appendIfPresent(fd: FormData, key: string, value: unknown) {
