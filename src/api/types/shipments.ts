@@ -119,6 +119,10 @@ export interface ApiShipmentStop {
   time_start?: string | null;
   time_end?: string | null;
   order_id?: string | null;
+  tracking_email?: string | null;
+  send_tracking_link?: string | number | null;
+  /** Laravel public track-shipment URL (encrypted ids). */
+  tracking_url?: string | null;
   product_name?: string | null;
   qty?: string | number | null;
   qty_unit?: string | number | null;
@@ -129,6 +133,8 @@ export interface ApiShipmentStop {
   status?: string | number | null;
   /** POD: 0 not uploaded, 1 uploaded, 2 later, 3 skip */
   pod?: string | number | null;
+  /** Dropoff on-time flag from driver complete-dropoff (0/1). Pickup stops omit this. */
+  on_time_delivery?: string | number | null;
   /** Uploaded POD media (Spatie), when pod = 1. */
   pod_images?: Array<{ id?: number | null; url: string }> | null;
   /** Location event logs (ShipmentLocationLog status + created_at). */
@@ -257,6 +263,7 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
   cancellation_date?: string | null;
   cancellation_details?: string | null;
   cancelled_by?: string | null;
+  cancelled_by_type?: string | null;
   cancellation_notes?: string | null;
   unfulfilled_reason?: string | null;
   unfulfilled_date?: string | null;
@@ -298,6 +305,44 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
     review?: string;
     delivery_on_time?: boolean | null;
     created_at?: string;
+  } | null;
+  trip_performance_reports?: Array<{
+    type: 'shipper_pickup_delay' | 'driver_loading_wait' | 'driver_dropoff_on_time' | string;
+    location_id: number;
+    location_label?: string | null;
+    stop_type?: 'pickup' | 'delivery' | string;
+    summary?: string | null;
+    was_on_time?: boolean | null;
+    delay_minutes?: number | null;
+    delay_bucket?: string | null;
+    wait_minutes?: number | null;
+    wait_bucket?: string | null;
+    counted?: boolean | null;
+    reported_at?: string | null;
+    reporter?: 'shipper' | 'driver' | string | null;
+  }> | null;
+  trip_performance?: {
+    delivery_on_time?: boolean | null;
+    avg_loading_wait_minutes?: number | null;
+    pickup_stops?: Array<{
+      location_id: number;
+      label?: string | null;
+      location_name?: string | null;
+      company_name?: string | null;
+      pickup_delay_text?: string | null;
+      loading_wait_text?: string | null;
+      can_report_delay?: boolean;
+    }> | null;
+    reports?: Array<{
+      type: 'shipper_pickup_delay' | 'driver_loading_wait' | 'driver_dropoff_on_time' | string;
+      location_id: number;
+      location_label?: string | null;
+      stop_type?: 'pickup' | 'delivery' | string;
+      summary?: string | null;
+      was_on_time?: boolean | null;
+      reported_at?: string | null;
+      reporter?: 'shipper' | 'driver' | string | null;
+    }> | null;
   } | null;
 }
 

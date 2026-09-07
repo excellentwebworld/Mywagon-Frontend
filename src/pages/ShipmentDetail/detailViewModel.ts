@@ -120,6 +120,8 @@ export interface CarrierDetail {
   templates: string[];
   role?: string;
   canRate?: boolean;
+  /** Stars the shipper gave this carrier/freelancer on this shipment. */
+  userRating?: number | null;
 }
 
 export interface AssignedDriverDetail {
@@ -138,6 +140,8 @@ export interface AssignedDriverDetail {
   userId?: number | null;
   plates: string[];
   canRate?: boolean;
+  /** Stars the shipper gave this driver on this shipment. */
+  userRating?: number | null;
 }
 
 export interface TripSummary {
@@ -258,6 +262,7 @@ export interface ShipmentDetailViewModel {
   cancellationDate?: string | null;
   cancellationDetails?: string | null;
   cancelledBy?: string | null;
+  cancelledByType?: string | null;
   cancellationNotes?: string | null;
   unfulfilledReason?: string | null;
   unfulfilledDate?: string | null;
@@ -293,6 +298,39 @@ export interface ShipmentDetailViewModel {
   isAlreadyRated: boolean;
   userRating?: number | null;
   ratingDeliveryOnTime?: boolean | null;
+  tripPerformanceReports: Array<{
+    type: string;
+    locationId: number;
+    locationLabel: string;
+    stopType: 'pickup' | 'delivery';
+    summary: string;
+    wasOnTime?: boolean | null;
+    reportedAt?: string | null;
+    reporter: 'shipper' | 'driver';
+  }>;
+  tripPerformance: {
+    deliveryOnTime: boolean | null;
+    avgLoadingWaitMinutes: number | null;
+    pickupStops: Array<{
+      locationId: number;
+      label: string;
+      locationName?: string | null;
+      companyName?: string | null;
+      pickupDelayText: string;
+      loadingWaitText: string;
+      canReportDelay: boolean;
+    }>;
+    reports: Array<{
+      type: string;
+      locationId: number;
+      locationLabel: string;
+      stopType?: 'pickup' | 'delivery';
+      summary: string;
+      wasOnTime?: boolean | null;
+      reportedAt?: string | null;
+      reporter: 'shipper' | 'driver' | string;
+    }>;
+  } | null;
 }
 
 const MILESTONE_KEYS = [
@@ -756,14 +794,24 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     shipment.carrier_init === 'P'
   );
 
-  const carrierRatingRaw =
-    typeof shipment.carrierRating === 'number'
-      ? shipment.carrierRating
-      : typeof shipment.carrierRating === 'object' && (shipment.carrierRating as any)?.rating != null
+  const carrierUserRating =
+    typeof shipment.carrierRating === 'object' &&
+    shipment.carrierRating != null &&
+    (shipment.carrierRating as any)?.rating != null
       ? Number((shipment.carrierRating as any).rating)
-      : shipment.carrierProfileRating != null
+      : shipment.shipperRating?.rating != null
+        ? Number(shipment.shipperRating.rating)
+        : null;
+
+  const driverUserRating =
+    shipment.driverRating?.rating != null ? Number(shipment.driverRating.rating) : null;
+
+  const carrierRatingRaw =
+    shipment.carrierProfileRating != null
       ? Number(shipment.carrierProfileRating)
-      : null;
+      : typeof shipment.carrierRating === 'number'
+        ? shipment.carrierRating
+        : null;
 
   const carrierRatingStr =
     carrierRatingRaw != null && !isNaN(carrierRatingRaw)
@@ -819,6 +867,12 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
         plates: shipment.assignedDriverPlates ?? [],
         templates: [],
         canRate: true,
+        userRating:
+          carrierUserRating != null && !Number.isNaN(carrierUserRating)
+            ? carrierUserRating
+            : isFreelancer && driverUserRating != null && !Number.isNaN(driverUserRating)
+              ? driverUserRating
+              : null,
       }
     : null;
 
@@ -845,6 +899,10 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
           userId: shipment.assignedDriverId ?? null,
           plates: shipment.assignedDriverPlates ?? [],
           canRate: true,
+          userRating:
+            driverUserRating != null && !Number.isNaN(driverUserRating)
+              ? driverUserRating
+              : null,
         }
       : null;
 
@@ -1028,10 +1086,11 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     etaChip: lastDropoff?.date ? `🔵 ETA: ${lastDropoff.date}${lastDropoff.timeStart ? ` · ${lastDropoff.timeStart}` : ''}` : '🔵 ETA: On Schedule',
     etaStatusChip,
     isPaid: Boolean(shipment.isPaid ?? (shipment.markAsPaid === '1')),
-    cancellationReason: shipment.cancellationReason || shipment.riskReason || null,
+    cancellationReason: shipment.cancellationReason || null,
     cancellationDate: shipment.cancellationDate || shipment.updatedAt || null,
     cancellationDetails: shipment.cancellationDetails || null,
     cancelledBy: shipment.cancelledBy || null,
+    cancelledByType: shipment.cancelledByType || null,
     cancellationNotes: shipment.cancellationNotes || null,
     unfulfilledReason: shipment.unfulfilledReason || null,
     unfulfilledDate: shipment.unfulfilledDate || null,
@@ -1140,10 +1199,14 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     isDriverRated: Boolean(shipment.isDriverRated),
     isAlreadyRated: Boolean(shipment.isCarrierRated ?? shipment.shipperRating),
     userRating:
-      typeof shipment.carrierRating === 'number'
-        ? shipment.carrierRating
-        : (shipment.carrierRating as any)?.rating ?? (shipment.shipperRating as any)?.rating ?? null,
+      carrierUserRating != null && !Number.isNaN(carrierUserRating)
+        ? carrierUserRating
+        : driverUserRating != null && !Number.isNaN(driverUserRating)
+          ? driverUserRating
+          : null,
     ratingDeliveryOnTime:
       (shipment.carrierRating as any)?.deliveryOnTime ?? (shipment.shipperRating as any)?.deliveryOnTime ?? null,
+    tripPerformanceReports: shipment.tripPerformanceReports || [],
+    tripPerformance: shipment.tripPerformance || null,
   };
 }

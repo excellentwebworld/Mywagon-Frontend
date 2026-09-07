@@ -48,7 +48,7 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
             {title}
             {count != null && count !== '' && (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-alt)] text-[var(--text-secondary)] tracking-tight">
-                {count}
+                {/* {count} */}
               </span>
             )}
           </h3>

@@ -4,6 +4,12 @@ import type { ShipmentStop } from '../../context/AppContext';
 import { productLineVisual, formatReason, type ProductLineVisual } from '../../pages/ManageShipments/utils/listingUtils';
 import { CollapsibleCard } from './CollapsibleCard';
 
+export interface ReportablePickup {
+  location_id: number;
+  location_name?: string | null;
+  company_name?: string | null;
+}
+
 interface StopsCardProps {
   stops: ShipmentStop[];
   expanded: boolean;
@@ -14,6 +20,8 @@ interface StopsCardProps {
   onRequestPod?: (stop: ShipmentStop) => void;
   requestingPodStopId?: string | number | null;
   shipmentStatus?: string;
+  reportablePickups?: ReportablePickup[];
+  onReportDelay?: (pickup: ReportablePickup) => void;
   t: (key: string, fallback?: string) => string;
 }
 
@@ -39,6 +47,8 @@ export interface PhysicalStop {
   key: string;
   rawStop: ShipmentStop;
   id: number;
+  /** All shipment location IDs merged into this physical stop. */
+  locationIds: number[];
   type: 'pickup' | 'delivery';
   location: string;
   address: string;
@@ -51,6 +61,8 @@ export interface PhysicalStop {
   logs?: Array<{ status: string; createdAt: string }>;
   unableStatus?: number;
   reason?: string | null;
+  /** Driver dropoff on-time flag: '1' on time, '0' delayed. */
+  onTimeDelivery?: string | null;
   orders: GroupedOrder[];
   totalProductCount: number;
   totalOrderCount: number;
@@ -106,12 +118,14 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
     const normType = stop.type;
     const groupKey = `${normType}|${normLocation}|${normAddress}`;
 
+    const stopLocationId = stop.id || idx + 1;
     let physical = map.get(groupKey);
     if (!physical) {
       physical = {
         key: groupKey,
         rawStop: stop,
-        id: stop.id || idx + 1,
+        id: stopLocationId,
+        locationIds: [stopLocationId],
         type: stop.type,
         location: stop.location || '—',
         address: stop.address || '',
@@ -124,12 +138,16 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
         logs: stop.logs ?? [],
         unableStatus: stop.unableStatus ?? 0,
         reason: stop.reason || (stop as any).unable_reason || null,
+        onTimeDelivery: stop.onTimeDelivery ?? null,
         orders: [],
         totalProductCount: 0,
         totalOrderCount: 0,
       };
       map.set(groupKey, physical);
     } else {
+      if (!physical.locationIds.includes(stopLocationId)) {
+        physical.locationIds.push(stopLocationId);
+      }
       if (stop.podImages && stop.podImages.length > 0) {
         physical.podImages = [...(physical.podImages || []), ...stop.podImages];
       }
@@ -139,6 +157,12 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
       }
       if (stop.unableStatus) {
         physical.unableStatus = stop.unableStatus;
+      }
+      // Prefer an explicit delayed/on-time report if any merged row has one
+      if (stop.onTimeDelivery === '0' || stop.onTimeDelivery === '1') {
+        physical.onTimeDelivery = stop.onTimeDelivery;
+      } else if (physical.onTimeDelivery == null && stop.onTimeDelivery != null) {
+        physical.onTimeDelivery = stop.onTimeDelivery;
       }
     }
 
@@ -242,14 +266,15 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
 function OrderStatusIcon({ visual }: { visual: ProductLineVisual }) {
   if (visual === 'failed') {
     return (
-      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] text-[#EF4444]">
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] text-[#EF4444]" title="Unable">
         <X size={18} strokeWidth={2.5} />
       </div>
     );
   }
+  // Two ticks = pickup/dropoff completed (POD is shown separately via the green rectangle)
   if (visual === 'done-pod') {
     return (
-      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E0EAFF] bg-[#F0F5FF] text-[#2876F3]">
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E0EAFF] bg-[#F0F5FF] text-[#2876F3]" title="Completed">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M1 9.5L5.5 14L16 3" />
           <path d="M1 5.5L5.5 10L16 -1" opacity="0.6" />
@@ -257,9 +282,10 @@ function OrderStatusIcon({ visual }: { visual: ProductLineVisual }) {
       </div>
     );
   }
+  // One tick = arrived at location
   if (visual === 'done') {
     return (
-      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E0EAFF] bg-[#F0F5FF] text-[#2876F3]">
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E0EAFF] bg-[#F0F5FF] text-[#2876F3]" title="Arrived">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
@@ -267,6 +293,32 @@ function OrderStatusIcon({ visual }: { visual: ProductLineVisual }) {
     );
   }
   return null;
+}
+
+/** On-trip ticks: arrive → 1 tick, complete → 2 ticks (POD does not gate the second tick). */
+function resolveStopTickVisual(
+  type: 'pickup' | 'delivery',
+  status?: string | number | null,
+  pod?: string | number | null,
+  unableStatus?: number | null,
+  logs?: Array<{ status: string }>
+): ProductLineVisual {
+  const failedOrDefault = productLineVisual(type, status, pod, unableStatus);
+  if (failedOrDefault === 'failed') return 'failed';
+
+  const code = Number(status ?? 0);
+  const logCodes = (logs || []).map((l) => Number(l.status));
+  const hasComplete =
+    code === 5 ||
+    code === 7 ||
+    logCodes.includes(5) ||
+    logCodes.includes(7);
+  if (hasComplete) return 'done-pod';
+
+  const hasArrived = code === 3 || logCodes.includes(3);
+  if (hasArrived) return 'done';
+
+  return 'default';
 }
 
 export const StopsCard: React.FC<StopsCardProps> = ({
@@ -279,6 +331,8 @@ export const StopsCard: React.FC<StopsCardProps> = ({
   onRequestPod,
   requestingPodStopId = null,
   shipmentStatus,
+  reportablePickups = [],
+  onReportDelay,
   t,
 }) => {
   const [expandedStopOrders, setExpandedStopOrders] = useState<Record<number, boolean>>({});
@@ -291,6 +345,21 @@ export const StopsCard: React.FC<StopsCardProps> = ({
     normalizedStatus === 'partially_fullfilled' ||
     normalizedStatus === 'partially_fulfilled' ||
     normalizedStatus === 'delivered';
+
+  const isCanceled =
+    normalizedStatus === 'canceled' || normalizedStatus === 'cancelled';
+
+  // Canceled before trip start: keep cancel reason in the top banner only —
+  // do not paint pickup/dropoff rows as failed "location problems".
+  const tripHadStarted = useMemo(
+    () =>
+      stops.some((s) => {
+        const st = Number(s.locationStatus ?? 0);
+        return Number.isFinite(st) && st >= 3;
+      }),
+    [stops]
+  );
+  const suppressCancelAsStopIssue = isCanceled && !tripHadStarted;
 
   const physicalStops = useMemo(() => groupPhysicalStops(stops), [stops]);
 
@@ -320,6 +389,9 @@ export const StopsCard: React.FC<StopsCardProps> = ({
           const isOrdersExpanded = Boolean(expandedStopOrders[idx]);
           const hasMultipleItems = stop.totalProductCount > 1 || stop.totalOrderCount > 1;
           const isCopied = copiedStopIndex === idx;
+          const delayPickup = isPickup
+            ? reportablePickups.find((p) => stop.locationIds.includes(p.location_id))
+            : undefined;
 
           return (
             <div
@@ -346,7 +418,17 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                       {stop.location}
                     </div>
 
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap shrink-0">
+                      {delayPickup && onReportDelay && (
+                        <button
+                          type="button"
+                          className="px-3 py-1.5 rounded-md text-[11px] font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] cursor-pointer whitespace-nowrap transition-opacity shadow-xs border-0"
+                          onClick={() => onReportDelay(delayPickup)}
+                        >
+                          {t('reportDelay', 'Report delay')}
+                        </button>
+                      )}
+
                       {/* Stop Type Tag */}
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${
@@ -373,6 +455,22 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                     </div>
                   )}
 
+                  {!isPickup &&
+                    (stop.onTimeDelivery === '0' || stop.onTimeDelivery === '1') && (
+                      <div
+                        className={`mt-1.5 inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
+                          stop.onTimeDelivery === '1'
+                            ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                            : 'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+                        }`}
+                      >
+                        {t('driverDropoffOnTime', 'Dropoff on time (driver)')}:{' '}
+                        {stop.onTimeDelivery === '1'
+                          ? t('onTime', 'On time')
+                          : t('delayed', 'Delayed')}
+                      </div>
+                    )}
+
                   {/* Orders & Products list */}
                   <div className="mt-2.5 space-y-2">
                     {stop.orders.map((order, oIdx) => {
@@ -386,11 +484,12 @@ export const StopsCard: React.FC<StopsCardProps> = ({
 
                       if (visibleProducts.length === 0) return null;
 
-                      const orderVisual = productLineVisual(
+                      const orderVisual = resolveStopTickVisual(
                         stop.type,
                         order.locationStatus ?? stop.locationStatus,
                         order.pod ?? stop.pod,
-                        order.unableStatus ?? stop.unableStatus
+                        order.unableStatus ?? stop.unableStatus,
+                        stop.logs
                       );
                       const issueReason =
                         order.reason ||
@@ -398,7 +497,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                         (stop.rawStop as any)?.reason ||
                         (stop.rawStop as any)?.unable_reason ||
                         null;
-                      const orderHasIssue =
+                      const hasOperationalFailure =
                         orderVisual === 'failed' ||
                         order.unableStatus === 1 ||
                         stop.unableStatus === 1 ||
@@ -407,32 +506,17 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                         order.locationStatus === '8' ||
                         stop.locationStatus === '6' ||
                         stop.locationStatus === '4' ||
-                        stop.locationStatus === '8' ||
-                        Boolean(issueReason);
-
-                      const isStopDone =
-                        !orderHasIssue &&
-                        (orderVisual === 'done' ||
-                          orderVisual === 'done-pod' ||
-                          stop.locationStatus === '5' ||
-                          stop.locationStatus === '7' ||
-                          order.locationStatus === '5' ||
-                          order.locationStatus === '7' ||
-                          stop.pod === '1' ||
-                          order.pod === '1' ||
-                          (stop.type === 'pickup' &&
-                            (normalizedStatus === 'on_trip' ||
-                              normalizedStatus === 'in_progress' ||
-                              normalizedStatus === 'fullfilled' ||
-                              normalizedStatus === 'fulfilled' ||
-                              normalizedStatus === 'partially_fullfilled' ||
-                              normalizedStatus === 'partially_fulfilled' ||
-                              normalizedStatus === 'delivered')));
+                        stop.locationStatus === '8';
+                      const orderHasIssue = suppressCancelAsStopIssue
+                        ? hasOperationalFailure
+                        : hasOperationalFailure || Boolean(issueReason);
+                      const showIssueReason =
+                        orderHasIssue &&
+                        Boolean(issueReason) &&
+                        !suppressCancelAsStopIssue;
 
                       const effectiveVisual: ProductLineVisual = orderHasIssue
                         ? 'failed'
-                        : isStopDone
-                        ? ((order.pod === '1' || stop.pod === '1') ? 'done-pod' : 'done')
                         : orderVisual;
 
                       return (
@@ -480,7 +564,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                           </div>
 
                           {/* Issue Reason Alert in Red if present */}
-                          {orderHasIssue && issueReason && (
+                          {showIssueReason && (
                             <div className="mt-2.5 p-2 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5">
                               <AlertTriangle size={14} className="shrink-0 text-red-500" />
                               <span>{formatReason(issueReason, t)}</span>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Map, Share2, Radio, Clock, CheckCircle2 } from 'lucide-react';
+import { Map, Share2 } from 'lucide-react';
 import type {
   TrackingStats,
   TripSummary,
@@ -23,7 +23,6 @@ interface TrackingMapCardProps {
   expanded: boolean;
   onToggle: () => void;
   onShare: () => void;
-  onReportDelay?: () => void;
   t: (key: string, fallback?: string) => string;
 }
 
@@ -64,7 +63,6 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
   expanded,
   onToggle,
   onShare,
-  onReportDelay,
   t,
 }) => {
   const normStatus = (status || '').toLowerCase();
@@ -207,22 +205,6 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
               expanded={expanded}
               t={t as any}
             />
-          </div>
-
-          {/* Performance on this Load */}
-          <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 mb-3">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-              {t('performanceOnThisLoad', 'Performance on this load')}
-            </div>
-            <div className="flex items-center justify-between text-[12px] font-medium text-slate-900 dark:text-white flex-wrap gap-2">
-              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                <CheckCircle2 size={13} />
-                <span>{t('pickupOnTime', 'Pickup completed on schedule')}</span>
-              </span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                {t('drivingSpeedNormal', 'Normal transit speed')}
-              </span>
-            </div>
           </div>
 
           {/* Share live tracking button */}

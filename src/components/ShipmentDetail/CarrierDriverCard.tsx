@@ -25,6 +25,37 @@ interface CarrierDriverCardProps {
   t: (key: string, fallback?: string) => string;
 }
 
+function UserRatingBadge({
+  rating,
+  t,
+}: {
+  rating: number;
+  t: (key: string, fallback?: string) => string;
+}) {
+  const stars = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800"
+      title={t('yourRating', 'Your rating')}
+    >
+      <span className="inline-flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <Star
+            key={n}
+            size={12}
+            className={n <= stars ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600'}
+            fill={n <= stars ? 'currentColor' : 'none'}
+          />
+        ))}
+      </span>
+      <span>
+        {stars}/5
+      </span>
+    </span>
+  );
+}
+
 export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
   carrier,
   driver,
@@ -67,8 +98,21 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
   // In Laravel shipper panel: Rate button only displays on ended/completed loads when not yet rated
   const handleRateCarrier = onRateCarrier || (onRate ? () => carrier && onRate() : undefined);
   const handleRateDriver = onRateDriver || (onRate ? () => driver && onRate() : undefined);
-  const canRateCarrier = isCompleted && Boolean(handleRateCarrier) && !isCarrierRated;
+  const canRateCarrier = isCompleted && Boolean(handleRateCarrier) && !isCarrierRated && !(isFreelancer && isDriverRated);
   const canRateDriver = isCompleted && Boolean(handleRateDriver) && !isDriverRated;
+  const carrierGivenRating =
+    carrier?.userRating != null && !Number.isNaN(Number(carrier.userRating))
+      ? Number(carrier.userRating)
+      : isFreelancer && driver?.userRating != null && !Number.isNaN(Number(driver.userRating))
+        ? Number(driver.userRating)
+        : null;
+  const driverGivenRating =
+    driver?.userRating != null && !Number.isNaN(Number(driver.userRating))
+      ? Number(driver.userRating)
+      : null;
+  const showCarrierUserRating =
+    Boolean(carrierGivenRating != null) && (isCarrierRated || (isFreelancer && isDriverRated));
+  const showDriverUserRating = Boolean(driverGivenRating != null) && isDriverRated;
 
   // In Laravel shipper panel: Chat button displays on active trips (scheduled, ready, past_due, on_trip, or fulfilled when unpaid)
   const canChat =
@@ -156,7 +200,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
 
                 {/* Rate, Message, Copy Phone Buttons */}
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  {canRateCarrier && (
+                  {canRateCarrier ? (
                     <button
                       type="button"
                       onClick={() => handleRateCarrier?.(carrier)}
@@ -166,6 +210,11 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       <Star size={12} fill="#fff" />
                       <span>{t('rate', 'Rate')}</span>
                     </button>
+                  ) : (
+                    showCarrierUserRating &&
+                    carrierGivenRating != null && (
+                      <UserRatingBadge rating={carrierGivenRating} t={t} />
+                    )
                   )}
 
                   {canChat && (
@@ -292,7 +341,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
 
                   {/* Buttons: Rate, Message, Copy Phone */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {canRateCarrier && (
+                    {canRateCarrier ? (
                       <button
                         type="button"
                         onClick={() => handleRateCarrier?.(carrier)}
@@ -302,6 +351,11 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                         <Star size={12} fill="#fff" />
                         <span>{t('rate', 'Rate')}</span>
                       </button>
+                    ) : (
+                      showCarrierUserRating &&
+                      carrierGivenRating != null && (
+                        <UserRatingBadge rating={carrierGivenRating} t={t} />
+                      )
                     )}
 
                     {canChat && (
@@ -451,7 +505,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
 
               {/* Action Buttons */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                {canRateDriver && (
+                {canRateDriver ? (
                   <button
                     type="button"
                     onClick={() => handleRateDriver?.(driver)}
@@ -461,6 +515,11 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     <Star size={12} fill="#fff" />
                     <span>{t('rate', 'Rate')}</span>
                   </button>
+                ) : (
+                  showDriverUserRating &&
+                  driverGivenRating != null && (
+                    <UserRatingBadge rating={driverGivenRating} t={t} />
+                  )
                 )}
 
                 {canChat && (

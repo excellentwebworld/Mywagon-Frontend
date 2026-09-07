@@ -158,6 +158,13 @@ export interface ShipmentStop {
   logs?: Array<{ status: string; createdAt: string }>;
   unableStatus?: number;
   reason?: string | null;
+  /** Dropoff on-time from driver (0/1); null for pickups. */
+  onTimeDelivery?: string | null;
+  tracking_email?: string | null;
+  trackingEmail?: string | null;
+  send_tracking_link?: string | null;
+  tracking_url?: string | null;
+  trackingUrl?: string | null;
 }
 
 export interface Shipment {
@@ -397,6 +404,7 @@ export interface Shipment {
   cancellationDate?: string | null;
   cancellationDetails?: string | null;
   cancelledBy?: string | null;
+  cancelledByType?: string | null;
   cancellationNotes?: string | null;
   unfulfilledReason?: string | null;
   unfulfilledDate?: string | null;
@@ -406,6 +414,39 @@ export interface Shipment {
     review?: string;
     deliveryOnTime?: boolean | null;
     createdAt?: string;
+  } | null;
+  tripPerformanceReports?: Array<{
+    type: string;
+    locationId: number;
+    locationLabel: string;
+    stopType: 'pickup' | 'delivery';
+    summary: string;
+    wasOnTime?: boolean | null;
+    reportedAt?: string | null;
+    reporter: 'shipper' | 'driver';
+  }>;
+  tripPerformance?: {
+    deliveryOnTime: boolean | null;
+    avgLoadingWaitMinutes: number | null;
+    pickupStops: Array<{
+      locationId: number;
+      label: string;
+      locationName?: string | null;
+      companyName?: string | null;
+      pickupDelayText: string;
+      loadingWaitText: string;
+      canReportDelay: boolean;
+    }>;
+    reports: Array<{
+      type: string;
+      locationId: number;
+      locationLabel: string;
+      stopType?: 'pickup' | 'delivery';
+      summary: string;
+      wasOnTime?: boolean | null;
+      reportedAt?: string | null;
+      reporter: 'shipper' | 'driver' | string;
+    }>;
   } | null;
   isCarrierRated?: boolean;
   actualRouteCoordinates?: Array<{ lat: number; lng: number }> | null;

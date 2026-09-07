@@ -146,6 +146,10 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
       })),
     unableStatus: Number(stop.unable_status ?? 0) || 0,
     reason: stop.reason || null,
+    onTimeDelivery:
+      stop.on_time_delivery !== null && stop.on_time_delivery !== undefined
+        ? String(stop.on_time_delivery)
+        : null,
     customers:
       stop.order_id || stop.product_name || stop.qty || stop.weight || name
         ? [
@@ -166,6 +170,7 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
         : [],
     tracking_email: (stop as any).tracking_email || null,
     send_tracking_link: (stop as any).send_tracking_link || '0',
+    tracking_url: (stop as any).tracking_url || null,
   } as any;
 }
 
@@ -441,6 +446,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     cancellationDate: detail.cancellation_date ?? null,
     cancellationDetails: detail.cancellation_details ?? null,
     cancelledBy: detail.cancelled_by ?? null,
+    cancelledByType: detail.cancelled_by_type ?? null,
     cancellationNotes: detail.cancellation_notes ?? null,
     unfulfilledReason: detail.unfulfilled_reason ?? null,
     unfulfilledDate: detail.unfulfilled_date ?? null,
@@ -500,6 +506,51 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
           review: detail.shipper_rating.review,
           deliveryOnTime: detail.shipper_rating.delivery_on_time,
           createdAt: detail.shipper_rating.created_at,
+        }
+      : null,
+    tripPerformanceReports: (
+      detail.trip_performance?.reports ||
+      detail.trip_performance_reports ||
+      []
+    ).map((r) => ({
+      type: r.type,
+      locationId: Number(r.location_id),
+      locationLabel: r.location_label || '—',
+      stopType: r.stop_type === 'delivery' ? 'delivery' : 'pickup',
+      summary: r.summary || '—',
+      wasOnTime: r.was_on_time ?? null,
+      reportedAt: r.reported_at ?? null,
+      reporter: r.reporter === 'driver' ? 'driver' : 'shipper',
+    })),
+    tripPerformance: detail.trip_performance
+      ? {
+          deliveryOnTime:
+            detail.trip_performance.delivery_on_time === undefined
+              ? null
+              : detail.trip_performance.delivery_on_time,
+          avgLoadingWaitMinutes:
+            detail.trip_performance.avg_loading_wait_minutes != null
+              ? Number(detail.trip_performance.avg_loading_wait_minutes)
+              : null,
+          pickupStops: (detail.trip_performance.pickup_stops || []).map((s) => ({
+            locationId: Number(s.location_id),
+            label: s.label || s.company_name || s.location_name || 'Pickup',
+            locationName: s.location_name ?? null,
+            companyName: s.company_name ?? null,
+            pickupDelayText: s.pickup_delay_text || 'Not reported yet',
+            loadingWaitText: s.loading_wait_text || 'Not reported yet',
+            canReportDelay: Boolean(s.can_report_delay),
+          })),
+          reports: (detail.trip_performance.reports || []).map((r) => ({
+            type: r.type,
+            locationId: Number(r.location_id),
+            locationLabel: r.location_label || '—',
+            stopType: r.stop_type === 'delivery' ? 'delivery' : 'pickup',
+            summary: r.summary || '—',
+            wasOnTime: r.was_on_time ?? null,
+            reportedAt: r.reported_at ?? null,
+            reporter: r.reporter === 'driver' ? 'driver' : 'shipper',
+          })),
         }
       : null,
     isCarrierRated: Boolean((detail as any).is_carrier_rated ?? (detail.carrier as any)?.is_rated ?? detail.shipper_rating),

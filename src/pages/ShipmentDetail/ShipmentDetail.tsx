@@ -16,13 +16,12 @@ import {
   MilestonesBar,
   NotesCard,
   PickupDelayModal,
-  PickupDelayReportsCard,
-  RateTripCard,
   RatingModal,
   ShareTrackingModal,
   StatusBanner,
   StopsCard,
   TrackingMapCard,
+  TripPerformanceReportsCard,
   TripSummaryCard,
   UploadDocumentModal,
   ViewPodModal,
@@ -41,7 +40,7 @@ import { CancelShipmentModal } from '../../components/ManageShipments/CancelShip
 const DEFAULT_SECTIONS: Record<string, boolean> = {
   bids: true,
   stops: true,
-  pickupDelay: true,
+  tripPerformance: true,
   carrier: true,
   rate: true,
   load: true,
@@ -502,6 +501,13 @@ export const ShipmentDetail: React.FC = () => {
     status === 'delivered' ||
     status === 'not_fullfilled';
 
+  // Delivery performance (Yes/No) lives inside Trip Performance Reports for On Trip + completed.
+  // After the shipper submits, the result is shown in that same card.
+  const showDeliveryPerformance =
+    status === 'on_trip' ||
+    status === 'in_progress' ||
+    isCompleted;
+
   const canShowIncidents =
     vm.incidents.length > 0 ||
     status === 'on_trip' ||
@@ -532,6 +538,7 @@ export const ShipmentDetail: React.FC = () => {
           date={vm.status === 'not_fullfilled' ? vm.unfulfilledDate : vm.cancellationDate}
           details={vm.cancellationDetails}
           cancelledBy={vm.cancelledBy}
+          cancelledByType={vm.cancelledByType}
           notes={vm.cancellationNotes}
           t={t}
         />
@@ -738,15 +745,8 @@ export const ShipmentDetail: React.FC = () => {
               }}
               requestingPodStopId={requestingPodStopId}
               shipmentStatus={vm.status}
-              t={t}
-            />
-
-            {/* 3. Pickup Delay Reports Card (PDS-938) */}
-            <PickupDelayReportsCard
-              pickups={reportablePickups}
-              expanded={sections.pickupDelay}
-              onToggle={() => toggleSection('pickupDelay')}
-              onReport={setPendingDelay}
+              reportablePickups={reportablePickups}
+              onReportDelay={setPendingDelay}
               t={t}
             />
 
@@ -789,50 +789,60 @@ export const ShipmentDetail: React.FC = () => {
               />
             )}
 
-            {/* 5. Delivery Performance (Delivered on time question under Transporter) */}
-            {isCompleted && (
-              <RateTripCard
-                carrierName={vm.carrier?.name || 'Transporter'}
-                expanded={sections.rate}
-                onToggle={() => toggleSection('rate')}
-                initialOnTime={vm.ratingDeliveryOnTime}
-                isAlreadyReported={vm.isAlreadyRated}
-                submitting={submittingOnTime}
-                onSelectOnTime={async (onTime) => {
-                  if (!id) return;
-                  setSubmittingOnTime(true);
-                  try {
-                    const targetId = vm.carrier?.userId || vm.assignedDriver?.userId || 0;
-                    const targetType = vm.carrier?.userType === 'driver' ? 'driver' : 'carrier';
-                    if (targetId) {
-                      await shipmentsService.submitRating(id, {
-                        user_id: targetId,
-                        user_type: targetType,
-                        rating: 5,
-                        delivery_on_time: onTime,
-                      });
-                    }
-                    showToast(
-                      onTime
-                        ? t('deliveryRecordedOnTime', 'Delivery recorded as on schedule')
-                        : t('deliveryRecordedDelayed', 'Delivery recorded as delayed'),
-                      'success'
-                    );
-                    refetch?.();
-                  } catch {
-                    showToast(
-                      onTime
-                        ? t('deliveryRecordedOnTime', 'Delivery recorded as on schedule')
-                        : t('deliveryRecordedDelayed', 'Delivery recorded as delayed'),
-                      'info'
-                    );
-                  } finally {
-                    setSubmittingOnTime(false);
-                  }
-                }}
-                t={t}
-              />
-            )}
+            {/* Trip Performance Reports — Delivery performance is submitted here on On Trip */}
+            <TripPerformanceReportsCard
+              performance={vm.tripPerformance}
+              expanded={sections.tripPerformance}
+              onToggle={() => toggleSection('tripPerformance')}
+              onReportDelay={setPendingDelay}
+              showDeliveryPerformance={showDeliveryPerformance}
+              carrierName={vm.carrier?.name || 'Transporter'}
+              initialOnTime={
+                vm.ratingDeliveryOnTime ?? vm.tripPerformance?.deliveryOnTime ?? null
+              }
+              isAlreadyReported={
+                vm.ratingDeliveryOnTime != null ||
+                vm.tripPerformance?.deliveryOnTime != null
+              }
+              submittingOnTime={submittingOnTime}
+              onSelectOnTime={async (onTime) => {
+                if (!id) throw new Error('missing shipment id');
+                const targetId = vm.carrier?.userId || vm.assignedDriver?.userId || 0;
+                const targetType = vm.carrier?.userType === 'driver' ? 'driver' : 'carrier';
+                if (!targetId) {
+                  showToast(
+                    t('unableToRecordDelivery', 'Unable to record delivery performance yet.'),
+                    'error'
+                  );
+                  throw new Error('missing rating target');
+                }
+                setSubmittingOnTime(true);
+                try {
+                  await shipmentsService.submitRating(id, {
+                    user_id: targetId,
+                    user_type: targetType,
+                    rating: 5,
+                    delivery_on_time: onTime,
+                  });
+                  showToast(
+                    onTime
+                      ? t('deliveryRecordedOnTime', 'Delivery recorded as on schedule')
+                      : t('deliveryRecordedDelayed', 'Delivery recorded as delayed'),
+                    'success'
+                  );
+                  await refetch?.();
+                } catch (err) {
+                  showToast(
+                    t('deliveryRecordFailed', 'Could not save delivery performance. Please try again.'),
+                    'error'
+                  );
+                  throw err;
+                } finally {
+                  setSubmittingOnTime(false);
+                }
+              }}
+              t={t}
+            />
 
             {/* 6. Load Summary */}
             <LoadSummaryCard
@@ -859,14 +869,6 @@ export const ShipmentDetail: React.FC = () => {
               expanded={sections.tracking}
               onToggle={() => toggleSection('tracking')}
               onShare={() => setIsShareOpen(true)}
-              onReportDelay={() => {
-                if (reportablePickups.length > 0) {
-                  setPendingDelay(reportablePickups[0]);
-                } else if (vm.stops.length > 0) {
-                  const firstStop = vm.stops.find((s) => s.type === 'pickup') || vm.stops[0];
-                  setPendingDelay({ location_id: firstStop.id, location_name: firstStop.location });
-                }
-              }}
               t={t}
             />
 
@@ -925,6 +927,7 @@ export const ShipmentDetail: React.FC = () => {
         isPickedUp={vm.isPickedUp}
         status={vm.status}
         onClose={() => setIsShareOpen(false)}
+        onToast={(msg, type) => showToast(msg, type || 'info')}
         onSend={async (emails) => {
           if (!id) return;
           try {

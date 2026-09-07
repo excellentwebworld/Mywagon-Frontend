@@ -323,7 +323,7 @@ export const shipmentsService = {
 
   async saveTrackingLinks(
     id: string | number,
-    emails: Record<string | number, string>
+    emails: Record<string | number, string | string[]>
   ): Promise<void> {
     await apiPost(`/shipments/${id}/tracking-links`, { emails });
   },

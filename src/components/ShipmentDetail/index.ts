@@ -19,7 +19,7 @@ export { RateTripCard } from './RateTripCard';
 export { IncidentsCard } from './IncidentsCard';
 export { BillingCard } from './BillingCard';
 export { AuditLogCard } from './AuditLogCard';
-export { PickupDelayReportsCard } from './PickupDelayReportsCard';
+export { TripPerformanceReportsCard } from './TripPerformanceReportsCard';
 export { ShareTrackingModal } from './ShareTrackingModal';
 export { ActivityLogModal } from './ActivityLogModal';
 export { BidsHistoryModal } from './BidsHistoryModal';
