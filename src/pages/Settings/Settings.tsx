@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
-  User, Building2, Users, Lock, CreditCard, Star,
+  User, Building2, Users, Lock,
   Zap, ClipboardList, Bell, Palette, Sun, Moon, Clock,
   Bot, Globe, FileText, ExternalLink, ShieldCheck,
   PanelLeft, PanelTop,
@@ -61,8 +61,6 @@ const MENU: SettingsMenuGroup[] = [
     { id: 'organization', icon: Building2, labelKey: 'settings.organization' },
     { id: 'users', icon: Users, labelKey: 'settings.usersRoles' },
     { id: 'audit', icon: Clock, labelKey: 'settings.auditLog' },
-    { id: 'subscription', icon: Star, labelKey: 'settings.subscription' },
-    { id: 'billing', icon: CreditCard, labelKey: 'settings.billingSettings' },
   ]},
   { group: 'settings.groupTools', items: [
     { id: 'integrations', icon: Zap, labelKey: 'settings.integrations', comingSoon: true },
