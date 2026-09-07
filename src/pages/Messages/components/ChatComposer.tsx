@@ -32,7 +32,7 @@ interface ChatComposerProps {
   activeShipmentId?: string;
   chatContext?: ChatContext | null;
   onShowToast: (msg: string) => void;
-  t: (key: string) => string;
+  t: (key: string, fallbackOrOptions?: string | Record<string, unknown>) => string;
 }
 
 export const ChatComposer: React.FC<ChatComposerProps> = ({

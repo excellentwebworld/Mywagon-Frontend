@@ -1378,10 +1378,11 @@ export function useMessages() {
   const handleRetryMessage = useCallback(
     async (failedMsg: ChatMessage) => {
       let retryPayload = failedMsg.imageUrl || failedMsg.fileUrl || failedMsg.voiceUrl || failedMsg.text || '';
-      if (!retryPayload || !activeConvId || !activeConversation) return;
+      const failedMsgId = failedMsg.id;
+      if (!retryPayload || failedMsgId == null || !activeConvId || !activeConversation) return;
 
       setMessages((prev) =>
-        prev.map((m) => (m.id === failedMsg.id ? { ...m, isFailed: false } : m))
+        prev.map((m) => (m.id === failedMsgId ? { ...m, isFailed: false } : m))
       );
 
       const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
@@ -1398,7 +1399,7 @@ export function useMessages() {
         // If upload previously failed, the payload is still a local blob: URL. Re-attempt upload!
         if (retryPayload.startsWith('blob:')) {
           if (isVoice) {
-            let audioBlob = pendingVoiceBlobsRef.current.get(failedMsg.id);
+            let audioBlob = pendingVoiceBlobsRef.current.get(failedMsgId);
             if (!audioBlob) {
               audioBlob = await resolveBlobFromBlobUrl(retryPayload);
             }
@@ -1407,10 +1408,10 @@ export function useMessages() {
             if (!uploadedUrl) throw new Error('Failed to upload voice note.');
             retryPayload = uploadedUrl;
             setMessages((prev) =>
-              prev.map((m) => (m.id === failedMsg.id ? { ...m, voiceUrl: uploadedUrl, text: uploadedUrl } : m))
+              prev.map((m) => (m.id === failedMsgId ? { ...m, voiceUrl: uploadedUrl, text: uploadedUrl } : m))
             );
           } else if (isImage || isDoc) {
-            let file = pendingFilesRef.current.get(failedMsg.id);
+            let file = pendingFilesRef.current.get(failedMsgId);
             if (!file) {
               file = await resolveFileFromBlobUrl(retryPayload, failedMsg.fileName, failedMsg.fileType);
             }
@@ -1420,7 +1421,7 @@ export function useMessages() {
             retryPayload = uploadedUrl;
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === failedMsg.id
+                m.id === failedMsgId
                   ? {
                       ...m,
                       imageUrl: isImage ? uploadedUrl : undefined,
@@ -1451,8 +1452,8 @@ export function useMessages() {
           throw new Error('Socket not connected');
         }
 
-        pendingFilesRef.current.delete(failedMsg.id);
-        pendingVoiceBlobsRef.current.delete(failedMsg.id);
+        pendingFilesRef.current.delete(failedMsgId);
+        pendingVoiceBlobsRef.current.delete(failedMsgId);
 
         const now = new Date();
         const retryPreview = isVoice
@@ -1485,7 +1486,7 @@ export function useMessages() {
         setErrorMessage(errorMsg);
         setSendErrorModalOpen(true);
         setMessages((prev) => {
-          const updated = prev.map((m) => (m.id === failedMsg.id ? { ...m, isFailed: true } : m));
+          const updated = prev.map((m) => (m.id === failedMsgId ? { ...m, isFailed: true } : m));
           const lastGoodMsg = getLastNonFailedMessagePreview(
             updated,
             activeConversation.lastMsg,
