@@ -398,8 +398,6 @@ export function useManageShipments() {
         patchShipment(shipmentId, {
           invited: detail.invited,
           bids: detail.bids,
-          bidsReceived: detail.bidsReceived,
-          bidsSent: detail.bidsSent,
           best_bid: detail.best_bid,
           // Never wipe list transporter with a null detail payload.
           ...(detail.carrier
@@ -417,11 +415,11 @@ export function useManageShipments() {
           ...(detail.at_risk != null
             ? { at_risk: detail.at_risk, riskReason: detail.riskReason ?? null }
             : {}),
-          needsAction: detail.needsAction,
-          awaitingResponse: detail.awaitingResponse,
           offers: detail.offers,
           invitees: detail.invitees,
-          // Keep list-row lane/stop counts stable on expand — stops live in detailCache for the panel.
+          // Keep list-row lane/stop counts and pending badge flags stable on expand.
+          // Pending color is derived from list flags; rewriting them from detail
+          // made the pill jump yellow ↔ green/gradient on click.
           ...(detail.createdAt ? { createdAt: detail.createdAt } : {}),
         });
       } catch {

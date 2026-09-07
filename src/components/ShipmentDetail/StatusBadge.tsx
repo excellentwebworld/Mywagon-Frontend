@@ -1,4 +1,9 @@
 import React from 'react';
+import {
+  pendingBadgeStyle,
+  pendingBadgeVariant,
+  type PendingBadgeOpts,
+} from '../../pages/ManageShipments/utils/listingUtils';
 
 export type ShipmentStatusType =
   | 'draft'
@@ -17,7 +22,7 @@ export type ShipmentStatusType =
   | 'canceled'
   | 'cancelled';
 
-interface StatusBadgeProps {
+interface StatusBadgeProps extends PendingBadgeOpts {
   status: ShipmentStatusType | string;
   className?: string;
   size?: 'sm' | 'md';
@@ -110,6 +115,11 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   status,
   className = '',
   size = 'md',
+  bidsReceived,
+  bidsSent,
+  interestedCount,
+  awaitingResponse,
+  needsAction,
 }) => {
   const normKey = (status || 'draft').toLowerCase().replace(/[\s-]+/g, '_');
 
@@ -135,16 +145,33 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   };
 
   const isSm = size === 'sm';
+  const pendingStyle =
+    normKey === 'pending'
+      ? pendingBadgeStyle(
+          pendingBadgeVariant({
+            bidsReceived,
+            bidsSent,
+            interestedCount,
+            awaitingResponse,
+            needsAction,
+          })
+        )
+      : null;
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded font-medium whitespace-nowrap ${
+      className={`inline-flex items-center justify-center rounded font-medium whitespace-nowrap select-none ${
         isSm ? 'px-2.5 py-0.5 text-[11px]' : 'px-3.5 py-1 text-xs'
       } ${className}`}
       style={{
-        backgroundColor: conf.bg,
-        color: conf.color,
+        ...(pendingStyle || {
+          backgroundColor: conf.bg,
+          color: conf.color,
+        }),
         border: conf.border || 'none',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
       {conf.label}

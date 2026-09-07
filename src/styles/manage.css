@@ -1289,6 +1289,14 @@
   box-sizing: border-box;
   max-width: 100%;
   position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.status-box::selection,
+.status-box *::selection {
+  background: transparent;
+  color: inherit;
 }
 .status-box-wrap {
   position: relative;

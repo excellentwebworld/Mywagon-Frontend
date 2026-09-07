@@ -236,6 +236,11 @@ export interface ShipmentDetailViewModel {
   stopsCount: number;
   statusLabel: string;
   status: Shipment['status'];
+  needsAction?: boolean;
+  awaitingResponse?: boolean;
+  bidsReceived?: number;
+  bidsSent?: number;
+  interestedCount?: number;
   isPrivateLoad: boolean;
   isEditingRequested?: boolean;
   editingRequestDetails?: string | null;
@@ -956,6 +961,11 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     stopsCount: stops.length,
     statusLabel: status,
     status,
+    needsAction: shipment.needsAction,
+    awaitingResponse: shipment.awaitingResponse,
+    bidsReceived: shipment.bidsReceived,
+    bidsSent: shipment.bidsSent,
+    interestedCount: shipment.interestedCount,
     isPrivateLoad,
     isEditingRequested: Boolean(
       (shipment as any).is_being_edited ??

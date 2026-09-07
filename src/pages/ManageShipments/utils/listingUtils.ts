@@ -705,16 +705,56 @@ export function formatReason(
   return fallback;
 }
 
+export type PendingBadgeVariant = 'pending' | 'pending-request' | 'pending-more';
+
+export interface PendingBadgeOpts {
+  bidsReceived?: number;
+  bidsSent?: number;
+  interestedCount?: number;
+  awaitingResponse?: boolean;
+  needsAction?: boolean;
+}
+
+export interface PendingBadgeStyle {
+  background?: string;
+  backgroundColor?: string;
+  color: string;
+}
+
+/** Green = awaiting transporter; yellow = shipper must act; both = yellow→green gradient. */
+export function pendingBadgeVariant(opts?: PendingBadgeOpts): PendingBadgeVariant {
+  const hasAwaitingFlag = typeof opts?.awaitingResponse === 'boolean';
+  const hasNeedsFlag = typeof opts?.needsAction === 'boolean';
+  const awaiting = hasAwaitingFlag
+    ? Boolean(opts?.awaitingResponse)
+    : (opts?.bidsSent ?? 0) > 0;
+  const needs = hasNeedsFlag
+    ? Boolean(opts?.needsAction)
+    : (opts?.bidsReceived ?? 0) > 0 || (opts?.interestedCount ?? 0) > 0;
+  if (awaiting && needs) return 'pending-more';
+  if (awaiting) return 'pending-request';
+  if (needs) return 'pending';
+  return 'pending-request';
+}
+
+export function pendingBadgeStyle(variant: PendingBadgeVariant): PendingBadgeStyle {
+  if (variant === 'pending-more') {
+    return {
+      background: 'linear-gradient(90deg, #F3C747 0%, #4BA48A 100%)',
+      backgroundColor: 'transparent',
+      color: '#000000',
+    };
+  }
+  if (variant === 'pending-request') {
+    return { backgroundColor: '#55cf9e', color: '#ffffff' };
+  }
+  return { backgroundColor: '#F3C747', color: '#000000' };
+}
+
 export function statusBadgeClass(
   status: Shipment['status'],
   _atRisk?: boolean,
-  opts?: {
-    bidsReceived?: number;
-    bidsSent?: number;
-    interestedCount?: number;
-    awaitingResponse?: boolean;
-    needsAction?: boolean;
-  }
+  opts?: PendingBadgeOpts
 ): string {
   // Match Laravel ManageShipmentMasterDataTable + style.css status-box colors.
   // Do NOT paint pending as past-due when at_risk — Laravel keeps pending variants.
@@ -722,19 +762,8 @@ export function statusBadgeClass(
 
   switch (status) {
     case 'pending': {
-      // Green = awaiting transporter (counter / posted-truck bid).
-      // Yellow = shipper needs to act on inbound bid/interest.
-      // Both = green→yellow gradient.
-      const awaiting =
-        Boolean(opts?.awaitingResponse) || (opts?.bidsSent ?? 0) > 0;
-      const needs =
-        Boolean(opts?.needsAction) ||
-        (opts?.bidsReceived ?? 0) > 0 ||
-        (opts?.interestedCount ?? 0) > 0;
-      if (awaiting && needs) return 'status-box status-box--pending-more';
-      if (awaiting) return 'status-box status-box--pending-request';
-      if (needs) return 'status-box status-box--pending';
-      return 'status-box status-box--pending-request';
+      const variant = pendingBadgeVariant(opts);
+      return `status-box status-box--${variant}`;
     }
     case 'scheduled':
     case 'upcoming':

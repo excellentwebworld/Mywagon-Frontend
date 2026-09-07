@@ -143,7 +143,14 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
           </div>
 
           <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <StatusBadge status={vm.statusLabel} />
+            <StatusBadge
+              status={vm.statusLabel}
+              needsAction={vm.needsAction}
+              awaitingResponse={vm.awaitingResponse}
+              bidsReceived={vm.bidsReceived}
+              bidsSent={vm.bidsSent}
+              interestedCount={vm.interestedCount}
+            />
 
             <span className="text-[10px] font-bold tracking-wider text-slate-500 dark:text-slate-400">
               {(vm.loadSummary?.channel || (vm.isPrivateLoad ? 'PRIVATE' : 'PUBLIC')).toUpperCase()}
