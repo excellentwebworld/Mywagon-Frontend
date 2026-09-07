@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -502,12 +502,9 @@ export const LoginPage: React.FC = () => {
                       </form>
 
                       <div className="shipper-login-join-wrap">
-                        <a
-                          href={laravelBase ? `${laravelBase}/shipper/register` : '#'}
-                          className="shipper-login-join"
-                        >
+                        <Link to="/shipper/register" className="shipper-login-join">
                           {t('loginJoinForFree')}
-                        </a>
+                        </Link>
                       </div>
                     </>
                   )}

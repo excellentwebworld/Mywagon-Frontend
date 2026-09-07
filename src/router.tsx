@@ -2,6 +2,8 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { LoginPage } from './pages/Login/LoginPage';
+import { ShipperRegisterPage } from './pages/Register/ShipperRegisterPage';
+import { CarrierDriverRegisterPage } from './pages/Register/CarrierDriverRegisterPage';
 import { Dashboard } from './pages/Dashboard';
 import { ManageShipments } from './pages/ManageShipments';
 import { ShipmentDetail } from './pages/ShipmentDetail';
@@ -86,6 +88,8 @@ export const router = createBrowserRouter(
   basename
     ? [
         { path: '/login', element: <LoginPage /> },
+        { path: '/shipper/register', element: <ShipperRegisterPage /> },
+        { path: '/driver/carrier/register', element: <CarrierDriverRegisterPage /> },
         ...webViewRoutes,
         { path: '/', element: <Navigate to="/address-book" replace /> },
         protectedLayout,
@@ -93,6 +97,8 @@ export const router = createBrowserRouter(
       ]
     : [
         { path: '/login', element: <LoginPage /> },
+        { path: '/shipper/register', element: <ShipperRegisterPage /> },
+        { path: '/driver/carrier/register', element: <CarrierDriverRegisterPage /> },
         ...webViewRoutes,
         { path: '/', element: <Navigate to="/login" replace /> },
         { path: '/about', element: <Navigate to="/login" replace /> },
