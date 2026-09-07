@@ -4697,7 +4697,7 @@
     "otpSentEmail": "OTP sent to your email",
     "otpSentPhone": "OTP sent to your phone",
     "otpFailed": "Unable to send OTP",
-    "otpInvalid": "Invalid OTP",
+    "otpInvalid": "Enter valid OTP",
     "emailVerified": "Email verified",
     "phoneVerified": "Phone verified",
     "verifyEmailFirst": "Please verify your email first",
@@ -4733,6 +4733,12 @@
     "streetAddress": "Address (street name and number)",
     "certificate": "Certificate",
     "upload": "Upload",
-    "uploadCertificate": "Upload Certificate"
+    "uploadCertificate": "Upload Certificate",
+    "otpEnterSentTo": "Enter OTP sent to",
+    "resendOtp": "Resend OTP",
+    "resendAfter": "Resend OTP after",
+    "didntReceiveOtp": "Didn't receive the OTP?",
+    "enterOtp": "Enter OTP",
+    "otpResent": "OTP resent successfully"
   }
 }

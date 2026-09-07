@@ -18,6 +18,7 @@ import {
   termsUrl,
 } from './registerConstants';
 import { useRegisterReference } from './useRegisterReference';
+import { extractApiErrorMessage, getOtpLabels } from './otpHelpers';
 import './RegisterPage.css';
 
 type ShipperFormValues = {
@@ -79,6 +80,10 @@ export const ShipperRegisterPage: React.FC = () => {
   const [emailOtpOpen, setEmailOtpOpen] = useState(false);
   const [phoneOtpOpen, setPhoneOtpOpen] = useState(false);
   const [pendingEmailOtp, setPendingEmailOtp] = useState<string | null>(null);
+  const [pendingPhoneOtp, setPendingPhoneOtp] = useState<string | null>(null);
+  const [emailFieldError, setEmailFieldError] = useState<string | null>(null);
+  const [phoneFieldError, setPhoneFieldError] = useState<string | null>(null);
+  const [otpKind, setOtpKind] = useState<'email' | 'phone' | null>(null);
   const [certificate, setCertificate] = useState<File | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -179,7 +184,13 @@ export const ShipperRegisterPage: React.FC = () => {
             setSuccessHtml(res.message);
             setSuccessRedirect(res.redirect_url || '/login');
           } catch (e: unknown) {
-            toast.error(e instanceof Error ? e.message : t('register.failed'));
+            const msg = extractApiErrorMessage(e, t('register.failed'));
+            const fieldErrors = (e as { fieldErrors?: Record<string, string[]> })?.fieldErrors;
+            if (fieldErrors?.email?.[0]) setEmailFieldError(fieldErrors.email[0]);
+            if (fieldErrors?.phone?.[0]) setPhoneFieldError(fieldErrors.phone[0]);
+            if (!fieldErrors?.email?.[0] && !fieldErrors?.phone?.[0]) {
+              toast.error(msg);
+            }
           } finally {
             helpers.setSubmitting(false);
           }
@@ -229,6 +240,7 @@ export const ShipperRegisterPage: React.FC = () => {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       setFieldValue('phone', e.target.value.replace(/\D/g, '').slice(0, 10));
                       setPhoneVerified(false);
+                      setPhoneFieldError(null);
                     }}
                   />
                   <button
@@ -236,14 +248,24 @@ export const ShipperRegisterPage: React.FC = () => {
                     className={`reg-btn-verify ${phoneVerified ? 'reg-btn-verified' : ''}`}
                     disabled={phoneVerified}
                     onClick={async () => {
+                      setPhoneFieldError(null);
                       try {
                         await setFieldTouched('phone', true);
-                        const res = await registerService.sendPhoneOtp(values.country_code, values.phone, lang);
+                        if (!values.phone || values.phone.length < 8) {
+                          setPhoneFieldError(t('register.phoneInvalid'));
+                          return;
+                        }
+                        const res = await registerService.sendPhoneOtp(
+                          values.country_code,
+                          values.phone,
+                          lang,
+                        );
                         if (!res.status) throw new Error(res.message);
+                        setPendingPhoneOtp(res.data?.otp ? String(res.data.otp) : null);
+                        setOtpKind('phone');
                         setPhoneOtpOpen(true);
-                        toast.success(t('register.otpSentPhone'));
                       } catch (e: unknown) {
-                        toast.error(e instanceof Error ? e.message : t('register.otpFailed'));
+                        setPhoneFieldError(extractApiErrorMessage(e, t('register.otpFailed')));
                       }
                     }}
                   >
@@ -251,7 +273,10 @@ export const ShipperRegisterPage: React.FC = () => {
                   </button>
                 </div>
               </div>
-              {touched.phone && errors.phone ? <p className="reg-error">{errors.phone}</p> : null}
+              {phoneFieldError ? <p className="reg-field-error">{phoneFieldError}</p> : null}
+              {!phoneFieldError && touched.phone && errors.phone ? (
+                <p className="reg-error">{errors.phone}</p>
+              ) : null}
             </div>
 
             <div className="reg-field reg-contact">
@@ -263,6 +288,7 @@ export const ShipperRegisterPage: React.FC = () => {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   setFieldValue('email', e.target.value);
                   setEmailVerified(false);
+                  setEmailFieldError(null);
                 }}
               />
               <button
@@ -270,20 +296,28 @@ export const ShipperRegisterPage: React.FC = () => {
                 className={`reg-btn-verify ${emailVerified ? 'reg-btn-verified' : ''}`}
                 disabled={emailVerified}
                 onClick={async () => {
+                  setEmailFieldError(null);
                   try {
+                    if (!values.email || !values.email.includes('@')) {
+                      setEmailFieldError(t('register.emailInvalid'));
+                      return;
+                    }
                     const res = await registerService.sendEmailOtp(values.email, 'shipper', lang);
                     if (!res.status) throw new Error(res.message);
                     setPendingEmailOtp(res.otp != null ? String(res.otp) : null);
+                    setOtpKind('email');
                     setEmailOtpOpen(true);
-                    toast.success(t('register.otpSentEmail'));
                   } catch (e: unknown) {
-                    toast.error(e instanceof Error ? e.message : t('register.otpFailed'));
+                    setEmailFieldError(extractApiErrorMessage(e, t('register.otpFailed')));
                   }
                 }}
               >
                 {emailVerified ? t('register.verified') : t('register.verify')}
               </button>
-              {touched.email && errors.email ? <p className="reg-error">{errors.email}</p> : null}
+              {emailFieldError ? <p className="reg-field-error">{emailFieldError}</p> : null}
+              {!emailFieldError && touched.email && errors.email ? (
+                <p className="reg-error">{errors.email}</p>
+              ) : null}
             </div>
 
             <div className="reg-field reg-password-wrap">
@@ -451,33 +485,59 @@ export const ShipperRegisterPage: React.FC = () => {
             </div>
 
             <OtpModal
-              open={emailOtpOpen}
-              title={t('register.emailOtpTitle')}
-              subtitle={values.email}
-              otpLabel={t('register.otpLabel')}
-              verifyLabel={t('register.verify')}
-              cancelLabel={t('register.cancel')}
-              onClose={() => setEmailOtpOpen(false)}
-              onVerify={async (otp) => {
-                if (pendingEmailOtp && otp !== pendingEmailOtp) throw new Error(t('register.otpInvalid'));
-                setEmailVerified(true);
+              open={emailOtpOpen || phoneOtpOpen}
+              destination={
+                otpKind === 'phone'
+                  ? `${values.country_code}  ${values.phone}`
+                  : values.email
+              }
+              expectedOtp={otpKind === 'phone' ? pendingPhoneOtp : pendingEmailOtp}
+              debugOtp={otpKind === 'phone' ? pendingPhoneOtp : pendingEmailOtp}
+              labels={getOtpLabels(t)}
+              onClose={() => {
                 setEmailOtpOpen(false);
-                toast.success(t('register.emailVerified'));
-              }}
-            />
-            <OtpModal
-              open={phoneOtpOpen}
-              title={t('register.phoneOtpTitle')}
-              subtitle={`${values.country_code} ${values.phone}`}
-              otpLabel={t('register.otpLabel')}
-              verifyLabel={t('register.verify')}
-              cancelLabel={t('register.cancel')}
-              onClose={() => setPhoneOtpOpen(false)}
-              onVerify={async (otp) => {
-                await registerService.verifyPhoneOtp(values.country_code, values.phone, otp, lang);
-                setPhoneVerified(true);
                 setPhoneOtpOpen(false);
-                toast.success(t('register.phoneVerified'));
+                setOtpKind(null);
+              }}
+              onVerified={() => {
+                if (otpKind === 'phone') {
+                  setPhoneVerified(true);
+                  setPhoneFieldError(null);
+                  setPhoneOtpOpen(false);
+                } else {
+                  setEmailVerified(true);
+                  setEmailFieldError(null);
+                  setEmailOtpOpen(false);
+                }
+                setOtpKind(null);
+              }}
+              onServerVerify={
+                otpKind === 'phone'
+                  ? async (otp) => {
+                      await registerService.verifyPhoneOtp(
+                        values.country_code,
+                        values.phone,
+                        otp,
+                        lang,
+                      );
+                    }
+                  : undefined
+              }
+              onResend={async () => {
+                if (otpKind === 'phone') {
+                  const res = await registerService.sendPhoneOtp(
+                    values.country_code,
+                    values.phone,
+                    lang,
+                  );
+                  const otp = res.data?.otp ? String(res.data.otp) : null;
+                  setPendingPhoneOtp(otp);
+                  return otp;
+                }
+                const res = await registerService.sendEmailOtp(values.email, 'shipper', lang);
+                const otp = res.otp != null ? String(res.otp) : null;
+                setPendingEmailOtp(otp);
+                return otp;
               }}
             />
           </Form>

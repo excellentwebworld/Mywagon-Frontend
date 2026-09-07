@@ -57,12 +57,26 @@ async function registerRequest<T>(
     if (axios.isAxiosError(err)) {
       const data = err.response?.data as {
         message?: string;
+        success?: boolean;
         errors?: Record<string, string[]>;
       };
-      const firstFieldError = data?.errors
-        ? Object.values(data.errors).flat()[0]
+      const fieldErrors = data?.errors;
+      const firstFieldError = fieldErrors
+        ? Object.values(fieldErrors).flat().find((m) => typeof m === 'string' && m.trim())
         : undefined;
-      throw new Error(firstFieldError || data?.message || err.message || 'Request failed');
+      // Prefer field error, then top-level message (Blade shows responseJSON.message).
+      const message =
+        firstFieldError ||
+        (typeof data?.message === 'string' && data.message.trim() ? data.message : null) ||
+        err.message ||
+        'Request failed';
+      const error = new Error(message) as Error & {
+        fieldErrors?: Record<string, string[]>;
+        status?: number;
+      };
+      error.fieldErrors = fieldErrors;
+      error.status = err.response?.status;
+      throw error;
     }
     throw err;
   }

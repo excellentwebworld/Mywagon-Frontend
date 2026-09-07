@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import fullLogo from '../../assets/logo/fullLogo.svg';
+import { useApp } from '../../context/AppContext';
 import { signupVideoUrl } from './registerConstants';
 import { useRegisterReference } from './useRegisterReference';
 import './RegisterPage.css';
@@ -22,6 +23,7 @@ export const RegisterLayout: React.FC<Props> = ({
   title,
   variant = 'shipper',
 }) => {
+  const { toast, hideToast } = useApp();
   const { data: reference } = useRegisterReference(lang);
   const apiVideo =
     variant === 'carrier' ? reference?.videos?.carrier : reference?.videos?.shipper;
@@ -29,6 +31,14 @@ export const RegisterLayout: React.FC<Props> = ({
 
   return (
     <div className={`reg-page reg-page--${variant}`}>
+      {toast.show ? (
+        <div className={`reg-toast reg-toast--${toast.type}`} role="status">
+          <span>{toast.message}</span>
+          <button type="button" onClick={hideToast} aria-label="Close">
+            ×
+          </button>
+        </div>
+      ) : null}
       <div className="reg-row">
         <div className="reg-form-col">
           <div className="reg-form-inner">

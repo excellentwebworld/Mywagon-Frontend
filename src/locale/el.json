@@ -4698,7 +4698,7 @@
     "otpSentEmail": "Το OTP στάλθηκε στο email σας",
     "otpSentPhone": "Το OTP στάλθηκε στο τηλέφωνό σας",
     "otpFailed": "Αδυναμία αποστολής OTP",
-    "otpInvalid": "Μη έγκυρο OTP",
+    "otpInvalid": "Εισάγετε έγκυρο OTP",
     "emailVerified": "Το email επαληθεύτηκε",
     "phoneVerified": "Το τηλέφωνο επαληθεύτηκε",
     "verifyEmailFirst": "Επαληθεύστε πρώτα το email σας",
@@ -4734,6 +4734,12 @@
     "streetAddress": "Διεύθυνση (οδός και αριθμός)",
     "certificate": "Πιστοποιητικό",
     "upload": "Ανέβασμα",
-    "uploadCertificate": "Ανέβασμα πιστοποιητικού"
+    "uploadCertificate": "Ανέβασμα πιστοποιητικού",
+    "otpEnterSentTo": "Εισάγετε το OTP που στάλθηκε στο",
+    "resendOtp": "Επαναποστολή OTP",
+    "resendAfter": "Επαναποστολή OTP μετά από",
+    "didntReceiveOtp": "Δεν λάβατε το OTP;",
+    "enterOtp": "Εισάγετε OTP",
+    "otpResent": "Το OTP στάλθηκε ξανά επιτυχώς"
   }
 }
