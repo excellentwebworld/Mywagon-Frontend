@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Star, ArrowRightLeft, Check, X, History, MessageSquare, Loader2 } from 'lucide-react';
+import { Users, Star, ArrowRightLeft, Check, X, History, MessageSquare, Loader2, ShieldCheck } from 'lucide-react';
 import { CollapsibleCard } from './CollapsibleCard';
 import { useTransporterProfileOptional } from '../TransporterProfile/TransporterProfileContext';
 import { CarrierAvatar } from '../ManageShipments/CarrierAvatar';
@@ -13,7 +13,9 @@ export interface PartnerBidItem {
   initials?: string;
   avatar?: string | null;
   rating?: number | string;
+  ratingCount?: number;
   tripsCount?: number;
+  isPartner?: boolean;
   bidAmount?: number | null;
   statusText?: string;
   time?: string;
@@ -118,6 +120,11 @@ export const BidsCard: React.FC<BidsCardProps> = ({
           const isFreelancer = item.transporterType === 'freelancer' || item.userType === 'driver';
           const isShipperWaiting = item.lastActionBy === 'shipper';
           const canCounter = item.hasBid && !isShipperWaiting && item.canCounter !== false;
+          const ratingNum =
+            item.rating != null && !isNaN(Number(item.rating))
+              ? Number(item.rating)
+              : 0;
+          const formattedRating = ratingNum.toFixed(1);
 
           return (
             <div
@@ -136,7 +143,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <button
                         type="button"
                         onClick={() => handleOpenProfile(item)}
@@ -144,9 +151,30 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                       >
                         {item.name}
                       </button>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                        {isFreelancer ? 'Freelancer' : 'Carrier'}
+
+                      {/* Rating pill: matching Transporter card exactly */}
+                      <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
+                        <Star size={11} fill="currentColor" /> {formattedRating} ({item.ratingCount != null ? item.ratingCount : (item.tripsCount || 1)})
                       </span>
+
+                      {/* Role badge */}
+                      {isFreelancer ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                          {t('freelancer', 'Freelancer')}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          {t('carrier', 'Carrier')}
+                        </span>
+                      )}
+
+                      {/* Partner badge */}
+                      {item.isPartner && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          <ShieldCheck size={11} />
+                          <span>{t('partner', 'PARTNER')}</span>
+                        </span>
+                      )}
                     </div>
 
                     {/* Price or Actions */}

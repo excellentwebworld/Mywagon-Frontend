@@ -138,11 +138,9 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     {carrier.name}
                   </button>
 
-                  {carrier.rating && carrier.rating !== '—' && (
-                    <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
-                      <Star size={11} fill="currentColor" /> {carrier.rating} ({carrier.tripsCount || 85})
-                    </span>
-                  )}
+                  <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
+                    <Star size={11} fill="currentColor" /> {carrier.rating && carrier.rating !== '—' ? carrier.rating : '0.0'} ({carrier.ratingCount != null ? carrier.ratingCount : (carrier.tripsCount ?? 0)})
+                  </span>
 
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                     {t('freelancer', 'Freelancer')}
@@ -201,6 +199,45 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                 {t('completedTrips', 'Completed trips')}: <strong className="text-slate-900 dark:text-white">{carrier.tripsCount || 85}</strong> · Semi-Trailer Truck
               </div>
 
+              {/* Performance Metrics Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {t('onTimePickup', 'On-time pickup')}
+                  </div>
+                  <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
+                    {carrier.onTimePickup && carrier.onTimePickup !== '—' ? carrier.onTimePickup : '98%'}
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {t('onTimeDelivery', 'On-time delivery')}
+                  </div>
+                  <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
+                    {carrier.onTimeDelivery && carrier.onTimeDelivery !== '—' ? carrier.onTimeDelivery : '96%'}
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {t('cancelRate', 'Cancel rate')}
+                  </div>
+                  <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
+                    {carrier.cancelRate && carrier.cancelRate !== '—' ? carrier.cancelRate : '0.5%'}
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {t('avgPickupDelay', 'Avg delay')}
+                  </div>
+                  <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
+                    {carrier.avgPickupDelay && carrier.avgPickupDelay !== '—' ? carrier.avgPickupDelay : '8m'}
+                  </div>
+                </div>
+              </div>
+
               {/* License plates */}
               <div className="flex items-center gap-2 mt-2.5 flex-wrap">
                 {carrierPlates.map((plate, pIdx) => (
@@ -241,11 +278,9 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       {carrier.name}
                     </button>
 
-                    {carrier.rating && carrier.rating !== '—' && (
-                      <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
-                        <Star size={11} fill="currentColor" /> {carrier.rating} ({carrier.tripsCount || 142})
-                      </span>
-                    )}
+                    <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
+                      <Star size={11} fill="currentColor" /> {carrier.rating && carrier.rating !== '—' ? carrier.rating : '0.0'} ({carrier.ratingCount != null ? carrier.ratingCount : (carrier.tripsCount ?? 0)})
+                    </span>
 
                     {carrier.partner && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
@@ -307,7 +342,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       {t('onTimePickup', 'On-time pickup')}
                     </div>
                     <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
-                      {carrier.onTimePickup || '98%'}
+                      {carrier.onTimePickup && carrier.onTimePickup !== '—' ? carrier.onTimePickup : '98%'}
                     </div>
                   </div>
 
@@ -316,7 +351,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       {t('onTimeDelivery', 'On-time delivery')}
                     </div>
                     <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
-                      {carrier.onTimeDelivery || '96%'}
+                      {carrier.onTimeDelivery && carrier.onTimeDelivery !== '—' ? carrier.onTimeDelivery : '96%'}
                     </div>
                   </div>
 
@@ -325,7 +360,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       {t('cancelRate', 'Cancel rate')}
                     </div>
                     <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
-                      {carrier.cancelRate || '0.5%'}
+                      {carrier.cancelRate && carrier.cancelRate !== '—' ? carrier.cancelRate : '0.5%'}
                     </div>
                   </div>
 
@@ -334,7 +369,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       {t('avgPickupDelay', 'Avg delay')}
                     </div>
                     <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
-                      {carrier.avgPickupDelay || '8m'}
+                      {carrier.avgPickupDelay && carrier.avgPickupDelay !== '—' ? carrier.avgPickupDelay : '8m'}
                     </div>
                   </div>
                 </div>
@@ -382,11 +417,9 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       {driver.name}
                     </button>
 
-                    {driver.rating && driver.rating !== '—' && (
-                      <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
-                        <Star size={11} fill="currentColor" /> {driver.rating} ({driver.tripsCount ?? 22})
-                      </span>
-                    )}
+                    <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
+                      <Star size={11} fill="currentColor" /> {driver.rating && driver.rating !== '—' ? driver.rating : '0.0'} ({driver.ratingCount != null ? driver.ratingCount : (driver.tripsCount ?? 0)})
+                    </span>
 
                     {driver.partner && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">

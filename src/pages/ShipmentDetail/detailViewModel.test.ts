@@ -187,7 +187,37 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
     expect(vm.status).toBe('ready');
     expect(vm.carrier?.userType).toBe('driver');
     expect(vm.carrier?.meta).toBe('Freelancer');
+    expect(vm.carrier?.rating).toBe('4.7');
+    expect(vm.carrier?.tripsCount).toBe(85);
+    expect(vm.carrier?.onTimePickup).toBe('98%');
+    expect(vm.carrier?.onTimeDelivery).toBe('96%');
+    expect(vm.carrier?.cancelRate).toBe('0.5%');
+    expect(vm.carrier?.avgPickupDelay).toBe('8m');
     expect(vm.carrier?.plates).toEqual(['ΒΕ-1234', 'ΤΡ-9988']);
+  });
+
+  it('Scheduled, Ready, and Past Due load displays transporter rating and statistics even before trip completion review', () => {
+    const vm = buildShipmentDetailViewModel({
+      ...baseMockShipment,
+      status: 'scheduled',
+      carrier: 'IOS Driver',
+      carrierRole: 'freelancer',
+      carrierType: 'driver',
+      carrierRating: null, // No post-trip review yet
+      carrierProfileRating: 3.0,
+      carrierRatingCount: 85,
+      carrierId: 401,
+    });
+
+    expect(vm.status).toBe('scheduled');
+    expect(vm.carrier).not.toBeNull();
+    expect(vm.carrier?.name).toBe('IOS Driver');
+    expect(vm.carrier?.rating).toBe('3.0');
+    expect(vm.carrier?.tripsCount).toBe(85);
+    expect(vm.carrier?.onTimePickup).toBe('98%');
+    expect(vm.carrier?.onTimeDelivery).toBe('96%');
+    expect(vm.carrier?.cancelRate).toBe('0.5%');
+    expect(vm.carrier?.avgPickupDelay).toBe('8m');
   });
 
   // Phase 4: On Trip, Live Tracking & Share Tracking

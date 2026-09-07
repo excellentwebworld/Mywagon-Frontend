@@ -254,6 +254,9 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     carrierRole: (item.carrier as any)?.role ?? (item.carrier?.type === 'driver' ? 'freelancer' : null),
     carrierPartner: Boolean((item.carrier as any)?.is_partner ?? (item.carrier as any)?.partner),
     carrierRating: item.carrier?.rating ?? null,
+    carrierProfileRating: item.carrier?.rating ?? (item.carrier as any)?.rating_average ?? null,
+    carrierRatingCount: (item.carrier as any)?.rating_count ?? (item.carrier as any)?.trips_count ?? null,
+    carrierTripsCount: (item.carrier as any)?.trips_count ?? (item.carrier as any)?.rating_count ?? null,
     carrierOnTimeDeliveryPct: item.carrier?.on_time_delivery_pct ?? null,
     carrierCancellationRatePct: item.carrier?.cancellation_rate_pct ?? null,
     carrierAvgPickupDelayMinutes: item.carrier?.avg_pickup_delay_minutes ?? null,
@@ -348,6 +351,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     assignedDriverInitials: detail.assigned_driver?.initials ?? null,
     assignedDriverAvatar: detail.assigned_driver?.avatar ?? null,
     assignedDriverRating: detail.assigned_driver?.rating ?? null,
+    assignedDriverRatingCount: detail.assigned_driver?.rating_count ?? null,
     assignedDriverPartner: Boolean(detail.assigned_driver?.is_partner),
     assignedDriverPlates: detail.assigned_driver?.vehicle_plates ?? [],
     assignedDriverTripsCount: detail.assigned_driver?.trips_count ?? null,
@@ -499,6 +503,29 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
         }
       : null,
     isCarrierRated: Boolean((detail as any).is_carrier_rated ?? (detail.carrier as any)?.is_rated ?? detail.shipper_rating),
+    carrierProfileRating:
+      detail.carrier?.rating ??
+      (detail.carrier as any)?.rating_average ??
+      base.carrierProfileRating ??
+      (typeof base.carrierRating === 'number' ? base.carrierRating : null) ??
+      null,
+    carrierRatingCount:
+      detail.carrier?.rating_count ??
+      (detail.carrier as any)?.ratingCount ??
+      (detail.carrier as any)?.trips_count ??
+      base.carrierRatingCount ??
+      null,
+    carrierTripsCount:
+      (detail.carrier as any)?.trips_count ??
+      detail.carrier?.rating_count ??
+      base.carrierTripsCount ??
+      null,
+    carrierOnTimeDeliveryPct:
+      (detail.carrier as any)?.on_time_delivery_pct ?? base.carrierOnTimeDeliveryPct ?? null,
+    carrierCancellationRatePct:
+      (detail.carrier as any)?.cancellation_rate_pct ?? base.carrierCancellationRatePct ?? null,
+    carrierAvgPickupDelayMinutes:
+      (detail.carrier as any)?.avg_pickup_delay_minutes ?? base.carrierAvgPickupDelayMinutes ?? null,
     carrierRating: (detail as any).carrier_rating
       ? {
           id: (detail as any).carrier_rating.id,
@@ -507,13 +534,15 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
           deliveryOnTime: (detail as any).carrier_rating.delivery_on_time,
           createdAt: (detail as any).carrier_rating.created_at,
         }
-      : (detail.shipper_rating ? {
+      : detail.shipper_rating
+      ? {
           id: detail.shipper_rating.id,
           rating: detail.shipper_rating.rating,
           review: detail.shipper_rating.review,
           deliveryOnTime: detail.shipper_rating.delivery_on_time,
           createdAt: detail.shipper_rating.created_at,
-        } : null),
+        }
+      : (detail.carrier?.rating ?? (detail.carrier as any)?.rating_average ?? base.carrierRating ?? null),
     actualRouteCoordinates: Array.isArray((detail as any).actual_route_coordinates)
       ? (detail as any).actual_route_coordinates
           .map((pt: any) => {

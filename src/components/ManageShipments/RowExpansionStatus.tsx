@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Star } from 'lucide-react';
 import type { Shipment } from '../../context/AppContext';
 import {
   formatEuro,
@@ -39,6 +40,20 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
   const [qaBusy, setQaBusy] = useState<'edit' | 'view' | 'cancel' | null>(null);
   const priceType = shipment.price_type === 'contract' ? 'contract' : 'spot';
   const priceLabel = formatEuro(shipment.agreedPrice ?? shipment.quotedPrice);
+
+  const carrierRatingVal =
+    typeof shipment.carrierRating === 'number'
+      ? shipment.carrierRating.toFixed(1)
+      : typeof shipment.carrierRating === 'object' && (shipment.carrierRating as any)?.rating != null
+      ? Number((shipment.carrierRating as any).rating).toFixed(1)
+      : shipment.carrierProfileRating != null
+      ? Number(shipment.carrierProfileRating).toFixed(1)
+      : '3.0';
+
+  const carrierRatingCountVal =
+    shipment.carrierRatingCount != null
+      ? shipment.carrierRatingCount
+      : 1;
 
   const runQa = (key: NonNullable<typeof qaBusy>, fn: () => void) => {
     if (qaBusy) return;
@@ -116,12 +131,18 @@ export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({
                   avatar={shipment.carrierAvatar}
                 />
                 <div className="cc-info">
-                  <div className="cc-name">
+                  <div className="cc-name flex items-center gap-1.5 flex-wrap">
                     <TransporterNameLink
                       id={shipment.carrierId}
                       type={shipment.carrierType}
                       name={shipment.carrier}
                     />
+                    <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
+                      <Star size={11} fill="currentColor" /> {carrierRatingVal} ({carrierRatingCountVal})
+                    </span>
+                    {shipment.carrierPartner ? (
+                      <span className="bids-partner-badge">{t('partner')}</span>
+                    ) : null}
                   </div>
                   {(shipment.updatedAt || shipment.updated) && (
                     <div className="cc-meta">

@@ -196,6 +196,9 @@ export interface Shipment {
     deliveryOnTime?: boolean | null;
     createdAt?: string;
   } | null;
+  carrierProfileRating?: number | null;
+  carrierRatingCount?: number | null;
+  carrierTripsCount?: number | null;
   carrierOnTimeDeliveryPct?: number | null;
   carrierCancellationRatePct?: number | null;
   carrierAvgPickupDelayMinutes?: number | null;
@@ -204,6 +207,7 @@ export interface Shipment {
   assignedDriverInitials?: string | null;
   assignedDriverAvatar?: string | null;
   assignedDriverRating?: number | null;
+  assignedDriverRatingCount?: number | null;
   assignedDriverPartner?: boolean;
   assignedDriverPlates?: string[];
   assignedDriverTripsCount?: number | null;

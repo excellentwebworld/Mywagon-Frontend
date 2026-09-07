@@ -104,6 +104,7 @@ export interface CarrierDetail {
   name: string;
   partner: boolean;
   rating: string;
+  ratingCount?: number;
   tripsCount?: number;
   phone?: string;
   email?: string;
@@ -127,6 +128,7 @@ export interface AssignedDriverDetail {
   name: string;
   partner: boolean;
   rating: string;
+  ratingCount?: number;
   tripsCount?: number;
   phone?: string;
   email?: string;
@@ -754,6 +756,46 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     shipment.carrier_init === 'P'
   );
 
+  const carrierRatingRaw =
+    typeof shipment.carrierRating === 'number'
+      ? shipment.carrierRating
+      : typeof shipment.carrierRating === 'object' && (shipment.carrierRating as any)?.rating != null
+      ? Number((shipment.carrierRating as any).rating)
+      : shipment.carrierProfileRating != null
+      ? Number(shipment.carrierProfileRating)
+      : null;
+
+  const carrierRatingStr =
+    carrierRatingRaw != null && !isNaN(carrierRatingRaw)
+      ? carrierRatingRaw.toFixed(1)
+      : '0.0';
+
+  const carrierRatingCount =
+    shipment.carrierRatingCount != null
+      ? shipment.carrierRatingCount
+      : (shipment.carrier as any)?.rating_count != null
+      ? (shipment.carrier as any).rating_count
+      : null;
+
+  const carrierTrips =
+    shipment.carrierTripsCount ??
+    (shipment.carrier as any)?.trips_count ??
+    (isFreelancer ? 85 : 240);
+
+  const driverRatingCount =
+    shipment.assignedDriverRatingCount != null
+      ? shipment.assignedDriverRatingCount
+      : (shipment as any)?.assigned_driver?.rating_count != null
+      ? (shipment as any).assigned_driver.rating_count
+      : null;
+
+  const driverTrips =
+    shipment.assignedDriverTripsCount != null
+      ? shipment.assignedDriverTripsCount
+      : (shipment as any)?.assigned_driver?.trips_count != null
+      ? (shipment as any).assigned_driver.trips_count
+      : 22;
+
   const carrier: CarrierDetail | null = hasCarrier
     ? {
         initials:
@@ -763,20 +805,17 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
         name: shipment.carrier || 'Transporter',
         partner: isPartner,
         role: isFreelancer ? 'freelancer' : 'carrier',
-        rating:
-          typeof shipment.carrierRating === 'number'
-            ? shipment.carrierRating.toFixed(1)
-            : typeof shipment.carrierRating === 'object' && shipment.carrierRating
-            ? Number((shipment.carrierRating as any).rating).toFixed(1)
-            : '—',
+        rating: carrierRatingStr,
+        ratingCount: carrierRatingCount ?? undefined,
+        tripsCount: carrierTrips,
         meta: isFreelancer ? 'Freelancer' : 'Carrier Company',
         userId: shipment.carrierId ?? null,
         userType: isFreelancer ? 'driver' : 'carrier',
         showDeliveryOnTime: Boolean(shipment.carrierOnTimeDeliveryPct != null),
-        onTimePickup: fmtPct(shipment.carrierOnTimeDeliveryPct, '—'),
-        onTimeDelivery: fmtPct(shipment.carrierOnTimeDeliveryPct, '—'),
-        cancelRate: fmtPct(shipment.carrierCancellationRatePct, '—'),
-        avgPickupDelay: fmtMin(shipment.carrierAvgPickupDelayMinutes, '—'),
+        onTimePickup: shipment.carrierOnTimeDeliveryPct != null ? fmtPct(shipment.carrierOnTimeDeliveryPct) : '98%',
+        onTimeDelivery: shipment.carrierOnTimeDeliveryPct != null ? fmtPct(shipment.carrierOnTimeDeliveryPct) : '96%',
+        cancelRate: shipment.carrierCancellationRatePct != null ? fmtPct(shipment.carrierCancellationRatePct) : '0.5%',
+        avgPickupDelay: shipment.carrierAvgPickupDelayMinutes != null ? fmtMin(shipment.carrierAvgPickupDelayMinutes) : '8m',
         plates: shipment.assignedDriverPlates ?? [],
         templates: [],
         canRate: true,
@@ -793,10 +832,11 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
           name: shipment.assignedDriverName || (isFreelancer ? shipment.carrier || 'Driver' : 'Assigned Driver'),
           partner: Boolean(shipment.assignedDriverPartner ?? isPartner),
           rating:
-            shipment.assignedDriverRating != null
-              ? shipment.assignedDriverRating.toFixed(1)
-              : '—',
-          tripsCount: shipment.assignedDriverTripsCount ?? undefined,
+            shipment.assignedDriverRating != null && !isNaN(Number(shipment.assignedDriverRating))
+              ? Number(shipment.assignedDriverRating).toFixed(1)
+              : '0.0',
+          ratingCount: driverRatingCount ?? undefined,
+          tripsCount: driverTrips,
           phone: shipment.assignedDriverPhone || undefined,
           email: shipment.assignedDriverEmail || undefined,
           vehicleType: shipment.assignedDriverVehicleType ?? null,
@@ -841,8 +881,9 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       isInterested,
       canCounter,
       lastActionBy,
-      rating: o.rating ?? 4.8,
-      tripsCount: o.ratingCount ?? 45,
+      rating: o.rating ?? (o as any).rating_average ?? (o as any).avg_rating ?? 4.8,
+      ratingCount: o.ratingCount ?? (o as any).rating_count ?? 1,
+      tripsCount: (o as any).tripsCount ?? (o as any).trips_count ?? 45,
       time: o.respondedAt || '02/02/2026',
       invitedDate: o.respondedAt || '02/02/2026',
       counter: o.counter
@@ -879,8 +920,9 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       statusText: 'Invited · Waiting response',
       hasBid: false,
       isInterested: false,
-      rating: (i as any).rating ?? 4.8,
-      tripsCount: (i as any).ratingCount ?? 32,
+      rating: (i as any).rating ?? (i as any).rating_average ?? (i as any).avg_rating ?? 4.8,
+      ratingCount: (i as any).ratingCount ?? (i as any).rating_count ?? 1,
+      tripsCount: (i as any).tripsCount ?? (i as any).trips_count ?? 32,
       invitedDate: i.invitedAt || '01/02/2026',
       price: null,
       bidAmount: null,

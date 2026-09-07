@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Package, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { Package, Truck, Layers, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import type { DetailNote } from '../../pages/ShipmentDetail/detailViewModel';
 import { parseSpecialInstructions, formatUtcToDisplayDateTime, type ParsedInstructionNote } from '../../utils/timezone';
 import { CollapsibleCard } from './CollapsibleCard';
@@ -96,6 +96,7 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
   onToggle,
   t,
 }) => {
+  const [vehicleTypesExpanded, setVehicleTypesExpanded] = useState(false);
   const [cargoSpecsExpanded, setCargoSpecsExpanded] = useState(false);
 
   const vehicleTypes = loadSummary.vehicleTypes?.length
@@ -127,112 +128,147 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
       expanded={expanded}
       onToggle={onToggle}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {/* Vehicle Type & Cargo Specs (Separated & Collapsible) */}
+      {/* Tier 1: Equipment & Cargo Requirements (Separated Dedicated Cards) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Vehicle Type Card */}
         <div className="p-3.5 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
           <div>
-            {/* 1. Vehicle Type */}
-            <div className="mb-2.5">
-              <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider block mb-1.5">
-                {t('vehicleType', 'Vehicle Type')}
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {vehicleTypes.length ? (
-                  vehicleTypes.map((v, i) => (
-                    <span
-                      key={`vt-${i}`}
-                      className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)]"
-                    >
-                      {v}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-[12px] text-slate-400 dark:text-slate-500">—</span>
-                )}
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="border-t border-[var(--border)] my-2.5" />
-
-            {/* 2. Cargo Specs (Collapsible) */}
-            <div>
-              <div className="flex items-center justify-between gap-1 mb-1.5">
+            <div className="flex items-center justify-between gap-1 mb-2">
+              <div className="flex items-center gap-1.5">
+                <Truck size={13} className="text-[var(--text-tertiary)]" />
                 <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
-                  {t('cargoSpecs', 'Cargo Specs')}
-                  {cargoSpecs.length > 0 && (
-                    <span className="ml-1 text-[10px] font-semibold text-[var(--text-tertiary)]">
-                      ({cargoSpecs.length})
-                    </span>
-                  )}
+                  {t('vehicleType', 'Vehicle Type')}
                 </span>
-                {cargoSpecs.length > 2 && (
-                  <button
-                    type="button"
-                    onClick={() => setCargoSpecsExpanded(!cargoSpecsExpanded)}
-                    className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline inline-flex items-center gap-0.5 cursor-pointer bg-transparent border-0 p-0"
-                  >
-                    <span>
-                      {cargoSpecsExpanded
-                        ? t('showLess', 'Show less')
-                        : `+${cargoSpecs.length - 2} ${t('more', 'more')}`}
-                    </span>
-                    {cargoSpecsExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                  </button>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {(cargoSpecsExpanded ? cargoSpecs : cargoSpecs.slice(0, 2)).map((c, i) => (
-                  <span
-                    key={`cs-${i}`}
-                    className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
-                  >
-                    {c}
+                {vehicleTypes.length > 1 && (
+                  <span className="text-[10px] font-semibold text-[var(--text-tertiary)]">
+                    ({vehicleTypes.length})
                   </span>
-                ))}
-                {!cargoSpecsExpanded && cargoSpecs.length > 2 && (
-                  <button
-                    type="button"
-                    onClick={() => setCargoSpecsExpanded(true)}
-                    className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 hover:bg-purple-200 dark:hover:bg-purple-900 cursor-pointer transition-colors"
-                  >
-                    +{cargoSpecs.length - 2} {t('more', 'more')}
-                  </button>
-                )}
-                {!cargoSpecs.length && (
-                  <span className="text-[12px] text-slate-400 dark:text-slate-500">—</span>
                 )}
               </div>
+              {vehicleTypes.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => setVehicleTypesExpanded(!vehicleTypesExpanded)}
+                  className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline inline-flex items-center gap-0.5 cursor-pointer bg-transparent border-0 p-0"
+                >
+                  <span>
+                    {vehicleTypesExpanded
+                      ? t('showLess', 'Show less')
+                      : `+${vehicleTypes.length - 2} ${t('more', 'more')}`}
+                  </span>
+                  {vehicleTypesExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {(vehicleTypesExpanded ? vehicleTypes : vehicleTypes.slice(0, 2)).map((v, i) => (
+                <span
+                  key={`vt-${i}`}
+                  className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)]"
+                >
+                  {v}
+                </span>
+              ))}
+              {!vehicleTypesExpanded && vehicleTypes.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => setVehicleTypesExpanded(true)}
+                  className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--surface-alt)] cursor-pointer transition-colors"
+                >
+                  +{vehicleTypes.length - 2} {t('more', 'more')}
+                </button>
+              )}
+              {!vehicleTypes.length && (
+                <span className="text-[12px] text-slate-400 dark:text-slate-500">—</span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Quoted Price */}
+        {/* Cargo Specs Card */}
         <div className="p-3.5 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider block mb-2">
+          <div>
+            <div className="flex items-center justify-between gap-1 mb-2">
+              <div className="flex items-center gap-1.5">
+                <Layers size={13} className="text-purple-600 dark:text-purple-400" />
+                <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
+                  {t('cargoSpecs', 'Cargo Specs')}
+                </span>
+                {cargoSpecs.length > 0 && (
+                  <span className="text-[10px] font-semibold text-[var(--text-tertiary)]">
+                    ({cargoSpecs.length})
+                  </span>
+                )}
+              </div>
+              {cargoSpecs.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => setCargoSpecsExpanded(!cargoSpecsExpanded)}
+                  className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline inline-flex items-center gap-0.5 cursor-pointer bg-transparent border-0 p-0"
+                >
+                  <span>
+                    {cargoSpecsExpanded
+                      ? t('showLess', 'Show less')
+                      : `+${cargoSpecs.length - 2} ${t('more', 'more')}`}
+                  </span>
+                  {cargoSpecsExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {(cargoSpecsExpanded ? cargoSpecs : cargoSpecs.slice(0, 2)).map((c, i) => (
+                <span
+                  key={`cs-${i}`}
+                  className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                >
+                  {c}
+                </span>
+              ))}
+              {!cargoSpecsExpanded && cargoSpecs.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => setCargoSpecsExpanded(true)}
+                  className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 hover:bg-purple-200 dark:hover:bg-purple-900 cursor-pointer transition-colors"
+                >
+                  +{cargoSpecs.length - 2} {t('more', 'more')}
+                </button>
+              )}
+              {!cargoSpecs.length && (
+                <span className="text-[12px] text-slate-400 dark:text-slate-500">—</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tier 2: Commercial & Operational Parameters (5-Tile Compact Grid) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 mt-3">
+        {/* Quoted Price */}
+        <div className="p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
+          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider block mb-1.5 truncate">
             {t('quotedPrice', 'Quoted Price')}
           </span>
-          <span className="font-bold text-[14px] text-[var(--text-primary)] mt-auto font-mono">
+          <div className="font-bold text-[14px] text-[var(--text-primary)] font-mono truncate">
             {loadSummary.quote || '—'}
-          </span>
+          </div>
         </div>
 
         {/* Load Value */}
-        <div className="p-3.5 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider block mb-2">
+        <div className="p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
+          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider block mb-1.5 truncate">
             {t('loadValue', 'Load Value')}
           </span>
-          <span className="font-bold text-[14px] text-[var(--text-primary)] mt-auto font-mono">
+          <div className="font-bold text-[14px] text-[var(--text-primary)] font-mono truncate">
             {loadSummary.loadValue || '—'}
-          </span>
+          </div>
         </div>
 
-        {/* Row 2: Channel, Pricing, Navigation */}
-        <div className="p-3.5 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider block mb-2">
+        {/* Channel */}
+        <div className="p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
+          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider block mb-1.5 truncate">
             {t('channel', 'Channel')}
           </span>
-          <div className="mt-auto">
+          <div>
             <span
               className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
                 loadSummary.channel === 'Public'
@@ -246,11 +282,11 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
         </div>
 
         {/* Pricing Negotiation */}
-        <div className="p-3.5 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider block mb-2">
+        <div className="p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
+          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider block mb-1.5 truncate">
             {t('pricingNegotiation', 'Pricing Negotiation')}
           </span>
-          <span className="text-[12px] font-semibold text-[var(--text-primary)] mt-auto flex items-center gap-1.5">
+          <div className="text-[12px] font-semibold text-[var(--text-primary)] flex items-center gap-1.5 truncate">
             {loadSummary.negotiable ? (
               <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
                 ✓ {t('negotiable', 'Negotiable')}
@@ -260,18 +296,18 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
                 {t('fixedPrice', 'Fixed Price')}
               </span>
             )}
-          </span>
+          </div>
         </div>
 
         {/* Live GPS Navigation */}
-        <div className="p-3.5 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider block mb-2">
+        <div className="p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between col-span-2 sm:col-span-1">
+          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider block mb-1.5 truncate">
             {t('liveNavigation', 'Live Navigation')}
           </span>
-          <div className="mt-auto">
+          <div>
             {loadSummary.liveNavigation ? (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 {t('enabled', 'Enabled')}
               </span>
             ) : (

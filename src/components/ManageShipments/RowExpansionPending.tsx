@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Star } from 'lucide-react';
 import type { Shipment } from '../../context/AppContext';
 import { formatEuro } from '../../pages/ManageShipments/utils/listingUtils';
 import { formatUtcToDisplayDateTime } from '../../utils/timezone';
@@ -161,6 +162,13 @@ function OfferCard({
                 name={offer.name}
                 className="bid-carrier-name tp-name-link"
               />
+              <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
+                <Star size={11} fill="currentColor" />{' '}
+                {offer.rating != null && !isNaN(Number(offer.rating))
+                  ? Number(offer.rating).toFixed(1)
+                  : '0.0'}{' '}
+                ({offer.ratingCount != null ? offer.ratingCount : 0})
+              </span>
               {offer.isPartner ? <span className="bids-partner-badge">{t('partner')}</span> : null}
               <span className="badge badge-gray" style={{ fontSize: 9 }}>
                 {roleLabel}
