@@ -21,8 +21,7 @@ interface StopsCardProps {
   requestingPodStopId?: string | number | null;
   shipmentStatus?: string;
   reportablePickups?: ReportablePickup[];
-  reportableDropoffs?: ReportablePickup[];
-  onReportDelay?: (pickup: ReportablePickup, kind?: 'pickup' | 'dropoff') => void;
+  onReportDelay?: (pickup: ReportablePickup) => void;
   t: (key: string, fallback?: string) => string;
 }
 
@@ -341,7 +340,6 @@ export const StopsCard: React.FC<StopsCardProps> = ({
   requestingPodStopId = null,
   shipmentStatus,
   reportablePickups = [],
-  reportableDropoffs = [],
   onReportDelay,
   t,
 }) => {
@@ -402,8 +400,6 @@ export const StopsCard: React.FC<StopsCardProps> = ({
           const delayPickup = isPickup
             ? reportablePickups.find((p) => stop.locationIds.includes(p.location_id))
             : undefined;
-          const delayTarget = delayPickup;
-          const delayKind: 'pickup' | undefined = delayPickup ? 'pickup' : undefined;
 
           return (
             <div
@@ -431,11 +427,11 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap shrink-0">
-                      {delayTarget && delayKind && onReportDelay && (
+                      {delayPickup && onReportDelay && (
                         <button
                           type="button"
                           className="px-3 py-1.5 rounded-md text-[11px] font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] cursor-pointer whitespace-nowrap transition-opacity shadow-xs border-0"
-                          onClick={() => onReportDelay(delayTarget, delayKind)}
+                          onClick={() => onReportDelay(delayPickup)}
                         >
                           {t('reportDelay', 'Report delay')}
                         </button>

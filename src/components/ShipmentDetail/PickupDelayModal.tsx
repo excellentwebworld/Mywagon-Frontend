@@ -15,8 +15,6 @@ const DELAY_BUCKETS = [
 
 interface PickupDelayModalProps {
   open: boolean;
-  /** pickup (default) or dropoff — changes title and question copy */
-  kind?: 'pickup' | 'dropoff';
   locationLabel?: string | null;
   submitting?: boolean;
   onClose: () => void;
@@ -31,7 +29,6 @@ interface PickupDelayModalProps {
 
 export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
   open,
-  kind = 'pickup',
   locationLabel,
   submitting = false,
   onClose,
@@ -54,13 +51,8 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
 
   if (!open) return null;
 
-  const isDropoff = kind === 'dropoff';
-  const title = isDropoff
-    ? t('dropoffDelayReport', 'Dropoff Delay Report')
-    : t('pickupDelayReport', 'Pickup Delay Report');
-  const question = isDropoff
-    ? t('wasDriverOnTimeDropoff', 'Was the driver on time for dropoff?')
-    : t('wasDriverOnTimePickup', 'Was the driver on time for pickup?');
+  const title = t('pickupDelayReport', 'Pickup Delay Report');
+  const question = t('wasDriverOnTimePickup', 'Was the driver on time for pickup?');
 
   const handleSubmit = () => {
     if (onTime) {

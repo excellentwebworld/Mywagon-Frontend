@@ -442,8 +442,8 @@ export interface Shipment {
       label: string;
       locationName?: string | null;
       companyName?: string | null;
-      dropoffDelayText: string;
-      canReportDelay: boolean;
+      loadingWaitText: string;
+      canReportDelay?: boolean;
     }>;
     reports: Array<{
       type: string;

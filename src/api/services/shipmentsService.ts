@@ -269,36 +269,6 @@ export const shipmentsService = {
     await apiPost(`/shipments/${id}/locations/${locationId}/pickup-delay`, body);
   },
 
-  async pendingDropoffDelay(id: string | number): Promise<
-    Array<{
-      location_id: number;
-      location_name?: string | null;
-      company_name?: string | null;
-      driver_id?: number | null;
-    }>
-  > {
-    const res = await apiGet<{ pending: Array<{
-      location_id: number;
-      location_name?: string | null;
-      company_name?: string | null;
-      driver_id?: number | null;
-    }> }>(`/shipments/${id}/dropoff-delay/pending`);
-    return res.data?.pending ?? [];
-  },
-
-  async submitDropoffDelay(
-    id: string | number,
-    locationId: string | number,
-    body: {
-      was_on_time: boolean;
-      delay_bucket?: string;
-      hours?: number;
-      minutes?: number;
-    }
-  ): Promise<void> {
-    await apiPost(`/shipments/${id}/locations/${locationId}/dropoff-delay`, body);
-  },
-
   async addNote(
     id: string | number,
     body: {

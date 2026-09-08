@@ -573,7 +573,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
             label: s.label || s.company_name || s.location_name || 'Dropoff',
             locationName: s.location_name ?? null,
             companyName: s.company_name ?? null,
-            dropoffDelayText: s.dropoff_delay_text || 'Not reported yet',
+            loadingWaitText: s.loading_wait_text || 'Not reported yet',
             canReportDelay: Boolean(s.can_report_delay),
           })),
           reports: (detail.trip_performance.reports || []).map((r) => ({
