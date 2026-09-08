@@ -21,7 +21,8 @@ interface StopsCardProps {
   requestingPodStopId?: string | number | null;
   shipmentStatus?: string;
   reportablePickups?: ReportablePickup[];
-  onReportDelay?: (pickup: ReportablePickup) => void;
+  reportableDropoffs?: ReportablePickup[];
+  onReportDelay?: (pickup: ReportablePickup, kind?: 'pickup' | 'dropoff') => void;
   t: (key: string, fallback?: string) => string;
 }
 
@@ -274,7 +275,7 @@ function OrderStatusIcon({ visual }: { visual: ProductLineVisual }) {
   // Two ticks = pickup/dropoff completed (POD is shown separately via the green rectangle)
   if (visual === 'done-pod') {
     return (
-      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E0EAFF] bg-[#F0F5FF] text-[#2876F3]" title="Completed">
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E9D5FF] bg-[#F3E8FF] text-[#9B51E0]" title="Completed">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M1 9.5L5.5 14L16 3" />
           <path d="M1 5.5L5.5 10L16 -1" opacity="0.6" />
@@ -285,7 +286,7 @@ function OrderStatusIcon({ visual }: { visual: ProductLineVisual }) {
   // One tick = arrived at location
   if (visual === 'done') {
     return (
-      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E0EAFF] bg-[#F0F5FF] text-[#2876F3]" title="Arrived">
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E9D5FF] bg-[#F3E8FF] text-[#9B51E0]" title="Arrived">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
@@ -332,6 +333,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
   requestingPodStopId = null,
   shipmentStatus,
   reportablePickups = [],
+  reportableDropoffs = [],
   onReportDelay,
   t,
 }) => {
@@ -392,6 +394,15 @@ export const StopsCard: React.FC<StopsCardProps> = ({
           const delayPickup = isPickup
             ? reportablePickups.find((p) => stop.locationIds.includes(p.location_id))
             : undefined;
+          const delayDropoff = !isPickup
+            ? reportableDropoffs.find((p) => stop.locationIds.includes(p.location_id))
+            : undefined;
+          const delayTarget = delayPickup || delayDropoff;
+          const delayKind: 'pickup' | 'dropoff' | undefined = delayPickup
+            ? 'pickup'
+            : delayDropoff
+              ? 'dropoff'
+              : undefined;
 
           return (
             <div
@@ -419,11 +430,11 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap shrink-0">
-                      {delayPickup && onReportDelay && (
+                      {delayTarget && delayKind && onReportDelay && (
                         <button
                           type="button"
                           className="px-3 py-1.5 rounded-md text-[11px] font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] cursor-pointer whitespace-nowrap transition-opacity shadow-xs border-0"
-                          onClick={() => onReportDelay(delayPickup)}
+                          onClick={() => onReportDelay(delayTarget, delayKind)}
                         >
                           {t('reportDelay', 'Report delay')}
                         </button>
@@ -454,24 +465,6 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                       {stop.address}
                     </div>
                   )}
-
-                  {/* Default on_time_delivery is '0' in DB — only show after dropoff is completed. */}
-                  {!isPickup &&
-                    (stop.locationStatus === '5' || stop.locationStatus === '7') &&
-                    (stop.onTimeDelivery === '0' || stop.onTimeDelivery === '1') && (
-                      <div
-                        className={`mt-1.5 inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
-                          stop.onTimeDelivery === '1'
-                            ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
-                            : 'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
-                        }`}
-                      >
-                        {t('driverDropoffOnTime', 'Dropoff on time (driver)')}:{' '}
-                        {stop.onTimeDelivery === '1'
-                          ? t('onTime', 'On time')
-                          : t('delayed', 'Delayed')}
-                      </div>
-                    )}
 
                   {/* Orders & Products list */}
                   <div className="mt-2.5 space-y-2">

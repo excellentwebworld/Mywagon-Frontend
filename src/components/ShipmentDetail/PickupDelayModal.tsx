@@ -15,6 +15,8 @@ const DELAY_BUCKETS = [
 
 interface PickupDelayModalProps {
   open: boolean;
+  /** pickup (default) or dropoff — changes title and question copy */
+  kind?: 'pickup' | 'dropoff';
   locationLabel?: string | null;
   submitting?: boolean;
   onClose: () => void;
@@ -29,6 +31,7 @@ interface PickupDelayModalProps {
 
 export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
   open,
+  kind = 'pickup',
   locationLabel,
   submitting = false,
   onClose,
@@ -50,6 +53,14 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
   }, [open]);
 
   if (!open) return null;
+
+  const isDropoff = kind === 'dropoff';
+  const title = isDropoff
+    ? t('dropoffDelayReport', 'Dropoff Delay Report')
+    : t('pickupDelayReport', 'Pickup Delay Report');
+  const question = isDropoff
+    ? t('wasDriverOnTimeDropoff', 'Was the driver on time for dropoff?')
+    : t('wasDriverOnTimePickup', 'Was the driver on time for pickup?');
 
   const handleSubmit = () => {
     if (onTime) {
@@ -82,7 +93,7 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
             </div>
             <div>
               <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white m-0">
-                {t('pickupDelayReport', 'Pickup Delay Report')}
+                {title}
               </h2>
               {locationLabel && (
                 <p className="text-[12px] text-slate-500 dark:text-slate-400 m-0 truncate max-w-[280px]">
@@ -104,7 +115,7 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
         {/* Body */}
         <div className="p-6 flex flex-col gap-4">
           <p className="text-[14px] text-slate-700 dark:text-slate-300 m-0 font-medium leading-relaxed">
-            {t('wasDriverOnTimePickup', 'Was the driver on time for pickup?')}
+            {question}
           </p>
 
           <div className="flex items-center gap-6">

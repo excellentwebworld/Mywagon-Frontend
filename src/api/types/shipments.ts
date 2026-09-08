@@ -333,8 +333,16 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
       loading_wait_text?: string | null;
       can_report_delay?: boolean;
     }> | null;
+    dropoff_stops?: Array<{
+      location_id: number;
+      label?: string | null;
+      location_name?: string | null;
+      company_name?: string | null;
+      dropoff_delay_text?: string | null;
+      can_report_delay?: boolean;
+    }> | null;
     reports?: Array<{
-      type: 'shipper_pickup_delay' | 'driver_loading_wait' | 'driver_dropoff_on_time' | string;
+      type: 'shipper_pickup_delay' | 'shipper_dropoff_delay' | 'driver_loading_wait' | 'driver_dropoff_on_time' | string;
       location_id: number;
       location_label?: string | null;
       stop_type?: 'pickup' | 'delivery' | string;

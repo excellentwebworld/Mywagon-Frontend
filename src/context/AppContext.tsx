@@ -437,6 +437,14 @@ export interface Shipment {
       loadingWaitText: string;
       canReportDelay: boolean;
     }>;
+    dropoffStops?: Array<{
+      locationId: number;
+      label: string;
+      locationName?: string | null;
+      companyName?: string | null;
+      dropoffDelayText: string;
+      canReportDelay: boolean;
+    }>;
     reports: Array<{
       type: string;
       locationId: number;

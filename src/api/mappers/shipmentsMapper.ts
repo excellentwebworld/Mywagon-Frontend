@@ -7,6 +7,17 @@ import {
 } from '../../utils/timezone';
 import { groupItineraryStops } from '../../pages/ManageShipments/utils/listingUtils';
 
+/** Driver/app dropoff on-time is hidden on shipper Load Details. */
+function isHiddenDriverDropoffOnTimeLog(text?: string | null): boolean {
+  const value = String(text || '').toLowerCase();
+  if (!value) return false;
+  if (value.includes('driver reported dropoff on time')) return true;
+  if (value.includes('driver reported dropoff delayed')) return true;
+  if (value === 'dropoff on time' || value.startsWith('dropoff on time:')) return true;
+  if (value === 'dropoff delayed' || value.startsWith('dropoff delayed:')) return true;
+  return false;
+}
+
 function mapApiStatus(status: string): Shipment['status'] {
   const norm = (status || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
   switch (norm) {
@@ -433,7 +444,9 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
         }
       : null,
     auditEntries: detail.audit_entries
-      ? detail.audit_entries.map((a) => ({
+      ? detail.audit_entries
+          .filter((a) => !isHiddenDriverDropoffOnTimeLog(a.text))
+          .map((a) => ({
           id: a.id,
           time: a.time,
           text: a.text,
@@ -469,7 +482,9 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
       uploadedBy: d.uploaded_by ?? null,
       createdAt: d.created_at ?? null,
     })),
-    shipmentLogs: (detail.shipment_logs || []).map((l) => ({
+    shipmentLogs: (detail.shipment_logs || [])
+      .filter((l) => !isHiddenDriverDropoffOnTimeLog(l.action))
+      .map((l) => ({
       id: l.id,
       action: l.action,
       actor: l.actor,
@@ -539,6 +554,14 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
             companyName: s.company_name ?? null,
             pickupDelayText: s.pickup_delay_text || 'Not reported yet',
             loadingWaitText: s.loading_wait_text || 'Not reported yet',
+            canReportDelay: Boolean(s.can_report_delay),
+          })),
+          dropoffStops: ((detail.trip_performance as any).dropoff_stops || []).map((s: any) => ({
+            locationId: Number(s.location_id),
+            label: s.label || s.company_name || s.location_name || 'Dropoff',
+            locationName: s.location_name ?? null,
+            companyName: s.company_name ?? null,
+            dropoffDelayText: s.dropoff_delay_text || 'Not reported yet',
             canReportDelay: Boolean(s.can_report_delay),
           })),
           reports: (detail.trip_performance.reports || []).map((r) => ({

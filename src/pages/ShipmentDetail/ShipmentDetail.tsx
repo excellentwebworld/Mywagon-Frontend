@@ -82,10 +82,18 @@ export const ShipmentDetail: React.FC = () => {
     location_id: number;
     location_name?: string | null;
     company_name?: string | null;
+    kind: 'pickup' | 'dropoff';
   } | null>(null);
   const [pendingCounterBid, setPendingCounterBid] = useState<PartnerBidItem | null>(null);
   const [counterSubmitting, setCounterSubmitting] = useState(false);
   const [reportablePickups, setReportablePickups] = useState<
+    Array<{
+      location_id: number;
+      location_name?: string | null;
+      company_name?: string | null;
+    }>
+  >([]);
+  const [reportableDropoffs, setReportableDropoffs] = useState<
     Array<{
       location_id: number;
       location_name?: string | null;
@@ -286,21 +294,40 @@ export const ShipmentDetail: React.FC = () => {
     [id, user, vm?.owner, showToast, t]
   );
 
-  const loadReportablePickups = useCallback(async () => {
+  const loadReportableDelays = useCallback(async () => {
     if (!id) return;
     try {
-      const pending = await shipmentsService.pendingPickupDelay(id);
-      setReportablePickups(pending);
+      const [pickups, dropoffs] = await Promise.all([
+        shipmentsService.pendingPickupDelay(id),
+        shipmentsService.pendingDropoffDelay(id),
+      ]);
+      setReportablePickups(pickups);
+      setReportableDropoffs(dropoffs);
     } catch {
       setReportablePickups([]);
+      setReportableDropoffs([]);
     }
   }, [id]);
 
   useEffect(() => {
-    void loadReportablePickups();
-  }, [loadReportablePickups]);
+    void loadReportableDelays();
+  }, [loadReportableDelays]);
 
-  const handleSubmitPickupDelay = useCallback(
+  const handleOpenDelayReport = useCallback(
+    (
+      location: {
+        location_id: number;
+        location_name?: string | null;
+        company_name?: string | null;
+      },
+      kind: 'pickup' | 'dropoff' = 'pickup'
+    ) => {
+      setPendingDelay({ ...location, kind });
+    },
+    []
+  );
+
+  const handleSubmitDelay = useCallback(
     async (data: {
       was_on_time: boolean;
       delay_bucket?: string;
@@ -310,15 +337,25 @@ export const ShipmentDetail: React.FC = () => {
       if (!id || !pendingDelay) return;
       setDelaySubmitting(true);
       try {
-        await shipmentsService.submitPickupDelay(id, pendingDelay.location_id, data);
-        showToast(
-          data.was_on_time
-            ? t('pickupOnTimeRecorded', 'Recorded driver was on time for pickup')
-            : t('pickupDelayReported', 'Pickup delay reported successfully'),
-          'success'
-        );
+        if (pendingDelay.kind === 'dropoff') {
+          await shipmentsService.submitDropoffDelay(id, pendingDelay.location_id, data);
+          showToast(
+            data.was_on_time
+              ? t('dropoffOnTimeRecorded', 'Recorded driver was on time for dropoff')
+              : t('dropoffDelayReported', 'Dropoff delay reported successfully'),
+            'success'
+          );
+        } else {
+          await shipmentsService.submitPickupDelay(id, pendingDelay.location_id, data);
+          showToast(
+            data.was_on_time
+              ? t('pickupOnTimeRecorded', 'Recorded driver was on time for pickup')
+              : t('pickupDelayReported', 'Pickup delay reported successfully'),
+            'success'
+          );
+        }
         setPendingDelay(null);
-        await loadReportablePickups();
+        await loadReportableDelays();
         refetch?.();
       } catch (err: unknown) {
         showToast(
@@ -329,7 +366,7 @@ export const ShipmentDetail: React.FC = () => {
         setDelaySubmitting(false);
       }
     },
-    [id, pendingDelay, loadReportablePickups, refetch, showToast, t]
+    [id, pendingDelay, loadReportableDelays, refetch, showToast, t]
   );
 
   const toggleSection = useCallback((key: string) => {
@@ -746,7 +783,8 @@ export const ShipmentDetail: React.FC = () => {
               requestingPodStopId={requestingPodStopId}
               shipmentStatus={vm.status}
               reportablePickups={reportablePickups}
-              onReportDelay={setPendingDelay}
+              reportableDropoffs={reportableDropoffs}
+              onReportDelay={handleOpenDelayReport}
               t={t}
             />
 
@@ -794,7 +832,8 @@ export const ShipmentDetail: React.FC = () => {
               performance={vm.tripPerformance}
               expanded={sections.tripPerformance}
               onToggle={() => toggleSection('tripPerformance')}
-              onReportDelay={setPendingDelay}
+              onReportDelay={(loc) => handleOpenDelayReport(loc, 'pickup')}
+              onReportDropoffDelay={(loc) => handleOpenDelayReport(loc, 'dropoff')}
               showDeliveryPerformance={showDeliveryPerformance}
               carrierName={vm.carrier?.name || 'Transporter'}
               initialOnTime={
@@ -963,13 +1002,14 @@ export const ShipmentDetail: React.FC = () => {
         t={t}
       />
 
-      {/* Pickup Delay Modal */}
+      {/* Pickup / Dropoff Delay Modal */}
       <PickupDelayModal
         open={Boolean(pendingDelay)}
+        kind={pendingDelay?.kind || 'pickup'}
         locationLabel={pendingDelay?.location_name || pendingDelay?.company_name}
         submitting={delaySubmitting}
         onClose={() => setPendingDelay(null)}
-        onSubmit={handleSubmitPickupDelay}
+        onSubmit={handleSubmitDelay}
         t={t}
       />
 

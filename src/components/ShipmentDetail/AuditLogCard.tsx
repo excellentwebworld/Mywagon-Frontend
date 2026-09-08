@@ -115,6 +115,17 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
 
     rawOps.forEach((op: any) => {
       const act = (op.action || op.text || '').toLowerCase();
+      // Hide driver/app dropoff on-time (shipper uses shipper dropoff-delay report).
+      if (
+        act.includes('driver reported dropoff on time') ||
+        act.includes('driver reported dropoff delayed') ||
+        act === 'dropoff on time' ||
+        act.startsWith('dropoff on time:') ||
+        act === 'dropoff delayed' ||
+        act.startsWith('dropoff delayed:')
+      ) {
+        return;
+      }
       const isCancel = act.includes('cancel') || act.includes('ακύρωσ') || act.includes('canceled') || act.includes('cancelled');
       const isReject = Boolean(op.isRejection || op.is_rejection || act.includes('reject') || act.includes('decline'));
 

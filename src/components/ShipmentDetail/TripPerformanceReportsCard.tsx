@@ -4,6 +4,7 @@ import { CollapsibleCard } from './CollapsibleCard';
 
 export type TripPerformanceReportType =
   | 'shipper_pickup_delay'
+  | 'shipper_dropoff_delay'
   | 'driver_loading_wait'
   | 'driver_dropoff_on_time';
 
@@ -28,10 +29,20 @@ export interface TripPerformancePickupStop {
   canReportDelay: boolean;
 }
 
+export interface TripPerformanceDropoffStop {
+  locationId: number;
+  label: string;
+  locationName?: string | null;
+  companyName?: string | null;
+  dropoffDelayText: string;
+  canReportDelay: boolean;
+}
+
 export interface TripPerformanceData {
   deliveryOnTime: boolean | null;
   avgLoadingWaitMinutes: number | null;
   pickupStops: TripPerformancePickupStop[];
+  dropoffStops: TripPerformanceDropoffStop[];
   reports: TripPerformanceReportItem[];
 }
 
@@ -40,6 +51,11 @@ interface TripPerformanceReportsCardProps {
   expanded: boolean;
   onToggle: () => void;
   onReportDelay?: (pickup: {
+    location_id: number;
+    location_name?: string | null;
+    company_name?: string | null;
+  }) => void;
+  onReportDropoffDelay?: (dropoff: {
     location_id: number;
     location_name?: string | null;
     company_name?: string | null;
@@ -61,6 +77,8 @@ function typeLabel(
   switch (type) {
     case 'shipper_pickup_delay':
       return t('shipperPickupDelay', 'Pickup delay (shipper)');
+    case 'shipper_dropoff_delay':
+      return t('shipperDropoffDelay', 'Dropoff delay (shipper)');
     case 'driver_loading_wait':
       return t('driverLoadingWait', 'Loading wait (driver)');
     case 'driver_dropoff_on_time':
@@ -89,6 +107,7 @@ function avgWaitLabel(
 
 function isLateReport(report: TripPerformanceReportItem): boolean {
   if (report.type === 'shipper_pickup_delay') return true;
+  if (report.type === 'shipper_dropoff_delay') return true;
   if (report.type === 'driver_loading_wait') return true;
   if (report.type === 'driver_dropoff_on_time') return report.wasOnTime === false;
   return false;
@@ -99,6 +118,7 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
   expanded,
   onToggle,
   onReportDelay,
+  onReportDropoffDelay,
   showDeliveryPerformance = false,
   carrierName = '',
   initialOnTime = null,
@@ -122,8 +142,11 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
     }
   }, [initialOnTime, isAlreadyReported]);
 
-  const reports = performance?.reports || [];
+  const reports = (performance?.reports || []).filter(
+    (r) => r.type !== 'driver_dropoff_on_time'
+  );
   const pickupStops = performance?.pickupStops || [];
+  const dropoffStops = performance?.dropoffStops || [];
 
   // Profile avg under "This load" only when this shipment has a reported loading wait.
   const hasThisLoadLoadingWait =
@@ -151,6 +174,7 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
     Boolean(performance) &&
     (reports.length > 0 ||
       pickupStops.length > 0 ||
+      dropoffStops.length > 0 ||
       effectiveDeliveryOnTime != null ||
       showAvgLoadingWait);
 
@@ -408,10 +432,64 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
           </section>
         )}
 
+        {/* Dropoff stops */}
+        {dropoffStops.length > 0 && (
+          <section className="space-y-2.5 pt-1 border-t border-[var(--border)]">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              {t('dropoffStops', 'Dropoff stops')}
+            </div>
+
+            <div className="space-y-2.5">
+              {dropoffStops.map((stop) => (
+                <div
+                  key={stop.locationId}
+                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 w-full">
+                      <div className="text-[13px] font-semibold text-slate-900 dark:text-white">
+                        {stop.label}
+                      </div>
+
+                      <div className="mt-2 space-y-1.5">
+                        <div className="flex items-baseline justify-between gap-3">
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                            {t('dropoffDelay', 'Dropoff delay')}
+                          </span>
+                          <span className="text-[12px] font-semibold text-[#9B51E0] text-right">
+                            {stop.dropoffDelayText}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {stop.canReportDelay && onReportDropoffDelay && (
+                    <button
+                      type="button"
+                      className="mt-3 px-3 py-1.5 rounded-md text-[11px] font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] cursor-pointer border-0 shadow-xs"
+                      onClick={() =>
+                        onReportDropoffDelay({
+                          location_id: stop.locationId,
+                          location_name: stop.locationName || stop.label,
+                          company_name: stop.companyName,
+                        })
+                      }
+                    >
+                      {t('reportDelay', 'Report delay')}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {!showDeliveryForm &&
           !onTimeDone &&
           reports.length === 0 &&
-          pickupStops.length === 0 && (
+          pickupStops.length === 0 &&
+          dropoffStops.length === 0 && (
           <p className="m-0 text-[11px] text-slate-500 dark:text-slate-400">
             {t('noTripPerformanceReports', 'No trip performance reports yet.')}
           </p>
