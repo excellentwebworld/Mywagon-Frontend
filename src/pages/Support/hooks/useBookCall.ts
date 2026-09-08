@@ -21,9 +21,11 @@ function buildEmbedUrl(baseUrl: string, prefill: SupportMeetingPrefill): string 
       url.searchParams.set('email', prefill.email);
     }
     if (prefill.first_name) {
+      url.searchParams.set('firstname', prefill.first_name);
       url.searchParams.set('firstName', prefill.first_name);
     }
     if (prefill.last_name) {
+      url.searchParams.set('lastname', prefill.last_name);
       url.searchParams.set('lastName', prefill.last_name);
     }
 
