@@ -178,24 +178,8 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
       effectiveDeliveryOnTime != null ||
       showAvgLoadingWait);
 
-  const showCard = showDeliveryPerformance || showReportsBlock;
+  const showCard = showReportsBlock;
   if (!showCard) return null;
-
-  // Form while not yet submitted; result badge after shipper submits.
-  const onTimeDone = showDeliveryPerformance && deliverySubmitted && !submittingOnTime;
-  const showDeliveryForm = showDeliveryPerformance && !deliverySubmitted;
-
-  const handleSelectOnTime = async (onTime: boolean) => {
-    const previous = selectedOnTime;
-    setSelectedOnTime(onTime);
-    try {
-      await onSelectOnTime?.(onTime);
-      setSubmittedOnTime(true);
-    } catch {
-      setSelectedOnTime(previous ?? initialOnTime);
-      setSubmittedOnTime(isAlreadyReported || initialOnTime !== null);
-    }
-  };
 
   const renderPickupCard = (stop: TripPerformancePickupStop) => (
     <div
@@ -226,22 +210,6 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
           </div>
         </div>
       </div>
-
-      {stop.canReportDelay && onReportDelay && (
-        <button
-          type="button"
-          className="mt-3 px-3 py-1.5 rounded-md text-[11px] font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] cursor-pointer border-0 shadow-xs self-start"
-          onClick={() =>
-            onReportDelay({
-              location_id: stop.locationId,
-              location_name: stop.locationName || stop.label,
-              company_name: stop.companyName,
-            })
-          }
-        >
-          {t('reportDelay', 'Report delay')}
-        </button>
-      )}
     </div>
   );
 
@@ -266,22 +234,6 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
           </div>
         </div>
       </div>
-
-      {stop.canReportDelay && onReportDropoffDelay && (
-        <button
-          type="button"
-          className="mt-3 px-3 py-1.5 rounded-md text-[11px] font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] cursor-pointer border-0 shadow-xs self-start"
-          onClick={() =>
-            onReportDropoffDelay({
-              location_id: stop.locationId,
-              location_name: stop.locationName || stop.label,
-              company_name: stop.companyName,
-            })
-          }
-        >
-          {t('reportDelay', 'Report delay')}
-        </button>
-      )}
     </div>
   );
 
@@ -295,86 +247,6 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
       onToggle={onToggle}
     >
       <div className="space-y-4 text-[12px]">
-        {/* Delivery performance — submit on On Trip; result stays in this report */}
-        {(showDeliveryForm || onTimeDone) && (
-          <section className="space-y-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              {t('deliveryPerformance', 'Delivery performance')}
-            </div>
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-              {onTimeDone ? (
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-semibold text-slate-900 dark:text-white">
-                      {t('deliveredOnTime', 'Delivered on time?')}
-                    </span>
-                    {carrierName && (
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                        ({carrierName})
-                      </span>
-                    )}
-                  </div>
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
-                      effectiveDeliveryOnTime !== false
-                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                        : 'bg-red-50 dark:red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
-                    }`}
-                  >
-                    {effectiveDeliveryOnTime !== false ? (
-                      <CheckCircle2 size={13} />
-                    ) : (
-                      <AlertTriangle size={13} />
-                    )}
-                    <span>
-                      {effectiveDeliveryOnTime !== false
-                        ? t('yesDeliveredOnTime', 'Yes (On schedule)')
-                        : t('noDeliveredDelayed', 'No (Delayed)')}
-                    </span>
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <Clock size={14} className="text-slate-400" />
-                    <span className="text-[13px] font-semibold text-slate-900 dark:text-white">
-                      {t('wasDeliveryOnTime', 'Was the delivery on time?')}
-                    </span>
-                    {carrierName && (
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                        ({carrierName})
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={submittingOnTime}
-                      onClick={() => handleSelectOnTime(true)}
-                      className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-emerald-500 hover:text-emerald-500 flex items-center gap-1.5 disabled:opacity-60"
-                    >
-                      {submittingOnTime && selectedOnTime === true ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : null}
-                      <span>{t('yes', 'Yes')}</span>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={submittingOnTime}
-                      onClick={() => handleSelectOnTime(false)}
-                      className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-red-500 hover:text-red-500 flex items-center gap-1.5 disabled:opacity-60"
-                    >
-                      {submittingOnTime && selectedOnTime === false ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : null}
-                      <span>{t('no', 'No')}</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
 
         {/* Logged reports */}
         {reports.length > 0 && (
@@ -433,8 +305,7 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {(effectiveDeliveryOnTime != null ||
-                (!showDeliveryForm && !showDeliveryPerformance)) && (
+              {effectiveDeliveryOnTime != null && (
                 <div className="rounded-xl border border-[var(--border)] bg-slate-50/80 dark:bg-slate-800/40 px-3.5 py-3">
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     {t('deliveryOnTimeThisLoad', 'Delivery on time (this load)')}
@@ -539,9 +410,7 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
           </div>
         )}
 
-        {!showDeliveryForm &&
-          !onTimeDone &&
-          reports.length === 0 &&
+        {reports.length === 0 &&
           pickupStops.length === 0 &&
           dropoffStops.length === 0 && (
           <p className="m-0 text-[11px] text-slate-500 dark:text-slate-400">

@@ -402,15 +402,8 @@ export const StopsCard: React.FC<StopsCardProps> = ({
           const delayPickup = isPickup
             ? reportablePickups.find((p) => stop.locationIds.includes(p.location_id))
             : undefined;
-          const delayDropoff = !isPickup
-            ? reportableDropoffs.find((p) => stop.locationIds.includes(p.location_id))
-            : undefined;
-          const delayTarget = delayPickup || delayDropoff;
-          const delayKind: 'pickup' | 'dropoff' | undefined = delayPickup
-            ? 'pickup'
-            : delayDropoff
-              ? 'dropoff'
-              : undefined;
+          const delayTarget = delayPickup;
+          const delayKind: 'pickup' | undefined = delayPickup ? 'pickup' : undefined;
 
           return (
             <div
