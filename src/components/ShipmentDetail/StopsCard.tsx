@@ -455,7 +455,9 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                     </div>
                   )}
 
+                  {/* Default on_time_delivery is '0' in DB — only show after dropoff is completed. */}
                   {!isPickup &&
+                    (stop.locationStatus === '5' || stop.locationStatus === '7') &&
                     (stop.onTimeDelivery === '0' || stop.onTimeDelivery === '1') && (
                       <div
                         className={`mt-1.5 inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${

@@ -125,6 +125,16 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
   const reports = performance?.reports || [];
   const pickupStops = performance?.pickupStops || [];
 
+  // Profile avg under "This load" only when this shipment has a reported loading wait.
+  const hasThisLoadLoadingWait =
+    reports.some((r) => r.type === 'driver_loading_wait') ||
+    pickupStops.some((s) => {
+      const text = (s.loadingWaitText || '').trim().toLowerCase();
+      return text !== '' && !text.includes('not reported');
+    });
+  const showAvgLoadingWait =
+    hasThisLoadLoadingWait && performance?.avgLoadingWaitMinutes != null;
+
   const effectiveDeliveryOnTime =
     selectedOnTime ??
     initialOnTime ??
@@ -142,7 +152,7 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
     (reports.length > 0 ||
       pickupStops.length > 0 ||
       effectiveDeliveryOnTime != null ||
-      performance?.avgLoadingWaitMinutes != null);
+      showAvgLoadingWait);
 
   const showCard = showDeliveryPerformance || showReportsBlock;
   if (!showCard) return null;
@@ -323,13 +333,13 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
                 </div>
               )}
 
-              {performance && (
+              {showAvgLoadingWait && (
                 <div className="rounded-xl border border-[var(--border)] bg-slate-50/80 dark:bg-slate-800/40 px-3.5 py-3">
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     {t('yourAvgLoadingWait', 'Your avg loading wait')}
                   </div>
                   <div className="mt-1 text-[14px] font-semibold text-[#9B51E0]">
-                    {avgWaitLabel(performance.avgLoadingWaitMinutes, t)}
+                    {avgWaitLabel(performance!.avgLoadingWaitMinutes, t)}
                   </div>
                 </div>
               )}
