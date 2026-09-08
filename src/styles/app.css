@@ -34,6 +34,14 @@ button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
 .hidden { display: none !important; }
 .font-mono { font-family: 'JetBrains Mono', monospace; }
+.show-desktop-only { display: block; }
+@media (max-width: 767px) {
+  .show-desktop-only { display: none !important; }
+}
+.show-mobile-only { display: none !important; }
+@media (max-width: 767px) {
+  .show-mobile-only { display: block !important; }
+}
 .min-h-screen { min-height: 100vh; }
 .text-xs { font-size: 12px; }
 .text-sm { font-size: 14px; }

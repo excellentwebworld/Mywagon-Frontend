@@ -197,6 +197,94 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
     }
   };
 
+  const renderPickupCard = (stop: TripPerformancePickupStop) => (
+    <div
+      key={stop.locationId}
+      className="h-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 flex flex-col justify-between"
+    >
+      <div className="min-w-0 w-full">
+        <div className="text-[13px] font-semibold text-slate-900 dark:text-white">
+          {stop.label}
+        </div>
+
+        <div className="mt-2 space-y-1.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              {t('pickupDelay', 'Pickup delay')}
+            </span>
+            <span className="text-[12px] font-semibold text-[#9B51E0] text-right">
+              {stop.pickupDelayText}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              {t('loadingWait', 'Loading wait')}
+            </span>
+            <span className="text-[12px] font-semibold text-[#9B51E0] text-right">
+              {stop.loadingWaitText}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {stop.canReportDelay && onReportDelay && (
+        <button
+          type="button"
+          className="mt-3 px-3 py-1.5 rounded-md text-[11px] font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] cursor-pointer border-0 shadow-xs self-start"
+          onClick={() =>
+            onReportDelay({
+              location_id: stop.locationId,
+              location_name: stop.locationName || stop.label,
+              company_name: stop.companyName,
+            })
+          }
+        >
+          {t('reportDelay', 'Report delay')}
+        </button>
+      )}
+    </div>
+  );
+
+  const renderDropoffCard = (stop: TripPerformanceDropoffStop) => (
+    <div
+      key={stop.locationId}
+      className="h-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 flex flex-col justify-between"
+    >
+      <div className="min-w-0 w-full">
+        <div className="text-[13px] font-semibold text-slate-900 dark:text-white">
+          {stop.label}
+        </div>
+
+        <div className="mt-2 space-y-1.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              {t('dropoffDelay', 'Dropoff delay')}
+            </span>
+            <span className="text-[12px] font-semibold text-[#9B51E0] text-right">
+              {stop.dropoffDelayText}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {stop.canReportDelay && onReportDropoffDelay && (
+        <button
+          type="button"
+          className="mt-3 px-3 py-1.5 rounded-md text-[11px] font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] cursor-pointer border-0 shadow-xs self-start"
+          onClick={() =>
+            onReportDropoffDelay({
+              location_id: stop.locationId,
+              location_name: stop.locationName || stop.label,
+              company_name: stop.companyName,
+            })
+          }
+        >
+          {t('reportDelay', 'Report delay')}
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <CollapsibleCard
       id="trip-performance"
@@ -230,7 +318,7 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
                     className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
                       effectiveDeliveryOnTime !== false
                         ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                        : 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
+                        : 'bg-red-50 dark:red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
                     }`}
                   >
                     {effectiveDeliveryOnTime !== false ? (
@@ -371,118 +459,84 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
           </section>
         )}
 
-        {/* Pickup stops */}
-        {pickupStops.length > 0 && (
-          <section className="space-y-2.5 pt-1 border-t border-[var(--border)]">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              {t('pickupStops', 'Pickup stops')}
-            </div>
-
-            <div className="space-y-2.5">
-              {pickupStops.map((stop) => (
-                <div
-                  key={stop.locationId}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-[13px] font-semibold text-slate-900 dark:text-white">
-                        {stop.label}
-                      </div>
-
-                      <div className="mt-2 space-y-1.5">
-                        <div className="flex items-baseline justify-between gap-3">
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                            {t('pickupDelay', 'Pickup delay')}
-                          </span>
-                          <span className="text-[12px] font-semibold text-[#9B51E0] text-right">
-                            {stop.pickupDelayText}
-                          </span>
-                        </div>
-                        <div className="flex items-baseline justify-between gap-3">
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                            {t('loadingWait', 'Loading wait')}
-                          </span>
-                          <span className="text-[12px] font-semibold text-[#9B51E0] text-right">
-                            {stop.loadingWaitText}
-                          </span>
-                        </div>
-                      </div>
+        {/* Pickup and Dropoff stops side by side with dynamically matched box heights */}
+        {(pickupStops.length > 0 || dropoffStops.length > 0) && (
+          <div className="pt-1 border-t border-[var(--border)]">
+            {pickupStops.length > 0 && dropoffStops.length > 0 ? (
+              <>
+                {/* Desktop layout: aligned 2-column rows where each row's boxes match height dynamically */}
+                <div className="show-desktop-only space-y-2.5">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      {t('pickupStops', 'Pickup stops')}
+                    </div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      {t('dropoffStops', 'Dropoff stops')}
                     </div>
                   </div>
 
-                  {stop.canReportDelay && onReportDelay && (
-                    <button
-                      type="button"
-                      className="mt-3 px-3 py-1.5 rounded-md text-[11px] font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] cursor-pointer border-0 shadow-xs"
-                      onClick={() =>
-                        onReportDelay({
-                          location_id: stop.locationId,
-                          location_name: stop.locationName || stop.label,
-                          company_name: stop.companyName,
-                        })
+                  <div className="space-y-2.5">
+                    {Array.from(
+                      { length: Math.max(pickupStops.length, dropoffStops.length) },
+                      (_, i) => {
+                        const p = pickupStops[i];
+                        const d = dropoffStops[i];
+
+                        return (
+                          <div
+                            key={p?.locationId ?? d?.locationId ?? i}
+                            className="grid grid-cols-2 gap-4 items-stretch"
+                          >
+                            <div className="min-w-0 h-full">
+                              {p ? renderPickupCard(p) : <div className="h-full" />}
+                            </div>
+                            <div className="min-w-0 h-full">
+                              {d ? renderDropoffCard(d) : <div className="h-full" />}
+                            </div>
+                          </div>
+                        );
                       }
-                    >
-                      {t('reportDelay', 'Report delay')}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Dropoff stops */}
-        {dropoffStops.length > 0 && (
-          <section className="space-y-2.5 pt-1 border-t border-[var(--border)]">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              {t('dropoffStops', 'Dropoff stops')}
-            </div>
-
-            <div className="space-y-2.5">
-              {dropoffStops.map((stop) => (
-                <div
-                  key={stop.locationId}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 w-full">
-                      <div className="text-[13px] font-semibold text-slate-900 dark:text-white">
-                        {stop.label}
-                      </div>
-
-                      <div className="mt-2 space-y-1.5">
-                        <div className="flex items-baseline justify-between gap-3">
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                            {t('dropoffDelay', 'Dropoff delay')}
-                          </span>
-                          <span className="text-[12px] font-semibold text-[#9B51E0] text-right">
-                            {stop.dropoffDelayText}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
-
-                  {stop.canReportDelay && onReportDropoffDelay && (
-                    <button
-                      type="button"
-                      className="mt-3 px-3 py-1.5 rounded-md text-[11px] font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] cursor-pointer border-0 shadow-xs"
-                      onClick={() =>
-                        onReportDropoffDelay({
-                          location_id: stop.locationId,
-                          location_name: stop.locationName || stop.label,
-                          company_name: stop.companyName,
-                        })
-                      }
-                    >
-                      {t('reportDelay', 'Report delay')}
-                    </button>
-                  )}
                 </div>
-              ))}
-            </div>
-          </section>
+
+                {/* Mobile layout: stacked sections */}
+                <div className="show-mobile-only space-y-4">
+                  <section className="space-y-2.5">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      {t('pickupStops', 'Pickup stops')}
+                    </div>
+                    <div className="space-y-2.5">
+                      {pickupStops.map((stop) => renderPickupCard(stop))}
+                    </div>
+                  </section>
+
+                  <section className="space-y-2.5 pt-2 border-t border-[var(--border)]">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      {t('dropoffStops', 'Dropoff stops')}
+                    </div>
+                    <div className="space-y-2.5">
+                      {dropoffStops.map((stop) => renderDropoffCard(stop))}
+                    </div>
+                  </section>
+                </div>
+              </>
+            ) : (
+              /* Only pickup stops or only dropoff stops */
+              <section className="space-y-2.5">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {pickupStops.length > 0
+                    ? t('pickupStops', 'Pickup stops')
+                    : t('dropoffStops', 'Dropoff stops')}
+                </div>
+                <div className="space-y-2.5">
+                  {pickupStops.length > 0
+                    ? pickupStops.map((stop) => renderPickupCard(stop))
+                    : dropoffStops.map((stop) => renderDropoffCard(stop))}
+                </div>
+              </section>
+            )}
+          </div>
         )}
 
         {!showDeliveryForm &&
