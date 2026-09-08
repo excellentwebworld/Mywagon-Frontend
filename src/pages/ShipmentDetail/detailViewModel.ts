@@ -1215,6 +1215,11 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     ratingDeliveryOnTime:
       (shipment.carrierRating as any)?.deliveryOnTime ?? (shipment.shipperRating as any)?.deliveryOnTime ?? null,
     tripPerformanceReports: shipment.tripPerformanceReports || [],
-    tripPerformance: shipment.tripPerformance || null,
+    tripPerformance: shipment.tripPerformance
+      ? {
+          ...shipment.tripPerformance,
+          dropoffStops: shipment.tripPerformance.dropoffStops || [],
+        }
+      : null,
   };
 }
