@@ -482,16 +482,28 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
       uploadedBy: d.uploaded_by ?? null,
       createdAt: d.created_at ?? null,
     })),
-    shipmentLogs: (detail.shipment_logs || [])
-      .filter((l) => !isHiddenDriverDropoffOnTimeLog(l.action))
-      .map((l) => ({
-      id: l.id,
-      action: l.action,
-      actor: l.actor,
-      date: l.date,
-      isRejection: Boolean(l.is_rejection),
-      rejectionReason: l.rejection_reason ?? null,
-    })),
+    shipmentLogs: (() => {
+      const logs = (detail.shipment_logs || [])
+        .filter((l) => !isHiddenDriverDropoffOnTimeLog(l.action));
+      const hasCancelShipment = logs.some((l) => {
+        const a = String(l.action || '').toLowerCase();
+        return a.includes('cancel shipment') || a === 'cancel-shipment';
+      });
+      return logs
+        .filter((l) => {
+          const a = String(l.action || '').toLowerCase();
+          if (!hasCancelShipment) return true;
+          return !(a.includes('shipment cancelled') || a.includes('shipment canceled'));
+        })
+        .map((l) => ({
+          id: l.id,
+          action: l.action,
+          actor: l.actor,
+          date: l.date,
+          isRejection: Boolean(l.is_rejection),
+          rejectionReason: l.rejection_reason ?? null,
+        }));
+    })(),
     bidsHistory: (detail.bids_history || []).map((b: any) => ({
       bidId: b.bid_id != null ? Number(b.bid_id) : undefined,
       bidNumber: b.bid_number,

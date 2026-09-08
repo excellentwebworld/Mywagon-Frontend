@@ -104,7 +104,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
     return 'default';
   };
 
-  // Compile Unified Events for 'All' sorted descending (most recent at top)
+    // Compile Unified Events for 'All' sorted descending (most recent at top)
   const allEvents = useMemo<UnifiedEvent[]>(() => {
     const list: UnifiedEvent[] = [];
 
@@ -112,6 +112,18 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
     const rawOps = shipmentLogs && shipmentLogs.length > 0
       ? shipmentLogs
       : entries.filter((e) => e.category === 'operations' || e.category === 'all');
+
+    const isCancelAction = (text: string) => {
+      const act = text.toLowerCase();
+      return (
+        act.includes('cancel shipment') ||
+        act.includes('shipment cancelled') ||
+        act.includes('shipment canceled') ||
+        act === 'cancel-shipment'
+      );
+    };
+
+    let keptCancel = false;
 
     rawOps.forEach((op: any) => {
       const act = (op.action || op.text || '').toLowerCase();
@@ -126,6 +138,28 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
       ) {
         return;
       }
+
+      // One cancel row only — prefer "Cancel Shipment" over "Shipment Cancelled".
+      if (isCancelAction(act)) {
+        if (keptCancel) return;
+        const isPreferredCancel =
+          act.includes('cancel shipment') || act === 'cancel-shipment';
+        const isStatusDuplicate =
+          act.includes('shipment cancelled') || act.includes('shipment canceled');
+        if (isStatusDuplicate && !isPreferredCancel) {
+          // Skip status duplicate; keep looking for preferred label if present later.
+          // If only duplicates exist, keep the first one below.
+        }
+        if (isStatusDuplicate) {
+          const hasPreferredElsewhere = rawOps.some((other: any) => {
+            const otherAct = String(other.action || other.text || '').toLowerCase();
+            return otherAct.includes('cancel shipment') || otherAct === 'cancel-shipment';
+          });
+          if (hasPreferredElsewhere) return;
+        }
+        keptCancel = true;
+      }
+
       const isCancel = act.includes('cancel') || act.includes('ακύρωσ') || act.includes('canceled') || act.includes('cancelled');
       const isReject = Boolean(op.isRejection || op.is_rejection || act.includes('reject') || act.includes('decline'));
 
