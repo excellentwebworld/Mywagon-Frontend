@@ -190,6 +190,7 @@ export interface ShareDeliveryRow {
   location: string;
   email: string;
   orderRef: string;
+  trackingUrl?: string | null;
 }
 
 export interface ShareCustomerGroup {
@@ -1194,6 +1195,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
             location: s.location || s.address || '',
             email: (s.customers?.[0] as any)?.email || '',
             orderRef: s.customers?.[0]?.orders?.[0]?.id || orderIds.split(',')[0]?.trim() || displayId,
+            trackingUrl: (s as any).tracking_url || (s as any).trackingUrl || null,
           })),
       },
     ],

@@ -55,10 +55,22 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
       return stops
         .filter((s) => s.type === 'delivery')
         .map((s, idx) => {
-          const orderId =
-            s.customers?.[0]?.orders?.[0]?.id ||
-            (typeof s.customers?.[0]?.orders?.[0] === 'string' ? s.customers[0].orders[0] : '') ||
-            '';
+          const orderIds: string[] = [];
+          if ((s as any).order_id) orderIds.push(String((s as any).order_id));
+          if ((s as any).orderId && !orderIds.includes(String((s as any).orderId))) {
+            orderIds.push(String((s as any).orderId));
+          }
+          if (s.customers && s.customers.length > 0) {
+            s.customers.forEach((c) => {
+              c.orders?.forEach((o) => {
+                const oId = typeof o === 'string' ? o : o?.id;
+                if (oId && !orderIds.includes(String(oId))) {
+                  orderIds.push(String(oId));
+                }
+              });
+            });
+          }
+          const orderId = orderIds.join(', ') || '';
           const date = s.date || '';
           const sTime = (s.timeStart || '').trim();
           const eTime = (s.timeEnd || '').trim();
@@ -100,7 +112,7 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
           time: '',
           orderId: r.orderRef,
           defaultEmails: splitEmails(r.email || ''),
-          trackingUrl: null as string | null,
+          trackingUrl: (r as any).trackingUrl || (r as any).tracking_url || null,
         }))
       );
     }
@@ -115,6 +127,7 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
 
   const [emails, setEmails] = useState<Record<string | number, string[]>>({});
   const [copied, setCopied] = useState(false);
+  const [copiedRowId, setCopiedRowId] = useState<string | number | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -124,6 +137,7 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
     });
     setEmails(initial);
     setCopied(false);
+    setCopiedRowId(null);
   }, [open, deliveryRows]);
 
   if (!open) return null;
@@ -151,6 +165,51 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
     });
   };
 
+  const copyTextToClipboard = async (text: string): Promise<boolean> => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return success;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleCopyOrderLink = async (row: (typeof deliveryRows)[number]) => {
+    const url = row.trackingUrl || trackingUrl;
+    if (!url) {
+      onToast?.(
+        t('trackingLinkUnavailable', 'Tracking link is not available yet.'),
+        'error'
+      );
+      return;
+    }
+
+    const ok = await copyTextToClipboard(url);
+    if (ok) {
+      setCopiedRowId(row.id);
+      const orderNotice = row.orderId ? ` (${t('orderId', 'Order ID')}: ${row.orderId})` : '';
+      onToast?.(`${t('trackingLinkCopied', 'Tracking link copied')}${orderNotice}`, 'success');
+      window.setTimeout(() => {
+        setCopiedRowId((prev) => (prev === row.id ? null : prev));
+      }, 2000);
+    } else {
+      onToast?.(t('trackingLinkCopyFailed', 'Failed to copy tracking link'), 'error');
+    }
+  };
+
+
   const handleCopyLink = async () => {
     if (!trackingUrl) {
       onToast?.(
@@ -160,24 +219,12 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
       return;
     }
 
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(trackingUrl);
-      } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = trackingUrl;
-        textarea.setAttribute('readonly', '');
-        textarea.style.position = 'absolute';
-        textarea.style.left = '-9999px';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-      }
+    const ok = await copyTextToClipboard(trackingUrl);
+    if (ok) {
       setCopied(true);
       onToast?.(t('trackingLinkCopied', 'Tracking link copied'), 'success');
       window.setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       onToast?.(t('trackingLinkCopyFailed', 'Failed to copy tracking link'), 'error');
     }
   };
@@ -186,8 +233,9 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
     if (onSend) onSend(emails);
   };
 
-  const showCopy = Boolean(isPickedUp);
-  const showFooter = !isReadOnly || showCopy;
+  const hasAnyTrackingUrl = Boolean(trackingUrl || deliveryRows.some((r) => r.trackingUrl));
+  const showCopy = Boolean(isPickedUp || hasAnyTrackingUrl);
+  const showFooter = !isReadOnly || (showCopy && deliveryRows.length <= 1);
   // Label already includes "+" in locale — use text without icon, or strip leading "+"
   const addEmailLabel = String(t('addEmail', 'Add email')).replace(/^\+\s*/, '');
 
@@ -197,7 +245,7 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="mv-modal bg-[var(--surface)] rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden shadow-2xl flex flex-col border border-[var(--border)]"
+        className="mv-modal bg-[var(--surface)] rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden shadow-2xl flex flex-col border border-[var(--border)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mv-modal-header flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
@@ -224,20 +272,25 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                    <th className="py-3 px-4 text-[12px] font-semibold text-slate-700 dark:text-slate-300 w-5/12">
+                    <th className="py-3 px-4 text-[12px] font-semibold text-slate-700 dark:text-slate-300 w-4/12">
                       {t('deliveryLocation', 'Delivery Location')}
                     </th>
-                    <th className="py-3 px-4 text-[12px] font-semibold text-slate-700 dark:text-slate-300 w-5/12">
+                    <th className="py-3 px-4 text-[12px] font-semibold text-slate-700 dark:text-slate-300 w-4/12">
                       {t('email', 'Email')}
                     </th>
                     <th className="py-3 px-4 text-[12px] font-semibold text-slate-700 dark:text-slate-300 w-2/12 text-center">
                       {t('orderId', 'Order ID')}
+                    </th>
+                    <th className="py-3 px-4 text-[12px] font-semibold text-slate-700 dark:text-slate-300 w-2/12 text-center">
+                      {t('trackingLink', 'Tracking Link')}
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
                   {deliveryRows.map((row) => {
                     const emailList = emails[row.id] || [''];
+                    const rowTrackingUrl = row.trackingUrl || trackingUrl;
+                    const isThisRowCopied = copiedRowId === row.id;
 
                     return (
                       <tr
@@ -316,8 +369,39 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
                             )}
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 align-top text-center text-[12px] font-semibold text-slate-900 dark:text-white">
+                        <td className="py-3.5 px-4 align-top text-center text-[12px] font-semibold font-mono text-slate-900 dark:text-white">
                           {row.orderId || '—'}
+                        </td>
+                        <td className="py-3.5 px-4 align-top text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyOrderLink(row)}
+                            disabled={!rowTrackingUrl}
+                            className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                              isThisRowCopied
+                                ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 shadow-xs'
+                                : rowTrackingUrl
+                                  ? 'border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 dark:border-purple-700 dark:bg-purple-950/40 dark:text-purple-300 hover:shadow-xs active:scale-95'
+                                  : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed dark:border-slate-700 dark:bg-slate-800'
+                            }`}
+                            title={
+                              rowTrackingUrl
+                                ? t('copyTrackingLink', 'Copy tracking link')
+                                : t('trackingLinkUnavailable', 'Tracking link is not available yet.')
+                            }
+                          >
+                            {isThisRowCopied ? (
+                              <>
+                                <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
+                                <span>{t('trackingLinkCopied', 'Copied')}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={13} className="text-purple-600 dark:text-purple-400" />
+                                <span>{t('copyLink', 'Copy link')}</span>
+                              </>
+                            )}
+                          </button>
                         </td>
                       </tr>
                     );
@@ -330,7 +414,8 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
 
         {showFooter && (
           <div className="mv-modal-footer flex items-center justify-center gap-3 px-6 py-4 border-t border-[var(--border)]">
-            {showCopy && (
+
+            {showCopy && deliveryRows.length <= 1 && (
               <button
                 type="button"
                 onClick={handleCopyLink}

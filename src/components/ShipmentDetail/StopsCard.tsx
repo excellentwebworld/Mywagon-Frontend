@@ -42,6 +42,7 @@ export interface GroupedOrder {
   pod?: string;
   unableStatus?: number;
   reason?: string | null;
+  trackingUrl?: string | null;
 }
 
 export interface PhysicalStop {
@@ -167,6 +168,7 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
       }
     }
 
+    const stopTrackingUrl = (stop as any).tracking_url || (stop as any).trackingUrl || null;
     const customers = stop.customers || [];
     if (customers.length === 0) {
       const orderId = '—';
@@ -180,10 +182,12 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
           pod: stop.pod ?? '0',
           unableStatus: stop.unableStatus ?? 0,
           reason: stop.reason || (stop as any).unable_reason || null,
+          trackingUrl: stopTrackingUrl,
         };
         physical.orders.push(ord);
       } else {
         ord.locationStatus = mergeLocationStatus(ord.locationStatus, stop.locationStatus);
+        if (!ord.trackingUrl && stopTrackingUrl) ord.trackingUrl = stopTrackingUrl;
       }
       if (ord.products.length === 0) {
         ord.products.push({
@@ -215,6 +219,7 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
               pod: stop.pod ?? '0',
               unableStatus: stop.unableStatus ?? 0,
               reason: stop.reason || (stop as any).unable_reason || null,
+              trackingUrl: stopTrackingUrl,
             };
             physical.orders.push(ord);
           } else {
@@ -226,6 +231,9 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
             if (stop.unableStatus) ord.unableStatus = stop.unableStatus;
             if (stop.reason || (stop as any).unable_reason) {
               ord.reason = stop.reason || (stop as any).unable_reason;
+            }
+            if (!ord.trackingUrl && stopTrackingUrl) {
+              ord.trackingUrl = stopTrackingUrl;
             }
           }
 
@@ -533,6 +541,24 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                   <span className="font-semibold font-mono text-[var(--text-primary)]">
                                     Order: {order.orderId}
                                   </span>
+                                  {pIdx === 0 && (order.trackingUrl || (stop.type === 'delivery' && ((stop.rawStop as any)?.tracking_url || (stop.rawStop as any)?.trackingUrl))) && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const url = order.trackingUrl || (stop.rawStop as any)?.tracking_url || (stop.rawStop as any)?.trackingUrl;
+                                        if (url) {
+                                          onCopy(url);
+                                          onToast(t('trackingLinkCopied', 'Tracking link copied to clipboard'));
+                                        }
+                                      }}
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800 transition-colors cursor-pointer"
+                                      title={t('copyTrackingLink', 'Copy tracking link')}
+                                    >
+                                      <Copy size={10} />
+                                      <span>{t('copyLink', 'Copy link')}</span>
+                                    </button>
+                                  )}
                                   {prod.name && prod.name !== '—' && (
                                     <>
                                       <span className="text-[var(--text-tertiary)]">·</span>
