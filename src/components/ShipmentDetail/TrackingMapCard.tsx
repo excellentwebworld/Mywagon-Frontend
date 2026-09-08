@@ -52,6 +52,29 @@ function guessCoords(text?: string | null): { lat: number; lng: number } | null 
   return null;
 }
 
+/**
+ * One map pin per physical itinerary stop (Laravel / StopsCard behavior).
+ * Multi-product loads return one API row per product line; without grouping,
+ * RouteMap numbers 1..N and stacked pins leave the last labels (e.g. 3, 4) on top.
+ */
+function groupPhysicalMapStops(
+  stops: ShipmentStop[]
+): Array<{ stop: ShipmentStop; originalIndex: number }> {
+  const result: Array<{ stop: ShipmentStop; originalIndex: number }> = [];
+  const seen = new Set<string>();
+
+  stops.forEach((stop, idx) => {
+    const normLocation = (stop.location || '').trim().toLowerCase();
+    const normAddress = (stop.address || '').trim().toLowerCase();
+    const groupKey = `${stop.type}|${normLocation}|${normAddress}`;
+    if (seen.has(groupKey)) return;
+    seen.add(groupKey);
+    result.push({ stop, originalIndex: idx });
+  });
+
+  return result;
+}
+
 export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
   stops = [],
   status,
@@ -104,13 +127,13 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
     });
   }, [stops]);
 
-  // Convert stops to EnrichedStop array
+  // Convert physical (grouped) stops to EnrichedStop — marker labels = index + 1
   const enrichedStops: EnrichedStop[] = useMemo(() => {
     if (stops.length === 0) return [];
 
-    return stops.map((s, idx) => {
-      let lat = s.lat != null ? Number(s.lat) : geocodedCoords[idx]?.lat ?? null;
-      let lng = s.lng != null ? Number(s.lng) : geocodedCoords[idx]?.lng ?? null;
+    return groupPhysicalMapStops(stops).map(({ stop: s, originalIndex }, idx) => {
+      let lat = s.lat != null ? Number(s.lat) : geocodedCoords[originalIndex]?.lat ?? null;
+      let lng = s.lng != null ? Number(s.lng) : geocodedCoords[originalIndex]?.lng ?? null;
 
       if (lat == null || lng == null) {
         const guessed = guessCoords(s.address) || guessCoords(s.location);
