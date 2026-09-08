@@ -541,24 +541,6 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                   <span className="font-semibold font-mono text-[var(--text-primary)]">
                                     Order: {order.orderId}
                                   </span>
-                                  {pIdx === 0 && (order.trackingUrl || (stop.type === 'delivery' && ((stop.rawStop as any)?.tracking_url || (stop.rawStop as any)?.trackingUrl))) && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        const url = order.trackingUrl || (stop.rawStop as any)?.tracking_url || (stop.rawStop as any)?.trackingUrl;
-                                        if (url) {
-                                          onCopy(url);
-                                          onToast(t('trackingLinkCopied', 'Tracking link copied to clipboard'));
-                                        }
-                                      }}
-                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800 transition-colors cursor-pointer"
-                                      title={t('copyTrackingLink', 'Copy tracking link')}
-                                    >
-                                      <Copy size={10} />
-                                      <span>{t('copyLink', 'Copy link')}</span>
-                                    </button>
-                                  )}
                                   {prod.name && prod.name !== '—' && (
                                     <>
                                       <span className="text-[var(--text-tertiary)]">·</span>
