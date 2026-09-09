@@ -72,7 +72,7 @@ Priority order after login:
 6. Profile completion reminder / info-form after one month
 7. Past-due invoice → Billing (`Access Restricted`)
 
-React today: auth + 2FA + some module `403` banners + Settings KYC. **Post-login KYC redirect / info-form SPA gates still missing.** Past-due invoice blocking, load-limit modals, and upgrade gates are handled within **Shipment / Create Shipment** flows (not separate modules).
+React today: auth + 2FA + past-due → `/billing` + KYC → Compliance + company address → Organization + info-form hard/soft gates (PDS-955 Phases 4–5). Onboarding tour still Laravel-only. Past-due invoice blocking, load-limit modals, and upgrade gates are also handled within **Shipment / Create Shipment** flows.
 
 ---
 
@@ -85,10 +85,10 @@ React today: auth + 2FA + some module `403` banners + Settings KYC. **Post-login
 
 | Bucket | Dev status |
 |---|---|
-| **Complete** | Search Trucks · Address Book · Product Master · Partners · ERP Orders · Tutorials · Change Password · Support & Feedback (PDS-950) · **Price Lists (PDS-935)** · **Profile Management (PDS-937)** · **CMS / Legal (PDS-937)** |
+| **Complete** | Search Trucks · Address Book · Product Master · Partners · ERP Orders · Tutorials · Change Password · Support & Feedback (PDS-950) · **Price Lists (PDS-935)** · **Profile Management (PDS-937)** · **CMS / Legal (PDS-937)** · **Signup + post-login gates (PDS-955)** |
 | **Substantially built** | Settings hub (PDS-937) · Create Shipment wizard · Manage Shipments · Login + 2FA · Published Edit Load (PDS-959) |
-| **Partial / in progress** | Shipment Detail · Dashboard · Notifications (**listing pending**; settings done) · KYC (Settings only) |
-| **Not started** | Billing · Subscription · Chat · Post-login gates · Signup · Onboarding · Profile Information · Refer · Account Statement |
+| **Partial / in progress** | Shipment Detail · Dashboard · Notifications (**listing pending**; settings done) · Billing / Subscription (placeholders) |
+| **Not started** | Chat · Onboarding tour · Refer · Account Statement |
 
 **Rough dev progress:** ~60% of modules built or substantially complete · ~70% when counting partial UI+API work on in-progress modules.
 
@@ -104,7 +104,7 @@ React today: auth + 2FA + some module `403` banners + Settings KYC. **Post-login
 | Phase | Dev work still pending |
 |---|---|
 | **A — Core freight** | Shipment Detail — remove demo data, wire co-owner/tracking/logs/GPS/POD; Dashboard — live ShipmentBoard/Schedule/LiveMap; Create Shipment — **private load limit modal** |
-| **B — Account & access** | Past-due invoice SPA gate + API; post-login redirect middleware (KYC, address, info-form); React **Signup/register** flow + API; Profile Information questionnaire (UI + API); Onboarding tour (UI + API); Settings — Subscription/Billing sections (currently placeholder) |
+| **B — Account & access** | Onboarding tour (UI + API); Settings — Subscription/Billing sections (currently placeholder); Refer MYVAGON |
 | **C — Monetization** | Subscription page (UI + API); Billing page (UI + API); Account Statement (if product confirms) |
 | **D — Collaboration** | Notifications **listing** (UI + API; settings done); **Chat** messenger (UI + API); Refer MYVAGON modal (UI + API) |
 | **E — Polish** | Public Track (React route or keep Laravel); Settings Integrations + AI Settings (marked coming soon) |
@@ -124,10 +124,10 @@ React today: auth + 2FA + some module `403` banners + Settings KYC. **Post-login
 
 | # | Module | Laravel | React API | Gap summary |
 |---|---|---|---|---|
-| 1 | Login & Auth | ✅ | ✅ | Login + 2FA challenge; forgot password / register → Laravel; post-login gates not enforced in SPA |
-| 2 | Signup & KYC | ✅ | 🚧 | No React register; KYC submit in Settings → Compliance (PDS-937) |
+| 1 | Login & Auth | ✅ | ✅ | Login + 2FA; forgot password → Laravel; post-login gates in `ProtectedRoute` (PDS-955) |
+| 2 | Signup & KYC | ✅ | ✅ | React `/shipper/register` + `/auth/signup*`; KYC in Settings → Compliance; entry cutover (PDS-955) |
 | 3 | Onboarding Tour | ✅ | ❌ | |
-| 4 | Profile Information (questionnaire) | ✅ | ❌ | Blocking modal |
+| 4 | Profile Information (questionnaire) | ✅ | ✅ | SPA: Organization ops + info-form hard/soft gates via `/auth/me` (PDS-955 Phase 5); Blade profile-info remains for hybrid web |
 | 5 | Dashboard | ✅ | 🚧 | KPI strip live via `/shipments/summary`; ShipmentBoard/Schedule/LiveMap mostly mock |
 | 6 | Manage Shipments | ✅ | ✅ | Strong list/actions; published Edit uses create wizard `?editId=` (PDS-959) |
 | 7 | Shipment Detail | ✅ | 🚧 | Read API; `detailViewModel` demo fallbacks; Edit → `?editId=` / `?id=`; co-owner/logs/GPS/POD gaps |
@@ -303,9 +303,9 @@ With `basename` set: `/` redirects to `/address-book`.
 ### 5.5 Auth model (React)
 
 - Login stores Sanctum token; optional **2FA challenge** (`POST /auth/2fa/verify`) before full session.
-- `ProtectedRoute` guards app layout (auth only — no KYC/past-due gates yet).
-- `GET /auth/me` returns profile fields including `kyc_status`, `is_sub_user`, `permissions[]`.
-- Forgot password / Register deep-link to Laravel (`VITE_LARAVEL_URL`).
+- `ProtectedRoute` guards app layout: auth → past-due → KYC → company address → info-form (PDS-955).
+- `GET /auth/me` returns profile fields including `kyc_status`, `company_address_complete`, `info_form_*`, `is_sub_user`, `permissions[]`.
+- Forgot password deep-links to Laravel (`VITE_LARAVEL_URL`); register is SPA `/shipper/register`.
 - Password change + 2FA setup live under Settings → Security.
 
 ---
@@ -507,17 +507,17 @@ Each module below uses the same checklist fields.
 |---|---|
 | **Overview** | Sign-in for primary + sub-users; language; session; post-login gates; 2FA. |
 | **Laravel functionalities** | Email/password; EN/GR; Forgot password; inactive primary/sub-user messaging; logout; load sub-user permissions; free plan on first login; KYC/address redirects. |
-| **React functionalities** | Login page; validation; token session; **2FA challenge flow**; logout confirm; EN/EL toggle; ProtectedRoute. |
+| **React functionalities** | Login page; validation; token session; **2FA challenge flow**; logout confirm; EN/EL toggle; ProtectedRoute with past-due / KYC / company / info-form gates. |
 | **Roles & permissions** | Active primary/sub-user required. |
-| **Business rules** | Wrong credentials message; inactive blocks; KYC pending/rejected → Profile; incomplete address after KYC → Profile. |
+| **Business rules** | Wrong credentials message; inactive blocks; KYC pending/rejected → Compliance; incomplete address after KYC → Organization; info-form hard/soft gates. |
 | **Validation** | Email format; password required. |
 | **UI / screens** | Login; Forgot password (Laravel); Inactive modal (Laravel); 2FA verify screen. |
 | **Actions** | Login, Logout, 2FA verify, Reset password, Change language. |
 | **API** | `POST /auth/login`, `/auth/2fa/*`, `GET /auth/me`, `POST /auth/logout`. |
 | **Dependencies** | Signup/KYC, Profile, Billing, Subscription. |
-| **Edge cases** | Concurrent session; post-login gates not enforced in SPA yet. |
-| **Status** | Laravel ✅ · React 🚧 · API ✅ |
-| **Comparison** | 2FA added (Aug 2026). Forgot password & register → Laravel URLs. Post-login KYC/address/info-form gates still missing. |
+| **Edge cases** | Concurrent session; onboarding tour not in SPA. |
+| **Status** | Laravel ✅ · React ✅ · API ✅ |
+| **Comparison** | 2FA + post-login gates (PDS-955). Forgot password still Laravel. |
 
 ---
 
@@ -526,11 +526,11 @@ Each module below uses the same checklist fields.
 | Field | Detail |
 |---|---|
 | **Overview** | Registration + email/phone verify + VAT certificate; admin KYC review. |
-| **Laravel** | Full signup form; OTP verify; consent; KYC Pending→Accepted/Rejected; admin history. |
-| **React** | No self-registration; **KYC submit in Settings → Compliance** (PDS-937). |
-| **API** | `GET/POST /settings/kyc` — no public register endpoints. |
-| **Status** | Laravel ✅ · React 🚧 · API 🚧 |
-| **Comparison** | Existing shippers can complete KYC in SPA. New signup remains Laravel until register API exists. |
+| **Laravel** | Legacy Blade form (orphaned GET); OTP/consent APIs; admin history. Entry `shipper.register.form` redirects to SPA. |
+| **React** | Full wizard at `/shipper/register` (PDS-955); **KYC submit in Settings → Compliance** (PDS-937). |
+| **API** | `/auth/signup*`, `/auth/email/otp`, `/auth/phone/otp*`, `/auth/check-*`, `/auth/verify-vat/*`; `GET/POST /settings/kyc`. |
+| **Status** | Laravel ✅ · React ✅ · API ✅ |
+| **Comparison** | New signup is React-first. QA: `PDS-955-QA-CHECKLIST.md`. |
 
 ---
 
@@ -552,9 +552,10 @@ Each module below uses the same checklist fields.
 |---|---|
 | **Overview** | Blocking Shipper Information modal + Profile Operations questions. |
 | **Laravel** | Required company type, products, volumes, lanes, trucks, challenges, goals; reminder after 1 month. |
-| **React** | Not implemented. |
-| **API** | Web profile-info routes only. |
-| **Status** | Laravel ✅ · React ❌ · API ❌ |
+| **React** | Organization ops questionnaire + completion %; hard gate / soft reminder via `/auth/me` `info_form_*` (PDS-955 Phase 5). |
+| **API** | SPA uses `GET/PUT /settings/organization` (FormAnswer sync). Blade `profile-info/*` remains for hybrid web. |
+| **Status** | Laravel ✅ · React ✅ · API ✅ (via organization settings) |
+| **Comparison** | SPA redirects to Organization instead of Blade modal; onboarding ignored for SPA gates until tour lands. |
 
 ---
 

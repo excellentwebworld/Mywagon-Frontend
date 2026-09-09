@@ -1,5 +1,5 @@
 export { authService, AUTH_TOKEN_KEY, getStoredToken, setStoredToken, clearStoredToken } from './authService';
-export { signupService } from './signupService';
+export { signupService, SignupApiError } from './signupService';
 export type {
   LoginPayload,
   LoginResponse,

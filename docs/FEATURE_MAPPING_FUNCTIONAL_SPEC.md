@@ -28,10 +28,10 @@
 
 | # | Module / Feature | Laravel | React | Notes |
 | --- | --- | --- | --- | --- |
-| 1 | Login & Auth | ✅ | 🚧 | Login + logout API; missing forgot password, full post-login gates |
-| 2 | Signup & KYC | ✅ | ❌ | No React register/KYC flow |
+| 1 | Login & Auth | ✅ | ✅ | Login + 2FA; post-login gates (PDS-955); forgot password still Laravel |
+| 2 | Signup & KYC | ✅ | ✅ | React `/shipper/register` + signup API (PDS-955); KYC in Settings |
 | 3 | Onboarding Tour | ✅ | ❌ | |
-| 4 | Profile Information (mandatory questionnaire) | ✅ | ❌ | Blocking modal + reminder |
+| 4 | Profile Information (mandatory questionnaire) | ✅ | ✅ | Organization ops + info-form gates (PDS-955 Phase 5) |
 | 5 | Dashboard | ✅ | 🚧 | Redesigned UI shell; not fully wired to live KPIs/map |
 | 6 | Manage Shipments | ✅ | 🚧 | List/filter/cancel/invite/bids via API; some Laravel actions TBD |
 | 7 | Shipment Detail (Load Details) | ✅ | 🚧 | Detail API wired; `detailViewModel` still synthesizes demo fallbacks; many actions toast-only |
@@ -51,7 +51,7 @@
 | 21 | Subscription + Add-ons | ✅ | ❌ | Sidebar placeholder `#subscription` |
 | 22 | Billing | ✅ | ❌ | Sidebar placeholder `#billing` |
 | 23 | Account Statement | ✅ | ❌ | Menu often hidden in Laravel |
-| 24 | Past-Due Invoice gate | ✅ | ❌ | SPA middleware equivalent missing (distinct from Manage Shipments `past_due` status tab, which exists) |
+| 24 | Past-Due Invoice gate | ✅ | ✅ | `ProtectedRoute` + `has_past_due` (priority over KYC/info-form) |
 | 25 | Private / Public Load Limit modals | ✅ | 🚧 | Public limit check + Step 3 banner; private limit modal TBD |
 | 26 | Upgrade (Subscribe) Modal | ✅ | 🚧 | Module-local gates (e.g. SAT); global modal TBD |
 | 27 | Support & Feedback | ✅ | ❌ | Sidebar placeholder `#support` |
@@ -182,7 +182,7 @@ Base: `/api/shipper/v1`
 | **API Integration** | Laravel: `shipper.login`, `shipper.login.post`, logout. React: `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`. |
 | **Dependencies** | Signup/KYC, Profile, Subscription, Past-due invoice. |
 | **Edge Cases** | Sub-user inactive; primary inactive; concurrent session kick; missing subscription on first login. |
-| **Implementation Status** | Laravel ✅ · React 🚧 (LoginPage + Sanctum auth; forgot password / full post-login KYC-address gates pending) |
+| **Implementation Status** | Laravel ✅ · React ✅ (Login + 2FA + ProtectedRoute gates PDS-955; forgot password still Laravel) |
 | **Remarks/Notes** | Source: `miro/Shipper/LoginAndAuth`. |
 
 ---
@@ -202,11 +202,11 @@ Base: `/api/shipper/v1`
 | **Filters & Search** | N/A |
 | **Status Flow** | Pending → Accepted / Rejected → (resubmit) Pending. |
 | **Notifications & Alerts** | KYC status messaging on Profile. |
-| **API Integration** | Laravel web: `shipper.register.*`, `shipper.email.verify`, `shipper.phone.verify`, `shipper.verify.otp`, VAT/duplicate checks. React: none yet. |
+| **API Integration** | Laravel web leftovers + SPA: `/auth/signup*`, OTP, check-duplicate/company, verify-vat; Settings KYC. |
 | **Dependencies** | Login, Profile Management, CMS Terms/Privacy. |
 | **Edge Cases** | Duplicate company/email/phone; invalid VAT; rejected with reason. |
-| **Implementation Status** | Laravel ✅ · React ❌ |
-| **Remarks/Notes** | Admin KYC UI is not part of shipper React migration. |
+| **Implementation Status** | Laravel ✅ · React ✅ (PDS-955 register wizard + Compliance KYC) |
+| **Remarks/Notes** | Admin KYC UI is not part of shipper React migration. QA: `PDS-955-QA-CHECKLIST.md`. |
 
 ---
 
@@ -248,11 +248,11 @@ Base: `/api/shipper/v1`
 | **Filters & Search** | City multi-selects. |
 | **Status Flow** | Incomplete → Complete. |
 | **Notifications & Alerts** | Reminder modal. |
-| **API Integration** | `shipper.profile-info.*`, `shipper.information.form.store`. |
+| **API Integration** | SPA: `GET/PUT /settings/organization` + `/auth/me` `info_form_*`. Blade: `shipper.profile-info.*` for hybrid web. |
 | **Dependencies** | Profile Management, Onboarding, Past-due middleware. |
-| **Edge Cases** | Cannot dismiss mandatory modal without Save/Logout. |
-| **Implementation Status** | Laravel ✅ · React ❌ |
-| **Remarks/Notes** | — |
+| **Edge Cases** | SPA hard-redirects to Organization; Blade still uses blocking modal. |
+| **Implementation Status** | Laravel ✅ · React ✅ (PDS-955 Phase 5) |
+| **Remarks/Notes** | SPA ignores onboarding for gate timing until tour lands. |
 
 ---
 

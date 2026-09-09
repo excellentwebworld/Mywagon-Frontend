@@ -2089,8 +2089,6 @@
   "loginSignup": "Signup",
   "loginLogIn": "Login",
   "loginJoinForFree": "Join for free",
-  "registerComingSoon": "Shipper registration is moving here. Full signup will be available soon.",
-  "registerPlaceholderBody": "This page will host the sign-up, company info, and KYC flow. Please use Login if you already have an account.",
   "registerBackToLogin": "Back to login",
   "registerStepOf": "Step {{current}} of {{total}}",
   "registerStepName": "What's your name?",

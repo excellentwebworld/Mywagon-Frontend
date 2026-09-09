@@ -13,6 +13,27 @@ import type {
   VerifyVatResponse,
 } from './signupTypes';
 
+/** Laravel validation / API failure with optional per-field messages. */
+export class SignupApiError extends Error {
+  fieldErrors: Record<string, string>;
+
+  constructor(message: string, fieldErrors: Record<string, string> = {}) {
+    super(message);
+    this.name = 'SignupApiError';
+    this.fieldErrors = fieldErrors;
+  }
+}
+
+function flattenFieldErrors(errors: Record<string, string[]> | undefined): Record<string, string> {
+  if (!errors) return {};
+  const out: Record<string, string> = {};
+  for (const [key, messages] of Object.entries(errors)) {
+    const first = Array.isArray(messages) ? messages[0] : undefined;
+    if (first) out[key] = first;
+  }
+  return out;
+}
+
 async function signupRequest<T>(
   path: string,
   options: {
@@ -39,11 +60,10 @@ async function signupRequest<T>(
       const data = err.response?.data;
       const statusText = err.response?.statusText || err.message;
       const errPayload = data as { message?: string; errors?: Record<string, string[]> };
-      const firstFieldError = errPayload?.errors
-        ? Object.values(errPayload.errors).flat()[0]
-        : undefined;
+      const fieldErrors = flattenFieldErrors(errPayload?.errors);
+      const firstFieldError = Object.values(fieldErrors)[0];
       const message = firstFieldError || errPayload?.message || statusText || 'Request failed';
-      throw new Error(message);
+      throw new SignupApiError(message, fieldErrors);
     }
     throw err;
   }
@@ -51,7 +71,7 @@ async function signupRequest<T>(
 
 function assertOk(res: SignupStatusResponse, fallback: string): void {
   if (res.status === false || res.success === false) {
-    throw new Error(res.message || fallback);
+    throw new SignupApiError(res.message || fallback);
   }
 }
 

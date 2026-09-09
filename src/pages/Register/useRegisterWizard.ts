@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { signupService } from '../../api/auth';
+import { signupService, SignupApiError } from '../../api/auth';
 import type { SignupReferenceCountryCode, SignupReferenceDomicile } from '../../api/auth';
 import {
   REGISTER_STEPS,
@@ -553,9 +553,20 @@ export function useRegisterWizard(t: Translate) {
       setDraft(createEmptyDraft());
       setStepIndex(REGISTER_STEPS.length);
     } catch (err) {
-      setFormError(
-        err instanceof Error ? err.message : t('registerSignupFailed', 'Signup failed. Please try again.')
-      );
+      if (err instanceof SignupApiError && Object.keys(err.fieldErrors).length > 0) {
+        const mapped: RegisterFieldErrors = {};
+        for (const [key, message] of Object.entries(err.fieldErrors)) {
+          (mapped as Record<string, string>)[key] = message;
+        }
+        setFieldErrors(mapped);
+        setFormError(err.message);
+      } else {
+        setFormError(
+          err instanceof Error
+            ? err.message
+            : t('registerSignupFailed', 'Signup failed. Please try again.')
+        );
+      }
     } finally {
       setBusy(false);
     }

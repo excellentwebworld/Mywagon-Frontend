@@ -2088,8 +2088,6 @@
   "loginSignup": "Εγγραφή",
   "loginLogIn": "Σύνδεση",
   "loginJoinForFree": "Εγγραφή δωρεάν",
-  "registerComingSoon": "Η εγγραφή shipper μεταφέρεται εδώ. Η πλήρης εγγραφή θα είναι διαθέσιμη σύντομα.",
-  "registerPlaceholderBody": "Αυτή η σελίδα θα φιλοξενεί την εγγραφή, τα στοιχεία εταιρείας και το KYC. Χρησιμοποιήστε τη Σύνδεση αν έχετε ήδη λογαριασμό.",
   "registerBackToLogin": "Επιστροφή στη σύνδεση",
   "registerStepOf": "Βήμα {{current}} από {{total}}",
   "registerStepName": "Πώς σας λένε;",
