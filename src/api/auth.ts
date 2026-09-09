@@ -1,4 +1,11 @@
-export { authService, getStoredToken, setStoredToken, clearStoredToken } from './auth/authService';
+export {
+  authService,
+  AUTH_TOKEN_KEY,
+  getStoredToken,
+  setStoredToken,
+  clearStoredToken,
+} from './auth/authService';
+export { signupService, SignupApiError } from './auth/signupService';
 export type {
   LoginPayload,
   LoginResponse,
@@ -8,6 +15,24 @@ export type {
   TwoFactorChallenge,
   TwoFactorMethod,
 } from './auth/types';
+export type {
+  CheckCompanyPayload,
+  CheckDuplicatePayload,
+  RegisterShipperFields,
+  SendEmailOtpPayload,
+  SendPhoneOtpPayload,
+  SignupDuplicateField,
+  SignupDuplicateTable,
+  SignupReferenceCountryCode,
+  SignupReferenceData,
+  SignupReferenceDomicile,
+  SignupReferenceResponse,
+  SignupReferenceVehicleType,
+  SignupStatusResponse,
+  SignupUserType,
+  VerifyPhoneOtpPayload,
+  VerifyVatResponse,
+} from './auth/signupTypes';
 
 import axiosInstance from '../utils/axios';
 
