@@ -28,6 +28,67 @@
   "viewAllNotifications": "View all notifications",
   "dashboard": "Dashboard",
 
+  "tour": {
+    "welcome": {
+      "title": "Welcome to MYVAGON",
+      "getStarted": "Let's Get You Started",
+      "description": "This short tour shows you the essential steps to set up MYVAGON and start shipping."
+    },
+    "dashboard": {
+      "title": "Your Dashboard",
+      "description": "Track KPIs, today's schedule, live map, and your shipment board from one place."
+    },
+    "addresses": {
+      "title": "Set Up Addresses",
+      "description": "Add the pickup locations you use most often and the customer addresses typically used for deliveries."
+    },
+    "products": {
+      "title": "Create Products",
+      "description": "Create your product master by organizing what you ship by product category and product type, so they can be reused across shipments."
+    },
+    "partners": {
+      "title": "Invite Your Partners",
+      "description": "Invite your existing carrier and driver partners to MYVAGON to digitize your dispatching and send them private shipment offers.",
+      "tip": "Tip: Get started quickly by inviting just one carrier and assigning your first shipment digitally!"
+    },
+    "priceLists": {
+      "title": "Price Lists",
+      "description": "Create and manage price lists for your lanes and carriers, so rates are ready when you send shipment offers."
+    },
+    "erpOrders": {
+      "title": "ERP Orders",
+      "description": "Import orders from your ERP, review them in MYVAGON, and turn them into shipments without re-entering data."
+    },
+    "createShipment": {
+      "title": "Create Your Shipment",
+      "description": "Create a shipment by selecting products, pickup and delivery locations, then send the load offer to your carrier or driver partners."
+    },
+    "manageShipments": {
+      "title": "Manage shipments",
+      "description": "Track, edit, and monitor all your shipments in one place as they move from creation to delivery."
+    },
+    "tutorials": {
+      "title": "Video Guides",
+      "description": "Access short video tutorials anytime to learn how to use features or refresh your knowledge."
+    },
+    "finish": {
+      "title": "You're All Set",
+      "description": "You can restart this tour anytime from Settings if you need a quick refresher."
+    },
+    "controls": {
+      "start": "Start",
+      "next": "Next",
+      "back": "Back",
+      "finish": "Finish",
+      "skip": "Skip"
+    },
+    "help": {
+      "label": "Help Tour",
+      "start": "Start Help Tour"
+    },
+    "welcomeAboard": "Welcome aboard! You are ready to start using MYVAGON."
+  },
+
   "appName": "MY VAGON",
   "createShipment": "Create Shipment",
   "newShipment": "New Shipment",
@@ -1278,7 +1339,11 @@
         "daysAgo": "days ago"
       },
       "adminOnly": "Only administrators can edit profile information",
-      "avatarTooLarge": "Image must be under 5MB"
+      "avatarTooLarge": "Image must be under 5MB",
+      "replayTour": "Replay help tour",
+      "replayTourHint": "Restart the guided interface tour on your dashboard.",
+      "replayTourBusy": "Starting tour…",
+      "replayTourError": "Could not reset the tour. Please try again."
     },
     "securitySection": {
       "password": {

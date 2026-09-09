@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useLoginParticles } from './useLoginParticles';
-import type { TwoFactorChallenge } from '../../api/auth';
+import type { ShipperUser, TwoFactorChallenge } from '../../api/auth';
 import fullLogo from '../../assets/logo/fullLogo.svg';
 import {
   validateLoginEmail,
@@ -14,6 +14,17 @@ import {
 } from './loginValidation';
 import { clearSignupDraft } from '../Register/signupDraft';
 import './LoginPage.css';
+
+function isTwoFactorChallenge(
+  value: TwoFactorChallenge | ShipperUser,
+): value is TwoFactorChallenge {
+  return 'challenge_token' in value;
+}
+
+function postLoginPath(user: ShipperUser, from: string): string {
+  if (user.onboarding_completed === false) return '/dashboard';
+  return from;
+}
 
 const EyeIcon: React.FC<{ open: boolean }> = ({ open }) =>
   open ? (
@@ -42,6 +53,7 @@ export const LoginPage: React.FC = () => {
     clearLoginError,
     isAuthenticated,
     isLoading,
+    user,
   } = useAuth();
   const { lang, setLang } = useApp();
   const { t, i18n } = useTranslation();
@@ -78,7 +90,9 @@ export const LoginPage: React.FC = () => {
   }, [resendSeconds]);
 
   if (!isLoading && isAuthenticated) {
-    return <Navigate to={from} replace />;
+    const dest =
+      user && user.onboarding_completed === false ? '/dashboard' : from;
+    return <Navigate to={dest} replace />;
   }
 
   const handleLanguageChange = (checked: boolean) => {
@@ -127,18 +141,18 @@ export const LoginPage: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const nextChallenge = await login(email.trim(), password);
-      if (nextChallenge) {
-        setChallenge(nextChallenge);
+      const result = await login(email.trim(), password);
+      if (isTwoFactorChallenge(result)) {
+        setChallenge(result);
         setOtpCode('');
         setUseRecovery(false);
         setLostAccess(false);
-        if (nextChallenge.method === 'email') {
+        if (result.method === 'email') {
           setResendSeconds(60);
         }
         return;
       }
-      navigate(from, { replace: true });
+      navigate(postLoginPath(result, from), { replace: true });
     } catch {
       // loginError set in context
     } finally {
@@ -154,17 +168,18 @@ export const LoginPage: React.FC = () => {
     setSubmitting(true);
     try {
       if (lostAccess) {
-        const { two_factor_reset } = await verifyTwoFactorRecovery(
+        const { two_factor_reset, user: profile } = await verifyTwoFactorRecovery(
           challenge.challenge_token,
           otpCode.trim(),
         );
         if (two_factor_reset) {
           sessionStorage.setItem('shipper_mfa_reset_toast', '1');
         }
+        navigate(postLoginPath(profile, from), { replace: true });
       } else {
-        await verifyTwoFactor(challenge.challenge_token, otpCode.trim());
+        const profile = await verifyTwoFactor(challenge.challenge_token, otpCode.trim());
+        navigate(postLoginPath(profile, from), { replace: true });
       }
-      navigate(from, { replace: true });
     } catch {
       // loginError set in context
     } finally {

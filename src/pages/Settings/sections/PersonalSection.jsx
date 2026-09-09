@@ -13,8 +13,12 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useAuth } from '../../../hooks/useAuth';
+import { useAuth as useShipperAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../hooks/useToast';
 import { personalSettingsService } from '../../../api/services/personalSettingsService';
+import { onboardingService } from '../../../api/services/onboardingService';
+import { FORCE_TOUR_SESSION_KEY } from '../../../onboarding';
+import { safeSessionSet } from '../../../utils/safeStorage';
 import { parseUtcInstant } from '../../../utils/timezone';
 import { formatIsoDisplayDateTime } from '../../../utils/dateDisplay';
 import { ContextualTutorialTrigger } from '../../../components/Tutorials';
@@ -27,8 +31,10 @@ export default function PersonalSection() {
   const navigate = useNavigate();
   const { T } = useTheme();
   const { refreshUser } = useAuth();
+  const { refreshUser: refreshShipperUser } = useShipperAuth();
   const { toast } = useToast();
   const fileRef = useRef(null);
+  const [replayingTour, setReplayingTour] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -413,6 +419,47 @@ export default function PersonalSection() {
             label={t('settings.profileSection.activity.lastLogin')}
             value={relativeTime(data.account.last_active_at)}
           />
+        </div>
+
+        <div
+          className="mt-4 px-3 py-3 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+          style={{ background: T.sa, border: `1px solid ${T.bd}` }}
+        >
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>
+              {t('settings.profileSection.replayTour')}
+            </div>
+            <div style={{ fontSize: 12, color: T.t3, marginTop: 2 }}>
+              {t('settings.profileSection.replayTourHint')}
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={replayingTour}
+            onClick={async () => {
+              setReplayingTour(true);
+              try {
+                await onboardingService.reset();
+                await refreshShipperUser?.();
+                safeSessionSet(FORCE_TOUR_SESSION_KEY, '1');
+                navigate('/dashboard');
+              } catch (e) {
+                toast.error(
+                  e instanceof Error
+                    ? e.message
+                    : t('settings.profileSection.replayTourError'),
+                );
+              } finally {
+                setReplayingTour(false);
+              }
+            }}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none shrink-0"
+            style={{ background: T.ac, color: '#fff', fontSize: 12, fontWeight: 600 }}
+          >
+            {replayingTour
+              ? t('settings.profileSection.replayTourBusy')
+              : t('settings.profileSection.replayTour')}
+          </button>
         </div>
       </Card>
     </div>

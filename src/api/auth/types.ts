@@ -33,6 +33,9 @@ export interface ShipperUser {
   /** Within first month, mandatory done, completion < 100% (soft reminder). */
   info_form_soft_reminder?: boolean;
   referral_code?: string | null;
+  /** Guided UI tour completed (shippers.onboarding_completed). */
+  onboarding_completed?: boolean;
+  onboarding_completed_at?: string | null;
 }
 
 

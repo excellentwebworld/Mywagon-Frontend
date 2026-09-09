@@ -74,6 +74,11 @@ export const InfoFormReminderModal: React.FC = () => {
       setOpen(false);
       return;
     }
+    // Laravel: guided tour first — do not open reminder until onboarding is completed.
+    if (user.onboarding_completed === false) {
+      setOpen(false);
+      return;
+    }
     // Already shown/acked this login — do not reopen, and do not force-close
     // (marking shown on open used to immediately close on the next effect run).
     if (hasReminderBeenShownThisLogin()) {
@@ -116,6 +121,7 @@ export const InfoFormReminderModal: React.FC = () => {
       title={t('settings.infoFormReminder.title', { defaultValue: 'Complete your profile' })}
       size="sm"
     >
+      <div data-info-form-reminder={open ? 'open' : 'closed'}>
       <p style={{ fontSize: 14, color: T.t2, lineHeight: 1.5, margin: '0 0 1.5rem' }}>
         {t('settings.infoFormReminder.body', {
           defaultValue:
@@ -150,6 +156,7 @@ export const InfoFormReminderModal: React.FC = () => {
         >
           {t('settings.infoFormReminder.yes', { defaultValue: 'Yes' })}
         </button>
+      </div>
       </div>
     </Modal>
   );

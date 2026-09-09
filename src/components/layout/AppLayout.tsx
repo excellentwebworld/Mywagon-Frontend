@@ -16,6 +16,7 @@ import { useGlobalChatSocket } from '../../hooks/useGlobalChatSocket';
 import { RealtimeNotificationToast, type PushNotificationData } from '../notifications/RealtimeNotificationToast';
 import { InfoFormReminderModal } from './InfoFormReminderModal';
 import { RouterLocationSync } from './RouterLocationSync';
+import { OnboardingTourHost } from '../../onboarding';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
 
@@ -119,6 +120,7 @@ export const AppLayout: React.FC = () => {
   }, [isDesktop, mobileMenuOpen]);
 
   const toggleSidebarCollapse = () => setSidebarCollapsed((prev) => !prev);
+  const expandSidebar = useCallback(() => setSidebarCollapsed(false), []);
   const ToastIcon = TOAST_ICON[toast.type] || Info;
 
   return (
@@ -156,6 +158,7 @@ export const AppLayout: React.FC = () => {
 
       <RouterLocationSync />
       <InfoFormReminderModal />
+      <OnboardingTourHost expandSidebar={expandSidebar} />
 
       {toast.show && (
         <div className="toast-container" role="status" aria-live="polite">

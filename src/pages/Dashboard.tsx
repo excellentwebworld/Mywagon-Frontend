@@ -46,21 +46,23 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Row 1: Operational KPIs */}
-      <KpiStrip activeBoardTab={activeBoardTab} setActiveBoardTab={setActiveBoardTab} />
+      <div data-tour="dashboard-overview">
+        <KpiStrip activeBoardTab={activeBoardTab} setActiveBoardTab={setActiveBoardTab} />
 
-      {/* Row 2: Today's Schedule + Live Map */}
-      <div className="row-2col-even">
-        <Schedule
-          selectedShipmentId={selectedScheduleShipmentId}
-          onSelectShipment={handleSelectScheduleShipment}
-        />
-        <LiveMap selectedShipmentId={selectedScheduleShipmentId} />
-      </div>
+        {/* Row 2: Today's Schedule + Live Map */}
+        <div className="row-2col-even">
+          <Schedule
+            selectedShipmentId={selectedScheduleShipmentId}
+            onSelectShipment={handleSelectScheduleShipment}
+          />
+          <LiveMap selectedShipmentId={selectedScheduleShipmentId} />
+        </div>
 
-      {/* Row 3: Manage Shipments board + Performance */}
-      <div className="row-2col-board">
-        <ShipmentBoard activeTab={activeBoardTab} setActiveTab={setActiveBoardTab} />
-        <PerformanceSummary />
+        {/* Row 3: Manage Shipments board + Performance */}
+        <div className="row-2col-board">
+          <ShipmentBoard activeTab={activeBoardTab} setActiveTab={setActiveBoardTab} />
+          <PerformanceSummary />
+        </div>
       </div>
 
       {/* Row 4: Trucks + Notifications + Messages */}

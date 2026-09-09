@@ -19,6 +19,7 @@
     "@types/recordrtc": "^5.6.15",
     "autoprefixer": "^10.5.0",
     "axios": "^1.18.0",
+    "driver.js": "^1.8.0",
     "firebase": "^12.18.0",
     "formik": "^2.4.9",
     "html2canvas": "^1.4.1",

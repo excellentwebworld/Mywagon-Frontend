@@ -106,6 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onCloseMobile}
             className={`ni ${isLinkActive("/shipments/create") ? "active" : ""}`}
             title={t("createShipment")}
+            data-tour="create-shipment"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M5 12h14" />
@@ -118,6 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onCloseMobile}
             className={`ni ${isLinkActive("/shipments") ? "active" : ""}`}
             title={t("navManageShipments")}
+            data-tour="manage-shipments"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
@@ -155,6 +157,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onCloseMobile}
             className={`ni ${isLinkActive("/address-book") ? "active" : ""}`}
             title={t("addressBook")}
+            data-tour="address-book"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
@@ -168,6 +171,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onCloseMobile}
             className={`ni ${isLinkActive("/products") ? "active" : ""}`}
             title={t("prodMaster")}
+            data-tour="products"
           >
             <svg
               width="18"
@@ -187,6 +191,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onCloseMobile}
             className={`ni ${isLinkActive("/partners") ? "active" : ""}`}
             title={t("navPartners")}
+            data-tour="partners"
           >
             <svg
               width="18"
@@ -209,6 +214,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onCloseMobile}
             className={`ni ${isLinkActive("/pricing") ? "active" : ""}`}
             title={t("priceLists.title") || "Price Lists"}
+            data-tour="price-lists"
           >
             <svg
               width="18"
@@ -231,6 +237,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onCloseMobile}
             className={`ni ${isLinkActive('/erp-orders') ? 'active' : ''}`}
             title={t('navErpOrders') || 'ERP Orders'}
+            data-tour="erp-orders"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -348,6 +355,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onCloseMobile}
             className={`ni ${isLinkActive("/tutorials") ? "active" : ""}`}
             title={t("tutorial")}
+            data-tour="tutorials"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">

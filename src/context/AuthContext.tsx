@@ -16,12 +16,12 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   loginError: string | null;
-  /** Returns a 2FA challenge when required; otherwise authenticates and returns null. */
-  login: (email: string, password: string) => Promise<TwoFactorChallenge | null>;
-  verifyTwoFactor: (challengeToken: string, code: string) => Promise<void>;
+  /** Returns a 2FA challenge when required; otherwise authenticates and returns the user. */
+  login: (email: string, password: string) => Promise<TwoFactorChallenge | ShipperUser>;
+  verifyTwoFactor: (challengeToken: string, code: string) => Promise<ShipperUser>;
   resendTwoFactorEmail: (challengeToken: string) => Promise<{ masked_email?: string }>;
   sendTwoFactorRecoveryEmail: (challengeToken: string) => Promise<{ masked_email?: string }>;
-  verifyTwoFactorRecovery: (challengeToken: string, code: string) => Promise<{ two_factor_reset: boolean }>;
+  verifyTwoFactorRecovery: (challengeToken: string, code: string) => Promise<{ two_factor_reset: boolean; user: ShipperUser }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   clearLoginError: () => void;
@@ -137,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [token, refreshUser]);
 
-  const login = useCallback(async (email: string, password: string): Promise<TwoFactorChallenge | null> => {
+  const login = useCallback(async (email: string, password: string): Promise<TwoFactorChallenge | ShipperUser> => {
     setLoginError(null);
     try {
       const result = await authService.login({ email, password });
@@ -149,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setStoredToken(result.token);
       setToken(result.token);
       setUser(result.user);
-      return null;
+      return result.user;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
       setLoginError(message);
@@ -165,6 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setStoredToken(bearerToken);
       setToken(bearerToken);
       setUser(profile);
+      return profile;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Verification failed';
       setLoginError(message);
@@ -189,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setStoredToken(bearerToken);
       setToken(bearerToken);
       setUser(profile);
-      return { two_factor_reset };
+      return { two_factor_reset, user: profile };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Recovery verification failed';
       setLoginError(message);
