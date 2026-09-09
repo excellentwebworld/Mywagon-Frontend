@@ -6,6 +6,7 @@ export type TripPerformanceReportType =
   | 'shipper_pickup_delay'
   | 'shipper_dropoff_delay'
   | 'driver_loading_wait'
+  | 'driver_unloading_wait'
   | 'driver_dropoff_delay';
 
 export interface TripPerformanceReportItem {
@@ -53,6 +54,13 @@ export interface TripPerformanceReportsCardProps {
   t: (key: string, fallback?: string) => string;
 }
 
+const cleanPerformanceText = (text: string | null | undefined): string => {
+  if (!text) return '';
+  return text
+    .replace(/\s*\((?:not counted|not_counted|δεν μετρήθηκε|δεν προσμετράται)\)/gi, '')
+    .trim();
+};
+
 export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProps> = ({
   performance,
   expanded,
@@ -81,7 +89,7 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
               {t('pickupDelay', 'Pickup delay')}
             </span>
             <span className="text-[12px] font-semibold text-[#9B51E0] text-right">
-              {stop.pickupDelayText}
+              {cleanPerformanceText(stop.pickupDelayText)}
             </span>
           </div>
           <div className="flex items-baseline justify-between gap-3">
@@ -89,7 +97,7 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
               {t('loadingWait', 'Loading wait')}
             </span>
             <span className="text-[12px] font-semibold text-[#9B51E0] text-right">
-              {stop.loadingWaitText}
+              {cleanPerformanceText(stop.loadingWaitText)}
             </span>
           </div>
         </div>
@@ -110,10 +118,10 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
         <div className="mt-2 space-y-1.5">
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-[11px] text-slate-500 dark:text-slate-400">
-              {t('loadingWait', 'Loading wait')}
+              {t('unloadingWait', 'Unloading wait')}
             </span>
             <span className="text-[12px] font-semibold text-[#9B51E0] text-right">
-              {stop.loadingWaitText}
+              {cleanPerformanceText(stop.loadingWaitText)}
             </span>
           </div>
         </div>

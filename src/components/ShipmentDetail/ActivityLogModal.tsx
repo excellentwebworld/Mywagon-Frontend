@@ -11,6 +11,13 @@ interface ActivityLogModalProps {
   t: (key: string, fallback?: string) => string;
 }
 
+const cleanPerformanceText = (text: string | null | undefined): string => {
+  if (!text) return '';
+  return text
+    .replace(/\s*\((?:not counted|not_counted|δεν μετρήθηκε|δεν προσμετράται)\)/gi, '')
+    .trim();
+};
+
 export const ActivityLogModal: React.FC<ActivityLogModalProps> = ({
   open,
   logs = [],
@@ -55,7 +62,7 @@ export const ActivityLogModal: React.FC<ActivityLogModalProps> = ({
                   {log.isRejection && (
                     <span className="text-red-500 font-bold mr-1.5 text-[15px]">!</span>
                   )}
-                  <strong className="font-bold text-slate-900 dark:text-white">{log.action}</strong>
+                  <strong className="font-bold text-slate-900 dark:text-white">{cleanPerformanceText(log.action)}</strong>
                   {' by '}
                   <strong className="font-bold text-slate-900 dark:text-white">{log.actor}</strong>
                   {' on '}
@@ -73,7 +80,7 @@ export const ActivityLogModal: React.FC<ActivityLogModalProps> = ({
               {entries.map((entry, index) => (
                 <li key={entry.id || index} className="leading-relaxed pl-1">
                   <strong className="font-bold text-slate-900 dark:text-white">
-                    {entry.text.replace(/\*\*/g, '')}
+                    {cleanPerformanceText(entry.text.replace(/\*\*/g, ''))}
                   </strong>
                   {' on '}
                   <strong className="font-bold text-slate-900 dark:text-white">{entry.time}</strong>

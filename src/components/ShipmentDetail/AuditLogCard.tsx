@@ -60,6 +60,13 @@ function parseEventTimestamp(dateStr?: string | null): number {
   return isNaN(parsed) ? 0 : parsed;
 }
 
+const cleanPerformanceText = (text: string | null | undefined): string => {
+  if (!text) return '';
+  return text
+    .replace(/\s*\((?:not counted|not_counted|δεν μετρήθηκε|δεν προσμετράται)\)/gi, '')
+    .trim();
+};
+
 export const AuditLogCard: React.FC<AuditLogCardProps> = ({
   entries = [],
   shipmentLogs = [],
@@ -168,7 +175,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
         category: 'operations',
         timestamp: parseEventTimestamp(op.date || op.time),
         date: op.date || op.time || '',
-        action: op.action || op.text || '',
+        action: cleanPerformanceText(op.action || op.text || ''),
         actor: op.actor || 'System',
         isRejection: isCancel || isReject,
         rejectionReason: op.rejectionReason || op.rejection_reason || null,

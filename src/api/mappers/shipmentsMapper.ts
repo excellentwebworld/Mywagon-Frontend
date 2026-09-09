@@ -18,6 +18,13 @@ function isHiddenDriverDropoffOnTimeLog(text?: string | null): boolean {
   return false;
 }
 
+function cleanPerformanceStatusText(text?: string | null): string {
+  if (!text) return '';
+  return text
+    .replace(/\s*\((?:not counted|not_counted|δεν μετρήθηκε|δεν προσμετράται)\)/gi, '')
+    .trim();
+}
+
 function mapApiStatus(status: string): Shipment['status'] {
   const norm = (status || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
   switch (norm) {
@@ -450,7 +457,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
           .map((a) => ({
           id: a.id,
           time: a.time,
-          text: a.text,
+          text: cleanPerformanceStatusText(a.text),
           category: a.category || 'all',
           tone: a.tone || 'default',
           priceBadge: a.price_badge || undefined,
@@ -498,7 +505,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
         })
         .map((l) => ({
           id: l.id,
-          action: l.action,
+          action: cleanPerformanceStatusText(l.action),
           actor: l.actor,
           date: l.date,
           isRejection: Boolean(l.is_rejection),
@@ -545,7 +552,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
       locationId: Number(r.location_id),
       locationLabel: r.location_label || '—',
       stopType: r.stop_type === 'delivery' ? 'delivery' : 'pickup',
-      summary: r.summary || '—',
+      summary: cleanPerformanceStatusText(r.summary) || '—',
       wasOnTime: r.was_on_time ?? null,
       reportedAt: r.reported_at ?? null,
       reporter: r.reporter === 'driver' ? 'driver' : 'shipper',
@@ -565,8 +572,8 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
             label: s.label || s.company_name || s.location_name || 'Pickup',
             locationName: s.location_name ?? null,
             companyName: s.company_name ?? null,
-            pickupDelayText: s.pickup_delay_text || 'Not reported yet',
-            loadingWaitText: s.loading_wait_text || 'Not reported yet',
+            pickupDelayText: cleanPerformanceStatusText(s.pickup_delay_text) || 'Not reported yet',
+            loadingWaitText: cleanPerformanceStatusText(s.loading_wait_text) || 'Not reported yet',
             canReportDelay: Boolean(s.can_report_delay),
           })),
           dropoffStops: ((detail.trip_performance as any).dropoff_stops || []).map((s: any) => ({
@@ -574,7 +581,9 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
             label: s.label || s.company_name || s.location_name || 'Dropoff',
             locationName: s.location_name ?? null,
             companyName: s.company_name ?? null,
-            loadingWaitText: s.loading_wait_text || 'Not reported yet',
+            loadingWaitText:
+              cleanPerformanceStatusText(s.loading_wait_text ?? s.unloading_wait_text) ||
+              'Not reported yet',
             canReportDelay: Boolean(s.can_report_delay),
           })),
           reports: (detail.trip_performance.reports || []).map((r) => ({
@@ -582,7 +591,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
             locationId: Number(r.location_id),
             locationLabel: r.location_label || '—',
             stopType: r.stop_type === 'delivery' ? 'delivery' : 'pickup',
-            summary: r.summary || '—',
+            summary: cleanPerformanceStatusText(r.summary) || '—',
             wasOnTime: r.was_on_time ?? null,
             reportedAt: r.reported_at ?? null,
             reporter: r.reporter === 'driver' ? 'driver' : 'shipper',
