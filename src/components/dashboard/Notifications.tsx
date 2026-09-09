@@ -22,7 +22,7 @@ export const Notifications: React.FC = () => {
           </svg>
           <span>{t('notifications')}</span>
         </h3>
-        <span className="card-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/notifications')}>
+        <span className="card-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/settings/notifications')}>
           {t('all')}
         </span>
       </div>

@@ -286,7 +286,12 @@ function mapApiItem(n: ApiNotification): NotificationItem {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const NotificationsPage: React.FC = () => {
+type NotificationsPageProps = {
+  /** When true, render inside Settings chrome (no full-page padding). */
+  embedded?: boolean;
+};
+
+export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded = false }) => {
   const { showToast } = useApp();
   const { lang, t: tHook } = useTranslation();
   const navigate = useNavigate();
@@ -496,7 +501,7 @@ export const NotificationsPage: React.FC = () => {
       }
     }
 
-    let target = redirectSlug ? (redirectSlug.startsWith('/') ? redirectSlug : `/${redirectSlug}`) : '/notifications';
+    let target = redirectSlug ? (redirectSlug.startsWith('/') ? redirectSlug : `/${redirectSlug}`) : '/settings/notifications';
 
     if (action === 'manageShipments') {
       target = '/shipments';
@@ -542,7 +547,7 @@ export const NotificationsPage: React.FC = () => {
     } else if (action === 'viewTutorials') {
       target = '/tutorials';
     } else if (action === 'viewNotifications') {
-      target = '/notifications';
+      target = '/settings/notifications';
     }
 
 
@@ -560,12 +565,20 @@ export const NotificationsPage: React.FC = () => {
   // RENDER
   // ──────────────────────────────────────────────────────────────────────
   return (
-    <div className="mv-themed-page min-h-screen bg-[var(--bg)] p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+    <div
+      className={
+        embedded
+          ? 'mv-themed-page w-full space-y-5'
+          : 'mv-themed-page min-h-screen bg-[var(--bg)] p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto'
+      }
+    >
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h1
+              className={`${embedded ? 'text-lg' : 'text-2xl'} font-bold tracking-tight text-slate-900 dark:text-white`}
+            >
               {loc('pgTitle')}
             </h1>
             {meta.unread_count > 0 && (

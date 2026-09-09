@@ -25,14 +25,13 @@ import { WebViewSubscriptionPage } from './pages/Subscription/WebViewSubscriptio
 import { WebViewBillingPage } from './pages/Billing/WebViewBillingPage';
 
 import PriceListsPage from './pages/PriceLists/PriceListsPage';
-import NotificationsPage from './pages/Notifications/NotificationsPage';
 import { MessagesPage } from './pages/Messages';
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
 
 const appRoutes = [
   { path: '/dashboard', element: <Dashboard /> },
-  { path: '/notifications', element: <NotificationsPage /> },
+  { path: '/notifications', element: <Navigate to="/settings/notifications" replace /> },
   { path: '/messages', element: <MessagesPage /> },
   { path: '/chat', element: <Navigate to="/messages" replace /> },
   { path: '/shipments', element: <ManageShipments /> },
@@ -54,6 +53,8 @@ const appRoutes = [
   { path: '/pricing', element: <PriceListsPage /> },
   { path: '/erp-orders', element: <ErpOrders /> },
   { path: '/settings', element: <Navigate to="/settings/personal" replace /> },
+  { path: '/settings/subscription', element: <Navigate to="/subscription" replace /> },
+  { path: '/settings/billing', element: <Navigate to="/billing" replace /> },
   { path: '/settings/:section/:tab', element: <SettingsSectionOrUserEdit /> },
   { path: '/settings/:section', element: <Settings /> },
   { path: '/billing', element: <BillingPage /> },

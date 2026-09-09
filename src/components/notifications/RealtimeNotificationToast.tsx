@@ -292,7 +292,7 @@ export function resolveNotificationConfig(data: PushNotificationData): ToastConf
         badgeColor: 'text-indigo-700 dark:text-indigo-300',
         categoryName: 'Notifications',
         actionLabel: 'View Notifications',
-        route: '/notifications',
+        route: '/settings/notifications',
       };
 
     default:
@@ -304,7 +304,7 @@ export function resolveNotificationConfig(data: PushNotificationData): ToastConf
         badgeColor: 'text-indigo-700 dark:text-indigo-300',
         categoryName: 'System',
         actionLabel: 'View Details',
-        route: id ? `/shipments/${id}` : '/notifications',
+        route: id ? `/shipments/${id}` : '/settings/notifications',
       };
   }
 }

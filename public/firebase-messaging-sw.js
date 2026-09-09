@@ -42,7 +42,7 @@ function isDuplicateMessage(msgId) {
 
 // ── Route Resolver for Background Clicks ──────────────────────────────────
 function resolveTargetUrl(data) {
-  if (!data) return '/notifications';
+  if (!data) return '/settings/notifications';
 
   if (data.external_url) {
     return data.external_url;
@@ -125,7 +125,7 @@ function resolveTargetUrl(data) {
     return '/settings/terms';
   }
 
-  return '/notifications';
+  return '/settings/notifications';
 }
 
 // ── Background message handler ────────────────────────────────────────────

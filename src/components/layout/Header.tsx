@@ -176,7 +176,7 @@ export const Header: React.FC<HeaderProps> = ({
   const getPageTitle = () => {
     const path = location.pathname;
     if (path.startsWith('/dashboard')) return t('dashboard');
-    if (path.startsWith('/notifications')) return t('notifications') || 'Notifications';
+    if (path.startsWith('/settings/notifications') || path.startsWith('/notifications')) return t('notifications') || 'Notifications';
     if (path.startsWith('/messages')) return t('navMessages') || 'Messages';
     if (path.startsWith('/shipments/create')) return t('createShipment');
     if (path.startsWith('/shipments')) return t('manageShipments');
@@ -594,7 +594,7 @@ export const Header: React.FC<HeaderProps> = ({
                             if (sid) actionId = sid.replace('SID-', '');
                           }
 
-                          let target = n.redirect_slug ? (n.redirect_slug.startsWith('/') ? n.redirect_slug : `/${n.redirect_slug}`) : '/notifications';
+                          let target = n.redirect_slug ? (n.redirect_slug.startsWith('/') ? n.redirect_slug : `/${n.redirect_slug}`) : '/settings/notifications';
 
                           if (n.action_type === 'manageShipments') {
                             target = '/shipments';
@@ -640,7 +640,7 @@ export const Header: React.FC<HeaderProps> = ({
                           } else if (n.action_type === 'viewTutorials') {
                             target = '/tutorials';
                           } else if (n.action_type === 'viewNotifications') {
-                            target = '/notifications';
+                            target = '/settings/notifications';
                           }
 
                           navigate(target);
@@ -708,7 +708,7 @@ export const Header: React.FC<HeaderProps> = ({
               }}
               onClick={() => {
                 setNotifOpen(false);
-                navigate('/notifications');
+                navigate('/settings/notifications');
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = T.sa;

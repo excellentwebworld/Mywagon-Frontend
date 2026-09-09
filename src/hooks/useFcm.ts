@@ -6,7 +6,7 @@
  *   2. Obtain an FCM registration token (VAPID-signed for web push).
  *   3. POST the token to `/auth/device-token` (idempotent — skipped if unchanged).
  *   4. Listen for foreground messages and surface them as toast notifications
- *      with a "View" action that navigates to /notifications.
+ *      with a "View" action that navigates to /settings/notifications.
  *   5. Watch for token refresh events and re-register the updated token.
  *
  * Gracefully no-ops when:
@@ -239,7 +239,7 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
           const n = new Notification(title, { body, icon: '/favicon.ico' });
           n.onclick = () => {
             window.focus();
-            navigate('/notifications');
+            navigate('/settings/notifications');
           };
         }
       });

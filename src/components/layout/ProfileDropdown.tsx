@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sun, Moon, ChevronDown, LogOut, Building2,
-  CreditCard, Star, HelpCircle, Users,
+  CreditCard, Star, HelpCircle,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
@@ -15,7 +15,6 @@ import { usePastDueLock } from '../../hooks/usePastDueLock';
 import { useApp } from '../../context/AppContext';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
-import { ReferralModal } from '../referral';
 import { LANGUAGES } from '../../constants/panel';
 
 export function ProfileDropdown() {
@@ -28,7 +27,6 @@ export function ProfileDropdown() {
 
   const [open, setOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const [referralOpen, setReferralOpen] = useState(false);
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
 
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -143,23 +141,18 @@ export function ProfileDropdown() {
 
               <div className="py-1" role="group" style={{ borderBottom: `1px solid ${T.bd}` }}>
                 {[
-                  { icon: Users, label: t('referral.referBtn') || 'Refer & Earn', action: () => setReferralOpen(true) },
                   { icon: Building2, label: t('topbar.companyInfo') || 'Company info', route: '/settings/organization' },
                   { icon: CreditCard, label: t('sidebar.billing') || t('billing') || 'Billing', route: '/billing' },
                   { icon: Star, label: t('sidebar.subscription') || t('navSubscription') || 'Subscription', route: '/subscription' },
                   { icon: HelpCircle, label: t('sidebar.support') || t('support') || 'Support', route: '/support' },
                 ]
-                  .filter((link) => !pastDueLocked || link.route === '/billing' || link.action)
+                  .filter((link) => !pastDueLocked || link.route === '/billing')
                   .map((link) => (
                   <button
                     type="button"
                     key={link.label}
                     onClick={() => {
-                      if (link.action) {
-                        link.action();
-                      } else if (link.route) {
-                        navigate(link.route);
-                      }
+                      navigate(link.route);
                       setOpen(false);
                     }}
                     role="menuitem"
@@ -306,11 +299,6 @@ export function ProfileDropdown() {
         confirmText={t('signOut') || 'Sign out'}
         type="danger"
         confirmLoading={isSigningOut}
-      />
-
-      <ReferralModal
-        isOpen={referralOpen}
-        onClose={() => setReferralOpen(false)}
       />
     </>
   );

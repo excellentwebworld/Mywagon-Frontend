@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
-  User, Building2, Users, Lock, CreditCard, Star,
+  User, Building2, Users, Lock,
   Zap, ClipboardList, Bell, Palette, Sun, Moon, Clock,
   Bot, Globe, FileText, ExternalLink, ShieldCheck,
   PanelLeft, PanelTop,
@@ -30,7 +30,7 @@ import PoliciesSection from './sections/PoliciesSection';
 import AuditLogSection from './sections/AuditLogSection';
 import IntegrationsSection from './sections/IntegrationsSection';
 import AiSettingsSection from './sections/AiSettingsSection';
-import NotificationsSection from './sections/NotificationsSection';
+import NotificationsPage from '../Notifications/NotificationsPage';
 import TrustCenterPage from '../Trust/TrustCenterPage';
 import { kycSettingsService } from '../../api/services/kycSettingsService';
 
@@ -61,8 +61,6 @@ const MENU: SettingsMenuGroup[] = [
     { id: 'organization', icon: Building2, labelKey: 'settings.organization' },
     { id: 'users', icon: Users, labelKey: 'settings.usersRoles' },
     { id: 'audit', icon: Clock, labelKey: 'settings.auditLog' },
-    { id: 'subscription', icon: Star, labelKey: 'settings.subscription' },
-    { id: 'billing', icon: CreditCard, labelKey: 'settings.billingSettings' },
   ]},
   { group: 'settings.groupTools', items: [
     { id: 'integrations', icon: Zap, labelKey: 'settings.integrations', comingSoon: true },
@@ -411,7 +409,7 @@ export default function Settings() {
         {activeSection === 'personal' && <PersonalSection />}
         {activeSection === 'organization' && <OrganizationSection />}
         {activeSection === 'security' && <PersonalSecuritySection />}
-        {activeSection === 'notifications' && <NotificationsSection />}
+        {activeSection === 'notifications' && <NotificationsPage embedded />}
         {activeSection === 'users' && <UserManagementSection />}
 
         {!BUILT.has(activeSection) && (
