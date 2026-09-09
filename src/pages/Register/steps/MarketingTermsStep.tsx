@@ -21,6 +21,8 @@ type MarketingTermsStepProps = {
     terms?: string;
   };
   disabled?: boolean;
+  /** When false, only hear-about + referral fields are rendered (terms shown elsewhere). */
+  includeTerms?: boolean;
 };
 
 function policyUrl(kind: 'terms' | 'privacy', lang: string): string {
@@ -41,6 +43,7 @@ export const MarketingTermsStep: React.FC<MarketingTermsStepProps> = ({
   onChange,
   errors,
   disabled,
+  includeTerms = true,
 }) => {
   const { t } = useTranslation();
 
@@ -107,31 +110,80 @@ export const MarketingTermsStep: React.FC<MarketingTermsStepProps> = ({
         )}
       </div>
 
-      <div className="shipper-register-terms">
-        <label className="shipper-register-terms-label">
-          <input
-            type="checkbox"
-            checked={terms}
-            disabled={disabled}
-            onChange={(e) => onChange({ terms: e.target.checked })}
-          />
-          <span>
-            {t('registerTermsPrefix', 'I agree to the')}{' '}
-            <a href={policyUrl('terms', lang)} target="_blank" rel="noopener noreferrer">
-              {t('registerTermsLink', 'Terms & conditions')}
-            </a>{' '}
-            {t('registerTermsAnd', 'and')}{' '}
-            <a href={policyUrl('privacy', lang)} target="_blank" rel="noopener noreferrer">
-              {t('registerPrivacyLink', 'Privacy policy')}
-            </a>
-          </span>
-        </label>
-        {errors.terms && (
-          <p className="shipper-login-field-error" role="alert">
-            {errors.terms}
-          </p>
-        )}
-      </div>
+      {includeTerms && (
+        <div className="shipper-register-terms">
+          <label className="shipper-register-terms-label">
+            <input
+              type="checkbox"
+              checked={terms}
+              disabled={disabled}
+              onChange={(e) => onChange({ terms: e.target.checked })}
+            />
+            <span>
+              {t('registerTermsPrefix', 'I agree to the')}{' '}
+              <a href={policyUrl('terms', lang)} target="_blank" rel="noopener noreferrer">
+                {t('registerTermsLink', 'Terms & conditions')}
+              </a>{' '}
+              {t('registerTermsAnd', 'and')}{' '}
+              <a href={policyUrl('privacy', lang)} target="_blank" rel="noopener noreferrer">
+                {t('registerPrivacyLink', 'Privacy policy')}
+              </a>
+            </span>
+          </label>
+          {errors.terms && (
+            <p className="shipper-login-field-error" role="alert">
+              {errors.terms}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 };
+
+export function RegisterTermsCheckbox({
+  terms,
+  lang,
+  onChange,
+  error,
+  disabled,
+}: {
+  terms: boolean;
+  lang: 'en' | 'el';
+  onChange: (terms: boolean) => void;
+  error?: string;
+  disabled?: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="shipper-register-terms">
+      <label className="shipper-register-terms-label">
+        <input
+          type="checkbox"
+          checked={terms}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        <span>
+          {t(
+            'registerTermsDeclare',
+            'I declare that I am authorized to legally bind the company I represent and accept the MYVAGON'
+          )}{' '}
+          <a href={policyUrl('terms', lang)} target="_blank" rel="noopener noreferrer">
+            {t('registerTermsLink', 'Terms & conditions')}
+          </a>{' '}
+          {t('registerTermsAnd', 'and')}{' '}
+          <a href={policyUrl('privacy', lang)} target="_blank" rel="noopener noreferrer">
+            {t('registerPrivacyLink', 'Privacy policy')}
+          </a>{' '}
+          {t('registerTermsOnBehalf', 'on its behalf.')}
+        </span>
+      </label>
+      {error && (
+        <p className="shipper-login-field-error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}

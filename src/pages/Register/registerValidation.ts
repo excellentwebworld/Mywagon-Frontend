@@ -251,3 +251,66 @@ export function validateKycStep(
   if (certErr) errors.shipper_certificate = certErr;
   return errors;
 }
+
+/** Full single-page register form validation (Blade parity). */
+export function validateFullRegister(
+  draft: {
+    first_name: string;
+    last_name: string;
+    company_name: string;
+    country_code: string;
+    phone: string;
+    phoneVerified: boolean;
+    email: string;
+    emailVerified: boolean;
+    password: string;
+    password_confirmation: string;
+    street_address: string;
+    postal_code: string;
+    city: string;
+    address_country: string;
+    hear_about_us_shipper: string;
+    hear_about_us_other_shipper: string;
+    referral_code: string;
+    terms: boolean;
+    kyc_vat_number_shipper: string;
+  },
+  certificate: File | null,
+  t: Translate
+): RegisterFieldErrors {
+  const errors: RegisterFieldErrors = {
+    ...validateNameStep(draft.first_name, draft.last_name, t),
+    ...validateCompanyStep(draft.company_name, t),
+    ...validatePhoneStep(draft.country_code, draft.phone, t),
+    ...validateEmailStep(draft.email, t),
+    ...validatePasswordStep(draft.password, draft.password_confirmation, t),
+    ...validateAddressStep(
+      {
+        street_address: draft.street_address,
+        postal_code: draft.postal_code,
+        city: draft.city,
+        address_country: draft.address_country,
+      },
+      t
+    ),
+    ...validateMarketingTermsStep(
+      {
+        hear_about_us_shipper: draft.hear_about_us_shipper,
+        hear_about_us_other_shipper: draft.hear_about_us_other_shipper,
+        referral_code: draft.referral_code,
+        terms: draft.terms,
+      },
+      t
+    ),
+    ...validateKycStep(draft.kyc_vat_number_shipper, certificate, t),
+  };
+
+  if (!errors.phone && !draft.phoneVerified) {
+    errors.phone = t('registerPhoneVerifyRequired', 'Please verify your phone number');
+  }
+  if (!errors.email && !draft.emailVerified) {
+    errors.email = t('registerEmailVerifyRequired', 'Please verify your email address');
+  }
+
+  return errors;
+}

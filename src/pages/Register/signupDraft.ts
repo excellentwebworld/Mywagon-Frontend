@@ -3,6 +3,7 @@ export const SIGNUP_QUERY_STORAGE_KEY = 'shipper_signup_query';
 
 export const SIGNUP_DRAFT_STORAGE_KEY = 'shipper_signup_draft';
 
+/** @deprecated Wizard steps removed; kept for old draft migration only. */
 export type RegisterStepKey =
   | 'nm'
   | 'ph'
@@ -16,7 +17,7 @@ export type RegisterStepKey =
   | 'vf'
   | 'done';
 
-/** Active wizard steps (`done` is post-submit success). */
+/** @deprecated No longer drives UX (single-page form). */
 export const REGISTER_STEPS: RegisterStepKey[] = [
   'nm',
   'ph',
@@ -56,7 +57,7 @@ export type SignupDraft = {
   hear_about_us_other_shipper: string;
   referral_code: string;
   terms: boolean;
-  /** Step index into REGISTER_STEPS, or REGISTER_STEPS.length for done */
+  /** Legacy wizard index — ignored for navigation; kept for storage compat. */
   stepIndex: number;
 };
 
@@ -118,51 +119,12 @@ function referralFromStoredQuery(): string {
   }
 }
 
-function isPhase2Complete(draft: SignupDraft): boolean {
-  return Boolean(
-    draft.company_name.trim() &&
-      draft.street_address.trim() &&
-      draft.postal_code.trim() &&
-      draft.city.trim() &&
-      draft.address_country.trim() &&
-      draft.terms
-  );
-}
-
 /**
- * Normalize step index across Phase 1–3 draft versions.
- * Old Phase 2 hold was index 9 (after mk) — maps to `vf` (also index 9 now).
+ * Legacy drafts stored a wizard stepIndex. Single-page form always starts at 0;
+ * never restore the post-submit "done" sentinel.
  */
-export function normalizeStepIndex(raw: number | undefined, draft: SignupDraft): number {
-  const maxDone = REGISTER_STEPS.length;
-  let index = typeof raw === 'number' && Number.isFinite(raw) ? raw : 0;
-  index = Math.min(Math.max(index, 0), maxDone);
-
-  const coIndex = REGISTER_STEPS.indexOf('co');
-  const vfIndex = REGISTER_STEPS.indexOf('vf');
-
-  if (index >= coIndex) {
-    if (!draft.phoneVerified || !draft.emailVerified || !draft.password) {
-      if (!draft.password) return REGISTER_STEPS.indexOf('pw');
-      if (!draft.emailVerified) return REGISTER_STEPS.indexOf('em');
-      if (!draft.phoneVerified) return REGISTER_STEPS.indexOf('ph');
-      return REGISTER_STEPS.indexOf('pw');
-    }
-  }
-
-  if (index >= vfIndex && !isPhase2Complete(draft)) {
-    if (!draft.terms || !draft.hear_about_us_shipper) return REGISTER_STEPS.indexOf('mk');
-    if (!draft.street_address || !draft.city) return REGISTER_STEPS.indexOf('ad');
-    if (!draft.company_name) return REGISTER_STEPS.indexOf('co');
-    return REGISTER_STEPS.indexOf('mk');
-  }
-
-  // Never restore into `done` from storage (submit must succeed again if needed)
-  if (index >= maxDone) {
-    return vfIndex;
-  }
-
-  return index;
+export function normalizeStepIndex(_raw: number | undefined, _draft: SignupDraft): number {
+  return 0;
 }
 
 export function loadSignupDraft(): SignupDraft {
@@ -177,8 +139,8 @@ export function loadSignupDraft(): SignupDraft {
       ...parsed,
       terms: Boolean(parsed.terms),
       referral_code: parsed.referral_code || referral || '',
+      stepIndex: 0,
     });
-    draft.stepIndex = normalizeStepIndex(parsed.stepIndex, draft);
     return draft;
   } catch {
     return createEmptyDraft(referral ? { referral_code: referral } : undefined);
@@ -205,7 +167,7 @@ export function patchSignupDraft(
   current: SignupDraft,
   patch: Partial<SignupDraft>
 ): SignupDraft {
-  const next = { ...current, ...patch };
+  const next = { ...current, ...patch, stepIndex: 0 };
   saveSignupDraft(next);
   return next;
 }
