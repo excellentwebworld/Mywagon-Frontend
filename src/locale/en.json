@@ -1409,6 +1409,12 @@
       },
       "operational": {
         "title": "Company Operations Information",
+        "description": "To help us serve you better, please share a few details about your transport activity. This information allows MYVAGON to tailor load suggestions, routes, and features to your specific needs.",
+        "mandatory": "Mandatory",
+        "optional": "Optional",
+        "unanswered": "Unanswered",
+        "answered": "Completed",
+        "requiredHint": "Please answer this question",
         "locations": "Primary Locations",
         "equipment": "Equipment Types",
         "industries": "Industries",

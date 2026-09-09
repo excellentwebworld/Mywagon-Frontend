@@ -23,6 +23,23 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_INVOICE_EMAILS = 5;
 const BRANDING_OPS_KEY = 'company_description';
 
+const MANDATORY_OPS_KEYS = new Set([
+  'company_type',
+  'product_types',
+  'daily_loads',
+  'frequent_pickups',
+  'frequent_dropoffs',
+  'truck_types_needed',
+  'number_of_direct_partners',
+  'top_challenges',
+  'myvagon_goals',
+]);
+
+function isMandatoryField(field) {
+  if (!field) return false;
+  return Boolean(field.required) || MANDATORY_OPS_KEYS.has(field.key);
+}
+
 function isOpsValueFilled(field, value) {
   if (field.type === 'multi') {
     return Array.isArray(value) && value.length > 0;
@@ -58,6 +75,7 @@ export default function OrganizationSection() {
   const [brandDraft, setBrandDraft] = useState({});
   const [emailInput, setEmailInput] = useState('');
   const logoInputRef = useRef(null);
+  const opsSectionRef = useRef(null);
   const companyInfoOpenedRef = useRef(false);
   const infoFormOpenedRef = useRef(false);
 
@@ -124,6 +142,9 @@ export default function OrganizationSection() {
     if (!fromInfoForm || !data || infoFormOpenedRef.current || editingOps || opsFields.length === 0) return;
     infoFormOpenedRef.current = true;
     startOpsEdit();
+    setTimeout(() => {
+      opsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- open once when gate lands
   }, [fromInfoForm, data, opsFields]);
 
@@ -181,19 +202,21 @@ export default function OrganizationSection() {
   };
 
   const saveOps = async () => {
-    if (fromInfoForm) {
-      const missingRequired = opsFields.some(
-        (field) => field.required && !isOpsValueFilled(field, opsDraft[field.key])
+    const missingMandatory = opsFields.find(
+      (field) => isMandatoryField(field) && !isOpsValueFilled(field, opsDraft[field.key])
+    );
+    if (fromInfoForm && missingMandatory) {
+      toast.error(
+        t(
+          'settings.orgSection.infoFormRequiredError',
+          'Please answer all required operations questions before saving.'
+        )
       );
-      if (missingRequired) {
-        toast.error(
-          t(
-            'settings.orgSection.infoFormRequiredError',
-            'Please answer all required operations questions before saving.'
-          )
-        );
-        return;
+      const el = document.getElementById(`ops-field-${missingMandatory.key}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
+      return;
     }
     setSavingOps(true);
     try {
@@ -492,32 +515,37 @@ export default function OrganizationSection() {
       </SectionCard>
 
       {/* Operations */}
-      <SectionCard
-        title={t('settings.orgSection.operational.title')}
-        icon={<Truck size={16} style={{ color: T.ac }} />}
-        editing={editingOps}
-        saving={savingOps}
-        onEdit={startOpsEdit}
-        onSave={saveOps}
-        onCancel={() => setEditingOps(false)}
-      >
-        {opsFields.length === 0 ? (
-          <div style={{ fontSize: 13, color: T.t3 }}>{t('settings.orgSection.operational.empty')}</div>
-        ) : (
-          <div className="space-y-4">
-            {opsFields.map((field) => (
-              <OpsField
-                key={field.key}
-                field={field}
-                value={editingOps ? opsDraft[field.key] : data.operations?.[field.key]}
-                editing={editingOps}
-                onChange={(v) => setOpsDraft((p) => ({ ...p, [field.key]: v }))}
-                T={T}
-              />
-            ))}
-          </div>
-        )}
-      </SectionCard>
+      <div ref={opsSectionRef}>
+        <SectionCard
+          title={t('settings.orgSection.operational.title')}
+          icon={<Truck size={16} style={{ color: T.ac }} />}
+          editing={editingOps}
+          saving={savingOps}
+          onEdit={startOpsEdit}
+          onSave={saveOps}
+          onCancel={() => setEditingOps(false)}
+        >
+          <p style={{ fontSize: 13, color: T.t3, marginTop: 0, marginBottom: 16, lineHeight: 1.5 }}>
+            {t('settings.orgSection.operational.description')}
+          </p>
+          {opsFields.length === 0 ? (
+            <div style={{ fontSize: 13, color: T.t3 }}>{t('settings.orgSection.operational.empty')}</div>
+          ) : (
+            <div className="space-y-4">
+              {opsFields.map((field) => (
+                <OpsField
+                  key={field.key}
+                  field={field}
+                  value={editingOps ? opsDraft[field.key] : data.operations?.[field.key]}
+                  editing={editingOps}
+                  onChange={(v) => setOpsDraft((p) => ({ ...p, [field.key]: v }))}
+                  T={T}
+                />
+              ))}
+            </div>
+          )}
+        </SectionCard>
+      </div>
 
       {/* Branding */}
       <SectionCard
@@ -655,6 +683,10 @@ function OpsField({ field, value, editing, onChange, T }) {
   const inputType = (field.input_type || '').toLowerCase();
   const useTextarea = inputType.includes('textarea') || inputType.includes('text_area');
 
+  const mandatory = isMandatoryField(field);
+  const filled = isOpsValueFilled(field, value);
+  const showUnansweredWarning = editing && mandatory && !filled;
+
   const CHIP_PREVIEW = 12;
 
   const findOption = (v) => {
@@ -689,6 +721,101 @@ function OpsField({ field, value, editing, onChange, T }) {
     return false;
   };
 
+  const containerStyle = editing
+    ? showUnansweredWarning
+      ? {
+          background: '#FFFDF5',
+          border: '1.5px solid #F59E0B',
+          borderRadius: 12,
+          padding: '14px 16px',
+          boxShadow: '0 1px 4px rgba(245, 158, 11, 0.12)',
+          transition: 'all 0.2s ease',
+        }
+      : {
+          background: T.sf,
+          border: `1px solid ${T.bd}`,
+          borderRadius: 12,
+          padding: '14px 16px',
+          transition: 'all 0.2s ease',
+        }
+    : {
+        background: T.sa,
+        border: `1px solid ${T.bd}`,
+        borderRadius: 12,
+        padding: '12px 14px',
+      };
+
+  const renderHeader = () => (
+    <div className="flex items-start justify-between gap-3 mb-2.5">
+      <label
+        className="font-semibold block"
+        style={{ fontSize: 13, color: T.t1, lineHeight: 1.4 }}
+      >
+        {field.label}
+        {mandatory && <span style={{ color: '#DC2626', fontWeight: 700, marginLeft: 3 }}>*</span>}
+      </label>
+
+      <div className="flex items-center gap-1.5 shrink-0">
+        {mandatory ? (
+          <span
+            className="inline-flex items-center px-2 py-0.5 rounded-full font-semibold"
+            style={{
+              background: '#FEF3C7',
+              color: '#B45309',
+              border: '1px solid #FDE68A',
+              fontSize: 10.5,
+              letterSpacing: 0.2,
+            }}
+          >
+            {t('settings.orgSection.operational.mandatory', { defaultValue: 'Mandatory' })}
+          </span>
+        ) : (
+          <span
+            className="inline-flex items-center px-2 py-0.5 rounded-full font-medium"
+            style={{
+              background: T.sa,
+              color: T.t3,
+              border: `1px solid ${T.bd}`,
+              fontSize: 10.5,
+            }}
+          >
+            {t('settings.orgSection.operational.optional', { defaultValue: 'Optional' })}
+          </span>
+        )}
+
+        {editing && mandatory && (
+          filled ? (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium"
+              style={{
+                background: '#DCFCE7',
+                color: '#15803D',
+                border: '1px solid #BBF7D0',
+                fontSize: 10.5,
+              }}
+            >
+              <Check size={10} />
+              {t('settings.orgSection.operational.answered', { defaultValue: 'Completed' })}
+            </span>
+          ) : (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium"
+              style={{
+                background: '#FEE2E2',
+                color: '#B91C1C',
+                border: '1px solid #FECACA',
+                fontSize: 10.5,
+              }}
+            >
+              <AlertTriangle size={10} />
+              {t('settings.orgSection.operational.unanswered', { defaultValue: 'Unanswered' })}
+            </span>
+          )
+        )}
+      </div>
+    </div>
+  );
+
   if (isMulti && options.length > 0) {
     const selected = Array.isArray(value) ? value.map(String) : [];
 
@@ -708,13 +835,12 @@ function OpsField({ field, value, editing, onChange, T }) {
         ? Math.max(0, options.length - collapsedOptions.length)
         : 0;
 
-    if (!editing) {
-      return (
-        <div>
-          <label className="block mb-2" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
-            {field.label}
-            {field.required ? ' *' : ''}
-          </label>
+    const extras = editing ? selected.filter((v) => !findOption(v)) : [];
+
+    return (
+      <div id={`ops-field-${field.key}`} style={containerStyle}>
+        {renderHeader()}
+        {!editing ? (
           <div className="flex flex-wrap gap-1.5">
             {selected.length === 0 ? (
               <span style={{ fontSize: 13, color: T.t3 }}>—</span>
@@ -722,98 +848,98 @@ function OpsField({ field, value, editing, onChange, T }) {
               selected.map((v) => (
                 <span
                   key={v}
-                  className="px-2.5 py-1 rounded-full"
-                  style={{ background: T.al, fontSize: 11, fontWeight: 500, color: T.ac }}
+                  className="px-2.5 py-1 rounded-full font-medium"
+                  style={{ background: T.al, fontSize: 11, color: T.ac }}
                 >
                   {labelFor(v)}
                 </span>
               ))
             )}
           </div>
-        </div>
-      );
-    }
-
-    const extras = selected.filter((v) => !findOption(v));
-
-    return (
-      <div>
-        <label className="block mb-2" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
-          {field.label}
-          {field.required ? ' *' : ''}
-        </label>
-        <div className="flex flex-wrap gap-1.5">
-          {displayOptions.map((opt) => {
-            const active = isSelected(opt, selected);
-            return (
+        ) : (
+          <div>
+            <div className="flex flex-wrap gap-1.5">
+              {displayOptions.map((opt) => {
+                const active = isSelected(opt, selected);
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      const canonical = String(opt.value);
+                      const aliases = new Set([
+                        canonical,
+                        slugify(opt.label),
+                        slugify(opt.value),
+                      ]);
+                      const without = selected.filter((v) => !aliases.has(v));
+                      onChange(active ? without : [...without, canonical]);
+                    }}
+                    className="px-2.5 py-1 rounded-full border-none cursor-pointer transition-all"
+                    style={{
+                      background: active ? T.al : T.sa,
+                      color: active ? T.ac : T.t2,
+                      fontSize: 11,
+                      fontWeight: active ? 600 : 500,
+                      border: `1px solid ${active ? T.ac : T.bd}`,
+                      maxWidth: '100%',
+                      textAlign: 'left',
+                    }}
+                    title={opt.label}
+                  >
+                    {active ? `✓ ${opt.label}` : opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            {hiddenCount > 0 && (
               <button
-                key={opt.value}
                 type="button"
-                onClick={() => {
-                  const canonical = String(opt.value);
-                  // Drop any slug/label aliases for this option when toggling
-                  const aliases = new Set([
-                    canonical,
-                    slugify(opt.label),
-                    slugify(opt.value),
-                  ]);
-                  const without = selected.filter((v) => !aliases.has(v));
-                  onChange(active ? without : [...without, canonical]);
-                }}
-                className="px-2.5 py-1 rounded-full border-none cursor-pointer"
-                style={{
-                  background: active ? T.al : T.sa,
-                  color: active ? T.ac : T.t3,
-                  fontSize: 11,
-                  fontWeight: 500,
-                  border: `1px solid ${active ? `${T.ac}40` : T.bd}`,
-                  maxWidth: '100%',
-                  textAlign: 'left',
-                }}
-                title={opt.label}
+                onClick={() => setExpanded(true)}
+                className="mt-2 px-0 border-none bg-transparent cursor-pointer font-semibold"
+                style={{ fontSize: 12, color: T.ac }}
               >
-                {opt.label}
+                {t('settings.orgSection.operational.showMore', { count: hiddenCount })}
               </button>
-            );
-          })}
-        </div>
-        {hiddenCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setExpanded(true)}
-            className="mt-2 px-0 border-none bg-transparent cursor-pointer font-semibold"
-            style={{ fontSize: 12, color: T.ac }}
-          >
-            {t('settings.orgSection.operational.showMore', { count: hiddenCount })}
-          </button>
+            )}
+            {editing && expanded && options.length > CHIP_PREVIEW && (
+              <button
+                type="button"
+                onClick={() => setExpanded(false)}
+                className="mt-2 px-0 border-none bg-transparent cursor-pointer font-semibold"
+                style={{ fontSize: 12, color: T.ac }}
+              >
+                {t('settings.orgSection.operational.showLess')}
+              </button>
+            )}
+            {extras.map((v) => (
+              <span
+                key={`extra-${v}`}
+                className="inline-flex items-center gap-1 mt-2 mr-1 px-2.5 py-1 rounded-full"
+                style={{ background: T.al, fontSize: 11, fontWeight: 500, color: T.ac }}
+              >
+                {labelFor(v)}
+                <button
+                  type="button"
+                  className="border-none bg-transparent cursor-pointer p-0"
+                  style={{ color: T.ac }}
+                  onClick={() => onChange(selected.filter((x) => x !== v))}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
         )}
-        {editing && expanded && options.length > CHIP_PREVIEW && (
-          <button
-            type="button"
-            onClick={() => setExpanded(false)}
-            className="mt-2 px-0 border-none bg-transparent cursor-pointer font-semibold"
-            style={{ fontSize: 12, color: T.ac }}
+        {showUnansweredWarning && (
+          <div
+            className="flex items-center gap-1.5 mt-2.5"
+            style={{ fontSize: 11.5, color: '#B45309', fontWeight: 500 }}
           >
-            {t('settings.orgSection.operational.showLess')}
-          </button>
+            <AlertTriangle size={12} style={{ color: '#D97706', shrink: 0 }} />
+            <span>{t('settings.orgSection.operational.requiredHint', { defaultValue: 'Please answer this question' })}</span>
+          </div>
         )}
-        {extras.map((v) => (
-          <span
-            key={`extra-${v}`}
-            className="inline-flex items-center gap-1 mt-2 mr-1 px-2.5 py-1 rounded-full"
-            style={{ background: T.al, fontSize: 11, fontWeight: 500, color: T.ac }}
-          >
-            {labelFor(v)}
-            <button
-              type="button"
-              className="border-none bg-transparent cursor-pointer p-0"
-              style={{ color: T.ac }}
-              onClick={() => onChange(selected.filter((x) => x !== v))}
-            >
-              ×
-            </button>
-          </span>
-        ))}
       </div>
     );
   }
@@ -822,14 +948,39 @@ function OpsField({ field, value, editing, onChange, T }) {
     const current = value == null ? '' : String(value);
     const matched = findOption(current);
     const selectValue = matched ? String(matched.value) : current;
-    const label = matched?.label || labelFor(current) || '—';
+    const label = matched?.label || labelFor(current) || '';
+
     return (
-      <div>
-        <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
-          {field.label}
-          {field.required ? ' *' : ''}
-        </label>
-        {editing ? (
+      <div id={`ops-field-${field.key}`} style={containerStyle}>
+        {renderHeader()}
+        {!editing ? (
+          <div style={{ fontSize: 13, color: label ? T.t1 : T.t3 }}>
+            {label || '—'}
+          </div>
+        ) : options.length <= 6 ? (
+          <div className="flex flex-wrap gap-2">
+            {options.map((opt) => {
+              const active = selectValue === String(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onChange(active ? '' : String(opt.value))}
+                  className="px-3 py-1.5 rounded-lg cursor-pointer text-left transition-all"
+                  style={{
+                    background: active ? T.al : T.sa,
+                    color: active ? T.ac : T.t2,
+                    fontSize: 12,
+                    fontWeight: active ? 600 : 400,
+                    border: `1px solid ${active ? T.ac : T.bd}`,
+                  }}
+                >
+                  {active ? `✓ ${opt.label}` : opt.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
           <select
             value={selectValue}
             onChange={(e) => onChange(e.target.value)}
@@ -843,9 +994,14 @@ function OpsField({ field, value, editing, onChange, T }) {
               </option>
             ))}
           </select>
-        ) : (
-          <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 13, color: T.t1 }}>
-            {label || '—'}
+        )}
+        {showUnansweredWarning && (
+          <div
+            className="flex items-center gap-1.5 mt-2.5"
+            style={{ fontSize: 11.5, color: '#B45309', fontWeight: 500 }}
+          >
+            <AlertTriangle size={12} style={{ color: '#D97706', shrink: 0 }} />
+            <span>{t('settings.orgSection.operational.requiredHint', { defaultValue: 'Please answer this question' })}</span>
           </div>
         )}
       </div>
@@ -856,11 +1012,8 @@ function OpsField({ field, value, editing, onChange, T }) {
   if (isMulti) {
     const list = Array.isArray(value) ? value.map(String) : [];
     return (
-      <div>
-        <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
-          {field.label}
-          {field.required ? ' *' : ''}
-        </label>
+      <div id={`ops-field-${field.key}`} style={containerStyle}>
+        {renderHeader()}
         {editing ? (
           <input
             value={list.join(', ')}
@@ -883,13 +1036,22 @@ function OpsField({ field, value, editing, onChange, T }) {
               list.map((item) => (
                 <span
                   key={item}
-                  className="px-2.5 py-1 rounded-full"
-                  style={{ background: T.al, fontSize: 11, fontWeight: 500, color: T.ac }}
+                  className="px-2.5 py-1 rounded-full font-medium"
+                  style={{ background: T.al, fontSize: 11, color: T.ac }}
                 >
                   {item}
                 </span>
               ))
             )}
+          </div>
+        )}
+        {showUnansweredWarning && (
+          <div
+            className="flex items-center gap-1.5 mt-2.5"
+            style={{ fontSize: 11.5, color: '#B45309', fontWeight: 500 }}
+          >
+            <AlertTriangle size={12} style={{ color: '#D97706', shrink: 0 }} />
+            <span>{t('settings.orgSection.operational.requiredHint', { defaultValue: 'Please answer this question' })}</span>
           </div>
         )}
       </div>
@@ -898,11 +1060,8 @@ function OpsField({ field, value, editing, onChange, T }) {
 
   const text = value == null ? '' : String(value);
   return (
-    <div>
-      <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
-        {field.label}
-        {field.required ? ' *' : ''}
-      </label>
+    <div id={`ops-field-${field.key}`} style={containerStyle}>
+      {renderHeader()}
       {editing ? (
         useTextarea ? (
           <textarea
@@ -921,8 +1080,17 @@ function OpsField({ field, value, editing, onChange, T }) {
           />
         )
       ) : (
-        <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 13, color: T.t1 }}>
+        <div style={{ fontSize: 13, color: text ? T.t1 : T.t3 }}>
           {text || '—'}
+        </div>
+      )}
+      {showUnansweredWarning && (
+        <div
+          className="flex items-center gap-1.5 mt-2.5"
+          style={{ fontSize: 11.5, color: '#B45309', fontWeight: 500 }}
+        >
+          <AlertTriangle size={12} style={{ color: '#D97706', shrink: 0 }} />
+          <span>{t('settings.orgSection.operational.requiredHint', { defaultValue: 'Please answer this question' })}</span>
         </div>
       )}
     </div>
