@@ -34,6 +34,7 @@ export type NotificationAction =
   | 'viewSubscription'
   | 'openSupport'
   | 'viewProfile'
+  | 'viewCompliance'
   | 'viewUsers'
   | 'viewAddressBook'
   | 'viewProducts'
@@ -123,7 +124,7 @@ export const notificationService = {
         current_page: 1,
         last_page: 1,
         total: 0,
-        per_page: 20,
+        per_page: 10,
         unread_count: 0,
       },
     };

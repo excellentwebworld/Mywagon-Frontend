@@ -116,3 +116,16 @@ export const router = createBrowserRouter(
       ],
   { basename }
 );
+
+/**
+ * React Router 7 may update `window.location` inside a transition before React
+ * commits the new route (URL changes, UI stays on the previous page). Default
+ * navigations to flushSync so history + UI stay aligned — especially after
+ * modal open/close on the register/info-form flows.
+ */
+const rawNavigate = router.navigate.bind(router);
+router.navigate = ((to, opts) =>
+  rawNavigate(to, {
+    ...opts,
+    flushSync: opts?.flushSync ?? true,
+  })) as typeof router.navigate;

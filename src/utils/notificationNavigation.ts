@@ -52,7 +52,7 @@ export function resolveNotificationPath(n: Pick<
   } else if (n.action_type === 'openSupport') {
     target = '/support';
   } else if (n.action_type === 'viewProfile') {
-    target = '/settings/personal';
+    target = '/settings/compliance';
   } else if (n.action_type === 'viewOrganization') {
     target = '/settings/organization';
   } else if (n.action_type === 'viewUsers') {
@@ -64,7 +64,7 @@ export function resolveNotificationPath(n: Pick<
   } else if (n.action_type === 'viewAddressBook') {
     target = '/address-book';
   } else if (n.action_type === 'viewProducts') {
-    target = '/product-master';
+    target = '/products';
   } else if (n.action_type === 'viewTutorials') {
     target = '/tutorials';
   } else if (n.action_type === 'viewNotifications') {

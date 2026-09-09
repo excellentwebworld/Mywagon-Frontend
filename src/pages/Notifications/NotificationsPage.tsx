@@ -25,6 +25,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import { notificationService } from '../../api/services/notificationService';
 import type {
@@ -83,7 +84,8 @@ const DICT: Record<string, { en: string; el: string }> = {
   viewDocs:           { en: 'View Docs', el: 'Δείτε Έγγραφα' },
   viewSubscription:   { en: 'View Subscription', el: 'Δείτε Συνδρομή' },
   openSupport:        { en: 'Open Support', el: 'Υποστήριξη' },
-  viewProfile:        { en: 'View Profile', el: 'Προφίλ' },
+  viewProfile:        { en: 'View Compliance', el: 'Συμμόρφωση KYC' },
+  viewCompliance:     { en: 'View Compliance', el: 'Συμμόρφωση KYC' },
   viewUsers:          { en: 'User Management', el: 'Διαχείριση Χρηστών' },
   viewAddressBook:    { en: 'Address Book', el: 'Βιβλίο Διευθύνσεων' },
   viewProducts:       { en: 'Product Master', el: 'Προϊόντα' },
@@ -96,10 +98,6 @@ const DICT: Record<string, { en: string; el: string }> = {
   viewPrivacy:        { en: 'Privacy Policy', el: 'Πολιτική Απορρήτου' },
   viewTerms:          { en: 'Terms & Conditions', el: 'Όροι & Προϋποθέσεις' },
   viewOrganization:   { en: 'Company Info', el: 'Στοιχεία Εταιρείας' },
-
-
-
-
   markRead:           { en: 'Mark read', el: 'Αναγνωσμένο' },
   archive:            { en: 'Archive', el: 'Αρχείο' },
   unarchive:          { en: 'Unarchive', el: 'Επαναφορά' },
@@ -116,6 +114,7 @@ const DICT: Record<string, { en: string; el: string }> = {
   lastPage:           { en: 'Last page', el: 'Τελευταία σελίδα' },
   loadMore:           { en: 'Load More', el: 'Φόρτωση Περισσότερων' },
   loading:            { en: 'Loading…', el: 'Φόρτωση…' },
+  new:                { en: 'new', el: 'νέες' },
 };
 
 // ─── Filter Segments ─────────────────────────────────────────────────────────
@@ -144,59 +143,59 @@ interface CategoryVisualConfig {
 const CATEGORY_CONFIGS: Record<string, CategoryVisualConfig> = {
   'New Availability': {
     icon: Truck,
-    color: 'text-blue-600 dark:text-blue-400',
-    bg: 'bg-blue-50 dark:bg-blue-950/50',
+    color: '#2563EB',
+    bg: 'rgba(37, 99, 235, 0.1)',
     badge: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800',
-    borderLeft: '#2563eb',
+    borderLeft: '#2563EB',
   },
   'Booking Bidding': {
     icon: Gavel,
-    color: 'text-purple-600 dark:text-purple-400',
-    bg: 'bg-purple-50 dark:bg-purple-950/50',
+    color: '#7C3AED',
+    bg: 'rgba(124, 58, 237, 0.1)',
     badge: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800',
-    borderLeft: '#7c3aed',
+    borderLeft: '#7C3AED',
   },
   'Shipment Progress': {
     icon: Activity,
-    color: 'text-emerald-600 dark:text-emerald-400',
-    bg: 'bg-emerald-50 dark:bg-emerald-950/50',
+    color: '#10B981',
+    bg: 'rgba(16, 185, 129, 0.1)',
     badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800',
-    borderLeft: '#10b981',
+    borderLeft: '#10B981',
   },
   'Cancellation': {
     icon: XCircle,
-    color: 'text-rose-600 dark:text-rose-400',
-    bg: 'bg-rose-50 dark:bg-rose-950/50',
+    color: '#EF4444',
+    bg: 'rgba(239, 68, 68, 0.1)',
     badge: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800',
-    borderLeft: '#ef4444',
+    borderLeft: '#EF4444',
   },
   'Docs': {
     icon: FileText,
-    color: 'text-sky-600 dark:text-sky-400',
-    bg: 'bg-sky-50 dark:bg-sky-950/50',
+    color: '#0EA5E9',
+    bg: 'rgba(14, 165, 233, 0.1)',
     badge: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200 dark:border-sky-800',
-    borderLeft: '#0ea5e9',
+    borderLeft: '#0EA5E9',
   },
   'Billing': {
     icon: CreditCard,
-    color: 'text-teal-600 dark:text-teal-400',
-    bg: 'bg-teal-50 dark:bg-teal-950/50',
+    color: '#0D9488',
+    bg: 'rgba(13, 148, 136, 0.1)',
     badge: 'bg-teal-50 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border border-teal-200 dark:border-teal-800',
-    borderLeft: '#0d9488',
+    borderLeft: '#0D9488',
   },
   'Partners': {
     icon: Users,
-    color: 'text-indigo-600 dark:text-indigo-400',
-    bg: 'bg-indigo-50 dark:bg-indigo-950/50',
+    color: '#6366F1',
+    bg: 'rgba(99, 102, 241, 0.1)',
     badge: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800',
-    borderLeft: '#6366f1',
+    borderLeft: '#6366F1',
   },
   'System': {
     icon: Bell,
-    color: 'text-slate-600 dark:text-slate-400',
-    bg: 'bg-slate-100 dark:bg-slate-800',
+    color: '#64748B',
+    bg: 'rgba(100, 116, 139, 0.12)',
     badge: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700',
-    borderLeft: '#64748b',
+    borderLeft: '#64748B',
   },
 };
 
@@ -204,10 +203,10 @@ function getCategoryConfig(category?: string): CategoryVisualConfig {
   return (
     CATEGORY_CONFIGS[category || ''] || {
       icon: Bell,
-      color: 'text-slate-600 dark:text-slate-400',
-      bg: 'bg-slate-100 dark:bg-slate-800',
+      color: '#64748B',
+      bg: 'rgba(100, 116, 139, 0.12)',
       badge: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700',
-      borderLeft: '#64748b',
+      borderLeft: '#64748B',
     }
   );
 }
@@ -230,20 +229,6 @@ function formatRelativeTime(created_at?: string, fallback = ''): string {
     return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
   } catch {
     return fallback;
-  }
-}
-
-function formatFullDateTime(dateStr: string): string {
-  try {
-    return new Date(dateStr).toLocaleString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return dateStr;
   }
 }
 
@@ -294,17 +279,18 @@ type NotificationsPageProps = {
 export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded = false }) => {
   const { showToast } = useApp();
   const { lang, t: tHook } = useTranslation();
+  const { T, isDark } = useTheme();
   const navigate = useNavigate();
 
-  // ── State ──────────────────────────────────────────────────────────────
+  // ── State (Default 10 items per page) ───────────────────────────────────
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [perPage, setPerPage] = useState<number>(20);
+  const [perPage, setPerPage] = useState<number>(10);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [meta, setMeta] = useState<NotificationMeta>({
     current_page: 1,
     last_page: 1,
     total: 0,
-    per_page: 20,
+    per_page: 10,
     unread_count: 0,
     archived_count: 0,
     all_count: 0,
@@ -329,7 +315,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
 
-    const selectors = ['.page-body', '.main-content', '.app-layout'];
+    const selectors = ['.page-body', '.main-content', '.app-layout', '.settings-content'];
     selectors.forEach((sel) => {
       const el = document.querySelector(sel);
       if (el) {
@@ -530,8 +516,8 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
       target = '/subscription';
     } else if (action === 'openSupport') {
       target = '/support';
-    } else if (action === 'viewProfile') {
-      target = '/settings/personal';
+    } else if (action === 'viewProfile' || action === 'viewCompliance') {
+      target = '/settings/compliance';
     } else if (action === 'viewOrganization') {
       target = '/settings/organization';
     } else if (action === 'viewUsers') {
@@ -543,13 +529,12 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
     } else if (action === 'viewAddressBook') {
       target = '/address-book';
     } else if (action === 'viewProducts') {
-      target = '/product-master';
+      target = '/products';
     } else if (action === 'viewTutorials') {
       target = '/tutorials';
     } else if (action === 'viewNotifications') {
       target = '/settings/notifications';
     }
-
 
     setSelectedNotif(null);
     navigate(target);
@@ -568,92 +553,138 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
     <div
       className={
         embedded
-          ? 'mv-themed-page w-full space-y-5'
-          : 'mv-themed-page min-h-screen bg-[var(--bg)] p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto'
+          ? 'mv-themed-page w-full space-y-4'
+          : 'mv-themed-page min-h-screen bg-[var(--bg)] p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto'
       }
     >
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <h1
-              className={`${embedded ? 'text-lg' : 'text-2xl'} font-bold tracking-tight text-slate-900 dark:text-white`}
+              className={`${embedded ? 'text-lg' : 'text-xl sm:text-2xl'} font-bold tracking-tight`}
+              style={{ color: T.t1 }}
             >
               {loc('pgTitle')}
             </h1>
             {meta.unread_count > 0 && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                {meta.unread_count} new
+              <span
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold"
+                style={{
+                  background: '#EDE9FE',
+                  color: '#7C3AED',
+                  border: '1px solid #DDD6FE',
+                }}
+              >
+                {meta.unread_count} {loc('new')}
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs mt-1" style={{ color: T.t3 }}>
             {loc('pgSub')}
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={handleMarkAllRead}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-xs active:scale-[0.98] cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all shadow-xs"
+            style={{
+              background: T.sf,
+              border: `1px solid ${T.bd}`,
+              color: T.t1,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = T.sa;
+              e.currentTarget.style.borderColor = '#7C3AED';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = T.sf;
+              e.currentTarget.style.borderColor = T.bd;
+            }}
           >
-            <CheckCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <CheckCheck className="w-4 h-4 text-[#7C3AED]" />
             <span>{loc('btnMarkAll')}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-xs active:scale-[0.98] cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all shadow-xs"
+            style={{
+              background: T.sf,
+              border: `1px solid ${T.bd}`,
+              color: T.t1,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = T.sa;
+              e.currentTarget.style.borderColor = '#7C3AED';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = T.sf;
+              e.currentTarget.style.borderColor = T.bd;
+            }}
           >
-            <SlidersHorizontal className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            <SlidersHorizontal className="w-4 h-4" style={{ color: T.t3 }} />
             <span>{loc('btnSettings')}</span>
           </button>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-        {/* Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+      {/* Filter and Search Bar — pills left, search right (no horizontal scroll) */}
+      <div
+        className="flex flex-wrap items-center gap-2 p-3 rounded-2xl shadow-xs"
+        style={{
+          background: T.sf,
+          border: `1px solid ${T.bd}`,
+        }}
+      >
+        {/* Pills — wrap; leave room for search on the right */}
+        <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
           {SEGMENTS.map((s) => {
-            const isAll = s.id === 'All';
             const isArchived = s.id === 'Archived';
             const isUnread = s.id === 'Unread';
             const count = isArchived
               ? (meta.archived_count ?? 0)
-              /* : isAll
-              ? (meta.all_count ?? meta.total ?? 0)
               : isUnread
-              ? (meta.unread_count ?? 0) */
+              ? (meta.unread_count ?? 0)
               : null;
             const isActive = activeCat === s.id;
-
-
-
 
             return (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => setActiveCat(s.id)}
-                className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 cursor-pointer ${
-                  isActive
-                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
-                    : 'bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 cursor-pointer"
+                style={{
+                  background: isActive ? '#7C3AED' : T.sa,
+                  color: isActive ? '#FFFFFF' : T.t2,
+                  border: `1px solid ${isActive ? '#7C3AED' : T.bd}`,
+                  boxShadow: isActive ? '0 2px 8px rgba(124, 58, 237, 0.35)' : 'none',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.borderColor = '#C4B5FD';
+                    e.currentTarget.style.color = T.t1;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.borderColor = T.bd;
+                    e.currentTarget.style.color = T.t2;
+                  }
+                }}
               >
                 <span>{loc(s.key)}</span>
-                {count !== null && (
+                {count !== null && count > 0 && (
                   <span
-                    className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-bold ${
-                      isActive
-                        ? 'bg-white/20 text-white dark:bg-black/20 dark:text-slate-950'
-                        : isUnread && count > 0
-                        ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400'
-                        : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                    }`}
+                    className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold"
+                    style={{
+                      background: isActive ? 'rgba(255, 255, 255, 0.25)' : isUnread ? '#FEE2E2' : T.sf,
+                      color: isActive ? '#FFFFFF' : isUnread ? '#EF4444' : T.t3,
+                    }}
                   >
                     {count}
                   </span>
@@ -663,21 +694,35 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
           })}
         </div>
 
-        {/* Search */}
-        <div className="relative flex-1 md:max-w-xs">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        {/* Search — right side (highlighted area) */}
+        <div className="relative w-full sm:w-[260px] lg:w-[280px] flex-shrink-0 sm:ml-auto">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: T.t3 }} />
           <input
             type="text"
             placeholder={loc('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-8 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 transition-all"
+            className="w-full pl-9 pr-8 py-2 rounded-xl text-xs outline-none transition-all"
+            style={{
+              background: T.sa,
+              border: `1px solid ${T.bd}`,
+              color: T.t1,
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = '#7C3AED';
+              e.currentTarget.style.boxShadow = '0 0 0 2px rgba(124, 58, 237, 0.15)';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = T.bd;
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full cursor-pointer border-none bg-transparent"
+              style={{ color: T.t3 }}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -686,34 +731,41 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
       </div>
 
       {/* Notification List */}
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         {loading ? (
           <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((k) => (
+            {[1, 2, 3, 4].map((k) => (
               <div
                 key={k}
-                className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-4 animate-pulse"
+                className="p-4 rounded-xl flex items-center justify-between gap-4 animate-pulse"
+                style={{ background: T.sf, border: `1px solid ${T.bd}` }}
               >
                 <div className="flex items-center gap-3.5 flex-1">
-                  <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800" />
+                  <div className="w-10 h-10 rounded-xl" style={{ background: T.sa }} />
                   <div className="space-y-2 flex-1">
-                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-1/3" />
-                    <div className="h-3 bg-slate-100 dark:bg-slate-800/60 rounded-md w-3/4" />
+                    <div className="h-4 rounded-md w-1/3" style={{ background: T.sa }} />
+                    <div className="h-3 rounded-md w-3/4" style={{ background: T.sa, opacity: 0.7 }} />
                   </div>
                 </div>
-                <div className="w-24 h-8 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+                <div className="w-24 h-8 rounded-xl" style={{ background: T.sa }} />
               </div>
             ))}
           </div>
         ) : notifications.length === 0 ? (
-          <div className="text-center py-16 px-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-3.5">
+          <div
+            className="text-center py-16 px-4 rounded-2xl shadow-xs"
+            style={{ background: T.sf, border: `1px solid ${T.bd}` }}
+          >
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3.5"
+              style={{ background: '#EDE9FE', color: '#7C3AED' }}
+            >
               <Inbox className="w-7 h-7" />
             </div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            <h3 className="text-base font-bold" style={{ color: T.t1 }}>
               {loc('emptyTitle')}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1">
+            <p className="text-xs max-w-md mx-auto mt-1" style={{ color: T.t3 }}>
               {loc('emptyDesc')}
             </p>
           </div>
@@ -721,50 +773,71 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
           notifications.map((n) => {
             const config = getCategoryConfig(n.category);
             const CatIcon = config.icon;
+            const isUnread = !n.read;
 
             return (
               <div
                 key={n.id}
                 onClick={() => handleOpenDrawer(n)}
-                className={`group relative flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl border transition-all duration-150 cursor-pointer ${
-                  !n.read
-                    ? 'bg-indigo-50/25 dark:bg-indigo-950/15 border-indigo-200/90 dark:border-indigo-900/60 shadow-xs hover:shadow-md'
-                    : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs hover:shadow-md'
-                }`}
+                className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl transition-all duration-150 cursor-pointer overflow-hidden"
                 style={{
-                  borderLeftWidth: 4,
-                  borderLeftColor: config.borderLeft,
+                  background: isUnread ? (isDark ? 'rgba(124, 58, 237, 0.08)' : '#FAF8FF') : T.sf,
+                  border: `1px solid ${isUnread ? (isDark ? 'rgba(124, 58, 237, 0.4)' : '#DDD6FE') : T.bd}`,
+                  boxShadow: isUnread ? '0 2px 10px rgba(124, 58, 237, 0.06)' : '0 1px 3px rgba(0,0,0,0.03)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#7C3AED';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = isUnread ? (isDark ? 'rgba(124, 58, 237, 0.4)' : '#DDD6FE') : T.bd;
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = isUnread ? '0 2px 10px rgba(124, 58, 237, 0.06)' : '0 1px 3px rgba(0,0,0,0.03)';
                 }}
               >
+                {/* Left accent color bar */}
+                <div
+                  className="absolute left-0 top-0 bottom-0 w-1.5"
+                  style={{ background: config.borderLeft }}
+                />
+
                 {/* Left Column */}
-                <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                <div className="flex items-start gap-3.5 min-w-0 flex-1 pl-1">
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105 ${config.bg}`}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105"
+                    style={{ background: config.bg }}
                   >
-                    <CatIcon className={`w-5 h-5 ${config.color}`} />
+                    <CatIcon className="w-5 h-5" style={{ color: config.color }} />
                   </div>
 
                   <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight truncate">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm font-bold leading-tight truncate" style={{ color: T.t1 }}>
                         {n.title}
                       </h3>
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold tracking-tight ${config.badge}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-bold tracking-tight ${config.badge}`}
                       >
                         {n.category}
                       </span>
-                      {!n.read && (
-                        <span className="inline-block w-2 h-2 rounded-full bg-indigo-600 ring-4 ring-indigo-100 dark:ring-indigo-950 animate-pulse" />
+                      {isUnread && (
+                        <span
+                          className="inline-block w-2 h-2 rounded-full"
+                          style={{
+                            background: '#7C3AED',
+                            boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.25)',
+                          }}
+                        />
                       )}
                     </div>
 
-                    <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                    <p className="text-xs line-clamp-2 leading-relaxed" style={{ color: T.t2 }}>
                       {n.body}
                     </p>
 
-                    <div className="flex items-center gap-3 pt-0.5 flex-wrap text-slate-400">
-                      <span className="flex items-center gap-1 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                    <div className="flex items-center gap-3 pt-0.5 flex-wrap">
+                      <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: T.t3 }}>
                         <Clock className="w-3.5 h-3.5" />
                         {n.relative_time}
                       </span>
@@ -774,9 +847,14 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                           {n.chips.map((chip) => (
                             <span
                               key={chip}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold"
+                              style={{
+                                background: T.sa,
+                                color: '#7C3AED',
+                                border: `1px solid ${T.bd}`,
+                              }}
                             >
-                              <ExternalLink className="w-3 h-3 text-slate-400" />
+                              <ExternalLink className="w-3 h-3 opacity-70" />
                               {chip}
                             </span>
                           ))}
@@ -788,29 +866,40 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
 
                 {/* Right Column */}
                 <div
-                  className="flex items-center gap-1.5 self-end md:self-center flex-shrink-0"
+                  className="flex items-center gap-2 self-end md:self-center flex-shrink-0"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {n.action && (
                     <button
                       type="button"
                       onClick={() => handleActionNavigate(n, n.chips[0])}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs hover:shadow-xs active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white shadow-xs hover:shadow-md active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap border-none"
+                      style={{
+                        background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                      }}
                     >
                       <span>{loc(n.action) || loc('viewDetails')}</span>
-                      <ChevronRight className="w-3 h-3" />
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   )}
 
-
-                  {!n.read && (
+                  {isUnread && (
                     <button
                       type="button"
                       title={loc('markRead')}
                       onClick={(e) => void handleMarkOneRead(n.id, e)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 transition-colors border border-transparent hover:border-indigo-200 dark:hover:border-indigo-900 cursor-pointer"
+                      className="p-1.5 rounded-lg cursor-pointer transition-colors border-none bg-transparent"
+                      style={{ color: T.t3 }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = '#7C3AED';
+                        e.currentTarget.style.background = '#EDE9FE';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = T.t3;
+                        e.currentTarget.style.background = 'transparent';
+                      }}
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <CheckCircle2 className="w-4 h-4" />
                     </button>
                   )}
 
@@ -818,28 +907,50 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                     type="button"
                     title={n.archived ? loc('unarchive') : loc('archive')}
                     onClick={(e) => void handleArchive(n.id, e)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700 cursor-pointer"
+                    className="p-1.5 rounded-lg cursor-pointer transition-colors border-none bg-transparent"
+                    style={{ color: T.t3 }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = T.t1;
+                      e.currentTarget.style.background = T.sa;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = T.t3;
+                      e.currentTarget.style.background = 'transparent';
+                    }}
                   >
-                    <Archive className="w-3.5 h-3.5" />
+                    <Archive className="w-4 h-4" />
                   </button>
                 </div>
-
               </div>
             );
           })
         )}
       </div>
 
-      {/* Pagination */}
+      {/* Pagination (Default 10 items per page) */}
       {!loading && total > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs text-xs text-slate-500 dark:text-slate-400">
+        <div
+          className="flex flex-col sm:flex-row items-center justify-between gap-4 p-3.5 rounded-2xl shadow-xs text-xs"
+          style={{
+            background: T.sf,
+            border: `1px solid ${T.bd}`,
+            color: T.t3,
+          }}
+        >
           <div className="flex items-center gap-3 flex-wrap">
             <span>
-              {loc('showing')} <strong className="text-slate-900 dark:text-white font-bold">{start}–{end}</strong> {loc('of')} <strong className="text-slate-900 dark:text-white font-bold">{total}</strong> {loc('entries')}
+              {loc('showing')}{' '}
+              <strong style={{ color: T.t1, fontWeight: 700 }}>{start}–{end}</strong>{' '}
+              {loc('of')}{' '}
+              <strong style={{ color: T.t1, fontWeight: 700 }}>{total}</strong>{' '}
+              {loc('entries')}
             </span>
 
-            <div className="flex items-center gap-1.5 pl-3 border-l border-slate-200 dark:border-slate-700">
-              <span className="text-slate-400 text-[11px]">
+            <div
+              className="flex items-center gap-1.5 pl-3"
+              style={{ borderLeft: `1px solid ${T.bd}` }}
+            >
+              <span className="text-[11px]" style={{ color: T.t3 }}>
                 {loc('perPage')}:
               </span>
               <select
@@ -850,9 +961,14 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                 }}
                 disabled={loading}
                 aria-label={loc('perPage')}
-                className="px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 outline-none cursor-pointer focus:border-indigo-500 transition-all"
+                className="px-2.5 py-1 rounded-lg text-xs font-semibold outline-none cursor-pointer transition-all"
+                style={{
+                  background: T.sa,
+                  border: `1px solid ${T.bd}`,
+                  color: T.t1,
+                }}
               >
-                {[10, 20, 50].map((n) => (
+                {[10, 20, 50, 100].map((n) => (
                   <option key={n} value={n}>
                     {n} / {loc('perPage')}
                   </option>
@@ -867,7 +983,12 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
               disabled={currentPage <= 1 || loading}
               onClick={() => handlePageChange(1)}
               title={loc('firstPage')}
-              className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center cursor-pointer transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{
+                background: T.sf,
+                border: `1px solid ${T.bd}`,
+                color: T.t1,
+              }}
             >
               «
             </button>
@@ -876,7 +997,12 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
               disabled={currentPage <= 1 || loading}
               onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
               title={loc('prevPage')}
-              className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center cursor-pointer transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{
+                background: T.sf,
+                border: `1px solid ${T.bd}`,
+                color: T.t1,
+              }}
             >
               ‹
             </button>
@@ -884,10 +1010,12 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
             {pageList.map((p, idx) => {
               const prev = pageList[idx - 1];
               const gap = prev !== undefined && p - prev > 1;
+              const isCurrent = p === currentPage;
+
               return (
                 <React.Fragment key={p}>
                   {gap && (
-                    <span className="w-6 h-8 flex items-center justify-center text-xs text-slate-400 font-semibold select-none">
+                    <span className="w-6 h-8 flex items-center justify-center text-xs font-semibold select-none" style={{ color: T.t3 }}>
                       …
                     </span>
                   )}
@@ -895,11 +1023,13 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                     type="button"
                     disabled={loading}
                     onClick={() => handlePageChange(p)}
-                    className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
-                      p === currentPage
-                        ? 'bg-indigo-600 text-white shadow-xs font-bold'
-                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-                    }`}
+                    className="w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer"
+                    style={{
+                      background: isCurrent ? '#7C3AED' : T.sf,
+                      color: isCurrent ? '#FFFFFF' : T.t1,
+                      border: isCurrent ? 'none' : `1px solid ${T.bd}`,
+                      boxShadow: isCurrent ? '0 2px 6px rgba(124, 58, 237, 0.4)' : 'none',
+                    }}
                   >
                     {p}
                   </button>
@@ -912,7 +1042,12 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
               disabled={currentPage >= lastPage || loading}
               onClick={() => handlePageChange(Math.min(lastPage, currentPage + 1))}
               title={loc('nextPage')}
-              className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center cursor-pointer transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{
+                background: T.sf,
+                border: `1px solid ${T.bd}`,
+                color: T.t1,
+              }}
             >
               ›
             </button>
@@ -921,7 +1056,12 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
               disabled={currentPage >= lastPage || loading}
               onClick={() => handlePageChange(lastPage)}
               title={loc('lastPage')}
-              className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center cursor-pointer transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{
+                background: T.sf,
+                border: `1px solid ${T.bd}`,
+                color: T.t1,
+              }}
             >
               »
             </button>
@@ -935,13 +1075,26 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
           <div className="fixed inset-0 z-[99999] overflow-hidden">
             <div
               className="mv-modal-bg absolute inset-0 transition-opacity duration-300"
+              style={{ background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(3px)' }}
               onClick={() => setSelectedNotif(null)}
             />
 
             <div className="fixed inset-y-0 right-0 max-w-full flex pl-10 h-full">
-              <div className="mv-drawer-panel w-screen max-w-md bg-[var(--surface)] shadow-2xl flex flex-col h-full border-l border-[var(--border)] animate-in slide-in-from-right duration-200">
+              <div
+                className="mv-drawer-panel w-screen max-w-md shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-200"
+                style={{
+                  background: T.sf,
+                  borderLeft: `1px solid ${T.bd}`,
+                }}
+              >
                 {/* Drawer Header */}
-                <div className="p-5 border-b border-[var(--border)] flex items-start justify-between gap-4 flex-shrink-0 bg-[var(--surface)]">
+                <div
+                  className="p-5 flex items-start justify-between gap-4 flex-shrink-0"
+                  style={{
+                    background: T.sf,
+                    borderBottom: `1px solid ${T.bd}`,
+                  }}
+                >
                   <div className="space-y-1.5 min-w-0">
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold ${
@@ -950,10 +1103,10 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                     >
                       {selectedNotif.category}
                     </span>
-                    <h2 className="text-base font-bold text-slate-900 dark:text-white leading-snug">
+                    <h2 className="text-base font-bold leading-snug" style={{ color: T.t1 }}>
                       {selectedNotif.title}
                     </h2>
-                    <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                    <p className="text-[11px] flex items-center gap-1" style={{ color: T.t3 }}>
                       <Clock className="w-3.5 h-3.5" />
                       {selectedNotif.relative_time}
                     </p>
@@ -962,7 +1115,8 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                   <button
                     type="button"
                     onClick={() => setSelectedNotif(null)}
-                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-xl cursor-pointer border-none bg-transparent"
+                    style={{ color: T.t3 }}
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -971,17 +1125,24 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                 {/* Drawer Body */}
                 <div className="mv-drawer-body flex-1 overflow-y-auto p-5 space-y-6">
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: T.t3 }}>
                       {loc('fullMessage')}
                     </h4>
-                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-xs text-slate-700 dark:text-slate-200 leading-relaxed">
+                    <div
+                      className="p-4 rounded-xl text-xs leading-relaxed"
+                      style={{
+                        background: T.sa,
+                        border: `1px solid ${T.bd}`,
+                        color: T.t1,
+                      }}
+                    >
                       {selectedNotif.body}
                     </div>
                   </div>
 
                   {selectedNotif.chips.length > 0 && (
                     <div>
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                      <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: T.t3 }}>
                         {loc('relatedObjects')}
                       </h4>
                       <div className="space-y-2">
@@ -992,13 +1153,17 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                               setSelectedNotif(null);
                               handleActionNavigate(selectedNotif, chip);
                             }}
-                            className="flex items-center justify-between p-3.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:shadow-xs transition-all cursor-pointer group"
+                            className="flex items-center justify-between p-3 rounded-xl transition-all cursor-pointer group"
+                            style={{
+                              background: T.sf,
+                              border: `1px solid ${T.bd}`,
+                            }}
                           >
-                            <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                            <div className="flex items-center gap-2 text-xs font-bold text-[#7C3AED]">
                               <ExternalLink className="w-4 h-4" />
                               <span>{chip}</span>
                             </div>
-                            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
+                            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-all" style={{ color: T.t3 }} />
                           </div>
                         ))}
                       </div>
@@ -1007,13 +1172,24 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                 </div>
 
                 {/* Drawer Footer */}
-                <div className="p-4 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-3 flex-shrink-0">
+                <div
+                  className="p-4 flex items-center justify-between gap-3 flex-shrink-0"
+                  style={{
+                    background: T.sf,
+                    borderTop: `1px solid ${T.bd}`,
+                  }}
+                >
                   <button
                     type="button"
                     onClick={(e) => void handleArchive(selectedNotif.id, e)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all"
+                    style={{
+                      background: T.sf,
+                      border: `1px solid ${T.bd}`,
+                      color: T.t1,
+                    }}
                   >
-                    <Archive className="w-3.5 h-3.5 text-slate-500" />
+                    <Archive className="w-3.5 h-3.5" style={{ color: T.t3 }} />
                     <span>{selectedNotif.archived ? loc('unarchive') : loc('archive')}</span>
                   </button>
 
@@ -1025,13 +1201,15 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                         setSelectedNotif(null);
                         handleActionNavigate(selectedNotif, chip);
                       }}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white shadow-xs cursor-pointer border-none"
+                      style={{
+                        background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                      }}
                     >
                       <span>{loc(selectedNotif.action) || loc('viewDetails')}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   )}
-
                 </div>
               </div>
             </div>
@@ -1045,26 +1223,41 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
           <div className="fixed inset-0 z-[99999] overflow-y-auto flex items-center justify-center p-4">
             <div
               className="mv-modal-bg fixed inset-0 transition-opacity"
+              style={{ background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(3px)' }}
               onClick={() => setSettingsOpen(false)}
             />
 
             <div
-              className="mv-modal relative w-full max-w-4xl bg-[var(--surface)] rounded-2xl shadow-2xl border border-[var(--border)] overflow-hidden my-8 max-h-[90vh] flex flex-col z-10 animate-in zoom-in-95 duration-150"
+              className="mv-modal relative w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden my-8 max-h-[90vh] flex flex-col z-10 animate-in zoom-in-95 duration-150"
+              style={{
+                background: T.sf,
+                border: `1px solid ${T.bd}`,
+              }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="mv-modal-header px-6 py-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface)] flex-shrink-0">
+              <div
+                className="mv-modal-header px-6 py-4 flex items-center justify-between flex-shrink-0"
+                style={{
+                  background: T.sf,
+                  borderBottom: `1px solid ${T.bd}`,
+                }}
+              >
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style={{ background: '#EDE9FE', color: '#7C3AED' }}
+                  >
                     <SlidersHorizontal className="w-4 h-4" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-base font-bold" style={{ color: T.t1 }}>
                     {loc('settingsTitle')}
                   </h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSettingsOpen(false)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-xl cursor-pointer border-none bg-transparent"
+                  style={{ color: T.t3 }}
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1082,4 +1275,3 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
 };
 
 export default NotificationsPage;
-

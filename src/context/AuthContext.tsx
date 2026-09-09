@@ -8,6 +8,7 @@ import {
   type TwoFactorChallenge,
 } from '../api/auth';
 import { cleanupLocalFcmDevice, unregisterFcmDevice } from '../hooks/useFcm';
+import { clearInfoFormReminderSkip } from '../components/layout/InfoFormReminderModal';
 
 interface AuthContextValue {
   user: ShipperUser | null;
@@ -99,6 +100,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (result.kind === 'two_factor') {
         return result.challenge;
       }
+      // Laravel LoginController forgets info_form_reminder_shown on fresh login.
+      clearInfoFormReminderSkip(result.user?.id);
       setStoredToken(result.token);
       setToken(result.token);
       setUser(result.user);
@@ -114,6 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoginError(null);
     try {
       const { token: bearerToken, user: profile } = await authService.verifyTwoFactor(challengeToken, code);
+      clearInfoFormReminderSkip(profile?.id);
       setStoredToken(bearerToken);
       setToken(bearerToken);
       setUser(profile);
@@ -137,6 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { token: bearerToken, user: profile, two_factor_reset } =
         await authService.verifyTwoFactorRecovery(challengeToken, code);
+      clearInfoFormReminderSkip(profile?.id);
       setStoredToken(bearerToken);
       setToken(bearerToken);
       setUser(profile);
@@ -149,16 +154,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = useCallback(async () => {
+    const previousUserId = user?.id ?? null;
     try {
       await authService.logout();
     } catch {
       clearStoredToken();
     } finally {
+      clearInfoFormReminderSkip(previousUserId);
       await unregisterFcmDevice().catch(() => {});
       setUser(null);
       setToken(null);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     const onForceLogout = () => {

@@ -15,6 +15,7 @@ import { useFcm, type FcmNotificationPayload } from '../../hooks/useFcm';
 import { useGlobalChatSocket } from '../../hooks/useGlobalChatSocket';
 import { RealtimeNotificationToast, type PushNotificationData } from '../notifications/RealtimeNotificationToast';
 import { InfoFormReminderModal } from './InfoFormReminderModal';
+import { RouterLocationSync } from './RouterLocationSync';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
 
@@ -149,9 +150,12 @@ export const AppLayout: React.FC = () => {
         {!isSideMode && <TopNav />}
 
         <main className="page-body">
-          <Outlet />
+          <Outlet key={`${location.pathname}${location.search}`} />
         </main>
       </div>
+
+      <RouterLocationSync />
+      <InfoFormReminderModal />
 
       {toast.show && (
         <div className="toast-container" role="status" aria-live="polite">
@@ -177,8 +181,6 @@ export const AppLayout: React.FC = () => {
         notification={activePushNotif}
         onDismiss={() => setActivePushNotif(null)}
       />
-
-      <InfoFormReminderModal />
     </div>
     </TransporterProfileProvider>
     </UserMgmtProvider>
