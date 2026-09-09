@@ -3,6 +3,8 @@ import { signupService } from '../../api/auth';
 import type { SignupReferenceCountryCode, SignupReferenceDomicile } from '../../api/auth';
 import {
   REGISTER_STEPS,
+  clearSignupDraft,
+  createEmptyDraft,
   loadSignupDraft,
   patchSignupDraft,
   type RegisterStepKey,
@@ -13,6 +15,7 @@ import {
   validateAddressStep,
   validateCompanyStep,
   validateEmailStep,
+  validateKycStep,
   validateMarketingTermsStep,
   validateNameStep,
   validateOtp,
@@ -38,12 +41,15 @@ export function useRegisterWizard(t: Translate) {
   const [countryCodes, setCountryCodes] = useState<SignupReferenceCountryCode[]>([]);
   const [countriesDomicile, setCountriesDomicile] = useState<SignupReferenceDomicile[]>([]);
   const [referenceLoading, setReferenceLoading] = useState(true);
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
+  const [vatHint, setVatHint] = useState<string | null>(null);
+  const [vatChecking, setVatChecking] = useState(false);
   const verifyingPhoneRef = useRef(false);
 
   const stepKey: RegisterStepKey =
-    stepIndex >= REGISTER_STEPS.length ? 'hold' : REGISTER_STEPS[stepIndex];
+    stepIndex >= REGISTER_STEPS.length ? 'done' : REGISTER_STEPS[stepIndex];
 
-  const progressCurrent = stepKey === 'hold' ? REGISTER_STEPS.length : stepIndex + 1;
+  const progressCurrent = stepKey === 'done' ? REGISTER_STEPS.length : stepIndex + 1;
   const progressTotal = REGISTER_STEPS.length;
 
   useEffect(() => {
@@ -459,12 +465,104 @@ export function useRegisterWizard(t: Translate) {
       referral_code: draft.referral_code.trim(),
       terms: true,
     });
-    goToStep(REGISTER_STEPS.length); // hold
+    goToStep(REGISTER_STEPS.indexOf('vf'));
   }, [draft, t, updateDraft, goToStep]);
 
+  const setCertificate = useCallback(
+    (file: File | null) => {
+      setCertificateFile(file);
+      setFieldErrors((prev) => {
+        if (!prev.shipper_certificate) return prev;
+        const next = { ...prev };
+        delete next.shipper_certificate;
+        return next;
+      });
+      setFormError(null);
+    },
+    []
+  );
+
+  const softVerifyVat = useCallback(async () => {
+    const vat = draft.kyc_vat_number_shipper.trim();
+    if (vat.length < 2) {
+      setVatHint(null);
+      return;
+    }
+    setVatChecking(true);
+    setVatHint(null);
+    try {
+      const res = await signupService.verifyVat(vat);
+      const valid =
+        res.valid === true ||
+        res.status === true ||
+        res.status === 1 ||
+        res.status === '1' ||
+        String(res.status).toLowerCase() === 'valid';
+      if (valid) {
+        setVatHint(t('registerVatVerified', 'VAT number looks valid'));
+      } else {
+        setVatHint(
+          (typeof res.message === 'string' && res.message) ||
+            t('registerVatUnverified', 'Could not verify VAT (you can still continue)')
+        );
+      }
+    } catch {
+      setVatHint(t('registerVatUnverified', 'Could not verify VAT (you can still continue)'));
+    } finally {
+      setVatChecking(false);
+    }
+  }, [draft.kyc_vat_number_shipper, t]);
+
+  const continueFromKyc = useCallback(async () => {
+    const errors = validateKycStep(draft.kyc_vat_number_shipper, certificateFile, t);
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
+      return;
+    }
+    if (!certificateFile) return;
+
+    setBusy(true);
+    setFormError(null);
+    try {
+      await signupService.signup({
+        first_name: draft.first_name.trim(),
+        last_name: draft.last_name.trim(),
+        company_name: draft.company_name.trim(),
+        email: draft.email.trim(),
+        country_code: draft.country_code,
+        phone: digitsOnlyPhone(draft.phone),
+        password: draft.password,
+        password_confirmation: draft.password_confirmation,
+        kyc_vat_number_shipper: draft.kyc_vat_number_shipper.trim(),
+        shipper_certificate: certificateFile,
+        street_address: draft.street_address.trim(),
+        address_line_2: draft.address_line_2.trim() || null,
+        city: draft.city.trim(),
+        address_country: draft.address_country.trim(),
+        postal_code: draft.postal_code.trim(),
+        lat: draft.lat || null,
+        lng: draft.lng || null,
+        hear_about_us_shipper: draft.hear_about_us_shipper || null,
+        hear_about_us_other_shipper:
+          draft.hear_about_us_shipper === 'Other' ? draft.hear_about_us_other_shipper.trim() : null,
+        referral_code: draft.referral_code.trim() || null,
+        terms: true,
+      });
+      clearSignupDraft();
+      setCertificateFile(null);
+      setDraft(createEmptyDraft());
+      setStepIndex(REGISTER_STEPS.length);
+    } catch (err) {
+      setFormError(
+        err instanceof Error ? err.message : t('registerSignupFailed', 'Signup failed. Please try again.')
+      );
+    } finally {
+      setBusy(false);
+    }
+  }, [draft, certificateFile, t]);
+
   const goBack = useCallback(() => {
-    if (stepKey === 'hold') {
-      goToStep(REGISTER_STEPS.indexOf('mk'));
+    if (stepKey === 'done') {
       return;
     }
     if (stepIndex <= 0) return;
@@ -481,7 +579,7 @@ export function useRegisterWizard(t: Translate) {
   }, [stepKey, stepIndex, goToStep, clearPhoneOtpState, clearEmailOtpState, updateDraft]);
 
   const showContinue = useMemo(() => {
-    if (stepKey === 'ph' || stepKey === 'em' || stepKey === 'hold') return false;
+    if (stepKey === 'ph' || stepKey === 'em' || stepKey === 'done') return false;
     return true;
   }, [stepKey]);
 
@@ -515,6 +613,9 @@ export function useRegisterWizard(t: Translate) {
       case 'mk':
         continueFromMarketing();
         break;
+      case 'vf':
+        await continueFromKyc();
+        break;
       default:
         break;
     }
@@ -527,6 +628,7 @@ export function useRegisterWizard(t: Translate) {
     continueFromCompany,
     continueFromAddress,
     continueFromMarketing,
+    continueFromKyc,
   ]);
 
   useEffect(() => {
@@ -550,7 +652,8 @@ export function useRegisterWizard(t: Translate) {
       co: 'registerStepCompany',
       ad: 'registerStepAddress',
       mk: 'registerStepMarketing',
-      hold: 'registerStepHold',
+      vf: 'registerStepKyc',
+      done: 'registerStepDone',
     };
     return map[stepKey];
   }, [stepKey]);
@@ -580,11 +683,16 @@ export function useRegisterWizard(t: Translate) {
     resendPhoneCode,
     sendEmailCode,
     resendEmailCode,
+    certificateFile,
+    setCertificate,
+    softVerifyVat,
+    vatHint,
+    vatChecking,
     showContinue,
     canContinue,
     onContinue,
     goBack,
     stepTitleKey,
-    canGoBack: stepIndex > 0 || stepKey === 'hold',
+    canGoBack: stepKey !== 'done' && stepIndex > 0,
   };
 }

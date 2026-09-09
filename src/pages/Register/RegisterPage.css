@@ -239,3 +239,53 @@
   font-weight: 600;
   text-decoration: underline;
 }
+
+.shipper-register-kyc-blurb {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0 0 12px;
+  text-align: left;
+}
+
+.shipper-register-vat-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.shipper-register-vat-row .shipper-login-control {
+  flex: 1;
+  min-width: 0;
+}
+
+.shipper-register-file-input {
+  display: none;
+}
+
+.shipper-register-file-btn {
+  width: 100%;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  background: #f9fafb;
+  padding: 14px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1f1f41;
+  cursor: pointer;
+  text-align: center;
+}
+
+.shipper-register-file-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.shipper-register-sample-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #9b51e0;
+  font-weight: 600;
+  text-decoration: underline;
+}

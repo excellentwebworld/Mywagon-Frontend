@@ -16,6 +16,8 @@ export type RegisterFieldErrors = {
   hear_about_us_other_shipper?: string;
   referral_code?: string;
   terms?: string;
+  kyc_vat_number_shipper?: string;
+  shipper_certificate?: string;
 };
 
 type Translate = (key: string, fallbackOrOptions?: string | Record<string, unknown>) => string;
@@ -210,5 +212,42 @@ export function validateMarketingTermsStep(
       'You must agree to the terms and policies to continue.'
     );
   }
+  return errors;
+}
+
+const CERT_MAX_BYTES = 2 * 1024 * 1024;
+const CERT_MIME = new Set(['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']);
+const CERT_EXT = /\.(pdf|jpe?g|png)$/i;
+
+export function validateVatNumber(value: string, t: Translate): string | undefined {
+  const v = value.trim();
+  if (!v) return t('registerVatRequired', 'Company V.A.T Number is required');
+  if (v.length < 2) return t('registerVatMinLength', 'Minimum 2 characters are required');
+  if (v.length > 16) return t('registerVatMaxLength', 'VAT number must not exceed 16 characters');
+  return undefined;
+}
+
+export function validateCertificateFile(file: File | null, t: Translate): string | undefined {
+  if (!file) return t('registerCertRequired', 'Please upload your certificate');
+  const typeOk = CERT_MIME.has(file.type) || CERT_EXT.test(file.name);
+  if (!typeOk) {
+    return t('registerCertTypeInvalid', 'Certificate must be PDF, JPG, or PNG');
+  }
+  if (file.size > CERT_MAX_BYTES) {
+    return t('registerCertTooLarge', 'The file size must not exceed 2MB.');
+  }
+  return undefined;
+}
+
+export function validateKycStep(
+  vat: string,
+  certificate: File | null,
+  t: Translate
+): RegisterFieldErrors {
+  const errors: RegisterFieldErrors = {};
+  const vatErr = validateVatNumber(vat, t);
+  const certErr = validateCertificateFile(certificate, t);
+  if (vatErr) errors.kyc_vat_number_shipper = vatErr;
+  if (certErr) errors.shipper_certificate = certErr;
   return errors;
 }

@@ -13,9 +13,10 @@ export type RegisterStepKey =
   | 'co'
   | 'ad'
   | 'mk'
-  | 'hold';
+  | 'vf'
+  | 'done';
 
-/** Active wizard steps (hold is post-Phase-2). */
+/** Active wizard steps (`done` is post-submit success). */
 export const REGISTER_STEPS: RegisterStepKey[] = [
   'nm',
   'ph',
@@ -26,6 +27,7 @@ export const REGISTER_STEPS: RegisterStepKey[] = [
   'co',
   'ad',
   'mk',
+  'vf',
 ];
 
 /** @deprecated Use REGISTER_STEPS */
@@ -54,7 +56,7 @@ export type SignupDraft = {
   hear_about_us_other_shipper: string;
   referral_code: string;
   terms: boolean;
-  /** Step index into REGISTER_STEPS, or REGISTER_STEPS.length for hold */
+  /** Step index into REGISTER_STEPS, or REGISTER_STEPS.length for done */
   stepIndex: number;
 };
 
@@ -116,16 +118,29 @@ function referralFromStoredQuery(): string {
   }
 }
 
+function isPhase2Complete(draft: SignupDraft): boolean {
+  return Boolean(
+    draft.company_name.trim() &&
+      draft.street_address.trim() &&
+      draft.postal_code.trim() &&
+      draft.city.trim() &&
+      draft.address_country.trim() &&
+      draft.terms
+  );
+}
+
 /**
- * Normalize step index from older Phase 1 drafts.
- * Phase 1 hold was index 6 with only 6 steps — that now maps to `co` (also index 6).
+ * Normalize step index across Phase 1–3 draft versions.
+ * Old Phase 2 hold was index 9 (after mk) — maps to `vf` (also index 9 now).
  */
 export function normalizeStepIndex(raw: number | undefined, draft: SignupDraft): number {
-  const maxHold = REGISTER_STEPS.length;
+  const maxDone = REGISTER_STEPS.length;
   let index = typeof raw === 'number' && Number.isFinite(raw) ? raw : 0;
-  index = Math.min(Math.max(index, 0), maxHold);
+  index = Math.min(Math.max(index, 0), maxDone);
 
   const coIndex = REGISTER_STEPS.indexOf('co');
+  const vfIndex = REGISTER_STEPS.indexOf('vf');
+
   if (index >= coIndex) {
     if (!draft.phoneVerified || !draft.emailVerified || !draft.password) {
       if (!draft.password) return REGISTER_STEPS.indexOf('pw');
@@ -133,6 +148,18 @@ export function normalizeStepIndex(raw: number | undefined, draft: SignupDraft):
       if (!draft.phoneVerified) return REGISTER_STEPS.indexOf('ph');
       return REGISTER_STEPS.indexOf('pw');
     }
+  }
+
+  if (index >= vfIndex && !isPhase2Complete(draft)) {
+    if (!draft.terms || !draft.hear_about_us_shipper) return REGISTER_STEPS.indexOf('mk');
+    if (!draft.street_address || !draft.city) return REGISTER_STEPS.indexOf('ad');
+    if (!draft.company_name) return REGISTER_STEPS.indexOf('co');
+    return REGISTER_STEPS.indexOf('mk');
+  }
+
+  // Never restore into `done` from storage (submit must succeed again if needed)
+  if (index >= maxDone) {
+    return vfIndex;
   }
 
   return index;
@@ -163,6 +190,14 @@ export function saveSignupDraft(draft: SignupDraft): void {
     sessionStorage.setItem(SIGNUP_DRAFT_STORAGE_KEY, JSON.stringify(draft));
   } catch {
     /* ignore quota / private mode */
+  }
+}
+
+export function clearSignupDraft(): void {
+  try {
+    sessionStorage.removeItem(SIGNUP_DRAFT_STORAGE_KEY);
+  } catch {
+    /* ignore */
   }
 }
 

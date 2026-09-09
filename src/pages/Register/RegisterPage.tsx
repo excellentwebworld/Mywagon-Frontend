@@ -19,7 +19,8 @@ import { PasswordStep } from './steps/PasswordStep';
 import { CompanyStep } from './steps/CompanyStep';
 import { AddressStep } from './steps/AddressStep';
 import { MarketingTermsStep } from './steps/MarketingTermsStep';
-import { Phase2HoldStep } from './steps/Phase2HoldStep';
+import { KycStep } from './steps/KycStep';
+import { SignupSuccessStep } from './steps/SignupSuccessStep';
 
 export { SIGNUP_QUERY_STORAGE_KEY };
 
@@ -65,7 +66,8 @@ export const RegisterPage: React.FC = () => {
     registerStepCompany: 'Your company',
     registerStepAddress: 'Company address',
     registerStepMarketing: 'Almost done',
-    registerStepHold: 'Almost there',
+    registerStepKyc: 'Verify your company',
+    registerStepDone: 'Welcome',
   };
 
   const renderStep = () => {
@@ -180,8 +182,22 @@ export const RegisterPage: React.FC = () => {
             disabled={wizard.busy}
           />
         );
-      case 'hold':
-        return <Phase2HoldStep />;
+      case 'vf':
+        return (
+          <KycStep
+            vat={wizard.draft.kyc_vat_number_shipper}
+            certificate={wizard.certificateFile}
+            onVat={(v) => wizard.updateDraft({ kyc_vat_number_shipper: v })}
+            onCertificate={wizard.setCertificate}
+            onSoftVerifyVat={() => void wizard.softVerifyVat()}
+            vatHint={wizard.vatHint}
+            vatChecking={wizard.vatChecking}
+            errors={wizard.fieldErrors}
+            disabled={wizard.busy}
+          />
+        );
+      case 'done':
+        return <SignupSuccessStep />;
       default:
         return null;
     }
@@ -212,7 +228,7 @@ export const RegisterPage: React.FC = () => {
                   </Link>
                 </div>
 
-                {wizard.stepKey !== 'hold' && (
+                {wizard.stepKey !== 'done' && (
                   <p className="shipper-register-progress">
                     {t('registerStepOf', 'Step {{current}} of {{total}}', {
                       current: wizard.progressCurrent,
@@ -254,7 +270,9 @@ export const RegisterPage: React.FC = () => {
                       >
                         {wizard.busy
                           ? t('registerWorking', 'Please wait…')
-                          : t('registerContinue', 'Continue')}
+                          : wizard.stepKey === 'vf'
+                            ? t('registerJoinForFree', 'Join for free')
+                            : t('registerContinue', 'Continue')}
                       </button>
                     </div>
                   </div>
@@ -273,7 +291,7 @@ export const RegisterPage: React.FC = () => {
                   </div>
                 )}
 
-                {wizard.stepKey !== 'hold' && (
+                {wizard.stepKey !== 'done' && (
                   <div className="shipper-login-join-wrap">
                     <Link to="/login" className="shipper-login-join">
                       {t('registerBackToLogin', 'Back to login')}
