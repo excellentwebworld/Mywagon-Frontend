@@ -7,9 +7,18 @@ import { useLoginParticles } from '../Login/useLoginParticles';
 import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
 import fullLogo from '../../assets/logo/fullLogo.svg';
 import '../Login/LoginPage.css';
+import './RegisterPage.css';
+import { SIGNUP_QUERY_STORAGE_KEY } from './signupDraft';
+import { useRegisterWizard } from './useRegisterWizard';
+import { NameStep } from './steps/NameStep';
+import { PhoneStep } from './steps/PhoneStep';
+import { PhoneOtpStep } from './steps/PhoneOtpStep';
+import { EmailStep } from './steps/EmailStep';
+import { EmailOtpStep } from './steps/EmailOtpStep';
+import { PasswordStep } from './steps/PasswordStep';
+import { Phase1HoldStep } from './steps/Phase1HoldStep';
 
-/** Persist referral / invite query for later signup phases. */
-export const SIGNUP_QUERY_STORAGE_KEY = 'shipper_signup_query';
+export { SIGNUP_QUERY_STORAGE_KEY };
 
 export const RegisterPage: React.FC = () => {
   const particlesRef = useLoginParticles();
@@ -17,6 +26,7 @@ export const RegisterPage: React.FC = () => {
   const { lang, setLang } = useApp();
   const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
+  const wizard = useRegisterWizard(t);
 
   useEffect(() => {
     const qs = searchParams.toString();
@@ -24,11 +34,11 @@ export const RegisterPage: React.FC = () => {
     try {
       sessionStorage.setItem(SIGNUP_QUERY_STORAGE_KEY, qs);
     } catch {
-      /* ignore quota / private mode */
+      /* ignore */
     }
   }, [searchParams]);
 
-  if (isLoading) {
+  if (isLoading || wizard.referenceLoading) {
     return <MyVagonBootScreen />;
   }
 
@@ -40,6 +50,97 @@ export const RegisterPage: React.FC = () => {
     const next = checked ? 'en' : 'el';
     setLang(next);
     void i18n.changeLanguage(next);
+  };
+
+  const stepTitleDefaults: Record<string, string> = {
+    registerStepName: "What's your name?",
+    registerStepPhone: 'Verify your phone',
+    registerStepPhoneOtp: 'Enter the code',
+    registerStepEmail: 'Verify your email',
+    registerStepEmailOtp: 'Enter the code',
+    registerStepPassword: 'Secure your account',
+    registerStepHold: 'Almost there',
+  };
+
+  const renderStep = () => {
+    switch (wizard.stepKey) {
+      case 'nm':
+        return (
+          <NameStep
+            firstName={wizard.draft.first_name}
+            lastName={wizard.draft.last_name}
+            onFirstName={(v) => wizard.updateDraft({ first_name: v })}
+            onLastName={(v) => wizard.updateDraft({ last_name: v })}
+            errors={wizard.fieldErrors}
+            disabled={wizard.busy}
+          />
+        );
+      case 'ph':
+        return (
+          <PhoneStep
+            countryCode={wizard.draft.country_code}
+            phone={wizard.draft.phone}
+            countryCodes={wizard.countryCodes}
+            onCountryCode={wizard.setCountryCode}
+            onPhone={wizard.setPhone}
+            onSendCode={() => void wizard.sendPhoneCode()}
+            errors={wizard.fieldErrors}
+            busy={wizard.busy}
+          />
+        );
+      case 'phOtp':
+        return (
+          <PhoneOtpStep
+            countryCode={wizard.draft.country_code}
+            phone={wizard.draft.phone}
+            otp={wizard.phoneOtp}
+            onOtp={wizard.setPhoneOtp}
+            verified={wizard.draft.phoneVerified}
+            onResend={() => void wizard.resendPhoneCode()}
+            resendSeconds={wizard.resendSeconds}
+            busy={wizard.busy}
+            error={wizard.fieldErrors.otp}
+          />
+        );
+      case 'em':
+        return (
+          <EmailStep
+            email={wizard.draft.email}
+            onEmail={wizard.setEmail}
+            onSendCode={() => void wizard.sendEmailCode()}
+            error={wizard.fieldErrors.email}
+            busy={wizard.busy}
+          />
+        );
+      case 'emOtp':
+        return (
+          <EmailOtpStep
+            email={wizard.draft.email}
+            otp={wizard.emailOtp}
+            onOtp={wizard.setEmailOtp}
+            verified={wizard.draft.emailVerified}
+            onResend={() => void wizard.resendEmailCode()}
+            resendSeconds={wizard.resendSeconds}
+            busy={wizard.busy}
+            error={wizard.fieldErrors.otp}
+          />
+        );
+      case 'pw':
+        return (
+          <PasswordStep
+            password={wizard.draft.password}
+            confirm={wizard.draft.password_confirmation}
+            onPassword={(v) => wizard.updateDraft({ password: v })}
+            onConfirm={(v) => wizard.updateDraft({ password_confirmation: v })}
+            errors={wizard.fieldErrors}
+            disabled={wizard.busy}
+          />
+        );
+      case 'hold':
+        return <Phase1HoldStep />;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -65,42 +166,76 @@ export const RegisterPage: React.FC = () => {
                   <Link to="/login" className="shipper-login-logo-link mt-2">
                     <img src={fullLogo} alt={t('appName')} className="shipper-login-logo" height={35} />
                   </Link>
-                  <p className="shipper-login-para">
-                    {t('registerComingSoon', {
-                      defaultValue: 'Shipper registration is moving here. Full signup will be available soon.',
-                    })}
-                  </p>
                 </div>
 
-                <ul className="shipper-login-tabs" role="tablist">
-                  <li className="shipper-login-tab-item">
-                    <span className="shipper-login-tab active" role="tab" aria-selected>
-                      {t('shipper')}
-                    </span>
-                  </li>
-                </ul>
-
-                <div className="shipper-login-tab-pane">
-                  <h1 className="shipper-login-para" style={{ fontWeight: 600, marginBottom: 16 }}>
-                    {t('loginSignup', { defaultValue: 'Signup' })}
-                  </h1>
-                  <p className="shipper-login-para" style={{ marginBottom: 24 }}>
-                    {t('registerPlaceholderBody', {
-                      defaultValue:
-                        'This page will host the sign-up, company info, and KYC flow. Please use Login if you already have an account.',
+                {wizard.stepKey !== 'hold' && (
+                  <p className="shipper-register-progress">
+                    {t('registerStepOf', 'Step {{current}} of {{total}}', {
+                      current: wizard.progressCurrent,
+                      total: wizard.progressTotal,
                     })}
                   </p>
-                  <div className="shipper-login-submit-wrap">
-                    <Link to="/login" className="shipper-login-submit-btn" style={{ display: 'inline-block', textAlign: 'center', textDecoration: 'none' }}>
-                      {t('loginLogIn')}
-                    </Link>
+                )}
+
+                <h1 className="shipper-register-step-title">
+                  {t(wizard.stepTitleKey, stepTitleDefaults[wizard.stepTitleKey] || '')}
+                </h1>
+
+                {wizard.formError && (
+                  <div className="shipper-login-alert" role="alert">
+                    {wizard.formError}
                   </div>
+                )}
+
+                <div className="shipper-login-tab-pane">{renderStep()}</div>
+
+                {wizard.showContinue && (
+                  <div className="shipper-register-nav">
+                    {wizard.canGoBack && (
+                      <button
+                        type="button"
+                        className="shipper-register-back-btn"
+                        disabled={wizard.busy}
+                        onClick={wizard.goBack}
+                      >
+                        {t('registerBack', 'Back')}
+                      </button>
+                    )}
+                    <div className="shipper-login-submit-wrap">
+                      <button
+                        type="button"
+                        className="shipper-login-submit-btn"
+                        disabled={!wizard.canContinue}
+                        onClick={() => void wizard.onContinue()}
+                      >
+                        {wizard.busy
+                          ? t('registerWorking', 'Please wait…')
+                          : t('registerContinue', 'Continue')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {(wizard.stepKey === 'ph' || wizard.stepKey === 'em') && wizard.canGoBack && (
+                  <div className="shipper-register-nav">
+                    <button
+                      type="button"
+                      className="shipper-register-back-btn"
+                      disabled={wizard.busy}
+                      onClick={wizard.goBack}
+                    >
+                      {t('registerBack', 'Back')}
+                    </button>
+                  </div>
+                )}
+
+                {wizard.stepKey !== 'hold' && (
                   <div className="shipper-login-join-wrap">
                     <Link to="/login" className="shipper-login-join">
-                      {t('registerBackToLogin', { defaultValue: 'Back to login' })}
+                      {t('registerBackToLogin', 'Back to login')}
                     </Link>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
