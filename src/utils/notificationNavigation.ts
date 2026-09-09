@@ -51,7 +51,7 @@ export function resolveNotificationPath(n: Pick<
     target = '/subscription';
   } else if (n.action_type === 'openSupport') {
     target = '/support';
-  } else if (n.action_type === 'viewProfile') {
+  } else if (n.action_type === 'viewProfile' || n.action_type === 'viewCompliance') {
     target = '/settings/compliance';
   } else if (n.action_type === 'viewOrganization') {
     target = '/settings/organization';

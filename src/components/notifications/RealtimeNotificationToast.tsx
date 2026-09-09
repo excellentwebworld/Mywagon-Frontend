@@ -247,7 +247,19 @@ export function resolveNotificationConfig(data: PushNotificationData): ToastConf
         route: '/settings/organization',
       };
 
-    case rawTarget.includes('profile') || rawTarget.includes('kyc'):
+    case rawTarget.includes('kyc') || rawTarget.includes('compliance'):
+      return {
+        icon: CheckCircle2,
+        iconBg: 'bg-purple-50 dark:bg-purple-950/60',
+        iconColor: 'text-purple-600 dark:text-purple-400',
+        badgeBg: 'bg-purple-50 dark:bg-purple-950/50',
+        badgeColor: 'text-purple-700 dark:text-purple-300',
+        categoryName: 'Compliance',
+        actionLabel: 'View Compliance',
+        route: '/settings/compliance',
+      };
+
+    case rawTarget.includes('profile'):
       return {
         icon: CheckCircle2,
         iconBg: 'bg-purple-50 dark:bg-purple-950/60',
@@ -256,7 +268,8 @@ export function resolveNotificationConfig(data: PushNotificationData): ToastConf
         badgeColor: 'text-purple-700 dark:text-purple-300',
         categoryName: 'Profile',
         actionLabel: 'View Profile',
-        route: '/settings/personal',
+        // KYC decisions also use viewProfile — Compliance is the gated destination.
+        route: '/settings/compliance',
       };
 
     case rawTarget.includes('privacy'):

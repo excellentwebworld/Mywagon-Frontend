@@ -115,8 +115,13 @@ function resolveTargetUrl(data) {
   if (rawType.includes('company')) {
     return '/settings/organization';
   }
-  if (rawType.includes('profile')) {
-    return '/settings/personal';
+  // Admin KYC accept/reject (and legacy profile deep-links) → Compliance
+  if (
+    rawType.includes('kyc') ||
+    rawType.includes('compliance') ||
+    rawType.includes('profile')
+  ) {
+    return '/settings/compliance';
   }
   if (rawType.includes('privacy')) {
     return '/settings/privacy';

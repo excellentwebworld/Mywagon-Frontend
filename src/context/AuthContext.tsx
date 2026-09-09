@@ -34,6 +34,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(() => getStoredToken());
   const [isLoading, setIsLoading] = useState(true);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const userRef = React.useRef<ShipperUser | null>(null);
+  userRef.current = user;
 
   const refreshUser = useCallback(async () => {
     const stored = getStoredToken();
@@ -92,6 +94,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.removeEventListener('shipper:past-due', onPastDue);
     };
   }, [refreshUser]);
+
+  // Keep KYC / company-info gates in sync when admin accepts/rejects while the SPA is open.
+  useEffect(() => {
+    if (!token) return;
+
+    const isKycRelated = (detail: unknown): boolean => {
+      if (!detail || typeof detail !== 'object') return false;
+      const d = detail as Record<string, unknown>;
+      const hay = [d.type, d.redirect_slug, d.title, d.body]
+        .map((v) => String(v ?? '').toLowerCase())
+        .join(' ');
+      return (
+        hay.includes('kyc') ||
+        hay.includes('compliance') ||
+        hay.includes('verification') ||
+        hay.includes('profile')
+      );
+    };
+
+    const onNotification = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (isKycRelated(detail)) {
+        void refreshUser().catch(() => {});
+      }
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      const status = userRef.current?.kyc_status;
+      // Re-fetch when returning to the tab if still KYC-gated (admin may have accepted).
+      if (status === 'pending' || status === 'rejected') {
+        void refreshUser().catch(() => {});
+      }
+    };
+
+    window.addEventListener('shipper:notification-received', onNotification);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('shipper:notification-received', onNotification);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [token, refreshUser]);
 
   const login = useCallback(async (email: string, password: string): Promise<TwoFactorChallenge | null> => {
     setLoginError(null);
