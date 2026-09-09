@@ -63,6 +63,7 @@ interface Step2ItineraryProps {
   onCompareViewChange?: (view: CompareView) => void;
   editDiff?: ApiEditPreviewDiff | null;
   editDiffLoading?: boolean;
+  onKeepOldItinerary?: () => Promise<void>;
 }
 
 export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
@@ -75,6 +76,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
   onCompareViewChange,
   editDiff = null,
   editDiffLoading = false,
+  onKeepOldItinerary,
 }) => {
   const { t } = useTranslation();
   const { locations, skus } = useApp();
@@ -604,7 +606,10 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                     style={{ background: '#059669', fontFamily: 'inherit' }}
                     onClick={confirmItinerary}
                   >
-                    <Check size={13} /> {t('step2ConfirmItinerary')}
+                    <Check size={13} />{' '}
+                    {isEditMode
+                      ? t('confirmUpdatedItinerary') || 'Confirm Updated Itinerary'
+                      : t('step2ConfirmItinerary')}
                   </button>
                 ) : (
                   <span
@@ -736,6 +741,24 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
           >
             <ArrowLeft size={14} /> {t('step2Back')}
           </button>
+          {isEditMode && editDiff?.has_changes && onKeepOldItinerary && (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer"
+              style={{
+                border: '1px solid var(--border)',
+                background: 'var(--surface)',
+                color: 'var(--text-secondary)',
+                fontFamily: 'inherit',
+              }}
+              onClick={() => {
+                void onKeepOldItinerary();
+              }}
+              disabled={isSaving}
+            >
+              {t('keepOldItinerary') || 'Keep Old Itinerary'}
+            </button>
+          )}
           <button
             type="button"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer"

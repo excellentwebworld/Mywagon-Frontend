@@ -146,6 +146,13 @@ interface Step1DetailsProps {
   validationRequest?: number;
   lockedStopIds?: number[];
   isEditMode?: boolean;
+  editShipmentStatus?: string | null;
+}
+
+function requiresTransporterWarning(status: string | null | undefined): boolean {
+  const normalized = String(status || '').toLowerCase();
+  if (!normalized) return false;
+  return normalized !== 'pending' && normalized !== 'draft';
 }
 
 function resolveLineShipmentLocationId(line: {
@@ -170,6 +177,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   validationRequest = 0,
   lockedStopIds = [],
   isEditMode = false,
+  editShipmentStatus = null,
 }) => {
   const { t } = useTranslation();
   const { values, setFieldValue } = useFormikContext<any>();
@@ -1243,6 +1251,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const canContinue = blockers.length === 0;
   const [conflictPopup, setConflictPopup] = useState(false);
+  const [inconvenienceOpen, setInconvenienceOpen] = useState(false);
+  const needsTransporterWarning = isEditMode && requiresTransporterWarning(editShipmentStatus);
   const [showAll, setShowAll] = useState(false);
   const [validatingStopIndex, setValidatingStopIndex] = useState<number | null>(
     null,
@@ -1320,6 +1330,14 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     }
   }, [validationRequest]);
 
+  const runContinue = useCallback(async () => {
+    try {
+      await onContinue();
+    } catch {
+      // Error handled by parent
+    }
+  }, [onContinue]);
+
   const handleContinue = useCallback(async () => {
     setShowAll(true);
     setValidatingStopIndex(null);
@@ -1331,21 +1349,26 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       setConflictPopup(true);
       return;
     }
-    try {
-      await onContinue();
-    } catch {
-      // Error handled by parent
+    if (needsTransporterWarning) {
+      setInconvenienceOpen(true);
+      return;
     }
-  }, [blockers, warnings, onContinue, expandStopForValidation]);
+    await runContinue();
+  }, [blockers, warnings, needsTransporterWarning, runContinue, expandStopForValidation]);
 
   const handleProceedAnyway = useCallback(async () => {
     setConflictPopup(false);
-    try {
-      await onContinue();
-    } catch {
-      // Error toast handled by parent
+    if (needsTransporterWarning) {
+      setInconvenienceOpen(true);
+      return;
     }
-  }, [onContinue]);
+    await runContinue();
+  }, [needsTransporterWarning, runContinue]);
+
+  const handleConfirmInconvenience = useCallback(async () => {
+    setInconvenienceOpen(false);
+    await runContinue();
+  }, [runContinue]);
 
   const handleSaveDraftClick = useCallback(async () => {
     setShowAll(true);
@@ -1923,7 +1946,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
             disabled={!canContinue || isSaving}
             onClick={handleContinue}
           >
-            {isSaving ? t("saving") || "Saving..." : t("continue")}
+            {isSaving
+              ? t("saving") || "Saving..."
+              : isEditMode
+                ? t("update") || "Update"
+                : t("continue")}
             {conflictCount > 0 && (
               <span
                 className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
@@ -2156,6 +2183,20 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         confirmText={t("deleteStopConfirm") || "Delete"}
         cancelText={t("deleteStopCancel") || "Cancel"}
         type="danger"
+      />
+      <ConfirmationModal
+        isOpen={inconvenienceOpen}
+        onClose={() => setInconvenienceOpen(false)}
+        onConfirm={handleConfirmInconvenience}
+        title={t("editUpdateShipmentTitle") || "Update Shipment"}
+        message={
+          t("editTransporterInconvenienceMsg") ||
+          "Changing this load may inconvenience the assigned transporter. Consider increasing your offer price on the next step."
+        }
+        confirmText={t("continue") || "Continue"}
+        cancelText={t("cancel") || "Cancel"}
+        type="warning"
+        confirmLoading={isSaving}
       />
     </div>
   );

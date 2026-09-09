@@ -7,13 +7,21 @@ import type { WizardOutletContext } from '../wizardOutletContext';
 
 export const CreateShipmentStep1Page: React.FC = () => {
   const { values } = useFormikContext<WizardFormValues>();
-  const { isSaving, validationRequest, saveStep1, resetItineraryConfirmationRef, lockedStopIds, isEditMode } =
-    useOutletContext<WizardOutletContext>();
+  const {
+    isSaving,
+    validationRequest,
+    saveStep1,
+    resetItineraryConfirmationRef,
+    lockedStopIds,
+    isEditMode,
+    editShipmentStatus,
+  } = useOutletContext<WizardOutletContext>();
 
   return (
     <Step1Details
       lockedStopIds={lockedStopIds}
       isEditMode={isEditMode}
+      editShipmentStatus={editShipmentStatus}
       onSaveDraft={async () => {
         resetItineraryConfirmationRef.current?.();
         await saveStep1(

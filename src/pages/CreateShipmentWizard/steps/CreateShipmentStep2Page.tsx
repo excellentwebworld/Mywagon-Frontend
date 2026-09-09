@@ -18,6 +18,7 @@ export const CreateShipmentStep2Page: React.FC = () => {
     compareView,
     setCompareView,
     refreshEditDiff,
+    discardEditAndLeave,
   } = useOutletContext<WizardOutletContext>();
 
   useEffect(() => {
@@ -61,6 +62,9 @@ export const CreateShipmentStep2Page: React.FC = () => {
           'complete',
           routeSummary
         );
+      }}
+      onKeepOldItinerary={async () => {
+        await discardEditAndLeave();
       }}
       isSaving={isSaving}
       isEditMode={isEditMode}

@@ -92,6 +92,8 @@ export const CreateShipmentWizardLayout: React.FC = () => {
     isEditMode,
     lockedStopIds,
     editBlocked,
+    editBlockedReason,
+    editShipmentStatus,
     editDiff,
     editDiffLoading,
     compareView,
@@ -103,6 +105,7 @@ export const CreateShipmentWizardLayout: React.FC = () => {
     saveStep3,
     publishShipment,
     cancelEditSession,
+    discardEditAndLeave,
     stepNavigationError,
     validationRequest,
     formikEpoch,
@@ -162,6 +165,14 @@ export const CreateShipmentWizardLayout: React.FC = () => {
     }
   }, [stepNavigationError, validationRequest]);
 
+  const showEditCancel =
+    isEditMode && String(editShipmentStatus || '').toLowerCase() !== 'on_trip';
+
+  const handleDiscardEdit = async () => {
+    if (isSaving) return;
+    await discardEditAndLeave();
+  };
+
   const outletContext: WizardOutletContext = useMemo(
     () => ({
       shipmentId,
@@ -170,6 +181,8 @@ export const CreateShipmentWizardLayout: React.FC = () => {
       isEditMode,
       lockedStopIds,
       editBlocked,
+      editBlockedReason,
+      editShipmentStatus,
       editDiff,
       editDiffLoading,
       compareView,
@@ -180,6 +193,7 @@ export const CreateShipmentWizardLayout: React.FC = () => {
       saveStep2,
       saveStep3,
       cancelEditSession,
+      discardEditAndLeave,
       resetItineraryConfirmationRef,
     }),
     [
@@ -189,6 +203,8 @@ export const CreateShipmentWizardLayout: React.FC = () => {
       isEditMode,
       lockedStopIds,
       editBlocked,
+      editBlockedReason,
+      editShipmentStatus,
       editDiff,
       editDiffLoading,
       compareView,
@@ -199,6 +215,7 @@ export const CreateShipmentWizardLayout: React.FC = () => {
       saveStep2,
       saveStep3,
       cancelEditSession,
+      discardEditAndLeave,
     ]
   );
 
@@ -216,6 +233,24 @@ export const CreateShipmentWizardLayout: React.FC = () => {
             {stepSubtitle(step, t, isEditMode)}
           </p>
         </div>
+        {showEditCancel && (
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer"
+            style={{
+              border: '1px solid var(--border)',
+              background: 'var(--surface)',
+              color: 'var(--text-secondary)',
+              fontFamily: 'inherit',
+            }}
+            onClick={() => {
+              void handleDiscardEdit();
+            }}
+            disabled={isSaving}
+          >
+            {t('cancel') || 'Cancel'}
+          </button>
+        )}
       </div>
 
       <nav className="stepper" aria-label="Progress steps">

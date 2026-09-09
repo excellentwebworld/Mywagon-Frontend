@@ -10,6 +10,8 @@ export interface WizardOutletContext {
   isEditMode: boolean;
   lockedStopIds: number[];
   editBlocked: boolean;
+  editBlockedReason: string | null;
+  editShipmentStatus: string | null;
   editDiff: ApiEditPreviewDiff | null;
   editDiffLoading: boolean;
   compareView: CompareView;
@@ -24,5 +26,6 @@ export interface WizardOutletContext {
   ) => Promise<unknown>;
   saveStep3: (values: WizardFormValues, mode: 'partial' | 'complete') => Promise<unknown>;
   cancelEditSession: () => Promise<void>;
+  discardEditAndLeave: () => Promise<void>;
   resetItineraryConfirmationRef: MutableRefObject<(() => void) | null>;
 }

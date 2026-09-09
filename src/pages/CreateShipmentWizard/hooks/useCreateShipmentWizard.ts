@@ -178,6 +178,8 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   const [formikEpoch, setFormikEpoch] = useState(0);
   const [lockedStopIds, setLockedStopIds] = useState<number[]>([]);
   const [editBlocked, setEditBlocked] = useState(false);
+  const [editBlockedReason, setEditBlockedReason] = useState<string | null>(null);
+  const [editShipmentStatus, setEditShipmentStatus] = useState<string | null>(null);
   const [editDiff, setEditDiff] = useState<ApiEditPreviewDiff | null>(null);
   const [editDiffLoading, setEditDiffLoading] = useState(false);
   const [compareView, setCompareView] = useState<CompareView>('updated');
@@ -206,19 +208,27 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         auto_id: string;
         customer_reference?: string | null;
         wizard_state?: unknown;
+        status?: string;
         locked_stop_ids?: number[];
         edit_blocked?: boolean;
+        edit_blocked_reason?: string | null;
       },
       preservedValues?: WizardFormValues | null
     ) => {
       setShipmentId(draft.id);
       setLoadId(draft.auto_id);
       loadedDraftIdRef.current = String(draft.id);
+      if (typeof draft.status === 'string' && draft.status) {
+        setEditShipmentStatus(draft.status);
+      }
       if (Array.isArray(draft.locked_stop_ids)) {
         setLockedStopIds(draft.locked_stop_ids.map((id) => Number(id)).filter((id) => id > 0));
       }
       if (typeof draft.edit_blocked === 'boolean') {
         setEditBlocked(draft.edit_blocked);
+      }
+      if (draft.edit_blocked_reason !== undefined) {
+        setEditBlockedReason(draft.edit_blocked_reason || null);
       }
       setLoadedValues((prev) =>
         mergeDraftSnapshot(draftToFormValues(draft, defaultValues), preservedValues ?? prev)
@@ -503,6 +513,8 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       setDraftLoaded(true);
       setLockedStopIds([]);
       setEditBlocked(false);
+      setEditBlockedReason(null);
+      setEditShipmentStatus(null);
       editSessionActiveRef.current = false;
       // Do not clear loadedValues when arriving from availability prefill.
       if (leavingSession) {
@@ -539,6 +551,8 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
           const edit = draft as ApiEditShipment;
           if (edit.edit_blocked) {
             setEditBlocked(true);
+            setEditBlockedReason(edit.edit_blocked_reason || null);
+            setEditShipmentStatus(edit.status || null);
             setLockedStopIds(edit.locked_stop_ids || []);
             const message =
               edit.edit_blocked_reason ||
@@ -551,12 +565,16 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
             return;
           }
           setEditBlocked(false);
+          setEditBlockedReason(null);
+          setEditShipmentStatus(edit.status || null);
           setLockedStopIds(
             (edit.locked_stop_ids || []).map((id) => Number(id)).filter((id) => id > 0)
           );
           editSessionActiveRef.current = true;
         } else {
           setEditBlocked(false);
+          setEditBlockedReason(null);
+          setEditShipmentStatus(null);
           setLockedStopIds([]);
           editSessionActiveRef.current = false;
         }
@@ -626,7 +644,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   }, [availabilityId, isEditMode, navigate, shipmentId, step]);
 
   const cancelEditSession = useCallback(async () => {
-    if (!isEditMode || !shipmentId || !editSessionActiveRef.current) {
+    if (!isEditMode || !shipmentId) {
       return;
     }
     try {
@@ -637,6 +655,13 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       editSessionActiveRef.current = false;
     }
   }, [isEditMode, shipmentId]);
+
+  const discardEditAndLeave = useCallback(async () => {
+    await cancelEditSession();
+    setEditDiff(null);
+    setCompareView('updated');
+    navigate('/shipments');
+  }, [cancelEditSession, navigate]);
 
   const refreshEditDiff = useCallback(async () => {
     if (!isEditMode || !shipmentId) {
@@ -664,6 +689,8 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     if (!isEditMode) {
       setEditDiff(null);
       setCompareView('updated');
+      setEditShipmentStatus(null);
+      setEditBlockedReason(null);
     }
   }, [isEditMode]);
 
@@ -933,12 +960,18 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         if (err instanceof Error && (err.message === 'Invalid price' || err.message === 'No carriers selected')) {
           throw err;
         }
-        const message =
+        let message =
           err instanceof ApiError
             ? err.message
             : isEditMode
               ? t('updateFailed') || 'Failed to update shipment.'
               : t('publishFailed') || 'Failed to publish shipment.';
+        if (err instanceof ApiError && err.status === 409 && isEditMode) {
+          message =
+            err.message ||
+            t('editPendingUpdateExists') ||
+            'A pending update already exists for this shipment. Wait for the carrier to accept or reject it.';
+        }
         showToast(message, 'error');
         throw err;
       } finally {
@@ -962,6 +995,8 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     isEditMode,
     lockedStopIds,
     editBlocked,
+    editBlockedReason,
+    editShipmentStatus,
     editDiff,
     editDiffLoading,
     compareView,
@@ -973,6 +1008,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     saveStep3,
     publishShipment,
     cancelEditSession,
+    discardEditAndLeave,
     setLoadId,
     stepNavigationError,
     validationRequest,
