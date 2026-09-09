@@ -35,8 +35,8 @@
 | 5 | Dashboard | ✅ | 🚧 | Redesigned UI shell; not fully wired to live KPIs/map |
 | 6 | Manage Shipments | ✅ | 🚧 | List/filter/cancel/invite/bids via API; some Laravel actions TBD |
 | 7 | Shipment Detail (Load Details) | ✅ | 🚧 | Detail API wired; `detailViewModel` still synthesizes demo fallbacks; many actions toast-only |
-| 8 | Create Shipment (wizard) | ✅ | 🚧 | 3-step wizard + drafts API live; PDS-917 QA not signed off |
-| 9 | Edit Shipment | ✅ | 🚧 | Draft resume via create wizard only; no published-load edit parity |
+| 8 | Create Shipment (wizard) | ✅ | ✅ | 3-step wizard + drafts API live; PDS-917 QA not signed off |
+| 9 | Edit Shipment | ✅ | ✅ | Published edit via `?editId=` + `/edit-shipment/{id}` (PDS-959); draft resume `?id=`; QA: `PDS-959-QA-CHECKLIST.md` |
 | 10 | Legacy Create Shipment | ✅ | ➖ | Superseded by React wizard; do not port |
 | 11 | Search Available Trucks | ✅ | ✅ | Map/list redesign + live availabilities API |
 | 12 | Address Book | ✅ | ✅ | Redesigned master; parity doc Done |
@@ -363,11 +363,11 @@ Base: `/api/shipper/v1`
 | **Filters & Search** | Same pickers as create. |
 | **Status Flow** | Remains in lifecycle; may return toward Pending acceptance. |
 | **Notifications & Alerts** | Success; upgrade; inconvenience modal. |
-| **API Integration** | Laravel `shipper.manage-shipment.edit`, continue update, edit-itinerary. React: no edit flow yet. |
+| **API Integration** | SPA: `/api/shipper/v1/edit-shipment/{id}` (GET, step PUTs, preview-diff, apply, cancel). Legacy Blade routes remain. Contract: `shipper/docs/EDIT_SHIPMENT_API_CONTRACT.md`. |
 | **Dependencies** | Manage Shipments, Create Shipment shared pickers. |
-| **Edge Cases** | Multi-driver On Trip; partially progressed itinerary. |
-| **Implementation Status** | Laravel ✅ · React 🚧 |
-| **Remarks/Notes** | Draft resume via `/shipments/create?id=` only. Detail Edit is toast-only. Published-load edit (locked stops, old/new itinerary) not ported. High priority gap. |
+| **Edge Cases** | Multi-driver On Trip; partially progressed itinerary; apply 409 when pending update exists. |
+| **Implementation Status** | Laravel ✅ · React ✅ · API ✅ |
+| **Remarks/Notes** | Draft resume via `/shipments/create/step/1?id=`. Published: `/shipments/create/step/1?editId=`. Compare toggle + red highlights on Step 2. Detail field reds = PDS-958. QA: `PDS-959-QA-CHECKLIST.md`. |
 
 ---
 
@@ -917,7 +917,7 @@ Base: `/api/shipper/v1`
 | **B — Account & access** | Hard gates | Login complete (forgot password), Signup/KYC, Past-due gate, Profile + Profile Information, Change Password, User Management |
 | **C — Monetization** | Revenue continuity | Subscription, Billing, Load limits, Global Upgrade modal, Account Statement (if required) |
 | **D — Collaboration & engagement** | Retention | Notifications, Chat, Refer, Support/Feedback, Tutorials, Onboarding Tour |
-| **E — Polish** | Parity closeout | Dashboard live data, Edit Shipment, CMS legal pages, Public Track strategy, Language/timezone sync |
+| **E — Polish** | Parity closeout | Dashboard live data, CMS legal pages, Public Track strategy, Language/timezone sync; PDS-958 detail red highlights |
 
 ---
 
@@ -933,6 +933,7 @@ Base: `/api/shipper/v1`
 | ERP Orders parity | `shipper/docs/ERP_ORDERS_PARITY.md` |
 | Search Trucks map parity | `shipper/docs/SEARCH_TRUCKS_MAP_PARITY.md` |
 | Create Shipment QA | `shipper/docs/PDS-917-Steps-1-2-QA.md`, `PDS-917-Step-3-QA.md` |
+| Edit Load QA (PDS-959) | `shipper/docs/PDS-959-QA-CHECKLIST.md` |
 | Laravel web routes | `MV_Backend_API/routes/shipper.php` |
 | React API routes | `MV_Backend_API/routes/api/shipper.php` |
 | React router | `shipper/src/router.tsx` |

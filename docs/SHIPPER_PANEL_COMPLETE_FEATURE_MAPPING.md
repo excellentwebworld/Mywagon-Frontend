@@ -86,9 +86,9 @@ React today: auth + 2FA + some module `403` banners + Settings KYC. **Post-login
 | Bucket | Dev status |
 |---|---|
 | **Complete** | Search Trucks · Address Book · Product Master · Partners · ERP Orders · Tutorials · Change Password · Support & Feedback (PDS-950) · **Price Lists (PDS-935)** · **Profile Management (PDS-937)** · **CMS / Legal (PDS-937)** |
-| **Substantially built** | Settings hub (PDS-937) · Create Shipment wizard · Manage Shipments · Login + 2FA |
+| **Substantially built** | Settings hub (PDS-937) · Create Shipment wizard · Manage Shipments · Login + 2FA · Published Edit Load (PDS-959) |
 | **Partial / in progress** | Shipment Detail · Dashboard · Notifications (**listing pending**; settings done) · KYC (Settings only) |
-| **Not started** | Published Edit Shipment · Billing · Subscription · Chat · Post-login gates · Signup · Onboarding · Profile Information · Refer · Account Statement |
+| **Not started** | Billing · Subscription · Chat · Post-login gates · Signup · Onboarding · Profile Information · Refer · Account Statement |
 
 **Rough dev progress:** ~60% of modules built or substantially complete · ~70% when counting partial UI+API work on in-progress modules.
 
@@ -103,7 +103,7 @@ React today: auth + 2FA + some module `403` banners + Settings KYC. **Post-login
 
 | Phase | Dev work still pending |
 |---|---|
-| **A — Core freight** | Published **Edit Shipment** (UI + API); Shipment Detail — remove demo data, wire Edit/co-owner/tracking/logs/GPS/POD; Dashboard — live ShipmentBoard/Schedule/LiveMap; Create Shipment — **private load limit modal** |
+| **A — Core freight** | Shipment Detail — remove demo data, wire co-owner/tracking/logs/GPS/POD; Dashboard — live ShipmentBoard/Schedule/LiveMap; Create Shipment — **private load limit modal** |
 | **B — Account & access** | Past-due invoice SPA gate + API; post-login redirect middleware (KYC, address, info-form); React **Signup/register** flow + API; Profile Information questionnaire (UI + API); Onboarding tour (UI + API); Settings — Subscription/Billing sections (currently placeholder) |
 | **C — Monetization** | Subscription page (UI + API); Billing page (UI + API); Account Statement (if product confirms) |
 | **D — Collaboration** | Notifications **listing** (UI + API; settings done); **Chat** messenger (UI + API); Refer MYVAGON modal (UI + API) |
@@ -129,10 +129,10 @@ React today: auth + 2FA + some module `403` banners + Settings KYC. **Post-login
 | 3 | Onboarding Tour | ✅ | ❌ | |
 | 4 | Profile Information (questionnaire) | ✅ | ❌ | Blocking modal |
 | 5 | Dashboard | ✅ | 🚧 | KPI strip live via `/shipments/summary`; ShipmentBoard/Schedule/LiveMap mostly mock |
-| 6 | Manage Shipments | ✅ | ✅ | Strong list/actions; published edit missing; some Laravel nuances TBD |
-| 7 | Shipment Detail | ✅ | 🚧 | Read API; `detailViewModel` demo fallbacks; Edit toast-only; co-owner/logs/GPS/POD gaps |
+| 6 | Manage Shipments | ✅ | ✅ | Strong list/actions; published Edit uses create wizard `?editId=` (PDS-959) |
+| 7 | Shipment Detail | ✅ | 🚧 | Read API; `detailViewModel` demo fallbacks; Edit → `?editId=` / `?id=`; co-owner/logs/GPS/POD gaps |
 | 8 | Create Shipment | ✅ | ✅ | Wizard + drafts API; load limits + plan upgrade gates in wizard flow; private load limit modal still to build |
-| 9 | Edit Shipment (published) | ✅ | ❌ | Draft resume only; published-edit UI + API not started |
+| 9 | Edit Shipment (published) | ✅ | ✅ | SPA edit via `/shipments/create/step/*?editId=` + `/api/shipper/v1/edit-shipment/{id}` (PDS-959 Phases 0–4); QA: `PDS-959-QA-CHECKLIST.md` |
 | 10 | Search Available Trucks | ✅ | ✅ | Redesigned map/list |
 | 11 | Address Book | ✅ | ✅ | Redesigned 3-pane |
 | 12 | Product Master | ✅ | ✅ | + AI import |
@@ -621,12 +621,12 @@ Each module below uses the same checklist fields.
 
 | Field | Detail |
 |---|---|
-| **Overview** | Edit existing load; lock in-progress stops; old vs new itinerary. |
-| **Laravel** | Full update table; locked stops; inconvenience warning; Confirm Updated Itinerary. |
-| **React** | Draft resume via `?id=` on create wizard; Detail Edit often toast-only; **no published-load edit parity**. |
-| **API** | Draft PUT steps only — **no published-edit SPA API** (Aug 2026). |
-| **Status** | Laravel ✅ · React 🚧 · API ❌ |
-| **Comparison** | Critical ops gap for production cutover. Detail Edit button is toast-only. |
+| **Overview** | Edit existing load; lock in-progress stops; old vs new itinerary compare; apply pending shadow. |
+| **Laravel** | Full update table; locked stops; inconvenience warning; Confirm Updated Itinerary (legacy Blade). |
+| **React** | Published edit reuses Create wizard with `?editId=`; draft resume stays `?id=`. Step 2 Current/Updated toggle + red diffs; Cancel / Keep Old; scheduled inconvenience modal (PDS-959). |
+| **API** | Sanctum `/api/shipper/v1/edit-shipment/{id}` — GET, PUT step-1/2/3, preview-diff, apply, cancel. See [`EDIT_SHIPMENT_API_CONTRACT.md`](./EDIT_SHIPMENT_API_CONTRACT.md). |
+| **Status** | Laravel ✅ · React ✅ · API ✅ |
+| **Comparison** | Phases 0–4 shipped; Phase 5 QA checklist [`PDS-959-QA-CHECKLIST.md`](./PDS-959-QA-CHECKLIST.md). Detail field-level red highlights remain PDS-958. |
 
 ---
 
@@ -937,7 +937,7 @@ These are **not** Laravel parity debt — they are intentional React/API advance
 1. Post-login enforcement: KYC / company address / info-form redirects  
 2. Subscription + Billing SPA (or permanent Laravel embed decision)  
 3. Shipment Detail — remove demo fallbacks; wire critical actions  
-4. Published Edit Shipment (UI + API)  
+4. ~~Published Edit Shipment (UI + API)~~ — PDS-959 Phases 0–4 done; QA: `PDS-959-QA-CHECKLIST.md`  
 5. Create Shipment — private load limit modal (within wizard flow)  
 6. Notifications listing (settings done)  
 7. Chat (if required for parity at cutover)  
@@ -966,6 +966,7 @@ These are **not** Laravel parity debt — they are intentional React/API advance
 | ERP Orders parity | `shipper/docs/ERP_ORDERS_PARITY.md` |
 | Search Trucks map parity | `shipper/docs/SEARCH_TRUCKS_MAP_PARITY.md` |
 | Create Shipment QA | `shipper/docs/PDS-917-Steps-1-2-QA.md`, `PDS-917-Step-3-QA.md` |
+| Edit Load QA (PDS-959) | `shipper/docs/PDS-959-QA-CHECKLIST.md` |
 | Price Lists (PDS-935) | `shipper/docs/PDS-935-Lane-Prices-UI-Revamp.md` |
 | Support QA (PDS-950) | `shipper/docs/PDS-950-qa-checklist.md`, `MV_Backend_API/miro/Shipper/SupportAndFeedback/PDS-950-PHASE8-RELEASE-SIGNOFF.md` |
 | Miro Laravel specs | `MV_Backend_API/miro/Shipper/*/MYVAGON-Shipper-*.md` |
