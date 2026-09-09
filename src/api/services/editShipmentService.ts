@@ -1,5 +1,6 @@
 import { apiGet, apiPost, apiPut } from '../client';
 import type {
+  ApiEditPreviewDiff,
   ApiEditShipment,
   ApplyEditShipmentResponse,
   SaveStepOnePayload,
@@ -32,6 +33,11 @@ export const editShipmentService = {
 
   async applyEdit(id: number | string): Promise<ApplyEditShipmentResponse> {
     const res = await apiPost<ApplyEditShipmentResponse>(`${base(id)}/apply`);
+    return res.data;
+  },
+
+  async previewDiff(id: number | string): Promise<ApiEditPreviewDiff> {
+    const res = await apiPost<ApiEditPreviewDiff>(`${base(id)}/preview-diff`);
     return res.data;
   },
 

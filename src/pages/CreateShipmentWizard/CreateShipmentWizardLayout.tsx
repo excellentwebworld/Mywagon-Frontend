@@ -54,7 +54,11 @@ function stepTitle(step: number, t: (key: string) => string, isEditMode: boolean
 }
 
 function stepSubtitle(step: number, t: (key: string) => string, isEditMode: boolean) {
-  if (step === 2) return t('step2Sub') || 'Review your stops and itinerary before proceeding.';
+  if (step === 2) {
+    return isEditMode
+      ? t('editStep2Sub') || 'Compare the current load with your updates, then confirm the itinerary.'
+      : t('step2Sub') || 'Review your stops and itinerary before proceeding.';
+  }
   if (step === 3) return t('vehiclePricingSub') || 'Choose vehicle type, target price, and tracking options.';
   return isEditMode
     ? t('editLoadSub') || 'Update stops and cargo details'
@@ -88,6 +92,11 @@ export const CreateShipmentWizardLayout: React.FC = () => {
     isEditMode,
     lockedStopIds,
     editBlocked,
+    editDiff,
+    editDiffLoading,
+    compareView,
+    setCompareView,
+    refreshEditDiff,
     goToStep,
     saveStep1,
     saveStep2,
@@ -161,6 +170,11 @@ export const CreateShipmentWizardLayout: React.FC = () => {
       isEditMode,
       lockedStopIds,
       editBlocked,
+      editDiff,
+      editDiffLoading,
+      compareView,
+      setCompareView,
+      refreshEditDiff,
       goToStep,
       saveStep1,
       saveStep2,
@@ -175,6 +189,11 @@ export const CreateShipmentWizardLayout: React.FC = () => {
       isEditMode,
       lockedStopIds,
       editBlocked,
+      editDiff,
+      editDiffLoading,
+      compareView,
+      setCompareView,
+      refreshEditDiff,
       goToStep,
       saveStep1,
       saveStep2,

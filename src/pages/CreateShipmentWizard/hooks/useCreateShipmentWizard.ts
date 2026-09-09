@@ -3,7 +3,7 @@ import { useMatch, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { createShipmentService, editShipmentService, erpOrdersService, shipmentsService, ApiError, SAT_PREFILL_KEY } from '../../../api';
 import type { ApiProceedResult } from '../../../api/types/availabilities';
-import type { ApiEditShipment } from '../../../api/types/createShipment';
+import type { ApiEditPreviewDiff, ApiEditShipment } from '../../../api/types/createShipment';
 import {
   draftToFormValues,
   formValuesToStepOnePayload,
@@ -16,6 +16,7 @@ import { hasVehicleSelection } from '../../../components/CreateShipmentWizard/ve
 import { useApp, type LocationItem } from '../../../context/AppContext';
 import { useVehicleTypes } from '../../../hooks/useVehicleTypes';
 import type { ErpOrder } from '../../ErpOrders/types';
+import type { CompareView } from '../editDiff';
 import {
   buildVehicleSpecsFromPrefill,
   resolveStopLocationFromCoords,
@@ -177,6 +178,9 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   const [formikEpoch, setFormikEpoch] = useState(0);
   const [lockedStopIds, setLockedStopIds] = useState<number[]>([]);
   const [editBlocked, setEditBlocked] = useState(false);
+  const [editDiff, setEditDiff] = useState<ApiEditPreviewDiff | null>(null);
+  const [editDiffLoading, setEditDiffLoading] = useState(false);
+  const [compareView, setCompareView] = useState<CompareView>('updated');
   const editSessionActiveRef = useRef(false);
 
   const defaultValues = useMemo(() => buildDefaultWizardValues(), []);
@@ -634,6 +638,35 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     }
   }, [isEditMode, shipmentId]);
 
+  const refreshEditDiff = useCallback(async () => {
+    if (!isEditMode || !shipmentId) {
+      setEditDiff(null);
+      return null;
+    }
+    setEditDiffLoading(true);
+    try {
+      const diff = await editShipmentService.previewDiff(shipmentId);
+      setEditDiff(diff);
+      return diff;
+    } catch (err: unknown) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : t('editDiffFailed') || 'Failed to load load comparison.';
+      showToast(message, 'error');
+      return null;
+    } finally {
+      setEditDiffLoading(false);
+    }
+  }, [isEditMode, shipmentId, showToast, t]);
+
+  useEffect(() => {
+    if (!isEditMode) {
+      setEditDiff(null);
+      setCompareView('updated');
+    }
+  }, [isEditMode]);
+
   const saveStep1 = useCallback(
     async (values: WizardFormValues, mode: 'partial' | 'complete') => {
       setIsSaving(true);
@@ -644,6 +677,14 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
           ? await editShipmentService.saveEditStepOne(id, payload)
           : await createShipmentService.saveStepOne(id, payload);
         applyDraftSnapshot(draft, values);
+        if (isEditMode) {
+          try {
+            const diff = await editShipmentService.previewDiff(id);
+            setEditDiff(diff);
+          } catch {
+            // Diff is best-effort after save; Step 2 can retry via refreshEditDiff.
+          }
+        }
         if (mode === 'complete') {
           syncUrl(2, draft.id);
           setStepNavigationError(null);
@@ -709,6 +750,14 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
           ? await editShipmentService.saveEditStepTwo(id, payload)
           : await createShipmentService.saveStepTwo(id, payload);
         applyDraftSnapshot(draft, valuesWithRoute);
+        if (isEditMode && mode === 'partial') {
+          try {
+            const diff = await editShipmentService.previewDiff(id);
+            setEditDiff(diff);
+          } catch {
+            // Best-effort; Step 2 can retry.
+          }
+        }
         if (mode === 'complete') {
           syncUrl(3, draft.id);
           setStepNavigationError(null);
@@ -913,6 +962,11 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     isEditMode,
     lockedStopIds,
     editBlocked,
+    editDiff,
+    editDiffLoading,
+    compareView,
+    setCompareView,
+    refreshEditDiff,
     goToStep,
     saveStep1,
     saveStep2,

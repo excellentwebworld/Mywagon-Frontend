@@ -32,6 +32,12 @@ import { computeItineraryFingerprint } from './itineraryFingerprint';
 import { hasVehicleSelection } from './vehicleTypes';
 import { scrollToStep2Validation } from './validation';
 import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
+import type { ApiEditPreviewDiff, ApiStop } from '../../api/types/createShipment';
+import {
+  buildEditDiffHighlights,
+  oldItineraryToDisplayStops,
+  type CompareView,
+} from '../../pages/CreateShipmentWizard/editDiff';
 
 const T = {
   sf: 'var(--surface)',
@@ -45,11 +51,18 @@ const T = {
   al: 'var(--accent-light)',
 };
 
+const DIFF_RED = '#DC2626';
+
 interface Step2ItineraryProps {
   onBackStep: () => void;
   onSaveDraft: () => Promise<void>;
   onContinue: (routeSummary: { totalDistKm: number; totalDriveMin: number }) => Promise<void>;
   isSaving?: boolean;
+  isEditMode?: boolean;
+  compareView?: CompareView;
+  onCompareViewChange?: (view: CompareView) => void;
+  editDiff?: ApiEditPreviewDiff | null;
+  editDiffLoading?: boolean;
 }
 
 export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
@@ -57,25 +70,53 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
   onSaveDraft,
   onContinue,
   isSaving = false,
+  isEditMode = false,
+  compareView = 'updated',
+  onCompareViewChange,
+  editDiff = null,
+  editDiffLoading = false,
 }) => {
   const { t } = useTranslation();
-  const { locations } = useApp();
+  const { locations, skus } = useApp();
   const { values, setFieldValue } = useFormikContext<WizardFormValues>();
-  const stops = values.stops || [];
+  const wizardStops = values.stops || [];
+
+  const viewingCurrent = isEditMode && compareView === 'current';
+  const showDiffHighlights = isEditMode && compareView === 'updated' && Boolean(editDiff?.has_changes);
 
   const [expandedStop, setExpandedStop] = useState<number | null>(null);
   const [activeStopIndex, setActiveStopIndex] = useState<number | null>(null);
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
   const [showVehicleRequired, setShowVehicleRequired] = useState(false);
 
-  const { enrichedStops, totals, runningWeights } = useItineraryStats(stops, locations);
+  const currentStops = useMemo((): ApiStop[] => {
+    const rows = editDiff?.old_itinerary || [];
+    return oldItineraryToDisplayStops(rows).map((stop) => ({
+      ...stop,
+      lines: (stop.lines || []).map((line) => {
+        const sku = skus.find((s) => String(s.id) === String(line.productId));
+        return {
+          ...line,
+          productName: sku?.name || line.productName || (line.productId ? `#${line.productId}` : ''),
+        };
+      }),
+    }));
+  }, [editDiff?.old_itinerary, skus]);
+
+  const displayStops = viewingCurrent ? currentStops : wizardStops;
+  const highlights = useMemo(
+    () => (showDiffHighlights ? buildEditDiffHighlights(wizardStops, editDiff?.difference) : { stops: {}, lines: {} }),
+    [editDiff?.difference, showDiffHighlights, wizardStops]
+  );
+
+  const { enrichedStops, totals, runningWeights } = useItineraryStats(displayStops, locations);
   const route = useRouteLegs(enrichedStops);
-  const fitCargo = useMemo(() => computeFitCargoTotals(stops), [stops]);
+  const fitCargo = useMemo(() => computeFitCargoTotals(wizardStops), [wizardStops]);
 
-
-  const missingLocations = enrichedStops.some((s) => !s.locationId);
+  const missingLocations = !viewingCurrent && enrichedStops.some((s) => !s.locationId);
   const vehicleSelected = hasVehicleSelection(values.vehicleSpecs);
   const canContinue =
+    !viewingCurrent &&
     !missingLocations &&
     vehicleSelected &&
     values.vehicleSelectionConfirmed &&
@@ -86,6 +127,11 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
     if (vehicleSelected) setShowVehicleRequired(false);
   }, [vehicleSelected]);
 
+  useEffect(() => {
+    setExpandedStop(null);
+    setActiveStopIndex(null);
+  }, [compareView]);
+
   const selectStop = (index: number) => {
     setActiveStopIndex(index);
     window.requestAnimationFrame(() => {
@@ -95,8 +141,13 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
     });
   };
 
+  const ensureUpdatedView = () => {
+    if (viewingCurrent) onCompareViewChange?.('updated');
+  };
+
   const handleConfirmAndContinue = async () => {
     if (isSaving) return;
+    ensureUpdatedView();
 
     if (missingLocations) {
       scrollToStep2Validation('step2-missing-locations');
@@ -136,14 +187,15 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
 
   const handleSaveDraft = async () => {
     if (isSaving) return;
+    ensureUpdatedView();
     await onSaveDraft();
   };
 
   const confirmItinerary = () => {
-    const snapshot = computeItineraryFingerprint(stops);
+    ensureUpdatedView();
+    const snapshot = computeItineraryFingerprint(wizardStops);
     setFieldValue('itineraryConfirmSnapshot', snapshot);
     setFieldValue('itineraryConfirmed', true);
-    // Wait for VehicleSelector to mount, then scroll into view
     window.setTimeout(() => {
       scrollToStep2Validation('step2-vehicle-selector');
     }, 80);
@@ -152,7 +204,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
   useEffect(() => {
     if (!values.itineraryConfirmed) return;
 
-    const currentFingerprint = computeItineraryFingerprint(stops);
+    const currentFingerprint = computeItineraryFingerprint(wizardStops);
     const snapshot = values.itineraryConfirmSnapshot;
 
     if (!snapshot) {
@@ -164,12 +216,62 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
       setFieldValue('itineraryConfirmed', false);
       setFieldValue('itineraryConfirmSnapshot', '');
     }
-  }, [stops, values.itineraryConfirmed, values.itineraryConfirmSnapshot, setFieldValue]);
+  }, [wizardStops, values.itineraryConfirmed, values.itineraryConfirmSnapshot, setFieldValue]);
 
   const showCustomerStats = totals.uniqueCustomers.size > 0;
 
+  const diffColor = (changed?: boolean, fallback: string = T.t1) =>
+    changed ? DIFF_RED : fallback;
+
   return (
     <div className="animate-fade-in pb-24">
+      {isEditMode && (
+        <div
+          className="mb-4 flex flex-wrap items-center justify-between gap-3"
+          role="tablist"
+          aria-label={t('editCompareToggle') || 'Compare current and updated load'}
+        >
+          <div
+            className="inline-flex rounded-lg p-0.5"
+            style={{ background: T.sa, border: `1px solid ${T.bd}` }}
+          >
+            {(
+              [
+                { id: 'current' as const, label: t('currentLoad') || 'Current Load' },
+                { id: 'updated' as const, label: t('updatedLoad') || 'Updated Load' },
+              ] as const
+            ).map((tab) => {
+              const active = compareView === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  className="px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer border-none"
+                  style={{
+                    background: active ? T.sf : 'transparent',
+                    color: active ? T.ac : T.t2,
+                    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                    fontFamily: 'inherit',
+                  }}
+                  onClick={() => onCompareViewChange?.(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="text-[11px]" style={{ color: T.t3 }}>
+            {editDiffLoading
+              ? t('editDiffLoading') || 'Loading comparison…'
+              : editDiff?.has_changes
+                ? t('editDiffHasChanges') || 'Changed fields are highlighted in red on Updated Load.'
+                : t('editDiffNoChanges') || 'No itinerary changes detected.'}
+          </div>
+        </div>
+      )}
+
       {missingLocations && (
         <div
           className="wizard-validation-banner mb-4"
@@ -183,15 +285,19 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
         </div>
       )}
 
-      {showVehicleRequired && !vehicleSelected && !missingLocations && values.itineraryConfirmed && (
-        <div
-          className="wizard-validation-banner mb-4"
-          role="alert"
-          data-validation-anchor="step2-vehicle-required"
-        >
-          {t('step2SelectVehicleRequired')}
-        </div>
-      )}
+      {showVehicleRequired &&
+        !vehicleSelected &&
+        !missingLocations &&
+        values.itineraryConfirmed &&
+        !viewingCurrent && (
+          <div
+            className="wizard-validation-banner mb-4"
+            role="alert"
+            data-validation-anchor="step2-vehicle-required"
+          >
+            {t('step2SelectVehicleRequired')}
+          </div>
+        )}
 
       <div className="wizard-grid mt-4">
         <div className="min-w-0">
@@ -203,24 +309,40 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
               <div className="flex items-center gap-2">
                 <Clock size={16} style={{ color: T.t2 }} />
                 <span className="text-sm font-semibold" style={{ color: T.t1 }}>
-                  {t('step2RouteStops')}
+                  {viewingCurrent
+                    ? t('currentLoadStops') || 'Current load stops'
+                    : t('step2RouteStops')}
                 </span>
               </div>
-              <button
-                type="button"
-                className="text-xs font-semibold cursor-pointer border-none px-2.5 py-1 rounded"
-                style={{ background: T.al, color: T.ac, fontFamily: 'inherit' }}
-                onClick={onBackStep}
-              >
-                {t('step2EditItinerary')}
-              </button>
+              {!viewingCurrent && (
+                <button
+                  type="button"
+                  className="text-xs font-semibold cursor-pointer border-none px-2.5 py-1 rounded"
+                  style={{ background: T.al, color: T.ac, fontFamily: 'inherit' }}
+                  onClick={onBackStep}
+                >
+                  {t('step2EditItinerary')}
+                </button>
+              )}
             </div>
 
             <div className="px-4 py-3">
+              {enrichedStops.length === 0 && viewingCurrent ? (
+                <div className="text-xs py-6 text-center" style={{ color: T.t3 }}>
+                  {editDiffLoading
+                    ? t('editDiffLoading') || 'Loading comparison…'
+                    : t('editDiffNoCurrent') || 'No current itinerary available.'}
+                </div>
+              ) : null}
               {enrichedStops.map((stop, si) => {
                 const isExp = expandedStop === si;
                 const rw = runningWeights[si] || 0;
                 const pin = pinColors(stop.hasPickup, stop.hasDropoff);
+                const stopHl = showDiffHighlights ? highlights.stops[si] : undefined;
+                const scheduleChanged = Boolean(
+                  stopHl?.date || stopHl?.time || stopHl?.date_to || stopHl?.time_to
+                );
+                const locationChanged = Boolean(stopHl?.address_id);
 
                 return (
                   <div
@@ -229,7 +351,6 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                     className={`wizard-stop-item relative${activeStopIndex === si ? ' is-active' : ''}`}
                     onClick={() => selectStop(si)}
                   >
-                    {/* Connector to next stop — grows/shrinks with cargo expand/collapse */}
                     {si < enrichedStops.length - 1 && (
                       <div
                         aria-hidden
@@ -288,15 +409,24 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                             </span>
                           )}
                           {formatAppointmentLabel(stop) && (
-                            <span className="text-[10px]" style={{ color: T.t3 }}>
+                            <span
+                              className="text-[10px]"
+                              style={{ color: diffColor(scheduleChanged, T.t3) }}
+                            >
                               📅 {formatAppointmentLabel(stop)}
                             </span>
                           )}
                         </div>
-                        <div className="text-sm font-bold" style={{ color: T.t1 }}>
+                        <div
+                          className="text-sm font-bold"
+                          style={{ color: diffColor(locationChanged, T.t1) }}
+                        >
                           {stop.resolvedName}
                         </div>
-                        <div className="text-[11px] mb-1" style={{ color: T.t3 }}>
+                        <div
+                          className="text-[11px] mb-1"
+                          style={{ color: diffColor(locationChanged, T.t3) }}
+                        >
                           {stop.resolvedAddress || stop.resolvedCity}
                         </div>
                         {stop.customers.length > 0 && (
@@ -380,44 +510,65 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                                 🏪 {customerGroup.name}
                               </div>
                             )}
-                            {customerGroup.orders.map((orderGroup, oi) => (
-                              <div key={oi} className="mb-2 last:mb-0">
-                                {(orderGroup.orderRef || orderGroup.orderId) && (
-                                  <div className="text-[10px] font-mono mb-1" style={{ color: T.t2 }}>
-                                    {orderGroup.orderRef || orderGroup.orderId}
-                                  </div>
-                                )}
-                                {orderGroup.lines.map((l, li) => (
-                                  <div
-                                    key={li}
-                                    className="flex items-center gap-3 py-1.5 text-xs flex-wrap"
-                                    style={{
-                                      borderBottom:
-                                        li < orderGroup.lines.length - 1 ? `0.5px solid ${T.bd}` : 'none',
-                                    }}
-                                  >
-                                    <span
-                                      className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                                      style={actionChipStyle(l.action ?? 'pickup')}
+                            {customerGroup.orders.map((orderGroup, oi) => {
+                              const orderChanged = orderGroup.lines.some((l) => {
+                                const lineIndex = (stop.lines || []).indexOf(l);
+                                return Boolean(highlights.lines[`${si}:${lineIndex}`]?.order_id);
+                              });
+                              return (
+                                <div key={oi} className="mb-2 last:mb-0">
+                                  {(orderGroup.orderRef || orderGroup.orderId) && (
+                                    <div
+                                      className="text-[10px] font-mono mb-1"
+                                      style={{ color: diffColor(orderChanged, T.t2) }}
                                     >
-                                      {l.action === 'pickup' ? '↑' : '↓'}
-                                    </span>
-                                    <span className="font-medium flex-1 min-w-[80px]" style={{ color: T.t1 }}>
-                                      {l.productName || '—'}
-                                    </span>
-                                    <span style={{ color: T.t2 }}>
-                                      {formatQtyWithUnit(
-                                        parseFloat(String(l.qty ?? '')) || 0,
-                                        normalizeQtyUnit(l.unit) || l.unit,
-                                      )}
-                                    </span>
-                                    <span style={{ color: T.t3 }}>
-                                      {formatWeightDisplay(l.weight, l.wtUnit)}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            ))}
+                                      {orderGroup.orderRef || orderGroup.orderId}
+                                    </div>
+                                  )}
+                                  {orderGroup.lines.map((l, li) => {
+                                    const lineIndex = (stop.lines || []).indexOf(l);
+                                    const lineHl = highlights.lines[`${si}:${lineIndex}`];
+                                    return (
+                                      <div
+                                        key={li}
+                                        className="flex items-center gap-3 py-1.5 text-xs flex-wrap"
+                                        style={{
+                                          borderBottom:
+                                            li < orderGroup.lines.length - 1
+                                              ? `0.5px solid ${T.bd}`
+                                              : 'none',
+                                        }}
+                                      >
+                                        <span
+                                          className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                                          style={{
+                                            ...actionChipStyle(l.action ?? 'pickup'),
+                                            ...(lineHl?.type ? { outline: `1px solid ${DIFF_RED}` } : {}),
+                                          }}
+                                        >
+                                          {l.action === 'pickup' ? '↑' : '↓'}
+                                        </span>
+                                        <span
+                                          className="font-medium flex-1 min-w-[80px]"
+                                          style={{ color: diffColor(lineHl?.product_id, T.t1) }}
+                                        >
+                                          {l.productName || '—'}
+                                        </span>
+                                        <span style={{ color: diffColor(lineHl?.qty, T.t2) }}>
+                                          {formatQtyWithUnit(
+                                            parseFloat(String(l.qty ?? '')) || 0,
+                                            normalizeQtyUnit(l.unit) || l.unit
+                                          )}
+                                        </span>
+                                        <span style={{ color: diffColor(lineHl?.weight, T.t3) }}>
+                                          {formatWeightDisplay(l.weight, l.wtUnit)}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
                           </div>
                         ))}
                       </div>
@@ -427,48 +578,58 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
               })}
             </div>
 
-            <div
-              className="flex items-center justify-between px-4 py-2.5 flex-wrap gap-2"
-              style={{ borderTop: `1px solid ${T.bd}`, background: T.sa }}
-              data-validation-anchor="step2-itinerary-confirm"
-            >
-              <button
-                type="button"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
-                style={{
-                  border: `1px solid ${T.bd}`,
-                  background: T.sf,
-                  color: T.t2,
-                  fontFamily: 'inherit',
-                }}
-                onClick={onBackStep}
+            {!viewingCurrent && (
+              <div
+                className="flex items-center justify-between px-4 py-2.5 flex-wrap gap-2"
+                style={{ borderTop: `1px solid ${T.bd}`, background: T.sa }}
+                data-validation-anchor="step2-itinerary-confirm"
               >
-                {t('step2GoBackEdit')}
-              </button>
-              {!values.itineraryConfirmed ? (
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer text-white border-none"
-                  style={{ background: '#059669', fontFamily: 'inherit' }}
-                  onClick={confirmItinerary}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
+                  style={{
+                    border: `1px solid ${T.bd}`,
+                    background: T.sf,
+                    color: T.t2,
+                    fontFamily: 'inherit',
+                  }}
+                  onClick={onBackStep}
                 >
-                  <Check size={13} /> {t('step2ConfirmItinerary')}
+                  {t('step2GoBackEdit')}
                 </button>
-              ) : (
-                <span
-                  className="inline-flex items-center gap-1.5 text-xs font-bold"
-                  style={{ color: '#059669' }}
-                >
-                  <Check size={14} /> {t('step2ItineraryConfirmed')}
-                </span>
-              )}
-            </div>
+                {!values.itineraryConfirmed ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer text-white border-none"
+                    style={{ background: '#059669', fontFamily: 'inherit' }}
+                    onClick={confirmItinerary}
+                  >
+                    <Check size={13} /> {t('step2ConfirmItinerary')}
+                  </button>
+                ) : (
+                  <span
+                    className="inline-flex items-center gap-1.5 text-xs font-bold"
+                    style={{ color: '#059669' }}
+                  >
+                    <Check size={14} /> {t('step2ItineraryConfirmed')}
+                  </span>
+                )}
+              </div>
+            )}
+            {viewingCurrent && (
+              <div
+                className="px-4 py-2.5 text-[11px]"
+                style={{ borderTop: `1px solid ${T.bd}`, background: T.sa, color: T.t3 }}
+              >
+                {t('editCompareCurrentHint') ||
+                  'Read-only view of the published load. Switch to Updated Load to confirm changes.'}
+              </div>
+            )}
           </div>
 
-          {values.itineraryConfirmed && (
+          {!viewingCurrent && values.itineraryConfirmed && (
             <div data-validation-anchor="step2-vehicle-selector">
               <VehicleSelector totalWeightKg={fitCargo.totalWeightKg} />
-
             </div>
           )}
         </div>
@@ -522,7 +683,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                 {
                   label: t('step2TotalWeight'),
                   value: formatWeightKg(totals.totalWeightKg),
-                  sub: formatTripQtySummary(stops),
+                  sub: formatTripQtySummary(displayStops),
                 },
                 ...(showCustomerStats
                   ? [
@@ -555,14 +716,21 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
       >
         <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
           <Save size={14} />
-          {t('step2AutoSaveActive') || 'Draft saves when you continue or save draft.'}
+          {isEditMode
+            ? t('editStep2FooterHint') || 'Compare loads, confirm the updated itinerary, then continue.'
+            : t('step2AutoSaveActive') || 'Draft saves when you continue or save draft.'}
         </div>
 
         <div className="flex items-center gap-3">
           <button
             type="button"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer"
-            style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-secondary)', fontFamily: 'inherit' }}
+            style={{
+              border: '1px solid var(--border)',
+              background: 'var(--surface)',
+              color: 'var(--text-secondary)',
+              fontFamily: 'inherit',
+            }}
             onClick={onBackStep}
             disabled={isSaving}
           >
@@ -571,21 +739,29 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
           <button
             type="button"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer"
-            style={{ border: '1px solid var(--border)', background: 'var(--surface-alt)', color: 'var(--text-secondary)', fontFamily: 'inherit' }}
+            style={{
+              border: '1px solid var(--border)',
+              background: 'var(--surface-alt)',
+              color: 'var(--text-secondary)',
+              fontFamily: 'inherit',
+            }}
             onClick={handleSaveDraft}
-            disabled={isSaving}
+            disabled={isSaving || viewingCurrent}
           >
-            <Save size={14} /> {t('step2SaveDraft') || t('saveDraft') || 'Save Draft'}
+            <Save size={14} />
+            {isEditMode
+              ? t('editSaveChanges') || 'Save Changes'
+              : t('step2SaveDraft') || t('saveDraft') || 'Save Draft'}
           </button>
           <button
             type="button"
             className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold cursor-pointer text-white border-none"
             style={{
               background: canContinue ? 'var(--accent)' : 'var(--border-focus)',
-              cursor: isSaving ? 'not-allowed' : 'pointer',
+              cursor: isSaving || viewingCurrent ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',
             }}
-            disabled={isSaving}
+            disabled={isSaving || viewingCurrent}
             onClick={handleConfirmAndContinue}
           >
             {isSaving ? t('saving') : t('step2ConfirmAndContinue') || t('step2Continue')}

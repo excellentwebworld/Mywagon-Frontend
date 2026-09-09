@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useFormikContext } from 'formik';
 import { useOutletContext } from 'react-router-dom';
 import { Step2Itinerary } from '../../../components/CreateShipmentWizard/Step2Itinerary';
@@ -7,13 +7,30 @@ import type { WizardOutletContext } from '../wizardOutletContext';
 
 export const CreateShipmentStep2Page: React.FC = () => {
   const { values, setFieldValue } = useFormikContext<WizardFormValues>();
-  const { isSaving, goToStep, saveStep2, resetItineraryConfirmationRef } =
-    useOutletContext<WizardOutletContext>();
+  const {
+    isSaving,
+    goToStep,
+    saveStep2,
+    resetItineraryConfirmationRef,
+    isEditMode,
+    editDiff,
+    editDiffLoading,
+    compareView,
+    setCompareView,
+    refreshEditDiff,
+  } = useOutletContext<WizardOutletContext>();
+
+  useEffect(() => {
+    if (!isEditMode) return;
+    if (editDiff || editDiffLoading) return;
+    void refreshEditDiff();
+  }, [editDiff, editDiffLoading, isEditMode, refreshEditDiff]);
 
   return (
     <Step2Itinerary
       onBackStep={() => {
         resetItineraryConfirmationRef.current?.();
+        setCompareView('updated');
         goToStep(1);
       }}
       onSaveDraft={async () => {
@@ -31,6 +48,7 @@ export const CreateShipmentStep2Page: React.FC = () => {
       }}
       onContinue={async (routeSummary) => {
         setFieldValue('routeSummary', routeSummary);
+        setCompareView('updated');
         await saveStep2(
           {
             ...values,
@@ -45,6 +63,11 @@ export const CreateShipmentStep2Page: React.FC = () => {
         );
       }}
       isSaving={isSaving}
+      isEditMode={isEditMode}
+      compareView={compareView}
+      onCompareViewChange={setCompareView}
+      editDiff={editDiff}
+      editDiffLoading={editDiffLoading}
     />
   );
 };

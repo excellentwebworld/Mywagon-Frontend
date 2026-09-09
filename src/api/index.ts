@@ -32,4 +32,14 @@ export type {
   ErpOrderStatus,
 } from './types/erpOrders';
 export type { ApiPriceLane, ApiPriceLanePricingRow, ApiPriceLaneStop, StorePriceLanePayload, PriceLaneMetric } from './types/priceLists';
-export type { ApiDraftShipment, ApiEditShipment, ApiStop, ApiCargoLine, SaveStepOnePayload, SaveStepOneMode } from './types/createShipment';
+export type {
+  ApiDraftShipment,
+  ApiEditShipment,
+  ApiEditPreviewDiff,
+  ApiComparableItineraryRow,
+  ApiItineraryDiffField,
+  ApiStop,
+  ApiCargoLine,
+  SaveStepOnePayload,
+  SaveStepOneMode,
+} from './types/createShipment';

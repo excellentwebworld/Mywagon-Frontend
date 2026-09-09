@@ -99,6 +99,33 @@ export interface ApplyEditShipmentResponse {
   has_updated_itinerary: boolean;
 }
 
+/** Flat itinerary row used by edit preview-diff (live vs wizard). */
+export interface ApiComparableItineraryRow {
+  shipment_location_id?: number | null;
+  order_id?: string;
+  product_id?: string;
+  address_id?: string;
+  qty?: string;
+  weight?: string;
+  date?: string;
+  time?: string;
+  date_to?: string;
+  time_to?: string;
+  type?: string;
+}
+
+export interface ApiItineraryDiffField {
+  old?: string | number | null;
+  new?: string | number | null;
+}
+
+export interface ApiEditPreviewDiff {
+  has_changes: boolean;
+  difference: Record<string, Record<string, ApiItineraryDiffField>>;
+  old_itinerary: ApiComparableItineraryRow[];
+  updated_itinerary: ApiComparableItineraryRow[];
+}
+
 export interface SaveStepOnePayload {
   mode: 'partial' | 'complete';
   customer_reference?: string;

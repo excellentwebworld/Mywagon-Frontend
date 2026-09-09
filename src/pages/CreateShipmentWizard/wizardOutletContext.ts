@@ -1,5 +1,7 @@
-import type { MutableRefObject } from 'react';
+import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
+import type { ApiEditPreviewDiff } from '../../api/types/createShipment';
 import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
+import type { CompareView } from './editDiff';
 
 export interface WizardOutletContext {
   shipmentId: number | null;
@@ -8,6 +10,11 @@ export interface WizardOutletContext {
   isEditMode: boolean;
   lockedStopIds: number[];
   editBlocked: boolean;
+  editDiff: ApiEditPreviewDiff | null;
+  editDiffLoading: boolean;
+  compareView: CompareView;
+  setCompareView: Dispatch<SetStateAction<CompareView>>;
+  refreshEditDiff: () => Promise<ApiEditPreviewDiff | null>;
   goToStep: (nextStep: number, options?: { requireId?: boolean }) => boolean;
   saveStep1: (values: WizardFormValues, mode: 'partial' | 'complete') => Promise<unknown>;
   saveStep2: (
