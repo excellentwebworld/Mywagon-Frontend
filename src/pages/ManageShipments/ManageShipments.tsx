@@ -38,6 +38,18 @@ export const ManageShipments: React.FC = () => {
         </div>
       )}
 
+      {/* KPI Cards Row (Full Width - Proper Grid Design, No Text Cutoff) */}
+      {m.loading ? (
+        <KpiStripSkeleton />
+      ) : (
+        <KpiStrip
+          counts={m.kpiCounts}
+          activeKpi={m.activeKpi}
+          onKpiClick={m.setActiveKpi}
+          t={m.t}
+        />
+      )}
+
       <ListToolbar
         searchQuery={m.searchQuery}
         onSearchChange={m.setSearchQuery}
@@ -47,18 +59,6 @@ export const ManageShipments: React.FC = () => {
         sortActive={Boolean(m.sortKey)}
         filterActive={m.filtersActive}
         exporting={m.exporting}
-        kpiSlot={
-          m.loading ? (
-            <KpiStripSkeleton />
-          ) : (
-            <KpiStrip
-              counts={m.kpiCounts}
-              activeKpi={m.activeKpi}
-              onKpiClick={m.setActiveKpi}
-              t={m.t}
-            />
-          )
-        }
         t={m.t}
       />
 

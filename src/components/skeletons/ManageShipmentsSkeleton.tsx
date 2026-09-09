@@ -10,14 +10,14 @@ const T = {
 const sk = { baseColor: T.sa, highlightColor: T.sf };
 
 export const KpiStripSkeleton: React.FC = () => (
-  <div className="mgmt-kpi-s mgmt-kpi-s--inline" aria-hidden="true">
+  <div className="mgmt-kpi-s" aria-hidden="true">
     {Array.from({ length: 6 }).map((_, idx) => (
-      <div key={idx} className="mgmt-kpi mgmt-kpi--compact" style={{ pointerEvents: 'none' }}>
+      <div key={idx} className="mgmt-kpi" style={{ pointerEvents: 'none' }}>
         <div className="mgmt-kpi-v">
-          <Skeleton width={28} height={18} {...sk} />
+          <Skeleton width={28} height={20} {...sk} />
         </div>
         <div className="mgmt-kpi-l">
-          <Skeleton width={72} height={10} {...sk} />
+          <Skeleton width="75%" height={11} {...sk} />
         </div>
       </div>
     ))}
