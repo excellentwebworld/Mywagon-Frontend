@@ -3,10 +3,33 @@ export const SIGNUP_QUERY_STORAGE_KEY = 'shipper_signup_query';
 
 export const SIGNUP_DRAFT_STORAGE_KEY = 'shipper_signup_draft';
 
-export type Phase1StepKey = 'nm' | 'ph' | 'phOtp' | 'em' | 'emOtp' | 'pw' | 'hold';
+export type RegisterStepKey =
+  | 'nm'
+  | 'ph'
+  | 'phOtp'
+  | 'em'
+  | 'emOtp'
+  | 'pw'
+  | 'co'
+  | 'ad'
+  | 'mk'
+  | 'hold';
 
-/** Active wizard steps (hold is post-Phase-1). */
-export const PHASE1_STEPS: Phase1StepKey[] = ['nm', 'ph', 'phOtp', 'em', 'emOtp', 'pw'];
+/** Active wizard steps (hold is post-Phase-2). */
+export const REGISTER_STEPS: RegisterStepKey[] = [
+  'nm',
+  'ph',
+  'phOtp',
+  'em',
+  'emOtp',
+  'pw',
+  'co',
+  'ad',
+  'mk',
+];
+
+/** @deprecated Use REGISTER_STEPS */
+export const PHASE1_STEPS = REGISTER_STEPS.slice(0, 6);
 
 export type SignupDraft = {
   first_name: string;
@@ -18,7 +41,6 @@ export type SignupDraft = {
   emailVerified: boolean;
   password: string;
   password_confirmation: string;
-  /** Phase 2 placeholders */
   company_name: string;
   street_address: string;
   address_line_2: string;
@@ -31,9 +53,22 @@ export type SignupDraft = {
   hear_about_us_shipper: string;
   hear_about_us_other_shipper: string;
   referral_code: string;
-  /** Last completed Phase 1 step index (0–5), or 6 for hold */
+  terms: boolean;
+  /** Step index into REGISTER_STEPS, or REGISTER_STEPS.length for hold */
   stepIndex: number;
 };
+
+export const HEAR_ABOUT_OPTIONS = [
+  'Facebook Ad',
+  'Instagram Ad',
+  'Linkedin Ad',
+  'Google Search',
+  'Email Marketing',
+  'Friend/Colleague Word of Mouth',
+  'Carrier Partner',
+  'Shipper Colleague',
+  'Other',
+] as const;
 
 export function createEmptyDraft(defaults?: Partial<SignupDraft>): SignupDraft {
   return {
@@ -58,6 +93,7 @@ export function createEmptyDraft(defaults?: Partial<SignupDraft>): SignupDraft {
     hear_about_us_shipper: '',
     hear_about_us_other_shipper: '',
     referral_code: '',
+    terms: false,
     stepIndex: 0,
     ...defaults,
   };
@@ -80,6 +116,28 @@ function referralFromStoredQuery(): string {
   }
 }
 
+/**
+ * Normalize step index from older Phase 1 drafts.
+ * Phase 1 hold was index 6 with only 6 steps — that now maps to `co` (also index 6).
+ */
+export function normalizeStepIndex(raw: number | undefined, draft: SignupDraft): number {
+  const maxHold = REGISTER_STEPS.length;
+  let index = typeof raw === 'number' && Number.isFinite(raw) ? raw : 0;
+  index = Math.min(Math.max(index, 0), maxHold);
+
+  const coIndex = REGISTER_STEPS.indexOf('co');
+  if (index >= coIndex) {
+    if (!draft.phoneVerified || !draft.emailVerified || !draft.password) {
+      if (!draft.password) return REGISTER_STEPS.indexOf('pw');
+      if (!draft.emailVerified) return REGISTER_STEPS.indexOf('em');
+      if (!draft.phoneVerified) return REGISTER_STEPS.indexOf('ph');
+      return REGISTER_STEPS.indexOf('pw');
+    }
+  }
+
+  return index;
+}
+
 export function loadSignupDraft(): SignupDraft {
   const referral = referralFromStoredQuery();
   try {
@@ -88,10 +146,13 @@ export function loadSignupDraft(): SignupDraft {
       return createEmptyDraft(referral ? { referral_code: referral } : undefined);
     }
     const parsed = JSON.parse(raw) as Partial<SignupDraft>;
-    return createEmptyDraft({
+    const draft = createEmptyDraft({
       ...parsed,
+      terms: Boolean(parsed.terms),
       referral_code: parsed.referral_code || referral || '',
     });
+    draft.stepIndex = normalizeStepIndex(parsed.stepIndex, draft);
+    return draft;
   } catch {
     return createEmptyDraft(referral ? { referral_code: referral } : undefined);
   }

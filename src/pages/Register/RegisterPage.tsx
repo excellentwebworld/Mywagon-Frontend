@@ -16,7 +16,10 @@ import { PhoneOtpStep } from './steps/PhoneOtpStep';
 import { EmailStep } from './steps/EmailStep';
 import { EmailOtpStep } from './steps/EmailOtpStep';
 import { PasswordStep } from './steps/PasswordStep';
-import { Phase1HoldStep } from './steps/Phase1HoldStep';
+import { CompanyStep } from './steps/CompanyStep';
+import { AddressStep } from './steps/AddressStep';
+import { MarketingTermsStep } from './steps/MarketingTermsStep';
+import { Phase2HoldStep } from './steps/Phase2HoldStep';
 
 export { SIGNUP_QUERY_STORAGE_KEY };
 
@@ -59,6 +62,9 @@ export const RegisterPage: React.FC = () => {
     registerStepEmail: 'Verify your email',
     registerStepEmailOtp: 'Enter the code',
     registerStepPassword: 'Secure your account',
+    registerStepCompany: 'Your company',
+    registerStepAddress: 'Company address',
+    registerStepMarketing: 'Almost done',
     registerStepHold: 'Almost there',
   };
 
@@ -136,8 +142,46 @@ export const RegisterPage: React.FC = () => {
             disabled={wizard.busy}
           />
         );
+      case 'co':
+        return (
+          <CompanyStep
+            companyName={wizard.draft.company_name}
+            onCompanyName={(v) => wizard.updateDraft({ company_name: v })}
+            error={wizard.fieldErrors.company_name}
+            disabled={wizard.busy}
+          />
+        );
+      case 'ad':
+        return (
+          <AddressStep
+            streetAddress={wizard.draft.street_address}
+            addressLine2={wizard.draft.address_line_2}
+            postalCode={wizard.draft.postal_code}
+            city={wizard.draft.city}
+            addressCountry={wizard.draft.address_country}
+            lat={wizard.draft.lat}
+            lng={wizard.draft.lng}
+            countriesDomicile={wizard.countriesDomicile}
+            onChange={(patch) => wizard.updateDraft(patch)}
+            errors={wizard.fieldErrors}
+            disabled={wizard.busy}
+          />
+        );
+      case 'mk':
+        return (
+          <MarketingTermsStep
+            hearAbout={wizard.draft.hear_about_us_shipper}
+            hearAboutOther={wizard.draft.hear_about_us_other_shipper}
+            referralCode={wizard.draft.referral_code}
+            terms={wizard.draft.terms}
+            lang={lang}
+            onChange={(patch) => wizard.updateDraft(patch)}
+            errors={wizard.fieldErrors}
+            disabled={wizard.busy}
+          />
+        );
       case 'hold':
-        return <Phase1HoldStep />;
+        return <Phase2HoldStep />;
       default:
         return null;
     }

@@ -7,6 +7,15 @@ export type RegisterFieldErrors = {
   otp?: string;
   password?: string;
   password_confirmation?: string;
+  company_name?: string;
+  street_address?: string;
+  postal_code?: string;
+  city?: string;
+  address_country?: string;
+  hear_about_us_shipper?: string;
+  hear_about_us_other_shipper?: string;
+  referral_code?: string;
+  terms?: string;
 };
 
 type Translate = (key: string, fallbackOrOptions?: string | Record<string, unknown>) => string;
@@ -125,4 +134,81 @@ export function validatePasswordStep(
 
 export function digitsOnlyPhone(phone: string): string {
   return phone.replace(/\D/g, '');
+}
+
+export function validateCompanyName(value: string, t: Translate): string | undefined {
+  const v = value.trim();
+  if (!v) return t('registerCompanyRequired', 'Please enter company name');
+  if (v.length < 2) return t('registerCompanyMinLength', 'Please enter minimum 2 characters in company name');
+  if (v.length > 50) return t('registerCompanyMaxLength', 'Company name must not exceed 50 characters');
+  return undefined;
+}
+
+export function validateCompanyStep(companyName: string, t: Translate): RegisterFieldErrors {
+  const errors: RegisterFieldErrors = {};
+  const err = validateCompanyName(companyName, t);
+  if (err) errors.company_name = err;
+  return errors;
+}
+
+export function validateAddressStep(
+  fields: {
+    street_address: string;
+    postal_code: string;
+    city: string;
+    address_country: string;
+  },
+  t: Translate
+): RegisterFieldErrors {
+  const errors: RegisterFieldErrors = {};
+  if (!fields.street_address.trim()) {
+    errors.street_address = t('registerStreetRequired', 'Address is required');
+  }
+  if (!fields.postal_code.trim()) {
+    errors.postal_code = t('registerPostalRequired', 'Postal Code is required');
+  }
+  if (!fields.city.trim()) {
+    errors.city = t('registerCityRequired', 'City is required');
+  }
+  if (!fields.address_country.trim()) {
+    errors.address_country = t('registerCountryRequired', 'Country is required');
+  }
+  return errors;
+}
+
+export function validateMarketingTermsStep(
+  fields: {
+    hear_about_us_shipper: string;
+    hear_about_us_other_shipper: string;
+    referral_code: string;
+    terms: boolean;
+  },
+  t: Translate
+): RegisterFieldErrors {
+  const errors: RegisterFieldErrors = {};
+  if (!fields.hear_about_us_shipper.trim()) {
+    errors.hear_about_us_shipper = t(
+      'registerHearAboutRequired',
+      'Please select how did you hear about us'
+    );
+  }
+  if (fields.hear_about_us_shipper === 'Other') {
+    const other = fields.hear_about_us_other_shipper.trim();
+    if (!other || other.length < 2) {
+      errors.hear_about_us_other_shipper = t(
+        'registerHearAboutOtherMin',
+        'Please enter minimum 2 characters'
+      );
+    }
+  }
+  if (fields.referral_code && fields.referral_code.length > 35) {
+    errors.referral_code = t('registerReferralMaxLength', 'Referral code must not exceed 35 characters');
+  }
+  if (!fields.terms) {
+    errors.terms = t(
+      'registerTermsRequired',
+      'You must agree to the terms and policies to continue.'
+    );
+  }
+  return errors;
 }

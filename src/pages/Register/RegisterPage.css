@@ -176,3 +176,66 @@
 .shipper-register-nav .shipper-login-submit-btn {
   width: 100%;
 }
+
+.shipper-register-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.shipper-register-row-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.shipper-register-row-item--grow {
+  flex: 2;
+}
+
+.shipper-register-places-field .ab-map-field {
+  margin: 0;
+}
+
+.shipper-register-places-field .ab-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+}
+
+.shipper-register-places-field .ab-field-hint,
+.shipper-register-places-field .ab-field-error {
+  display: none;
+}
+
+.shipper-register-terms {
+  margin-top: 8px;
+}
+
+.shipper-register-terms-label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  color: #4b5563;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.shipper-register-terms-label input {
+  margin-top: 3px;
+  flex-shrink: 0;
+  accent-color: #9b51e0;
+  width: 17px;
+  height: 17px;
+}
+
+.shipper-register-terms-label a {
+  color: #9b51e0;
+  font-weight: 600;
+  text-decoration: underline;
+}

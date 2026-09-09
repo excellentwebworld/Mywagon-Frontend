@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { signupService } from '../../api/auth';
-import type { SignupReferenceCountryCode } from '../../api/auth';
+import type { SignupReferenceCountryCode, SignupReferenceDomicile } from '../../api/auth';
 import {
-  PHASE1_STEPS,
+  REGISTER_STEPS,
   loadSignupDraft,
   patchSignupDraft,
-  type Phase1StepKey,
+  type RegisterStepKey,
   type SignupDraft,
 } from './signupDraft';
 import {
   digitsOnlyPhone,
+  validateAddressStep,
+  validateCompanyStep,
   validateEmailStep,
+  validateMarketingTermsStep,
   validateNameStep,
   validateOtp,
   validatePasswordStep,
@@ -24,10 +27,7 @@ const RESEND_SECONDS = 60;
 
 export function useRegisterWizard(t: Translate) {
   const [draft, setDraft] = useState<SignupDraft>(() => loadSignupDraft());
-  const [stepIndex, setStepIndex] = useState(() => {
-    const loaded = loadSignupDraft();
-    return Math.min(Math.max(loaded.stepIndex, 0), PHASE1_STEPS.length);
-  });
+  const [stepIndex, setStepIndex] = useState(() => loadSignupDraft().stepIndex);
   const [fieldErrors, setFieldErrors] = useState<RegisterFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -36,15 +36,15 @@ export function useRegisterWizard(t: Translate) {
   const [pendingEmailOtp, setPendingEmailOtp] = useState<string | null>(null);
   const [resendSeconds, setResendSeconds] = useState(0);
   const [countryCodes, setCountryCodes] = useState<SignupReferenceCountryCode[]>([]);
+  const [countriesDomicile, setCountriesDomicile] = useState<SignupReferenceDomicile[]>([]);
   const [referenceLoading, setReferenceLoading] = useState(true);
   const verifyingPhoneRef = useRef(false);
-  const verifyingEmailRef = useRef(false);
 
-  const stepKey: Phase1StepKey =
-    stepIndex >= PHASE1_STEPS.length ? 'hold' : PHASE1_STEPS[stepIndex];
+  const stepKey: RegisterStepKey =
+    stepIndex >= REGISTER_STEPS.length ? 'hold' : REGISTER_STEPS[stepIndex];
 
-  const progressCurrent = stepKey === 'hold' ? PHASE1_STEPS.length : stepIndex + 1;
-  const progressTotal = PHASE1_STEPS.length;
+  const progressCurrent = stepKey === 'hold' ? REGISTER_STEPS.length : stepIndex + 1;
+  const progressTotal = REGISTER_STEPS.length;
 
   useEffect(() => {
     let cancelled = false;
@@ -54,16 +54,31 @@ export function useRegisterWizard(t: Translate) {
         const data = await signupService.getReference();
         if (cancelled) return;
         const codes = data.country_codes ?? [];
+        const domicile = data.countries_domicile ?? [];
         setCountryCodes(codes);
+        setCountriesDomicile(domicile);
         setDraft((prev) => {
-          if (prev.country_code) return prev;
-          const preferred =
-            codes.find((c) => c.code === '+30')?.code || codes[0]?.code || '+30';
-          return patchSignupDraft(prev, { country_code: preferred });
+          const patch: Partial<SignupDraft> = {};
+          if (!prev.country_code) {
+            patch.country_code =
+              codes.find((c) => c.code === '+30')?.code || codes[0]?.code || '+30';
+          }
+          if (!prev.address_country && domicile.length) {
+            const greece =
+              domicile.find((d) => /greece|ελλάδα/i.test(d.value || d.label))?.value ||
+              domicile[0]?.value;
+            if (greece) patch.address_country = greece;
+          }
+          if (Object.keys(patch).length === 0) return prev;
+          return patchSignupDraft(prev, patch);
         });
       } catch (err) {
         if (!cancelled) {
-          setFormError(err instanceof Error ? err.message : t('registerReferenceFailed', 'Could not load signup data'));
+          setFormError(
+            err instanceof Error
+              ? err.message
+              : t('registerReferenceFailed', 'Could not load signup data')
+          );
         }
       } finally {
         if (!cancelled) setReferenceLoading(false);
@@ -85,15 +100,7 @@ export function useRegisterWizard(t: Translate) {
     setFieldErrors((prev) => {
       const next = { ...prev };
       for (const key of Object.keys(patch) as (keyof SignupDraft)[]) {
-        if (key === 'first_name') delete next.first_name;
-        if (key === 'last_name') delete next.last_name;
-        if (key === 'phone' || key === 'country_code') {
-          delete next.phone;
-          delete next.country_code;
-        }
-        if (key === 'email') delete next.email;
-        if (key === 'password') delete next.password;
-        if (key === 'password_confirmation') delete next.password_confirmation;
+        if (key in next) delete next[key as keyof RegisterFieldErrors];
       }
       return next;
     });
@@ -101,7 +108,7 @@ export function useRegisterWizard(t: Translate) {
   }, []);
 
   const goToStep = useCallback((index: number) => {
-    const clamped = Math.min(Math.max(index, 0), PHASE1_STEPS.length);
+    const clamped = Math.min(Math.max(index, 0), REGISTER_STEPS.length);
     setStepIndex(clamped);
     setDraft((prev) => patchSignupDraft(prev, { stepIndex: clamped }));
     setFieldErrors({});
@@ -116,16 +123,12 @@ export function useRegisterWizard(t: Translate) {
   const clearEmailOtpState = useCallback(() => {
     setEmailOtp('');
     setPendingEmailOtp(null);
-    verifyingEmailRef.current = false;
   }, []);
 
   const setPhone = useCallback(
     (phone: string) => {
       const digits = digitsOnlyPhone(phone).slice(0, 10);
-      updateDraft({
-        phone: digits,
-        phoneVerified: false,
-      });
+      updateDraft({ phone: digits, phoneVerified: false });
       clearPhoneOtpState();
     },
     [updateDraft, clearPhoneOtpState]
@@ -133,10 +136,7 @@ export function useRegisterWizard(t: Translate) {
 
   const setCountryCode = useCallback(
     (country_code: string) => {
-      updateDraft({
-        country_code,
-        phoneVerified: false,
-      });
+      updateDraft({ country_code, phoneVerified: false });
       clearPhoneOtpState();
     },
     [updateDraft, clearPhoneOtpState]
@@ -144,10 +144,7 @@ export function useRegisterWizard(t: Translate) {
 
   const setEmail = useCallback(
     (email: string) => {
-      updateDraft({
-        email,
-        emailVerified: false,
-      });
+      updateDraft({ email, emailVerified: false });
       clearEmailOtpState();
     },
     [updateDraft, clearEmailOtpState]
@@ -172,7 +169,9 @@ export function useRegisterWizard(t: Translate) {
         new_value: digitsOnlyPhone(draft.phone),
       });
       if (dup.status === false || dup.success === false) {
-        setFieldErrors({ phone: dup.message || t('registerPhoneTaken', 'This phone number has already been taken') });
+        setFieldErrors({
+          phone: dup.message || t('registerPhoneTaken', 'This phone number has already been taken'),
+        });
         return;
       }
       await signupService.sendPhoneOtp({
@@ -183,9 +182,13 @@ export function useRegisterWizard(t: Translate) {
       clearPhoneOtpState();
       updateDraft({ phoneVerified: false });
       startResendCooldown();
-      goToStep(PHASE1_STEPS.indexOf('phOtp'));
+      goToStep(REGISTER_STEPS.indexOf('phOtp'));
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : t('registerPhoneOtpSendFailed', 'Could not send phone OTP'));
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : t('registerPhoneOtpSendFailed', 'Could not send phone OTP')
+      );
     } finally {
       setBusy(false);
     }
@@ -204,7 +207,11 @@ export function useRegisterWizard(t: Translate) {
       setPhoneOtp('');
       startResendCooldown();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : t('registerPhoneOtpSendFailed', 'Could not send phone OTP'));
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : t('registerPhoneOtpSendFailed', 'Could not send phone OTP')
+      );
     } finally {
       setBusy(false);
     }
@@ -270,14 +277,17 @@ export function useRegisterWizard(t: Translate) {
         email: draft.email.trim(),
         user_type: 'shipper',
       });
-      const otpFromApi = res.otp != null ? String(res.otp) : null;
-      setPendingEmailOtp(otpFromApi);
+      setPendingEmailOtp(res.otp != null ? String(res.otp) : null);
       setEmailOtp('');
       updateDraft({ emailVerified: false, email: draft.email.trim() });
       startResendCooldown();
-      goToStep(PHASE1_STEPS.indexOf('emOtp'));
+      goToStep(REGISTER_STEPS.indexOf('emOtp'));
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : t('registerEmailOtpSendFailed', 'Could not send email OTP'));
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : t('registerEmailOtpSendFailed', 'Could not send email OTP')
+      );
     } finally {
       setBusy(false);
     }
@@ -297,7 +307,11 @@ export function useRegisterWizard(t: Translate) {
       updateDraft({ emailVerified: false });
       startResendCooldown();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : t('registerEmailOtpSendFailed', 'Could not send email OTP'));
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : t('registerEmailOtpSendFailed', 'Could not send email OTP')
+      );
     } finally {
       setBusy(false);
     }
@@ -337,7 +351,7 @@ export function useRegisterWizard(t: Translate) {
       first_name: draft.first_name.trim(),
       last_name: draft.last_name.trim(),
     });
-    goToStep(PHASE1_STEPS.indexOf('ph'));
+    goToStep(REGISTER_STEPS.indexOf('ph'));
   }, [draft.first_name, draft.last_name, t, updateDraft, goToStep]);
 
   const continueFromPhoneOtp = useCallback(async () => {
@@ -345,7 +359,7 @@ export function useRegisterWizard(t: Translate) {
       const ok = await verifyPhoneCode(phoneOtp);
       if (!ok) return;
     }
-    goToStep(PHASE1_STEPS.indexOf('em'));
+    goToStep(REGISTER_STEPS.indexOf('em'));
   }, [draft.phoneVerified, phoneOtp, verifyPhoneCode, goToStep]);
 
   const continueFromEmailOtp = useCallback(() => {
@@ -353,7 +367,7 @@ export function useRegisterWizard(t: Translate) {
       const ok = verifyEmailCode(emailOtp);
       if (!ok) return;
     }
-    goToStep(PHASE1_STEPS.indexOf('pw'));
+    goToStep(REGISTER_STEPS.indexOf('pw'));
   }, [draft.emailVerified, emailOtp, verifyEmailCode, goToStep]);
 
   const continueFromPassword = useCallback(() => {
@@ -366,17 +380,95 @@ export function useRegisterWizard(t: Translate) {
       password: draft.password,
       password_confirmation: draft.password_confirmation,
     });
-    goToStep(PHASE1_STEPS.length); // hold
+    goToStep(REGISTER_STEPS.indexOf('co'));
   }, [draft.password, draft.password_confirmation, t, updateDraft, goToStep]);
+
+  const continueFromCompany = useCallback(async () => {
+    const errors = validateCompanyStep(draft.company_name, t);
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
+      return;
+    }
+    setBusy(true);
+    setFormError(null);
+    try {
+      const res = await signupService.checkCompany({
+        table_name: 'shippers',
+        field_name: 'company_name',
+        new_value: draft.company_name.trim(),
+      });
+      if (res.status === false || res.success === false) {
+        setFieldErrors({
+          company_name: res.message || t('registerCompanyTaken', 'Company name already exists'),
+        });
+        return;
+      }
+      updateDraft({ company_name: draft.company_name.trim() });
+      goToStep(REGISTER_STEPS.indexOf('ad'));
+    } catch (err) {
+      setFormError(
+        err instanceof Error ? err.message : t('registerCompanyCheckFailed', 'Could not verify company name')
+      );
+    } finally {
+      setBusy(false);
+    }
+  }, [draft.company_name, t, updateDraft, goToStep]);
+
+  const continueFromAddress = useCallback(() => {
+    const errors = validateAddressStep(
+      {
+        street_address: draft.street_address,
+        postal_code: draft.postal_code,
+        city: draft.city,
+        address_country: draft.address_country,
+      },
+      t
+    );
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
+      return;
+    }
+    updateDraft({
+      street_address: draft.street_address.trim(),
+      address_line_2: draft.address_line_2.trim(),
+      postal_code: draft.postal_code.trim(),
+      city: draft.city.trim(),
+      address_country: draft.address_country.trim(),
+    });
+    goToStep(REGISTER_STEPS.indexOf('mk'));
+  }, [draft, t, updateDraft, goToStep]);
+
+  const continueFromMarketing = useCallback(() => {
+    const errors = validateMarketingTermsStep(
+      {
+        hear_about_us_shipper: draft.hear_about_us_shipper,
+        hear_about_us_other_shipper: draft.hear_about_us_other_shipper,
+        referral_code: draft.referral_code,
+        terms: draft.terms,
+      },
+      t
+    );
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
+      return;
+    }
+    updateDraft({
+      hear_about_us_shipper: draft.hear_about_us_shipper,
+      hear_about_us_other_shipper:
+        draft.hear_about_us_shipper === 'Other' ? draft.hear_about_us_other_shipper.trim() : '',
+      referral_code: draft.referral_code.trim(),
+      terms: true,
+    });
+    goToStep(REGISTER_STEPS.length); // hold
+  }, [draft, t, updateDraft, goToStep]);
 
   const goBack = useCallback(() => {
     if (stepKey === 'hold') {
-      goToStep(PHASE1_STEPS.indexOf('pw'));
+      goToStep(REGISTER_STEPS.indexOf('mk'));
       return;
     }
     if (stepIndex <= 0) return;
 
-    const prevKey = PHASE1_STEPS[stepIndex - 1];
     if (stepKey === 'phOtp') {
       clearPhoneOtpState();
       updateDraft({ phoneVerified: false });
@@ -384,9 +476,6 @@ export function useRegisterWizard(t: Translate) {
     if (stepKey === 'emOtp') {
       clearEmailOtpState();
       updateDraft({ emailVerified: false });
-    }
-    if (prevKey === 'ph' && stepKey === 'phOtp') {
-      /* going to phone */
     }
     goToStep(stepIndex - 1);
   }, [stepKey, stepIndex, goToStep, clearPhoneOtpState, clearEmailOtpState, updateDraft]);
@@ -417,12 +506,29 @@ export function useRegisterWizard(t: Translate) {
       case 'pw':
         continueFromPassword();
         break;
+      case 'co':
+        await continueFromCompany();
+        break;
+      case 'ad':
+        continueFromAddress();
+        break;
+      case 'mk':
+        continueFromMarketing();
+        break;
       default:
         break;
     }
-  }, [stepKey, continueFromName, continueFromPhoneOtp, continueFromEmailOtp, continueFromPassword]);
+  }, [
+    stepKey,
+    continueFromName,
+    continueFromPhoneOtp,
+    continueFromEmailOtp,
+    continueFromPassword,
+    continueFromCompany,
+    continueFromAddress,
+    continueFromMarketing,
+  ]);
 
-  // Auto-verify when 6 digits entered
   useEffect(() => {
     if (stepKey !== 'phOtp' || draft.phoneVerified || phoneOtp.length !== 6 || busy) return;
     void verifyPhoneCode(phoneOtp);
@@ -434,13 +540,16 @@ export function useRegisterWizard(t: Translate) {
   }, [emailOtp, stepKey, draft.emailVerified, busy, verifyEmailCode]);
 
   const stepTitleKey = useMemo(() => {
-    const map: Record<Phase1StepKey, string> = {
+    const map: Record<RegisterStepKey, string> = {
       nm: 'registerStepName',
       ph: 'registerStepPhone',
       phOtp: 'registerStepPhoneOtp',
       em: 'registerStepEmail',
       emOtp: 'registerStepEmailOtp',
       pw: 'registerStepPassword',
+      co: 'registerStepCompany',
+      ad: 'registerStepAddress',
+      mk: 'registerStepMarketing',
       hold: 'registerStepHold',
     };
     return map[stepKey];
@@ -461,6 +570,7 @@ export function useRegisterWizard(t: Translate) {
     busy,
     referenceLoading,
     countryCodes,
+    countriesDomicile,
     phoneOtp,
     setPhoneOtp,
     emailOtp,
