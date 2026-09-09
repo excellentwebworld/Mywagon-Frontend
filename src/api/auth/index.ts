@@ -1,4 +1,5 @@
 export { authService, AUTH_TOKEN_KEY, getStoredToken, setStoredToken, clearStoredToken } from './authService';
+export { signupService } from './signupService';
 export type {
   LoginPayload,
   LoginResponse,
@@ -8,3 +9,21 @@ export type {
   TwoFactorChallenge,
   TwoFactorMethod,
 } from './types';
+export type {
+  CheckCompanyPayload,
+  CheckDuplicatePayload,
+  RegisterShipperFields,
+  SendEmailOtpPayload,
+  SendPhoneOtpPayload,
+  SignupDuplicateField,
+  SignupDuplicateTable,
+  SignupReferenceCountryCode,
+  SignupReferenceData,
+  SignupReferenceDomicile,
+  SignupReferenceResponse,
+  SignupReferenceVehicleType,
+  SignupStatusResponse,
+  SignupUserType,
+  VerifyPhoneOtpPayload,
+  VerifyVatResponse,
+} from './signupTypes';
