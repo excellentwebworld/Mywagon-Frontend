@@ -315,8 +315,8 @@ export function useRegisterForm(t: Translate, lang: 'en' | 'el' = 'en') {
       setBusyKind('phone');
       setFormError(null);
       try {
-        // Blade: local/dev/staging compare returned OTP; production calls SMS verify API.
-        const useClientCompare = Boolean(pendingPhoneOtp) && isClientOtpEnv();
+        // Driven by backend env: if backend returns OTP, compare client-side; otherwise call SMS verify API
+        const useClientCompare = Boolean(pendingPhoneOtp);
         if (useClientCompare) {
           if (String(pendingPhoneOtp) !== otp) {
             setFieldErrors((prev) => ({
@@ -599,7 +599,7 @@ export function useRegisterForm(t: Translate, lang: 'en' | 'el' = 'en') {
     otpResentFlash,
     pendingEmailOtp,
     pendingPhoneOtp,
-    showOtpDebug: isClientOtpEnv(),
+    showOtpDebug: Boolean(pendingPhoneOtp || pendingEmailOtp),
     openPhoneOtp,
     openEmailOtp,
     resendPhoneCode,
