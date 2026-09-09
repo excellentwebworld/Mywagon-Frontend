@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { shipmentsService } from '../../api';
 import type { ApiShipmentsSummary } from '../../api/types/shipments';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -14,8 +15,14 @@ const EMPTY_SUMMARY: ApiShipmentsSummary = {
   statuses: {},
 };
 
+type KpiAction =
+  | { type: 'board'; tab: number }
+  | { type: 'scroll' }
+  | { type: 'navigate'; to: string };
+
 export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoardTab }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [summary, setSummary] = useState<ApiShipmentsSummary>(EMPTY_SUMMARY);
 
   useEffect(() => {
@@ -39,76 +46,112 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoa
   const ready = statuses.ready ?? 0;
   const scheduled = statuses.scheduled ?? 0;
   const pastDue = statuses.past_due ?? 0;
-  const needsAction = summary.kpis?.needs_action ?? pending;
-  const inTransit = onTrip;
-  const upcomingCount = ready + scheduled;
-  const deliveredCount = statuses.fullfilled ?? statuses.delivered ?? 0;
-  const activeLoads = pending + onTrip + ready + scheduled + pastDue;
+  const needsAction = summary.kpis?.needs_action ?? 0;
+  const upcoming = summary.kpis?.upcoming ?? 0;
+  const atRisk = summary.kpis?.at_risk ?? 0;
+  const activeLoads = pending + scheduled + ready + pastDue + onTrip;
 
-  const handleKpiClick = (tabIdx: number) => {
-    setActiveBoardTab(tabIdx);
+  const scrollToBoard = () => {
     const boardCard = document.getElementById('boardCard');
     if (boardCard) {
       boardCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
+  const handleAction = (action: KpiAction) => {
+    if (action.type === 'navigate') {
+      navigate(action.to);
+      return;
+    }
+    if (action.type === 'board') {
+      setActiveBoardTab(action.tab);
+    }
+    scrollToBoard();
+  };
+
+  const cards: Array<{
+    key: string;
+    value: number;
+    label: string;
+    colorClass: string;
+    active: boolean;
+    action: KpiAction;
+  }> = [
+    {
+      key: 'active',
+      value: activeLoads,
+      label: t('kpiActive'),
+      colorClass: 'c-accent',
+      active: false,
+      action: { type: 'scroll' },
+    },
+    {
+      key: 'on_trip',
+      value: onTrip,
+      label: t('kpiOnTrip'),
+      colorClass: 'c-info',
+      active: activeBoardTab === 2,
+      action: { type: 'board', tab: 2 },
+    },
+    {
+      key: 'needs_action',
+      value: needsAction,
+      label: t('kpiAction'),
+      colorClass: 'c-warning',
+      active: activeBoardTab === 0,
+      action: { type: 'board', tab: 0 },
+    },
+    {
+      key: 'upcoming',
+      value: upcoming,
+      label: t('kpiUpcoming'),
+      colorClass: '',
+      active: activeBoardTab === 1,
+      action: { type: 'board', tab: 1 },
+    },
+    {
+      key: 'at_risk',
+      value: atRisk,
+      label: t('kpiAtRisk'),
+      colorClass: 'c-danger',
+      active: false,
+      action: { type: 'navigate', to: '/shipments?kpi=at_risk' },
+    },
+    {
+      key: 'past_due',
+      value: pastDue,
+      label: t('kpiPastDue'),
+      colorClass: 'c-orange',
+      active: false,
+      action: { type: 'navigate', to: '/shipments?status=past_due' },
+    },
+  ];
+
   return (
     <div className="kpi-section" style={{ display: 'block', marginBottom: '20px' }}>
-      <div className="kpi-section-label">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <rect x="3" y="3" width="7" height="7" rx="1.5" />
-          <rect x="14" y="3" width="7" height="7" rx="1.5" />
-          <rect x="3" y="14" width="7" height="7" rx="1.5" />
-          <rect x="14" y="14" width="7" height="7" rx="1.5" />
-        </svg>
-        <span>{t('kpiOpLabel')}</span>
-      </div>
       <div className="kpi-strip">
-        <div className={`kpi c-accent ${activeBoardTab === 1 ? 'active' : ''}`} onClick={() => handleKpiClick(1)}>
-          <div className="kpi-top">
-            <div className="kpi-val">{activeLoads}</div>
+        {cards.map((card) => (
+          <div
+            key={card.key}
+            className={`kpi ${card.colorClass} ${card.active ? 'active' : ''}`.trim()}
+            onClick={() => handleAction(card.action)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleAction(card.action);
+              }
+            }}
+          >
+            <div className="kpi-top">
+              <div className="kpi-val">{card.value}</div>
+            </div>
+            <div className="kpi-bottom">
+              <span className="kpi-label">{card.label}</span>
+            </div>
           </div>
-          <div className="kpi-bottom">
-            <span className="kpi-label">{t('kpiActive')}</span>
-          </div>
-        </div>
-
-        <div className={`kpi c-warning ${activeBoardTab === 0 ? 'active' : ''}`} onClick={() => handleKpiClick(0)}>
-          <div className="kpi-top">
-            <div className="kpi-val">{needsAction}</div>
-          </div>
-          <div className="kpi-bottom">
-            <span className="kpi-label">{t('kpiAction')}</span>
-          </div>
-        </div>
-
-        <div className={`kpi c-info ${activeBoardTab === 2 ? 'active' : ''}`} onClick={() => handleKpiClick(2)}>
-          <div className="kpi-top">
-            <div className="kpi-val">{inTransit}</div>
-          </div>
-          <div className="kpi-bottom">
-            <span className="kpi-label">{t('kpiTransit')}</span>
-          </div>
-        </div>
-
-        <div className={`kpi ${activeBoardTab === 1 ? 'active' : ''}`} onClick={() => handleKpiClick(1)}>
-          <div className="kpi-top">
-            <div className="kpi-val">{upcomingCount}</div>
-          </div>
-          <div className="kpi-bottom">
-            <span className="kpi-label">{t('kpiUpcoming')}</span>
-          </div>
-        </div>
-
-        <div className={`kpi c-success ${activeBoardTab === 3 ? 'active' : ''}`} onClick={() => handleKpiClick(3)}>
-          <div className="kpi-top">
-            <div className="kpi-val">{deliveredCount}</div>
-          </div>
-          <div className="kpi-bottom">
-            <span className="kpi-label">{t('kpiCompleted')}</span>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );

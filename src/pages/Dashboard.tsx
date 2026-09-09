@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { KpiStrip } from '../components/dashboard/KpiStrip';
 import { Schedule } from '../components/dashboard/Schedule';
 import { LiveMap } from '../components/dashboard/LiveMap';
@@ -20,6 +20,11 @@ export const Dashboard: React.FC = () => {
   // Coordinate active board tab state between KpiStrip and ShipmentBoard
   // Index 1 represents "Upcoming" which is the default active tab in the design
   const [activeBoardTab, setActiveBoardTab] = useState<number>(1);
+  const [selectedScheduleShipmentId, setSelectedScheduleShipmentId] = useState<number | null>(null);
+
+  const handleSelectScheduleShipment = useCallback((id: number) => {
+    setSelectedScheduleShipmentId(id);
+  }, []);
 
   const companyName = user?.company_name?.trim() || '—';
 
@@ -46,8 +51,11 @@ export const Dashboard: React.FC = () => {
 
       {/* Row 2: Today's Schedule + Live Map */}
       <div className="row-2col-even">
-        <Schedule />
-        <LiveMap />
+        <Schedule
+          selectedShipmentId={selectedScheduleShipmentId}
+          onSelectShipment={handleSelectScheduleShipment}
+        />
+        <LiveMap selectedShipmentId={selectedScheduleShipmentId} />
       </div>
 
       {/* Row 3: Manage Shipments board + Performance */}

@@ -1,22 +1,137 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { shipmentsService } from '../../api';
+import type { Shipment, ShipmentStop } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { RouteMap } from '../CreateShipmentWizard/itinerary/RouteMap';
+import { useRouteLegs } from '../CreateShipmentWizard/itinerary/useRouteLegs';
+import type { EnrichedStop } from '../CreateShipmentWizard/itinerary/types';
+import { loadGoogleMaps } from '../AddressBook/GoogleMapAddressField';
 
-export const LiveMap: React.FC = () => {
+interface LiveMapProps {
+  selectedShipmentId: number | null;
+}
+
+function groupPhysicalMapStops(
+  stops: ShipmentStop[]
+): Array<{ stop: ShipmentStop; originalIndex: number }> {
+  const result: Array<{ stop: ShipmentStop; originalIndex: number }> = [];
+  const seen = new Set<string>();
+
+  stops.forEach((stop, idx) => {
+    const normLocation = (stop.location || '').trim().toLowerCase();
+    const normAddress = (stop.address || '').trim().toLowerCase();
+    const groupKey = `${stop.type}|${normLocation}|${normAddress}`;
+    if (seen.has(groupKey)) return;
+    seen.add(groupKey);
+    result.push({ stop, originalIndex: idx });
+  });
+
+  return result;
+}
+
+export const LiveMap: React.FC<LiveMapProps> = ({ selectedShipmentId }) => {
   const { t } = useTranslation();
-  const [mapFilter, setMapFilter] = useState<'all' | 'at_risk' | 'delayed'>('all');
+  const [shipment, setShipment] = useState<Shipment | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [geocodedCoords, setGeocodedCoords] = useState<Record<number, { lat: number; lng: number }>>({});
 
-  const inTransitCount = 3;
-  const atRiskCount = 1;
-  const avgEta = "2.4h";
-
-  const getActiveShipmentsText = () => {
-    if (mapFilter === 'all') {
-      return t('mapActiveAll');
-    } else if (mapFilter === 'at_risk') {
-      return t('mapActiveAtRisk');
+  useEffect(() => {
+    if (selectedShipmentId == null) {
+      setShipment(null);
+      setError(null);
+      setLoading(false);
+      setGeocodedCoords({});
+      return;
     }
-    return t('mapActiveDelayed');
-  };
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setGeocodedCoords({});
+
+    shipmentsService
+      .getMapped(selectedShipmentId)
+      .then((data) => {
+        if (!cancelled) setShipment(data);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setShipment(null);
+        setError(err instanceof Error ? err.message : 'Failed to load map');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedShipmentId]);
+
+  const stops = shipment?.stops ?? [];
+
+  useEffect(() => {
+    const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
+    if (!mapsKey || stops.length === 0) return;
+
+    loadGoogleMaps(mapsKey).then(() => {
+      if (!(window as any).google?.maps?.Geocoder) return;
+      const geocoder = new (window as any).google.maps.Geocoder();
+
+      stops.forEach((s, idx) => {
+        if (s.lat != null && s.lng != null) return;
+        const query = s.address || s.location;
+        if (!query) return;
+        geocoder.geocode({ address: query }, (results: any, statusCode: any) => {
+          if (statusCode === 'OK' && results?.[0]?.geometry?.location) {
+            const loc = results[0].geometry.location;
+            setGeocodedCoords((prev) => ({
+              ...prev,
+              [idx]: { lat: loc.lat(), lng: loc.lng() },
+            }));
+          }
+        });
+      });
+    });
+  }, [stops]);
+
+  const enrichedStops: EnrichedStop[] = useMemo(() => {
+    if (stops.length === 0) return [];
+
+    return groupPhysicalMapStops(stops).map(({ stop: s, originalIndex }, idx) => {
+      const lat = s.lat != null ? Number(s.lat) : geocodedCoords[originalIndex]?.lat ?? null;
+      const lng = s.lng != null ? Number(s.lng) : geocodedCoords[originalIndex]?.lng ?? null;
+
+      return {
+        id: String(s.id || idx + 1),
+        type: s.type === 'pickup' ? 1 : 2,
+        location_id: s.id || idx + 1,
+        location_name: s.location || '',
+        address: s.address || '',
+        city: s.location || '',
+        lat,
+        lng,
+        resolvedName: s.location || '',
+        resolvedCity: s.location || '',
+        resolvedCompany: s.customers?.[0]?.name || s.location || '',
+        resolvedAddress: s.address || s.location || '',
+        hasPickup: s.type === 'pickup',
+        hasDropoff: s.type === 'delivery',
+        customers:
+          s.customers?.map((c) => ({
+            name: c.name,
+            orderId: c.orders?.[0]?.id,
+            orderRef: c.orders?.[0]?.id,
+          })) || [],
+        lines: [],
+      };
+    });
+  }, [stops, geocodedCoords]);
+
+  const routeLegs = useRouteLegs(enrichedStops);
+  const stopCount = enrichedStops.length;
+  const statusLabel = shipment?.status ? t(shipment.status) : '—';
 
   return (
     <div className="card map-wrap">
@@ -29,61 +144,65 @@ export const LiveMap: React.FC = () => {
           </svg>
           <span>{t('liveMap')}</span>
         </h3>
-        <div className="map-toggle">
-          <button
-            className={`map-tog-btn ${mapFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setMapFilter('all')}
-          >
-            {t('all')}
-          </button>
-          <button
-            className={`map-tog-btn ${mapFilter === 'at_risk' ? 'active' : ''}`}
-            onClick={() => setMapFilter('at_risk')}
-          >
-            {t('atRisk')}
-          </button>
-          <button
-            className={`map-tog-btn ${mapFilter === 'delayed' ? 'active' : ''}`}
-            onClick={() => setMapFilter('delayed')}
-          >
-            {t('delayed')}
-          </button>
-        </div>
+        {shipment?.autoId ? (
+          <span className="map-selected-sid">#{shipment.autoId}</span>
+        ) : null}
       </div>
-      <div className="map-body" style={{ minHeight: '340px' }}>
-        <svg
-          width="36"
-          height="36"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          style={{ zIndex: 1, opacity: 0.8 }}
-        >
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-          <circle cx="12" cy="10" r="3" />
-        </svg>
-        <span style={{ fontWeight: 500, zIndex: 1 }}>{getActiveShipmentsText()}</span>
-        <span style={{ fontSize: '11px', opacity: 0.5, zIndex: 1 }}>
-          {t('mapEmbed')}
-        </span>
 
-        <div className="map-stats" style={{ zIndex: 1 }}>
+      <div className="map-body dash-live-map-body">
+        {selectedShipmentId == null && (
+          <div className="map-placeholder">
+            <span>{t('mapSelectLoad')}</span>
+          </div>
+        )}
+
+        {selectedShipmentId != null && loading && (
+          <div className="map-placeholder">
+            <span>{t('loading')}</span>
+          </div>
+        )}
+
+        {selectedShipmentId != null && !loading && error && (
+          <div className="map-placeholder">
+            <span>{error}</span>
+          </div>
+        )}
+
+        {selectedShipmentId != null && !loading && !error && enrichedStops.length === 0 && (
+          <div className="map-placeholder">
+            <span>{t('mapNoStops')}</span>
+          </div>
+        )}
+
+        {selectedShipmentId != null && !loading && !error && enrichedStops.length > 0 && (
+          <RouteMap
+            stops={enrichedStops}
+            polylinePath={routeLegs.polylinePath}
+            directionsResult={routeLegs.directionsResult}
+            loading={routeLegs.loading}
+            height={300}
+            expanded
+            t={t as (key: string, params?: Record<string, unknown>) => string}
+          />
+        )}
+      </div>
+
+      {shipment && (
+        <div className="map-stats">
           <div className="map-stat">
-            <div className="map-stat-val" style={{ color: 'var(--info)' }}>{inTransitCount}</div>
-            {t('inTransit')}
+            <div className="map-stat-val" style={{ color: 'var(--text-primary)' }}>
+              {stopCount}
+            </div>
+            {t('mapStops')}
           </div>
           <div className="map-stat">
-            <div className="map-stat-val" style={{ color: 'var(--danger)' }}>{atRiskCount}</div>
-            {t('atRisk')}
-          </div>
-          <div className="map-stat">
-            <div className="map-stat-val" style={{ color: 'var(--text-primary)' }}>{avgEta}</div>
-            {t('avgEta')}
+            <div className="map-stat-val" style={{ color: 'var(--info)' }}>
+              {statusLabel}
+            </div>
+            {t('status')}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
