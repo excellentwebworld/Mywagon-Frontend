@@ -543,7 +543,11 @@ export function useManageShipments() {
         handleEditBlocked();
         return;
       }
-      navigate(`/shipments/create?id=${s.id}`);
+      if (s.status === 'draft') {
+        navigate(`/shipments/create/step/1?id=${s.id}`);
+        return;
+      }
+      navigate(`/shipments/create/step/1?editId=${s.id}`);
     },
     [handleEditBlocked, navigate]
   );

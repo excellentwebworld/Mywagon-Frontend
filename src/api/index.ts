@@ -5,6 +5,7 @@ export { productMasterService } from './services/productMasterService';
 export { partnersService } from './services/partnersService';
 export { erpOrdersService } from './services/erpOrdersService';
 export { createShipmentService } from './services/createShipmentService';
+export { editShipmentService } from './services/editShipmentService';
 export { shipmentsService } from './services/shipmentsService';
 export { priceListsService } from './services/priceListsService';
 export { availabilitiesService, SAT_PREFILL_KEY } from './services/availabilitiesService';
@@ -31,4 +32,4 @@ export type {
   ErpOrderStatus,
 } from './types/erpOrders';
 export type { ApiPriceLane, ApiPriceLanePricingRow, ApiPriceLaneStop, StorePriceLanePayload, PriceLaneMetric } from './types/priceLists';
-export type { ApiDraftShipment, ApiStop, ApiCargoLine, SaveStepOnePayload, SaveStepOneMode } from './types/createShipment';
+export type { ApiDraftShipment, ApiEditShipment, ApiStop, ApiCargoLine, SaveStepOnePayload, SaveStepOneMode } from './types/createShipment';

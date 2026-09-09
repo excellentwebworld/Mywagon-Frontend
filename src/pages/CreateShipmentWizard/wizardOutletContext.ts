@@ -5,6 +5,9 @@ export interface WizardOutletContext {
   shipmentId: number | null;
   isSaving: boolean;
   validationRequest: number;
+  isEditMode: boolean;
+  lockedStopIds: number[];
+  editBlocked: boolean;
   goToStep: (nextStep: number, options?: { requireId?: boolean }) => boolean;
   saveStep1: (values: WizardFormValues, mode: 'partial' | 'complete') => Promise<unknown>;
   saveStep2: (
@@ -13,5 +16,6 @@ export interface WizardOutletContext {
     routeSummary?: { totalDistKm: number; totalDriveMin: number }
   ) => Promise<unknown>;
   saveStep3: (values: WizardFormValues, mode: 'partial' | 'complete') => Promise<unknown>;
+  cancelEditSession: () => Promise<void>;
   resetItineraryConfirmationRef: MutableRefObject<(() => void) | null>;
 }

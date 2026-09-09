@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMatch, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { createShipmentService, erpOrdersService, shipmentsService, ApiError, SAT_PREFILL_KEY } from '../../../api';
+import { createShipmentService, editShipmentService, erpOrdersService, shipmentsService, ApiError, SAT_PREFILL_KEY } from '../../../api';
 import type { ApiProceedResult } from '../../../api/types/availabilities';
+import type { ApiEditShipment } from '../../../api/types/createShipment';
 import {
   draftToFormValues,
   formValuesToStepOnePayload,
@@ -36,13 +37,37 @@ function parseStep(value: string | undefined | null): number {
 
 function buildWizardStepPath(
   step: number,
-  draftId: number | null,
-  availabilityId?: number | null
+  shipmentId: number | null,
+  options?: { availabilityId?: number | null; editMode?: boolean }
 ): string {
   const base = `/shipments/create/step/${step}`;
-  if (draftId) return `${base}?id=${draftId}`;
-  if (availabilityId) return `${base}?availability_id=${availabilityId}`;
-  return base;
+  const params = new URLSearchParams();
+  if (shipmentId) {
+    if (options?.editMode) {
+      params.set('editId', String(shipmentId));
+    } else {
+      params.set('id', String(shipmentId));
+    }
+  } else if (options?.availabilityId) {
+    params.set('availability_id', String(options.availabilityId));
+  }
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
+function resolveLineShipmentLocationId(line: {
+  shipmentLocationId?: number | string;
+  id?: string;
+}): number | null {
+  if (line.shipmentLocationId != null && line.shipmentLocationId !== '') {
+    const n = Number(line.shipmentLocationId);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  const match = String(line.id || '').match(/^loc-(\d+)$/);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  return null;
 }
 
 type SatGeoPending = {
@@ -129,8 +154,12 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   const queryClient = useQueryClient();
 
   const draftUrlId = searchParams.get('id');
+  const editUrlId = searchParams.get('editId');
+  const isEditMode = Boolean(editUrlId && /^\d+$/.test(editUrlId));
+  const activeUrlId = isEditMode ? editUrlId : draftUrlId;
+
   const [shipmentId, setShipmentId] = useState<number | null>(() =>
-    draftUrlId ? parseInt(draftUrlId, 10) || null : null
+    activeUrlId ? parseInt(activeUrlId, 10) || null : null
   );
   const [availabilityId, setAvailabilityId] = useState<number | null>(() => {
     const raw = searchParams.get('availability_id');
@@ -140,12 +169,15 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [draftLoaded, setDraftLoaded] = useState(() => !draftUrlId);
+  const [draftLoaded, setDraftLoaded] = useState(() => !activeUrlId);
   const [loadedValues, setLoadedValues] = useState<WizardFormValues | null>(null);
   const [stepNavigationError, setStepNavigationError] = useState<string | null>(null);
   const [validationRequest, setValidationRequest] = useState(0);
   /** Bump only when resetting to a blank create — remounts Formik without wiping mid-save. */
   const [formikEpoch, setFormikEpoch] = useState(0);
+  const [lockedStopIds, setLockedStopIds] = useState<number[]>([]);
+  const [editBlocked, setEditBlocked] = useState(false);
+  const editSessionActiveRef = useRef(false);
 
   const defaultValues = useMemo(() => buildDefaultWizardValues(), []);
   const loadedDraftIdRef = useRef<string | null>(null);
@@ -165,12 +197,25 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
    */
   const applyDraftSnapshot = useCallback(
     (
-      draft: { id: number; auto_id: string; customer_reference?: string | null; wizard_state?: unknown },
+      draft: {
+        id: number;
+        auto_id: string;
+        customer_reference?: string | null;
+        wizard_state?: unknown;
+        locked_stop_ids?: number[];
+        edit_blocked?: boolean;
+      },
       preservedValues?: WizardFormValues | null
     ) => {
       setShipmentId(draft.id);
       setLoadId(draft.auto_id);
       loadedDraftIdRef.current = String(draft.id);
+      if (Array.isArray(draft.locked_stop_ids)) {
+        setLockedStopIds(draft.locked_stop_ids.map((id) => Number(id)).filter((id) => id > 0));
+      }
+      if (typeof draft.edit_blocked === 'boolean') {
+        setEditBlocked(draft.edit_blocked);
+      }
       setLoadedValues((prev) =>
         mergeDraftSnapshot(draftToFormValues(draft, defaultValues), preservedValues ?? prev)
       );
@@ -181,9 +226,15 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   const syncUrl = useCallback(
     (nextStep: number, nextId: number | null) => {
       if (!nextId) return;
-      navigate(buildWizardStepPath(nextStep, nextId), { replace: true });
+      navigate(
+        buildWizardStepPath(nextStep, nextId, {
+          availabilityId,
+          editMode: isEditMode,
+        }),
+        { replace: true }
+      );
     },
-    [navigate]
+    [availabilityId, isEditMode, navigate]
   );
 
   const goToStep = useCallback(
@@ -192,29 +243,38 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setStepNavigationError('validationCompleteStep1First');
         setValidationRequest((count) => count + 1);
         if (step !== 1) {
-          navigate(buildWizardStepPath(1, null, availabilityId), { replace: true });
+          navigate(
+            buildWizardStepPath(1, null, { availabilityId, editMode: isEditMode }),
+            { replace: true }
+          );
         }
         return false;
       }
       setStepNavigationError(null);
-      navigate(buildWizardStepPath(nextStep, shipmentId, availabilityId), { replace: true });
+      navigate(
+        buildWizardStepPath(nextStep, shipmentId, {
+          availabilityId,
+          editMode: isEditMode,
+        }),
+        { replace: true }
+      );
       return true;
     },
-    [availabilityId, navigate, shipmentId, step]
+    [availabilityId, isEditMode, navigate, shipmentId, step]
   );
 
   useEffect(() => {
-    const urlId = searchParams.get('id');
+    const urlId = isEditMode ? searchParams.get('editId') : searchParams.get('id');
     // Keep an in-progress shipmentId if URL briefly loses ?id= (avoids Formik remount wipe).
     if (!urlId) return;
     const parsed = parseInt(urlId, 10) || null;
     if (parsed) setShipmentId(parsed);
-  }, [searchParams]);
+  }, [isEditMode, searchParams]);
 
   /** Prefill Step 1 from Search Trucks availability proceed payload. */
   useEffect(() => {
     const availParam = searchParams.get('availability_id');
-    if (!availParam || draftUrlId) return;
+    if (!availParam || draftUrlId || editUrlId) return;
 
     let raw: string | null = null;
     try {
@@ -294,7 +354,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
   /** Prefill Step 1 from ERP Orders Create Load selection. */
   useEffect(() => {
     const erpParam = searchParams.get('erp_orders');
-    if (!erpParam || draftUrlId) return;
+    if (!erpParam || draftUrlId || editUrlId) return;
 
     let raw: string | null = null;
     try {
@@ -385,7 +445,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
 
   /** Late AddressBook hydrate: bind locationId once coords matches appear. */
   useEffect(() => {
-    if (!availabilityId || draftUrlId || satLocationsAppliedRef.current) return;
+    if (!availabilityId || draftUrlId || editUrlId || satLocationsAppliedRef.current) return;
     const geo = satGeoRef.current;
     if (!geo) return;
     if (!locations.some((l) => l.status === 'active')) return;
@@ -402,11 +462,11 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     if (changed) {
       setFormikEpoch((n) => n + 1);
     }
-  }, [availabilityId, draftUrlId, locations]);
+  }, [availabilityId, draftUrlId, editUrlId, locations]);
 
   /** Late vehicle catalog: seed Step 2 vehicleSpecs from proceed truck_type_id / name. */
   useEffect(() => {
-    if (!availabilityId || draftUrlId || satVehicleAppliedRef.current) return;
+    if (!availabilityId || draftUrlId || editUrlId || satVehicleAppliedRef.current) return;
     const pending = satVehicleRef.current;
     if (!pending || !vehicleTypes.length) return;
 
@@ -430,15 +490,18 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     if (changed) {
       setFormikEpoch((n) => n + 1);
     }
-  }, [availabilityId, draftUrlId, vehicleTypes]);
+  }, [availabilityId, draftUrlId, editUrlId, vehicleTypes]);
 
   useEffect(() => {
-    if (!draftUrlId) {
-      const leavingDraft = loadedDraftIdRef.current != null;
+    if (!activeUrlId) {
+      const leavingSession = loadedDraftIdRef.current != null;
       loadedDraftIdRef.current = null;
       setDraftLoaded(true);
+      setLockedStopIds([]);
+      setEditBlocked(false);
+      editSessionActiveRef.current = false;
       // Do not clear loadedValues when arriving from availability prefill.
-      if (leavingDraft) {
+      if (leavingSession) {
         setLoadedValues(null);
         setShipmentId(null);
         const availStillInUrl = searchParams.get('availability_id');
@@ -451,7 +514,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       return;
     }
 
-    if (loadedDraftIdRef.current === draftUrlId) {
+    if (loadedDraftIdRef.current === activeUrlId) {
       return;
     }
 
@@ -460,18 +523,48 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     setLoadError(null);
     setDraftLoaded(false);
 
-    createShipmentService
-      .getDraft(draftUrlId)
+    const loadPromise = isEditMode
+      ? editShipmentService.getEdit(activeUrlId)
+      : createShipmentService.getDraft(activeUrlId);
+
+    loadPromise
       .then((draft) => {
         if (cancelled) return;
+
+        if (isEditMode) {
+          const edit = draft as ApiEditShipment;
+          if (edit.edit_blocked) {
+            setEditBlocked(true);
+            setLockedStopIds(edit.locked_stop_ids || []);
+            const message =
+              edit.edit_blocked_reason ||
+              tRef.current('editNotAllowed') ||
+              'This shipment cannot be edited right now.';
+            setLoadError(message);
+            showToastRef.current(message, 'error');
+            setDraftLoaded(true);
+            navigate(`/shipments/${edit.id}`, { replace: true });
+            return;
+          }
+          setEditBlocked(false);
+          setLockedStopIds(
+            (edit.locked_stop_ids || []).map((id) => Number(id)).filter((id) => id > 0)
+          );
+          editSessionActiveRef.current = true;
+        } else {
+          setEditBlocked(false);
+          setLockedStopIds([]);
+          editSessionActiveRef.current = false;
+        }
+
         const mapped = draftToFormValues(draft, defaultValues);
-        loadedDraftIdRef.current = draftUrlId;
+        loadedDraftIdRef.current = activeUrlId;
         setShipmentId(draft.id);
         setLoadId(draft.auto_id);
         const stateAvail = draft.wizard_state?.availability_id;
-        if (typeof stateAvail === 'number' && stateAvail > 0) {
+        if (!isEditMode && typeof stateAvail === 'number' && stateAvail > 0) {
           setAvailabilityId(stateAvail);
-        } else {
+        } else if (!isEditMode) {
           setAvailabilityId(null);
         }
         setLoadedValues(mapped);
@@ -480,14 +573,21 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       .catch((err: unknown) => {
         if (cancelled) return;
         loadedDraftIdRef.current = null;
+        editSessionActiveRef.current = false;
         const message =
           err instanceof ApiError
             ? err.message
-            : tRef.current('draftLoadFailed') || 'Failed to load draft shipment.';
+            : isEditMode
+              ? tRef.current('editLoadFailed') || 'Failed to load shipment for editing.'
+              : tRef.current('draftLoadFailed') || 'Failed to load draft shipment.';
         setLoadError(message);
         showToastRef.current(message, 'error');
         setDraftLoaded(true);
-        navigate(buildWizardStepPath(1, null, availabilityId), { replace: true });
+        if (isEditMode) {
+          navigate('/shipments', { replace: true });
+        } else {
+          navigate(buildWizardStepPath(1, null, { availabilityId }), { replace: true });
+        }
       })
       .finally(() => {
         if (!cancelled) {
@@ -498,9 +598,15 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     return () => {
       cancelled = true;
     };
-  }, [draftUrlId, defaultValues, navigate, searchParams]);
+  }, [activeUrlId, availabilityId, defaultValues, isEditMode, navigate, searchParams]);
 
   const ensureDraftId = useCallback(async (): Promise<number> => {
+    if (isEditMode) {
+      if (!shipmentId) {
+        throw new Error('Edit shipment id is required.');
+      }
+      return shipmentId;
+    }
     if (shipmentId) return shipmentId;
     const draft = await createShipmentService.createDraft(
       availabilityId ? { availability_id: availabilityId } : undefined
@@ -509,9 +615,24 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     setShipmentId(draft.id);
     setLoadId(draft.auto_id);
     loadedDraftIdRef.current = String(draft.id);
-    navigate(buildWizardStepPath(step, draft.id), { replace: true });
+    navigate(buildWizardStepPath(step, draft.id, { availabilityId, editMode: false }), {
+      replace: true,
+    });
     return draft.id;
-  }, [availabilityId, navigate, shipmentId, step]);
+  }, [availabilityId, isEditMode, navigate, shipmentId, step]);
+
+  const cancelEditSession = useCallback(async () => {
+    if (!isEditMode || !shipmentId || !editSessionActiveRef.current) {
+      return;
+    }
+    try {
+      await editShipmentService.cancelEdit(shipmentId);
+    } catch {
+      // Best-effort discard; user may already have applied/cancelled.
+    } finally {
+      editSessionActiveRef.current = false;
+    }
+  }, [isEditMode, shipmentId]);
 
   const saveStep1 = useCallback(
     async (values: WizardFormValues, mode: 'partial' | 'complete') => {
@@ -519,7 +640,9 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       try {
         const id = await ensureDraftId();
         const payload = formValuesToStepOnePayload(values, mode, availabilityId);
-        const draft = await createShipmentService.saveStepOne(id, payload);
+        const draft = isEditMode
+          ? await editShipmentService.saveEditStepOne(id, payload)
+          : await createShipmentService.saveStepOne(id, payload);
         applyDraftSnapshot(draft, values);
         if (mode === 'complete') {
           syncUrl(2, draft.id);
@@ -531,7 +654,9 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         showToast(
           mode === 'complete'
             ? t('step1SavedSuccess') || 'Step 1 saved successfully.'
-            : t('draftSavedSuccess') || 'Draft saved successfully.',
+            : isEditMode
+              ? t('editSavedSuccess') || 'Changes saved successfully.'
+              : t('draftSavedSuccess') || 'Draft saved successfully.',
           'success'
         );
         return draft;
@@ -544,7 +669,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setIsSaving(false);
       }
     },
-    [applyDraftSnapshot, availabilityId, ensureDraftId, showToast, syncUrl, t]
+    [applyDraftSnapshot, availabilityId, ensureDraftId, isEditMode, showToast, syncUrl, t]
   );
 
   const saveStep2 = useCallback(
@@ -580,7 +705,9 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
           },
           mode
         );
-        const draft = await createShipmentService.saveStepTwo(id, payload);
+        const draft = isEditMode
+          ? await editShipmentService.saveEditStepTwo(id, payload)
+          : await createShipmentService.saveStepTwo(id, payload);
         applyDraftSnapshot(draft, valuesWithRoute);
         if (mode === 'complete') {
           syncUrl(3, draft.id);
@@ -591,7 +718,9 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         showToast(
           mode === 'complete'
             ? t('step2SavedSuccess') || 'Step 2 saved successfully.'
-            : t('draftSavedSuccess') || 'Draft saved successfully.',
+            : isEditMode
+              ? t('editSavedSuccess') || 'Changes saved successfully.'
+              : t('draftSavedSuccess') || 'Draft saved successfully.',
           'success'
         );
         return draft;
@@ -610,7 +739,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setIsSaving(false);
       }
     },
-    [applyDraftSnapshot, ensureDraftId, showToast, syncUrl, t]
+    [applyDraftSnapshot, ensureDraftId, isEditMode, showToast, syncUrl, t]
   );
 
   const saveStep3 = useCallback(
@@ -659,14 +788,18 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         }
 
         const payload = formValuesToStepThreePayload(values, mode);
-        const draft = await createShipmentService.saveStepThree(id, payload);
+        const draft = isEditMode
+          ? await editShipmentService.saveEditStepThree(id, payload)
+          : await createShipmentService.saveStepThree(id, payload);
         // Preserve Step 1/2 vehicle + stops from the live form (never wipe on Step 3 save).
         applyDraftSnapshot(draft, values);
         syncUrl(3, draft.id);
         showToast(
           mode === 'complete'
             ? t('step3SavedSuccess') || 'Step 3 saved successfully.'
-            : t('draftSavedSuccess') || 'Draft saved successfully.',
+            : isEditMode
+              ? t('editSavedSuccess') || 'Changes saved successfully.'
+              : t('draftSavedSuccess') || 'Draft saved successfully.',
           'success'
         );
         return draft;
@@ -682,7 +815,7 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setIsSaving(false);
       }
     },
-    [applyDraftSnapshot, ensureDraftId, showToast, syncUrl, t]
+    [applyDraftSnapshot, ensureDraftId, isEditMode, showToast, syncUrl, t]
   );
 
   const publishShipment = useCallback(
@@ -695,7 +828,11 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
           throw new Error('Invalid price');
         }
       }
-      if (values.broadcastType === 'private' && (values.selectedCarriers || []).length < 1) {
+      if (
+        !isEditMode &&
+        values.broadcastType === 'private' &&
+        (values.selectedCarriers || []).length < 1
+      ) {
         showToast(t('selectCarrierRequired') || 'Please select at least one carrier.', 'error');
         throw new Error('No carriers selected');
       }
@@ -728,6 +865,17 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
           }
         }
 
+        if (isEditMode) {
+          await editShipmentService.saveEditStepThree(
+            id,
+            formValuesToStepThreePayload(values, 'complete')
+          );
+          const applied = await editShipmentService.applyEdit(id);
+          editSessionActiveRef.current = false;
+          showToast(t('shipmentUpdatedSuccess') || 'Shipment updated successfully!', 'success');
+          return applied;
+        }
+
         await createShipmentService.saveStepThree(id, formValuesToStepThreePayload(values, 'complete'));
         const published = await createShipmentService.publishDraft(id);
         showToast(t('shipmentCreatedSuccess') || 'Shipment created successfully!', 'success');
@@ -737,14 +885,18 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
           throw err;
         }
         const message =
-          err instanceof ApiError ? err.message : t('publishFailed') || 'Failed to publish shipment.';
+          err instanceof ApiError
+            ? err.message
+            : isEditMode
+              ? t('updateFailed') || 'Failed to update shipment.'
+              : t('publishFailed') || 'Failed to publish shipment.';
         showToast(message, 'error');
         throw err;
       } finally {
         setIsSaving(false);
       }
     },
-    [ensureDraftId, showToast, t]
+    [ensureDraftId, isEditMode, showToast, t]
   );
 
   return {
@@ -758,14 +910,20 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
     draftLoaded,
     loadedValues,
     defaultValues,
+    isEditMode,
+    lockedStopIds,
+    editBlocked,
     goToStep,
     saveStep1,
     saveStep2,
     saveStep3,
     publishShipment,
+    cancelEditSession,
     setLoadId,
     stepNavigationError,
     validationRequest,
     formikEpoch,
   };
 }
+
+export { resolveLineShipmentLocationId };

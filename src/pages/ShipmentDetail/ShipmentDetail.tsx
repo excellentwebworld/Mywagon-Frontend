@@ -603,9 +603,9 @@ export const ShipmentDetail: React.FC = () => {
           onCopyId={() => handleCopy(vm.displayId)}
           onEdit={() => {
             if (vm.status === 'draft') {
-              navigate(`/create-shipment?draftId=${vm.id}`);
+              navigate(`/shipments/create/step/1?id=${vm.id}`);
             } else {
-              navigate(`/create-shipment?editId=${vm.id}`);
+              navigate(`/shipments/create/step/1?editId=${vm.id}`);
             }
           }}
           onMessage={() => {

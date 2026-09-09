@@ -78,13 +78,21 @@ const T = {
 
 interface Step3PricingProps {
   draftId?: number | null;
+  isEditMode?: boolean;
   onBackStep: () => void;
   onSubmit: () => void;
   onSaveDraft?: (values: WizardFormValues) => Promise<void>;
   isSaving?: boolean;
 }
 
-export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBackStep, onSubmit, onSaveDraft, isSaving = false }) => {
+export const Step3Pricing: React.FC<Step3PricingProps> = ({
+  draftId = null,
+  isEditMode = false,
+  onBackStep,
+  onSubmit,
+  onSaveDraft,
+  isSaving = false,
+}) => {
   const { t, lang } = useTranslation();
   const { locations, showToast } = useApp();
   const { values, setFieldValue, isSubmitting } = useFormikContext<any>();
@@ -1854,7 +1862,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
             }}
             disabled={isSubmitting || isSaving}
           >
-            <Save size={13} /> {t('saveDraft') || 'Save Draft'}
+            <Save size={13} />{' '}
+            {isEditMode
+              ? t('saveChanges') || 'Save Changes'
+              : t('saveDraft') || 'Save Draft'}
           </button>
 
           <button
@@ -1871,8 +1882,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({ draftId = null, onBa
             {isSubmitting ? (
               <>
                 <Loader2 size={16} className="animate-spin" aria-hidden />
-                {t('creatingShipment') || 'Creating…'}
+                {isEditMode
+                  ? t('updatingShipment') || 'Updating…'
+                  : t('creatingShipment') || 'Creating…'}
               </>
+            ) : isEditMode ? (
+              t('updateLoadBtn') || 'Update Load'
             ) : (
               t('createLoadBtn') || 'Create Shipment'
             )}

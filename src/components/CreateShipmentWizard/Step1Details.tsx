@@ -144,6 +144,23 @@ interface Step1DetailsProps {
   onContinue: () => Promise<void>;
   isSaving?: boolean;
   validationRequest?: number;
+  lockedStopIds?: number[];
+  isEditMode?: boolean;
+}
+
+function resolveLineShipmentLocationId(line: {
+  shipmentLocationId?: number | string;
+  id?: string;
+}): number | null {
+  if (line.shipmentLocationId != null && line.shipmentLocationId !== '') {
+    const n = Number(line.shipmentLocationId);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  const match = String(line.id || '').match(/^loc-(\d+)$/);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  return null;
 }
 
 export const Step1Details: React.FC<Step1DetailsProps> = ({
@@ -151,10 +168,28 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   onContinue,
   isSaving = false,
   validationRequest = 0,
+  lockedStopIds = [],
+  isEditMode = false,
 }) => {
   const { t } = useTranslation();
   const { values, setFieldValue } = useFormikContext<any>();
   const stops = values.stops || [];
+  const lockedIdSet = useMemo(
+    () => new Set((lockedStopIds || []).map((id) => Number(id)).filter((id) => id > 0)),
+    [lockedStopIds]
+  );
+  const isLineLocked = useCallback(
+    (line: { shipmentLocationId?: number | string; id?: string }) => {
+      const locId = resolveLineShipmentLocationId(line);
+      return locId != null && lockedIdSet.has(locId);
+    },
+    [lockedIdSet]
+  );
+  const isStopLocked = useCallback(
+    (stop: { lines?: Array<{ shipmentLocationId?: number | string; id?: string }> }) =>
+      (stop.lines || []).some((line) => isLineLocked(line)),
+    [isLineLocked]
+  );
   const {
     orderOptions,
     fetchOrderDetail,
@@ -347,11 +382,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const delStop = useCallback(
     (sid: string) => {
+      const target = stops.find((s: any) => s.id === sid);
+      if (target && isStopLocked(target)) return;
       const n = stops.filter((s: any) => s.id !== sid);
       if (n.length < 2) return;
       setFieldValue("stops", n);
     },
-    [stops, setFieldValue],
+    [isStopLocked, stops, setFieldValue],
   );
 
   const dupStop = useCallback(
@@ -363,11 +400,14 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         id: makeId("s"),
         expanded: true,
       };
-      ns.lines = ns.lines.map((l: any) => ({
-        ...l,
-        id: makeId("l"),
-        mirrorOf: "",
-      }));
+      ns.lines = ns.lines.map((l: any) => {
+        const { shipmentLocationId: _loc, locationStatus: _st, driverId: _dr, ...rest } = l;
+        return {
+          ...rest,
+          id: makeId("l"),
+          mirrorOf: "",
+        };
+      });
       const idx = stops.findIndex((s: any) => s.id === sid);
       const out = [...stops];
       out.splice(idx + 1, 0, ns);
@@ -394,6 +434,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     (dropIdx: number) => {
       const dragIdx = draggingIdx;
       if (dragIdx === null || dragIdx === dropIdx) {
+        setDraggingIdx(null);
+        setDragOverIdx(null);
+        return;
+      }
+      if (isStopLocked(stops[dragIdx]) || isStopLocked(stops[dropIdx])) {
         setDraggingIdx(null);
         setDragOverIdx(null);
         return;
@@ -425,7 +470,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       setDraggingIdx(null);
       setDragOverIdx(null);
     },
-    [draggingIdx, stops, setFieldValue],
+    [draggingIdx, isStopLocked, stops, setFieldValue],
   );
 
   // ═══ LINE CRUD ═══
@@ -441,12 +486,15 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const delLine = useCallback(
     (sid: string, lid: string) => {
+      const stop = stops.find((s: any) => s.id === sid);
+      const line = stop?.lines?.find((l: any) => l.id === lid);
+      if (line && isLineLocked(line)) return;
       uStop(sid, (s: any) => ({
         ...s,
         lines: s.lines.filter((l: any) => l.id !== lid),
       }));
     },
-    [uStop],
+    [isLineLocked, stops, uStop],
   );
 
   const dupLine = useCallback(
@@ -454,7 +502,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       uStop(sid, (s: any) => {
         const src = s.lines.find((l: any) => l.id === lid);
         if (!src) return s;
-        const nl = { ...src, id: makeId("l"), mirrorOf: "" };
+        const { shipmentLocationId: _loc, locationStatus: _st, driverId: _dr, ...rest } = src;
+        const nl = { ...rest, id: makeId("l"), mirrorOf: "" };
         const idx = s.lines.findIndex((l: any) => l.id === lid);
         const lines = [...s.lines];
         lines.splice(idx + 1, 0, nl);
@@ -471,6 +520,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       fieldOrUpdates: string | Record<string, any>,
       val?: any,
     ) => {
+      const stop = stops.find((s: any) => s.id === sid);
+      const line = stop?.lines?.find((l: any) => l.id === lid);
+      if (line && isLineLocked(line)) return;
       uStop(sid, (s: any) => ({
         ...s,
         lines: s.lines.map((l: any) => {
@@ -482,7 +534,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         }),
       }));
     },
-    [uStop],
+    [isLineLocked, stops, uStop],
   );
 
   /** Keep order+product lines on every stop on the same qty unit (load balance end-to-end). */
@@ -707,10 +759,12 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const selLoc = useCallback(
     (sid: string, lid: string) => {
+      const stop = stops.find((s: any) => s.id === sid);
+      if (stop && isStopLocked(stop)) return;
       const l = abLocs.find((x) => String(x.id) === String(lid));
       if (l) applyLocationToStop(sid, l);
     },
-    [abLocs, applyLocationToStop],
+    [abLocs, applyLocationToStop, isStopLocked, stops],
   );
 
   const handleApplyCompany = useCallback(
@@ -1342,13 +1396,16 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           }}
         />
 
-        {stops.map((stop: any, idx: number) => (
+        {stops.map((stop: any, idx: number) => {
+          const stopLocked = isStopLocked(stop);
+          return (
           <div
             key={stop.id}
             className="relative mb-3 transition-opacity"
             style={{ opacity: draggingIdx === idx ? 0.4 : 1 }}
             data-validation-anchor={`stop-${idx}`}
             onDragOver={(e) => {
+              if (stopLocked) return;
               e.preventDefault();
               setDragOverIdx(idx);
             }}
@@ -1362,14 +1419,21 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                 style={{ position: "relative", zIndex: 1 }}
               >
                 <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold cursor-grab"
-                  draggable
-                  onDragStart={(e) => handleDragStart(idx, e)}
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                  draggable={!stopLocked}
+                  onDragStart={(e) => {
+                    if (stopLocked) {
+                      e.preventDefault();
+                      return;
+                    }
+                    handleDragStart(idx, e);
+                  }}
                   onDragEnd={handleDragEnd}
                   style={{
                     background: stop.expanded ? T.ac : T.sf,
                     color: stop.expanded ? "#fff" : T.t3,
                     border: `2px solid ${stop.expanded ? T.ac : T.bd}`,
+                    cursor: stopLocked ? "default" : "grab",
                   }}
                   onClick={() => toggleStop(stop.id)}
                 >
@@ -1551,7 +1615,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               locations={abLocs}
                               value={stop.locationId}
                               onChange={(lid) => selLoc(stop.id, lid)}
+                              disabled={stopLocked}
                               onCreateNew={() => {
+                                if (stopLocked) return;
                                 setPCtx((p: any) => ({ ...p, locS: stop.id }));
                                 setCreateStep(1);
                                 setCreateData({
@@ -1613,10 +1679,12 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                             <DatePicker
                               className="cs-stop-date-picker"
                               value={stop.dateFrom}
-                              onChange={(val) =>
-                                uStop(stop.id, { dateFrom: val })
-                              }
+                              onChange={(val) => {
+                                if (stopLocked) return;
+                                uStop(stop.id, { dateFrom: val });
+                              }}
                               min={todayStr}
+                              disabled={stopLocked}
                               hasError={isFieldInvalid(`stop-${idx}-date`, idx)}
                               direction="auto"
                             />
@@ -1627,9 +1695,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               )}
                               style={{ ...iS, width: 90 }}
                               value={stop.timeFrom}
-                              onChange={(val) =>
-                                uStop(stop.id, { timeFrom: val })
-                              }
+                              onChange={(val) => {
+                                if (stopLocked) return;
+                                uStop(stop.id, { timeFrom: val });
+                              }}
+                              disabled={stopLocked}
                             />
                           </div>
                         </div>
@@ -1646,18 +1716,22 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                             <DatePicker
                               className="cs-stop-date-picker"
                               value={stop.dateTo}
-                              onChange={(val) =>
-                                uStop(stop.id, { dateTo: val })
-                              }
+                              onChange={(val) => {
+                                if (stopLocked) return;
+                                uStop(stop.id, { dateTo: val });
+                              }}
                               min={stop.dateFrom || todayStr}
+                              disabled={stopLocked}
                               direction="auto"
                             />
                             <TimePicker
                               style={{ ...iS, width: 90 }}
                               value={stop.timeTo}
-                              onChange={(val) =>
-                                uStop(stop.id, { timeTo: val })
-                              }
+                              onChange={(val) => {
+                                if (stopLocked) return;
+                                uStop(stop.id, { timeTo: val });
+                              }}
+                              disabled={stopLocked}
                             />
                           </div>
                         </div>
@@ -1682,6 +1756,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         ordOpts={ordOpts}
                         orderDetailsById={orderDetailsById}
                         allStops={stops}
+                        isLineLocked={isLineLocked}
                         onClearOrder={(lid) => clearOrderLine(stop.id, lid)}
                         onAddLine={() => addLine(stop.id)}
                         onDelLine={(lid) => delLine(stop.id, lid)}
@@ -1731,6 +1806,14 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
                     {/* Footer Checkmark actions */}
                     <div className="flex justify-end items-center gap-2 px-4 pb-3">
+                      {stopLocked && (
+                        <span
+                          className="text-[10px] font-semibold uppercase px-2 py-1 rounded mr-auto"
+                          style={{ background: "#FEF3C7", color: "#92400E" }}
+                        >
+                          {t("stopLocked") || "In progress — locked"}
+                        </span>
+                      )}
                       <button
                         type="button"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-none text-white"
@@ -1747,7 +1830,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                       >
                         <Copy size={14} />
                       </button>
-                      {stops.length > 2 && (
+                      {stops.length > 2 && !stopLocked && (
                         <button
                           type="button"
                           className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer border-none shrink-0 transition-colors"
@@ -1763,7 +1846,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
 
         {/* Add Stop Button */}
         <div
@@ -1816,7 +1900,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
             <Save size={14} />{" "}
             {isSaving
               ? t("saving") || "Saving..."
-              : t("saveDraft") || "Save Draft"}
+              : isEditMode
+                ? t("saveChanges") || "Save Changes"
+                : t("saveDraft") || "Save Draft"}
           </button>
           {lastSaved && (
             <span className="text-[10px]" style={{ color: T.t3 }}>
@@ -2089,6 +2175,7 @@ interface CargoTableProps {
     import("../../pages/ErpOrders/types").ErpOrder
   >;
   allStops: any[];
+  isLineLocked?: (line: any) => boolean;
   onAddLine: () => void;
   onDelLine: (lid: string) => void;
   onDupLine: (lid: string) => void;
@@ -2116,6 +2203,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
   ordOpts,
   orderDetailsById,
   allStops,
+  isLineLocked,
   onAddLine,
   onDelLine,
   onDupLine,
@@ -2209,6 +2297,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
             {(stop.lines || []).map((ln: any, li: number) => {
               const indicators = getGoodsIndicators(ln.productId);
               const isLast = li === stop.lines.length - 1;
+              const lineLocked = Boolean(isLineLocked?.(ln));
               const orderDetail = ln.orderId
                 ? orderDetailsById[ln.orderId]
                 : undefined;
@@ -2235,7 +2324,9 @@ const CargoTable: React.FC<CargoTableProps> = ({
               return (
                 <tr
                   key={ln.id}
-                  style={{ background: ln.mirrorOf ? T.sa : "transparent" }}
+                  style={{
+                    background: ln.mirrorOf ? T.sa : lineLocked ? "#FFFBEB" : "transparent",
+                  }}
                 >
                   <td
                     style={tdS}
@@ -2573,14 +2664,16 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       >
                         <Copy size={10} />
                       </button>
-                      <button
-                        type="button"
-                        className="w-5 h-5 rounded flex items-center justify-center cursor-pointer border-none"
-                        style={{ background: "transparent", color: T.t3 }}
-                        onClick={() => onDelLine(ln.id)}
-                      >
-                        <X size={11} />
-                      </button>
+                      {!lineLocked && (
+                        <button
+                          type="button"
+                          className="w-5 h-5 rounded flex items-center justify-center cursor-pointer border-none"
+                          style={{ background: "transparent", color: T.t3 }}
+                          onClick={() => onDelLine(ln.id)}
+                        >
+                          <X size={11} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

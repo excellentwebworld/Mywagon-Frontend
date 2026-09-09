@@ -41,16 +41,24 @@ const validationSchema = Yup.object().shape({
     .optional(),
 });
 
-function stepTitle(step: number, t: (key: string) => string) {
+function stepTitle(step: number, t: (key: string) => string, isEditMode: boolean) {
   if (step === 2) return t('step2Title') || 'Review Itinerary & Stats';
-  if (step === 3) return t('vehicleAndPricing') || 'Vehicle & Pricing options';
-  return t('step1Title') || 'Create Load';
+  if (step === 3) {
+    return isEditMode
+      ? t('editVehicleAndPricing') || 'Vehicle & Pricing options'
+      : t('vehicleAndPricing') || 'Vehicle & Pricing options';
+  }
+  return isEditMode
+    ? t('editLoadTitle') || 'Edit Load'
+    : t('step1Title') || 'Create Load';
 }
 
-function stepSubtitle(step: number, t: (key: string) => string) {
+function stepSubtitle(step: number, t: (key: string) => string, isEditMode: boolean) {
   if (step === 2) return t('step2Sub') || 'Review your stops and itinerary before proceeding.';
   if (step === 3) return t('vehiclePricingSub') || 'Choose vehicle type, target price, and tracking options.';
-  return t('step1Sub') || 'Add stops and cargo details';
+  return isEditMode
+    ? t('editLoadSub') || 'Update stops and cargo details'
+    : t('step1Sub') || 'Add stops and cargo details';
 }
 
 function StepSkeleton({ step }: { step: number }) {
@@ -77,11 +85,15 @@ export const CreateShipmentWizardLayout: React.FC = () => {
     draftLoaded,
     loadedValues,
     defaultValues,
+    isEditMode,
+    lockedStopIds,
+    editBlocked,
     goToStep,
     saveStep1,
     saveStep2,
     saveStep3,
     publishShipment,
+    cancelEditSession,
     stepNavigationError,
     validationRequest,
     formikEpoch,
@@ -146,13 +158,29 @@ export const CreateShipmentWizardLayout: React.FC = () => {
       shipmentId,
       isSaving,
       validationRequest,
+      isEditMode,
+      lockedStopIds,
+      editBlocked,
       goToStep,
       saveStep1,
       saveStep2,
       saveStep3,
+      cancelEditSession,
       resetItineraryConfirmationRef,
     }),
-    [shipmentId, isSaving, validationRequest, goToStep, saveStep1, saveStep2, saveStep3]
+    [
+      shipmentId,
+      isSaving,
+      validationRequest,
+      isEditMode,
+      lockedStopIds,
+      editBlocked,
+      goToStep,
+      saveStep1,
+      saveStep2,
+      saveStep3,
+      cancelEditSession,
+    ]
   );
 
   const header = (
@@ -161,12 +189,12 @@ export const CreateShipmentWizardLayout: React.FC = () => {
         <div>
           <div className="tut-title-with-trigger">
             <h1 className="ph-t" style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>
-              {stepTitle(step, t)}
+              {stepTitle(step, t, isEditMode)}
             </h1>
-            <ContextualTutorialTrigger tutorialKey="createShipment" />
+            {!isEditMode && <ContextualTutorialTrigger tutorialKey="createShipment" />}
           </div>
           <p className="ph-s" style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-            {stepSubtitle(step, t)}
+            {stepSubtitle(step, t, isEditMode)}
           </p>
         </div>
       </div>

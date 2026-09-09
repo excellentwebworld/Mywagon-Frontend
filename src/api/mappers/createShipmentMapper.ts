@@ -201,6 +201,11 @@ export function formValuesToStepOnePayload(
       ...line,
       unit: normalizeQtyUnit(line.unit) || line.unit || 'EUR Pallets',
       wtUnit: normalizeWeightUnit(line.wtUnit),
+      ...(line.shipmentLocationId != null
+        ? { shipmentLocationId: Number(line.shipmentLocationId) }
+        : {}),
+      ...(line.locationStatus != null ? { locationStatus: String(line.locationStatus) } : {}),
+      ...(line.driverId !== undefined ? { driverId: line.driverId } : {}),
     })),
   }));
 
@@ -236,6 +241,13 @@ export function draftToFormValues(
                   ...line,
                   unit: normalizeQtyUnit(line.unit) || line.unit || 'EUR Pallets',
                   wtUnit: normalizeWeightUnit(line.wtUnit),
+                  ...(line.shipmentLocationId != null
+                    ? { shipmentLocationId: Number(line.shipmentLocationId) }
+                    : {}),
+                  ...(line.locationStatus != null
+                    ? { locationStatus: String(line.locationStatus) }
+                    : {}),
+                  ...(line.driverId !== undefined ? { driverId: line.driverId } : {}),
                 }))
               : [createNewCargoLine()],
         }))
@@ -268,7 +280,10 @@ export function draftToFormValues(
     selectedCarriers: (state.selectedCarriers ?? defaults.selectedCarriers)
       .map((id) => String(id))
       .filter((id) => /^\d+$/.test(id)),
-    targetPrice: state.targetPrice ?? defaults.targetPrice,
+    targetPrice:
+      state.targetPrice != null && state.targetPrice !== ''
+        ? String(state.targetPrice)
+        : defaults.targetPrice,
     negotiable: state.negotiable ?? defaults.negotiable,
     trackingEmails: normalizeTrackingEmails(
       state.trackingEmails ?? defaults.trackingEmails,

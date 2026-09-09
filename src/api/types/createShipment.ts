@@ -13,6 +13,10 @@ export interface ApiCargoLine {
   weight?: string | number;
   wtUnit?: string;
   mirrorOf?: string;
+  /** Live shipment_location id when editing a published load */
+  shipmentLocationId?: number;
+  locationStatus?: string;
+  driverId?: number | null;
 }
 
 export interface ApiStop {
@@ -56,8 +60,8 @@ export interface ApiWizardState {
   vehicleSpecs?: Record<string, string[]>;
   vehicleSelectionConfirmed?: boolean;
   broadcastType?: 'private' | 'public';
-  selectedCarriers?: string[];
-  targetPrice?: string;
+  selectedCarriers?: string[] | number[];
+  targetPrice?: string | number;
   trackingEmails?: Record<string, string[]>;
   driverNotes?: string;
   notesList?: Array<{ id: string | number; text: string; visibility: 'internal' | 'carrier'; date: string }>;
@@ -65,6 +69,8 @@ export interface ApiWizardState {
   gpsRequired?: boolean;
   negotiable?: boolean;
   orderValue?: string;
+  /** Present when wizard_state was seeded for published edit */
+  editMode?: boolean;
 }
 
 export interface ApiDraftShipment {
@@ -75,6 +81,22 @@ export interface ApiDraftShipment {
   wizard_state: ApiWizardState;
   status: string;
   updated_at?: string;
+}
+
+export interface ApiEditShipment extends ApiDraftShipment {
+  locked_stop_ids: number[];
+  edit_blocked: boolean;
+  edit_blocked_reason: string | null;
+  is_being_edited: boolean;
+  has_pending_update: boolean;
+}
+
+export interface ApplyEditShipmentResponse {
+  id: number;
+  auto_id: string;
+  status: string;
+  is_being_edited: boolean;
+  has_updated_itinerary: boolean;
 }
 
 export interface SaveStepOnePayload {

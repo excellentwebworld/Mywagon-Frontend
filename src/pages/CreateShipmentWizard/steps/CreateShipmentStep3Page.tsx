@@ -7,11 +7,13 @@ import type { WizardOutletContext } from '../wizardOutletContext';
 
 export const CreateShipmentStep3Page: React.FC = () => {
   const { submitForm } = useFormikContext<WizardFormValues>();
-  const { shipmentId, isSaving, goToStep, saveStep3 } = useOutletContext<WizardOutletContext>();
+  const { shipmentId, isSaving, goToStep, saveStep3, isEditMode } =
+    useOutletContext<WizardOutletContext>();
 
   return (
     <Step3Pricing
       draftId={shipmentId}
+      isEditMode={isEditMode}
       onBackStep={() => goToStep(2)}
       onSubmit={submitForm}
       onSaveDraft={async (currentValues) => {
