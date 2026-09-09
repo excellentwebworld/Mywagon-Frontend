@@ -126,7 +126,6 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
   );
 
   const [emails, setEmails] = useState<Record<string | number, string[]>>({});
-  const [copied, setCopied] = useState(false);
   const [copiedRowId, setCopiedRowId] = useState<string | number | null>(null);
 
   useEffect(() => {
@@ -136,7 +135,6 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
       initial[r.id] = [...r.defaultEmails];
     });
     setEmails(initial);
-    setCopied(false);
     setCopiedRowId(null);
   }, [open, deliveryRows]);
 
@@ -209,33 +207,11 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
     }
   };
 
-
-  const handleCopyLink = async () => {
-    if (!trackingUrl) {
-      onToast?.(
-        t('trackingLinkUnavailable', 'Tracking link is not available yet.'),
-        'error'
-      );
-      return;
-    }
-
-    const ok = await copyTextToClipboard(trackingUrl);
-    if (ok) {
-      setCopied(true);
-      onToast?.(t('trackingLinkCopied', 'Tracking link copied'), 'success');
-      window.setTimeout(() => setCopied(false), 2000);
-    } else {
-      onToast?.(t('trackingLinkCopyFailed', 'Failed to copy tracking link'), 'error');
-    }
-  };
-
   const handleSubmit = () => {
     if (onSend) onSend(emails);
   };
 
-  const hasAnyTrackingUrl = Boolean(trackingUrl || deliveryRows.some((r) => r.trackingUrl));
-  const showCopy = Boolean(isPickedUp || hasAnyTrackingUrl);
-  const showFooter = !isReadOnly || (showCopy && deliveryRows.length <= 1);
+  const showFooter = !isReadOnly;
   // Label already includes "+" in locale — use text without icon, or strip leading "+"
   const addEmailLabel = String(t('addEmail', 'Add email')).replace(/^\+\s*/, '');
 
@@ -414,28 +390,6 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
 
         {showFooter && (
           <div className="mv-modal-footer flex items-center justify-center gap-3 px-6 py-4 border-t border-[var(--border)]">
-
-            {showCopy && deliveryRows.length <= 1 && (
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                disabled={!trackingUrl}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border cursor-pointer transition-colors ${
-                  copied
-                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-                    : trackingUrl
-                      ? 'border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 dark:border-purple-700 dark:bg-purple-950/40 dark:text-purple-300'
-                      : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed dark:border-slate-700 dark:bg-slate-800'
-                }`}
-                title={t('copyTrackingLink', 'Copy tracking link')}
-              >
-                {copied ? <Check size={15} /> : <Copy size={15} />}
-                {copied
-                  ? t('trackingLinkCopied', 'Copied')
-                  : t('copyLink', 'Copy link')}
-              </button>
-            )}
-
             {!isReadOnly && (
               <button
                 type="button"
