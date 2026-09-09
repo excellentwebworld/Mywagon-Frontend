@@ -300,6 +300,7 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     riskReason: item.risk_reason ?? null,
     needsAction: flags?.needs_action ?? item.needs_action,
     awaitingResponse: flags?.awaiting_response ?? item.awaiting_response,
+    upcoming: Boolean(flags?.upcoming ?? item.upcoming),
     pickupToday: Boolean(flags?.pickup_today ?? item.pickup_today),
     awaitingPod: Boolean(flags?.awaiting_pod ?? item.awaiting_pod),
     negotiable: item.negotiable ?? true,

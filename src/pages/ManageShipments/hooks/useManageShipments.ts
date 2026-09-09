@@ -52,6 +52,7 @@ export function useManageShipments() {
     if (
       raw === 'needs_action' ||
       raw === 'awaiting_response' ||
+      raw === 'upcoming' ||
       raw === 'at_risk' ||
       raw === 'pickup_today' ||
       raw === 'awaiting_pod'
@@ -282,6 +283,7 @@ export function useManageShipments() {
     const kpiFromUrl: KpiKey | null =
       kpiRaw === 'needs_action' ||
       kpiRaw === 'awaiting_response' ||
+      kpiRaw === 'upcoming' ||
       kpiRaw === 'at_risk' ||
       kpiRaw === 'pickup_today' ||
       kpiRaw === 'awaiting_pod'

@@ -108,6 +108,7 @@ export const SORT_OPTIONS: { value: SortKey; labelKey: string }[] = [
 export const EMPTY_KPI_COUNTS: Record<ShipmentKpiKey, number> = {
   needs_action: 0,
   awaiting_response: 0,
+  upcoming: 0,
   at_risk: 0,
   pickup_today: 0,
   awaiting_pod: 0,
@@ -116,6 +117,7 @@ export const EMPTY_KPI_COUNTS: Record<ShipmentKpiKey, number> = {
 const KPI_LABEL_KEYS: Record<ShipmentKpiKey, string> = {
   needs_action: 'needsActionLabel',
   awaiting_response: 'awaitingResponse',
+  upcoming: 'upcoming',
   at_risk: 'atRiskLate',
   pickup_today: 'pickupToday',
   awaiting_pod: 'awaitingPod',

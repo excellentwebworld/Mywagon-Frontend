@@ -88,7 +88,9 @@
   padding-bottom: 0;
   flex: 1 1 auto;
   min-width: 0;
+  width: 100%;
   gap: 6px;
+  overflow-x: visible;
 }
 .list-toolbar--with-kpis {
   display: flex;
@@ -97,12 +99,23 @@
   flex-wrap: wrap;
 }
 .list-toolbar--with-kpis .f-search {
-  flex: 0 1 260px;
+  flex: 0 1 220px;
 }
 .list-toolbar-kpis {
-  flex: 1 1 280px;
+  flex: 1 1 360px;
   min-width: 0;
   overflow-x: auto;
+  overflow-y: hidden;
+  /* Keep classic scrollbars below the chips so they never cut through card content */
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+.list-toolbar-kpis::-webkit-scrollbar {
+  height: 4px;
+}
+.list-toolbar-kpis::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
 }
 .list-toolbar-actions {
   display: flex;
@@ -124,14 +137,19 @@
   overflow: hidden;
 }
 .mgmt-kpi--compact {
-  min-width: 96px;
-  padding: 8px 10px;
+  /* Share the toolbar row evenly so 6 KPIs fit without a mid-card scrollbar */
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 8px 8px;
 }
 .mgmt-kpi--compact .mgmt-kpi-v {
   font-size: 16px;
 }
 .mgmt-kpi--compact .mgmt-kpi-l {
   font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .mgmt-kpi::after {
   content: "";

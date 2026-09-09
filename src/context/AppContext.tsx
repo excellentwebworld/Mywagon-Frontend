@@ -231,6 +231,7 @@ export interface Shipment {
   riskReason?: string | null;
   needsAction?: boolean;
   awaitingResponse?: boolean;
+  upcoming?: boolean;
   pickupToday?: boolean;
   awaitingPod?: boolean;
   bidsReceived?: number;

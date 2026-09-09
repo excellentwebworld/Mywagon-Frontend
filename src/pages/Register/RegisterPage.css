@@ -1,0 +1,178 @@
+.shipper-register-progress {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.shipper-register-step-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f1f41;
+  margin: 0 0 16px;
+  text-align: center;
+}
+
+.shipper-register-step {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shipper-register-step--center {
+  text-align: center;
+  align-items: center;
+}
+
+.shipper-register-phone-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.shipper-register-cc {
+  flex: 0 0 140px;
+  max-width: 140px;
+}
+
+.shipper-register-cc-select {
+  width: 100%;
+  font-size: 13px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.shipper-register-phone-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.shipper-register-otp {
+  width: 100%;
+  margin: 12px 0;
+}
+
+.shipper-register-otp-boxes {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.shipper-register-otp-box {
+  width: 42px;
+  height: 48px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #1f1f41;
+  outline: none;
+}
+
+.shipper-register-otp-box:focus {
+  border-color: #9b51e0;
+  box-shadow: 0 0 0 3px rgba(155, 81, 224, 0.16);
+}
+
+.shipper-register-otp-box.is-verified {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.shipper-register-otp-box.is-error {
+  border-color: #dc2626;
+}
+
+.shipper-register-hint {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 4px;
+}
+
+.shipper-register-target {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f1f41;
+  margin: 0 0 8px;
+  word-break: break-all;
+}
+
+.shipper-register-verified {
+  color: #16a34a;
+  font-weight: 600;
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+
+.shipper-register-resend {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 8px 0 0;
+}
+
+.shipper-register-link-btn {
+  background: none;
+  border: none;
+  color: #9b51e0;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.shipper-register-link-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shipper-register-field-hint {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 6px 0 0;
+}
+
+.shipper-register-hold-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f1f41;
+  margin: 0 0 8px;
+}
+
+.shipper-register-nav {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+.shipper-register-back-btn {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  color: #1f1f41;
+}
+
+.shipper-register-back-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shipper-register-nav .shipper-login-submit-wrap {
+  flex: 1;
+  margin: 0;
+}
+
+.shipper-register-nav .shipper-login-submit-btn {
+  width: 100%;
+}

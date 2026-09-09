@@ -120,6 +120,7 @@ export const shipmentsService = {
         kpis: {
           needs_action: 0,
           awaiting_response: 0,
+          upcoming: 0,
           at_risk: 0,
           pickup_today: 0,
           awaiting_pod: 0,
