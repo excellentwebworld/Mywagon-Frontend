@@ -14,6 +14,7 @@ import { DESKTOP_SIDEBAR_QUERY, useMediaQuery } from '../../hooks/useMediaQuery'
 import { useFcm, type FcmNotificationPayload } from '../../hooks/useFcm';
 import { useGlobalChatSocket } from '../../hooks/useGlobalChatSocket';
 import { RealtimeNotificationToast, type PushNotificationData } from '../notifications/RealtimeNotificationToast';
+import { InfoFormReminderModal } from './InfoFormReminderModal';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
 
@@ -176,6 +177,8 @@ export const AppLayout: React.FC = () => {
         notification={activePushNotif}
         onDismiss={() => setActivePushNotif(null)}
       />
+
+      <InfoFormReminderModal />
     </div>
     </TransporterProfileProvider>
     </UserMgmtProvider>

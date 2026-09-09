@@ -1133,6 +1133,12 @@
     "personal": "Personal info",
     "performanceReviews": "Performance & reviews",
     "organization": "Organization",
+    "infoFormReminder": {
+      "title": "Complete your profile",
+      "body": "Fill out the remaining fields to complete your profile! This will help MYVAGON provide better services.",
+      "skip": "Skip",
+      "yes": "Yes"
+    },
     "accountType": "Account type",
     "usersRoles": "Users & roles",
     "security": "Security",
@@ -1328,6 +1334,8 @@
       "saveError": "Failed to save organization settings",
       "saved": "Organization settings saved",
       "companyInfoGateBanner": "Complete your company address (street, city, and postal code) to continue using the panel.",
+      "infoFormGateBanner": "Complete your company operations information to continue using the panel.",
+      "infoFormRequiredError": "Please answer all required operations questions before saving.",
       "completion": {
         "title": "Operations profile completion",
         "subtitle": "{{answered}} of {{total}} questions answered"

@@ -9,6 +9,10 @@ import {
   needsCompanyInfoGate,
   needsKycGate,
 } from '../../hooks/useKycGate';
+import {
+  isInfoFormAllowedPath,
+  needsInfoFormHardGate,
+} from '../../hooks/useInfoFormGate';
 import { MyVagonBootScreen } from '../ui/MyVagonLoader';
 
 interface ProtectedRouteProps {
@@ -52,6 +56,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (needsCompanyInfoGate(user) && !isKycGateAllowedPath(location.pathname)) {
     return <Navigate to="/settings/organization?from=company_info" replace />;
+  }
+
+  if (needsInfoFormHardGate(user) && !isInfoFormAllowedPath(location.pathname)) {
+    return <Navigate to="/settings/organization?from=info_form" replace />;
   }
 
   return <>{children}</>;

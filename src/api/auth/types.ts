@@ -25,6 +25,13 @@ export interface ShipperUser {
   has_past_due?: boolean;
   /** Parent shipper has address + city + postal_code (Laravel ShipperKycCheck parity). */
   company_address_complete?: boolean;
+  /** Parent FormAnswer mandatory set completed (PDS-955 Phase 5). */
+  info_form_mandatory_completed?: boolean;
+  info_form_completion_percentage?: number;
+  /** Past 1 month + completion ≤ 90% (hard gate). */
+  info_form_enforce?: boolean;
+  /** Within first month, mandatory done, completion < 100% (soft reminder). */
+  info_form_soft_reminder?: boolean;
   referral_code?: string | null;
 }
 

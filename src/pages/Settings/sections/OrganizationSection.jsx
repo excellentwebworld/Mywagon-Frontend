@@ -14,6 +14,7 @@ import {
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { useAuth } from '../../../context/AuthContext';
+import { needsInfoFormHardGate } from '../../../hooks/useInfoFormGate';
 import { organizationSettingsService } from '../../../api/services/organizationSettingsService';
 import { ContextualTutorialTrigger } from '../../../components/Tutorials';
 import '../../../styles/tutorials.css';
@@ -21,6 +22,13 @@ import '../../../styles/tutorials.css';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_INVOICE_EMAILS = 5;
 const BRANDING_OPS_KEY = 'company_description';
+
+function isOpsValueFilled(field, value) {
+  if (field.type === 'multi') {
+    return Array.isArray(value) && value.length > 0;
+  }
+  return value != null && String(value).trim() !== '';
+}
 
 export default function OrganizationSection() {
   const { t } = useTranslation();
@@ -31,6 +39,8 @@ export default function OrganizationSection() {
   const fromCompanyInfo =
     searchParams.get('from') === 'company_info' ||
     (user?.kyc_status === 'accepted' && user?.company_address_complete === false);
+  const fromInfoForm =
+    searchParams.get('from') === 'info_form' || needsInfoFormHardGate(user);
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -49,6 +59,7 @@ export default function OrganizationSection() {
   const [emailInput, setEmailInput] = useState('');
   const logoInputRef = useRef(null);
   const companyInfoOpenedRef = useRef(false);
+  const infoFormOpenedRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -109,6 +120,13 @@ export default function OrganizationSection() {
     setEditingOps(true);
   };
 
+  useEffect(() => {
+    if (!fromInfoForm || !data || infoFormOpenedRef.current || editingOps || opsFields.length === 0) return;
+    infoFormOpenedRef.current = true;
+    startOpsEdit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open once when gate lands
+  }, [fromInfoForm, data, opsFields]);
+
   const startBrandEdit = () => {
     setBrandDraft({
       public_profile: !!data.branding.public_profile,
@@ -163,12 +181,27 @@ export default function OrganizationSection() {
   };
 
   const saveOps = async () => {
+    if (fromInfoForm) {
+      const missingRequired = opsFields.some(
+        (field) => field.required && !isOpsValueFilled(field, opsDraft[field.key])
+      );
+      if (missingRequired) {
+        toast.error(
+          t(
+            'settings.orgSection.infoFormRequiredError',
+            'Please answer all required operations questions before saving.'
+          )
+        );
+        return;
+      }
+    }
     setSavingOps(true);
     try {
       const payload = await organizationSettingsService.update({ operations: opsDraft });
       applyPayload(payload);
       setEditingOps(false);
       toast.success(t('settings.orgSection.saved'));
+      await refreshUser().catch(() => {});
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('settings.orgSection.saveError'));
     } finally {
@@ -248,6 +281,21 @@ export default function OrganizationSection() {
             {t(
               'settings.orgSection.companyInfoGateBanner',
               'Complete your company address (street, city, and postal code) to continue using the panel.'
+            )}
+          </div>
+        </div>
+      )}
+
+      {fromInfoForm && !fromCompanyInfo && (
+        <div
+          className="rounded-xl px-4 py-3 flex items-start gap-3"
+          style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}
+        >
+          <AlertTriangle size={18} style={{ color: '#B45309', marginTop: 2, flexShrink: 0 }} />
+          <div style={{ fontSize: 13, color: '#92400E', lineHeight: 1.45 }}>
+            {t(
+              'settings.orgSection.infoFormGateBanner',
+              'Complete your company operations information to continue using the panel.'
             )}
           </div>
         </div>
