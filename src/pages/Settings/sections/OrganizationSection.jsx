@@ -23,7 +23,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_INVOICE_EMAILS = 5;
 const BRANDING_OPS_KEY = 'company_description';
 
-const MANDATORY_OPS_KEYS = new Set([
+const MANDATORY_OPS_ORDER = [
   'company_type',
   'product_types',
   'daily_loads',
@@ -33,7 +33,9 @@ const MANDATORY_OPS_KEYS = new Set([
   'number_of_direct_partners',
   'top_challenges',
   'myvagon_goals',
-]);
+];
+
+const MANDATORY_OPS_KEYS = new Set(MANDATORY_OPS_ORDER);
 
 function isMandatoryField(field) {
   if (!field) return false;
@@ -99,9 +101,34 @@ export default function OrganizationSection() {
     setData(payload);
   };
 
-  const opsFields = useMemo(() => {
-    const fields = data?.operations_meta?.fields ?? [];
-    return fields.filter((f) => f.key !== BRANDING_OPS_KEY);
+  const { mandatoryOpsFields, optionalOpsFields, opsFields } = useMemo(() => {
+    const fields = (data?.operations_meta?.fields ?? []).filter((f) => f.key !== BRANDING_OPS_KEY);
+
+    const mandatory = [];
+    const optional = [];
+
+    for (const field of fields) {
+      if (isMandatoryField(field)) {
+        mandatory.push(field);
+      } else {
+        optional.push(field);
+      }
+    }
+
+    mandatory.sort((a, b) => {
+      const idxA = MANDATORY_OPS_ORDER.indexOf(a.key);
+      const idxB = MANDATORY_OPS_ORDER.indexOf(b.key);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return 0;
+    });
+
+    return {
+      mandatoryOpsFields: mandatory,
+      optionalOpsFields: optional,
+      opsFields: [...mandatory, ...optional],
+    };
   }, [data]);
 
   const startLegalEdit = () => {
@@ -531,17 +558,109 @@ export default function OrganizationSection() {
           {opsFields.length === 0 ? (
             <div style={{ fontSize: 13, color: T.t3 }}>{t('settings.orgSection.operational.empty')}</div>
           ) : (
-            <div className="space-y-4">
-              {opsFields.map((field) => (
-                <OpsField
-                  key={field.key}
-                  field={field}
-                  value={editingOps ? opsDraft[field.key] : data.operations?.[field.key]}
-                  editing={editingOps}
-                  onChange={(v) => setOpsDraft((p) => ({ ...p, [field.key]: v }))}
-                  T={T}
-                />
-              ))}
+            <div className="space-y-6">
+              {/* Mandatory Questions Box */}
+              {mandatoryOpsFields.length > 0 && (
+                <div
+                  className="rounded-xl p-4 sm:p-5"
+                  style={{
+                    background: T.sf,
+                    border: `1.5px solid ${editingOps ? '#FDE68A' : T.bd}`,
+                    boxShadow: editingOps ? '0 1px 4px rgba(245, 158, 11, 0.08)' : 'none',
+                  }}
+                >
+                  <div
+                    className="flex items-center justify-between pb-3 mb-4"
+                    style={{ borderBottom: `1px solid ${T.bd}` }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-flex items-center justify-center w-5 h-5 rounded-full font-bold"
+                        style={{ background: '#FEF3C7', color: '#B45309', fontSize: 12 }}
+                      >
+                        *
+                      </span>
+                      <h4 className="font-bold" style={{ fontSize: 14, color: T.t1, margin: 0 }}>
+                        {t('settings.orgSection.operational.mandatoryGroupTitle', {
+                          defaultValue: 'Mandatory Questions',
+                        })}
+                      </h4>
+                      <span
+                        className="px-2 py-0.5 rounded-full font-semibold"
+                        style={{
+                          background: '#FEF3C7',
+                          color: '#B45309',
+                          border: '1px solid #FDE68A',
+                          fontSize: 11,
+                        }}
+                      >
+                        {mandatoryOpsFields.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {mandatoryOpsFields.map((field) => (
+                      <OpsField
+                        key={field.key}
+                        field={field}
+                        value={editingOps ? opsDraft[field.key] : data.operations?.[field.key]}
+                        editing={editingOps}
+                        onChange={(v) => setOpsDraft((p) => ({ ...p, [field.key]: v }))}
+                        T={T}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Optional Questions Box */}
+              {optionalOpsFields.length > 0 && (
+                <div
+                  className="rounded-xl p-4 sm:p-5"
+                  style={{
+                    background: T.sf,
+                    border: `1px solid ${T.bd}`,
+                  }}
+                >
+                  <div
+                    className="flex items-center justify-between pb-3 mb-4"
+                    style={{ borderBottom: `1px solid ${T.bd}` }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold" style={{ fontSize: 14, color: T.t1, margin: 0 }}>
+                        {t('settings.orgSection.operational.optionalGroupTitle', {
+                          defaultValue: 'Optional Questions',
+                        })}
+                      </h4>
+                      <span
+                        className="px-2 py-0.5 rounded-full font-medium"
+                        style={{
+                          background: T.sa,
+                          color: T.t3,
+                          border: `1px solid ${T.bd}`,
+                          fontSize: 11,
+                        }}
+                      >
+                        {optionalOpsFields.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {optionalOpsFields.map((field) => (
+                      <OpsField
+                        key={field.key}
+                        field={field}
+                        value={editingOps ? opsDraft[field.key] : data.operations?.[field.key]}
+                        editing={editingOps}
+                        onChange={(v) => setOpsDraft((p) => ({ ...p, [field.key]: v }))}
+                        T={T}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </SectionCard>
@@ -721,6 +840,82 @@ function OpsField({ field, value, editing, onChange, T }) {
     return false;
   };
 
+  const otherOption = options.find(
+    (o) =>
+      String(o.value).toLowerCase() === 'other' ||
+      slugify(o.label) === 'other' ||
+      String(o.label).toLowerCase() === 'other'
+  );
+
+  // Multi-choice state for "Other" custom specify text
+  const multiSelected = isMulti ? (Array.isArray(value) ? value.map(String) : []) : [];
+  const multiCustomOther = multiSelected.filter((v) => !findOption(v));
+  const isMultiOtherActive =
+    Boolean(otherOption) &&
+    (multiSelected.some(
+      (v) =>
+        String(v).toLowerCase() === 'other' ||
+        (otherOption && String(v) === String(otherOption.value)) ||
+        slugify(v) === 'other'
+    ) ||
+      multiCustomOther.length > 0);
+
+  const [multiOtherText, setMultiOtherText] = useState(multiCustomOther.join(', '));
+
+  useEffect(() => {
+    if (isMulti) {
+      const custom = (Array.isArray(value) ? value.map(String) : []).filter((v) => !findOption(v));
+      setMultiOtherText(custom.join(', '));
+    }
+  }, [value, isMulti]);
+
+  const handleMultiOtherTextChange = (text) => {
+    setMultiOtherText(text);
+    const predefined = multiSelected.filter((v) => findOption(v));
+    const canonical = otherOption ? String(otherOption.value) : 'other';
+    const withoutOther = predefined.filter(
+      (v) =>
+        String(v).toLowerCase() !== 'other' &&
+        String(v) !== canonical &&
+        slugify(v) !== 'other'
+    );
+    const next = [...withoutOther, canonical];
+    if (text.trim()) {
+      next.push(text.trim());
+    }
+    onChange(next);
+  };
+
+  // Single-choice state for "Other" custom specify text
+  const singleCurrent = !isMulti ? (value == null ? '' : String(value)) : '';
+  const singleMatched = !isMulti ? findOption(singleCurrent) : null;
+  const isSingleOtherActive =
+    !isMulti &&
+    Boolean(otherOption) &&
+    (singleCurrent === String(otherOption.value) ||
+      singleCurrent.toLowerCase() === 'other' ||
+      slugify(singleCurrent) === 'other' ||
+      (!singleMatched && singleCurrent !== ''));
+
+  const [singleOtherText, setSingleOtherText] = useState(
+    !singleMatched && singleCurrent && singleCurrent !== 'other' ? singleCurrent : ''
+  );
+
+  useEffect(() => {
+    if (!isMulti) {
+      if (!singleMatched && singleCurrent && singleCurrent !== 'other') {
+        setSingleOtherText(singleCurrent);
+      } else if (singleMatched && String(singleMatched.value).toLowerCase() !== 'other') {
+        setSingleOtherText('');
+      }
+    }
+  }, [singleCurrent, singleMatched, isMulti]);
+
+  const handleSingleOtherTextChange = (text) => {
+    setSingleOtherText(text);
+    onChange(text.trim() ? text.trim() : (otherOption ? String(otherOption.value) : 'other'));
+  };
+
   const containerStyle = editing
     ? showUnansweredWarning
       ? {
@@ -748,17 +943,17 @@ function OpsField({ field, value, editing, onChange, T }) {
   const renderHeader = () => (
     <div className="flex items-start justify-between gap-3 mb-2.5">
       <label
-        className="font-semibold block"
+        className="font-semibold block flex-1"
         style={{ fontSize: 13, color: T.t1, lineHeight: 1.4 }}
       >
         {field.label}
         {mandatory && <span style={{ color: '#DC2626', fontWeight: 700, marginLeft: 3 }}>*</span>}
       </label>
 
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
         {mandatory ? (
           <span
-            className="inline-flex items-center px-2 py-0.5 rounded-full font-semibold"
+            className="inline-flex items-center px-2 py-0.5 rounded-full font-semibold whitespace-nowrap"
             style={{
               background: '#FEF3C7',
               color: '#B45309',
@@ -771,7 +966,7 @@ function OpsField({ field, value, editing, onChange, T }) {
           </span>
         ) : (
           <span
-            className="inline-flex items-center px-2 py-0.5 rounded-full font-medium"
+            className="inline-flex items-center px-2 py-0.5 rounded-full font-medium whitespace-nowrap"
             style={{
               background: T.sa,
               color: T.t3,
@@ -786,7 +981,7 @@ function OpsField({ field, value, editing, onChange, T }) {
         {editing && mandatory && (
           filled ? (
             <span
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium whitespace-nowrap"
               style={{
                 background: '#DCFCE7',
                 color: '#15803D',
@@ -799,7 +994,7 @@ function OpsField({ field, value, editing, onChange, T }) {
             </span>
           ) : (
             <span
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium whitespace-nowrap"
               style={{
                 background: '#FEE2E2',
                 color: '#B91C1C',
@@ -817,7 +1012,7 @@ function OpsField({ field, value, editing, onChange, T }) {
   );
 
   if (isMulti && options.length > 0) {
-    const selected = Array.isArray(value) ? value.map(String) : [];
+    const selected = multiSelected;
 
     const collapsedOptions = (() => {
       if (!editing || expanded || options.length <= CHIP_PREVIEW) return options;
@@ -860,20 +1055,48 @@ function OpsField({ field, value, editing, onChange, T }) {
           <div>
             <div className="flex flex-wrap gap-1.5">
               {displayOptions.map((opt) => {
-                const active = isSelected(opt, selected);
+                const isThisOther =
+                  otherOption &&
+                  (String(opt.value) === String(otherOption.value) ||
+                    String(opt.value).toLowerCase() === 'other' ||
+                    slugify(opt.label) === 'other');
+                const active = isThisOther ? isMultiOtherActive : isSelected(opt, selected);
+
                 return (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => {
-                      const canonical = String(opt.value);
-                      const aliases = new Set([
-                        canonical,
-                        slugify(opt.label),
-                        slugify(opt.value),
-                      ]);
-                      const without = selected.filter((v) => !aliases.has(v));
-                      onChange(active ? without : [...without, canonical]);
+                      if (isThisOther) {
+                        if (isMultiOtherActive) {
+                          const canonical = String(opt.value);
+                          const without = selected.filter(
+                            (v) =>
+                              findOption(v) &&
+                              String(v).toLowerCase() !== 'other' &&
+                              String(v) !== canonical &&
+                              slugify(v) !== 'other'
+                          );
+                          onChange(without);
+                          setMultiOtherText('');
+                        } else {
+                          const canonical = String(opt.value);
+                          const next = [...selected, canonical];
+                          if (multiOtherText.trim()) {
+                            next.push(multiOtherText.trim());
+                          }
+                          onChange(next);
+                        }
+                      } else {
+                        const canonical = String(opt.value);
+                        const aliases = new Set([
+                          canonical,
+                          slugify(opt.label),
+                          slugify(opt.value),
+                        ]);
+                        const without = selected.filter((v) => !aliases.has(v));
+                        onChange(active ? without : [...without, canonical]);
+                      }
                     }}
                     className="px-2.5 py-1 rounded-full border-none cursor-pointer transition-all"
                     style={{
@@ -892,6 +1115,7 @@ function OpsField({ field, value, editing, onChange, T }) {
                 );
               })}
             </div>
+
             {hiddenCount > 0 && (
               <button
                 type="button"
@@ -912,7 +1136,7 @@ function OpsField({ field, value, editing, onChange, T }) {
                 {t('settings.orgSection.operational.showLess')}
               </button>
             )}
-            {extras.map((v) => (
+            {extras.length > 0 && !isMultiOtherActive && extras.map((v) => (
               <span
                 key={`extra-${v}`}
                 className="inline-flex items-center gap-1 mt-2 mr-1 px-2.5 py-1 rounded-full"
@@ -929,6 +1153,28 @@ function OpsField({ field, value, editing, onChange, T }) {
                 </button>
               </span>
             ))}
+
+            {/* "Please specify" field when Other is selected in multi-choice */}
+            {isMultiOtherActive && (
+              <div className="mt-3 pt-2.5" style={{ borderTop: `1px dashed ${T.bd}` }}>
+                <label className="block mb-1.5 font-semibold" style={{ fontSize: 12, color: T.t2 }}>
+                  {t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
+                </label>
+                <input
+                  type="text"
+                  value={multiOtherText}
+                  onChange={(e) => handleMultiOtherTextChange(e.target.value)}
+                  placeholder={t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
+                  className="w-full px-3 py-2 rounded-lg outline-none"
+                  style={{
+                    border: `1px solid ${T.bd}`,
+                    background: T.sf,
+                    color: T.t1,
+                    fontSize: 13,
+                  }}
+                />
+              </div>
+            )}
           </div>
         )}
         {showUnansweredWarning && (
@@ -945,8 +1191,8 @@ function OpsField({ field, value, editing, onChange, T }) {
   }
 
   if (!isMulti && options.length > 0) {
-    const current = value == null ? '' : String(value);
-    const matched = findOption(current);
+    const current = singleCurrent;
+    const matched = singleMatched;
     const selectValue = matched ? String(matched.value) : current;
     const label = matched?.label || labelFor(current) || '';
 
@@ -958,42 +1204,108 @@ function OpsField({ field, value, editing, onChange, T }) {
             {label || '—'}
           </div>
         ) : options.length <= 6 ? (
-          <div className="flex flex-wrap gap-2">
-            {options.map((opt) => {
-              const active = selectValue === String(opt.value);
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => onChange(active ? '' : String(opt.value))}
-                  className="px-3 py-1.5 rounded-lg cursor-pointer text-left transition-all"
+          <div>
+            <div className={options.some((o) => (o.label || '').length > 30) ? "flex flex-col gap-2" : "flex flex-wrap gap-2"}>
+              {options.map((opt) => {
+                const isThisOther =
+                  otherOption &&
+                  (String(opt.value) === String(otherOption.value) ||
+                    String(opt.value).toLowerCase() === 'other' ||
+                    slugify(opt.label) === 'other');
+                const active = isThisOther ? isSingleOtherActive : selectValue === String(opt.value);
+
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      if (isThisOther) {
+                        if (isSingleOtherActive) {
+                          onChange('');
+                          setSingleOtherText('');
+                        } else {
+                          onChange(singleOtherText.trim() ? singleOtherText.trim() : String(opt.value));
+                        }
+                      } else {
+                        onChange(active ? '' : String(opt.value));
+                        setSingleOtherText('');
+                      }
+                    }}
+                    className="px-3 py-2 rounded-lg cursor-pointer text-left transition-all"
+                    style={{
+                      background: active ? T.al : T.sa,
+                      color: active ? T.ac : T.t2,
+                      fontSize: 12.5,
+                      fontWeight: active ? 600 : 400,
+                      border: `1px solid ${active ? T.ac : T.bd}`,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {active ? `✓ ${opt.label}` : opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* "Please specify" field when Other is selected in single-choice */}
+            {isSingleOtherActive && (
+              <div className="mt-3 pt-2.5" style={{ borderTop: `1px dashed ${T.bd}` }}>
+                <label className="block mb-1.5 font-semibold" style={{ fontSize: 12, color: T.t2 }}>
+                  {t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
+                </label>
+                <input
+                  type="text"
+                  value={singleOtherText}
+                  onChange={(e) => handleSingleOtherTextChange(e.target.value)}
+                  placeholder={t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
+                  className="w-full px-3 py-2 rounded-lg outline-none"
                   style={{
-                    background: active ? T.al : T.sa,
-                    color: active ? T.ac : T.t2,
-                    fontSize: 12,
-                    fontWeight: active ? 600 : 400,
-                    border: `1px solid ${active ? T.ac : T.bd}`,
+                    border: `1px solid ${T.bd}`,
+                    background: T.sf,
+                    color: T.t1,
+                    fontSize: 13,
                   }}
-                >
-                  {active ? `✓ ${opt.label}` : opt.label}
-                </button>
-              );
-            })}
+                />
+              </div>
+            )}
           </div>
         ) : (
-          <select
-            value={selectValue}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg outline-none"
-            style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
-          >
-            <option value="">—</option>
-            {options.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <div>
+            <select
+              value={selectValue}
+              onChange={(e) => onChange(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg outline-none"
+              style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+            >
+              <option value="">—</option>
+              {options.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
+            {isSingleOtherActive && (
+              <div className="mt-3 pt-2.5" style={{ borderTop: `1px dashed ${T.bd}` }}>
+                <label className="block mb-1.5 font-semibold" style={{ fontSize: 12, color: T.t2 }}>
+                  {t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
+                </label>
+                <input
+                  type="text"
+                  value={singleOtherText}
+                  onChange={(e) => handleSingleOtherTextChange(e.target.value)}
+                  placeholder={t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
+                  className="w-full px-3 py-2 rounded-lg outline-none"
+                  style={{
+                    border: `1px solid ${T.bd}`,
+                    background: T.sf,
+                    color: T.t1,
+                    fontSize: 13,
+                  }}
+                />
+              </div>
+            )}
+          </div>
         )}
         {showUnansweredWarning && (
           <div
