@@ -4,6 +4,8 @@ import { notificationService } from '../../api/services/notificationService';
 import type { ApiNotification } from '../../api/services/notificationService';
 import { useTranslation } from '../../hooks/useTranslation';
 import { openNotificationTarget } from '../../utils/notificationNavigation';
+import { formatDashError, translateDashMessage } from './dashErrorUtils';
+import { DashNotifSkeleton } from './DashboardSkeletons';
 
 function severityClass(severity: ApiNotification['severity']): string {
   if (severity === 'Critical') return 'red';
@@ -43,17 +45,22 @@ export const Notifications: React.FC = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState<ApiNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
     notificationService
       .list({ tab: 'inbox', per_page: 5 })
       .then((res) => {
         if (!cancelled) setItems(res.data ?? []);
       })
-      .catch(() => {
-        if (!cancelled) setItems([]);
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setItems([]);
+          setError(formatDashError(err, 'dashNotifLoadFailed').key);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -91,11 +98,15 @@ export const Notifications: React.FC = () => {
       </div>
 
       <div className="dash-notif-list">
-        {loading && <div className="dash-notif-empty">{t('loading')}</div>}
-        {!loading && items.length === 0 && (
+        {loading && <DashNotifSkeleton />}
+        {!loading && error && (
+          <div className="dash-notif-empty">{translateDashMessage(t, error)}</div>
+        )}
+        {!loading && !error && items.length === 0 && (
           <div className="dash-notif-empty">{t('noNotifications')}</div>
         )}
         {!loading &&
+          !error &&
           items.map((n) => (
             <div
               key={n.id}

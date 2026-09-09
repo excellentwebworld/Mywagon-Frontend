@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { shipmentsService } from '../../api';
+import { formatDashError } from './dashErrorUtils';
 import { buildTodayScheduleEvents, type ScheduleEvent, type TodayScheduleCounts } from './scheduleUtils';
 
 const EMPTY_COUNTS: TodayScheduleCounts = { loads: 0, pickups: 0, dropoffs: 0 };
@@ -34,7 +35,7 @@ export function useTodaySchedule() {
         if (cancelled) return;
         setEvents([]);
         setCounts(EMPTY_COUNTS);
-        setError(err instanceof Error ? err.message : 'Failed to load schedule');
+        setError(formatDashError(err, 'dashScheduleLoadFailed').key);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

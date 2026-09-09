@@ -4,6 +4,8 @@ import { availabilitiesService } from '../../api';
 import { mapListItemToTruck } from '../../api/mappers/availabilitiesMapper';
 import type { AvailableTruck } from '../../pages/SearchTrucks/types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { DashUpgradeBlock, formatDashError, translateDashMessage } from './dashErrorUtils';
+import { DashTrucksSkeleton } from './DashboardSkeletons';
 import { TruckMapPreview } from './TruckMapPreview';
 
 const DASH = '—';
@@ -16,6 +18,8 @@ export const TruckAvailabilitiesCard: React.FC = () => {
   const [publicCount, setPublicCount] = useState<number | null>(null);
   const [trucks, setTrucks] = useState<AvailableTruck[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [upgradeUrl, setUpgradeUrl] = useState<string | undefined>();
 
   const goSearch = useCallback(() => {
     navigate('/search-trucks');
@@ -24,6 +28,8 @@ export const TruckAvailabilitiesCard: React.FC = () => {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
+    setUpgradeUrl(undefined);
 
     Promise.allSettled([
       availabilitiesService.list({ visibility: 'private', per_page: 1 }),
@@ -35,6 +41,29 @@ export const TruckAvailabilitiesCard: React.FC = () => {
       }),
     ]).then(([partnerRes, publicRes, mapRes]) => {
       if (cancelled) return;
+
+      const failures = [partnerRes, publicRes, mapRes].filter((r) => r.status === 'rejected');
+      const allFailed = failures.length === 3;
+      const any403 = failures.some((r) => {
+        if (r.status !== 'rejected') return false;
+        const info = formatDashError(r.reason, 'dashTrucksLoadFailed');
+        return info.forbidden;
+      });
+
+      if (any403 || allFailed) {
+        const firstReject = failures[0];
+        const info =
+          firstReject && firstReject.status === 'rejected'
+            ? formatDashError(firstReject.reason, 'dashTrucksLoadFailed')
+            : { key: 'dashTrucksLoadFailed', forbidden: false as const, upgradeUrl: undefined };
+        setPartnerCount(null);
+        setPublicCount(null);
+        setTrucks([]);
+        setError(info.key);
+        setUpgradeUrl(info.upgradeUrl);
+        setLoading(false);
+        return;
+      }
 
       if (partnerRes.status === 'fulfilled') {
         setPartnerCount(partnerRes.value.meta.total ?? 0);
@@ -63,7 +92,7 @@ export const TruckAvailabilitiesCard: React.FC = () => {
   }, []);
 
   const formatCount = (value: number | null) => {
-    if (loading || value == null) return DASH;
+    if (value == null) return DASH;
     return value.toLocaleString();
   };
 
@@ -83,17 +112,31 @@ export const TruckAvailabilitiesCard: React.FC = () => {
           {t('dashSearchTrucks')}
         </span>
       </div>
-      <div className="dash-truck-counts">
-        <div className="dash-truck-count">
-          <div className="dash-truck-count-val">{formatCount(partnerCount)}</div>
-          <div className="dash-truck-count-label">{t('dashPartnerTrucks')}</div>
+      {loading ? (
+        <DashTrucksSkeleton />
+      ) : error ? (
+        <div className="dash-widget-error" style={{ padding: 16 }}>
+          {upgradeUrl ? (
+            <DashUpgradeBlock upgradeUrl={upgradeUrl} t={t} />
+          ) : (
+            translateDashMessage(t, error)
+          )}
         </div>
-        <div className="dash-truck-count">
-          <div className="dash-truck-count-val">{formatCount(publicCount)}</div>
-          <div className="dash-truck-count-label">{t('dashPublicTrucks')}</div>
-        </div>
-      </div>
-      <TruckMapPreview trucks={trucks} onActivate={goSearch} />
+      ) : (
+        <>
+          <div className="dash-truck-counts">
+            <div className="dash-truck-count">
+              <div className="dash-truck-count-val">{formatCount(partnerCount)}</div>
+              <div className="dash-truck-count-label">{t('dashPartnerTrucks')}</div>
+            </div>
+            <div className="dash-truck-count">
+              <div className="dash-truck-count-val">{formatCount(publicCount)}</div>
+              <div className="dash-truck-count-label">{t('dashPublicTrucks')}</div>
+            </div>
+          </div>
+          <TruckMapPreview trucks={trucks} onActivate={goSearch} />
+        </>
+      )}
     </div>
   );
 };

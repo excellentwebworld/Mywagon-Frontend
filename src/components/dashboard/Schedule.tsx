@@ -4,6 +4,8 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { statusBadgeClass } from '../../pages/ManageShipments/utils/listingUtils';
 import { useTodaySchedule } from './useTodaySchedule';
 import type { ScheduleEvent } from './scheduleUtils';
+import { translateDashMessage } from './dashErrorUtils';
+import { DashScheduleSkeleton } from './DashboardSkeletons';
 
 interface ScheduleProps {
   selectedShipmentId: number | null;
@@ -58,9 +60,15 @@ export const Schedule: React.FC<ScheduleProps> = ({ selectedShipmentId, onSelect
           <span className="cnt">{counts.loads}</span>
           <span className="sched-density" style={{ marginLeft: '8px' }}>
             <span className="sched-density-dot" style={{ background: 'var(--text-primary)' }} />
-            <span>{counts.pickups}P</span>
+            <span>
+              {counts.pickups}
+              {t('schedPickupsShort')}
+            </span>
             <span className="sched-density-dot" style={{ background: '#000' }} />
-            <span>{counts.dropoffs}D</span>
+            <span>
+              {counts.dropoffs}
+              {t('schedDropoffsShort')}
+            </span>
           </span>
         </h3>
         <Link to="/shipments" className="card-link">
@@ -69,11 +77,11 @@ export const Schedule: React.FC<ScheduleProps> = ({ selectedShipmentId, onSelect
       </div>
 
       <div className="sched-scroll" id="schedScroll">
-        {loading && (
-          <div className="sched-empty">{t('loading')}</div>
-        )}
+        {loading && <DashScheduleSkeleton />}
 
-        {!loading && error && <div className="sched-empty">{error}</div>}
+        {!loading && error && (
+          <div className="sched-empty">{translateDashMessage(t, error)}</div>
+        )}
 
         {!loading && !error && events.length === 0 && (
           <div className="sched-empty">{t('schedEmpty')}</div>

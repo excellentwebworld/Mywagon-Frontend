@@ -77,6 +77,7 @@ export function useShipmentsList(
   const [summary, setSummary] = useState<ApiShipmentsSummary>(EMPTY_SUMMARY);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [upgradeUrl, setUpgradeUrl] = useState<string | undefined>(undefined);
   const hasLoadedOnce = useRef(false);
 
   const listKey = JSON.stringify(listParams);
@@ -94,6 +95,7 @@ export function useShipmentsList(
       setLoading(true);
     }
     setError(null);
+    setUpgradeUrl(undefined);
 
     const emptyList = {
       shipments: [] as Shipment[],
@@ -135,7 +137,13 @@ export function useShipmentsList(
         if (cancelled) return;
         setShipments([]);
         setSummary(EMPTY_SUMMARY);
-        setError(err instanceof ApiError ? err.message : 'loadShipmentsFailed');
+        if (err instanceof ApiError && err.status === 403) {
+          setError('dashSubscriptionDenied');
+          setUpgradeUrl(err.upgradeUrl || '/subscription');
+        } else {
+          setError(err instanceof ApiError ? err.message || 'loadShipmentsFailed' : 'loadShipmentsFailed');
+          setUpgradeUrl(undefined);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -151,5 +159,5 @@ export function useShipmentsList(
     setShipments((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   }, []);
 
-  return { shipments, meta, summary, loading, error, patchShipment };
+  return { shipments, meta, summary, loading, error, upgradeUrl, patchShipment };
 }

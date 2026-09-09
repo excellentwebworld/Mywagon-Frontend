@@ -4,6 +4,8 @@ import type { ApiPerformanceSummary } from '../../api/types/dashboard';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatEuro } from '../../pages/ManageShipments/utils/listingUtils';
+import { formatDashError, translateDashMessage } from './dashErrorUtils';
+import { DashPerfSkeleton } from './DashboardSkeletons';
 
 const DASH = '—';
 
@@ -26,17 +28,22 @@ export const PerformanceSummary: React.FC = () => {
   const { t } = useTranslation();
   const [data, setData] = useState<ApiPerformanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
     dashboardService
       .getPerformanceSummary()
       .then((summary) => {
         if (!cancelled) setData(summary);
       })
-      .catch(() => {
-        if (!cancelled) setData(null);
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setData(null);
+          setError(formatDashError(err, 'dashPerfLoadFailed').key);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -46,7 +53,7 @@ export const PerformanceSummary: React.FC = () => {
     };
   }, []);
 
-  const showPlaceholder = loading || !data;
+  const showPlaceholder = !loading && !data;
 
   return (
     <div className="perf-card">
@@ -59,42 +66,51 @@ export const PerformanceSummary: React.FC = () => {
         </h4>
         <span className="perf-period">{t('perfSinceDay1')}</span>
       </div>
-      <div className="perf-grid">
-        <div className="perf-cell">
-          <div className="perf-cell-label">{t('perfTotalCost')}</div>
-          <div className="perf-cell-value">{showPlaceholder ? DASH : formatMoney(data!.total_cost)}</div>
+      {error && !loading && (
+        <div className="dash-widget-error" style={{ padding: '8px 16px' }}>
+          {translateDashMessage(t, error)}
         </div>
-        <div className="perf-cell">
-          <div className="perf-cell-label">{t('perfTotalLoads')}</div>
-          <div className="perf-cell-value">{showPlaceholder ? DASH : formatInt(data!.total_loads)}</div>
-        </div>
-        <div className="perf-cell">
-          <div className="perf-cell-label">{t('perfOnTimePickup')}</div>
-          <div className="perf-cell-value">{showPlaceholder ? DASH : formatPct(data!.on_time_pickup_pct)}</div>
-        </div>
-        <div className="perf-cell">
-          <div className="perf-cell-label">{t('perfOnTimeDelivery')}</div>
-          <div className="perf-cell-value">{showPlaceholder ? DASH : formatPct(data!.on_time_delivery_pct)}</div>
-        </div>
-        <div className="perf-cell">
-          <div className="perf-cell-label">{t('perfAvgCostKm')}</div>
-          <div className="perf-cell-value">{showPlaceholder ? DASH : formatMoney(data!.avg_cost_per_km)}</div>
-        </div>
-        <div className="perf-cell">
-          <div className="perf-cell-label">{t('perfAvgCostLoad')}</div>
-          <div className="perf-cell-value">{showPlaceholder ? DASH : formatMoney(data!.avg_cost_per_load)}</div>
-        </div>
-        <div className="perf-cell">
-          <div className="perf-cell-label">{t('perfPipelineRevenue')}</div>
-          <div className="perf-cell-value">{showPlaceholder ? DASH : formatMoney(data!.pipeline_revenue)}</div>
-        </div>
-        <div className="perf-cell">
-          <div className="perf-cell-label">{t('perfRevenueDelivered')}</div>
-          <div className="perf-cell-value">
-            {showPlaceholder ? DASH : formatMoney(data!.revenue_delivered_on_mv)}
+      )}
+      {loading ? (
+        <DashPerfSkeleton />
+      ) : (
+        <div className="perf-grid">
+          <div className="perf-cell">
+            <div className="perf-cell-label">{t('perfTotalCost')}</div>
+            <div className="perf-cell-value">{showPlaceholder ? DASH : formatMoney(data!.total_cost)}</div>
+          </div>
+          <div className="perf-cell">
+            <div className="perf-cell-label">{t('perfTotalLoads')}</div>
+            <div className="perf-cell-value">{showPlaceholder ? DASH : formatInt(data!.total_loads)}</div>
+          </div>
+          <div className="perf-cell">
+            <div className="perf-cell-label">{t('perfOnTimePickup')}</div>
+            <div className="perf-cell-value">{showPlaceholder ? DASH : formatPct(data!.on_time_pickup_pct)}</div>
+          </div>
+          <div className="perf-cell">
+            <div className="perf-cell-label">{t('perfOnTimeDelivery')}</div>
+            <div className="perf-cell-value">{showPlaceholder ? DASH : formatPct(data!.on_time_delivery_pct)}</div>
+          </div>
+          <div className="perf-cell">
+            <div className="perf-cell-label">{t('perfAvgCostKm')}</div>
+            <div className="perf-cell-value">{showPlaceholder ? DASH : formatMoney(data!.avg_cost_per_km)}</div>
+          </div>
+          <div className="perf-cell">
+            <div className="perf-cell-label">{t('perfAvgCostLoad')}</div>
+            <div className="perf-cell-value">{showPlaceholder ? DASH : formatMoney(data!.avg_cost_per_load)}</div>
+          </div>
+          <div className="perf-cell">
+            <div className="perf-cell-label">{t('perfPipelineRevenue')}</div>
+            <div className="perf-cell-value">{showPlaceholder ? DASH : formatMoney(data!.pipeline_revenue)}</div>
+          </div>
+          <div className="perf-cell">
+            <div className="perf-cell-label">{t('perfRevenueDelivered')}</div>
+            <div className="perf-cell-value">
+              {showPlaceholder ? DASH : formatMoney(data!.revenue_delivered_on_mv)}
+            </div>
           </div>
         </div>
-      </div>
+      )}
       <div className="perf-footer">
         <a
           href="#"

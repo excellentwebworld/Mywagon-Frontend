@@ -8,6 +8,8 @@ import {
   formatEuro,
   statusBadgeClass,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { DashUpgradeBlock, translateDashMessage } from './dashErrorUtils';
+import { DashBoardSkeleton } from './DashboardSkeletons';
 import { BoardRowExpand } from './BoardRowExpand';
 
 interface ShipmentBoardProps {
@@ -78,7 +80,7 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
     return { ...base, status: activeDef.filter.status };
   }, [activeDef, page]);
 
-  const { shipments, meta, summary, loading, error } = useShipmentsList(
+  const { shipments, meta, summary, loading, error, upgradeUrl } = useShipmentsList(
     listParams,
     summaryParams,
     true,
@@ -146,18 +148,16 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
             </tr>
           </thead>
           <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={5} className="board-empty-cell">
-                  {t('loading')}
-                </td>
-              </tr>
-            )}
+            {loading && <DashBoardSkeleton rows={PER_PAGE} />}
 
             {!loading && error && (
               <tr>
                 <td colSpan={5} className="board-empty-cell">
-                  {error}
+                  {upgradeUrl ? (
+                    <DashUpgradeBlock upgradeUrl={upgradeUrl} t={t} compact />
+                  ) : (
+                    translateDashMessage(t, error)
+                  )}
                 </td>
               </tr>
             )}

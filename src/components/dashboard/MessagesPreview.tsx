@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { chatService } from '../../api/services/chatService';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Conversation } from '../../pages/Messages/types';
+import { DashUpgradeBlock, formatDashError, translateDashMessage } from './dashErrorUtils';
+import { DashMessagesSkeleton } from './DashboardSkeletons';
 
 const PREVIEW_LIMIT = 5;
 
@@ -11,17 +13,26 @@ export const MessagesPreview: React.FC = () => {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [upgradeUrl, setUpgradeUrl] = useState<string | undefined>();
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
+    setUpgradeUrl(undefined);
     chatService
-      .getConversations()
+      .getConversations(undefined, undefined, { noFallback: true })
       .then((list) => {
         if (!cancelled) setConversations((list ?? []).slice(0, PREVIEW_LIMIT));
       })
-      .catch(() => {
-        if (!cancelled) setConversations([]);
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setConversations([]);
+          const info = formatDashError(err, 'dashMessagesLoadFailed');
+          setError(info.key);
+          setUpgradeUrl(info.upgradeUrl);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -58,15 +69,25 @@ export const MessagesPreview: React.FC = () => {
         </span>
       </div>
 
-      {loading && <div className="dash-messages-empty">{t('loading')}</div>}
+      {loading && <DashMessagesSkeleton />}
 
-      {!loading && conversations.length === 0 && (
+      {!loading && error && (
+        <div className="dash-messages-empty">
+          {upgradeUrl ? (
+            <DashUpgradeBlock upgradeUrl={upgradeUrl} t={t} compact />
+          ) : (
+            <p>{translateDashMessage(t, error)}</p>
+          )}
+        </div>
+      )}
+
+      {!loading && !error && conversations.length === 0 && (
         <div className="dash-messages-empty">
           <p>{t('dashNoMessages')}</p>
         </div>
       )}
 
-      {!loading && conversations.length > 0 && (
+      {!loading && !error && conversations.length > 0 && (
         <div className="dash-messages-list">
           {conversations.map((c) => (
             <button
@@ -76,11 +97,7 @@ export const MessagesPreview: React.FC = () => {
               onClick={() => openConversation(c)}
             >
               <div className="dash-msg-avatar">
-                {c.avatarUrl ? (
-                  <img src={c.avatarUrl} alt="" />
-                ) : (
-                  c.initials || '?'
-                )}
+                {c.avatarUrl ? <img src={c.avatarUrl} alt="" /> : c.initials || '?'}
               </div>
               <div className="dash-msg-body">
                 <div className="dash-msg-top">
@@ -89,7 +106,9 @@ export const MessagesPreview: React.FC = () => {
                 </div>
                 <div className="dash-msg-preview">{c.lastMsg || '—'}</div>
               </div>
-              {c.unread > 0 ? <span className="dash-msg-unread">{c.unread > 99 ? '99+' : c.unread}</span> : null}
+              {c.unread > 0 ? (
+                <span className="dash-msg-unread">{c.unread > 99 ? '99+' : c.unread}</span>
+              ) : null}
             </button>
           ))}
         </div>
