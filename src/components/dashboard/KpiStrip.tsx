@@ -110,67 +110,6 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoa
           </div>
         </div>
       </div>
-
-      {/* Financial KPIs: no summary API yet — show placeholders (not demo figures). */}
-      <div className="kpi-section-label" style={{ marginTop: '4px' }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="12" y1="1" x2="12" y2="23" />
-          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-        </svg>
-        <span>{t('kpiFinLabel')}</span>
-      </div>
-      <div className="kpi-strip">
-        <div className="kpi c-money">
-          <div className="kpi-top">
-            <div className="kpi-val" style={{ fontSize: '24px' }}>
-              —
-            </div>
-          </div>
-          <div className="kpi-bottom">
-            <span className="kpi-label">{t('kpiTotalSpend')}</span>
-          </div>
-        </div>
-        <div className="kpi c-teal">
-          <div className="kpi-top">
-            <div className="kpi-val" style={{ fontSize: '24px' }}>
-              —
-            </div>
-          </div>
-          <div className="kpi-bottom">
-            <span className="kpi-label">{t('kpiCostKm')}</span>
-          </div>
-        </div>
-        <div className="kpi c-orange">
-          <div className="kpi-top">
-            <div className="kpi-val" style={{ fontSize: '24px' }}>
-              —
-            </div>
-          </div>
-          <div className="kpi-bottom">
-            <span className="kpi-label">{t('kpiCostLoad')}</span>
-          </div>
-        </div>
-        <div className="kpi c-rose">
-          <div className="kpi-top">
-            <div className="kpi-val" style={{ fontSize: '24px' }}>
-              —
-            </div>
-          </div>
-          <div className="kpi-bottom">
-            <span className="kpi-label">{t('kpiUnpaid')}</span>
-          </div>
-        </div>
-        <div className="kpi c-purple">
-          <div className="kpi-top">
-            <div className="kpi-val" style={{ fontSize: '24px' }}>
-              —
-            </div>
-          </div>
-          <div className="kpi-bottom">
-            <span className="kpi-label">{t('kpiMargin')}</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

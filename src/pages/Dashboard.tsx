@@ -1,22 +1,27 @@
 import React, { useState } from 'react';
-import { QuickActions } from '../components/dashboard/QuickActions';
 import { KpiStrip } from '../components/dashboard/KpiStrip';
 import { Schedule } from '../components/dashboard/Schedule';
 import { LiveMap } from '../components/dashboard/LiveMap';
 import { ShipmentBoard } from '../components/dashboard/ShipmentBoard';
+import { PerformanceSummary } from '../components/dashboard/PerformanceSummary';
+import { TruckAvailabilitiesCard } from '../components/dashboard/TruckAvailabilitiesCard';
 import { Notifications } from '../components/dashboard/Notifications';
-import { RightPanel } from '../components/dashboard/RightPanel';
+import { MessagesPreview } from '../components/dashboard/MessagesPreview';
 
+import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { ContextualTutorialTrigger } from '../components/Tutorials';
 import '../styles/tutorials.css';
 
 export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
 
   // Coordinate active board tab state between KpiStrip and ShipmentBoard
   // Index 1 represents "Upcoming" which is the default active tab in the design
   const [activeBoardTab, setActiveBoardTab] = useState<number>(1);
+
+  const companyName = user?.company_name?.trim() || '—';
 
   return (
     <div className="animate-fade-in dashboard-page">
@@ -32,29 +37,30 @@ export const Dashboard: React.FC = () => {
           {t('welcomeBack')}
         </p>
         <h1 className="company" style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-0.5px' }}>
-          {t('companyNameDemo')}
+          {companyName}
         </h1>
       </div>
 
-      {/* Quick Actions Bar */}
-      <QuickActions />
-
-      {/* Operational & Financial KPI Strips */}
+      {/* Row 1: Operational KPIs */}
       <KpiStrip activeBoardTab={activeBoardTab} setActiveBoardTab={setActiveBoardTab} />
 
-      {/* Schedule & Live Map Layout */}
-      <div className="row-2col">
+      {/* Row 2: Today's Schedule + Live Map */}
+      <div className="row-2col-even">
         <Schedule />
         <LiveMap />
       </div>
 
-      {/* Dynamic Tabbed Shipment Board */}
-      <ShipmentBoard activeTab={activeBoardTab} setActiveTab={setActiveBoardTab} />
+      {/* Row 3: Manage Shipments board + Performance */}
+      <div className="row-2col-board">
+        <ShipmentBoard activeTab={activeBoardTab} setActiveTab={setActiveBoardTab} />
+        <PerformanceSummary />
+      </div>
 
-      {/* Notifications & Right Panel Layout */}
-      <div className="row-2col-r4">
+      {/* Row 4: Trucks + Notifications + Messages */}
+      <div className="row-3col">
+        <TruckAvailabilitiesCard />
         <Notifications />
-        <RightPanel />
+        <MessagesPreview />
       </div>
     </div>
   );

@@ -108,7 +108,7 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
   };
 
   return (
-    <div className="card a d4" style={{ marginBottom: '20px' }} id="boardCard">
+    <div className="card a d4" id="boardCard">
       {/* Board tabs */}
       <div className="board-tabs" id="boardTabs">
         <div className={`b-tab ${activeTab === 0 ? 'active' : ''}`} onClick={() => setActiveTab(0)}>
