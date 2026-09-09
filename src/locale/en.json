@@ -1327,6 +1327,7 @@
       "loadError": "Failed to load organization settings",
       "saveError": "Failed to save organization settings",
       "saved": "Organization settings saved",
+      "companyInfoGateBanner": "Complete your company address (street, city, and postal code) to continue using the panel.",
       "completion": {
         "title": "Operations profile completion",
         "subtitle": "{{answered}} of {{total}} questions answered"

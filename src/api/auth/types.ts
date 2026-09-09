@@ -23,6 +23,8 @@ export interface ShipperUser {
   two_factor_enabled?: boolean;
   two_factor_method?: 'authenticator' | 'email' | null;
   has_past_due?: boolean;
+  /** Parent shipper has address + city + postal_code (Laravel ShipperKycCheck parity). */
+  company_address_complete?: boolean;
   referral_code?: string | null;
 }
 

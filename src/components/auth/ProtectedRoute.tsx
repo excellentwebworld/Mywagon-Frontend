@@ -4,6 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { isPastDueAllowedPath } from '../../hooks/usePastDueLock';
+import {
+  isKycGateAllowedPath,
+  needsCompanyInfoGate,
+  needsKycGate,
+} from '../../hooks/useKycGate';
 import { MyVagonBootScreen } from '../ui/MyVagonLoader';
 
 interface ProtectedRouteProps {
@@ -39,6 +44,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (user?.has_past_due && !isPastDueAllowedPath(location.pathname)) {
     return <Navigate to="/billing" replace />;
+  }
+
+  if (needsKycGate(user) && !isKycGateAllowedPath(location.pathname)) {
+    return <Navigate to="/settings/compliance" replace />;
+  }
+
+  if (needsCompanyInfoGate(user) && !isKycGateAllowedPath(location.pathname)) {
+    return <Navigate to="/settings/organization?from=company_info" replace />;
   }
 
   return <>{children}</>;

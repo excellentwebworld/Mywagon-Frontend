@@ -5,13 +5,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import {
-  Pencil, X, Check, Lock, Building2, Truck, Image as ImageIcon, Plus, Mail,
+  Pencil, X, Check, Lock, Building2, Truck, Image as ImageIcon, Plus, Mail, AlertTriangle,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
+import { useAuth } from '../../../context/AuthContext';
 import { organizationSettingsService } from '../../../api/services/organizationSettingsService';
 import { ContextualTutorialTrigger } from '../../../components/Tutorials';
 import '../../../styles/tutorials.css';
@@ -24,6 +26,11 @@ export default function OrganizationSection() {
   const { t } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
+  const { refreshUser, user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const fromCompanyInfo =
+    searchParams.get('from') === 'company_info' ||
+    (user?.kyc_status === 'accepted' && user?.company_address_complete === false);
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -41,6 +48,7 @@ export default function OrganizationSection() {
   const [brandDraft, setBrandDraft] = useState({});
   const [emailInput, setEmailInput] = useState('');
   const logoInputRef = useRef(null);
+  const companyInfoOpenedRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,6 +89,13 @@ export default function OrganizationSection() {
     setEmailInput('');
     setEditingLegal(true);
   };
+
+  useEffect(() => {
+    if (!fromCompanyInfo || !data?.legal || companyInfoOpenedRef.current || editingLegal) return;
+    companyInfoOpenedRef.current = true;
+    startLegalEdit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open once when gate lands
+  }, [fromCompanyInfo, data]);
 
   const startOpsEdit = () => {
     const draft = {};
@@ -139,6 +154,7 @@ export default function OrganizationSection() {
       applyPayload(payload);
       setEditingLegal(false);
       toast.success(t('settings.orgSection.saved'));
+      await refreshUser().catch(() => {});
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('settings.orgSection.saveError'));
     } finally {
@@ -221,6 +237,22 @@ export default function OrganizationSection() {
         </h2>
         <ContextualTutorialTrigger tutorialKey="profile" />
       </div>
+
+      {fromCompanyInfo && (
+        <div
+          className="rounded-xl px-4 py-3 flex items-start gap-3"
+          style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}
+        >
+          <AlertTriangle size={18} style={{ color: '#B45309', marginTop: 2, flexShrink: 0 }} />
+          <div style={{ fontSize: 13, color: '#92400E', lineHeight: 1.45 }}>
+            {t(
+              'settings.orgSection.companyInfoGateBanner',
+              'Complete your company address (street, city, and postal code) to continue using the panel.'
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Completion gauge */}
       <div className="rounded-xl px-5 py-4" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
         <div className="flex items-center justify-between gap-3 mb-2">

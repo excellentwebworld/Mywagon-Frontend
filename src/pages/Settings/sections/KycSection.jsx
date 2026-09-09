@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
+import { useAuth } from '../../../context/AuthContext';
 import { kycSettingsService } from '../../../api/services/kycSettingsService';
 
 const STATUS_STYLE = {
@@ -26,6 +27,7 @@ export default function KycSection({ onStatusChange }) {
   const { t } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
+  const { refreshUser } = useAuth();
   const fileRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
@@ -96,6 +98,7 @@ export default function KycSection({ onStatusChange }) {
       const payload = await kycSettingsService.submit(vatNumber.trim(), file);
       applyPayload(payload);
       toast.success(t('compliance.kyc.submitSuccess'));
+      await refreshUser().catch(() => {});
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('compliance.kyc.submitError'));
     } finally {
