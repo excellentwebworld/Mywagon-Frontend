@@ -65,84 +65,85 @@ export const AddressStep: React.FC<AddressStepProps> = ({
   };
 
   return (
-    <div className="shipper-register-step">
-      <div className="shipper-login-field shipper-register-places-field">
-        <label htmlFor="register-street">{t('registerStreet', 'Address (street name and number)')}</label>
+    <>
+      <div className="reg-field" data-reg-field="street_address">
         <GoogleMapAddressField
           inputId="register-street"
           address={streetAddress}
           lat={lat}
           lng={lng}
           hideLabel
+          hideHint
           onAddressChange={(v) => onChange({ street_address: v })}
           onLatLngChange={(nextLat, nextLng) => onChange({ lat: nextLat, lng: nextLng })}
           onPlaceSelected={handlePlaceSelected}
-          error={errors.street_address}
         />
-        {!errors.street_address && (
-          <p className="shipper-register-field-hint">
-            {t('registerStreetHint', 'Start typing to search for your address')}
+        <small className="reg-hint">
+          {t('registerStreetHint', 'Start typing to search for your address')}
+        </small>
+        {errors.street_address && (
+          <p className="reg-error" role="alert">
+            {errors.street_address}
           </p>
         )}
       </div>
 
-      <div className="shipper-login-field">
-        <label htmlFor="register-address-line-2">{t('registerAddressLine2', 'Address Line 2 (apt., unit #, floor, etc.)')}</label>
+      <div className="reg-field">
         <input
           id="register-address-line-2"
-          className="shipper-login-control"
+          className="reg-input"
           value={addressLine2}
           disabled={disabled}
           onChange={(e) => onChange({ address_line_2: e.target.value })}
-          placeholder={t('registerAddressLine2Placeholder', 'Apt., unit, floor (optional)')}
+          placeholder={t('registerAddressLine2', 'Address Line 2 (apt., unit #, floor, etc.)')}
+          aria-label={t('registerAddressLine2', 'Address Line 2 (apt., unit #, floor, etc.)')}
         />
       </div>
 
-      <div className="shipper-register-row">
-        <div className="shipper-login-field shipper-register-row-item">
-          <label htmlFor="register-postal">{t('registerPostal', 'Postal Code')}</label>
-          <input
-            id="register-postal"
-            className="shipper-login-control"
-            value={postalCode}
-            disabled={disabled}
-            onChange={(e) => onChange({ postal_code: e.target.value })}
-            placeholder={t('registerPostalPlaceholder', 'Postal Code')}
-          />
-          {errors.postal_code && (
-            <p className="shipper-login-field-error" role="alert">
-              {errors.postal_code}
-            </p>
-          )}
-        </div>
-        <div className="shipper-login-field shipper-register-row-item shipper-register-row-item--grow">
-          <label htmlFor="register-city">{t('registerCity', 'City')}</label>
-          <input
-            id="register-city"
-            className="shipper-login-control"
-            value={city}
-            disabled={disabled}
-            onChange={(e) => onChange({ city: e.target.value })}
-            placeholder={t('registerCityPlaceholder', 'City')}
-          />
-          {errors.city && (
-            <p className="shipper-login-field-error" role="alert">
-              {errors.city}
-            </p>
-          )}
-        </div>
+      <div className="reg-field" data-reg-field="postal_code">
+        <input
+          id="register-postal"
+          className="reg-input"
+          value={postalCode}
+          disabled={disabled}
+          onChange={(e) => onChange({ postal_code: e.target.value })}
+          placeholder={`${t('registerPostal', 'Postal Code')}*`}
+          aria-label={t('registerPostal', 'Postal Code')}
+        />
+        {errors.postal_code && (
+          <p className="reg-error" role="alert">
+            {errors.postal_code}
+          </p>
+        )}
       </div>
 
-      <div className="shipper-login-field">
-        <label htmlFor="register-country">{t('registerCountry', 'Country')}</label>
+      <div className="reg-field" data-reg-field="city">
+        <input
+          id="register-city"
+          className="reg-input"
+          value={city}
+          disabled={disabled}
+          onChange={(e) => onChange({ city: e.target.value })}
+          placeholder={`${t('registerCity', 'City')}*`}
+          aria-label={t('registerCity', 'City')}
+        />
+        {errors.city && (
+          <p className="reg-error" role="alert">
+            {errors.city}
+          </p>
+        )}
+      </div>
+
+      <div className="reg-field" data-reg-field="address_country">
         <select
           id="register-country"
-          className="shipper-login-control"
+          className="reg-select"
           value={addressCountry}
           disabled={disabled}
           onChange={(e) => onChange({ address_country: e.target.value })}
+          aria-label={t('registerCountry', 'Country')}
         >
-          <option value="">{t('registerCountryPlaceholder', 'Select Country')}</option>
+          <option value="">{`${t('registerCountryPlaceholder', 'Select Country')}*`}</option>
           {countriesDomicile.map((c) => (
             <option key={c.value} value={c.value}>
               {c.label || c.value}
@@ -150,11 +151,11 @@ export const AddressStep: React.FC<AddressStepProps> = ({
           ))}
         </select>
         {errors.address_country && (
-          <p className="shipper-login-field-error" role="alert">
+          <p className="reg-error" role="alert">
             {errors.address_country}
           </p>
         )}
       </div>
-    </div>
+    </>
   );
 };

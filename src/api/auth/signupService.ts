@@ -6,6 +6,7 @@ import type {
   RegisterShipperFields,
   SendEmailOtpPayload,
   SendPhoneOtpPayload,
+  SignupLegalDocument,
   SignupReferenceData,
   SignupReferenceResponse,
   SignupStatusResponse,
@@ -39,11 +40,19 @@ async function signupRequest<T>(
   options: {
     method?: string;
     body?: unknown;
+    params?: Record<string, unknown>;
     headers?: Record<string, string>;
   } = {}
 ): Promise<T> {
+  const currentLang =
+    localStorage.getItem('app_locale') ||
+    localStorage.getItem('i18nextLng') ||
+    'en';
+  const normLang = currentLang.toLowerCase().startsWith('el') ? 'el' : 'en';
+
   const headers: Record<string, string> = {
     Authorization: '',
+    'Accept-Language': normLang,
     ...options.headers,
   };
 
@@ -52,6 +61,7 @@ async function signupRequest<T>(
       url: path,
       method: options.method || 'GET',
       data: options.body,
+      params: options.params,
       headers,
     });
     return response.data as T;
@@ -172,10 +182,29 @@ export const signupService = {
     return signupRequest<VerifyVatResponse>(`/auth/verify-vat/${encoded}`);
   },
 
-  async getReference(): Promise<SignupReferenceData> {
-    const res = await signupRequest<SignupReferenceResponse>('/auth/signup/reference');
+  async getReference(lang?: string): Promise<SignupReferenceData> {
+    const normLang = lang ? (lang.toLowerCase().startsWith('el') ? 'el' : 'en') : undefined;
+    const res = await signupRequest<SignupReferenceResponse>('/auth/signup/reference', {
+      params: normLang ? { lang: normLang } : undefined,
+      headers: normLang ? { 'Accept-Language': normLang } : undefined,
+    });
     if (!res.status || !res.data) {
       throw new Error(res.message || 'Could not load signup reference data');
+    }
+    return res.data;
+  },
+
+  async getLegalContent(
+    name: 'terms_and_conditions' | 'privacy_policy',
+    lang?: string
+  ): Promise<SignupLegalDocument> {
+    const normLang = lang ? (lang.toLowerCase().startsWith('el') ? 'el' : 'en') : undefined;
+    const res = await signupRequest<{ status: boolean; data: SignupLegalDocument }>(`/auth/legal/${name}`, {
+      params: normLang ? { lang: normLang } : undefined,
+      headers: normLang ? { 'Accept-Language': normLang } : undefined,
+    });
+    if (!res.status || !res.data) {
+      throw new Error('Could not load legal document');
     }
     return res.data;
   },

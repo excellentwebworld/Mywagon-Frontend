@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { OtpBoxes } from './OtpBoxes';
 
@@ -14,6 +14,10 @@ type VerifyOtpModalProps = {
   resendSeconds: number;
   busy?: boolean;
   error?: string;
+  /** Staging/dev parity with Blade: show OTP for QA */
+  debugOtp?: string | null;
+  /** Blade green flash after successful resend */
+  resentFlash?: boolean;
 };
 
 export const VerifyOtpModal: React.FC<VerifyOtpModalProps> = ({
@@ -28,71 +32,96 @@ export const VerifyOtpModal: React.FC<VerifyOtpModalProps> = ({
   resendSeconds,
   busy,
   error,
+  debugOtp,
+  resentFlash,
 }) => {
   const { t } = useTranslation();
-  const title =
-    mode === 'phone'
-      ? t('registerVerifyPhoneTitle', 'Verify phone')
-      : t('registerVerifyEmailTitle', 'Verify email');
+
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
+
+  const minutes = Math.floor(Math.max(resendSeconds, 0) / 60);
+  const seconds = Math.max(resendSeconds, 0) % 60;
+  const timerLabel = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
   return (
-    <div className="shipper-register-otp-modal" role="dialog" aria-modal="true" aria-labelledby="register-otp-title">
-      <button
-        type="button"
-        className="shipper-register-otp-modal-backdrop"
-        aria-label={t('registerClose', 'Close')}
-        onClick={onClose}
-      />
-      <div className="shipper-register-otp-modal-card">
-        <div className="shipper-register-otp-modal-header">
-          <h2 id="register-otp-title" className="shipper-register-otp-modal-title">
-            {title}
-          </h2>
-          <button
-            type="button"
-            className="shipper-register-otp-modal-close"
-            onClick={onClose}
-            aria-label={t('registerClose', 'Close')}
-          >
-            ×
-          </button>
-        </div>
-        <p className="shipper-register-hint">{t('registerCodeSent', 'Code sent to')}</p>
-        <p className="shipper-register-target">{target}</p>
-        <OtpBoxes value={otp} onChange={onOtp} verified={verified} disabled={busy} error={error} />
+    <div
+      className="reg-otp-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="register-otp-title"
+    >
+      <div className="reg-otp-modal">
+        <button
+          type="button"
+          className="reg-otp-close"
+          onClick={onClose}
+          aria-label={t('registerClose', 'Close')}
+        >
+          ×
+        </button>
+        <h2 id="register-otp-title" className="reg-otp-title">
+          {t('registerEnterOtpSentTo', 'Enter OTP sent to')}
+          <div className="reg-otp-destination">{target}</div>
+        </h2>
+        {debugOtp ? (
+          <p className="reg-otp-debug" aria-live="polite">
+            OTP: {debugOtp}
+          </p>
+        ) : null}
+        {resentFlash ? (
+          <div className="reg-otp-resent" role="status">
+            {t('registerOtpResent', 'OTP resent successfully')}
+          </div>
+        ) : null}
+        <OtpBoxes value={otp} onChange={onOtp} verified={verified} disabled={busy} />
+        {error ? <p className="reg-otp-error" role="alert">{error}</p> : null}
         {verified ? (
-          <p className="shipper-register-verified">{t('registerVerified', 'Verified!')}</p>
+          <p className="reg-hint">{t('registerVerified', 'Verified!')}</p>
         ) : (
           <>
-            <p className="shipper-register-resend">
-              {t('registerCodeHint', "Didn't get it?")}{' '}
+            <div className="reg-otp-resend-row">
+              <span className="reg-otp-didnt-receive">
+                {t('registerOtpDidntReceive', "Didn't receive the OTP?")}{' '}
+              </span>
               {resendSeconds > 0 ? (
-                <span>
-                  {t('registerResendIn', 'Resend in {{seconds}}s', { seconds: resendSeconds })}
-                </span>
+                <>
+                  <span className="reg-otp-resend-after">
+                    {t('registerOtpResendAfter', 'Resend OTP after')}{' '}
+                  </span>
+                  <span className="reg-otp-timer">{timerLabel}</span>
+                </>
               ) : (
                 <button
                   type="button"
-                  className="shipper-register-link-btn"
+                  className="reg-otp-resend-link"
                   disabled={busy}
                   onClick={onResend}
                 >
-                  {t('registerResend', 'Resend')}
+                  {t('registerResendOtp', 'Resend OTP')}
                 </button>
               )}
-            </p>
-            <div className="shipper-login-submit-wrap" style={{ marginTop: 12 }}>
-              <button
-                type="button"
-                className="shipper-login-submit-btn"
-                disabled={busy || otp.length !== 6}
-                onClick={onVerify}
-              >
-                {busy ? t('registerWorking', 'Please wait…') : t('registerVerify', 'Verify')}
-              </button>
             </div>
+            <button
+              type="button"
+              className="reg-otp-verify-btn"
+              disabled={busy || otp.length !== 6}
+              onClick={onVerify}
+            >
+              {busy ? t('registerWorking', 'Please wait…') : t('registerVerify', 'Verify')}
+            </button>
           </>
         )}
+        <p className="reg-hint" style={{ marginTop: '0.75rem' }}>
+          {mode === 'phone'
+            ? t('registerVerifyPhoneHint', 'Enter the 6-digit code sent to your phone')
+            : t('registerVerifyEmailHint', 'Enter the 6-digit code sent to your email')}
+        </p>
       </div>
     </div>
   );

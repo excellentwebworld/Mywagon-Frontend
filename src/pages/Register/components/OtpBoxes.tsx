@@ -67,33 +67,26 @@ export const OtpBoxes: React.FC<OtpBoxesProps> = ({
   };
 
   return (
-    <div className="shipper-register-otp">
-      <div className="shipper-register-otp-boxes" onPaste={handlePaste}>
-        {digits.map((d, i) => (
-          <input
-            key={i}
-            ref={(el) => {
-              inputsRef.current[i] = el;
-            }}
-            type="text"
-            inputMode="numeric"
-            autoComplete={i === 0 ? 'one-time-code' : 'off'}
-            maxLength={1}
-            className={`shipper-register-otp-box${verified ? ' is-verified' : ''}${error ? ' is-error' : ''}`}
-            value={d.trim()}
-            readOnly={verified || disabled}
-            disabled={disabled}
-            aria-label={`Digit ${i + 1}`}
-            onChange={(e) => handleChange(i, e.target.value)}
-            onKeyDown={(e) => handleKeyDown(i, e)}
-          />
-        ))}
-      </div>
-      {error && (
-        <p className="shipper-login-field-error" role="alert">
-          {error}
-        </p>
-      )}
+    <div className="reg-otp-digits" onPaste={handlePaste}>
+      {digits.map((d, i) => (
+        <input
+          key={i}
+          ref={(el) => {
+            inputsRef.current[i] = el;
+          }}
+          type="text"
+          inputMode="numeric"
+          autoComplete={i === 0 ? 'one-time-code' : 'off'}
+          maxLength={1}
+          className="reg-otp-digit"
+          value={d.trim()}
+          readOnly={verified || disabled}
+          disabled={disabled}
+          aria-label={`Digit ${i + 1}`}
+          onChange={(e) => handleChange(i, e.target.value)}
+          onKeyDown={(e) => handleKeyDown(i, e)}
+        />
+      ))}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { HEAR_ABOUT_OPTIONS } from '../signupDraft';
+import { privacyUrl, resolvePrivacyUrl, resolveTermsUrl, termsUrl } from '../registerConstants';
 
 type MarketingTermsStepProps = {
   hearAbout: string;
@@ -23,16 +24,11 @@ type MarketingTermsStepProps = {
   disabled?: boolean;
   /** When false, only hear-about + referral fields are rendered (terms shown elsewhere). */
   includeTerms?: boolean;
+  links?: Record<string, string | undefined> | null;
+  termsUrl?: string;
+  privacyUrl?: string;
+  onOpenLegal?: (doc: 'terms' | 'privacy') => void;
 };
-
-function policyUrl(kind: 'terms' | 'privacy', lang: string): string {
-  const base = (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '') ?? '';
-  if (!base) return '#';
-  if (kind === 'terms') {
-    return `${base}/terms-condition/terms_and_conditions/shipper/${lang}`;
-  }
-  return `${base}/privacy-policy/privacy_policy/shipper/${lang}`;
-}
 
 export const MarketingTermsStep: React.FC<MarketingTermsStepProps> = ({
   hearAbout,
@@ -44,21 +40,27 @@ export const MarketingTermsStep: React.FC<MarketingTermsStepProps> = ({
   errors,
   disabled,
   includeTerms = true,
+  links,
+  termsUrl: termsUrlProp,
+  privacyUrl: privacyUrlProp,
+  onOpenLegal,
 }) => {
   const { t } = useTranslation();
+  const resolvedTerms = termsUrlProp || resolveTermsUrl(links, lang, 'shipper');
+  const resolvedPrivacy = privacyUrlProp || resolvePrivacyUrl(links, lang, 'shipper');
 
   return (
-    <div className="shipper-register-step">
-      <div className="shipper-login-field">
-        <label htmlFor="register-hear-about">{t('registerHearAbout', 'How did you hear about us?')}</label>
+    <>
+      <div className="reg-field" data-reg-field="hear_about_us_shipper">
         <select
           id="register-hear-about"
-          className="shipper-login-control"
+          className="reg-select"
           value={hearAbout}
           disabled={disabled}
           onChange={(e) => onChange({ hear_about_us_shipper: e.target.value })}
+          aria-label={t('registerHearAbout', 'How did you hear about us?')}
         >
-          <option value="">{t('registerHearAboutPlaceholder', 'How did you hear about us?')}</option>
+          <option value="">{`${t('registerHearAboutPlaceholder', 'How did you hear about us?')}*`}</option>
           {HEAR_ABOUT_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>
               {t(`registerHearAbout_${opt.replace(/[^a-zA-Z]/g, '_')}`, opt)}
@@ -66,78 +68,99 @@ export const MarketingTermsStep: React.FC<MarketingTermsStepProps> = ({
           ))}
         </select>
         {errors.hear_about_us_shipper && (
-          <p className="shipper-login-field-error" role="alert">
+          <p className="reg-error" role="alert">
             {errors.hear_about_us_shipper}
           </p>
         )}
       </div>
 
       {hearAbout === 'Other' && (
-        <div className="shipper-login-field">
-          <label htmlFor="register-hear-other">{t('registerHearAboutOther', 'Please specify')}</label>
+        <div className="reg-field" data-reg-field="hear_about_us_other_shipper">
           <input
             id="register-hear-other"
-            className="shipper-login-control"
+            className="reg-input"
             value={hearAboutOther}
             disabled={disabled}
             maxLength={35}
             onChange={(e) => onChange({ hear_about_us_other_shipper: e.target.value })}
-            placeholder={t('registerHearAboutOtherPlaceholder', 'Please specify')}
+            placeholder={`${t('registerHearAboutOther', 'Please specify')}*`}
+            aria-label={t('registerHearAboutOther', 'Please specify')}
           />
           {errors.hear_about_us_other_shipper && (
-            <p className="shipper-login-field-error" role="alert">
+            <p className="reg-error" role="alert">
               {errors.hear_about_us_other_shipper}
             </p>
           )}
         </div>
       )}
 
-      <div className="shipper-login-field">
-        <label htmlFor="register-referral">{t('registerReferral', 'Referral Code')}</label>
+      <div className="reg-field" data-reg-field="referral_code">
         <input
           id="register-referral"
-          className="shipper-login-control"
+          className="reg-input"
           value={referralCode}
           disabled={disabled}
           maxLength={35}
           onChange={(e) => onChange({ referral_code: e.target.value })}
           placeholder={t('registerReferralPlaceholder', 'Referral Code (optional)')}
+          aria-label={t('registerReferral', 'Referral Code')}
         />
         {errors.referral_code && (
-          <p className="shipper-login-field-error" role="alert">
+          <p className="reg-error" role="alert">
             {errors.referral_code}
           </p>
         )}
       </div>
 
       {includeTerms && (
-        <div className="shipper-register-terms">
-          <label className="shipper-register-terms-label">
+        <div className="reg-terms-wrap" data-reg-field="terms">
+          <div className="reg-terms">
             <input
               type="checkbox"
+              id="register-terms-inline"
               checked={terms}
               disabled={disabled}
               onChange={(e) => onChange({ terms: e.target.checked })}
             />
-            <span>
+            <label htmlFor="register-terms-inline">
               {t('registerTermsPrefix', 'I agree to the')}{' '}
-              <a href={policyUrl('terms', lang)} target="_blank" rel="noopener noreferrer">
+              <a
+                href={resolvedTerms}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  if (onOpenLegal) {
+                    e.preventDefault();
+                    onOpenLegal('terms');
+                  }
+                }}
+              >
                 {t('registerTermsLink', 'Terms & conditions')}
               </a>{' '}
               {t('registerTermsAnd', 'and')}{' '}
-              <a href={policyUrl('privacy', lang)} target="_blank" rel="noopener noreferrer">
+              <a
+                href={resolvedPrivacy}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  if (onOpenLegal) {
+                    e.preventDefault();
+                    onOpenLegal('privacy');
+                  }
+                }}
+              >
                 {t('registerPrivacyLink', 'Privacy policy')}
               </a>
-            </span>
-          </label>
+            </label>
+          </div>
           {errors.terms && (
-            <p className="shipper-login-field-error" role="alert">
+            <p className="reg-error reg-terms-error" role="alert">
               {errors.terms}
             </p>
           )}
         </div>
       )}
-    </div>
+    </>
   );
 };
 
@@ -147,40 +170,72 @@ export function RegisterTermsCheckbox({
   onChange,
   error,
   disabled,
+  links,
+  termsUrl: termsUrlProp,
+  privacyUrl: privacyUrlProp,
+  onOpenLegal,
 }: {
   terms: boolean;
   lang: 'en' | 'el';
   onChange: (terms: boolean) => void;
   error?: string;
   disabled?: boolean;
+  links?: Record<string, string | undefined> | null;
+  termsUrl?: string;
+  privacyUrl?: string;
+  onOpenLegal?: (doc: 'terms' | 'privacy') => void;
 }) {
   const { t } = useTranslation();
+  const resolvedTerms = termsUrlProp || resolveTermsUrl(links, lang, 'shipper');
+  const resolvedPrivacy = privacyUrlProp || resolvePrivacyUrl(links, lang, 'shipper');
+
   return (
-    <div className="shipper-register-terms">
-      <label className="shipper-register-terms-label">
+    <div className="reg-terms-wrap" data-reg-field="terms">
+      <div className="reg-terms">
         <input
           type="checkbox"
+          id="register-terms"
           checked={terms}
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
         />
-        <span>
+        <label htmlFor="register-terms">
           {t(
             'registerTermsDeclare',
             'I declare that I am authorized to legally bind the company I represent and accept the MYVAGON'
           )}{' '}
-          <a href={policyUrl('terms', lang)} target="_blank" rel="noopener noreferrer">
+          <a
+            href={resolvedTerms}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              if (onOpenLegal) {
+                e.preventDefault();
+                onOpenLegal('terms');
+              }
+            }}
+          >
             {t('registerTermsLink', 'Terms & conditions')}
           </a>{' '}
           {t('registerTermsAnd', 'and')}{' '}
-          <a href={policyUrl('privacy', lang)} target="_blank" rel="noopener noreferrer">
+          <a
+            href={resolvedPrivacy}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              if (onOpenLegal) {
+                e.preventDefault();
+                onOpenLegal('privacy');
+              }
+            }}
+          >
             {t('registerPrivacyLink', 'Privacy policy')}
           </a>{' '}
           {t('registerTermsOnBehalf', 'on its behalf.')}
-        </span>
-      </label>
+        </label>
+      </div>
       {error && (
-        <p className="shipper-login-field-error" role="alert">
+        <p className="reg-error reg-terms-error" role="alert">
           {error}
         </p>
       )}

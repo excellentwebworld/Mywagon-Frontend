@@ -12,7 +12,9 @@ export type SignupStatusResponse = {
   message?: string;
   redirect_url?: string;
   otp?: number | string;
-  data?: unknown;
+  data?: {
+    otp?: number | string;
+  } | null;
 };
 
 export type SendEmailOtpPayload = {
@@ -87,6 +89,13 @@ export type SignupReferenceVehicleType = {
   name: string;
 };
 
+export type SignupLegalDocument = {
+  name?: string;
+  title?: string;
+  url?: string;
+  content?: string;
+};
+
 export type SignupReferenceData = {
   vehicle_types: SignupReferenceVehicleType[];
   country_codes: SignupReferenceCountryCode[];
@@ -94,6 +103,20 @@ export type SignupReferenceData = {
   videos: {
     shipper?: string;
     carrier?: string;
+  };
+  links?: {
+    terms_and_conditions?: string;
+    privacy_policy?: string;
+    terms_and_conditions_en?: string;
+    terms_and_conditions_el?: string;
+    privacy_policy_en?: string;
+    privacy_policy_el?: string;
+    [key: string]: string | undefined;
+  };
+  legal?: {
+    terms_and_conditions?: SignupLegalDocument;
+    privacy_policy?: SignupLegalDocument;
+    [key: string]: SignupLegalDocument | undefined;
   };
 };
 

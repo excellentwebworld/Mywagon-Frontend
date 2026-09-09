@@ -101,11 +101,13 @@ export function validateOtp(otp: string, t: Translate): string | undefined {
 
 export function validatePassword(password: string, t: Translate): string | undefined {
   if (!password) return t('registerPasswordRequired', 'Please enter password');
-  if (password.length < 8) return t('registerPasswordMinLength', 'Password must be at least 8 characters');
+  if (password.length < 8) {
+    return t('registerPasswordMinLength', 'Password must have at least 8 characters');
+  }
   if (!PASSWORD_PATTERN.test(password)) {
     return t(
       'registerPasswordComplexity',
-      'Min 8 characters · 1 uppercase · 1 number · 1 special'
+      'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character.'
     );
   }
   return undefined;
@@ -116,8 +118,13 @@ export function validatePasswordConfirm(
   confirm: string,
   t: Translate
 ): string | undefined {
-  if (!confirm) return t('registerPasswordConfirmRequired', 'Please confirm password');
-  if (password !== confirm) return t('registerPasswordMismatch', 'Passwords do not match');
+  if (!confirm) {
+    return t('registerPasswordConfirmRequired', 'Please confirm your password');
+  }
+  if (!password) return undefined;
+  if (password !== confirm) {
+    return t('registerPasswordMismatch', 'Password and confirm password do not match.');
+  }
   return undefined;
 }
 
@@ -128,9 +135,16 @@ export function validatePasswordStep(
 ): RegisterFieldErrors {
   const errors: RegisterFieldErrors = {};
   const pw = validatePassword(password, t);
-  const cp = validatePasswordConfirm(password, confirm, t);
   if (pw) errors.password = pw;
-  if (cp) errors.password_confirmation = cp;
+
+  if (!confirm.trim()) {
+    errors.password_confirmation = t(
+      'registerPasswordConfirmRequired',
+      'Please confirm your password'
+    );
+  } else if (password && password !== confirm) {
+    errors.password_confirmation = t('registerPasswordMismatch', 'Password and confirm password do not match.');
+  }
   return errors;
 }
 
@@ -313,4 +327,42 @@ export function validateFullRegister(
   }
 
   return errors;
+}
+
+/** DOM order used to scroll to the first invalid register field. */
+export const REGISTER_FIELD_SCROLL_ORDER: (keyof RegisterFieldErrors)[] = [
+  'first_name',
+  'last_name',
+  'company_name',
+  'country_code',
+  'phone',
+  'email',
+  'password',
+  'password_confirmation',
+  'street_address',
+  'postal_code',
+  'city',
+  'address_country',
+  'hear_about_us_shipper',
+  'hear_about_us_other_shipper',
+  'referral_code',
+  'kyc_vat_number_shipper',
+  'shipper_certificate',
+  'terms',
+];
+
+export function scrollToFirstRegisterError(errors: RegisterFieldErrors): void {
+  const firstKey = REGISTER_FIELD_SCROLL_ORDER.find((key) => Boolean(errors[key]));
+  if (!firstKey) return;
+
+  const el =
+    document.querySelector<HTMLElement>(`[data-reg-field="${firstKey}"]`) ||
+    document.getElementById(`register-${firstKey.replace(/_/g, '-')}`);
+
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const focusable = el.matches('input, select, button, textarea')
+    ? el
+    : el.querySelector<HTMLElement>('input, select, button, textarea');
+  window.setTimeout(() => focusable?.focus?.({ preventScroll: true }), 250);
 }

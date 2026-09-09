@@ -27,7 +27,16 @@ import { WebViewBillingPage } from './pages/Billing/WebViewBillingPage';
 import PriceListsPage from './pages/PriceLists/PriceListsPage';
 import { MessagesPage } from './pages/Messages';
 
+import { LegalPage } from './pages/Legal/LegalPage';
+
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
+
+const legalRoutes = [
+  { path: '/terms-condition/:key/:type/:lang', element: <LegalPage document="terms" /> },
+  { path: '/terms-condition/*', element: <LegalPage document="terms" /> },
+  { path: '/privacy-policy/:key/:type/:lang', element: <LegalPage document="privacy" /> },
+  { path: '/privacy-policy/*', element: <LegalPage document="privacy" /> },
+];
 
 const appRoutes = [
   { path: '/dashboard', element: <Dashboard /> },
@@ -89,6 +98,7 @@ export const router = createBrowserRouter(
     ? [
         { path: '/login', element: <LoginPage /> },
         { path: '/shipper/register', element: <RegisterPage /> },
+        ...legalRoutes,
         ...webViewRoutes,
         { path: '/', element: <Navigate to="/address-book" replace /> },
         protectedLayout,
@@ -97,6 +107,7 @@ export const router = createBrowserRouter(
     : [
         { path: '/login', element: <LoginPage /> },
         { path: '/shipper/register', element: <RegisterPage /> },
+        ...legalRoutes,
         ...webViewRoutes,
         { path: '/', element: <Navigate to="/login" replace /> },
         { path: '/about', element: <Navigate to="/login" replace /> },

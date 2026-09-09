@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { signupService, SignupApiError } from '../../api/auth';
-import type { SignupReferenceCountryCode, SignupReferenceDomicile } from '../../api/auth';
+import type {
+  SignupLegalDocument,
+  SignupReferenceCountryCode,
+  SignupReferenceData,
+  SignupReferenceDomicile,
+} from '../../api/auth';
 import {
   clearSignupDraft,
   createEmptyDraft,
@@ -10,6 +15,7 @@ import {
 } from './signupDraft';
 import {
   digitsOnlyPhone,
+  scrollToFirstRegisterError,
   validateEmailStep,
   validateFullRegister,
   validateOtp,
@@ -19,40 +25,91 @@ import {
 
 type Translate = (key: string, fallbackOrOptions?: string | Record<string, unknown>) => string;
 
-const RESEND_SECONDS = 60;
+/** Blade parity: local / development / staging compare OTP client-side. */
+const RESEND_SECONDS = 30;
+
+type BusyKind = null | 'phone' | 'email' | 'submit';
+
+function isClientOtpEnv(): boolean {
+  const mode = import.meta.env.MODE;
+  return (
+    import.meta.env.DEV ||
+    mode === 'development' ||
+    mode === 'staging' ||
+    mode === 'local'
+  );
+}
+
+function extractOtp(res: { otp?: number | string; data?: { otp?: number | string } | null }): string | null {
+  if (res.otp != null && String(res.otp).trim() !== '') return String(res.otp);
+  if (res.data?.otp != null && String(res.data.otp).trim() !== '') return String(res.data.otp);
+  return null;
+}
 
 export type OtpModalMode = 'phone' | 'email' | null;
 
-export function useRegisterForm(t: Translate) {
+export function useRegisterForm(t: Translate, lang: 'en' | 'el' = 'en') {
   const [draft, setDraft] = useState<SignupDraft>(() => loadSignupDraft());
   const [fieldErrors, setFieldErrors] = useState<RegisterFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busyKind, setBusyKind] = useState<BusyKind>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [otpModal, setOtpModal] = useState<OtpModalMode>(null);
   const [phoneOtp, setPhoneOtp] = useState('');
   const [emailOtp, setEmailOtp] = useState('');
   const [pendingEmailOtp, setPendingEmailOtp] = useState<string | null>(null);
+  const [pendingPhoneOtp, setPendingPhoneOtp] = useState<string | null>(null);
   const [resendSeconds, setResendSeconds] = useState(0);
+  const [otpResentFlash, setOtpResentFlash] = useState(false);
   const [countryCodes, setCountryCodes] = useState<SignupReferenceCountryCode[]>([]);
   const [countriesDomicile, setCountriesDomicile] = useState<SignupReferenceDomicile[]>([]);
+  const [signupVideos, setSignupVideos] = useState<{ shipper?: string; carrier?: string }>({});
+  const [signupLinks, setSignupLinks] = useState<SignupReferenceData['links'] | null>(null);
+  const [signupLegal, setSignupLegal] = useState<SignupReferenceData['legal'] | null>(null);
   const [referenceLoading, setReferenceLoading] = useState(true);
   const [certificateFile, setCertificateFile] = useState<File | null>(null);
-  const [vatHint, setVatHint] = useState<string | null>(null);
-  const [vatChecking, setVatChecking] = useState(false);
   const verifyingPhoneRef = useRef(false);
+  const hasLoadedReferenceRef = useRef(false);
+  /** Blade shipper_old_email / shipper_old_phone / shipper_old_country_code */
+  const verifiedEmailRef = useRef<string>('');
+  const verifiedPhoneRef = useRef<string>('');
+  const verifiedCountryCodeRef = useRef<string>('');
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setReferenceLoading(true);
+      // First load only: show boot screen. Language switches refresh quietly.
+      if (!hasLoadedReferenceRef.current) {
+        setReferenceLoading(true);
+      }
       try {
-        const data = await signupService.getReference();
+        const data = await signupService.getReference(lang);
         if (cancelled) return;
         const codes = data.country_codes ?? [];
         const domicile = data.countries_domicile ?? [];
         setCountryCodes(codes);
         setCountriesDomicile(domicile);
+        setSignupVideos(data.videos ?? {});
+        setSignupLinks(data.links ?? null);
+        setSignupLegal(data.legal ?? null);
+        if (data.legal?.terms_and_conditions?.content) {
+          try {
+            sessionStorage.setItem(`legal_terms_and_conditions_${lang}`, data.legal.terms_and_conditions.content);
+            sessionStorage.setItem('legal_terms_and_conditions', data.legal.terms_and_conditions.content);
+          } catch {
+            /* ignore */
+          }
+        }
+        if (data.legal?.privacy_policy?.content) {
+          try {
+            sessionStorage.setItem(`legal_privacy_policy_${lang}`, data.legal.privacy_policy.content);
+            sessionStorage.setItem('legal_privacy_policy', data.legal.privacy_policy.content);
+          } catch {
+            /* ignore */
+          }
+        }
+        hasLoadedReferenceRef.current = true;
         setDraft((prev) => {
           const patch: Partial<SignupDraft> = {};
           if (!prev.country_code) {
@@ -69,7 +126,7 @@ export function useRegisterForm(t: Translate) {
           return patchSignupDraft(prev, patch);
         });
       } catch (err) {
-        if (!cancelled) {
+        if (!cancelled && !hasLoadedReferenceRef.current) {
           setFormError(
             err instanceof Error
               ? err.message
@@ -83,7 +140,7 @@ export function useRegisterForm(t: Translate) {
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [lang, t]);
 
   useEffect(() => {
     if (resendSeconds <= 0) return;
@@ -105,6 +162,7 @@ export function useRegisterForm(t: Translate) {
 
   const clearPhoneOtpState = useCallback(() => {
     setPhoneOtp('');
+    setPendingPhoneOtp(null);
     verifyingPhoneRef.current = false;
   }, []);
 
@@ -115,30 +173,48 @@ export function useRegisterForm(t: Translate) {
 
   const closeOtpModal = useCallback(() => {
     setOtpModal(null);
+    setOtpResentFlash(false);
+    setFieldErrors((prev) => {
+      if (!prev.otp) return prev;
+      const next = { ...prev };
+      delete next.otp;
+      return next;
+    });
   }, []);
 
   const setPhone = useCallback(
     (phone: string) => {
       const digits = digitsOnlyPhone(phone).slice(0, 10);
-      updateDraft({ phone: digits, phoneVerified: false });
+      const restored =
+        Boolean(verifiedPhoneRef.current) &&
+        digits === verifiedPhoneRef.current &&
+        draft.country_code === verifiedCountryCodeRef.current;
+      updateDraft({ phone: digits, phoneVerified: restored });
       clearPhoneOtpState();
       if (otpModal === 'phone') setOtpModal(null);
     },
-    [updateDraft, clearPhoneOtpState, otpModal]
+    [updateDraft, clearPhoneOtpState, otpModal, draft.country_code]
   );
 
   const setCountryCode = useCallback(
     (country_code: string) => {
-      updateDraft({ country_code, phoneVerified: false });
+      const restored =
+        Boolean(verifiedPhoneRef.current) &&
+        draft.phone === verifiedPhoneRef.current &&
+        country_code === verifiedCountryCodeRef.current;
+      updateDraft({ country_code, phoneVerified: restored });
       clearPhoneOtpState();
       if (otpModal === 'phone') setOtpModal(null);
     },
-    [updateDraft, clearPhoneOtpState, otpModal]
+    [updateDraft, clearPhoneOtpState, otpModal, draft.phone]
   );
 
   const setEmail = useCallback(
     (email: string) => {
-      updateDraft({ email, emailVerified: false });
+      const normalized = email.replace(/\s/g, '').toLowerCase();
+      const restored =
+        Boolean(verifiedEmailRef.current) && normalized === verifiedEmailRef.current;
+      updateDraft({ email: normalized, emailVerified: restored });
       clearEmailOtpState();
       if (otpModal === 'email') setOtpModal(null);
     },
@@ -156,71 +232,73 @@ export function useRegisterForm(t: Translate) {
       setFieldErrors((prev) => ({ ...prev, ...errors }));
       return;
     }
-    setBusy(true);
+    setBusyKind('phone');
     setFormError(null);
+    setOtpResentFlash(false);
     try {
-      const dup = await signupService.checkDuplicate({
-        table_name: 'shippers',
-        field_name: 'phone',
-        new_value: digitsOnlyPhone(draft.phone),
-      });
-      if (dup.status === false || dup.success === false) {
-        setFieldErrors((prev) => ({
-          ...prev,
-          phone: dup.message || t('registerPhoneTaken', 'This phone number has already been taken'),
-        }));
-        return;
-      }
-      await signupService.sendPhoneOtp({
+      const res = await signupService.sendPhoneOtp({
         country_code: draft.country_code,
         phone: digitsOnlyPhone(draft.phone),
         user_type: 'shipper',
       });
-      clearPhoneOtpState();
+      setPendingPhoneOtp(extractOtp(res));
+      setPhoneOtp('');
       updateDraft({ phoneVerified: false });
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.phone;
+        delete next.otp;
+        return next;
+      });
       startResendCooldown();
       setOtpModal('phone');
     } catch (err) {
-      setFormError(
+      const message =
         err instanceof Error
           ? err.message
-          : t('registerPhoneOtpSendFailed', 'Could not send phone OTP')
-      );
+          : t('registerPhoneOtpSendFailed', 'Could not send phone OTP');
+      const apiFields = err instanceof SignupApiError ? err.fieldErrors : undefined;
+      setFieldErrors((prev) => ({
+        ...prev,
+        phone: apiFields?.phone || message,
+      }));
     } finally {
-      setBusy(false);
+      setBusyKind(null);
     }
-  }, [
-    draft.country_code,
-    draft.phone,
-    draft.phoneVerified,
-    t,
-    clearPhoneOtpState,
-    updateDraft,
-    startResendCooldown,
-  ]);
+  }, [draft.country_code, draft.phone, draft.phoneVerified, t, updateDraft, startResendCooldown]);
 
   const resendPhoneCode = useCallback(async () => {
-    if (resendSeconds > 0 || busy) return;
-    setBusy(true);
+    if (resendSeconds > 0 || busyKind === 'phone') return;
+    setBusyKind('phone');
     setFormError(null);
+    setOtpResentFlash(false);
     try {
-      await signupService.sendPhoneOtp({
+      const res = await signupService.sendPhoneOtp({
         country_code: draft.country_code,
         phone: digitsOnlyPhone(draft.phone),
         user_type: 'shipper',
       });
+      setPendingPhoneOtp(extractOtp(res));
       setPhoneOtp('');
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.otp;
+        return next;
+      });
+      setOtpResentFlash(true);
       startResendCooldown();
     } catch (err) {
-      setFormError(
-        err instanceof Error
-          ? err.message
-          : t('registerPhoneOtpSendFailed', 'Could not send phone OTP')
-      );
+      setFieldErrors((prev) => ({
+        ...prev,
+        otp:
+          err instanceof Error
+            ? err.message
+            : t('registerPhoneOtpSendFailed', 'Could not send phone OTP'),
+      }));
     } finally {
-      setBusy(false);
+      setBusyKind(null);
     }
-  }, [resendSeconds, busy, draft.country_code, draft.phone, startResendCooldown, t]);
+  }, [resendSeconds, busyKind, draft.country_code, draft.phone, startResendCooldown, t]);
 
   const verifyPhone = useCallback(
     async (otp: string) => {
@@ -234,14 +312,30 @@ export function useRegisterForm(t: Translate) {
         return draft.phoneVerified;
       }
       verifyingPhoneRef.current = true;
-      setBusy(true);
+      setBusyKind('phone');
       setFormError(null);
       try {
-        await signupService.verifyPhoneOtp({
-          country_code: draft.country_code,
-          phone: digitsOnlyPhone(draft.phone),
-          otp,
-        });
+        // Blade: local/dev/staging compare returned OTP; production calls SMS verify API.
+        const useClientCompare = Boolean(pendingPhoneOtp) && isClientOtpEnv();
+        if (useClientCompare) {
+          if (String(pendingPhoneOtp) !== otp) {
+            setFieldErrors((prev) => ({
+              ...prev,
+              otp: t('registerOtpInvalid', 'Enter valid OTP'),
+            }));
+            setPhoneOtp('');
+            return false;
+          }
+        } else {
+          await signupService.verifyPhoneOtp({
+            country_code: draft.country_code,
+            phone: digitsOnlyPhone(draft.phone),
+            otp,
+          });
+        }
+
+        verifiedPhoneRef.current = digitsOnlyPhone(draft.phone);
+        verifiedCountryCodeRef.current = draft.country_code;
         updateDraft({ phoneVerified: true });
         setFieldErrors((prev) => {
           const next = { ...prev };
@@ -250,20 +344,22 @@ export function useRegisterForm(t: Translate) {
           return next;
         });
         setOtpModal(null);
+        setOtpResentFlash(false);
         return true;
       } catch (err) {
         setFieldErrors((prev) => ({
           ...prev,
           otp: err instanceof Error ? err.message : t('registerOtpInvalid', 'Enter valid OTP'),
         }));
+        setPhoneOtp('');
         updateDraft({ phoneVerified: false });
         return false;
       } finally {
         verifyingPhoneRef.current = false;
-        setBusy(false);
+        setBusyKind(null);
       }
     },
-    [t, draft.phoneVerified, draft.country_code, draft.phone, updateDraft]
+    [t, draft.phoneVerified, draft.country_code, draft.phone, pendingPhoneOtp, updateDraft]
   );
 
   const openEmailOtp = useCallback(async () => {
@@ -273,64 +369,72 @@ export function useRegisterForm(t: Translate) {
       setFieldErrors((prev) => ({ ...prev, ...errors }));
       return;
     }
-    setBusy(true);
+    setBusyKind('email');
     setFormError(null);
+    setOtpResentFlash(false);
     try {
-      const dup = await signupService.checkDuplicate({
-        table_name: 'shippers',
-        field_name: 'email',
-        new_value: draft.email.trim(),
-      });
-      if (dup.status === false || dup.success === false) {
-        setFieldErrors((prev) => ({
-          ...prev,
-          email: dup.message || t('registerEmailTaken', 'Already taken'),
-        }));
-        return;
-      }
+      const email = draft.email.trim().toLowerCase();
       const res = await signupService.sendEmailOtp({
-        email: draft.email.trim(),
+        email,
         user_type: 'shipper',
       });
-      setPendingEmailOtp(res.otp != null ? String(res.otp) : null);
+      setPendingEmailOtp(extractOtp(res));
       setEmailOtp('');
-      updateDraft({ emailVerified: false, email: draft.email.trim() });
+      updateDraft({ emailVerified: false, email });
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.email;
+        delete next.otp;
+        return next;
+      });
       startResendCooldown();
       setOtpModal('email');
     } catch (err) {
-      setFormError(
+      const message =
         err instanceof Error
           ? err.message
-          : t('registerEmailOtpSendFailed', 'Could not send email OTP')
-      );
+          : t('registerEmailOtpSendFailed', 'Could not send email OTP');
+      const apiFields = err instanceof SignupApiError ? err.fieldErrors : undefined;
+      setFieldErrors((prev) => ({
+        ...prev,
+        email: apiFields?.email || message,
+      }));
     } finally {
-      setBusy(false);
+      setBusyKind(null);
     }
   }, [draft.email, draft.emailVerified, t, updateDraft, startResendCooldown]);
 
   const resendEmailCode = useCallback(async () => {
-    if (resendSeconds > 0 || busy) return;
-    setBusy(true);
+    if (resendSeconds > 0 || busyKind === 'email') return;
+    setBusyKind('email');
     setFormError(null);
+    setOtpResentFlash(false);
     try {
       const res = await signupService.sendEmailOtp({
-        email: draft.email.trim(),
+        email: draft.email.trim().toLowerCase(),
         user_type: 'shipper',
       });
-      setPendingEmailOtp(res.otp != null ? String(res.otp) : null);
+      setPendingEmailOtp(extractOtp(res));
       setEmailOtp('');
-      updateDraft({ emailVerified: false });
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.otp;
+        return next;
+      });
+      setOtpResentFlash(true);
       startResendCooldown();
     } catch (err) {
-      setFormError(
-        err instanceof Error
-          ? err.message
-          : t('registerEmailOtpSendFailed', 'Could not send email OTP')
-      );
+      setFieldErrors((prev) => ({
+        ...prev,
+        otp:
+          err instanceof Error
+            ? err.message
+            : t('registerEmailOtpSendFailed', 'Could not send email OTP'),
+      }));
     } finally {
-      setBusy(false);
+      setBusyKind(null);
     }
-  }, [resendSeconds, busy, draft.email, startResendCooldown, t, updateDraft]);
+  }, [resendSeconds, busyKind, draft.email, startResendCooldown, t]);
 
   const verifyEmail = useCallback(
     (otp: string) => {
@@ -343,14 +447,17 @@ export function useRegisterForm(t: Translate) {
         setOtpModal(null);
         return true;
       }
-      if (!pendingEmailOtp || otp !== pendingEmailOtp) {
+      // Blade: email OTP is always compared client-side against send response.
+      if (!pendingEmailOtp || String(otp) !== String(pendingEmailOtp)) {
         setFieldErrors((prev) => ({
           ...prev,
           otp: t('registerOtpInvalid', 'Enter valid OTP'),
         }));
+        setEmailOtp('');
         updateDraft({ emailVerified: false });
         return false;
       }
+      verifiedEmailRef.current = draft.email.trim().toLowerCase();
       updateDraft({ emailVerified: true });
       setFieldErrors((prev) => {
         const next = { ...prev };
@@ -359,9 +466,10 @@ export function useRegisterForm(t: Translate) {
         return next;
       });
       setOtpModal(null);
+      setOtpResentFlash(false);
       return true;
     },
-    [t, draft.emailVerified, pendingEmailOtp, updateDraft]
+    [t, draft.emailVerified, draft.email, pendingEmailOtp, updateDraft]
   );
 
   const setCertificate = useCallback((file: File | null) => {
@@ -375,47 +483,17 @@ export function useRegisterForm(t: Translate) {
     setFormError(null);
   }, []);
 
-  const softVerifyVat = useCallback(async () => {
-    const vat = draft.kyc_vat_number_shipper.trim();
-    if (vat.length < 2) {
-      setVatHint(null);
-      return;
-    }
-    setVatChecking(true);
-    setVatHint(null);
-    try {
-      const res = await signupService.verifyVat(vat);
-      const valid =
-        res.valid === true ||
-        res.status === true ||
-        res.status === 1 ||
-        res.status === '1' ||
-        String(res.status).toLowerCase() === 'valid';
-      if (valid) {
-        setVatHint(t('registerVatVerified', 'VAT number looks valid'));
-      } else {
-        setVatHint(
-          (typeof res.message === 'string' && res.message) ||
-            t('registerVatUnverified', 'Could not verify VAT (you can still continue)')
-        );
-      }
-    } catch {
-      setVatHint(t('registerVatUnverified', 'Could not verify VAT (you can still continue)'));
-    } finally {
-      setVatChecking(false);
-    }
-  }, [draft.kyc_vat_number_shipper, t]);
-
   const submitRegister = useCallback(async () => {
     const errors = validateFullRegister(draft, certificateFile, t);
     if (Object.keys(errors).length) {
       setFieldErrors(errors);
-      setFormError(t('registerFixErrors', 'Please fix the highlighted fields and try again.'));
+      setFormError(null);
+      window.requestAnimationFrame(() => scrollToFirstRegisterError(errors));
       return;
     }
     if (!certificateFile) return;
 
-    setBusy(true);
+    setBusyKind('submit');
     setFormError(null);
     try {
       const companyRes = await signupService.checkCompany({
@@ -424,17 +502,17 @@ export function useRegisterForm(t: Translate) {
         new_value: draft.company_name.trim(),
       });
       if (companyRes.status === false || companyRes.success === false) {
-        setFieldErrors({
+        const companyErrors: RegisterFieldErrors = {
           company_name:
             companyRes.message || t('registerCompanyTaken', 'Company name already exists'),
-        });
-        setFormError(
-          companyRes.message || t('registerCompanyTaken', 'Company name already exists')
-        );
+        };
+        setFieldErrors(companyErrors);
+        setFormError(null);
+        window.requestAnimationFrame(() => scrollToFirstRegisterError(companyErrors));
         return;
       }
 
-      await signupService.signup({
+      const res = await signupService.signup({
         first_name: draft.first_name.trim(),
         last_name: draft.last_name.trim(),
         company_name: draft.company_name.trim(),
@@ -458,6 +536,7 @@ export function useRegisterForm(t: Translate) {
         referral_code: draft.referral_code.trim() || null,
         terms: true,
       });
+      setSuccessMessage(res.message || null);
       clearSignupDraft();
       setCertificateFile(null);
       setDraft(createEmptyDraft());
@@ -470,7 +549,8 @@ export function useRegisterForm(t: Translate) {
           (mapped as Record<string, string>)[key] = message;
         }
         setFieldErrors(mapped);
-        setFormError(err.message);
+        setFormError(null);
+        window.requestAnimationFrame(() => scrollToFirstRegisterError(mapped));
       } else {
         setFormError(
           err instanceof Error
@@ -479,19 +559,15 @@ export function useRegisterForm(t: Translate) {
         );
       }
     } finally {
-      setBusy(false);
+      setBusyKind(null);
     }
   }, [draft, certificateFile, t]);
 
-  useEffect(() => {
-    if (otpModal !== 'phone' || draft.phoneVerified || phoneOtp.length !== 6 || busy) return;
-    void verifyPhone(phoneOtp);
-  }, [phoneOtp, otpModal, draft.phoneVerified, busy, verifyPhone]);
+  // Blade requires clicking Verify — no auto-submit when 6 digits are filled.
 
-  useEffect(() => {
-    if (otpModal !== 'email' || draft.emailVerified || emailOtp.length !== 6 || busy) return;
-    verifyEmail(emailOtp);
-  }, [emailOtp, otpModal, draft.emailVerified, busy, verifyEmail]);
+  const phoneBusy = busyKind === 'phone';
+  const emailBusy = busyKind === 'email';
+  const busy = busyKind === 'submit';
 
   return {
     draft,
@@ -502,10 +578,17 @@ export function useRegisterForm(t: Translate) {
     fieldErrors,
     formError,
     busy,
+    phoneBusy,
+    emailBusy,
     submitted,
+    setSubmitted,
+    successMessage,
     referenceLoading,
     countryCodes,
     countriesDomicile,
+    signupVideos,
+    signupLinks,
+    signupLegal,
     otpModal,
     closeOtpModal,
     phoneOtp,
@@ -513,6 +596,10 @@ export function useRegisterForm(t: Translate) {
     emailOtp,
     setEmailOtp,
     resendSeconds,
+    otpResentFlash,
+    pendingEmailOtp,
+    pendingPhoneOtp,
+    showOtpDebug: isClientOtpEnv(),
     openPhoneOtp,
     openEmailOtp,
     resendPhoneCode,
@@ -521,9 +608,6 @@ export function useRegisterForm(t: Translate) {
     verifyEmail,
     certificateFile,
     setCertificate,
-    softVerifyVat,
-    vatHint,
-    vatChecking,
     submitRegister,
   };
 }

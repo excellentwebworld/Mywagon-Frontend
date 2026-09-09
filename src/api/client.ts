@@ -32,6 +32,14 @@ axiosInstance.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  const currentLang =
+    localStorage.getItem('app_locale') ||
+    localStorage.getItem('i18nextLng') ||
+    'en';
+  const normLang = currentLang.toLowerCase().startsWith('el') ? 'el' : 'en';
+  if (!config.headers['Accept-Language']) {
+    config.headers['Accept-Language'] = normLang;
+  }
   config.headers['X-Client-Timezone'] = getBrowserTimezone();
   return config;
 });

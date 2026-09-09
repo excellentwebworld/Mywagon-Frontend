@@ -17,6 +17,7 @@ export type {
   SendPhoneOtpPayload,
   SignupDuplicateField,
   SignupDuplicateTable,
+  SignupLegalDocument,
   SignupReferenceCountryCode,
   SignupReferenceData,
   SignupReferenceDomicile,

@@ -22,15 +22,16 @@ function collectOrders(shipment: Shipment): string[] {
 
   const fromCustomers: string[] = [];
   for (const c of shipment.customer ?? []) {
-    for (const o of c.orders ?? []) {
+    for (const o of (c.orders ?? []) as Array<string | { id?: string | number }>) {
       if (typeof o === 'string' && o) fromCustomers.push(o);
-      else if (o && typeof o === 'object' && 'id' in o && o.id) fromCustomers.push(String(o.id));
+      else if (o && typeof o === 'object' && o.id) fromCustomers.push(String(o.id));
     }
   }
   for (const stop of shipment.stops ?? []) {
     for (const c of stop.customers ?? []) {
-      for (const o of c.orders ?? []) {
-        if (o.id) fromCustomers.push(o.id);
+      for (const o of (c.orders ?? []) as Array<string | { id?: string | number }>) {
+        if (typeof o === 'string' && o) fromCustomers.push(o);
+        else if (o && typeof o === 'object' && o.id) fromCustomers.push(String(o.id));
       }
     }
   }

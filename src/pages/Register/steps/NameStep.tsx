@@ -21,41 +21,41 @@ export const NameStep: React.FC<NameStepProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="shipper-register-step">
-      <div className="shipper-login-field">
-        <label htmlFor="register-first-name">{t('registerFirstName', 'First name')}</label>
+    <>
+      <div className="reg-field" data-reg-field="first_name">
         <input
           id="register-first-name"
-          className="shipper-login-control"
+          className="reg-input"
           value={firstName}
           disabled={disabled}
           autoComplete="given-name"
           onChange={(e) => onFirstName(e.target.value)}
-          placeholder={t('registerFirstNamePlaceholder', 'First name')}
+          placeholder={`${t('registerFirstName', 'First name')}*`}
+          aria-label={t('registerFirstName', 'First name')}
         />
         {errors.first_name && (
-          <p className="shipper-login-field-error" role="alert">
+          <p className="reg-error" role="alert">
             {errors.first_name}
           </p>
         )}
       </div>
-      <div className="shipper-login-field">
-        <label htmlFor="register-last-name">{t('registerLastName', 'Last name')}</label>
+      <div className="reg-field" data-reg-field="last_name">
         <input
           id="register-last-name"
-          className="shipper-login-control"
+          className="reg-input"
           value={lastName}
           disabled={disabled}
           autoComplete="family-name"
           onChange={(e) => onLastName(e.target.value)}
-          placeholder={t('registerLastNamePlaceholder', 'Last name')}
+          placeholder={`${t('registerLastName', 'Last name')}*`}
+          aria-label={t('registerLastName', 'Last name')}
         />
         {errors.last_name && (
-          <p className="shipper-login-field-error" role="alert">
+          <p className="reg-error" role="alert">
             {errors.last_name}
           </p>
         )}
       </div>
-    </div>
+    </>
   );
 };

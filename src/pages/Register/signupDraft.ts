@@ -128,31 +128,13 @@ export function normalizeStepIndex(_raw: number | undefined, _draft: SignupDraft
 }
 
 export function loadSignupDraft(): SignupDraft {
+  clearSignupDraft();
   const referral = referralFromStoredQuery();
-  try {
-    const raw = sessionStorage.getItem(SIGNUP_DRAFT_STORAGE_KEY);
-    if (!raw) {
-      return createEmptyDraft(referral ? { referral_code: referral } : undefined);
-    }
-    const parsed = JSON.parse(raw) as Partial<SignupDraft>;
-    const draft = createEmptyDraft({
-      ...parsed,
-      terms: Boolean(parsed.terms),
-      referral_code: parsed.referral_code || referral || '',
-      stepIndex: 0,
-    });
-    return draft;
-  } catch {
-    return createEmptyDraft(referral ? { referral_code: referral } : undefined);
-  }
+  return createEmptyDraft(referral ? { referral_code: referral } : undefined);
 }
 
-export function saveSignupDraft(draft: SignupDraft): void {
-  try {
-    sessionStorage.setItem(SIGNUP_DRAFT_STORAGE_KEY, JSON.stringify(draft));
-  } catch {
-    /* ignore quota / private mode */
-  }
+export function saveSignupDraft(_draft: SignupDraft): void {
+  // Do not persist form data across page refreshes or navigation
 }
 
 export function clearSignupDraft(): void {
@@ -167,7 +149,5 @@ export function patchSignupDraft(
   current: SignupDraft,
   patch: Partial<SignupDraft>
 ): SignupDraft {
-  const next = { ...current, ...patch, stepIndex: 0 };
-  saveSignupDraft(next);
-  return next;
+  return { ...current, ...patch, stepIndex: 0 };
 }

@@ -12,6 +12,7 @@ import {
   validateLoginPassword,
   type LoginFieldErrors,
 } from './loginValidation';
+import { clearSignupDraft } from '../Register/signupDraft';
 import './LoginPage.css';
 
 const EyeIcon: React.FC<{ open: boolean }> = ({ open }) =>
@@ -65,6 +66,10 @@ export const LoginPage: React.FC = () => {
     (import.meta.env.BASE_URL.replace(/\/$/, '') ? '/address-book' : '/address-book');
 
   const laravelBase = (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '') ?? '';
+
+  useEffect(() => {
+    clearSignupDraft();
+  }, []);
 
   useEffect(() => {
     if (resendSeconds <= 0) return;
@@ -502,7 +507,11 @@ export const LoginPage: React.FC = () => {
                       </form>
 
                       <div className="shipper-login-join-wrap">
-                        <Link to="/shipper/register" className="shipper-login-join">
+                        <Link
+                          to="/shipper/register"
+                          className="shipper-login-join"
+                          onClick={clearSignupDraft}
+                        >
                           {t('loginJoinForFree')}
                         </Link>
                       </div>

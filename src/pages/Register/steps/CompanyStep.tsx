@@ -17,25 +17,23 @@ export const CompanyStep: React.FC<CompanyStepProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="shipper-register-step">
-      <div className="shipper-login-field">
-        <label htmlFor="register-company">{t('registerCompanyName', 'Company name')}</label>
-        <input
-          id="register-company"
-          className="shipper-login-control"
-          value={companyName}
-          disabled={disabled}
-          autoComplete="organization"
-          onChange={(e) => onCompanyName(e.target.value)}
-          placeholder={t('registerCompanyPlaceholder', 'Company name')}
-          maxLength={50}
-        />
-        {error && (
-          <p className="shipper-login-field-error" role="alert">
-            {error}
-          </p>
-        )}
-      </div>
+    <div className="reg-field" data-reg-field="company_name">
+      <input
+        id="register-company"
+        className="reg-input"
+        value={companyName}
+        disabled={disabled}
+        autoComplete="organization"
+        onChange={(e) => onCompanyName(e.target.value)}
+        placeholder={`${t('registerCompanyName', 'Company name')}*`}
+        maxLength={50}
+        aria-label={t('registerCompanyName', 'Company name')}
+      />
+      {error && (
+        <p className="reg-error" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 };
