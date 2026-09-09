@@ -28,6 +28,7 @@ import { socketService } from '../../services/socketService';
 import { CHAT_MESSAGE_RECEIVED_EVENT } from '../../hooks/useGlobalChatSocket';
 import { getActiveChatPartner } from '../../utils/chatNotificationGuard';
 import { isMessageFromPartner } from '../../utils/chatPartnerUtils';
+import { openNotificationTarget } from '../../utils/notificationNavigation';
 
 
 interface HeaderProps {
@@ -582,68 +583,7 @@ export const Header: React.FC<HeaderProps> = ({
                             setUnreadCount((c) => Math.max(0, c - 1));
                           }
                           setNotifOpen(false);
-
-                          if (n.external_url) {
-                            window.open(n.external_url, '_blank', 'noopener,noreferrer');
-                            return;
-                          }
-
-                          let actionId = n.action_id;
-                          if (!actionId && n.action_type !== 'viewBids' && n.chips && n.chips.length > 0) {
-                            const sid = n.chips.find((c) => c.startsWith('SID-'));
-                            if (sid) actionId = sid.replace('SID-', '');
-                          }
-
-                          let target = n.redirect_slug ? (n.redirect_slug.startsWith('/') ? n.redirect_slug : `/${n.redirect_slug}`) : '/settings/notifications';
-
-                          if (n.action_type === 'manageShipments') {
-                            target = '/shipments';
-                          } else if (n.action_type === 'viewDashboard') {
-                            target = '/dashboard';
-                          } else if (n.action_type === 'createShipment') {
-                            target = '/shipments/create';
-                          } else if (n.action_type === 'searchTrucks') {
-                            target = '/search-trucks';
-                          } else if (n.action_type === 'viewPartners') {
-                            target = '/partners';
-                          } else if (n.action_type === 'viewLoad' || n.action_type === 'viewBids' || n.action_type === 'viewDocs') {
-                            const base = actionId ? `/shipments/${actionId}` : '/shipments';
-                            if (n.action_type === 'viewBids') {
-                              target = `${base}?focus=bids`;
-                            } else if (n.action_type === 'viewDocs') {
-                              target = `${base}?focus=docs`;
-                            } else {
-                              target = base;
-                            }
-                          } else if (n.action_type === 'viewInvoice') {
-                            target = actionId ? `/billing?invoice=${actionId}` : '/billing';
-                          } else if (n.action_type === 'viewOrder') {
-                            target = actionId ? `/erp-orders?id=${actionId}` : '/erp-orders';
-                          } else if (n.action_type === 'viewSubscription') {
-                            target = '/subscription';
-                          } else if (n.action_type === 'openSupport') {
-                            target = '/support';
-                          } else if (n.action_type === 'viewProfile') {
-                            target = '/settings/personal';
-                          } else if (n.action_type === 'viewOrganization') {
-                            target = '/settings/organization';
-                          } else if (n.action_type === 'viewUsers') {
-                            target = '/settings/users';
-                          } else if (n.action_type === 'viewPrivacy') {
-                            target = '/settings/privacy';
-                          } else if (n.action_type === 'viewTerms') {
-                            target = '/settings/terms';
-                          } else if (n.action_type === 'viewAddressBook') {
-                            target = '/address-book';
-                          } else if (n.action_type === 'viewProducts') {
-                            target = '/product-master';
-                          } else if (n.action_type === 'viewTutorials') {
-                            target = '/tutorials';
-                          } else if (n.action_type === 'viewNotifications') {
-                            target = '/settings/notifications';
-                          }
-
-                          navigate(target);
+                          openNotificationTarget(n, navigate);
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = T.sa;

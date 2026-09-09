@@ -8,6 +8,8 @@ import {
   formatStatValue,
   isShipmentEditable,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { translateDashMessage, formatDashError } from './dashErrorUtils';
+import { DashExpandSkeleton } from './DashboardSkeletons';
 
 interface BoardRowExpandProps {
   shipmentId: string;
@@ -125,7 +127,7 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : t('loadShipmentFailed'));
+        setError(formatDashError(err, 'loadShipmentFailed').key);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -146,7 +148,7 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
   const rateLabel = formatEuro(rateInfo.value) ?? '—';
   const distanceKm = shipment.journeyDistanceKm;
   const distanceLabel =
-    distanceKm != null && !Number.isNaN(distanceKm) ? `${distanceKm} km` : '—';
+    distanceKm != null && !Number.isNaN(distanceKm) ? `${distanceKm} ${t('unitKm')}` : '—';
   const costPerKm =
     rateInfo.value != null && distanceKm != null && distanceKm > 0
       ? formatEuro(rateInfo.value / distanceKm)
@@ -166,17 +168,13 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
   };
 
   if (loading && !detail) {
-    return (
-      <div className="expand-content">
-        <div className="board-expand-empty">{t('loading')}</div>
-      </div>
-    );
+    return <DashExpandSkeleton />;
   }
 
   if (error && !detail) {
     return (
       <div className="expand-content">
-        <div className="board-expand-empty">{error}</div>
+        <div className="board-expand-empty">{translateDashMessage(t, error)}</div>
       </div>
     );
   }

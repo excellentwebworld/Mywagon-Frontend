@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { shipmentsService } from '../../api';
+import { ApiError, shipmentsService } from '../../api';
 import type { ApiShipmentsSummary } from '../../api/types/shipments';
 import { useTranslation } from '../../hooks/useTranslation';
 import { EMPTY_KPI_COUNTS } from '../../pages/ManageShipments/utils/listingUtils';
+import { DashUpgradeBlock, translateDashMessage } from './dashErrorUtils';
+import { DashKpiSkeleton } from './DashboardSkeletons';
 
 interface KpiStripProps {
   activeBoardTab: number;
@@ -24,16 +26,32 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoa
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [summary, setSummary] = useState<ApiShipmentsSummary>(EMPTY_SUMMARY);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [upgradeUrl, setUpgradeUrl] = useState<string | undefined>();
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setUpgradeUrl(undefined);
     shipmentsService
       .summary({ direction: 'outbound' })
       .then((data) => {
         if (!cancelled) setSummary(data);
       })
-      .catch(() => {
-        if (!cancelled) setSummary(EMPTY_SUMMARY);
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setSummary(EMPTY_SUMMARY);
+        if (err instanceof ApiError && err.status === 403) {
+          setError('dashSubscriptionDenied');
+          setUpgradeUrl(err.upgradeUrl || '/subscription');
+        } else {
+          setError('dashKpiLoadFailed');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
@@ -59,6 +77,7 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoa
   };
 
   const handleAction = (action: KpiAction) => {
+    if (error) return;
     if (action.type === 'navigate') {
       navigate(action.to);
       return;
@@ -71,7 +90,7 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoa
 
   const cards: Array<{
     key: string;
-    value: number;
+    value: number | string;
     label: string;
     colorClass: string;
     active: boolean;
@@ -79,7 +98,7 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoa
   }> = [
     {
       key: 'active',
-      value: activeLoads,
+      value: error ? '—' : activeLoads,
       label: t('kpiActive'),
       colorClass: 'c-accent',
       active: false,
@@ -87,7 +106,7 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoa
     },
     {
       key: 'on_trip',
-      value: onTrip,
+      value: error ? '—' : onTrip,
       label: t('kpiOnTrip'),
       colorClass: 'c-info',
       active: activeBoardTab === 4,
@@ -95,7 +114,7 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoa
     },
     {
       key: 'needs_action',
-      value: needsAction,
+      value: error ? '—' : needsAction,
       label: t('kpiAction'),
       colorClass: 'c-warning',
       active: activeBoardTab === 0,
@@ -103,7 +122,7 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoa
     },
     {
       key: 'upcoming',
-      value: upcoming,
+      value: error ? '—' : upcoming,
       label: t('kpiUpcoming'),
       colorClass: '',
       active: activeBoardTab === 3,
@@ -111,7 +130,7 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoa
     },
     {
       key: 'at_risk',
-      value: atRisk,
+      value: error ? '—' : atRisk,
       label: t('kpiAtRisk'),
       colorClass: 'c-danger',
       active: activeBoardTab === 2,
@@ -119,7 +138,7 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoa
     },
     {
       key: 'past_due',
-      value: pastDue,
+      value: error ? '—' : pastDue,
       label: t('kpiPastDue'),
       colorClass: 'c-orange',
       active: false,
@@ -127,8 +146,21 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoa
     },
   ];
 
+  if (loading) {
+    return <DashKpiSkeleton />;
+  }
+
   return (
     <div className="kpi-section" style={{ display: 'block', marginBottom: '20px' }}>
+      {error && (
+        <div className="dash-widget-error" style={{ marginBottom: 10 }}>
+          {upgradeUrl ? (
+            <DashUpgradeBlock upgradeUrl={upgradeUrl} t={t} compact />
+          ) : (
+            <span>{translateDashMessage(t, error)}</span>
+          )}
+        </div>
+      )}
       <div className="kpi-strip">
         {cards.map((card) => (
           <div

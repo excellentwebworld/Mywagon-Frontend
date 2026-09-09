@@ -46,7 +46,11 @@ export const chatService = {
   /**
    * Fetch conversations dynamically from Backend API or Partners Registry
    */
-  async getConversations(filter?: string, search?: string): Promise<Conversation[]> {
+  async getConversations(
+    filter?: string,
+    search?: string,
+    options?: { noFallback?: boolean }
+  ): Promise<Conversation[]> {
     // 1. Query V1 REST endpoint
     try {
       const params: Record<string, string> = {};
@@ -80,7 +84,10 @@ export const chatService = {
           device_token: c.device_token ?? '',
         }));
       }
-    } catch {
+    } catch (err) {
+      if (options?.noFallback) {
+        throw err;
+      }
       // If /chat/conversations endpoint is unavailable on staging, return active chat
       return [
         {

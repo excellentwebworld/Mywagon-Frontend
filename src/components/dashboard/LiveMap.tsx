@@ -6,6 +6,8 @@ import { RouteMap } from '../CreateShipmentWizard/itinerary/RouteMap';
 import { useRouteLegs } from '../CreateShipmentWizard/itinerary/useRouteLegs';
 import type { EnrichedStop } from '../CreateShipmentWizard/itinerary/types';
 import { loadGoogleMaps } from '../AddressBook/GoogleMapAddressField';
+import { formatDashError, translateDashMessage } from './dashErrorUtils';
+import { DashMapSkeleton } from './DashboardSkeletons';
 
 interface LiveMapProps {
   selectedShipmentId: number | null;
@@ -58,7 +60,7 @@ export const LiveMap: React.FC<LiveMapProps> = ({ selectedShipmentId }) => {
       .catch((err: unknown) => {
         if (cancelled) return;
         setShipment(null);
-        setError(err instanceof Error ? err.message : 'Failed to load map');
+        setError(formatDashError(err, 'dashMapLoadFailed').key);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -156,15 +158,11 @@ export const LiveMap: React.FC<LiveMapProps> = ({ selectedShipmentId }) => {
           </div>
         )}
 
-        {selectedShipmentId != null && loading && (
-          <div className="map-placeholder">
-            <span>{t('loading')}</span>
-          </div>
-        )}
+        {selectedShipmentId != null && loading && <DashMapSkeleton />}
 
         {selectedShipmentId != null && !loading && error && (
           <div className="map-placeholder">
-            <span>{error}</span>
+            <span>{translateDashMessage(t, error)}</span>
           </div>
         )}
 
