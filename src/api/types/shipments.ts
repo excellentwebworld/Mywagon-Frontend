@@ -30,6 +30,7 @@ export interface ApiAssignedDriver {
 export type ShipmentKpiKey =
   | 'needs_action'
   | 'awaiting_response'
+  | 'upcoming'
   | 'at_risk'
   | 'pickup_today'
   | 'awaiting_pod';
@@ -55,6 +56,7 @@ export type ShipmentSortKey =
 export interface ApiShipmentListFlags {
   needs_action: boolean;
   awaiting_response: boolean;
+  upcoming: boolean;
   at_risk: boolean;
   pickup_today: boolean;
   awaiting_pod: boolean;
@@ -102,6 +104,7 @@ export interface ApiShipmentListItem {
   risk_reason?: string | null;
   needs_action?: boolean;
   awaiting_response?: boolean;
+  upcoming?: boolean;
   pickup_today?: boolean;
   awaiting_pod?: boolean;
   flags?: ApiShipmentListFlags;
