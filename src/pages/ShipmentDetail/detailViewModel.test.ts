@@ -331,4 +331,37 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
     expect(vmPartiallyFulfilled.availableNavSections).toContain('audit');
     expect(vmUnfulfilled.availableNavSections).not.toContain('audit');
   });
+
+  it('includes tripPerformance, notes, and carrier in availableNavSections when available', () => {
+    const vmWithPerformance = buildShipmentDetailViewModel({
+      ...baseMockShipment,
+      status: 'on_trip',
+      carrier: 'Transmed Logistics S.A.',
+      tripPerformance: {
+        deliveryOnTime: true,
+        avgLoadingWaitMinutes: 12,
+        pickupStops: [
+          {
+            locationId: 1,
+            label: 'Stop 1 - Athens Warehouse',
+            pickupDelayText: 'On time',
+            loadingWaitText: '10m wait',
+            canReportDelay: false,
+          },
+        ],
+        dropoffStops: [],
+        reports: [],
+      },
+    });
+
+    expect(vmWithPerformance.availableNavSections).toContain('stops');
+    expect(vmWithPerformance.availableNavSections).toContain('carrier');
+    expect(vmWithPerformance.availableNavSections).toContain('tripPerformance');
+    expect(vmWithPerformance.availableNavSections).toContain('load');
+    expect(vmWithPerformance.availableNavSections).toContain('tracking');
+    expect(vmWithPerformance.availableNavSections).toContain('trip');
+    expect(vmWithPerformance.availableNavSections).toContain('notes');
+    expect(vmWithPerformance.availableNavSections).toContain('docs');
+    expect(vmWithPerformance.availableNavSections).toContain('audit');
+  });
 });

@@ -9,10 +9,13 @@ export interface JumpNavTab {
 const DEFAULT_TABS: JumpNavTab[] = [
   { id: 'bids', labelKey: 'bids', fallback: 'Bids' },
   { id: 'invited', labelKey: 'invitedPartners', fallback: 'Invited' },
-  { id: 'stops', labelKey: 'stopsAppointments', fallback: 'Stops & Appointments' },
+  { id: 'stops', labelKey: 'itineraryDetails', fallback: 'Itinerary Details' },
+  { id: 'carrier', labelKey: 'transporter', fallback: 'Transporter' },
+  { id: 'tripPerformance', labelKey: 'tripPerformanceReports', fallback: 'Trip Performance Reports' },
   { id: 'load', labelKey: 'loadSummary', fallback: 'Load Summary' },
   { id: 'tracking', labelKey: 'liveTracking', fallback: 'Tracking' },
-  { id: 'carrier', labelKey: 'carrierDriver', fallback: 'Transporter' },
+  { id: 'trip', labelKey: 'tripSummary', fallback: 'Trip Summary' },
+  { id: 'notes', labelKey: 'notesInstructions', fallback: 'Notes & Instructions' },
   { id: 'docs', labelKey: 'documentsAttachments', fallback: 'Documents & Attachments' },
   { id: 'audit', labelKey: 'auditLog', fallback: 'Audit Log' },
 ];

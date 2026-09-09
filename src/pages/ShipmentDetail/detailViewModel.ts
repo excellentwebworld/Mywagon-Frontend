@@ -1047,7 +1047,18 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
   const onTrack = !isDelayed;
 
   const hasCarrierSection = Boolean(carrier && !isPending && status !== 'draft');
-  const availableNavSections: string[] = ['stops', 'load'];
+  const hasTripPerformanceSection = Boolean(
+    shipment.tripPerformance &&
+      ((shipment.tripPerformance.pickupStops && shipment.tripPerformance.pickupStops.length > 0) ||
+        (shipment.tripPerformance.dropoffStops && shipment.tripPerformance.dropoffStops.length > 0) ||
+        (shipment.tripPerformance.reports && shipment.tripPerformance.reports.length > 0))
+  );
+
+  const availableNavSections: string[] = ['stops'];
+  if (hasCarrierSection) availableNavSections.push('carrier');
+  if (hasTripPerformanceSection) availableNavSections.push('tripPerformance');
+  availableNavSections.push('load');
+
   if (isPending) {
     if (mappedOffers.length > 0 || (shipment.offers && shipment.offers.length > 0)) {
       availableNavSections.unshift('bids');
@@ -1056,8 +1067,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     }
   }
   if (status === 'on_trip' || status === 'in_progress') availableNavSections.push('tracking');
-  if (hasCarrierSection) availableNavSections.push('carrier');
-  availableNavSections.push('docs', 'notes');
+  availableNavSections.push('trip', 'notes', 'docs');
   if (status !== 'not_fullfilled') {
     availableNavSections.push('audit');
   }

@@ -29,7 +29,7 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
   return (
     <section
       id={id}
-      className={`mv-surface-card rounded-2xl mb-4 overflow-hidden bg-[var(--surface)] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 ${className}`}
+      className={`mv-surface-card rounded-2xl mb-4 overflow-hidden bg-[var(--surface)] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 scroll-mt-4 sm:scroll-mt-6 ${className}`}
       style={{ breakInside: 'avoid' }}
     >
       <div className="w-full flex items-center justify-between px-4 py-3 select-none">

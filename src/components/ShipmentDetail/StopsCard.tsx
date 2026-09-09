@@ -386,7 +386,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
     <CollapsibleCard
       id="stops"
       icon={<MapPin size={15} />}
-      title={t('pickupDropoffDetails', 'Pickup/Drop-off Location Details:')}
+      title={t('itineraryDetails', 'Itinerary Details')}
       count={physicalStops.length}
       expanded={expanded}
       onToggle={onToggle}

@@ -20,14 +20,12 @@
   "inconvenient-itinerary": "Ενοχλητικό δρομολόγιο",
   "load-capacity": "Χωρητικότητα φόρτωσης",
   "impossible-timing": "Αδύνατος χρονισμός",
-
   "notifications": "Ειδοποιήσεις",
   "noNotifications": "Δεν υπάρχουν ειδοποιήσεις",
   "allCaughtUp": "Είστε πλήρως ενημερωμένοι!",
   "markAllAsRead": "Σήμανση όλων ως αναγνωσμένα",
   "viewAllNotifications": "Δείτε όλες τις ειδοποιήσεις",
   "dashboard": "Ταμπλό",
-
   "appName": "MY VAGON",
   "createShipment": "Δημιουργία Φορτίου",
   "newShipment": "Νέα Αποστολή",
@@ -1436,10 +1434,13 @@
   "copiedId": "Αντιγράφηκε: {{id}}",
   "copied": "Αντιγράφηκε!",
   "loadDetails": "Λεπτομέρειες Φορτίου",
-  "stopsAppointments": "Στάσεις & Ραντεβού",
+  "itineraryDetails": "Στοιχεία Δρομολογίου",
+  "pickupDropoffDetails": "Στοιχεία Δρομολογίου",
+  "stopsAppointments": "Στοιχεία Δρομολογίου",
   "loadSummary": "Σύνοψη Φορτίου",
   "liveTracking": "Ζωντανός Εντοπισμός",
-  "carrierDriver": "Μεταφορέας & Οδηγός",
+  "carrierDriver": "Μεταφορέας",
+  "transporter": "Μεταφορέας",
   "incidentsExceptions": "Συμβάντα & Εξαιρέσεις",
   "needsActionLabel": "Απαιτεί Ενέργεια",
   "awaitingResponse": "Αναμονή Απάντησης",
@@ -3239,7 +3240,6 @@
       "permissionsSection": "Δικαιώματα"
     },
     "security": {
-
       "mfaTitle": "Αυθεντικοποίηση Δύο Παραγόντων",
       "enforceMfa": "Επιβολή MFA σε όλους τους χρήστες",
       "enforceMfaDesc": "Υποχρεωτική ρύθμιση MFA στην επόμενη σύνδεση",
@@ -4703,6 +4703,3 @@
     "timeWeeksAgo": "2 εβδομάδες πριν"
   }
 }
-
-
-

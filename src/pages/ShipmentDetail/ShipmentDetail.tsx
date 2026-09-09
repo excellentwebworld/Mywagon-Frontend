@@ -348,8 +348,50 @@ export const ShipmentDetail: React.FC = () => {
 
   const handleJump = useCallback((targetId: string) => {
     setActiveNav(targetId);
-    const lookupId = targetId === 'invited' ? 'bids' : targetId;
-    const el = document.getElementById(lookupId);
+
+    const sectionKeyMap: Record<string, string> = {
+      invited: 'bids',
+      bids: 'bids',
+      stops: 'stops',
+      carrier: 'carrier',
+      tripPerformance: 'tripPerformance',
+      'trip-performance': 'tripPerformance',
+      load: 'load',
+      tracking: 'tracking',
+      map: 'tracking',
+      trip: 'trip',
+      tripSummary: 'trip',
+      notes: 'notes',
+      docs: 'docs',
+      audit: 'audit',
+    };
+
+    const sectionKey = sectionKeyMap[targetId] || targetId;
+    setSections((prev) => ({ ...prev, [sectionKey]: true }));
+
+    const lookupMap: Record<string, string[]> = {
+      invited: ['bids'],
+      bids: ['bids'],
+      stops: ['stops'],
+      carrier: ['carrier'],
+      tripPerformance: ['tripPerformance', 'trip-performance'],
+      'trip-performance': ['tripPerformance', 'trip-performance'],
+      load: ['load'],
+      tracking: ['tracking', 'map'],
+      trip: ['trip', 'tripSummary', 'trip-summary'],
+      tripSummary: ['trip', 'tripSummary', 'trip-summary'],
+      notes: ['notes'],
+      docs: ['docs'],
+      audit: ['audit'],
+    };
+
+    const candidates = lookupMap[targetId] || [targetId];
+    let el: HTMLElement | null = null;
+    for (const id of candidates) {
+      el = document.getElementById(id);
+      if (el) break;
+    }
+
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }

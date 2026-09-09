@@ -123,7 +123,7 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
 
   return (
     <CollapsibleCard
-      id="trip-performance"
+      id="tripPerformance"
       icon={<Activity size={15} />}
       title={t('tripPerformanceReports', 'Trip Performance Reports')}
       expanded={expanded}
