@@ -12,7 +12,9 @@ export { availabilitiesService, SAT_PREFILL_KEY } from './services/availabilitie
 export { supportService } from './services/supportService';
 export { billingService } from './services/billingService';
 export { subscriptionService } from './services/subscriptionService';
+export { dashboardService } from './services/dashboardService';
 export type { ApiAmenity, ApiCompanyEntity, ApiCompanyLookup, ApiAddressBookSummary, ApiListMeta } from './types/addressBook';
+export type { ApiPerformanceSummary } from './types/dashboard';
 export type { ApiProductSummary, ApiSkuListItem, ListSkusParams } from './types/productMaster';
 export type {
   ApiPartnerSummary,

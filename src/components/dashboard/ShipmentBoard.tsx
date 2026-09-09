@@ -1,502 +1,290 @@
-import React, { useState, useEffect } from 'react';
-import { useApp } from '../../context/AppContext';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import type { ListShipmentsParams, ShipmentKpiKey } from '../../api/types/shipments';
+import type { Shipment } from '../../context/AppContext';
+import { useShipmentsList } from '../../hooks/useShipments';
 import { useTranslation } from '../../hooks/useTranslation';
-import { BOARD_DATA, TAB_COUNTS } from './mockData';
-import type { BoardItem } from './types';
+import {
+  formatEuro,
+  statusBadgeClass,
+} from '../../pages/ManageShipments/utils/listingUtils';
+import { BoardRowExpand } from './BoardRowExpand';
 
 interface ShipmentBoardProps {
   activeTab: number;
   setActiveTab: (idx: number) => void;
 }
 
+const PER_PAGE = 6;
+
+type BoardTabDef =
+  | { key: string; labelKey: string; warn?: boolean; filter: { kpi: ShipmentKpiKey } }
+  | { key: string; labelKey: string; warn?: boolean; filter: { status: string } };
+
+const BOARD_TABS: BoardTabDef[] = [
+  { key: 'needs_action', labelKey: 'needsActionLabel', warn: true, filter: { kpi: 'needs_action' } },
+  { key: 'awaiting_response', labelKey: 'awaitingResponse', filter: { kpi: 'awaiting_response' } },
+  { key: 'at_risk', labelKey: 'kpiAtRisk', filter: { kpi: 'at_risk' } },
+  { key: 'upcoming', labelKey: 'upcoming', filter: { kpi: 'upcoming' } },
+  { key: 'on_trip', labelKey: 'on_trip', filter: { status: 'on_trip' } },
+];
+
+function manageShipmentsHref(tabIndex: number): string {
+  const tab = BOARD_TABS[tabIndex] ?? BOARD_TABS[3];
+  if ('kpi' in tab.filter) return `/shipments?kpi=${tab.filter.kpi}`;
+  return `/shipments?status=${tab.filter.status}`;
+}
+
+function tabCount(
+  tab: BoardTabDef,
+  summary: { kpis?: Record<string, number>; statuses?: Record<string, number> }
+): number {
+  if ('kpi' in tab.filter) return summary.kpis?.[tab.filter.kpi] ?? 0;
+  return summary.statuses?.[tab.filter.status] ?? 0;
+}
+
 export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActiveTab }) => {
-  const { showToast } = useApp();
-  const { t, lang } = useTranslation();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [page, setPage] = useState(1);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [detailCache, setDetailCache] = useState<Record<string, Shipment>>({});
 
-  // Component states
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [sortType, setSortType] = useState<'rate' | 'date' | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
+  const safeTab = BOARD_TABS[activeTab] ? activeTab : 3;
+  const activeDef = BOARD_TABS[safeTab];
 
-  const rawData = BOARD_DATA[activeTab] || [];
-  const totalItemsCount = TAB_COUNTS[activeTab]; // match design total counts
-  const itemsPerPage = activeTab === 1 || activeTab === 3 ? 6 : 25;
-
-  // Reset page, selections, expansions, and sorting when active tab changes
   useEffect(() => {
-    setCurrentPage(1);
-    setSelectedRows(new Set());
-    setExpandedRow(null);
-    setSortType(null);
-    setSortDirection(null);
-  }, [activeTab]);
+    setPage(1);
+    setExpandedId(null);
+  }, [safeTab]);
 
-  // Handle Select All checkbox change
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      const currentPageItems = getPaginatedData();
-      const sids = new Set<string>(currentPageItems.map(item => item.sid));
-      setSelectedRows(sids);
-    } else {
-      setSelectedRows(new Set());
+  const summaryParams = useMemo(
+    (): Omit<ListShipmentsParams, 'page' | 'per_page'> => ({
+      direction: 'outbound',
+    }),
+    []
+  );
+
+  const listParams = useMemo((): ListShipmentsParams => {
+    const base: ListShipmentsParams = {
+      direction: 'outbound',
+      page,
+      per_page: PER_PAGE,
+      sort: 'earliest_first_pickup_time',
+    };
+    if ('kpi' in activeDef.filter) {
+      return { ...base, kpi: activeDef.filter.kpi };
     }
-  };
+    return { ...base, status: activeDef.filter.status };
+  }, [activeDef, page]);
 
-  const handleRowSelect = (sid: string, checked: boolean) => {
-    setSelectedRows(prev => {
-      const next = new Set(prev);
-      if (checked) {
-        next.add(sid);
-      } else {
-        next.delete(sid);
-      }
-      return next;
-    });
-  };
+  const { shipments, meta, summary, loading, error } = useShipmentsList(
+    listParams,
+    summaryParams,
+    true,
+    0,
+    true
+  );
 
-  const handleSort = (type: 'rate' | 'date') => {
-    if (sortType === type) {
-      if (sortDirection === 'asc') {
-        setSortDirection('desc');
-      } else if (sortDirection === 'desc') {
-        setSortType(null);
-        setSortDirection(null);
-      }
-    } else {
-      setSortType(type);
-      setSortDirection('asc');
-    }
-  };
+  const handleCache = useCallback((shipment: Shipment) => {
+    setDetailCache((prev) => ({ ...prev, [shipment.id]: shipment }));
+  }, []);
 
-  // Sort and Paginate Data
-  const getSortedData = (): BoardItem[] => {
-    if (!sortType || !sortDirection) return rawData;
-    const sorted = [...rawData];
-    if (sortType === 'rate') {
-      sorted.sort((a, b) => {
-        return sortDirection === 'asc' ? a.rate - b.rate : b.rate - a.rate;
-      });
-    } else if (sortType === 'date') {
-      sorted.sort((a, b) => {
-        return sortDirection === 'asc' ? a.sortDate - b.sortDate : b.sortDate - a.sortDate;
-      });
-    }
-    return sorted;
-  };
-
-  const getPaginatedData = (): BoardItem[] => {
-    const sorted = getSortedData();
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return sorted.slice(startIndex, startIndex + itemsPerPage);
-  };
-
-  const paginatedData = getPaginatedData();
-
-  // Dynamic values
-  const totalPages = Math.ceil(rawData.length / itemsPerPage);
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(startItem + paginatedData.length - 1, totalItemsCount);
-
-  const handleBulkAction = (action: string) => {
-    showToast(t('bulkAction', { action, count: selectedRows.size }), 'info');
-  };
-
-  const handleActionClick = (actionName: string, sid: string) => {
-    showToast(t('actionForShipment', { action: actionName, sid }), 'success');
-  };
+  const totalPages = Math.max(1, meta.last_page || 1);
+  const total = meta.total ?? 0;
+  const startItem = total === 0 ? 0 : (page - 1) * PER_PAGE + 1;
+  const endItem = Math.min(page * PER_PAGE, total);
 
   return (
     <div className="card a d4" id="boardCard">
-      {/* Board tabs */}
+      <div className="card-hd board-card-hd">
+        <h3>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" />
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+          </svg>
+          <span>{t('manageShipments')}</span>
+        </h3>
+        <Link to={manageShipmentsHref(safeTab)} className="card-link">
+          {t('manageShipments')} →
+        </Link>
+      </div>
+
       <div className="board-tabs" id="boardTabs">
-        <div className={`b-tab ${activeTab === 0 ? 'active' : ''}`} onClick={() => setActiveTab(0)}>
-          <span>{t('needsActionLabel')}</span>
-          <span className="tc warn">{TAB_COUNTS[0]}</span>
-        </div>
-        <div className={`b-tab ${activeTab === 1 ? 'active' : ''}`} onClick={() => setActiveTab(1)}>
-          <span>{t('upcoming')}</span>
-          <span className="tc">{TAB_COUNTS[1]}</span>
-        </div>
-        <div className={`b-tab ${activeTab === 2 ? 'active' : ''}`} onClick={() => setActiveTab(2)}>
-          <span>{t('boardInTransit')}</span>
-          <span className="tc">{TAB_COUNTS[2]}</span>
-        </div>
-        <div className={`b-tab ${activeTab === 3 ? 'active' : ''}`} onClick={() => setActiveTab(3)}>
-          <span>{t('boardDeliveredTab')}</span>
-          <span className="tc">{TAB_COUNTS[3]}</span>
-        </div>
-        <div className={`b-tab ${activeTab === 4 ? 'active' : ''}`} onClick={() => setActiveTab(4)}>
-          <span>{t('boardBilling')}</span>
-          <span className="tc">{TAB_COUNTS[4]}</span>
-        </div>
+        {BOARD_TABS.map((tab, idx) => {
+          const count = tabCount(tab, summary);
+          return (
+            <div
+              key={tab.key}
+              className={`b-tab ${safeTab === idx ? 'active' : ''}`}
+              onClick={() => setActiveTab(idx)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setActiveTab(idx);
+                }
+              }}
+            >
+              <span>{t(tab.labelKey)}</span>
+              <span className={`tc${tab.warn ? ' warn' : ''}`}>{count}</span>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Board toolbar */}
-      <div className="board-toolbar">
-        <div className="board-toolbar-left">
-          <label className="board-select-all">
-            <input
-              type="checkbox"
-              id="selectAllCheck"
-              checked={paginatedData.length > 0 && paginatedData.every(item => selectedRows.has(item.sid))}
-              onChange={(e) => handleSelectAll(e.target.checked)}
-            />
-            <span>{t('boardSelectAll')}</span>
-          </label>
-        </div>
-        <div className="board-toolbar-right">
-          <button
-            className={`board-sort-btn ${sortType === 'rate' ? 'active' : ''}`}
-            onClick={() => handleSort('rate')}
-            title="Sort by rate"
-          >
-            € {t('boardRate')} <span className="sort-icon">{sortType === 'rate' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
-          </button>
-          <button
-            className={`board-sort-btn ${sortType === 'date' ? 'active' : ''}`}
-            onClick={() => handleSort('date')}
-            title="Sort by date"
-          >
-            📅 {t('boardDate')} <span className="sort-icon">{sortType === 'date' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Table */}
       <div style={{ overflowX: 'auto' }} id="boardTableWrap">
         <table className="bt" id="boardTable">
           <thead>
             <tr>
-              <th className="c-check" style={{ cursor: 'default' }}></th>
-              <th>{t('shipmentIdCol')} <span className="sort-icon">↕</span></th>
-              <th>{t('laneColHeader')} <span className="sort-icon">↕</span></th>
-              <th>{t('status')} <span className="sort-icon">↕</span></th>
-              <th>{t('boardNextMilestone')} <span className="sort-icon">↕</span></th>
-              <th>{t('carrierCol')} <span className="sort-icon">↕</span></th>
-              <th>{t('boardRate')} <span className="sort-icon">↕</span></th>
+              <th>{t('shipmentIdCol')}</th>
+              <th>{t('laneColHeader')}</th>
+              <th>{t('status')}</th>
+              <th>{t('boardRate')}</th>
               <th></th>
             </tr>
           </thead>
-          <tbody id="boardBody">
-            {paginatedData.map((r) => {
-              const isSelected = selectedRows.has(r.sid);
-              const isExpanded = expandedRow === r.sid;
+          <tbody>
+            {loading && (
+              <tr>
+                <td colSpan={5} className="board-empty-cell">
+                  {t('loading')}
+                </td>
+              </tr>
+            )}
 
-              // Action buttons per status inside expanded details
-              let actionBtns = (
-                <button className="expand-btn" onClick={() => handleActionClick("Full Details", r.sid)}>
-                  📋 {t('boardFullDetails')}
-                </button>
-              );
+            {!loading && error && (
+              <tr>
+                <td colSpan={5} className="board-empty-cell">
+                  {error}
+                </td>
+              </tr>
+            )}
 
-              if (r.status === 'pending' || r.status === 'action') {
-                actionBtns = (
-                  <>
-                    {actionBtns}
-                    <button className="expand-btn primary" onClick={() => handleActionClick("Resolve Now", r.sid)}>
-                      ⚡ {t('boardResolveNow')}
-                    </button>
-                    <button className="expand-btn warn" onClick={() => handleActionClick("Call Carrier", r.sid)}>
-                      📞 {t('boardCallCarrier')}
-                    </button>
-                  </>
-                );
-              } else if (r.status === 'transit' || r.status === 'delayed') {
-                actionBtns = (
-                  <>
-                    {actionBtns}
-                    <button className="expand-btn primary" onClick={() => handleActionClick("Live Track", r.sid)}>
-                      📍 {t('liveTracking')}
-                    </button>
-                    <button className="expand-btn" onClick={() => handleActionClick("Message", r.sid)}>
-                      💬 {t('boardMessage')}
-                    </button>
-                  </>
-                );
-              } else if (r.status === 'upcoming') {
-                actionBtns = (
-                  <>
-                    {actionBtns}
-                    <button className="expand-btn" onClick={() => handleActionClick("Edit", r.sid)}>
-                      ✏️ {t('edit')}
-                    </button>
-                    <button className="expand-btn" onClick={() => handleActionClick("Clone", r.sid)}>
-                      📄 {t('boardClone')}
-                    </button>
-                  </>
-                );
-              } else if (r.status === 'delivered') {
-                actionBtns = (
-                  <>
-                    {actionBtns}
-                    <button className="expand-btn" onClick={() => handleActionClick("View POD", r.sid)}>
-                      📸 {t('boardViewPod')}
-                    </button>
-                    <button className="expand-btn" onClick={() => handleActionClick("Invoice", r.sid)}>
-                      📥 {t('boardInvoice')}
-                    </button>
-                    <button className="expand-btn" onClick={() => handleActionClick("Rate Carrier", r.sid)}>
-                      ⭐ {t('boardRateCarrier')}
-                    </button>
-                  </>
-                );
-              } else if (r.status === 'billing') {
-                actionBtns = (
-                  <>
-                    {actionBtns}
-                    <button className="expand-btn primary" onClick={() => handleActionClick("Resolve", r.sid)}>
-                      💳 {t('boardResolve')}
-                    </button>
-                    <button className="expand-btn" onClick={() => handleActionClick("Invoice", r.sid)}>
-                      📥 {t('boardInvoice')}
-                    </button>
-                  </>
-                );
-              }
+            {!loading && !error && shipments.length === 0 && (
+              <tr>
+                <td colSpan={5} className="board-empty-cell">
+                  {t('boardEmpty')}
+                </td>
+              </tr>
+            )}
 
-              // Milestone Progress Step
-              let progressHtml = null;
-              if (r.status === 'transit' || r.status === 'delayed') {
-                progressHtml = (
-                  <div className="expand-progress">
-                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{t('boardBooked')}</div>
-                    <div className="expand-progress-line done"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{t('boardPickedUp')}</div>
-                    <div className="expand-progress-line done"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot active"></div>{t('boardInTransit')}</div>
-                    <div className="expand-progress-line"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot"></div>{t('boardDeliveredStep')}</div>
-                  </div>
-                );
-              } else if (r.status === 'delivered') {
-                progressHtml = (
-                  <div className="expand-progress">
-                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{t('boardBooked')}</div>
-                    <div className="expand-progress-line done"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{t('boardPickedUp')}</div>
-                    <div className="expand-progress-line done"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{t('boardInTransit')}</div>
-                    <div className="expand-progress-line done"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{t('boardDeliveredStep')}</div>
-                  </div>
-                );
-              } else if (r.status === 'upcoming') {
-                progressHtml = (
-                  <div className="expand-progress">
-                    <div className="expand-progress-step"><div className="expand-progress-dot done"></div>{t('boardBooked')}</div>
-                    <div className="expand-progress-line"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot"></div>{t('boardPickedUp')}</div>
-                    <div className="expand-progress-line"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot"></div>{t('boardInTransit')}</div>
-                    <div className="expand-progress-line"></div>
-                    <div className="expand-progress-step"><div className="expand-progress-dot"></div>{t('boardDeliveredStep')}</div>
-                  </div>
-                );
-              }
+            {!loading &&
+              !error &&
+              shipments.map((row) => {
+                const isExpanded = expandedId === row.id;
+                const badgeClass = statusBadgeClass(row.status, Boolean(row.at_risk), {
+                  bidsReceived: row.bidsReceived ?? 0,
+                  bidsSent: row.bidsSent ?? 0,
+                  interestedCount: row.interestedCount ?? 0,
+                  awaitingResponse: Boolean(row.awaitingResponse),
+                  needsAction: Boolean(row.needsAction),
+                });
+                const rate = formatEuro(row.agreedPrice ?? row.quotedPrice ?? row.price) ?? '—';
 
-              return (
-                <React.Fragment key={r.sid}>
-                  <tr
-                    className={isSelected ? 'selected' : ''}
-                    onClick={() => setExpandedRow(isExpanded ? null : r.sid)}
-                  >
-                    <td className="c-check" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={(e) => handleRowSelect(r.sid, e.target.checked)}
-                      />
-                    </td>
-                    <td className="c-sid">{r.sid}</td>
-                    <td className="c-lane">{r.from} <span className="arr">→</span> {r.to}</td>
-                    <td>
-                      <span className={`sched-status ${r.statusClass}`}>
-                        <span className="sts-dot"></span>
-                        {r.statusLabel[lang] || r.statusLabel.en}
-                      </span>
-                    </td>
-                    <td className="c-milestone">
-                      {r.ms[lang] || r.ms.en} <span className="dt">{r.dt[lang] || r.dt.en}</span>
-                    </td>
-                    <td>
-                      <div className="c-carrier">
-                        <span className="c-carrier-av">{r.ci}</span>
-                        {r.carrier}
-                      </div>
-                    </td>
-                    <td className="c-price">€ {r.rate}</td>
-                    <td className="c-actions" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        title="Track"
-                        onClick={() => handleActionClick("Track Icon Clicked", r.sid)}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                          <circle cx="12" cy="10" r="3" />
-                        </svg>
-                      </button>
-                      <button
-                        title="Message"
-                        onClick={() => handleActionClick("Message Icon Clicked", r.sid)}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                        </svg>
-                      </button>
-                      <button
-                        title="Expand"
-                        onClick={() => setExpandedRow(isExpanded ? null : r.sid)}
-                      >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          style={{
-                            transform: isExpanded ? 'rotate(180deg)' : 'none',
-                            transition: 'transform 0.2s',
-                          }}
+                return (
+                  <React.Fragment key={row.id}>
+                    <tr
+                      className={isExpanded ? 'selected' : ''}
+                      onClick={() => setExpandedId(isExpanded ? null : row.id)}
+                    >
+                      <td className="c-sid">{row.autoId || row.id}</td>
+                      <td className="c-lane">
+                        {row.origin || '—'} <span className="arr">→</span> {row.dest || '—'}
+                      </td>
+                      <td>
+                        <span className={`status-box-wrap${row.at_risk ? ' is-at-risk' : ''}`}>
+                          {row.status === 'partially_fullfilled' ? (
+                            <span className={`${badgeClass} status-box--partial-compact`}>
+                              <span className="status-partial-left">{t('partially')}</span>
+                              <span className="status-partial-right">{t('fulfilled')}</span>
+                            </span>
+                          ) : (
+                            <span className={badgeClass}>{t(row.status)}</span>
+                          )}
+                        </span>
+                      </td>
+                      <td className="c-price">{rate}</td>
+                      <td className="c-actions" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          title={t('loadDetails')}
+                          onClick={() => navigate(`/shipments/${row.id}`)}
                         >
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          title={isExpanded ? t('collapse') : t('expand')}
+                          onClick={() => setExpandedId(isExpanded ? null : row.id)}
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            style={{
+                              transform: isExpanded ? 'rotate(180deg)' : 'none',
+                              transition: 'transform 0.2s',
+                            }}
+                          >
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
 
-                  {/* Expanded Row */}
-                  <tr className={`expand-row ${isExpanded ? 'open' : ''}`}>
-                    <td colSpan={8}>
-                      <div className="expand-content">
-                        <div className="expand-grid">
-                          <div className="expand-section">
-                            <div className="expand-section-title">{t('boardShipmentDetails')}</div>
-                            <div className="expand-field">
-                              <span className="expand-field-label">{t('boardReference')}</span>
-                              <span className="expand-field-value mono">{r.ref}</span>
-                            </div>
-                            <div className="expand-field">
-                              <span className="expand-field-label">{t('boardVehicle')}</span>
-                              <span className="expand-field-value">{r.vehicle[lang] || r.vehicle.en}</span>
-                            </div>
-                            <div className="expand-field">
-                              <span className="expand-field-label">{t('weight')}</span>
-                              <span className="expand-field-value">{r.weight[lang] || r.weight.en}</span>
-                            </div>
-                            <div className="expand-field">
-                              <span className="expand-field-label">{t('boardCargo')}</span>
-                              <span className="expand-field-value">{r.cargo[lang] || r.cargo.en}</span>
-                            </div>
-                          </div>
-
-                          <div className="expand-section">
-                            <div className="expand-section-title">{t('boardRoutePrice')}</div>
-                            <div className="expand-field">
-                              <span className="expand-field-label">{t('boardDistance')}</span>
-                              <span className="expand-field-value mono">{r.distance}</span>
-                            </div>
-                            <div className="expand-field">
-                              <span className="expand-field-label">{t('boardCostKm')}</span>
-                              <span className="expand-field-value mono">
-                                € {(r.rate / parseInt(r.distance)).toFixed(2)}
-                              </span>
-                            </div>
-                            <div className="expand-field">
-                              <span className="expand-field-label">{t('boardRate')}</span>
-                              <span className="expand-field-value mono" style={{ color: 'var(--accent)', fontWeight: 700 }}>
-                                € {r.rate}
-                              </span>
-                            </div>
-                            {progressHtml}
-                          </div>
-
-                          <div className="expand-section">
-                            <div className="expand-section-title">{t('notes')}</div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                              {r.notes[lang] || r.notes.en}
-                            </div>
-                            {r.issue && (
-                              <div style={{
-                                marginTop: '8px',
-                                padding: '8px 10px',
-                                borderRadius: '6px',
-                                background: 'var(--warning-bg)',
-                                border: '1px solid #FDE68A',
-                                fontSize: '12px',
-                                color: 'var(--warning-text)',
-                                fontWeight: 500
-                              }}>
-                                ⚠️ {r.issue[lang] || r.issue.en}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="expand-actions">{actionBtns}</div>
-                      </div>
-                    </td>
-                  </tr>
-                </React.Fragment>
-              );
-            })}
+                    <tr className={`expand-row ${isExpanded ? 'open' : ''}`}>
+                      <td colSpan={5}>
+                        {isExpanded && (
+                          <BoardRowExpand
+                            shipmentId={row.id}
+                            listShipment={row}
+                            cached={detailCache[row.id] ?? null}
+                            onCached={handleCache}
+                          />
+                        )}
+                      </td>
+                    </tr>
+                  </React.Fragment>
+                );
+              })}
           </tbody>
         </table>
       </div>
 
-      {/* Bulk action bar */}
-      <div className={`bulk-bar ${selectedRows.size > 0 ? 'show' : ''}`}>
-        <div className="bulk-bar-left">
-          <span>{selectedRows.size}</span> {t('selected')}
+      <div className="pag">
+        <div className="pag-info">
+          {total === 0
+            ? t('boardEmpty')
+            : t('boardShowing', { start: startItem, end: endItem, total })}
         </div>
-        <div className="bulk-bar-right">
-          <button className="bulk-btn" onClick={() => handleBulkAction("Export")}>
-            📥 {t('export')}
+        <div className="pag-btns">
+          <button
+            type="button"
+            className="pag-btn"
+            disabled={page <= 1 || loading}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            ‹
           </button>
-          <button className="bulk-btn" onClick={() => handleBulkAction("Message Carrier")}>
-            💬 {t('boardMessageCarrier')}
+          <span className="pag-page">
+            {page} / {totalPages}
+          </span>
+          <button
+            type="button"
+            className="pag-btn"
+            disabled={page >= totalPages || loading}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            ›
           </button>
-          <button className="bulk-btn" onClick={() => handleBulkAction("Print Manifest")}>
-            🖨 {t('boardPrintManifest')}
-          </button>
-        </div>
-      </div>
-
-      {/* Pagination */}
-      <div className="pag" id="pagination">
-        <div className="pag-info" id="pagInfo">
-          {t('showing')} {startItem}–{endItem} {t('of')} {totalItemsCount}
-        </div>
-        <div className="pag-btns" id="pagBtns">
-          {totalPages > 1 && (
-            <>
-              <button
-                className="pag-btn"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => prev - 1)}
-              >
-                ‹
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                <button
-                  key={p}
-                  className={`pag-btn ${currentPage === p ? 'active' : ''}`}
-                  onClick={() => setCurrentPage(p)}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                className="pag-btn"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(prev => prev + 1)}
-              >
-                ›
-              </button>
-            </>
-          )}
         </div>
       </div>
     </div>

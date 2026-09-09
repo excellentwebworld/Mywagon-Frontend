@@ -1,10 +1,52 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { dashboardService } from '../../api';
+import type { ApiPerformanceSummary } from '../../api/types/dashboard';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { formatEuro } from '../../pages/ManageShipments/utils/listingUtils';
+
+const DASH = '—';
+
+function formatMoney(value: number | null | undefined): string {
+  return formatEuro(value) ?? DASH;
+}
+
+function formatPct(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return DASH;
+  return `${value.toFixed(1)}%`;
+}
+
+function formatInt(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return DASH;
+  return value.toLocaleString();
+}
 
 export const PerformanceSummary: React.FC = () => {
   const { showToast } = useApp();
   const { t } = useTranslation();
+  const [data, setData] = useState<ApiPerformanceSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    dashboardService
+      .getPerformanceSummary()
+      .then((summary) => {
+        if (!cancelled) setData(summary);
+      })
+      .catch(() => {
+        if (!cancelled) setData(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const showPlaceholder = loading || !data;
 
   return (
     <div className="perf-card">
@@ -20,35 +62,37 @@ export const PerformanceSummary: React.FC = () => {
       <div className="perf-grid">
         <div className="perf-cell">
           <div className="perf-cell-label">{t('perfTotalCost')}</div>
-          <div className="perf-cell-value">€ 48,230</div>
+          <div className="perf-cell-value">{showPlaceholder ? DASH : formatMoney(data!.total_cost)}</div>
         </div>
         <div className="perf-cell">
           <div className="perf-cell-label">{t('perfTotalLoads')}</div>
-          <div className="perf-cell-value">189</div>
+          <div className="perf-cell-value">{showPlaceholder ? DASH : formatInt(data!.total_loads)}</div>
         </div>
         <div className="perf-cell">
           <div className="perf-cell-label">{t('perfOnTimePickup')}</div>
-          <div className="perf-cell-value">94.2%</div>
+          <div className="perf-cell-value">{showPlaceholder ? DASH : formatPct(data!.on_time_pickup_pct)}</div>
         </div>
         <div className="perf-cell">
           <div className="perf-cell-label">{t('perfOnTimeDelivery')}</div>
-          <div className="perf-cell-value">91.7%</div>
+          <div className="perf-cell-value">{showPlaceholder ? DASH : formatPct(data!.on_time_delivery_pct)}</div>
         </div>
         <div className="perf-cell">
           <div className="perf-cell-label">{t('perfAvgCostKm')}</div>
-          <div className="perf-cell-value">€ 1.61</div>
+          <div className="perf-cell-value">{showPlaceholder ? DASH : formatMoney(data!.avg_cost_per_km)}</div>
         </div>
         <div className="perf-cell">
           <div className="perf-cell-label">{t('perfAvgCostLoad')}</div>
-          <div className="perf-cell-value">€ 255</div>
+          <div className="perf-cell-value">{showPlaceholder ? DASH : formatMoney(data!.avg_cost_per_load)}</div>
         </div>
         <div className="perf-cell">
           <div className="perf-cell-label">{t('perfPipelineRevenue')}</div>
-          <div className="perf-cell-value">€ 12,400</div>
+          <div className="perf-cell-value">{showPlaceholder ? DASH : formatMoney(data!.pipeline_revenue)}</div>
         </div>
         <div className="perf-cell">
           <div className="perf-cell-label">{t('perfRevenueDelivered')}</div>
-          <div className="perf-cell-value">€ 98,750</div>
+          <div className="perf-cell-value">
+            {showPlaceholder ? DASH : formatMoney(data!.revenue_delivered_on_mv)}
+          </div>
         </div>
       </div>
       <div className="perf-footer">

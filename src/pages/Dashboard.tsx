@@ -17,9 +17,8 @@ export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
 
-  // Coordinate active board tab state between KpiStrip and ShipmentBoard
-  // Index 1 represents "Upcoming" which is the default active tab in the design
-  const [activeBoardTab, setActiveBoardTab] = useState<number>(1);
+  // Coordinate active board tab between KpiStrip and ShipmentBoard (3 = Upcoming)
+  const [activeBoardTab, setActiveBoardTab] = useState<number>(3);
   const [selectedScheduleShipmentId, setSelectedScheduleShipmentId] = useState<number | null>(null);
 
   const handleSelectScheduleShipment = useCallback((id: number) => {
