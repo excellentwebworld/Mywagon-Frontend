@@ -23,6 +23,7 @@ import { BillingPage } from './pages/Billing';
 import { SubscriptionPage } from './pages/Subscription';
 import { WebViewSubscriptionPage } from './pages/Subscription/WebViewSubscriptionPage';
 import { WebViewBillingPage } from './pages/Billing/WebViewBillingPage';
+import { PublicTrackingPage } from './pages/PublicTracking/PublicTrackingPage';
 
 import PriceListsPage from './pages/PriceLists/PriceListsPage';
 import { MessagesPage } from './pages/Messages';
@@ -93,6 +94,10 @@ const webViewRoutes = [
   { path: '/webview/driver/billing/', element: <WebViewBillingPage role="driver" /> },
 ];
 
+const publicTrackingRoutes = [
+  { path: '/track-shipment/:encryptedId/:encryptedLocationIds', element: <PublicTrackingPage /> },
+];
+
 export const router = createBrowserRouter(
   basename
     ? [
@@ -100,6 +105,7 @@ export const router = createBrowserRouter(
         { path: '/shipper/register', element: <RegisterPage /> },
         ...legalRoutes,
         ...webViewRoutes,
+        ...publicTrackingRoutes,
         { path: '/', element: <Navigate to="/address-book" replace /> },
         protectedLayout,
         { path: '*', element: <Navigate to="/address-book" replace /> },
@@ -109,6 +115,7 @@ export const router = createBrowserRouter(
         { path: '/shipper/register', element: <RegisterPage /> },
         ...legalRoutes,
         ...webViewRoutes,
+        ...publicTrackingRoutes,
         { path: '/', element: <Navigate to="/login" replace /> },
         { path: '/about', element: <Navigate to="/login" replace /> },
         protectedLayout,

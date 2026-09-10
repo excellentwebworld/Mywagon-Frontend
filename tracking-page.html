@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MYVAGON — Track Shipment #SID-77478</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══ MYVAGON DESIGN TOKENS ═══ */
+:root{--bg:#F7F7F8;--sf:#FFF;--sa:#F0F0F3;--bd:#E4E4E8;--bf:#C8C8CF;--t1:#121217;--t2:#5E5E6E;--t3:#8E8E9A;--ac:#6C3AED;--al:#EDE9FE;--ah:#5B2BD4;--ok:#10B981;--ob:#ECFDF5;--wr:#F59E0B;--wb:#FFFBEB;--er:#EF4444;--eb:#FEF2F2;--in:#0EA5E9;--ib:#F0F9FF;--ss:0 1px 2px rgba(0,0,0,.04);--sm:0 4px 16px rgba(0,0,0,.06);--rs:8px;--rm:12px;--rl:16px;--max:860px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh}
+
+/* ═══ TOP BAR ═══ */
+.topbar{background:var(--t1);padding:14px 0}
+.topbar-inner{max-width:var(--max);margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:18px;letter-spacing:-.5px;text-decoration:none}.logo .hl{color:var(--ac)}
+.lang-tog{display:flex;align-items:center;border:1px solid rgba(255,255,255,.15);border-radius:var(--rs);overflow:hidden}
+.lang-btn{padding:5px 10px;font-size:11px;font-weight:600;border:none;background:transparent;color:rgba(255,255,255,.45);cursor:pointer;font-family:inherit;transition:all .12s}.lang-btn:hover{color:rgba(255,255,255,.8)}.lang-btn.act{background:var(--ac);color:#fff}
+
+/* ═══ CENTERED CONTENT WRAPPER ═══ */
+.wrap{max-width:var(--max);margin:0 auto;padding:0 24px 60px}
+
+/* ═══ COMMAND HEADER ═══ */
+.cmd{background:var(--sf);border-bottom:1px solid var(--bd);padding:20px 0;position:sticky;top:0;z-index:50;backdrop-filter:blur(16px);background:rgba(255,255,255,.92)}
+.cmd-inner{max-width:var(--max);margin:0 auto;padding:0 24px}
+.cmd-row1{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.cmd-left{flex:1;min-width:0}
+.cmd-sid{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;letter-spacing:-1px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cmd-lane{font-size:13px;color:var(--t2);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cmd-badges{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}
+.cmd-eta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding-top:4px}
+.bg{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;white-space:nowrap}
+.bg-ok{background:var(--ob);color:#065F46}.bg-wr{background:var(--wb);color:#92400E}.bg-er{background:var(--eb);color:#991B1B}.bg-in{background:var(--ib);color:#0369A1}.bg-ac{background:var(--al);color:var(--ac)}.bg-gr{background:var(--sa);color:var(--t2)}
+.bg .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.chip-in{background:var(--ib);color:#0369A1}.chip-ok{background:var(--ob);color:#065F46}.chip-wr{background:var(--wb);color:#92400E}
+
+/* Forwarder / customer line */
+.fwd-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--t2);margin-top:8px}
+.fwd-line strong{color:var(--t1)}
+.fwd-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;white-space:nowrap}
+.fwd-badge.fwd{background:#EEF2FF;color:#4338CA;border:1px solid #C7D2FE}
+.fwd-badge.cust{background:var(--ob);color:#065F46;border:1px solid #A7F3D0}
+.cust-pill{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:500;color:#059669;background:#F0FDF9;border:1px solid #A7F3D0;white-space:nowrap}
+
+/* ═══ MILESTONES BAR ═══ */
+.ms-bar{background:var(--sf);border-bottom:1px solid var(--bd);padding:20px 0 16px}
+.ms-bar-inner{max-width:var(--max);margin:0 auto;padding:0 24px}
+.ms-row{display:flex;align-items:flex-start;gap:0;overflow-x:auto;padding-bottom:4px}
+.ms-step{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px;flex:1;position:relative}
+.ms-dot{width:14px;height:14px;border-radius:50%;background:var(--bd);flex-shrink:0;z-index:1;border:2px solid var(--bg)}.ms-dot.done{background:var(--ac);border-color:var(--ac)}.ms-dot.cur{background:var(--ac);border-color:var(--ac);box-shadow:0 0 0 3px var(--al)}.ms-dot.skip{background:var(--bd)}
+.ms-line{position:absolute;top:7px;left:calc(50% + 7px);right:calc(-50% + 7px);height:2px;background:var(--bd);z-index:0}.ms-line.done{background:var(--ac)}
+.ms-step:last-child .ms-line{display:none}
+.ms-label{font-size:9px;color:var(--t3);text-align:center;font-weight:500;max-width:80px}.ms-dot.done~.ms-label,.ms-dot.cur~.ms-label{color:var(--t2)}
+.ms-time{font-size:8px;color:var(--t3);font-family:'JetBrains Mono',monospace;text-align:center}
+
+/* ═══ JUMP NAV ═══ */
+.jnav{display:flex;gap:0;background:var(--sf);border-bottom:1px solid var(--bd);overflow-x:auto;justify-content:center}
+.jn{padding:10px 16px;font-size:12px;font-weight:500;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .12s}.jn:hover{color:var(--t1)}.jn.act{color:var(--t1);border-bottom-color:var(--ac);font-weight:600}
+
+/* ═══ CARDS ═══ */
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;box-shadow:var(--ss);margin-bottom:16px}
+.card-h{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bd);cursor:pointer;user-select:none}
+.card-h h3{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.card-h .cnt{font-size:11px;font-weight:600;background:var(--sa);padding:2px 8px;border-radius:99px;color:var(--t3)}
+.card-h .chev{margin-left:8px;font-size:14px;color:var(--t3);transition:transform .2s;flex-shrink:0;padding:2px 4px;display:inline-flex}
+.card-h .chev.collapsed{transform:rotate(-90deg)}
+.card-body{padding:16px 18px}
+.card-body.collapsed{display:none}
+
+/* ═══ TWO COLUMN GRID ═══ */
+.grid{display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start;padding-top:20px}
+
+/* ═══ STOPS ═══ */
+.stop{padding:16px 0;border-bottom:1px solid var(--bd);position:relative}.stop:last-child{border-bottom:none}
+.stop-top{display:flex;align-items:flex-start;gap:12px}
+.stop-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;color:#fff}
+.stop-num.pk{background:var(--in)}.stop-num.dl{background:var(--ok)}
+.stop-info{flex:1;min-width:0}
+.stop-type{font-size:10px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:4px;display:inline-flex;margin-right:8px}.stop-type.pk{background:var(--ib);color:var(--in)}.stop-type.dl{background:var(--ob);color:var(--ok)}
+.stop-time{font-size:12px;color:var(--t3);font-family:'JetBrains Mono',monospace}
+.stop-name{font-size:14px;font-weight:600;margin-top:4px}
+.stop-addr{font-size:12px;color:var(--t2);margin-top:2px}
+.stop-tags{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.stop-tag{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:var(--sa);color:var(--t2);font-family:'JetBrains Mono',monospace}
+.stop-check{margin-left:auto;flex-shrink:0;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.stop-check.ok{background:var(--ob);color:var(--ok);font-size:13px;font-weight:700}
+.stop-contact{margin-top:6px;font-size:11px;color:var(--t3);display:flex;align-items:center;gap:4px}
+
+/* ═══ TRACKING STATS ═══ */
+.tk-stat{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.tk-item{padding:10px;border:1px solid var(--bd);border-radius:var(--rs)}.tk-item label{font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:2px}.tk-item .val{font-size:14px;font-weight:600}
+.tk-map{height:220px;background:linear-gradient(135deg,#f0f0f5,#e8e8f0);border-radius:var(--rs);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--t3);font-size:12px;gap:4px}
+
+/* ═══ CARRIER CARD ═══ */
+.cr-card{display:flex;align-items:center;gap:14px;padding:14px;border:1px solid var(--bd);border-radius:var(--rm);background:var(--sf)}
+.cr-av{width:44px;height:44px;border-radius:50%;background:var(--al);color:var(--ac);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0}
+.cr-info{flex:1;min-width:0}
+.cr-name{font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px}
+.cr-meta{font-size:12px;color:var(--t2);margin-top:2px}
+.cr-plates{display:flex;gap:8px;margin-top:10px}
+.cr-plate{padding:6px 12px;border:1px solid var(--bd);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600}
+.cr-contact{display:flex;gap:6px;margin-top:10px}
+
+/* ═══ LOAD SUMMARY GRID ═══ */
+.ls-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--bd);border:1px solid var(--bd);border-radius:var(--rs);overflow:hidden}
+.ls-cell{background:var(--sf);padding:12px 14px}.ls-cell label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);display:block;margin-bottom:4px}.ls-cell .val{font-size:14px;font-weight:600}
+
+/* ═══ BUTTONS ═══ */
+.btn{padding:8px 16px;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:var(--sf);color:var(--t2);font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:6px}.btn:hover{border-color:var(--bf);color:var(--t1)}
+.btn-pr{background:var(--ac);color:#fff;border-color:var(--ac);box-shadow:0 2px 8px rgba(108,58,237,.25)}.btn-pr:hover{background:var(--ah);transform:translateY(-1px)}
+.btn-ok{background:var(--ok);color:#fff;border-color:var(--ok);box-shadow:0 2px 8px rgba(16,185,129,.25)}.btn-ok:hover{background:#059669;transform:translateY(-1px)}
+.btn-sm{padding:6px 10px;font-size:12px}
+
+/* ═══ RECEIPT CONFIRMATION ═══ */
+.rcpt-section{background:var(--sf);border:2px solid var(--ac);border-radius:var(--rl);overflow:hidden;margin-bottom:16px;box-shadow:0 4px 20px rgba(108,58,237,.08)}
+.rcpt-h{padding:16px 18px;background:var(--al);display:flex;align-items:center;gap:8px;border-bottom:1px solid #DDD6FE}
+.rcpt-h h3{font-size:15px;font-weight:700;color:var(--ac);display:flex;align-items:center;gap:8px}
+.rcpt-body{padding:20px 18px}
+.rcpt-type{display:flex;gap:8px;margin-bottom:16px}
+.rcpt-opt{flex:1;padding:14px;border:2px solid var(--bd);border-radius:var(--rm);cursor:pointer;text-align:center;transition:all .15s;position:relative}
+.rcpt-opt:hover{border-color:var(--bf)}
+.rcpt-opt.selected{border-color:var(--ac);background:var(--al)}
+.rcpt-opt .ro-icon{font-size:24px;margin-bottom:6px;display:block}
+.rcpt-opt .ro-title{font-size:13px;font-weight:600;display:block}
+.rcpt-opt .ro-desc{font-size:11px;color:var(--t3);margin-top:2px}
+.rcpt-opt .ro-radio{position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:50%;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center}
+.rcpt-opt.selected .ro-radio{border-color:var(--ac);background:var(--ac)}
+.rcpt-opt.selected .ro-radio::after{content:'';width:6px;height:6px;border-radius:50%;background:#fff}
+textarea.rcpt-notes{width:100%;padding:12px;border:1px solid var(--bd);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;resize:vertical;min-height:80px;margin-bottom:12px;transition:border-color .15s}
+textarea.rcpt-notes:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 3px var(--al)}
+textarea.rcpt-notes::placeholder{color:var(--t3)}
+.rcpt-actions{display:flex;gap:8px;justify-content:flex-end;padding-top:4px}
+
+/* Partial items */
+.partial-items{margin-bottom:16px;border:1px solid var(--bd);border-radius:var(--rs);overflow:hidden;display:none}
+.partial-items.show{display:block}
+.pi-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bd);font-size:13px}.pi-row:last-child{border-bottom:none}
+.pi-row label{flex:1;font-weight:500}
+.pi-qty{display:flex;align-items:center;gap:4px}
+.pi-qty input{width:60px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center}
+.pi-qty span{font-size:11px;color:var(--t3)}
+
+/* ═══ RATING ═══ */
+.rate-section{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;margin-bottom:16px}
+.rate-h{padding:14px 18px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bd)}
+.rate-h h3{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.rate-body{padding:20px 18px;text-align:center}
+.rate-prompt{font-size:14px;color:var(--t2);margin-bottom:16px}
+.stars{display:flex;gap:6px;justify-content:center;margin-bottom:16px}
+.star{font-size:36px;cursor:pointer;color:var(--bd);transition:all .15s;user-select:none;line-height:1}.star:hover,.star.active{color:var(--wr);transform:scale(1.15)}
+.star.active{text-shadow:0 2px 8px rgba(245,158,11,.3)}
+.rate-label{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:12px;min-height:20px}
+textarea.rate-review{width:100%;padding:12px;border:1px solid var(--bd);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;resize:vertical;min-height:70px;margin-bottom:12px;transition:border-color .15s}
+textarea.rate-review:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 3px var(--al)}
+.rate-actions{display:flex;justify-content:center;gap:8px}
+
+/* ═══ CONFIRMED / RATED STATE ═══ */
+.confirmed-state{text-align:center;padding:24px 18px}
+.confirmed-icon{font-size:48px;margin-bottom:8px;display:block}
+.confirmed-title{font-size:16px;font-weight:700;color:var(--ok);margin-bottom:4px}
+.confirmed-meta{font-size:12px;color:var(--t3)}
+
+/* ═══ FOOTER ═══ */
+.footer{text-align:center;padding:24px;font-size:11px;color:var(--t3);border-top:1px solid var(--bd);margin-top:20px}
+.footer a{color:var(--ac);text-decoration:none;font-weight:500}.footer a:hover{text-decoration:underline}
+
+/* ═══ MODAL ═══ */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:center;justify-content:center}.modal-bg.show{display:flex}
+.modal{background:var(--sf);border-radius:var(--rl);width:480px;max-width:90vw;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal-h{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bd)}.modal-h h3{font-size:16px;font-weight:600}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--t3);padding:4px}.modal-close:hover{color:var(--t1)}
+.modal-body{padding:20px}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:8px}
+
+/* ═══ TOAST ═══ */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--t1);color:#fff;padding:12px 20px;border-radius:var(--rs);font-size:13px;font-weight:500;box-shadow:0 12px 40px rgba(0,0,0,.15);z-index:300;transform:translateY(100px);opacity:0;transition:all .3s}.toast.show{transform:translateY(0);opacity:1}
+
+/* ═══ POWERED-BY BAR ═══ */
+.powered{text-align:center;padding:10px;font-size:10px;color:var(--t3);background:var(--sf);border-bottom:1px solid var(--bd)}
+.powered strong{color:var(--t1);font-weight:600}
+
+/* ═══ ANIMATIONS ═══ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.a{animation:fadeUp .3s ease both}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}.pulse{animation:pulse 2s ease-in-out infinite}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr}
+  .cmd-row1{flex-direction:column}
+  .rcpt-type{flex-direction:column}
+  .tk-map{height:180px}
+}
+@media(max-width:480px){
+  .ms-step{min-width:56px}
+  .ms-label{font-size:8px}
+  .stars .star{font-size:28px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ TOP BAR ═══ -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="https://myvagon.com" target="_blank">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="8" fill="#6C3AED"/><path d="M7 18V10l4 8 4-8v8M19 10h4l-4 8h4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>MY<span class="hl">VAGON</span></span>
+    </a>
+    <div class="lang-tog">
+      <button class="lang-btn act" id="btnEN" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" id="btnEL" onclick="setLang('el')">EL</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ COMMAND HEADER ═══ -->
+<div class="cmd">
+  <div class="cmd-inner">
+    <div class="cmd-row1">
+      <div class="cmd-left">
+        <div class="cmd-sid">
+          <span data-en="Order" data-el="Παραγγελία">Order</span> #SID-77478
+          <span class="bg bg-in"><span class="dot"></span><span data-en="In Transit" data-el="Σε μεταφορά">In Transit</span></span>
+          <span class="bg bg-ok"><span class="dot"></span><span data-en="On Track" data-el="Εντός χρόνου">On Track</span></span>
+        </div>
+        <div class="cmd-lane">Ioannina (Kalapaki) → Keratea (Polyzos)</div>
+
+        <!-- FORWARDER SCENARIO: show this div when a forwarder is sending -->
+        <div class="fwd-line" id="fwdLine">
+          <span class="fwd-badge fwd">📦 <span data-en="Forwarder" data-el="Μεταφορέας/Διαμεσολαβητής">Forwarder</span></span>
+          <strong>LOGISTICS EXPRESS S.A</strong>
+          <span style="color:var(--t3)">·</span>
+          <span data-en="On behalf of" data-el="Εκ μέρους">On behalf of</span>
+          <span class="fwd-badge cust">🏪 <strong>Alpha Foods Ltd</strong></span>
+        </div>
+
+        <!-- DIRECT SHIPPER SCENARIO: show this instead when shipper sends directly (uncomment to switch) -->
+        <!--
+        <div class="fwd-line" id="fwdLine">
+          <span class="fwd-badge cust">🏪 <span data-en="Customer" data-el="Πελάτης">Customer</span></span>
+          <strong>Alpha Foods Ltd</strong>
+        </div>
+        -->
+
+      </div>
+      <div class="cmd-eta">
+        <span class="chip chip-in">📍 ETA: 20/02 · 16:00</span>
+        <span class="chip chip-ok" data-en="✅ ETA on schedule" data-el="✅ ETA εντός χρονοδ.">✅ ETA on schedule</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MILESTONES ═══ -->
+<div class="ms-bar a">
+  <div class="ms-bar-inner">
+    <div class="ms-row" id="msRow"></div>
+  </div>
+</div>
+
+<!-- ═══ JUMP NAV ═══ -->
+<div class="jnav">
+  <div class="jn act" onclick="jumpTo('tracking',this)" data-en="Tracking" data-el="Εντοπισμός">Tracking</div>
+  <div class="jn" onclick="jumpTo('stops',this)" data-en="Stops" data-el="Στάσεις">Stops</div>
+  <div class="jn" onclick="jumpTo('carrier',this)" data-en="Carrier & Driver" data-el="Μεταφορέας">Carrier & Driver</div>
+  <div class="jn" onclick="jumpTo('order',this)" data-en="Order Details" data-el="Λεπτ. παραγγελίας">Order Details</div>
+  <div class="jn" onclick="jumpTo('receipt',this)" data-en="Confirm Receipt" data-el="Επιβεβαίωση παραλαβής">Confirm Receipt</div>
+  <div class="jn" onclick="jumpTo('rating',this)" data-en="Rate Driver" data-el="Αξιολόγηση">Rate Driver</div>
+</div>
+
+<!-- ═══ PAGE BODY ═══ -->
+<div class="wrap">
+<div class="grid">
+
+<!-- ═══ LEFT COLUMN ═══ -->
+<div>
+
+<!-- Stops (only for THIS order) -->
+<div class="card" id="stops">
+  <div class="card-h" onclick="toggleSection(this)">
+    <h3>📍 <span data-en="Pickup & Delivery Stops" data-el="Στάσεις παραλαβής & παράδοσης">Pickup & Delivery Stops</span> <span class="cnt">2</span></h3>
+    <span class="chev">▾</span>
+  </div>
+  <div class="card-body" style="padding:0 18px">
+
+    <!-- Pickup stop for this order -->
+    <div class="stop">
+      <div class="stop-top">
+        <div class="stop-num pk">1</div>
+        <div class="stop-info">
+          <span class="stop-type pk" data-en="Pickup" data-el="Παραλαβή">Pickup</span>
+          <span class="stop-time">15/02/2026 · 18:49</span>
+          <div class="stop-name">Ergostasio Vikos — Fysika Metalika Anapsiktika</div>
+          <div class="stop-addr">Ioannina (KALAPAKI)</div>
+          <div class="stop-tags">
+            <span class="stop-tag">11PAP-1031753</span>
+            <span class="stop-tag" data-en="Soft drinks & Water" data-el="Αναψυκτικά & Νερό">Soft drinks & Water</span>
+            <span class="stop-tag">16 Eur.</span>
+            <span class="stop-tag">13 T</span>
+          </div>
+          <div class="stop-contact">📞 +30 26510 12345 · <span data-en="Contact: Nikos P." data-el="Επικοινωνία: Νίκος Π.">Contact: Nikos P.</span></div>
+        </div>
+        <div class="stop-check ok">✓</div>
+      </div>
+    </div>
+
+    <!-- Delivery stop for this order -->
+    <div class="stop">
+      <div class="stop-top">
+        <div class="stop-num dl">2</div>
+        <div class="stop-info">
+          <span class="stop-type dl" data-en="Delivery" data-el="Παράδοση">Delivery</span>
+          <span class="stop-time">20/02/2026 · 06:00</span>
+          <div class="stop-name">POLYZOS A. — PETROLIAGRIKI ZOI O.E</div>
+          <div class="stop-addr">Kekropos 20, Keratea 190 01, Ellada</div>
+          <div class="stop-tags">
+            <span class="stop-tag">11PAP-1031753</span>
+            <span class="stop-tag" data-en="Soft drinks & Water" data-el="Αναψυκτικά & Νερό">Soft drinks & Water</span>
+            <span class="stop-tag">16 Eur.</span>
+            <span class="stop-tag">13 T</span>
+          </div>
+          <div class="stop-contact">📞 +30 22990 67890 · <span data-en="Contact: Maria K." data-el="Επικοινωνία: Μαρία Κ.">Contact: Maria K.</span></div>
+        </div>
+        <div style="color:var(--t3);font-size:18px">○</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Order Details (for THIS order only) -->
+<div class="card" id="order">
+  <div class="card-h" onclick="toggleSection(this)">
+    <h3>📦 <span data-en="Order Details" data-el="Λεπτομέρειες παραγγελίας">Order Details</span></h3>
+    <span class="chev">▾</span>
+  </div>
+  <div class="card-body">
+    <div class="ls-grid">
+      <div class="ls-cell"><label data-en="Order Reference" data-el="Κωδ. παραγγελίας">Order Reference</label><div class="val" style="font-size:13px;font-family:'JetBrains Mono',monospace">11PAP-1031753</div></div>
+      <div class="ls-cell"><label data-en="Product" data-el="Προϊόν">Product</label><div class="val" style="font-size:13px" data-en="Soft drinks & Water" data-el="Αναψυκτικά & Νερό">Soft drinks & Water</div></div>
+      <div class="ls-cell"><label data-en="Pallets" data-el="Παλέτες">Pallets</label><div class="val">16 <span style="font-size:11px;color:var(--t3)">Eur.</span></div></div>
+      <div class="ls-cell"><label data-en="Weight" data-el="Βάρος">Weight</label><div class="val">13 <span style="font-size:11px;color:var(--t3)">T</span></div></div>
+      <div class="ls-cell"><label data-en="Vehicle Type" data-el="Τύπος οχήματος">Vehicle Type</label><div class="val" style="font-size:13px" data-en="Semi-Trailer Truck" data-el="Νταλίκα">Semi-Trailer Truck</div></div>
+      <div class="ls-cell"><label data-en="Cargo Specs" data-el="Προδ. φορτίου">Cargo Specs</label><div class="val" style="font-size:13px" data-en="Curtainside" data-el="Μουσαμάς">Curtainside</div></div>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:var(--sa);border-radius:var(--rs);font-size:12px;color:var(--t2)">
+      <strong style="color:var(--t1)" data-en="Special Instructions:" data-el="Ειδικές οδηγίες:">Special Instructions:</strong>
+      <span data-en="Handle with care — glass bottles. Dock #3 preferred at Keratea facility. Contact manager before arrival." data-el="Χειρισμός με προσοχή — γυάλινα μπουκάλια. Προτίμηση ράμπα #3. Επικοινωνία με υπεύθυνο πριν άφιξη.">Handle with care — glass bottles. Dock #3 preferred at Keratea facility. Contact manager before arrival.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CONFIRM RECEIPT (prominent) ═══ -->
+<div class="rcpt-section" id="receipt">
+  <div class="rcpt-h"><h3>✅ <span data-en="Confirm Receipt of Goods" data-el="Επιβεβαίωση παραλαβής εμπορευμάτων">Confirm Receipt of Goods</span></h3></div>
+  <div class="rcpt-body" id="rcptBody">
+
+    <p style="font-size:13px;color:var(--t2);margin-bottom:16px" data-en="Please confirm whether you received the goods in full or partially. Your confirmation helps close the shipment." data-el="Παρακαλούμε επιβεβαιώστε αν παραλάβατε τα εμπορεύματα πλήρως ή μερικώς. Η επιβεβαίωσή σας βοηθά στο κλείσιμο της αποστολής.">Please confirm whether you received the goods in full or partially. Your confirmation helps close the shipment.</p>
+
+    <!-- Receipt type selection -->
+    <div class="rcpt-type">
+      <div class="rcpt-opt selected" id="optFull" onclick="selectRcpt('full')">
+        <span class="ro-radio"></span>
+        <span class="ro-icon">📦</span>
+        <span class="ro-title" data-en="Full Receipt" data-el="Πλήρης παραλαβή">Full Receipt</span>
+        <span class="ro-desc" data-en="All items received as expected" data-el="Όλα τα είδη παραλήφθηκαν κανονικά">All items received as expected</span>
+      </div>
+      <div class="rcpt-opt" id="optPartial" onclick="selectRcpt('partial')">
+        <span class="ro-radio"></span>
+        <span class="ro-icon">📋</span>
+        <span class="ro-title" data-en="Partial Receipt" data-el="Μερική παραλαβή">Partial Receipt</span>
+        <span class="ro-desc" data-en="Some items missing or damaged" data-el="Κάποια είδη λείπουν ή κατεστραμμένα">Some items missing or damaged</span>
+      </div>
+    </div>
+
+    <!-- Partial items detail (shown only for partial) -->
+    <div class="partial-items" id="partialItems">
+      <div class="pi-row" style="background:var(--sa);font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">
+        <label data-en="Item" data-el="Είδος">Item</label>
+        <div class="pi-qty"><span data-en="Ordered" data-el="Παραγγελία">Ordered</span></div>
+        <div class="pi-qty"><span data-en="Received" data-el="Παραλαβή">Received</span></div>
+      </div>
+      <div class="pi-row">
+        <label>Soft drinks — Glass bottles</label>
+        <div class="pi-qty"><span style="font-family:'JetBrains Mono',monospace">10 pal.</span></div>
+        <div class="pi-qty"><input type="number" value="10" min="0" max="10"></div>
+      </div>
+      <div class="pi-row">
+        <label>Water — PET 1.5L</label>
+        <div class="pi-qty"><span style="font-family:'JetBrains Mono',monospace">6 pal.</span></div>
+        <div class="pi-qty"><input type="number" value="6" min="0" max="6"></div>
+      </div>
+    </div>
+
+    <!-- Condition / issue reason (partial only) -->
+    <div id="conditionSelect" style="display:none;margin-bottom:14px">
+      <label style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;display:block;margin-bottom:6px" data-en="Reason for partial receipt" data-el="Λόγος μερικής παραλαβής">Reason for partial receipt</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-sm cond-btn" onclick="selectCondition(this)" data-en="Items missing" data-el="Λείπουν είδη">Items missing</button>
+        <button class="btn btn-sm cond-btn" onclick="selectCondition(this)" data-en="Damaged goods" data-el="Κατεστραμμένα">Damaged goods</button>
+        <button class="btn btn-sm cond-btn" onclick="selectCondition(this)" data-en="Wrong items" data-el="Λάθος είδη">Wrong items</button>
+        <button class="btn btn-sm cond-btn" onclick="selectCondition(this)" data-en="Quantity mismatch" data-el="Διαφορά ποσότητας">Quantity mismatch</button>
+      </div>
+    </div>
+
+    <!-- Comments -->
+    <textarea class="rcpt-notes" placeholder="Add comments about the delivery... (optional)" data-placeholder-en="Add comments about the delivery... (optional)" data-placeholder-el="Προσθέστε σχόλια για την παράδοση... (προαιρετικό)" id="rcptNotes"></textarea>
+
+    <!-- Photo upload placeholder -->
+    <div style="margin-bottom:16px">
+      <button class="btn btn-sm" onclick="toast('Camera / file picker would open')" style="width:100%;justify-content:center;padding:12px;border-style:dashed">
+        📷 <span data-en="Upload photos of goods received" data-el="Ανεβάστε φωτογραφίες παραλαβής">Upload photos of goods received</span>
+      </button>
+    </div>
+
+    <!-- Actions -->
+    <div class="rcpt-actions">
+      <button class="btn btn-ok" style="padding:12px 28px;font-size:14px" onclick="confirmReceipt()">
+        <span data-en="✅ Confirm Receipt" data-el="✅ Επιβεβαίωση παραλαβής">✅ Confirm Receipt</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Confirmed state (hidden by default) -->
+  <div class="confirmed-state" id="rcptConfirmed" style="display:none">
+    <span class="confirmed-icon">✅</span>
+    <div class="confirmed-title" data-en="Receipt Confirmed" data-el="Παραλαβή επιβεβαιώθηκε">Receipt Confirmed</div>
+    <div class="confirmed-meta" id="rcptConfMeta"></div>
+  </div>
+</div>
+
+<!-- ═══ RATE DRIVER ═══ -->
+<div class="rate-section" id="rating">
+  <div class="rate-h"><h3>⭐ <span data-en="Rate Your Driver" data-el="Αξιολογήστε τον οδηγό">Rate Your Driver</span></h3></div>
+  <div class="rate-body" id="rateBody">
+    <div class="rate-prompt" data-en="How was your experience with the driver?" data-el="Πώς ήταν η εμπειρία σας με τον οδηγό;">How was your experience with the driver?</div>
+
+    <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:16px">
+      <div class="cr-av" style="width:36px;height:36px;font-size:13px">DN</div>
+      <div style="text-align:left">
+        <div style="font-size:14px;font-weight:600">DIMITRIS NTINOS</div>
+        <div style="font-size:11px;color:var(--t3)">IAE 8104 · P61381</div>
+      </div>
+    </div>
+
+    <div class="stars" id="starContainer">
+      <span class="star" data-val="1" onclick="setRating(1)">★</span>
+      <span class="star" data-val="2" onclick="setRating(2)">★</span>
+      <span class="star" data-val="3" onclick="setRating(3)">★</span>
+      <span class="star" data-val="4" onclick="setRating(4)">★</span>
+      <span class="star" data-val="5" onclick="setRating(5)">★</span>
+    </div>
+    <div class="rate-label" id="rateLabel"></div>
+
+    <textarea class="rate-review" id="rateReview" placeholder="Write a review... (optional)" data-placeholder-en="Write a review... (optional)" data-placeholder-el="Γράψτε μια αξιολόγηση... (προαιρετικό)"></textarea>
+
+    <div class="rate-actions">
+      <button class="btn btn-pr" style="padding:10px 28px" onclick="submitRating()" id="rateSubmitBtn" disabled>
+        <span data-en="Submit Rating" data-el="Υποβολή αξιολόγησης">Submit Rating</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Rated state (hidden by default) -->
+  <div class="confirmed-state" id="rateConfirmed" style="display:none">
+    <span class="confirmed-icon">⭐</span>
+    <div class="confirmed-title" style="color:var(--wr)" id="rateConfTitle"></div>
+    <div class="confirmed-meta" id="rateConfMeta"></div>
+  </div>
+</div>
+
+</div>
+
+<!-- ═══ RIGHT COLUMN ═══ -->
+<div>
+
+<!-- Live Tracking -->
+<div class="card" id="tracking">
+  <div class="card-h" onclick="toggleSection(this)">
+    <h3>📡 <span data-en="Live Tracking" data-el="Ζωντανός εντοπισμός">Live Tracking</span> <span class="pulse" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-left:4px"></span></h3>
+    <span class="chev">▾</span>
+  </div>
+  <div class="card-body">
+    <div class="tk-stat">
+      <div class="tk-item"><label data-en="Movement" data-el="Κίνηση">Movement</label><div class="val" style="color:var(--ok)" data-en="Moving" data-el="Σε κίνηση">Moving</div></div>
+      <div class="tk-item"><label data-en="ETA Variance" data-el="Απόκλιση ETA">ETA Variance</label><div class="val" style="color:var(--ok)" data-en="On time" data-el="Εντός χρόνου">On time</div></div>
+      <div class="tk-item"><label data-en="Km Remaining" data-el="Km απομένουν">Km Remaining</label><div class="val">87 km</div></div>
+      <div class="tk-item"><label data-en="Speed" data-el="Ταχύτητα">Speed</label><div class="val">72 km/h</div></div>
+    </div>
+    <div class="tk-map">
+      <span style="font-size:32px;opacity:.3">📍</span>
+      <span>Ioannina → Keratea</span>
+      <span style="font-size:10px;opacity:.5">Google Maps embed</span>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--t3);text-align:center">
+      <span data-en="Last updated:" data-el="Τελευταία ενημέρωση:">Last updated:</span> 20/02/2026 · 10:34
+    </div>
+  </div>
+</div>
+
+<!-- Carrier & Driver -->
+<div class="card" id="carrier">
+  <div class="card-h" onclick="toggleSection(this)">
+    <h3>🚛 <span data-en="Carrier & Driver" data-el="Μεταφορέας & οδηγός">Carrier & Driver</span></h3>
+    <span class="chev">▾</span>
+  </div>
+  <div class="card-body">
+    <div class="cr-card">
+      <div class="cr-av">DN</div>
+      <div class="cr-info">
+        <div class="cr-name">DIMITRIS NTINOS <span style="font-size:12px;color:var(--wr)">★ 5.0</span></div>
+        <div class="cr-meta">Freelancer · <span data-en="78 trips completed" data-el="78 δρομολόγια ολοκληρωμένα">78 trips completed</span></div>
+      </div>
+    </div>
+    <div class="cr-plates">
+      <div class="cr-plate">🚛 IAE 8104</div>
+      <div class="cr-plate">P61381</div>
+    </div>
+    <div class="cr-contact">
+      <button class="btn btn-sm" style="flex:1" onclick="toast('Calling driver...')">📞 <span data-en="Call Driver" data-el="Κλήση οδηγού">Call Driver</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Shipment Progress Timeline -->
+<div class="card" id="timeline">
+  <div class="card-h" onclick="toggleSection(this)">
+    <h3>📋 <span data-en="Shipment Progress" data-el="Πρόοδος αποστολής">Shipment Progress</span></h3>
+    <span class="chev">▾</span>
+  </div>
+  <div class="card-body" style="padding:12px 18px">
+    <div class="tl-item done"><div class="tl-dot done"></div><div class="tl-content"><div class="tl-time">19/02 · 14:13</div><div class="tl-text" data-en="Trip started" data-el="Δρομολόγιο ξεκίνησε">Trip started</div></div></div>
+    <div class="tl-item done"><div class="tl-dot done"></div><div class="tl-content"><div class="tl-time">20/02 · 01:40</div><div class="tl-text"><span data-en="Arrived at" data-el="Άφιξη σε">Arrived at</span> <strong>Ioannina</strong></div></div></div>
+    <div class="tl-item done"><div class="tl-dot done"></div><div class="tl-content"><div class="tl-time">20/02 · 01:40</div><div class="tl-text"><span data-en="Pickup completed:" data-el="Παραλαβή ολοκληρώθηκε:">Pickup completed:</span> <strong>Ioannina</strong></div></div></div>
+    <div class="tl-item cur"><div class="tl-dot cur"></div><div class="tl-content"><div class="tl-time" data-en="In progress" data-el="Σε εξέλιξη">In progress</div><div class="tl-text" data-en="In transit to Keratea" data-el="Σε μεταφορά προς Κερατέα">In transit to Keratea</div></div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-content"><div class="tl-time">ETA: 20/02 · 16:00</div><div class="tl-text" style="color:var(--t3)" data-en="Delivery at Keratea" data-el="Παράδοση στην Κερατέα">Delivery at Keratea</div></div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-content"><div class="tl-time">—</div><div class="tl-text" style="color:var(--t3)" data-en="Proof of delivery" data-el="Απόδειξη παράδοσης">Proof of delivery</div></div></div>
+  </div>
+</div>
+
+<style>
+.tl-item{display:flex;gap:12px;padding:8px 0;position:relative}
+.tl-item:not(:last-child)::after{content:'';position:absolute;left:6px;top:24px;bottom:-8px;width:2px;background:var(--bd)}
+.tl-item.done:not(:last-child)::after{background:var(--ac)}
+.tl-item.cur:not(:last-child)::after{background:var(--bd)}
+.tl-dot{width:14px;height:14px;border-radius:50%;background:var(--bd);flex-shrink:0;margin-top:2px;z-index:1}
+.tl-dot.done{background:var(--ac)}
+.tl-dot.cur{background:var(--ac);box-shadow:0 0 0 3px var(--al)}
+.tl-content{flex:1;min-width:0}
+.tl-time{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;margin-bottom:2px}
+.tl-text{font-size:13px;font-weight:500}
+.tl-text strong{color:var(--t1)}
+</style>
+
+</div>
+</div><!-- /grid -->
+
+<!-- ═══ FOOTER ═══ -->
+<div class="footer">
+  <div data-en="Powered by" data-el="Υποστηρίζεται από">Powered by</div>
+  <div style="margin-top:4px">
+    <a href="https://myvagon.com" target="_blank" style="font-size:14px;font-weight:700;letter-spacing:-.5px">MY<span style="color:var(--ac)">VAGON</span></a>
+  </div>
+  <div style="margin-top:8px" data-en="Freight management made simple" data-el="Διαχείριση μεταφορών απλά">Freight management made simple</div>
+</div>
+
+</div><!-- /wrap -->
+
+<!-- ═══ TOAST ═══ -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══ SCRIPTS ═══ -->
+<script>
+// ═══ i18n SYSTEM ═══
+let lang = 'en';
+const MS_LABELS = {
+  'Trip Started':     {en:'Trip Started',     el:'Έναρξη δρομ.'},
+  'Arrived Ioannina': {en:'Arrived Ioannina', el:'Άφιξη Ιωάννινα'},
+  'Pickup Completed': {en:'Pickup Completed', el:'Παραλαβή ολοκλ.'},
+  'In Transit':       {en:'In Transit',       el:'Σε μεταφορά'},
+  'Delivery Keratea': {en:'Delivery Keratea', el:'Παράδοση Κερατέα'},
+  'POD':              {en:'POD',              el:'POD'}
+};
+
+const MS = [
+  {labelKey:'Trip Started',     time:'19/02 14:13',  status:'done'},
+  {labelKey:'Arrived Ioannina', time:'20/02 01:40',  status:'done'},
+  {labelKey:'Pickup Completed', time:'20/02 01:40',  status:'done'},
+  {labelKey:'In Transit',       time:'',             status:'cur'},
+  {labelKey:'Delivery Keratea', time:'ETA 16:00',    status:'skip'},
+  {labelKey:'POD',              time:'—',            status:'skip'}
+];
+
+function msT(key) { return MS_LABELS[key]?.[lang] || key; }
+
+function setLang(l) {
+  lang = l;
+  document.getElementById('btnEN').classList.toggle('act', l==='en');
+  document.getElementById('btnEL').classList.toggle('act', l==='el');
+  document.querySelectorAll('[data-en]').forEach(el => {
+    const txt = el.getAttribute('data-'+l) || el.getAttribute('data-en');
+    const hasChildren = el.querySelector('.dot, .cnt, .cust-pill, svg, strong, input, button, .fwd-badge, .ro-radio');
+    if (!hasChildren) el.textContent = txt;
+  });
+  // Update placeholders
+  document.querySelectorAll('[data-placeholder-en]').forEach(el => {
+    el.placeholder = el.getAttribute('data-placeholder-'+l) || el.getAttribute('data-placeholder-en');
+  });
+  renderMilestones();
+}
+
+function renderMilestones(){
+  const c = document.getElementById('msRow');
+  c.innerHTML = '';
+  MS.forEach((m,i) => {
+    const label = msT(m.labelKey);
+    let h = `<div class="ms-step"><div class="ms-line ${m.status==='done'||m.status==='cur'?'done':''}"></div><div class="ms-dot ${m.status}"></div><div class="ms-label">${label}</div>`;
+    if(m.time) h += `<div class="ms-time">${m.time}</div>`;
+    h += `</div>`;
+    c.innerHTML += h;
+  });
+}
+
+// ═══ RECEIPT CONFIRMATION ═══
+let receiptType = 'full';
+
+function selectRcpt(type) {
+  receiptType = type;
+  document.getElementById('optFull').classList.toggle('selected', type==='full');
+  document.getElementById('optPartial').classList.toggle('selected', type==='partial');
+  document.getElementById('partialItems').classList.toggle('show', type==='partial');
+  document.getElementById('conditionSelect').style.display = type==='partial' ? 'block' : 'none';
+}
+
+function selectCondition(btn) {
+  document.querySelectorAll('.cond-btn').forEach(b => {
+    b.style.background = '';
+    b.style.color = '';
+    b.style.borderColor = '';
+  });
+  btn.style.background = 'var(--ac)';
+  btn.style.color = '#fff';
+  btn.style.borderColor = 'var(--ac)';
+}
+
+function confirmReceipt() {
+  const notes = document.getElementById('rcptNotes').value;
+  const typeLabel = receiptType === 'full'
+    ? (lang==='el' ? 'Πλήρης παραλαβή' : 'Full receipt')
+    : (lang==='el' ? 'Μερική παραλαβή' : 'Partial receipt');
+
+  document.getElementById('rcptBody').style.display = 'none';
+  document.getElementById('rcptConfirmed').style.display = 'block';
+
+  const now = new Date();
+  const timeStr = now.toLocaleDateString('el-GR') + ' · ' + now.toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('rcptConfMeta').textContent = typeLabel + ' · ' + timeStr;
+
+  toast(lang==='el' ? 'Η παραλαβή επιβεβαιώθηκε!' : 'Receipt confirmed successfully!');
+}
+
+// ═══ STAR RATING ═══
+let currentRating = 0;
+const ratingLabels = {
+  en: ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'],
+  el: ['', 'Κακό', 'Μέτριο', 'Καλό', 'Πολύ καλό', 'Εξαιρετικό']
+};
+
+function setRating(val) {
+  currentRating = val;
+  document.querySelectorAll('.star').forEach(s => {
+    s.classList.toggle('active', parseInt(s.dataset.val) <= val);
+  });
+  document.getElementById('rateLabel').textContent = ratingLabels[lang][val] || ratingLabels['en'][val];
+  document.getElementById('rateSubmitBtn').disabled = false;
+}
+
+function submitRating() {
+  if (currentRating === 0) return;
+  const review = document.getElementById('rateReview').value;
+  const starsText = '★'.repeat(currentRating) + '☆'.repeat(5-currentRating);
+
+  document.getElementById('rateBody').style.display = 'none';
+  document.getElementById('rateConfirmed').style.display = 'block';
+  document.getElementById('rateConfTitle').textContent = starsText + ' ' + (ratingLabels[lang][currentRating] || ratingLabels['en'][currentRating]);
+  document.getElementById('rateConfMeta').textContent = lang==='el' ? 'Ευχαριστούμε για την αξιολόγησή σας!' : 'Thank you for your feedback!';
+
+  toast(lang==='el' ? 'Αξιολόγηση υποβλήθηκε!' : 'Rating submitted!');
+}
+
+// ═══ NAVIGATION ═══
+function jumpTo(id, el) {
+  document.getElementById(id)?.scrollIntoView({behavior:'smooth', block:'start'});
+  document.querySelectorAll('.jn').forEach(j => j.classList.remove('act'));
+  if(el) el.classList.add('act');
+}
+
+// ═══ COLLAPSIBLE SECTIONS ═══
+function toggleSection(headerEl) {
+  const body = headerEl.nextElementSibling;
+  const chev = headerEl.querySelector('.chev');
+  if (body && body.classList.contains('card-body')) {
+    body.classList.toggle('collapsed');
+    if(chev) chev.classList.toggle('collapsed');
+  }
+}
+
+// ═══ TOAST ═══
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ═══ INIT ═══
+document.addEventListener('DOMContentLoaded', () => {
+  renderMilestones();
+
+  // Star hover effects
+  document.querySelectorAll('.star').forEach(star => {
+    star.addEventListener('mouseenter', () => {
+      const val = parseInt(star.dataset.val);
+      document.querySelectorAll('.star').forEach(s => {
+        s.style.color = parseInt(s.dataset.val) <= val ? 'var(--wr)' : '';
+      });
+    });
+    star.addEventListener('mouseleave', () => {
+      document.querySelectorAll('.star').forEach(s => {
+        s.style.color = s.classList.contains('active') ? 'var(--wr)' : '';
+      });
+    });
+  });
+});
+</script>
+</body>
+</html>
