@@ -18,7 +18,6 @@ import { CompanyStep } from './steps/CompanyStep';
 import { AddressStep } from './steps/AddressStep';
 import { MarketingTermsStep, RegisterTermsCheckbox } from './steps/MarketingTermsStep';
 import { KycStep } from './steps/KycStep';
-import { SignupSuccessStep } from './steps/SignupSuccessStep';
 
 export { SIGNUP_QUERY_STORAGE_KEY };
 
@@ -64,25 +63,16 @@ export const RegisterPage: React.FC = () => {
       variant="shipper"
       videoSrc={form.signupVideos.shipper}
     >
-      {form.submitted ? (
-        <>
-          <SignupSuccessStep messageHtml={form.successMessage} />
-          <RegisterSuccessModal
-            messageHtml={form.successMessage}
-            onClose={() => navigate('/login')}
-          />
-        </>
-      ) : (
-        <div className="reg-form">
-          {form.formError && (
-            <p className="reg-error" role="alert" style={{ marginBottom: '0.75rem' }}>
-              {form.formError}
-            </p>
-          )}
+      <div className="reg-form">
+        {form.formError && (
+          <p className="reg-error" role="alert" style={{ marginBottom: '0.75rem' }}>
+            {form.formError}
+          </p>
+        )}
 
-          <h5 className="reg-section-title">
-            {t('registerSectionAccount', 'Account & User Info')}
-          </h5>
+        <h5 className="reg-section-title">
+          {t('registerSectionAccount', 'Account & User Info')}
+        </h5>
 
           <NameStep
             firstName={form.draft.first_name}
@@ -264,6 +254,12 @@ export const RegisterPage: React.FC = () => {
             <Link to="/login">{t('registerLogIn', 'Log In')}</Link>
           </div>
         </div>
+
+      {form.submitted && (
+        <RegisterSuccessModal
+          messageHtml={form.successMessage}
+          onClose={() => navigate('/login')}
+        />
       )}
 
       {form.otpModal === 'phone' && (
