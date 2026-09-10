@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useLoginParticles } from '../Login/useLoginParticles';
 import { authService } from '../../api/auth';
@@ -7,20 +8,6 @@ import fullLogo from '../../assets/logo/fullLogo.svg';
 import './authForm.css';
 
 const PASSWORD_PATTERN = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,15}$/;
-
-const EyeIcon: React.FC<{ open: boolean }> = ({ open }) =>
-  open ? (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  ) : (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-      <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-  );
 
 export const ResetPasswordPage: React.FC = () => {
   const { t } = useTranslation();
@@ -109,6 +96,47 @@ export const ResetPasswordPage: React.FC = () => {
     return undefined;
   };
 
+  const handlePasswordChange = (val: string) => {
+    setPassword(val);
+    setErrorMessage(null);
+    const pwErr = validatePassword(val);
+    const confirmErr = confirmPassword
+      ? validateConfirmPassword(confirmPassword, val)
+      : fieldErrors.confirmPassword;
+
+    setFieldErrors((prev) => ({
+      ...prev,
+      password: pwErr,
+      ...(confirmPassword ? { confirmPassword: confirmErr } : {}),
+    }));
+  };
+
+  const handleConfirmPasswordChange = (val: string) => {
+    setConfirmPassword(val);
+    setErrorMessage(null);
+    const confirmErr = validateConfirmPassword(val, password);
+    setFieldErrors((prev) => ({
+      ...prev,
+      confirmPassword: confirmErr,
+    }));
+  };
+
+  const isPasswordValid = Boolean(password && !validatePassword(password));
+  const isConfirmValid = Boolean(confirmPassword && password === confirmPassword);
+  const isEmailValid = emailParam ? true : Boolean(email.trim());
+  const isMismatch = Boolean(password && confirmPassword && password !== confirmPassword);
+
+  const isFormInvalid =
+    !isPasswordValid ||
+    !isConfirmValid ||
+    !isEmailValid ||
+    isMismatch ||
+    Boolean(fieldErrors.password) ||
+    Boolean(fieldErrors.confirmPassword) ||
+    Boolean(fieldErrors.email);
+
+  const isSubmitDisabled = submitting || verifying || tokenInvalid || isFormInvalid;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -117,14 +145,16 @@ export const ResetPasswordPage: React.FC = () => {
     const confirmErr = validateConfirmPassword(confirmPassword, password);
 
     const errors: { password?: string; confirmPassword?: string; email?: string } = {};
-    if (!email) {
+    if (!emailParam && !email.trim()) {
       errors.email = t('loginEmailRequired', 'Please enter email address');
     }
     if (pwErr) errors.password = pwErr;
     if (confirmErr) errors.confirmPassword = confirmErr;
 
     setFieldErrors(errors);
-    if (Object.keys(errors).length > 0 || !token) return;
+    if (Object.keys(errors).length > 0 || !token || password !== confirmPassword) {
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -206,7 +236,14 @@ export const ResetPasswordPage: React.FC = () => {
                       type="email"
                       className="auth-input"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (!e.target.value.trim()) {
+                          setFieldErrors((prev) => ({ ...prev, email: t('loginEmailRequired', 'Please enter email address') }));
+                        } else {
+                          setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                        }
+                      }}
                       placeholder={t('forgotPasswordEnterEmail', 'Enter your email address')}
                       required
                       disabled={submitting || verifying}
@@ -229,13 +266,7 @@ export const ResetPasswordPage: React.FC = () => {
                     type={showPassword ? 'text' : 'password'}
                     className="auth-input"
                     value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setFieldErrors((prev) => ({
-                        ...prev,
-                        password: validatePassword(e.target.value),
-                      }));
-                    }}
+                    onChange={(e) => handlePasswordChange(e.target.value)}
                     placeholder={t('resetPasswordNew', 'Password')}
                     required
                     disabled={submitting || verifying}
@@ -246,7 +277,7 @@ export const ResetPasswordPage: React.FC = () => {
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? t('loginHidePassword', 'Hide password') : t('loginShowPassword', 'Show password')}
                   >
-                    <EyeIcon open={showPassword} />
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                   {fieldErrors.password && (
                     <p className="auth-field-error" role="alert">
@@ -265,13 +296,7 @@ export const ResetPasswordPage: React.FC = () => {
                     type={showConfirmPassword ? 'text' : 'password'}
                     className="auth-input"
                     value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      setFieldErrors((prev) => ({
-                        ...prev,
-                        confirmPassword: validateConfirmPassword(e.target.value, password),
-                      }));
-                    }}
+                    onChange={(e) => handleConfirmPasswordChange(e.target.value)}
                     placeholder={t('resetPasswordConfirm', 'Confirm Password')}
                     required
                     disabled={submitting || verifying}
@@ -282,7 +307,7 @@ export const ResetPasswordPage: React.FC = () => {
                     onClick={() => setShowConfirmPassword((v) => !v)}
                     aria-label={showConfirmPassword ? t('loginHidePassword', 'Hide password') : t('loginShowPassword', 'Show password')}
                   >
-                    <EyeIcon open={showConfirmPassword} />
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                   {fieldErrors.confirmPassword && (
                     <p className="auth-field-error" role="alert">
@@ -301,7 +326,7 @@ export const ResetPasswordPage: React.FC = () => {
                   <button
                     type="submit"
                     className="submit-btn"
-                    disabled={submitting || verifying}
+                    disabled={isSubmitDisabled}
                   >
                     {submitting
                       ? t('registerWorking', 'Please wait…')
