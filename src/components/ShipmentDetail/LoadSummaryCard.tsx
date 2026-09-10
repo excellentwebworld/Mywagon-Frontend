@@ -253,10 +253,10 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
         </div>
       </div>
 
-      {/* Tier 2: Commercial & Operational Parameters (5-Tile Compact Grid) */}
-      <div className="load-summary-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1fr_0.95fr_0.8fr_1.4fr_1.05fr] gap-2.5 mt-3">
+      {/* Tier 2: Commercial & Operational Parameters (5-Tile Responsive Grid) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-5 gap-2.5 mt-3">
         {/* Quoted Price */}
-        <div className="p-2.5 sm:p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between min-w-0">
           <div className="flex items-center gap-1.5 mb-2 min-w-0">
             <Banknote size={13} className="text-purple-600 dark:text-purple-400 shrink-0" />
             <span
@@ -272,7 +272,7 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
         </div>
 
         {/* Load Value */}
-        <div className="p-2.5 sm:p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between min-w-0">
           <div className="flex items-center gap-1.5 mb-2 min-w-0">
             <Coins size={13} className="text-purple-600 dark:text-purple-400 shrink-0" />
             <span
@@ -288,7 +288,7 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
         </div>
 
         {/* Channel */}
-        <div className="p-2.5 sm:p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between min-w-0">
           <div className="flex items-center gap-1.5 mb-2 min-w-0">
             <Globe size={13} className="text-purple-600 dark:text-purple-400 shrink-0" />
             <span
@@ -298,9 +298,9 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
               {t('channel', 'Channel')}
             </span>
           </div>
-          <div>
+          <div className="min-w-0">
             <span
-              className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+              className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider truncate max-w-full ${
                 loadSummary.channel === 'Public'
                   ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
                   : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
@@ -312,11 +312,11 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
         </div>
 
         {/* Pricing Negotiation */}
-        <div className="p-2.5 sm:p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between min-w-0">
           <div className="flex items-center gap-1 sm:gap-1.5 mb-2 min-w-0">
             <Handshake size={13} className="text-purple-600 dark:text-purple-400 shrink-0" />
             <span
-              className="text-[9px] xl:text-[9.5px] 2xl:text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-tight whitespace-nowrap"
+              className="text-[9px] xl:text-[9.5px] 2xl:text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-tight whitespace-nowrap truncate"
               title={t('pricingNegotiation', 'Pricing Negotiation')}
             >
               {t('pricingNegotiation', 'Pricing Negotiation')}
@@ -324,11 +324,11 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
           </div>
           <div className="text-[12px] font-semibold text-[var(--text-primary)] flex items-center gap-1.5 truncate">
             {loadSummary.negotiable ? (
-              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold truncate">
                 ✓ {t('negotiable', 'Negotiable')}
               </span>
             ) : (
-              <span className="text-slate-500 dark:text-slate-400">
+              <span className="text-slate-500 dark:text-slate-400 truncate">
                 {t('fixedPrice', 'Fixed Price')}
               </span>
             )}
@@ -336,7 +336,7 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
         </div>
 
         {/* Live GPS Navigation */}
-        <div className="p-2.5 sm:p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between col-span-2 sm:col-span-1">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-[var(--surface-alt)] border border-[var(--border)] flex flex-col justify-between col-span-2 sm:col-span-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-2 min-w-0">
             <Navigation size={13} className="text-purple-600 dark:text-purple-400 shrink-0" />
             <span
@@ -346,16 +346,16 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
               {t('liveNavigation', 'Live Navigation')}
             </span>
           </div>
-          <div>
+          <div className="min-w-0">
             {loadSummary.liveNavigation ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                {t('enabled', 'Enabled')}
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 truncate max-w-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span className="truncate">{t('enabled', 'Enabled')}</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                {t('disabled', 'Disabled')}
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 truncate max-w-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
+                <span className="truncate">{t('disabled', 'Disabled')}</span>
               </span>
             )}
           </div>
