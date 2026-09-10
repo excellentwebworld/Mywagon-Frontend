@@ -21,7 +21,29 @@ import '../../../styles/tutorials.css';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_INVOICE_EMAILS = 5;
-const BRANDING_OPS_KEY = 'company_description';
+const BLADE_QUESTION_LABELS = {
+  product_types: 'What type of products do you usually ship?',
+  daily_loads: 'How many loads do you ship out on daily average?',
+  frequent_pickups: 'Where are your most frequent pickups?',
+  frequent_dropoffs: 'Where are your most frequent dropoffs?',
+  truck_types_needed: 'What kind of trucks do you usually need?',
+  number_of_direct_partners: 'Roughly how many direct transport partners do you work with?',
+  top_challenges: 'What are your top 3 challenges today?',
+  myvagon_goals: 'What would you like MYVAGON to help you achieve?',
+  company_type: 'How would you describe your company?',
+  company_description: 'Tell us briefly what your company does.',
+  typical_customers: 'Who are your typical customers?',
+  average_load_size: 'What’s the average size of one of your loads (in eur pallets)',
+  average_transport_price: 'What’s the average price you pay to transport each load?',
+  pricing_model: 'What pricing model do you typically use?',
+  peak_shipping_periods: 'What are your peak shipping periods during the year?',
+  transport_planning_advance: 'How far in advance do you typically plan your transport?',
+  dispatching_team_size: 'How many people work in your dispatching/shipping team?',
+  current_transport_partners: 'Who do you currently work with for transportation?',
+  transport_arrangement_method: 'How do you currently arrange your transport?',
+  uses_erp_system: 'Do you use an ERP / TMS system?',
+  erp_software_name: 'Please specify ERP software...',
+};
 
 const OPS_SECTIONS_CONFIG = [
   {
@@ -47,6 +69,7 @@ const OPS_SECTIONS_CONFIG = [
     defaultTitle: 'Extended Information',
     isMandatory: false,
     keys: [
+      'company_description',
       'typical_customers',
     ],
   },
@@ -171,8 +194,30 @@ export default function OrganizationSection() {
   };
 
   const { groupedOpsSections, opsFields, mandatoryOpsFields } = useMemo(() => {
-    const allFields = (data?.operations_meta?.fields ?? []).filter((f) => f.key !== BRANDING_OPS_KEY);
+    const rawFields = data?.operations_meta?.fields ?? [];
+    const allFields = rawFields.map((f) => ({
+      ...f,
+      label: BLADE_QUESTION_LABELS[f.key]
+        ? t(`settings.orgSection.operational.fields.${f.key}`, { defaultValue: BLADE_QUESTION_LABELS[f.key] })
+        : f.label,
+    }));
     const fieldMap = new Map(allFields.map((f) => [f.key, f]));
+
+    if (!fieldMap.has('company_description')) {
+      const descField = {
+        key: 'company_description',
+        category: 'shipper_company_description',
+        type: 'single',
+        input_type: 'textarea',
+        label: t('settings.orgSection.operational.fields.company_description', {
+          defaultValue: 'Tell us briefly what your company does.',
+        }),
+        required: false,
+        options: [],
+      };
+      fieldMap.set('company_description', descField);
+      allFields.push(descField);
+    }
 
     const assignedKeys = new Set();
     const sections = [];
@@ -218,7 +263,7 @@ export default function OrganizationSection() {
       opsFields: allOrderedFields,
       mandatoryOpsFields: mandatoryFields,
     };
-  }, [data]);
+  }, [data, t]);
 
   const startLegalEdit = () => {
     setLegalDraft({
@@ -245,7 +290,7 @@ export default function OrganizationSection() {
   const startOpsEdit = () => {
     const draft = {};
     for (const field of opsFields) {
-      const val = data.operations?.[field.key];
+      const val = data.operations?.[field.key] ?? (field.key === 'company_description' ? data.branding?.company_description : undefined);
       draft[field.key] = field.type === 'multi'
         ? [...(Array.isArray(val) ? val.map(String) : [])]
         : (val == null ? '' : String(val));
@@ -718,16 +763,30 @@ export default function OrganizationSection() {
 
                     {isOpen && (
                       <div className="p-4 sm:p-5 space-y-4">
-                        {section.fields.map((field) => (
-                          <OpsField
-                            key={field.key}
-                            field={field}
-                            value={editingOps ? opsDraft[field.key] : data.operations?.[field.key]}
-                            editing={editingOps}
-                            onChange={(v) => setOpsDraft((p) => ({ ...p, [field.key]: v }))}
-                            T={T}
-                          />
-                        ))}
+                        {section.fields.map((field) => {
+                          if (field.key === 'erp_software_name') {
+                            const currentErpVal = editingOps
+                              ? opsDraft['uses_erp_system']
+                              : data.operations?.['uses_erp_system'];
+                            if (String(currentErpVal).toLowerCase() !== 'yes') {
+                              return null;
+                            }
+                          }
+                          return (
+                            <OpsField
+                              key={field.key}
+                              field={field}
+                              value={
+                                editingOps
+                                  ? opsDraft[field.key]
+                                  : (data.operations?.[field.key] ?? (field.key === 'company_description' ? data.branding?.company_description : undefined))
+                              }
+                              editing={editingOps}
+                              onChange={(v) => setOpsDraft((p) => ({ ...p, [field.key]: v }))}
+                              T={T}
+                            />
+                          );
+                        })}
                       </div>
                     )}
                   </div>

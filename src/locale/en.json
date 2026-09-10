@@ -1501,7 +1501,30 @@
         "clearSearch": "Clear search",
         "clearFilter": "Clear filter",
         "optionsFound_one": "{{count}} option found",
-        "optionsFound_other": "{{count}} options found"
+        "optionsFound_other": "{{count}} options found",
+        "fields": {
+          "product_types": "What type of products do you usually ship?",
+          "daily_loads": "How many loads do you ship out on daily average?",
+          "frequent_pickups": "Where are your most frequent pickups?",
+          "frequent_dropoffs": "Where are your most frequent dropoffs?",
+          "truck_types_needed": "What kind of trucks do you usually need?",
+          "number_of_direct_partners": "Roughly how many direct transport partners do you work with?",
+          "top_challenges": "What are your top 3 challenges today?",
+          "myvagon_goals": "What would you like MYVAGON to help you achieve?",
+          "company_type": "How would you describe your company?",
+          "company_description": "Tell us briefly what your company does.",
+          "typical_customers": "Who are your typical customers?",
+          "average_load_size": "What’s the average size of one of your loads (in eur pallets)",
+          "average_transport_price": "What’s the average price you pay to transport each load?",
+          "pricing_model": "What pricing model do you typically use?",
+          "peak_shipping_periods": "What are your peak shipping periods during the year?",
+          "transport_planning_advance": "How far in advance do you typically plan your transport?",
+          "dispatching_team_size": "How many people work in your dispatching/shipping team?",
+          "current_transport_partners": "Who do you currently work with for transportation?",
+          "transport_arrangement_method": "How do you currently arrange your transport?",
+          "uses_erp_system": "Do you use an ERP / TMS system?",
+          "erp_software_name": "Please specify ERP software..."
+        }
       },
       "branding": {
         "title": "Branding & Public Profile",
