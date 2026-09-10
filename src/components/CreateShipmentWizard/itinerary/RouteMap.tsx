@@ -18,6 +18,17 @@ interface RouteMapProps {
   activeStopIndex?: number | null;
   /** Fired when a numbered map marker is clicked. */
   onStopSelect?: (index: number) => void;
+  /** Live driver GPS position (public tracking / on-trip). */
+  livePosition?: { lat: number; lng: number } | null;
+  liveIcon?: {
+    path: string;
+    fillColor?: string;
+    fillOpacity?: number;
+    strokeWeight?: number;
+    scale?: number;
+    rotation?: number;
+    anchor?: { x: number; y: number };
+  };
   t: (key: string, params?: Record<string, unknown>) => string;
 }
 
@@ -109,12 +120,15 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   height: heightProp,
   activeStopIndex = null,
   onStopSelect,
+  livePosition = null,
+  liveIcon,
   t,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const markersByIndexRef = useRef<Record<number, any>>({});
   const infoWindowsByIndexRef = useRef<Record<number, any>>({});
   const mapRef = useRef<any>(null);
+  const liveMarkerRef = useRef<any>(null);
   const onStopSelectRef = useRef(onStopSelect);
   onStopSelectRef.current = onStopSelect;
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
@@ -264,6 +278,10 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       if (renderer) renderer.setMap(null);
       if (polyline) polyline.setMap(null);
       markers.forEach((m) => m.setMap(null));
+      if (liveMarkerRef.current) {
+        liveMarkerRef.current.setMap(null);
+        liveMarkerRef.current = null;
+      }
       markersByIndexRef.current = {};
       infoWindowsByIndexRef.current = {};
       mapRef.current = null;
@@ -287,6 +305,56 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     const timer = window.setTimeout(() => marker.setAnimation(null), 1400);
     return () => window.clearTimeout(timer);
   }, [activeStopIndex]);
+
+  // Live driver marker (socket updates)
+  useEffect(() => {
+    const google = (window as any).google;
+    const map = mapRef.current;
+    if (!google?.maps || !map) return;
+
+    if (!livePosition || !Number.isFinite(livePosition.lat) || !Number.isFinite(livePosition.lng)) {
+      if (liveMarkerRef.current) {
+        liveMarkerRef.current.setMap(null);
+        liveMarkerRef.current = null;
+      }
+      return;
+    }
+
+    const position = { lat: livePosition.lat, lng: livePosition.lng };
+    const icon = liveIcon
+      ? {
+          path: liveIcon.path,
+          fillColor: liveIcon.fillColor || '#6C3AED',
+          fillOpacity: liveIcon.fillOpacity ?? 1,
+          strokeWeight: liveIcon.strokeWeight ?? 1,
+          scale: liveIcon.scale ?? 0.9,
+          rotation: liveIcon.rotation ?? 0,
+          anchor: liveIcon.anchor
+            ? new google.maps.Point(liveIcon.anchor.x, liveIcon.anchor.y)
+            : undefined,
+        }
+      : {
+          path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+          fillColor: '#6C3AED',
+          fillOpacity: 1,
+          strokeWeight: 1,
+          scale: 5,
+        };
+
+    if (liveMarkerRef.current) {
+      liveMarkerRef.current.setPosition(position);
+      liveMarkerRef.current.setIcon(icon);
+      return;
+    }
+
+    liveMarkerRef.current = new google.maps.Marker({
+      map,
+      position,
+      icon,
+      zIndex: 999,
+      title: 'Live position',
+    });
+  }, [livePosition, liveIcon]);
 
   const height = heightProp ?? (expanded ? 340 : 300);
 

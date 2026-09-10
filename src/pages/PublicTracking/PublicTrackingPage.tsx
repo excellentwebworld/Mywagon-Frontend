@@ -1,9 +1,37 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams, useSearchParams } from 'react-router-dom';
-import { Copy, Mail, Phone, Star } from 'lucide-react';
+import { io, type Socket } from 'socket.io-client';
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  ClipboardCheck,
+  Copy,
+  Mail,
+  MapPin,
+  Package,
+  Phone,
+  Star,
+  Truck,
+} from 'lucide-react';
 import { publicTrackingService } from '../../api/services/publicTrackingService';
-import { loadGoogleMaps } from '../../components/AddressBook/GoogleMapAddressField';
-import type { PublicTrackingPayload, TrackingReceiptItem } from './types';
+import { StatusBadge } from '../../components/ShipmentDetail/StatusBadge';
+import { RouteMap } from '../../components/CreateShipmentWizard/itinerary/RouteMap';
+import { useRouteLegs } from '../../components/CreateShipmentWizard/itinerary/useRouteLegs';
+import type { EnrichedStop } from '../../components/CreateShipmentWizard/itinerary/types';
+import {
+  formatUtcToDisplayDate,
+  formatUtcToDisplayDateTime,
+  formatUtcToDisplayTime,
+} from '../../utils/timezone';
+import fullLogo from '../../assets/logo/fullLogo.svg';
+import type {
+  PublicTrackingPayload,
+  TrackingReceiptItem,
+  TrackingStop,
+  TrackingTimelineItem,
+} from './types';
+import { PublicTrackingSkeleton } from './PublicTrackingSkeleton';
 import './publicTracking.css';
 
 type Lang = 'en' | 'el';
@@ -15,13 +43,10 @@ const I18N: Record<string, { en: string; el: string }> = {
   orderDetails: { en: 'Order Details', el: 'Λεπτομέρειες παραγγελίας' },
   confirmReceipt: { en: 'Confirm Receipt of Goods', el: 'Επιβεβαίωση παραλαβής εμπορευμάτων' },
   rateTransporter: { en: 'Rate your Transporter', el: 'Αξιολογήστε τον μεταφορέα' },
-  pickup: { en: 'Pickup', el: 'Παραλαβή' },
-  dropoff: { en: 'Dropoff', el: 'Παράδοση' },
-  onBehalf: { en: 'on behalf of', el: 'εκ μέρους' },
+  pickup: { en: 'PICKUP', el: 'ΠΑΡΑΛΑΒΗ' },
+  dropoff: { en: 'DROPOFF', el: 'ΠΑΡΑΔΟΣΗ' },
   freelancer: { en: 'Freelancer', el: 'Freelancer' },
   carrier: { en: 'Carrier', el: 'Μεταφορέας' },
-  onTime: { en: 'On Time', el: 'Εντός χρόνου' },
-  delayed: { en: 'Delayed', el: 'Καθυστέρηση' },
   eta: { en: 'ETA', el: 'ETA' },
   supplier: { en: 'Supplier', el: 'Προμηθευτής' },
   quantity: { en: 'Quantity', el: 'Ποσότητα' },
@@ -36,8 +61,8 @@ const I18N: Record<string, { en: string; el: string }> = {
   receiptConfirmed: { en: 'Receipt Confirmed', el: 'Παραλαβή επιβεβαιώθηκε' },
   submitRating: { en: 'Submit Rating', el: 'Υποβολή αξιολόγησης' },
   ratingThanks: { en: 'Thanks for your rating', el: 'Ευχαριστούμε για την αξιολόγηση' },
-  suggested: { en: 'Suggested', el: 'Προτεινόμενη' },
-  actual: { en: 'Actual', el: 'Πραγματική' },
+  suggested: { en: 'Suggested Route', el: 'Προτεινόμενη διαδρομή' },
+  actual: { en: 'Actual Route', el: 'Πραγματική διαδρομή' },
   orderId: { en: 'Order ID', el: 'Κωδ. παραγγελίας' },
   item: { en: 'Item', el: 'Είδος' },
   ordered: { en: 'Ordered', el: 'Παραγγελία' },
@@ -45,10 +70,31 @@ const I18N: Record<string, { en: string; el: string }> = {
   notes: { en: 'Add comments about the delivery… (optional)', el: 'Προσθέστε σχόλια… (προαιρετικό)' },
   reviewPh: { en: 'Write a review… (optional)', el: 'Γράψτε μια αξιολόγηση… (προαιρετικό)' },
   copied: { en: 'Copied to clipboard', el: 'Αντιγράφηκε' },
-  loading: { en: 'Loading shipment…', el: 'Φόρτωση αποστολής…' },
   notFound: { en: 'Tracking link is invalid or expired.', el: 'Ο σύνδεσμος δεν είναι έγκυρος.' },
   powered: { en: 'Powered by', el: 'Με την υποστήριξη' },
+  copyAddress: { en: 'Copy Address', el: 'Αντιγραφή διεύθυνσης' },
+  showLess: { en: 'Show less', el: 'Λιγότερα' },
+  showMore: { en: 'Show more', el: 'Περισσότερα' },
+  manualTitle: { en: 'Manually Executed Trip', el: 'Χειροκίνητο ταξίδι' },
+  manualBody: {
+    en: 'Live GPS tracking and actual route data are not available.',
+    el: 'Ζωντανή παρακολούθηση GPS και πραγματική διαδρομή δεν είναι διαθέσιμα.',
+  },
+  pickupLocation: { en: 'Pickup Location', el: 'Τοποθεσία παραλαβής' },
+  dropoffLocation: { en: 'Drop-off Location', el: 'Τοποθεσία παράδοσης' },
 };
+
+const LIVE_ICON = {
+  path: 'M1.71,6.484,13.3.384a3.2,3.2,0,0,1,4.35,4.26l-1.62,3.24a3.2,3.2,0,0,0,0,2.86l1.62,3.24a3.2,3.2,0,0,1-4.35,4.26l-11.59-6.1A3.2,3.2,0,0,1,1.71,6.484Z',
+  fillColor: '#1f1f41',
+  fillOpacity: 1,
+  strokeWeight: 1,
+  scale: 0.8,
+  rotation: 120,
+  anchor: { x: 0, y: 0 },
+};
+
+const PARTIAL_REASONS = ['Items missing', 'Damaged goods', 'Wrong items', 'Quantity mismatch'];
 
 function t(lang: Lang, key: string): string {
   return I18N[key]?.[lang] ?? key;
@@ -60,143 +106,75 @@ function initials(name?: string | null): string {
   return parts.map((p) => p[0]?.toUpperCase() || '').join('') || '?';
 }
 
-function TrackingMap({
-  points,
-  actualRoute,
-  showToggle,
-  lang,
-}: {
-  points: PublicTrackingPayload['map']['points'];
-  actualRoute: Array<{ lat: number; lng: number }>;
-  showToggle: boolean;
-  lang: Lang;
-}) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [mode, setMode] = useState<'suggested' | 'actual'>('suggested');
+function formatStopSchedule(fromDate?: string | null, toDate?: string | null): string {
+  const from = (fromDate || '').trim();
+  const to = (toDate || '').trim();
+  if (!from && !to) return '';
 
-  useEffect(() => {
-    let cancelled = false;
-    let map: any = null;
-    let poly: any = null;
-    const markers: any[] = [];
+  const dateLine = formatUtcToDisplayDate(from || to);
+  const startTime = from ? formatUtcToDisplayTime(from) : '';
+  const endTime = to ? formatUtcToDisplayTime(to) : '';
 
-    (async () => {
-      try {
-        const mapsKey = (import.meta.env.VITE_GOOGLE_MAPS_KEY as string) || '';
-        await loadGoogleMaps(mapsKey);
-        const google = (window as any).google;
-        if (cancelled || !mapRef.current || !google?.maps) return;
+  let timeText = '';
+  if (startTime && endTime && startTime !== endTime) {
+    timeText = `${startTime} – ${endTime}`;
+  } else if (startTime) {
+    timeText = startTime;
+  } else if (endTime) {
+    timeText = endTime;
+  }
 
-        const valid = points.filter((p) => p.lat != null && p.lng != null) as Array<{
-          lat: number;
-          lng: number;
-          type: string;
-          seq: number;
-        }>;
-        const center = valid[0]
-          ? { lat: valid[0].lat, lng: valid[0].lng }
-          : { lat: 37.9838, lng: 23.7275 };
-
-        map = new google.maps.Map(mapRef.current, {
-          center,
-          zoom: 7,
-          disableDefaultUI: true,
-          zoomControl: true,
-        });
-
-        const bounds = new google.maps.LatLngBounds();
-        valid.forEach((p) => {
-          const pos = { lat: p.lat, lng: p.lng };
-          bounds.extend(pos);
-          markers.push(
-            new google.maps.Marker({
-              map,
-              position: pos,
-              label: {
-                text: String(p.seq),
-                color: '#fff',
-                fontWeight: '700',
-              },
-            })
-          );
-        });
-
-        const path =
-          mode === 'actual' && actualRoute.length > 1
-            ? actualRoute
-            : valid.map((p) => ({ lat: p.lat, lng: p.lng }));
-
-        if (path.length > 1) {
-          poly = new google.maps.Polyline({
-            path,
-            geodesic: true,
-            strokeColor: '#6C3AED',
-            strokeOpacity: 0.9,
-            strokeWeight: 4,
-            map,
-          });
-          path.forEach((pt: any) => bounds.extend(pt));
-        }
-
-        if (!bounds.isEmpty()) {
-          map.fitBounds(bounds, 48);
-        }
-      } catch {
-        // map optional
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      markers.forEach((m) => m?.setMap?.(null));
-      poly?.setMap?.(null);
-    };
-  }, [points, actualRoute, mode]);
-
-  return (
-    <div className="pt-map">
-      {showToggle && (
-        <div className="pt-map-toggle">
-          <button type="button" className={mode === 'suggested' ? 'act' : ''} onClick={() => setMode('suggested')}>
-            {t(lang, 'suggested')}
-          </button>
-          <button
-            type="button"
-            className={mode === 'actual' ? 'act' : ''}
-            onClick={() => setMode('actual')}
-            disabled={actualRoute.length < 2}
-          >
-            {t(lang, 'actual')}
-          </button>
-        </div>
-      )}
-      <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
-    </div>
-  );
+  return [dateLine, timeText].filter(Boolean).join(' · ');
 }
 
-/** Resolve tracking tokens from query, path params, or Amplify-decoded multi-segment paths. */
-function usePublicTrackingTokens(): { encryptedId: string; encryptedLocationIds: string } {
+function timelineDotClass(step: TrackingTimelineItem): string {
+  const classes = [step.state];
+  if (step.variant === 'pod' && step.state === 'pending') classes.push('pod-pending');
+  if (step.variant === 'danger' || step.state === 'failed') classes.push('failed');
+  if (step.state === 'done' && step.variant !== 'pod' && step.variant !== 'danger') classes.push('success');
+  return classes.join(' ');
+}
+
+function timelineStepClass(step: TrackingTimelineItem): string {
+  if (step.variant === 'pod' && step.state === 'pending') return 'is-pod-pending';
+  if (step.state === 'failed' || step.variant === 'danger') return 'is-failed';
+  if (step.state === 'pending') return 'is-pending';
+  if (step.state === 'cur') return 'is-cur';
+  if (step.state === 'done') return 'is-done';
+  return '';
+}
+
+/** Resolve tracking tokens + guest email from query, path params, or Amplify-decoded paths. */
+function usePublicTrackingTokens(): {
+  encryptedId: string;
+  encryptedLocationIds: string;
+  guestEmail: string;
+} {
   const params = useParams<{ encryptedId?: string; encryptedLocationIds?: string; '*'?: string }>();
   const [searchParams] = useSearchParams();
   const location = useLocation();
 
   return useMemo(() => {
+    const guestEmail = (
+      searchParams.get('email') ||
+      searchParams.get('guest_email') ||
+      ''
+    ).trim();
+
     const sid = searchParams.get('sid') || searchParams.get('id') || '';
     const lid = searchParams.get('lid') || searchParams.get('location') || searchParams.get('location_id') || '';
     if (sid && lid) {
-      return { encryptedId: sid, encryptedLocationIds: lid };
+      return { encryptedId: sid, encryptedLocationIds: lid, guestEmail };
     }
 
     if (params.encryptedId && params.encryptedLocationIds) {
       return {
         encryptedId: params.encryptedId,
         encryptedLocationIds: params.encryptedLocationIds,
+        guestEmail,
       };
     }
 
-    // /track-shipment/* — when %2F was decoded into extra "/" segments.
-    // Laravel Crypt payloads are base64(JSON) and typically start with "eyJ".
     const marker = '/track-shipment/';
     const idx = location.pathname.indexOf(marker);
     if (idx >= 0) {
@@ -206,11 +184,12 @@ function usePublicTrackingTokens(): { encryptedId: string; encryptedLocationIds:
         return {
           encryptedId: eyJParts[0],
           encryptedLocationIds: eyJParts.slice(1).join(''),
+          guestEmail,
         };
       }
       const segs = rest.split('/').filter(Boolean);
       if (segs.length >= 2) {
-        return { encryptedId: segs[0], encryptedLocationIds: segs.slice(1).join('/') };
+        return { encryptedId: segs[0], encryptedLocationIds: segs.slice(1).join('/'), guestEmail };
       }
     }
 
@@ -221,26 +200,262 @@ function usePublicTrackingTokens(): { encryptedId: string; encryptedLocationIds:
         return {
           encryptedId: eyJParts[0],
           encryptedLocationIds: eyJParts.slice(1).join(''),
+          guestEmail,
         };
       }
       const segs = splat.split('/').filter(Boolean);
       if (segs.length >= 2) {
-        return { encryptedId: segs[0], encryptedLocationIds: segs.slice(1).join('/') };
+        return { encryptedId: segs[0], encryptedLocationIds: segs.slice(1).join('/'), guestEmail };
       }
     }
 
-    return { encryptedId: '', encryptedLocationIds: '' };
+    return { encryptedId: '', encryptedLocationIds: '', guestEmail };
   }, [location.pathname, params, searchParams]);
 }
 
+function stopsToEnriched(
+  stops: TrackingStop[],
+  mapPoints: PublicTrackingPayload['map']['points']
+): EnrichedStop[] {
+  const fromStops = stops.map((s, idx) => {
+    const point = mapPoints.find((p) => p.id === s.id) || mapPoints[idx];
+    const lat = s.lat != null ? Number(s.lat) : point?.lat != null ? Number(point.lat) : null;
+    const lng = s.lng != null ? Number(s.lng) : point?.lng != null ? Number(point.lng) : null;
+    return {
+      id: String(s.id || idx + 1),
+      type: s.type === 'pickup' ? 1 : 2,
+      location_id: s.id || idx + 1,
+      locationName: s.company_name || s.city || '',
+      location_name: s.company_name || s.city || '',
+      address: s.address || '',
+      city: s.city || '',
+      lat,
+      lng,
+      resolvedName: s.company_name || s.city || point?.label || '',
+      resolvedCity: s.city || '',
+      resolvedCompany: s.company_name || '',
+      resolvedAddress: s.address || s.city || '',
+      hasPickup: s.type === 'pickup',
+      hasDropoff: s.type === 'dropoff',
+      customers: [],
+      lines: [],
+    };
+  });
+
+  const withCoords = fromStops.filter((s) => s.lat != null && s.lng != null);
+  if (withCoords.length > 0) return withCoords as EnrichedStop[];
+
+  return mapPoints
+    .filter((p) => p.lat != null && p.lng != null)
+    .map((p, idx) => ({
+      id: String(p.id || idx + 1),
+      type: p.type === 'pickup' ? 1 : 2,
+      location_id: p.id || idx + 1,
+      locationName: p.label || '',
+      location_name: p.label || '',
+      address: p.label || '',
+      city: '',
+      lat: Number(p.lat),
+      lng: Number(p.lng),
+      resolvedName: p.label || '',
+      resolvedCity: '',
+      resolvedCompany: p.label || '',
+      resolvedAddress: p.label || '',
+      hasPickup: p.type === 'pickup',
+      hasDropoff: p.type !== 'pickup',
+      customers: [],
+      lines: [],
+    })) as EnrichedStop[];
+}
+
+const TrackingLiveMap: React.FC<{
+  data: PublicTrackingPayload;
+  lang: Lang;
+  livePosition: { lat: number; lng: number } | null;
+}> = ({ data, lang, livePosition }) => {
+  const [routeMode, setRouteMode] = useState<'suggested' | 'actual'>('suggested');
+  const enrichedStops = useMemo(
+    () => stopsToEnriched(data.stops, data.map.points || []),
+    [data.stops, data.map.points]
+  );
+  const routeLegs = useRouteLegs(enrichedStops);
+  const actualRoute = data.map.actual_route || [];
+  const showToggle = Boolean(data.map.permissions?.show_route_toggle);
+
+  const activePolylinePath =
+    routeMode === 'actual' && actualRoute.length > 0 ? actualRoute : routeLegs.polylinePath;
+  const activeDirectionsResult = routeMode === 'actual' ? null : routeLegs.directionsResult;
+
+  const mapT = useCallback(
+    (key: string) => {
+      if (key === 'pickupLocation') return t(lang, 'pickupLocation');
+      if (key === 'dropoffLocation') return t(lang, 'dropoffLocation');
+      return key;
+    },
+    [lang]
+  );
+
+  return (
+    <div>
+      {showToggle ? (
+        <div className="pt-map-toolbar">
+          <div className="pt-route-toggle">
+            <button
+              type="button"
+              className={routeMode === 'actual' ? 'act-actual' : ''}
+              onClick={() => setRouteMode('actual')}
+              disabled={actualRoute.length < 2 && !data.map.permissions?.actual_route}
+            >
+              {t(lang, 'actual')}
+            </button>
+            <button
+              type="button"
+              className={routeMode === 'suggested' ? 'act-suggested' : ''}
+              onClick={() => setRouteMode('suggested')}
+            >
+              {t(lang, 'suggested')}
+            </button>
+          </div>
+        </div>
+      ) : null}
+      <div className="pt-map-wrap">
+        <div className="pt-map">
+          <RouteMap
+            stops={enrichedStops}
+            polylinePath={activePolylinePath}
+            directionsResult={activeDirectionsResult}
+            loading={routeLegs.loading}
+            height={280}
+            expanded
+            strokeColor={routeMode === 'actual' ? '#d97706' : '#9B51E0'}
+            livePosition={livePosition}
+            liveIcon={LIVE_ICON}
+            t={mapT as any}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ItineraryStop: React.FC<{
+  stop: TrackingStop;
+  index: number;
+  lang: Lang;
+  onCopy: (value?: string | null) => void;
+}> = ({ stop, index, lang, onCopy }) => {
+  const [expanded, setExpanded] = useState(false);
+  const isPickup = stop.type === 'pickup';
+  const schedule = formatStopSchedule(stop.from_date, stop.to_date) || stop.schedule_label || '';
+  const lines = stop.lines || [];
+  const hasMultiple = lines.length > 1;
+  const visibleLines = expanded ? lines : lines.slice(0, 1);
+
+  return (
+    <div className="pt-stop">
+      <div className="pt-stop-top">
+        <div className={`pt-stop-num ${isPickup ? 'pk' : 'dl'}`}>{index + 1}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="pt-stop-head">
+            <div className="pt-stop-name">{stop.company_name || stop.city || '—'}</div>
+            <div className="pt-stop-meta">
+              <span className={`pt-stop-type ${isPickup ? 'pk' : 'dl'}`}>
+                {isPickup ? t(lang, 'pickup') : t(lang, 'dropoff')}
+              </span>
+              {schedule ? <span className="pt-stop-sched">{schedule}</span> : null}
+            </div>
+          </div>
+
+          {stop.address ? <div className="pt-stop-addr">{stop.address}</div> : null}
+
+          <div className="pt-stop-actions">
+            {stop.address ? (
+              <button
+                type="button"
+                className="pt-copy-btn"
+                onClick={() => onCopy([stop.company_name, stop.address].filter(Boolean).join(', '))}
+              >
+                <Copy size={12} />
+                {t(lang, 'copyAddress')}
+              </button>
+            ) : null}
+            {isPickup && stop.phone ? (
+              <button type="button" className="pt-icon-btn" title={stop.phone} onClick={() => onCopy(stop.phone)}>
+                <Phone size={14} />
+              </button>
+            ) : null}
+            {isPickup && stop.email ? (
+              <button type="button" className="pt-icon-btn" title={stop.email} onClick={() => onCopy(stop.email)}>
+                <Mail size={14} />
+              </button>
+            ) : null}
+            {stop.completed ? (
+              <span style={{ marginLeft: 'auto', color: 'var(--pt-ok)' }}>
+                <CheckCircle2 size={18} />
+              </span>
+            ) : null}
+          </div>
+
+          {stop.supplier_name ? (
+            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--pt-t2)' }}>
+              {t(lang, 'supplier')}: <strong>{stop.supplier_name}</strong>
+            </div>
+          ) : null}
+
+          {visibleLines.map((line, i) => (
+            <div className="pt-order-row" key={`${line.location_id}-${i}`}>
+              <div className="pt-order-row-line">
+                {line.order_id ? <span className="oid">Order: {line.order_id}</span> : null}
+                {line.product_name ? (
+                  <>
+                    <span style={{ color: 'var(--pt-t3)' }}>·</span>
+                    <span style={{ fontWeight: 500 }}>{line.product_name}</span>
+                  </>
+                ) : null}
+                {line.qty != null || line.weight != null ? (
+                  <>
+                    <span style={{ color: 'var(--pt-t3)' }}>·</span>
+                    <span style={{ color: 'var(--pt-t2)' }}>
+                      {line.qty != null ? `${line.qty} ${line.qty_unit || ''}`.trim() : ''}
+                      {line.qty != null && line.weight != null ? ' · ' : ''}
+                      {line.weight != null ? `${line.weight} ${line.weight_unit || ''}`.trim() : ''}
+                    </span>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          ))}
+
+          {hasMultiple ? (
+            <button type="button" className="pt-more-btn" onClick={() => setExpanded((v) => !v)}>
+              {expanded ? (
+                <>
+                  <ChevronUp size={13} />
+                  {t(lang, 'showLess')}
+                </>
+              ) : (
+                <>
+                  <ChevronDown size={13} />
+                  {`+ ${t(lang, 'showMore')} (${lines.length - 1})`}
+                </>
+              )}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const PublicTrackingPage: React.FC = () => {
-  const { encryptedId, encryptedLocationIds } = usePublicTrackingTokens();
+  const { encryptedId, encryptedLocationIds, guestEmail: guestFromUrl } = usePublicTrackingTokens();
   const [lang, setLang] = useState<Lang>('en');
   const [data, setData] = useState<PublicTrackingPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
   const [activeNav, setActiveNav] = useState('itinerary');
+  const [livePosition, setLivePosition] = useState<{ lat: number; lng: number } | null>(null);
 
   const [rcptType, setRcptType] = useState<'full' | 'partial'>('full');
   const [rcptNotes, setRcptNotes] = useState('');
@@ -253,6 +468,12 @@ export const PublicTrackingPage: React.FC = () => {
   const [review, setReview] = useState('');
   const [rateSaving, setRateSaving] = useState(false);
   const [rateDone, setRateDone] = useState(false);
+
+  const resolvedGuestEmail = useMemo(() => {
+    const fromPayload =
+      data?.guest?.email || data?.receipt?.guest_email || data?.rating?.guest_email || '';
+    return (guestFromUrl || fromPayload || '').trim();
+  }, [guestFromUrl, data]);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -275,10 +496,19 @@ export const PublicTrackingPage: React.FC = () => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (!encryptedId || !encryptedLocationIds) {
+        setLoading(false);
+        setError(t('en', 'notFound'));
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
-        const payload = await publicTrackingService.getTracking(encryptedId, encryptedLocationIds);
+        const payload = await publicTrackingService.getTracking(
+          encryptedId,
+          encryptedLocationIds,
+          guestFromUrl || undefined
+        );
         if (cancelled) return;
         setData(payload);
         setRcptItems(payload.receipt.items || []);
@@ -295,14 +525,60 @@ export const PublicTrackingPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [encryptedId, encryptedLocationIds]);
+  }, [encryptedId, encryptedLocationIds, guestFromUrl]);
+
+  // Live tracking socket (Laravel traking.js parity)
+  useEffect(() => {
+    const live = data?.map?.live;
+    if (!live?.enabled || !live.shipper_id || !live.shipment_id) {
+      setLivePosition(null);
+      return;
+    }
+
+    const socketUrl = (import.meta.env.VITE_SOCKET_URL as string | undefined) || '';
+    if (!socketUrl) return;
+
+    let socket: Socket | null = null;
+    try {
+      socket = io(socketUrl, { transports: ['websocket', 'polling'] });
+      socket.on('connect', () => {
+        socket?.emit('join_shipper', { user_id: live.shipper_id });
+        if (live.driver_id) {
+          socket?.emit(
+            'get_driver_last_location',
+            { driver_id: live.driver_id, shipment_id: live.shipment_id },
+            (response: { lat?: number; lng?: number } | null) => {
+              if (response?.lat != null && response?.lng != null) {
+                setLivePosition({ lat: Number(response.lat), lng: Number(response.lng) });
+              }
+            }
+          );
+        }
+      });
+
+      socket.on('live_tracking', (payload: { shipment_id?: number | string; lat?: number; lng?: number }) => {
+        if (payload == null) return;
+        if (parseInt(String(payload.shipment_id), 10) !== Number(live.shipment_id)) return;
+        if (payload.lat == null || payload.lng == null) return;
+        setLivePosition({ lat: Number(payload.lat), lng: Number(payload.lng) });
+      });
+    } catch {
+      // socket optional
+    }
+
+    return () => {
+      try {
+        socket?.disconnect();
+      } catch {
+        // ignore
+      }
+    };
+  }, [data?.map?.live]);
 
   const jumpTo = (id: string) => {
     setActiveNav(id);
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
-
-  const timeline = data?.timeline ?? [];
 
   const onConfirmReceipt = async () => {
     if (!data) return;
@@ -312,6 +588,7 @@ export const PublicTrackingPage: React.FC = () => {
         confirmation_type: rcptType,
         reason_code: rcptType === 'partial' ? rcptReason || undefined : undefined,
         notes: rcptNotes || undefined,
+        guest_email: resolvedGuestEmail || undefined,
         items: rcptItems.map((it) => ({
           location_id: it.location_id,
           order_id: it.order_id,
@@ -334,6 +611,7 @@ export const PublicTrackingPage: React.FC = () => {
       await publicTrackingService.submitRating(encryptedId, encryptedLocationIds, {
         rating: stars,
         review: review || undefined,
+        guest_email: resolvedGuestEmail || undefined,
       });
       setRateDone(true);
     } catch (e) {
@@ -355,10 +633,10 @@ export const PublicTrackingPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="pt-page">
+      <>
         {fontLink}
-        <div className="pt-loading">{t(lang, 'loading')}</div>
-      </div>
+        <PublicTrackingSkeleton />
+      </>
     );
   }
 
@@ -366,6 +644,21 @@ export const PublicTrackingPage: React.FC = () => {
     return (
       <div className="pt-page">
         {fontLink}
+        <div className="pt-topbar">
+          <div className="pt-topbar-inner">
+            <a className="pt-logo" href="https://myvagon.com" target="_blank" rel="noreferrer">
+              <img src={fullLogo} alt="MYVAGON" />
+            </a>
+            <div className="pt-lang">
+              <button type="button" className={lang === 'en' ? 'act' : ''} onClick={() => setLang('en')}>
+                EN
+              </button>
+              <button type="button" className={lang === 'el' ? 'act' : ''} onClick={() => setLang('el')}>
+                EL
+              </button>
+            </div>
+          </div>
+        </div>
         <div className="pt-error">{error || t(lang, 'notFound')}</div>
       </div>
     );
@@ -373,6 +666,13 @@ export const PublicTrackingPage: React.FC = () => {
 
   const kindLabel =
     data.header.transporter_kind === 'freelancer' ? t(lang, 'freelancer') : t(lang, 'carrier');
+  const timeline = data.timeline ?? [];
+  const etaDisplay = data.header.eta_at
+    ? formatUtcToDisplayDateTime(data.header.eta_at)
+    : data.header.eta_label || null;
+  const isManualTrip = (data.shipment.started_by || '') === 'carrier';
+  const canShowReceipt = data.receipt.can_confirm || data.receipt.already_confirmed || rcptDone;
+  const canShowRating = data.rating.can_rate || data.rating.already_rated || rateDone;
 
   return (
     <div className="pt-page">
@@ -381,19 +681,7 @@ export const PublicTrackingPage: React.FC = () => {
       <div className="pt-topbar">
         <div className="pt-topbar-inner">
           <a className="pt-logo" href="https://myvagon.com" target="_blank" rel="noreferrer">
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <rect width="28" height="28" rx="8" fill="#6C3AED" />
-              <path
-                d="M7 18V10l4 8 4-8v8M19 10h4l-4 8h4"
-                stroke="#fff"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span>
-              MY<span className="hl">VAGON</span>
-            </span>
+            <img src={fullLogo} alt="MYVAGON" />
           </a>
           <div className="pt-lang">
             <button type="button" className={lang === 'en' ? 'act' : ''} onClick={() => setLang('en')}>
@@ -412,39 +700,35 @@ export const PublicTrackingPage: React.FC = () => {
             <div>
               <div className="pt-sid">
                 #{data.shipment.auto_id}
-                <span className="pt-badge pt-badge-in">
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      background: 'currentColor',
-                      display: 'inline-block',
-                    }}
-                  />
-                  {data.shipment.status_label}
-                </span>
+                <StatusBadge status={data.shipment.status} size="sm" />
               </div>
               {data.shipment.lane ? <div className="pt-lane">{data.shipment.lane}</div> : null}
               <div className="pt-fwd">
                 <span className="pt-fwd-badge">{kindLabel}</span>
-                <strong>{data.header.transporter_name || '—'}</strong>
-                <span style={{ color: 'var(--pt-t3)' }}>·</span>
-                <span>{t(lang, 'onBehalf')}</span>
-                <span className="pt-cust-badge">
-                  <strong>{data.header.shipper_name || '—'}</strong>
-                </span>
+                <strong>{data.header.transporter_name || data.transporter.name || '—'}</strong>
+                {data.header.shipper_name ? (
+                  <>
+                    <span style={{ color: 'var(--pt-t3)' }}>·</span>
+                    <span>{data.header.shipper_name}</span>
+                  </>
+                ) : null}
               </div>
+              {isManualTrip ? (
+                <div className="pt-manual-banner">
+                  <span aria-hidden>⚠️</span>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{t(lang, 'manualTitle')}</div>
+                    <div style={{ marginTop: 2 }}>{t(lang, 'manualBody')}</div>
+                  </div>
+                </div>
+              ) : null}
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-              {data.header.eta_label ? (
+              {etaDisplay ? (
                 <span className="pt-chip pt-chip-in">
-                  {t(lang, 'eta')}: {data.header.eta_label}
+                  {t(lang, 'eta')}: {etaDisplay}
                 </span>
               ) : null}
-              <span className={`pt-chip ${data.header.on_time ? 'pt-chip-ok' : 'pt-chip-wr'}`}>
-                {data.header.on_time ? t(lang, 'onTime') : t(lang, 'delayed')}
-              </span>
             </div>
           </div>
         </div>
@@ -452,37 +736,68 @@ export const PublicTrackingPage: React.FC = () => {
 
       <div className="pt-ms-bar">
         <div className="pt-ms-row">
-          {timeline.map((step, idx) => {
-            const nextDone = timeline[idx + 1]?.state === 'done' || step.state === 'done';
-            return (
-              <div className="pt-ms-step" key={`${step.key}-${idx}`}>
-                <div className={`pt-ms-dot ${step.state}`} />
-                <div className={`pt-ms-line ${nextDone ? 'done' : ''}`} />
-                <div className="pt-ms-label">{step.label}</div>
+          {timeline.map((step, idx) => (
+            <div className={`pt-ms-step ${timelineStepClass(step)}`} key={`${step.key}-${idx}`}>
+              <div className={`pt-ms-dot ${timelineDotClass(step)}`} />
+              <div className="pt-ms-label">
+                {step.label}
+                {step.highlight ? <span className="pt-ms-highlight">{step.highlight}</span> : null}
+                {step.detail ? <span className="pt-ms-detail">{step.detail}</span> : null}
               </div>
-            );
-          })}
+              {step.at ? (
+                <div className="pt-ms-at">
+                  <p>{formatUtcToDisplayDate(step.at)}</p>
+                  <p>{formatUtcToDisplayTime(step.at)}</p>
+                </div>
+              ) : null}
+            </div>
+          ))}
         </div>
       </div>
 
       <div className="pt-jnav">
-        {[
-          ['itinerary', 'itinerary'],
-          ['tracking', 'liveTracking'],
-          ['transporter', 'transporter'],
-          ['order', 'orderDetails'],
-          ['receipt', 'confirmReceipt'],
-          ['rating', 'rateTransporter'],
-        ].map(([id, key]) => (
-          <button
-            key={id}
-            type="button"
-            className={`pt-jn ${activeNav === id ? 'act' : ''}`}
-            onClick={() => jumpTo(id)}
-          >
-            {t(lang, key)}
-          </button>
-        ))}
+        <div className="pt-jnav-main">
+          {(
+            [
+              ['itinerary', 'itinerary', <MapPin size={13} key="i" />],
+              ['tracking', 'liveTracking', <Truck size={13} key="t" />],
+              ['transporter', 'transporter', <Package size={13} key="p" />],
+              ['order', 'orderDetails', <ClipboardCheck size={13} key="o" />],
+            ] as Array<[string, string, React.ReactNode]>
+          ).map(([id, key, icon]) => (
+            <button
+              key={id}
+              type="button"
+              className={`pt-jn ${activeNav === id ? 'act' : ''}`}
+              onClick={() => jumpTo(id)}
+            >
+              {icon}
+              {t(lang, key)}
+            </button>
+          ))}
+        </div>
+        <div className="pt-jnav-actions">
+          {canShowReceipt ? (
+            <button
+              type="button"
+              className={`pt-jn-action ${activeNav === 'receipt' ? 'act' : ''}`}
+              onClick={() => jumpTo('receipt')}
+            >
+              <ClipboardCheck size={14} />
+              {t(lang, 'confirmReceipt')}
+            </button>
+          ) : null}
+          {canShowRating ? (
+            <button
+              type="button"
+              className={`pt-jn-action ${activeNav === 'rating' ? 'act' : ''}`}
+              onClick={() => jumpTo('rating')}
+            >
+              <Star size={14} />
+              {t(lang, 'rateTransporter')}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="pt-wrap">
@@ -491,106 +806,13 @@ export const PublicTrackingPage: React.FC = () => {
             <div className="pt-card" id="itinerary">
               <div className="pt-card-h">
                 <h3>
-                  {t(lang, 'itinerary')}{' '}
-                  <span
-                    style={{
-                      fontSize: 11,
-                      background: 'var(--pt-sa)',
-                      padding: '2px 8px',
-                      borderRadius: 99,
-                      color: 'var(--pt-t3)',
-                    }}
-                  >
-                    {data.stops.length}
-                  </span>
+                  {t(lang, 'itinerary')}
+                  <span className="pt-count">{data.stops.length}</span>
                 </h3>
               </div>
               <div className="pt-card-body" style={{ paddingTop: 0, paddingBottom: 0 }}>
-                {data.stops.map((stop) => (
-                  <div className="pt-stop" key={stop.id}>
-                    <div className="pt-stop-top">
-                      <div className={`pt-stop-num ${stop.type === 'pickup' ? 'pk' : 'dl'}`}>{stop.seq}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <span className={`pt-stop-type ${stop.type === 'pickup' ? 'pk' : 'dl'}`}>
-                          {stop.type === 'pickup' ? t(lang, 'pickup') : t(lang, 'dropoff')}
-                        </span>
-                        {stop.schedule_label ? (
-                          <span className="pt-mono" style={{ fontSize: 12, color: 'var(--pt-t3)' }}>
-                            {stop.schedule_label}
-                          </span>
-                        ) : null}
-                        <div className="pt-stop-name">{stop.company_name || '—'}</div>
-                        <div className="pt-stop-addr">{stop.address}</div>
-                        <div className="pt-stop-tags">
-                          {stop.supplier_name ? (
-                            <span className="pt-stop-tag">
-                              {t(lang, 'supplier')}: {stop.supplier_name}
-                            </span>
-                          ) : null}
-                          {stop.lines.map((line, i) => (
-                            <React.Fragment key={`${line.location_id}-${i}`}>
-                              {line.order_id ? <span className="pt-stop-tag">{line.order_id}</span> : null}
-                              {line.product_name ? <span className="pt-stop-tag">{line.product_name}</span> : null}
-                              {line.qty != null ? (
-                                <span className="pt-stop-tag">
-                                  {line.qty} {line.qty_unit}
-                                </span>
-                              ) : null}
-                              {line.weight != null ? (
-                                <span className="pt-stop-tag">
-                                  {line.weight} {line.weight_unit}
-                                </span>
-                              ) : null}
-                            </React.Fragment>
-                          ))}
-                        </div>
-                        {stop.type === 'pickup' && (stop.phone || stop.email) ? (
-                          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                            {stop.phone ? (
-                              <button
-                                type="button"
-                                className="pt-icon-btn"
-                                title={stop.phone}
-                                onClick={() => copyText(stop.phone)}
-                              >
-                                <Phone size={14} />
-                              </button>
-                            ) : null}
-                            {stop.email ? (
-                              <button
-                                type="button"
-                                className="pt-icon-btn"
-                                title={stop.email}
-                                onClick={() => copyText(stop.email)}
-                              >
-                                <Mail size={14} />
-                              </button>
-                            ) : null}
-                          </div>
-                        ) : null}
-                      </div>
-                      {stop.completed ? (
-                        <div
-                          style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: '50%',
-                            background: 'var(--pt-ob)',
-                            color: 'var(--pt-ok)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 700,
-                            fontSize: 13,
-                          }}
-                        >
-                          ✓
-                        </div>
-                      ) : (
-                        <div style={{ color: 'var(--pt-t3)', fontSize: 18 }}>○</div>
-                      )}
-                    </div>
-                  </div>
+                {data.stops.map((stop, idx) => (
+                  <ItineraryStop key={stop.id} stop={stop} index={idx} lang={lang} onCopy={copyText} />
                 ))}
               </div>
             </div>
@@ -601,7 +823,7 @@ export const PublicTrackingPage: React.FC = () => {
               </div>
               <div className="pt-card-body">
                 {data.orders.map((order) => (
-                  <table className="pt-order-table" key={order.order_id} style={{ marginBottom: 12 }}>
+                  <table className="pt-order-table" key={order.order_id}>
                     <thead>
                       <tr>
                         <th className="pt-order-header" colSpan={3}>
@@ -618,31 +840,17 @@ export const PublicTrackingPage: React.FC = () => {
                       {order.products.map((p, idx) => (
                         <tr key={`${p.location_id}-${idx}`}>
                           <td>{p.product_name || '—'}</td>
-                          <td>
-                            {p.qty != null ? `${p.qty} ${p.qty_unit}` : '—'}
-                          </td>
-                          <td>
-                            {p.weight != null ? `${p.weight} ${p.weight_unit}` : '—'}
-                          </td>
+                          <td>{p.qty != null ? `${p.qty} ${p.qty_unit}` : '—'}</td>
+                          <td>{p.weight != null ? `${p.weight} ${p.weight_unit}` : '—'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 ))}
                 {data.vehicle_type ? (
-                  <div
-                    style={{
-                      marginTop: 8,
-                      padding: '12px 14px',
-                      background: 'var(--pt-sa)',
-                      borderRadius: 8,
-                      fontSize: 13,
-                    }}
-                  >
-                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--pt-t3)', textTransform: 'uppercase' }}>
-                      {t(lang, 'vehicleType')}
-                    </div>
-                    <div style={{ fontWeight: 600, marginTop: 4 }}>{data.vehicle_type}</div>
+                  <div className="pt-vehicle-box">
+                    <div className="lbl">{t(lang, 'vehicleType')}</div>
+                    <div className="val">{data.vehicle_type}</div>
                   </div>
                 ) : null}
               </div>
@@ -655,12 +863,7 @@ export const PublicTrackingPage: React.FC = () => {
                 <h3>{t(lang, 'liveTracking')}</h3>
               </div>
               <div className="pt-card-body">
-                <TrackingMap
-                  points={data.map.points}
-                  actualRoute={data.map.actual_route || []}
-                  showToggle={Boolean(data.map.permissions?.show_route_toggle)}
-                  lang={lang}
-                />
+                <TrackingLiveMap data={data} lang={lang} livePosition={livePosition} />
               </div>
             </div>
 
@@ -670,29 +873,38 @@ export const PublicTrackingPage: React.FC = () => {
               </div>
               <div className="pt-card-body">
                 <div className="pt-cr-card">
-                  <div className="pt-cr-av">{initials(data.transporter.name)}</div>
+                  <div className="pt-cr-av">
+                    {data.transporter.avatar ? (
+                      <img src={data.transporter.avatar} alt="" />
+                    ) : (
+                      initials(data.transporter.name)
+                    )}
+                  </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div className="pt-cr-name">
                       {data.transporter.name || '—'}
                       {data.transporter.rating != null ? (
-                        <span style={{ fontSize: 12, color: 'var(--pt-wr)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                        <span className="pt-cr-rating">
                           <Star size={12} fill="currentColor" /> {Number(data.transporter.rating).toFixed(1)}
                         </span>
                       ) : null}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--pt-t2)', marginTop: 2 }}>
+                    <div className="pt-cr-sub">
                       {kindLabel}
                       {data.transporter.trips_count != null
                         ? ` · ${data.transporter.trips_count} ${t(lang, 'tripsCompleted')}`
                         : ''}
+                      {data.transporter.driver_name
+                        ? ` · ${data.transporter.driver_name}`
+                        : ''}
                     </div>
                     {data.transporter.vehicle ? (
-                      <div style={{ fontSize: 12, marginTop: 6 }}>
+                      <div className="pt-cr-vehicle">
                         <strong>{t(lang, 'vehicle')}:</strong> {data.transporter.vehicle}
                       </div>
                     ) : null}
                     {data.transporter.plates?.length ? (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                      <div className="pt-plates">
                         {data.transporter.plates.map((p) => (
                           <span className="pt-plate" key={p}>
                             {p}
@@ -700,8 +912,8 @@ export const PublicTrackingPage: React.FC = () => {
                         ))}
                       </div>
                     ) : null}
-                    {data.transporter.phone ? (
-                      <div style={{ marginTop: 10 }}>
+                    <div className="pt-cr-contacts">
+                      {data.transporter.phone ? (
                         <button
                           type="button"
                           className="pt-icon-btn"
@@ -710,8 +922,9 @@ export const PublicTrackingPage: React.FC = () => {
                         >
                           <Phone size={14} />
                         </button>
-                      </div>
-                    ) : null}
+                      ) : null}
+                      {/* mail not always on transporter; keep phone primary */}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -719,179 +932,191 @@ export const PublicTrackingPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="pt-rcpt" id="receipt">
-          <div className="pt-rcpt-h">
-            <h3>{t(lang, 'confirmReceipt')}</h3>
-          </div>
-          {rcptDone ? (
-            <div className="pt-confirmed">
-              <div style={{ fontSize: 48, marginBottom: 8 }}>✅</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--pt-ok)' }}>{t(lang, 'receiptConfirmed')}</div>
+        {canShowReceipt ? (
+          <div className="pt-rcpt" id="receipt">
+            <div className="pt-rcpt-h">
+              <ClipboardCheck size={18} color="var(--pt-ac)" />
+              <h3>{t(lang, 'confirmReceipt')}</h3>
             </div>
-          ) : (
-            <div className="pt-rcpt-body">
-              <div className="pt-rcpt-type">
-                <button
-                  type="button"
-                  className={`pt-rcpt-opt ${rcptType === 'full' ? 'selected' : ''}`}
-                  onClick={() => setRcptType('full')}
-                >
-                  <div style={{ fontWeight: 600 }}>{t(lang, 'fullReceipt')}</div>
-                </button>
-                <button
-                  type="button"
-                  className={`pt-rcpt-opt ${rcptType === 'partial' ? 'selected' : ''}`}
-                  onClick={() => setRcptType('partial')}
-                >
-                  <div style={{ fontWeight: 600 }}>{t(lang, 'partialReceipt')}</div>
-                </button>
+            {rcptDone ? (
+              <div className="pt-confirmed">
+                <div style={{ fontSize: 48, marginBottom: 8 }}>✅</div>
+                <div className="pt-confirmed-title ok">{t(lang, 'receiptConfirmed')}</div>
+                {data.receipt.confirmation?.confirmed_at ? (
+                  <div style={{ marginTop: 8, fontSize: 12, color: 'var(--pt-t3)' }}>
+                    {formatUtcToDisplayDateTime(data.receipt.confirmation.confirmed_at)}
+                  </div>
+                ) : null}
               </div>
+            ) : (
+              <div className="pt-rcpt-body">
+                <div className="pt-rcpt-type">
+                  <button
+                    type="button"
+                    className={`pt-rcpt-opt ${rcptType === 'full' ? 'selected' : ''}`}
+                    onClick={() => setRcptType('full')}
+                  >
+                    {t(lang, 'fullReceipt')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`pt-rcpt-opt ${rcptType === 'partial' ? 'selected' : ''}`}
+                    onClick={() => setRcptType('partial')}
+                  >
+                    {t(lang, 'partialReceipt')}
+                  </button>
+                </div>
 
-              {rcptType === 'partial' ? (
-                <table className="pt-order-table" style={{ marginBottom: 14 }}>
-                  <thead>
-                    <tr>
-                      <th>{t(lang, 'orderId')}</th>
-                      <th>{t(lang, 'item')}</th>
-                      <th>{t(lang, 'ordered')}</th>
-                      <th>{t(lang, 'received')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rcptItems.map((it, idx) => (
-                      <tr key={`${it.location_id}-${idx}`}>
-                        <td className="pt-mono">{it.order_id || '—'}</td>
-                        <td>{it.product_name || '—'}</td>
-                        <td>
-                          {it.ordered_qty ?? '—'} {it.qty_unit}
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            min={0}
-                            value={it.received_qty ?? 0}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setRcptItems((prev) =>
-                                prev.map((row, i) => (i === idx ? { ...row, received_qty: val } : row))
-                              );
-                            }}
-                            style={{
-                              width: 72,
-                              padding: '4px 8px',
-                              border: '1px solid var(--pt-bd)',
-                              borderRadius: 4,
-                              fontFamily: 'JetBrains Mono, monospace',
-                            }}
-                          />
-                        </td>
+                {rcptType === 'partial' ? (
+                  <table className="pt-order-table" style={{ marginBottom: 14 }}>
+                    <thead>
+                      <tr>
+                        <th>{t(lang, 'orderId')}</th>
+                        <th>{t(lang, 'item')}</th>
+                        <th>{t(lang, 'ordered')}</th>
+                        <th>{t(lang, 'received')}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : null}
+                    </thead>
+                    <tbody>
+                      {rcptItems.map((it, idx) => (
+                        <tr key={`${it.location_id}-${idx}`}>
+                          <td className="pt-mono">{it.order_id || '—'}</td>
+                          <td>{it.product_name || '—'}</td>
+                          <td>
+                            {it.ordered_qty ?? '—'} {it.qty_unit}
+                          </td>
+                          <td>
+                            <input
+                              className="pt-qty-input"
+                              type="number"
+                              min={0}
+                              value={it.received_qty ?? 0}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setRcptItems((prev) =>
+                                  prev.map((row, i) => (i === idx ? { ...row, received_qty: val } : row))
+                                );
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : null}
 
-              {rcptType === 'partial' ? (
-                <div style={{ marginBottom: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {['Items missing', 'Damaged goods', 'Wrong items', 'Quantity mismatch'].map((reason) => (
+                {rcptType === 'partial' ? (
+                  <div className="pt-reason-row">
+                    {PARTIAL_REASONS.map((reason) => (
+                      <button
+                        key={reason}
+                        type="button"
+                        className={`pt-reason-chip ${rcptReason === reason ? 'act' : ''}`}
+                        onClick={() => setRcptReason(reason)}
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+
+                <textarea
+                  className="pt-textarea"
+                  placeholder={t(lang, 'notes')}
+                  value={rcptNotes}
+                  onChange={(e) => setRcptNotes(e.target.value)}
+                />
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+                  <button
+                    type="button"
+                    className="pt-btn pt-btn-ok"
+                    style={{ padding: '12px 28px' }}
+                    disabled={rcptSaving || !data.receipt.can_confirm}
+                    onClick={onConfirmReceipt}
+                  >
+                    {t(lang, 'confirmCta')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        {canShowRating ? (
+          <div className="pt-card" id="rating">
+            <div className="pt-card-h">
+              <h3>{t(lang, 'rateTransporter')}</h3>
+            </div>
+            {rateDone ? (
+              <div className="pt-confirmed">
+                <div style={{ fontSize: 48, marginBottom: 8 }}>⭐</div>
+                <div className="pt-confirmed-title rate">{t(lang, 'ratingThanks')}</div>
+              </div>
+            ) : (
+              <div className="pt-card-body" style={{ textAlign: 'center' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    justifyContent: 'center',
+                    marginBottom: 16,
+                  }}
+                >
+                  <div className="pt-cr-av" style={{ width: 36, height: 36, fontSize: 13 }}>
+                    {data.rating.avatar ? (
+                      <img src={data.rating.avatar} alt="" />
+                    ) : (
+                      initials(data.rating.transporter_name || data.transporter.name)
+                    )}
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>
+                      {data.rating.transporter_name || data.transporter.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--pt-t3)' }}>
+                      {(data.rating.plates || data.transporter.plates || []).join(' · ')}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-stars">
+                  {[1, 2, 3, 4, 5].map((n) => (
                     <button
-                      key={reason}
+                      key={n}
                       type="button"
-                      className="pt-btn"
-                      style={
-                        rcptReason === reason
-                          ? { borderColor: 'var(--pt-ac)', color: 'var(--pt-ac)', background: 'var(--pt-al)' }
-                          : undefined
-                      }
-                      onClick={() => setRcptReason(reason)}
+                      className={`pt-star ${n <= stars ? 'active' : ''}`}
+                      onClick={() => setStars(n)}
+                      aria-label={`${n} star`}
                     >
-                      {reason}
+                      ★
                     </button>
                   ))}
                 </div>
-              ) : null}
 
-              <textarea
-                className="pt-textarea"
-                placeholder={t(lang, 'notes')}
-                value={rcptNotes}
-                onChange={(e) => setRcptNotes(e.target.value)}
-              />
+                <textarea
+                  className="pt-textarea"
+                  placeholder={t(lang, 'reviewPh')}
+                  value={review}
+                  onChange={(e) => setReview(e.target.value)}
+                />
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-                <button
-                  type="button"
-                  className="pt-btn pt-btn-ok"
-                  style={{ padding: '12px 28px' }}
-                  disabled={rcptSaving || !data.receipt.can_confirm}
-                  onClick={onConfirmReceipt}
-                >
-                  {t(lang, 'confirmCta')}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="pt-card" id="rating">
-          <div className="pt-card-h">
-            <h3>{t(lang, 'rateTransporter')}</h3>
-          </div>
-          {rateDone ? (
-            <div className="pt-confirmed">
-              <div style={{ fontSize: 48, marginBottom: 8 }}>⭐</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--pt-wr)' }}>{t(lang, 'ratingThanks')}</div>
-            </div>
-          ) : (
-            <div className="pt-card-body" style={{ textAlign: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', marginBottom: 16 }}>
-                <div className="pt-cr-av" style={{ width: 36, height: 36, fontSize: 13 }}>
-                  {initials(data.rating.transporter_name || data.transporter.name)}
-                </div>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>
-                    {data.rating.transporter_name || data.transporter.name}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--pt-t3)' }}>
-                    {(data.rating.plates || data.transporter.plates || []).join(' · ')}
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-stars">
-                {[1, 2, 3, 4, 5].map((n) => (
+                <div style={{ marginTop: 12 }}>
                   <button
-                    key={n}
                     type="button"
-                    className={`pt-star ${n <= stars ? 'active' : ''}`}
-                    onClick={() => setStars(n)}
+                    className="pt-btn pt-btn-pr"
+                    style={{ padding: '10px 28px' }}
+                    disabled={rateSaving || stars < 1 || !data.rating.can_rate}
+                    onClick={onSubmitRating}
                   >
-                    ★
+                    {t(lang, 'submitRating')}
                   </button>
-                ))}
+                </div>
               </div>
-
-              <textarea
-                className="pt-textarea"
-                placeholder={t(lang, 'reviewPh')}
-                value={review}
-                onChange={(e) => setReview(e.target.value)}
-              />
-
-              <div style={{ marginTop: 12 }}>
-                <button
-                  type="button"
-                  className="pt-btn pt-btn-pr"
-                  style={{ padding: '10px 28px' }}
-                  disabled={rateSaving || stars < 1 || !data.rating.can_rate}
-                  onClick={onSubmitRating}
-                >
-                  {t(lang, 'submitRating')}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        ) : null}
 
         <div className="pt-footer">
           {t(lang, 'powered')} <strong>MYVAGON</strong>

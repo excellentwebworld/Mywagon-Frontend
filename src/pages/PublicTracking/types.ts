@@ -1,8 +1,11 @@
 export type TrackingTimelineItem = {
   key: string;
   label: string;
+  highlight?: string | null;
+  detail?: string | null;
   at: string | null;
-  state: 'done' | 'cur' | 'pending' | 'skip';
+  state: 'done' | 'cur' | 'pending' | 'skip' | 'failed';
+  variant?: 'default' | 'pod' | 'danger';
 };
 
 export type TrackingProductLine = {
@@ -62,6 +65,13 @@ export type TrackingReceiptItem = {
   received_qty: number | null;
 };
 
+export type TrackingLiveConfig = {
+  enabled: boolean;
+  shipper_id: number;
+  driver_id: number | null;
+  shipment_id: number;
+};
+
 export type PublicTrackingPayload = {
   shipment: {
     id: number;
@@ -70,6 +80,7 @@ export type PublicTrackingPayload = {
     status_label: string;
     started_by: string | null;
     lane: string;
+    shipper_id?: number;
   };
   header: {
     transporter_kind: 'freelancer' | 'carrier' | null;
@@ -79,6 +90,9 @@ export type PublicTrackingPayload = {
     eta_label: string | null;
     on_time: boolean;
     delivered_at: string | null;
+  };
+  guest?: {
+    email: string | null;
   };
   timeline: TrackingTimelineItem[];
   stops: TrackingStop[];
@@ -100,6 +114,7 @@ export type PublicTrackingPayload = {
       actual_route: boolean;
       show_route_toggle: boolean;
     };
+    live?: TrackingLiveConfig | null;
   };
   transporter: TrackingTransporter;
   receipt: {
@@ -111,6 +126,7 @@ export type PublicTrackingPayload = {
       notes: string | null;
     } | null;
     items: TrackingReceiptItem[];
+    guest_email?: string | null;
   };
   rating: {
     can_rate: boolean;
@@ -120,5 +136,6 @@ export type PublicTrackingPayload = {
     transporter_name: string | null;
     plates: string[];
     avatar: string | null;
+    guest_email?: string | null;
   };
 };
