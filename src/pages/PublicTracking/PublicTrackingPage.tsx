@@ -76,14 +76,16 @@ function TrackingMap({
 
   useEffect(() => {
     let cancelled = false;
-    let map: google.maps.Map | null = null;
-    let poly: google.maps.Polyline | null = null;
-    const markers: google.maps.Marker[] = [];
+    let map: any = null;
+    let poly: any = null;
+    const markers: any[] = [];
 
     (async () => {
       try {
-        await loadGoogleMaps();
-        if (cancelled || !mapRef.current || !window.google?.maps) return;
+        const mapsKey = (import.meta.env.VITE_GOOGLE_MAPS_KEY as string) || '';
+        await loadGoogleMaps(mapsKey);
+        const google = (window as any).google;
+        if (cancelled || !mapRef.current || !google?.maps) return;
 
         const valid = points.filter((p) => p.lat != null && p.lng != null) as Array<{
           lat: number;
@@ -133,7 +135,7 @@ function TrackingMap({
             strokeWeight: 4,
             map,
           });
-          path.forEach((pt) => bounds.extend(pt));
+          path.forEach((pt: any) => bounds.extend(pt));
         }
 
         if (!bounds.isEmpty()) {
@@ -146,8 +148,8 @@ function TrackingMap({
 
     return () => {
       cancelled = true;
-      markers.forEach((m) => m.setMap(null));
-      poly?.setMap(null);
+      markers.forEach((m) => m?.setMap?.(null));
+      poly?.setMap?.(null);
     };
   }, [points, actualRoute, mode]);
 
