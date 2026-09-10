@@ -16,15 +16,28 @@ function trackingQuery(id: string, locationId: string) {
   return { sid: id, lid: locationId };
 }
 
+function apiErrorMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) {
+    const msg = (err.response?.data as { message?: string } | undefined)?.message;
+    if (msg) return msg;
+  }
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
+
 async function getTracking(id: string, locationId: string): Promise<PublicTrackingPayload> {
   const base = publicApiBase();
-  const res = await axios.get<ApiEnvelope<PublicTrackingPayload>>(`${base}/track-shipment`, {
-    params: trackingQuery(id, locationId),
-  });
-  if (!res.data?.success || !res.data.data) {
-    throw new Error(res.data?.message || 'Failed to load tracking');
+  try {
+    const res = await axios.get<ApiEnvelope<PublicTrackingPayload>>(`${base}/track-shipment`, {
+      params: trackingQuery(id, locationId),
+    });
+    if (!res.data?.success || !res.data.data) {
+      throw new Error(res.data?.message || 'Failed to load tracking');
+    }
+    return res.data.data;
+  } catch (err) {
+    throw new Error(apiErrorMessage(err, 'Failed to load tracking'));
   }
-  return res.data.data;
 }
 
 async function confirmReceipt(
@@ -44,15 +57,19 @@ async function confirmReceipt(
   }
 ) {
   const base = publicApiBase();
-  const res = await axios.post<ApiEnvelope<unknown>>(
-    `${base}/track-shipment/confirm-receipt`,
-    body,
-    { params: trackingQuery(id, locationId) }
-  );
-  if (!res.data?.success) {
-    throw new Error(res.data?.message || 'Failed to confirm receipt');
+  try {
+    const res = await axios.post<ApiEnvelope<unknown>>(
+      `${base}/track-shipment/confirm-receipt`,
+      body,
+      { params: trackingQuery(id, locationId) }
+    );
+    if (!res.data?.success) {
+      throw new Error(res.data?.message || 'Failed to confirm receipt');
+    }
+    return res.data.data;
+  } catch (err) {
+    throw new Error(apiErrorMessage(err, 'Failed to confirm receipt'));
   }
-  return res.data.data;
 }
 
 async function submitRating(
@@ -66,15 +83,19 @@ async function submitRating(
   }
 ) {
   const base = publicApiBase();
-  const res = await axios.post<ApiEnvelope<{ rated: boolean; guest_display_name?: string }>>(
-    `${base}/track-shipment/rating`,
-    body,
-    { params: trackingQuery(id, locationId) }
-  );
-  if (!res.data?.success) {
-    throw new Error(res.data?.message || 'Failed to submit rating');
+  try {
+    const res = await axios.post<ApiEnvelope<{ rated: boolean; guest_display_name?: string }>>(
+      `${base}/track-shipment/rating`,
+      body,
+      { params: trackingQuery(id, locationId) }
+    );
+    if (!res.data?.success) {
+      throw new Error(res.data?.message || 'Failed to submit rating');
+    }
+    return res.data.data;
+  } catch (err) {
+    throw new Error(apiErrorMessage(err, 'Failed to submit rating'));
   }
-  return res.data.data;
 }
 
 export const publicTrackingService = {
