@@ -25,11 +25,17 @@ function splitEmails(value?: string | null): string[] {
   return parts.length > 0 ? parts : [''];
 }
 
+/** Location status codes that mean the stop can no longer receive new tracking emails. */
+function isLocationComplete(status?: string | number | null): boolean {
+  const code = String(status ?? '').trim();
+  return code === '5' || code === '6' || code === '7';
+}
+
 export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
   open,
   stops,
   groups,
-  isPickedUp = false,
+  isPickedUp: _isPickedUp = false,
   status,
   isReadOnly: explicitReadOnly,
   onClose,
@@ -38,6 +44,7 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
   t,
 }) => {
   const normStatus = (status || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
+  const isPendingOrDraft = normStatus === 'pending' || normStatus === 'draft' || normStatus === '';
   const isFulfilledOrPartial =
     normStatus === 'fullfilled' ||
     normStatus === 'fulfilled' ||
@@ -48,7 +55,10 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
     normStatus === 'delivered' ||
     normStatus === 'not_fullfilled';
 
-  const isReadOnly = explicitReadOnly ?? isFulfilledOrPartial;
+  // Emails editable only while load is pending/draft. Scheduled / ready / on_trip = view + copy only.
+  // Completed locations are always read-only regardless of shipment status.
+  const shipmentEmailsReadOnly =
+    explicitReadOnly ?? (!isPendingOrDraft || isFulfilledOrPartial);
 
   const deliveryRows = useMemo(() => {
     if (stops && stops.length > 0) {
@@ -78,9 +88,14 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
             sTime && eTime && sTime !== eTime
               ? `${sTime} - ${eTime}`
               : sTime || eTime || '';
-          const initialEmail =
+          // Prefer persisted tracking_email (may be CSV of multiple recipients).
+          // Do not fall back to a single customer profile email when tracking_email is set empty intentionally.
+          const trackingEmailRaw =
             (s as any).tracking_email ||
             (s as any).trackingEmail ||
+            '';
+          const initialEmail =
+            trackingEmailRaw ||
             (s as any).email ||
             (s.customers?.[0] as any)?.email ||
             '';
@@ -88,6 +103,12 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
             (s as any).tracking_url ||
             (s as any).trackingUrl ||
             null;
+          const locationStatus =
+            (s as any).locationStatus ??
+            (s as any).location_status ??
+            (s as any).status ??
+            null;
+          const rowComplete = isLocationComplete(locationStatus);
 
           return {
             id: s.id || `delivery-${idx}`,
@@ -98,6 +119,8 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
             orderId: String(orderId || ''),
             defaultEmails: splitEmails(initialEmail),
             trackingUrl: trackingUrl ? String(trackingUrl) : null,
+            locationComplete: rowComplete,
+            rowReadOnly: shipmentEmailsReadOnly || rowComplete,
           };
         });
     }
@@ -113,12 +136,14 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
           orderId: r.orderRef,
           defaultEmails: splitEmails(r.email || ''),
           trackingUrl: (r as any).trackingUrl || (r as any).tracking_url || null,
+          locationComplete: false,
+          rowReadOnly: shipmentEmailsReadOnly,
         }))
       );
     }
 
     return [];
-  }, [stops, groups]);
+  }, [stops, groups, shipmentEmailsReadOnly]);
 
   const trackingUrl = useMemo(
     () => deliveryRows.find((r) => r.trackingUrl)?.trackingUrl || null,
@@ -208,11 +233,19 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
   };
 
   const handleSubmit = () => {
-    if (onSend) onSend(emails);
+    if (!onSend) return;
+    // Only submit editable rows (completed locations stay as-is on the server).
+    const editable: Record<string | number, string[]> = {};
+    deliveryRows.forEach((row) => {
+      if (!row.rowReadOnly) {
+        editable[row.id] = emails[row.id] || [''];
+      }
+    });
+    onSend(editable);
   };
 
-  const showFooter = !isReadOnly;
-  // Label already includes "+" in locale — use text without icon, or strip leading "+"
+  const hasEditableRows = deliveryRows.some((r) => !r.rowReadOnly);
+  const showFooter = hasEditableRows;
   const addEmailLabel = String(t('addEmail', 'Add email')).replace(/^\+\s*/, '');
 
   return (
@@ -267,6 +300,7 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
                     const emailList = emails[row.id] || [''];
                     const rowTrackingUrl = row.trackingUrl || trackingUrl;
                     const isThisRowCopied = copiedRowId === row.id;
+                    const rowReadOnly = row.rowReadOnly;
 
                     return (
                       <tr
@@ -298,6 +332,11 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
                               )}
                             </div>
                           )}
+                          {row.locationComplete && (
+                            <div className="text-[10px] font-semibold text-slate-400 mt-1">
+                              {t('locationCompletedReadOnly', 'Completed — emails are read-only')}
+                            </div>
+                          )}
                         </td>
                         <td className="py-3.5 px-4 align-top">
                           <div className="space-y-2">
@@ -307,19 +346,19 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
                                   type="email"
                                   value={currentEmail}
                                   placeholder={t('enterEmail', 'Enter Email')}
-                                  readOnly={isReadOnly}
-                                  disabled={isReadOnly}
+                                  readOnly={rowReadOnly}
+                                  disabled={rowReadOnly}
                                   onChange={(e) =>
-                                    !isReadOnly &&
+                                    !rowReadOnly &&
                                     handleEmailChange(row.id, emailIdx, e.target.value)
                                   }
                                   className={`flex-1 min-w-0 px-3 py-2 text-[12px] rounded-lg border outline-none text-slate-900 dark:text-white placeholder-slate-400 transition-colors ${
-                                    isReadOnly
+                                    rowReadOnly
                                       ? 'border-slate-200 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-800/60 cursor-not-allowed text-slate-600 dark:text-slate-400'
                                       : 'border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white dark:bg-slate-800'
                                   }`}
                                 />
-                                {!isReadOnly && emailList.length > 1 && (
+                                {!rowReadOnly && emailList.length > 1 && (
                                   <button
                                     type="button"
                                     onClick={() => removeEmail(row.id, emailIdx)}
@@ -333,7 +372,7 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
                               </div>
                             ))}
 
-                            {!isReadOnly && (
+                            {!rowReadOnly && (
                               <button
                                 type="button"
                                 onClick={() => addEmail(row.id)}
@@ -390,15 +429,13 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
 
         {showFooter && (
           <div className="mv-modal-footer flex items-center justify-center gap-3 px-6 py-4 border-t border-[var(--border)]">
-            {!isReadOnly && (
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="px-8 py-2 rounded-lg text-sm font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] transition-all cursor-pointer shadow-sm"
-              >
-                {t('done', 'Done')}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleSubmit}
+              className="px-8 py-2 rounded-lg text-sm font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] transition-all cursor-pointer shadow-sm"
+            >
+              {t('done', 'Done')}
+            </button>
           </div>
         )}
       </div>

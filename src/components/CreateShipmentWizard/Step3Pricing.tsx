@@ -3,6 +3,7 @@ import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatVehicleSelectionSummary, findSpecLabel } from './vehicleTypes';
+import { scrollToValidationAnchor } from './validation';
 import { useVehicleTypes } from '../../hooks/useVehicleTypes';
 import {
   ArrowLeft,
@@ -97,13 +98,18 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
 }) => {
   const { t, lang } = useTranslation();
   const { locations, showToast } = useApp();
-  const { values, setFieldValue, isSubmitting } = useFormikContext<any>();
+  const { values, setFieldValue, isSubmitting, errors, setFieldTouched } = useFormikContext<any>();
   const stops = values.stops || [];
   // Match Laravel edit itinerary: negotiable + live nav disabled when status !== draft.
   const lockNegotiableAndLiveNav =
     isEditMode &&
     Boolean(editShipmentStatus) &&
     String(editShipmentStatus).toLowerCase() !== 'draft';
+  const editStatusNorm = String(editShipmentStatus || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
+  // Create flow always; edit flow only while load is still pending/draft.
+  const canEditTrackingEmails =
+    !isEditMode || editStatusNorm === 'pending' || editStatusNorm === 'draft' || editStatusNorm === '';
+  const showTrackingEmailSection = canEditTrackingEmails;
   const { carriersList, loading: partnersLoading, error: partnersError } = useCreateShipmentPartners();
   const { quota: publicQuota, loading: publicQuotaLoading } = usePublicLoadQuota(
     draftId,
@@ -912,19 +918,29 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             </div>
           </div>
 
-          {/* TRACKING */}
+          {/* TRACKING / LIVE NAVIGATION */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
             <div
-              className="ch flex items-center gap-2 px-5 py-4 border-b cursor-pointer select-none"
+              className={`ch flex items-center gap-2 px-5 py-4 ${showTrackingEmailSection ? 'border-b cursor-pointer select-none' : 'border-b'}`}
               style={{ borderColor: T.bd }}
-              onClick={() => setTrackingExpanded(!trackingExpanded)}
+              onClick={() => {
+                if (showTrackingEmailSection) {
+                  setTrackingExpanded(!trackingExpanded);
+                }
+              }}
             >
               <Smartphone size={18} style={{ color: T.t2 }} />
-              <span className="font-semibold text-sm">{t('trackingLinks') || 'Tracking'}</span>
-              <span className="text-xs text-slate-400 font-normal ml-auto flex items-center gap-1.5">
-                {t('sendTrackingLink') || 'Send tracking link to customers'}
-                <span className={`transform transition-transform ${trackingExpanded ? 'rotate-180' : ''}`}>▼</span>
+              <span className="font-semibold text-sm">
+                {showTrackingEmailSection
+                  ? t('trackingLinks') || 'Tracking'
+                  : t('liveNavigation') || 'Live Navigation'}
               </span>
+              {showTrackingEmailSection && (
+                <span className="text-xs text-slate-400 font-normal ml-auto flex items-center gap-1.5">
+                  {t('sendTrackingLink') || 'Send tracking link to customers'}
+                  <span className={`transform transition-transform ${trackingExpanded ? 'rotate-180' : ''}`}>▼</span>
+                </span>
+              )}
             </div>
 
             <div className="cb p-5 space-y-3">
@@ -983,7 +999,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 </label>
               </div>
 
-              {trackingExpanded && (
+              {showTrackingEmailSection && trackingExpanded && (
                 <>
                   {trackingGroups.isEmpty ? (
                     <div className="text-xs text-slate-500 py-2">
@@ -1036,12 +1052,16 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
           </div>
 
           {/* PRICING */}
-          <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+          <div
+            className="card"
+            data-validation-anchor="target-price"
+            style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}
+          >
             <div className="ch flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor: T.bd }}>
               <span className="font-semibold text-sm">
                 {t('pricing') || 'Pricing'}{' '}
-                <span className="ov-sub-inline font-normal" style={{ color: T.t3 }}>
-                  ({t('orderValueOptional') || 'Optional'})
+                <span className="text-red-500" aria-hidden="true">
+                  *
                 </span>
               </span>
               <span
@@ -1103,13 +1123,23 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               <div className="flex items-center gap-2">
                 <div
                   className="flex items-center flex-1 min-w-0 border rounded-lg px-2.5 py-1.5"
-                  style={{ borderColor: targetPriceVal > 0 ? T.ac : T.bd, background: T.sa }}
+                  style={{
+                    borderColor: errors.targetPrice
+                      ? 'var(--danger, #dc2626)'
+                      : targetPriceVal > 0
+                        ? T.ac
+                        : T.bd,
+                    background: T.sa,
+                  }}
                 >
                   <span className="text-sm font-bold mr-1.5" style={{ color: T.t3 }}>€</span>
                   <input
                     type="number"
                     min={0}
                     step="0.01"
+                    required
+                    aria-required="true"
+                    aria-invalid={Boolean(errors.targetPrice)}
                     className="w-full bg-transparent text-right text-lg font-bold font-mono outline-none"
                     style={{ color: T.t1 }}
                     placeholder="0.00"
@@ -1136,6 +1166,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   )}
                 </button>
               </div>
+              {errors.targetPrice ? (
+                <p className="text-[11px] text-red-600 m-0" role="alert">
+                  {String(errors.targetPrice)}
+                </p>
+              ) : null}
 
               <div className="flex items-center gap-2 text-[11px] text-slate-500 flex-wrap">
                 <span>
@@ -2088,7 +2123,25 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             }}
             disabled={isSubmitting || isSaving || publicQuotaBlocked}
             aria-busy={isSubmitting}
-            onClick={() => onSubmit()}
+            onClick={() => {
+              const rawPrice = String(values.targetPrice ?? '').trim();
+              const price = rawPrice === '' ? NaN : parseFloat(rawPrice);
+              if (Number.isNaN(price) || price <= 0) {
+                void setFieldTouched('targetPrice', true, true);
+                showToast(
+                  t('targetPriceRequired') || t('priceRequired') || 'Target price is required.',
+                  'error'
+                );
+                window.requestAnimationFrame(() => {
+                  scrollToValidationAnchor('target-price', {
+                    focus: true,
+                    highlightClass: 'wizard-validation-flash',
+                  });
+                });
+                return;
+              }
+              onSubmit();
+            }}
           >
             {isSubmitting ? (
               <>

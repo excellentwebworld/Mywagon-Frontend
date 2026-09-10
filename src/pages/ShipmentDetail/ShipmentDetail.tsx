@@ -604,7 +604,7 @@ export const ShipmentDetail: React.FC = () => {
   }
 
   const status = (vm.status || '').toLowerCase();
-  const isPending = status === 'pending';
+  const isPending = status === 'pending' || status === 'draft';
   const hasCarrier = Boolean(vm.carrier && status !== 'draft' && status !== 'pending');
   const isCompleted =
     status === 'fullfilled' ||

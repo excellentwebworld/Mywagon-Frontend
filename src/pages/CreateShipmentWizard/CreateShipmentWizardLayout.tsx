@@ -36,9 +36,9 @@ const validationSchema = Yup.object().shape({
     .transform((value, originalValue) =>
       originalValue === '' || originalValue === null || originalValue === undefined ? undefined : value
     )
-    .min(0, 'Price must be greater than or equal to 0')
-    .nullable()
-    .optional(),
+    .typeError('Target price is required')
+    .required('Target price is required')
+    .moreThan(0, 'Target price must be greater than 0'),
 });
 
 function stepTitle(step: number, t: (key: string) => string, isEditMode: boolean) {

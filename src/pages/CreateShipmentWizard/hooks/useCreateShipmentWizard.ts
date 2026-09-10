@@ -876,12 +876,10 @@ export function useCreateShipmentWizard(
     async (values: WizardFormValues, mode: 'partial' | 'complete') => {
       if (mode === 'complete') {
         const rawPrice = String(values.targetPrice ?? '').trim();
-        if (rawPrice !== '') {
-          const price = parseFloat(rawPrice);
-          if (Number.isNaN(price) || price < 0) {
-            showToast(t('priceMinZero') || 'Price must be greater than or equal to 0.', 'error');
-            throw new Error('Invalid price');
-          }
+        const price = rawPrice === '' ? NaN : parseFloat(rawPrice);
+        if (Number.isNaN(price) || price <= 0) {
+          showToast(t('targetPriceRequired') || 'Target price is required.', 'error');
+          throw new Error('Invalid price');
         }
         if (values.broadcastType === 'private' && (values.selectedCarriers || []).length < 1) {
           showToast(t('selectCarrierRequired') || 'Please select at least one carrier.', 'error');
@@ -939,12 +937,10 @@ export function useCreateShipmentWizard(
   const publishShipment = useCallback(
     async (values: WizardFormValues) => {
       const rawPrice = String(values.targetPrice ?? '').trim();
-      if (rawPrice !== '') {
-        const price = parseFloat(rawPrice);
-        if (Number.isNaN(price) || price < 0) {
-          showToast(t('priceMinZero') || 'Price must be greater than or equal to 0.', 'error');
-          throw new Error('Invalid price');
-        }
+      const price = rawPrice === '' ? NaN : parseFloat(rawPrice);
+      if (Number.isNaN(price) || price <= 0) {
+        showToast(t('targetPriceRequired') || 'Target price is required.', 'error');
+        throw new Error('Invalid price');
       }
       if (
         !isEditMode &&

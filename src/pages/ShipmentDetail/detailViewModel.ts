@@ -1206,7 +1206,12 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
           .filter((s) => s.type === 'delivery')
           .map((s) => ({
             location: s.location || s.address || '',
-            email: (s.customers?.[0] as any)?.email || '',
+            email:
+              (s as any).tracking_email ||
+              (s as any).trackingEmail ||
+              (s as any).email ||
+              (s.customers?.[0] as any)?.email ||
+              '',
             orderRef: s.customers?.[0]?.orders?.[0]?.id || orderIds.split(',')[0]?.trim() || displayId,
             trackingUrl: (s as any).tracking_url || (s as any).trackingUrl || null,
           })),
