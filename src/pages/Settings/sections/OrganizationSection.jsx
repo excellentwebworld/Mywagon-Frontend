@@ -9,7 +9,7 @@ import { useSearchParams } from 'react-router-dom';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import {
-  Pencil, X, Check, Lock, Building2, Truck, Image as ImageIcon, Plus, Mail, AlertTriangle,
+  Pencil, X, Check, Lock, Building2, Truck, Image as ImageIcon, Plus, Mail, AlertTriangle, ChevronDown, Search,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
@@ -23,19 +23,72 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_INVOICE_EMAILS = 5;
 const BRANDING_OPS_KEY = 'company_description';
 
-const MANDATORY_OPS_ORDER = [
-  'company_type',
-  'product_types',
-  'daily_loads',
-  'frequent_pickups',
-  'frequent_dropoffs',
-  'truck_types_needed',
-  'number_of_direct_partners',
-  'top_challenges',
-  'myvagon_goals',
+const OPS_SECTIONS_CONFIG = [
+  {
+    id: 'mandatory',
+    titleKey: 'settings.orgSection.operational.mandatoryGroupTitle',
+    defaultTitle: 'Mandatory Information',
+    isMandatory: true,
+    keys: [
+      'product_types',
+      'daily_loads',
+      'frequent_pickups',
+      'frequent_dropoffs',
+      'truck_types_needed',
+      'number_of_direct_partners',
+      'top_challenges',
+      'myvagon_goals',
+      'company_type',
+    ],
+  },
+  {
+    id: 'extended',
+    titleKey: 'settings.orgSection.operational.extendedGroupTitle',
+    defaultTitle: 'Extended Information',
+    isMandatory: false,
+    keys: [
+      'typical_customers',
+    ],
+  },
+  {
+    id: 'shipping_operations',
+    titleKey: 'settings.orgSection.operational.shippingOpsGroupTitle',
+    defaultTitle: 'Shipping Operations & Load Profile',
+    isMandatory: false,
+    keys: [
+      'average_load_size',
+      'average_transport_price',
+      'pricing_model',
+      'peak_shipping_periods',
+      'transport_planning_advance',
+      'dispatching_team_size',
+    ],
+  },
+  {
+    id: 'partnerships',
+    titleKey: 'settings.orgSection.operational.partnershipsGroupTitle',
+    defaultTitle: 'Partnerships & Transport Network',
+    isMandatory: false,
+    keys: [
+      'current_transport_partners',
+    ],
+  },
+  {
+    id: 'processes',
+    titleKey: 'settings.orgSection.operational.processesGroupTitle',
+    defaultTitle: 'Processes & Systems',
+    isMandatory: false,
+    keys: [
+      'transport_arrangement_method',
+      'uses_erp_system',
+      'erp_software_name',
+    ],
+  },
 ];
 
-const MANDATORY_OPS_KEYS = new Set(MANDATORY_OPS_ORDER);
+const MANDATORY_OPS_KEYS = new Set(
+  OPS_SECTIONS_CONFIG.find((s) => s.id === 'mandatory')?.keys || []
+);
 
 function isMandatoryField(field) {
   if (!field) return false;
@@ -72,6 +125,22 @@ export default function OrganizationSection() {
   const [savingBrand, setSavingBrand] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
+  const [openOpsSections, setOpenOpsSections] = useState({
+    mandatory: true,
+    extended: true,
+    shipping_operations: true,
+    partnerships: true,
+    processes: true,
+    other: true,
+  });
+
+  const toggleOpsSection = (id) => {
+    setOpenOpsSections((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
   const [legalDraft, setLegalDraft] = useState({});
   const [opsDraft, setOpsDraft] = useState({});
   const [brandDraft, setBrandDraft] = useState({});
@@ -101,33 +170,53 @@ export default function OrganizationSection() {
     setData(payload);
   };
 
-  const { mandatoryOpsFields, optionalOpsFields, opsFields } = useMemo(() => {
-    const fields = (data?.operations_meta?.fields ?? []).filter((f) => f.key !== BRANDING_OPS_KEY);
+  const { groupedOpsSections, opsFields, mandatoryOpsFields } = useMemo(() => {
+    const allFields = (data?.operations_meta?.fields ?? []).filter((f) => f.key !== BRANDING_OPS_KEY);
+    const fieldMap = new Map(allFields.map((f) => [f.key, f]));
 
-    const mandatory = [];
-    const optional = [];
+    const assignedKeys = new Set();
+    const sections = [];
+    const allOrderedFields = [];
+    const mandatoryFields = [];
 
-    for (const field of fields) {
-      if (isMandatoryField(field)) {
-        mandatory.push(field);
-      } else {
-        optional.push(field);
+    for (const sec of OPS_SECTIONS_CONFIG) {
+      const sectionFields = [];
+      for (const key of sec.keys) {
+        const field = fieldMap.get(key);
+        if (field) {
+          sectionFields.push(field);
+          assignedKeys.add(key);
+          allOrderedFields.push(field);
+          if (sec.isMandatory || isMandatoryField(field)) {
+            mandatoryFields.push(field);
+          }
+        }
+      }
+      if (sectionFields.length > 0) {
+        sections.push({
+          ...sec,
+          fields: sectionFields,
+        });
       }
     }
 
-    mandatory.sort((a, b) => {
-      const idxA = MANDATORY_OPS_ORDER.indexOf(a.key);
-      const idxB = MANDATORY_OPS_ORDER.indexOf(b.key);
-      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-      if (idxA !== -1) return -1;
-      if (idxB !== -1) return 1;
-      return 0;
-    });
+    // Capture any extra fields not configured in static sections
+    const remainingFields = allFields.filter((f) => !assignedKeys.has(f.key));
+    if (remainingFields.length > 0) {
+      sections.push({
+        id: 'other',
+        titleKey: 'settings.orgSection.operational.otherGroupTitle',
+        defaultTitle: 'Other Information',
+        isMandatory: false,
+        fields: remainingFields,
+      });
+      allOrderedFields.push(...remainingFields);
+    }
 
     return {
-      mandatoryOpsFields: mandatory,
-      optionalOpsFields: optional,
-      opsFields: [...mandatory, ...optional],
+      groupedOpsSections: sections,
+      opsFields: allOrderedFields,
+      mandatoryOpsFields: mandatoryFields,
     };
   }, [data]);
 
@@ -239,6 +328,12 @@ export default function OrganizationSection() {
           'Please answer all required operations questions before saving.'
         )
       );
+      const parentSection = groupedOpsSections.find((s) =>
+        s.fields.some((f) => f.key === missingMandatory.key)
+      );
+      if (parentSection) {
+        setOpenOpsSections((prev) => ({ ...prev, [parentSection.id]: true }));
+      }
       const el = document.getElementById(`ops-field-${missingMandatory.key}`);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -558,109 +653,86 @@ export default function OrganizationSection() {
           {opsFields.length === 0 ? (
             <div style={{ fontSize: 13, color: T.t3 }}>{t('settings.orgSection.operational.empty')}</div>
           ) : (
-            <div className="space-y-6">
-              {/* Mandatory Questions Box */}
-              {mandatoryOpsFields.length > 0 && (
-                <div
-                  className="rounded-xl p-4 sm:p-5"
-                  style={{
-                    background: T.sf,
-                    border: `1.5px solid ${editingOps ? '#FDE68A' : T.bd}`,
-                    boxShadow: editingOps ? '0 1px 4px rgba(245, 158, 11, 0.08)' : 'none',
-                  }}
-                >
+            <div className="space-y-4">
+              {groupedOpsSections.map((section) => {
+                const isOpen = openOpsSections[section.id] ?? true;
+                const isMandatorySec = section.isMandatory;
+                return (
                   <div
-                    className="flex items-center justify-between pb-3 mb-4"
-                    style={{ borderBottom: `1px solid ${T.bd}` }}
+                    key={section.id}
+                    className="rounded-xl overflow-hidden transition-all"
+                    style={{
+                      background: T.sf,
+                      border: isMandatorySec
+                        ? `1.5px solid ${editingOps ? '#FDE68A' : T.bd}`
+                        : `1px solid ${T.bd}`,
+                      boxShadow: isMandatorySec && editingOps
+                        ? '0 1px 4px rgba(245, 158, 11, 0.08)'
+                        : 'none',
+                    }}
                   >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="inline-flex items-center justify-center w-5 h-5 rounded-full font-bold"
-                        style={{ background: '#FEF3C7', color: '#B45309', fontSize: 12 }}
-                      >
-                        *
-                      </span>
-                      <h4 className="font-bold" style={{ fontSize: 14, color: T.t1, margin: 0 }}>
-                        {t('settings.orgSection.operational.mandatoryGroupTitle', {
-                          defaultValue: 'Mandatory Questions',
-                        })}
-                      </h4>
-                      <span
-                        className="px-2 py-0.5 rounded-full font-semibold"
+                    <button
+                      type="button"
+                      onClick={() => toggleOpsSection(section.id)}
+                      className="w-full flex items-center justify-between p-4 sm:p-5 text-left cursor-pointer border-none select-none transition-colors"
+                      style={{
+                        background: 'transparent',
+                        borderBottom: isOpen ? `1px solid ${T.bd}` : 'none',
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        {isMandatorySec && (
+                          <span
+                            className="inline-flex items-center justify-center w-5 h-5 rounded-full font-bold"
+                            style={{ background: '#FEF3C7', color: '#B45309', fontSize: 12 }}
+                          >
+                            *
+                          </span>
+                        )}
+                        <h4 className="font-bold" style={{ fontSize: 14, color: T.t1, margin: 0 }}>
+                          {t(section.titleKey, {
+                            defaultValue: section.defaultTitle,
+                          })}
+                        </h4>
+                        <span
+                          className="px-2 py-0.5 rounded-full font-semibold"
+                          style={{
+                            background: isMandatorySec ? '#FEF3C7' : T.sa,
+                            color: isMandatorySec ? '#B45309' : T.t3,
+                            border: `1px solid ${isMandatorySec ? '#FDE68A' : T.bd}`,
+                            fontSize: 11,
+                          }}
+                        >
+                          {section.fields.length}
+                        </span>
+                      </div>
+                      <ChevronDown
+                        size={16}
                         style={{
-                          background: '#FEF3C7',
-                          color: '#B45309',
-                          border: '1px solid #FDE68A',
-                          fontSize: 11,
-                        }}
-                      >
-                        {mandatoryOpsFields.length}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    {mandatoryOpsFields.map((field) => (
-                      <OpsField
-                        key={field.key}
-                        field={field}
-                        value={editingOps ? opsDraft[field.key] : data.operations?.[field.key]}
-                        editing={editingOps}
-                        onChange={(v) => setOpsDraft((p) => ({ ...p, [field.key]: v }))}
-                        T={T}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Optional Questions Box */}
-              {optionalOpsFields.length > 0 && (
-                <div
-                  className="rounded-xl p-4 sm:p-5"
-                  style={{
-                    background: T.sf,
-                    border: `1px solid ${T.bd}`,
-                  }}
-                >
-                  <div
-                    className="flex items-center justify-between pb-3 mb-4"
-                    style={{ borderBottom: `1px solid ${T.bd}` }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-bold" style={{ fontSize: 14, color: T.t1, margin: 0 }}>
-                        {t('settings.orgSection.operational.optionalGroupTitle', {
-                          defaultValue: 'Optional Questions',
-                        })}
-                      </h4>
-                      <span
-                        className="px-2 py-0.5 rounded-full font-medium"
-                        style={{
-                          background: T.sa,
                           color: T.t3,
-                          border: `1px solid ${T.bd}`,
-                          fontSize: 11,
+                          transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease',
                         }}
-                      >
-                        {optionalOpsFields.length}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    {optionalOpsFields.map((field) => (
-                      <OpsField
-                        key={field.key}
-                        field={field}
-                        value={editingOps ? opsDraft[field.key] : data.operations?.[field.key]}
-                        editing={editingOps}
-                        onChange={(v) => setOpsDraft((p) => ({ ...p, [field.key]: v }))}
-                        T={T}
                       />
-                    ))}
+                    </button>
+
+                    {isOpen && (
+                      <div className="p-4 sm:p-5 space-y-4">
+                        {section.fields.map((field) => (
+                          <OpsField
+                            key={field.key}
+                            field={field}
+                            value={editingOps ? opsDraft[field.key] : data.operations?.[field.key]}
+                            editing={editingOps}
+                            onChange={(v) => setOpsDraft((p) => ({ ...p, [field.key]: v }))}
+                            T={T}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })}
             </div>
           )}
         </SectionCard>
@@ -797,10 +869,19 @@ export default function OrganizationSection() {
 function OpsField({ field, value, editing, onChange, T }) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const options = field.options || [];
   const isMulti = field.type === 'multi';
   const inputType = (field.input_type || '').toLowerCase();
   const useTextarea = inputType.includes('textarea') || inputType.includes('text_area');
+
+  // Reset search query when toggling editing mode off
+  useEffect(() => {
+    if (!editing) {
+      setSearchQuery('');
+      setExpanded(false);
+    }
+  }, [editing]);
 
   const mandatory = isMandatoryField(field);
   const filled = isOpsValueFilled(field, value);
@@ -916,6 +997,18 @@ function OpsField({ field, value, editing, onChange, T }) {
     onChange(text.trim() ? text.trim() : (otherOption ? String(otherOption.value) : 'other'));
   };
 
+  const showSearch = editing && options.length >= 6;
+  const isSearching = showSearch && Boolean(searchQuery.trim());
+
+  const filteredOptions = useMemo(() => {
+    if (!isSearching) return options;
+    return options.filter(
+      (opt) =>
+        matchesSearch(opt.label, searchQuery) ||
+        matchesSearch(opt.value, searchQuery)
+    );
+  }, [options, isSearching, searchQuery]);
+
   const containerStyle = editing
     ? showUnansweredWarning
       ? {
@@ -1011,6 +1104,52 @@ function OpsField({ field, value, editing, onChange, T }) {
     </div>
   );
 
+  const renderSearchBox = () => {
+    if (!showSearch) return null;
+    return (
+      <div className="relative mb-2.5">
+        <Search
+          size={14}
+          style={{
+            position: 'absolute',
+            left: 10,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: T.t3,
+            pointerEvents: 'none',
+          }}
+        />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t('settings.orgSection.operational.searchPlaceholder', {
+            defaultValue: 'Search options…',
+          })}
+          className="w-full pl-8 pr-8 py-1.5 rounded-lg outline-none transition-all"
+          style={{
+            border: `1px solid ${searchQuery.trim() ? T.ac : T.bd}`,
+            background: T.sf,
+            color: T.t1,
+            fontSize: 12,
+            boxShadow: searchQuery.trim() ? `0 0 0 1px ${T.ac}20` : 'none',
+          }}
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery('')}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 border-none bg-transparent cursor-pointer rounded-full flex items-center justify-center hover:opacity-80"
+            style={{ color: T.t3 }}
+            aria-label={t('settings.orgSection.operational.clearSearch', { defaultValue: 'Clear search' })}
+          >
+            <X size={13} />
+          </button>
+        )}
+      </div>
+    );
+  };
+
   if (isMulti && options.length > 0) {
     const selected = multiSelected;
 
@@ -1024,9 +1163,12 @@ function OpsField({ field, value, editing, onChange, T }) {
       return [...head, ...missingSelected];
     })();
 
-    const displayOptions = editing ? collapsedOptions : options.filter((o) => isSelected(o, selected));
+    const displayOptions = isSearching
+      ? filteredOptions
+      : (expanded || options.length <= CHIP_PREVIEW ? options : collapsedOptions);
+
     const hiddenCount =
-      editing && !expanded && options.length > CHIP_PREVIEW
+      editing && !isSearching && !expanded && options.length > CHIP_PREVIEW
         ? Math.max(0, options.length - collapsedOptions.length)
         : 0;
 
@@ -1053,23 +1195,46 @@ function OpsField({ field, value, editing, onChange, T }) {
           </div>
         ) : (
           <div>
-            <div className="flex flex-wrap gap-1.5">
-              {displayOptions.map((opt) => {
-                const isThisOther =
-                  otherOption &&
-                  (String(opt.value) === String(otherOption.value) ||
-                    String(opt.value).toLowerCase() === 'other' ||
-                    slugify(opt.label) === 'other');
-                const active = isThisOther ? isMultiOtherActive : isSelected(opt, selected);
+            {renderSearchBox()}
 
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      if (isThisOther) {
-                        if (isMultiOtherActive) {
-                          const canonical = String(opt.value);
+            {/* Selected chips summary bar */}
+            {selected.length > 0 && (
+              <div
+                className="flex flex-wrap items-center gap-1.5 mb-2.5 p-2 rounded-lg"
+                style={{
+                  background: T.al,
+                  border: `1px solid ${T.ac}30`,
+                }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 700, color: T.ac, marginRight: 2 }}>
+                  {t('settings.orgSection.operational.selectedCount', {
+                    count: selected.length,
+                    defaultValue: `Selected (${selected.length}):`,
+                  })}
+                </span>
+                {selected.map((val) => (
+                  <span
+                    key={val}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-medium"
+                    style={{
+                      background: T.sf,
+                      fontSize: 11,
+                      color: T.ac,
+                      border: `1px solid ${T.ac}50`,
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                    }}
+                  >
+                    <span>✓ {labelFor(val)}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const isThisOther =
+                          otherOption &&
+                          (String(val) === String(otherOption.value) ||
+                            String(val).toLowerCase() === 'other' ||
+                            slugify(val) === 'other');
+                        if (isThisOther) {
+                          const canonical = String(otherOption.value);
                           const without = selected.filter(
                             (v) =>
                               findOption(v) &&
@@ -1080,43 +1245,143 @@ function OpsField({ field, value, editing, onChange, T }) {
                           onChange(without);
                           setMultiOtherText('');
                         } else {
-                          const canonical = String(opt.value);
-                          const next = [...selected, canonical];
-                          if (multiOtherText.trim()) {
-                            next.push(multiOtherText.trim());
-                          }
-                          onChange(next);
+                          const canonical = String(val);
+                          const aliases = new Set([
+                            canonical,
+                            slugify(val),
+                            slugify(labelFor(val)),
+                          ]);
+                          const without = selected.filter((v) => !aliases.has(String(v)));
+                          onChange(without);
                         }
-                      } else {
-                        const canonical = String(opt.value);
-                        const aliases = new Set([
-                          canonical,
-                          slugify(opt.label),
-                          slugify(opt.value),
-                        ]);
-                        const without = selected.filter((v) => !aliases.has(v));
-                        onChange(active ? without : [...without, canonical]);
-                      }
-                    }}
-                    className="px-2.5 py-1 rounded-full border-none cursor-pointer transition-all"
-                    style={{
-                      background: active ? T.al : T.sa,
-                      color: active ? T.ac : T.t2,
-                      fontSize: 11,
-                      fontWeight: active ? 600 : 500,
-                      border: `1px solid ${active ? T.ac : T.bd}`,
-                      maxWidth: '100%',
-                      textAlign: 'left',
-                    }}
-                    title={opt.label}
-                  >
-                    {active ? `✓ ${opt.label}` : opt.label}
-                  </button>
-                );
-              })}
-            </div>
+                      }}
+                      className="border-none bg-transparent cursor-pointer p-0 ml-0.5 flex items-center"
+                      style={{ color: T.ac }}
+                      title={t('common.remove', { defaultValue: 'Remove' })}
+                    >
+                      <X size={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
 
-            {hiddenCount > 0 && (
+            {isSearching && (
+              <div className="flex items-center justify-between mb-1.5">
+                <span style={{ fontSize: 11, color: T.t3 }}>
+                  {filteredOptions.length === 1
+                    ? t('settings.orgSection.operational.optionsFound_one', { count: 1, defaultValue: '1 option found' })
+                    : t('settings.orgSection.operational.optionsFound_other', {
+                        count: filteredOptions.length,
+                        defaultValue: `${filteredOptions.length} options found`,
+                      })}
+                </span>
+                {filteredOptions.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="border-none bg-transparent cursor-pointer p-0 font-medium"
+                    style={{ fontSize: 11, color: T.ac }}
+                  >
+                    {t('settings.orgSection.operational.clearFilter', { defaultValue: 'Clear filter' })}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {isSearching && filteredOptions.length === 0 ? (
+              <div
+                className="py-3 px-3 rounded-lg text-center"
+                style={{ background: T.sa, border: `1px dashed ${T.bd}` }}
+              >
+                <p style={{ fontSize: 12, color: T.t3, margin: 0 }}>
+                  {t('settings.orgSection.operational.noOptionsFound', {
+                    defaultValue: 'No options match your search',
+                  })}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="mt-1.5 px-2.5 py-1 rounded-md border-none cursor-pointer font-semibold"
+                  style={{ background: T.al, color: T.ac, fontSize: 11 }}
+                >
+                  {t('settings.orgSection.operational.clearFilter', { defaultValue: 'Clear filter' })}
+                </button>
+              </div>
+            ) : (
+              <div
+                className="flex flex-wrap gap-1.5 overflow-y-auto"
+                style={{
+                  maxHeight: isSearching
+                    ? (filteredOptions.length > 15 ? 260 : 'none')
+                    : (expanded ? 360 : 'none'),
+                  paddingRight: (isSearching && filteredOptions.length > 15) || expanded ? 4 : 0,
+                }}
+              >
+                {displayOptions.map((opt) => {
+                  const isThisOther =
+                    otherOption &&
+                    (String(opt.value) === String(otherOption.value) ||
+                      String(opt.value).toLowerCase() === 'other' ||
+                      slugify(opt.label) === 'other');
+                  const active = isThisOther ? isMultiOtherActive : isSelected(opt, selected);
+
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        if (isThisOther) {
+                          if (isMultiOtherActive) {
+                            const canonical = String(opt.value);
+                            const without = selected.filter(
+                              (v) =>
+                                findOption(v) &&
+                                String(v).toLowerCase() !== 'other' &&
+                                String(v) !== canonical &&
+                                slugify(v) !== 'other'
+                            );
+                            onChange(without);
+                            setMultiOtherText('');
+                          } else {
+                            const canonical = String(opt.value);
+                            const next = [...selected, canonical];
+                            if (multiOtherText.trim()) {
+                              next.push(multiOtherText.trim());
+                            }
+                            onChange(next);
+                          }
+                        } else {
+                          const canonical = String(opt.value);
+                          const aliases = new Set([
+                            canonical,
+                            slugify(opt.label),
+                            slugify(opt.value),
+                          ]);
+                          const without = selected.filter((v) => !aliases.has(v));
+                          onChange(active ? without : [...without, canonical]);
+                        }
+                      }}
+                      className="px-2.5 py-1 rounded-full border-none cursor-pointer transition-all"
+                      style={{
+                        background: active ? T.al : T.sa,
+                        color: active ? T.ac : T.t2,
+                        fontSize: 11,
+                        fontWeight: active ? 600 : 500,
+                        border: `1px solid ${active ? T.ac : T.bd}`,
+                        maxWidth: '100%',
+                        textAlign: 'left',
+                      }}
+                      title={opt.label}
+                    >
+                      {active ? `✓ ${opt.label}` : opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {!isSearching && hiddenCount > 0 && (
               <button
                 type="button"
                 onClick={() => setExpanded(true)}
@@ -1126,7 +1391,7 @@ function OpsField({ field, value, editing, onChange, T }) {
                 {t('settings.orgSection.operational.showMore', { count: hiddenCount })}
               </button>
             )}
-            {editing && expanded && options.length > CHIP_PREVIEW && (
+            {!isSearching && editing && expanded && options.length > CHIP_PREVIEW && (
               <button
                 type="button"
                 onClick={() => setExpanded(false)}
@@ -1196,6 +1461,8 @@ function OpsField({ field, value, editing, onChange, T }) {
     const selectValue = matched ? String(matched.value) : current;
     const label = matched?.label || labelFor(current) || '';
 
+    const displayOptions = isSearching ? filteredOptions : options;
+
     return (
       <div id={`ops-field-${field.key}`} style={containerStyle}>
         {renderHeader()}
@@ -1203,88 +1470,107 @@ function OpsField({ field, value, editing, onChange, T }) {
           <div style={{ fontSize: 13, color: label ? T.t1 : T.t3 }}>
             {label || '—'}
           </div>
-        ) : options.length <= 6 ? (
-          <div>
-            <div className={options.some((o) => (o.label || '').length > 30) ? "flex flex-col gap-2" : "flex flex-wrap gap-2"}>
-              {options.map((opt) => {
-                const isThisOther =
-                  otherOption &&
-                  (String(opt.value) === String(otherOption.value) ||
-                    String(opt.value).toLowerCase() === 'other' ||
-                    slugify(opt.label) === 'other');
-                const active = isThisOther ? isSingleOtherActive : selectValue === String(opt.value);
-
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      if (isThisOther) {
-                        if (isSingleOtherActive) {
-                          onChange('');
-                          setSingleOtherText('');
-                        } else {
-                          onChange(singleOtherText.trim() ? singleOtherText.trim() : String(opt.value));
-                        }
-                      } else {
-                        onChange(active ? '' : String(opt.value));
-                        setSingleOtherText('');
-                      }
-                    }}
-                    className="px-3 py-2 rounded-lg cursor-pointer text-left transition-all"
-                    style={{
-                      background: active ? T.al : T.sa,
-                      color: active ? T.ac : T.t2,
-                      fontSize: 12.5,
-                      fontWeight: active ? 600 : 400,
-                      border: `1px solid ${active ? T.ac : T.bd}`,
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {active ? `✓ ${opt.label}` : opt.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* "Please specify" field when Other is selected in single-choice */}
-            {isSingleOtherActive && (
-              <div className="mt-3 pt-2.5" style={{ borderTop: `1px dashed ${T.bd}` }}>
-                <label className="block mb-1.5 font-semibold" style={{ fontSize: 12, color: T.t2 }}>
-                  {t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
-                </label>
-                <input
-                  type="text"
-                  value={singleOtherText}
-                  onChange={(e) => handleSingleOtherTextChange(e.target.value)}
-                  placeholder={t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
-                  className="w-full px-3 py-2 rounded-lg outline-none"
-                  style={{
-                    border: `1px solid ${T.bd}`,
-                    background: T.sf,
-                    color: T.t1,
-                    fontSize: 13,
-                  }}
-                />
-              </div>
-            )}
-          </div>
         ) : (
           <div>
-            <select
-              value={selectValue}
-              onChange={(e) => onChange(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg outline-none"
-              style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
-            >
-              <option value="">—</option>
-              {options.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            {renderSearchBox()}
 
+            {isSearching && (
+              <div className="flex items-center justify-between mb-1.5">
+                <span style={{ fontSize: 11, color: T.t3 }}>
+                  {filteredOptions.length === 1
+                    ? t('settings.orgSection.operational.optionsFound_one', { count: 1, defaultValue: '1 option found' })
+                    : t('settings.orgSection.operational.optionsFound_other', {
+                        count: filteredOptions.length,
+                        defaultValue: `${filteredOptions.length} options found`,
+                      })}
+                </span>
+                {filteredOptions.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="border-none bg-transparent cursor-pointer p-0 font-medium"
+                    style={{ fontSize: 11, color: T.ac }}
+                  >
+                    {t('settings.orgSection.operational.clearFilter', { defaultValue: 'Clear filter' })}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {isSearching && filteredOptions.length === 0 ? (
+              <div
+                className="py-3 px-3 rounded-lg text-center"
+                style={{ background: T.sa, border: `1px dashed ${T.bd}` }}
+              >
+                <p style={{ fontSize: 12, color: T.t3, margin: 0 }}>
+                  {t('settings.orgSection.operational.noOptionsFound', {
+                    defaultValue: 'No options match your search',
+                  })}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="mt-1.5 px-2.5 py-1 rounded-md border-none cursor-pointer font-semibold"
+                  style={{ background: T.al, color: T.ac, fontSize: 11 }}
+                >
+                  {t('settings.orgSection.operational.clearFilter', { defaultValue: 'Clear filter' })}
+                </button>
+              </div>
+            ) : (
+              <div
+                className={
+                  displayOptions.some((o) => (o.label || '').length > 30)
+                    ? "flex flex-col gap-2 overflow-y-auto"
+                    : "flex flex-wrap gap-2 overflow-y-auto"
+                }
+                style={{
+                  maxHeight: displayOptions.length > 8 ? 240 : 'none',
+                  paddingRight: displayOptions.length > 8 ? 4 : 0,
+                }}
+              >
+                {displayOptions.map((opt) => {
+                  const isThisOther =
+                    otherOption &&
+                    (String(opt.value) === String(otherOption.value) ||
+                      String(opt.value).toLowerCase() === 'other' ||
+                      slugify(opt.label) === 'other');
+                  const active = isThisOther ? isSingleOtherActive : selectValue === String(opt.value);
+
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        if (isThisOther) {
+                          if (isSingleOtherActive) {
+                            onChange('');
+                            setSingleOtherText('');
+                          } else {
+                            onChange(singleOtherText.trim() ? singleOtherText.trim() : String(opt.value));
+                          }
+                        } else {
+                          onChange(active ? '' : String(opt.value));
+                          setSingleOtherText('');
+                        }
+                      }}
+                      className="px-3 py-2 rounded-lg cursor-pointer text-left transition-all"
+                      style={{
+                        background: active ? T.al : T.sa,
+                        color: active ? T.ac : T.t2,
+                        fontSize: 12.5,
+                        fontWeight: active ? 600 : 400,
+                        border: `1px solid ${active ? T.ac : T.bd}`,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {active ? `✓ ${opt.label}` : opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* "Please specify" field when Other is selected in single-choice */}
             {isSingleOtherActive && (
               <div className="mt-3 pt-2.5" style={{ borderTop: `1px dashed ${T.bd}` }}>
                 <label className="block mb-1.5 font-semibold" style={{ fontSize: 12, color: T.t2 }}>
@@ -1624,3 +1910,19 @@ function slugify(text) {
     .replace(/^_+|_+$/g, '')
     .replace(/_+/g, '_');
 }
+
+function normalizeSearch(str) {
+  return String(str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function matchesSearch(text, query) {
+  if (!query || !query.trim()) return true;
+  const normText = normalizeSearch(text);
+  const terms = normalizeSearch(query).split(/\s+/).filter(Boolean);
+  return terms.every((term) => normText.includes(term));
+}
+

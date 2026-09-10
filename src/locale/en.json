@@ -1479,6 +1479,12 @@
         "description": "To help us serve you better, please share a few details about your transport activity. This information allows MYVAGON to tailor load suggestions, routes, and features to your specific needs.",
         "mandatory": "Mandatory",
         "optional": "Optional",
+        "mandatoryGroupTitle": "Mandatory Information",
+        "extendedGroupTitle": "Extended Information",
+        "shippingOpsGroupTitle": "Shipping Operations & Load Profile",
+        "partnershipsGroupTitle": "Partnerships & Transport Network",
+        "processesGroupTitle": "Processes & Systems",
+        "otherGroupTitle": "Other Information",
         "unanswered": "Unanswered",
         "answered": "Completed",
         "requiredHint": "Please answer this question",
@@ -1488,7 +1494,14 @@
         "shipmentProfile": "Typical Shipment Profile",
         "empty": "No operations questions are configured yet.",
         "showMore": "Show more (+{{count}})",
-        "showLess": "Show less"
+        "showLess": "Show less",
+        "searchPlaceholder": "Search options…",
+        "noOptionsFound": "No options match your search",
+        "selectedCount": "Selected ({{count}}):",
+        "clearSearch": "Clear search",
+        "clearFilter": "Clear filter",
+        "optionsFound_one": "{{count}} option found",
+        "optionsFound_other": "{{count}} options found"
       },
       "branding": {
         "title": "Branding & Public Profile",

@@ -128,7 +128,7 @@ function formatStopSchedule(fromDate?: string | null, toDate?: string | null): s
 }
 
 function timelineDotClass(step: TrackingTimelineItem): string {
-  const classes = [step.state];
+  const classes: string[] = [step.state];
   if (step.variant === 'pod' && step.state === 'pending') classes.push('pod-pending');
   if (step.variant === 'danger' || step.state === 'failed') classes.push('failed');
   if (step.state === 'done' && step.variant !== 'pod' && step.variant !== 'danger') classes.push('success');
