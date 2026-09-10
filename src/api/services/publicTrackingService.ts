@@ -6,21 +6,21 @@ function publicApiBase(): string {
   return shipperBase.replace(/\/shipper\/v1\/?$/, '/public/v1');
 }
 
-function encodeSegment(value: string): string {
-  return encodeURIComponent(value);
-}
-
 type ApiEnvelope<T> = {
   success: boolean;
   message: string;
   data: T;
 };
 
+function trackingQuery(id: string, locationId: string) {
+  return { sid: id, lid: locationId };
+}
+
 async function getTracking(id: string, locationId: string): Promise<PublicTrackingPayload> {
   const base = publicApiBase();
-  const res = await axios.get<ApiEnvelope<PublicTrackingPayload>>(
-    `${base}/track-shipment/${encodeSegment(id)}/${encodeSegment(locationId)}`
-  );
+  const res = await axios.get<ApiEnvelope<PublicTrackingPayload>>(`${base}/track-shipment`, {
+    params: trackingQuery(id, locationId),
+  });
   if (!res.data?.success || !res.data.data) {
     throw new Error(res.data?.message || 'Failed to load tracking');
   }
@@ -45,8 +45,9 @@ async function confirmReceipt(
 ) {
   const base = publicApiBase();
   const res = await axios.post<ApiEnvelope<unknown>>(
-    `${base}/track-shipment/${encodeSegment(id)}/${encodeSegment(locationId)}/confirm-receipt`,
-    body
+    `${base}/track-shipment/confirm-receipt`,
+    body,
+    { params: trackingQuery(id, locationId) }
   );
   if (!res.data?.success) {
     throw new Error(res.data?.message || 'Failed to confirm receipt');
@@ -66,8 +67,9 @@ async function submitRating(
 ) {
   const base = publicApiBase();
   const res = await axios.post<ApiEnvelope<{ rated: boolean; guest_display_name?: string }>>(
-    `${base}/track-shipment/${encodeSegment(id)}/${encodeSegment(locationId)}/rating`,
-    body
+    `${base}/track-shipment/rating`,
+    body,
+    { params: trackingQuery(id, locationId) }
   );
   if (!res.data?.success) {
     throw new Error(res.data?.message || 'Failed to submit rating');

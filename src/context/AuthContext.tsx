@@ -218,7 +218,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       void cleanupLocalFcmDevice().finally(() => {
         setUser(null);
         setToken(null);
-        if (window.location.pathname !== '/login') {
+        const path = window.location.pathname || '';
+        const isPublicGuestPath =
+          path === '/login' ||
+          path.startsWith('/track-shipment') ||
+          path.startsWith('/webview/') ||
+          path.startsWith('/shipper/register') ||
+          path.startsWith('/terms-condition') ||
+          path.startsWith('/privacy-policy');
+        if (!isPublicGuestPath) {
           window.location.href = '/login';
         }
       });

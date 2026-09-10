@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { Copy, Mail, Phone, Star } from 'lucide-react';
 import { publicTrackingService } from '../../api/services/publicTrackingService';
 import { loadGoogleMaps } from '../../components/AddressBook/GoogleMapAddressField';
@@ -173,11 +173,66 @@ function TrackingMap({
   );
 }
 
+/** Resolve tracking tokens from query, path params, or Amplify-decoded multi-segment paths. */
+function usePublicTrackingTokens(): { encryptedId: string; encryptedLocationIds: string } {
+  const params = useParams<{ encryptedId?: string; encryptedLocationIds?: string; '*'?: string }>();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+
+  return useMemo(() => {
+    const sid = searchParams.get('sid') || searchParams.get('id') || '';
+    const lid = searchParams.get('lid') || searchParams.get('location') || searchParams.get('location_id') || '';
+    if (sid && lid) {
+      return { encryptedId: sid, encryptedLocationIds: lid };
+    }
+
+    if (params.encryptedId && params.encryptedLocationIds) {
+      return {
+        encryptedId: params.encryptedId,
+        encryptedLocationIds: params.encryptedLocationIds,
+      };
+    }
+
+    // /track-shipment/* — when %2F was decoded into extra "/" segments.
+    // Laravel Crypt payloads are base64(JSON) and typically start with "eyJ".
+    const marker = '/track-shipment/';
+    const idx = location.pathname.indexOf(marker);
+    if (idx >= 0) {
+      const rest = location.pathname.slice(idx + marker.length).replace(/\/$/, '');
+      const eyJParts = rest.split(/(?=eyJ)/).filter(Boolean).map((p) => p.replace(/\/$/, ''));
+      if (eyJParts.length >= 2) {
+        return {
+          encryptedId: eyJParts[0],
+          encryptedLocationIds: eyJParts.slice(1).join(''),
+        };
+      }
+      const segs = rest.split('/').filter(Boolean);
+      if (segs.length >= 2) {
+        return { encryptedId: segs[0], encryptedLocationIds: segs.slice(1).join('/') };
+      }
+    }
+
+    const splat = params['*'] || '';
+    if (splat) {
+      const eyJParts = splat.split(/(?=eyJ)/).filter(Boolean).map((p) => p.replace(/\/$/, ''));
+      if (eyJParts.length >= 2) {
+        return {
+          encryptedId: eyJParts[0],
+          encryptedLocationIds: eyJParts.slice(1).join(''),
+        };
+      }
+      const segs = splat.split('/').filter(Boolean);
+      if (segs.length >= 2) {
+        return { encryptedId: segs[0], encryptedLocationIds: segs.slice(1).join('/') };
+      }
+    }
+
+    return { encryptedId: '', encryptedLocationIds: '' };
+  }, [location.pathname, params, searchParams]);
+}
+
 export const PublicTrackingPage: React.FC = () => {
-  const { encryptedId = '', encryptedLocationIds = '' } = useParams<{
-    encryptedId: string;
-    encryptedLocationIds: string;
-  }>();
+  const { encryptedId, encryptedLocationIds } = usePublicTrackingTokens();
   const [lang, setLang] = useState<Lang>('en');
   const [data, setData] = useState<PublicTrackingPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
