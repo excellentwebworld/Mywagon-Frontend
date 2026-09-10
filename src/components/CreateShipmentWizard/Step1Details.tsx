@@ -32,6 +32,7 @@ import { SearchableSelect } from "../ui/SearchableSelect";
 import { DatePicker, getTodayDateString } from "../ui/DatePicker";
 import { TimePicker } from "../ui/TimePicker";
 import { formatDisplayDate, formatDisplayTime } from "../../utils/dateDisplay";
+import { getCurrentTime24 } from "../../utils/timezone";
 import { LocationSelect } from "./LocationSelect";
 import { LocationPreviewOverlay } from "./LocationPreviewOverlay";
 import { createNewStop, createNewCargoLine } from "./types";
@@ -1755,6 +1756,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                                   if (val && s.dateTo && String(s.dateTo) < String(val)) {
                                     patch.dateTo = "";
                                   }
+                                  if (val && !s.timeFrom) {
+                                    patch.timeFrom = getCurrentTime24();
+                                  }
                                   return patch;
                                 });
                               }}
@@ -1793,7 +1797,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               value={stop.dateTo}
                               onChange={(val) => {
                                 if (stopLocked) return;
-                                uStop(stop.id, { dateTo: val });
+                                uStop(stop.id, (s: any) => {
+                                  const patch: any = { ...s, dateTo: val };
+                                  if (val && !s.timeTo) {
+                                    patch.timeTo = s.timeFrom || getCurrentTime24();
+                                  }
+                                  return patch;
+                                });
                               }}
                               min={stop.dateFrom || todayStr}
                               disabled={stopLocked}

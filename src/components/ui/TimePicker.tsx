@@ -28,6 +28,14 @@ export function normalizeTime24(raw: string): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+/** Current local time formatted as 24h `HH:mm`. */
+export function getCurrentLocalTime24(): string {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
 function splitTime(value: string): { hour: string; minute: string } {
   const normalized = normalizeTime24(value);
   if (!normalized) return { hour: '', minute: '' };
@@ -109,14 +117,18 @@ export const TimePicker: React.FC<Props> = ({
 
   useEffect(() => {
     if (!open) return;
+    const now = new Date();
+    const defaultHour = String(now.getHours()).padStart(2, '0');
+    const defaultMinute = String(now.getMinutes()).padStart(2, '0');
+
     const scrollSelected = (list: HTMLDivElement | null, sel: string) => {
       if (!list || !sel) return;
       const item = list.querySelector<HTMLElement>(`[data-value="${sel}"]`);
       item?.scrollIntoView({ block: 'center' });
     };
     requestAnimationFrame(() => {
-      scrollSelected(hourListRef.current, selectedHour);
-      scrollSelected(minuteListRef.current, selectedMinute);
+      scrollSelected(hourListRef.current, selectedHour || defaultHour);
+      scrollSelected(minuteListRef.current, selectedMinute || defaultMinute);
     });
   }, [open, selectedHour, selectedMinute]);
 
@@ -127,12 +139,16 @@ export const TimePicker: React.FC<Props> = ({
   };
 
   const pickHour = (hour: string) => {
-    const minute = selectedMinute || '00';
+    const now = new Date();
+    const defaultMinute = String(now.getMinutes()).padStart(2, '0');
+    const minute = selectedMinute || defaultMinute;
     commit(`${hour}:${minute}`);
   };
 
   const pickMinute = (minute: string) => {
-    const hour = selectedHour || '00';
+    const now = new Date();
+    const defaultHour = String(now.getHours()).padStart(2, '0');
+    const hour = selectedHour || defaultHour;
     commit(`${hour}:${minute}`);
     setOpen(false);
   };
@@ -268,7 +284,20 @@ export const TimePicker: React.FC<Props> = ({
                 </div>
               </div>
             </div>
-            <div className="time-picker-menu-footer">24h</div>
+            <div className="time-picker-menu-footer">
+              <button
+                type="button"
+                className="time-picker-now-btn"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  commit(getCurrentLocalTime24());
+                  setOpen(false);
+                }}
+              >
+                Now
+              </button>
+              <span>24h</span>
+            </div>
           </div>,
           document.body
         )}

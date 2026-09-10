@@ -20,6 +20,14 @@ export function getBrowserTimezone(): string {
   }
 }
 
+/** Current local time formatted as 24h `HH:mm` in the user's browser timezone. */
+export function getCurrentTime24(): string {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
 /** True when value is a bare calendar date with no time component. */
 export function isDateOnly(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test((value || '').trim());
