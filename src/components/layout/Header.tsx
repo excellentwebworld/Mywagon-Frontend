@@ -712,7 +712,7 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Plus size={16} className="mv-topbar-cta-icon" />
           <span className="mv-topbar-cta-label">
-            + {t('newShipment') || t('createShipment') || 'New shipment'}
+            {t('newShipment') || t('createShipment') || 'New shipment'}
           </span>
         </button>
       )}
