@@ -9,6 +9,7 @@ import { createNewCargoLine, createNewStop } from '../../components/CreateShipme
 import { computeItineraryFingerprint } from '../../components/CreateShipmentWizard/itineraryFingerprint';
 import { normalizeQtyUnit, normalizeWeightUnit } from '../../constants/cargoUnits';
 import { getBrowserTimezone } from '../../utils/timezone';
+import { normalizeTime24 } from '../../components/ui/TimePicker';
 
 /** Coerce draft vehicleSpecs so lookup by formKey always matches.
  * PHP/Laravel often re-indexes numeric object keys into a list of arrays —
@@ -203,6 +204,8 @@ export function formValuesToStepOnePayload(
 ): SaveStepOnePayload {
   const stops = (values.stops || []).map((stop) => ({
     ...stop,
+    timeFrom: normalizeTime24(String(stop.timeFrom || '')),
+    timeTo: normalizeTime24(String(stop.timeTo || '')),
     lines: (stop.lines || []).map((line) => ({
       ...line,
       unit: normalizeQtyUnit(line.unit) || line.unit || 'EUR Pallets',
@@ -240,6 +243,8 @@ export function draftToFormValues(
       ? state.stops.map((stop) => ({
           ...createNewStop(false),
           ...stop,
+          timeFrom: normalizeTime24(String(stop.timeFrom || '')),
+          timeTo: normalizeTime24(String(stop.timeTo || '')),
           lines:
             Array.isArray(stop.lines) && stop.lines.length > 0
               ? stop.lines.map((line) => ({

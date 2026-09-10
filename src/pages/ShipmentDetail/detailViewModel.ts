@@ -511,10 +511,9 @@ function buildMilestones(shipment: Shipment): MilestoneItem[] {
       topBid?.role === 'freelancer' ||
       topBid?.transporterType === 'driver';
     const isPartner = Boolean(
-      shipment.carrierPartner ||
-      shipment.assignedDriverPartner ||
-      topBid?.isPartner ||
-      shipment.carrier_init === 'P'
+      isFreelancer
+        ? (shipment.assignedDriverPartner || topBid?.isPartner)
+        : (shipment.carrierPartner || topBid?.isPartner || shipment.carrier_init === 'P')
     );
     const prefixEn = isFreelancer ? 'Freelancer:' : 'Carrier:';
     const prefixEl = isFreelancer ? 'Freelancer:' : 'Μεταφορέας:';
@@ -796,11 +795,15 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     shipment.offers?.[0]?.role === 'freelancer' ||
     shipment.offers?.[0]?.transporterType === 'driver';
 
-  const isPartner = Boolean(
+  const isCarrierPartner = Boolean(
     shipment.carrierPartner ||
-    shipment.assignedDriverPartner ||
-    shipment.offers?.[0]?.isPartner ||
+    (!isFreelancer && shipment.offers?.[0]?.isPartner) ||
     shipment.carrier_init === 'P'
+  );
+
+  const isDriverPartner = Boolean(
+    shipment.assignedDriverPartner ||
+    (isFreelancer && (shipment.carrierPartner || shipment.offers?.[0]?.isPartner))
   );
 
   const carrierUserRating =
@@ -860,7 +863,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
           (shipment.carrier ? shipment.carrier.substring(0, 2).toUpperCase() : 'TR'),
         avatar: shipment.carrierAvatar ?? null,
         name: shipment.carrier || 'Transporter',
-        partner: isPartner,
+        partner: isCarrierPartner,
         role: isFreelancer ? 'freelancer' : 'carrier',
         rating: carrierRatingStr,
         ratingCount: carrierRatingCount ?? undefined,
@@ -893,7 +896,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
             (shipment.assignedDriverName ? shipment.assignedDriverName.substring(0, 2).toUpperCase() : 'DR'),
           avatar: shipment.assignedDriverAvatar ?? null,
           name: shipment.assignedDriverName || (isFreelancer ? shipment.carrier || 'Driver' : 'Assigned Driver'),
-          partner: Boolean(shipment.assignedDriverPartner ?? isPartner),
+          partner: isDriverPartner,
           rating:
             shipment.assignedDriverRating != null && !isNaN(Number(shipment.assignedDriverRating))
               ? Number(shipment.assignedDriverRating).toFixed(1)

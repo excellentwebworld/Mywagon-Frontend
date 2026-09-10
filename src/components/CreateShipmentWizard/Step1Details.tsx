@@ -1768,7 +1768,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                                 `stop-${idx}-date`,
                                 idx,
                               )}
-                              style={{ ...iS, width: 90 }}
+                              style={{ ...iS, width: 98 }}
                               value={stop.timeFrom}
                               onChange={(val) => {
                                 if (stopLocked) return;
@@ -1800,7 +1800,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               direction="auto"
                             />
                             <TimePicker
-                              style={{ ...iS, width: 90 }}
+                              style={{ ...iS, width: 98 }}
                               value={stop.timeTo}
                               onChange={(val) => {
                                 if (stopLocked) return;
