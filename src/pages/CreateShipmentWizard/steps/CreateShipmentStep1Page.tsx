@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useFormikContext } from 'formik';
 import { useOutletContext } from 'react-router-dom';
 import { Step1Details } from '../../../components/CreateShipmentWizard/Step1Details';
@@ -7,6 +7,11 @@ import type { WizardOutletContext } from '../wizardOutletContext';
 
 export const CreateShipmentStep1Page: React.FC = () => {
   const { values } = useFormikContext<WizardFormValues>();
+  const valuesRef = useRef(values);
+  useEffect(() => {
+    valuesRef.current = values;
+  }, [values]);
+
   const {
     isSaving,
     validationRequest,
@@ -24,9 +29,10 @@ export const CreateShipmentStep1Page: React.FC = () => {
       editShipmentStatus={editShipmentStatus}
       onSaveDraft={async () => {
         resetItineraryConfirmationRef.current?.();
+        const latest = valuesRef.current;
         await saveStep1(
           {
-            ...values,
+            ...latest,
             itineraryConfirmed: false,
             itineraryConfirmSnapshot: '',
           },
@@ -35,9 +41,11 @@ export const CreateShipmentStep1Page: React.FC = () => {
       }}
       onContinue={async () => {
         resetItineraryConfirmationRef.current?.();
+        // Always save the latest Formik values (avoids stale date after rapid picker changes).
+        const latest = valuesRef.current;
         await saveStep1(
           {
-            ...values,
+            ...latest,
             itineraryConfirmed: false,
             itineraryConfirmSnapshot: '',
           },

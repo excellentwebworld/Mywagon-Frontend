@@ -27,10 +27,9 @@ import {
   Upload,
   Trash2,
   Image as ImageIcon,
-  Plus,
-  Send,
 } from 'lucide-react';
 import { shipmentsService } from '../../api';
+import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { useCreateShipmentPartners } from '../../hooks/useCreateShipmentPartners';
@@ -79,6 +78,8 @@ const T = {
 interface Step3PricingProps {
   draftId?: number | null;
   isEditMode?: boolean;
+  /** Live shipment status while editing (e.g. scheduled / ready / on_trip). */
+  editShipmentStatus?: string | null;
   onBackStep: () => void;
   onSubmit: () => void;
   onSaveDraft?: (values: WizardFormValues) => Promise<void>;
@@ -88,6 +89,7 @@ interface Step3PricingProps {
 export const Step3Pricing: React.FC<Step3PricingProps> = ({
   draftId = null,
   isEditMode = false,
+  editShipmentStatus = null,
   onBackStep,
   onSubmit,
   onSaveDraft,
@@ -97,6 +99,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   const { locations, showToast } = useApp();
   const { values, setFieldValue, isSubmitting } = useFormikContext<any>();
   const stops = values.stops || [];
+  // Match Laravel edit itinerary: negotiable + live nav disabled when status !== draft.
+  const lockNegotiableAndLiveNav =
+    isEditMode &&
+    Boolean(editShipmentStatus) &&
+    String(editShipmentStatus).toLowerCase() !== 'draft';
   const { carriersList, loading: partnersLoading, error: partnersError } = useCreateShipmentPartners();
   const { quota: publicQuota, loading: publicQuotaLoading } = usePublicLoadQuota(
     draftId,
@@ -111,18 +118,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
   const [activeStopIndex, setActiveStopIndex] = useState<number | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
-  const [uploadingDoc, setUploadingDoc] = useState(false);
   const orderValuePrefilledRef = useRef(false);
-
-  const attachedDocs = useMemo<Array<{
-    id: string | number;
-    name: string;
-    fileName?: string;
-    fileSize?: number;
-    fileType?: string;
-    url?: string;
-    file?: File;
-  }>>(() => values.documentsList || [], [values.documentsList]);
 
   const formatDocSize = (bytes?: number | null) => {
     if (!bytes) return '';
@@ -148,14 +144,41 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const attachedDoc = values.documentsList && values.documentsList.length > 0 ? values.documentsList[0] : null;
+  const attachedDocs = useMemo(
+    () => (values.documentsList || []) as NonNullable<WizardFormValues['documentsList']>,
+    [values.documentsList]
+  );
+  const attachedDoc = !isEditMode && attachedDocs.length > 0 ? attachedDocs[0] : null;
+  const existingNotes = useMemo(
+    () => (values.notesList || []) as NonNullable<WizardFormValues['notesList']>,
+    [values.notesList]
+  );
 
   const [noteVisibility, setNoteVisibility] = useState<'internal' | 'carrier'>('carrier');
   const [docName, setDocName] = useState('');
   const [docDescription, setDocDescription] = useState('');
+  const hydratedDocIdRef = useRef<string>('');
 
-  const handleSelectFile = (file: File) => {
-    if (!file) return;
+  // Create mode: hydrate the single-slot form from the attached document.
+  useEffect(() => {
+    if (isEditMode) return;
+    const docId = attachedDoc ? String(attachedDoc.id) : '';
+    if (docId === hydratedDocIdRef.current) return;
+    hydratedDocIdRef.current = docId;
+    if (!attachedDoc) {
+      setDocName('');
+      setDocDescription('');
+      return;
+    }
+    setDocName(attachedDoc.name || '');
+    setDocDescription(attachedDoc.description || '');
+  }, [attachedDoc, isEditMode]);
+
+  const isPersistedDocId = (id: string | number | undefined | null) =>
+    id != null && /^\d+$/.test(String(id));
+
+  const handleSelectFile = async (file: File) => {
+    if (isEditMode || !file) return;
     if (file.size > 20 * 1024 * 1024) {
       showToast(t('fileSizeExceeded', 'File size exceeds 20MB limit.'), 'error');
       return;
@@ -164,6 +187,15 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     const defaultName = docName.trim() || file.name.replace(/\.[^/.]+$/, '');
     if (!docName.trim()) {
       setDocName(defaultName);
+    }
+
+    const previous = attachedDoc;
+    if (draftId && previous && isPersistedDocId(previous.id) && !previous.file) {
+      try {
+        await shipmentsService.deleteDocument(draftId, previous.id);
+      } catch {
+        // Continue with local replace; save upload still proceeds.
+      }
     }
 
     const newDoc = {
@@ -176,34 +208,41 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
       file,
     };
 
+    hydratedDocIdRef.current = String(newDoc.id);
     setFieldValue('documentsList', [newDoc]);
-    showToast(t('documentAttachedSuccess', 'Document attached. It will be uploaded upon saving.'), 'success');
+    showToast(
+      t('documentAttachedSuccess', 'Document attached. It will be uploaded upon saving.'),
+      'success'
+    );
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      handleSelectFile(file);
+      void handleSelectFile(file);
     }
     e.target.value = '';
   };
 
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    if (isEditMode) return;
     const file = e.dataTransfer.files?.[0];
     if (file) {
-      handleSelectFile(file);
+      void handleSelectFile(file);
     }
   };
 
   const handleRemoveDoc = async (doc: { id: string | number; file?: File }) => {
-    if (draftId && typeof doc.id === 'number') {
+    if (isEditMode) return;
+    if (draftId && isPersistedDocId(doc.id)) {
       try {
         await shipmentsService.deleteDocument(draftId, doc.id);
       } catch {
         // Continue removing locally
       }
     }
+    hydratedDocIdRef.current = '';
     setDocName('');
     setDocDescription('');
     setFieldValue('documentsList', []);
@@ -892,7 +931,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               {/* Live Navigation at top of Tracking — always visible */}
               <div
                 className="flex items-center justify-between gap-3 p-3 rounded-lg border"
-                style={{ borderColor: T.bd, background: T.sa }}
+                style={{
+                  borderColor: T.bd,
+                  background: T.sa,
+                  opacity: lockNegotiableAndLiveNav ? 0.75 : 1,
+                }}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div
@@ -910,11 +953,27 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                     </div>
                   </div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                <label
+                  className={`relative inline-flex items-center select-none shrink-0 ${
+                    lockNegotiableAndLiveNav ? 'cursor-not-allowed' : 'cursor-pointer'
+                  }`}
+                  title={
+                    lockNegotiableAndLiveNav
+                      ? t(
+                          'liveNavigationLockedHint',
+                          'Live navigation cannot be changed after the load is published.'
+                        )
+                      : undefined
+                  }
+                >
                   <input
                     type="checkbox"
                     checked={values.gpsRequired}
-                    onChange={(e) => setFieldValue('gpsRequired', e.target.checked)}
+                    disabled={lockNegotiableAndLiveNav}
+                    onChange={(e) => {
+                      if (lockNegotiableAndLiveNav) return;
+                      setFieldValue('gpsRequired', e.target.checked);
+                    }}
                     className="sr-only peer"
                   />
                   <div
@@ -1263,80 +1322,158 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               </p>
             </div>
 
-            <div className="neg-row neg-row--compact">
+            <div
+              className="neg-row neg-row--compact"
+              style={{ opacity: lockNegotiableAndLiveNav ? 0.75 : 1 }}
+            >
               <div className="neg-copy">
                 <div className="neg-title">{t('negotiablePrice') || 'Negotiable price'}</div>
                 <div className="neg-sub">{t('negotiableSub') || 'Carriers can submit counteroffers'}</div>
               </div>
               <button
                 type="button"
-                className={`tog${values.negotiable ? ' on' : ''}`}
+                className={`tog${values.negotiable ? ' on' : ''}${
+                  lockNegotiableAndLiveNav ? ' tog--locked' : ''
+                }`}
                 aria-pressed={values.negotiable}
+                aria-disabled={lockNegotiableAndLiveNav}
+                disabled={lockNegotiableAndLiveNav}
                 aria-label={t('negotiablePrice') || 'Negotiable price'}
-                onClick={() => setFieldValue('negotiable', !values.negotiable)}
+                title={
+                  lockNegotiableAndLiveNav
+                    ? t(
+                        'negotiableLockedHint',
+                        'Negotiable setting cannot be changed after the load is published.'
+                      )
+                    : undefined
+                }
+                onClick={() => {
+                  if (lockNegotiableAndLiveNav) return;
+                  setFieldValue('negotiable', !values.negotiable);
+                }}
+                style={
+                  lockNegotiableAndLiveNav
+                    ? { cursor: 'not-allowed', pointerEvents: 'none' }
+                    : undefined
+                }
               />
             </div>
           </div>
 
-          {/* NOTES & INSTRUCTIONS (Direct inline input) */}
+          {/* NOTES & INSTRUCTIONS */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
             <div className="ch flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: T.bd }}>
               <div className="flex items-center gap-2">
                 <FileText size={15} style={{ color: T.ac }} />
                 <span className="font-semibold text-sm">{t('notesInstructions', 'Notes & instructions')}</span>
+                {isEditMode && existingNotes.length > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F3E8FF] text-[#7C3AED] border border-[#E9D5FF]">
+                    {existingNotes.length}
+                  </span>
+                )}
               </div>
             </div>
-            <div className="cb p-4">
-              <div className="p-3 rounded-xl bg-[#F5F5F7] space-y-2.5 border border-[#E4E4E8]/60">
-                <textarea
-                  value={values.driverNotes || ''}
-                  onChange={(e) => setFieldValue('driverNotes', e.target.value)}
-                  placeholder={t('enterNotePlaceholder', 'Type note instructions…')}
-                  rows={2}
-                  className="w-full text-xs p-2.5 rounded-lg bg-white border border-[#E4E4E8] outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/20 transition-all resize-y"
-                  maxLength={500}
-                />
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-3">
-                    <label className="text-[11px] text-[#5E5E6E] flex items-center gap-1.5 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="wizard-note-vis"
-                        className="accent-[#9B51E0]"
-                        checked={noteVisibility === 'internal'}
-                        onChange={() => setNoteVisibility('internal')}
-                      />
-                      <span>{t('internal', 'Internal')}</span>
-                    </label>
-                    <label className="text-[11px] text-[#5E5E6E] flex items-center gap-1.5 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="wizard-note-vis"
-                        className="accent-[#9B51E0]"
-                        checked={noteVisibility === 'carrier'}
-                        onChange={() => setNoteVisibility('carrier')}
-                      />
-                      <span>{t('carrierVisible', 'Carrier-visible')}</span>
-                    </label>
+            <div className="cb p-4 space-y-3">
+              {isEditMode ? (
+                <div className="space-y-2">
+                  {existingNotes.length === 0 ? (
+                    <p className="text-[12px] m-0" style={{ color: T.t3 }}>
+                      {t('noNotesRecorded', 'No special notes recorded for this load.')}
+                    </p>
+                  ) : (
+                    existingNotes.map((note) => (
+                      <div
+                        key={String(note.id)}
+                        className="p-3 rounded-xl border border-[#E4E4E8] bg-[#F9F9FB]"
+                      >
+                        <div className="text-[13px] font-medium text-[#18181B] leading-relaxed whitespace-pre-wrap break-words">
+                          {note.text}
+                        </div>
+                        <div className="text-[11px] mt-1.5 flex items-center gap-2 flex-wrap text-[#8E8E9A]">
+                          <span className="font-semibold text-[#5E5E6E]">{note.author || 'Shipper'}</span>
+                          {note.date && (
+                            <>
+                              <span>·</span>
+                              <span className="font-mono text-[10px]">
+                                {formatUtcToDisplayDateTime(note.date) || note.date}
+                              </span>
+                            </>
+                          )}
+                          <span>·</span>
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                              note.visibility === 'carrier'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                : 'bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            {note.visibility === 'carrier'
+                              ? t('carrierVisible', 'Carrier-visible')
+                              : t('internal', 'Internal')}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  <p className="text-[11px] m-0 pt-1" style={{ color: T.t3 }}>
+                    {t(
+                      'editNotesReadonlyHint',
+                      'To add or change notes, use the shipment detail page.'
+                    )}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-[#F5F5F7] space-y-2.5 border border-[#E4E4E8]/60">
+                  <textarea
+                    value={values.driverNotes || ''}
+                    onChange={(e) => setFieldValue('driverNotes', e.target.value)}
+                    placeholder={t('enterNotePlaceholder', 'Type note instructions…')}
+                    rows={2}
+                    className="w-full text-xs p-2.5 rounded-lg bg-white border border-[#E4E4E8] outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/20 transition-all resize-y"
+                    maxLength={500}
+                  />
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <label className="text-[11px] text-[#5E5E6E] flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="wizard-note-vis"
+                          className="accent-[#9B51E0]"
+                          checked={noteVisibility === 'internal'}
+                          onChange={() => setNoteVisibility('internal')}
+                        />
+                        <span>{t('internal', 'Internal')}</span>
+                      </label>
+                      <label className="text-[11px] text-[#5E5E6E] flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="wizard-note-vis"
+                          className="accent-[#9B51E0]"
+                          checked={noteVisibility === 'carrier'}
+                          onChange={() => setNoteVisibility('carrier')}
+                        />
+                        <span>{t('carrierVisible', 'Carrier-visible')}</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* DOCUMENTS & ATTACHMENTS (Direct with all detail page fields) */}
+          {/* DOCUMENTS & ATTACHMENTS */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
             <div className="ch flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: T.bd }}>
               <div className="flex items-center gap-2">
                 <Paperclip size={15} style={{ color: T.ac }} />
                 <span className="font-semibold text-sm">{t('documentsAttachments', 'Documents & attachments')}</span>
-                {attachedDoc && (
+                {attachedDocs.length > 0 && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]">
-                    1 {t('attached', 'Attached')}
+                    {attachedDocs.length} {t('attached', 'Attached')}
                   </span>
                 )}
               </div>
-              {attachedDoc && (
+              {!isEditMode && attachedDoc && (
                 <button
                   type="button"
                   onClick={() => handleRemoveDoc(attachedDoc)}
@@ -1348,154 +1485,228 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             </div>
 
             <div className="cb p-4 space-y-3.5">
-              {/* Hidden Native File Input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
-                onChange={handleFileInputChange}
-                className="hidden"
-              />
-
-              {/* Document Name */}
-              <div>
-                <label className="block text-xs font-semibold text-[#18181B] mb-1.5">
-                  {t('documentName', 'Document Name')}
-                </label>
-                <input
-                  type="text"
-                  value={docName}
-                  onChange={(e) => {
-                    setDocName(e.target.value);
-                    if (attachedDoc) {
-                      setFieldValue('documentsList', [{ ...attachedDoc, name: e.target.value }]);
-                    }
-                  }}
-                  placeholder={t('docNamePlaceholder', 'e.g., CMR, Delivery Note, Invoice, Customs Declaration')}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E4E4E8] text-xs text-[#18181B] bg-white outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/20 transition-all"
-                />
-              </div>
-
-              {/* Quick preset suggestions */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] font-medium text-[#8E8E9A]">{t('quickFill', 'Quick fill:')}</span>
-                {['CMR', 'POD', 'Invoice', 'Delivery Note', 'Customs Doc'].map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => {
-                      setDocName(preset);
-                      if (attachedDoc) {
-                        setFieldValue('documentsList', [{ ...attachedDoc, name: preset }]);
-                      }
-                    }}
-                    className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#F0F0F3] hover:bg-[#E4E4E8] text-[#5E5E6E] transition-colors cursor-pointer border-0"
-                  >
-                    {preset}
-                  </button>
-                ))}
-              </div>
-
-              {/* Description / Notes */}
-              <div>
-                <label className="block text-xs font-semibold text-[#18181B] mb-1.5">
-                  {t('description', 'Description / Notes')} <span className="text-[#8E8E9A] font-normal">({t('optional', 'Optional')})</span>
-                </label>
-                <textarea
-                  value={docDescription}
-                  onChange={(e) => {
-                    setDocDescription(e.target.value);
-                    if (attachedDoc) {
-                      setFieldValue('documentsList', [{ ...attachedDoc, description: e.target.value }]);
-                    }
-                  }}
-                  placeholder={t('docDescPlaceholder', 'Add extra details, reference numbers or notes about this document…')}
-                  rows={2}
-                  className="w-full px-3.5 py-2 rounded-xl border border-[#E4E4E8] text-xs text-[#18181B] bg-white outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/20 transition-all resize-y"
-                />
-              </div>
-
-              {/* File Dropzone / Selected File Preview */}
-              <div>
-                <label className="block text-xs font-semibold text-[#18181B] mb-1.5">
-                  {t('file', 'File (PDF, Images)')}
-                </label>
-
-                {!attachedDoc ? (
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={handleFileDrop}
-                    className="flex flex-col items-center justify-center p-6 rounded-xl border border-dashed border-[#E4E4E8] bg-[#FAF9FD] hover:bg-[#F8F7FC] transition-all cursor-pointer text-center group"
-                  >
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center mb-2 shadow-2xs group-hover:scale-110 transition-transform"
-                      style={{ background: '#FAF5FF', color: T.ac }}
-                    >
-                      <Upload size={18} />
-                    </div>
-                    <p className="text-xs font-semibold text-[#18181B] m-0 mb-1">
-                      {t('clickOrDragToUpload', 'Click or drag file here to upload')}
+              {isEditMode ? (
+                <div className="space-y-2">
+                  {attachedDocs.length === 0 ? (
+                    <p className="text-[12px] m-0" style={{ color: T.t3 }}>
+                      {t('noDocumentsYet', 'No documents attached yet.')}
                     </p>
-                    <p className="text-[11px] text-[#8E8E9A] m-0">
-                      PDF, JPG, PNG, WEBP, DOCX ({t('upTo', 'up to')} 20MB)
-                    </p>
-                  </div>
-                ) : (
-                  <div className="p-3.5 rounded-xl bg-[#F9F9FB] border border-[#E4E4E8] flex items-center justify-between gap-3 shadow-2xs">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-xs shadow-2xs ${
-                          isImageDoc(attachedDoc.fileType, attachedDoc.fileName)
-                            ? 'bg-[#EFF6FF] text-[#3B82F6] border border-[#DBEAFE]'
-                            : 'bg-[#FEF2F2] text-[#EF4444] border border-[#FEE2E2]'
-                        }`}
+                  ) : (
+                    attachedDocs.map((doc) => (
+                      <div
+                        key={String(doc.id)}
+                        className="p-3.5 rounded-xl bg-[#F9F9FB] border border-[#E4E4E8] flex items-center gap-3"
                       >
-                        {isImageDoc(attachedDoc.fileType, attachedDoc.fileName) ? <ImageIcon size={18} /> : <FileText size={18} />}
-                      </span>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-semibold text-[#18181B] truncate flex items-center gap-1.5">
-                          <span className="truncate">{docName || attachedDoc.name || attachedDoc.fileName}</span>
-                          {attachedDoc.fileName && (
-                            <span className="text-[11px] font-normal text-[#8E8E9A] truncate">
-                              ({attachedDoc.fileName})
-                            </span>
+                        <span
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-xs ${
+                            isImageDoc(doc.fileType, doc.fileName)
+                              ? 'bg-[#EFF6FF] text-[#3B82F6] border border-[#DBEAFE]'
+                              : 'bg-[#FEF2F2] text-[#EF4444] border border-[#FEE2E2]'
+                          }`}
+                        >
+                          {isImageDoc(doc.fileType, doc.fileName) ? (
+                            <ImageIcon size={18} />
+                          ) : (
+                            <FileText size={18} />
                           )}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-semibold text-[#18181B] truncate">
+                            {doc.name || doc.fileName || t('document', 'Document')}
+                          </div>
+                          <div className="text-[11px] text-[#8E8E9A] mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            {doc.fileName && <span className="truncate">{doc.fileName}</span>}
+                            {doc.fileSize ? <span>· {formatDocSize(doc.fileSize)}</span> : null}
+                          </div>
+                        </div>
+                        {doc.url && (
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] font-semibold text-[#9B51E0] hover:underline shrink-0"
+                          >
+                            {t('view', 'View')}
+                          </a>
+                        )}
+                      </div>
+                    ))
+                  )}
+                  <p className="text-[11px] m-0 pt-1" style={{ color: T.t3 }}>
+                    {t(
+                      'editDocumentsReadonlyHint',
+                      'To add or change documents, use the shipment detail page.'
+                    )}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                  />
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#18181B] mb-1.5">
+                      {t('documentName', 'Document Name')}
+                    </label>
+                    <input
+                      type="text"
+                      value={docName}
+                      onChange={(e) => {
+                        setDocName(e.target.value);
+                        if (attachedDoc) {
+                          setFieldValue('documentsList', [{ ...attachedDoc, name: e.target.value }]);
+                        }
+                      }}
+                      placeholder={t(
+                        'docNamePlaceholder',
+                        'e.g., CMR, Delivery Note, Invoice, Customs Declaration'
+                      )}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#E4E4E8] text-xs text-[#18181B] bg-white outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/20 transition-all"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-medium text-[#8E8E9A]">
+                      {t('quickFill', 'Quick fill:')}
+                    </span>
+                    {['CMR', 'POD', 'Invoice', 'Delivery Note', 'Customs Doc'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => {
+                          setDocName(preset);
+                          if (attachedDoc) {
+                            setFieldValue('documentsList', [{ ...attachedDoc, name: preset }]);
+                          }
+                        }}
+                        className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#F0F0F3] hover:bg-[#E4E4E8] text-[#5E5E6E] transition-colors cursor-pointer border-0"
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#18181B] mb-1.5">
+                      {t('description', 'Description / Notes')}{' '}
+                      <span className="text-[#8E8E9A] font-normal">({t('optional', 'Optional')})</span>
+                    </label>
+                    <textarea
+                      value={docDescription}
+                      onChange={(e) => {
+                        setDocDescription(e.target.value);
+                        if (attachedDoc) {
+                          setFieldValue('documentsList', [
+                            { ...attachedDoc, description: e.target.value },
+                          ]);
+                        }
+                      }}
+                      placeholder={t(
+                        'docDescPlaceholder',
+                        'Add extra details, reference numbers or notes about this document…'
+                      )}
+                      rows={2}
+                      className="w-full px-3.5 py-2 rounded-xl border border-[#E4E4E8] text-xs text-[#18181B] bg-white outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/20 transition-all resize-y"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#18181B] mb-1.5">
+                      {t('file', 'File (PDF, Images)')}
+                    </label>
+
+                    {attachedDoc ? (
+                      <div className="p-3.5 rounded-xl bg-[#F9F9FB] border border-[#E4E4E8] flex items-center justify-between gap-3 shadow-2xs">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <span
+                            className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-xs shadow-2xs ${
+                              isImageDoc(attachedDoc.fileType, attachedDoc.fileName)
+                                ? 'bg-[#EFF6FF] text-[#3B82F6] border border-[#DBEAFE]'
+                                : 'bg-[#FEF2F2] text-[#EF4444] border border-[#FEE2E2]'
+                            }`}
+                          >
+                            {isImageDoc(attachedDoc.fileType, attachedDoc.fileName) ? (
+                              <ImageIcon size={18} />
+                            ) : (
+                              <FileText size={18} />
+                            )}
+                          </span>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13px] font-semibold text-[#18181B] truncate flex items-center gap-1.5">
+                              <span className="truncate">
+                                {docName || attachedDoc.name || attachedDoc.fileName}
+                              </span>
+                              {attachedDoc.fileName && (
+                                <span className="text-[11px] font-normal text-[#8E8E9A] truncate">
+                                  ({attachedDoc.fileName})
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="text-[11px] text-[#8E8E9A] mt-0.5 flex items-center gap-1.5 flex-wrap">
+                              {attachedDoc.fileSize && (
+                                <span>{formatDocSize(attachedDoc.fileSize)}</span>
+                              )}
+                              {docDescription && (
+                                <>
+                                  <span>·</span>
+                                  <span className="italic text-[#64748B] truncate max-w-[200px]">
+                                    {docDescription}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="text-[11px] text-[#8E8E9A] mt-0.5 flex items-center gap-1.5 flex-wrap">
-                          {attachedDoc.fileSize && <span>{formatDocSize(attachedDoc.fileSize)}</span>}
-                          {docDescription && (
-                            <>
-                              <span>·</span>
-                              <span className="italic text-[#64748B] truncate max-w-[200px]">{docDescription}</span>
-                            </>
-                          )}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="text-[11px] font-semibold text-[#9B51E0] hover:underline px-1.5 py-1 cursor-pointer bg-transparent border-0"
+                          >
+                            {t('replace', 'Replace')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDoc(attachedDoc)}
+                            className="p-1 text-[#9CA3AF] hover:text-[#DC2626] transition-colors cursor-pointer bg-transparent border-0"
+                            title={t('remove', 'Remove')}
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
+                    ) : (
+                      <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="text-[11px] font-semibold text-[#9B51E0] hover:underline px-1.5 py-1 cursor-pointer bg-transparent border-0"
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={handleFileDrop}
+                        className="flex flex-col items-center justify-center p-6 rounded-xl border border-dashed border-[#E4E4E8] bg-[#FAF9FD] hover:bg-[#F8F7FC] transition-all cursor-pointer text-center group"
                       >
-                        {t('replace', 'Replace')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveDoc(attachedDoc)}
-                        className="p-1 text-[#9CA3AF] hover:text-[#DC2626] transition-colors cursor-pointer bg-transparent border-0"
-                        title={t('remove', 'Remove')}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center mb-2 shadow-2xs group-hover:scale-110 transition-transform"
+                          style={{ background: '#FAF5FF', color: T.ac }}
+                        >
+                          <Upload size={18} />
+                        </div>
+                        <p className="text-xs font-semibold text-[#18181B] m-0 mb-1">
+                          {t('clickOrDragToUpload', 'Click or drag file here to upload')}
+                        </p>
+                        <p className="text-[11px] text-[#8E8E9A] m-0">
+                          PDF, JPG, PNG, WEBP, DOCX ({t('upTo', 'up to')} 20MB)
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1851,7 +2062,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             onClick={onBackStep}
             disabled={isSubmitting}
           >
-            <ArrowLeft size={13} /> {t('back') || 'Back'}
+            <ArrowLeft size={13} /> {t('back', 'Back')}
           </button>
           
           <button
@@ -1864,8 +2075,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
           >
             <Save size={13} />{' '}
             {isEditMode
-              ? t('saveChanges') || 'Save Changes'
-              : t('saveDraft') || 'Save Draft'}
+              ? t('saveChanges', 'Save Changes')
+              : t('saveDraft', 'Save Draft')}
           </button>
 
           <button
@@ -1883,13 +2094,13 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               <>
                 <Loader2 size={16} className="animate-spin" aria-hidden />
                 {isEditMode
-                  ? t('updatingShipment') || 'Updating…'
-                  : t('creatingShipment') || 'Creating…'}
+                  ? t('updatingShipment', 'Updating…')
+                  : t('creatingShipment', 'Creating…')}
               </>
             ) : isEditMode ? (
-              t('updateLoadBtn') || 'Update Load'
+              t('updateLoadBtn', 'Update Shipment')
             ) : (
-              t('createLoadBtn') || 'Create Shipment'
+              t('createLoadBtn', 'Create Shipment')
             )}
           </button>
         </div>

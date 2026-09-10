@@ -184,7 +184,13 @@ export interface WizardFormValues {
   negotiable: boolean;
   trackingEmails: Record<string, string[]>;
   driverNotes: string;
-  notesList?: Array<{ id: string | number; text: string; visibility: 'internal' | 'carrier'; date: string }>;
+  notesList?: Array<{
+    id: string | number;
+    text: string;
+    visibility: 'internal' | 'carrier' | string;
+    date?: string | null;
+    author?: string;
+  }>;
   gpsRequired: boolean;
   orderValue: string;
   documentsList?: Array<{ id: string | number; name: string; fileName?: string; fileSize?: number; fileType?: string; url?: string; description?: string; file?: File }>;
@@ -290,11 +296,67 @@ export function draftToFormValues(
       extractTrackingOrderIds(stops)
     ),
     driverNotes: state.driverNotes ?? defaults.driverNotes,
-    notesList: state.notesList ?? defaults.notesList ?? [],
+    notesList: normalizeNotesList(state.notesList ?? defaults.notesList ?? []),
     gpsRequired: state.gpsRequired ?? defaults.gpsRequired,
     orderValue: state.orderValue ?? defaults.orderValue,
-    documentsList: state.documentsList ?? defaults.documentsList ?? [],
+    documentsList: normalizeDocumentsList(state.documentsList ?? defaults.documentsList ?? []),
   };
+}
+
+function normalizeNotesList(
+  raw: unknown
+): NonNullable<WizardFormValues['notesList']> {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const row = item as Record<string, unknown>;
+      const id = row.id ?? row.note_id;
+      const text = String(row.text ?? row.body ?? '');
+      if (id == null || text === '') return null;
+      const visibilityRaw = String(row.visibility ?? 'carrier').toLowerCase();
+      const visibility = visibilityRaw === 'internal' ? 'internal' : 'carrier';
+      return {
+        id: typeof id === 'number' || typeof id === 'string' ? id : String(id),
+        text,
+        visibility,
+        date: row.date != null ? String(row.date) : row.timestamp != null ? String(row.timestamp) : null,
+        author: row.author != null ? String(row.author) : 'Shipper',
+      };
+    })
+    .filter((n): n is NonNullable<typeof n> => n != null);
+}
+
+/** Normalize wizard/API document rows into Formik documentsList shape. */
+function normalizeDocumentsList(
+  raw: unknown
+): NonNullable<WizardFormValues['documentsList']> {
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+
+  return raw
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const row = item as Record<string, unknown>;
+      const id = row.id ?? row.document_id;
+      if (id == null || id === '') return null;
+
+      return {
+        id: typeof id === 'number' || typeof id === 'string' ? id : String(id),
+        name: String(row.name ?? ''),
+        description: row.description != null ? String(row.description) : '',
+        fileName: String(row.fileName ?? row.file_name ?? ''),
+        fileType: String(row.fileType ?? row.file_type ?? ''),
+        fileSize:
+          typeof row.fileSize === 'number'
+            ? row.fileSize
+            : typeof row.file_size === 'number'
+              ? row.file_size
+              : undefined,
+        url: row.url != null ? String(row.url) : undefined,
+        ...(row.file instanceof File ? { file: row.file } : {}),
+      };
+    })
+    .filter((d): d is NonNullable<typeof d> => d != null);
 }
 
 export function formValuesToStepThreePayload(
@@ -320,7 +382,8 @@ export function formValuesToStepThreePayload(
     .map((id) => parseInt(String(id), 10))
     .filter((id) => !Number.isNaN(id) && id > 0);
 
-  const orderValue = parseFloat(String(values.orderValue ?? ''));
+  const orderValueRaw = String(values.orderValue ?? '').trim();
+  const orderValue = orderValueRaw === '' ? NaN : parseFloat(orderValueRaw);
   const trackingOrderIds = extractTrackingOrderIds(values.stops || []);
   const trackingEmails = sanitizeTrackingEmails(
     normalizeTrackingEmails(values.trackingEmails, trackingOrderIds)
@@ -337,7 +400,8 @@ export function formValuesToStepThreePayload(
     driver_notes: values.driverNotes || '',
     gps_required: Boolean(values.gpsRequired),
     bulk_mode: 'single',
-    order_value: Number.isNaN(orderValue) || orderValue <= 0 ? undefined : orderValue,
+    // Always send so clearing order value persists (empty string clears on backend).
+    order_value: Number.isNaN(orderValue) || orderValue <= 0 ? '' : orderValue,
   };
 
   // Re-assert vehicles when present so Step 3 Save Draft keeps Step 2 selection.

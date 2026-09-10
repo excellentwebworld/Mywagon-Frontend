@@ -31,6 +31,9 @@ function groupPhysicalMapStops(
   return result;
 }
 
+const EMPTY_STOPS: ShipmentStop[] = [];
+const EMPTY_ENRICHED_STOPS: EnrichedStop[] = [];
+
 export const LiveMap: React.FC<LiveMapProps> = ({ selectedShipmentId }) => {
   const { t } = useTranslation();
   const [shipment, setShipment] = useState<Shipment | null>(null);
@@ -71,7 +74,7 @@ export const LiveMap: React.FC<LiveMapProps> = ({ selectedShipmentId }) => {
     };
   }, [selectedShipmentId]);
 
-  const stops = shipment?.stops ?? [];
+  const stops = shipment?.stops ?? EMPTY_STOPS;
 
   useEffect(() => {
     const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
@@ -99,7 +102,7 @@ export const LiveMap: React.FC<LiveMapProps> = ({ selectedShipmentId }) => {
   }, [stops]);
 
   const enrichedStops: EnrichedStop[] = useMemo(() => {
-    if (stops.length === 0) return [];
+    if (stops.length === 0) return EMPTY_ENRICHED_STOPS;
 
     return groupPhysicalMapStops(stops).map(({ stop: s, originalIndex }, idx) => {
       const lat = s.lat != null ? Number(s.lat) : geocodedCoords[originalIndex]?.lat ?? null;

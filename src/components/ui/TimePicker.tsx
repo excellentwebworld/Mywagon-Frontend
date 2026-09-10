@@ -52,7 +52,7 @@ export const TimePicker: React.FC<Props> = ({
 
   const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
     const input = e.currentTarget;
-    onChange(input.value);
+    // Prefer onChange for committed values; still close picker while typing.
     if (COMPLETE_TIME.test(input.value)) scheduleClose(input);
   };
 

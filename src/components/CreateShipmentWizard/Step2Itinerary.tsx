@@ -773,8 +773,8 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
           >
             <Save size={14} />
             {isEditMode
-              ? t('editSaveChanges') || 'Save Changes'
-              : t('step2SaveDraft') || t('saveDraft') || 'Save Draft'}
+              ? t('saveChanges', 'Save Changes')
+              : t('saveDraft', 'Save Draft')}
           </button>
           <button
             type="button"
@@ -787,7 +787,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
             disabled={isSaving || viewingCurrent}
             onClick={handleConfirmAndContinue}
           >
-            {isSaving ? t('saving') : t('step2ConfirmAndContinue') || t('step2Continue')}
+            {isSaving ? t('saving', 'Saving…') : t('step2ConfirmAndContinue', 'Confirm & Continue')}
             <ArrowRight size={14} />
           </button>
         </div>

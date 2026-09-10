@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete, AUTH_TOKEN_KEY, ApiError } from '../client';
+import { apiGet, apiPost, apiPut, apiDelete, AUTH_TOKEN_KEY, ApiError } from '../client';
 import { mapApiDetailToShipment, mapApiListItemToShipment } from '../mappers/shipmentsMapper';
 import type {
   ApiCancelReasonsPayload,
@@ -282,6 +282,25 @@ export const shipmentsService = {
       body
     );
     return res.data;
+  },
+
+  async updateNote(
+    id: string | number,
+    noteId: string,
+    body: {
+      body: string;
+      visibility?: 'internal' | 'carrier';
+    }
+  ): Promise<{ id: string; author: string; timestamp: string; body: string; visibility: string }> {
+    const res = await apiPut<{ id: string; author: string; timestamp: string; body: string; visibility: string }>(
+      `/shipments/${id}/notes/${encodeURIComponent(noteId)}`,
+      body
+    );
+    return res.data;
+  },
+
+  async deleteNote(id: string | number, noteId: string): Promise<void> {
+    await apiDelete(`/shipments/${id}/notes/${encodeURIComponent(noteId)}`);
   },
 
   async getDocuments(id: string | number): Promise<ApiShipmentDocument[]> {

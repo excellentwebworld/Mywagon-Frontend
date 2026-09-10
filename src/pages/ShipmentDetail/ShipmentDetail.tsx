@@ -169,6 +169,8 @@ export const ShipmentDetail: React.FC = () => {
 
   const [localNotes, setLocalNotes] = useState<DetailNote[]>([]);
   const [localDocs, setLocalDocs] = useState<DetailDocument[]>([]);
+  const [updatingNoteId, setUpdatingNoteId] = useState<string | null>(null);
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
 
   useEffect(() => {
     if (vm?.notes) {
@@ -270,19 +272,76 @@ export const ShipmentDetail: React.FC = () => {
                       id: res.id,
                       timestamp: res.timestamp || n.timestamp,
                       author: res.author || n.author,
+                      body: res.body || n.body,
+                      visibility:
+                        res.visibility === 'carrier' ? 'carrier' : 'internal',
                     }
                   : n
               )
             );
           }
         } catch {
-          // Note is still stored in local optimistic state
+          setLocalNotes((prev) => prev.filter((n) => n.id !== optimisticNote.id));
+          showToast(t('noteAddFailed', 'Failed to add note'), 'error');
+          return;
         }
       }
 
       showToast(t('noteAdded', 'Note added successfully'), 'success');
     },
     [id, user, vm?.owner, showToast, t]
+  );
+
+  const handleUpdateNote = useCallback(
+    async (noteId: string, body: string, visibility: 'internal' | 'carrier') => {
+      if (!id) return;
+      setUpdatingNoteId(noteId);
+      try {
+        const res = await shipmentsService.updateNote(id, noteId, { body, visibility });
+        setLocalNotes((prev) =>
+          prev.map((n) =>
+            n.id === noteId
+              ? {
+                  ...n,
+                  id: res.id || n.id,
+                  body: res.body ?? body,
+                  visibility:
+                    res.visibility === 'carrier' || res.visibility === 'internal'
+                      ? res.visibility
+                      : visibility,
+                  author: res.author || n.author,
+                  timestamp: res.timestamp || n.timestamp,
+                }
+              : n
+          )
+        );
+        showToast(t('noteUpdated', 'Note updated successfully'), 'success');
+      } catch {
+        showToast(t('noteUpdateFailed', 'Failed to update note'), 'error');
+        throw new Error('note update failed');
+      } finally {
+        setUpdatingNoteId(null);
+      }
+    },
+    [id, showToast, t]
+  );
+
+  const handleDeleteNote = useCallback(
+    async (noteId: string) => {
+      if (!id) return;
+      setDeletingNoteId(noteId);
+      try {
+        await shipmentsService.deleteNote(id, noteId);
+        setLocalNotes((prev) => prev.filter((n) => n.id !== noteId));
+        showToast(t('noteDeleted', 'Note deleted successfully'), 'success');
+      } catch {
+        showToast(t('noteDeleteFailed', 'Failed to delete note'), 'error');
+        throw new Error('note delete failed');
+      } finally {
+        setDeletingNoteId(null);
+      }
+    },
+    [id, showToast, t]
   );
 
   const loadReportableDelays = useCallback(async () => {
@@ -891,6 +950,10 @@ export const ShipmentDetail: React.FC = () => {
               expanded={sections.notes}
               onToggle={() => toggleSection('notes')}
               onAddNote={handleAddNote}
+              onUpdateNote={handleUpdateNote}
+              onDeleteNote={handleDeleteNote}
+              updatingNoteId={updatingNoteId}
+              deletingNoteId={deletingNoteId}
               onToast={(msg) => showToast(msg, 'info')}
               t={t}
             />

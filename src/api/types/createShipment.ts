@@ -64,7 +64,13 @@ export interface ApiWizardState {
   targetPrice?: string | number;
   trackingEmails?: Record<string, string[]>;
   driverNotes?: string;
-  notesList?: Array<{ id: string | number; text: string; visibility: 'internal' | 'carrier'; date: string }>;
+  notesList?: Array<{
+    id: string | number;
+    text: string;
+    visibility: 'internal' | 'carrier' | string;
+    date?: string | null;
+    author?: string;
+  }>;
   documentsList?: Array<{ id: string | number; name: string; fileName?: string; fileSize?: number; fileType?: string; url?: string; description?: string }>;
   gpsRequired?: boolean;
   negotiable?: boolean;
@@ -159,7 +165,7 @@ export interface SaveStepThreePayload {
   driver_notes?: string;
   gps_required?: boolean;
   bulk_mode?: 'single';
-  order_value?: number;
+  order_value?: number | string;
   vehicle_specs?: Record<string, string[]>;
   vehicle_selection_confirmed?: boolean;
 }

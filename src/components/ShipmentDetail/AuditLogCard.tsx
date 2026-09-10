@@ -14,6 +14,7 @@ import {
 import type { AuditEntry, BidHistoryItem, ShipmentLogItem } from '../../pages/ShipmentDetail/detailViewModel';
 import { CarrierAvatar } from '../ManageShipments/CarrierAvatar';
 import { CollapsibleCard } from './CollapsibleCard';
+import { formatReason } from '../../pages/ManageShipments/utils/listingUtils';
 
 const FILTER_CATEGORIES = [
   { key: 'all', labelKey: 'all', fallback: 'All' },
@@ -539,7 +540,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
 
                       {evt.rejectionReason && (
                         <div className="mt-1.5 text-[11px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-2">
-                          <strong>{t('reason', 'Reason')}:</strong> {evt.rejectionReason}
+                          <strong>{t('reason', 'Reason')}:</strong> {formatReason(evt.rejectionReason, t)}
                         </div>
                       )}
                     </div>
@@ -612,7 +613,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
 
                       {evt.rejectionReason && (
                         <div className="mt-1.5 text-[11px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-2">
-                          <strong>{t('reason', 'Reason')}:</strong> {evt.rejectionReason}
+                          <strong>{t('reason', 'Reason')}:</strong> {formatReason(evt.rejectionReason, t)}
                         </div>
                       )}
                     </div>

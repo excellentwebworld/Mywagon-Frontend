@@ -146,7 +146,7 @@ export function TopNav() {
   const isActive = (route: string) => {
     if (route === '/dashboard') return location.pathname === '/dashboard';
     if (route === '/shipments') {
-      return location.pathname.startsWith('/shipments') && location.pathname !== '/shipments/create';
+      return location.pathname.startsWith('/shipments') && !location.pathname.startsWith('/shipments/create');
     }
     return location.pathname.startsWith(route);
   };

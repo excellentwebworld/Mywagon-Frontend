@@ -29,11 +29,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (exact) {
       return currentPath === path;
     }
-    // For /shipments, we want to match /shipments and /shipments/:id, but NOT /shipments/create
+    // For /shipments, we want to match /shipments and /shipments/:id, but NOT /shipments/create/*
     if (path === "/shipments") {
       return (
         currentPath.startsWith("/shipments") &&
-        currentPath !== "/shipments/create"
+        !currentPath.startsWith("/shipments/create")
       );
     }
     return currentPath.startsWith(path);

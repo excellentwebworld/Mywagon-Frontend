@@ -77,7 +77,19 @@ function extractRoutePath(route: any, fallback: { lat: number; lng: number }[]):
   return fallback;
 }
 
+const EMPTY_ROUTE_LEGS: RouteLegsResult = {
+  loading: false,
+  error: null,
+  legs: [],
+  totalDistKm: 0,
+  totalDriveMin: 0,
+  polylinePath: [],
+  directionsResult: null,
+  usedGoogle: false,
+};
+
 const routeLegsCache = new Map<string, RouteLegsResult>();
+routeLegsCache.set('', EMPTY_ROUTE_LEGS);
 
 export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
   const coordStops = useMemo(
@@ -103,7 +115,7 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
 
   const buildFallback = (pts: { lat: number; lng: number }[]) => {
     if (pts.length < 2) {
-      return { legs: [] as RouteLeg[], polylinePath: pts, ...sumLegs([]) };
+      return EMPTY_ROUTE_LEGS;
     }
     const rawLegs = buildHaversineLegs(pts);
     const legs = rawLegs.map((leg, i) => ({
@@ -111,65 +123,52 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
       from: coordStops[i]?.stopIndex ?? leg.from,
       to: coordStops[i + 1]?.stopIndex ?? leg.to,
     }));
-    return { legs, polylinePath: pts, ...sumLegs(legs) };
+    return {
+      loading: false,
+      error: null,
+      legs,
+      polylinePath: pts,
+      directionsResult: null,
+      usedGoogle: false,
+      ...sumLegs(legs),
+    };
   };
 
   const fallback = useMemo(() => buildFallback(coords), [coords, coordStops]);
 
-  const cachedResult = routeLegsCache.get(coordsKey);
-
   const [state, setState] = useState<RouteLegsResult>(() => {
-    if (cachedResult) return cachedResult;
-    return {
-      loading: false,
-      error: null,
-      legs: fallback.legs,
-      totalDistKm: fallback.totalDistKm,
-      totalDriveMin: fallback.totalDriveMin,
-      polylinePath: fallback.polylinePath,
-      directionsResult: null,
-      usedGoogle: false,
-    };
+    if (!coordsKey || coords.length < 2) return EMPTY_ROUTE_LEGS;
+    const cached = routeLegsCache.get(coordsKey);
+    if (cached) return cached;
+    return fallback;
   });
 
   useEffect(() => {
+    if (!coordsKey || coords.length < 2) {
+      setState((prev) => {
+        if (!prev.loading && prev.legs.length === 0 && prev.totalDistKm === 0) {
+          return prev;
+        }
+        return EMPTY_ROUTE_LEGS;
+      });
+      return;
+    }
+
     const cached = routeLegsCache.get(coordsKey);
     if (cached) {
       setState(cached);
       return;
     }
 
-    if (coords.length < 2) {
-      setState({
-        loading: false,
-        error: null,
-        legs: [],
-        totalDistKm: 0,
-        totalDriveMin: 0,
-        polylinePath: coords,
-        directionsResult: null,
-        usedGoogle: false,
-      });
-      return;
-    }
-
     const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
     if (!mapsKey) {
-      setState({
-        loading: false,
-        error: null,
-        legs: fallback.legs,
-        totalDistKm: fallback.totalDistKm,
-        totalDriveMin: fallback.totalDriveMin,
-        polylinePath: fallback.polylinePath,
-        directionsResult: null,
-        usedGoogle: false,
-      });
+      routeLegsCache.set(coordsKey, fallback);
+      setState(fallback);
       return;
     }
 
     let cancelled = false;
-    setState((prev) => ({ ...prev, loading: true, error: null }));
+    setState((prev) => (prev.loading ? prev : { ...prev, loading: true, error: null }));
 
     loadGoogleMaps(mapsKey)
       .then(() => {
@@ -198,16 +197,8 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
             if (cancelled) return;
 
             if (status !== 'OK' || !result?.routes?.[0]) {
-              setState({
-                loading: false,
-                error: null,
-                legs: fallback.legs,
-                totalDistKm: fallback.totalDistKm,
-                totalDriveMin: fallback.totalDriveMin,
-                polylinePath: fallback.polylinePath,
-                directionsResult: null,
-                usedGoogle: false,
-              });
+              routeLegsCache.set(coordsKey, fallback);
+              setState(fallback);
               return;
             }
 
@@ -244,22 +235,14 @@ export function useRouteLegs(enrichedStops: EnrichedStop[]): RouteLegsResult {
       })
       .catch(() => {
         if (cancelled) return;
-        setState({
-          loading: false,
-          error: null,
-          legs: fallback.legs,
-          totalDistKm: fallback.totalDistKm,
-          totalDriveMin: fallback.totalDriveMin,
-          polylinePath: fallback.polylinePath,
-          directionsResult: null,
-          usedGoogle: false,
-        });
+        routeLegsCache.set(coordsKey, fallback);
+        setState(fallback);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [coords, coordsKey, coordStops]);
+  }, [coordsKey]);
 
   return state;
 }

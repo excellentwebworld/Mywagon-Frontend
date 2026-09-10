@@ -75,6 +75,8 @@ function groupPhysicalMapStops(
   return result;
 }
 
+const EMPTY_ENRICHED_STOPS: EnrichedStop[] = [];
+
 export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
   stops = [],
   status,
@@ -129,7 +131,7 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
 
   // Convert physical (grouped) stops to EnrichedStop — marker labels = index + 1
   const enrichedStops: EnrichedStop[] = useMemo(() => {
-    if (stops.length === 0) return [];
+    if (stops.length === 0) return EMPTY_ENRICHED_STOPS;
 
     return groupPhysicalMapStops(stops).map(({ stop: s, originalIndex }, idx) => {
       let lat = s.lat != null ? Number(s.lat) : geocodedCoords[originalIndex]?.lat ?? null;

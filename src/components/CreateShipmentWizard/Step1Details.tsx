@@ -374,54 +374,87 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   };
 
   // ═══ STOP CRUD ═══
-  const uStop = useCallback(
-    (sid: string, up: any) => {
-      const updated = stops.map((s: any) =>
-        s.id === sid ? (typeof up === "function" ? up(s) : { ...s, ...up }) : s,
-      );
+  // Keep a mutable ref so rapid date/time updates don't overwrite each other
+  // via stale Formik `stops` closures (Formik setFieldValue is not a functional updater).
+  const stopsRef = useRef(stops);
+  // Last array we wrote via setStops — skip Formik→ref sync while Formik lags behind.
+  const lastWrittenStopsRef = useRef<any[] | null>(null);
+
+  useEffect(() => {
+    if (lastWrittenStopsRef.current != null) {
+      if (stops === lastWrittenStopsRef.current) {
+        lastWrittenStopsRef.current = null;
+      } else {
+        // Formik still has an older snapshot; keep the newer local ref.
+        return;
+      }
+    }
+    stopsRef.current = stops;
+  }, [stops]);
+
+  const setStops = useCallback(
+    (next: any[] | ((prev: any[]) => any[])) => {
+      const current = stopsRef.current || [];
+      const updated = typeof next === "function" ? next(current) : next;
+      stopsRef.current = updated;
+      lastWrittenStopsRef.current = updated;
       setFieldValue("stops", updated);
     },
-    [stops, setFieldValue],
+    [setFieldValue],
+  );
+
+  const uStop = useCallback(
+    (sid: string, up: any) => {
+      setStops((prev) =>
+        prev.map((s: any) =>
+          s.id === sid ? (typeof up === "function" ? up(s) : { ...s, ...up }) : s,
+        ),
+      );
+    },
+    [setStops],
   );
 
   const addStop = useCallback(() => {
-    setFieldValue("stops", [...stops, createNewStop(true)]);
-  }, [stops, setFieldValue]);
+    setStops((prev) => [...prev, createNewStop(true)]);
+  }, [setStops]);
 
   const delStop = useCallback(
     (sid: string) => {
-      const target = stops.find((s: any) => s.id === sid);
+      const target = stopsRef.current.find((s: any) => s.id === sid);
       if (target && isStopLocked(target)) return;
-      const n = stops.filter((s: any) => s.id !== sid);
-      if (n.length < 2) return;
-      setFieldValue("stops", n);
+      setStops((prev) => {
+        const n = prev.filter((s: any) => s.id !== sid);
+        return n.length < 2 ? prev : n;
+      });
     },
-    [isStopLocked, stops, setFieldValue],
+    [isStopLocked, setStops],
   );
 
   const dupStop = useCallback(
     (sid: string) => {
-      const src = stops.find((s: any) => s.id === sid);
-      if (!src) return;
-      const ns = {
-        ...JSON.parse(JSON.stringify(src)),
-        id: makeId("s"),
-        expanded: true,
-      };
-      ns.lines = ns.lines.map((l: any) => {
-        const { shipmentLocationId: _loc, locationStatus: _st, driverId: _dr, ...rest } = l;
-        return {
-          ...rest,
-          id: makeId("l"),
-          mirrorOf: "",
+      setStops((prev) => {
+        const src = prev.find((s: any) => s.id === sid);
+        if (!src) return prev;
+        const ns = {
+          ...JSON.parse(JSON.stringify(src)),
+          id: makeId("s"),
+          expanded: true,
         };
+        ns.lines = ns.lines.map((l: any) => {
+          const { shipmentLocationId: _loc, locationStatus: _st, driverId: _dr, ...rest } = l;
+          return {
+            ...rest,
+            id: makeId("l"),
+            mirrorOf: "",
+          };
+        });
+        const idx = prev.findIndex((s: any) => s.id === sid);
+        const out = [...prev];
+        out.splice(idx + 1, 0, ns);
+        return out;
       });
-      const idx = stops.findIndex((s: any) => s.id === sid);
-      const out = [...stops];
-      out.splice(idx + 1, 0, ns);
-      setFieldValue("stops", out);
     },
-    [stops, setFieldValue],
+    [setStops],
   );
 
   // Drag-to-reorder
@@ -446,39 +479,42 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         setDragOverIdx(null);
         return;
       }
-      if (isStopLocked(stops[dragIdx]) || isStopLocked(stops[dropIdx])) {
+      const current = stopsRef.current || [];
+      if (isStopLocked(current[dragIdx]) || isStopLocked(current[dropIdx])) {
         setDraggingIdx(null);
         setDragOverIdx(null);
         return;
       }
-      const out = [...stops];
-      const a = out[dragIdx];
-      const b = out[dropIdx];
+      setStops((prev) => {
+        const out = [...prev];
+        const a = out[dragIdx];
+        const b = out[dropIdx];
 
-      // Swap dates/times
-      const [aDF, aTF, aDT, aTT] = [a.dateFrom, a.timeFrom, a.dateTo, a.timeTo];
-      out[dragIdx] = {
-        ...a,
-        dateFrom: b.dateFrom,
-        timeFrom: b.timeFrom,
-        dateTo: b.dateTo,
-        timeTo: b.timeTo,
-      };
-      out[dropIdx] = {
-        ...b,
-        dateFrom: aDF,
-        timeFrom: aTF,
-        dateTo: aDT,
-        timeTo: aTT,
-      };
+        // Swap dates/times
+        const [aDF, aTF, aDT, aTT] = [a.dateFrom, a.timeFrom, a.dateTo, a.timeTo];
+        out[dragIdx] = {
+          ...a,
+          dateFrom: b.dateFrom,
+          timeFrom: b.timeFrom,
+          dateTo: b.dateTo,
+          timeTo: b.timeTo,
+        };
+        out[dropIdx] = {
+          ...b,
+          dateFrom: aDF,
+          timeFrom: aTF,
+          dateTo: aDT,
+          timeTo: aTT,
+        };
 
-      // Swap positions
-      [out[dragIdx], out[dropIdx]] = [out[dropIdx], out[dragIdx]];
-      setFieldValue("stops", out);
+        // Swap positions
+        [out[dragIdx], out[dropIdx]] = [out[dropIdx], out[dragIdx]];
+        return out;
+      });
       setDraggingIdx(null);
       setDragOverIdx(null);
     },
-    [draggingIdx, isStopLocked, stops, setFieldValue],
+    [draggingIdx, isStopLocked, setStops],
   );
 
   // ═══ LINE CRUD ═══
@@ -494,7 +530,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const delLine = useCallback(
     (sid: string, lid: string) => {
-      const stop = stops.find((s: any) => s.id === sid);
+      const stop = stopsRef.current.find((s: any) => s.id === sid);
       const line = stop?.lines?.find((l: any) => l.id === lid);
       if (line && isLineLocked(line)) return;
       uStop(sid, (s: any) => ({
@@ -502,7 +538,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         lines: s.lines.filter((l: any) => l.id !== lid),
       }));
     },
-    [isLineLocked, stops, uStop],
+    [isLineLocked, uStop],
   );
 
   const dupLine = useCallback(
@@ -528,7 +564,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       fieldOrUpdates: string | Record<string, any>,
       val?: any,
     ) => {
-      const stop = stops.find((s: any) => s.id === sid);
+      const stop = stopsRef.current.find((s: any) => s.id === sid);
       const line = stop?.lines?.find((l: any) => l.id === lid);
       if (line && isLineLocked(line)) return;
       uStop(sid, (s: any) => ({
@@ -542,14 +578,14 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         }),
       }));
     },
-    [isLineLocked, stops, uStop],
+    [isLineLocked, uStop],
   );
 
   /** Keep order+product lines on every stop on the same qty unit (load balance end-to-end). */
   const setLineUnit = useCallback(
     (sid: string, lid: string, unit: string) => {
       const nextUnit = normalizeQtyUnit(unit) || unit || "EUR Pallets";
-      const source = stops
+      const source = stopsRef.current
         .find((s: any) => s.id === sid)
         ?.lines?.find((l: any) => l.id === lid);
       const orderId = source?.orderId ? String(source.orderId) : "";
@@ -560,29 +596,30 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         return;
       }
 
-      const updated = stops.map((s: any) => ({
-        ...s,
-        lines: (s.lines || []).map((l: any) => {
-          if (String(l.id) === String(lid)) return { ...l, unit: nextUnit };
-          if (
-            String(l.orderId || "") === orderId &&
-            String(l.productId || "") === productId
-          ) {
-            return { ...l, unit: nextUnit };
-          }
-          return l;
-        }),
-      }));
-      setFieldValue("stops", updated);
+      setStops((prev) =>
+        prev.map((s: any) => ({
+          ...s,
+          lines: (s.lines || []).map((l: any) => {
+            if (String(l.id) === String(lid)) return { ...l, unit: nextUnit };
+            if (
+              String(l.orderId || "") === orderId &&
+              String(l.productId || "") === productId
+            ) {
+              return { ...l, unit: nextUnit };
+            }
+            return l;
+          }),
+        })),
+      );
     },
-    [setFieldValue, setLF, stops],
+    [setLF, setStops],
   );
 
   /** Keep order+product lines on every stop on the same weight unit; convert magnitudes. */
   const setLineWtUnit = useCallback(
     (sid: string, lid: string, wtUnit: string) => {
       const nextUnit = normalizeWeightUnit(wtUnit);
-      const source = stops
+      const source = stopsRef.current
         .find((s: any) => s.id === sid)
         ?.lines?.find((l: any) => l.id === lid);
       const orderId = source?.orderId ? String(source.orderId) : "";
@@ -612,22 +649,23 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         return;
       }
 
-      const updated = stops.map((s: any) => ({
-        ...s,
-        lines: (s.lines || []).map((l: any) => {
-          if (String(l.id) === String(lid)) return applyWtUnit(l);
-          if (
-            String(l.orderId || "") === orderId &&
-            String(l.productId || "") === productId
-          ) {
-            return applyWtUnit(l);
-          }
-          return l;
-        }),
-      }));
-      setFieldValue("stops", updated);
+      setStops((prev) =>
+        prev.map((s: any) => ({
+          ...s,
+          lines: (s.lines || []).map((l: any) => {
+            if (String(l.id) === String(lid)) return applyWtUnit(l);
+            if (
+              String(l.orderId || "") === orderId &&
+              String(l.productId || "") === productId
+            ) {
+              return applyWtUnit(l);
+            }
+            return l;
+          }),
+        })),
+      );
     },
-    [setFieldValue, stops, uStop],
+    [setStops, uStop],
   );
 
   /** Qty edits stay independent of weight (no auto-ratio). */
@@ -640,7 +678,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const setLineAction = useCallback(
     async (sid: string, lid: string, action: "pickup" | "dropoff") => {
-      const stop = stops.find((s: any) => s.id === sid);
+      const latestStops = stopsRef.current || [];
+      const stop = latestStops.find((s: any) => s.id === sid);
       const line = stop?.lines?.find((l: any) => l.id === lid);
       if (!line?.orderId || !line?.productId) {
         setLF(sid, lid, "action", action);
@@ -664,8 +703,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
       const orderId = String(line.orderId);
       const productId = String(line.productId);
+      // Re-read after await so we don't overwrite date/time edits made meanwhile.
+      const stopsNow = stopsRef.current || [];
       const { qty, weight, unit, wtUnit } = computeCargoLineQtyWeight({
-        stops,
+        stops: stopsNow,
         lineId: lid,
         orderId,
         productId,
@@ -676,22 +717,23 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       });
 
       const patch = { action, qty, weight, unit, wtUnit };
-      const updated = stops.map((s: any) => ({
-        ...s,
-        lines: (s.lines || []).map((l: any) => {
-          if (String(l.id) === String(lid)) return { ...l, ...patch };
-          if (
-            String(l.orderId || "") === orderId &&
-            String(l.productId || "") === productId
-          ) {
-            return { ...l, unit, wtUnit };
-          }
-          return l;
-        }),
-      }));
-      setFieldValue("stops", updated);
+      setStops((prev) =>
+        prev.map((s: any) => ({
+          ...s,
+          lines: (s.lines || []).map((l: any) => {
+            if (String(l.id) === String(lid)) return { ...l, ...patch };
+            if (
+              String(l.orderId || "") === orderId &&
+              String(l.productId || "") === productId
+            ) {
+              return { ...l, unit, wtUnit };
+            }
+            return l;
+          }),
+        })),
+      );
     },
-    [fetchOrderDetail, orderDetailsById, setFieldValue, setLF, stops],
+    [fetchOrderDetail, orderDetailsById, setLF, setStops],
   );
 
   const quickFill = useCallback(
@@ -707,9 +749,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       setOrderDetailsById((prev) => ({ ...prev, [orderId]: mo }));
       if (!mo.lines?.length) return;
 
-      const stopIndex = stops.findIndex((s: any) => s.id === sid);
+      const latestStops = stopsRef.current || [];
+      const stopIndex = latestStops.findIndex((s: any) => s.id === sid);
       const defaultAction =
-        stopIndex === stops.length - 1 && stops.length > 1
+        stopIndex === latestStops.length - 1 && latestStops.length > 1
           ? "dropoff"
           : "pickup";
 
@@ -734,7 +777,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         lines: [...s.lines.filter((l: any) => l.productId), ...newLines],
       }));
     },
-    [fetchOrderDetail, orderDetailsById, showToast, stops, t, uStop],
+    [fetchOrderDetail, orderDetailsById, showToast, t, uStop],
   );
 
   // ═══ OPTIONS ═══
@@ -1022,7 +1065,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const selProdLine = useCallback(
     async (sid: string, lid: string, skuId: string) => {
-      const stop = stops.find((s: any) => s.id === sid);
+      const stop = stopsRef.current.find((s: any) => s.id === sid);
       const line = stop?.lines?.find((l: any) => l.id === lid);
       const order = line?.orderId
         ? orderDetailsById[line.orderId] ||
@@ -1034,9 +1077,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       const orderLine = findOrderLineForProduct(order, skuId);
       if (orderLine) {
         const isDropoff = line?.action === "dropoff";
+        const stopsNow = stopsRef.current || [];
         const { qty, weight, unit: orderUnit, wtUnit: orderWtUnit } =
           computeCargoLineQtyWeight({
-            stops,
+            stops: stopsNow,
             lineId: lid,
             orderId: line?.orderId ? String(line.orderId) : "",
             productId: skuId,
@@ -1058,27 +1102,28 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
         const orderId = line?.orderId ? String(line.orderId) : "";
         if (orderId) {
-          const updated = stops.map((s: any) => ({
-            ...s,
-            lines: (s.lines || []).map((l: any) => {
-              if (String(l.id) === String(lid)) return { ...l, ...patch };
-              if (
-                String(l.orderId || "") === orderId &&
-                String(l.productId || "") === String(skuId)
-              ) {
-                return { ...l, unit: orderUnit, wtUnit: orderWtUnit };
-              }
-              return l;
-            }),
-          }));
-          setFieldValue("stops", updated);
+          setStops((prev) =>
+            prev.map((s: any) => ({
+              ...s,
+              lines: (s.lines || []).map((l: any) => {
+                if (String(l.id) === String(lid)) return { ...l, ...patch };
+                if (
+                  String(l.orderId || "") === orderId &&
+                  String(l.productId || "") === String(skuId)
+                ) {
+                  return { ...l, unit: orderUnit, wtUnit: orderWtUnit };
+                }
+                return l;
+              }),
+            })),
+          );
           return;
         }
 
         setLF(sid, lid, patch);
       }
     },
-    [fetchOrderDetail, orderDetailsById, setFieldValue, setLF, stops],
+    [fetchOrderDetail, orderDetailsById, setLF, setStops],
   );
 
   const handleCreateSku = useCallback(
@@ -1279,20 +1324,20 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const toggleStop = useCallback(
     (sid: string) => {
-      setFieldValue(
-        "stops",
-        stops.map((s: any) =>
+      setStops((prev) =>
+        prev.map((s: any) =>
           s.id === sid ? { ...s, expanded: !s.expanded } : s,
         ),
       );
     },
-    [setFieldValue, stops],
+    [setStops],
   );
 
   const handleStopDone = useCallback(
     (sid: string) => {
-      const idx = stops.findIndex((s: any) => s.id === sid);
-      const stop = stops[idx];
+      const latestStops = stopsRef.current || [];
+      const idx = latestStops.findIndex((s: any) => s.id === sid);
+      const stop = latestStops[idx];
       if (!stop?.expanded) return;
 
       setValidatingStopIndex(idx);
@@ -1303,12 +1348,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       }
 
       setValidatingStopIndex(null);
-      setFieldValue(
-        "stops",
-        stops.map((s: any) => (s.id === sid ? { ...s, expanded: false } : s)),
+      setStops((prev) =>
+        prev.map((s: any) => (s.id === sid ? { ...s, expanded: false } : s)),
       );
     },
-    [blockers, expandStopForValidation, setFieldValue, stops],
+    [blockers, expandStopForValidation, setStops],
   );
 
   const isFieldInvalid = useCallback(
@@ -1704,7 +1748,15 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               value={stop.dateFrom}
                               onChange={(val) => {
                                 if (stopLocked) return;
-                                uStop(stop.id, { dateFrom: val });
+                                // Clamp optional TO date so it never stays before FROM
+                                // (otherwise Step 2 can show a confusing "→ older date").
+                                uStop(stop.id, (s: any) => {
+                                  const patch: any = { ...s, dateFrom: val };
+                                  if (val && s.dateTo && String(s.dateTo) < String(val)) {
+                                    patch.dateTo = "";
+                                  }
+                                  return patch;
+                                });
                               }}
                               min={todayStr}
                               disabled={stopLocked}
@@ -1922,14 +1974,14 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           >
             <Save size={14} />{" "}
             {isSaving
-              ? t("saving") || "Saving..."
+              ? t("saving", "Saving...")
               : isEditMode
-                ? t("saveChanges") || "Save Changes"
-                : t("saveDraft") || "Save Draft"}
+                ? t("saveChanges", "Save Changes")
+                : t("saveDraft", "Save Draft")}
           </button>
           {lastSaved && (
             <span className="text-[10px]" style={{ color: T.t3 }}>
-              {t("draftSavedAt") || "Draft saved"}{" "}
+              {t("draftSavedAt", "Draft saved")}{" "}
               {lastSaved.toLocaleTimeString()}
             </span>
           )}
@@ -1947,10 +1999,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
             onClick={handleContinue}
           >
             {isSaving
-              ? t("saving") || "Saving..."
+              ? t("saving", "Saving...")
               : isEditMode
-                ? t("update") || "Update"
-                : t("continue")}
+                ? t("continue", "Continue")
+                : t("continue", "Continue")}
             {conflictCount > 0 && (
               <span
                 className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
@@ -2188,13 +2240,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         isOpen={inconvenienceOpen}
         onClose={() => setInconvenienceOpen(false)}
         onConfirm={handleConfirmInconvenience}
-        title={t("editUpdateShipmentTitle") || "Update Shipment"}
-        message={
-          t("editTransporterInconvenienceMsg") ||
-          "Changing this load may inconvenience the assigned transporter. Consider increasing your offer price on the next step."
-        }
-        confirmText={t("continue") || "Continue"}
-        cancelText={t("cancel") || "Cancel"}
+        title={t("editUpdateShipmentTitle", "Update Shipment")}
+        message={t(
+          "editTransporterInconvenienceMsg",
+          "Updating the original shipment may cause inconvenience to the Transporter. Consider increasing your offer price in the next page to incentivise them to accommodate your updated shipment requirements."
+        )}
+        confirmText={t("continue", "Continue")}
+        cancelText={t("cancel", "Cancel")}
         type="warning"
         confirmLoading={isSaving}
       />

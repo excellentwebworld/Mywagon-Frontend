@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import type { ShipmentLogItem, AuditEntry } from '../../pages/ShipmentDetail/detailViewModel';
+import { formatReason } from '../../pages/ManageShipments/utils/listingUtils';
 
 interface ActivityLogModalProps {
   open: boolean;
@@ -69,7 +70,7 @@ export const ActivityLogModal: React.FC<ActivityLogModalProps> = ({
                   <strong className="font-bold text-slate-900 dark:text-white">{log.date}</strong>
                   {log.isRejection && log.rejectionReason && (
                     <div className="text-[12px] text-red-600 dark:text-red-400 font-semibold mt-0.5">
-                      {t('reason', 'Reason')}: {log.rejectionReason}
+                      {t('reason', 'Reason')}: {formatReason(log.rejectionReason, t)}
                     </div>
                   )}
                 </li>

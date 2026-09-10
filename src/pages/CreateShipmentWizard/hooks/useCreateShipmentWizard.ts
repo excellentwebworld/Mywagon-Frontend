@@ -86,7 +86,8 @@ type SatVehiclePending = {
 /** Prefer API snapshot, but never drop Step 1/2 fields the live form already had. */
 function mergeDraftSnapshot(
   next: WizardFormValues,
-  preserve?: WizardFormValues | null
+  preserve?: WizardFormValues | null,
+  options?: { preferPreserveStops?: boolean }
 ): WizardFormValues {
   if (!preserve) return next;
 
@@ -94,10 +95,23 @@ function mergeDraftSnapshot(
   const preserveHasVehicles = hasVehicleSelection(preserve.vehicleSpecs);
   const nextHasStops = Array.isArray(next.stops) && next.stops.length >= 2;
   const preserveHasStops = Array.isArray(preserve.stops) && preserve.stops.length >= 2;
+  const nextHasDocs = Array.isArray(next.documentsList) && next.documentsList.length > 0;
+  const preserveHasDocs =
+    Array.isArray(preserve.documentsList) && preserve.documentsList.length > 0;
+
+  // After a successful save, keep the form stops we just posted so a lagging
+  // draft snapshot cannot wipe a freshly changed drop-off date.
+  const usePreserveStops = Boolean(options?.preferPreserveStops) && preserveHasStops;
 
   return {
     ...next,
-    stops: nextHasStops ? next.stops : preserveHasStops ? preserve.stops : next.stops,
+    stops: usePreserveStops
+      ? preserve.stops
+      : nextHasStops
+        ? next.stops
+        : preserveHasStops
+          ? preserve.stops
+          : next.stops,
     custRef: next.custRef || preserve.custRef,
     coOwners: next.coOwners?.length ? next.coOwners : preserve.coOwners,
     itineraryConfirmed: next.itineraryConfirmed || preserve.itineraryConfirmed,
@@ -114,7 +128,42 @@ function mergeDraftSnapshot(
       : preserveHasVehicles
         ? preserve.vehicleSelectionConfirmed
         : next.vehicleSelectionConfirmed,
+    driverNotes:
+      typeof next.driverNotes === 'string' ? next.driverNotes : (preserve.driverNotes ?? ''),
+    notesList:
+      Array.isArray(next.notesList) && next.notesList.length > 0
+        ? next.notesList
+        : Array.isArray(preserve.notesList) && preserve.notesList.length > 0
+          ? preserve.notesList
+          : next.notesList ?? [],
+    documentsList: nextHasDocs
+      ? next.documentsList
+      : preserveHasDocs
+        ? preserve.documentsList
+        : next.documentsList ?? [],
   };
+}
+
+async function syncWizardDocumentUpload(
+  shipmentId: number | string,
+  values: WizardFormValues
+): Promise<void> {
+  if (!values.documentsList || values.documentsList.length === 0) return;
+
+  for (const doc of values.documentsList) {
+    if (!(doc.file && typeof doc.id === 'string' && doc.id.startsWith('temp-'))) {
+      continue;
+    }
+
+    const fd = new FormData();
+    fd.append('file', doc.file);
+    fd.append('name', doc.name || 'Document');
+    if (doc.description) fd.append('description', doc.description);
+    const created = await shipmentsService.uploadDocument(shipmentId, fd);
+    doc.id = created.id;
+    doc.url = created.url || undefined;
+    delete doc.file;
+  }
 }
 
 function applySatLocationsToStops(
@@ -145,7 +194,10 @@ function applySatLocationsToStops(
   return { stops: next, changed };
 }
 
-export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success' | 'error' | 'info') => void, t: (key: string) => string) {
+export function useCreateShipmentWizard(
+  showToast: (msg: string, type?: 'success' | 'error' | 'info') => void,
+  t: (key: string, fallbackOrOptions?: string | Record<string, any>, options?: Record<string, any>) => string
+) {
   const navigate = useNavigate();
   const stepMatch = useMatch('/shipments/create/step/:stepNumber');
   const [searchParams] = useSearchParams();
@@ -231,7 +283,9 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         setEditBlockedReason(draft.edit_blocked_reason || null);
       }
       setLoadedValues((prev) =>
-        mergeDraftSnapshot(draftToFormValues(draft, defaultValues), preservedValues ?? prev)
+        mergeDraftSnapshot(draftToFormValues(draft, defaultValues), preservedValues ?? prev, {
+          preferPreserveStops: preservedValues != null,
+        })
       );
     },
     [defaultValues]
@@ -839,28 +893,16 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
       try {
         const id = await ensureDraftId();
 
-        // If a document was attached in local state, upload it to the draft
-        if (values.documentsList && values.documentsList.length > 0) {
-          const doc = values.documentsList[0];
-          if (doc.file && typeof doc.id === 'string' && doc.id.startsWith('temp-')) {
-            const fd = new FormData();
-            fd.append('file', doc.file);
-            fd.append('name', doc.name || 'Document');
-            if (doc.description) fd.append('description', doc.description);
-            try {
-              const created = await shipmentsService.uploadDocument(id, fd);
-              doc.id = created.id;
-              doc.url = created.url || undefined;
-              delete doc.file;
-            } catch (err: unknown) {
-              const message =
-                err instanceof ApiError
-                  ? err.message
-                  : t('documentUploadFailed') || 'Failed to upload document.';
-              showToast(message, 'error');
-              throw err;
-            }
-          }
+        // If a document was attached in local state, upload it to the draft/shipment
+        try {
+          await syncWizardDocumentUpload(id, values);
+        } catch (err: unknown) {
+          const message =
+            err instanceof ApiError
+              ? err.message
+              : t('documentUploadFailed') || 'Failed to upload document.';
+          showToast(message, 'error');
+          throw err;
         }
 
         const payload = formValuesToStepThreePayload(values, mode);
@@ -918,27 +960,15 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
         const id = await ensureDraftId();
 
         // If a document was attached in local state, upload it to the draft
-        if (values.documentsList && values.documentsList.length > 0) {
-          const doc = values.documentsList[0];
-          if (doc.file && typeof doc.id === 'string' && doc.id.startsWith('temp-')) {
-            const fd = new FormData();
-            fd.append('file', doc.file);
-            fd.append('name', doc.name || 'Document');
-            if (doc.description) fd.append('description', doc.description);
-            try {
-              const created = await shipmentsService.uploadDocument(id, fd);
-              doc.id = created.id;
-              doc.url = created.url || undefined;
-              delete doc.file;
-            } catch (err: unknown) {
-              const message =
-                err instanceof ApiError
-                  ? err.message
-                  : t('documentUploadFailed') || 'Failed to upload document.';
-              showToast(message, 'error');
-              throw err;
-            }
-          }
+        try {
+          await syncWizardDocumentUpload(id, values);
+        } catch (err: unknown) {
+          const message =
+            err instanceof ApiError
+              ? err.message
+              : t('documentUploadFailed', 'Failed to upload document.');
+          showToast(message, 'error');
+          throw err;
         }
 
         if (isEditMode) {
@@ -948,13 +978,13 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
           );
           const applied = await editShipmentService.applyEdit(id);
           editSessionActiveRef.current = false;
-          showToast(t('shipmentUpdatedSuccess') || 'Shipment updated successfully!', 'success');
+          showToast(t('shipmentUpdatedSuccess', 'Shipment updated successfully!'), 'success');
           return applied;
         }
 
         await createShipmentService.saveStepThree(id, formValuesToStepThreePayload(values, 'complete'));
         const published = await createShipmentService.publishDraft(id);
-        showToast(t('shipmentCreatedSuccess') || 'Shipment created successfully!', 'success');
+        showToast(t('shipmentCreatedSuccess', 'Shipment created successfully!'), 'success');
         return published;
       } catch (err: unknown) {
         if (err instanceof Error && (err.message === 'Invalid price' || err.message === 'No carriers selected')) {
@@ -964,13 +994,12 @@ export function useCreateShipmentWizard(showToast: (msg: string, type?: 'success
           err instanceof ApiError
             ? err.message
             : isEditMode
-              ? t('updateFailed') || 'Failed to update shipment.'
-              : t('publishFailed') || 'Failed to publish shipment.';
+              ? t('updateFailed', 'Failed to update shipment.')
+              : t('publishFailed', 'Failed to publish shipment.');
         if (err instanceof ApiError && err.status === 409 && isEditMode) {
           message =
             err.message ||
-            t('editPendingUpdateExists') ||
-            'A pending update already exists for this shipment. Wait for the carrier to accept or reject it.';
+            t('editPendingUpdateExists', 'A pending update already exists for this shipment. Wait for the carrier to accept or reject it.');
         }
         showToast(message, 'error');
         throw err;
