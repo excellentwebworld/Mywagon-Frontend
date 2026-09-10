@@ -3,6 +3,9 @@ import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { LoginPage } from './pages/Login/LoginPage';
 import { RegisterPage } from './pages/Register/RegisterPage';
+import { ForgotPasswordPage } from './pages/Auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/Auth/ResetPasswordPage';
+import { PasswordChangeSuccessPage } from './pages/Auth/PasswordChangeSuccessPage';
 import { Dashboard } from './pages/Dashboard';
 import { ManageShipments } from './pages/ManageShipments';
 import { ShipmentDetail } from './pages/ShipmentDetail';
@@ -31,6 +34,18 @@ import { MessagesPage } from './pages/Messages';
 import { LegalPage } from './pages/Legal/LegalPage';
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
+
+const authRoutes = [
+  { path: '/login', element: <LoginPage /> },
+  { path: '/shipper/register', element: <RegisterPage /> },
+  { path: '/forgot-password', element: <ForgotPasswordPage /> },
+  { path: '/any/reset/email/:userType', element: <ForgotPasswordPage /> },
+  { path: '/reset/email/:userType', element: <ForgotPasswordPage /> },
+  { path: '/reset/:token', element: <ResetPasswordPage /> },
+  { path: '/any/reset/:token', element: <ResetPasswordPage /> },
+  { path: '/password-change-success', element: <PasswordChangeSuccessPage /> },
+  { path: '/any/password-change-success', element: <PasswordChangeSuccessPage /> },
+];
 
 const legalRoutes = [
   { path: '/terms-condition/:key/:type/:lang', element: <LegalPage document="terms" /> },
@@ -105,8 +120,7 @@ const publicTrackingRoutes = [
 export const router = createBrowserRouter(
   basename
     ? [
-        { path: '/login', element: <LoginPage /> },
-        { path: '/shipper/register', element: <RegisterPage /> },
+        ...authRoutes,
         ...legalRoutes,
         ...webViewRoutes,
         ...publicTrackingRoutes,
@@ -115,8 +129,7 @@ export const router = createBrowserRouter(
         { path: '*', element: <Navigate to="/address-book" replace /> },
       ]
     : [
-        { path: '/login', element: <LoginPage /> },
-        { path: '/shipper/register', element: <RegisterPage /> },
+        ...authRoutes,
         ...legalRoutes,
         ...webViewRoutes,
         ...publicTrackingRoutes,

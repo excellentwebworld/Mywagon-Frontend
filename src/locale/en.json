@@ -28,6 +28,27 @@
   "viewAllNotifications": "View all notifications",
   "dashboard": "Dashboard",
 
+  "loginForgotPassword": "Forgot Password?",
+  "forgotPasswordTitle": "Forgot Password",
+  "forgotPasswordSubtitle": "Enter your email address to get reset password link",
+  "forgotPasswordEmail": "Email Address",
+  "forgotPasswordEnterEmail": "Enter your email address",
+  "forgotPasswordSubmit": "Submit",
+  "forgotPasswordBackToLogin": "Back to login",
+  "forgotPasswordSuccess": "Reset password link sent on your email",
+  "resetPasswordTitle": "Reset Password",
+  "resetPasswordSubtitle": "Enter password and confirm password to set new password",
+  "resetPasswordNew": "Password",
+  "resetPasswordConfirm": "Confirm Password",
+  "resetPasswordSubmit": "Submit",
+  "resetPasswordSuccessTitle": "Password Changed Successfully",
+  "resetPasswordSuccessMessage": "Your password has been updated successfully. You can now log in with your new password.",
+  "resetPasswordGoToLogin": "Go to Login",
+  "resetPasswordNeedHelp": "Need help? Contact the MYVAGON support team",
+  "resetPasswordMismatch": "New password does not match with confirm password",
+  "resetPasswordComplexity": "Your password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.",
+  "resetPasswordInvalidToken": "This password reset token is invalid or has expired.",
+
   "tour": {
     "welcome": {
       "title": "Welcome to MYVAGON",

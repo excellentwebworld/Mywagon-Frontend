@@ -27,6 +27,27 @@
   "viewAllNotifications": "Δείτε όλες τις ειδοποιήσεις",
   "dashboard": "Ταμπλό",
 
+  "loginForgotPassword": "Ξεχάσατε τον κωδικό σας;",
+  "forgotPasswordTitle": "Επαναφορά Κωδικού",
+  "forgotPasswordSubtitle": "Εισαγάγετε τη διεύθυνση email σας για να λάβετε σύνδεσμο επαναφοράς κωδικού πρόσβασης",
+  "forgotPasswordEmail": "Διεύθυνση Email",
+  "forgotPasswordEnterEmail": "Εισαγάγετε τη διεύθυνση email σας",
+  "forgotPasswordSubmit": "Υποβολή",
+  "forgotPasswordBackToLogin": "Επιστροφή στη Σύνδεση",
+  "forgotPasswordSuccess": "Ο σύνδεσμος επαναφοράς κωδικού πρόσβασης στάλθηκε στο email σας",
+  "resetPasswordTitle": "Ορισμός Νέου Κωδικού",
+  "resetPasswordSubtitle": "Εισαγάγετε κωδικό πρόσβασης και επιβεβαίωση για να ορίσετε νέο κωδικό πρόσβασης",
+  "resetPasswordNew": "Κωδικός Πρόσβασης",
+  "resetPasswordConfirm": "Επιβεβαίωση Κωδικού Πρόσβασης",
+  "resetPasswordSubmit": "Υποβολή",
+  "resetPasswordSuccessTitle": "Ο κωδικός πρόσβασης άλλαξε επιτυχώς",
+  "resetPasswordSuccessMessage": "Ο κωδικός πρόσβασής σας ενημερώθηκε επιτυχώς. Μπορείτε τώρα να συνδεθείτε με τον νέο σας κωδικό πρόσβασης.",
+  "resetPasswordGoToLogin": "Μετάβαση στη Σύνδεση",
+  "resetPasswordNeedHelp": "Χρειάζεστε βοήθεια; Επικοινωνήστε με την ομάδα υποστήριξης του MYVAGON",
+  "resetPasswordMismatch": "Ο νέος κωδικός πρόσβασης δεν ταιριάζει με την επιβεβαίωση",
+  "resetPasswordComplexity": "Ο κωδικός πρόσβασής σας πρέπει να έχει μήκος τουλάχιστον 8 χαρακτήρες και να περιλαμβάνει τουλάχιστον ένα κεφαλαίο γράμμα, ένα πεζό γράμμα, έναν αριθμό και έναν ειδικό χαρακτήρα.",
+  "resetPasswordInvalidToken": "Αυτό το διακριτικό επαναφοράς κωδικού πρόσβασης δεν είναι έγκυρο ή έχει λήξει.",
+
   "tour": {
     "welcome": {
       "title": "Καλώς ήρθατε στο MYVAGON",

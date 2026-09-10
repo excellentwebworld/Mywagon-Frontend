@@ -506,12 +506,12 @@ export const LoginPage: React.FC = () => {
                         </div>
 
                         <div className="shipper-login-forgot">
-                          <a
-                            href={laravelBase ? `${laravelBase}/any/reset/email/shippers` : '#'}
+                          <Link
+                            to="/forgot-password"
                             className="shipper-login-pw-link"
                           >
-                            {t('loginForgotPassword')}
-                          </a>
+                            {t('loginForgotPassword', 'Forgot Password?')}
+                          </Link>
                         </div>
 
                         <div className="shipper-login-submit-wrap">
