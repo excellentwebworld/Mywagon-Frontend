@@ -1349,14 +1349,13 @@ export const PublicTrackingPage: React.FC = () => {
 
                   // Freelancer: trips/vehicle/plates stay on the main card.
                   // Carrier + company driver: those details belong on the driver.
+                  // Tracking link: no Freelancer/Carrier role badges (Load Detail keeps those).
                   const carrierSubParts: string[] = [];
                   if (isFreelancer || !hasCompanyDriver) {
                     carrierSubParts.push(`${t(lang, 'completedTrips')}: ${tripsCount}`);
                     if (vehicleType) {
                       carrierSubParts.push(`${t(lang, 'vehicle')}: ${vehicleType}`);
                     }
-                  } else {
-                    carrierSubParts.push(t(lang, 'carrierCompany'));
                   }
 
                   const driverSubParts: string[] = [];
@@ -1384,9 +1383,6 @@ export const PublicTrackingPage: React.FC = () => {
                                   {ratingVal}
                                 </span>
                               ) : null}
-                              <span className={`pt-cr-badge ${isFreelancer ? 'freelancer' : 'carrier'}`}>
-                                {isFreelancer ? t(lang, 'freelancer') : t(lang, 'carrier')}
-                              </span>
                             </div>
                             {phone ? (
                               <button
@@ -1431,7 +1427,6 @@ export const PublicTrackingPage: React.FC = () => {
                           <div className="pt-cr-body">
                             <div className="pt-cr-identity">
                               <span className="pt-cr-name">{tr.driver_name}</span>
-                              <span className="pt-cr-badge driver">{t(lang, 'companyDriver')}</span>
                             </div>
                             <div className="pt-cr-sub">{driverSubParts.join(' · ')}</div>
                             {showPlatesOnDriver ? (

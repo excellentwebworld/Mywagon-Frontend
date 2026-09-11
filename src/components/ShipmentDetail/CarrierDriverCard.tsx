@@ -103,6 +103,49 @@ function PlateTags({ plates }: { plates: string[] }) {
   );
 }
 
+function PerformanceStatsGrid({
+  carrier,
+  t,
+}: {
+  carrier: CarrierDetail;
+  t: (key: string, fallback?: string) => string;
+}) {
+  const cells = [
+    {
+      label: t('onTimePickup', 'On-time pickup'),
+      value: carrier.onTimePickup && carrier.onTimePickup !== '—' ? carrier.onTimePickup : '—',
+    },
+    {
+      label: t('onTimeDelivery', 'On-time delivery'),
+      value: carrier.onTimeDelivery && carrier.onTimeDelivery !== '—' ? carrier.onTimeDelivery : '—',
+    },
+    {
+      label: t('cancellations', 'Cancellations'),
+      value: carrier.cancelRate && carrier.cancelRate !== '—' ? carrier.cancelRate : '—',
+    },
+    {
+      label: t('avgResponse', 'Avg response'),
+      value: carrier.avgPickupDelay && carrier.avgPickupDelay !== '—' ? carrier.avgPickupDelay : '—',
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+      {cells.map((cell) => (
+        <div
+          key={cell.label}
+          className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700"
+        >
+          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            {cell.label}
+          </div>
+          <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">{cell.value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
   carrier,
   driver,
@@ -310,6 +353,8 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                 {formatTripsLine(carrier.tripsCount, t('freelancer', 'Freelancer'))}
               </div>
 
+              <PerformanceStatsGrid carrier={carrier} t={t} />
+
               <PlateTags plates={carrierPlates.length ? carrierPlates : driverPlates} />
             </div>
           </div>
@@ -344,6 +389,10 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     </button>
 
                     <RatingPill rating={carrier.rating} ratingCount={carrier.ratingCount} />
+
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                      {t('carrier', 'Carrier')}
+                    </span>
 
                     {carrier.partner && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
@@ -398,10 +447,10 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                 </div>
 
                 <div className="text-[12px] mt-1 text-slate-500 dark:text-slate-400">
-                  {driver
-                    ? t('carrierCompany', 'Carrier Company')
-                    : formatTripsLine(carrier.tripsCount, t('carrierCompany', 'Carrier Company'))}
+                  {formatTripsLine(carrier.tripsCount, t('carrierCompany', 'Carrier Company'))}
                 </div>
+
+                <PerformanceStatsGrid carrier={carrier} t={t} />
 
                 {!driver ? <PlateTags plates={carrierPlates} /> : null}
               </div>
