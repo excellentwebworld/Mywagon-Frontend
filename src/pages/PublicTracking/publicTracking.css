@@ -995,12 +995,51 @@
   box-shadow: 0 0 0 3px #fee2e2;
 }
 
+.pt-live-status.denied .pt-live-status-dot {
+  background: #d97706;
+  box-shadow: 0 0 0 3px #fef3c7;
+}
+
 .pt-live-status.connected {
   color: #047857;
 }
 
 .pt-live-status.error {
   color: #b91c1c;
+}
+
+.pt-live-status.denied {
+  color: #92400e;
+}
+
+.pt-live-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  margin-bottom: 8px;
+}
+
+.pt-live-notice-icon {
+  font-size: 16px;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.pt-live-notice-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #856404;
+}
+
+.pt-live-notice-body {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #856404;
 }
 
 @keyframes pt-pulse {

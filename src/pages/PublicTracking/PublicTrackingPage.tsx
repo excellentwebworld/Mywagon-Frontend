@@ -95,6 +95,15 @@ const I18N: Record<string, { en: string; el: string }> = {
     en: 'Live GPS tracking and actual route data are not available.',
     el: 'Ζωντανή παρακολούθηση GPS και πραγματική διαδρομή δεν είναι διαθέσιμα.',
   },
+  noGpsTitle: { en: 'Live GPS unavailable', el: 'Ζωντανό GPS μη διαθέσιμο' },
+  noGpsBody: {
+    en: 'Live GPS tracking is not available for this shipment. The shipper plan does not include live GPS tracking.',
+    el: 'Η ζωντανή παρακολούθηση GPS δεν είναι διαθέσιμη για αυτό το φορτίο. Το πλάνο του αποστολέα δεν περιλαμβάνει ζωντανό GPS.',
+  },
+  noGpsShort: {
+    en: 'No live GPS permission',
+    el: 'Χωρίς άδεια ζωντανού GPS',
+  },
   pickupLocation: { en: 'Pickup Location', el: 'Τοποθεσία παραλαβής' },
   dropoffLocation: { en: 'Drop-off Location', el: 'Τοποθεσία παράδοσης' },
   noOrders: { en: 'No order details available.', el: 'Δεν υπάρχουν διαθέσιμες λεπτομέρειες παραγγελίας.' },
@@ -349,6 +358,9 @@ const TrackingLiveMap: React.FC<{
   const routeLegs = useRouteLegs(enrichedStops);
   const actualRoute = data.map.actual_route || [];
   const isLive = Boolean(data.map.live?.enabled);
+  const hasGpsPermission = Boolean(data.map.permissions?.gps);
+  const isManualTrip =
+    (data.shipment.started_by || '') === 'carrier' || (data.map.mode || '') === 'manual';
   const status = (data.shipment.status || '').toLowerCase();
   const isOnTrip = status === 'on_trip' || status === 'in_progress';
   const isCompleted =
@@ -359,6 +371,8 @@ const TrackingLiveMap: React.FC<{
   const hasActual = actualRoute.length > 1 || Boolean(data.map.permissions?.actual_route);
   // Match TrackingMapCard: toggle on completed; during live keep suggested + GPS marker.
   const showToggle = !isLive && (isCompleted || hasActual || Boolean(data.map.permissions?.show_route_toggle));
+  const showLiveChrome = isLive || isOnTrip;
+  const liveBlocked = showLiveChrome && !isLive && (isManualTrip || !hasGpsPermission);
 
   const activePolylinePath =
     routeMode === 'actual' && actualRoute.length > 1 ? actualRoute : routeLegs.polylinePath;
@@ -375,30 +389,56 @@ const TrackingLiveMap: React.FC<{
     [lang]
   );
 
+  const liveStatusLabel = (() => {
+    if (isManualTrip && !isLive) {
+      return t(lang, 'manualTitle');
+    }
+    if (!hasGpsPermission && !isLive) {
+      return t(lang, 'noGpsShort');
+    }
+    if (socketStatus === 'connected') {
+      return lang === 'el' ? 'Ζωντανά συνδεδεμένο' : 'Live connected';
+    }
+    if (socketStatus === 'connecting') {
+      return lang === 'el' ? 'Σύνδεση…' : 'Connecting…';
+    }
+    if (socketStatus === 'error') {
+      return lang === 'el' ? 'Σφάλμα σύνδεσης' : 'Connection error';
+    }
+    return lang === 'el' ? 'Αναμονή GPS' : 'Waiting for GPS';
+  })();
+
+  const liveStatusClass = (() => {
+    if (liveBlocked) return 'denied';
+    return socketStatus;
+  })();
+
   return (
     <div className="pt-map-stack">
-      {isLive || isOnTrip ? (
+      {liveBlocked ? (
+        <div className="pt-live-notice" role="status">
+          <span className="pt-live-notice-icon" aria-hidden="true">
+            ⚠️
+          </span>
+          <div>
+            <div className="pt-live-notice-title">
+              {isManualTrip ? t(lang, 'manualTitle') : t(lang, 'noGpsTitle')}
+            </div>
+            <div className="pt-live-notice-body">
+              {isManualTrip ? t(lang, 'manualBody') : t(lang, 'noGpsBody')}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showLiveChrome ? (
         <div className="pt-map-toolbar">
-          <div className={`pt-live-status ${socketStatus}`}>
+          <div className={`pt-live-status ${liveStatusClass}`}>
             <span className="pt-live-status-dot" aria-hidden="true" />
-            {socketStatus === 'connected'
-              ? lang === 'el'
-                ? 'Ζωντανά συνδεδεμένο'
-                : 'Live connected'
-              : socketStatus === 'connecting'
-                ? lang === 'el'
-                  ? 'Σύνδεση…'
-                  : 'Connecting…'
-                : socketStatus === 'error'
-                  ? lang === 'el'
-                    ? 'Σφάλμα σύνδεσης'
-                    : 'Connection error'
-                  : lang === 'el'
-                    ? 'Αναμονή GPS'
-                    : 'Waiting for GPS'}
-            {livePosition
+            {liveStatusLabel}
+            {!liveBlocked && livePosition
               ? ` · ${livePosition.lat.toFixed(4)}, ${livePosition.lng.toFixed(4)}`
-              : socketStatus === 'connected'
+              : !liveBlocked && socketStatus === 'connected'
                 ? lang === 'el'
                   ? ' · αναμονή θέσης…'
                   : ' · waiting for position…'
@@ -461,8 +501,8 @@ const TrackingLiveMap: React.FC<{
             height={isOnTrip || isLive ? 260 : 280}
             expanded
             strokeColor={routeMode === 'actual' ? '#d97706' : '#9B51E0'}
-            livePosition={isLive || isOnTrip ? livePosition : null}
-            followLive
+            livePosition={isLive ? livePosition : null}
+            followLive={isLive}
             liveIcon={LIVE_ICON}
             t={mapT as any}
           />
