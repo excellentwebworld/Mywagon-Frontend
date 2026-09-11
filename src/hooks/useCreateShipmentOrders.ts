@@ -22,9 +22,9 @@ export function useCreateShipmentOrders() {
       });
       return result.items.map(mapApiListItemToOrder);
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchOnMount: false,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: false,
   });
 

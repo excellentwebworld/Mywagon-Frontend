@@ -2440,7 +2440,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                 sublabel?: string;
               }[] = [];
 
-              // 1. Order-specific mapped lines first
+              // Only products from the selected order (not the full product master).
               getProductOptionsForCargoLine(orderDetail).forEach((opt) => {
                 if (!seenValues.has(opt.value)) {
                   seenValues.add(opt.value);
@@ -2452,24 +2452,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                 }
               });
 
-              // 2. Master SKUs (pmSkus) so newly created products are directly reflected
-              (pmSkus || []).forEach((sku: any) => {
-                const sId = String(sku.id);
-                if (sId && !seenValues.has(sId)) {
-                  seenValues.add(sId);
-                  productOpts.push({
-                    value: sId,
-                    label: sku.name || sku.sku_name || "Product",
-                    sublabel:
-                      sku.number ||
-                      sku.sku ||
-                      sku.sku_number ||
-                      undefined,
-                  });
-                }
-              });
-
-              // 3. Ensure currently selected product on this line stays displayed even if edge case
+              // Keep the currently selected product visible (e.g. just created via + Create Product).
               if (
                 ln.productId &&
                 !seenValues.has(String(ln.productId))

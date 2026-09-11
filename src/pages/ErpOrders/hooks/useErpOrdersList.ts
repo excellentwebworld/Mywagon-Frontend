@@ -10,6 +10,7 @@ import {
   ERP_ORDERS_PREFILL_KEY,
   isOrderEligibleForCreateLoad,
 } from '../../CreateShipmentWizard/hooks/erpOrdersPrefill';
+import { wizardQueryKeys } from '../../CreateShipmentWizard/hooks/wizardQueryKeys';
 import type {
   ErpOrder,
   ErpOrderFormState,
@@ -131,6 +132,9 @@ export function useErpOrdersList() {
 
   const invalidateOrders = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['erp-orders'] });
+    // Create Shipment order dropdown uses a separate cache key — keep it in sync
+    // after create / edit / delete / AI import on the Orders page.
+    queryClient.invalidateQueries({ queryKey: wizardQueryKeys.unlinkedOrders });
   }, [queryClient]);
 
   const refreshLocations = useCallback(() => {
