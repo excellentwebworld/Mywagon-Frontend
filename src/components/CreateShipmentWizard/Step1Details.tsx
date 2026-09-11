@@ -1912,6 +1912,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         stopIndex={idx}
                         orderLoadingLineId={orderLoadingLineId}
                         ordersLoading={ordersLoading}
+                        pmSkus={pmSkus}
                       />
                     </div>
 
@@ -2322,6 +2323,7 @@ interface CargoTableProps {
   stopIndex: number;
   orderLoadingLineId?: string | null;
   ordersLoading?: boolean;
+  pmSkus?: any[];
 }
 
 const CargoTable: React.FC<CargoTableProps> = ({
@@ -2350,6 +2352,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
   stopIndex,
   orderLoadingLineId = null,
   ordersLoading = false,
+  pmSkus = [],
 }) => {
   const thS: React.CSSProperties = {
     fontSize: 10,

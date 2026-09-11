@@ -403,12 +403,12 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
             ? o.transporter_type
             : null,
         isPartner: Boolean(
-          o.is_partner === 1 ||
-          o.is_partner === '1' ||
           o.is_partner === true ||
-          o.isPartner === true ||
-          o.isPartner === 1 ||
-          o.isPartner === '1' ||
+          (o as any).is_partner === 1 ||
+          (o as any).is_partner === '1' ||
+          (o as any).isPartner === true ||
+          (o as any).isPartner === 1 ||
+          (o as any).isPartner === '1' ||
           (o as any).partner === true ||
           (o as any).partner === 1 ||
           (o as any).partner === '1' ||
