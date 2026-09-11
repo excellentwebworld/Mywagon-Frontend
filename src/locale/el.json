@@ -2175,6 +2175,7 @@
   "boardCostKm": "Κόστος / χλμ",
   "boardNotes": "Σημειώσεις",
   "boardNoNotes": "Χωρίς σημειώσεις",
+  "boardTrack": "Παρακολούθηση",
   "boardEmpty": "Δεν υπάρχουν αποστολές σε αυτό το φίλτρο",
   "boardShowing": "Εμφάνιση {{start}}–{{end}} από {{total}}",
   "expand": "Ανάπτυξη",

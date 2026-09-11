@@ -6,7 +6,8 @@ import type { Conversation } from '../../pages/Messages/types';
 import { DashUpgradeBlock, formatDashError, translateDashMessage } from './dashErrorUtils';
 import { DashMessagesSkeleton } from './DashboardSkeletons';
 
-const PREVIEW_LIMIT = 5;
+// Fetch up to 50; the scrollable list (min ~3 rows visible) shows as many as fit the available space.
+const PREVIEW_LIMIT = 50;
 
 export const MessagesPreview: React.FC = () => {
   const { t } = useTranslation();

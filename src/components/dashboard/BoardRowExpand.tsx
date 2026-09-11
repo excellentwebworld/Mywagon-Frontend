@@ -158,6 +158,7 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
   const canEdit = isShipmentEditable(shipment.status);
 
   const goDetails = () => navigate(`/shipments/${shipment.id}`);
+  const goTrack = () => navigate(`/shipments/${shipment.id}?focus=tracking`);
   const goEdit = () => {
     if (!canEdit) return;
     if (shipment.status === 'draft') {
@@ -245,6 +246,14 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
             <circle cx="12" cy="10" r="3" />
           </svg>
           {t('loadDetails')}
+        </button>
+        {/* Same pin icon as Load Details, for visual consistency between the two location-based actions. */}
+        <button type="button" className="expand-btn" onClick={goTrack}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
+          {t('boardTrack')}
         </button>
         {canEdit && (
           <button type="button" className="expand-btn" onClick={goEdit}>

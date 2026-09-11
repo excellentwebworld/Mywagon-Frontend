@@ -2175,6 +2175,7 @@
   "boardCostKm": "Cost / km",
   "boardNotes": "Notes",
   "boardNoNotes": "No notes",
+  "boardTrack": "Track",
   "boardEmpty": "No shipments in this filter",
   "boardShowing": "Showing {{start}}–{{end}} of {{total}}",
   "expand": "Expand",
