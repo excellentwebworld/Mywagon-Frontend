@@ -141,8 +141,8 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ activeBoardTab, setActiveBoa
       value: error ? '—' : pastDue,
       label: t('kpiPastDue'),
       colorClass: 'c-orange',
-      active: false,
-      action: { type: 'navigate', to: '/shipments?status=past_due' },
+      active: activeBoardTab === 5,
+      action: { type: 'board', tab: 5 },
     },
   ];
 

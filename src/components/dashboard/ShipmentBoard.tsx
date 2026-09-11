@@ -29,6 +29,7 @@ const BOARD_TABS: BoardTabDef[] = [
   { key: 'at_risk', labelKey: 'kpiAtRisk', filter: { kpi: 'at_risk' } },
   { key: 'upcoming', labelKey: 'upcoming', filter: { kpi: 'upcoming' } },
   { key: 'on_trip', labelKey: 'on_trip', filter: { status: 'on_trip' } },
+  { key: 'past_due', labelKey: 'kpiPastDue', warn: true, filter: { status: 'past_due' } },
 ];
 
 function manageShipmentsHref(tabIndex: number): string {

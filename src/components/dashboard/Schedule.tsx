@@ -49,7 +49,7 @@ export const Schedule: React.FC<ScheduleProps> = ({ selectedShipmentId, onSelect
   };
 
   return (
-    <div className="card">
+    <div className="card sched-card">
       <div className="card-hd">
         <h3>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

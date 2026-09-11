@@ -1,5 +1,6 @@
 import type { ApiShipmentListCarrier, ApiShipmentListItem } from '../../api/types/shipments';
 import { formatEuro } from '../../pages/ManageShipments/utils/listingUtils';
+import { parseUtcInstant } from '../../utils/timezone';
 
 export type ScheduleEventKind = 'pickup' | 'dropoff';
 
@@ -30,9 +31,7 @@ export interface TodayScheduleCounts {
 }
 
 function parseIso(value?: string | null): Date | null {
-  if (!value) return null;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d;
+  return parseUtcInstant(value);
 }
 
 /** Local calendar day match (browser timezone). */
@@ -99,7 +98,8 @@ export function buildTodayScheduleEvents(
     };
 
     const pickupIso = item.pickup_at_iso || item.pickup_at;
-    if (isLocalToday(pickupIso, now)) {
+    const isPickupToday = isLocalToday(pickupIso, now);
+    if (isPickupToday) {
       const sortAt = parseIso(pickupIso)?.getTime() ?? 0;
       events.push({
         ...base,
@@ -111,7 +111,8 @@ export function buildTodayScheduleEvents(
     }
 
     const dropoffIso = item.delivery_at_iso || item.delivery_at;
-    if (isLocalToday(dropoffIso, now)) {
+    const isDropoffToday = isLocalToday(dropoffIso, now);
+    if (isDropoffToday) {
       const sortAt = parseIso(dropoffIso)?.getTime() ?? 0;
       events.push({
         ...base,
@@ -119,6 +120,18 @@ export function buildTodayScheduleEvents(
         kind: 'dropoff',
         sortAt,
         timeLabel: formatTimeLabel(dropoffIso),
+      });
+    }
+
+    // If shipment is currently in-transit on the road today (on_trip / ready) and neither pickup nor dropoff were matched today
+    if (!isPickupToday && !isDropoffToday && (item.status === 'on_trip' || item.status === 'ready')) {
+      const sortAt = parseIso(pickupIso)?.getTime() ?? now.getTime();
+      events.push({
+        ...base,
+        key: `${item.id}-${item.status}`,
+        kind: item.status === 'ready' ? 'pickup' : 'dropoff',
+        sortAt,
+        timeLabel: formatTimeLabel(pickupIso) !== '—' ? formatTimeLabel(pickupIso) : formatTimeLabel(dropoffIso),
       });
     }
   }
