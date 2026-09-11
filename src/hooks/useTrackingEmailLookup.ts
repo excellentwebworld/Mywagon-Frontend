@@ -12,8 +12,18 @@ async function loadTrackingCustomerEmails(): Promise<Record<string, string>> {
 
   const byCustomerId: Record<string, string> = {};
   [...entities, ...customers].forEach((entity) => {
-    if (entity.id && entity.email) {
-      byCustomerId[String(entity.id)] = entity.email;
+    const email = entity.email?.trim();
+    if (!email) return;
+
+    if (entity.id) {
+      byCustomerId[String(entity.id)] = email;
+    }
+    if (entity.name) {
+      byCustomerId[entity.name.trim()] = email;
+      byCustomerId[entity.name.trim().toLowerCase()] = email;
+    }
+    if (entity.vat_number) {
+      byCustomerId[entity.vat_number.trim()] = email;
     }
   });
 

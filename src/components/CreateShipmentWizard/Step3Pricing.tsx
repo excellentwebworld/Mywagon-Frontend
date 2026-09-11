@@ -282,16 +282,34 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   const byOrderId = useMemo(() => {
     const next: Record<string, string> = {};
     step3Orders.forEach((order) => {
-      const email =
-        order.companyEntityId != null
-          ? byCustomerId[String(order.companyEntityId)]
-          : undefined;
+      let email: string | undefined = undefined;
+      if (order.companyEntityId != null) {
+        email = byCustomerId[String(order.companyEntityId)];
+      }
+      if (!email && order.customerName) {
+        const cName = order.customerName.trim();
+        email = byCustomerId[cName] || byCustomerId[cName.toLowerCase()];
+      }
+      if (!email && order.destLocationId != null) {
+        const destLoc = locations.find((l) => String(l.id) === String(order.destLocationId));
+        email = destLoc?.contacts?.find((c) => c.email?.trim())?.email || (destLoc as any)?.email;
+      }
+      if (!email && order.originLocationId != null) {
+        const origLoc = locations.find((l) => String(l.id) === String(order.originLocationId));
+        email = origLoc?.contacts?.find((c) => c.email?.trim())?.email || (origLoc as any)?.email;
+      }
       if (email) {
         next[order.id] = email;
+        if (order.orderReference) {
+          next[order.orderReference] = email;
+        }
+        if (order.erpReference) {
+          next[order.erpReference] = email;
+        }
       }
     });
     return next;
-  }, [step3Orders, byCustomerId]);
+  }, [step3Orders, byCustomerId, locations]);
 
   const emailLookup = useMemo(
     () => ({ byCustomerId, byOrderId }),
@@ -534,29 +552,33 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
 
   // Prefill default email lists per orderId from customer company data
   useEffect(() => {
-    const initKey = `${orderIdsKey}|${Object.keys(byCustomerId).length}|${Object.keys(byOrderId).length}`;
-    if (trackingEmailsInitializedRef.current === initKey) return;
-
     const nextEmails = { ...trackingEmailsRecord };
     let changed = false;
 
-    Object.values(trackingGroups.groups)
+    const allOrders = Object.values(trackingGroups.groups)
       .flat()
-      .concat(trackingGroups.ungrouped)
-      .forEach((order) => {
-        if (!isUninitializedTrackingEmails(nextEmails[order.orderId])) return;
+      .concat(trackingGroups.ungrouped);
 
-        const prefilled = order.defaultEmail ? [order.defaultEmail] : [''];
-        nextEmails[order.orderId] = prefilled;
-        changed = true;
-      });
+    allOrders.forEach((order) => {
+      const currentList = nextEmails[order.orderId];
+      if (isUninitializedTrackingEmails(currentList)) {
+        if (order.defaultEmail) {
+          const target = [order.defaultEmail];
+          if (JSON.stringify(currentList) !== JSON.stringify(target)) {
+            nextEmails[order.orderId] = target;
+            changed = true;
+          }
+        } else if (!currentList || currentList.length === 0) {
+          nextEmails[order.orderId] = [''];
+          changed = true;
+        }
+      }
+    });
 
     if (changed) {
       setFieldValue('trackingEmails', nextEmails);
     }
-
-    trackingEmailsInitializedRef.current = initKey;
-  }, [orderIdsKey, byCustomerId, byOrderId, trackingGroups, trackingEmailsRecord, setFieldValue]);
+  }, [trackingGroups, trackingEmailsRecord, setFieldValue]);
 
   // Tracking operations
   const addEmailField = (orderId: string) => {

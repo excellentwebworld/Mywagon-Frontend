@@ -22,6 +22,14 @@ function fmtMin(v: number | null | undefined): string {
   return v == null ? '—' : `${Math.round(v)}m`;
 }
 
+/** Guest reviews: show email local-part only (ecolman3@x.com → ecolman3). */
+function formatRaterPseudo(name?: string | null): string {
+  const raw = (name || '').trim();
+  if (!raw) return '';
+  const at = raw.indexOf('@');
+  return at > 0 ? raw.slice(0, at) : raw;
+}
+
 function Stars({ value }: { value: number }) {
   const full = Math.floor(value);
   return (
@@ -135,7 +143,9 @@ export const TransporterProfileContent: React.FC<TransporterProfileContentProps>
             <li key={review.id} className="tp-review">
               <div className="tp-review-head">
                 <Stars value={review.rating ?? 0} />
-                {review.rater_name && <span className="tp-review-rater">{review.rater_name}</span>}
+                {review.rater_name && (
+                  <span className="tp-review-rater">{formatRaterPseudo(review.rater_name)}</span>
+                )}
                 {review.created_at && (
                   <span className="tp-review-date">
                     {new Date(review.created_at).toLocaleDateString()}

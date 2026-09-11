@@ -14,6 +14,14 @@ import { parseUtcInstant } from '../../../utils/timezone';
 
 const PAGE_SIZE = 15;
 
+/** Guest reviews: show email local-part only (ecolman3@x.com → ecolman3). */
+function formatRaterPseudo(name) {
+  const raw = String(name || '').trim();
+  if (!raw) return '';
+  const at = raw.indexOf('@');
+  return at > 0 ? raw.slice(0, at) : raw;
+}
+
 export default function PerformanceSection() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
@@ -203,13 +211,13 @@ export default function PerformanceSection() {
                       className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                       style={{ background: T.ac, color: '#fff', fontSize: 12, fontWeight: 700 }}
                     >
-                      {(review.rater_name || '?').charAt(0).toLocaleUpperCase(locale)}
+                      {(formatRaterPseudo(review.rater_name) || '?').charAt(0).toLocaleUpperCase(locale)}
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex justify-between gap-2">
                       <span style={{ fontSize: 12, fontWeight: 600, color: T.t1 }}>
-                        {review.rater_name || t('settings.profileSection.anonymousRater')}
+                        {formatRaterPseudo(review.rater_name) || t('settings.profileSection.anonymousRater')}
                       </span>
                       <span style={{ fontSize: 10, color: T.t3 }}>
                         {formatRelativeTime(review.created_at, t, locale)}

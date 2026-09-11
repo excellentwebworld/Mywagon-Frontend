@@ -30,7 +30,18 @@ export function buildTrackingGroups(
   const enriched = enrichStops(stops, locations);
   const orderRouteMap = new Map<
     string,
-    { pickupCity?: string; dropoffCity?: string; dropoffLocation?: string }
+    {
+      orderId?: string;
+      orderRef?: string;
+      customerId?: string;
+      customerName?: string;
+      pickupCity?: string;
+      dropoffCity?: string;
+      dropoffLocation?: string;
+      pickupStopIndex?: number;
+      dropoffStopIndex?: number;
+      fallbackStopIndex?: number;
+    }
   >();
 
   stops.forEach((stop, stopIndex) => {
@@ -40,71 +51,143 @@ export function buildTrackingGroups(
       const key = orderKey(line);
       if (!key) return;
       if (!orderRouteMap.has(key)) {
-        orderRouteMap.set(key, {});
+        orderRouteMap.set(key, {
+          orderId: line.orderId ? String(line.orderId) : key,
+          orderRef: line.orderRef || key,
+          fallbackStopIndex: stopIndex,
+        });
       }
       const entry = orderRouteMap.get(key)!;
-      if (line.action === 'pickup' && !entry.pickupCity) {
-        entry.pickupCity = city;
+      if (line.customerId && !entry.customerId) {
+        entry.customerId = String(line.customerId);
+      }
+      if (line.customerName && !entry.customerName) {
+        entry.customerName = line.customerName;
+      }
+      if (line.orderRef && !entry.orderRef) {
+        entry.orderRef = line.orderRef;
+      }
+      if (line.action === 'pickup') {
+        if (!entry.pickupCity) entry.pickupCity = city;
+        if (entry.pickupStopIndex === undefined) entry.pickupStopIndex = stopIndex;
       }
       if (line.action === 'dropoff') {
-        entry.dropoffCity = city;
-        entry.dropoffLocation = locLabel || city;
+        if (!entry.dropoffCity) entry.dropoffCity = city;
+        if (!entry.dropoffLocation) entry.dropoffLocation = locLabel || city;
+        if (entry.dropoffStopIndex === undefined) entry.dropoffStopIndex = stopIndex;
       }
     });
   });
 
-  const resolveDefaultEmail = (line: NonNullable<ApiStop['lines']>[number], orderIdKey: string): string | undefined => {
-    if (line.customerId && emailLookup.byCustomerId?.[String(line.customerId)]) {
-      return emailLookup.byCustomerId[String(line.customerId)];
+  const resolveDefaultEmail = (
+    orderKey: string,
+    entry: {
+      customerId?: string;
+      customerName?: string;
+      orderId?: string;
+      orderRef?: string;
+      pickupStopIndex?: number;
+      dropoffStopIndex?: number;
+      fallbackStopIndex?: number;
     }
-    if (line.orderId && emailLookup.byOrderId?.[String(line.orderId)]) {
-      return emailLookup.byOrderId[String(line.orderId)];
+  ): string | undefined => {
+    // 1. Direct match by customerId
+    if (entry.customerId && emailLookup.byCustomerId?.[String(entry.customerId)]) {
+      return emailLookup.byCustomerId[String(entry.customerId)];
     }
-    if (emailLookup.byOrderId?.[orderIdKey]) {
-      return emailLookup.byOrderId[orderIdKey];
+
+    // 2. Direct match by customerName (exact and lowercased)
+    if (entry.customerName) {
+      const trimmed = entry.customerName.trim();
+      if (emailLookup.byCustomerId?.[trimmed]) {
+        return emailLookup.byCustomerId[trimmed];
+      }
+      if (emailLookup.byCustomerId?.[trimmed.toLowerCase()]) {
+        return emailLookup.byCustomerId[trimmed.toLowerCase()];
+      }
     }
+
+    // 3. Match by orderId / orderKey / orderRef
+    if (entry.orderId && emailLookup.byOrderId?.[String(entry.orderId)]) {
+      return emailLookup.byOrderId[String(entry.orderId)];
+    }
+    if (emailLookup.byOrderId?.[orderKey]) {
+      return emailLookup.byOrderId[orderKey];
+    }
+    if (entry.orderRef && emailLookup.byOrderId?.[entry.orderRef]) {
+      return emailLookup.byOrderId[entry.orderRef];
+    }
+
+    // 4. Dropoff location contact email from Address Book
+    const targetStopIndex = entry.dropoffStopIndex ?? entry.fallbackStopIndex ?? entry.pickupStopIndex;
+    if (targetStopIndex !== undefined && stops[targetStopIndex]) {
+      const stopLocId = stops[targetStopIndex].locationId;
+      const matchedLoc = locations.find((l) => String(l.id) === String(stopLocId));
+      if (matchedLoc) {
+        const contactEmail = matchedLoc.contacts?.find((c) => c.email?.trim())?.email;
+        if (contactEmail?.trim()) return contactEmail.trim();
+        if ((matchedLoc as any).email?.trim()) return (matchedLoc as any).email.trim();
+      }
+    }
+
+    // 5. Pickup location contact email as fallback
+    if (entry.pickupStopIndex !== undefined && entry.pickupStopIndex !== targetStopIndex && stops[entry.pickupStopIndex]) {
+      const pickupLocId = stops[entry.pickupStopIndex].locationId;
+      const matchedLoc = locations.find((l) => String(l.id) === String(pickupLocId));
+      if (matchedLoc) {
+        const contactEmail = matchedLoc.contacts?.find((c) => c.email?.trim())?.email;
+        if (contactEmail?.trim()) return contactEmail.trim();
+        if ((matchedLoc as any).email?.trim()) return (matchedLoc as any).email.trim();
+      }
+    }
+
+    // 6. Name match in Address Book locations
+    if (entry.customerName) {
+      const custNorm = entry.customerName.trim().toLowerCase();
+      const matchedLoc = locations.find(
+        (l) =>
+          (l.company && l.company.trim().toLowerCase() === custNorm) ||
+          (l.name && l.name.trim().toLowerCase() === custNorm)
+      );
+      if (matchedLoc) {
+        const contactEmail = matchedLoc.contacts?.find((c) => c.email?.trim())?.email;
+        if (contactEmail?.trim()) return contactEmail.trim();
+        if ((matchedLoc as any).email?.trim()) return (matchedLoc as any).email.trim();
+      }
+    }
+
     return undefined;
   };
 
   const groups: Record<string, TrackingOrderItem[]> = {};
   const ungrouped: TrackingOrderItem[] = [];
 
-  stops.forEach((stop, stopIndex) => {
-    const enrichedStop = enriched[stopIndex];
-    const locLabel = [enrichedStop.resolvedName, enrichedStop.resolvedCity].filter(Boolean).join(', ');
+  orderRouteMap.forEach((entry, key) => {
+    const route =
+      entry.pickupCity && entry.dropoffCity
+        ? `${entry.pickupCity} → ${entry.dropoffCity}`
+        : entry.pickupCity || entry.dropoffCity || '—';
 
-    (stop.lines || []).forEach((line) => {
-      if (!line.productId) return;
-      const key = orderKey(line);
-      if (!key) return;
+    const defaultEmail = resolveDefaultEmail(key, entry);
 
-      const routeEntry = orderRouteMap.get(key) || {};
-      const route =
-        routeEntry.pickupCity && routeEntry.dropoffCity
-          ? `${routeEntry.pickupCity} → ${routeEntry.dropoffCity}`
-          : routeEntry.pickupCity || routeEntry.dropoffCity || '—';
+    const item: TrackingOrderItem = {
+      orderId: entry.orderId || key,
+      orderRef: entry.orderRef || key,
+      route,
+      location: entry.dropoffLocation || '—',
+      customerName: entry.customerName || '',
+      defaultEmail,
+    };
 
-      const item: TrackingOrderItem = {
-        orderId: line.orderId ? String(line.orderId) : key,
-        orderRef: line.orderRef || key,
-        route,
-        location: routeEntry.dropoffLocation || locLabel || '—',
-        customerName: line.customerName || '',
-        defaultEmail: resolveDefaultEmail(line, line.orderId ? String(line.orderId) : key),
-      };
-
-      const customerKey = line.customerName?.trim() || '__none__';
-      if (customerKey === '__none__') {
-        if (!ungrouped.some((x) => x.orderId === item.orderId)) {
-          ungrouped.push(item);
-        }
-      } else if (!groups[customerKey]?.some((x) => x.orderId === item.orderId)) {
-        if (!groups[customerKey]) {
-          groups[customerKey] = [];
-        }
-        groups[customerKey].push(item);
+    const customerKey = entry.customerName?.trim() || '__none__';
+    if (customerKey === '__none__') {
+      ungrouped.push(item);
+    } else {
+      if (!groups[customerKey]) {
+        groups[customerKey] = [];
       }
-    });
+      groups[customerKey].push(item);
+    }
   });
 
   return {
