@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ArrowRightLeft, DollarSign } from 'lucide-react';
+import { X, ArrowRightLeft, DollarSign, ShieldCheck } from 'lucide-react';
 import type { PartnerBidItem } from './BidsCard';
 import { CarrierAvatar } from '../ManageShipments/CarrierAvatar';
 
@@ -94,11 +94,19 @@ export const CounterOfferModal: React.FC<CounterOfferModalProps> = ({
                 className="carrier-av rounded-full flex items-center justify-center font-bold flex-shrink-0 text-xs shadow-2xs"
               />
               <div className="min-w-0">
-                <div className="text-[13px] font-bold text-slate-900 dark:text-white truncate">
-                  {bid.name}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[13px] font-bold text-slate-900 dark:text-white truncate">
+                    {bid.name}
+                  </span>
+                  {bid.isPartner && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      <ShieldCheck size={11} />
+                      <span>{t('partner', 'PARTNER')}</span>
+                    </span>
+                  )}
                 </div>
                 <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                  {bid.transporterType === 'freelancer' ? 'Freelancer' : 'Carrier'}
+                  {bid.transporterType === 'freelancer' ? t('freelancer', 'Freelancer') : t('carrier', 'Carrier')}
                 </div>
               </div>
             </div>

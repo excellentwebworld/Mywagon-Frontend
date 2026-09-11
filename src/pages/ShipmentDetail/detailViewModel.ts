@@ -928,6 +928,24 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     const hasBid = Boolean(o.price != null || o.counter != null || o.status === 'bid' || o.status === 'offered' || o.status === 'pending');
     const isInterested = Boolean(o.status === 'interested' || (o as any).isInterested);
 
+    const isPartner = Boolean(
+      o.isPartner ||
+      (o as any).is_partner === 1 ||
+      (o as any).is_partner === '1' ||
+      (o as any).is_partner === true ||
+      (o as any).isPartner === true ||
+      (o as any).partner === true ||
+      (o as any).partner === 1 ||
+      (o as any).partner === '1' ||
+      (shipment.invitees || []).some(
+        (inv) =>
+          (inv.transporterId && inv.transporterId === o.transporterId) ||
+          (inv.partnerId && inv.partnerId === o.transporterId) ||
+          (inv.id && String(inv.id) === String(o.id)) ||
+          (inv.name && inv.name.toLowerCase() === name.toLowerCase())
+      )
+    );
+
     return {
       id: String(o.id || `offer-${Math.random()}`),
       userId: o.transporterId ?? undefined,
@@ -936,7 +954,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       initials: o.initials || (name ? name.substring(0, 2).toUpperCase() : 'TR'),
       avatar: o.avatar ?? null,
       transporterType: o.transporterType === 'driver' || o.role === 'freelancer' ? 'freelancer' : 'carrier',
-      isPartner: Boolean(o.isPartner),
+      isPartner,
       status: o.status ?? null,
       statusText: o.counter
         ? (lastActionBy === 'shipper' ? 'Counter-bid sent · Waiting response' : 'Counter-bid received')

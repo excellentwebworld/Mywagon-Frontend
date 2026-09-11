@@ -104,6 +104,50 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
 
     expect(vm.partners[1].hasBid).toBe(false);
     expect(vm.partners[1].name).toBe('Hellas Freight Express');
+    expect(vm.partners[1].isPartner).toBe(true);
+  });
+
+  it('Phase 2: resolves isPartner on bids matching invited partners or offer partner flags', () => {
+    const vm = buildShipmentDetailViewModel({
+      ...baseMockShipment,
+      status: 'pending',
+      channel: 'private',
+      vis: 'private',
+      offers: [
+        {
+          id: 'bid-partner',
+          name: 'Express Partner Freight',
+          type: 'bid',
+          price: 450,
+          isPartner: true,
+          transporterType: 'carrier',
+          transporterId: 99,
+        },
+        {
+          id: 'bid-non-partner',
+          name: 'Public Trucker',
+          type: 'bid',
+          price: 480,
+          isPartner: false,
+          transporterType: 'freelancer',
+          transporterId: 100,
+        },
+      ],
+      invitees: [
+        {
+          id: 99,
+          transporterId: 99,
+          name: 'Express Partner Freight',
+          role: 'carrier',
+        },
+      ],
+    });
+
+    const partnerBid = vm.partners.find((p) => p.name === 'Express Partner Freight');
+    const nonPartnerBid = vm.partners.find((p) => p.name === 'Public Trucker');
+
+    expect(partnerBid?.isPartner).toBe(true);
+    expect(nonPartnerBid?.isPartner).toBe(false);
   });
 
   it('Phase 2: handles public load without incoming bids', () => {

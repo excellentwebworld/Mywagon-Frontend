@@ -25,14 +25,21 @@ export const PublicTrackingSkeleton: React.FC = () => {
       </div>
 
       <div className="pt-ms-bar">
-        <div className="pt-ms-row pt-skel-timeline">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div className="pt-ms-step" key={i}>
-              <div className="pt-skel pt-skel-dot" />
-              <div className="pt-skel pt-skel-line" style={{ width: 64, marginTop: 10 }} />
-              <div className="pt-skel pt-skel-line" style={{ width: 48, marginTop: 6 }} />
-            </div>
-          ))}
+        <div className="pt-ms-card">
+          <div className="pt-ms-row pt-skel-timeline">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div className="pt-ms-step" key={i}>
+                <div className="pt-ms-track">
+                  <div className="pt-skel pt-skel-dot" />
+                  {i < 4 ? <div className="pt-ms-connector" /> : null}
+                </div>
+                <div className="pt-ms-body">
+                  <div className="pt-skel pt-skel-line" style={{ width: 72 }} />
+                  <div className="pt-skel pt-skel-line" style={{ width: 52, marginTop: 6 }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

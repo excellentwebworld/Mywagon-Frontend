@@ -124,23 +124,58 @@ function formatStopSchedule(fromDate?: string | null, toDate?: string | null): s
     timeText = endTime;
   }
 
-  return [dateLine, timeText].filter(Boolean).join(' · ');
+  if (dateLine && timeText) return `${dateLine} - ${timeText}`;
+  return dateLine || timeText;
 }
 
 function timelineDotClass(step: TrackingTimelineItem): string {
-  const classes: string[] = [step.state];
-  if (step.variant === 'pod' && step.state === 'pending') classes.push('pod-pending');
-  if (step.variant === 'danger' || step.state === 'failed') classes.push('failed');
-  if (step.state === 'done' && step.variant !== 'pod' && step.variant !== 'danger') classes.push('success');
+  const classes: string[] = [];
+  const isPodPending = step.variant === 'pod' && (step.state === 'pending' || step.state === 'cur');
+  const isDanger = step.variant === 'danger' || step.state === 'failed';
+
+  if (isPodPending) {
+    classes.push('pod-pending');
+    if (step.state === 'cur') classes.push('cur');
+    else classes.push('pending');
+  } else if (isDanger) {
+    classes.push('failed');
+  } else if (step.state === 'cur') {
+    classes.push('cur');
+  } else if (step.state === 'done') {
+    classes.push('done', 'success');
+  } else if (step.state === 'pending') {
+    classes.push('pending');
+  } else {
+    classes.push(step.state);
+  }
+
   return classes.join(' ');
 }
 
 function timelineStepClass(step: TrackingTimelineItem): string {
-  if (step.variant === 'pod' && step.state === 'pending') return 'is-pod-pending';
+  if (step.variant === 'pod' && (step.state === 'pending' || step.state === 'cur')) return 'is-pod-pending';
   if (step.state === 'failed' || step.variant === 'danger') return 'is-failed';
   if (step.state === 'pending') return 'is-pending';
   if (step.state === 'cur') return 'is-cur';
   if (step.state === 'done') return 'is-done';
+  return '';
+}
+
+function timelineConnectorClass(
+  step: TrackingTimelineItem,
+  isLast: boolean,
+  shipmentStatus: string
+): string {
+  if (isLast) {
+    const completed =
+      shipmentStatus === 'fullfilled' ||
+      shipmentStatus === 'delivered' ||
+      shipmentStatus === 'canceled' ||
+      shipmentStatus === 'cancelled' ||
+      shipmentStatus === 'not_fullfilled';
+    return completed ? '' : 'dashed';
+  }
+  if (step.state === 'done' || step.state === 'failed') return 'done';
   return '';
 }
 
@@ -280,31 +315,50 @@ const TrackingLiveMap: React.FC<{
   );
   const routeLegs = useRouteLegs(enrichedStops);
   const actualRoute = data.map.actual_route || [];
-  const showToggle = Boolean(data.map.permissions?.show_route_toggle);
+  const isLive = Boolean(data.map.live?.enabled);
+  const status = (data.shipment.status || '').toLowerCase();
+  const isCompleted =
+    status === 'fullfilled' ||
+    status === 'partially_fullfilled' ||
+    status === 'delivered' ||
+    status === 'not_fullfilled';
+  const hasActual = actualRoute.length > 1 || Boolean(data.map.permissions?.actual_route);
+  // Match load-detail: toggle on completed; during live keep suggested + GPS marker.
+  const showToggle = !isLive && (isCompleted || hasActual || Boolean(data.map.permissions?.show_route_toggle));
 
   const activePolylinePath =
-    routeMode === 'actual' && actualRoute.length > 0 ? actualRoute : routeLegs.polylinePath;
+    routeMode === 'actual' && actualRoute.length > 1 ? actualRoute : routeLegs.polylinePath;
   const activeDirectionsResult = routeMode === 'actual' ? null : routeLegs.directionsResult;
 
   const mapT = useCallback(
     (key: string) => {
       if (key === 'pickupLocation') return t(lang, 'pickupLocation');
       if (key === 'dropoffLocation') return t(lang, 'dropoffLocation');
+      if (key === 'loading') return '…';
+      if (key === 'step2MapPlaceholder') return t(lang, 'liveTracking');
       return key;
     },
     [lang]
   );
 
   return (
-    <div>
-      {showToggle ? (
-        <div className="pt-map-toolbar">
+    <div className="pt-map-stack">
+      <div className="pt-map-toolbar">
+        {isLive ? (
+          <span className={`pt-live-pill ${livePosition ? 'on' : ''}`}>
+            <span className="pt-live-dot" />
+            {livePosition ? 'Live' : 'Connecting…'}
+          </span>
+        ) : (
+          <span />
+        )}
+        {showToggle ? (
           <div className="pt-route-toggle">
             <button
               type="button"
               className={routeMode === 'actual' ? 'act-actual' : ''}
               onClick={() => setRouteMode('actual')}
-              disabled={actualRoute.length < 2 && !data.map.permissions?.actual_route}
+              disabled={actualRoute.length < 2}
             >
               {t(lang, 'actual')}
             </button>
@@ -316,19 +370,25 @@ const TrackingLiveMap: React.FC<{
               {t(lang, 'suggested')}
             </button>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
       <div className="pt-map-wrap">
         <div className="pt-map">
           <RouteMap
             stops={enrichedStops}
-            polylinePath={activePolylinePath}
+            polylinePath={
+              activePolylinePath.length > 0
+                ? activePolylinePath
+                : enrichedStops
+                    .filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lng))
+                    .map((s) => ({ lat: Number(s.lat), lng: Number(s.lng) }))
+            }
             directionsResult={activeDirectionsResult}
             loading={routeLegs.loading}
             height={280}
             expanded
             strokeColor={routeMode === 'actual' ? '#d97706' : '#9B51E0'}
-            livePosition={livePosition}
+            livePosition={isLive ? livePosition : null}
             liveIcon={LIVE_ICON}
             t={mapT as any}
           />
@@ -345,19 +405,28 @@ const ItineraryStop: React.FC<{
   onCopy: (value?: string | null) => void;
 }> = ({ stop, index, lang, onCopy }) => {
   const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
   const isPickup = stop.type === 'pickup';
   const schedule = formatStopSchedule(stop.from_date, stop.to_date) || stop.schedule_label || '';
   const lines = stop.lines || [];
   const hasMultiple = lines.length > 1;
   const visibleLines = expanded ? lines : lines.slice(0, 1);
+  const addressLine = [stop.address, stop.city].filter(Boolean).join(', ');
+  const copyValue = [stop.company_name, stop.address, stop.city].filter(Boolean).join(', ');
+
+  const handleCopy = async () => {
+    await onCopy(copyValue || addressLine);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
 
   return (
-    <div className="pt-stop">
+    <article className="pt-stop">
       <div className="pt-stop-top">
         <div className={`pt-stop-num ${isPickup ? 'pk' : 'dl'}`}>{index + 1}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="pt-stop-main">
           <div className="pt-stop-head">
-            <div className="pt-stop-name">{stop.company_name || stop.city || '—'}</div>
+            <div className="pt-stop-name">{stop.company_name || '—'}</div>
             <div className="pt-stop-meta">
               <span className={`pt-stop-type ${isPickup ? 'pk' : 'dl'}`}>
                 {isPickup ? t(lang, 'pickup') : t(lang, 'dropoff')}
@@ -366,17 +435,22 @@ const ItineraryStop: React.FC<{
             </div>
           </div>
 
-          {stop.address ? <div className="pt-stop-addr">{stop.address}</div> : null}
+          {addressLine ? <div className="pt-stop-addr">{addressLine}</div> : null}
 
           <div className="pt-stop-actions">
-            {stop.address ? (
-              <button
-                type="button"
-                className="pt-copy-btn"
-                onClick={() => onCopy([stop.company_name, stop.address].filter(Boolean).join(', '))}
-              >
-                <Copy size={12} />
-                {t(lang, 'copyAddress')}
+            {copyValue ? (
+              <button type="button" className="pt-copy-link" onClick={handleCopy}>
+                {copied ? (
+                  <>
+                    <CheckCircle2 size={13} />
+                    {t(lang, 'copied')}
+                  </>
+                ) : (
+                  <>
+                    <Copy size={13} />
+                    {t(lang, 'copyAddress')}
+                  </>
+                )}
               </button>
             ) : null}
             {isPickup && stop.phone ? (
@@ -389,61 +463,63 @@ const ItineraryStop: React.FC<{
                 <Mail size={14} />
               </button>
             ) : null}
-            {stop.completed ? (
-              <span style={{ marginLeft: 'auto', color: 'var(--pt-ok)' }}>
-                <CheckCircle2 size={18} />
-              </span>
-            ) : null}
           </div>
 
           {stop.supplier_name ? (
-            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--pt-t2)' }}>
-              {t(lang, 'supplier')}: <strong>{stop.supplier_name}</strong>
+            <div className="pt-stop-supplier">
+              {t(lang, 'supplier')}: {stop.supplier_name}
             </div>
           ) : null}
 
-          {visibleLines.map((line, i) => (
-            <div className="pt-order-row" key={`${line.location_id}-${i}`}>
-              <div className="pt-order-row-line">
-                {line.order_id ? <span className="oid">Order: {line.order_id}</span> : null}
-                {line.product_name ? (
-                  <>
-                    <span style={{ color: 'var(--pt-t3)' }}>·</span>
-                    <span style={{ fontWeight: 500 }}>{line.product_name}</span>
-                  </>
-                ) : null}
-                {line.qty != null || line.weight != null ? (
-                  <>
-                    <span style={{ color: 'var(--pt-t3)' }}>·</span>
-                    <span style={{ color: 'var(--pt-t2)' }}>
-                      {line.qty != null ? `${line.qty} ${line.qty_unit || ''}`.trim() : ''}
-                      {line.qty != null && line.weight != null ? ' · ' : ''}
-                      {line.weight != null ? `${line.weight} ${line.weight_unit || ''}`.trim() : ''}
-                    </span>
-                  </>
+          <div className="pt-stop-orders">
+            {visibleLines.map((line, i) => (
+              <div className="pt-order-row" key={`${line.location_id}-${i}`}>
+                <div className="pt-order-row-line">
+                  {line.order_id ? <span className="oid">Order: {line.order_id}</span> : null}
+                  {line.product_name ? (
+                    <>
+                      <span className="sep">·</span>
+                      <span className="prod">{line.product_name}</span>
+                    </>
+                  ) : null}
+                  {line.qty != null || line.weight != null ? (
+                    <>
+                      <span className="sep">·</span>
+                      <span className="qty">
+                        {line.qty != null ? `${line.qty} ${line.qty_unit || ''}`.trim() : ''}
+                        {line.qty != null && line.weight != null ? ' · ' : ''}
+                        {line.weight != null ? `${line.weight} ${line.weight_unit || ''}`.trim() : ''}
+                      </span>
+                    </>
+                  ) : null}
+                </div>
+                {stop.completed ? (
+                  <span className="pt-order-tick" title="Completed">
+                    <CheckCircle2 size={16} />
+                  </span>
                 ) : null}
               </div>
-            </div>
-          ))}
+            ))}
 
-          {hasMultiple ? (
-            <button type="button" className="pt-more-btn" onClick={() => setExpanded((v) => !v)}>
-              {expanded ? (
-                <>
-                  <ChevronUp size={13} />
-                  {t(lang, 'showLess')}
-                </>
-              ) : (
-                <>
-                  <ChevronDown size={13} />
-                  {`+ ${t(lang, 'showMore')} (${lines.length - 1})`}
-                </>
-              )}
-            </button>
-          ) : null}
+            {hasMultiple ? (
+              <button type="button" className="pt-more-btn" onClick={() => setExpanded((v) => !v)}>
+                {expanded ? (
+                  <>
+                    <ChevronUp size={13} />
+                    {t(lang, 'showLess')}
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={13} />
+                    {`+ ${t(lang, 'showMore')} (${lines.length - 1})`}
+                  </>
+                )}
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
-    </div>
+    </article>
   );
 };
 
@@ -538,36 +614,48 @@ export const PublicTrackingPage: React.FC = () => {
     const socketUrl = (import.meta.env.VITE_SOCKET_URL as string | undefined) || '';
     if (!socketUrl) return;
 
+    let cancelled = false;
     let socket: Socket | null = null;
+
     try {
-      socket = io(socketUrl, { transports: ['websocket', 'polling'] });
+      socket = io(socketUrl, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 8,
+      });
+
       socket.on('connect', () => {
+        if (cancelled) return;
         socket?.emit('join_shipper', { user_id: live.shipper_id });
         if (live.driver_id) {
           socket?.emit(
             'get_driver_last_location',
             { driver_id: live.driver_id, shipment_id: live.shipment_id },
             (response: { lat?: number; lng?: number } | null) => {
-              if (response?.lat != null && response?.lng != null) {
-                setLivePosition({ lat: Number(response.lat), lng: Number(response.lng) });
-              }
+              if (cancelled || response?.lat == null || response?.lng == null) return;
+              setLivePosition({ lat: Number(response.lat), lng: Number(response.lng) });
             }
           );
         }
       });
 
-      socket.on('live_tracking', (payload: { shipment_id?: number | string; lat?: number; lng?: number }) => {
-        if (payload == null) return;
-        if (parseInt(String(payload.shipment_id), 10) !== Number(live.shipment_id)) return;
-        if (payload.lat == null || payload.lng == null) return;
-        setLivePosition({ lat: Number(payload.lat), lng: Number(payload.lng) });
-      });
+      socket.on(
+        'live_tracking',
+        (payload: { shipment_id?: number | string; lat?: number; lng?: number; heading?: number }) => {
+          if (cancelled || payload == null) return;
+          if (Number(payload.shipment_id) !== Number(live.shipment_id)) return;
+          if (payload.lat == null || payload.lng == null) return;
+          setLivePosition({ lat: Number(payload.lat), lng: Number(payload.lng) });
+        }
+      );
     } catch {
       // socket optional
     }
 
     return () => {
+      cancelled = true;
       try {
+        socket?.off('live_tracking');
         socket?.disconnect();
       } catch {
         // ignore
@@ -735,23 +823,34 @@ export const PublicTrackingPage: React.FC = () => {
       </div>
 
       <div className="pt-ms-bar">
-        <div className="pt-ms-row">
-          {timeline.map((step, idx) => (
-            <div className={`pt-ms-step ${timelineStepClass(step)}`} key={`${step.key}-${idx}`}>
-              <div className={`pt-ms-dot ${timelineDotClass(step)}`} />
-              <div className="pt-ms-label">
-                {step.label}
-                {step.highlight ? <span className="pt-ms-highlight">{step.highlight}</span> : null}
-                {step.detail ? <span className="pt-ms-detail">{step.detail}</span> : null}
-              </div>
-              {step.at ? (
-                <div className="pt-ms-at">
-                  <p>{formatUtcToDisplayDate(step.at)}</p>
-                  <p>{formatUtcToDisplayTime(step.at)}</p>
+        <div className="pt-ms-card">
+          <div className="pt-ms-row">
+            {timeline.map((step, idx) => {
+              const isLast = idx === timeline.length - 1;
+              const connectorClass = timelineConnectorClass(step, isLast, data.shipment.status);
+              return (
+                <div className={`pt-ms-step ${timelineStepClass(step)}`} key={`${step.key}-${idx}`}>
+                  <div className="pt-ms-track">
+                    <div className={`pt-ms-dot ${timelineDotClass(step)}`} />
+                    {!isLast || connectorClass === 'dashed' ? (
+                      <div className={`pt-ms-connector ${connectorClass}`} />
+                    ) : null}
+                  </div>
+                  <div className="pt-ms-body">
+                    <div className="pt-ms-label">{step.label}</div>
+                    {step.highlight ? <div className="pt-ms-highlight">{step.highlight}</div> : null}
+                    {step.detail ? <div className="pt-ms-detail">{step.detail}</div> : null}
+                    {step.at ? (
+                      <div className="pt-ms-at">
+                        <p>{formatUtcToDisplayDate(step.at)}</p>
+                        <p>{formatUtcToDisplayTime(step.at)}</p>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-              ) : null}
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -806,14 +905,19 @@ export const PublicTrackingPage: React.FC = () => {
             <div className="pt-card" id="itinerary">
               <div className="pt-card-h">
                 <h3>
+                  <MapPin size={15} className="pt-card-icon" />
                   {t(lang, 'itinerary')}
                   <span className="pt-count">{data.stops.length}</span>
                 </h3>
               </div>
-              <div className="pt-card-body" style={{ paddingTop: 0, paddingBottom: 0 }}>
-                {data.stops.map((stop, idx) => (
-                  <ItineraryStop key={stop.id} stop={stop} index={idx} lang={lang} onCopy={copyText} />
-                ))}
+              <div className="pt-card-body pt-stops-body">
+                {data.stops.length === 0 ? (
+                  <div className="pt-empty">No itinerary stops available.</div>
+                ) : (
+                  data.stops.map((stop, idx) => (
+                    <ItineraryStop key={`${stop.id}-${idx}`} stop={stop} index={idx} lang={lang} onCopy={copyText} />
+                  ))
+                )}
               </div>
             </div>
 

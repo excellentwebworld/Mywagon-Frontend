@@ -474,6 +474,13 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
                       <Star size={11} fill="currentColor" /> {driver.rating && driver.rating !== '—' ? driver.rating : '0.0'} ({driver.ratingCount != null ? driver.ratingCount : (driver.tripsCount ?? 0)})
                     </span>
+
+                    {driver.partner && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        <ShieldCheck size={11} />
+                        <span>{t('partner', 'PARTNER')}</span>
+                      </span>
+                    )}
                   </div>
 
                   <div className="text-[12px] mt-1 text-slate-500 dark:text-slate-400">

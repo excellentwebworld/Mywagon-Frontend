@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, History, ArrowRightLeft, Check, Tag, Clock, MessageSquare, AlertCircle } from 'lucide-react';
+import { X, History, ArrowRightLeft, Check, Tag, Clock, MessageSquare, AlertCircle, ShieldCheck } from 'lucide-react';
 import type { BidHistoryItem } from '../../pages/ShipmentDetail/detailViewModel';
 import type { PartnerBidItem } from './BidsCard';
 import { CarrierAvatar } from '../ManageShipments/CarrierAvatar';
@@ -189,13 +189,19 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
                         className="carrier-av rounded-full flex items-center justify-center font-bold flex-shrink-0 text-xs shadow-2xs overflow-hidden"
                       />
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#9B51E0] text-white">
                             {t('bid', 'Bid')} #{bid.bidNumber}
                           </span>
                           <span className="font-bold text-[14px] text-slate-900 dark:text-white">
                             {bid.initiatorName}
                           </span>
+                          {(partner?.isPartner || (bid as any).isPartner) && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                              <ShieldCheck size={11} />
+                              <span>{t('partner', 'PARTNER')}</span>
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
