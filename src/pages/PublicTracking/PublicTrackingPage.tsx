@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   Copy,
   Mail,
+  Map,
   MapPin,
   Package,
   Phone,
@@ -48,6 +49,12 @@ const I18N: Record<string, { en: string; el: string }> = {
   dropoff: { en: 'DROPOFF', el: 'ΠΑΡΑΔΟΣΗ' },
   freelancer: { en: 'Freelancer', el: 'Freelancer' },
   carrier: { en: 'Carrier', el: 'Μεταφορέας' },
+  carrierCompany: { en: 'Carrier Company', el: 'Εταιρεία μεταφοράς' },
+  companyDriver: { en: 'Company Driver', el: 'Οδηγός εταιρείας' },
+  completedTrips: { en: 'Completed trips', el: 'Ολοκληρωμένα ταξίδια' },
+  vehiclePlate: { en: 'Vehicle', el: 'Όχημα' },
+  trailerPlate: { en: 'Trailer', el: 'Ρυμουλκούμενο' },
+  phoneCopied: { en: 'Phone copied', el: 'Το τηλέφωνο αντιγράφηκε' },
   onBehalf: { en: 'on behalf of', el: 'εκ μέρους' },
   load: { en: 'Load', el: 'Φορτίο' },
   onTime: { en: 'On Time', el: 'Εντός χρόνου' },
@@ -78,6 +85,8 @@ const I18N: Record<string, { en: string; el: string }> = {
   notFound: { en: 'Tracking link is invalid or expired.', el: 'Ο σύνδεσμος δεν είναι έγκυρος.' },
   powered: { en: 'Powered by', el: 'Με την υποστήριξη' },
   copyAddress: { en: 'Copy Address', el: 'Αντιγραφή διεύθυνσης' },
+  addressCopied: { en: 'Address Copied!', el: 'Η διεύθυνση αντιγράφηκε!' },
+  routeMap: { en: 'Route map', el: 'Χάρτης διαδρομής' },
   showLess: { en: 'Show less', el: 'Λιγότερα' },
   showMore: { en: 'Show more', el: 'Περισσότερα' },
   manualTitle: { en: 'Manually Executed Trip', el: 'Χειροκίνητο ταξίδι' },
@@ -312,7 +321,8 @@ const TrackingLiveMap: React.FC<{
   data: PublicTrackingPayload;
   lang: Lang;
   livePosition: { lat: number; lng: number } | null;
-}> = ({ data, lang, livePosition }) => {
+  isOnTime: boolean;
+}> = ({ data, lang, livePosition, isOnTime }) => {
   const [routeMode, setRouteMode] = useState<'suggested' | 'actual'>('suggested');
   const enrichedStops = useMemo(
     () => stopsToEnriched(data.stops, data.map.points || []),
@@ -322,14 +332,16 @@ const TrackingLiveMap: React.FC<{
   const actualRoute = data.map.actual_route || [];
   const isLive = Boolean(data.map.live?.enabled);
   const status = (data.shipment.status || '').toLowerCase();
+  const isOnTrip = status === 'on_trip' || status === 'in_progress';
   const isCompleted =
     status === 'fullfilled' ||
     status === 'partially_fullfilled' ||
     status === 'delivered' ||
     status === 'not_fullfilled';
   const hasActual = actualRoute.length > 1 || Boolean(data.map.permissions?.actual_route);
-  // Match load-detail: toggle on completed; during live keep suggested + GPS marker.
+  // Match TrackingMapCard: toggle on completed; during live keep suggested + GPS marker.
   const showToggle = !isLive && (isCompleted || hasActual || Boolean(data.map.permissions?.show_route_toggle));
+  const showStatusPill = isLive || isOnTrip || isCompleted;
 
   const activePolylinePath =
     routeMode === 'actual' && actualRoute.length > 1 ? actualRoute : routeLegs.polylinePath;
@@ -349,10 +361,10 @@ const TrackingLiveMap: React.FC<{
   return (
     <div className="pt-map-stack">
       <div className="pt-map-toolbar">
-        {isLive ? (
-          <span className={`pt-live-pill ${livePosition ? 'on' : ''}`}>
-            <span className="pt-live-dot" />
-            {livePosition ? 'Live' : 'Connecting…'}
+        {showStatusPill ? (
+          <span className={`pt-status-pill ${isOnTime ? 'on-time' : 'delayed'}`}>
+            <span className={`pt-status-dot ${isLive || isOnTrip ? 'pulse' : ''}`} />
+            {isOnTime ? t(lang, 'onTime') : t(lang, 'delayed')}
           </span>
         ) : (
           <span />
@@ -390,7 +402,7 @@ const TrackingLiveMap: React.FC<{
             }
             directionsResult={activeDirectionsResult}
             loading={routeLegs.loading}
-            height={280}
+            height={isOnTrip || isLive ? 260 : 280}
             expanded
             strokeColor={routeMode === 'actual' ? '#d97706' : '#9B51E0'}
             livePosition={isLive ? livePosition : null}
@@ -402,6 +414,26 @@ const TrackingLiveMap: React.FC<{
     </div>
   );
 };
+
+/** Match StopsCard OrderStatusIcon — purple ticks for completed stops. */
+const StopCompletedIcon: React.FC = () => (
+  <div className="pt-order-tick" title="Completed">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="18"
+      height="16"
+      viewBox="0 0 18 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M1 9.5L5.5 14L16 3" />
+      <path d="M1 5.5L5.5 10L16 -1" opacity="0.6" />
+    </svg>
+  </div>
+);
 
 const ItineraryStop: React.FC<{
   stop: TrackingStop;
@@ -443,13 +475,78 @@ const ItineraryStop: React.FC<{
 
           {addressLine ? <div className="pt-stop-addr">{addressLine}</div> : null}
 
+          {/* Orders first — same order as StopsCard on shipment detail */}
+          <div className="pt-stop-orders">
+            {visibleLines.map((line, i) => (
+              <div className="pt-order-row" key={`${line.location_id}-${i}`}>
+                <div className="pt-order-row-main">
+                  <div className="pt-order-row-line">
+                    {line.order_id ? <span className="oid">Order: {line.order_id}</span> : null}
+                    {line.product_name ? (
+                      <>
+                        <span className="sep">·</span>
+                        <span className="prod">{line.product_name}</span>
+                      </>
+                    ) : null}
+                    {line.qty != null || line.weight != null ? (
+                      <>
+                        <span className="sep">·</span>
+                        <span className="qty">
+                          {line.qty != null ? `${line.qty} ${line.qty_unit || ''}`.trim() : ''}
+                          {line.qty != null && line.weight != null ? ' · ' : ''}
+                          {line.weight != null ? `${line.weight} ${line.weight_unit || ''}`.trim() : ''}
+                        </span>
+                      </>
+                    ) : null}
+                  </div>
+                  {supplierLabel && i === 0 ? (
+                    <div className="pt-stop-supplier">
+                      <span aria-hidden="true">🏪</span>
+                      <span>{supplierLabel}</span>
+                    </div>
+                  ) : null}
+                </div>
+                {stop.completed ? <StopCompletedIcon /> : null}
+              </div>
+            ))}
+
+            {lines.length === 0 && supplierLabel ? (
+              <div className="pt-order-row">
+                <div className="pt-order-row-main">
+                  <div className="pt-stop-supplier" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+                    <span aria-hidden="true">🏪</span>
+                    <span>{supplierLabel}</span>
+                  </div>
+                </div>
+                {stop.completed ? <StopCompletedIcon /> : null}
+              </div>
+            ) : null}
+
+            {hasMultiple ? (
+              <button type="button" className="pt-more-btn" onClick={() => setExpanded((v) => !v)}>
+                {expanded ? (
+                  <>
+                    <ChevronUp size={13} />
+                    {t(lang, 'showLess')}
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={13} />
+                    {`+ ${t(lang, 'showMore')} (${lines.length - 1})`}
+                  </>
+                )}
+              </button>
+            ) : null}
+          </div>
+
+          {/* Copy Address at bottom — matches StopsCard */}
           <div className="pt-stop-actions">
             {copyValue ? (
               <button type="button" className="pt-copy-link" onClick={handleCopy}>
                 {copied ? (
                   <>
                     <CheckCircle2 size={13} />
-                    {t(lang, 'copied')}
+                    {t(lang, 'addressCopied')}
                   </>
                 ) : (
                   <>
@@ -467,59 +564,6 @@ const ItineraryStop: React.FC<{
             {isPickup && stop.email ? (
               <button type="button" className="pt-icon-btn" title={stop.email} onClick={() => onCopy(stop.email)}>
                 <Mail size={14} />
-              </button>
-            ) : null}
-          </div>
-
-          {supplierLabel ? (
-            <div className="pt-stop-supplier">
-              {t(lang, 'supplier')}: {supplierLabel}
-            </div>
-          ) : null}
-
-          <div className="pt-stop-orders">
-            {visibleLines.map((line, i) => (
-              <div className="pt-order-row" key={`${line.location_id}-${i}`}>
-                <div className="pt-order-row-line">
-                  {line.order_id ? <span className="oid">Order: {line.order_id}</span> : null}
-                  {line.product_name ? (
-                    <>
-                      <span className="sep">·</span>
-                      <span className="prod">{line.product_name}</span>
-                    </>
-                  ) : null}
-                  {line.qty != null || line.weight != null ? (
-                    <>
-                      <span className="sep">·</span>
-                      <span className="qty">
-                        {line.qty != null ? `${line.qty} ${line.qty_unit || ''}`.trim() : ''}
-                        {line.qty != null && line.weight != null ? ' · ' : ''}
-                        {line.weight != null ? `${line.weight} ${line.weight_unit || ''}`.trim() : ''}
-                      </span>
-                    </>
-                  ) : null}
-                </div>
-                {stop.completed ? (
-                  <span className="pt-order-tick" title="Completed">
-                    <CheckCircle2 size={16} />
-                  </span>
-                ) : null}
-              </div>
-            ))}
-
-            {hasMultiple ? (
-              <button type="button" className="pt-more-btn" onClick={() => setExpanded((v) => !v)}>
-                {expanded ? (
-                  <>
-                    <ChevronUp size={13} />
-                    {t(lang, 'showLess')}
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown size={13} />
-                    {`+ ${t(lang, 'showMore')} (${lines.length - 1})`}
-                  </>
-                )}
               </button>
             ) : null}
           </div>
@@ -771,6 +815,12 @@ export const PublicTrackingPage: React.FC = () => {
   const canShowRating = data.rating.can_rate || data.rating.already_rated || rateDone;
   const transporterName = data.header.transporter_name || data.transporter.name || '—';
   const shipperName = data.header.shipper_name || '';
+  const shipmentStatus = (data.shipment.status || '').toLowerCase();
+  const isLiveTracking =
+    Boolean(data.map.live?.enabled) ||
+    shipmentStatus === 'on_trip' ||
+    shipmentStatus === 'in_progress';
+  const trackingTitle = isLiveTracking ? t(lang, 'liveTracking') : t(lang, 'routeMap');
 
   return (
     <div className="pt-page">
@@ -961,256 +1011,315 @@ export const PublicTrackingPage: React.FC = () => {
           <div>
             <div className="pt-card" id="tracking">
               <div className="pt-card-h">
-                <h3>{t(lang, 'liveTracking')}</h3>
+                <h3>
+                  {isLiveTracking ? (
+                    <span
+                      className={`pt-live-header-dot ${isOnTime ? 'on-time' : 'delayed'}`}
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <Map size={15} className="pt-card-icon" />
+                  )}
+                  {trackingTitle}
+                </h3>
               </div>
               <div className="pt-card-body">
-                <TrackingLiveMap data={data} lang={lang} livePosition={livePosition} />
+                <TrackingLiveMap
+                  data={data}
+                  lang={lang}
+                  livePosition={livePosition}
+                  isOnTime={isOnTime}
+                />
               </div>
             </div>
 
             <div className="pt-card" id="transporter">
               <div className="pt-card-h">
-                <h3>{t(lang, 'transporter')}</h3>
+                <h3>
+                  <Truck size={15} className="pt-card-icon" />
+                  {t(lang, 'transporter')}
+                </h3>
               </div>
               <div className="pt-card-body">
-                <div className="pt-cr-card">
-                  <div className="pt-cr-av">
-                    {data.transporter.avatar ? (
-                      <img src={data.transporter.avatar} alt="" />
-                    ) : (
-                      initials(data.transporter.name)
-                    )}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="pt-cr-name">
-                      {data.transporter.name || '—'}
-                      {data.transporter.rating != null ? (
-                        <span className="pt-cr-rating">
-                          <Star size={12} fill="currentColor" /> {Number(data.transporter.rating).toFixed(1)}
-                        </span>
+                {(() => {
+                  const tr = data.transporter;
+                  const isFreelancer = tr.kind === 'freelancer' || tr.rateable_type === 'driver';
+                  const plates = tr.plates || [];
+                  const vehicleType = tr.vehicle || data.vehicle_type || '';
+                  const tripsLabel =
+                    tr.trips_count != null
+                      ? `${t(lang, 'completedTrips')}: ${tr.trips_count}`
+                      : kindLabel;
+                  const phone = tr.phone || '';
+                  const name = tr.name || '—';
+                  const ratingVal =
+                    tr.rating != null && !Number.isNaN(Number(tr.rating))
+                      ? Number(tr.rating).toFixed(1)
+                      : null;
+
+                  return (
+                    <div className="pt-cr-stack">
+                      <div className="pt-cr-card">
+                        <div className={`pt-cr-av ${isFreelancer ? 'freelancer' : 'carrier'}`}>
+                          {tr.avatar ? <img src={tr.avatar} alt="" /> : initials(name)}
+                        </div>
+                        <div className="pt-cr-body">
+                          <div className="pt-cr-top">
+                            <div className="pt-cr-identity">
+                              <span className="pt-cr-name">{name}</span>
+                              {ratingVal ? (
+                                <span className="pt-cr-rating">
+                                  <Star size={11} fill="currentColor" />
+                                  {ratingVal}
+                                  {tr.trips_count != null ? ` (${tr.trips_count})` : ''}
+                                </span>
+                              ) : null}
+                              <span className={`pt-cr-badge ${isFreelancer ? 'freelancer' : 'carrier'}`}>
+                                {isFreelancer ? t(lang, 'freelancer') : t(lang, 'carrier')}
+                              </span>
+                            </div>
+                            {phone ? (
+                              <button
+                                type="button"
+                                className="pt-phone-btn"
+                                title={phone}
+                                onClick={async () => {
+                                  try {
+                                    await navigator.clipboard.writeText(phone);
+                                  } catch {
+                                    /* ignore */
+                                  }
+                                  showToast(`${t(lang, 'phoneCopied')}: ${phone}`);
+                                }}
+                              >
+                                <Phone size={12} />
+                                <span>{phone}</span>
+                              </button>
+                            ) : null}
+                          </div>
+
+                          <div className="pt-cr-sub">
+                            {tripsLabel}
+                            {vehicleType ? ` · ${vehicleType}` : ''}
+                          </div>
+
+                          {plates.length > 0 ? (
+                            <div className="pt-plates">
+                              {plates.map((p, idx) => (
+                                <span className="pt-plate" key={`${p}-${idx}`}>
+                                  {idx === 0
+                                    ? `${t(lang, 'vehiclePlate')}: ${p}`
+                                    : `${t(lang, 'trailerPlate')}: ${p}`}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {!isFreelancer && tr.driver_name ? (
+                        <div className="pt-cr-driver">
+                          <div className="pt-cr-av driver">{initials(tr.driver_name)}</div>
+                          <div className="pt-cr-body">
+                            <div className="pt-cr-identity">
+                              <span className="pt-cr-name">{tr.driver_name}</span>
+                              <span className="pt-cr-badge driver">{t(lang, 'companyDriver')}</span>
+                            </div>
+                            <div className="pt-cr-sub">
+                              {t(lang, 'companyDriver')}
+                              {vehicleType ? ` · ${vehicleType}` : ''}
+                            </div>
+                          </div>
+                        </div>
                       ) : null}
                     </div>
-                    <div className="pt-cr-sub">
-                      {data.transporter.trips_count != null
-                        ? `${data.transporter.trips_count} ${t(lang, 'tripsCompleted')}`
-                        : kindLabel}
-                    </div>
-                    {data.transporter.vehicle ? (
-                      <div className="pt-cr-vehicle">
-                        <strong>{t(lang, 'vehicle')}:</strong> {data.transporter.vehicle}
-                      </div>
-                    ) : null}
-                    {data.transporter.plates?.length ? (
-                      <div className="pt-plates">
-                        {data.transporter.plates.map((p) => (
-                          <span className="pt-plate" key={p}>
-                            {p}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                    <div className="pt-cr-contacts">
-                      {data.transporter.phone ? (
-                        <button
-                          type="button"
-                          className="pt-icon-btn"
-                          title={data.transporter.phone}
-                          onClick={() => copyText(data.transporter.phone)}
-                        >
-                          <Phone size={14} />
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
         </div>
 
-        {canShowReceipt ? (
-          <div className="pt-rcpt" id="receipt">
-            <div className="pt-rcpt-h">
-              <ClipboardCheck size={18} color="var(--pt-ac)" />
-              <h3>{t(lang, 'confirmReceipt')}</h3>
-            </div>
-            {rcptDone ? (
-              <div className="pt-confirmed">
-                <div style={{ fontSize: 48, marginBottom: 8 }}>✅</div>
-                <div className="pt-confirmed-title ok">{t(lang, 'receiptConfirmed')}</div>
-                {data.receipt.confirmation?.confirmed_at ? (
-                  <div style={{ marginTop: 8, fontSize: 12, color: 'var(--pt-t3)' }}>
-                    {formatUtcToDisplayDateTime(data.receipt.confirmation.confirmed_at)}
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <div className="pt-rcpt-body">
-                <div className="pt-rcpt-type">
-                  <button
-                    type="button"
-                    className={`pt-rcpt-opt ${rcptType === 'full' ? 'selected' : ''}`}
-                    onClick={() => setRcptType('full')}
-                  >
-                    {t(lang, 'fullReceipt')}
-                  </button>
-                  <button
-                    type="button"
-                    className={`pt-rcpt-opt ${rcptType === 'partial' ? 'selected' : ''}`}
-                    onClick={() => setRcptType('partial')}
-                  >
-                    {t(lang, 'partialReceipt')}
-                  </button>
+        {(canShowReceipt || canShowRating) ? (
+          <div className="pt-actions-grid">
+            {canShowReceipt ? (
+              <div className="pt-action-card pt-rcpt" id="receipt">
+                <div className="pt-action-card-h pt-rcpt-h">
+                  <ClipboardCheck size={16} />
+                  <h3>{t(lang, 'confirmReceipt')}</h3>
                 </div>
-
-                {rcptType === 'partial' ? (
-                  <table className="pt-order-table" style={{ marginBottom: 14 }}>
-                    <thead>
-                      <tr>
-                        <th>{t(lang, 'orderId')}</th>
-                        <th>{t(lang, 'item')}</th>
-                        <th>{t(lang, 'ordered')}</th>
-                        <th>{t(lang, 'received')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rcptItems.map((it, idx) => (
-                        <tr key={`${it.location_id}-${idx}`}>
-                          <td className="pt-mono">{it.order_id || '—'}</td>
-                          <td>{it.product_name || '—'}</td>
-                          <td>
-                            {it.ordered_qty ?? '—'} {it.qty_unit}
-                          </td>
-                          <td>
-                            <input
-                              className="pt-qty-input"
-                              type="number"
-                              min={0}
-                              value={it.received_qty ?? 0}
-                              onChange={(e) => {
-                                const val = Number(e.target.value);
-                                setRcptItems((prev) =>
-                                  prev.map((row, i) => (i === idx ? { ...row, received_qty: val } : row))
-                                );
-                              }}
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : null}
-
-                {rcptType === 'partial' ? (
-                  <div className="pt-reason-row">
-                    {PARTIAL_REASONS.map((reason) => (
+                {rcptDone ? (
+                  <div className="pt-confirmed">
+                    <div className="pt-confirmed-emoji" aria-hidden="true">✅</div>
+                    <div className="pt-confirmed-title ok">{t(lang, 'receiptConfirmed')}</div>
+                    {data.receipt.confirmation?.confirmed_at ? (
+                      <div className="pt-confirmed-at">
+                        {formatUtcToDisplayDateTime(data.receipt.confirmation.confirmed_at)}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="pt-action-card-body pt-rcpt-body">
+                    <div className="pt-rcpt-type">
                       <button
-                        key={reason}
                         type="button"
-                        className={`pt-reason-chip ${rcptReason === reason ? 'act' : ''}`}
-                        onClick={() => setRcptReason(reason)}
+                        className={`pt-rcpt-opt ${rcptType === 'full' ? 'selected' : ''}`}
+                        onClick={() => setRcptType('full')}
                       >
-                        {reason}
+                        {t(lang, 'fullReceipt')}
                       </button>
-                    ))}
-                  </div>
-                ) : null}
-
-                <textarea
-                  className="pt-textarea"
-                  placeholder={t(lang, 'notes')}
-                  value={rcptNotes}
-                  onChange={(e) => setRcptNotes(e.target.value)}
-                />
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-                  <button
-                    type="button"
-                    className="pt-btn pt-btn-ok"
-                    style={{ padding: '12px 28px' }}
-                    disabled={rcptSaving || !data.receipt.can_confirm}
-                    onClick={onConfirmReceipt}
-                  >
-                    {t(lang, 'confirmCta')}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : null}
-
-        {canShowRating ? (
-          <div className="pt-card" id="rating">
-            <div className="pt-card-h">
-              <h3>{t(lang, 'rateTransporter')}</h3>
-            </div>
-            {rateDone ? (
-              <div className="pt-confirmed">
-                <div style={{ fontSize: 48, marginBottom: 8 }}>⭐</div>
-                <div className="pt-confirmed-title rate">{t(lang, 'ratingThanks')}</div>
-              </div>
-            ) : (
-              <div className="pt-card-body" style={{ textAlign: 'center' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    justifyContent: 'center',
-                    marginBottom: 16,
-                  }}
-                >
-                  <div className="pt-cr-av" style={{ width: 36, height: 36, fontSize: 13 }}>
-                    {data.rating.avatar ? (
-                      <img src={data.rating.avatar} alt="" />
-                    ) : (
-                      initials(data.rating.transporter_name || data.transporter.name)
-                    )}
-                  </div>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>
-                      {data.rating.transporter_name || data.transporter.name}
+                      <button
+                        type="button"
+                        className={`pt-rcpt-opt ${rcptType === 'partial' ? 'selected' : ''}`}
+                        onClick={() => setRcptType('partial')}
+                      >
+                        {t(lang, 'partialReceipt')}
+                      </button>
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--pt-t3)' }}>
-                      {(data.rating.plates || data.transporter.plates || []).join(' · ')}
+
+                    {rcptType === 'partial' ? (
+                      <table className="pt-order-table pt-rcpt-table">
+                        <thead>
+                          <tr>
+                            <th>{t(lang, 'orderId')}</th>
+                            <th>{t(lang, 'item')}</th>
+                            <th>{t(lang, 'ordered')}</th>
+                            <th>{t(lang, 'received')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rcptItems.map((it, idx) => (
+                            <tr key={`${it.location_id}-${idx}`}>
+                              <td className="pt-mono">{it.order_id || '—'}</td>
+                              <td>{it.product_name || '—'}</td>
+                              <td>
+                                {it.ordered_qty ?? '—'} {it.qty_unit}
+                              </td>
+                              <td>
+                                <input
+                                  className="pt-qty-input"
+                                  type="number"
+                                  min={0}
+                                  value={it.received_qty ?? 0}
+                                  onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    setRcptItems((prev) =>
+                                      prev.map((row, i) => (i === idx ? { ...row, received_qty: val } : row))
+                                    );
+                                  }}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : null}
+
+                    {rcptType === 'partial' ? (
+                      <div className="pt-reason-row">
+                        {PARTIAL_REASONS.map((reason) => (
+                          <button
+                            key={reason}
+                            type="button"
+                            className={`pt-reason-chip ${rcptReason === reason ? 'act' : ''}`}
+                            onClick={() => setRcptReason(reason)}
+                          >
+                            {reason}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    <textarea
+                      className="pt-textarea"
+                      placeholder={t(lang, 'notes')}
+                      value={rcptNotes}
+                      onChange={(e) => setRcptNotes(e.target.value)}
+                    />
+
+                    <div className="pt-action-footer">
+                      <button
+                        type="button"
+                        className="pt-btn pt-btn-ok"
+                        disabled={rcptSaving || !data.receipt.can_confirm}
+                        onClick={onConfirmReceipt}
+                      >
+                        {t(lang, 'confirmCta')}
+                      </button>
                     </div>
                   </div>
-                </div>
-
-                <div className="pt-stars">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      className={`pt-star ${n <= stars ? 'active' : ''}`}
-                      onClick={() => setStars(n)}
-                      aria-label={`${n} star`}
-                    >
-                      ★
-                    </button>
-                  ))}
-                </div>
-
-                <textarea
-                  className="pt-textarea"
-                  placeholder={t(lang, 'reviewPh')}
-                  value={review}
-                  onChange={(e) => setReview(e.target.value)}
-                />
-
-                <div style={{ marginTop: 12 }}>
-                  <button
-                    type="button"
-                    className="pt-btn pt-btn-pr"
-                    style={{ padding: '10px 28px' }}
-                    disabled={rateSaving || stars < 1 || !data.rating.can_rate}
-                    onClick={onSubmitRating}
-                  >
-                    {t(lang, 'submitRating')}
-                  </button>
-                </div>
+                )}
               </div>
-            )}
+            ) : null}
+
+            {canShowRating ? (
+              <div className="pt-action-card pt-rate" id="rating">
+                <div className="pt-action-card-h pt-rate-h">
+                  <Star size={16} />
+                  <h3>{t(lang, 'rateTransporter')}</h3>
+                </div>
+                {rateDone ? (
+                  <div className="pt-confirmed">
+                    <div className="pt-confirmed-emoji" aria-hidden="true">⭐</div>
+                    <div className="pt-confirmed-title rate">{t(lang, 'ratingThanks')}</div>
+                  </div>
+                ) : (
+                  <div className="pt-action-card-body pt-rate-body">
+                    <div className="pt-rate-person">
+                      <div className="pt-cr-av carrier pt-rate-av">
+                        {data.rating.avatar ? (
+                          <img src={data.rating.avatar} alt="" />
+                        ) : (
+                          initials(data.rating.transporter_name || data.transporter.name)
+                        )}
+                      </div>
+                      <div className="pt-rate-person-meta">
+                        <div className="pt-rate-person-name">
+                          {data.rating.transporter_name || data.transporter.name}
+                        </div>
+                        {(data.rating.plates || data.transporter.plates || []).length > 0 ? (
+                          <div className="pt-rate-person-plates">
+                            {(data.rating.plates || data.transporter.plates || []).join(' · ')}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="pt-stars">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          className={`pt-star ${n <= stars ? 'active' : ''}`}
+                          onClick={() => setStars(n)}
+                          aria-label={`${n} star`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+
+                    <textarea
+                      className="pt-textarea"
+                      placeholder={t(lang, 'reviewPh')}
+                      value={review}
+                      onChange={(e) => setReview(e.target.value)}
+                    />
+
+                    <div className="pt-action-footer">
+                      <button
+                        type="button"
+                        className="pt-btn pt-btn-pr"
+                        disabled={rateSaving || stars < 1 || !data.rating.can_rate}
+                        onClick={onSubmitRating}
+                      >
+                        {t(lang, 'submitRating')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
         ) : null}
 
