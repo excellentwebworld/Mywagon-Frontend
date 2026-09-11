@@ -11,7 +11,7 @@ import { TruckMapPreview } from './TruckMapPreview';
 const DASH = '—';
 const MAP_PIN_LIMIT = 50;
 
-export const TruckAvailabilitiesCard: React.FC = () => {
+export const TruckAvailabilitiesCard: React.FC<{ enabled?: boolean }> = ({ enabled = true }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [partnerCount, setPartnerCount] = useState<number | null>(null);
@@ -26,70 +26,42 @@ export const TruckAvailabilitiesCard: React.FC = () => {
   }, [navigate]);
 
   useEffect(() => {
+    if (!enabled) return;
+
     let cancelled = false;
     setLoading(true);
     setError(null);
     setUpgradeUrl(undefined);
 
-    Promise.allSettled([
-      availabilitiesService.list({ visibility: 'private', per_page: 10 }),
-      availabilitiesService.list({ visibility: 'public', per_page: 10 }),
-      availabilitiesService.list({
+    availabilitiesService
+      .list({
         visibility: 'all',
         per_page: MAP_PIN_LIMIT,
         sort: 'latest_posting_date',
-      }),
-    ]).then(([partnerRes, publicRes, mapRes]) => {
-      if (cancelled) return;
-
-      const failures = [partnerRes, publicRes, mapRes].filter((r) => r.status === 'rejected');
-      const allFailed = failures.length === 3;
-      const any403 = failures.some((r) => {
-        if (r.status !== 'rejected') return false;
-        const info = formatDashError(r.reason, 'dashTrucksLoadFailed');
-        return info.forbidden;
-      });
-
-      if (any403 || allFailed) {
-        const firstReject = failures[0];
-        const info =
-          firstReject && firstReject.status === 'rejected'
-            ? formatDashError(firstReject.reason, 'dashTrucksLoadFailed')
-            : { key: 'dashTrucksLoadFailed', forbidden: false as const, upgradeUrl: undefined };
+      })
+      .then((mapRes) => {
+        if (cancelled) return;
+        const mapped = mapRes.items.map(mapListItemToTruck);
+        setTrucks(mapped);
+        setPartnerCount(mapped.filter((truck) => truck.vis === 'private').length);
+        setPublicCount(mapped.filter((truck) => truck.vis === 'public').length);
+        setLoading(false);
+      })
+      .catch((reason: unknown) => {
+        if (cancelled) return;
+        const info = formatDashError(reason, 'dashTrucksLoadFailed');
         setPartnerCount(null);
         setPublicCount(null);
         setTrucks([]);
         setError(info.key);
         setUpgradeUrl(info.upgradeUrl);
         setLoading(false);
-        return;
-      }
-
-      if (partnerRes.status === 'fulfilled') {
-        setPartnerCount(partnerRes.value.meta.total ?? 0);
-      } else {
-        setPartnerCount(null);
-      }
-
-      if (publicRes.status === 'fulfilled') {
-        setPublicCount(publicRes.value.meta.total ?? 0);
-      } else {
-        setPublicCount(null);
-      }
-
-      if (mapRes.status === 'fulfilled') {
-        setTrucks(mapRes.value.items.map(mapListItemToTruck));
-      } else {
-        setTrucks([]);
-      }
-
-      setLoading(false);
-    });
+      });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [enabled]);
 
   const formatCount = (value: number | null) => {
     if (value == null) return DASH;

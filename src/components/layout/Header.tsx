@@ -83,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [loadingNotifs, setLoadingNotifs] = useState<boolean>(false);
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
 
-  // Fetch unread messages count & listen to real-time chat events
+  // Fetch unread messages count once; live updates come from the socket.
   useEffect(() => {
     chatService.getUnreadCount().then((count) => {
       setUnreadMessages(count);
@@ -113,14 +113,15 @@ export const Header: React.FC<HeaderProps> = ({
       window.removeEventListener(CHAT_MESSAGE_RECEIVED_EVENT, onChatReceived as EventListener);
       unsubscribeRead();
     };
-  }, [location.pathname]);
+  }, []);
 
-  // Fetch unread count & recent notifications
-  const loadHeaderNotifications = () => {
+  const loadUnreadCount = () => {
     notificationService.unreadCount()
       .then((count) => setUnreadCount(count))
       .catch(() => {});
+  };
 
+  const loadHeaderNotificationList = () => {
     setLoadingNotifs(true);
     notificationService.list({ tab: 'inbox', per_page: 5 })
       .then((res) => {
@@ -135,25 +136,29 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   useEffect(() => {
-    loadHeaderNotifications();
-  }, [location.pathname]);
+    loadUnreadCount();
+  }, []);
 
   useEffect(() => {
     if (notifOpen) {
-      loadHeaderNotifications();
+      loadUnreadCount();
+      loadHeaderNotificationList();
     }
   }, [notifOpen]);
 
   useEffect(() => {
     const handlePushReceived = () => {
-      loadHeaderNotifications();
+      loadUnreadCount();
+      if (notifOpen) {
+        loadHeaderNotificationList();
+      }
     };
 
     window.addEventListener('shipper:notification-received', handlePushReceived);
     return () => {
       window.removeEventListener('shipper:notification-received', handlePushReceived);
     };
-  }, []);
+  }, [notifOpen]);
 
 
 

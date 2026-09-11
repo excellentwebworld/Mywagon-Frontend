@@ -23,7 +23,7 @@ function formatInt(value: number | null | undefined): string {
   return value.toLocaleString();
 }
 
-export const PerformanceSummary: React.FC = () => {
+export const PerformanceSummary: React.FC<{ enabled?: boolean }> = ({ enabled = true }) => {
   const { showToast } = useApp();
   const { t } = useTranslation();
   const [data, setData] = useState<ApiPerformanceSummary | null>(null);
@@ -31,6 +31,7 @@ export const PerformanceSummary: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -51,7 +52,7 @@ export const PerformanceSummary: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [enabled]);
 
   const showPlaceholder = !loading && !data;
 

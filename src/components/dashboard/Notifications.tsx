@@ -40,7 +40,7 @@ function SeverityIcon({ severity }: { severity: ApiNotification['severity'] }) {
   );
 }
 
-export const Notifications: React.FC = () => {
+export const Notifications: React.FC<{ enabled?: boolean }> = ({ enabled = true }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [items, setItems] = useState<ApiNotification[]>([]);
@@ -48,6 +48,7 @@ export const Notifications: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -68,7 +69,7 @@ export const Notifications: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [enabled]);
 
   const handleClick = (n: ApiNotification) => {
     if (!n.read) {

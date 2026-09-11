@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { AxiosRequestConfig } from 'axios';
 import type { ApiResponse } from './types/addressBook';
 import { getBrowserTimezone } from '../utils/timezone';
 import { safeLocalGet, safeLocalRemove, safeLocalSet } from '../utils/safeStorage';
@@ -26,6 +27,25 @@ export const axiosInstance = axios.create({
     'Accept': 'application/json',
   },
 });
+
+/** Collapse duplicate in-flight GETs (dashboard + header often request the same URL). */
+const inflightGets = new Map<string, Promise<unknown>>();
+
+function coalesceInflight<T>(key: string, run: () => Promise<T>): Promise<T> {
+  const existing = inflightGets.get(key);
+  if (existing) return existing as Promise<T>;
+  const pending = run().finally(() => {
+    if (inflightGets.get(key) === pending) inflightGets.delete(key);
+  });
+  inflightGets.set(key, pending);
+  return pending;
+}
+
+const originalAxiosGet = axiosInstance.get.bind(axiosInstance);
+axiosInstance.get = ((url: string, config?: AxiosRequestConfig) => {
+  const params = config?.params == null ? '' : JSON.stringify(config.params);
+  return coalesceInflight(`axios-get:${url}?${params}`, () => originalAxiosGet(url, config));
+}) as typeof axiosInstance.get;
 
 axiosInstance.interceptors.request.use((config) => {
   const token = getStoredToken();
@@ -109,13 +129,13 @@ function buildQuery(params: Record<string, string | number | boolean | undefined
   return qs ? `?${qs}` : '';
 }
 
-export async function apiRequest<T>(
+async function dispatchApiRequest<T>(
   path: string,
   options: {
     method?: string;
     body?: unknown;
     headers?: Record<string, string>;
-  } = {}
+  }
 ): Promise<ApiResponse<T>> {
   try {
     const response = await axiosInstance({
@@ -154,6 +174,21 @@ export async function apiRequest<T>(
     }
     throw err;
   }
+}
+
+export function apiRequest<T>(
+  path: string,
+  options: {
+    method?: string;
+    body?: unknown;
+    headers?: Record<string, string>;
+  } = {}
+): Promise<ApiResponse<T>> {
+  const method = (options.method || 'GET').toUpperCase();
+  if (method !== 'GET') {
+    return dispatchApiRequest<T>(path, options);
+  }
+  return coalesceInflight(`api-get:${path}`, () => dispatchApiRequest<T>(path, options));
 }
 
 export function apiGet<T>(

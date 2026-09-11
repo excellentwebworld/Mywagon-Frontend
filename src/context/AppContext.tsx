@@ -880,9 +880,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
-    void refreshLocationsFromApi(true);
-    void refreshSkusFromApi(true);
-  }, [authScopeKey, isAuthenticated, refreshLocationsFromApi, refreshSkusFromApi]);
+    // Locations and SKUs are loaded by the pages that need them (create shipment,
+    // address book). Prefetching here doubled dashboard traffic and hit API rate limits.
+  }, [authScopeKey, isAuthenticated]);
 
   // Carriers State
   const [carriers, setCarriers] = useState<Carrier[]>([

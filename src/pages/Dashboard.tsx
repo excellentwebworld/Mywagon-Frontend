@@ -7,6 +7,8 @@ import { PerformanceSummary } from '../components/dashboard/PerformanceSummary';
 import { TruckAvailabilitiesCard } from '../components/dashboard/TruckAvailabilitiesCard';
 import { Notifications } from '../components/dashboard/Notifications';
 import { MessagesPreview } from '../components/dashboard/MessagesPreview';
+import { useDeferredReady } from '../components/dashboard/useDeferredReady';
+import { useOutboundSummary } from '../components/dashboard/useOutboundSummary';
 
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../hooks/useTranslation';
@@ -16,6 +18,9 @@ import '../styles/tutorials.css';
 export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { summary, loading: summaryLoading, error: summaryError, upgradeUrl: summaryUpgradeUrl } =
+    useOutboundSummary();
+  const secondaryReady = useDeferredReady(350);
 
   // Coordinate active board tab between KpiStrip and ShipmentBoard (3 = Upcoming)
   const [activeBoardTab, setActiveBoardTab] = useState<number>(3);
@@ -47,7 +52,14 @@ export const Dashboard: React.FC = () => {
 
       {/* Row 1: Operational KPIs */}
       <div data-tour="dashboard-overview">
-        <KpiStrip activeBoardTab={activeBoardTab} setActiveBoardTab={setActiveBoardTab} />
+        <KpiStrip
+          activeBoardTab={activeBoardTab}
+          setActiveBoardTab={setActiveBoardTab}
+          summary={summary}
+          loading={summaryLoading}
+          error={summaryError}
+          upgradeUrl={summaryUpgradeUrl}
+        />
 
         {/* Row 2: Today's Schedule + Live Map */}
         <div className="row-2col-even">
@@ -65,16 +77,17 @@ export const Dashboard: React.FC = () => {
             setActiveTab={setActiveBoardTab}
             selectedShipmentId={selectedScheduleShipmentId}
             onSelectShipment={handleSelectScheduleShipment}
+            sharedSummary={summary}
           />
-          <PerformanceSummary />
+          <PerformanceSummary enabled={secondaryReady} />
         </div>
       </div>
 
       {/* Row 4: Trucks + Notifications + Messages */}
       <div className="row-3col">
-        <TruckAvailabilitiesCard />
-        <Notifications />
-        <MessagesPreview />
+        <TruckAvailabilitiesCard enabled={secondaryReady} />
+        <Notifications enabled={secondaryReady} />
+        <MessagesPreview enabled={secondaryReady} />
       </div>
     </div>
   );

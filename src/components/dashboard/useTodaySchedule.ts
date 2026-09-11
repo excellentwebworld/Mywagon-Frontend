@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { shipmentsService } from '../../api';
-import type { ApiShipmentListItem } from '../../api/types/shipments';
 import { formatDashError } from './dashErrorUtils';
 import { buildTodayScheduleEvents, type ScheduleEvent, type TodayScheduleCounts } from './scheduleUtils';
 
@@ -18,28 +17,16 @@ export function useTodaySchedule() {
     setLoading(true);
     setError(null);
 
-    Promise.all([
-      shipmentsService.list({
+    shipmentsService
+      .list({
         direction: 'outbound',
-        kpi: 'pickup_today',
+        status: ['ready', 'on_trip', 'scheduled', 'pending', 'past_due'],
         per_page: 100,
         page: 1,
-      }),
-      shipmentsService.list({
-        direction: 'outbound',
-        status: ['ready', 'on_trip', 'scheduled'],
-        per_page: 100,
-        page: 1,
-      }),
-    ])
-      .then(([todayRes, activeRes]) => {
+      })
+      .then((activeRes) => {
         if (cancelled) return;
-        const itemMap = new Map<number, ApiShipmentListItem>();
-        (todayRes.items || []).forEach((item) => itemMap.set(item.id, item));
-        (activeRes.items || []).forEach((item) => itemMap.set(item.id, item));
-
-        const combined = Array.from(itemMap.values());
-        const built = buildTodayScheduleEvents(combined);
+        const built = buildTodayScheduleEvents(activeRes.items || []);
         setEvents(built.events);
         setCounts(built.counts);
       })

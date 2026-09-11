@@ -47,58 +47,27 @@ export const LiveMap: React.FC<LiveMapProps> = ({ selectedShipmentId }) => {
     setError(null);
     setGeocodedCoords({});
 
-    if (selectedShipmentId != null) {
-      shipmentsService
-        .getMapped(selectedShipmentId)
-        .then((data) => {
-          if (!cancelled) setShipment(data);
-        })
-        .catch((err: unknown) => {
-          if (cancelled) return;
-          setShipment(null);
-          setError(formatDashError(err, 'dashMapLoadFailed').key);
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
-    } else {
-      // Auto-fallback: fetch the first active/ready/today shipment if none selected from Today's Schedule
-      shipmentsService
-        .list({
-          direction: 'outbound',
-          status: ['ready', 'on_trip', 'scheduled', 'pending'],
-          kpi: 'pickup_today',
-          per_page: 1,
-          page: 1,
-        })
-        .then(async (res) => {
-          if (cancelled) return;
-          let firstItem = res.items[0];
-          if (!firstItem) {
-            const fallbackRes = await shipmentsService.list({
-              direction: 'outbound',
-              status: ['ready', 'on_trip', 'scheduled', 'pending', 'past_due'],
-              per_page: 1,
-              page: 1,
-            });
-            firstItem = fallbackRes.items[0];
-          }
-          if (firstItem) {
-            const data = await shipmentsService.getMapped(firstItem.id);
-            if (!cancelled) setShipment(data);
-            return;
-          }
-          setShipment(null);
-        })
-        .catch((err: unknown) => {
-          if (cancelled) return;
-          setShipment(null);
-          setError(formatDashError(err, 'dashMapLoadFailed').key);
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
+    if (selectedShipmentId == null) {
+      setShipment(null);
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
     }
+
+    shipmentsService
+      .getMapped(selectedShipmentId)
+      .then((data) => {
+        if (!cancelled) setShipment(data);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setShipment(null);
+        setError(formatDashError(err, 'dashMapLoadFailed').key);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
     return () => {
       cancelled = true;

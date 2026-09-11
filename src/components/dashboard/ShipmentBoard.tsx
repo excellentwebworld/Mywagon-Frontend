@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { ListShipmentsParams, ShipmentKpiKey } from '../../api/types/shipments';
+import type { ListShipmentsParams, ShipmentKpiKey, ApiShipmentsSummary } from '../../api/types/shipments';
 import type { Shipment } from '../../context/AppContext';
 import { useShipmentsList } from '../../hooks/useShipments';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -17,6 +17,7 @@ interface ShipmentBoardProps {
   setActiveTab: (idx: number) => void;
   selectedShipmentId?: number | null;
   onSelectShipment?: (id: number) => void;
+  sharedSummary?: ApiShipmentsSummary;
 }
 
 const PER_PAGE = 5;
@@ -53,6 +54,7 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
   setActiveTab,
   selectedShipmentId,
   onSelectShipment,
+  sharedSummary,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -88,13 +90,15 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
     return { ...base, status: activeDef.filter.status };
   }, [activeDef, page]);
 
-  const { shipments, meta, summary, loading, error, upgradeUrl } = useShipmentsList(
+  const { shipments, meta, summary: fetchedSummary, loading, error, upgradeUrl } = useShipmentsList(
     listParams,
     summaryParams,
     true,
     0,
-    true
+    !sharedSummary
   );
+
+  const summary = sharedSummary ?? fetchedSummary;
 
   const handleCache = useCallback((shipment: Shipment) => {
     setDetailCache((prev) => ({ ...prev, [shipment.id]: shipment }));

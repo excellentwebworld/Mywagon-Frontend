@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useLocation } from 'react-router-dom';
 import { usersSettingsService, type SeatMeta, type SettingsUser } from '../api/services/usersSettingsService';
 import {
   rolesSettingsService,
@@ -39,12 +40,17 @@ interface UserMgmtContextValue {
 
 const UserMgmtContext = createContext<UserMgmtContextValue | null>(null);
 
+function isUserMgmtPath(pathname: string): boolean {
+  return pathname.startsWith('/settings/users');
+}
+
 export function UserMgmtProvider({ children }: { children: ReactNode }) {
+  const location = useLocation();
   const [users, setUsers] = useState<UserMgmtUser[]>([]);
   const [seats, setSeats] = useState<SeatMeta | null>(null);
   const [roles, setRoles] = useState<SettingsRole[]>([]);
   const [permissionGroups, setPermissionGroups] = useState<PermissionCatalogGroup[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => isUserMgmtPath(location.pathname));
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -68,8 +74,9 @@ export function UserMgmtProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!isUserMgmtPath(location.pathname)) return;
     void refresh();
-  }, [refresh]);
+  }, [location.pathname, refresh]);
 
   const getUser = useCallback(
     (id: string) => users.find((u) => String(u.id) === String(id)),

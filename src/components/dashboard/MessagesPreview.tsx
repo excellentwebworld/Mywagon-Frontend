@@ -9,7 +9,7 @@ import { DashMessagesSkeleton } from './DashboardSkeletons';
 // Fetch up to 50; the scrollable list (min ~3 rows visible) shows as many as fit the available space.
 const PREVIEW_LIMIT = 50;
 
-export const MessagesPreview: React.FC = () => {
+export const MessagesPreview: React.FC<{ enabled?: boolean }> = ({ enabled = true }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -18,6 +18,7 @@ export const MessagesPreview: React.FC = () => {
   const [upgradeUrl, setUpgradeUrl] = useState<string | undefined>();
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -41,7 +42,7 @@ export const MessagesPreview: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [enabled]);
 
   const openConversation = (c: Conversation) => {
     if (c.partnerId != null && c.partnerType) {
