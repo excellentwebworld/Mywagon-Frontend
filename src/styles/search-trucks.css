@@ -21,7 +21,7 @@
 .sat-page-top {
   flex-shrink: 0;
   padding: 12px 24px 8px;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--bg, #F7F7F8);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   z-index: 40;
@@ -47,6 +47,7 @@
   letter-spacing: -0.3px;
   margin: 0;
   line-height: 1.2;
+  color: var(--text-primary);
 }
 
 .sat-beta-badge {
@@ -741,7 +742,7 @@
 .sat-card.selected {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-light);
-  background: #FAFAFE;
+  background: var(--surface-alt);
 }
 
 .sat-card-top {
@@ -914,9 +915,9 @@
 .sat-bg-wr { background: var(--warning-bg, #FFFBEB); color: #92400E; }
 .sat-bg-ac { background: var(--accent-light); color: var(--accent); }
 .sat-bg-priv {
-  background: #F3E8FF;
-  color: #7C3AED;
-  border: 1px solid #DDD6FE;
+  background: var(--accent-light, #F3E8FF);
+  color: var(--accent, #7C3AED);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 }
 .sat-bg-pub { background: var(--success-bg, #ECFDF5); color: #065F46; }
 
@@ -1025,9 +1026,9 @@
 }
 
 .sat-grp-badge--vehicle {
-  background: #E0F2FE;
-  color: #0369A1;
-  border: 1px solid #BAE6FD;
+  background: var(--info-bg, #E0F2FE);
+  color: var(--info, #0369A1);
+  border: 1px solid color-mix(in srgb, var(--info, #0369A1) 30%, transparent);
   font-weight: 600;
   margin-left: 6px;
   display: inline-flex;
@@ -1036,9 +1037,9 @@
 }
 
 .sat-mp-chip--vehicle {
-  background: #E0F2FE !important;
-  color: #0369A1 !important;
-  border: 1px solid #BAE6FD !important;
+  background: var(--info-bg, #E0F2FE) !important;
+  color: var(--info, #0369A1) !important;
+  border: 1px solid color-mix(in srgb, var(--info, #0369A1) 30%, transparent) !important;
   font-weight: 600 !important;
 }
 
@@ -1835,7 +1836,7 @@
   max-width: 180px;
   padding: 6px 10px;
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--border);
   line-height: 1.2;
 }
@@ -2132,7 +2133,7 @@
   transition: background 0.08s;
 }
 .sat-bid-table tbody tr:hover {
-  background: #fafafd;
+  background: var(--surface-alt);
 }
 .sat-bid-table tbody tr.sel {
   background: var(--accent-light, #F5F3FF) !important;
@@ -2348,7 +2349,7 @@
   background: var(--surface-alt, #F4F4F7);
 }
 .sat-bid-table tbody tr:hover .sat-bid-col-choose {
-  background: #fafafd;
+  background: var(--surface-alt);
 }
 .sat-bid-table tbody tr.sel .sat-bid-col-choose {
   background: var(--accent-light, #F5F3FF);
@@ -2493,7 +2494,7 @@
   margin: 0;
   padding: 14px 16px 12px;
   border-top: 1px solid var(--border);
-  background: #fafafe;
+  background: var(--surface-alt);
 }
 .sat-drawer--bid .sat-pend-match h4 {
   font-size: 10px;
@@ -2579,7 +2580,7 @@
   flex-direction: column;
   gap: 14px;
   padding: 16px;
-  background: #fafafe;
+  background: var(--surface-alt);
   border: 1px solid var(--border);
   border-radius: 12px;
 }
@@ -3108,12 +3109,12 @@ button.sat-step:disabled { opacity: 1; cursor: default; }
   border-radius: 50%;
   border: 2px solid var(--border);
   flex-shrink: 0;
-  background: #fff;
+  background: var(--surface);
 }
 .sat-pend-row.sel .sat-pend-radio {
   border-color: var(--accent);
   background: var(--accent);
-  box-shadow: inset 0 0 0 3px #fff;
+  box-shadow: inset 0 0 0 3px var(--surface);
 }
 .sat-pend-main {
   min-width: 0;
@@ -3412,18 +3413,18 @@ button.sat-step:disabled { opacity: 1; cursor: default; }
   flex-wrap: wrap;
 }
 .sat-subscription-banner {
-  background: #fff4e5;
-  color: #8a4b08;
-  border: 1px solid #f0c36d;
+  background: var(--warning-bg, #fff4e5);
+  color: var(--warning, #8a4b08);
+  border: 1px solid color-mix(in srgb, var(--warning, #f59e0b) 30%, transparent);
 }
 .sat-subscription-banner__text {
   flex: 1 1 auto;
   min-width: 0;
 }
 .sat-error-banner {
-  background: #fdecea;
-  color: #8a1f11;
-  border: 1px solid #f5c2c0;
+  background: var(--danger-bg, #fdecea);
+  color: var(--danger, #8a1f11);
+  border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 30%, transparent);
 }
 .sat-loading {
   padding: 48px 20px;
@@ -3583,7 +3584,7 @@ button.sat-step:disabled { opacity: 1; cursor: default; }
   z-index: 4;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--surface);
   border: 1px solid var(--border);
   font-size: 12px;
   color: var(--text-secondary);
@@ -3745,7 +3746,7 @@ a.sat-btn {
 }
 
 .sat-veh-card.is-selected .sat-veh-icon {
-  background: #fff;
+  background: var(--surface);
   color: var(--accent);
 }
 
