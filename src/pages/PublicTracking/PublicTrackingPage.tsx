@@ -894,30 +894,6 @@ export const PublicTrackingPage: React.FC = () => {
             </button>
           ))}
         </div>
-        {(canShowReceipt || canShowRating) ? (
-          <div className={`pt-jnav-actions ${canShowReceipt && canShowRating ? '' : 'single'}`.trim()}>
-            {canShowReceipt ? (
-              <button
-                type="button"
-                className={`pt-jn-action ${activeNav === 'receipt' ? 'act' : ''}`}
-                onClick={() => jumpTo('receipt')}
-              >
-                <ClipboardCheck size={14} />
-                {t(lang, 'confirmReceipt')}
-              </button>
-            ) : null}
-            {canShowRating ? (
-              <button
-                type="button"
-                className={`pt-jn-action ${activeNav === 'rating' ? 'act' : ''}`}
-                onClick={() => jumpTo('rating')}
-              >
-                <Star size={14} />
-                {t(lang, 'rateTransporter')}
-              </button>
-            ) : null}
-          </div>
-        ) : null}
       </div>
 
       <div className="pt-wrap">

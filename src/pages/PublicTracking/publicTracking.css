@@ -454,7 +454,6 @@
 /* ── Jump nav ── */
 .pt-jnav {
   display: flex;
-  flex-direction: column;
   background: var(--pt-sf);
   border-bottom: 1px solid var(--pt-bd);
   width: 100%;
@@ -468,7 +467,7 @@
   padding: 0 var(--pt-pad);
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
-  border-bottom: 1px solid var(--pt-bd);
+  width: 100%;
 }
 
 .pt-jnav-actions {

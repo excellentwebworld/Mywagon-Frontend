@@ -49,10 +49,6 @@ export const PublicTrackingSkeleton: React.FC = () => {
             <div className="pt-skel pt-skel-tab" key={i} />
           ))}
         </div>
-        <div className="pt-jnav-actions">
-          <div className="pt-skel pt-skel-action" />
-          <div className="pt-skel pt-skel-action" />
-        </div>
       </div>
 
       <div className="pt-wrap">
