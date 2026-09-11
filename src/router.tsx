@@ -112,6 +112,7 @@ const webViewRoutes = [
 const publicTrackingRoutes = [
   // Query form (emails): /track-shipment?sid=...&lid=...
   { path: '/track-shipment', element: <PublicTrackingPage /> },
+  { path: '/track-shipment/', element: <PublicTrackingPage /> },
   // Legacy path form + Amplify-decoded %2F (extra segments)
   { path: '/track-shipment/:encryptedId/:encryptedLocationIds', element: <PublicTrackingPage /> },
   { path: '/track-shipment/*', element: <PublicTrackingPage /> },

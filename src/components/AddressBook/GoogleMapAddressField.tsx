@@ -54,11 +54,27 @@ export function loadGoogleMaps(apiKey: string): Promise<void> {
   if (mapsScriptLoading) return mapsScriptLoading;
 
   mapsScriptLoading = new Promise((resolve, reject) => {
-    window.initGoogleMapsCallback = () => resolve();
+    const fail = (reason: string) => {
+      mapsScriptLoading = null;
+      reject(new Error(reason));
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      fail('Google Maps load timed out (blocked or slow network)');
+    }, 12000);
+
+    window.initGoogleMapsCallback = () => {
+      window.clearTimeout(timeoutId);
+      resolve();
+    };
+
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMapsCallback`;
     script.async = true;
-    script.onerror = () => reject(new Error('Failed to load Google Maps'));
+    script.onerror = () => {
+      window.clearTimeout(timeoutId);
+      fail('Failed to load Google Maps (blocked or network error)');
+    };
     document.head.appendChild(script);
   });
 

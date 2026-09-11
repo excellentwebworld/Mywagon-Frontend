@@ -3,7 +3,20 @@ import type { PublicTrackingPayload } from '../../pages/PublicTracking/types';
 
 function publicApiBase(): string {
   const shipperBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api/shipper/v1';
-  return shipperBase.replace(/\/shipper\/v1\/?$/, '/public/v1');
+  // https://host/api/shipper/v1  →  https://host/api/public/v1
+  // /api/shipper/v1              →  /api/public/v1
+  const replaced = shipperBase.replace(/\/shipper\/v1\/?$/, '/public/v1');
+  if (replaced !== shipperBase) return replaced.replace(/\/$/, '');
+  // Fallback if env shape differs
+  try {
+    if (/^https?:\/\//i.test(shipperBase)) {
+      const url = new URL(shipperBase);
+      return `${url.origin}/api/public/v1`;
+    }
+  } catch {
+    /* ignore */
+  }
+  return '/api/public/v1';
 }
 
 type ApiEnvelope<T> = {

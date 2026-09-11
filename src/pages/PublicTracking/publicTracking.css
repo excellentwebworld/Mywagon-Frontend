@@ -962,6 +962,57 @@
   min-height: 28px;
 }
 
+.pt-live-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.pt-live-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+  flex-shrink: 0;
+}
+
+.pt-live-status.connecting .pt-live-status-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px #fef3c7;
+  animation: pt-pulse 1.2s ease-in-out infinite;
+}
+
+.pt-live-status.connected .pt-live-status-dot {
+  background: #10b981;
+  box-shadow: 0 0 0 3px #d1fae5;
+}
+
+.pt-live-status.error .pt-live-status-dot {
+  background: #ef4444;
+  box-shadow: 0 0 0 3px #fee2e2;
+}
+
+.pt-live-status.connected {
+  color: #047857;
+}
+
+.pt-live-status.error {
+  color: #b91c1c;
+}
+
+@keyframes pt-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
 .pt-live-header-dot {
   width: 8px;
   height: 8px;

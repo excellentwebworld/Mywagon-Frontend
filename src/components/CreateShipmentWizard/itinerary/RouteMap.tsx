@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { loadGoogleMaps } from '../../AddressBook/GoogleMapAddressField';
 import { numberedMarkerIconUrl } from './stopColors';
@@ -132,6 +132,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   const onStopSelectRef = useRef(onStopSelect);
   onStopSelectRef.current = onStopSelect;
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
+  const [mapsFailed, setMapsFailed] = useState(false);
 
   const safePolylinePath = useMemo(() => {
     if (!Array.isArray(polylinePath)) return [];
@@ -161,7 +162,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       .join(' → ');
 
   useEffect(() => {
-    if (!mapsKey || !containerRef.current || safePolylinePath.length === 0) return;
+    if (!mapsKey || !containerRef.current || safePolylinePath.length === 0 || mapsFailed) return;
 
     let renderer: any = null;
     let polyline: any = null;
@@ -169,6 +170,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     let infoWindows: any[] = [];
     let map: any = null;
     let mapClickListener: any = null;
+    let cancelled = false;
 
     const closeAllInfoWindows = () => {
       infoWindows.forEach((iw) => iw.close());
@@ -176,6 +178,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 
     loadGoogleMaps(mapsKey)
       .then(() => {
+        if (cancelled) return;
         const google = (window as any).google;
         if (!google?.maps || !containerRef.current) return;
 
@@ -267,10 +270,11 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         addStopMarkers();
       })
       .catch(() => {
-        /* fallback handled in render */
+        if (!cancelled) setMapsFailed(true);
       });
 
     return () => {
+      cancelled = true;
       if (mapClickListener && (window as any).google?.maps?.event) {
         (window as any).google.maps.event.removeListener(mapClickListener);
       }
@@ -286,10 +290,11 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       infoWindowsByIndexRef.current = {};
       mapRef.current = null;
     };
-  }, [mapsKey, pathSignature, stopMarkerSignature, directionsResult, stops, mapType, t, safePolylinePath]);
+  }, [mapsKey, pathSignature, stopMarkerSignature, directionsResult, stops, mapType, t, safePolylinePath, mapsFailed, strokeColor]);
 
   // Sync list → map: open info + bounce the selected stop marker
   useEffect(() => {
+    if (mapsFailed) return;
     const google = (window as any).google;
     if (!google?.maps || activeStopIndex == null) return;
 
@@ -304,10 +309,11 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     marker.setAnimation(google.maps.Animation.BOUNCE);
     const timer = window.setTimeout(() => marker.setAnimation(null), 1400);
     return () => window.clearTimeout(timer);
-  }, [activeStopIndex]);
+  }, [activeStopIndex, mapsFailed]);
 
   // Live driver marker (socket updates)
   useEffect(() => {
+    if (mapsFailed) return;
     const google = (window as any).google;
     const map = mapRef.current;
     if (!google?.maps || !map) return;
@@ -354,23 +360,29 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       zIndex: 999,
       title: 'Live position',
     });
-  }, [livePosition, liveIcon]);
+  }, [livePosition, liveIcon, mapsFailed]);
 
   const height = heightProp ?? (expanded ? 340 : 300);
 
-  if (!mapsKey || safePolylinePath.length === 0) {
-    const center = safePolylinePath[0] || { lat: 37.983819, lng: 23.727539 };
+  const useOsmFallback = !mapsKey || safePolylinePath.length === 0 || mapsFailed;
+
+  if (useOsmFallback) {
+    const center =
+      livePosition && Number.isFinite(livePosition.lat) && Number.isFinite(livePosition.lng)
+        ? livePosition
+        : safePolylinePath[0] || { lat: 37.983819, lng: 23.727539 };
+    const pathForBounds = safePolylinePath.length >= 2 ? safePolylinePath : [center];
     const osmUrl =
-      safePolylinePath.length >= 2
-        ? `https://www.openstreetmap.org/export/embed.html?bbox=${Math.min(...safePolylinePath.map((p) => p.lng)) - 0.5}%2C${Math.min(...safePolylinePath.map((p) => p.lat)) - 0.3}%2C${Math.max(...safePolylinePath.map((p) => p.lng)) + 0.5}%2C${Math.max(...safePolylinePath.map((p) => p.lat)) + 0.3}&layer=mapnik`
+      pathForBounds.length >= 2
+        ? `https://www.openstreetmap.org/export/embed.html?bbox=${Math.min(...pathForBounds.map((p) => p.lng)) - 0.5}%2C${Math.min(...pathForBounds.map((p) => p.lat)) - 0.3}%2C${Math.max(...pathForBounds.map((p) => p.lng)) + 0.5}%2C${Math.max(...pathForBounds.map((p) => p.lat)) + 0.3}&layer=mapnik&marker=${center.lat}%2C${center.lng}`
         : `https://www.openstreetmap.org/export/embed.html?bbox=${center.lng - 0.08}%2C${center.lat - 0.05}%2C${center.lng + 0.08}%2C${center.lat + 0.05}&layer=mapnik&marker=${center.lat}%2C${center.lng}`;
 
     return (
       <div
         className="wizard-route-map-fallback flex flex-col items-center justify-center"
-        style={{ height, background: 'var(--surface-alt)' }}
+        style={{ height, background: 'var(--surface-alt)', position: 'relative' }}
       >
-        {polylinePath.length >= 2 ? (
+        {pathForBounds.length >= 1 ? (
           <iframe title={label} src={osmUrl} loading="lazy" style={{ width: '100%', height: '100%', border: 0 }} />
         ) : (
           <>
@@ -380,6 +392,22 @@ export const RouteMap: React.FC<RouteMapProps> = ({
             </div>
           </>
         )}
+        {livePosition ? (
+          <div
+            className="absolute left-2 bottom-2 rounded-md px-2 py-1 text-[11px] font-semibold"
+            style={{ background: 'rgba(15,23,42,0.85)', color: '#fff' }}
+          >
+            Live: {livePosition.lat.toFixed(5)}, {livePosition.lng.toFixed(5)}
+          </div>
+        ) : null}
+        {mapsFailed ? (
+          <div
+            className="absolute left-2 top-2 rounded-md px-2 py-1 text-[10px]"
+            style={{ background: 'rgba(255,255,255,0.92)', color: '#64748b' }}
+          >
+            Map fallback (Google Maps blocked)
+          </div>
+        ) : null}
         {loading && (
           <div className="text-[10px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
             {t('loading')}...

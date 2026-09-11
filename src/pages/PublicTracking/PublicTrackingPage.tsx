@@ -334,7 +334,8 @@ const TrackingLiveMap: React.FC<{
   data: PublicTrackingPayload;
   lang: Lang;
   livePosition: { lat: number; lng: number } | null;
-}> = ({ data, lang, livePosition }) => {
+  socketStatus?: 'idle' | 'connecting' | 'connected' | 'error';
+}> = ({ data, lang, livePosition, socketStatus = 'idle' }) => {
   const [routeMode, setRouteMode] = useState<'suggested' | 'actual'>('suggested');
   const enrichedStops = useMemo(
     () => stopsToEnriched(data.stops, data.map.points || []),
@@ -371,7 +372,50 @@ const TrackingLiveMap: React.FC<{
 
   return (
     <div className="pt-map-stack">
-      {showToggle ? (
+      {isLive || isOnTrip ? (
+        <div className="pt-map-toolbar">
+          <div className={`pt-live-status ${socketStatus}`}>
+            <span className="pt-live-status-dot" aria-hidden="true" />
+            {socketStatus === 'connected'
+              ? lang === 'el'
+                ? 'Ζωντανά συνδεδεμένο'
+                : 'Live connected'
+              : socketStatus === 'connecting'
+                ? lang === 'el'
+                  ? 'Σύνδεση…'
+                  : 'Connecting…'
+                : socketStatus === 'error'
+                  ? lang === 'el'
+                    ? 'Σφάλμα σύνδεσης'
+                    : 'Connection error'
+                  : lang === 'el'
+                    ? 'Αναμονή GPS'
+                    : 'Waiting for GPS'}
+            {livePosition
+              ? ` · ${livePosition.lat.toFixed(4)}, ${livePosition.lng.toFixed(4)}`
+              : ''}
+          </div>
+          {showToggle ? (
+            <div className="pt-route-toggle">
+              <button
+                type="button"
+                className={routeMode === 'actual' ? 'act-actual' : ''}
+                onClick={() => setRouteMode('actual')}
+                disabled={actualRoute.length < 2}
+              >
+                {t(lang, 'actual')}
+              </button>
+              <button
+                type="button"
+                className={routeMode === 'suggested' ? 'act-suggested' : ''}
+                onClick={() => setRouteMode('suggested')}
+              >
+                {t(lang, 'suggested')}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : showToggle ? (
         <div className="pt-map-toolbar">
           <div className="pt-route-toggle">
             <button
@@ -605,6 +649,7 @@ export const PublicTrackingPage: React.FC = () => {
   const [toast, setToast] = useState('');
   const [activeNav, setActiveNav] = useState('itinerary');
   const [livePosition, setLivePosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [socketStatus, setSocketStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
 
   const [rcptType, setRcptType] = useState<'full' | 'partial'>('full');
   const [rcptNotes, setRcptNotes] = useState('');
@@ -683,14 +728,22 @@ export const PublicTrackingPage: React.FC = () => {
     const live = data?.map?.live;
     if (!live?.enabled || !live.shipper_id || !live.shipment_id) {
       setLivePosition(null);
+      setSocketStatus('idle');
       return;
     }
 
     const socketUrl = (import.meta.env.VITE_SOCKET_URL as string | undefined) || '';
-    if (!socketUrl) return;
+    if (!socketUrl) {
+      setSocketStatus('error');
+      if (import.meta.env.DEV) {
+        console.warn('[PublicTracking] VITE_SOCKET_URL is not set — live GPS disabled');
+      }
+      return;
+    }
 
     let cancelled = false;
     let socket: Socket | null = null;
+    setSocketStatus('connecting');
 
     try {
       socket = io(socketUrl, {
@@ -701,17 +754,48 @@ export const PublicTrackingPage: React.FC = () => {
 
       socket.on('connect', () => {
         if (cancelled) return;
-        socket?.emit('join_shipper', { user_id: live.shipper_id });
+        setSocketStatus('connected');
+        if (import.meta.env.DEV) {
+          console.log('[PublicTracking] Socket connected', socket?.id, socketUrl);
+        }
+
+        // Laravel traking.js: join_shipper with server ack
+        socket?.emit('join_shipper', { user_id: live.shipper_id }, (ack: unknown) => {
+          if (cancelled) return;
+          if (import.meta.env.DEV) {
+            console.log('[PublicTracking] join_shipper ack:', ack);
+          }
+        });
+
         if (live.driver_id) {
           socket?.emit(
             'get_driver_last_location',
             { driver_id: live.driver_id, shipment_id: live.shipment_id },
             (response: { lat?: number; lng?: number } | null) => {
-              if (cancelled || response?.lat == null || response?.lng == null) return;
+              if (cancelled) return;
+              if (import.meta.env.DEV) {
+                console.log('[PublicTracking] get_driver_last_location ack:', response);
+              }
+              if (response?.lat == null || response?.lng == null) return;
               setLivePosition({ lat: Number(response.lat), lng: Number(response.lng) });
             }
           );
+        } else if (import.meta.env.DEV) {
+          console.warn('[PublicTracking] live.driver_id missing — waiting for live_tracking events only');
         }
+      });
+
+      socket.on('connect_error', (err) => {
+        if (cancelled) return;
+        setSocketStatus('error');
+        if (import.meta.env.DEV) {
+          console.warn('[PublicTracking] Socket connect_error:', err.message);
+        }
+      });
+
+      socket.on('disconnect', () => {
+        if (cancelled) return;
+        setSocketStatus('connecting');
       });
 
       socket.on(
@@ -720,17 +804,27 @@ export const PublicTrackingPage: React.FC = () => {
           if (cancelled || payload == null) return;
           if (Number(payload.shipment_id) !== Number(live.shipment_id)) return;
           if (payload.lat == null || payload.lng == null) return;
+          if (import.meta.env.DEV) {
+            console.log('[PublicTracking] live_tracking:', payload);
+          }
           setLivePosition({ lat: Number(payload.lat), lng: Number(payload.lng) });
         }
       );
-    } catch {
-      // socket optional
+    } catch (err) {
+      setSocketStatus('error');
+      if (import.meta.env.DEV) {
+        console.warn('[PublicTracking] Socket init failed:', err);
+      }
     }
 
     return () => {
       cancelled = true;
+      setSocketStatus('idle');
       try {
         socket?.off('live_tracking');
+        socket?.off('connect');
+        socket?.off('connect_error');
+        socket?.off('disconnect');
         socket?.disconnect();
       } catch {
         // ignore
@@ -1171,6 +1265,7 @@ export const PublicTrackingPage: React.FC = () => {
                   data={data}
                   lang={lang}
                   livePosition={livePosition}
+                  socketStatus={socketStatus}
                 />
               </div>
             </div>
