@@ -224,8 +224,13 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
       carrier: 'Nikos Georgiou',
       carrierType: 'driver',
       carrierRating: 4.7,
+      carrierTripsCount: 85,
+      carrierOnTimeDeliveryPct: 98,
+      carrierCancellationRatePct: 0.5,
+      carrierAvgPickupDelayMinutes: 8,
       carrierId: 301,
       assignedDriverPlates: ['ΒΕ-1234', 'ΤΡ-9988'],
+      assignedDriverVehicleType: 'Semi-Trailer Truck',
     });
 
     expect(vm.status).toBe('ready');
@@ -233,14 +238,11 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
     expect(vm.carrier?.meta).toBe('Freelancer');
     expect(vm.carrier?.rating).toBe('4.7');
     expect(vm.carrier?.tripsCount).toBe(85);
-    expect(vm.carrier?.onTimePickup).toBe('98%');
-    expect(vm.carrier?.onTimeDelivery).toBe('96%');
-    expect(vm.carrier?.cancelRate).toBe('0.5%');
-    expect(vm.carrier?.avgPickupDelay).toBe('8m');
+    expect(vm.carrier?.vehicleType).toBe('Semi-Trailer Truck');
     expect(vm.carrier?.plates).toEqual(['ΒΕ-1234', 'ΤΡ-9988']);
   });
 
-  it('Scheduled, Ready, and Past Due load displays transporter rating and statistics even before trip completion review', () => {
+  it('Scheduled, Ready, and Past Due load displays transporter rating and trips even before trip completion review', () => {
     const vm = buildShipmentDetailViewModel({
       ...baseMockShipment,
       status: 'scheduled',
@@ -249,7 +251,8 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
       carrierType: 'driver',
       carrierRating: null, // No post-trip review yet
       carrierProfileRating: 3.0,
-      carrierRatingCount: 85,
+      carrierRatingCount: 12,
+      carrierTripsCount: 85,
       carrierId: 401,
     });
 
@@ -257,11 +260,8 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
     expect(vm.carrier).not.toBeNull();
     expect(vm.carrier?.name).toBe('IOS Driver');
     expect(vm.carrier?.rating).toBe('3.0');
+    expect(vm.carrier?.ratingCount).toBe(12);
     expect(vm.carrier?.tripsCount).toBe(85);
-    expect(vm.carrier?.onTimePickup).toBe('98%');
-    expect(vm.carrier?.onTimeDelivery).toBe('96%');
-    expect(vm.carrier?.cancelRate).toBe('0.5%');
-    expect(vm.carrier?.avgPickupDelay).toBe('8m');
   });
 
   // Phase 4: On Trip, Live Tracking & Share Tracking

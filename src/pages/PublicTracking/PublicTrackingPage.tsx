@@ -922,7 +922,7 @@ export const PublicTrackingPage: React.FC = () => {
               <div className="pt-sid">
                 <span className="pt-load-label">{t(lang, 'load')}</span>
                 <span className="pt-sid-id">#{data.shipment.auto_id}</span>
-                <StatusBadge status={data.shipment.status} size="sm" />
+                <StatusBadge status={data.shipment.status || data.shipment.status_label} size="sm" />
               </div>
               <div className="pt-fwd">
                 <span className="pt-fwd-badge">{kindLabel}</span>
@@ -1120,16 +1120,22 @@ export const PublicTrackingPage: React.FC = () => {
                   const isFreelancer = tr.kind === 'freelancer' || tr.rateable_type === 'driver';
                   const plates = tr.plates || [];
                   const vehicleType = tr.vehicle || data.vehicle_type || '';
-                  const tripsLabel =
-                    tr.trips_count != null
-                      ? `${t(lang, 'completedTrips')}: ${tr.trips_count}`
-                      : kindLabel;
-                  const phone = tr.phone || '';
+                  const phone = (tr.phone || '').trim();
                   const name = tr.name || '—';
                   const ratingVal =
                     tr.rating != null && !Number.isNaN(Number(tr.rating))
                       ? Number(tr.rating).toFixed(1)
                       : null;
+                  const tripsCount = Number.isFinite(Number(tr.trips_count))
+                    ? Number(tr.trips_count)
+                    : 0;
+
+                  const subParts: string[] = [];
+                  subParts.push(isFreelancer ? t(lang, 'freelancer') : t(lang, 'carrierCompany'));
+                  subParts.push(`${t(lang, 'completedTrips')}: ${tripsCount}`);
+                  if (vehicleType) {
+                    subParts.push(`${t(lang, 'vehicle')}: ${vehicleType}`);
+                  }
 
                   return (
                     <div className="pt-cr-stack">
@@ -1145,7 +1151,6 @@ export const PublicTrackingPage: React.FC = () => {
                                 <span className="pt-cr-rating">
                                   <Star size={11} fill="currentColor" />
                                   {ratingVal}
-                                  {tr.trips_count != null ? ` (${tr.trips_count})` : ''}
                                 </span>
                               ) : null}
                               <span className={`pt-cr-badge ${isFreelancer ? 'freelancer' : 'carrier'}`}>
@@ -1155,8 +1160,8 @@ export const PublicTrackingPage: React.FC = () => {
                             {phone ? (
                               <button
                                 type="button"
-                                className="pt-phone-btn"
-                                title={phone}
+                                className="pt-phone-icon-btn"
+                                title={`${t(lang, 'phoneCopied')}: ${phone}`}
                                 onClick={async () => {
                                   try {
                                     await navigator.clipboard.writeText(phone);
@@ -1166,16 +1171,12 @@ export const PublicTrackingPage: React.FC = () => {
                                   showToast(`${t(lang, 'phoneCopied')}: ${phone}`);
                                 }}
                               >
-                                <Phone size={12} />
-                                <span>{phone}</span>
+                                <Phone size={14} />
                               </button>
                             ) : null}
                           </div>
 
-                          <div className="pt-cr-sub">
-                            {tripsLabel}
-                            {vehicleType ? ` · ${vehicleType}` : ''}
-                          </div>
+                          <div className="pt-cr-sub">{subParts.join(' · ')}</div>
 
                           {plates.length > 0 ? (
                             <div className="pt-plates">
@@ -1200,8 +1201,12 @@ export const PublicTrackingPage: React.FC = () => {
                               <span className="pt-cr-badge driver">{t(lang, 'companyDriver')}</span>
                             </div>
                             <div className="pt-cr-sub">
-                              {t(lang, 'companyDriver')}
-                              {vehicleType ? ` · ${vehicleType}` : ''}
+                              {[
+                                t(lang, 'companyDriver'),
+                                vehicleType ? `${t(lang, 'vehicle')}: ${vehicleType}` : '',
+                              ]
+                                .filter(Boolean)
+                                .join(' · ')}
                             </div>
                           </div>
                         </div>

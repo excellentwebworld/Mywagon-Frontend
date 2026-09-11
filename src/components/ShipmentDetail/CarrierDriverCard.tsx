@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Truck, Phone, MessageSquare, Star, ShieldCheck } from 'lucide-react';
+import { Truck, Phone, MessageSquare, Star, ShieldCheck, Check } from 'lucide-react';
 import type {
   CarrierDetail,
   AssignedDriverDetail,
@@ -49,10 +49,57 @@ function UserRatingBadge({
           />
         ))}
       </span>
-      <span>
-        {stars}/5
-      </span>
+      <span>{stars}/5</span>
     </span>
+  );
+}
+
+function RatingPill({ rating, ratingCount }: { rating?: string | null; ratingCount?: number | null }) {
+  const value = rating && rating !== '—' ? rating : '0.0';
+  return (
+    <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
+      <Star size={11} fill="currentColor" /> {value}
+      {ratingCount != null && Number.isFinite(Number(ratingCount)) ? ` (${ratingCount})` : ''}
+    </span>
+  );
+}
+
+function PhoneIconButton({
+  phone,
+  copied,
+  onCopy,
+  t,
+}: {
+  phone: string;
+  copied: boolean;
+  onCopy: () => void;
+  t: (key: string, fallback?: string) => string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onCopy}
+      title={copied ? t('copied', 'Copied!') : `${t('copyPhone', 'Click to copy phone')}: ${phone}`}
+      className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+    >
+      {copied ? <Check size={14} className="text-emerald-500" /> : <Phone size={14} />}
+    </button>
+  );
+}
+
+function PlateTags({ plates }: { plates: string[] }) {
+  if (!plates.length) return null;
+  return (
+    <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+      {plates.map((plate, pIdx) => (
+        <span
+          key={`${plate}-${pIdx}`}
+          className="text-[11px] font-semibold font-mono px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
+        >
+          {pIdx === 0 ? `Vehicle: ${plate}` : `Trailer: ${plate}`}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -95,10 +142,10 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
     'delivered',
   ].includes(normalizedStatus);
 
-  // In Laravel shipper panel: Rate button only displays on ended/completed loads when not yet rated
   const handleRateCarrier = onRateCarrier || (onRate ? () => carrier && onRate() : undefined);
   const handleRateDriver = onRateDriver || (onRate ? () => driver && onRate() : undefined);
-  const canRateCarrier = isCompleted && Boolean(handleRateCarrier) && !isCarrierRated && !(isFreelancer && isDriverRated);
+  const canRateCarrier =
+    isCompleted && Boolean(handleRateCarrier) && !isCarrierRated && !(isFreelancer && isDriverRated);
   const canRateDriver = isCompleted && Boolean(handleRateDriver) && !isDriverRated;
   const carrierGivenRating =
     carrier?.userRating != null && !Number.isNaN(Number(carrier.userRating))
@@ -114,7 +161,6 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
     Boolean(carrierGivenRating != null) && (isCarrierRated || (isFreelancer && isDriverRated));
   const showDriverUserRating = Boolean(driverGivenRating != null) && isDriverRated;
 
-  // In Laravel shipper panel: Chat button displays on active trips (scheduled, ready, past_due, on_trip, or fulfilled when unpaid)
   const canChat =
     normalizedStatus === 'scheduled' ||
     normalizedStatus === 'ready' ||
@@ -123,10 +169,11 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
     normalizedStatus === 'in_progress' ||
     ((normalizedStatus === 'fullfilled' || normalizedStatus === 'partially_fullfilled') && !isPaid);
 
-  const carrierPhone = carrier?.phone || '+30 210 5551234';
-  const driverPhone = driver?.phone || '+30 697 1234567';
+  const carrierPhone = (carrier?.phone || '').trim();
+  const driverPhone = (driver?.phone || '').trim();
 
   const handleCopyPhone = (phone: string, isCarrier = true) => {
+    if (!phone) return;
     navigator.clipboard.writeText(phone);
     onToast(`${t('phoneCopied', 'Phone copied')}: ${phone}`);
     if (isCarrier) {
@@ -138,14 +185,34 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
     }
   };
 
-  const handleOpenProfile = (id?: number | null, type?: 'carrier' | 'driver' | null, name?: string) => {
+  const handleOpenProfile = (
+    id?: number | null,
+    type?: 'carrier' | 'driver' | null,
+    name?: string
+  ) => {
     if (id && type) {
       openTransporterProfile({ id, type, name });
     }
   };
 
-  const carrierPlates = carrier?.plates?.length ? carrier.plates : ['ΙΧΕ-7890', 'ΤΡ-4512'];
-  const driverPlates = driver?.plates?.length ? driver.plates : ['ΙΧΕ-7890', 'ΤΡ-4512'];
+  const carrierPlates = carrier?.plates?.length ? carrier.plates : [];
+  const driverPlates = driver?.plates?.length ? driver.plates : [];
+  const vehicleLabel =
+    driver?.vehicleType ||
+    carrier?.vehicleType ||
+    null;
+
+  const formatTripsLine = (trips?: number | string | null, roleLabel?: string) => {
+    const parts: string[] = [];
+    if (roleLabel) parts.push(roleLabel);
+    const tripsNum =
+      trips != null && trips !== '' && Number.isFinite(Number(trips)) ? Number(trips) : 0;
+    parts.push(`${t('completedTrips', 'Completed trips')}: ${tripsNum}`);
+    if (vehicleLabel) {
+      parts.push(`${t('vehicle', 'Vehicle')}: ${vehicleLabel}`);
+    }
+    return parts.join(' · ');
+  };
 
   return (
     <CollapsibleCard
@@ -156,7 +223,6 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
       onToggle={onToggle}
     >
       <div className="space-y-4">
-        {/* If Transporter is a Freelancer */}
         {isFreelancer && carrier ? (
           <div className="flex items-start gap-3.5">
             {carrier.avatar ? (
@@ -182,9 +248,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     {carrier.name}
                   </button>
 
-                  <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
-                    <Star size={11} fill="currentColor" /> {carrier.rating && carrier.rating !== '—' ? carrier.rating : '0.0'} ({carrier.ratingCount != null ? carrier.ratingCount : (carrier.tripsCount ?? 0)})
-                  </span>
+                  <RatingPill rating={carrier.rating} ratingCount={carrier.ratingCount} />
 
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                     {t('freelancer', 'Freelancer')}
@@ -198,7 +262,6 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                   )}
                 </div>
 
-                {/* Rate, Message, Copy Phone Buttons */}
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {canRateCarrier ? (
                     <button
@@ -232,78 +295,31 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     </button>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => handleCopyPhone(carrierPhone, true)}
-                    title={t('copyPhone', 'Click to copy phone')}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
-                  >
-                    <Phone size={12} />
-                    <span>{carrierPhoneCopied ? t('copied', 'Copied!') : carrierPhone}</span>
-                  </button>
+                  {carrierPhone ? (
+                    <PhoneIconButton
+                      phone={carrierPhone}
+                      copied={carrierPhoneCopied}
+                      onCopy={() => handleCopyPhone(carrierPhone, true)}
+                      t={t}
+                    />
+                  ) : null}
                 </div>
               </div>
 
               <div className="text-[12px] mt-1 text-slate-500 dark:text-slate-400">
-                {t('completedTrips', 'Completed trips')}: <strong className="text-slate-900 dark:text-white">{carrier.tripsCount || 85}</strong> · Semi-Trailer Truck
+                {formatTripsLine(carrier.tripsCount, t('freelancer', 'Freelancer'))}
               </div>
 
-              {/* Performance Metrics Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    {t('onTimePickup', 'On-time pickup')}
-                  </div>
-                  <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
-                    {carrier.onTimePickup && carrier.onTimePickup !== '—' ? carrier.onTimePickup : '98%'}
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    {t('onTimeDelivery', 'On-time delivery')}
-                  </div>
-                  <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
-                    {carrier.onTimeDelivery && carrier.onTimeDelivery !== '—' ? carrier.onTimeDelivery : '96%'}
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    {t('cancelRate', 'Cancel rate')}
-                  </div>
-                  <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
-                    {carrier.cancelRate && carrier.cancelRate !== '—' ? carrier.cancelRate : '0.5%'}
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    {t('avgPickupDelay', 'Avg delay')}
-                  </div>
-                  <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
-                    {carrier.avgPickupDelay && carrier.avgPickupDelay !== '—' ? carrier.avgPickupDelay : '8m'}
-                  </div>
-                </div>
-              </div>
-
-              {/* License plates */}
-              <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                {carrierPlates.map((plate, pIdx) => (
-                  <span
-                    key={pIdx}
-                    className="text-[11px] font-semibold font-mono px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
-                  >
-                    {pIdx === 0 ? `Vehicle: ${plate}` : `Trailer: ${plate}`}
-                  </span>
-                ))}
-              </div>
+              <PlateTags plates={carrierPlates.length ? carrierPlates : driverPlates} />
             </div>
           </div>
         ) : (
-          /* Carrier Company Block */
           carrier && (
-            <div className={`flex items-start gap-3.5 ${driver ? 'pb-4 border-b border-slate-200 dark:border-slate-800' : ''}`}>
+            <div
+              className={`flex items-start gap-3.5 ${
+                driver ? 'pb-4 border-b border-slate-200 dark:border-slate-800' : ''
+              }`}
+            >
               {carrier.avatar ? (
                 <img
                   src={carrier.avatar}
@@ -327,9 +343,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       {carrier.name}
                     </button>
 
-                    <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
-                      <Star size={11} fill="currentColor" /> {carrier.rating && carrier.rating !== '—' ? carrier.rating : '0.0'} ({carrier.ratingCount != null ? carrier.ratingCount : (carrier.tripsCount ?? 0)})
-                    </span>
+                    <RatingPill rating={carrier.rating} ratingCount={carrier.ratingCount} />
 
                     {carrier.partner && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
@@ -339,7 +353,6 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     )}
                   </div>
 
-                  {/* Buttons: Rate, Message, Copy Phone */}
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {canRateCarrier ? (
                       <button
@@ -373,78 +386,27 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       </button>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={() => handleCopyPhone(carrierPhone, true)}
-                      title={t('copyPhone', 'Click to copy phone')}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
-                    >
-                      <Phone size={12} />
-                      <span>{carrierPhoneCopied ? t('copied', 'Copied!') : carrierPhone}</span>
-                    </button>
+                    {carrierPhone ? (
+                      <PhoneIconButton
+                        phone={carrierPhone}
+                        copied={carrierPhoneCopied}
+                        onCopy={() => handleCopyPhone(carrierPhone, true)}
+                        t={t}
+                      />
+                    ) : null}
                   </div>
                 </div>
 
                 <div className="text-[12px] mt-1 text-slate-500 dark:text-slate-400">
-                  Carrier Company · {carrier.tripsCount || 240} completed trips
+                  {formatTripsLine(carrier.tripsCount, t('carrierCompany', 'Carrier Company'))}
                 </div>
 
-                {/* Performance Metrics Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      {t('onTimePickup', 'On-time pickup')}
-                    </div>
-                    <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
-                      {carrier.onTimePickup && carrier.onTimePickup !== '—' ? carrier.onTimePickup : '98%'}
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      {t('onTimeDelivery', 'On-time delivery')}
-                    </div>
-                    <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
-                      {carrier.onTimeDelivery && carrier.onTimeDelivery !== '—' ? carrier.onTimeDelivery : '96%'}
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      {t('cancelRate', 'Cancel rate')}
-                    </div>
-                    <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
-                      {carrier.cancelRate && carrier.cancelRate !== '—' ? carrier.cancelRate : '0.5%'}
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      {t('avgPickupDelay', 'Avg delay')}
-                    </div>
-                    <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
-                      {carrier.avgPickupDelay && carrier.avgPickupDelay !== '—' ? carrier.avgPickupDelay : '8m'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* License plates */}
-                <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                  {carrierPlates.map((plate, pIdx) => (
-                    <span
-                      key={pIdx}
-                      className="text-[11px] font-semibold font-mono px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
-                    >
-                      {pIdx === 0 ? `Vehicle: ${plate}` : `Trailer: ${plate}`}
-                    </span>
-                  ))}
-                </div>
+                {!driver ? <PlateTags plates={carrierPlates} /> : null}
               </div>
             </div>
           )
         )}
 
-        {/* Company Driver (Nested inside Carrier Company) */}
         {!isFreelancer && driver && (
           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/70 space-y-3">
             <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -471,39 +433,18 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       {driver.name}
                     </button>
 
-                    <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
-                      <Star size={11} fill="currentColor" /> {driver.rating && driver.rating !== '—' ? driver.rating : '0.0'} ({driver.ratingCount != null ? driver.ratingCount : (driver.tripsCount ?? 0)})
-                    </span>
-
-                    {driver.partner && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                        <ShieldCheck size={11} />
-                        <span>{t('partner', 'PARTNER')}</span>
-                      </span>
-                    )}
+                    <RatingPill rating={driver.rating} ratingCount={driver.ratingCount} />
                   </div>
 
                   <div className="text-[12px] mt-1 text-slate-500 dark:text-slate-400">
-                    {t('companyDriver', 'Company Driver')} · {driver.tripsCount ?? 22} {t('tripsCompleted', 'trips completed')}
-                    {driver.vehicleType ? ` · ${driver.vehicleType}` : ' · Semi-Trailer Truck'}
+                    {formatTripsLine(driver.tripsCount, t('companyDriver', 'Company Driver'))}
                     {driver.cargoSpecs ? ` · ${driver.cargoSpecs}` : ''}
                   </div>
 
-                  {/* License plates */}
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    {driverPlates.map((plate, pIdx) => (
-                      <span
-                        key={pIdx}
-                        className="text-[11px] font-semibold font-mono px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
-                      >
-                        {pIdx === 0 ? `Vehicle: ${plate}` : `Trailer: ${plate}`}
-                      </span>
-                    ))}
-                  </div>
+                  <PlateTags plates={driverPlates.length ? driverPlates : carrierPlates} />
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex items-center gap-1.5 flex-wrap">
                 {canRateDriver ? (
                   <button
@@ -537,15 +478,14 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => handleCopyPhone(driverPhone, false)}
-                  title={t('copyPhone', 'Click to copy phone')}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
-                >
-                  <Phone size={12} />
-                  <span>{driverPhoneCopied ? t('copied', 'Copied!') : driverPhone}</span>
-                </button>
+                {driverPhone ? (
+                  <PhoneIconButton
+                    phone={driverPhone}
+                    copied={driverPhoneCopied}
+                    onCopy={() => handleCopyPhone(driverPhone, false)}
+                    t={t}
+                  />
+                ) : null}
               </div>
             </div>
           </div>

@@ -35,11 +35,63 @@ interface StatusStyleConfig {
   border?: string;
 }
 
+/**
+ * Normalize any API / label spelling to the canonical keys used by
+ * Manage Shipments + Shipment Detail (Laravel status-box palette).
+ */
+export function normalizeStatusKey(status?: string | null): string {
+  const raw = (status || 'draft').toString().trim().toLowerCase();
+  const key = raw.replace(/[\s-]+/g, '_');
+
+  switch (key) {
+    case 'fullfilled':
+    case 'fulfilled':
+    case 'delivered':
+      return 'fullfilled';
+    case 'partially_fullfilled':
+    case 'partially_fulfilled':
+    case 'partial_fullfilled':
+    case 'partial_fulfilled':
+    case 'part_fulfilled':
+    case 'part_fullfilled':
+      return 'partially_fullfilled';
+    case 'not_fullfilled':
+    case 'not_fulfilled':
+    case 'unfulfilled':
+    case 'unfullfilled':
+      return 'not_fullfilled';
+    case 'canceled':
+    case 'cancelled':
+    case 'rejected':
+    case 'expired':
+      return 'canceled';
+    case 'on_trip':
+    case 'ontrip':
+      return 'on_trip';
+    case 'in_progress':
+    case 'inprogress':
+      return 'in_progress';
+    case 'past_due':
+    case 'pastdue':
+      return 'past_due';
+    case 'scheduled':
+    case 'upcoming':
+    case 'awarded':
+    case 'ready':
+    case 'pending':
+    case 'draft':
+      return key;
+    default:
+      return key;
+  }
+}
+
+/** Exact Laravel / Manage Shipments status-box hex colors */
 const STATUS_CONFIG: Record<string, StatusStyleConfig> = {
   draft: {
     label: 'Draft',
     bg: 'rgba(155, 81, 224, 0.14)',
-    color: '#18181B',
+    color: '#000000',
   },
   pending: {
     label: 'Pending',
@@ -121,25 +173,30 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   awaitingResponse,
   needsAction,
 }) => {
-  const normKey = (status || 'draft').toLowerCase().replace(/[\s-]+/g, '_');
+  const normKey = normalizeStatusKey(status);
 
   // Exact Laravel 2-part badge for partially_fullfilled
-  if (normKey === 'partially_fullfilled' || normKey === 'part_fulfilled') {
+  if (normKey === 'partially_fullfilled') {
     const isSm = size === 'sm';
     return (
       <span
-        className={`inline-flex items-center rounded overflow-hidden font-medium whitespace-nowrap shadow-sm ${
+        className={`inline-flex items-center overflow-hidden font-semibold whitespace-nowrap select-none ${
           isSm ? 'text-[11px]' : 'text-xs'
         } ${className}`}
+        style={{ borderRadius: 99, userSelect: 'none', WebkitUserSelect: 'none' }}
       >
-        <span className="px-2.5 py-1 bg-[#ECECEC] text-[#000000]">Partially</span>
-        <span className="px-2.5 py-1 bg-[#000000] text-[#FFFFFF]">Fulfilled</span>
+        <span className={`${isSm ? 'px-2 py-0.5' : 'px-2.5 py-1'} bg-[#ECECEC] text-[#000000]`}>
+          Partially
+        </span>
+        <span className={`${isSm ? 'px-2 py-0.5' : 'px-2.5 py-1'} bg-[#000000] text-[#FFFFFF]`}>
+          Fulfilled
+        </span>
       </span>
     );
   }
 
   const conf = STATUS_CONFIG[normKey] || {
-    label: (status || '').replace(/_/g, ' '),
+    label: (status || '').toString().replace(/_/g, ' '),
     bg: '#F3F4F6',
     color: '#18181B',
   };
@@ -160,8 +217,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded font-medium whitespace-nowrap select-none ${
-        isSm ? 'px-2.5 py-0.5 text-[11px]' : 'px-3.5 py-1 text-xs'
+      className={`inline-flex items-center justify-center font-semibold whitespace-nowrap select-none ${
+        isSm ? 'px-2.5 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'
       } ${className}`}
       style={{
         ...(pendingStyle || {
@@ -169,6 +226,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
           color: conf.color,
         }),
         border: conf.border || 'none',
+        borderRadius: 99,
+        lineHeight: 1.2,
         userSelect: 'none',
         WebkitUserSelect: 'none',
         WebkitTapHighlightColor: 'transparent',
@@ -178,4 +237,3 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     </span>
   );
 };
-

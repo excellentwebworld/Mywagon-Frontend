@@ -120,6 +120,8 @@ export interface CarrierDetail {
   templates: string[];
   role?: string;
   canRate?: boolean;
+  /** Vehicle the driver is currently using on this trip. */
+  vehicleType?: string | null;
   /** Stars the shipper gave this carrier/freelancer on this shipment. */
   userRating?: number | null;
 }
@@ -838,9 +840,15 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       : null;
 
   const carrierTrips =
-    shipment.carrierTripsCount ??
-    (shipment.carrier as any)?.trips_count ??
-    (isFreelancer ? 85 : 240);
+    shipment.carrierTripsCount != null && Number.isFinite(Number(shipment.carrierTripsCount))
+      ? Number(shipment.carrierTripsCount)
+      : (shipment.carrier as any)?.trips_count != null &&
+          Number.isFinite(Number((shipment.carrier as any).trips_count))
+        ? Number((shipment.carrier as any).trips_count)
+        : shipment.assignedDriverTripsCount != null &&
+            Number.isFinite(Number(shipment.assignedDriverTripsCount))
+          ? Number(shipment.assignedDriverTripsCount)
+          : 0;
 
   const driverRatingCount =
     shipment.assignedDriverRatingCount != null
@@ -850,11 +858,18 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       : null;
 
   const driverTrips =
-    shipment.assignedDriverTripsCount != null
-      ? shipment.assignedDriverTripsCount
-      : (shipment as any)?.assigned_driver?.trips_count != null
-      ? (shipment as any).assigned_driver.trips_count
-      : 22;
+    shipment.assignedDriverTripsCount != null &&
+    Number.isFinite(Number(shipment.assignedDriverTripsCount))
+      ? Number(shipment.assignedDriverTripsCount)
+      : (shipment as any)?.assigned_driver?.trips_count != null &&
+          Number.isFinite(Number((shipment as any).assigned_driver.trips_count))
+        ? Number((shipment as any).assigned_driver.trips_count)
+        : 0;
+
+  const vehicleType =
+    shipment.assignedDriverVehicleType ??
+    shipment.truckTypes?.[0] ??
+    null;
 
   const carrier: CarrierDetail | null = hasCarrier
     ? {
@@ -871,13 +886,19 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
         meta: isFreelancer ? 'Freelancer' : 'Carrier Company',
         userId: shipment.carrierId ?? null,
         userType: isFreelancer ? 'driver' : 'carrier',
+        phone:
+          shipment.carrierPhone ||
+          (shipment.carrier as any)?.phone ||
+          (isFreelancer ? shipment.assignedDriverPhone : null) ||
+          undefined,
         showDeliveryOnTime: Boolean(shipment.carrierOnTimeDeliveryPct != null),
-        onTimePickup: shipment.carrierOnTimeDeliveryPct != null ? fmtPct(shipment.carrierOnTimeDeliveryPct) : '98%',
-        onTimeDelivery: shipment.carrierOnTimeDeliveryPct != null ? fmtPct(shipment.carrierOnTimeDeliveryPct) : '96%',
-        cancelRate: shipment.carrierCancellationRatePct != null ? fmtPct(shipment.carrierCancellationRatePct) : '0.5%',
-        avgPickupDelay: shipment.carrierAvgPickupDelayMinutes != null ? fmtMin(shipment.carrierAvgPickupDelayMinutes) : '8m',
+        onTimePickup: shipment.carrierOnTimeDeliveryPct != null ? fmtPct(shipment.carrierOnTimeDeliveryPct) : '—',
+        onTimeDelivery: shipment.carrierOnTimeDeliveryPct != null ? fmtPct(shipment.carrierOnTimeDeliveryPct) : '—',
+        cancelRate: shipment.carrierCancellationRatePct != null ? fmtPct(shipment.carrierCancellationRatePct) : '—',
+        avgPickupDelay: shipment.carrierAvgPickupDelayMinutes != null ? fmtMin(shipment.carrierAvgPickupDelayMinutes) : '—',
         plates: shipment.assignedDriverPlates ?? [],
         templates: [],
+        vehicleType,
         canRate: true,
         userRating:
           carrierUserRating != null && !Number.isNaN(carrierUserRating)
@@ -905,7 +926,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
           tripsCount: driverTrips,
           phone: shipment.assignedDriverPhone || undefined,
           email: shipment.assignedDriverEmail || undefined,
-          vehicleType: shipment.assignedDriverVehicleType ?? null,
+          vehicleType,
           cargoSpecs: shipment.assignedDriverCargoSpecs ?? null,
           meta: shipment.assignedDriverPhone ? `Company Driver · ${shipment.assignedDriverPhone}` : 'Company Driver',
           userId: shipment.assignedDriverId ?? null,

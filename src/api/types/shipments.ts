@@ -6,6 +6,8 @@ export interface ApiShipmentListCarrier {
   type?: 'carrier' | 'driver' | string | null;
   rating?: number | null;
   rating_count?: number | null;
+  trips_count?: number | null;
+  phone?: string | null;
   on_time_delivery_pct?: number | null;
   cancellation_rate_pct?: number | null;
   avg_pickup_delay_minutes?: number | null;

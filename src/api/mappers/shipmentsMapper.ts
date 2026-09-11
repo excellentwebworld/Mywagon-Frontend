@@ -278,8 +278,9 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     carrierPartner: Boolean((item.carrier as any)?.is_partner ?? (item.carrier as any)?.partner),
     carrierRating: item.carrier?.rating ?? null,
     carrierProfileRating: item.carrier?.rating ?? (item.carrier as any)?.rating_average ?? null,
-    carrierRatingCount: (item.carrier as any)?.rating_count ?? (item.carrier as any)?.trips_count ?? null,
-    carrierTripsCount: (item.carrier as any)?.trips_count ?? (item.carrier as any)?.rating_count ?? null,
+    carrierRatingCount: (item.carrier as any)?.rating_count ?? null,
+    carrierTripsCount: item.carrier?.trips_count ?? null,
+    carrierPhone: item.carrier?.phone ?? null,
     carrierOnTimeDeliveryPct: item.carrier?.on_time_delivery_pct ?? null,
     carrierCancellationRatePct: item.carrier?.cancellation_rate_pct ?? null,
     carrierAvgPickupDelayMinutes: item.carrier?.avg_pickup_delay_minutes ?? null,
@@ -624,13 +625,16 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     carrierRatingCount:
       detail.carrier?.rating_count ??
       (detail.carrier as any)?.ratingCount ??
-      (detail.carrier as any)?.trips_count ??
       base.carrierRatingCount ??
       null,
     carrierTripsCount:
       (detail.carrier as any)?.trips_count ??
-      detail.carrier?.rating_count ??
+      (detail.carrier as any)?.tripsCount ??
       base.carrierTripsCount ??
+      null,
+    carrierPhone:
+      (detail.carrier as any)?.phone ??
+      (base as any).carrierPhone ??
       null,
     carrierOnTimeDeliveryPct:
       (detail.carrier as any)?.on_time_delivery_pct ?? base.carrierOnTimeDeliveryPct ?? null,
