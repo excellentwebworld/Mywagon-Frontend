@@ -23,6 +23,7 @@ import {
   formatUtcToDisplayDate,
   formatUtcToDisplayDateTime,
   formatUtcToDisplayTime,
+  parseUtcInstant,
 } from '../../utils/timezone';
 import fullLogo from '../../assets/logo/fullLogo.svg';
 import type {
@@ -47,6 +48,10 @@ const I18N: Record<string, { en: string; el: string }> = {
   dropoff: { en: 'DROPOFF', el: 'ΠΑΡΑΔΟΣΗ' },
   freelancer: { en: 'Freelancer', el: 'Freelancer' },
   carrier: { en: 'Carrier', el: 'Μεταφορέας' },
+  onBehalf: { en: 'on behalf of', el: 'εκ μέρους' },
+  load: { en: 'Load', el: 'Φορτίο' },
+  onTime: { en: 'On Time', el: 'Εντός χρόνου' },
+  delayed: { en: 'Delayed', el: 'Καθυστέρηση' },
   eta: { en: 'ETA', el: 'ETA' },
   supplier: { en: 'Supplier', el: 'Προμηθευτής' },
   quantity: { en: 'Quantity', el: 'Ποσότητα' },
@@ -412,7 +417,8 @@ const ItineraryStop: React.FC<{
   const hasMultiple = lines.length > 1;
   const visibleLines = expanded ? lines : lines.slice(0, 1);
   const addressLine = [stop.address, stop.city].filter(Boolean).join(', ');
-  const copyValue = [stop.company_name, stop.address, stop.city].filter(Boolean).join(', ');
+  const copyValue = [stop.address, stop.city].filter(Boolean).join(', ');
+  const supplierLabel = stop.supplier_name || '';
 
   const handleCopy = async () => {
     await onCopy(copyValue || addressLine);
@@ -465,9 +471,9 @@ const ItineraryStop: React.FC<{
             ) : null}
           </div>
 
-          {stop.supplier_name ? (
+          {supplierLabel ? (
             <div className="pt-stop-supplier">
-              {t(lang, 'supplier')}: {stop.supplier_name}
+              {t(lang, 'supplier')}: {supplierLabel}
             </div>
           ) : null}
 
@@ -755,12 +761,16 @@ export const PublicTrackingPage: React.FC = () => {
   const kindLabel =
     data.header.transporter_kind === 'freelancer' ? t(lang, 'freelancer') : t(lang, 'carrier');
   const timeline = data.timeline ?? [];
-  const etaDisplay = data.header.eta_at
-    ? formatUtcToDisplayDateTime(data.header.eta_at)
-    : data.header.eta_label || null;
+  const etaRaw = data.header.eta_at || data.header.eta_label || '';
+  const etaParsed = parseUtcInstant(etaRaw);
+  const etaDisplay = etaParsed ? formatUtcToDisplayDateTime(etaRaw) : '';
+  // Spec: Delayed if now is past scheduled dropoff ETA (upper bound), else On Time.
+  const isOnTime = etaParsed ? Date.now() <= etaParsed.getTime() : Boolean(data.header.on_time);
   const isManualTrip = (data.shipment.started_by || '') === 'carrier';
   const canShowReceipt = data.receipt.can_confirm || data.receipt.already_confirmed || rcptDone;
   const canShowRating = data.rating.can_rate || data.rating.already_rated || rateDone;
+  const transporterName = data.header.transporter_name || data.transporter.name || '—';
+  const shipperName = data.header.shipper_name || '';
 
   return (
     <div className="pt-page">
@@ -785,19 +795,21 @@ export const PublicTrackingPage: React.FC = () => {
       <div className="pt-cmd">
         <div className="pt-cmd-inner">
           <div className="pt-cmd-row">
-            <div>
+            <div className="pt-cmd-main">
               <div className="pt-sid">
-                #{data.shipment.auto_id}
+                <span className="pt-load-label">{t(lang, 'load')}</span>
+                <span className="pt-sid-id">#{data.shipment.auto_id}</span>
                 <StatusBadge status={data.shipment.status} size="sm" />
               </div>
-              {data.shipment.lane ? <div className="pt-lane">{data.shipment.lane}</div> : null}
               <div className="pt-fwd">
                 <span className="pt-fwd-badge">{kindLabel}</span>
-                <strong>{data.header.transporter_name || data.transporter.name || '—'}</strong>
-                {data.header.shipper_name ? (
+                <strong>{transporterName}</strong>
+                {shipperName ? (
                   <>
-                    <span style={{ color: 'var(--pt-t3)' }}>·</span>
-                    <span>{data.header.shipper_name}</span>
+                    <span className="pt-fwd-sep">{t(lang, 'onBehalf')}</span>
+                    <span className="pt-cust-badge">
+                      <strong>{shipperName}</strong>
+                    </span>
                   </>
                 ) : null}
               </div>
@@ -811,10 +823,15 @@ export const PublicTrackingPage: React.FC = () => {
                 </div>
               ) : null}
             </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="pt-cmd-chips">
               {etaDisplay ? (
                 <span className="pt-chip pt-chip-in">
                   {t(lang, 'eta')}: {etaDisplay}
+                </span>
+              ) : null}
+              {etaDisplay || data.header.eta_at ? (
+                <span className={`pt-chip ${isOnTime ? 'pt-chip-ok' : 'pt-chip-wr'}`}>
+                  {isOnTime ? t(lang, 'onTime') : t(lang, 'delayed')}
                 </span>
               ) : null}
             </div>
@@ -994,13 +1011,9 @@ export const PublicTrackingPage: React.FC = () => {
                       ) : null}
                     </div>
                     <div className="pt-cr-sub">
-                      {kindLabel}
                       {data.transporter.trips_count != null
-                        ? ` · ${data.transporter.trips_count} ${t(lang, 'tripsCompleted')}`
-                        : ''}
-                      {data.transporter.driver_name
-                        ? ` · ${data.transporter.driver_name}`
-                        : ''}
+                        ? `${data.transporter.trips_count} ${t(lang, 'tripsCompleted')}`
+                        : kindLabel}
                     </div>
                     {data.transporter.vehicle ? (
                       <div className="pt-cr-vehicle">
@@ -1027,7 +1040,6 @@ export const PublicTrackingPage: React.FC = () => {
                           <Phone size={14} />
                         </button>
                       ) : null}
-                      {/* mail not always on transporter; keep phone primary */}
                     </div>
                   </div>
                 </div>

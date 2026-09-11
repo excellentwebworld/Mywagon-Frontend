@@ -135,15 +135,40 @@
   flex-wrap: wrap;
 }
 
+.pt-cmd-main {
+  min-width: 0;
+  flex: 1;
+}
+
 .pt-sid {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 22px;
   font-weight: 700;
-  letter-spacing: -1px;
+  letter-spacing: -0.5px;
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.pt-load-label {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pt-t3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pt-sid-id {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: -1px;
+}
+
+.pt-cmd-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .pt-lane {
@@ -167,11 +192,21 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: 99px;
+  background: var(--pt-al);
+  color: var(--pt-ac);
   font-size: 10px;
-  font-weight: 600;
-  background: #eef2ff;
-  color: #4338ca;
-  border: 1px solid #c7d2fe;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pt-fwd-sep {
+  color: var(--pt-t3);
+  font-weight: 500;
+}
+
+.pt-cust-badge {
+  color: var(--pt-t1);
 }
 
 .pt-chip {
@@ -187,6 +222,16 @@
 .pt-chip-in {
   background: var(--pt-ib);
   color: #0369a1;
+}
+
+.pt-chip-ok {
+  background: var(--pt-ob);
+  color: #065f46;
+}
+
+.pt-chip-wr {
+  background: var(--pt-wb);
+  color: #92400e;
 }
 
 .pt-manual-banner {
