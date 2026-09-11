@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { io, type Socket } from 'socket.io-client';
 import {
@@ -594,6 +594,7 @@ export const PublicTrackingPage: React.FC = () => {
   const [review, setReview] = useState('');
   const [rateSaving, setRateSaving] = useState(false);
   const [rateDone, setRateDone] = useState(false);
+  const ignoreScrollSpyUntil = useRef(0);
 
   const resolvedGuestEmail = useMemo(() => {
     const fromPayload =
@@ -713,10 +714,82 @@ export const PublicTrackingPage: React.FC = () => {
     };
   }, [data?.map?.live]);
 
+  const getStickyOffset = useCallback(() => {
+    const topbarH = (document.querySelector('.pt-topbar') as HTMLElement | null)?.offsetHeight || 0;
+    const cmdH = (document.querySelector('.pt-cmd') as HTMLElement | null)?.offsetHeight || 0;
+    const jnavH = (document.querySelector('.pt-jnav') as HTMLElement | null)?.offsetHeight || 0;
+    return topbarH + cmdH + jnavH + 10;
+  }, []);
+
+  const syncStickyOffsets = useCallback(() => {
+    const topbarH = (document.querySelector('.pt-topbar') as HTMLElement | null)?.offsetHeight || 0;
+    const cmdH = (document.querySelector('.pt-cmd') as HTMLElement | null)?.offsetHeight || 0;
+    const jnavH = (document.querySelector('.pt-jnav') as HTMLElement | null)?.offsetHeight || 0;
+    document.documentElement.style.setProperty('--pt-jnav-top', `${topbarH + cmdH}px`);
+    document.documentElement.style.setProperty('--pt-section-offset', `${topbarH + cmdH + jnavH + 10}px`);
+  }, []);
+
+  useEffect(() => {
+    syncStickyOffsets();
+    window.addEventListener('resize', syncStickyOffsets);
+    return () => window.removeEventListener('resize', syncStickyOffsets);
+  }, [syncStickyOffsets, data, lang, loading]);
+
   const jumpTo = (id: string) => {
     setActiveNav(id);
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    ignoreScrollSpyUntil.current = Date.now() + 900;
+
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    syncStickyOffsets();
+    const y = el.getBoundingClientRect().top + window.scrollY - getStickyOffset();
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+
+    const tab = document.querySelector(`[data-pt-nav="${id}"]`) as HTMLElement | null;
+    tab?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   };
+
+  useEffect(() => {
+    if (!data) return;
+
+    const sectionIds = [
+      'itinerary',
+      'tracking',
+      'transporter',
+      'order',
+      ...(data.receipt.can_confirm || data.receipt.already_confirmed || rcptDone ? ['receipt'] : []),
+      ...(data.rating.can_rate || data.rating.already_rated || rateDone ? ['rating'] : []),
+    ];
+
+    const nodes = sectionIds
+      .map((id) => document.getElementById(id))
+      .filter((n): n is HTMLElement => Boolean(n));
+
+    if (nodes.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (Date.now() < ignoreScrollSpyUntil.current) return;
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        const top = visible[0];
+        if (top?.target?.id) {
+          setActiveNav(top.target.id);
+        }
+      },
+      {
+        root: null,
+        // Account for sticky header band so the "current" section matches what user sees
+        rootMargin: '-25% 0px -55% 0px',
+        threshold: [0.1, 0.25, 0.5],
+      }
+    );
+
+    nodes.forEach((n) => observer.observe(n));
+    return () => observer.disconnect();
+  }, [data, rcptDone, rateDone]);
 
   const onConfirmReceipt = async () => {
     if (!data) return;
@@ -936,7 +1009,8 @@ export const PublicTrackingPage: React.FC = () => {
             <button
               key={id}
               type="button"
-              className={`pt-jn ${activeNav === id ? 'act' : ''} ${id === 'receipt' || id === 'rating' ? 'pt-jn-action-tab' : ''}`}
+              data-pt-nav={id}
+              className={`pt-jn ${activeNav === id ? 'act' : ''}`}
               onClick={() => jumpTo(id)}
             >
               {icon}
