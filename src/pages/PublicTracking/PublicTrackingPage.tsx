@@ -106,14 +106,19 @@ const I18N: Record<string, { en: string; el: string }> = {
   quantityMismatch: { en: 'Quantity mismatch', el: 'Διαφορά ποσότητας' },
 };
 
+/** Visible live-driver pin (data URI) — clearer than the tiny Laravel SVG path. */
 const LIVE_ICON = {
-  path: 'M1.71,6.484,13.3.384a3.2,3.2,0,0,1,4.35,4.26l-1.62,3.24a3.2,3.2,0,0,0,0,2.86l1.62,3.24a3.2,3.2,0,0,1-4.35,4.26l-11.59-6.1A3.2,3.2,0,0,1,1.71,6.484Z',
-  fillColor: '#1f1f41',
-  fillOpacity: 1,
-  strokeWeight: 1,
-  scale: 0.8,
-  rotation: 120,
-  anchor: { x: 0, y: 0 },
+  url:
+    'data:image/svg+xml;charset=UTF-8,' +
+    encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+        <circle cx="22" cy="22" r="16" fill="#6C3AED" stroke="#ffffff" stroke-width="3"/>
+        <circle cx="22" cy="22" r="6" fill="#ffffff"/>
+        <path d="M22 6 L26 16 L22 14 L18 16 Z" fill="#ffffff"/>
+      </svg>`
+    ),
+  scaledSize: { width: 44, height: 44 },
+  anchor: { x: 22, y: 22 },
 };
 
 const PARTIAL_REASONS: Array<{ key: string; labelKey: string }> = [
@@ -393,7 +398,11 @@ const TrackingLiveMap: React.FC<{
                     : 'Waiting for GPS'}
             {livePosition
               ? ` · ${livePosition.lat.toFixed(4)}, ${livePosition.lng.toFixed(4)}`
-              : ''}
+              : socketStatus === 'connected'
+                ? lang === 'el'
+                  ? ' · αναμονή θέσης…'
+                  : ' · waiting for position…'
+                : ''}
           </div>
           {showToggle ? (
             <div className="pt-route-toggle">
@@ -452,7 +461,8 @@ const TrackingLiveMap: React.FC<{
             height={isOnTrip || isLive ? 260 : 280}
             expanded
             strokeColor={routeMode === 'actual' ? '#d97706' : '#9B51E0'}
-            livePosition={isLive ? livePosition : null}
+            livePosition={isLive || isOnTrip ? livePosition : null}
+            followLive
             liveIcon={LIVE_ICON}
             t={mapT as any}
           />

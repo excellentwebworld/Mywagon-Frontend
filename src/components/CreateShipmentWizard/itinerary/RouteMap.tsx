@@ -20,14 +20,21 @@ interface RouteMapProps {
   onStopSelect?: (index: number) => void;
   /** Live driver GPS position (public tracking / on-trip). */
   livePosition?: { lat: number; lng: number } | null;
+  /** Keep camera following the live marker (default true when livePosition is set). */
+  followLive?: boolean;
   liveIcon?: {
-    path: string;
+    /** SVG path symbol (Laravel traking.js style) */
+    path?: string;
+    /** Or image URL / data-URI (more reliable / visible) */
+    url?: string;
     fillColor?: string;
     fillOpacity?: number;
+    strokeColor?: string;
     strokeWeight?: number;
     scale?: number;
     rotation?: number;
     anchor?: { x: number; y: number };
+    scaledSize?: { width: number; height: number };
   };
   t: (key: string, params?: Record<string, unknown>) => string;
 }
@@ -121,6 +128,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   activeStopIndex = null,
   onStopSelect,
   livePosition = null,
+  followLive = true,
   liveIcon,
   t,
 }) => {
@@ -129,10 +137,15 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   const infoWindowsByIndexRef = useRef<Record<number, any>>({});
   const mapRef = useRef<any>(null);
   const liveMarkerRef = useRef<any>(null);
+  const liveAnimFrameRef = useRef<number | null>(null);
   const onStopSelectRef = useRef(onStopSelect);
   onStopSelectRef.current = onStopSelect;
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
   const [mapsFailed, setMapsFailed] = useState(false);
+  /** Bumped whenever Google Map instance is (re)created so live marker can re-attach. */
+  const [mapReadyToken, setMapReadyToken] = useState(0);
+  const followLiveRef = useRef(followLive);
+  followLiveRef.current = followLive;
 
   const safePolylinePath = useMemo(() => {
     if (!Array.isArray(polylinePath)) return [];
@@ -191,6 +204,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           gestureHandling: 'cooperative',
         });
         mapRef.current = map;
+        setMapReadyToken((n) => n + 1);
 
         mapClickListener = map.addListener('click', () => {
           closeAllInfoWindows();
@@ -275,6 +289,10 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 
     return () => {
       cancelled = true;
+      if (liveAnimFrameRef.current != null) {
+        cancelAnimationFrame(liveAnimFrameRef.current);
+        liveAnimFrameRef.current = null;
+      }
       if (mapClickListener && (window as any).google?.maps?.event) {
         (window as any).google.maps.event.removeListener(mapClickListener);
       }
@@ -309,14 +327,14 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     marker.setAnimation(google.maps.Animation.BOUNCE);
     const timer = window.setTimeout(() => marker.setAnimation(null), 1400);
     return () => window.clearTimeout(timer);
-  }, [activeStopIndex, mapsFailed]);
+  }, [activeStopIndex, mapsFailed, mapReadyToken]);
 
-  // Live driver marker (socket updates)
+  // Live driver marker (socket updates) — re-attach after map remounts
   useEffect(() => {
     if (mapsFailed) return;
     const google = (window as any).google;
     const map = mapRef.current;
-    if (!google?.maps || !map) return;
+    if (!google?.maps || !map || mapReadyToken === 0) return;
 
     if (!livePosition || !Number.isFinite(livePosition.lat) || !Number.isFinite(livePosition.lng)) {
       if (liveMarkerRef.current) {
@@ -326,41 +344,139 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       return;
     }
 
-    const position = { lat: livePosition.lat, lng: livePosition.lng };
-    const icon = liveIcon
-      ? {
+    const end = { lat: livePosition.lat, lng: livePosition.lng };
+
+    const buildIcon = (rotation?: number) => {
+      if (liveIcon?.url) {
+        return {
+          url: liveIcon.url,
+          scaledSize: new google.maps.Size(
+            liveIcon.scaledSize?.width ?? 40,
+            liveIcon.scaledSize?.height ?? 40
+          ),
+          anchor: new google.maps.Point(
+            liveIcon.anchor?.x ?? (liveIcon.scaledSize?.width ?? 40) / 2,
+            liveIcon.anchor?.y ?? (liveIcon.scaledSize?.height ?? 40) / 2
+          ),
+        };
+      }
+      if (liveIcon?.path) {
+        return {
           path: liveIcon.path,
           fillColor: liveIcon.fillColor || '#6C3AED',
           fillOpacity: liveIcon.fillOpacity ?? 1,
-          strokeWeight: liveIcon.strokeWeight ?? 1,
-          scale: liveIcon.scale ?? 0.9,
-          rotation: liveIcon.rotation ?? 0,
+          strokeColor: liveIcon.strokeColor || '#ffffff',
+          strokeWeight: liveIcon.strokeWeight ?? 2,
+          scale: liveIcon.scale ?? 1.2,
+          rotation: rotation ?? liveIcon.rotation ?? 0,
           anchor: liveIcon.anchor
             ? new google.maps.Point(liveIcon.anchor.x, liveIcon.anchor.y)
-            : undefined,
-        }
-      : {
-          path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-          fillColor: '#6C3AED',
-          fillOpacity: 1,
-          strokeWeight: 1,
-          scale: 5,
+            : new google.maps.Point(8, 8),
         };
+      }
+      return {
+        path: google.maps.SymbolPath.CIRCLE,
+        fillColor: '#6C3AED',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 3,
+        scale: 10,
+      };
+    };
 
-    if (liveMarkerRef.current) {
-      liveMarkerRef.current.setPosition(position);
-      liveMarkerRef.current.setIcon(icon);
+    const headingBetween = (from: { lat: number; lng: number }, to: { lat: number; lng: number }) => {
+      const toRad = (d: number) => (d * Math.PI) / 180;
+      const toDeg = (r: number) => (r * 180) / Math.PI;
+      const dLon = toRad(to.lng - from.lng);
+      const lat1 = toRad(from.lat);
+      const lat2 = toRad(to.lat);
+      const y = Math.sin(dLon) * Math.cos(lat2);
+      const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+      return (toDeg(Math.atan2(y, x)) + 360) % 360;
+    };
+
+    const ensureVisible = (pos: { lat: number; lng: number }) => {
+      if (!followLiveRef.current) return;
+      const bounds = map.getBounds?.();
+      const latLng = new google.maps.LatLng(pos.lat, pos.lng);
+      if (!bounds || !bounds.contains(latLng)) {
+        map.panTo(latLng);
+        const z = map.getZoom?.() ?? 12;
+        if (z < 12) map.setZoom(14);
+        return;
+      }
+      map.panTo(latLng);
+    };
+
+    if (!liveMarkerRef.current) {
+      liveMarkerRef.current = new google.maps.Marker({
+        map,
+        position: end,
+        icon: buildIcon(liveIcon?.rotation),
+        zIndex: 999,
+        title: 'Live driver position',
+        optimized: false,
+      });
+      ensureVisible(end);
       return;
     }
 
-    liveMarkerRef.current = new google.maps.Marker({
-      map,
-      position,
-      icon,
-      zIndex: 999,
-      title: 'Live position',
-    });
-  }, [livePosition, liveIcon, mapsFailed]);
+    const marker = liveMarkerRef.current;
+    const startLatLng = marker.getPosition?.();
+    if (!startLatLng) {
+      marker.setPosition(end);
+      marker.setIcon(buildIcon(liveIcon?.rotation));
+      ensureVisible(end);
+      return;
+    }
+
+    const start = { lat: startLatLng.lat(), lng: startLatLng.lng() };
+    const dist =
+      Math.abs(start.lat - end.lat) + Math.abs(start.lng - end.lng);
+    // Tiny jitter — snap; otherwise animate toward new fix (Laravel-style)
+    if (dist < 0.00001) {
+      marker.setPosition(end);
+      return;
+    }
+
+    if (liveAnimFrameRef.current != null) {
+      cancelAnimationFrame(liveAnimFrameRef.current);
+      liveAnimFrameRef.current = null;
+    }
+
+    const heading = headingBetween(start, end);
+    if (liveIcon?.path && !liveIcon?.url) {
+      marker.setIcon(buildIcon(heading));
+    }
+
+    const duration = Math.min(4000, Math.max(600, dist * 80000));
+    let startTime: number | null = null;
+
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const fraction = Math.min(1, (timestamp - startTime) / duration);
+      const lat = start.lat + fraction * (end.lat - start.lat);
+      const lng = start.lng + fraction * (end.lng - start.lng);
+      const next = { lat, lng };
+      marker.setPosition(next);
+      if (fraction < 1) {
+        liveAnimFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        liveAnimFrameRef.current = null;
+        ensureVisible(end);
+      }
+    };
+
+    liveAnimFrameRef.current = requestAnimationFrame(animate);
+    ensureVisible(end);
+
+    return () => {
+      if (liveAnimFrameRef.current != null) {
+        cancelAnimationFrame(liveAnimFrameRef.current);
+        liveAnimFrameRef.current = null;
+      }
+    };
+  }, [livePosition, liveIcon, mapsFailed, mapReadyToken]);
 
   const height = heightProp ?? (expanded ? 340 : 300);
 
@@ -371,10 +487,19 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       livePosition && Number.isFinite(livePosition.lat) && Number.isFinite(livePosition.lng)
         ? livePosition
         : safePolylinePath[0] || { lat: 37.983819, lng: 23.727539 };
-    const pathForBounds = safePolylinePath.length >= 2 ? safePolylinePath : [center];
+    // When live GPS exists, zoom OSM around the driver so the pin is visible
+    // (driver may be far from the Athens route — e.g. simulator GPS).
+    const pathForBounds =
+      livePosition && Number.isFinite(livePosition.lat) && Number.isFinite(livePosition.lng)
+        ? [livePosition]
+        : safePolylinePath.length >= 2
+          ? safePolylinePath
+          : [center];
+    const padLng = livePosition ? 0.08 : 0.5;
+    const padLat = livePosition ? 0.05 : 0.3;
     const osmUrl =
-      pathForBounds.length >= 2
-        ? `https://www.openstreetmap.org/export/embed.html?bbox=${Math.min(...pathForBounds.map((p) => p.lng)) - 0.5}%2C${Math.min(...pathForBounds.map((p) => p.lat)) - 0.3}%2C${Math.max(...pathForBounds.map((p) => p.lng)) + 0.5}%2C${Math.max(...pathForBounds.map((p) => p.lat)) + 0.3}&layer=mapnik&marker=${center.lat}%2C${center.lng}`
+      pathForBounds.length >= 1
+        ? `https://www.openstreetmap.org/export/embed.html?bbox=${Math.min(...pathForBounds.map((p) => p.lng)) - padLng}%2C${Math.min(...pathForBounds.map((p) => p.lat)) - padLat}%2C${Math.max(...pathForBounds.map((p) => p.lng)) + padLng}%2C${Math.max(...pathForBounds.map((p) => p.lat)) + padLat}&layer=mapnik&marker=${center.lat}%2C${center.lng}`
         : `https://www.openstreetmap.org/export/embed.html?bbox=${center.lng - 0.08}%2C${center.lat - 0.05}%2C${center.lng + 0.08}%2C${center.lat + 0.05}&layer=mapnik&marker=${center.lat}%2C${center.lng}`;
 
     return (
@@ -420,6 +545,14 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   return (
     <div className="wizard-route-map" style={{ height, position: 'relative' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      {livePosition && Number.isFinite(livePosition.lat) && Number.isFinite(livePosition.lng) ? (
+        <div
+          className="absolute right-2 top-2 rounded-md px-2 py-1 text-[11px] font-semibold pointer-events-none"
+          style={{ background: 'rgba(108,58,237,0.92)', color: '#fff', zIndex: 2 }}
+        >
+          ● Live driver
+        </div>
+      ) : null}
       {loading && (
         <div
           className="absolute inset-0 flex items-center justify-center text-xs"
