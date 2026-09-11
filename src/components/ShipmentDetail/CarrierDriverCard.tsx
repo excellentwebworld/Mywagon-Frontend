@@ -398,7 +398,9 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                 </div>
 
                 <div className="text-[12px] mt-1 text-slate-500 dark:text-slate-400">
-                  {formatTripsLine(carrier.tripsCount, t('carrierCompany', 'Carrier Company'))}
+                  {driver
+                    ? t('carrierCompany', 'Carrier Company')
+                    : formatTripsLine(carrier.tripsCount, t('carrierCompany', 'Carrier Company'))}
                 </div>
 
                 {!driver ? <PlateTags plates={carrierPlates} /> : null}

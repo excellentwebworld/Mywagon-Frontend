@@ -54,6 +54,8 @@ export type TrackingTransporter = {
   rateable_type: 'carrier' | 'driver' | null;
   rateable_id: number | null;
   driver_name: string | null;
+  driver_trips_count?: number | null;
+  driver_rating?: number | null;
 };
 
 export type TrackingReceiptItem = {

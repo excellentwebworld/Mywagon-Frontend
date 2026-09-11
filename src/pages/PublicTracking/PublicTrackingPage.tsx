@@ -1186,6 +1186,7 @@ export const PublicTrackingPage: React.FC = () => {
                 {(() => {
                   const tr = data.transporter;
                   const isFreelancer = tr.kind === 'freelancer' || tr.rateable_type === 'driver';
+                  const hasCompanyDriver = !isFreelancer && Boolean(tr.driver_name);
                   const plates = tr.plates || [];
                   const vehicleType = tr.vehicle || data.vehicle_type || '';
                   const phone = (tr.phone || '').trim();
@@ -1197,12 +1198,30 @@ export const PublicTrackingPage: React.FC = () => {
                   const tripsCount = Number.isFinite(Number(tr.trips_count))
                     ? Number(tr.trips_count)
                     : 0;
+                  const driverTripsCount = Number.isFinite(Number(tr.driver_trips_count))
+                    ? Number(tr.driver_trips_count)
+                    : tripsCount;
 
-                  const subParts: string[] = [];
-                  subParts.push(`${t(lang, 'completedTrips')}: ${tripsCount}`);
-                  if (vehicleType) {
-                    subParts.push(`${t(lang, 'vehicle')}: ${vehicleType}`);
+                  // Freelancer: trips/vehicle/plates stay on the main card.
+                  // Carrier + company driver: those details belong on the driver.
+                  const carrierSubParts: string[] = [];
+                  if (isFreelancer || !hasCompanyDriver) {
+                    carrierSubParts.push(`${t(lang, 'completedTrips')}: ${tripsCount}`);
+                    if (vehicleType) {
+                      carrierSubParts.push(`${t(lang, 'vehicle')}: ${vehicleType}`);
+                    }
+                  } else {
+                    carrierSubParts.push(t(lang, 'carrierCompany'));
                   }
+
+                  const driverSubParts: string[] = [];
+                  driverSubParts.push(`${t(lang, 'completedTrips')}: ${driverTripsCount}`);
+                  if (vehicleType) {
+                    driverSubParts.push(`${t(lang, 'vehicle')}: ${vehicleType}`);
+                  }
+
+                  const showPlatesOnCarrier = isFreelancer || !hasCompanyDriver;
+                  const showPlatesOnDriver = hasCompanyDriver && plates.length > 0;
 
                   return (
                     <div className="pt-cr-stack">
@@ -1243,9 +1262,11 @@ export const PublicTrackingPage: React.FC = () => {
                             ) : null}
                           </div>
 
-                          <div className="pt-cr-sub">{subParts.join(' · ')}</div>
+                          {carrierSubParts.length > 0 ? (
+                            <div className="pt-cr-sub">{carrierSubParts.join(' · ')}</div>
+                          ) : null}
 
-                          {plates.length > 0 ? (
+                          {showPlatesOnCarrier && plates.length > 0 ? (
                             <div className="pt-plates">
                               {plates.map((p, idx) => (
                                 <span className="pt-plate" key={`${p}-${idx}`}>
@@ -1259,22 +1280,26 @@ export const PublicTrackingPage: React.FC = () => {
                         </div>
                       </div>
 
-                      {!isFreelancer && tr.driver_name ? (
+                      {hasCompanyDriver ? (
                         <div className="pt-cr-driver">
-                          <div className="pt-cr-av driver">{initials(tr.driver_name)}</div>
+                          <div className="pt-cr-av driver">{initials(tr.driver_name || '')}</div>
                           <div className="pt-cr-body">
                             <div className="pt-cr-identity">
                               <span className="pt-cr-name">{tr.driver_name}</span>
                               <span className="pt-cr-badge driver">{t(lang, 'companyDriver')}</span>
                             </div>
-                            <div className="pt-cr-sub">
-                              {[
-                                t(lang, 'companyDriver'),
-                                vehicleType ? `${t(lang, 'vehicle')}: ${vehicleType}` : '',
-                              ]
-                                .filter(Boolean)
-                                .join(' · ')}
-                            </div>
+                            <div className="pt-cr-sub">{driverSubParts.join(' · ')}</div>
+                            {showPlatesOnDriver ? (
+                              <div className="pt-plates">
+                                {plates.map((p, idx) => (
+                                  <span className="pt-plate" key={`drv-${p}-${idx}`}>
+                                    {idx === 0
+                                      ? `${t(lang, 'vehiclePlate')}: ${p}`
+                                      : `${t(lang, 'trailerPlate')}: ${p}`}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       ) : null}
