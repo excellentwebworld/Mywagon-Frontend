@@ -67,7 +67,9 @@ export function useCreateShipmentOrders() {
       detailCacheRef.current.set(order.id, order);
       queryClient.setQueryData<ErpOrder[]>(wizardQueryKeys.unlinkedOrders, (prev) => {
         const list = prev ?? [];
-        if (list.some((o) => o.id === order.id)) return list;
+        if (list.some((o) => o.id === order.id)) {
+          return list.map((o) => (o.id === order.id ? order : o));
+        }
         return [order, ...list];
       });
     },

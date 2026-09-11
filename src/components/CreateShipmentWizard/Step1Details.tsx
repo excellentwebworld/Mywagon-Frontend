@@ -1122,9 +1122,26 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         }
 
         setLF(sid, lid, patch);
+      } else {
+        const sku = pmSkus.find((s) => String(s.id) === String(skuId));
+        if (sku) {
+          const patch = {
+            productId: skuId,
+            productName: sku.name || sku.sku_name || "Product",
+            orderLineId: "",
+            qty: line?.qty || "",
+            unit: normalizeQtyUnit(sku.unit || line?.unit) || "EUR Pallets",
+            weight:
+              sku.weight != null && sku.weight !== ""
+                ? String(sku.weight)
+                : line?.weight || "",
+            wtUnit: normalizeWeightUnit(line?.wtUnit) || "Kgs",
+          };
+          setLF(sid, lid, patch);
+        }
       }
     },
-    [fetchOrderDetail, orderDetailsById, setLF, setStops],
+    [fetchOrderDetail, orderDetailsById, pmSkus, setLF, setStops],
   );
 
   const handleCreateSku = useCallback(
@@ -1132,9 +1149,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       try {
         setSkuSaving(true);
 
+        const stopsNow = stopsRef.current || [];
         const cargoLine =
           pCtx.pS && pCtx.pL
-            ? stops
+            ? stopsNow
                 .find((s: any) => s.id === pCtx.pS)
                 ?.lines?.find((l: any) => l.id === pCtx.pL)
             : undefined;
@@ -1142,7 +1160,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         const orderContext = cargoLine?.orderId
           ? {
               erpOrderId: cargoLine.orderId,
-              orderLineId: cargoLine.orderLineId || undefined,
+              orderLineId:
+                !cargoLine.productId && cargoLine.orderLineId
+                  ? cargoLine.orderLineId
+                  : undefined,
             }
           : undefined;
 
@@ -1150,7 +1171,12 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           values,
           orderContext,
         );
-        await refreshSkusFromApi(true);
+
+        setPmSkus((prev) => [
+          created,
+          ...prev.filter((s) => String(s.id) !== String(created.id)),
+        ]);
+        void refreshSkusFromApi(true);
 
         if (
           pCtx.orderFormTarget === "product" &&
@@ -1192,7 +1218,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
           setLF(sid, lid, {
             orderLineId: linkedLine
-              ? linkedLine.id
+              ? String(linkedLine.id)
               : cargoLine.orderLineId || "",
             productId: String(created.id),
             productName: linkedLine?.productName || created.name,
@@ -1227,7 +1253,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         setSkuSaving(false);
       }
     },
-    [addOrder, fetchOrderDetail, pCtx, refreshSkusFromApi, setLF, showToast, stops, t],
+    [addOrder, fetchOrderDetail, pCtx, refreshSkusFromApi, setLF, showToast, t],
   );
 
   const previewLocation = useCallback(
@@ -2404,19 +2430,48 @@ const CargoTable: React.FC<CargoTableProps> = ({
               const orderDetail = ln.orderId
                 ? orderDetailsById[ln.orderId]
                 : undefined;
-              const productOpts = getProductOptionsForCargoLine(
-                orderDetail,
-              ).map((opt) => ({
-                value: opt.value,
-                label: opt.label,
-                sublabel: opt.sublabel,
-              }));
-              // Ensure a selected product (e.g. one created at runtime that is not
-              // part of the order's mapped lines) still appears and stays displayed.
+              const seenValues = new Set<string>();
+              const productOpts: {
+                value: string;
+                label: string;
+                sublabel?: string;
+              }[] = [];
+
+              // 1. Order-specific mapped lines first
+              getProductOptionsForCargoLine(orderDetail).forEach((opt) => {
+                if (!seenValues.has(opt.value)) {
+                  seenValues.add(opt.value);
+                  productOpts.push({
+                    value: opt.value,
+                    label: opt.label,
+                    sublabel: opt.sublabel,
+                  });
+                }
+              });
+
+              // 2. Master SKUs (pmSkus) so newly created products are directly reflected
+              (pmSkus || []).forEach((sku: any) => {
+                const sId = String(sku.id);
+                if (sId && !seenValues.has(sId)) {
+                  seenValues.add(sId);
+                  productOpts.push({
+                    value: sId,
+                    label: sku.name || sku.sku_name || "Product",
+                    sublabel:
+                      sku.number ||
+                      sku.sku ||
+                      sku.sku_number ||
+                      undefined,
+                  });
+                }
+              });
+
+              // 3. Ensure currently selected product on this line stays displayed even if edge case
               if (
                 ln.productId &&
-                !productOpts.some((o) => o.value === String(ln.productId))
+                !seenValues.has(String(ln.productId))
               ) {
+                seenValues.add(String(ln.productId));
                 productOpts.push({
                   value: String(ln.productId),
                   label: ln.productName || "Product",
