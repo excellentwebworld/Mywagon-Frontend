@@ -131,7 +131,30 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
       );
     };
 
+    const isDraftAction = (text: string) => {
+      const act = text.toLowerCase();
+      return (
+        act.includes('draft updated') ||
+        act.includes('draft saved') ||
+        act.includes('saved draft') ||
+        act.includes('shipment edit updated') ||
+        act.includes('shipment edit saved') ||
+        act.includes('saved edit shipment')
+      );
+    };
+
+    const isCreateAction = (text: string) => {
+      const act = text.toLowerCase();
+      return (
+        act.includes('shipment created') ||
+        act.includes('shipment create') ||
+        act === 'shipment-create' ||
+        act === 'created-shipment'
+      );
+    };
+
     let keptCancel = false;
+    let keptCreate = false;
 
     rawOps.forEach((op: any) => {
       const act = (op.action || op.text || '').toLowerCase();
@@ -145,6 +168,22 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
         act.startsWith('dropoff delayed:')
       ) {
         return;
+      }
+
+      // Hide draft step saves
+      if (isDraftAction(act)) {
+        return;
+      }
+
+      // Hide status change from draft
+      if (act.includes('status changed') && (act.includes('from draft') || act.includes('changed from draft'))) {
+        return;
+      }
+
+      // One creation row only
+      if (isCreateAction(act)) {
+        if (keptCreate) return;
+        keptCreate = true;
       }
 
       // One cancel row only — prefer "Cancel Shipment" over "Shipment Cancelled".
@@ -171,12 +210,17 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
       const isCancel = act.includes('cancel') || act.includes('ακύρωσ') || act.includes('canceled') || act.includes('cancelled');
       const isReject = Boolean(op.isRejection || op.is_rejection || act.includes('reject') || act.includes('decline'));
 
+      let displayAction = cleanPerformanceText(op.action || op.text || '');
+      if (isCreateAction(act)) {
+        displayAction = 'Shipment Created';
+      }
+
       list.push({
         id: `op-${op.id}`,
         category: 'operations',
         timestamp: parseEventTimestamp(op.date || op.time),
         date: op.date || op.time || '',
-        action: cleanPerformanceText(op.action || op.text || ''),
+        action: displayAction,
         actor: op.actor || 'System',
         isRejection: isCancel || isReject,
         rejectionReason: op.rejectionReason || op.rejection_reason || null,

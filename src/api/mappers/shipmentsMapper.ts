@@ -509,7 +509,18 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     })),
     shipmentLogs: (() => {
       const logs = (detail.shipment_logs || [])
-        .filter((l) => !isHiddenDriverDropoffOnTimeLog(l.action));
+        .filter((l) => !isHiddenDriverDropoffOnTimeLog(l.action))
+        .filter((l) => {
+          const a = String(l.action || '').toLowerCase();
+          return !(
+            a.includes('draft updated') ||
+            a.includes('draft saved') ||
+            a.includes('saved draft') ||
+            a.includes('shipment edit updated') ||
+            a.includes('shipment edit saved') ||
+            a.includes('saved edit shipment')
+          );
+        });
       const hasCancelShipment = logs.some((l) => {
         const a = String(l.action || '').toLowerCase();
         return a.includes('cancel shipment') || a === 'cancel-shipment';
