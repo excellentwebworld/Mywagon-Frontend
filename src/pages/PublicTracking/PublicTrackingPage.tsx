@@ -96,6 +96,13 @@ const I18N: Record<string, { en: string; el: string }> = {
   },
   pickupLocation: { en: 'Pickup Location', el: 'Τοποθεσία παραλαβής' },
   dropoffLocation: { en: 'Drop-off Location', el: 'Τοποθεσία παράδοσης' },
+  noOrders: { en: 'No order details available.', el: 'Δεν υπάρχουν διαθέσιμες λεπτομέρειες παραγγελίας.' },
+  noStops: { en: 'No itinerary stops available.', el: 'Δεν υπάρχουν διαθέσιμες στάσεις διαδρομής.' },
+  orderLabel: { en: 'Order', el: 'Παραγγελία' },
+  itemsMissing: { en: 'Items missing', el: 'Λείπουν είδη' },
+  damagedGoods: { en: 'Damaged goods', el: 'Κατεστραμμένα' },
+  wrongItems: { en: 'Wrong items', el: 'Λάθος είδη' },
+  quantityMismatch: { en: 'Quantity mismatch', el: 'Διαφορά ποσότητας' },
 };
 
 const LIVE_ICON = {
@@ -108,7 +115,12 @@ const LIVE_ICON = {
   anchor: { x: 0, y: 0 },
 };
 
-const PARTIAL_REASONS = ['Items missing', 'Damaged goods', 'Wrong items', 'Quantity mismatch'];
+const PARTIAL_REASONS: Array<{ key: string; labelKey: string }> = [
+  { key: 'Items missing', labelKey: 'itemsMissing' },
+  { key: 'Damaged goods', labelKey: 'damagedGoods' },
+  { key: 'Wrong items', labelKey: 'wrongItems' },
+  { key: 'Quantity mismatch', labelKey: 'quantityMismatch' },
+];
 
 function t(lang: Lang, key: string): string {
   return I18N[key]?.[lang] ?? key;
@@ -481,7 +493,7 @@ const ItineraryStop: React.FC<{
               <div className="pt-order-row" key={`${line.location_id}-${i}`}>
                 <div className="pt-order-row-main">
                   <div className="pt-order-row-line">
-                    {line.order_id ? <span className="oid">Order: {line.order_id}</span> : null}
+                    {line.order_id ? <span className="oid">{t(lang, 'orderLabel')}: {line.order_id}</span> : null}
                     {line.product_name ? (
                       <>
                         <span className="sep">·</span>
@@ -737,18 +749,24 @@ export const PublicTrackingPage: React.FC = () => {
 
   const jumpTo = (id: string) => {
     setActiveNav(id);
-    ignoreScrollSpyUntil.current = Date.now() + 900;
+    ignoreScrollSpyUntil.current = Date.now() + 1000;
 
     const el = document.getElementById(id);
     if (!el) return;
 
     syncStickyOffsets();
-    const y = el.getBoundingClientRect().top + window.scrollY - getStickyOffset();
+    const offset = getStickyOffset();
+    const y = el.getBoundingClientRect().top + window.scrollY - offset;
     window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
 
     const tab = document.querySelector(`[data-pt-nav="${id}"]`) as HTMLElement | null;
     tab?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   };
+
+  useEffect(() => {
+    const tab = document.querySelector(`[data-pt-nav="${activeNav}"]`) as HTMLElement | null;
+    tab?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [activeNav]);
 
   useEffect(() => {
     if (!data) return;
@@ -762,34 +780,73 @@ export const PublicTrackingPage: React.FC = () => {
       ...(data.rating.can_rate || data.rating.already_rated || rateDone ? ['rating'] : []),
     ];
 
-    const nodes = sectionIds
-      .map((id) => document.getElementById(id))
-      .filter((n): n is HTMLElement => Boolean(n));
+    const handleScroll = () => {
+      if (Date.now() < ignoreScrollSpyUntil.current) return;
 
-    if (nodes.length === 0) return;
+      const stickyOffset = getStickyOffset();
+      const scrollY = window.scrollY;
+      const windowH = window.innerHeight;
+      const docH = document.documentElement.scrollHeight;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (Date.now() < ignoreScrollSpyUntil.current) return;
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        const top = visible[0];
-        if (top?.target?.id) {
-          setActiveNav(top.target.id);
-        }
-      },
-      {
-        root: null,
-        // Account for sticky header band so the "current" section matches what user sees
-        rootMargin: '-25% 0px -55% 0px',
-        threshold: [0.1, 0.25, 0.5],
+      // 1. If at the top of the page, activate itinerary
+      if (scrollY < 60) {
+        setActiveNav('itinerary');
+        return;
       }
-    );
 
-    nodes.forEach((n) => observer.observe(n));
-    return () => observer.disconnect();
-  }, [data, rcptDone, rateDone]);
+      // 2. If scrolled near the bottom of the page, activate receipt or rating
+      if (windowH + scrollY >= docH - 40) {
+        const hasReceipt = data.receipt.can_confirm || data.receipt.already_confirmed || rcptDone;
+        const hasRating = data.rating.can_rate || data.rating.already_rated || rateDone;
+        setActiveNav((prev) => {
+          if (prev === 'rating' && hasRating) return 'rating';
+          if (prev === 'receipt' && hasReceipt) return 'receipt';
+          return hasReceipt ? 'receipt' : hasRating ? 'rating' : prev;
+        });
+        return;
+      }
+
+      // 3. Find which section is currently dominant under sticky header
+      let bestSection = '';
+      let minDistance = Infinity;
+
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+
+        if (rect.bottom > stickyOffset && rect.top <= stickyOffset + 140) {
+          const dist = Math.abs(rect.top - stickyOffset);
+          if (dist < minDistance) {
+            minDistance = dist;
+            bestSection = id;
+          }
+        }
+      }
+
+      if (bestSection) {
+        setActiveNav(bestSection);
+      } else {
+        let closestAbove = '';
+        let closestAboveTop = -Infinity;
+        for (const id of sectionIds) {
+          const el = document.getElementById(id);
+          if (!el) continue;
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= stickyOffset + 180 && rect.top > closestAboveTop) {
+            closestAboveTop = rect.top;
+            closestAbove = id;
+          }
+        }
+        if (closestAbove) {
+          setActiveNav(closestAbove);
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [data, rcptDone, rateDone, getStickyOffset]);
 
   const onConfirmReceipt = async () => {
     if (!data) return;
@@ -893,7 +950,7 @@ export const PublicTrackingPage: React.FC = () => {
     Boolean(data.map.live?.enabled) ||
     shipmentStatus === 'on_trip' ||
     shipmentStatus === 'in_progress';
-  const trackingTitle = isLiveTracking ? t(lang, 'liveTracking') : t(lang, 'routeMap');
+  const trackingTitle = t(lang, 'liveTracking');
 
   return (
     <div className="pt-page">
@@ -999,9 +1056,9 @@ export const PublicTrackingPage: React.FC = () => {
           {(
             [
               ['itinerary', 'itinerary', <MapPin size={13} key="i" />],
-              ['tracking', 'liveTracking', <Truck size={13} key="t" />],
-              ['transporter', 'transporter', <Package size={13} key="p" />],
-              ['order', 'orderDetails', <ClipboardCheck size={13} key="o" />],
+              ['tracking', 'liveTracking', <Map size={13} key="t" />],
+              ['transporter', 'transporter', <Truck size={13} key="p" />],
+              ['order', 'orderDetails', <Package size={13} key="o" />],
               ...(canShowReceipt ? [['receipt', 'confirmReceipt', <ClipboardCheck size={13} key="r" />]] : []),
               ...(canShowRating ? [['rating', 'rateTransporter', <Star size={13} key="rat" />]] : []),
             ] as Array<[string, string, React.ReactNode]>
@@ -1033,7 +1090,7 @@ export const PublicTrackingPage: React.FC = () => {
               </div>
               <div className="pt-card-body pt-stops-body">
                 {data.stops.length === 0 ? (
-                  <div className="pt-empty">No itinerary stops available.</div>
+                  <div className="pt-empty">{t(lang, 'noStops')}</div>
                 ) : (
                   data.stops.map((stop, idx) => (
                     <ItineraryStop key={`${stop.id}-${idx}`} stop={stop} index={idx} lang={lang} onCopy={copyText} />
@@ -1044,34 +1101,41 @@ export const PublicTrackingPage: React.FC = () => {
 
             <div className="pt-card" id="order">
               <div className="pt-card-h">
-                <h3>{t(lang, 'orderDetails')}</h3>
+                <h3>
+                  <Package size={15} className="pt-card-icon" />
+                  {t(lang, 'orderDetails')}
+                </h3>
               </div>
               <div className="pt-card-body">
-                {data.orders.map((order) => (
-                  <table className="pt-order-table" key={order.order_id}>
-                    <thead>
-                      <tr>
-                        <th className="pt-order-header" colSpan={3}>
-                          {order.order_id}
-                        </th>
-                      </tr>
-                      <tr>
-                        <th>{t(lang, 'product')}</th>
-                        <th>{t(lang, 'quantity')}</th>
-                        <th>{t(lang, 'weight')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {order.products.map((p, idx) => (
-                        <tr key={`${p.location_id}-${idx}`}>
-                          <td>{p.product_name || '—'}</td>
-                          <td>{p.qty != null ? `${p.qty} ${p.qty_unit}` : '—'}</td>
-                          <td>{p.weight != null ? `${p.weight} ${p.weight_unit}` : '—'}</td>
+                {data.orders.length === 0 ? (
+                  <div className="pt-empty">{t(lang, 'noOrders')}</div>
+                ) : (
+                  data.orders.map((order) => (
+                    <table className="pt-order-table" key={order.order_id}>
+                      <thead>
+                        <tr>
+                          <th className="pt-order-header" colSpan={3}>
+                            {order.order_id}
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ))}
+                        <tr>
+                          <th>{t(lang, 'product')}</th>
+                          <th>{t(lang, 'quantity')}</th>
+                          <th>{t(lang, 'weight')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {order.products.map((p, idx) => (
+                          <tr key={`${p.location_id}-${idx}`}>
+                            <td>{p.product_name || '—'}</td>
+                            <td>{p.qty != null ? `${p.qty} ${p.qty_unit}` : '—'}</td>
+                            <td>{p.weight != null ? `${p.weight} ${p.weight_unit}` : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ))
+                )}
                 {data.vehicle_type ? (
                   <div className="pt-vehicle-box">
                     <div className="lbl">{t(lang, 'vehicleType')}</div>
@@ -1296,14 +1360,14 @@ export const PublicTrackingPage: React.FC = () => {
 
                     {rcptType === 'partial' ? (
                       <div className="pt-reason-row">
-                        {PARTIAL_REASONS.map((reason) => (
+                        {PARTIAL_REASONS.map(({ key, labelKey }) => (
                           <button
-                            key={reason}
+                            key={key}
                             type="button"
-                            className={`pt-reason-chip ${rcptReason === reason ? 'act' : ''}`}
-                            onClick={() => setRcptReason(reason)}
+                            className={`pt-reason-chip ${rcptReason === key ? 'act' : ''}`}
+                            onClick={() => setRcptReason(key)}
                           >
-                            {reason}
+                            {t(lang, labelKey)}
                           </button>
                         ))}
                       </div>
