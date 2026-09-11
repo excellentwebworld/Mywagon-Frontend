@@ -1369,19 +1369,23 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .row-3col > .card{height:100%;display:flex;flex-direction:column}
 
 /* Dashboard truck availabilities shell */
-.dash-truck-counts{display:flex;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border)}
+.dash-truck-card{display:flex;flex-direction:column;height:100%;min-height:100%}
+.dash-truck-counts{display:flex;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
 .dash-truck-count{flex:1;text-align:center;padding:8px;background:var(--surface-alt);border-radius:var(--radius-sm)}
 .dash-truck-count-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;line-height:1;color:var(--text-primary)}
 .dash-truck-count-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--text-tertiary);margin-top:4px}
-.dash-truck-map-preview{min-height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-tertiary);font-size:12px;background:linear-gradient(135deg,#f0f0f5,#e8e8f0)}
+.dash-truck-map-preview{flex:1;min-height:180px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-tertiary);font-size:12px;background:linear-gradient(135deg,#f0f0f5,#e8e8f0)}
 .dash-truck-map-preview svg{opacity:.3}
-.dash-truck-map-host{position:relative;display:block;width:100%;min-height:160px;padding:0;border:0;background:var(--surface-alt);cursor:pointer;overflow:hidden;outline:none}
-.dash-truck-map-canvas{width:100%;height:160px}
+.dash-truck-map-host{position:relative;display:flex;flex-direction:column;flex:1;width:100%;min-height:180px;height:100%;padding:0;border:0;background:var(--surface-alt);cursor:pointer;overflow:hidden;outline:none}
+.dash-truck-map-canvas{width:100%;flex:1;height:100%;min-height:180px}
 .dash-truck-map-empty,.dash-truck-map-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text-tertiary);font-size:12px;background:linear-gradient(135deg,#f0f0f5,#e8e8f0);border:0;width:100%;cursor:pointer}
-.dash-truck-map-marker{z-index:2}
+.dash-truck-map-marker{z-index:2;position:absolute;cursor:pointer;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15));transition:transform .15s}
+.dash-truck-map-marker:hover{transform:translate(-50%,-100%) scale(1.1)!important;z-index:10!important}
 .dash-truck-map-pin{display:flex;flex-direction:column;align-items:center;pointer-events:auto}
 .dash-truck-map-price{background:var(--surface);border:2px solid var(--accent);border-radius:20px;padding:2px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--accent);white-space:nowrap;line-height:1.2;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.dash-truck-map-tail{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--accent);margin-top:-1px}
 .dash-truck-map-marker.private .dash-truck-map-price{border-color:#0f766e;color:#0f766e}
+.dash-truck-map-marker.private .dash-truck-map-tail{border-top-color:#0f766e}
 .dash-messages-empty{padding:28px 18px;text-align:center;color:var(--text-tertiary);font-size:13px}
 .dash-messages-list{display:flex;flex-direction:column;max-height:260px;overflow:auto}
 .dash-msg-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;text-align:left;background:transparent;border-left:0;border-right:0;border-top:0;width:100%}

@@ -32,8 +32,8 @@ export const TruckAvailabilitiesCard: React.FC = () => {
     setUpgradeUrl(undefined);
 
     Promise.allSettled([
-      availabilitiesService.list({ visibility: 'private', per_page: 1 }),
-      availabilitiesService.list({ visibility: 'public', per_page: 1 }),
+      availabilitiesService.list({ visibility: 'private', per_page: 10 }),
+      availabilitiesService.list({ visibility: 'public', per_page: 10 }),
       availabilitiesService.list({
         visibility: 'all',
         per_page: MAP_PIN_LIMIT,
