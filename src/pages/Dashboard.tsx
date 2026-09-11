@@ -60,7 +60,12 @@ export const Dashboard: React.FC = () => {
 
         {/* Row 3: Manage Shipments board + Performance */}
         <div className="row-2col-board">
-          <ShipmentBoard activeTab={activeBoardTab} setActiveTab={setActiveBoardTab} />
+          <ShipmentBoard
+            activeTab={activeBoardTab}
+            setActiveTab={setActiveBoardTab}
+            selectedShipmentId={selectedScheduleShipmentId}
+            onSelectShipment={handleSelectScheduleShipment}
+          />
           <PerformanceSummary />
         </div>
       </div>

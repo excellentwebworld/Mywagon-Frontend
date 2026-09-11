@@ -35,7 +35,6 @@ import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { useCreateShipmentPartners } from '../../hooks/useCreateShipmentPartners';
 import { usePublicLoadQuota } from '../../hooks/usePublicLoadQuota';
-import { useTrackingEmailLookup } from '../../hooks/useTrackingEmailLookup';
 import { useStep3OrderDetails, EMPTY_STEP3_ORDERS } from '../../hooks/useStep3OrderDetails';
 import { useAiSuggestedPrice } from '../../hooks/useAiSuggestedPrice';
 import { matchContractLane } from '../../api/utils/matchContractLane';
@@ -265,7 +264,6 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     }
     return normalizeTrackingEmails(raw, trackingOrderIds);
   }, [values.trackingEmails, trackingOrderIds]);
-  const { byCustomerId } = useTrackingEmailLookup();
 
   const orderIdsKey = useMemo(() => {
     const ids = new Set<string>();
@@ -278,43 +276,6 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   }, [stops]);
 
   const { data: step3Orders = EMPTY_STEP3_ORDERS } = useStep3OrderDetails(orderIdsKey);
-
-  const byOrderId = useMemo(() => {
-    const next: Record<string, string> = {};
-    step3Orders.forEach((order) => {
-      let email: string | undefined = undefined;
-      if (order.companyEntityId != null) {
-        email = byCustomerId[String(order.companyEntityId)];
-      }
-      if (!email && order.customerName) {
-        const cName = order.customerName.trim();
-        email = byCustomerId[cName] || byCustomerId[cName.toLowerCase()];
-      }
-      if (!email && order.destLocationId != null) {
-        const destLoc = locations.find((l) => String(l.id) === String(order.destLocationId));
-        email = destLoc?.contacts?.find((c) => c.email?.trim())?.email || (destLoc as any)?.email;
-      }
-      if (!email && order.originLocationId != null) {
-        const origLoc = locations.find((l) => String(l.id) === String(order.originLocationId));
-        email = origLoc?.contacts?.find((c) => c.email?.trim())?.email || (origLoc as any)?.email;
-      }
-      if (email) {
-        next[order.id] = email;
-        if (order.orderReference) {
-          next[order.orderReference] = email;
-        }
-        if (order.erpReference) {
-          next[order.erpReference] = email;
-        }
-      }
-    });
-    return next;
-  }, [step3Orders, byCustomerId, locations]);
-
-  const emailLookup = useMemo(
-    () => ({ byCustomerId, byOrderId }),
-    [byCustomerId, byOrderId]
-  );
 
   const enrichedStops = useMemo(() => enrichStops(stops, locations), [stops, locations]);
   const route = useRouteLegs(enrichedStops);
@@ -504,8 +465,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   }, [calculatedPrice, values.targetPrice, setFieldValue]);
 
   const trackingGroups = useMemo(
-    () => buildTrackingGroups(stops, locations, emailLookup),
-    [stops, locations, emailLookup]
+    () => buildTrackingGroups(stops, locations),
+    [stops, locations]
   );
 
   useEffect(() => {
@@ -550,7 +511,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     });
   };
 
-  // Prefill default email lists per orderId from customer company data
+  // Initialize tracking email lists per orderId with empty field if uninitialized
   useEffect(() => {
     const nextEmails = { ...trackingEmailsRecord };
     let changed = false;
@@ -562,13 +523,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     allOrders.forEach((order) => {
       const currentList = nextEmails[order.orderId];
       if (isUninitializedTrackingEmails(currentList)) {
-        if (order.defaultEmail) {
-          const target = [order.defaultEmail];
-          if (JSON.stringify(currentList) !== JSON.stringify(target)) {
-            nextEmails[order.orderId] = target;
-            changed = true;
-          }
-        } else if (!currentList || currentList.length === 0) {
+        if (!currentList || currentList.length === 0) {
           nextEmails[order.orderId] = [''];
           changed = true;
         }
@@ -624,7 +579,6 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
 
         <div className="space-y-1.5 mt-2">
           {emailList.map((em: string, emIdx: number) => {
-            const isAuto = Boolean(o.defaultEmail && em === o.defaultEmail);
             return (
               <div key={emIdx}>
                 <div className="flex gap-2">
@@ -643,11 +597,6 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                     ✕
                   </button>
                 </div>
-                {isAuto && (
-                  <div className="text-[9px] font-semibold text-teal-600 mt-0.5">
-                    🏪 {t('trackingAutofill') || 'Auto-filled from customer'}
-                  </div>
-                )}
               </div>
             );
           })}

@@ -42,32 +42,63 @@ export const LiveMap: React.FC<LiveMapProps> = ({ selectedShipmentId }) => {
   const [geocodedCoords, setGeocodedCoords] = useState<Record<number, { lat: number; lng: number }>>({});
 
   useEffect(() => {
-    if (selectedShipmentId == null) {
-      setShipment(null);
-      setError(null);
-      setLoading(false);
-      setGeocodedCoords({});
-      return;
-    }
-
     let cancelled = false;
     setLoading(true);
     setError(null);
     setGeocodedCoords({});
 
-    shipmentsService
-      .getMapped(selectedShipmentId)
-      .then((data) => {
-        if (!cancelled) setShipment(data);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setShipment(null);
-        setError(formatDashError(err, 'dashMapLoadFailed').key);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    if (selectedShipmentId != null) {
+      shipmentsService
+        .getMapped(selectedShipmentId)
+        .then((data) => {
+          if (!cancelled) setShipment(data);
+        })
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          setShipment(null);
+          setError(formatDashError(err, 'dashMapLoadFailed').key);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    } else {
+      // Auto-fallback: fetch the first active/ready/today shipment if none selected from Today's Schedule
+      shipmentsService
+        .list({
+          direction: 'outbound',
+          status: ['ready', 'on_trip', 'scheduled', 'pending'],
+          kpi: 'pickup_today',
+          per_page: 1,
+          page: 1,
+        })
+        .then(async (res) => {
+          if (cancelled) return;
+          let firstItem = res.items[0];
+          if (!firstItem) {
+            const fallbackRes = await shipmentsService.list({
+              direction: 'outbound',
+              status: ['ready', 'on_trip', 'scheduled', 'pending', 'past_due'],
+              per_page: 1,
+              page: 1,
+            });
+            firstItem = fallbackRes.items[0];
+          }
+          if (firstItem) {
+            const data = await shipmentsService.getMapped(firstItem.id);
+            if (!cancelled) setShipment(data);
+            return;
+          }
+          setShipment(null);
+        })
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          setShipment(null);
+          setError(formatDashError(err, 'dashMapLoadFailed').key);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }
 
     return () => {
       cancelled = true;
@@ -155,27 +186,27 @@ export const LiveMap: React.FC<LiveMapProps> = ({ selectedShipmentId }) => {
       </div>
 
       <div className="map-body dash-live-map-body">
-        {selectedShipmentId == null && (
-          <div className="map-placeholder">
-            <span>{t('mapSelectLoad')}</span>
-          </div>
-        )}
+        {loading && <DashMapSkeleton />}
 
-        {selectedShipmentId != null && loading && <DashMapSkeleton />}
-
-        {selectedShipmentId != null && !loading && error && (
+        {!loading && error && (
           <div className="map-placeholder">
             <span>{translateDashMessage(t, error)}</span>
           </div>
         )}
 
-        {selectedShipmentId != null && !loading && !error && enrichedStops.length === 0 && (
+        {!loading && !error && !shipment && (
+          <div className="map-placeholder">
+            <span>{t('mapSelectLoad')}</span>
+          </div>
+        )}
+
+        {!loading && !error && shipment && enrichedStops.length === 0 && (
           <div className="map-placeholder">
             <span>{t('mapNoStops')}</span>
           </div>
         )}
 
-        {selectedShipmentId != null && !loading && !error && enrichedStops.length > 0 && (
+        {!loading && !error && shipment && enrichedStops.length > 0 && (
           <RouteMap
             stops={enrichedStops}
             polylinePath={routeLegs.polylinePath}

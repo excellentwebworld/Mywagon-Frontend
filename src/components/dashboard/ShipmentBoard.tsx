@@ -15,6 +15,8 @@ import { BoardRowExpand } from './BoardRowExpand';
 interface ShipmentBoardProps {
   activeTab: number;
   setActiveTab: (idx: number) => void;
+  selectedShipmentId?: number | null;
+  onSelectShipment?: (id: number) => void;
 }
 
 const PER_PAGE = 6;
@@ -46,7 +48,12 @@ function tabCount(
   return summary.statuses?.[tab.filter.status] ?? 0;
 }
 
-export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActiveTab }) => {
+export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
+  activeTab,
+  setActiveTab,
+  selectedShipmentId,
+  onSelectShipment,
+}) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
@@ -92,6 +99,12 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
   const handleCache = useCallback((shipment: Shipment) => {
     setDetailCache((prev) => ({ ...prev, [shipment.id]: shipment }));
   }, []);
+
+  useEffect(() => {
+    if (selectedShipmentId == null && shipments.length > 0 && onSelectShipment) {
+      onSelectShipment(Number(shipments[0].id));
+    }
+  }, [shipments, selectedShipmentId, onSelectShipment]);
 
   const totalPages = Math.max(1, meta.last_page || 1);
   const total = meta.total ?? 0;
@@ -210,8 +223,18 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({ activeTab, setActi
                       <td className="c-actions" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
-                          title={t('loadDetails')}
-                          onClick={() => navigate(`/shipments/${row.id}`)}
+                          title={t('viewOnMap', 'View on Map')}
+                          onClick={() => {
+                            if (onSelectShipment) {
+                              onSelectShipment(Number(row.id));
+                              const mapEl = document.querySelector('.map-wrap');
+                              if (mapEl) {
+                                mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              }
+                            } else {
+                              navigate(`/shipments/${row.id}`);
+                            }
+                          }}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
