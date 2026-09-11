@@ -333,8 +333,7 @@ const TrackingLiveMap: React.FC<{
   data: PublicTrackingPayload;
   lang: Lang;
   livePosition: { lat: number; lng: number } | null;
-  isOnTime: boolean;
-}> = ({ data, lang, livePosition, isOnTime }) => {
+}> = ({ data, lang, livePosition }) => {
   const [routeMode, setRouteMode] = useState<'suggested' | 'actual'>('suggested');
   const enrichedStops = useMemo(
     () => stopsToEnriched(data.stops, data.map.points || []),
@@ -353,7 +352,6 @@ const TrackingLiveMap: React.FC<{
   const hasActual = actualRoute.length > 1 || Boolean(data.map.permissions?.actual_route);
   // Match TrackingMapCard: toggle on completed; during live keep suggested + GPS marker.
   const showToggle = !isLive && (isCompleted || hasActual || Boolean(data.map.permissions?.show_route_toggle));
-  const showStatusPill = isLive || isOnTrip || isCompleted;
 
   const activePolylinePath =
     routeMode === 'actual' && actualRoute.length > 1 ? actualRoute : routeLegs.polylinePath;
@@ -372,16 +370,8 @@ const TrackingLiveMap: React.FC<{
 
   return (
     <div className="pt-map-stack">
-      <div className="pt-map-toolbar">
-        {showStatusPill ? (
-          <span className={`pt-status-pill ${isOnTime ? 'on-time' : 'delayed'}`}>
-            <span className={`pt-status-dot ${isLive || isOnTrip ? 'pulse' : ''}`} />
-            {isOnTime ? t(lang, 'onTime') : t(lang, 'delayed')}
-          </span>
-        ) : (
-          <span />
-        )}
-        {showToggle ? (
+      {showToggle ? (
+        <div className="pt-map-toolbar">
           <div className="pt-route-toggle">
             <button
               type="button"
@@ -399,8 +389,8 @@ const TrackingLiveMap: React.FC<{
               {t(lang, 'suggested')}
             </button>
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
       <div className="pt-map-wrap">
         <div className="pt-map">
           <RouteMap
@@ -1150,14 +1140,7 @@ export const PublicTrackingPage: React.FC = () => {
             <div className="pt-card" id="tracking">
               <div className="pt-card-h">
                 <h3>
-                  {isLiveTracking ? (
-                    <span
-                      className={`pt-live-header-dot ${isOnTime ? 'on-time' : 'delayed'}`}
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <Map size={15} className="pt-card-icon" />
-                  )}
+                  <Map size={15} className="pt-card-icon" />
                   {trackingTitle}
                 </h3>
               </div>
@@ -1166,7 +1149,6 @@ export const PublicTrackingPage: React.FC = () => {
                   data={data}
                   lang={lang}
                   livePosition={livePosition}
-                  isOnTime={isOnTime}
                 />
               </div>
             </div>
@@ -1195,7 +1177,6 @@ export const PublicTrackingPage: React.FC = () => {
                     : 0;
 
                   const subParts: string[] = [];
-                  subParts.push(isFreelancer ? t(lang, 'freelancer') : t(lang, 'carrierCompany'));
                   subParts.push(`${t(lang, 'completedTrips')}: ${tripsCount}`);
                   if (vehicleType) {
                     subParts.push(`${t(lang, 'vehicle')}: ${vehicleType}`);
