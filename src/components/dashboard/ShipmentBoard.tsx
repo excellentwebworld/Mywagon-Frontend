@@ -19,7 +19,7 @@ interface ShipmentBoardProps {
   onSelectShipment?: (id: number) => void;
 }
 
-const PER_PAGE = 6;
+const PER_PAGE = 5;
 
 type BoardTabDef =
   | { key: string; labelKey: string; warn?: boolean; filter: { kpi: ShipmentKpiKey } }
@@ -106,10 +106,11 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
     }
   }, [shipments, selectedShipmentId, onSelectShipment]);
 
-  const totalPages = Math.max(1, meta.last_page || 1);
   const total = meta.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
   const startItem = total === 0 ? 0 : (page - 1) * PER_PAGE + 1;
   const endItem = Math.min(page * PER_PAGE, total);
+  const visibleShipments = shipments.slice(0, PER_PAGE);
 
   return (
     <div className="card a d4" id="boardCard">
@@ -176,7 +177,7 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
               </tr>
             )}
 
-            {!loading && !error && shipments.length === 0 && (
+            {!loading && !error && visibleShipments.length === 0 && (
               <tr>
                 <td colSpan={5} className="board-empty-cell">
                   {t('boardEmpty')}
@@ -186,7 +187,7 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
 
             {!loading &&
               !error &&
-              shipments.map((row) => {
+              visibleShipments.map((row) => {
                 const isExpanded = expandedId === row.id;
                 const badgeClass = statusBadgeClass(row.status, Boolean(row.at_risk), {
                   bidsReceived: row.bidsReceived ?? 0,

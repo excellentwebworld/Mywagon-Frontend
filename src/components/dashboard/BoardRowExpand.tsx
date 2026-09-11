@@ -8,6 +8,7 @@ import {
   formatStatValue,
   isShipmentEditable,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { translateDashMessage, formatDashError } from './dashErrorUtils';
 import { DashExpandSkeleton } from './DashboardSkeletons';
 
@@ -16,6 +17,14 @@ interface BoardRowExpandProps {
   listShipment: Shipment;
   cached?: Shipment | null;
   onCached: (shipment: Shipment) => void;
+}
+
+export interface ParsedNote {
+  id: string;
+  author: string;
+  timestamp: string | null;
+  visibility: 'internal' | 'carrier';
+  body: string;
 }
 
 function collectOrders(shipment: Shipment): string[] {
@@ -68,17 +77,67 @@ function collectCargo(shipment: Shipment): string[] {
   return Array.from(new Set(products));
 }
 
-function shipperNotes(shipment: Shipment): string | null {
-  const special = shipment.loadSummary?.specialInstructions?.trim();
-  if (special) return special;
+function parseNoteBlob(raw?: string | null): ParsedNote[] {
+  if (!raw) return [];
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
 
-  const bodies = (shipment.notesList ?? [])
-    .map((n) => n.body?.trim())
-    .filter(Boolean) as string[];
-  if (bodies.length > 0) return bodies.join('\n');
+  const chunks = trimmed.split(/(?:\r\n|\r|\n)+|(?=\[(?:\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})[^\]]*\]:?)/u);
+  const notes: ParsedNote[] = [];
 
-  const driverNotes = shipment.driverNotes?.trim();
-  return driverNotes || null;
+  chunks.forEach((chunk, index) => {
+    const text = chunk.trim();
+    if (!text) return;
+
+    const match = text.match(/^\[([\d\/:\sT\-Z+.]+)\s*(?:·|:)\s*([^()]+?)\s*(?:\((internal|carrier)\))?\]:?\s*(.+)$/s);
+    if (match) {
+      notes.push({
+        id: `note-${index}`,
+        timestamp: match[1].trim(),
+        author: match[2].trim() || 'Shipper',
+        visibility: match[3]?.toLowerCase() === 'carrier' ? 'carrier' : 'internal',
+        body: match[4].trim(),
+      });
+    } else {
+      notes.push({
+        id: `note-${index}`,
+        timestamp: null,
+        author: 'Shipper',
+        visibility: 'internal',
+        body: text,
+      });
+    }
+  });
+
+  return notes;
+}
+
+function collectStructuredNotes(shipment: Shipment): ParsedNote[] {
+  if (shipment.notesList && shipment.notesList.length > 0) {
+    const results: ParsedNote[] = [];
+    shipment.notesList.forEach((n, idx) => {
+      const body = (n.body || '').trim();
+      if (body.startsWith('[')) {
+        results.push(...parseNoteBlob(body));
+      } else if (body) {
+        results.push({
+          id: n.id || `nl-${idx}`,
+          author: n.author || 'Shipper',
+          timestamp: n.timestamp || null,
+          visibility: n.visibility === 'carrier' ? 'carrier' : 'internal',
+          body,
+        });
+      }
+    });
+    if (results.length > 0) return results;
+  }
+
+  const rawNote = (shipment as any).note || shipment.driverNotes || shipment.loadSummary?.specialInstructions;
+  if (rawNote) {
+    return parseNoteBlob(rawNote);
+  }
+
+  return [];
 }
 
 function displayRate(shipment: Shipment): { value: number | null; label: string } {
@@ -143,7 +202,7 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
   const orders = useMemo(() => collectOrders(shipment), [shipment]);
   const vehicles = useMemo(() => collectVehicles(shipment), [shipment]);
   const cargo = useMemo(() => collectCargo(shipment), [shipment]);
-  const notes = useMemo(() => shipperNotes(shipment), [shipment]);
+  const structuredNotes = useMemo(() => collectStructuredNotes(shipment), [shipment]);
   const rateInfo = displayRate(shipment);
   const rateLabel = formatEuro(rateInfo.value) ?? '—';
   const distanceKm = shipment.journeyDistanceKm;
@@ -231,8 +290,27 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
 
         <div className="expand-section">
           <div className="expand-section-title">{t('boardNotes')}</div>
-          {notes ? (
-            <div className="expand-notes">{notes}</div>
+          {structuredNotes.length > 0 ? (
+            <div className="expand-notes-list">
+              {structuredNotes.map((note) => (
+                <div key={note.id} className="expand-note-item">
+                  <div className="expand-note-header">
+                    <div className="expand-note-meta">
+                      <span className="expand-note-author">{note.author}</span>
+                      {note.timestamp && (
+                        <span className="expand-note-time">
+                          {formatUtcToDisplayDateTime(note.timestamp)}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`expand-note-vis ${note.visibility}`}>
+                      {note.visibility === 'carrier' ? t('carrier', 'Carrier') : t('internal', 'Internal')}
+                    </span>
+                  </div>
+                  <div className="expand-note-body">{note.body}</div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="expand-notes muted">{t('boardNoNotes')}</div>
           )}
@@ -247,13 +325,13 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
           </svg>
           {t('loadDetails')}
         </button>
-        {/* Same pin icon as Load Details, for visual consistency between the two location-based actions. */}
+        {/* Consistent pin icon with Load Details for location/tracking actions */}
         <button type="button" className="expand-btn" onClick={goTrack}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
             <circle cx="12" cy="10" r="3" />
           </svg>
-          {t('boardTrack')}
+          {t('boardTrack', 'Track')}
         </button>
         {canEdit && (
           <button type="button" className="expand-btn" onClick={goEdit}>
