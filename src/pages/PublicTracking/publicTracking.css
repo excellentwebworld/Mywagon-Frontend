@@ -483,8 +483,8 @@
 }
 
 .pt-jn {
-  padding: 12px 16px;
-  font-size: 12px;
+  padding: 12px 18px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--pt-t3);
   cursor: pointer;
@@ -498,29 +498,49 @@
   font-family: inherit;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  gap: 7px;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
 .pt-jn:hover {
   color: var(--pt-t1);
+  background: #faf5ff;
 }
 
 .pt-jn.act {
-  color: var(--pt-t1);
+  color: var(--pt-ac);
+  background: #faf5ff;
   border-bottom-color: var(--pt-ac);
-  font-weight: 700;
+  font-weight: 600;
+}
+
+.pt-jn.pt-jn-action-tab {
+  color: var(--pt-ac);
+  font-weight: 600;
+}
+
+.pt-jn.pt-jn-action-tab:hover {
+  background: #faf5ff;
+  color: var(--pt-ah);
+}
+
+.pt-jn.pt-jn-action-tab.act {
+  background: #faf5ff;
+  color: var(--pt-ac);
+  border-bottom-color: var(--pt-ac);
+  font-weight: 600;
 }
 
 .pt-jn-action {
-  padding: 12px 16px;
-  font-size: 12px;
+  padding: 12px 20px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--pt-ac);
   cursor: pointer;
   background: #fff;
   border: none;
   border-right: 1px solid var(--pt-bd);
+  border-bottom: 2px solid transparent;
   font-family: inherit;
   text-align: center;
   display: inline-flex;
@@ -528,7 +548,7 @@
   justify-content: center;
   gap: 8px;
   white-space: nowrap;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .pt-jn-action:last-child {
@@ -541,7 +561,8 @@
 
 .pt-jn-action.act {
   background: #faf5ff;
-  color: var(--pt-ah);
+  color: var(--pt-ac);
+  border-bottom-color: var(--pt-ac);
   box-shadow: inset 0 -2px 0 var(--pt-ac);
 }
 
@@ -564,6 +585,10 @@
 
   .pt-jn-action:last-child {
     border-bottom: none;
+  }
+
+  .pt-jn-action.act {
+    border-bottom: 2px solid var(--pt-ac);
   }
 }
 

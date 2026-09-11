@@ -879,12 +879,14 @@ export const PublicTrackingPage: React.FC = () => {
               ['tracking', 'liveTracking', <Truck size={13} key="t" />],
               ['transporter', 'transporter', <Package size={13} key="p" />],
               ['order', 'orderDetails', <ClipboardCheck size={13} key="o" />],
+              ...(canShowReceipt ? [['receipt', 'confirmReceipt', <ClipboardCheck size={13} key="r" />]] : []),
+              ...(canShowRating ? [['rating', 'rateTransporter', <Star size={13} key="rat" />]] : []),
             ] as Array<[string, string, React.ReactNode]>
           ).map(([id, key, icon]) => (
             <button
               key={id}
               type="button"
-              className={`pt-jn ${activeNav === id ? 'act' : ''}`}
+              className={`pt-jn ${activeNav === id ? 'act' : ''} ${id === 'receipt' || id === 'rating' ? 'pt-jn-action-tab' : ''}`}
               onClick={() => jumpTo(id)}
             >
               {icon}
