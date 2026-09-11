@@ -55,6 +55,7 @@ const I18N: Record<string, { en: string; el: string }> = {
   vehiclePlate: { en: 'Vehicle', el: 'Όχημα' },
   trailerPlate: { en: 'Trailer', el: 'Ρυμουλκούμενο' },
   phoneCopied: { en: 'Phone copied', el: 'Το τηλέφωνο αντιγράφηκε' },
+  emailCopied: { en: 'Email copied', el: 'Το email αντιγράφηκε' },
   onBehalf: { en: 'on behalf of', el: 'εκ μέρους' },
   load: { en: 'Load', el: 'Φορτίο' },
   onTime: { en: 'On Time', el: 'Εντός χρόνου' },
@@ -441,7 +442,7 @@ const ItineraryStop: React.FC<{
   stop: TrackingStop;
   index: number;
   lang: Lang;
-  onCopy: (value?: string | null) => void;
+  onCopy: (value?: string | null, toastMsg?: string) => void;
 }> = ({ stop, index, lang, onCopy }) => {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -453,6 +454,8 @@ const ItineraryStop: React.FC<{
   const addressLine = [stop.address, stop.city].filter(Boolean).join(', ');
   const copyValue = [stop.address, stop.city].filter(Boolean).join(', ');
   const supplierLabel = stop.supplier_name || '';
+  const pickupPhone = isPickup ? (stop.phone || '').trim() : '';
+  const pickupEmail = isPickup ? (stop.email || '').trim() : '';
 
   const handleCopy = async () => {
     await onCopy(copyValue || addressLine);
@@ -476,6 +479,34 @@ const ItineraryStop: React.FC<{
           </div>
 
           {addressLine ? <div className="pt-stop-addr">{addressLine}</div> : null}
+
+          {/* Pickup only: phone/email copy icons under address (never on dropoff). */}
+          {isPickup && (pickupPhone || pickupEmail) ? (
+            <div className="pt-stop-contacts">
+              {pickupPhone ? (
+                <button
+                  type="button"
+                  className="pt-icon-btn"
+                  title={pickupPhone}
+                  aria-label={t(lang, 'phoneCopied')}
+                  onClick={() => onCopy(pickupPhone, `${t(lang, 'phoneCopied')}: ${pickupPhone}`)}
+                >
+                  <Phone size={14} />
+                </button>
+              ) : null}
+              {pickupEmail ? (
+                <button
+                  type="button"
+                  className="pt-icon-btn"
+                  title={pickupEmail}
+                  aria-label={t(lang, 'emailCopied')}
+                  onClick={() => onCopy(pickupEmail, `${t(lang, 'emailCopied')}: ${pickupEmail}`)}
+                >
+                  <Mail size={14} />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* Orders first — same order as StopsCard on shipment detail */}
           <div className="pt-stop-orders">
@@ -558,16 +589,6 @@ const ItineraryStop: React.FC<{
                 )}
               </button>
             ) : null}
-            {isPickup && stop.phone ? (
-              <button type="button" className="pt-icon-btn" title={stop.phone} onClick={() => onCopy(stop.phone)}>
-                <Phone size={14} />
-              </button>
-            ) : null}
-            {isPickup && stop.email ? (
-              <button type="button" className="pt-icon-btn" title={stop.email} onClick={() => onCopy(stop.email)}>
-                <Mail size={14} />
-              </button>
-            ) : null}
           </div>
         </div>
       </div>
@@ -610,13 +631,14 @@ export const PublicTrackingPage: React.FC = () => {
   }, []);
 
   const copyText = useCallback(
-    async (value?: string | null) => {
+    async (value?: string | null, toastMsg?: string) => {
       if (!value) return;
+      const msg = toastMsg || t(lang, 'copied');
       try {
         await navigator.clipboard.writeText(value);
-        showToast(t(lang, 'copied'));
+        showToast(msg);
       } catch {
-        showToast(t(lang, 'copied'));
+        showToast(msg);
       }
     },
     [lang, showToast]
