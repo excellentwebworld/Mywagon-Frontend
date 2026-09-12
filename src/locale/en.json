@@ -77,8 +77,12 @@
       "description": "Create and manage price lists for your lanes and carriers, so rates are ready when you send shipment offers."
     },
     "erpOrders": {
-      "title": "ERP Orders",
-      "description": "Import orders from your ERP, review them in MYVAGON, and turn them into shipments without re-entering data."
+      "title": "Orders",
+      "description": "Import or sync orders into MYVAGON to create shipments faster without re-entering data."
+    },
+    "orders": {
+      "title": "Orders",
+      "description": "Import or sync orders into MYVAGON to create shipments faster without re-entering data."
     },
     "createShipment": {
       "title": "Create Your Shipment",
@@ -91,6 +95,10 @@
     "tutorials": {
       "title": "Video Guides",
       "description": "Access short video tutorials anytime to learn how to use features or refresh your knowledge."
+    },
+    "support": {
+      "title": "Support & Feedback",
+      "description": "Reach our team for help, report issues, or share feedback anytime from here."
     },
     "finish": {
       "title": "You're All Set",
@@ -134,8 +142,8 @@
   "signOutConfirmQuestion": "Are you sure you want to sign out?",
   "signOutConfirmWarning": "You will need to sign in again to access the portal and manage shipments.",
   "products": "Product Registry",
-  "erpOrders": "ERP Orders",
-  "navErpOrders": "ERP Orders",
+  "erpOrders": "Orders",
+  "navErpOrders": "Orders",
   "erpOrdersSubtitle": "orders synced in your workspace",
   "erpOrdersCreateOrder": "Create Order",
   "erpOrdersEditOrder": "Edit Order",
@@ -1091,6 +1099,7 @@
   "companyNameDemo": "EPIRUS BOTTLING INDUSTRY",
   "truckAvailability": "Search Trucks",
   "navRegistry": "MASTER",
+  "main": "MAIN",
   "navAnalytics": "ANALYTICS",
   "navReportsInsights": "Reports & Insights",
   "navCollapseMenu": "Collapse Menu",

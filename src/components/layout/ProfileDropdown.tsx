@@ -1,12 +1,12 @@
 /**
  * ProfileDropdown — click-triggered (shipper UX), visual match to MV_Web_Panel.
- * Dev-tools / multi-role switcher omitted for shipper SPA.
+ * Account links mirror former sidebar footer (Settings / Subscription / Billing)
+ * plus Refer & Earn from the top bar.
  */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Sun, Moon, ChevronDown, LogOut, Building2,
-  CreditCard, Star, HelpCircle,
+  Sun, Moon, ChevronDown, LogOut, Settings, Users,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
@@ -15,7 +15,28 @@ import { usePastDueLock } from '../../hooks/usePastDueLock';
 import { useApp } from '../../context/AppContext';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
+import { ReferralModal } from '../referral';
 import { LANGUAGES } from '../../constants/panel';
+
+/** Inline icons matching Sidebar footer / Refer button. */
+function SubscriptionIcon({ size = 15, color }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || 'currentColor'} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2" ry="2" />
+      <line x1="2" y1="10" x2="22" y2="10" />
+    </svg>
+  );
+}
+
+function BillingIcon({ size = 15, color }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || 'currentColor'} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z" />
+      <line x1="9" y1="7" x2="15" y2="7" />
+      <line x1="9" y1="11" x2="15" y2="11" />
+    </svg>
+  );
+}
 
 export function ProfileDropdown() {
   const { t, i18n, lang } = useTranslation();
@@ -28,6 +49,7 @@ export function ProfileDropdown() {
   const [open, setOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
+  const [referralOpen, setReferralOpen] = useState(false);
 
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -65,6 +87,53 @@ export function ProfileDropdown() {
     } finally {
       setIsSigningOut(false);
     }
+  };
+
+  type MenuLink =
+    | { kind: 'route'; label: string; route: string; icon: 'settings' | 'subscription' | 'billing' }
+    | { kind: 'referral'; label: string };
+
+  const links: MenuLink[] = [
+    {
+      kind: 'route',
+      icon: 'settings',
+      label: t('settings.title') || t('settings') || 'Settings',
+      route: '/settings',
+    },
+    {
+      kind: 'route',
+      icon: 'subscription',
+      label: t('navSubscription') || t('sidebar.subscription') || 'Subscription',
+      route: '/subscription',
+    },
+    {
+      kind: 'route',
+      icon: 'billing',
+      label: t('billing') || t('sidebar.billing') || 'Billing',
+      route: '/billing',
+    },
+    {
+      kind: 'referral',
+      label: t('referral.referBtn', 'Refer & Earn'),
+    },
+  ];
+
+  const visibleLinks = links.filter((link) => {
+    if (!pastDueLocked) return true;
+    return link.kind === 'route' && link.route === '/billing';
+  });
+
+  const renderIcon = (link: MenuLink) => {
+    if (link.kind === 'referral') {
+      return <Users size={15} style={{ color: T.t2 }} />;
+    }
+    if (link.icon === 'settings') {
+      return <Settings size={15} style={{ color: T.t2 }} />;
+    }
+    if (link.icon === 'subscription') {
+      return <SubscriptionIcon color={T.t2} />;
+    }
+    return <BillingIcon color={T.t2} />;
   };
 
   return (
@@ -140,18 +209,16 @@ export function ProfileDropdown() {
               </div>
 
               <div className="py-1" role="group" style={{ borderBottom: `1px solid ${T.bd}` }}>
-                {[
-                  { icon: Building2, label: t('topbar.companyInfo') || 'Company info', route: '/settings/organization' },
-                  { icon: CreditCard, label: t('sidebar.billing') || t('billing') || 'Billing', route: '/billing' },
-                  { icon: Star, label: t('sidebar.subscription') || t('navSubscription') || 'Subscription', route: '/subscription' },
-                  { icon: HelpCircle, label: t('sidebar.support') || t('support') || 'Support', route: '/support' },
-                ]
-                  .filter((link) => !pastDueLocked || link.route === '/billing')
-                  .map((link) => (
+                {visibleLinks.map((link) => (
                   <button
                     type="button"
                     key={link.label}
                     onClick={() => {
+                      if (link.kind === 'referral') {
+                        setOpen(false);
+                        setReferralOpen(true);
+                        return;
+                      }
                       navigate(link.route);
                       setOpen(false);
                     }}
@@ -167,12 +234,11 @@ export function ProfileDropdown() {
                       e.currentTarget.style.paddingLeft = '16px';
                     }}
                   >
-                    <link.icon size={15} style={{ color: T.t2 }} />
+                    {renderIcon(link)}
                     {link.label}
                   </button>
                 ))}
               </div>
-
 
               <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
                 <div className="flex items-center gap-2">
@@ -300,8 +366,11 @@ export function ProfileDropdown() {
         type="danger"
         confirmLoading={isSigningOut}
       />
+
+      <ReferralModal
+        isOpen={referralOpen}
+        onClose={() => setReferralOpen(false)}
+      />
     </>
   );
 }
-
-

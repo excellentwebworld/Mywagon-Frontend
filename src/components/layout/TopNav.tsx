@@ -13,25 +13,25 @@ import {
   BookUser,
   Package,
   Users,
-  FileSpreadsheet,
-  Settings,
-  CreditCard,
-  Star,
+  Activity,
+  Sparkles,
+  DollarSign,
   HelpCircle,
-  MessageSquare,
   type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePastDueLock } from '../../hooks/usePastDueLock';
+import { useApp } from '../../context/AppContext';
 
 type NavItem = {
   id: string;
   labelKey: string;
   fallback: string;
-  route: string;
+  route?: string;
   icon: LucideIcon;
   tag?: string;
+  action?: 'vagon-ai';
 };
 
 type NavSection = {
@@ -55,6 +55,13 @@ const SECTIONS: NavSection[] = [
     labelKey: 'sidebar.operations',
     fallback: 'Operations',
     items: [
+      {
+        id: 'vagon-ai',
+        labelKey: 'vagonai.title',
+        fallback: 'Vagon AI',
+        icon: Sparkles,
+        action: 'vagon-ai',
+      },
       {
         id: 'create',
         labelKey: 'createShipment',
@@ -93,47 +100,61 @@ const SECTIONS: NavSection[] = [
       },
       {
         id: 'products',
-        labelKey: 'products',
+        labelKey: 'prodMaster',
         fallback: 'Product Master',
         route: '/products',
         icon: Package,
       },
       {
+        id: 'orders',
+        labelKey: 'navErpOrders',
+        fallback: 'Orders',
+        route: '/erp-orders',
+        icon: Activity,
+      },
+      {
         id: 'partners',
-        labelKey: 'partners',
+        labelKey: 'navPartners',
         fallback: 'Partners',
         route: '/partners',
         icon: Users,
       },
       {
-        id: 'erp',
-        labelKey: 'erpOrders',
-        fallback: 'ERP Orders',
-        route: '/erp-orders',
-        icon: FileSpreadsheet,
+        id: 'pricing',
+        labelKey: 'priceLists.title',
+        fallback: 'Price Lists',
+        route: '/pricing',
+        icon: DollarSign,
       },
     ],
   },
 ];
 
 const FOOTER: NavItem[] = [
-  { id: 'settings', labelKey: 'settings.title', fallback: 'Settings', route: '/settings', icon: Settings },
-  { id: 'subscription', labelKey: 'navSubscription', fallback: 'Subscription', route: '/subscription', icon: Star },
-  { id: 'billing', labelKey: 'billing', fallback: 'Billing', route: '/billing', icon: CreditCard },
-  { id: 'support', labelKey: 'support', fallback: 'Support', route: '/support', icon: HelpCircle },
+  { id: 'support', labelKey: 'support', fallback: 'Support & Feedback', route: '/support', icon: HelpCircle },
 ];
 
 export function TopNav() {
   const { t } = useTranslation();
   const { T } = useTheme();
+  const { showToast } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const pastDueLocked = usePastDueLock();
   const [hoverSection, setHoverSection] = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const go = (route: string) => {
+  const go = (route?: string) => {
+    if (!route) return;
     navigate(pastDueLocked && route !== '/billing' ? '/billing' : route);
+  };
+
+  const activateItem = (item: NavItem) => {
+    if (item.action === 'vagon-ai') {
+      showToast(t('vagonai.title') || 'Vagon AI', 'info');
+      return;
+    }
+    go(item.route);
   };
 
   const isWhiteNav = T.nav === '#FFFFFF';
@@ -143,7 +164,8 @@ export function TopNav() {
   const bgActive = T.navA;
   const bgHover = T.navHov;
 
-  const isActive = (route: string) => {
+  const isActive = (route?: string) => {
+    if (!route) return false;
     if (route === '/dashboard') return location.pathname === '/dashboard';
     if (route === '/shipments') {
       return location.pathname.startsWith('/shipments') && !location.pathname.startsWith('/shipments/create');
@@ -219,7 +241,8 @@ export function TopNav() {
             <button
               type="button"
               onClick={() => {
-                go(section.items[0]?.route || '/dashboard');
+                const firstRoutable = section.items.find((item) => item.route);
+                go(firstRoutable?.route || '/dashboard');
                 setHoverSection(null);
               }}
               className="top-nav-item"
@@ -260,7 +283,7 @@ export function TopNav() {
                         key={item.id}
                         role="menuitem"
                         onClick={() => {
-                          go(item.route);
+                          activateItem(item);
                           setHoverSection(null);
                         }}
                         className="top-nav-dropdown-item"
@@ -320,6 +343,7 @@ export function TopNav() {
             key={item.id}
             onClick={() => go(item.route)}
             className="top-nav-item"
+            data-tour={item.id === 'support' ? 'support' : undefined}
             style={{
               background: active ? bgActive : 'transparent',
               color: active ? txtActive : T.navSec,

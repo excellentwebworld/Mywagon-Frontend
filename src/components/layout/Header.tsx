@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   Bell,
   Menu,
-  Users,
+  Play,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../hooks/useTheme';
@@ -20,7 +20,6 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { usePastDueLock } from '../../hooks/usePastDueLock';
 import { ProfileDropdown } from './ProfileDropdown';
-import { ReferralModal } from '../referral';
 import { notificationService } from '../../api/services/notificationService';
 import type { ApiNotification } from '../../api/services/notificationService';
 import { chatService } from '../../api/services/chatService';
@@ -76,7 +75,6 @@ export const Header: React.FC<HeaderProps> = ({
 
   const [searchValue, setSearchValue] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
-  const [referralOpen, setReferralOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [unreadMessages, setUnreadMessages] = useState<number>(0);
   const [headerNotifs, setHeaderNotifs] = useState<ApiNotification[]>([]);
@@ -333,47 +331,25 @@ export const Header: React.FC<HeaderProps> = ({
         <span className="mv-topbar-ai-label">{t('vagonai.title') || 'Vagon AI'}</span>
       </button>
 
-      {/* Refer & Earn */}
+      {/* Tutorials — play icon only (replaces Refer & Earn in the top bar) */}
       <button
         type="button"
-        onClick={() => setReferralOpen(true)}
-        aria-label={t('referral.referBtn', 'Refer & Earn')}
-        className="mv-topbar-refer-btn"
-        style={{
-          height: 36,
-          padding: '0 13px',
-          borderRadius: 8,
-          fontSize: 12,
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          border: `1px solid ${T.bd}`,
-          background: T.sf,
-          color: T.t1,
-          transition: 'all 0.15s ease',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-          flexShrink: 0,
-        }}
+        onClick={() => navigate(pastDueLocked ? '/billing' : '/tutorials')}
+        aria-label={t('tutorial') || 'Tutorials'}
+        title={t('tutorial') || 'Tutorials'}
+        data-tour="tutorials"
+        className="mv-topbar-icon-btn"
+        style={{ color: T.t2 }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = T.sa;
-          e.currentTarget.style.borderColor = T.ac;
-          e.currentTarget.style.color = T.ac;
-          e.currentTarget.style.transform = 'translateY(-1px)';
-          e.currentTarget.style.boxShadow = '0 3px 8px rgba(0,0,0,0.06)';
+          e.currentTarget.style.color = T.t1;
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = T.sf;
-          e.currentTarget.style.borderColor = T.bd;
-          e.currentTarget.style.color = T.t1;
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
+          e.currentTarget.style.background = 'transparent';
+          e.currentTarget.style.color = T.t2;
         }}
       >
-        <Users size={15} style={{ color: T.ac, flexShrink: 0 }} />
-        <span>{t('referral.referBtn', 'Refer & Earn')}</span>
+        <Play size={18} fill="currentColor" />
       </button>
 
 
@@ -746,10 +722,6 @@ export const Header: React.FC<HeaderProps> = ({
         />
       </button>
 
-      <ReferralModal
-        isOpen={referralOpen}
-        onClose={() => setReferralOpen(false)}
-      />
     </header>
 
   );

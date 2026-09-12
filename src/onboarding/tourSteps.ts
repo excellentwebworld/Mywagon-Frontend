@@ -30,23 +30,8 @@ export function buildOnboardingSteps(t: TourTranslate): DriveStep[] {
         description: welcomeDescription(),
         align: 'center',
         popoverClass: 'mv-tour-popover mv-tour-welcome',
-        // First step: Start + Skip only (no Back)
         showButtons: ['next', 'close'],
         nextBtnText: t('tour.controls.start', 'Start'),
-      },
-    },
-    {
-      element: '[data-tour="dashboard-overview"]',
-      popover: {
-        title: t('tour.dashboard.title', 'Your Dashboard'),
-        description: desc(
-          'tour.dashboard.description',
-          'Track KPIs, today’s schedule, live map, and your shipment board from one place.',
-        ),
-        side: 'bottom',
-        align: 'start',
-        popoverClass: 'mv-tour-popover',
-        showButtons: ['next', 'previous', 'close'],
       },
     },
     {
@@ -78,6 +63,20 @@ export function buildOnboardingSteps(t: TourTranslate): DriveStep[] {
       },
     },
     {
+      element: '[data-tour="erp-orders"]',
+      popover: {
+        title: t('tour.orders.title', 'Orders'),
+        description: desc(
+          'tour.orders.description',
+          'Import or sync orders into MYVAGON to create shipments faster without re-entering data.',
+        ),
+        side: 'right',
+        align: 'start',
+        popoverClass: 'mv-tour-popover',
+        showButtons: ['next', 'previous', 'close'],
+      },
+    },
+    {
       element: '[data-tour="partners"]',
       popover: {
         title: t('tour.partners.title', 'Invite Your Partners'),
@@ -86,34 +85,6 @@ export function buildOnboardingSteps(t: TourTranslate): DriveStep[] {
           'Invite your existing carrier and driver partners to MYVAGON to digitize your dispatching and send them private shipment offers.',
           'tour.partners.tip',
           'Tip: Get started quickly by inviting just one carrier and assigning your first shipment digitally!',
-        ),
-        side: 'right',
-        align: 'start',
-        popoverClass: 'mv-tour-popover',
-        showButtons: ['next', 'previous', 'close'],
-      },
-    },
-    {
-      element: '[data-tour="price-lists"]',
-      popover: {
-        title: t('tour.priceLists.title', 'Price Lists'),
-        description: desc(
-          'tour.priceLists.description',
-          'Manage carrier and route pricing so you can apply rates quickly when creating shipment offers.',
-        ),
-        side: 'right',
-        align: 'start',
-        popoverClass: 'mv-tour-popover',
-        showButtons: ['next', 'previous', 'close'],
-      },
-    },
-    {
-      element: '[data-tour="erp-orders"]',
-      popover: {
-        title: t('tour.erpOrders.title', 'ERP Orders'),
-        description: desc(
-          'tour.erpOrders.description',
-          'Import or sync orders from your ERP into MYVAGON to create shipments faster.',
         ),
         side: 'right',
         align: 'start',
@@ -157,6 +128,20 @@ export function buildOnboardingSteps(t: TourTranslate): DriveStep[] {
           'tour.tutorials.description',
           'Access short video tutorials anytime to learn how to use features or refresh your knowledge.',
         ),
+        side: 'bottom',
+        align: 'end',
+        popoverClass: 'mv-tour-popover',
+        showButtons: ['next', 'previous', 'close'],
+      },
+    },
+    {
+      element: '[data-tour="support"]',
+      popover: {
+        title: t('tour.support.title', 'Support & Feedback'),
+        description: desc(
+          'tour.support.description',
+          'Reach our team for help, report issues, or share feedback anytime from here.',
+        ),
         side: 'right',
         align: 'end',
         popoverClass: 'mv-tour-popover',
@@ -172,7 +157,6 @@ export function buildOnboardingSteps(t: TourTranslate): DriveStep[] {
         ),
         align: 'center',
         popoverClass: 'mv-tour-popover mv-tour-finish',
-        // Last step: Back + Finish only (no Skip / no Next label)
         showButtons: ['previous', 'next'],
         doneBtnText: t('tour.controls.finish', 'Finish'),
         showProgress: true,
