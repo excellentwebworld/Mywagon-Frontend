@@ -2451,6 +2451,25 @@
   "loginEmailMaxLength": "Email must not exceed 50 characters",
   "loginEmailInvalid": "Please enter valid email address.",
   "loginPasswordRequired": "Please enter password",
+  "socialAuth": {
+    "orContinueWith": "Or continue with",
+    "orSignUpWithEmail": "Or sign up with email",
+    "google": "Google",
+    "microsoft": "Microsoft 365",
+    "failed": "Social sign-in failed. Please try again.",
+    "missingToken": "Social sign-in failed. Please try again.",
+    "sessionFailed": "Could not start your session. Please try again."
+  },
+  "signupComplete": {
+    "title": "Complete company information",
+    "subtitle": "Finish your company profile to start creating shipments and managing your account.",
+    "emailLocked": "Signed in as {{email}}",
+    "verifyPhoneFirst": "Please verify your phone number first.",
+    "submit": "Save & continue",
+    "saving": "Saving…",
+    "success": "Company information saved.",
+    "requiredToast": "Please complete your company information to continue."
+  },
   "login": {
     "twoFactor": {
       "subtitle": "Enter your verification code to continue.",

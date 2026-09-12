@@ -13,6 +13,7 @@ import {
   type LoginFieldErrors,
 } from './loginValidation';
 import { clearSignupDraft } from '../Register/signupDraft';
+import { SocialAuthButtons } from '../../components/auth/SocialAuthButtons';
 import './LoginPage.css';
 
 function isTwoFactorChallenge(
@@ -82,6 +83,15 @@ export const LoginPage: React.FC = () => {
   useEffect(() => {
     clearSignupDraft();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('social_error') !== '1') return;
+    const message =
+      params.get('message') ||
+      t('socialAuth.failed', { defaultValue: 'Social sign-in failed. Please try again.' });
+    setLocalError(message);
+  }, [location.search, t]);
 
   useEffect(() => {
     if (resendSeconds <= 0) return;
@@ -520,6 +530,8 @@ export const LoginPage: React.FC = () => {
                           </button>
                         </div>
                       </form>
+
+                      <SocialAuthButtons disabled={submitting} />
 
                       <div className="shipper-login-join-wrap">
                         <Link

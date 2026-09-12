@@ -17,6 +17,7 @@ import {
 import { DEFAULT_PAGE_SIZE } from '../constants';
 import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useAuth } from '../../../context/AuthContext';
+import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
 import { validateCreateAll } from '../validation/locationCreateValidation';
 import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from '../validation/locationDuplicateValidation';
 import { applyTemplate, getDefaultCreateData } from '../utils/locationUtils';
@@ -29,6 +30,7 @@ export function useAddressBook() {
   const { showToast, refreshLocationsFromApi } = useApp();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { requireSignupComplete } = useRequireSignupComplete();
 
   const [error, setError] = useState<string | null>(null);
   const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
@@ -383,10 +385,11 @@ export function useAddressBook() {
   }, [activeNode, t]);
 
   const openCreateModal = useCallback(() => {
+    if (!requireSignupComplete()) return;
     setCreateStep(1);
     setCreateData(getDefaultCreateData(activeNode));
     setIsCreateOpen(true);
-  }, [activeNode]);
+  }, [activeNode, requireSignupComplete]);
 
   const closeCreateModal = useCallback(() => setIsCreateOpen(false), []);
   const closeEditModal = useCallback(() => setIsEditOpen(false), []);

@@ -13,6 +13,7 @@ import {
   isInfoFormAllowedPath,
   needsInfoFormHardGate,
 } from '../../hooks/useInfoFormGate';
+import { needsSignupComplete } from '../../hooks/useSignupCompleteGate';
 import { MyVagonBootScreen } from '../ui/MyVagonLoader';
 
 interface ProtectedRouteProps {
@@ -50,15 +51,19 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/billing" replace />;
   }
 
-  if (needsKycGate(user) && !isKycGateAllowedPath(location.pathname)) {
+  // Social prospects with incomplete company signup may browse + take the tour.
+  // Account-mutating actions soft-redirect to /complete-signup.
+  const signupIncomplete = needsSignupComplete(user);
+
+  if (!signupIncomplete && needsKycGate(user) && !isKycGateAllowedPath(location.pathname)) {
     return <Navigate to="/settings/compliance" replace />;
   }
 
-  if (needsCompanyInfoGate(user) && !isKycGateAllowedPath(location.pathname)) {
+  if (!signupIncomplete && needsCompanyInfoGate(user) && !isKycGateAllowedPath(location.pathname)) {
     return <Navigate to="/settings/organization?from=company_info" replace />;
   }
 
-  if (needsInfoFormHardGate(user) && !isInfoFormAllowedPath(location.pathname)) {
+  if (!signupIncomplete && needsInfoFormHardGate(user) && !isInfoFormAllowedPath(location.pathname)) {
     return <Navigate to="/settings/organization?from=info_form" replace />;
   }
 

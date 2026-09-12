@@ -81,6 +81,16 @@ axiosInstance.interceptors.response.use(
         window.location.assign(billingPath);
       }
     }
+    if (error.response?.status === 403 && error.response?.data?.code === 'signup_incomplete') {
+      window.dispatchEvent(new CustomEvent('shipper:signup-incomplete'));
+      const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+      const completePath = `${base}/complete-signup`;
+      const path = window.location.pathname.replace(/\/$/, '');
+      if (!path.endsWith('/complete-signup')) {
+        const from = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.assign(`${completePath}?from=${from}`);
+      }
+    }
     return Promise.reject(error);
   }
 );

@@ -19,6 +19,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { usePastDueLock } from '../../hooks/usePastDueLock';
+import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
 import { ProfileDropdown } from './ProfileDropdown';
 import { notificationService } from '../../api/services/notificationService';
 import type { ApiNotification } from '../../api/services/notificationService';
@@ -68,6 +69,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { showToast } = useApp();
   const { t, lang } = useTranslation();
   const { T } = useTheme();
+  const { requireSignupComplete } = useRequireSignupComplete();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -675,7 +677,10 @@ export const Header: React.FC<HeaderProps> = ({
       {showCta && (
         <button
           type="button"
-          onClick={() => navigate('/shipments/create')}
+          onClick={() => {
+            if (!requireSignupComplete()) return;
+            navigate('/shipments/create');
+          }}
           aria-label={t('createShipment')}
           className="mv-topbar-cta"
           style={{

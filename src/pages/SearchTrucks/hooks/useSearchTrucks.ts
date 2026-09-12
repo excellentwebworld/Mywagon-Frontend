@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { ApiError, availabilitiesService, SAT_PREFILL_KEY } from '../../../api';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
 import type { SatFilterDraft } from '../../../components/SearchTrucks/SatFilterModal';
 import { resolveTripType } from '../../../components/SearchTrucks/SatFilterModal';
 import { toApiPickupDate } from '../../../api/mappers/availabilitiesMapper';
@@ -382,6 +383,7 @@ export function useSearchTrucks() {
   const { showToast } = useApp();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { requireSignupComplete } = useRequireSignupComplete();
 
   const [mockTrucks, setMockTrucks] = useState<AvailableTruck[]>(() =>
     MOCK_TRUCKS.map((x) => ({ ...x }))
@@ -1242,6 +1244,7 @@ export function useSearchTrucks() {
 
   const confirmBooking = useCallback(async () => {
     if (!selectedTruck) return;
+    if (!requireSignupComplete()) return;
 
     if (USE_MOCK) {
       const rootId = selectedTruck.id.replace(/-\d+$/, '');
@@ -1265,7 +1268,7 @@ export function useSearchTrucks() {
     } finally {
       setConfirming(false);
     }
-  }, [selectedTruck, placeBidMutation, closeDrawer, showToast, t]);
+  }, [selectedTruck, placeBidMutation, closeDrawer, showToast, t, requireSignupComplete]);
 
   const dismissGateReminder = useCallback(() => {
     try {

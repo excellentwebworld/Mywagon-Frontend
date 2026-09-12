@@ -224,6 +224,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           path.startsWith('/track-shipment') ||
           path.startsWith('/webview/') ||
           path.startsWith('/shipper/register') ||
+          path.startsWith('/auth/social') ||
+          path.startsWith('/complete-signup') ||
           path.startsWith('/terms-condition') ||
           path.startsWith('/privacy-policy');
         if (!isPublicGuestPath) {

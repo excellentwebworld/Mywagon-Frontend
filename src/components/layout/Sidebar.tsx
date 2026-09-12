@@ -6,6 +6,7 @@ import { useApp } from "../../context/AppContext";
 import { assetUrl } from "../../utils/assetUrl";
 import collapsedLogo from "../../assets/logo/logo.svg";
 import { usePastDueLock } from "../../hooks/usePastDueLock";
+import { useRequireSignupComplete } from "../../hooks/useRequireSignupComplete";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -25,6 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { t } = useTranslation();
   const { showToast } = useApp();
   const pastDueLocked = usePastDueLock();
+  const { requireSignupComplete } = useRequireSignupComplete();
 
   const [mainOpen, setMainOpen] = useState(true);
   const [masterOpen, setMasterOpen] = useState(true);
@@ -145,7 +147,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <Link
                 to="/shipments/create"
-                onClick={onCloseMobile}
+                onClick={(e) => {
+                  if (!requireSignupComplete()) {
+                    e.preventDefault();
+                    return;
+                  }
+                  onCloseMobile();
+                }}
                 className={`ni ${isLinkActive("/shipments/create") ? "active" : ""}`}
                 title={t("createShipment")}
                 data-tour="create-shipment"

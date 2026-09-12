@@ -4,6 +4,7 @@ import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
 import { partnersService, ApiError } from '../../../api';
 import type { StoreContractLanePayload } from '../../../api/types/partners';
 import {
@@ -51,6 +52,7 @@ export function usePartners() {
   const { t } = useTranslation();
   const { showToast } = useApp();
   const queryClient = useQueryClient();
+  const { requireSignupComplete } = useRequireSignupComplete();
 
   const [error, setError] = useState<string | null>(null);
   const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
@@ -421,9 +423,10 @@ export function usePartners() {
   }, []);
 
   const openInviteModal = useCallback(() => {
+    if (!requireSignupComplete()) return;
     setInviteForm(EMPTY_INVITE);
     setIsInviteOpen(true);
-  }, []);
+  }, [requireSignupComplete]);
 
   const closeInviteModal = useCallback(() => setIsInviteOpen(false), []);
 

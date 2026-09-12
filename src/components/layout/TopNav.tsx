@@ -22,6 +22,7 @@ import {
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePastDueLock } from '../../hooks/usePastDueLock';
+import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
 import { useApp } from '../../context/AppContext';
 
 type NavItem = {
@@ -141,11 +142,13 @@ export function TopNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const pastDueLocked = usePastDueLock();
+  const { requireSignupComplete } = useRequireSignupComplete();
   const [hoverSection, setHoverSection] = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const go = (route?: string) => {
     if (!route) return;
+    if (route.startsWith('/shipments/create') && !requireSignupComplete()) return;
     navigate(pastDueLocked && route !== '/billing' ? '/billing' : route);
   };
 

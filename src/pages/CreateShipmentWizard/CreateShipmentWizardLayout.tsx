@@ -4,6 +4,8 @@ import * as Yup from 'yup';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { needsSignupComplete, completeSignupPath } from '../../hooks/useSignupCompleteGate';
+import { useAuth } from '../../context/AuthContext';
 import { scrollToValidationAnchor } from '../../components/CreateShipmentWizard/validation';
 import { Step1DetailsSkeleton } from '../../components/skeletons/Step1DetailsSkeleton';
 import { Step2ItinerarySkeleton } from '../../components/skeletons/Step2ItinerarySkeleton';
@@ -72,6 +74,17 @@ function StepSkeleton({ step }: { step: number }) {
 }
 
 export const CreateShipmentWizardLayout: React.FC = () => {
+  const { user } = useAuth();
+  const location = useLocation();
+
+  if (needsSignupComplete(user)) {
+    return <Navigate to={completeSignupPath(location.pathname)} replace />;
+  }
+
+  return <CreateShipmentWizardLayoutInner />;
+};
+
+const CreateShipmentWizardLayoutInner: React.FC = () => {
   const { t } = useTranslation();
   const { showToast } = useApp();
   const navigate = useNavigate();

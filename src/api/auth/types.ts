@@ -36,6 +36,12 @@ export interface ShipperUser {
   /** Guided UI tour completed (shippers.onboarding_completed). */
   onboarding_completed?: boolean;
   onboarding_completed_at?: string | null;
+  /**
+   * False for social sign-up prospects until they submit company/KYC info.
+   * When false, browse + onboarding are allowed; mutating account actions redirect to complete-signup.
+   */
+  signup_complete?: boolean;
+  social_provider?: 'google' | 'microsoft' | string | null;
 }
 
 

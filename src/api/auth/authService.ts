@@ -291,6 +291,55 @@ export const authService = {
       clearStoredToken();
     }
   },
+
+  async completeSignup(body: FormData): Promise<ShipperUser> {
+    try {
+      const response = await axiosInstance({
+        url: '/auth/complete-signup',
+        method: 'POST',
+        data: body,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      const res = response.data as MeResponse;
+      if (!res.status || !res.data) {
+        throw new Error(res.message || 'Could not complete signup');
+      }
+      return res.data;
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        const data = err.response?.data as {
+          message?: string;
+          errors?: Record<string, string[]>;
+        };
+        const fieldErrors: Record<string, string> = {};
+        if (data?.errors) {
+          for (const [key, messages] of Object.entries(data.errors)) {
+            if (messages?.[0]) fieldErrors[key] = messages[0];
+          }
+        }
+        const firstFieldError = Object.values(fieldErrors)[0];
+        const message = firstFieldError || data?.message || err.message || 'Request failed';
+        const { SignupApiError } = await import('./signupService');
+        throw new SignupApiError(message, fieldErrors);
+      }
+      throw err;
+    }
+  },
+
+  socialRedirectUrl(provider: 'google' | 'microsoft'): string {
+    const apiBase =
+      (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ||
+      '/api/shipper/v1';
+    const returnUrl = `${window.location.origin}${import.meta.env.BASE_URL || '/'}`.replace(
+      /\/$/,
+      '',
+    );
+    return `${apiBase}/auth/social/${provider}/redirect?${new URLSearchParams({
+      return_url: returnUrl,
+    }).toString()}`;
+  },
 };
 
 export type { TwoFactorChallenge };

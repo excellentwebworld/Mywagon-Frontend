@@ -16,6 +16,7 @@ import {
 } from '../types';
 import { getCategoryName } from '../utils/productUtils';
 import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
+import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
 
 const SEARCH_DEBOUNCE_MS = 250;
 const DEFAULT_PAGE_SIZE = 12;
@@ -24,6 +25,7 @@ export function useProductMaster() {
   const { lang, t } = useTranslation();
   const { showToast } = useApp();
   const queryClient = useQueryClient();
+  const { requireSignupComplete } = useRequireSignupComplete();
 
   const [error, setError] = useState<string | null>(null);
   const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
@@ -337,12 +339,13 @@ export function useProductMaster() {
   }, [showToast, t]);
 
   const openAddSku = useCallback(() => {
+    if (!requireSignupComplete()) return;
     setEditSkuMode(false);
     setEditingSkuId(null);
     setNewSku(EMPTY_NEW_SKU);
     setIsSkuOpen(true);
     setAddDropdownOpen(false);
-  }, []);
+  }, [requireSignupComplete]);
 
   const openEditSku = useCallback((sku: SKU) => {
     setEditSkuMode(true);
