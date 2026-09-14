@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { isPastDueAllowedPath } from '../../hooks/usePastDueLock';
 import {
+  isCompanyInfoGateAllowedPath,
   isKycGateAllowedPath,
   needsCompanyInfoGate,
   needsKycGate,
@@ -13,13 +14,22 @@ import {
   isInfoFormAllowedPath,
   needsInfoFormHardGate,
 } from '../../hooks/useInfoFormGate';
-import { needsSignupComplete } from '../../hooks/useSignupCompleteGate';
+import {
+  isSignupCompleteAllowedPath,
+  needsSignupComplete,
+} from '../../hooks/useSignupCompleteGate';
 import { MyVagonBootScreen } from '../ui/MyVagonLoader';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
+/**
+ * Normal signup: past-due → KYC → company info → info-form (unchanged).
+ *
+ * Social signup only:
+ *   register fields (/complete-signup) → KYC compliance → info-form → tour on dashboard.
+ */
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { showToast } = useApp();
@@ -51,19 +61,20 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/billing" replace />;
   }
 
-  // Social prospects with incomplete company signup may browse + take the tour.
-  // Account-mutating actions soft-redirect to /complete-signup.
-  const signupIncomplete = needsSignupComplete(user);
+  // Social only: must finish register required fields first
+  if (needsSignupComplete(user) && !isSignupCompleteAllowedPath(location.pathname)) {
+    return <Navigate to="/complete-signup" replace />;
+  }
 
-  if (!signupIncomplete && needsKycGate(user) && !isKycGateAllowedPath(location.pathname)) {
+  if (needsKycGate(user) && !isKycGateAllowedPath(location.pathname, user)) {
     return <Navigate to="/settings/compliance" replace />;
   }
 
-  if (!signupIncomplete && needsCompanyInfoGate(user) && !isKycGateAllowedPath(location.pathname)) {
+  if (needsCompanyInfoGate(user) && !isCompanyInfoGateAllowedPath(location.pathname)) {
     return <Navigate to="/settings/organization?from=company_info" replace />;
   }
 
-  if (!signupIncomplete && needsInfoFormHardGate(user) && !isInfoFormAllowedPath(location.pathname)) {
+  if (needsInfoFormHardGate(user) && !isInfoFormAllowedPath(location.pathname)) {
     return <Navigate to="/settings/organization?from=info_form" replace />;
   }
 

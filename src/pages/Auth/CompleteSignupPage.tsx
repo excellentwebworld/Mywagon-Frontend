@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -15,10 +15,10 @@ import { NameStep } from '../Register/steps/NameStep';
 import { CompanyStep } from '../Register/steps/CompanyStep';
 import { AddressStep } from '../Register/steps/AddressStep';
 import { MarketingTermsStep, RegisterTermsCheckbox } from '../Register/steps/MarketingTermsStep';
-import { KycStep } from '../Register/steps/KycStep';
 import { CountryCodeSelect } from '../Register/components/CountryCodeSelect';
 import { VerifyOtpModal } from '../Register/components/VerifyOtpModal';
 import { LegalModal } from '../Register/components/LegalModal';
+import { postAuthDestination } from '../../hooks/postAuthDestination';
 import {
   digitsOnlyPhone,
   scrollToFirstRegisterError,
@@ -46,7 +46,6 @@ type FormState = {
   hear_about_us_other_shipper: string;
   referral_code: string;
   terms: boolean;
-  kyc_vat_number_shipper: string;
 };
 
 function isClientOtpEnv(): boolean {
@@ -70,8 +69,6 @@ export const CompleteSignupPage: React.FC = () => {
   const { lang, setLang, showToast } = useApp();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const from = searchParams.get('from') || '/dashboard';
 
   const [form, setForm] = useState<FormState>({
     first_name: '',
@@ -90,9 +87,7 @@ export const CompleteSignupPage: React.FC = () => {
     hear_about_us_other_shipper: '',
     referral_code: '',
     terms: false,
-    kyc_vat_number_shipper: '',
   });
-  const [certificate, setCertificate] = useState<File | null>(null);
   const [fieldErrors, setFieldErrors] = useState<RegisterFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -244,14 +239,17 @@ export const CompleteSignupPage: React.FC = () => {
         hear_about_us_other_shipper: form.hear_about_us_other_shipper,
         referral_code: form.referral_code,
         terms: form.terms,
-        kyc_vat_number_shipper: form.kyc_vat_number_shipper,
+        kyc_vat_number_shipper: 'PENDING',
       },
-      certificate,
+      // KYC is a separate step after this form — skip cert validation
+      new File([''], 'skip.pdf', { type: 'application/pdf' }),
       t,
     );
     delete errors.password;
     delete errors.password_confirmation;
     delete errors.email;
+    delete errors.kyc_vat_number_shipper;
+    delete errors.shipper_certificate;
 
     setFieldErrors(errors);
     if (Object.keys(errors).length) {
@@ -267,7 +265,6 @@ export const CompleteSignupPage: React.FC = () => {
       body.append('company_name', form.company_name.trim());
       body.append('country_code', form.country_code);
       body.append('phone', digitsOnlyPhone(form.phone));
-      body.append('kyc_vat_number_shipper', form.kyc_vat_number_shipper.trim());
       body.append('street_address', form.street_address.trim());
       if (form.address_line_2) body.append('address_line_2', form.address_line_2);
       body.append('city', form.city.trim());
@@ -281,15 +278,16 @@ export const CompleteSignupPage: React.FC = () => {
       }
       if (form.referral_code) body.append('referral_code', form.referral_code);
       body.append('terms', '1');
-      if (certificate) body.append('shipper_certificate', certificate);
 
       await authService.completeSignup(body);
       await refreshUser();
       showToast(
-        t('signupComplete.success', { defaultValue: 'Company information saved.' }),
+        t('signupComplete.successNextKyc', {
+          defaultValue: 'Company information saved. Please upload your KYC documents next.',
+        }),
         'success',
       );
-      navigate(from.startsWith('/') ? from : '/dashboard', { replace: true });
+      navigate('/settings/compliance', { replace: true });
     } catch (err) {
       if (err instanceof SignupApiError) {
         setFieldErrors(err.fieldErrors);
@@ -312,7 +310,7 @@ export const CompleteSignupPage: React.FC = () => {
   }
 
   if (user?.signup_complete !== false) {
-    return <Navigate to={from.startsWith('/') ? from : '/dashboard'} replace />;
+    return <Navigate to={postAuthDestination(user)} replace />;
   }
 
   return (
@@ -452,21 +450,11 @@ export const CompleteSignupPage: React.FC = () => {
           onOpenLegal={setLegalDocModal}
         />
 
-        <h5 className="reg-section-title mt">
-          {t('registerSectionVerifiedUser', 'Sign Up as a Verified User')}
-        </h5>
-
-        <KycStep
-          vat={form.kyc_vat_number_shipper}
-          certificate={certificate}
-          onVat={(v) => patch({ kyc_vat_number_shipper: v })}
-          onCertificate={setCertificate}
-          errors={{
-            kyc_vat_number_shipper: fieldErrors.kyc_vat_number_shipper,
-            shipper_certificate: fieldErrors.shipper_certificate,
-          }}
-          disabled={submitting}
-        />
+        <p className="reg-hint" style={{ marginBottom: '1rem' }}>
+          {t('signupComplete.kycNextHint', {
+            defaultValue: 'After saving, you will upload your KYC documents on the next step.',
+          })}
+        </p>
 
         <RegisterTermsCheckbox
           terms={form.terms}
@@ -481,7 +469,7 @@ export const CompleteSignupPage: React.FC = () => {
         <button type="submit" className="reg-btn-primary" disabled={submitting}>
           {submitting
             ? t('signupComplete.saving', { defaultValue: 'Saving…' })
-            : t('signupComplete.submit', { defaultValue: 'Save & continue' })}
+            : t('signupComplete.submit', { defaultValue: 'Save & continue to KYC' })}
         </button>
       </form>
 

@@ -1,22 +1,48 @@
 import type { ShipperUser } from '../api/auth';
+import { isSocialShipper } from './useSignupCompleteGate';
 
+/**
+ * KYC hard-gate.
+ * - Normal signup: pending / rejected only (unchanged).
+ * - Social signup: also not_started (docs not uploaded yet), after register fields are done.
+ */
 export function needsKycGate(user: ShipperUser | null | undefined): boolean {
   const status = user?.kyc_status;
-  return status === 'pending' || status === 'rejected';
+  if (status === 'pending' || status === 'rejected') return true;
+  if (isSocialShipper(user) && (status === 'not_started' || !status)) return true;
+  return false;
 }
 
 export function needsCompanyInfoGate(user: ShipperUser | null | undefined): boolean {
   if (!user || user.kyc_status !== 'accepted') return false;
-  // Only enforce when API explicitly reports incomplete (avoid locking older clients without the field)
+  // Social users fill address in /complete-signup before KYC — skip this gate for them.
+  if (isSocialShipper(user)) return false;
   return user.company_address_complete === false;
 }
 
-/** Paths allowed while KYC or company-info gates are active. */
-export function isKycGateAllowedPath(pathname: string): boolean {
+/**
+ * Paths allowed while KYC gate is active.
+ * Social: compliance + billing only.
+ * Normal: compliance + organization + billing (original).
+ */
+export function isKycGateAllowedPath(
+  pathname: string,
+  user?: ShipperUser | null,
+): boolean {
   const path = pathname.replace(/\/$/, '') || '/';
   if (path === '/billing' || path.startsWith('/billing/')) return true;
   if (path === '/settings/compliance' || path.startsWith('/settings/compliance/')) return true;
+  if (!isSocialShipper(user)) {
+    if (path === '/settings/organization' || path.startsWith('/settings/organization/')) return true;
+  }
+  return false;
+}
+
+export function isCompanyInfoGateAllowedPath(pathname: string): boolean {
+  const path = pathname.replace(/\/$/, '') || '/';
+  if (path === '/billing' || path.startsWith('/billing/')) return true;
   if (path === '/settings/organization' || path.startsWith('/settings/organization/')) return true;
+  if (path === '/settings/compliance' || path.startsWith('/settings/compliance/')) return true;
   return false;
 }
 

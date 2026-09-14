@@ -1,34 +1,42 @@
 import type { ShipperUser } from '../api/auth';
+import { isSocialShipper } from './useSignupCompleteGate';
 
 function isPrimaryShipper(user: ShipperUser | null | undefined): boolean {
   return !!user && user.is_sub_user !== true;
 }
 
-/** Laravel: reminder / enforce only after onboarding tour is completed. */
 function hasCompletedOnboarding(user: ShipperUser | null | undefined): boolean {
   if (!user) return true;
-  // Explicit false = tour still pending; undefined treated as completed for older payloads
   return user.onboarding_completed !== false;
 }
 
-/** Hard lock: mandatory ops incomplete, or post–1-month enforce (≤90% completion). */
+/**
+ * Hard lock for mandatory info form.
+ * Social: only after KYC accepted.
+ * Normal: unchanged (mandatory incomplete or post-month enforce).
+ */
 export function needsInfoFormHardGate(user: ShipperUser | null | undefined): boolean {
   if (!isPrimaryShipper(user)) return false;
-  // Only enforce when API explicitly reports flags (avoid locking older clients)
+
+  if (isSocialShipper(user)) {
+    if (user!.kyc_status !== 'accepted') return false;
+    if (user!.info_form_mandatory_completed === false) return true;
+    if (user!.info_form_enforce === true && hasCompletedOnboarding(user)) return true;
+    return false;
+  }
+
   if (user!.info_form_mandatory_completed === false) return true;
-  // Laravel RequireInfoFormAfterOneMonth: enforce only after onboarding completed
   if (user!.info_form_enforce === true && hasCompletedOnboarding(user)) return true;
   return false;
 }
 
 export function needsInfoFormSoftReminder(user: ShipperUser | null | undefined): boolean {
   if (!isPrimaryShipper(user)) return false;
-  // Laravel AppServiceProvider: popup only after onboarding is completed
+  if (isSocialShipper(user) && user!.kyc_status !== 'accepted') return false;
   if (!hasCompletedOnboarding(user)) return false;
   return user!.info_form_soft_reminder === true;
 }
 
-/** Paths allowed while the info-form hard gate is active. */
 export function isInfoFormAllowedPath(pathname: string): boolean {
   const path = pathname.replace(/\/$/, '') || '/';
   if (path === '/billing' || path.startsWith('/billing/')) return true;

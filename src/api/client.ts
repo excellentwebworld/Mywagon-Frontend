@@ -84,11 +84,14 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 403 && error.response?.data?.code === 'signup_incomplete') {
       window.dispatchEvent(new CustomEvent('shipper:signup-incomplete'));
       const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
-      const completePath = `${base}/complete-signup`;
+      // Prefer KYC compliance for social prospects; complete-signup remains fallback.
+      const redirect =
+        typeof error.response?.data?.data?.redirect === 'string'
+          ? error.response.data.data.redirect
+          : '/settings/compliance';
       const path = window.location.pathname.replace(/\/$/, '');
-      if (!path.endsWith('/complete-signup')) {
-        const from = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.assign(`${completePath}?from=${from}`);
+      if (!path.endsWith(redirect.replace(/\/$/, '')) && !path.endsWith('/settings/compliance')) {
+        window.location.assign(`${base}${redirect.startsWith('/') ? redirect : `/${redirect}`}`);
       }
     }
     return Promise.reject(error);

@@ -5,6 +5,7 @@ import { setStoredToken } from '../../api/auth';
 import { clearInfoFormReminderSkip } from '../../components/layout/InfoFormReminderModal';
 import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
 import { useTranslation } from '../../hooks/useTranslation';
+import { postAuthDestination } from '../../hooks/postAuthDestination';
 import type { TwoFactorChallenge, TwoFactorMethod } from '../../api/auth';
 
 /**
@@ -53,8 +54,7 @@ export const SocialCallbackPage: React.FC = () => {
         if (cancelled) return;
         const profile = await import('../../api/auth').then((m) => m.authService.me());
         clearInfoFormReminderSkip(profile.id);
-        const dest = profile.onboarding_completed === false ? '/dashboard' : '/dashboard';
-        navigate(dest, { replace: true });
+        navigate(postAuthDestination(profile), { replace: true });
       } catch {
         if (!cancelled) {
           setError(
@@ -87,9 +87,7 @@ export const SocialCallbackPage: React.FC = () => {
             setSubmitting(true);
             try {
               const profile = await verifyTwoFactor(challenge.challenge_token, otpCode.trim());
-              navigate(profile.onboarding_completed === false ? '/dashboard' : '/dashboard', {
-                replace: true,
-              });
+              navigate(postAuthDestination(profile), { replace: true });
             } catch {
               // loginError in context
             } finally {
@@ -109,7 +107,12 @@ export const SocialCallbackPage: React.FC = () => {
             autoFocus
             placeholder="000000"
           />
-          <button type="submit" className="shipper-login-submit-btn" disabled={submitting || !otpCode.trim()} style={{ marginTop: 12 }}>
+          <button
+            type="submit"
+            className="shipper-login-submit-btn"
+            disabled={submitting || !otpCode.trim()}
+            style={{ marginTop: 12 }}
+          >
             {t('login.twoFactor.verify', { defaultValue: 'Verify' })}
           </button>
         </form>
@@ -118,7 +121,7 @@ export const SocialCallbackPage: React.FC = () => {
   }
 
   if (isAuthenticated && user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={postAuthDestination(user)} replace />;
   }
 
   return <MyVagonBootScreen />;

@@ -12,6 +12,7 @@ import {
   isOnboardingTourRunning,
   startOnboardingTour,
 } from './startOnboardingTour';
+import { canStartOnboardingTour } from '../hooks/postAuthDestination';
 
 const AUTO_START_DELAY_MS = 1200;
 
@@ -64,14 +65,17 @@ export const OnboardingTourHost: React.FC<OnboardingTourHostProps> = ({ expandSi
     });
   }, [expandSidebar, markComplete, t]);
 
-  // Auto-start on dashboard when incomplete (or forced replay).
-  // Laravel parity: info-form reminder is suppressed until onboarding completes,
-  // so the guided tour always opens first — no wait on the reminder modal.
+  // Auto-start on dashboard only after KYC accepted + mandatory info form done.
   useEffect(() => {
     if (!user || !isDashboard) return;
 
     const forced = safeSessionGet(FORCE_TOUR_SESSION_KEY) === '1';
+    const readyForTour = canStartOnboardingTour(user) || forced;
     if (!forced && !incomplete) {
+      setShowHelpBtn(false);
+      return;
+    }
+    if (!readyForTour) {
       setShowHelpBtn(false);
       return;
     }

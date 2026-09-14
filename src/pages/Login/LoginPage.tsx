@@ -14,6 +14,7 @@ import {
 } from './loginValidation';
 import { clearSignupDraft } from '../Register/signupDraft';
 import { SocialAuthButtons } from '../../components/auth/SocialAuthButtons';
+import { postAuthDestination } from '../../hooks/postAuthDestination';
 import './LoginPage.css';
 
 function isTwoFactorChallenge(
@@ -23,8 +24,7 @@ function isTwoFactorChallenge(
 }
 
 function postLoginPath(user: ShipperUser, from: string): string {
-  if (user.onboarding_completed === false) return '/dashboard';
-  return from;
+  return postAuthDestination(user, from);
 }
 
 const EyeIcon: React.FC<{ open: boolean }> = ({ open }) =>
@@ -100,8 +100,7 @@ export const LoginPage: React.FC = () => {
   }, [resendSeconds]);
 
   if (!isLoading && isAuthenticated) {
-    const dest =
-      user && user.onboarding_completed === false ? '/dashboard' : from;
+    const dest = user ? postLoginPath(user, from) : from;
     return <Navigate to={dest} replace />;
   }
 
