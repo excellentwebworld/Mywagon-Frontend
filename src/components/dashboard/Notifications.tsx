@@ -47,34 +47,63 @@ export const Notifications: React.FC<{ enabled?: boolean }> = ({ enabled = true 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchList = React.useCallback((showSkeleton = false) => {
     if (!enabled) return;
-    let cancelled = false;
-    setLoading(true);
+    if (showSkeleton) setLoading(true);
     setError(null);
     notificationService
       .list({ tab: 'inbox', per_page: 5 })
       .then((res) => {
-        if (!cancelled) setItems(res.data ?? []);
+        setItems(res.data ?? []);
       })
       .catch((err: unknown) => {
-        if (!cancelled) {
-          setItems([]);
-          setError(formatDashError(err, 'dashNotifLoadFailed').key);
-        }
+        setItems([]);
+        setError(formatDashError(err, 'dashNotifLoadFailed').key);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
   }, [enabled]);
+
+  useEffect(() => {
+    fetchList(true);
+  }, [fetchList]);
+
+  useEffect(() => {
+    const handleNotifsUpdated = (event: Event) => {
+      const customEv = event as CustomEvent<{ id?: string; all?: boolean }>;
+      if (customEv.detail?.all) {
+        setItems((prev) => prev.map((item) => ({ ...item, read: true })));
+      } else if (customEv.detail?.id) {
+        setItems((prev) =>
+          prev.map((item) => (item.id === customEv.detail.id ? { ...item, read: true } : item))
+        );
+      }
+    };
+
+    const handlePushReceived = () => {
+      fetchList(false);
+    };
+
+    const handleWindowFocus = () => {
+      fetchList(false);
+    };
+
+    window.addEventListener('shipper:notifications-updated', handleNotifsUpdated);
+    window.addEventListener('shipper:notification-received', handlePushReceived);
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      window.removeEventListener('shipper:notifications-updated', handleNotifsUpdated);
+      window.removeEventListener('shipper:notification-received', handlePushReceived);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [fetchList]);
 
   const handleClick = (n: ApiNotification) => {
     if (!n.read) {
-      void notificationService.markRead(n.id).catch(() => {});
       setItems((prev) => prev.map((item) => (item.id === n.id ? { ...item, read: true } : item)));
+      void notificationService.markRead(n.id).catch(() => {});
     }
     openNotificationTarget(n, navigate);
   };

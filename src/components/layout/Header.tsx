@@ -154,9 +154,26 @@ export const Header: React.FC<HeaderProps> = ({
       }
     };
 
+    const handleNotifsUpdated = (event: Event) => {
+      const customEv = event as CustomEvent<{ id?: string; all?: boolean }>;
+      if (customEv.detail?.all) {
+        setUnreadCount(0);
+        setHeaderNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+      } else if (customEv.detail?.id) {
+        setUnreadCount((c) => Math.max(0, c - 1));
+        setHeaderNotifs((prev) =>
+          prev.map((n) => (n.id === customEv.detail.id ? { ...n, read: true } : n))
+        );
+      } else {
+        loadUnreadCount();
+      }
+    };
+
     window.addEventListener('shipper:notification-received', handlePushReceived);
+    window.addEventListener('shipper:notifications-updated', handleNotifsUpdated);
     return () => {
       window.removeEventListener('shipper:notification-received', handlePushReceived);
+      window.removeEventListener('shipper:notifications-updated', handleNotifsUpdated);
     };
   }, [notifOpen]);
 
@@ -562,8 +579,11 @@ export const Header: React.FC<HeaderProps> = ({
                         }}
                         onClick={() => {
                           if (!n.read) {
-                            void notificationService.markRead(n.id).catch(() => {});
+                            setHeaderNotifs((prev) =>
+                              prev.map((item) => (item.id === n.id ? { ...item, read: true } : item))
+                            );
                             setUnreadCount((c) => Math.max(0, c - 1));
+                            void notificationService.markRead(n.id).catch(() => {});
                           }
                           setNotifOpen(false);
                           openNotificationTarget(n, navigate);

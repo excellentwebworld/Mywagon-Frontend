@@ -139,11 +139,21 @@ export const notificationService = {
   /** Mark all unread notifications as read. */
   async markAllRead(): Promise<void> {
     await apiPost('/notifications/mark-all-read');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('shipper:notifications-updated', { detail: { all: true } })
+      );
+    }
   },
 
   /** Mark a single notification as read by UUID. */
   async markRead(id: string): Promise<ApiNotification> {
     const res = await apiPost<ApiNotification>(`/notifications/${id}/read`);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('shipper:notifications-updated', { detail: { id, all: false } })
+      );
+    }
     return res.data!;
   },
 

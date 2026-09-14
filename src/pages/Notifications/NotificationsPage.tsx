@@ -393,6 +393,27 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
     return () => { if (searchDebounce.current) clearTimeout(searchDebounce.current); };
   }, [searchQuery]);
 
+  // ── Sync with global notification updates ──────────────────────────────
+  useEffect(() => {
+    const handleNotifsUpdated = (event: Event) => {
+      const customEv = event as CustomEvent<{ id?: string; all?: boolean }>;
+      if (customEv.detail?.all) {
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        setMeta((prev) => ({ ...prev, unread_count: 0 }));
+      } else if (customEv.detail?.id) {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === customEv.detail.id ? { ...n, read: true } : n))
+        );
+        setMeta((prev) => ({ ...prev, unread_count: Math.max(0, prev.unread_count - 1) }));
+      }
+    };
+
+    window.addEventListener('shipper:notifications-updated', handleNotifsUpdated);
+    return () => {
+      window.removeEventListener('shipper:notifications-updated', handleNotifsUpdated);
+    };
+  }, []);
+
   // ── Escape key ─────────────────────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -459,6 +480,13 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
     let redirectSlug: string | undefined | null;
 
     if (typeof itemOrAction === 'object' && itemOrAction !== null) {
+      if (!itemOrAction.read) {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === itemOrAction.id ? { ...n, read: true } : n))
+        );
+        setMeta((prev) => ({ ...prev, unread_count: Math.max(0, prev.unread_count - 1) }));
+        void notificationService.markRead(itemOrAction.id).catch(() => {});
+      }
       action = itemOrAction.action;
       actionId = itemOrAction.action_id;
       externalUrl = itemOrAction.external_url;
