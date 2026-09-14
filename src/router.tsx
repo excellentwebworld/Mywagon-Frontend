@@ -120,6 +120,11 @@ const publicTrackingRoutes = [
   // Legacy path form + Amplify-decoded %2F (extra segments)
   { path: '/track-shipment/:encryptedId/:encryptedLocationIds', element: <PublicTrackingPage /> },
   { path: '/track-shipment/*', element: <PublicTrackingPage /> },
+  // Laravel-prefixed route support
+  { path: '/shipper/track-shipment', element: <PublicTrackingPage /> },
+  { path: '/shipper/track-shipment/', element: <PublicTrackingPage /> },
+  { path: '/shipper/track-shipment/:encryptedId/:encryptedLocationIds', element: <PublicTrackingPage /> },
+  { path: '/shipper/track-shipment/*', element: <PublicTrackingPage /> },
 ];
 
 export const router = createBrowserRouter(

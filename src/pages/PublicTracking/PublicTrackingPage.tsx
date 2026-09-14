@@ -251,7 +251,9 @@ function usePublicTrackingTokens(): {
       };
     }
 
-    const marker = '/track-shipment/';
+    const marker = location.pathname.includes('/shipper/track-shipment/')
+      ? '/shipper/track-shipment/'
+      : '/track-shipment/';
     const idx = location.pathname.indexOf(marker);
     if (idx >= 0) {
       const rest = location.pathname.slice(idx + marker.length).replace(/\/$/, '');

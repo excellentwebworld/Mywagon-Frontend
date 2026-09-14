@@ -222,6 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const isPublicGuestPath =
           path === '/login' ||
           path.startsWith('/track-shipment') ||
+          path.startsWith('/shipper/track-shipment') ||
           path.startsWith('/webview/') ||
           path.startsWith('/shipper/register') ||
           path.startsWith('/auth/social') ||

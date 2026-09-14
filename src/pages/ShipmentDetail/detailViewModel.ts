@@ -178,6 +178,7 @@ export interface TrackingStats {
   traffic?: string;
   signal?: string;
   heading?: string;
+  trackingUrl?: string | null;
 }
 
 export interface IncidentItem {
@@ -1203,6 +1204,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       traffic: '',
       signal: 'GPS Live',
       heading: '',
+      trackingUrl: (shipment as any).tracking_url || (shipment as any).trackingUrl || stops.find((s: any) => s.tracking_url || s.trackingUrl)?.tracking_url || null,
     },
     trip: {
       distanceKm: shipment.journeyDistanceKm || 0,
@@ -1252,7 +1254,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
               (s.customers?.[0] as any)?.email ||
               '',
             orderRef: s.customers?.[0]?.orders?.[0]?.id || orderIds.split(',')[0]?.trim() || displayId,
-            trackingUrl: (s as any).tracking_url || (s as any).trackingUrl || null,
+            trackingUrl: (s as any).tracking_url || (s as any).trackingUrl || (shipment as any).tracking_url || (shipment as any).trackingUrl || null,
           })),
       },
     ],

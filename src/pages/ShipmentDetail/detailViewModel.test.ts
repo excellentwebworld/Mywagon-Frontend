@@ -408,4 +408,48 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
     expect(vmWithPerformance.availableNavSections).toContain('docs');
     expect(vmWithPerformance.availableNavSections).toContain('audit');
   });
+
+  it('preserves public tracking link with location ID across Pending, Ready, and On Trip statuses', () => {
+    const trackingUrlSample = 'https://app.myvagon.com/shipper/track-shipment/eyJpZCI6MTB9/eyJsaWQiOjIwfQ';
+
+    // Pending
+    const pendingVm = buildShipmentDetailViewModel({
+      ...baseMockShipment,
+      status: 'pending',
+      tracking_url: trackingUrlSample,
+      stops: [
+        { id: 10, type: 'pickup', location: 'Athens' },
+        { id: 20, type: 'delivery', location: 'Thessaloniki', tracking_url: trackingUrlSample },
+      ],
+    });
+    expect(pendingVm.tracking.trackingUrl).toBe(trackingUrlSample);
+    expect(pendingVm.shareGroups[0]?.rows[0]?.trackingUrl).toBe(trackingUrlSample);
+
+    // Ready
+    const readyVm = buildShipmentDetailViewModel({
+      ...baseMockShipment,
+      status: 'ready',
+      tracking_url: trackingUrlSample,
+      stops: [
+        { id: 10, type: 'pickup', location: 'Athens' },
+        { id: 20, type: 'delivery', location: 'Thessaloniki', tracking_url: trackingUrlSample },
+      ],
+    });
+    expect(readyVm.tracking.trackingUrl).toBe(trackingUrlSample);
+    expect(readyVm.shareGroups[0]?.rows[0]?.trackingUrl).toBe(trackingUrlSample);
+
+    // On Trip
+    const onTripVm = buildShipmentDetailViewModel({
+      ...baseMockShipment,
+      status: 'on_trip',
+      tracking_url: trackingUrlSample,
+      stops: [
+        { id: 10, type: 'pickup', location: 'Athens', locationStatus: '3' },
+        { id: 20, type: 'delivery', location: 'Thessaloniki', tracking_url: trackingUrlSample },
+      ],
+    });
+    expect(onTripVm.tracking.trackingUrl).toBe(trackingUrlSample);
+    expect(onTripVm.shareGroups[0]?.rows[0]?.trackingUrl).toBe(trackingUrlSample);
+  });
 });
+
