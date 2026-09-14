@@ -62,6 +62,9 @@ export const ForgotPasswordPage: React.FC = () => {
         res.message ||
           t('forgotPasswordSuccess', 'Reset password link sent on your email')
       );
+      setEmail('');
+      setTouched(false);
+      setEmailError(null);
     } catch (error: unknown) {
       const msg =
         error instanceof Error
