@@ -903,11 +903,15 @@ table.t tbody tr {
   border-bottom: 1px solid var(--border, #E4E4E8);
 }
 table.t tbody tr:hover {
-  background: #FAFAFD;
+  background: var(--surface-alt);
 }
-table.t tbody tr.sel,
-table.t tbody tr.row-open {
-  background: var(--accent-light-pale, #EDE9FE) !important;
+.dark table.t tbody tr:hover {
+  background: var(--surface-alt) !important;
+  color: var(--text-primary) !important;
+}
+.dark table.t tbody tr.sel,
+.dark table.t tbody tr.row-open {
+  background: rgba(155, 81, 224, 0.18) !important;
 }
 table.t tbody td {
   padding: 10px 12px;

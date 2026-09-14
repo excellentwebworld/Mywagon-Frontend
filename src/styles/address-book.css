@@ -366,7 +366,7 @@ table.ab-table { width: 100%; border-collapse: collapse; }
   cursor: pointer;
   border-bottom: 1px solid var(--border);
 }
-.ab-table tbody tr:hover { background: #FAFAFD; }
+.ab-table tbody tr:hover { background: var(--surface-alt); }
 .ab-table tbody tr.selected { background: var(--accent-light) !important; }
 .ab-table tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 
@@ -1402,4 +1402,71 @@ table.ab-table { width: 100%; border-collapse: collapse; }
   color: var(--danger);
   border-color: #FCA5A5;
   background: #FEF2F2;
+}
+
+/* ── Dark Mode Overrides ── */
+.dark .ab-table tbody tr:hover {
+  background: var(--surface-alt) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark .ab-table tbody tr.selected {
+  background: rgba(155, 81, 224, 0.18) !important;
+}
+
+.dark .ab-table thead th {
+  background: var(--surface-alt) !important;
+  color: var(--text-tertiary) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+.dark .ab-table tbody td {
+  border-bottom-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark .dir-node:hover {
+  background: var(--surface-alt) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark .dir-node.active {
+  background: rgba(155, 81, 224, 0.18) !important;
+  color: var(--accent) !important;
+}
+
+.dark .act-btn:hover {
+  background: var(--surface-alt) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+}
+
+.dark .location-type-badge.type-customer {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #93c5fd !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.dark .location-type-badge.type-my {
+  background: rgba(168, 85, 247, 0.15) !important;
+  color: #d8b4fe !important;
+  border-color: rgba(168, 85, 247, 0.3) !important;
+}
+
+.dark .role-pickup {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #93c5fd !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.dark .role-delivery {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #6ee7b7 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.dark .role-both {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fcd34d !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
 }

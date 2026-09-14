@@ -224,7 +224,7 @@ table.t { width: 100%; border-collapse: collapse; }
 .th-sort-arrow { font-size: 10px; color: var(--t3); transition: color .12s ease; }
 .th-sort-btn.active .th-sort-arrow { color: var(--ac); }
 .t tbody tr { transition: background .08s; cursor: pointer; border-bottom: 1px solid var(--bd); }
-.t tbody tr:hover { background: #FAFAFD; }
+.t tbody tr:hover { background: var(--sa); }
 .t tbody tr.sel { background: var(--al) !important; }
 .t tbody td { padding: 9px 12px; font-size: 13px; vertical-align: middle; }
 .sku-name { font-weight: 600; font-size: 13px; line-height: 1.2; }
@@ -431,4 +431,43 @@ input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--ac); cur
   .pm-container .kpi { padding: 10px 12px; }
   .pm-container .kpi-v { font-size: 18px; }
   .types-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Dark Mode Overrides ── */
+.dark table.t tbody tr:hover,
+.dark .t tbody tr:hover {
+  background: var(--surface-alt) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark table.t tbody tr.sel,
+.dark .t tbody tr.sel {
+  background: rgba(155, 81, 224, 0.18) !important;
+}
+
+.dark .t thead th {
+  background: var(--surface-alt) !important;
+  color: var(--text-tertiary) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+.dark .t tbody td {
+  border-bottom-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark .type-node:hover {
+  background: var(--surface-alt) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark .type-node.act {
+  background: rgba(155, 81, 224, 0.18) !important;
+  color: var(--accent) !important;
+}
+
+.dark .type-pill {
+  background: var(--surface-alt) !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
 }

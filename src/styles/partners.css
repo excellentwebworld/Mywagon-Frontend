@@ -404,7 +404,7 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
   cursor: pointer;
   border-bottom: 1px solid var(--border);
 }
-.ptn-table tbody tr:hover { background: #FAFAFD; }
+.ptn-table tbody tr:hover { background: var(--surface-alt); }
 .ptn-table tbody tr.selected { background: var(--accent-light) !important; }
 .ptn-table tbody td { padding: 9px 12px; font-size: 13px; vertical-align: middle; }
 
@@ -1333,5 +1333,64 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
 }
 .ptn-tag-input-group input:focus {
   border-color: var(--accent);
+}
+
+/* ── Dark Mode Overrides ── */
+.dark .ptn-table tbody tr:hover {
+  background: var(--surface-alt) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark .ptn-table tbody tr.selected {
+  background: rgba(155, 81, 224, 0.18) !important;
+}
+
+.dark .ptn-table thead th {
+  background: var(--surface-alt) !important;
+  color: var(--text-tertiary) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+.dark .ptn-table tbody td {
+  border-bottom-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark .ptn-cat-node:hover {
+  background: var(--surface-alt) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark .ptn-cat-node.active {
+  background: rgba(155, 81, 224, 0.18) !important;
+  color: var(--accent) !important;
+}
+
+.dark .ptn-fdd-item:hover {
+  background: var(--surface-alt) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark .ptn-tp-c {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #93c5fd !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.dark .ptn-tp-f {
+  background: rgba(168, 85, 247, 0.15) !important;
+  color: #d8b4fe !important;
+  border-color: rgba(168, 85, 247, 0.3) !important;
+}
+
+.dark .ptn-tp-s {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #6ee7b7 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.dark .ptn-st-ac {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #6ee7b7 !important;
 }
 

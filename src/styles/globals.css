@@ -866,7 +866,10 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   border-bottom: 1px solid var(--border); white-space: nowrap;
 }
 .data-table tbody tr { cursor: pointer; transition: background .08s; }
-.data-table tbody tr:hover { background: #FAFAFD; }
+.data-table tbody tr:hover { background: var(--surface-alt); }
+.data-table tbody tr.selected { background: var(--accent-light) !important; }
+.dark .data-table tbody tr:hover { background: var(--surface-alt) !important; color: var(--text-primary); }
+.dark .data-table tbody tr.selected { background: rgba(155, 81, 224, 0.18) !important; }
 .data-table tbody td {
   padding: 12px 14px; border-bottom: 1px solid var(--border);
   font-size: 13px; vertical-align: middle;
