@@ -181,7 +181,7 @@ export const LiveMap: React.FC<LiveMapProps> = ({ selectedShipmentId }) => {
             polylinePath={routeLegs.polylinePath}
             directionsResult={routeLegs.directionsResult}
             loading={routeLegs.loading}
-            height={300}
+            height="100%"
             expanded
             t={t as (key: string, params?: Record<string, unknown>) => string}
           />

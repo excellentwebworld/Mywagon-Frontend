@@ -1567,6 +1567,32 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .dashboard-page .status-partial-right{
   display:inline-flex;align-items:center;background:#111827;color:#fff;padding:3px 8px;font-size:10px;font-weight:600;
 }
+.status-box-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  overflow: visible;
+}
+.status-box-wrap.is-at-risk {
+  padding-right: 2px;
+}
+.status-at-risk-warn {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  z-index: 2;
+  display: inline-flex;
+  width: 9px;
+  height: 9px;
+  color: #991b1b;
+  line-height: 0;
+  pointer-events: none;
+}
+.status-at-risk-warn svg {
+  display: block;
+  width: 9px;
+  height: 9px;
+}
 
 /* ══ MAP STYLES ══ */
 .map-wrap{height:100%;min-height:380px;display:flex;flex-direction:column}
@@ -1579,11 +1605,14 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .map-body::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 40%,rgba(108,58,237,.05) 0%,transparent 60%),radial-gradient(circle at 70% 60%,rgba(14,165,233,.04) 0%,transparent 50%)}
 .map-body > svg,.map-body > span{z-index:1}
 .map-placeholder{flex:1;width:100%;height:100%;min-height:280px;z-index:1;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
-.dash-live-map-body{padding:0;align-items:stretch;justify-content:stretch}
+.dash-live-map-body{padding:0;align-items:stretch;justify-content:stretch;display:flex;flex-direction:column;flex:1;height:100%;min-height:280px}
 .dash-live-map-body::before{display:none}
-.dash-live-map-body > *{z-index:1;width:100%}
+.dash-live-map-body > *{z-index:1;width:100%;height:100%;flex:1}
+.dash-live-map-body .wizard-route-map,
+.dash-live-map-body .wizard-route-map-fallback{height:100%!important;flex:1;display:flex;flex-direction:column;min-height:280px}
+.dash-live-map-body .wizard-route-map > div{height:100%!important;flex:1}
 .map-selected-sid{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--text-secondary)}
-.map-stats{display:flex;gap:16px;padding:12px 18px;border-top:1px solid var(--border);z-index:1}
+.map-stats{display:flex;gap:16px;padding:12px 18px;border-top:1px solid var(--border);z-index:1;background:var(--surface)}
 .map-stat{text-align:center;font-size:11px;font-weight:500}
 .map-stat-val{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;margin-bottom:2px}
 

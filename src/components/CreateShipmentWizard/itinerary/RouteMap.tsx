@@ -13,7 +13,7 @@ interface RouteMapProps {
   routeLabel?: string;
   mapType?: 'roadmap' | 'satellite';
   strokeColor?: string;
-  height?: number;
+  height?: number | string;
   /** Highlight / open this stop’s marker (0-based). */
   activeStopIndex?: number | null;
   /** Fired when a numbered map marker is clicked. */
@@ -140,6 +140,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   const liveAnimFrameRef = useRef<number | null>(null);
   const onStopSelectRef = useRef(onStopSelect);
   onStopSelectRef.current = onStopSelect;
+  const currentBoundsRef = useRef<any>(null);
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
   const [mapsFailed, setMapsFailed] = useState(false);
   /** Bumped whenever Google Map instance is (re)created so live marker can re-attach. */
@@ -183,6 +184,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     let infoWindows: any[] = [];
     let map: any = null;
     let mapClickListener: any = null;
+    let resizeObserver: ResizeObserver | null = null;
     let cancelled = false;
 
     const closeAllInfoWindows = () => {
@@ -250,6 +252,10 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           });
         };
 
+        const bounds = new google.maps.LatLngBounds();
+        safePolylinePath.forEach((p) => bounds.extend(new google.maps.LatLng(p.lat, p.lng)));
+        currentBoundsRef.current = bounds;
+
         if (directionsResult) {
           renderer = new google.maps.DirectionsRenderer({
             map,
@@ -263,25 +269,32 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           });
           renderer.setDirections(directionsResult);
           addStopMarkers();
-          const bounds = new google.maps.LatLngBounds();
-          safePolylinePath.forEach((p) => bounds.extend(new google.maps.LatLng(p.lat, p.lng)));
           if (!bounds.isEmpty()) map.fitBounds(bounds);
-          return;
+        } else {
+          if (!bounds.isEmpty()) map.fitBounds(bounds);
+
+          polyline = new google.maps.Polyline({
+            path: safePolylinePath.map((p) => ({ lat: p.lat, lng: p.lng })),
+            geodesic: false,
+            strokeColor: strokeColor || '#9B51E0',
+            strokeOpacity: 0.9,
+            strokeWeight: 4,
+          });
+          polyline.setMap(map);
+          addStopMarkers();
         }
 
-        const bounds = new google.maps.LatLngBounds();
-        safePolylinePath.forEach((p) => bounds.extend(new google.maps.LatLng(p.lat, p.lng)));
-        map.fitBounds(bounds);
-
-        polyline = new google.maps.Polyline({
-          path: safePolylinePath.map((p) => ({ lat: p.lat, lng: p.lng })),
-          geodesic: false,
-          strokeColor: strokeColor || '#9B51E0',
-          strokeOpacity: 0.9,
-          strokeWeight: 4,
-        });
-        polyline.setMap(map);
-        addStopMarkers();
+        if (containerRef.current && typeof ResizeObserver !== 'undefined') {
+          resizeObserver = new ResizeObserver(() => {
+            if (mapRef.current && (window as any).google?.maps?.event) {
+              (window as any).google.maps.event.trigger(mapRef.current, 'resize');
+              if (currentBoundsRef.current && !currentBoundsRef.current.isEmpty()) {
+                mapRef.current.fitBounds(currentBoundsRef.current);
+              }
+            }
+          });
+          resizeObserver.observe(containerRef.current);
+        }
       })
       .catch(() => {
         if (!cancelled) setMapsFailed(true);
@@ -289,6 +302,10 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 
     return () => {
       cancelled = true;
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+        resizeObserver = null;
+      }
       if (liveAnimFrameRef.current != null) {
         cancelAnimationFrame(liveAnimFrameRef.current);
         liveAnimFrameRef.current = null;
@@ -505,10 +522,17 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     return (
       <div
         className="wizard-route-map-fallback flex flex-col items-center justify-center"
-        style={{ height, background: 'var(--surface-alt)', position: 'relative' }}
+        style={{
+          height,
+          minHeight: typeof height === 'number' ? height : undefined,
+          background: 'var(--surface-alt)',
+          position: 'relative',
+          width: '100%',
+          flex: 1,
+        }}
       >
         {pathForBounds.length >= 1 ? (
-          <iframe title={label} src={osmUrl} loading="lazy" style={{ width: '100%', height: '100%', border: 0 }} />
+          <iframe title={label} src={osmUrl} loading="lazy" style={{ width: '100%', height: '100%', border: 0, flex: 1 }} />
         ) : (
           <>
             <MapPin size={36} style={{ color: 'var(--text-tertiary)', opacity: 0.3 }} />
@@ -543,8 +567,19 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   }
 
   return (
-    <div className="wizard-route-map" style={{ height, position: 'relative' }}>
-      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+    <div
+      className="wizard-route-map"
+      style={{
+        height,
+        minHeight: typeof height === 'number' ? height : undefined,
+        position: 'relative',
+        width: '100%',
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <div ref={containerRef} style={{ width: '100%', height: '100%', flex: 1 }} />
       {livePosition && Number.isFinite(livePosition.lat) && Number.isFinite(livePosition.lng) ? (
         <div
           className="absolute right-2 top-2 rounded-md px-2 py-1 text-[11px] font-semibold pointer-events-none"

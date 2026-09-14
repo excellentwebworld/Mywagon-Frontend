@@ -142,6 +142,17 @@ export const Schedule: React.FC<ScheduleProps> = ({ selectedShipmentId, onSelect
                     ) : (
                       <span className={badgeClass}>{t(event.status)}</span>
                     )}
+                    {event.atRisk ? (
+                      <span
+                        className="status-at-risk-warn"
+                        aria-label={t('atRiskLate', 'At risk')}
+                        title={t('atRiskLate', 'At risk')}
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                          <path d="M12 3L22 21H2L12 3z" />
+                        </svg>
+                      </span>
+                    ) : null}
                   </span>
                   <button
                     type="button"
