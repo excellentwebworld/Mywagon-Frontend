@@ -22,8 +22,8 @@ export const Dashboard: React.FC = () => {
     useOutboundSummary();
   const secondaryReady = useDeferredReady(350);
 
-  // Coordinate active board tab between KpiStrip and ShipmentBoard (3 = Upcoming)
-  const [activeBoardTab, setActiveBoardTab] = useState<number>(3);
+  // Coordinate active board tab between KpiStrip and ShipmentBoard (0 = Active Shipments)
+  const [activeBoardTab, setActiveBoardTab] = useState<number>(0);
   const [selectedScheduleShipmentId, setSelectedScheduleShipmentId] = useState<number | null>(null);
 
   const handleSelectScheduleShipment = useCallback((id: number) => {

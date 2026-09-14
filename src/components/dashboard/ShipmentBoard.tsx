@@ -27,6 +27,7 @@ type BoardTabDef =
   | { key: string; labelKey: string; warn?: boolean; filter: { status: string } };
 
 const BOARD_TABS: BoardTabDef[] = [
+  { key: 'active', labelKey: 'tabActive', filter: { status: 'active' } },
   { key: 'needs_action', labelKey: 'needsActionLabel', warn: true, filter: { kpi: 'needs_action' } },
   { key: 'awaiting_response', labelKey: 'awaitingResponse', filter: { kpi: 'awaiting_response' } },
   { key: 'at_risk', labelKey: 'kpiAtRisk', filter: { kpi: 'at_risk' } },
@@ -36,7 +37,7 @@ const BOARD_TABS: BoardTabDef[] = [
 ];
 
 function manageShipmentsHref(tabIndex: number): string {
-  const tab = BOARD_TABS[tabIndex] ?? BOARD_TABS[3];
+  const tab = BOARD_TABS[tabIndex] ?? BOARD_TABS[0];
   if ('kpi' in tab.filter) return `/shipments?kpi=${tab.filter.kpi}`;
   return `/shipments?status=${tab.filter.status}`;
 }
@@ -46,6 +47,16 @@ function tabCount(
   summary: { kpis?: Record<string, number>; statuses?: Record<string, number> }
 ): number {
   if ('kpi' in tab.filter) return summary.kpis?.[tab.filter.kpi] ?? 0;
+  if (tab.filter.status === 'active') {
+    const statuses = summary.statuses ?? {};
+    if (typeof statuses.active === 'number') return statuses.active;
+    const pending = statuses.pending ?? 0;
+    const scheduled = statuses.scheduled ?? 0;
+    const ready = statuses.ready ?? 0;
+    const pastDue = statuses.past_due ?? 0;
+    const onTrip = statuses.on_trip ?? 0;
+    return pending + scheduled + ready + pastDue + onTrip;
+  }
   return summary.statuses?.[tab.filter.status] ?? 0;
 }
 
@@ -62,7 +73,7 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [detailCache, setDetailCache] = useState<Record<string, Shipment>>({});
 
-  const safeTab = BOARD_TABS[activeTab] ? activeTab : 3;
+  const safeTab = BOARD_TABS[activeTab] ? activeTab : 0;
   const activeDef = BOARD_TABS[safeTab];
 
   useEffect(() => {

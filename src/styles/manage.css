@@ -682,7 +682,7 @@
   background: var(--surface-alt);
 }
 .mgmt-t tbody tr:hover .col-actions {
-  background: #fafafd;
+  background: var(--surface-alt);
 }
 .mgmt-t tbody tr.expanded .col-actions {
   background: var(--accent-light);
@@ -710,7 +710,7 @@
   cursor: pointer;
 }
 .mgmt-t tbody tr:hover {
-  background: #fafafd;
+  background: var(--surface-alt);
 }
 .mgmt-t tbody tr.expanded {
   background: var(--accent-light) !important;
@@ -720,6 +720,45 @@
   border-bottom: 1px solid var(--border);
   font-size: 13px;
   vertical-align: middle;
+}
+
+/* ── Dark mode table row overrides ── */
+.dark .mgmt-page table.mgmt-t {
+  color: var(--text-primary);
+}
+.dark .mgmt-t thead th {
+  background: var(--surface-alt);
+  color: var(--text-tertiary);
+  border-bottom-color: var(--border);
+}
+.dark .mgmt-t thead th.col-actions {
+  background: var(--surface-alt);
+}
+.dark .mgmt-t tbody tr {
+  background: transparent;
+}
+.dark .mgmt-t tbody td {
+  border-bottom-color: var(--border);
+  color: var(--text-primary);
+}
+.dark .mgmt-t .col-actions {
+  background: var(--surface);
+  box-shadow: -6px 0 10px -6px rgba(0, 0, 0, 0.4);
+}
+.dark .mgmt-t tbody tr:hover {
+  background: var(--surface-alt) !important;
+}
+.dark .mgmt-t tbody tr:hover .col-actions {
+  background: var(--surface-alt) !important;
+}
+.dark .mgmt-t tbody tr.expanded {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface)) !important;
+}
+.dark .mgmt-t tbody tr.expanded .col-actions {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface)) !important;
+}
+.dark .mgmt-t tbody tr.exp > td {
+  background: var(--surface);
 }
 .mgmt-t .chk {
   width: 36px;
@@ -1323,6 +1362,9 @@
   width: 9px;
   height: 9px;
 }
+.dark .status-at-risk-warn {
+  color: #f87171 !important;
+}
 .status-box .bdot {
   width: 6px;
   height: 6px;
@@ -1355,7 +1397,7 @@
 .mgmt-t .status-box--pending-request,
 .exp-inner .status-box--pending-request {
   background-color: #55cf9e !important;
-  color: #ffffff !important;
+  color: #064e3b !important;
 }
 .mgmt-t .status-box--pending-more,
 .exp-inner .status-box--pending-more {
@@ -3097,6 +3139,11 @@
   color: var(--text-tertiary);
   padding: 2px 4px;
 }
+.dark .cust-pill {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.28);
+}
 .exp-cust-group {
   margin-bottom: 10px;
 }
@@ -4117,3 +4164,174 @@ select.mgmt-pop-input {
     flex-wrap: wrap;
   }
 }
+
+/* ── Dark Mode Filter & Sort Popup Styles ── */
+.dark .mgmt-pop {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+.dark .mgmt-pop-h {
+  background: var(--surface);
+  border-bottom-color: var(--border);
+}
+
+.dark .mgmt-pop-h h3 {
+  color: var(--text-primary);
+}
+
+.dark .mgmt-pop-sub {
+  color: var(--text-tertiary);
+}
+
+.dark .mgmt-pop-sec {
+  border-bottom-color: var(--border);
+}
+
+.dark .mgmt-pop-sec-title {
+  color: var(--text-tertiary);
+}
+
+.dark .mgmt-pop-sec-subtitle {
+  color: var(--text-secondary);
+}
+
+.dark .mgmt-pop-label {
+  color: var(--text-secondary);
+}
+
+.dark .mgmt-pop-input {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.dark .mgmt-pop-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(155, 81, 224, 0.25);
+}
+
+.dark .mgmt-pop-input:disabled {
+  background: var(--surface-alt);
+  opacity: 0.55;
+}
+
+.dark select.mgmt-pop-input {
+  background-color: var(--surface);
+  color: var(--text-primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+.dark select.mgmt-pop-input option {
+  background-color: var(--surface, #1e1e38);
+  color: var(--text-primary, #ffffff);
+}
+
+.dark .mgmt-pop-datetime .mgmt-pop-date-picker .date-picker-trigger,
+.dark .mgmt-pop-datetime .mgmt-pop-time-picker input {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.dark .mgmt-seg {
+  background: var(--surface-alt);
+  border-color: var(--border);
+}
+
+.dark .mgmt-seg--wrap .mgmt-seg-btn {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+.dark .mgmt-seg-btn {
+  color: var(--text-secondary);
+}
+
+.dark .mgmt-seg-btn:hover:not(.act) {
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.dark .mgmt-seg-btn.act,
+.dark .mgmt-seg--wrap .mgmt-seg-btn.act {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.dark .mgmt-pop-chips .mgmt-seg-btn {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+.dark .mgmt-pop-chips .mgmt-seg-btn.act {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.dark .mgmt-product-menu {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+.dark .mgmt-product-option {
+  color: var(--text-primary);
+}
+
+.dark .mgmt-product-option:hover {
+  background: var(--surface-alt);
+}
+
+.dark .mgmt-product-option.selected {
+  background: rgba(155, 81, 224, 0.18);
+}
+
+.dark .mgmt-product-option--sku .mgmt-product-option-text > span {
+  color: var(--text-secondary);
+}
+
+.dark .mgmt-product-option--sku.selected .mgmt-product-option-text > span {
+  color: var(--accent);
+}
+
+.dark .mgmt-loc-radius {
+  color: var(--text-secondary);
+}
+
+.dark .mgmt-pop-ft {
+  background: var(--surface);
+  border-top-color: var(--border);
+}
+
+.dark .mgmt-pop-ft .btn-ghost {
+  color: var(--text-secondary);
+}
+
+.dark .mgmt-pop-ft .btn-ghost:hover {
+  color: var(--danger);
+  background: transparent;
+}
+
+.dark .mgmt-sort-item:hover {
+  background: var(--surface-alt);
+}
+
+.dark .mgmt-sort-item.act {
+  background: rgba(155, 81, 224, 0.18);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.dark .mgmt-sort-label {
+  color: var(--text-primary);
+}
+
+.dark .mgmt-sort-radio {
+  background: var(--surface);
+  border-color: var(--border);
+}
+

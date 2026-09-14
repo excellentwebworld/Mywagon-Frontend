@@ -59,12 +59,12 @@ export const Schedule: React.FC<ScheduleProps> = ({ selectedShipmentId, onSelect
           <span>{t('todaysSchedule')}</span>
           <span className="cnt">{counts.loads}</span>
           <span className="sched-density" style={{ marginLeft: '8px' }}>
-            <span className="sched-density-dot" style={{ background: 'var(--text-primary)' }} />
+            <span className="sched-density-dot sched-density-dot--pickup" />
             <span>
               {counts.pickups}
               {t('schedPickupsShort')}
             </span>
-            <span className="sched-density-dot" style={{ background: '#000' }} />
+            <span className="sched-density-dot sched-density-dot--dropoff" />
             <span>
               {counts.dropoffs}
               {t('schedDropoffsShort')}
