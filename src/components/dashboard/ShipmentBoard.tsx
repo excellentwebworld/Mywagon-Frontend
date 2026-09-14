@@ -27,7 +27,7 @@ type BoardTabDef =
   | { key: string; labelKey: string; warn?: boolean; filter: { status: string } };
 
 const BOARD_TABS: BoardTabDef[] = [
-  { key: 'active', labelKey: 'tabActive', filter: { status: 'active' } },
+  // { key: 'active', labelKey: 'tabActive', filter: { status: 'active' } },
   { key: 'needs_action', labelKey: 'needsActionLabel', warn: true, filter: { kpi: 'needs_action' } },
   { key: 'awaiting_response', labelKey: 'awaitingResponse', filter: { kpi: 'awaiting_response' } },
   { key: 'at_risk', labelKey: 'kpiAtRisk', filter: { kpi: 'at_risk' } },

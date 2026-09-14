@@ -107,25 +107,28 @@ html.dark .driver-popover {
   letter-spacing: -0.02em !important;
   color: var(--t1, #111827) !important;
   margin: 0 !important;
-  padding: 18px 44px 6px 18px !important;
+  padding: 18px 36px 8px 36px !important;
   line-height: 1.3 !important;
+  text-align: center !important;
 }
 
 .driver-popover-description {
   font-size: 14px !important;
   line-height: 1.65 !important;
   color: var(--t2, #4b5563) !important;
-  padding: 0 18px 14px !important;
+  padding: 0 20px 16px !important;
   margin: 0 !important;
+  text-align: center !important;
 }
 
 .driver-popover-description .mv-tour-body {
   margin: 0 0 10px !important;
   color: inherit !important;
+  text-align: center !important;
 }
 
 .driver-popover-description .mv-tour-tip {
-  margin: 0 !important;
+  margin: 8px auto 0 !important;
   padding: 10px 12px !important;
   border-radius: 10px !important;
   background: var(--sa, #f3f4f6) !important;
@@ -133,6 +136,7 @@ html.dark .driver-popover {
   font-size: 13px !important;
   font-weight: 500 !important;
   line-height: 1.5 !important;
+  text-align: center !important;
 }
 
 .driver-popover-close-btn {
@@ -160,6 +164,7 @@ html.dark .driver-popover {
   border-top: 1px solid var(--bd, #e5e7eb) !important;
   background: var(--sa, #f9fafb) !important;
   border-radius: 0 0 14px 14px !important;
+  box-sizing: border-box !important;
 }
 
 .driver-popover-progress-text {
@@ -167,6 +172,8 @@ html.dark .driver-popover {
   color: var(--t3, #9ca3af) !important;
   font-weight: 600 !important;
   margin-right: auto !important;
+  margin-left: 0 !important;
+  white-space: nowrap !important;
 }
 
 .driver-popover-navigation-btns {
@@ -174,6 +181,7 @@ html.dark .driver-popover {
   align-items: center !important;
   gap: 8px !important;
   margin-left: auto !important;
+  margin-right: 0 !important;
 }
 
 .driver-popover-prev-btn,
@@ -181,11 +189,18 @@ html.dark .driver-popover {
   border-radius: 9999px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
-  padding: 8px 18px !important;
-  min-width: 72px !important;
+  padding: 0 20px !important;
+  min-width: 76px !important;
+  height: 36px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
   text-shadow: none !important;
   box-shadow: none !important;
-  line-height: 1.2 !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+  cursor: pointer !important;
 }
 
 .driver-popover-prev-btn {
@@ -471,13 +486,23 @@ html.dark .driver-popover-arrow-side-bottom {
 
   .driver-popover-description {
     font-size: 13px !important;
-    padding: 0 14px 12px !important;
+    padding: 0 16px 14px !important;
+    text-align: center !important;
   }
 
   .driver-popover-footer {
-    flex-wrap: wrap !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
     gap: 8px !important;
     padding: 10px 14px 12px !important;
+  }
+
+  .driver-popover-progress-text {
+    font-size: 11.5px !important;
+    margin-right: auto !important;
+    margin-left: 0 !important;
+    white-space: nowrap !important;
   }
 
   .driver-popover.mv-tour-welcome .driver-popover-footer,
@@ -486,20 +511,32 @@ html.dark .driver-popover-arrow-side-bottom {
   }
 
   .driver-popover-navigation-btns {
-    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
     justify-content: flex-end !important;
+    gap: 8px !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+    width: auto !important;
   }
 
   .driver-popover.mv-tour-welcome .driver-popover-navigation-btns,
   .driver-popover.mv-tour-finish .driver-popover-navigation-btns {
     justify-content: center !important;
+    margin: 0 auto !important;
   }
 
   .driver-popover-prev-btn,
   .driver-popover-next-btn {
-    padding: 8px 16px !important;
+    padding: 0 16px !important;
     font-size: 12.5px !important;
     min-width: 68px !important;
+    height: 34px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    line-height: 1 !important;
   }
 
   .driver-popover.mv-tour-welcome .driver-popover-next-btn,
