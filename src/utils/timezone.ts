@@ -30,7 +30,8 @@ export function getCurrentTime24(): string {
 
 /** True when value is a bare calendar date with no time component. */
 export function isDateOnly(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test((value || '').trim());
+  const trimmed = (value || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) || /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(trimmed);
 }
 
 /**
@@ -39,13 +40,29 @@ export function isDateOnly(value: string): boolean {
 export function parseUtcInstant(input: string | null | undefined): Date | null {
   if (input == null) return null;
   const trimmed = String(input).trim();
-  if (!trimmed) return null;
+  if (
+    !trimmed ||
+    trimmed === 'null' ||
+    trimmed === 'undefined' ||
+    trimmed === '0000-00-00 00:00:00' ||
+    trimmed === '0000-00-00' ||
+    trimmed.startsWith('0000-00-00') ||
+    trimmed.startsWith('00/00/0000') ||
+    trimmed.startsWith('00-00-0000')
+  ) {
+    return null;
+  }
 
-  // Handle dd/MM/yyyy HH:mm or dd/MM/yyyy HH:mm:ss format
-  const dmyMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  // Handle dd/MM/yyyy HH:mm or dd/MM/yyyy HH:mm:ss with optional separators (space, ·, -, –, —)
+  const dmyMatch = trimmed.match(
+    /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:[\s·\-\–\—,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/
+  );
   if (dmyMatch) {
-    const [, d, m, y, h = '00', min = '00', s = '00'] = dmyMatch;
-    const isoString = `${y}-${pad2(m)}-${pad2(d)}T${pad2(h)}:${pad2(min)}:${pad2(s)}Z`;
+    const [, d, m, y, h, min, s] = dmyMatch;
+    const isoString =
+      h != null && min != null
+        ? `${y}-${pad2(m)}-${pad2(d)}T${pad2(h)}:${pad2(min)}:${pad2(s || '00')}Z`
+        : `${y}-${pad2(m)}-${pad2(d)}T00:00:00Z`;
     const parsed = new Date(isoString);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   }

@@ -24,11 +24,13 @@ import {
   formatUtcToDisplayDate,
   formatUtcToDisplayDateTime,
   formatUtcToDisplayTime,
+  isDateOnly,
   parseUtcInstant,
 } from '../../utils/timezone';
 import fullLogo from '../../assets/logo/fullLogo.svg';
 import type {
   PublicTrackingPayload,
+  TrackingProductLine,
   TrackingReceiptItem,
   TrackingStop,
   TrackingTimelineItem,
@@ -153,8 +155,8 @@ function formatStopSchedule(fromDate?: string | null, toDate?: string | null): s
   if (!from && !to) return '';
 
   const dateLine = formatUtcToDisplayDate(from || to);
-  const startTime = from ? formatUtcToDisplayTime(from) : '';
-  const endTime = to ? formatUtcToDisplayTime(to) : '';
+  const startTime = from && !isDateOnly(from) ? formatUtcToDisplayTime(from) : '';
+  const endTime = to && !isDateOnly(to) ? formatUtcToDisplayTime(to) : '';
 
   let timeText = '';
   if (startTime && endTime && startTime !== endTime) {
@@ -166,7 +168,10 @@ function formatStopSchedule(fromDate?: string | null, toDate?: string | null): s
   }
 
   if (dateLine && timeText) return `${dateLine} - ${timeText}`;
-  return dateLine || timeText;
+  if (dateLine) return dateLine;
+  if (from) return from;
+  if (to) return to;
+  return '';
 }
 
 function timelineDotClass(step: TrackingTimelineItem): string {
@@ -544,7 +549,11 @@ const ItineraryStop: React.FC<{
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const isPickup = stop.type === 'pickup';
-  const schedule = formatStopSchedule(stop.from_date, stop.to_date) || stop.schedule_label || '';
+  const schedule =
+    formatStopSchedule(stop.from_date, stop.to_date) ||
+    (stop.schedule_label ? formatStopSchedule(stop.schedule_label) : '') ||
+    stop.schedule_label ||
+    '';
   const lines = stop.lines || [];
   const hasMultiple = lines.length > 1;
   const visibleLines = expanded ? lines : lines.slice(0, 1);
@@ -722,6 +731,131 @@ export const PublicTrackingPage: React.FC = () => {
       data?.guest?.email || data?.receipt?.guest_email || data?.rating?.guest_email || '';
     return (guestFromUrl || fromPayload || '').trim();
   }, [guestFromUrl, data]);
+
+  const normalizedStops = useMemo<TrackingStop[]>(() => {
+    if (!data) return [];
+    const rawStops = [...(data.stops || [])].sort(
+      (a, b) => Number(a.seq || 0) - Number(b.seq || 0)
+    );
+
+    const mapPickup = data.map?.points?.find((p) => p.type === 'pickup');
+    const mapDropoff = data.map?.points?.find((p) => p.type !== 'pickup');
+    const laneOrigin = data.shipment?.lane ? data.shipment.lane.split('→')[0]?.trim() : '';
+    const laneDest = data.shipment?.lane ? data.shipment.lane.split('→')[1]?.trim() : '';
+
+    const hasPickup = rawStops.some((s) => s.type === 'pickup');
+    const hasDropoff = rawStops.some((s) => s.type === 'dropoff');
+    const stops: TrackingStop[] = [...rawStops];
+
+    // Always ensure both pickup and dropoff are present (status-independent).
+    if (!hasPickup) {
+      const label = (mapPickup?.label || laneOrigin || 'Pickup').trim();
+      stops.unshift({
+        id: mapPickup?.id || 0,
+        seq: 1,
+        type: 'pickup',
+        company_name: label,
+        address: mapPickup?.label || label,
+        city: laneOrigin || null,
+        lat: mapPickup?.lat != null ? Number(mapPickup.lat) : null,
+        lng: mapPickup?.lng != null ? Number(mapPickup.lng) : null,
+        from_date: null,
+        to_date: null,
+        schedule_label: null,
+        completed: false,
+        phone: null,
+        email: null,
+        lines: [],
+        supplier_name: data.header?.shipper_name || '',
+      });
+    }
+
+    if (!hasDropoff) {
+      const label = (mapDropoff?.label || laneDest || 'Drop-off').trim();
+      stops.push({
+        id: mapDropoff?.id || 0,
+        seq: stops.length + 1,
+        type: 'dropoff',
+        company_name: label,
+        address: mapDropoff?.label || label,
+        city: laneDest || null,
+        lat: mapDropoff?.lat != null ? Number(mapDropoff.lat) : null,
+        lng: mapDropoff?.lng != null ? Number(mapDropoff.lng) : null,
+        from_date: data.header?.eta_at || null,
+        to_date: null,
+        schedule_label: data.header?.eta_at ? formatStopSchedule(data.header.eta_at) : null,
+        completed: false,
+        phone: null,
+        email: null,
+        lines: [],
+        supplier_name: data.header?.shipper_name || '',
+      });
+    }
+
+    // Absolute fallback when API returned no stops at all: use map points.
+    if (stops.length === 0 && (data.map?.points || []).length > 0) {
+      return (data.map.points || []).map((p, idx) => {
+        const isPk = p.type === 'pickup';
+        const label = (p.label || (isPk ? laneOrigin : laneDest) || (isPk ? 'Pickup' : 'Drop-off')).trim();
+        return {
+          id: p.id || idx + 1,
+          seq: idx + 1,
+          type: (isPk ? 'pickup' : 'dropoff') as 'pickup' | 'dropoff',
+          company_name: label,
+          address: p.label || label,
+          city: isPk ? laneOrigin || null : laneDest || null,
+          lat: p.lat != null ? Number(p.lat) : null,
+          lng: p.lng != null ? Number(p.lng) : null,
+          from_date: !isPk ? data.header?.eta_at || null : null,
+          to_date: null,
+          schedule_label: !isPk && data.header?.eta_at ? formatStopSchedule(data.header.eta_at) : null,
+          completed: false,
+          phone: null,
+          email: null,
+          lines: [],
+          supplier_name: data.header?.shipper_name || '',
+        };
+      });
+    }
+
+    return stops.map((s, idx) => {
+      const lines = (s.lines || []).filter((l) => Boolean(l.order_id || l.product_name));
+      // Prefer this stop's own lines; if empty, only reuse lines that match this location id.
+      const resolvedLines =
+        lines.length > 0
+          ? lines
+          : (data.orders || [])
+              .flatMap((o) => o.products || [])
+              .filter((l) => s.id && Number(l.location_id) === Number(s.id));
+
+      const cleanFromDate = (s.from_date || '').trim();
+      const isInvalidFromDate =
+        !cleanFromDate ||
+        cleanFromDate === '0000-00-00 00:00:00' ||
+        cleanFromDate === '0000-00-00' ||
+        cleanFromDate === 'null' ||
+        cleanFromDate === 'undefined' ||
+        cleanFromDate.startsWith('0000-00-00') ||
+        cleanFromDate.startsWith('00/00/0000') ||
+        cleanFromDate.startsWith('00-00-0000');
+
+      const cleanSchedLabel = (s.schedule_label || '').trim();
+      const isInvalidSchedLabel =
+        !cleanSchedLabel || cleanSchedLabel === 'null' || cleanSchedLabel === 'undefined';
+
+      return {
+        ...s,
+        from_date: isInvalidFromDate ? null : cleanFromDate,
+        schedule_label: isInvalidSchedLabel
+          ? s.from_date && !isInvalidFromDate
+            ? formatStopSchedule(s.from_date, s.to_date)
+            : null
+          : cleanSchedLabel,
+        lines: resolvedLines,
+        seq: idx + 1,
+      };
+    });
+  }, [data]);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -1110,105 +1244,6 @@ export const PublicTrackingPage: React.FC = () => {
     shipmentStatus === 'on_trip' ||
     shipmentStatus === 'in_progress';
   const trackingTitle = t(lang, 'liveTracking');
-
-  const normalizedStops = useMemo<TrackingStop[]>(() => {
-    if (!data) return [];
-    const rawStops = data.stops || [];
-    if (rawStops.length === 0) {
-      if (data.map?.points && data.map.points.length > 0) {
-        return data.map.points.map((p, idx) => ({
-          id: p.id || idx + 1,
-          seq: idx + 1,
-          type: p.type === 'pickup' ? ('pickup' as const) : ('dropoff' as const),
-          company_name: p.label || (p.type === 'pickup' ? data.header?.shipper_name || 'Pickup' : 'Drop-off'),
-          address: p.label || '',
-          city: null,
-          lat: p.lat != null ? Number(p.lat) : null,
-          lng: p.lng != null ? Number(p.lng) : null,
-          from_date: null,
-          to_date: null,
-          schedule_label: null,
-          completed: false,
-          phone: null,
-          email: null,
-          lines: [],
-          supplier_name: data.header?.shipper_name || '',
-        }));
-      }
-      return [];
-    }
-
-    const stops = [...rawStops];
-    const hasPickup = stops.some((s) => s.type === 'pickup');
-    const hasDropoff = stops.some((s) => s.type === 'dropoff');
-
-    // If pickup stop is missing (e.g. tracking link only contained dropoff stop):
-    if (!hasPickup) {
-      const pickupPoint = data.map?.points?.find((p) => p.type === 'pickup');
-      const laneOrigin = data.shipment?.lane ? data.shipment.lane.split('→')[0]?.trim() : '';
-      const originName = pickupPoint?.label || laneOrigin || data.header?.shipper_name || 'Pickup';
-
-      const pickupStop: TrackingStop = {
-        id: pickupPoint?.id || 0,
-        seq: 1,
-        type: 'pickup',
-        company_name: data.header?.shipper_name || originName,
-        address: pickupPoint?.label || originName,
-        city: laneOrigin || null,
-        lat: pickupPoint?.lat != null ? Number(pickupPoint.lat) : null,
-        lng: pickupPoint?.lng != null ? Number(pickupPoint.lng) : null,
-        from_date: null,
-        to_date: null,
-        schedule_label: null,
-        completed:
-          data.timeline?.some(
-            (t) => (t.key === 'pickup_completed' || t.key === 'start_trip') && t.state === 'done'
-          ) || false,
-        phone: data.transporter?.phone || null,
-        email: null,
-        lines: [],
-        supplier_name: data.header?.shipper_name || '',
-      };
-
-      stops.unshift(pickupStop);
-    }
-
-    // If dropoff stop is missing:
-    if (!hasDropoff) {
-      const dropoffPoint = data.map?.points?.find((p) => p.type !== 'pickup');
-      const laneDest = data.shipment?.lane ? data.shipment.lane.split('→')[1]?.trim() : '';
-      const destName = dropoffPoint?.label || laneDest || 'Delivery';
-
-      const dropoffStop: TrackingStop = {
-        id: dropoffPoint?.id || 0,
-        seq: stops.length + 1,
-        type: 'dropoff',
-        company_name: destName,
-        address: dropoffPoint?.label || destName,
-        city: laneDest || null,
-        lat: dropoffPoint?.lat != null ? Number(dropoffPoint.lat) : null,
-        lng: dropoffPoint?.lng != null ? Number(dropoffPoint.lng) : null,
-        from_date: null,
-        to_date: null,
-        schedule_label: null,
-        completed:
-          data.timeline?.some(
-            (t) => (t.key === 'delivered' || t.key === 'completed') && t.state === 'done'
-          ) || false,
-        phone: null,
-        email: null,
-        lines: [],
-        supplier_name: data.header?.shipper_name || '',
-      };
-
-      stops.push(dropoffStop);
-    }
-
-    return stops.map((s, idx) => ({
-      ...s,
-      seq: idx + 1,
-    }));
-  }, [data]);
 
   return (
     <div className="pt-page">
