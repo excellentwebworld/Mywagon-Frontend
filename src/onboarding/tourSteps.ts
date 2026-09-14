@@ -23,6 +23,14 @@ export function buildOnboardingSteps(t: TourTranslate): DriveStep[] {
     return `<div class="mv-tour-welcome-inner"><h3 class="mv-tour-get-started">${heading}</h3><p class="mv-tour-body">${body}</p></div>`;
   };
 
+  const finishDescription = () => {
+    const body = t(
+      'tour.finish.description',
+      'You can restart this tour anytime from Settings if you need a quick refresher.',
+    );
+    return `<div class="mv-tour-finish-inner"><p class="mv-tour-body">${body}</p></div>`;
+  };
+
   return [
     {
       popover: {
@@ -151,10 +159,7 @@ export function buildOnboardingSteps(t: TourTranslate): DriveStep[] {
     {
       popover: {
         title: t('tour.finish.title', "You're All Set"),
-        description: desc(
-          'tour.finish.description',
-          'You can restart this tour anytime from Settings if you need a quick refresher.',
-        ),
+        description: finishDescription(),
         align: 'center',
         popoverClass: 'mv-tour-popover mv-tour-finish',
         showButtons: ['previous', 'next'],
