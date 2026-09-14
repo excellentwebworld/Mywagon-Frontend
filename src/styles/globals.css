@@ -1417,18 +1417,79 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .dash-truck-count{flex:1;text-align:center;padding:8px;background:var(--surface-alt);border-radius:var(--radius-sm)}
 .dash-truck-count-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;line-height:1;color:var(--text-primary)}
 .dash-truck-count-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--text-tertiary);margin-top:4px}
-.dash-truck-map-preview{flex:1;min-height:180px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-tertiary);font-size:12px;background:linear-gradient(135deg,#f0f0f5,#e8e8f0)}
+.dash-truck-map-preview{flex:1;min-height:220px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-tertiary);font-size:12px;background:linear-gradient(135deg,#f0f0f5,#e8e8f0)}
 .dash-truck-map-preview svg{opacity:.3}
-.dash-truck-map-host{position:relative;display:flex;flex-direction:column;flex:1;width:100%;min-height:180px;height:100%;padding:0;border:0;background:var(--surface-alt);cursor:pointer;overflow:hidden;outline:none}
-.dash-truck-map-canvas{width:100%;flex:1;height:100%;min-height:180px}
+.dash-truck-map-host{position:relative;display:flex;flex-direction:column;flex:1;width:100%;min-height:220px;height:100%;padding:0;border:0;background:var(--surface-alt);overflow:hidden;outline:none}
+.dash-truck-map-canvas{width:100%;flex:1;height:100%;min-height:220px}
 .dash-truck-map-empty,.dash-truck-map-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text-tertiary);font-size:12px;background:linear-gradient(135deg,#f0f0f5,#e8e8f0);border:0;width:100%;cursor:pointer}
-.dash-truck-map-marker{z-index:2;position:absolute;cursor:pointer;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15));transition:transform .15s}
-.dash-truck-map-marker:hover{transform:translate(-50%,-100%) scale(1.1)!important;z-index:10!important}
-.dash-truck-map-pin{display:flex;flex-direction:column;align-items:center;pointer-events:auto}
-.dash-truck-map-price{background:var(--surface);border:2px solid var(--accent);border-radius:20px;padding:2px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--accent);white-space:nowrap;line-height:1.2;box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.dash-truck-map-tail{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--accent);margin-top:-1px}
-.dash-truck-map-marker.private .dash-truck-map-price{border-color:#0f766e;color:#0f766e}
-.dash-truck-map-marker.private .dash-truck-map-tail{border-top-color:#0f766e}
+
+/* Sat map marker parity */
+.sat-map-marker { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15)); transition: transform 0.15s; }
+.sat-map-marker.hovered, .sat-map-marker.active { z-index: 25 !important; transform: translate(-50%, -100%) scale(1.12) !important; }
+.sat-map-marker.hovered { z-index: 30 !important; }
+.sat-map-marker.dimmed { opacity: 0.35; }
+.sat-mm-pin { display: flex; flex-direction: column; align-items: center; }
+.sat-mm-price { background: var(--surface); border: 2px solid var(--accent); border-radius: 20px; padding: 3px 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: var(--accent); white-space: nowrap; line-height: 1.2; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.sat-mm-price.no-price { border-color: var(--text-tertiary); color: var(--text-tertiary); font-style: italic; font-weight: 500; font-family: inherit; }
+.sat-map-marker.active .sat-mm-price { background: var(--accent); color: #fff; border-color: var(--accent); }
+.sat-map-marker.hovered .sat-mm-price { background: #6C3AED; color: #fff; border-color: #6C3AED; }
+.sat-map-marker.private .sat-mm-price { border-color: #7C3AED; color: #7C3AED; }
+.sat-map-marker.private.active .sat-mm-price { background: #7C3AED; color: #fff; }
+.sat-map-marker.private.hovered .sat-mm-price { background: #6C3AED; color: #fff; border-color: #6C3AED; }
+.sat-mm-tail { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid var(--accent); margin-top: -1px; }
+.sat-map-marker.private .sat-mm-tail { border-top-color: #7C3AED; }
+.sat-map-marker.active .sat-mm-tail { border-top-color: var(--accent); }
+.sat-map-marker.hovered .sat-mm-tail, .sat-map-marker.private.hovered .sat-mm-tail { border-top-color: #6C3AED; }
+
+/* Endpoint chips */
+.sat-map-endpoint { pointer-events: none; filter: drop-shadow(0 1px 3px rgba(15,23,42,0.18)); }
+.sat-map-endpoint__chip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; max-width: 180px; padding: 4px 8px; border-radius: 6px; background: var(--surface); border: 1px solid var(--border); line-height: 1.2; }
+.sat-map-endpoint__kind { font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.sat-map-endpoint__place { font-size: 11px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+.sat-map-endpoint--pickup .sat-map-endpoint__chip { border-color: #0f766e; }
+.sat-map-endpoint--pickup .sat-map-endpoint__kind { color: #0f766e; }
+.sat-map-endpoint--dropoff .sat-map-endpoint__chip { border-color: #be123c; }
+.sat-map-endpoint--dropoff .sat-map-endpoint__kind { color: #be123c; }
+
+/* Dashboard Selected Truck Floating Popup */
+.dash-truck-map-popup {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  padding: 10px 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: inherit;
+  animation: slideUpFade 0.15s ease-out;
+}
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dash-truck-popup-hd { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dash-truck-popup-carrier { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dash-truck-popup-name { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+.dash-truck-popup-rating { font-size: 11px; font-weight: 600; color: #f59e0b; }
+.dash-truck-popup-badge { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 2px 6px; border-radius: 4px; }
+.dash-truck-popup-badge.private { background: rgba(124,58,237,0.12); color: #7C3AED; }
+.dash-truck-popup-badge.public { background: var(--accent-light, rgba(58,144,229,0.12)); color: var(--accent); }
+.dash-truck-popup-close { background: transparent; border: none; font-size: 12px; color: var(--text-tertiary); cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: color .12s, background .12s; }
+.dash-truck-popup-close:hover { color: var(--text-primary); background: var(--surface-alt); }
+.dash-truck-popup-lane { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--text-primary); }
+.dash-truck-popup-arr { color: var(--text-tertiary); font-weight: 400; }
+.dash-truck-popup-loc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px; }
+.dash-truck-popup-meta { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text-tertiary); }
+.dash-truck-popup-ft { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px; padding-top: 6px; border-top: 1px solid var(--border); }
+.dash-truck-popup-price { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--accent); }
+.dash-truck-popup-cta { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; background: var(--accent); color: #fff; border: none; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity .12s; }
+.dash-truck-popup-cta:hover { opacity: 0.9; }
 .dash-messages-empty{padding:28px 18px;text-align:center;color:var(--text-tertiary);font-size:13px}
 .dash-messages-list{display:flex;flex-direction:column;max-height:260px;overflow:auto}
 .dash-msg-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;text-align:left;background:transparent;border-left:0;border-right:0;border-top:0;width:100%}
