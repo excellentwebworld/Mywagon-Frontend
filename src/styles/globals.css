@@ -1407,7 +1407,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 /* ══ SCHEDULE & LAYOUT CLASSES FROM HTML TEMPLATE ══ */
 .row-2col-even{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;align-items:stretch}
 .row-2col-even > .card{height:100%;min-height:380px;display:flex;flex-direction:column}
-.row-2col-board{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px;align-items:stretch}
+.row-2col-board{display:grid;grid-template-columns:minmax(0,1fr) minmax(330px,360px);gap:16px;margin-bottom:20px;align-items:stretch}
 .row-2col-board > .card{margin-bottom:0;height:100%;display:flex;flex-direction:column}
 .row-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;align-items:stretch}
 .row-3col > .card{height:100%;display:flex;flex-direction:column}
@@ -1729,20 +1729,20 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 /* ════════════════════════════════════════
    PERFORMANCE KPIs
    ════════════════════════════════════════ */
-.perf-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm)}
-.perf-hd{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
-.perf-hd h4{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
-.perf-period{font-size:11px;font-weight:600;color:var(--text-tertiary);padding:2px 8px;background:var(--surface-alt);border-radius:4px}
-.perf-grid{display:grid;grid-template-columns:1fr 1fr}
-.perf-cell{padding:10px 14px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
+.perf-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;height:100%}
+.perf-hd{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);gap:8px}
+.perf-hd h4{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.perf-period{font-size:10px;font-weight:600;color:var(--text-tertiary);padding:2px 8px;background:var(--surface-alt);border-radius:4px;white-space:nowrap;flex-shrink:0}
+.perf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));flex:1}
+.perf-cell{padding:10px 12px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);min-width:0;overflow:hidden}
 .perf-cell:nth-child(2n){border-right:none}
 .perf-cell:nth-last-child(-n+2){border-bottom:none}
-.perf-cell-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-tertiary);margin-bottom:3px}
-.perf-cell-value{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--text-primary)}
+.perf-cell-label{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--text-tertiary);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.perf-cell-value{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px}
 .perf-cell-value.text{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600}
 .perf-cell-delta{font-size:10px;font-weight:600;margin-top:2px;display:inline-flex;align-items:center;gap:2px;padding:1px 5px;border-radius:3px}
 .perf-cell-delta.up{color:var(--success-text);background:var(--success-bg)}.perf-cell-delta.down{color:var(--danger-text);background:var(--danger-bg)}
-.perf-footer{padding:10px 14px;text-align:center;border-top:1px solid var(--border)}
+.perf-footer{padding:10px 14px;text-align:center;border-top:1px solid var(--border);margin-top:auto}
 .perf-footer a{font-size:12px;font-weight:600;color:var(--accent);text-decoration:none}.perf-footer a:hover{color:var(--accent-hover)}
 
 /* ════════════════════════════════════════

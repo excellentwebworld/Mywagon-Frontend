@@ -310,7 +310,7 @@ export const CompleteSignupPage: React.FC = () => {
   }
 
   if (user?.signup_complete !== false) {
-    return <Navigate to={postAuthDestination(user)} replace />;
+    return <Navigate to={user ? postAuthDestination(user) : '/dashboard'} replace />;
   }
 
   return (
