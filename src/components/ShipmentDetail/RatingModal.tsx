@@ -47,13 +47,13 @@ export const RatingModal: React.FC<RatingModalProps> = ({
 
   return createPortal(
     <div
-      className="mv-modal-bg fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      className="mv-modal-bg fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className="mv-modal bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-[480px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 relative p-6 sm:p-8 border border-[var(--border)]"
+        className="mv-modal bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-[480px] max-h-[calc(100vh-24px)] sm:max-h-[calc(100vh-32px)] overflow-y-auto flex flex-col animate-in fade-in zoom-in-95 duration-150 relative p-6 sm:p-8 border border-[var(--border)] my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}

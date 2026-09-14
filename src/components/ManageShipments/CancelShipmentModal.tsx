@@ -162,38 +162,38 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
 
   return createPortal(
     <div
-      className="mv-modal-bg fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      className="mv-modal-bg fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
       onClick={(e) => e.target === e.currentTarget && onClose()}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cancel-shipment-title"
     >
       <div
-        className="mv-modal bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-[540px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 relative border border-[var(--border)]"
+        className="mv-modal bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-[520px] max-h-[calc(100vh-24px)] sm:max-h-[calc(100vh-32px)] max-h-[calc(100dvh-24px)] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 relative border border-[var(--border)] my-auto"
         onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="cancel-shipment-title"
       >
-        {/* Close Icon Button at Top Right */}
-        <button
-          type="button"
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer bg-transparent border-0 p-1"
-          onClick={onClose}
-          aria-label={t('cancel', 'Close')}
-        >
-          <X size={20} />
-        </button>
-
-        {/* Content Container */}
-        <div className="p-6 md:p-8 flex flex-col">
-          {/* Centered Title */}
+        {/* Header with Title & Close Button */}
+        <div className="relative px-6 pt-5 pb-3 flex-shrink-0 text-center border-b border-slate-100 dark:border-slate-800/80">
+          <button
+            type="button"
+            className="absolute top-3.5 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer bg-transparent border-0 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+            onClick={onClose}
+            aria-label={t('cancel', 'Close')}
+          >
+            <X size={18} />
+          </button>
           <h2
             id="cancel-shipment-title"
-            className="text-[17px] md:text-[19px] font-bold text-slate-900 dark:text-white text-center mb-6 mt-2 leading-snug"
+            className="text-[16px] sm:text-[17px] font-bold text-slate-900 dark:text-white leading-snug m-0 px-6"
           >
             {title}
           </h2>
+        </div>
 
+        {/* Scrollable Content Body */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 sm:px-6 py-3.5 flex flex-col gap-3">
           {isDraft ? (
-            <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-6">
+            <p className="text-sm text-slate-600 dark:text-slate-400 text-center my-2">
               {t('draftDeleteIntro', { id: shipment?.autoId || shipment?.id || '' }) ||
                 `Are you sure you want to permanently delete draft ${shipment?.autoId || shipment?.id || ''}? This cannot be undone.`}
             </p>
@@ -202,20 +202,20 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
               <CancelReasonsSkeleton />
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
               {/* Radio options list */}
               {reasons.length === 0 ? (
-                <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
+                <p className="text-sm text-slate-600 dark:text-slate-400 text-center py-2">
                   {t('cancelNoReasons', 'No cancellation reasons are available for this status. Please add any optional notes below.')}
                 </p>
               ) : (
-                <div className="flex flex-col gap-3.5 pl-2">
+                <div className="flex flex-col gap-2 pl-1">
                   {reasons.map((r) => {
                     const isChecked = reasonId === r.id;
                     return (
                       <label
                         key={r.id}
-                        className={`flex items-center gap-3 text-[14px] cursor-pointer select-none transition-colors ${
+                        className={`flex items-center gap-3 text-[13.5px] cursor-pointer select-none transition-colors py-0.5 ${
                           isChecked ? 'text-red-600 dark:text-red-400 font-medium' : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                         }`}
                       >
@@ -227,23 +227,23 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
                             setReasonId(r.id);
                             setError(null);
                           }}
-                          className="w-4 h-4 text-red-600 accent-red-600 cursor-pointer"
+                          className="w-4 h-4 text-red-600 accent-red-600 cursor-pointer shrink-0"
                         />
-                        <span>{r.reason}</span>
+                        <span className="leading-snug">{r.reason}</span>
                       </label>
                     );
                   })}
                 </div>
               )}
 
-              {/* Additional Notes Field (Always Rendered, matching Laravel shipper panel) */}
-              <div className="flex flex-col gap-1.5 mt-3">
+              {/* Additional Notes Field */}
+              <div className="flex flex-col gap-1.5 mt-0.5">
                 <div className="flex items-center justify-center gap-1.5 text-center">
-                  <label htmlFor="cancel-notes" className="text-[13px] font-semibold text-slate-900 dark:text-white">
-                    {t('cancelNotesLabel', 'Additional Notes')}
+                  <label htmlFor="cancel-notes" className="text-[12.5px] font-semibold text-slate-900 dark:text-white">
+                    {t('cancelNotesLabel', 'Additional notes')}
                   </label>
-                  <span className="text-[12px] text-slate-500 dark:text-slate-400">
-                    ({isOther ? t('required', 'Required') : t('optional', 'Optional')})
+                  <span className="text-[11.5px] text-slate-500 dark:text-slate-400">
+                    ({isOther ? t('required', 'required') : t('optional', 'optional')})
                   </span>
                 </div>
 
@@ -251,7 +251,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
                   id="cancel-notes"
                   value={notes}
                   maxLength={100}
-                  rows={3}
+                  rows={2}
                   placeholder={t(
                     'cancelNotesPlaceholder',
                     'Please provide additional details about the cancellation...'
@@ -260,7 +260,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
                     setNotes(e.target.value);
                     if (e.target.value.trim()) setError(null);
                   }}
-                  className="text-[13px] p-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 resize-y w-full"
+                  className="text-[13px] p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 resize-none w-full min-h-[58px] max-h-[80px]"
                 />
 
                 <div className="flex items-center justify-between mt-0.5">
@@ -272,8 +272,8 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
               </div>
 
               {/* Cancellation Charge Notice Banner */}
-              <div className="mt-2 bg-red-50 dark:bg-red-950/40 border-l-[3px] border-red-500 rounded-md p-3">
-                <p className="text-[11px] text-red-600 dark:text-red-300 italic leading-relaxed m-0">
+              <div className="mt-0.5 bg-red-50 dark:bg-red-950/40 border-l-[3px] border-red-500 rounded-md p-2.5 px-3">
+                <p className="text-[11.5px] text-red-600 dark:text-red-300 italic leading-relaxed m-0">
                   {chargeMessage || defaultChargeMsg}
                 </p>
               </div>
@@ -281,34 +281,34 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
           )}
 
           {error && (
-            <p className="text-xs text-red-600 dark:text-red-400 text-center font-medium mt-3 m-0 bg-red-50 dark:bg-red-950/50 p-2 rounded-lg border border-red-200 dark:border-red-800">
+            <p className="text-xs text-red-600 dark:text-red-400 text-center font-medium my-1 m-0 bg-red-50 dark:bg-red-950/50 p-2 rounded-lg border border-red-200 dark:border-red-800">
               {error}
             </p>
           )}
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-center gap-4 mt-6">
-            <button
-              type="button"
-              className="w-40 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-[13px] hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-              onClick={onClose}
-              disabled={submitting}
-            >
-              {t('cancel', 'Cancel')}
-            </button>
-            <button
-              type="button"
-              className="w-40 py-2.5 rounded-lg bg-slate-900 dark:bg-purple-600 text-white font-semibold text-[13px] hover:bg-slate-800 dark:hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-sm border-0"
-              disabled={submitting || (isDraft ? false : loading)}
-              onClick={() => void handleSubmit()}
-            >
-              {submitting
-                ? t('processing', 'Processing…')
-                : isDraft
-                  ? t('deleteDraft', 'Delete draft')
-                  : t('continue', 'Continue')}
-            </button>
-          </div>
+        {/* Action Buttons Footer */}
+        <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800/80 bg-[var(--surface)] flex items-center justify-center gap-3.5 flex-shrink-0">
+          <button
+            type="button"
+            className="w-36 sm:w-40 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-[13px] hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            {t('cancel', 'Cancel')}
+          </button>
+          <button
+            type="button"
+            className="w-36 sm:w-40 py-2.5 rounded-lg bg-slate-900 dark:bg-purple-600 text-white font-semibold text-[13px] hover:bg-slate-800 dark:hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-sm border-0"
+            disabled={submitting || (isDraft ? false : loading)}
+            onClick={() => void handleSubmit()}
+          >
+            {submitting
+              ? t('processing', 'Processing…')
+              : isDraft
+                ? t('deleteDraft', 'Delete draft')
+                : t('continue', 'Continue')}
+          </button>
         </div>
       </div>
     </div>,

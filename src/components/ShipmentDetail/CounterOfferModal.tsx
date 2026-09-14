@@ -52,17 +52,17 @@ export const CounterOfferModal: React.FC<CounterOfferModalProps> = ({
 
   return createPortal(
     <div
-      className="mv-modal-bg fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-150"
+      className="mv-modal-bg fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className="mv-modal bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-[500px] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 relative border border-[var(--border)]"
+        className="mv-modal bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-[500px] max-h-[calc(100vh-24px)] sm:max-h-[calc(100vh-32px)] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 relative border border-[var(--border)] my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="mv-modal-header px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
+        <div className="mv-modal-header px-6 py-4 border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center">
               <ArrowRightLeft size={16} />
@@ -82,7 +82,7 @@ export const CounterOfferModal: React.FC<CounterOfferModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
           {/* Partner & Current Offer details */}
           <div className="p-3.5 rounded-xl bg-purple-50/40 dark:bg-slate-950/60 border border-purple-200 dark:border-purple-900/60 flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2.5 min-w-0">

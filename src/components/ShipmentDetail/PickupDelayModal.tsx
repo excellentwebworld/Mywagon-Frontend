@@ -68,17 +68,17 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
 
   return createPortal(
     <div
-      className="mv-modal-bg fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      className="mv-modal-bg fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className="mv-modal bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-[480px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 relative border border-[var(--border)]"
+        className="mv-modal bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-[480px] max-h-[calc(100vh-24px)] sm:max-h-[calc(100vh-32px)] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 relative border border-[var(--border)] my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="mv-modal-header px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
+        <div className="mv-modal-header px-6 py-4 border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center">
               <Clock size={18} />
@@ -105,7 +105,7 @@ export const PickupDelayModal: React.FC<PickupDelayModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="p-6 flex flex-col gap-4">
+        <div className="p-6 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto">
           <p className="text-[14px] text-slate-700 dark:text-slate-300 m-0 font-medium leading-relaxed">
             {question}
           </p>
