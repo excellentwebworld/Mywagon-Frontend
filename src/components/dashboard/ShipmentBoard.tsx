@@ -159,11 +159,11 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
         <table className="bt" id="boardTable">
           <thead>
             <tr>
-              <th>{t('shipmentIdCol')}</th>
-              <th>{t('laneColHeader')}</th>
-              <th>{t('status')}</th>
-              <th>{t('boardRate')}</th>
-              <th></th>
+              <th className="th-sid">{t('shipmentIdCol')}</th>
+              <th className="th-lane">{t('laneColHeader')}</th>
+              <th className="th-status">{t('status')}</th>
+              <th className="th-price">{t('boardRate')}</th>
+              <th className="th-actions"></th>
             </tr>
           </thead>
           <tbody>
@@ -201,6 +201,7 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
                   needsAction: Boolean(row.needsAction),
                 });
                 const rate = formatEuro(row.agreedPrice ?? row.quotedPrice ?? row.price) ?? '—';
+                const laneText = `${row.origin || '—'} → ${row.dest || '—'}`;
 
                 return (
                   <React.Fragment key={row.id}>
@@ -209,10 +210,12 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
                       onClick={() => setExpandedId(isExpanded ? null : row.id)}
                     >
                       <td className="c-sid">{row.autoId || row.id}</td>
-                      <td className="c-lane">
-                        {row.origin || '—'} <span className="arr">→</span> {row.dest || '—'}
+                      <td className="c-lane" title={laneText}>
+                        <span className="c-lane-text">
+                          {row.origin || '—'} <span className="arr">→</span> {row.dest || '—'}
+                        </span>
                       </td>
-                      <td>
+                      <td className="c-status">
                         <span className={`status-box-wrap${row.at_risk ? ' is-at-risk' : ''}`}>
                           {row.status === 'partially_fullfilled' ? (
                             <span className={`${badgeClass} status-box--partial-compact`}>
@@ -237,46 +240,48 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
                       </td>
                       <td className="c-price">{rate}</td>
                       <td className="c-actions" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          title={t('viewOnMap', 'View on Map')}
-                          onClick={() => {
-                            if (onSelectShipment) {
-                              onSelectShipment(Number(row.id));
-                              const mapEl = document.querySelector('.map-wrap');
-                              if (mapEl) {
-                                mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        <div className="c-actions-wrap">
+                          <button
+                            type="button"
+                            title={t('viewOnMap', 'View on Map')}
+                            onClick={() => {
+                              if (onSelectShipment) {
+                                onSelectShipment(Number(row.id));
+                                const mapEl = document.querySelector('.map-wrap');
+                                if (mapEl) {
+                                  mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+                              } else {
+                                navigate(`/shipments/${row.id}`);
                               }
-                            } else {
-                              navigate(`/shipments/${row.id}`);
-                            }
-                          }}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                            <circle cx="12" cy="10" r="3" />
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          title={isExpanded ? t('collapse') : t('expand')}
-                          onClick={() => setExpandedId(isExpanded ? null : row.id)}
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            style={{
-                              transform: isExpanded ? 'rotate(180deg)' : 'none',
-                              transition: 'transform 0.2s',
                             }}
                           >
-                            <polyline points="6 9 12 15 18 9" />
-                          </svg>
-                        </button>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                              <circle cx="12" cy="10" r="3" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            title={isExpanded ? t('collapse') : t('expand')}
+                            onClick={() => setExpandedId(isExpanded ? null : row.id)}
+                          >
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              style={{
+                                transform: isExpanded ? 'rotate(180deg)' : 'none',
+                                transition: 'transform 0.2s',
+                              }}
+                            >
+                              <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                     </tr>
 
