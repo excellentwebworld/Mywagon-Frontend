@@ -45,10 +45,23 @@ export function isLocalToday(iso?: string | null, now = new Date()): boolean {
   );
 }
 
-function formatTimeLabel(iso?: string | null): string {
-  const d = parseIso(iso);
-  if (!d) return '—';
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+export function formatTimeRange(startIso?: string | null, endIso?: string | null): string {
+  const start = parseIso(startIso);
+  const end = parseIso(endIso);
+
+  const startLabel = start
+    ? start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+    : '';
+  const endLabel = end
+    ? end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+    : '';
+
+  if (startLabel && endLabel && startLabel !== endLabel) {
+    return `${startLabel} - ${endLabel}`;
+  }
+  if (startLabel) return startLabel;
+  if (endLabel) return endLabel;
+  return '—';
 }
 
 function priceFromItem(item: ApiShipmentListItem): string {
@@ -98,41 +111,60 @@ export function buildTodayScheduleEvents(
     };
 
     const pickupIso = item.pickup_at_iso || item.pickup_at;
-    const isPickupToday = isLocalToday(pickupIso, now);
+    const pickupToIso = item.pickup_to_iso || item.pickup_to;
+    const isPickupToday = isLocalToday(pickupIso, now) || isLocalToday(pickupToIso, now);
     if (isPickupToday) {
-      const sortAt = parseIso(pickupIso)?.getTime() ?? 0;
+      const sortAt = parseIso(pickupIso)?.getTime() ?? parseIso(pickupToIso)?.getTime() ?? 0;
       events.push({
         ...base,
         key: `${item.id}-pickup`,
         kind: 'pickup',
         sortAt,
-        timeLabel: formatTimeLabel(pickupIso),
+        timeLabel: formatTimeRange(pickupIso, pickupToIso),
       });
     }
 
     const dropoffIso = item.delivery_at_iso || item.delivery_at;
-    const isDropoffToday = isLocalToday(dropoffIso, now);
+    const dropoffToIso = item.delivery_to_iso || item.delivery_to;
+    const isDropoffToday = isLocalToday(dropoffIso, now) || isLocalToday(dropoffToIso, now);
     if (isDropoffToday) {
-      const sortAt = parseIso(dropoffIso)?.getTime() ?? 0;
+      const sortAt = parseIso(dropoffIso)?.getTime() ?? parseIso(dropoffToIso)?.getTime() ?? 0;
       events.push({
         ...base,
         key: `${item.id}-dropoff`,
         kind: 'dropoff',
         sortAt,
-        timeLabel: formatTimeLabel(dropoffIso),
+        timeLabel: formatTimeRange(dropoffIso, dropoffToIso),
       });
     }
 
     // If shipment is currently in-transit on the road today (on_trip / ready) and neither pickup nor dropoff were matched today
     if (!isPickupToday && !isDropoffToday && (item.status === 'on_trip' || item.status === 'ready')) {
-      const sortAt = parseIso(pickupIso)?.getTime() ?? now.getTime();
-      events.push({
-        ...base,
-        key: `${item.id}-${item.status}`,
-        kind: item.status === 'ready' ? 'pickup' : 'dropoff',
-        sortAt,
-        timeLabel: formatTimeLabel(pickupIso) !== '—' ? formatTimeLabel(pickupIso) : formatTimeLabel(dropoffIso),
-      });
+      const isReady = item.status === 'ready';
+      const pickupRange = formatTimeRange(pickupIso, pickupToIso);
+      const dropoffRange = formatTimeRange(dropoffIso, dropoffToIso);
+
+      if (isReady) {
+        const sortAt = parseIso(pickupIso)?.getTime() ?? parseIso(pickupToIso)?.getTime() ?? now.getTime();
+        const timeLabel = pickupRange !== '—' ? pickupRange : dropoffRange;
+        events.push({
+          ...base,
+          key: `${item.id}-${item.status}`,
+          kind: 'pickup',
+          sortAt,
+          timeLabel,
+        });
+      } else {
+        const sortAt = parseIso(dropoffIso)?.getTime() ?? parseIso(dropoffToIso)?.getTime() ?? now.getTime();
+        const timeLabel = dropoffRange !== '—' ? dropoffRange : pickupRange;
+        events.push({
+          ...base,
+          key: `${item.id}-${item.status}`,
+          kind: 'dropoff',
+          sortAt,
+          timeLabel,
+        });
+      }
     }
   }
 

@@ -82,9 +82,13 @@ export interface ApiShipmentListItem {
   stop_count?: number;
   intermediate_stops?: number;
   pickup_at?: string | null;
+  pickup_to?: string | null;
   delivery_at?: string | null;
+  delivery_to?: string | null;
   pickup_at_iso?: string | null;
+  pickup_to_iso?: string | null;
   delivery_at_iso?: string | null;
+  delivery_to_iso?: string | null;
   customers?: string[];
   order_ids?: string[];
   orders_count?: number;

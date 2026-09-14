@@ -241,9 +241,13 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
       scheduleLabel(item.pickup_at_iso, item.pickup_at) ||
       (status === 'draft' ? '' : formatCreatedDisplay(item.created_at)),
     pickDt: scheduleLabel(item.pickup_at_iso, item.pickup_at),
+    pickDtTo: scheduleLabel(item.pickup_to_iso, item.pickup_to),
     delDt: scheduleLabel(item.delivery_at_iso, item.delivery_at),
+    delDtTo: scheduleLabel(item.delivery_to_iso, item.delivery_to),
     pickDtIso: item.pickup_at_iso ?? null,
+    pickDtToIso: item.pickup_to_iso ?? null,
     delDtIso: item.delivery_at_iso ?? null,
+    delDtToIso: item.delivery_to_iso ?? null,
     createdAt: item.created_at ?? null,
     ref: item.customer_reference || undefined,
     status,

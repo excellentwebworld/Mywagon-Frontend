@@ -172,7 +172,9 @@ export interface Shipment {
   autoId?: string;
   date: string;
   pickDt?: string | null;
+  pickDtTo?: string | null;
   delDt?: string | null;
+  delDtTo?: string | null;
   ref?: string;
   status: 'pending' | 'scheduled' | 'ready' | 'upcoming' | 'on_trip' | 'in_progress' | 'past_due' | 'draft' | 'awarded' | 'fullfilled' | 'partially_fullfilled' | 'not_fullfilled' | 'delivered' | 'canceled' | 'cancelled';
   vis: 'private' | 'public' | 'fleet';
@@ -247,7 +249,9 @@ export interface Shipment {
   intermediateStops?: number;
   orderIds?: string[];
   pickDtIso?: string | null;
+  pickDtToIso?: string | null;
   delDtIso?: string | null;
+  delDtToIso?: string | null;
   /** ISO timestamp for last update; format in UI as DD/MM/YYYY HH:mm. */
   updatedAt?: string | null;
   /** ISO created_at for progress timeline (Created step). */

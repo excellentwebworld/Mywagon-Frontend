@@ -1492,7 +1492,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 }
 
 @media (max-width: 520px) {
-  .sched-time { width: 48px; font-size: 11px; }
+  .sched-time { min-width: 48px; width: auto; font-size: 10px; }
   .sched-right { margin-left: 64px; }
 }
 .card-hd{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
@@ -1504,7 +1504,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .sched-item{display:flex;align-items:center;gap:0;padding:0 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;flex-shrink:0}
 .sched-item:last-child{border-bottom:none}.sched-item:hover{background:var(--surface-alt)}
 .sched-item.at-risk{background:#FFFDF5}.sched-item.at-risk:hover{background:#FFF9E6}
-.sched-time{width:56px;flex-shrink:0;padding:14px 0;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:var(--text-tertiary)}
+.sched-time{min-width:56px;width:auto;max-width:130px;flex-shrink:0;padding:14px 6px 14px 0;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;color:var(--text-tertiary);white-space:nowrap}
 .sched-dot-col{width:32px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:14px 0;position:relative}
 .sched-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}.sched-dot.pickup{background:#121217}.sched-dot.dropoff,.sched-dot.delivery{background:#000}
 .sched-line{position:absolute;top:24px;bottom:-2px;width:1.5px;background:var(--border);left:50%;transform:translateX(-50%)}
