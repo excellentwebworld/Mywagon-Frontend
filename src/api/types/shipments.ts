@@ -114,6 +114,7 @@ export interface ApiShipmentListItem {
   pickup_today?: boolean;
   awaiting_pod?: boolean;
   flags?: ApiShipmentListFlags;
+  stops?: ApiShipmentStop[];
 }
 
 export interface ApiShipmentStop {
@@ -125,6 +126,8 @@ export interface ApiShipmentStop {
   lat?: number | null;
   lng?: number | null;
   date?: string | null;
+  date_iso?: string | null;
+  to_date_iso?: string | null;
   time_start?: string | null;
   time_end?: string | null;
   order_id?: string | null;
