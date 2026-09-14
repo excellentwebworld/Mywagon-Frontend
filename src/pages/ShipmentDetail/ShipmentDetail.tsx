@@ -461,19 +461,29 @@ export const ShipmentDetail: React.FC = () => {
     if (!focus || loading || !vm) return;
 
     const section = focus === 'invited' ? 'bids' : focus;
-    setSections((prev) => ({ ...prev, [section]: true }));
+    setSections((prev) => ({ ...prev, [section]: true, tracking: true }));
     setActiveNav(section);
 
-    const timer = window.setTimeout(() => {
+    const performJump = () => {
       handleJump(section);
-    }, 150);
+      const next = new URLSearchParams(window.location.search);
+      if (next.has('focus')) {
+        next.delete('focus');
+        const query = next.toString();
+        const newUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`;
+        window.history.replaceState(null, '', newUrl);
+      }
+    };
 
-    const next = new URLSearchParams(searchParams);
-    next.delete('focus');
-    setSearchParams(next, { replace: true });
+    // Staged jump attempts so dynamic maps/cards have rendered and DOM element exists
+    const t1 = window.setTimeout(performJump, 120);
+    const t2 = window.setTimeout(performJump, 350);
 
-    return () => window.clearTimeout(timer);
-  }, [searchParams, loading, vm, handleJump, setSearchParams]);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [searchParams, loading, vm, handleJump]);
 
   const handleCopy = useCallback(
     (text: string) => {
