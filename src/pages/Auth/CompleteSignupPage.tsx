@@ -212,7 +212,7 @@ export const CompleteSignupPage: React.FC = () => {
         }),
         'success',
       );
-      navigate(postAuthDestination(profile), { replace: true });
+      navigate(profile ? postAuthDestination(profile) : '/dashboard', { replace: true });
     } catch (err) {
       if (err instanceof SignupApiError) {
         setFieldErrors(err.fieldErrors);
@@ -234,7 +234,7 @@ export const CompleteSignupPage: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
-  if (user?.signup_complete !== false) {
+  if (user && user.signup_complete !== false) {
     return <Navigate to={postAuthDestination(user)} replace />;
   }
 
