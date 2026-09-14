@@ -348,14 +348,15 @@ function stopsToEnriched(
 
 const TrackingLiveMap: React.FC<{
   data: PublicTrackingPayload;
+  stops?: TrackingStop[];
   lang: Lang;
   livePosition: { lat: number; lng: number } | null;
   socketStatus?: 'idle' | 'connecting' | 'connected' | 'error';
-}> = ({ data, lang, livePosition, socketStatus = 'idle' }) => {
+}> = ({ data, stops: passedStops, lang, livePosition, socketStatus = 'idle' }) => {
   const [routeMode, setRouteMode] = useState<'suggested' | 'actual'>('suggested');
   const enrichedStops = useMemo(
-    () => stopsToEnriched(data.stops, data.map.points || []),
-    [data.stops, data.map.points]
+    () => stopsToEnriched(passedStops || data.stops, data.map.points || []),
+    [passedStops, data.stops, data.map.points]
   );
   const routeLegs = useRouteLegs(enrichedStops);
   const actualRoute = data.map.actual_route || [];
@@ -1110,6 +1111,105 @@ export const PublicTrackingPage: React.FC = () => {
     shipmentStatus === 'in_progress';
   const trackingTitle = t(lang, 'liveTracking');
 
+  const normalizedStops = useMemo<TrackingStop[]>(() => {
+    if (!data) return [];
+    const rawStops = data.stops || [];
+    if (rawStops.length === 0) {
+      if (data.map?.points && data.map.points.length > 0) {
+        return data.map.points.map((p, idx) => ({
+          id: p.id || idx + 1,
+          seq: idx + 1,
+          type: p.type === 'pickup' ? ('pickup' as const) : ('dropoff' as const),
+          company_name: p.label || (p.type === 'pickup' ? data.header?.shipper_name || 'Pickup' : 'Drop-off'),
+          address: p.label || '',
+          city: null,
+          lat: p.lat != null ? Number(p.lat) : null,
+          lng: p.lng != null ? Number(p.lng) : null,
+          from_date: null,
+          to_date: null,
+          schedule_label: null,
+          completed: false,
+          phone: null,
+          email: null,
+          lines: [],
+          supplier_name: data.header?.shipper_name || '',
+        }));
+      }
+      return [];
+    }
+
+    const stops = [...rawStops];
+    const hasPickup = stops.some((s) => s.type === 'pickup');
+    const hasDropoff = stops.some((s) => s.type === 'dropoff');
+
+    // If pickup stop is missing (e.g. tracking link only contained dropoff stop):
+    if (!hasPickup) {
+      const pickupPoint = data.map?.points?.find((p) => p.type === 'pickup');
+      const laneOrigin = data.shipment?.lane ? data.shipment.lane.split('→')[0]?.trim() : '';
+      const originName = pickupPoint?.label || laneOrigin || data.header?.shipper_name || 'Pickup';
+
+      const pickupStop: TrackingStop = {
+        id: pickupPoint?.id || 0,
+        seq: 1,
+        type: 'pickup',
+        company_name: data.header?.shipper_name || originName,
+        address: pickupPoint?.label || originName,
+        city: laneOrigin || null,
+        lat: pickupPoint?.lat != null ? Number(pickupPoint.lat) : null,
+        lng: pickupPoint?.lng != null ? Number(pickupPoint.lng) : null,
+        from_date: null,
+        to_date: null,
+        schedule_label: null,
+        completed:
+          data.timeline?.some(
+            (t) => (t.key === 'pickup_completed' || t.key === 'start_trip') && t.state === 'done'
+          ) || false,
+        phone: data.transporter?.phone || null,
+        email: null,
+        lines: [],
+        supplier_name: data.header?.shipper_name || '',
+      };
+
+      stops.unshift(pickupStop);
+    }
+
+    // If dropoff stop is missing:
+    if (!hasDropoff) {
+      const dropoffPoint = data.map?.points?.find((p) => p.type !== 'pickup');
+      const laneDest = data.shipment?.lane ? data.shipment.lane.split('→')[1]?.trim() : '';
+      const destName = dropoffPoint?.label || laneDest || 'Delivery';
+
+      const dropoffStop: TrackingStop = {
+        id: dropoffPoint?.id || 0,
+        seq: stops.length + 1,
+        type: 'dropoff',
+        company_name: destName,
+        address: dropoffPoint?.label || destName,
+        city: laneDest || null,
+        lat: dropoffPoint?.lat != null ? Number(dropoffPoint.lat) : null,
+        lng: dropoffPoint?.lng != null ? Number(dropoffPoint.lng) : null,
+        from_date: null,
+        to_date: null,
+        schedule_label: null,
+        completed:
+          data.timeline?.some(
+            (t) => (t.key === 'delivered' || t.key === 'completed') && t.state === 'done'
+          ) || false,
+        phone: null,
+        email: null,
+        lines: [],
+        supplier_name: data.header?.shipper_name || '',
+      };
+
+      stops.push(dropoffStop);
+    }
+
+    return stops.map((s, idx) => ({
+      ...s,
+      seq: idx + 1,
+    }));
+  }, [data]);
+
   return (
     <div className="pt-page">
       {fontLink}
@@ -1243,14 +1343,14 @@ export const PublicTrackingPage: React.FC = () => {
                 <h3>
                   <MapPin size={15} className="pt-card-icon" />
                   {t(lang, 'itinerary')}
-                  <span className="pt-count">{data.stops.length}</span>
+                  <span className="pt-count">{normalizedStops.length}</span>
                 </h3>
               </div>
               <div className="pt-card-body pt-stops-body">
-                {data.stops.length === 0 ? (
+                {normalizedStops.length === 0 ? (
                   <div className="pt-empty">{t(lang, 'noStops')}</div>
                 ) : (
-                  data.stops.map((stop, idx) => (
+                  normalizedStops.map((stop, idx) => (
                     <ItineraryStop key={`${stop.id}-${idx}`} stop={stop} index={idx} lang={lang} onCopy={copyText} />
                   ))
                 )}
@@ -1315,6 +1415,7 @@ export const PublicTrackingPage: React.FC = () => {
               <div className="pt-card-body">
                 <TrackingLiveMap
                   data={data}
+                  stops={normalizedStops}
                   lang={lang}
                   livePosition={livePosition}
                   socketStatus={socketStatus}
