@@ -125,7 +125,9 @@ export const Schedule: React.FC<ScheduleProps> = ({ selectedShipmentId, onSelect
                       {event.kind === 'pickup' ? t('pickupUpper') : t('dropoffUpper')}
                     </span>
                     <span className="sched-sid">#{event.autoId}</span>
-                    <span className="sched-lane">{event.lane}</span>
+                    <span className="sched-lane" title={event.overallLane || event.lane}>
+                      {event.lane}
+                    </span>
                   </div>
                   <div className="sched-row2">{renderCarrierOrRisk(event)}</div>
                 </div>

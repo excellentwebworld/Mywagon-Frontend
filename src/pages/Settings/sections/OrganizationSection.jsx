@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import {
@@ -17,6 +17,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { needsInfoFormHardGate } from '../../../hooks/useInfoFormGate';
 import { organizationSettingsService } from '../../../api/services/organizationSettingsService';
 import { ContextualTutorialTrigger } from '../../../components/Tutorials';
+import { FORCE_TOUR_SESSION_KEY } from '../../../onboarding';
+import { safeSessionSet } from '../../../utils/safeStorage';
 import '../../../styles/tutorials.css';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -129,6 +131,7 @@ export default function OrganizationSection() {
   const { t } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { refreshUser, user } = useAuth();
   const [searchParams] = useSearchParams();
   const fromCompanyInfo =
@@ -392,6 +395,16 @@ export default function OrganizationSection() {
       setEditingOps(false);
       toast.success(t('settings.orgSection.saved'));
       await refreshUser().catch(() => {});
+
+      // After mandatory info form is completed, start the onboarding tour on dashboard.
+      if (
+        fromInfoForm &&
+        payload?.operations_meta?.is_mandatory_completed === true &&
+        user?.onboarding_completed === false
+      ) {
+        safeSessionSet(FORCE_TOUR_SESSION_KEY, '1');
+        navigate('/dashboard');
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('settings.orgSection.saveError'));
     } finally {

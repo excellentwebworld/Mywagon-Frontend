@@ -199,6 +199,10 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
 
   const shipment = detail ?? listShipment;
 
+  const [showAllOrders, setShowAllOrders] = useState(false);
+  const [showAllVehicles, setShowAllVehicles] = useState(false);
+  const [showAllCargo, setShowAllCargo] = useState(false);
+
   const orders = useMemo(() => collectOrders(shipment), [shipment]);
   const vehicles = useMemo(() => collectVehicles(shipment), [shipment]);
   const cargo = useMemo(() => collectCargo(shipment), [shipment]);
@@ -247,19 +251,100 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
           <div className="expand-field">
             <span className="expand-field-label">{t('boardOrders')}</span>
             <span className="expand-field-value mono">
-              {orders.length > 0 ? orders.join(', ') : '—'}
+              {orders.length > 3 && !showAllOrders ? (
+                <>
+                  {orders.slice(0, 3).join(', ')}
+                  <button
+                    type="button"
+                    className="expand-more-link"
+                    onClick={() => setShowAllOrders(true)}
+                    title={orders.slice(3).join(', ')}
+                  >
+                    +{orders.length - 3} {t('more', 'more')}
+                  </button>
+                </>
+              ) : orders.length > 3 && showAllOrders ? (
+                <>
+                  {orders.join(', ')}
+                  <button
+                    type="button"
+                    className="expand-more-link"
+                    onClick={() => setShowAllOrders(false)}
+                  >
+                    ({t('showLess', 'show less')})
+                  </button>
+                </>
+              ) : orders.length > 0 ? (
+                orders.join(', ')
+              ) : (
+                '—'
+              )}
             </span>
           </div>
           <div className="expand-field">
             <span className="expand-field-label">{t('boardVehicle')}</span>
             <span className="expand-field-value">
-              {vehicles.length > 0 ? vehicles.join(', ') : '—'}
+              {vehicles.length > 2 && !showAllVehicles ? (
+                <>
+                  {vehicles.slice(0, 2).join(', ')}
+                  <button
+                    type="button"
+                    className="expand-more-link"
+                    onClick={() => setShowAllVehicles(true)}
+                    title={vehicles.slice(2).join(', ')}
+                  >
+                    +{vehicles.length - 2} {t('more', 'more')}
+                  </button>
+                </>
+              ) : vehicles.length > 2 && showAllVehicles ? (
+                <>
+                  {vehicles.join(', ')}
+                  <button
+                    type="button"
+                    className="expand-more-link"
+                    onClick={() => setShowAllVehicles(false)}
+                  >
+                    ({t('showLess', 'show less')})
+                  </button>
+                </>
+              ) : vehicles.length > 0 ? (
+                vehicles.join(', ')
+              ) : (
+                '—'
+              )}
             </span>
           </div>
           <div className="expand-field">
             <span className="expand-field-label">{t('boardCargo')}</span>
             <span className="expand-field-value">
-              {cargo.length > 0 ? cargo.join(', ') : '—'}
+              {cargo.length > 2 && !showAllCargo ? (
+                <>
+                  {cargo.slice(0, 2).join(', ')}
+                  <button
+                    type="button"
+                    className="expand-more-link"
+                    onClick={() => setShowAllCargo(true)}
+                    title={cargo.slice(2).join(', ')}
+                  >
+                    +{cargo.length - 2} {t('more', 'more')}
+                  </button>
+                </>
+              ) : cargo.length > 2 && showAllCargo ? (
+                <>
+                  {cargo.join(', ')}
+                  <button
+                    type="button"
+                    className="expand-more-link"
+                    onClick={() => setShowAllCargo(false)}
+                  >
+                    ({t('showLess', 'show less')})
+                  </button>
+                </>
+              ) : cargo.length > 0 ? (
+                cargo.join(', ')
+              ) : (
+                '—'
+              )}
             </span>
           </div>
           <div className="expand-field">

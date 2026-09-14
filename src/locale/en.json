@@ -2470,8 +2470,7 @@
     "success": "Company information saved. KYC is pending review.",
     "requiredToast": "Please complete your company information to continue.",
     "kycRequiredToast": "Please upload your KYC documents to continue.",
-    "infoFormRequiredToast": "Please complete the mandatory information questions to continue.",
-    "socialPhoneVerifiedHint": "Phone is treated as verified for Google / Microsoft 365 sign-up."
+    "infoFormRequiredToast": "Please complete the mandatory information questions to continue."
   },
   "login": {
     "twoFactor": {

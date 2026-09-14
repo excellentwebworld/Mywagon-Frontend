@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
@@ -18,14 +18,19 @@ import { MarketingTermsStep, RegisterTermsCheckbox } from '../Register/steps/Mar
 import { KycStep } from '../Register/steps/KycStep';
 import { CountryCodeSelect } from '../Register/components/CountryCodeSelect';
 import { LegalModal } from '../Register/components/LegalModal';
+import { VerifyOtpModal } from '../Register/components/VerifyOtpModal';
 import { postAuthDestination } from '../../hooks/postAuthDestination';
 import {
   digitsOnlyPhone,
   scrollToFirstRegisterError,
   validateFullRegister,
+  validateOtp,
+  validatePhoneStep,
   type RegisterFieldErrors,
 } from '../Register/registerValidation';
 import '../Register/RegisterPage.css';
+
+const RESEND_SECONDS = 30;
 
 type FormState = {
   first_name: string;
@@ -47,9 +52,15 @@ type FormState = {
   kyc_vat_number_shipper: string;
 };
 
+function extractOtp(res: { otp?: number | string; data?: { otp?: number | string } | null }): string | null {
+  const raw = res.otp ?? res.data?.otp;
+  return raw == null || raw === '' ? null : String(raw);
+}
+
 /**
- * Social complete-signup — same layout/fields as RegisterPage (minus password),
- * with email + phone treated as verified from Google / Microsoft 365.
+ * Social complete-signup — same layout/fields as RegisterPage (minus password).
+ * Phone shows Verified only when fetched from Google/Microsoft (or OTP-verified).
+ * Email is always verified from social login.
  */
 export const CompleteSignupPage: React.FC = () => {
   const { user, isAuthenticated, isLoading, refreshUser } = useAuth();
@@ -88,20 +99,41 @@ export const CompleteSignupPage: React.FC = () => {
   const [legalDocModal, setLegalDocModal] = useState<'terms' | 'privacy' | null>(null);
   const [referenceLoading, setReferenceLoading] = useState(true);
 
-  // Social phone/email are considered verified (no OTP step).
-  const phoneVerified = true;
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [phoneBusy, setPhoneBusy] = useState(false);
+  const [otpModalOpen, setOtpModalOpen] = useState(false);
+  const [phoneOtp, setPhoneOtp] = useState('');
+  const [pendingPhoneOtp, setPendingPhoneOtp] = useState<string | null>(null);
+  const [resendSeconds, setResendSeconds] = useState(0);
+  const [otpResentFlash, setOtpResentFlash] = useState(false);
+  const verifiedPhoneRef = useRef<string | null>(null);
+  const verifiedCountryCodeRef = useRef<string | null>(null);
+  const verifyingPhoneRef = useRef(false);
+  const prefilledFromSocialRef = useRef(false);
+
   const emailVerified = true;
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || prefilledFromSocialRef.current) return;
+    const socialPhone = digitsOnlyPhone(user.phone || '').slice(0, 10);
+    const socialCode = user.country_code || '+30';
+    const socialVerified = Boolean(socialPhone && user.phone_verified);
+
     setForm((prev) => ({
       ...prev,
       first_name: prev.first_name || user.first_name || '',
       last_name: prev.last_name || user.last_name || '',
       company_name: prev.company_name || user.company_name || '',
-      country_code: user.country_code || prev.country_code || '+30',
-      phone: user.phone || prev.phone || '',
+      country_code: socialPhone ? socialCode : prev.country_code || '+30',
+      phone: socialPhone || prev.phone || '',
     }));
+
+    if (socialVerified) {
+      setPhoneVerified(true);
+      verifiedPhoneRef.current = socialPhone;
+      verifiedCountryCodeRef.current = socialCode;
+    }
+    prefilledFromSocialRef.current = true;
   }, [user]);
 
   useEffect(() => {
@@ -129,6 +161,12 @@ export const CompleteSignupPage: React.FC = () => {
     };
   }, [lang]);
 
+  useEffect(() => {
+    if (resendSeconds <= 0) return;
+    const timer = window.setTimeout(() => setResendSeconds((s) => s - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendSeconds]);
+
   const patch = useCallback((partial: Partial<FormState>) => {
     setForm((prev) => ({ ...prev, ...partial }));
     setFieldErrors((prev) => {
@@ -139,6 +177,169 @@ export const CompleteSignupPage: React.FC = () => {
       return next;
     });
   }, []);
+
+  const setPhone = useCallback(
+    (phone: string) => {
+      const digits = digitsOnlyPhone(phone).slice(0, 10);
+      const restored =
+        Boolean(verifiedPhoneRef.current) &&
+        digits === verifiedPhoneRef.current &&
+        form.country_code === verifiedCountryCodeRef.current;
+      setPhoneVerified(restored);
+      patch({ phone: digits });
+      if (otpModalOpen) setOtpModalOpen(false);
+    },
+    [form.country_code, otpModalOpen, patch],
+  );
+
+  const setCountryCode = useCallback(
+    (country_code: string) => {
+      const restored =
+        Boolean(verifiedPhoneRef.current) &&
+        form.phone === verifiedPhoneRef.current &&
+        country_code === verifiedCountryCodeRef.current;
+      setPhoneVerified(restored);
+      patch({ country_code });
+      if (otpModalOpen) setOtpModalOpen(false);
+    },
+    [form.phone, otpModalOpen, patch],
+  );
+
+  const openPhoneOtp = useCallback(async () => {
+    if (phoneVerified) return;
+    const errors = validatePhoneStep(form.country_code, form.phone, t);
+    if (Object.keys(errors).length) {
+      setFieldErrors((prev) => ({ ...prev, ...errors }));
+      return;
+    }
+    setPhoneBusy(true);
+    setFormError(null);
+    setOtpResentFlash(false);
+    try {
+      const res = await signupService.sendPhoneOtp({
+        country_code: form.country_code,
+        phone: digitsOnlyPhone(form.phone),
+        user_type: 'shipper',
+      });
+      setPendingPhoneOtp(extractOtp(res));
+      setPhoneOtp('');
+      setPhoneVerified(false);
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.phone;
+        delete next.otp;
+        return next;
+      });
+      setResendSeconds(RESEND_SECONDS);
+      setOtpModalOpen(true);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : t('registerPhoneOtpSendFailed', 'Could not send phone OTP');
+      const apiFields = err instanceof SignupApiError ? err.fieldErrors : undefined;
+      setFieldErrors((prev) => ({
+        ...prev,
+        phone: apiFields?.phone || message,
+      }));
+    } finally {
+      setPhoneBusy(false);
+    }
+  }, [form.country_code, form.phone, phoneVerified, t]);
+
+  const resendPhoneCode = useCallback(async () => {
+    if (resendSeconds > 0 || phoneBusy) return;
+    setPhoneBusy(true);
+    setFormError(null);
+    setOtpResentFlash(false);
+    try {
+      const res = await signupService.sendPhoneOtp({
+        country_code: form.country_code,
+        phone: digitsOnlyPhone(form.phone),
+        user_type: 'shipper',
+      });
+      setPendingPhoneOtp(extractOtp(res));
+      setPhoneOtp('');
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.otp;
+        return next;
+      });
+      setOtpResentFlash(true);
+      setResendSeconds(RESEND_SECONDS);
+    } catch (err) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        otp:
+          err instanceof Error
+            ? err.message
+            : t('registerPhoneOtpSendFailed', 'Could not send phone OTP'),
+      }));
+    } finally {
+      setPhoneBusy(false);
+    }
+  }, [resendSeconds, phoneBusy, form.country_code, form.phone, t]);
+
+  const verifyPhone = useCallback(
+    async (otp: string) => {
+      const otpError = validateOtp(otp, t);
+      if (otpError) {
+        setFieldErrors((prev) => ({ ...prev, otp: otpError }));
+        return false;
+      }
+      if (verifyingPhoneRef.current || phoneVerified) {
+        if (phoneVerified) setOtpModalOpen(false);
+        return phoneVerified;
+      }
+      verifyingPhoneRef.current = true;
+      setPhoneBusy(true);
+      setFormError(null);
+      try {
+        const useClientCompare = Boolean(pendingPhoneOtp);
+        if (useClientCompare) {
+          if (String(pendingPhoneOtp) !== otp) {
+            setFieldErrors((prev) => ({
+              ...prev,
+              otp: t('registerOtpInvalid', 'Enter valid OTP'),
+            }));
+            setPhoneOtp('');
+            return false;
+          }
+        } else {
+          await signupService.verifyPhoneOtp({
+            country_code: form.country_code,
+            phone: digitsOnlyPhone(form.phone),
+            otp,
+          });
+        }
+
+        verifiedPhoneRef.current = digitsOnlyPhone(form.phone);
+        verifiedCountryCodeRef.current = form.country_code;
+        setPhoneVerified(true);
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next.otp;
+          delete next.phone;
+          return next;
+        });
+        setOtpModalOpen(false);
+        setOtpResentFlash(false);
+        return true;
+      } catch (err) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          otp: err instanceof Error ? err.message : t('registerOtpInvalid', 'Enter valid OTP'),
+        }));
+        setPhoneOtp('');
+        setPhoneVerified(false);
+        return false;
+      } finally {
+        verifyingPhoneRef.current = false;
+        setPhoneBusy(false);
+      }
+    },
+    [t, phoneVerified, form.country_code, form.phone, pendingPhoneOtp],
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -283,8 +484,8 @@ export const CompleteSignupPage: React.FC = () => {
               <CountryCodeSelect
                 value={form.country_code}
                 options={countryCodes}
-                onChange={(v) => patch({ country_code: v })}
-                disabled={submitting}
+                onChange={setCountryCode}
+                disabled={submitting || phoneBusy}
                 error={fieldErrors.country_code}
                 verified={phoneVerified}
               />
@@ -292,20 +493,33 @@ export const CompleteSignupPage: React.FC = () => {
             <div className="reg-phone-input">
               <input
                 id="complete-signup-phone"
-                className="reg-input is-verified"
+                className={`reg-input${phoneVerified ? ' is-verified' : ''}`}
                 type="tel"
                 inputMode="numeric"
                 value={form.phone}
-                disabled={submitting}
+                disabled={submitting || phoneBusy}
                 autoComplete="tel-national"
-                onChange={(e) => patch({ phone: e.target.value })}
+                onChange={(e) => setPhone(e.target.value)}
                 placeholder={`${t('registerPhone', 'Mobile phone')}*`}
                 maxLength={10}
                 aria-label={t('registerPhone', 'Mobile phone')}
               />
-              <button type="button" className="reg-btn-verify reg-btn-verified" disabled>
-                {t('registerVerifiedBadge', 'Verified')}
-              </button>
+              {phoneVerified ? (
+                <button type="button" className="reg-btn-verify reg-btn-verified" disabled>
+                  {t('registerVerifiedBadge', 'Verified')}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="reg-btn-verify"
+                  disabled={submitting || phoneBusy}
+                  onClick={() => void openPhoneOtp()}
+                >
+                  {phoneBusy
+                    ? t('registerWorking', 'Please wait…')
+                    : t('registerVerify', 'Verify')}
+                </button>
+              )}
               {fieldErrors.phone && (
                 <p className="reg-error" role="alert">
                   {fieldErrors.phone}
@@ -313,11 +527,6 @@ export const CompleteSignupPage: React.FC = () => {
               )}
             </div>
           </div>
-          <small className="reg-hint">
-            {t('signupComplete.socialPhoneVerifiedHint', {
-              defaultValue: 'Phone is treated as verified for Google / Microsoft 365 sign-up.',
-            })}
-          </small>
         </div>
 
         <div className="reg-field reg-contact" data-reg-field="email">
@@ -409,7 +618,7 @@ export const CompleteSignupPage: React.FC = () => {
           onOpenLegal={setLegalDocModal}
         />
 
-        <button type="submit" className="reg-btn-primary" disabled={submitting}>
+        <button type="submit" className="reg-btn-primary" disabled={submitting || phoneBusy}>
           {submitting
             ? t('registerWorking', 'Please wait…')
             : t('signupComplete.submit', { defaultValue: 'Save & continue' })}
@@ -421,6 +630,24 @@ export const CompleteSignupPage: React.FC = () => {
         legalData={signupLegal}
         onClose={() => setLegalDocModal(null)}
       />
+
+      {otpModalOpen && (
+        <VerifyOtpModal
+          mode="phone"
+          target={`${form.country_code}  ${form.phone}`}
+          otp={phoneOtp}
+          onOtp={setPhoneOtp}
+          verified={phoneVerified}
+          onResend={() => void resendPhoneCode()}
+          onClose={() => setOtpModalOpen(false)}
+          onVerify={() => void verifyPhone(phoneOtp)}
+          resendSeconds={resendSeconds}
+          busy={phoneBusy}
+          error={fieldErrors.otp}
+          debugOtp={pendingPhoneOtp}
+          resentFlash={otpResentFlash}
+        />
+      )}
     </RegisterLayout>
   );
 };

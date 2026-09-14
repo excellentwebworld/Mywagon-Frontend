@@ -13,6 +13,7 @@ export interface ScheduleEvent {
   sortAt: number;
   timeLabel: string;
   lane: string;
+  overallLane?: string;
   priceLabel: string;
   status: string;
   atRisk: boolean;
@@ -164,10 +165,12 @@ export function buildTodayScheduleEvents(
       Boolean(item.at_risk) ||
       (item.status === 'pending' && isUnassigned(item));
 
+    const overallLane = laneFromItem(item);
     const base = {
       shipmentId: item.id,
       autoId: item.auto_id || String(item.id),
-      lane: laneFromItem(item),
+      lane: overallLane,
+      overallLane,
       priceLabel: priceFromItem(item),
       status: item.status,
       atRisk,
@@ -180,6 +183,12 @@ export function buildTodayScheduleEvents(
     };
 
     const stops = resolveItemStops(item);
+    const isMultiStop =
+      (item.stop_count ?? 0) > 2 ||
+      (item.intermediate_stops ?? 0) > 0 ||
+      (item.stops?.length ?? 0) > 2 ||
+      stops.length > 2;
+
     let matchedToday = 0;
 
     stops.forEach((stop, idx) => {
@@ -187,8 +196,11 @@ export function buildTodayScheduleEvents(
       if (isStopToday) {
         matchedToday++;
         const sortAt = parseIso(stop.startIso)?.getTime() ?? parseIso(stop.endIso)?.getTime() ?? 0;
+        const stopLoc = stop.location?.trim();
+        const laneLabel = isMultiStop && stopLoc ? stopLoc : overallLane;
         events.push({
           ...base,
+          lane: laneLabel,
           key: `${item.id}-stop-${stop.id || idx}`,
           kind: stop.type === 'pickup' ? 'pickup' : 'dropoff',
           sortAt,
@@ -205,8 +217,11 @@ export function buildTodayScheduleEvents(
         const startIso = pickupStop?.startIso ?? (item.pickup_at_iso || item.pickup_at);
         const endIso = pickupStop?.endIso ?? (item.pickup_to_iso || item.pickup_to);
         const sortAt = parseIso(startIso)?.getTime() ?? parseIso(endIso)?.getTime() ?? now.getTime();
+        const stopLoc = pickupStop?.location?.trim();
+        const laneLabel = isMultiStop && stopLoc ? stopLoc : overallLane;
         events.push({
           ...base,
+          lane: laneLabel,
           key: `${item.id}-transit-ready`,
           kind: 'pickup',
           sortAt,
@@ -218,8 +233,11 @@ export function buildTodayScheduleEvents(
         const startIso = dropoffStop?.startIso ?? (item.delivery_at_iso || item.delivery_at);
         const endIso = dropoffStop?.endIso ?? (item.delivery_to_iso || item.delivery_to);
         const sortAt = parseIso(startIso)?.getTime() ?? parseIso(endIso)?.getTime() ?? now.getTime();
+        const stopLoc = dropoffStop?.location?.trim();
+        const laneLabel = isMultiStop && stopLoc ? stopLoc : overallLane;
         events.push({
           ...base,
+          lane: laneLabel,
           key: `${item.id}-transit-ontrip`,
           kind: 'dropoff',
           sortAt,
