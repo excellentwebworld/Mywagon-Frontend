@@ -18,9 +18,6 @@ import { CompanyStep } from './steps/CompanyStep';
 import { AddressStep } from './steps/AddressStep';
 import { MarketingTermsStep, RegisterTermsCheckbox } from './steps/MarketingTermsStep';
 import { KycStep } from './steps/KycStep';
-import { SocialAuthButtons } from '../../components/auth/SocialAuthButtons';
-import '../../components/auth/SocialAuthButtons.css';
-
 export { SIGNUP_QUERY_STORAGE_KEY };
 
 export const RegisterPage: React.FC = () => {
@@ -71,14 +68,6 @@ export const RegisterPage: React.FC = () => {
             {form.formError}
           </p>
         )}
-
-        <SocialAuthButtons compact disabled={form.busy} />
-
-        <div className="social-auth-divider" role="separator" style={{ margin: '0.75rem 0 1rem' }}>
-          <span style={{ color: '#6b7280', fontSize: '0.8rem' }}>
-            {t('socialAuth.orSignUpWithEmail', { defaultValue: 'Or sign up with email' })}
-          </span>
-        </div>
 
         <h5 className="reg-section-title">
           {t('registerSectionAccount', 'Account & User Info')}
