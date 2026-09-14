@@ -15,16 +15,14 @@ import { NameStep } from '../Register/steps/NameStep';
 import { CompanyStep } from '../Register/steps/CompanyStep';
 import { AddressStep } from '../Register/steps/AddressStep';
 import { MarketingTermsStep, RegisterTermsCheckbox } from '../Register/steps/MarketingTermsStep';
+import { KycStep } from '../Register/steps/KycStep';
 import { CountryCodeSelect } from '../Register/components/CountryCodeSelect';
-import { VerifyOtpModal } from '../Register/components/VerifyOtpModal';
 import { LegalModal } from '../Register/components/LegalModal';
 import { postAuthDestination } from '../../hooks/postAuthDestination';
 import {
   digitsOnlyPhone,
   scrollToFirstRegisterError,
   validateFullRegister,
-  validateOtp,
-  validatePhoneStep,
   type RegisterFieldErrors,
 } from '../Register/registerValidation';
 import '../Register/RegisterPage.css';
@@ -46,24 +44,13 @@ type FormState = {
   hear_about_us_other_shipper: string;
   referral_code: string;
   terms: boolean;
+  kyc_vat_number_shipper: string;
 };
 
-function isClientOtpEnv(): boolean {
-  const mode = import.meta.env.MODE;
-  return (
-    import.meta.env.DEV ||
-    mode === 'development' ||
-    mode === 'staging' ||
-    mode === 'local'
-  );
-}
-
-function extractOtp(res: { otp?: number | string; data?: { otp?: number | string } | null }): string | null {
-  if (res.otp != null && String(res.otp).trim() !== '') return String(res.otp);
-  if (res.data?.otp != null && String(res.data.otp).trim() !== '') return String(res.data.otp);
-  return null;
-}
-
+/**
+ * Social complete-signup — same layout/fields as RegisterPage (minus password),
+ * with email + phone treated as verified from Google / Microsoft 365.
+ */
 export const CompleteSignupPage: React.FC = () => {
   const { user, isAuthenticated, isLoading, refreshUser } = useAuth();
   const { lang, setLang, showToast } = useApp();
@@ -87,22 +74,23 @@ export const CompleteSignupPage: React.FC = () => {
     hear_about_us_other_shipper: '',
     referral_code: '',
     terms: false,
+    kyc_vat_number_shipper: '',
   });
+  const [certificate, setCertificate] = useState<File | null>(null);
   const [fieldErrors, setFieldErrors] = useState<RegisterFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [phoneVerified, setPhoneVerified] = useState(false);
-  const [otpModal, setOtpModal] = useState(false);
-  const [phoneOtp, setPhoneOtp] = useState('');
-  const [pendingPhoneOtp, setPendingPhoneOtp] = useState<string | null>(null);
-  const [resendSeconds, setResendSeconds] = useState(0);
-  const [phoneBusy, setPhoneBusy] = useState(false);
   const [countryCodes, setCountryCodes] = useState<SignupReferenceCountryCode[]>([]);
   const [countriesDomicile, setCountriesDomicile] = useState<SignupReferenceDomicile[]>([]);
   const [signupLinks, setSignupLinks] = useState<SignupReferenceData['links'] | null>(null);
   const [signupLegal, setSignupLegal] = useState<SignupReferenceData['legal'] | null>(null);
+  const [signupVideos, setSignupVideos] = useState<{ shipper?: string; carrier?: string }>({});
   const [legalDocModal, setLegalDocModal] = useState<'terms' | 'privacy' | null>(null);
   const [referenceLoading, setReferenceLoading] = useState(true);
+
+  // Social phone/email are considered verified (no OTP step).
+  const phoneVerified = true;
+  const emailVerified = true;
 
   useEffect(() => {
     if (!user) return;
@@ -111,6 +99,8 @@ export const CompleteSignupPage: React.FC = () => {
       first_name: prev.first_name || user.first_name || '',
       last_name: prev.last_name || user.last_name || '',
       company_name: prev.company_name || user.company_name || '',
+      country_code: user.country_code || prev.country_code || '+30',
+      phone: user.phone || prev.phone || '',
     }));
   }, [user]);
 
@@ -124,6 +114,10 @@ export const CompleteSignupPage: React.FC = () => {
         setCountriesDomicile(ref.countries_domicile || []);
         setSignupLinks(ref.links || null);
         setSignupLegal(ref.legal || null);
+        setSignupVideos({
+          shipper: ref.videos?.shipper,
+          carrier: ref.videos?.carrier,
+        });
       } catch {
         /* ignore */
       } finally {
@@ -135,12 +129,6 @@ export const CompleteSignupPage: React.FC = () => {
     };
   }, [lang]);
 
-  useEffect(() => {
-    if (resendSeconds <= 0) return;
-    const id = window.setTimeout(() => setResendSeconds((s) => s - 1), 1000);
-    return () => window.clearTimeout(id);
-  }, [resendSeconds]);
-
   const patch = useCallback((partial: Partial<FormState>) => {
     setForm((prev) => ({ ...prev, ...partial }));
     setFieldErrors((prev) => {
@@ -151,69 +139,6 @@ export const CompleteSignupPage: React.FC = () => {
       return next;
     });
   }, []);
-
-  const sendPhoneOtp = async () => {
-    const errors = validatePhoneStep(form.country_code, form.phone, t);
-    setFieldErrors(errors);
-    if (Object.keys(errors).length) {
-      scrollToFirstRegisterError(errors);
-      return;
-    }
-    setFormError(null);
-    setPhoneBusy(true);
-    try {
-      const res = await signupService.sendPhoneOtp({
-        country_code: form.country_code,
-        phone: digitsOnlyPhone(form.phone),
-      });
-      if (isClientOtpEnv()) {
-        setPendingPhoneOtp(extractOtp(res));
-      }
-      setPhoneOtp('');
-      setOtpModal(true);
-      setResendSeconds(30);
-      setPhoneVerified(false);
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Could not send OTP');
-    } finally {
-      setPhoneBusy(false);
-    }
-  };
-
-  const verifyPhone = async () => {
-    const otpErr = validateOtp(phoneOtp, t);
-    if (otpErr) {
-      setFieldErrors((prev) => ({ ...prev, otp: otpErr }));
-      return;
-    }
-    setPhoneBusy(true);
-    try {
-      if (isClientOtpEnv() && pendingPhoneOtp && phoneOtp.trim() !== pendingPhoneOtp) {
-        setFieldErrors((prev) => ({
-          ...prev,
-          otp: t('registerOtpInvalid', 'Invalid verification code'),
-        }));
-        return;
-      }
-      if (!isClientOtpEnv()) {
-        await signupService.verifyPhoneOtp({
-          country_code: form.country_code,
-          phone: digitsOnlyPhone(form.phone),
-          otp: phoneOtp.trim(),
-        });
-      }
-      setPhoneVerified(true);
-      setOtpModal(false);
-      showToast(t('registerPhoneVerified', 'Phone verified'), 'success');
-    } catch (err) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        otp: err instanceof Error ? err.message : 'Invalid code',
-      }));
-    } finally {
-      setPhoneBusy(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,7 +153,7 @@ export const CompleteSignupPage: React.FC = () => {
         phone: form.phone,
         phoneVerified,
         email: user?.email || 'verified@social.local',
-        emailVerified: true,
+        emailVerified,
         password: 'Social1!x',
         password_confirmation: 'Social1!x',
         street_address: form.street_address,
@@ -239,17 +164,14 @@ export const CompleteSignupPage: React.FC = () => {
         hear_about_us_other_shipper: form.hear_about_us_other_shipper,
         referral_code: form.referral_code,
         terms: form.terms,
-        kyc_vat_number_shipper: 'PENDING',
+        kyc_vat_number_shipper: form.kyc_vat_number_shipper,
       },
-      // KYC is a separate step after this form — skip cert validation
-      new File([''], 'skip.pdf', { type: 'application/pdf' }),
+      certificate,
       t,
     );
     delete errors.password;
     delete errors.password_confirmation;
     delete errors.email;
-    delete errors.kyc_vat_number_shipper;
-    delete errors.shipper_certificate;
 
     setFieldErrors(errors);
     if (Object.keys(errors).length) {
@@ -265,6 +187,7 @@ export const CompleteSignupPage: React.FC = () => {
       body.append('company_name', form.company_name.trim());
       body.append('country_code', form.country_code);
       body.append('phone', digitsOnlyPhone(form.phone));
+      body.append('kyc_vat_number_shipper', form.kyc_vat_number_shipper.trim());
       body.append('street_address', form.street_address.trim());
       if (form.address_line_2) body.append('address_line_2', form.address_line_2);
       body.append('city', form.city.trim());
@@ -278,16 +201,18 @@ export const CompleteSignupPage: React.FC = () => {
       }
       if (form.referral_code) body.append('referral_code', form.referral_code);
       body.append('terms', '1');
+      if (certificate) body.append('shipper_certificate', certificate);
 
       await authService.completeSignup(body);
       await refreshUser();
+      const profile = await authService.me();
       showToast(
-        t('signupComplete.successNextKyc', {
-          defaultValue: 'Company information saved. Please upload your KYC documents next.',
+        t('signupComplete.success', {
+          defaultValue: 'Company information saved. KYC is pending review.',
         }),
         'success',
       );
-      navigate('/settings/compliance', { replace: true });
+      navigate(postAuthDestination(profile), { replace: true });
     } catch (err) {
       if (err instanceof SignupApiError) {
         setFieldErrors(err.fieldErrors);
@@ -310,7 +235,7 @@ export const CompleteSignupPage: React.FC = () => {
   }
 
   if (user?.signup_complete !== false) {
-    return <Navigate to={user ? postAuthDestination(user) : '/dashboard'} replace />;
+    return <Navigate to={postAuthDestination(user)} replace />;
   }
 
   return (
@@ -320,12 +245,10 @@ export const CompleteSignupPage: React.FC = () => {
         setLang(next);
         void i18n.changeLanguage(next);
       }}
-      subtitle={t('signupComplete.subtitle', {
-        defaultValue:
-          'Finish your company profile to start creating shipments and managing your account.',
-      })}
+      subtitle={t('registerSubtitle', 'Please enter your details for joining with us.')}
       title={t('signupComplete.title', { defaultValue: 'Complete company information' })}
       variant="shipper"
+      videoSrc={signupVideos.shipper}
     >
       <form className="reg-form" onSubmit={(e) => void handleSubmit(e)} noValidate>
         {formError && (
@@ -333,13 +256,6 @@ export const CompleteSignupPage: React.FC = () => {
             {formError}
           </p>
         )}
-
-        <p className="reg-hint" style={{ marginBottom: '1rem' }}>
-          {t('signupComplete.emailLocked', {
-            defaultValue: `Signed in as ${user?.email ?? ''}`,
-            email: user?.email,
-          })}
-        </p>
 
         <h5 className="reg-section-title">
           {t('registerSectionAccount', 'Account & User Info')}
@@ -354,50 +270,6 @@ export const CompleteSignupPage: React.FC = () => {
           disabled={submitting}
         />
 
-        <div className="reg-field" data-reg-field="phone">
-          <div className="reg-phone-field">
-            <CountryCodeSelect
-              value={form.country_code}
-              options={countryCodes}
-              disabled={submitting || phoneVerified}
-              verified={phoneVerified}
-              onChange={(v) => {
-                patch({ country_code: v });
-                setPhoneVerified(false);
-              }}
-            />
-            <div className="reg-phone-input">
-              <input
-                className="reg-input"
-                value={form.phone}
-                disabled={submitting || phoneVerified}
-                onChange={(e) => {
-                  patch({ phone: e.target.value });
-                  setPhoneVerified(false);
-                }}
-                placeholder={`${t('registerPhone', 'Mobile phone')}*`}
-              />
-              <button
-                type="button"
-                className="reg-btn-secondary"
-                disabled={submitting || phoneBusy}
-                onClick={() => void sendPhoneOtp()}
-              >
-                {phoneVerified
-                  ? t('registerVerified', 'Verified')
-                  : t('registerVerify', 'Verify')}
-              </button>
-            </div>
-          </div>
-          {(fieldErrors.phone || fieldErrors.country_code) && (
-            <p className="reg-error" role="alert">
-              {fieldErrors.phone || fieldErrors.country_code}
-            </p>
-          )}
-        </div>
-
-        <h5 className="reg-section-title">{t('registerSectionCompany', 'Company Info')}</h5>
-
         <CompanyStep
           companyName={form.company_name}
           onCompanyName={(v) => patch({ company_name: v })}
@@ -405,6 +277,68 @@ export const CompleteSignupPage: React.FC = () => {
           disabled={submitting}
         />
 
+        <div className="reg-field reg-contact" data-reg-field="phone">
+          <div className="reg-phone-field">
+            <div className="reg-code-select" data-reg-field="country_code">
+              <CountryCodeSelect
+                value={form.country_code}
+                options={countryCodes}
+                onChange={(v) => patch({ country_code: v })}
+                disabled={submitting}
+                error={fieldErrors.country_code}
+                verified={phoneVerified}
+              />
+            </div>
+            <div className="reg-phone-input">
+              <input
+                id="complete-signup-phone"
+                className="reg-input is-verified"
+                type="tel"
+                inputMode="numeric"
+                value={form.phone}
+                disabled={submitting}
+                autoComplete="tel-national"
+                onChange={(e) => patch({ phone: e.target.value })}
+                placeholder={`${t('registerPhone', 'Mobile phone')}*`}
+                maxLength={10}
+                aria-label={t('registerPhone', 'Mobile phone')}
+              />
+              <button type="button" className="reg-btn-verify reg-btn-verified" disabled>
+                {t('registerVerifiedBadge', 'Verified')}
+              </button>
+              {fieldErrors.phone && (
+                <p className="reg-error" role="alert">
+                  {fieldErrors.phone}
+                </p>
+              )}
+            </div>
+          </div>
+          <small className="reg-hint">
+            {t('signupComplete.socialPhoneVerifiedHint', {
+              defaultValue: 'Phone is treated as verified for Google / Microsoft 365 sign-up.',
+            })}
+          </small>
+        </div>
+
+        <div className="reg-field reg-contact" data-reg-field="email">
+          <input
+            id="complete-signup-email"
+            className="reg-input is-verified"
+            type="email"
+            value={user?.email || ''}
+            disabled
+            autoComplete="email"
+            placeholder={`${t('registerEmail', 'Work email')}*`}
+            aria-label={t('registerEmail', 'Work email')}
+          />
+          <button type="button" className="reg-btn-verify reg-btn-verified" disabled>
+            {t('registerVerifiedBadge', 'Verified')}
+          </button>
+        </div>
+
+        <h5 className="reg-section-title mt">
+          {t('registerSectionAddress', 'Address')}
+        </h5>
         <AddressStep
           streetAddress={form.street_address}
           addressLine2={form.address_line_2}
@@ -450,11 +384,20 @@ export const CompleteSignupPage: React.FC = () => {
           onOpenLegal={setLegalDocModal}
         />
 
-        <p className="reg-hint" style={{ marginBottom: '1rem' }}>
-          {t('signupComplete.kycNextHint', {
-            defaultValue: 'After saving, you will upload your KYC documents on the next step.',
-          })}
-        </p>
+        <h5 className="reg-section-title mt">
+          {t('registerSectionVerifiedUser', 'Sign Up as a Verified User')}
+        </h5>
+        <KycStep
+          vat={form.kyc_vat_number_shipper}
+          certificate={certificate}
+          onVat={(v) => patch({ kyc_vat_number_shipper: v })}
+          onCertificate={setCertificate}
+          errors={{
+            kyc_vat_number_shipper: fieldErrors.kyc_vat_number_shipper,
+            shipper_certificate: fieldErrors.shipper_certificate,
+          }}
+          disabled={submitting}
+        />
 
         <RegisterTermsCheckbox
           terms={form.terms}
@@ -468,27 +411,10 @@ export const CompleteSignupPage: React.FC = () => {
 
         <button type="submit" className="reg-btn-primary" disabled={submitting}>
           {submitting
-            ? t('signupComplete.saving', { defaultValue: 'Saving…' })
-            : t('signupComplete.submit', { defaultValue: 'Save & continue to KYC' })}
+            ? t('registerWorking', 'Please wait…')
+            : t('signupComplete.submit', { defaultValue: 'Save & continue' })}
         </button>
       </form>
-
-      {otpModal && (
-        <VerifyOtpModal
-          mode="phone"
-          target={`${form.country_code}  ${form.phone}`}
-          otp={phoneOtp}
-          onOtp={setPhoneOtp}
-          verified={phoneVerified}
-          onResend={() => void sendPhoneOtp()}
-          onClose={() => setOtpModal(false)}
-          onVerify={() => void verifyPhone()}
-          resendSeconds={resendSeconds}
-          busy={phoneBusy}
-          error={fieldErrors.otp}
-          debugOtp={isClientOtpEnv() ? pendingPhoneOtp : null}
-        />
-      )}
 
       <LegalModal
         document={legalDocModal}

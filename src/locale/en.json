@@ -2465,14 +2465,13 @@
     "subtitle": "Finish your company profile to start creating shipments and managing your account.",
     "emailLocked": "Signed in as {{email}}",
     "verifyPhoneFirst": "Please verify your phone number first.",
-    "submit": "Save & continue to KYC",
+    "submit": "Save & continue",
     "saving": "Saving…",
-    "success": "Company information saved.",
+    "success": "Company information saved. KYC is pending review.",
     "requiredToast": "Please complete your company information to continue.",
     "kycRequiredToast": "Please upload your KYC documents to continue.",
     "infoFormRequiredToast": "Please complete the mandatory information questions to continue.",
-    "successNextKyc": "Company information saved. Please upload your KYC documents next.",
-    "kycNextHint": "After saving, you will upload your KYC documents on the next step."
+    "socialPhoneVerifiedHint": "Phone is treated as verified for Google / Microsoft 365 sign-up."
   },
   "login": {
     "twoFactor": {

@@ -42,6 +42,10 @@ export interface ShipperUser {
    */
   signup_complete?: boolean;
   social_provider?: 'google' | 'microsoft' | string | null;
+  country_code?: string | null;
+  phone?: string | null;
+  /** True when social login supplied phone, or phone_verified_at is set. */
+  phone_verified?: boolean;
 }
 
 
