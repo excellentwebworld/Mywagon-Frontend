@@ -6,12 +6,22 @@
 
 .mv-onboarding-active .sidebar {
   z-index: 1000000010 !important;
-  overflow: visible !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100vh !important;
+  height: 100dvh !important;
 }
 
-.mv-onboarding-active .sb-nav,
+.mv-onboarding-active .sb-nav {
+  overflow-y: auto !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+}
+
 .mv-onboarding-active .sb-ft {
-  overflow: visible !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 1000000012 !important;
 }
 
 .driver-overlay {
@@ -25,7 +35,9 @@
 
 /* Sidebar spotlight — high contrast on dark or light nav */
 .sidebar .ni.driver-active-element,
-.sidebar a.driver-active-element[data-tour] {
+.sidebar a.driver-active-element[data-tour],
+.sb-ft .ni.driver-active-element,
+.sb-ft a.driver-active-element[data-tour] {
   background: var(--sf, #ffffff) !important;
   color: var(--t1, #18181b) !important;
   border-radius: 10px !important;
@@ -36,19 +48,25 @@
 }
 
 .sidebar .ni.driver-active-element span,
-.sidebar a.driver-active-element[data-tour] span {
+.sidebar a.driver-active-element[data-tour] span,
+.sb-ft .ni.driver-active-element span,
+.sb-ft a.driver-active-element[data-tour] span {
   color: var(--t1, #18181b) !important;
 }
 
 .sidebar .ni.driver-active-element svg,
-.sidebar a.driver-active-element[data-tour] svg {
+.sidebar a.driver-active-element[data-tour] svg,
+.sb-ft .ni.driver-active-element svg,
+.sb-ft a.driver-active-element[data-tour] svg {
   opacity: 1 !important;
   color: var(--ac, #7c3aed) !important;
   stroke: var(--ac, #7c3aed) !important;
 }
 
 html.dark .sidebar .ni.driver-active-element,
-html.dark .sidebar a.driver-active-element[data-tour] {
+html.dark .sidebar a.driver-active-element[data-tour],
+html.dark .sb-ft .ni.driver-active-element,
+html.dark .sb-ft a.driver-active-element[data-tour] {
   /* Keep a bright cutout on dark sidebars for readability */
   background: #ffffff !important;
   color: #18181b !important;
@@ -58,12 +76,16 @@ html.dark .sidebar a.driver-active-element[data-tour] {
 }
 
 html.dark .sidebar .ni.driver-active-element span,
-html.dark .sidebar a.driver-active-element[data-tour] span {
+html.dark .sidebar a.driver-active-element[data-tour] span,
+html.dark .sb-ft .ni.driver-active-element span,
+html.dark .sb-ft a.driver-active-element[data-tour] span {
   color: #18181b !important;
 }
 
 html.dark .sidebar .ni.driver-active-element svg,
-html.dark .sidebar a.driver-active-element[data-tour] svg {
+html.dark .sidebar a.driver-active-element[data-tour] svg,
+html.dark .sb-ft .ni.driver-active-element svg,
+html.dark .sb-ft a.driver-active-element[data-tour] svg {
   color: var(--ah, #7c3aed) !important;
   stroke: var(--ah, #7c3aed) !important;
 }

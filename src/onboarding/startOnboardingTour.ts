@@ -12,19 +12,30 @@ function scrollTourTargetIntoView(el: Element | null | undefined) {
   if (!el) return;
   const sidebar = document.getElementById('sidebar');
   if (sidebar?.contains(el)) {
+    const sbNav = sidebar.querySelector('.sb-nav');
+    if (sbNav && sbNav.contains(el)) {
+      (el as HTMLElement).scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  } else {
     (el as HTMLElement).scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 }
 
-function ensureSidebarExpanded(expandSidebar?: () => void) {
+function ensureSidebarExpanded(expandSidebar?: () => void, targetEl?: Element | null) {
   const sidebar = document.getElementById('sidebar');
   if (sidebar?.classList.contains('collapsed')) {
     expandSidebar?.();
   }
-  // Mobile: open sidebar when highlighting nav targets
-  if (sidebar && !sidebar.classList.contains('mobile-open') && window.matchMedia('(max-width: 1024px)').matches) {
-    document.getElementById('sbOverlay')?.classList.add('active');
-    sidebar.classList.add('mobile-open');
+  // Mobile: open sidebar when highlighting nav targets, or close when targeting body/header
+  if (sidebar && window.matchMedia('(max-width: 1024px)').matches) {
+    const isSidebarTarget = targetEl ? sidebar.contains(targetEl) : true;
+    if (isSidebarTarget) {
+      document.getElementById('sbOverlay')?.classList.add('active');
+      sidebar.classList.add('mobile-open');
+    } else {
+      document.getElementById('sbOverlay')?.classList.remove('active');
+      sidebar.classList.remove('mobile-open');
+    }
   }
 }
 
@@ -138,10 +149,16 @@ export function startOnboardingTour(options: StartOnboardingTourOptions): Driver
     },
     onHighlightStarted: (_el, _step, { driver: d }) => {
       document.body.classList.add('mv-onboarding-active');
-      ensureSidebarExpanded(options.expandSidebar);
-      scrollTourTargetIntoView(d.getActiveElement());
-      // Re-apply chrome after highlight (driver re-renders footer)
+      const target = _el || d.getActiveElement();
+      ensureSidebarExpanded(options.expandSidebar, target);
+      scrollTourTargetIntoView(target);
+      // Re-apply chrome and refresh driver coordinates after scroll
       requestAnimationFrame(() => {
+        try {
+          d.refresh();
+        } catch {
+          // ignore
+        }
         const pop = d.getState?.('popover') as
           | {
               wrapper?: HTMLElement | null;
