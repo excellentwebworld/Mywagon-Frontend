@@ -320,8 +320,11 @@ export default function OrganizationSection() {
     setEditingBrand(true);
   };
 
-  const isFieldLocked = (apiKey) =>
-    !!data?.legal?.kyc_locked && (data.legal.kyc_locked_fields || []).includes(apiKey);
+  const isFieldLocked = (apiKey, value) => {
+    const rawVal = value !== undefined ? value : data?.legal?.[apiKey];
+    const isFilled = rawVal !== null && rawVal !== undefined && String(rawVal).trim() !== '';
+    return !!data?.legal?.kyc_locked && (data.legal.kyc_locked_fields || []).includes(apiKey) && isFilled;
+  };
 
   const addInvoiceEmail = () => {
     const email = emailInput.trim().toLowerCase();
@@ -569,7 +572,7 @@ export default function OrganizationSection() {
             label={t('settings.orgSection.legal.legalName')}
             value={editingLegal ? legalDraft.legal_name : data.legal.legal_name}
             onChange={(v) => setLegalDraft((p) => ({ ...p, legal_name: v }))}
-            locked={isFieldLocked('legal_name')}
+            locked={isFieldLocked('legal_name', data.legal.legal_name)}
             editing={editingLegal}
           />
           <LegalField
@@ -582,14 +585,14 @@ export default function OrganizationSection() {
             label={t('settings.orgSection.legal.vatNumber')}
             value={editingLegal ? legalDraft.vat_number : data.legal.vat_number}
             onChange={(v) => setLegalDraft((p) => ({ ...p, vat_number: v }))}
-            locked={isFieldLocked('vat_number')}
+            locked={isFieldLocked('vat_number', data.legal.vat_number)}
             editing={editingLegal}
           />
           <LegalField
             label={t('settings.orgSection.legal.regNumber')}
             value={editingLegal ? legalDraft.registration_number : data.legal.registration_number}
             onChange={(v) => setLegalDraft((p) => ({ ...p, registration_number: v }))}
-            locked={isFieldLocked('registration_number')}
+            locked={isFieldLocked('registration_number', data.legal.registration_number)}
             editing={editingLegal}
           />
           <LegalField
@@ -1817,10 +1820,12 @@ function SectionCard({ title, icon, editing, saving, onEdit, onSave, onCancel, c
 function LegalField({ label, value, onChange, locked, editing }) {
   const { T: theme } = useTheme();
   const { t } = useTranslation();
+  const hasValue = value !== null && value !== undefined && String(value).trim() !== '';
+
   return (
     <div>
       <label className="flex items-center gap-1 mb-1" style={{ fontSize: 12, fontWeight: 600, color: theme.t2 }}>
-        {label} {locked && <Lock size={10} style={{ color: theme.t3 }} />}
+        {label} {locked && hasValue && <Lock size={10} style={{ color: theme.t3 }} />}
       </label>
       {editing && !locked ? (
         <input
@@ -1832,10 +1837,10 @@ function LegalField({ label, value, onChange, locked, editing }) {
       ) : (
         <div
           className="flex items-center gap-2 px-3 py-2 rounded-lg"
-          style={{ background: theme.sa, fontSize: 13, color: locked ? theme.t3 : theme.t1 }}
+          style={{ background: theme.sa, fontSize: 13, color: locked && hasValue ? theme.t3 : theme.t1 }}
         >
           <span className="flex-1">{value || '—'}</span>
-          {locked && (
+          {locked && hasValue && (
             <span style={{ fontSize: 10, color: theme.t3 }}>
               {t('settings.orgSection.legal.kycLocked')}
             </span>
