@@ -1,8 +1,9 @@
 import React from 'react';
-import { PlayCircle, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import type { ContextualTutorialKey } from '../../config/contextualTutorials';
 import { useContextualTutorial } from '../../hooks/useContextualTutorial';
 import { TutorialVideoModal } from './TutorialVideoModal';
+import { assetUrl } from '../../utils/assetUrl';
 import '../../styles/tutorials.css';
 
 interface ContextualTutorialTriggerProps {
@@ -28,9 +29,14 @@ export const ContextualTutorialTrigger: React.FC<ContextualTutorialTriggerProps>
         aria-label={label}
       >
         {ctx.loading ? (
-          <Loader2 size={22} className="tut-context-trigger-spin" aria-hidden />
+          <Loader2 size={24} className="tut-context-trigger-spin" aria-hidden />
         ) : (
-          <PlayCircle size={22} aria-hidden />
+          <img
+            src={assetUrl('assets/images/ic_youtube.png')}
+            alt=""
+            style={{ width: 27, height: 27, objectFit: 'contain', display: 'block' }}
+            aria-hidden
+          />
         )}
       </button>
 

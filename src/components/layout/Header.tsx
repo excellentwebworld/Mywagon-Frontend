@@ -14,6 +14,7 @@ import {
   Menu,
   Play,
 } from 'lucide-react';
+import { assetUrl } from '../../utils/assetUrl';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -350,7 +351,7 @@ export const Header: React.FC<HeaderProps> = ({
         <span className="mv-topbar-ai-label">{t('vagonai.title') || 'Vagon AI'}</span>
       </button>
 
-      {/* Tutorials — play icon only (replaces Refer & Earn in the top bar) */}
+      {/* Tutorials — matches Laravel shipper panel ic_youtube.png */}
       <button
         type="button"
         onClick={() => navigate(pastDueLocked ? '/billing' : '/tutorials')}
@@ -361,14 +362,16 @@ export const Header: React.FC<HeaderProps> = ({
         style={{ color: T.t2 }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = T.sa;
-          e.currentTarget.style.color = T.t1;
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.color = T.t2;
         }}
       >
-        <Play size={18} fill="currentColor" />
+        <img
+          src={assetUrl('assets/images/ic_youtube.png')}
+          alt={t('tutorial') || 'Tutorials'}
+          style={{ width: 27, height: 27, objectFit: 'contain', display: 'block' }}
+        />
       </button>
 
 
