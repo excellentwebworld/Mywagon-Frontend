@@ -87,11 +87,8 @@ import {
   computeCargoLineQtyWeight,
   getPickupAllocatedQty,
   getPickupAllocatedWeight,
-  getDropoffAllocatedQty,
-  getDropoffAllocatedWeight,
-  getDropoffRemainingQty,
-  getDropoffRemainingWeight,
   formatQtyWithUnit,
+  remainingOrderWeight,
 } from "./itinerary/cargoUtils";
 
 const clearOrderDependentCargoFields = () => {
@@ -760,54 +757,22 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           ? "dropoff"
           : "pickup";
 
-      const newLines = mo.lines.map((ln) => {
-        const productId = ln.productSkuId ? String(ln.productSkuId) : "";
-        const unit = normalizeQtyUnit(ln.unit) || "EUR Pallets";
-        const wtUnit = normalizeWeightUnit(ln.weightUnit);
-        const lineId = makeId("l");
-        let qty = ln.quantity != null ? String(ln.quantity) : "";
-        let weight = ln.weight != null ? String(ln.weight) : "";
-
-        if (defaultAction === "dropoff" && productId) {
-          const remainingQty = getDropoffRemainingQty(
-            latestStops,
-            mo.id,
-            productId,
-            { unit, excludeLineId: lineId },
-          );
-          const remainingWeight = getDropoffRemainingWeight(
-            latestStops,
-            mo.id,
-            productId,
-            { displayUnit: wtUnit, excludeLineId: lineId },
-          );
-          qty =
-            ln.quantity != null || remainingQty > 0
-              ? String(remainingQty)
-              : "";
-          weight =
-            ln.weight != null || remainingWeight > 0
-              ? String(Math.round(remainingWeight * 1000) / 1000)
-              : "";
-        }
-
-        return {
-          id: lineId,
-          productId,
-          productName: ln.productName || "",
-          customerId: mo.companyEntityId ? String(mo.companyEntityId) : "",
-          customerName: mo.customerName || "",
-          orderId: mo.id,
-          orderRef: mo.orderReference,
-          orderLineId: ln.id != null ? String(ln.id) : "",
-          action: defaultAction as "pickup" | "dropoff",
-          qty,
-          unit,
-          weight,
-          wtUnit,
-          mirrorOf: "",
-        };
-      });
+      const newLines = mo.lines.map((ln) => ({
+        id: makeId("l"),
+        productId: ln.productSkuId ? String(ln.productSkuId) : "",
+        productName: ln.productName || "",
+        customerId: mo.companyEntityId ? String(mo.companyEntityId) : "",
+        customerName: mo.customerName || "",
+        orderId: mo.id,
+        orderRef: mo.orderReference,
+        orderLineId: ln.id != null ? String(ln.id) : "",
+        action: defaultAction as "pickup" | "dropoff",
+        qty: ln.quantity != null ? String(ln.quantity) : "",
+        unit: normalizeQtyUnit(ln.unit) || "EUR Pallets",
+        weight: ln.weight != null ? String(ln.weight) : "",
+        wtUnit: normalizeWeightUnit(ln.weightUnit),
+        mirrorOf: "",
+      }));
       uStop(sid, (s: any) => ({
         ...s,
         lines: [...s.lines.filter((l: any) => l.productId), ...newLines],
@@ -817,55 +782,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   );
 
   // ═══ OPTIONS ═══
-  // Include orders already on this shipment (edit mode links them, so the
-  // unlinked-only API list omits them). Needed so remaining qty can be
-  // assigned to an additional drop-off.
-  const ordOpts = useMemo(() => {
-    const seen = new Set<string>();
-    const opts: { value: string; label: string; sublabel?: string }[] = [];
-
-    const pushOpt = (
-      value: string,
-      label: string,
-      sublabel?: string,
-    ) => {
-      if (!value || seen.has(value)) return;
-      seen.add(value);
-      opts.push({ value, label, sublabel });
-    };
-
-    Object.values(orderDetailsById).forEach((order) => {
-      if (!order?.id) return;
-      pushOpt(
-        String(order.id),
-        order.orderReference || String(order.id),
-        [
-          order.customerName,
-          order.erpReference ? order.erpReference : null,
-          order.productCount ? `${order.productCount} lines` : null,
-        ]
-          .filter(Boolean)
-          .join(" · ") || undefined,
-      );
-    });
-
-    stops.forEach((stop: { lines?: Array<{ orderId?: string; orderRef?: string; customerName?: string }> }) => {
-      (stop.lines || []).forEach((line) => {
-        if (!line.orderId) return;
-        pushOpt(
-          String(line.orderId),
-          line.orderRef || String(line.orderId),
-          line.customerName || undefined,
-        );
-      });
-    });
-
-    orderOptions.forEach((opt) => {
-      pushOpt(opt.value, opt.label, opt.sublabel);
-    });
-
-    return opts;
-  }, [orderDetailsById, orderOptions, stops]);
+  const ordOpts = useMemo(() => orderOptions, [orderOptions]);
 
   // ═══ HANDLERS ═══
   const applyLocationToStop = useCallback(
@@ -2722,51 +2639,15 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       onChange={(e) => onSetField(ln.id, "qty", e.target.value)}
                     />
                     {(() => {
-                      if (!ln.orderId || !ln.productId) return null;
+                      if (ln.action !== "pickup" || !ln.orderId || !ln.productId) return null;
                       const order = orderDetailsById[ln.orderId];
                       const orderLine = findOrderLineForProduct(order, ln.productId);
+                      if (!orderLine || orderLine.quantity == null) return null;
+                      const orderQty = Number(orderLine.quantity) || 0;
+                      if (orderQty <= 0) return null;
                       const displayUnit =
-                        normalizeQtyUnit(ln.unit || orderLine?.unit) || "";
-
-                      if (ln.action === "pickup") {
-                        if (!orderLine || orderLine.quantity == null) return null;
-                        const orderQty = Number(orderLine.quantity) || 0;
-                        if (orderQty <= 0) return null;
-                        const allocated = getPickupAllocatedQty(
-                          allStops,
-                          String(ln.orderId),
-                          String(ln.productId),
-                          { unit: displayUnit },
-                        );
-                        return (
-                          <div
-                            className="text-[9px] mt-0.5"
-                            title={`${formatQtyWithUnit(allocated, displayUnit)} / ${formatQtyWithUnit(orderQty, displayUnit)}`}
-                            style={{
-                              whiteSpace: "nowrap",
-                              color:
-                                allocated === orderQty
-                                  ? "#059669"
-                                  : allocated > orderQty
-                                    ? "#DC2626"
-                                    : T.t3,
-                            }}
-                          >
-                            {formatQtyWithUnit(allocated)} /{" "}
-                            {formatQtyWithUnit(orderQty)}
-                          </div>
-                        );
-                      }
-
-                      // Drop-off: show dropped / pickup remaining capacity
-                      const pickupQty = getPickupAllocatedQty(
-                        allStops,
-                        String(ln.orderId),
-                        String(ln.productId),
-                        { unit: displayUnit },
-                      );
-                      if (pickupQty <= 0) return null;
-                      const droppedQty = getDropoffAllocatedQty(
+                        normalizeQtyUnit(ln.unit || orderLine.unit) || "";
+                      const allocated = getPickupAllocatedQty(
                         allStops,
                         String(ln.orderId),
                         String(ln.productId),
@@ -2775,19 +2656,19 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       return (
                         <div
                           className="text-[9px] mt-0.5"
-                          title={`${formatQtyWithUnit(droppedQty, displayUnit)} / ${formatQtyWithUnit(pickupQty, displayUnit)}`}
+                          title={`${formatQtyWithUnit(allocated, displayUnit)} / ${formatQtyWithUnit(orderQty, displayUnit)}`}
                           style={{
                             whiteSpace: "nowrap",
                             color:
-                              droppedQty === pickupQty
+                              allocated === orderQty
                                 ? "#059669"
-                                : droppedQty > pickupQty
+                                : allocated > orderQty
                                   ? "#DC2626"
                                   : T.t3,
                           }}
                         >
-                          {formatQtyWithUnit(droppedQty)} /{" "}
-                          {formatQtyWithUnit(pickupQty)}
+                          {formatQtyWithUnit(allocated)} /{" "}
+                          {formatQtyWithUnit(orderQty)}
                         </div>
                       );
                     })()}
@@ -2848,60 +2729,25 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       onKeyDown={(e) => handleKeyDown(e, isLast)}
                     />
                     {(() => {
-                      if (!ln.orderId || !ln.productId) return null;
+                      if (ln.action !== "pickup" || !ln.orderId || !ln.productId)
+                        return null;
                       const order = orderDetailsById[ln.orderId];
                       const orderLine = findOrderLineForProduct(
                         order,
                         ln.productId,
                       );
+                      if (!orderLine || orderLine.weight == null) return null;
+                      const orderWeight = Number(orderLine.weight) || 0;
+                      if (orderWeight <= 0) return null;
                       const displayWtUnit = normalizeWeightUnit(
-                        ln.wtUnit || orderLine?.weightUnit,
+                        ln.wtUnit || orderLine.weightUnit,
                       );
-
-                      if (ln.action === "pickup") {
-                        if (!orderLine || orderLine.weight == null) return null;
-                        const orderWeight = Number(orderLine.weight) || 0;
-                        if (orderWeight <= 0) return null;
-                        const orderWeightDisplay = convertWeightValue(
-                          orderWeight,
-                          orderLine.weightUnit,
-                          displayWtUnit,
-                        );
-                        const allocated = getPickupAllocatedWeight(
-                          allStops,
-                          String(ln.orderId),
-                          String(ln.productId),
-                          { displayUnit: displayWtUnit },
-                        );
-                        return (
-                          <div
-                            className="text-[9px] mt-0.5"
-                            style={{
-                              color:
-                                Math.abs(allocated - orderWeightDisplay) < 0.01
-                                  ? "#059669"
-                                  : allocated > orderWeightDisplay
-                                    ? "#DC2626"
-                                    : T.t3,
-                            }}
-                          >
-                            {formatWeightDisplay(allocated, displayWtUnit)} /{" "}
-                            {formatWeightDisplay(
-                              orderWeightDisplay,
-                              displayWtUnit,
-                            )}
-                          </div>
-                        );
-                      }
-
-                      const pickupWeight = getPickupAllocatedWeight(
-                        allStops,
-                        String(ln.orderId),
-                        String(ln.productId),
-                        { displayUnit: displayWtUnit },
+                      const orderWeightDisplay = convertWeightValue(
+                        orderWeight,
+                        orderLine.weightUnit,
+                        displayWtUnit,
                       );
-                      if (pickupWeight <= 0) return null;
-                      const droppedWeight = getDropoffAllocatedWeight(
+                      const allocated = getPickupAllocatedWeight(
                         allStops,
                         String(ln.orderId),
                         String(ln.productId),
@@ -2912,15 +2758,18 @@ const CargoTable: React.FC<CargoTableProps> = ({
                           className="text-[9px] mt-0.5"
                           style={{
                             color:
-                              Math.abs(droppedWeight - pickupWeight) < 0.01
+                              Math.abs(allocated - orderWeightDisplay) < 0.01
                                 ? "#059669"
-                                : droppedWeight > pickupWeight
+                                : allocated > orderWeightDisplay
                                   ? "#DC2626"
                                   : T.t3,
                           }}
                         >
-                          {formatWeightDisplay(droppedWeight, displayWtUnit)} /{" "}
-                          {formatWeightDisplay(pickupWeight, displayWtUnit)}
+                          {formatWeightDisplay(allocated, displayWtUnit)} /{" "}
+                          {formatWeightDisplay(
+                            orderWeightDisplay,
+                            displayWtUnit,
+                          )}
                         </div>
                       );
                     })()}
