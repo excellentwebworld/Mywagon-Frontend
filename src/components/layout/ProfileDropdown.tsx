@@ -17,6 +17,7 @@ import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
 import { ReferralModal } from '../referral';
 import { LANGUAGES } from '../../constants/panel';
+import { assetUrl } from '../../utils/assetUrl';
 
 /** Inline icons matching Sidebar footer / Refer button. */
 function SubscriptionIcon({ size = 15, color }: { size?: number; color?: string }) {
@@ -34,6 +35,15 @@ function BillingIcon({ size = 15, color }: { size?: number; color?: string }) {
       <path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z" />
       <line x1="9" y1="7" x2="15" y2="7" />
       <line x1="9" y1="11" x2="15" y2="11" />
+    </svg>
+  );
+}
+
+function TutorialsIcon({ size = 15, color }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || 'currentColor'} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="4" />
+      <polygon points="10 8 16 12 10 16 10 8" fill="none" stroke={color || 'currentColor'} strokeWidth="1.75" />
     </svg>
   );
 }
@@ -90,7 +100,7 @@ export function ProfileDropdown() {
   };
 
   type MenuLink =
-    | { kind: 'route'; label: string; route: string; icon: 'settings' | 'subscription' | 'billing' }
+    | { kind: 'route'; label: string; route: string; icon: 'settings' | 'subscription' | 'billing' | 'tutorials' }
     | { kind: 'referral'; label: string };
 
   const links: MenuLink[] = [
@@ -113,6 +123,12 @@ export function ProfileDropdown() {
       route: '/billing',
     },
     {
+      kind: 'route',
+      icon: 'tutorials',
+      label: t('tutorials.pageTitle') || t('tutorial') || 'Tutorials',
+      route: '/tutorials',
+    },
+    {
       kind: 'referral',
       label: t('referral.referBtn', 'Refer & Earn'),
     },
@@ -133,7 +149,10 @@ export function ProfileDropdown() {
     if (link.icon === 'subscription') {
       return <SubscriptionIcon color={T.t2} />;
     }
-    return <BillingIcon color={T.t2} />;
+    if (link.icon === 'billing') {
+      return <BillingIcon color={T.t2} />;
+    }
+    return <TutorialsIcon color={T.t2} />;
   };
 
   return (
