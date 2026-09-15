@@ -130,6 +130,18 @@ export function buildOrderDetailFromStops(
   };
 }
 
+/** Prefer API detail with lines; otherwise rebuild from shipment cargo. */
+export function resolveOrderDetailForWizard(
+  orderKey: string,
+  fetched: ErpOrder | null | undefined,
+  stops: StopLike[] | null | undefined,
+): ErpOrder | null {
+  if (fetched?.lines?.length) return fetched;
+  const synthetic = buildOrderDetailFromStops(orderKey, stops);
+  if (synthetic?.lines?.length) return synthetic;
+  return fetched ?? null;
+}
+
 export function useCreateShipmentOrders() {
   const queryClient = useQueryClient();
   const detailCacheRef = useRef(new Map<string, ErpOrder>());

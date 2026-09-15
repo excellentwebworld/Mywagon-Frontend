@@ -41,7 +41,7 @@ import {
   findOrderLineForProduct,
   getProductOptionsForCargoLine,
   countUnmappedOrderLines,
-  buildOrderDetailFromStops,
+  resolveOrderDetailForWizard,
 } from "../../hooks/useCreateShipmentOrders";
 import { ConfirmationModal } from "../ui/ConfirmationModal";
 import { CreateLocationModal } from "../AddressBook/CreateLocationModal";
@@ -93,6 +93,16 @@ import {
   formatQtyWithUnit,
   remainingOrderWeight,
 } from "./itinerary/cargoUtils";
+
+function lookupOrderDetail(
+  orderDetailsById: Record<string, import("../../pages/ErpOrders/types").ErpOrder>,
+  orderId?: string | null,
+  orderRef?: string | null,
+) {
+  if (orderId && orderDetailsById[orderId]) return orderDetailsById[orderId];
+  if (orderRef && orderDetailsById[orderRef]) return orderDetailsById[orderRef];
+  return undefined;
+}
 
 const clearOrderDependentCargoFields = () => {
   const blank = createNewCargoLine();
@@ -398,9 +408,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
     void (async () => {
       for (const orderId of ids) {
-        const detail =
-          (await fetchOrderDetail(orderId)) ||
-          buildOrderDetailFromStops(orderId, stopsRef.current || []);
+        const detail = resolveOrderDetailForWizard(
+          orderId,
+          await fetchOrderDetail(orderId),
+          stopsRef.current || [],
+        );
         if (cancelled || !detail) continue;
         const canonicalId = String(detail.id);
         const canonicalRef = detail.orderReference
@@ -739,14 +751,24 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         return;
       }
 
-      const order =
-        orderDetailsById[line.orderId] ||
-        (await fetchOrderDetail(line.orderId));
+      const order = resolveOrderDetailForWizard(
+        String(line.orderId),
+        lookupOrderDetail(orderDetailsById, line.orderId, line.orderRef) ||
+          (await fetchOrderDetail(line.orderId)),
+        latestStops,
+      );
       if (!order) {
         setLF(sid, lid, "action", action);
         return;
       }
-      setOrderDetailsById((prev) => ({ ...prev, [line.orderId]: order }));
+      setOrderDetailsById((prev) => ({
+        ...prev,
+        [String(order.id)]: order,
+        [String(line.orderId)]: order,
+        ...(order.orderReference
+          ? { [String(order.orderReference)]: order }
+          : {}),
+      }));
 
       const orderLine = findOrderLineForProduct(order, line.productId);
       if (!orderLine) {
@@ -791,7 +813,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const quickFill = useCallback(
     async (sid: string, orderId: string) => {
-      const mo = orderDetailsById[orderId] || (await fetchOrderDetail(orderId));
+      const mo = resolveOrderDetailForWizard(
+        orderId,
+        orderDetailsById[orderId] || (await fetchOrderDetail(orderId)),
+        stopsRef.current || [],
+      );
       if (!mo) {
         showToast(
           t("createLoadOrderLoadError") || "Could not load order details.",
@@ -1082,9 +1108,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       }
       setOrderLoadingLineId(lid);
       try {
-        const detail =
-          (await fetchOrderDetail(oid, { force: true })) ||
-          buildOrderDetailFromStops(oid, stopsRef.current || []);
+        const detail = resolveOrderDetailForWizard(
+          oid,
+          await fetchOrderDetail(oid, { force: true }),
+          stopsRef.current || [],
+        );
         if (detail) {
           const canonicalId = String(detail.id);
           setOrderDetailsById((prev) => ({
@@ -1203,11 +1231,22 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       const stop = stopsRef.current.find((s: any) => s.id === sid);
       const line = stop?.lines?.find((l: any) => l.id === lid);
       const order = line?.orderId
-        ? orderDetailsById[line.orderId] ||
-          (await fetchOrderDetail(line.orderId))
+        ? resolveOrderDetailForWizard(
+            String(line.orderId),
+            lookupOrderDetail(orderDetailsById, line.orderId, line.orderRef) ||
+              (await fetchOrderDetail(line.orderId)),
+            stopsRef.current || [],
+          )
         : null;
       if (order && line?.orderId) {
-        setOrderDetailsById((prev) => ({ ...prev, [line.orderId]: order }));
+        setOrderDetailsById((prev) => ({
+          ...prev,
+          [String(order.id)]: order,
+          [String(line.orderId)]: order,
+          ...(order.orderReference
+            ? { [String(order.orderReference)]: order }
+            : {}),
+        }));
       }
       const orderLine = findOrderLineForProduct(order, skuId);
       if (orderLine) {
@@ -2564,9 +2603,11 @@ const CargoTable: React.FC<CargoTableProps> = ({
               const indicators = getGoodsIndicators(ln.productId);
               const isLast = li === stop.lines.length - 1;
               const lineLocked = Boolean(isLineLocked?.(ln));
-              const orderDetail = ln.orderId
-                ? orderDetailsById[ln.orderId]
-                : undefined;
+              const orderDetail = lookupOrderDetail(
+                orderDetailsById,
+                ln.orderId,
+                ln.orderRef,
+              );
               const seenValues = new Set<string>();
               const productOpts: {
                 value: string;
@@ -2774,7 +2815,11 @@ const CargoTable: React.FC<CargoTableProps> = ({
                     />
                     {(() => {
                       if (!ln.orderId || !ln.productId) return null;
-                      const order = orderDetailsById[ln.orderId];
+                      const order = lookupOrderDetail(
+                        orderDetailsById,
+                        ln.orderId,
+                        ln.orderRef,
+                      );
                       const orderLine = findOrderLineForProduct(order, ln.productId);
                       if (!orderLine || orderLine.quantity == null) return null;
                       const orderQty = Number(orderLine.quantity) || 0;
@@ -2898,7 +2943,11 @@ const CargoTable: React.FC<CargoTableProps> = ({
                     />
                     {(() => {
                       if (!ln.orderId || !ln.productId) return null;
-                      const order = orderDetailsById[ln.orderId];
+                      const order = lookupOrderDetail(
+                        orderDetailsById,
+                        ln.orderId,
+                        ln.orderRef,
+                      );
                       const orderLine = findOrderLineForProduct(
                         order,
                         ln.productId,

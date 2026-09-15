@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildOrderDetailFromStops } from './useCreateShipmentOrders';
+import { buildOrderDetailFromStops, resolveOrderDetailForWizard } from './useCreateShipmentOrders';
 
 describe('buildOrderDetailFromStops', () => {
   it('rebuilds order lines from pickup totals when API order is unavailable', () => {
@@ -50,5 +50,39 @@ describe('buildOrderDetailFromStops', () => {
       weight: 10,
       unit: 'Boxes',
     });
+  });
+});
+
+describe('resolveOrderDetailForWizard', () => {
+  it('keeps API detail when it has lines', () => {
+    const api = {
+      id: '9',
+      orderReference: 'ord-12345',
+      lines: [{ productSkuId: 1, productName: 'A', quantity: 5, unit: 'Boxes', weight: 10, weightUnit: 'kg' }],
+    } as any;
+    expect(resolveOrderDetailForWizard('ord-12345', api, [])).toBe(api);
+  });
+
+  it('falls back to stops when API detail has no lines', () => {
+    const api = { id: '9', orderReference: 'ord-12345', lines: [] } as any;
+    const resolved = resolveOrderDetailForWizard('ord-12345', api, [
+      {
+        lines: [
+          {
+            orderId: 'ord-12345',
+            orderRef: 'ord-12345',
+            productId: '101',
+            productName: 'Water',
+            action: 'pickup',
+            qty: '5',
+            unit: 'Boxes',
+            weight: '10',
+            wtUnit: 'kg',
+          },
+        ],
+      },
+    ]);
+    expect(resolved?.lines).toHaveLength(1);
+    expect(resolved?.lines[0].quantity).toBe(5);
   });
 });
