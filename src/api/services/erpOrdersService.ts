@@ -95,7 +95,9 @@ export const erpOrdersService = {
   },
 
   async getOrder(id: string): Promise<ErpOrder> {
-    const res = await apiGet<ApiErpOrderDetail>(`/erp-orders/${id}`);
+    const res = await apiGet<ApiErpOrderDetail>(
+      `/erp-orders/${encodeURIComponent(id)}`,
+    );
     return mapApiDetailToOrder(res.data);
   },
 

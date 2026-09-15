@@ -41,6 +41,7 @@ import {
   findOrderLineForProduct,
   getProductOptionsForCargoLine,
   countUnmappedOrderLines,
+  buildOrderDetailFromStops,
 } from "../../hooks/useCreateShipmentOrders";
 import { ConfirmationModal } from "../ui/ConfirmationModal";
 import { CreateLocationModal } from "../AddressBook/CreateLocationModal";
@@ -87,6 +88,8 @@ import {
   computeCargoLineQtyWeight,
   getPickupAllocatedQty,
   getPickupAllocatedWeight,
+  getDropoffAllocatedQty,
+  getDropoffAllocatedWeight,
   formatQtyWithUnit,
   remainingOrderWeight,
 } from "./itinerary/cargoUtils";
@@ -284,46 +287,14 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const orderIdsFromStops = useMemo(() => {
     const ids = new Set<string>();
-    stops.forEach((stop: { lines?: { orderId?: string }[] }) => {
+    stops.forEach((stop: { lines?: { orderId?: string; orderRef?: string }[] }) => {
       (stop.lines || []).forEach((line) => {
         if (line.orderId) ids.add(String(line.orderId));
+        if (line.orderRef) ids.add(String(line.orderRef));
       });
     });
     return [...ids].sort().join(",");
   }, [stops]);
-
-  useEffect(() => {
-    if (!orderIdsFromStops) return;
-
-    let cancelled = false;
-    const ids = orderIdsFromStops.split(",").filter(Boolean);
-
-    void (async () => {
-      for (const orderId of ids) {
-        const detail = await fetchOrderDetail(orderId);
-        if (cancelled || !detail) continue;
-        setOrderDetailsById((prev) =>
-          prev[orderId] ? prev : { ...prev, [orderId]: detail },
-        );
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchOrderDetail, orderIdsFromStops]);
-
-  useEffect(() => {
-    if (!mLoc) return;
-    const q = companyQuery.trim();
-    const timer = setTimeout(() => {
-      addressBookService
-        .listCompanies(q || undefined, "my_locations")
-        .then(setApiCompanies)
-        .catch(() => setApiCompanies([]));
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [companyQuery, mLoc]);
 
   useEffect(() => {
     if (createStep !== 4) {
@@ -358,6 +329,18 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       cancelled = true;
     };
   }, [createStep, createData, queryClient]);
+
+  useEffect(() => {
+    if (!mLoc) return;
+    const q = companyQuery.trim();
+    const timer = setTimeout(() => {
+      addressBookService
+        .listCompanies(q || undefined, "my_locations")
+        .then(setApiCompanies)
+        .catch(() => setApiCompanies([]));
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [companyQuery, mLoc]);
 
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const todayStr = useMemo(() => getTodayDateString(), []);
@@ -403,6 +386,75 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     },
     [setFieldValue],
   );
+
+  // Hydrate ERP order details for stop lines. Falls back to synthesizing details
+  // from cargo already on the shipment when GET /erp-orders/{id} 404s (common for
+  // linked orders / reference-as-id payloads against remote APIs).
+  useEffect(() => {
+    if (!orderIdsFromStops) return;
+
+    let cancelled = false;
+    const ids = orderIdsFromStops.split(",").filter(Boolean);
+
+    void (async () => {
+      for (const orderId of ids) {
+        const detail =
+          (await fetchOrderDetail(orderId)) ||
+          buildOrderDetailFromStops(orderId, stopsRef.current || []);
+        if (cancelled || !detail) continue;
+        const canonicalId = String(detail.id);
+        const canonicalRef = detail.orderReference
+          ? String(detail.orderReference)
+          : "";
+        setOrderDetailsById((prev) => ({
+          ...prev,
+          [canonicalId]: detail,
+          [orderId]: detail,
+          ...(canonicalRef ? { [canonicalRef]: detail } : {}),
+        }));
+
+        // Only rewrite line orderIds when API returned a real numeric PK different
+        // from the stored reference key.
+        if (canonicalId === orderId || !/^\d+$/.test(canonicalId)) continue;
+
+        setStops((prev) => {
+          let changed = false;
+          const next = prev.map((stop: any) => ({
+            ...stop,
+            lines: (stop.lines || []).map((line: any) => {
+              const lineOrderId = String(line.orderId || "");
+              const lineOrderRef = String(line.orderRef || "");
+              const matches =
+                lineOrderId === orderId ||
+                lineOrderId === canonicalId ||
+                (canonicalRef !== "" &&
+                  (lineOrderId === canonicalRef ||
+                    lineOrderRef === canonicalRef ||
+                    lineOrderRef === orderId));
+              if (!matches) return line;
+              if (
+                lineOrderId === canonicalId &&
+                (canonicalRef === "" || lineOrderRef === canonicalRef)
+              ) {
+                return line;
+              }
+              changed = true;
+              return {
+                ...line,
+                orderId: canonicalId,
+                orderRef: canonicalRef || lineOrderRef || orderId,
+              };
+            }),
+          }));
+          return changed ? next : prev;
+        });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchOrderDetail, orderIdsFromStops, setStops]);
 
   const uStop = useCallback(
     (sid: string, up: any) => {
@@ -757,22 +809,51 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           ? "dropoff"
           : "pickup";
 
-      const newLines = mo.lines.map((ln) => ({
-        id: makeId("l"),
-        productId: ln.productSkuId ? String(ln.productSkuId) : "",
-        productName: ln.productName || "",
-        customerId: mo.companyEntityId ? String(mo.companyEntityId) : "",
-        customerName: mo.customerName || "",
-        orderId: mo.id,
-        orderRef: mo.orderReference,
-        orderLineId: ln.id != null ? String(ln.id) : "",
-        action: defaultAction as "pickup" | "dropoff",
-        qty: ln.quantity != null ? String(ln.quantity) : "",
-        unit: normalizeQtyUnit(ln.unit) || "EUR Pallets",
-        weight: ln.weight != null ? String(ln.weight) : "",
-        wtUnit: normalizeWeightUnit(ln.weightUnit),
-        mirrorOf: "",
-      }));
+      // Build lines sequentially so each dropoff prefill sees prior remaining.
+      let workingStops = latestStops;
+      const newLines = mo.lines.map((ln) => {
+        const lineId = makeId("l");
+        const productId = ln.productSkuId ? String(ln.productSkuId) : "";
+        const { qty, weight, unit, wtUnit } = productId
+          ? computeCargoLineQtyWeight({
+              stops: workingStops,
+              lineId,
+              orderId: String(mo.id),
+              productId,
+              action: defaultAction,
+              orderLine: ln,
+            })
+          : {
+              qty: ln.quantity != null ? String(ln.quantity) : "",
+              weight: ln.weight != null ? String(ln.weight) : "",
+              unit: normalizeQtyUnit(ln.unit) || "EUR Pallets",
+              wtUnit: normalizeWeightUnit(ln.weightUnit),
+            };
+
+        const cargoLine = {
+          id: lineId,
+          productId,
+          productName: ln.productName || "",
+          customerId: mo.companyEntityId ? String(mo.companyEntityId) : "",
+          customerName: mo.customerName || "",
+          orderId: mo.id,
+          orderRef: mo.orderReference,
+          orderLineId: ln.id != null ? String(ln.id) : "",
+          action: defaultAction as "pickup" | "dropoff",
+          qty,
+          unit,
+          weight,
+          wtUnit,
+          mirrorOf: "",
+        };
+
+        workingStops = workingStops.map((s: any) =>
+          s.id === sid
+            ? { ...s, lines: [...(s.lines || []), cargoLine] }
+            : s,
+        );
+        return cargoLine;
+      });
       uStop(sid, (s: any) => ({
         ...s,
         lines: [...s.lines.filter((l: any) => l.productId), ...newLines],
@@ -781,8 +862,49 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     [fetchOrderDetail, orderDetailsById, showToast, t, uStop],
   );
 
-  // ═══ OPTIONS ═══
-  const ordOpts = useMemo(() => orderOptions, [orderOptions]);
+  // Include orders already on this shipment (linked / planned) so the same order
+  // can be selected again on another drop-off when qty/weight was split.
+  // Prefer canonical ERP numeric id when order details are available (edit rows
+  // may still carry order_reference in orderId from older payloads).
+  const ordOpts = useMemo(() => {
+    const byId = new Map<
+      string,
+      { value: string; label: string; sublabel?: string }
+    >();
+    for (const opt of orderOptions) {
+      byId.set(String(opt.value), opt);
+    }
+    for (const stop of stops) {
+      for (const ln of stop.lines || []) {
+        if (!ln.orderId && !ln.orderRef) continue;
+        const rawId = String(ln.orderId || ln.orderRef);
+        const detail =
+          orderDetailsById[rawId] ||
+          (ln.orderRef ? orderDetailsById[String(ln.orderRef)] : undefined);
+        const value = detail?.id ? String(detail.id) : rawId;
+        if (byId.has(value)) continue;
+        byId.set(value, {
+          value,
+          label:
+            ln.orderRef ||
+            detail?.orderReference ||
+            value,
+          sublabel: [
+            ln.customerName || detail?.customerName || null,
+            detail?.erpReference || null,
+            detail?.productCount
+              ? `${detail.productCount} lines`
+              : detail?.lines?.length
+                ? `${detail.lines.length} lines`
+                : null,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        });
+      }
+    }
+    return Array.from(byId.values());
+  }, [orderDetailsById, orderOptions, stops]);
 
   // ═══ HANDLERS ═══
   const applyLocationToStop = useCallback(
@@ -960,14 +1082,26 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       }
       setOrderLoadingLineId(lid);
       try {
-        const detail = await fetchOrderDetail(oid, { force: true });
+        const detail =
+          (await fetchOrderDetail(oid, { force: true })) ||
+          buildOrderDetailFromStops(oid, stopsRef.current || []);
         if (detail) {
-          setOrderDetailsById((prev) => ({ ...prev, [oid]: detail }));
+          const canonicalId = String(detail.id);
+          setOrderDetailsById((prev) => ({
+            ...prev,
+            [canonicalId]: detail,
+            [oid]: detail,
+            ...(detail.orderReference
+              ? { [String(detail.orderReference)]: detail }
+              : {}),
+          }));
           const blank = clearOrderDependentCargoFields();
           setLF(sid, lid, {
             ...blank,
-            orderId: oid,
-            orderRef: detail.orderReference,
+            // Keep the same order key already used on other stops when the API
+            // could not resolve a numeric PK (synthetic fallback).
+            orderId: canonicalId,
+            orderRef: detail.orderReference || oid,
             customerName: detail.customerName || "",
             customerId: detail.companyEntityId
               ? String(detail.companyEntityId)
@@ -2639,7 +2773,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       onChange={(e) => onSetField(ln.id, "qty", e.target.value)}
                     />
                     {(() => {
-                      if (ln.action !== "pickup" || !ln.orderId || !ln.productId) return null;
+                      if (!ln.orderId || !ln.productId) return null;
                       const order = orderDetailsById[ln.orderId];
                       const orderLine = findOrderLineForProduct(order, ln.productId);
                       if (!orderLine || orderLine.quantity == null) return null;
@@ -2647,7 +2781,41 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       if (orderQty <= 0) return null;
                       const displayUnit =
                         normalizeQtyUnit(ln.unit || orderLine.unit) || "";
-                      const allocated = getPickupAllocatedQty(
+                      if (ln.action === "pickup") {
+                        const allocated = getPickupAllocatedQty(
+                          allStops,
+                          String(ln.orderId),
+                          String(ln.productId),
+                          { unit: displayUnit },
+                        );
+                        return (
+                          <div
+                            className="text-[9px] mt-0.5"
+                            title={`${formatQtyWithUnit(allocated, displayUnit)} / ${formatQtyWithUnit(orderQty, displayUnit)}`}
+                            style={{
+                              whiteSpace: "nowrap",
+                              color:
+                                allocated === orderQty
+                                  ? "#059669"
+                                  : allocated > orderQty
+                                    ? "#DC2626"
+                                    : T.t3,
+                            }}
+                          >
+                            {formatQtyWithUnit(allocated)} /{" "}
+                            {formatQtyWithUnit(orderQty)}
+                          </div>
+                        );
+                      }
+                      if (ln.action !== "dropoff") return null;
+                      const pickupQty = getPickupAllocatedQty(
+                        allStops,
+                        String(ln.orderId),
+                        String(ln.productId),
+                        { unit: displayUnit },
+                      );
+                      const availableQty = pickupQty > 0 ? pickupQty : orderQty;
+                      const allocated = getDropoffAllocatedQty(
                         allStops,
                         String(ln.orderId),
                         String(ln.productId),
@@ -2656,19 +2824,19 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       return (
                         <div
                           className="text-[9px] mt-0.5"
-                          title={`${formatQtyWithUnit(allocated, displayUnit)} / ${formatQtyWithUnit(orderQty, displayUnit)}`}
+                          title={`${formatQtyWithUnit(allocated, displayUnit)} / ${formatQtyWithUnit(availableQty, displayUnit)}`}
                           style={{
                             whiteSpace: "nowrap",
                             color:
-                              allocated === orderQty
+                              allocated === availableQty
                                 ? "#059669"
-                                : allocated > orderQty
+                                : allocated > availableQty
                                   ? "#DC2626"
                                   : T.t3,
                           }}
                         >
                           {formatQtyWithUnit(allocated)} /{" "}
-                          {formatQtyWithUnit(orderQty)}
+                          {formatQtyWithUnit(availableQty)}
                         </div>
                       );
                     })()}
@@ -2729,8 +2897,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       onKeyDown={(e) => handleKeyDown(e, isLast)}
                     />
                     {(() => {
-                      if (ln.action !== "pickup" || !ln.orderId || !ln.productId)
-                        return null;
+                      if (!ln.orderId || !ln.productId) return null;
                       const order = orderDetailsById[ln.orderId];
                       const orderLine = findOrderLineForProduct(
                         order,
@@ -2747,7 +2914,43 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         orderLine.weightUnit,
                         displayWtUnit,
                       );
-                      const allocated = getPickupAllocatedWeight(
+                      if (ln.action === "pickup") {
+                        const allocated = getPickupAllocatedWeight(
+                          allStops,
+                          String(ln.orderId),
+                          String(ln.productId),
+                          { displayUnit: displayWtUnit },
+                        );
+                        return (
+                          <div
+                            className="text-[9px] mt-0.5"
+                            style={{
+                              color:
+                                Math.abs(allocated - orderWeightDisplay) < 0.01
+                                  ? "#059669"
+                                  : allocated > orderWeightDisplay
+                                    ? "#DC2626"
+                                    : T.t3,
+                            }}
+                          >
+                            {formatWeightDisplay(allocated, displayWtUnit)} /{" "}
+                            {formatWeightDisplay(
+                              orderWeightDisplay,
+                              displayWtUnit,
+                            )}
+                          </div>
+                        );
+                      }
+                      if (ln.action !== "dropoff") return null;
+                      const pickupWeight = getPickupAllocatedWeight(
+                        allStops,
+                        String(ln.orderId),
+                        String(ln.productId),
+                        { displayUnit: displayWtUnit },
+                      );
+                      const availableWeight =
+                        pickupWeight > 0 ? pickupWeight : orderWeightDisplay;
+                      const allocated = getDropoffAllocatedWeight(
                         allStops,
                         String(ln.orderId),
                         String(ln.productId),
@@ -2758,18 +2961,15 @@ const CargoTable: React.FC<CargoTableProps> = ({
                           className="text-[9px] mt-0.5"
                           style={{
                             color:
-                              Math.abs(allocated - orderWeightDisplay) < 0.01
+                              Math.abs(allocated - availableWeight) < 0.01
                                 ? "#059669"
-                                : allocated > orderWeightDisplay
+                                : allocated > availableWeight
                                   ? "#DC2626"
                                   : T.t3,
                           }}
                         >
                           {formatWeightDisplay(allocated, displayWtUnit)} /{" "}
-                          {formatWeightDisplay(
-                            orderWeightDisplay,
-                            displayWtUnit,
-                          )}
+                          {formatWeightDisplay(availableWeight, displayWtUnit)}
                         </div>
                       );
                     })()}

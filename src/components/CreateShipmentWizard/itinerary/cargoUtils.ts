@@ -171,6 +171,59 @@ export function getPickupAllocatedWeight(
 }
 
 /**
+ * Sum dropoff qty for the same order + product across stops.
+ * When `unit` is provided, only lines with that unit are included.
+ */
+export function getDropoffAllocatedQty(
+  stops: ApiStop[],
+  orderId: string,
+  productId: string,
+  options?: { excludeLineId?: string; unit?: string }
+): number {
+  if (!orderId || !productId) return 0;
+  const wantUnit = options?.unit != null ? normalizeQtyUnit(options.unit) : null;
+  let sum = 0;
+  stops.forEach((s) =>
+    (s.lines || []).forEach((ln) => {
+      if (ln.action !== 'dropoff') return;
+      if (String(ln.orderId || '') !== String(orderId)) return;
+      if (String(ln.productId || '') !== String(productId)) return;
+      if (options?.excludeLineId && String(ln.id) === String(options.excludeLineId)) return;
+      if (wantUnit != null && !qtyUnitsMatch(ln.unit, wantUnit)) return;
+      sum += parseFloat(String(ln.qty ?? '')) || 0;
+    })
+  );
+  return sum;
+}
+
+/**
+ * Sum dropoff weight for the same order + product across stops.
+ * Pass `displayUnit` to return the magnitude in that wizard weight unit.
+ */
+export function getDropoffAllocatedWeight(
+  stops: ApiStop[],
+  orderId: string,
+  productId: string,
+  options?: { excludeLineId?: string; displayUnit?: string }
+): number {
+  if (!orderId || !productId) return 0;
+  let sumKg = 0;
+  stops.forEach((s) =>
+    (s.lines || []).forEach((ln) => {
+      if (ln.action !== 'dropoff') return;
+      if (String(ln.orderId || '') !== String(orderId)) return;
+      if (String(ln.productId || '') !== String(productId)) return;
+      if (options?.excludeLineId && String(ln.id) === String(options.excludeLineId)) return;
+      sumKg += weightToKg(ln.weight, ln.wtUnit);
+    })
+  );
+  if (options?.displayUnit != null) {
+    return kgToWeightUnit(sumKg, options.displayUnit);
+  }
+  return sumKg;
+}
+
+/**
  * Absolute remaining order weight in the display unit:
  * max(0, orderWeight − alreadyAllocatedInDisplayUnit).
  */
@@ -202,7 +255,7 @@ export interface CargoLinePrefillInput {
   lineWtUnit?: string;
 }
 
-/** Compute qty/weight prefill for a cargo line based on action and existing pickup allocations. */
+/** Compute qty/weight prefill for a cargo line based on action and existing allocations. */
 export function computeCargoLineQtyWeight({
   stops,
   lineId,
@@ -233,15 +286,37 @@ export function computeCargoLineQtyWeight({
       unit: orderUnit,
       excludeLineId: lineId,
     });
+    const dropoffQty = getDropoffAllocatedQty(stops, orderIdStr, productId, {
+      unit: orderUnit,
+      excludeLineId: lineId,
+    });
+    // Prefer pickup total; if no pickup yet, fall back to order qty so multi-dropoff still works.
+    const sourceQty = pickupQty > 0 ? pickupQty : orderQty;
+    const remainingQty = Math.max(0, sourceQty - dropoffQty);
+
     const pickupWeight = getPickupAllocatedWeight(stops, orderIdStr, productId, {
       displayUnit: orderWtUnit,
       excludeLineId: lineId,
     });
+    const dropoffWeight = getDropoffAllocatedWeight(stops, orderIdStr, productId, {
+      displayUnit: orderWtUnit,
+      excludeLineId: lineId,
+    });
+    const sourceWeight =
+      pickupWeight > 0
+        ? pickupWeight
+        : orderWeight != null
+          ? convertWeightValue(orderWeight, orderLine.weightUnit, orderWtUnit)
+          : 0;
+    const remainingWeight = Math.max(0, sourceWeight - dropoffWeight);
+
     qty =
-      orderLine.quantity != null || pickupQty > 0 ? String(pickupQty) : '';
+      orderLine.quantity != null || pickupQty > 0 || dropoffQty > 0
+        ? String(remainingQty)
+        : '';
     weight =
-      orderWeight != null || pickupWeight > 0
-        ? String(Math.round(pickupWeight * 1000) / 1000)
+      orderWeight != null || pickupWeight > 0 || dropoffWeight > 0
+        ? String(Math.round(remainingWeight * 1000) / 1000)
         : '';
   } else {
     const allocatedQty = getPickupAllocatedQty(stops, orderIdStr, productId, {
