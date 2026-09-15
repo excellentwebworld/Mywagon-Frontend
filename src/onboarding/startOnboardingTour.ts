@@ -42,6 +42,7 @@ function ensureSidebarExpanded(expandSidebar?: () => void, targetEl?: Element | 
 function syncPopoverChrome(
   popover: {
     wrapper?: HTMLElement | null;
+    progress?: HTMLElement | null;
     previousButton?: HTMLElement | null;
     nextButton?: HTMLElement | null;
     closeButton?: HTMLElement | null;
@@ -80,6 +81,26 @@ function syncPopoverChrome(
     popover.closeButton.title = skipLabel;
     // Laravel hides Skip on final step
     popover.closeButton.style.display = isLast ? 'none' : '';
+  }
+
+  // Progress text numbering: calculate 1-based index among actual interactive steps (excluding intro/outro modals)
+  const progressEl =
+    popover.progress || (wrapper?.querySelector('.driver-popover-progress-text') as HTMLElement | null);
+  if (progressEl) {
+    if (isFirst || isLast) {
+      progressEl.style.display = 'none';
+    } else {
+      const steps = d.getConfig().steps || [];
+      const totalSteps = steps.length;
+      const hasIntro = totalSteps > 0 && !steps[0]?.element;
+      const hasOutro = totalSteps > 1 && !steps[totalSteps - 1]?.element;
+
+      const totalInteractive = totalSteps - (hasIntro ? 1 : 0) - (hasOutro ? 1 : 0);
+      const currentInteractive = index - (hasIntro ? 1 : 0) + 1;
+
+      progressEl.innerText = `${Math.max(1, currentInteractive)} / ${Math.max(1, totalInteractive)}`;
+      progressEl.style.display = '';
+    }
   }
 }
 
