@@ -99,8 +99,18 @@ function lookupOrderDetail(
   orderId?: string | null,
   orderRef?: string | null,
 ) {
-  if (orderId && orderDetailsById[orderId]) return orderDetailsById[orderId];
-  if (orderRef && orderDetailsById[orderRef]) return orderDetailsById[orderRef];
+  if (orderId) {
+    const sId = String(orderId);
+    if (orderDetailsById[sId]) return orderDetailsById[sId];
+  }
+  if (orderRef) {
+    const sRef = String(orderRef);
+    if (orderDetailsById[sRef]) return orderDetailsById[sRef];
+  }
+  for (const detail of Object.values(orderDetailsById)) {
+    if (orderId && String(detail?.id) === String(orderId)) return detail;
+    if (orderRef && detail?.orderReference && String(detail.orderReference) === String(orderRef)) return detail;
+  }
   return undefined;
 }
 
@@ -890,13 +900,32 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     for (const opt of orderOptions) {
       byId.set(String(opt.value), opt);
     }
+    for (const detail of Object.values(orderDetailsById)) {
+      if (!detail?.id) continue;
+      const value = String(detail.id);
+      if (!byId.has(value)) {
+        byId.set(value, {
+          value,
+          label: detail.orderReference || value,
+          sublabel: [
+            detail.customerName || null,
+            detail.erpReference || null,
+            detail.productCount
+              ? `${detail.productCount} lines`
+              : detail.lines?.length
+                ? `${detail.lines.length} lines`
+                : null,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        });
+      }
+    }
     for (const stop of stops) {
       for (const ln of stop.lines || []) {
         if (!ln.orderId && !ln.orderRef) continue;
         const rawId = String(ln.orderId || ln.orderRef);
-        const detail =
-          orderDetailsById[rawId] ||
-          (ln.orderRef ? orderDetailsById[String(ln.orderRef)] : undefined);
+        const detail = lookupOrderDetail(orderDetailsById, ln.orderId, ln.orderRef);
         const value = detail?.id ? String(detail.id) : rawId;
         if (byId.has(value)) continue;
         byId.set(value, {

@@ -215,11 +215,9 @@ export function buildStopsFromErpOrders(
 
 export function isOrderEligibleForCreateLoad(order: Pick<
   ErpOrder,
-  'status' | 'linkedLoadId' | 'linkedLoadSid'
+  'status' | 'linkedLoadId' | 'linkedLoadSid' | 'hasRemaining'
 >): boolean {
-  return (
-    order.status === 'unplanned' &&
-    !order.linkedLoadId &&
-    !order.linkedLoadSid
-  );
+  if (order.hasRemaining === true) return true;
+  if (order.hasRemaining === false) return false;
+  return order.status === 'unplanned' || order.status === 'partially_planned';
 }

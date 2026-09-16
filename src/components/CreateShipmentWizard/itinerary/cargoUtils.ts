@@ -247,6 +247,7 @@ export interface CargoLinePrefillInput {
   action: 'pickup' | 'dropoff';
   orderLine: {
     quantity?: number | null;
+    remainingQuantity?: number | null;
     unit?: string | null;
     weight?: number | null;
     weightUnit?: string | null;
@@ -271,10 +272,21 @@ export function computeCargoLineQtyWeight({
   unit: string;
   wtUnit: string;
 } {
-  const orderQty = orderLine.quantity != null ? Number(orderLine.quantity) : 0;
+  const orderQty =
+    orderLine.remainingQuantity != null
+      ? Number(orderLine.remainingQuantity)
+      : orderLine.quantity != null
+        ? Number(orderLine.quantity)
+        : 0;
   const orderUnit = normalizeQtyUnit(orderLine.unit || lineUnit) || 'EUR Pallets';
   const orderWtUnit = normalizeWeightUnit(orderLine.weightUnit || lineWtUnit);
-  const orderWeight = orderLine.weight != null ? Number(orderLine.weight) : null;
+  const fullOrderQty = orderLine.quantity != null ? Number(orderLine.quantity) : 0;
+  const fullOrderWeight = orderLine.weight != null ? Number(orderLine.weight) : null;
+  // Scale weight to remaining qty when prior shipments already consumed part of the line.
+  const orderWeight =
+    fullOrderWeight != null && fullOrderQty > 0 && orderQty >= 0
+      ? (fullOrderWeight * orderQty) / fullOrderQty
+      : fullOrderWeight;
   const orderIdStr = String(orderId);
   const isDropoff = action === 'dropoff';
 
@@ -311,7 +323,10 @@ export function computeCargoLineQtyWeight({
     const remainingWeight = Math.max(0, sourceWeight - dropoffWeight);
 
     qty =
-      orderLine.quantity != null || pickupQty > 0 || dropoffQty > 0
+      orderLine.remainingQuantity != null ||
+      orderLine.quantity != null ||
+      pickupQty > 0 ||
+      dropoffQty > 0
         ? String(remainingQty)
         : '';
     weight =
@@ -328,7 +343,10 @@ export function computeCargoLineQtyWeight({
       excludeLineId: lineId,
       displayUnit: orderWtUnit,
     });
-    qty = orderLine.quantity != null ? String(remainingQty) : '';
+    qty =
+      orderLine.remainingQuantity != null || orderLine.quantity != null
+        ? String(remainingQty)
+        : '';
     weight = remainingOrderWeight(
       orderWeight,
       orderLine.weightUnit,

@@ -974,12 +974,19 @@ export function useCreateShipmentWizard(
           );
           const applied = await editShipmentService.applyEdit(id);
           editSessionActiveRef.current = false;
+          // ERP order planned / partially_planned depends on pickup allocation — drop stale list cache.
+          void queryClient.invalidateQueries({ queryKey: ['erp-orders'] });
+          void queryClient.invalidateQueries({ queryKey: wizardQueryKeys.unlinkedOrders });
           showToast(t('shipmentUpdatedSuccess', 'Shipment updated successfully!'), 'success');
           return applied;
         }
 
         await createShipmentService.saveStepThree(id, formValuesToStepThreePayload(values, 'complete'));
         const published = await createShipmentService.publishDraft(id);
+        // App QueryClient uses refetchOnMount:false + 60s staleTime; without this the Orders
+        // page keeps showing partially_planned until a hard refresh.
+        void queryClient.invalidateQueries({ queryKey: ['erp-orders'] });
+        void queryClient.invalidateQueries({ queryKey: wizardQueryKeys.unlinkedOrders });
         showToast(t('shipmentCreatedSuccess', 'Shipment created successfully!'), 'success');
         return published;
       } catch (err: unknown) {
@@ -1003,7 +1010,7 @@ export function useCreateShipmentWizard(
         setIsSaving(false);
       }
     },
-    [ensureDraftId, isEditMode, showToast, t]
+    [ensureDraftId, isEditMode, queryClient, showToast, t]
   );
 
   return {

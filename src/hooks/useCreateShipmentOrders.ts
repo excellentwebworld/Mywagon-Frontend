@@ -150,8 +150,7 @@ export function useCreateShipmentOrders() {
     queryKey: wizardQueryKeys.unlinkedOrders,
     queryFn: async () => {
       const result = await erpOrdersService.listOrders({
-        unlinked: true,
-        status: 'unplanned',
+        available_for_shipment: true,
         per_page: 100,
         page: 1,
         sort: 'updated_at',
@@ -256,12 +255,25 @@ export function getProductOptionsForOrder(order: ErpOrder | null | undefined) {
   const options: { value: string; label: string; sublabel?: string; lineIndex: number }[] = [];
 
   order.lines.forEach((line, lineIndex) => {
-    const skuId = line.productSkuId ? String(line.productSkuId) : '';
-    if (!skuId || seen.has(skuId)) return;
-    seen.add(skuId);
+    const remaining =
+      line.remainingQuantity != null
+        ? Number(line.remainingQuantity)
+        : line.quantity != null
+          ? Number(line.quantity)
+          : null;
+    // Hide products already fully shipped on prior loads.
+    if (remaining != null && remaining <= 0) return;
+
+    const key = line.productSkuId
+      ? String(line.productSkuId)
+      : line.id != null
+        ? String(line.id)
+        : line.productName || line.sku || `line-${lineIndex}`;
+    if (!key || seen.has(key)) return;
+    seen.add(key);
     options.push({
-      value: skuId,
-      label: line.productName || line.sku || 'Product',
+      value: key,
+      label: line.productName || line.sku || `Item ${lineIndex + 1}`,
       sublabel: line.sku || undefined,
       lineIndex,
     });
@@ -281,5 +293,15 @@ export function getProductOptionsForCargoLine(order: ErpOrder | null | undefined
 
 export function findOrderLineForProduct(order: ErpOrder | null | undefined, productId: string) {
   if (!order?.lines?.length || !productId) return null;
-  return order.lines.find((line) => String(line.productSkuId) === String(productId)) ?? null;
+  const target = String(productId).trim();
+  return (
+    order.lines.find(
+      (line) =>
+        (line.productSkuId != null && String(line.productSkuId) === target) ||
+        (line.id != null && String(line.id) === target) ||
+        (line.id != null && `line:${line.id}` === target) ||
+        (line.productName && line.productName === target) ||
+        (line.sku && line.sku === target)
+    ) ?? null
+  );
 }

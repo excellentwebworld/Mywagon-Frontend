@@ -1,12 +1,13 @@
 import type { ApiCompanyEntity, ApiListMeta } from './addressBook';
 
-export type ErpOrderStatus = 'unplanned' | 'planned' | 'on_trip' | 'completed' | 'canceled';
+export type ErpOrderStatus = 'unplanned' | 'partially_planned' | 'planned' | 'on_trip' | 'completed' | 'canceled';
 
 export type ErpOrderKpiFilter = '' | ErpOrderStatus;
 
 export interface ApiErpOrderSummary {
   total: number;
   unplanned: number;
+  partially_planned?: number;
   planned: number;
   on_trip: number;
   completed: number;
@@ -24,6 +25,8 @@ export interface ApiErpOrderLine {
   sku?: string | null;
   product_name: string;
   quantity?: number | null;
+  remaining_quantity?: number | null;
+  shipped_quantity?: number | null;
   unit?: string | null;
   weight?: number | null;
   weight_unit?: string | null;
@@ -45,6 +48,7 @@ export interface ApiErpOrderListItem {
   order_value?: number | null;
   linked_load_sid?: string | null;
   linked_load_id?: number | null;
+  has_remaining?: boolean;
   updated_at?: string | null;
   can_edit: boolean;
 }
@@ -66,6 +70,7 @@ export interface ListErpOrdersParams {
   status?: string;
   high_priority?: boolean;
   unlinked?: boolean;
+  available_for_shipment?: boolean;
   sort?: string;
   sort_dir?: 'asc' | 'desc';
   page?: number;

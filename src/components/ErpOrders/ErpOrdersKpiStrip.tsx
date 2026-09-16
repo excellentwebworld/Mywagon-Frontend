@@ -13,6 +13,7 @@ type KpiConfig = {
 const KPI_CONFIG: KpiConfig[] = [
   { key: 'total', filter: '', labelKey: 'erpOrdersKpiTotal' },
   { key: 'unplanned', filter: 'unplanned', labelKey: 'erpOrdersKpiUnplanned', color: '#4338CA' },
+  { key: 'partially_planned', filter: 'partially_planned', labelKey: 'erpOrdersKpiPartiallyPlanned', color: '#7C3AED' },
   { key: 'planned', filter: 'planned', labelKey: 'erpOrdersKpiPlanned', color: '#1D4ED8' },
   { key: 'on_trip', filter: 'on_trip', labelKey: 'erpOrdersKpiOnTrip', color: '#B45309' },
   { key: 'completed', filter: 'completed', labelKey: 'erpOrdersKpiCompleted', color: '#047857' },

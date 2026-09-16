@@ -31,6 +31,7 @@ function exportParamsToQuery(params: Omit<ListErpOrdersParams, 'page' | 'per_pag
   if (params.status && params.status !== 'all') query.set('status', params.status);
   if (params.high_priority) query.set('high_priority', '1');
   if (params.unlinked) query.set('unlinked', '1');
+  if (params.available_for_shipment) query.set('available_for_shipment', '1');
   if (params.sort) query.set('sort', params.sort);
   if (params.sort_dir) query.set('sort_dir', params.sort_dir);
   if (params.timezone) query.set('timezone', params.timezone);
@@ -59,6 +60,7 @@ export const erpOrdersService = {
     if (params.status && params.status !== 'all') query.status = params.status;
     if (params.high_priority) query.high_priority = 1;
     if (params.unlinked) query.unlinked = 1;
+    if (params.available_for_shipment) query.available_for_shipment = 1;
     if (params.sort) query.sort = params.sort;
     if (params.sort_dir) query.sort_dir = params.sort_dir;
 

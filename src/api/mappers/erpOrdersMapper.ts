@@ -12,6 +12,7 @@ import { getBrowserTimezone } from '../../utils/timezone';
 
 const STATUS_LABELS: Record<ErpOrderStatus, string> = {
   unplanned: 'Unplanned',
+  partially_planned: 'Partially Planned',
   planned: 'Planned',
   on_trip: 'On Trip',
   completed: 'Completed',
@@ -34,6 +35,13 @@ export function mapApiLineToLine(line: ApiErpOrderDetail['lines'][number]): ErpO
     sku: line.sku ?? undefined,
     productName: line.product_name,
     quantity: line.quantity ?? null,
+    remainingQuantity:
+      line.remaining_quantity != null
+        ? Number(line.remaining_quantity)
+        : line.quantity != null
+          ? Number(line.quantity)
+          : null,
+    shippedQuantity: line.shipped_quantity != null ? Number(line.shipped_quantity) : null,
     unit: normalizeQtyUnit(line.unit) || line.unit || '',
     weight: line.weight ?? null,
     weightUnit: normalizeWeightUnit(line.weight_unit ?? 'Kgs'),
@@ -56,6 +64,7 @@ export function mapApiListItemToOrder(item: ApiErpOrderListItem): ErpOrder {
     highPriority: item.high_priority,
     linkedLoadSid: item.linked_load_sid ?? '',
     linkedLoadId: item.linked_load_id ? String(item.linked_load_id) : '',
+    hasRemaining: item.has_remaining ?? item.status === 'unplanned',
     updatedAt: item.updated_at ?? '',
     canEdit: item.can_edit,
     orderValue: item.order_value ?? null,
@@ -76,6 +85,7 @@ export function mapApiDetailToOrder(detail: ApiErpOrderDetail): ErpOrder {
     shipFromAddress: detail.ship_from_address ?? '',
     shipToAddress: detail.ship_to_address ?? '',
     linkedLoadStatus: detail.linked_load_status ?? '',
+    hasRemaining: detail.has_remaining ?? detail.status === 'unplanned',
     notes: detail.notes ?? '',
     orderValue: detail.order_value ?? null,
     lines: Array.isArray(detail.lines) ? detail.lines.map(mapApiLineToLine) : [],

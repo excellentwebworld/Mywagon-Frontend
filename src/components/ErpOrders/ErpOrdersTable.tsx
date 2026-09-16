@@ -13,6 +13,7 @@ import type { ApiListMeta } from '../../api/types/addressBook';
 
 const ST_CLS: Record<string, string> = {
   unplanned: 'st-new',
+  partially_planned: 'st-planned',
   planned: 'st-planned',
   on_trip: 'st-transit',
   completed: 'st-completed',

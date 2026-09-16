@@ -161,6 +161,8 @@ export function useErpOrdersList() {
     queryKey: ['erp-orders', 'summary'],
     queryFn: () => erpOrdersService.getSummary(),
     retry: false,
+    // Global client disables refetchOnMount; status must refresh after create-shipment publish.
+    refetchOnMount: 'always',
   });
 
   const listQuery = useQuery({
@@ -186,6 +188,7 @@ export function useErpOrdersList() {
         perPage
       ),
     retry: false,
+    refetchOnMount: 'always',
   });
 
   const detailQuery = useQuery({
@@ -193,6 +196,7 @@ export function useErpOrdersList() {
     queryFn: () => erpOrdersService.getOrder(selectedOrderId!),
     enabled: !!selectedOrderId,
     retry: false,
+    refetchOnMount: 'always',
   });
 
   const companiesQuery = useQuery({
@@ -311,6 +315,7 @@ export function useErpOrdersList() {
     () => ({
       total: summaryQuery.data?.total ?? 0,
       unplanned: summaryQuery.data?.unplanned ?? 0,
+      partially_planned: summaryQuery.data?.partially_planned ?? 0,
       planned: summaryQuery.data?.planned ?? 0,
       on_trip: summaryQuery.data?.on_trip ?? 0,
       completed: summaryQuery.data?.completed ?? 0,

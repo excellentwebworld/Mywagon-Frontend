@@ -1,4 +1,4 @@
-export type ErpOrderStatus = 'unplanned' | 'planned' | 'on_trip' | 'completed' | 'canceled';
+export type ErpOrderStatus = 'unplanned' | 'partially_planned' | 'planned' | 'on_trip' | 'completed' | 'canceled';
 
 export type ErpOrderKpiFilter = '' | ErpOrderStatus;
 
@@ -17,6 +17,9 @@ export interface ErpOrderLine {
   sku?: string;
   productName: string;
   quantity: number | null;
+  /** Qty still available across prior shipments (from API). */
+  remainingQuantity?: number | null;
+  shippedQuantity?: number | null;
   unit: string;
   weight: number | null;
   weightUnit: string;
@@ -46,6 +49,8 @@ export interface ErpOrder {
   linkedLoadSid: string;
   linkedLoadId: string;
   linkedLoadStatus?: string;
+  /** True when any order line still has allocatable qty. */
+  hasRemaining?: boolean;
   updatedAt: string;
   canEdit: boolean;
   notes: string;
