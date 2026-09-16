@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   buildEditDiffHighlights,
   hasAnyStopHighlight,
+  isNewLine,
+  isNewStop,
   oldItineraryToDisplayStops,
   walkWizardLineIndexes,
 } from './editDiff';
@@ -134,5 +136,75 @@ describe('editDiff', () => {
     expect(stops[0].timeFrom).toBe('14:45');
     expect(stops[0].lines).toHaveLength(1);
     expect(stops[0].lines[0].qty).toBe('18');
+  });
+
+  it('correctly identifies newly added stops and lines vs existing DB stops', () => {
+    const oldItinerary = [
+      {
+        shipment_location_id: 101,
+        order_id: 'ORD-1',
+        product_id: '1',
+        address_id: '10',
+        qty: '18',
+        weight: '500',
+        date: '2026-09-20',
+        time: '14:45',
+        date_to: '',
+        time_to: '',
+        type: 'pickup',
+      },
+      {
+        shipment_location_id: 102,
+        order_id: 'ORD-1',
+        product_id: '1',
+        address_id: '20',
+        qty: '18',
+        weight: '500',
+        date: '2026-09-22',
+        time: '14:45',
+        date_to: '',
+        time_to: '',
+        type: 'dropoff',
+      },
+    ];
+
+    const existingStop: ApiStop = {
+      id: 'stop-1',
+      locationId: '10',
+      dateFrom: '2026-09-20',
+      timeFrom: '14:45',
+      lines: [
+        {
+          id: 'loc-101',
+          shipmentLocationId: 101,
+          productId: '1',
+          action: 'pickup',
+          qty: '18',
+          weight: '500',
+        },
+      ],
+    };
+
+    const newlyAddedStop: ApiStop = {
+      id: 'stop-new-3',
+      locationId: '30',
+      dateFrom: '2026-09-23',
+      timeFrom: '18:00',
+      lines: [
+        {
+          id: 'line-client-uuid-999',
+          productId: '2',
+          action: 'dropoff',
+          qty: '5',
+          weight: '100',
+        },
+      ],
+    };
+
+    expect(isNewStop(existingStop, oldItinerary)).toBe(false);
+    expect(isNewLine(existingStop.lines![0], oldItinerary)).toBe(false);
+
+    expect(isNewStop(newlyAddedStop, oldItinerary)).toBe(true);
+    expect(isNewLine(newlyAddedStop.lines![0], oldItinerary)).toBe(true);
   });
 });

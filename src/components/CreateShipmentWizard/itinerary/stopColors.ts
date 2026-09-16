@@ -7,6 +7,8 @@ export const STOP_COLOR = {
   pickupFg: '#000000',
   dropoffBg: '#000000',
   dropoffFg: '#FFFFFF',
+  newBg: '#10B981',
+  newFg: '#FFFFFF',
   shadow: '0px 3px 6px #00000029',
 } as const;
 
@@ -24,11 +26,18 @@ export function pinColors(hasPickup: boolean, hasDropoff: boolean): {
   return { background: STOP_COLOR.pickupBg, color: STOP_COLOR.pickupFg };
 }
 
-export function badgeStyle(kind: 'pickup' | 'dropoff'): CSSProperties {
+export function badgeStyle(kind: 'pickup' | 'dropoff' | 'new'): CSSProperties {
   if (kind === 'dropoff') {
     return {
       background: STOP_COLOR.dropoffBg,
       color: STOP_COLOR.dropoffFg,
+      boxShadow: STOP_COLOR.shadow,
+    };
+  }
+  if (kind === 'new') {
+    return {
+      background: STOP_COLOR.newBg,
+      color: STOP_COLOR.newFg,
       boxShadow: STOP_COLOR.shadow,
     };
   }

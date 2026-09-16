@@ -160,3 +160,54 @@ export function hasAnyStopHighlight(h?: StopDiffHighlights): boolean {
   if (!h) return false;
   return Boolean(h.address_id || h.date || h.time || h.date_to || h.time_to);
 }
+
+export function resolveLineShipmentLocationId(line: {
+  shipmentLocationId?: number | string;
+  id?: string;
+}): number | null {
+  if (line.shipmentLocationId != null && line.shipmentLocationId !== '') {
+    const n = Number(line.shipmentLocationId);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  const match = String(line.id || '').match(/^loc-(\d+)$/);
+  if (match) {
+    const parsed = parseInt(match[1], 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+  return null;
+}
+
+export function isNewLine(
+  line: ApiCargoLine | { shipmentLocationId?: number | string; id?: string },
+  oldItinerary?: ApiComparableItineraryRow[] | null
+): boolean {
+  const locId = resolveLineShipmentLocationId(line);
+  if (locId == null) {
+    return true;
+  }
+  if (!oldItinerary || oldItinerary.length === 0) {
+    return false;
+  }
+  return !oldItinerary.some((r) => Number(r.shipment_location_id) === locId);
+}
+
+export function isNewStop(
+  stop: ApiStop,
+  oldItinerary?: ApiComparableItineraryRow[] | null
+): boolean {
+  if (!stop.lines || stop.lines.length === 0) {
+    return !stop.id || !stop.id.startsWith('old-');
+  }
+  const oldLocationIds = new Set(
+    (oldItinerary || [])
+      .map((r) => (r.shipment_location_id != null ? Number(r.shipment_location_id) : null))
+      .filter((id): id is number => id != null && id > 0)
+  );
+  if (oldLocationIds.size > 0) {
+    return !stop.lines.some((line) => {
+      const locId = resolveLineShipmentLocationId(line);
+      return locId != null && oldLocationIds.has(locId);
+    });
+  }
+  return !stop.lines.some((line) => resolveLineShipmentLocationId(line) != null);
+}

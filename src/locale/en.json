@@ -395,6 +395,7 @@
   "editDiffNoChanges": "No itinerary changes detected.",
   "editDiffNoCurrent": "No current itinerary available.",
   "editDiffFailed": "Failed to load load comparison.",
+  "newTag": "NEW",
   "editLoadTitle": "Edit Load",
   "editLoadSub": "Update stops and cargo details",
   "editLoadFailed": "Failed to load shipment for editing.",

@@ -35,6 +35,8 @@ import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
 import type { ApiEditPreviewDiff, ApiStop } from '../../api/types/createShipment';
 import {
   buildEditDiffHighlights,
+  isNewLine,
+  isNewStop,
   oldItineraryToDisplayStops,
   type CompareView,
 } from '../../pages/CreateShipmentWizard/editDiff';
@@ -340,6 +342,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                 const isExp = expandedStop === si;
                 const rw = runningWeights[si] || 0;
                 const pin = pinColors(stop.hasPickup, stop.hasDropoff);
+                const isStopNew = isEditMode && !viewingCurrent && isNewStop(stop, editDiff?.old_itinerary);
                 const stopHl = showDiffHighlights ? highlights.stops[si] : undefined;
                 const scheduleChanged = Boolean(
                   stopHl?.date || stopHl?.time || stopHl?.date_to || stopHl?.time_to
@@ -408,6 +411,14 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                               style={badgeStyle('dropoff')}
                             >
                               {t('dropoff').toUpperCase()}
+                            </span>
+                          )}
+                          {isStopNew && (
+                            <span
+                              className="text-[10px] font-bold px-2 py-0.5 rounded"
+                              style={badgeStyle('new')}
+                            >
+                              {t('newTag') || 'NEW'}
                             </span>
                           )}
                           {formatAppointmentLabel(stop) && (
@@ -550,6 +561,14 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                                         >
                                           {l.action === 'pickup' ? '↑' : '↓'}
                                         </span>
+                                        {isEditMode && !viewingCurrent && isNewLine(l, editDiff?.old_itinerary) && (
+                                          <span
+                                            className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                                            style={badgeStyle('new')}
+                                          >
+                                            {t('newTag') || 'NEW'}
+                                          </span>
+                                        )}
                                         <span
                                           className="font-medium flex-1 min-w-[80px]"
                                           style={{ color: diffColor(lineHl?.product_id, T.t1) }}
