@@ -370,10 +370,14 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
           <div className="f-search">
             <Search size={14} />
             <input
+              id="billing-invoice-search-input"
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={t('billingPage.searchPlaceholder', 'Search invoices, loads, descriptions…')}
+              aria-label={t('billingPage.searchPlaceholder', 'Search invoices, loads, descriptions…')}
+              autoComplete="off"
+              spellCheck={false}
             />
           </div>
         </div>

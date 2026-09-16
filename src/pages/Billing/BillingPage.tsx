@@ -56,7 +56,7 @@ type BillingPageProps = {
   userId?: string;
 };
 
-function mapSubFilter(sub: SubFilterKey, kpi: KpiFilterKey): { status?: string; type?: string } {
+export function mapSubFilter(sub: SubFilterKey, kpi: KpiFilterKey): { status?: string; type?: string } {
   if (kpi === 'outstanding') return { status: 'unpaid' };
   if (kpi === 'overdue') return { status: 'overdue' };
   if (kpi === 'dueSoon') return { status: 'due_soon' };
@@ -174,40 +174,58 @@ export const BillingPage: React.FC<BillingPageProps> = ({
 
   const guardExport = useCallback((): boolean => true, []);
 
-  useEffect(() => {
-    const q = searchParams.get('q') || searchParams.get('search') || '';
-    setSearchQuery((prev) => (prev === q ? prev : q));
-  }, [searchParams]);
-
-  const updateSearchQuery = (val: string) => {
+  const updateSearchQuery = useCallback((val: string) => {
     setSearchQuery(val);
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (val.trim()) {
-          next.set('q', val);
-        } else {
-          next.delete('q');
-          next.delete('search');
-        }
-        return next;
-      },
-      { replace: true }
-    );
-  };
+  }, []);
 
+  // Debounce search query update so typing does not trigger per-keystroke API churn or router resets
   useEffect(() => {
-    const next = searchQuery.trim();
     const timer = window.setTimeout(() => {
+      const next = searchQuery.trim();
       setDebouncedSearch((prev) => {
         if (prev !== next) {
           setPage(1);
         }
         return next;
       });
-    }, 400);
+    }, 350);
     return () => window.clearTimeout(timer);
   }, [searchQuery]);
+
+  // Synchronize debounced search query to URL params without full page navigation / focus loss
+  useEffect(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        const currentQ = next.get('q') || next.get('search') || '';
+        if (debouncedSearch) {
+          if (currentQ !== debouncedSearch) {
+            next.set('q', debouncedSearch);
+            next.delete('search');
+          }
+        } else {
+          if (currentQ) {
+            next.delete('q');
+            next.delete('search');
+          }
+        }
+        if (next.toString() === prev.toString()) {
+          return prev;
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  }, [debouncedSearch, setSearchParams]);
+
+  // Synchronize URL query changes (e.g. browser back/forward) back to input state
+  useEffect(() => {
+    const q = (searchParams.get('q') || searchParams.get('search') || '').trim();
+    if (q !== debouncedSearch) {
+      setSearchQuery(q);
+      setDebouncedSearch(q);
+    }
+  }, [searchParams, debouncedSearch]);
 
   const fetchBillingData = useCallback(async () => {
     setLoading(true);
@@ -371,12 +389,22 @@ export const BillingPage: React.FC<BillingPageProps> = ({
     setActiveTab(tab);
     setKpiFilter(null);
     setSubFilter('All');
-    updateSearchQuery('');
+    setSearchQuery('');
+    setDebouncedSearch('');
     setDateFrom('');
     setDateTo('');
     setAppliedFrom('');
     setAppliedTo('');
     setPage(1);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('q');
+        next.delete('search');
+        return next;
+      },
+      { replace: true }
+    );
   };
 
   const handleToggleKpiFilter = (key: KpiFilterKey) => {
@@ -388,12 +416,22 @@ export const BillingPage: React.FC<BillingPageProps> = ({
   const handleClearFilters = () => {
     setKpiFilter(null);
     setSubFilter('All');
-    updateSearchQuery('');
+    setSearchQuery('');
+    setDebouncedSearch('');
     setDateFrom('');
     setDateTo('');
     setAppliedFrom('');
     setAppliedTo('');
     setPage(1);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('q');
+        next.delete('search');
+        return next;
+      },
+      { replace: true }
+    );
   };
 
   const currentExportFilters = () => {
