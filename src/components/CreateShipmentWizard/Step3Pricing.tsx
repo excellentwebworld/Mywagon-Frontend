@@ -97,7 +97,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
 }) => {
   const { t, lang } = useTranslation();
   const { locations, showToast } = useApp();
-  const { values, setFieldValue, isSubmitting, errors, setFieldTouched } = useFormikContext<any>();
+  const { values, setFieldValue, isSubmitting, errors, setFieldTouched, setFieldError } = useFormikContext<any>();
+  const pricePrefilledRef = useRef(false);
   const stops = values.stops || [];
   // Match Laravel edit itinerary: negotiable + live nav disabled when status !== draft.
   const lockNegotiableAndLiveNav =
@@ -459,7 +460,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
 
   // Set default price when carriers selection changes
   useEffect(() => {
-    if (!values.targetPrice && calculatedPrice > 0) {
+    if (!pricePrefilledRef.current && !values.targetPrice && calculatedPrice > 0) {
+      pricePrefilledRef.current = true;
       setFieldValue('targetPrice', String(calculatedPrice));
     }
   }, [calculatedPrice, values.targetPrice, setFieldValue]);
@@ -1031,9 +1033,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             <div className="ch flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor: T.bd }}>
               <span className="font-semibold text-sm">
                 {t('pricing') || 'Pricing'}{' '}
-                <span className="text-red-500" aria-hidden="true">
-                  *
-                </span>
+                {!values.negotiable && (
+                  <span className="text-red-500" aria-hidden="true">
+                    *
+                  </span>
+                )}
               </span>
               <span
                 className={`ml-auto inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded ${
@@ -1084,7 +1088,9 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   <>
                     <Info size={13} className="price-hint-icon shrink-0" aria-hidden="true" />
                     <span className="price-hint-copy">
-                      {t('step3EnterTargetPrice') || 'Enter a target price, or request an AI suggestion.'}
+                      {values.negotiable
+                        ? t('step3EnterTargetPriceNegotiable') || t('step3EnterTargetPrice') || 'Enter an optional target price, or request an AI suggestion.'
+                        : t('step3EnterTargetPrice') || 'Enter a target price, or request an AI suggestion.'}
                     </span>
                   </>
                 )}
@@ -1108,12 +1114,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                     type="number"
                     min={0}
                     step="0.01"
-                    required
-                    aria-required="true"
+                    required={!values.negotiable}
+                    aria-required={!values.negotiable}
                     aria-invalid={Boolean(errors.targetPrice)}
                     className="w-full bg-transparent text-right text-lg font-bold font-mono outline-none"
                     style={{ color: T.t1 }}
-                    placeholder="0.00"
+                    placeholder={values.negotiable ? (t('optional') || 'Optional') : '0.00'}
                     value={values.targetPrice || ''}
                     onChange={(e) => setFieldValue('targetPrice', e.target.value)}
                   />
@@ -1355,7 +1361,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 }
                 onClick={() => {
                   if (lockNegotiableAndLiveNav) return;
-                  setFieldValue('negotiable', !values.negotiable);
+                  const nextNegotiable = !values.negotiable;
+                  setFieldValue('negotiable', nextNegotiable);
+                  if (nextNegotiable) {
+                    setFieldError('targetPrice', undefined);
+                  }
                 }}
                 style={
                   lockNegotiableAndLiveNav
@@ -2095,12 +2105,27 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             disabled={isSubmitting || isSaving || publicQuotaBlocked}
             aria-busy={isSubmitting}
             onClick={() => {
+              const isNegotiable = Boolean(values.negotiable);
               const rawPrice = String(values.targetPrice ?? '').trim();
               const price = rawPrice === '' ? NaN : parseFloat(rawPrice);
-              if (Number.isNaN(price) || price <= 0) {
+              if (!isNegotiable && (Number.isNaN(price) || price <= 0)) {
                 void setFieldTouched('targetPrice', true, true);
                 showToast(
                   t('targetPriceRequired') || t('priceRequired') || 'Target price is required.',
+                  'error'
+                );
+                window.requestAnimationFrame(() => {
+                  scrollToValidationAnchor('target-price', {
+                    focus: true,
+                    highlightClass: 'wizard-validation-flash',
+                  });
+                });
+                return;
+              }
+              if (rawPrice !== '' && !Number.isNaN(price) && price <= 0) {
+                void setFieldTouched('targetPrice', true, true);
+                showToast(
+                  t('targetPricePositive') || 'Target price must be greater than 0.',
                   'error'
                 );
                 window.requestAnimationFrame(() => {

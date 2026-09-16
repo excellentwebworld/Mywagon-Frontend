@@ -19,8 +19,9 @@ import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
 import type { WizardOutletContext } from './wizardOutletContext';
 import './CreateShipmentWizard.css';
 
-const validationSchema = Yup.object().shape({
+export const wizardValidationSchema = Yup.object().shape({
   custRef: Yup.string().optional(),
+  negotiable: Yup.boolean().optional(),
   stops: Yup.array().of(
     Yup.object().shape({
       locationId: Yup.string().required('Location is required'),
@@ -38,10 +39,22 @@ const validationSchema = Yup.object().shape({
     .transform((value, originalValue) =>
       originalValue === '' || originalValue === null || originalValue === undefined ? undefined : value
     )
-    .typeError('Target price is required')
-    .required('Target price is required')
-    .moreThan(0, 'Target price must be greater than 0'),
+    .when('negotiable', {
+      is: (val: boolean | undefined) => Boolean(val),
+      then: (schema) =>
+        schema
+          .nullable()
+          .optional()
+          .moreThan(0, 'Target price must be greater than 0'),
+      otherwise: (schema) =>
+        schema
+          .typeError('Target price is required')
+          .required('Target price is required')
+          .moreThan(0, 'Target price must be greater than 0'),
+    }),
 });
+
+const validationSchema = wizardValidationSchema;
 
 function stepTitle(step: number, t: (key: string) => string, isEditMode: boolean) {
   if (step === 2) return t('step2Title') || 'Review Itinerary & Stats';
