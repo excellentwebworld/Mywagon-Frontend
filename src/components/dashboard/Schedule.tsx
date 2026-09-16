@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { statusBadgeClass } from '../../pages/ManageShipments/utils/listingUtils';
@@ -11,6 +12,112 @@ interface ScheduleProps {
   selectedShipmentId: number | null;
   onSelectShipment: (id: number) => void;
 }
+
+const ScheduleRowActions: React.FC<{
+  event: ScheduleEvent;
+  onSelectOnMap: () => void;
+  t: (key: string, defaultVal?: string) => string;
+}> = ({ event, onSelectOnMap, t }) => {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    const menuWidth = 168;
+    setPos({
+      top: rect.bottom + 6,
+      left: Math.max(8, rect.right - menuWidth),
+    });
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (btnRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="sched-toggle-wrap">
+      <button
+        ref={btnRef}
+        type="button"
+        className={`sched-act-btn${open ? ' is-active' : ''}`}
+        title={t('more', 'More')}
+        aria-label={t('more', 'More')}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="5" cy="12" r="2.2" />
+          <circle cx="12" cy="12" r="2.2" />
+          <circle cx="19" cy="12" r="2.2" />
+        </svg>
+      </button>
+      {open &&
+        createPortal(
+          <div
+            ref={menuRef}
+            className="row-actions-menu sched-actions-menu"
+            role="menu"
+            style={{ top: pos.top, left: pos.left }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                navigate(`/shipments/${event.shipmentId}`);
+              }}
+            >
+              {t('viewLoadDetails')}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onSelectOnMap();
+              }}
+            >
+              {t('viewOnMap', 'View on Map')}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                navigate(`/shipments?search=${event.autoId}`);
+              }}
+            >
+              {t('manageShipments')}
+            </button>
+          </div>,
+          document.body
+        )}
+    </div>
+  );
+};
 
 export const Schedule: React.FC<ScheduleProps> = ({ selectedShipmentId, onSelectShipment }) => {
   const { t } = useTranslation();
@@ -114,7 +221,9 @@ export const Schedule: React.FC<ScheduleProps> = ({ selectedShipmentId, onSelect
                   }
                 }}
               >
-                <div className="sched-time">{event.timeLabel}</div>
+                <div className="sched-time">
+                  <span className="sched-time-single">{event.timeLabel}</span>
+                </div>
                 <div className="sched-dot-col">
                   <div className={`sched-dot ${event.kind}`} />
                   {!isLast && <div className="sched-line" />}
@@ -156,7 +265,7 @@ export const Schedule: React.FC<ScheduleProps> = ({ selectedShipmentId, onSelect
                   </span>
                   <button
                     type="button"
-                    className="sched-details-btn"
+                    className="sched-details-btn sched-desktop-btn"
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate(`/shipments/${event.shipmentId}`);
@@ -164,6 +273,13 @@ export const Schedule: React.FC<ScheduleProps> = ({ selectedShipmentId, onSelect
                   >
                     {t('viewLoadDetails')}
                   </button>
+                  <div className="sched-mobile-toggle">
+                    <ScheduleRowActions
+                      event={event}
+                      onSelectOnMap={() => onSelectShipment(event.shipmentId)}
+                      t={t as (key: string, defaultVal?: string) => string}
+                    />
+                  </div>
                 </div>
               </div>
             );

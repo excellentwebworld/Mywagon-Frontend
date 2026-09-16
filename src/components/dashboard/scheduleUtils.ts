@@ -12,6 +12,9 @@ export interface ScheduleEvent {
   /** Sortable epoch ms */
   sortAt: number;
   timeLabel: string;
+  startTime?: string;
+  endTime?: string;
+  hasRange?: boolean;
   lane: string;
   overallLane?: string;
   priceLabel: string;
@@ -47,6 +50,16 @@ export function isLocalToday(iso?: string | null, now = new Date()): boolean {
 }
 
 export function formatTimeRange(startIso?: string | null, endIso?: string | null): string {
+  const res = resolveScheduleTime(startIso, endIso);
+  return res.timeLabel;
+}
+
+export function resolveScheduleTime(startIso?: string | null, endIso?: string | null): {
+  timeLabel: string;
+  startTime?: string;
+  endTime?: string;
+  hasRange: boolean;
+} {
   const start = parseIso(startIso);
   const end = parseIso(endIso);
 
@@ -58,11 +71,20 @@ export function formatTimeRange(startIso?: string | null, endIso?: string | null
     : '';
 
   if (startLabel && endLabel && startLabel !== endLabel) {
-    return `${startLabel} - ${endLabel}`;
+    return {
+      timeLabel: `${startLabel} - ${endLabel}`,
+      startTime: startLabel,
+      endTime: endLabel,
+      hasRange: true,
+    };
   }
-  if (startLabel) return startLabel;
-  if (endLabel) return endLabel;
-  return '—';
+  const single = startLabel || endLabel || '—';
+  return {
+    timeLabel: single,
+    startTime: startLabel || undefined,
+    endTime: endLabel || undefined,
+    hasRange: false,
+  };
 }
 
 function priceFromItem(item: ApiShipmentListItem): string {
@@ -196,15 +218,16 @@ export function buildTodayScheduleEvents(
       if (isStopToday) {
         matchedToday++;
         const sortAt = parseIso(stop.startIso)?.getTime() ?? parseIso(stop.endIso)?.getTime() ?? 0;
-        const stopLoc = stop.location?.trim();
-        const laneLabel = isMultiStop && stopLoc ? stopLoc : overallLane;
+        const stopLoc = stop.location?.trim() || (stop.type === 'pickup' ? item.origin?.trim() : item.dest?.trim());
+        const laneLabel = stopLoc || overallLane;
+        const timeInfo = resolveScheduleTime(stop.startIso, stop.endIso);
         events.push({
           ...base,
           lane: laneLabel,
           key: `${item.id}-stop-${stop.id || idx}`,
           kind: stop.type === 'pickup' ? 'pickup' : 'dropoff',
           sortAt,
-          timeLabel: formatTimeRange(stop.startIso, stop.endIso),
+          ...timeInfo,
         });
       }
     });
@@ -217,15 +240,16 @@ export function buildTodayScheduleEvents(
         const startIso = pickupStop?.startIso ?? (item.pickup_at_iso || item.pickup_at);
         const endIso = pickupStop?.endIso ?? (item.pickup_to_iso || item.pickup_to);
         const sortAt = parseIso(startIso)?.getTime() ?? parseIso(endIso)?.getTime() ?? now.getTime();
-        const stopLoc = pickupStop?.location?.trim();
-        const laneLabel = isMultiStop && stopLoc ? stopLoc : overallLane;
+        const stopLoc = pickupStop?.location?.trim() || item.origin?.trim();
+        const laneLabel = stopLoc || overallLane;
+        const timeInfo = resolveScheduleTime(startIso, endIso);
         events.push({
           ...base,
           lane: laneLabel,
           key: `${item.id}-transit-ready`,
           kind: 'pickup',
           sortAt,
-          timeLabel: formatTimeRange(startIso, endIso),
+          ...timeInfo,
         });
       } else {
         // on_trip: in transit to destination
@@ -233,15 +257,16 @@ export function buildTodayScheduleEvents(
         const startIso = dropoffStop?.startIso ?? (item.delivery_at_iso || item.delivery_at);
         const endIso = dropoffStop?.endIso ?? (item.delivery_to_iso || item.delivery_to);
         const sortAt = parseIso(startIso)?.getTime() ?? parseIso(endIso)?.getTime() ?? now.getTime();
-        const stopLoc = dropoffStop?.location?.trim();
-        const laneLabel = isMultiStop && stopLoc ? stopLoc : overallLane;
+        const stopLoc = dropoffStop?.location?.trim() || item.dest?.trim();
+        const laneLabel = stopLoc || overallLane;
+        const timeInfo = resolveScheduleTime(startIso, endIso);
         events.push({
           ...base,
           lane: laneLabel,
           key: `${item.id}-transit-ontrip`,
           kind: 'dropoff',
           sortAt,
-          timeLabel: formatTimeRange(startIso, endIso),
+          ...timeInfo,
         });
       }
     }

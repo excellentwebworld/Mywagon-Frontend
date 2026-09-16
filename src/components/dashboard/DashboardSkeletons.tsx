@@ -36,7 +36,8 @@ export const DashScheduleSkeleton: React.FC<{ rows?: number }> = ({ rows = 5 }) 
   <div className="dash-skel-sched" aria-busy="true" aria-hidden>
     {Array.from({ length: rows }).map((_, i) => (
       <div key={i} className="dash-skel-sched-row">
-        <DashBone w={44} h={28} />
+        <DashBone w={60} h={16} />
+        <DashBone w={8} h={8} style={{ borderRadius: '50%', margin: '0 4px' }} />
         <div className="dash-skel-sched-main">
           <DashBone w="55%" h={12} />
           <DashBone w="38%" h={10} style={{ marginTop: 8 }} />
