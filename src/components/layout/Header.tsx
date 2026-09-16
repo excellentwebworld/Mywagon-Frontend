@@ -59,6 +59,31 @@ function formatRelativeTime(created_at?: string, fallback = ''): string {
   }
 }
 
+export function getHeaderPageTitle(
+  pathname: string,
+  t: (key: string, fallback?: string) => string
+): string {
+  const path = pathname || '';
+  if (path.startsWith('/dashboard')) return t('dashboard', 'Dashboard');
+  if (path.startsWith('/settings/notifications') || path.startsWith('/notifications')) return t('notifications', 'Notifications') || 'Notifications';
+  if (path.startsWith('/messages') || path.startsWith('/chat')) return t('navMessages', 'Messages') || 'Messages';
+  if (path.startsWith('/shipments/create')) return t('createShipment', 'Create Shipment');
+  if (path.startsWith('/shipments')) return t('manageShipments', 'Shipments');
+  if (path.startsWith('/search-trucks')) return t('satPageTitle') || t('truckAvailability', 'Search Trucks') || 'Search Trucks';
+  if (path.startsWith('/address-book')) return t('addressBook', 'Address Book');
+  if (path.startsWith('/products')) return t('products', 'Product Master');
+  if (path.startsWith('/partners')) return t('partners', 'Partners');
+  if (path.startsWith('/pricing') || path.startsWith('/price-lists')) return t('priceLists.title') || t('priceLists', 'Price Lists') || 'Price Lists';
+  if (path.startsWith('/erp-orders')) return t('erpOrders', 'ERP Orders') || 'ERP Orders';
+  if (path.startsWith('/settings/trustCenter') || path.startsWith('/trust')) return t('settings.securityTrust', 'Security & Trust') || 'Security & Trust';
+  if (path.startsWith('/settings')) return t('settings.title', 'Settings') || 'Settings';
+  if (path.startsWith('/billing')) return t('sidebar.billing') || t('billing', 'Billing');
+  if (path.startsWith('/subscription')) return t('sidebar.subscription') || t('navSubscription', 'Subscription');
+  if (path.startsWith('/support')) return t('sidebar.support') || t('support', 'Support & Feedback');
+  if (path.startsWith('/tutorials')) return t('tutorials.pageTitle') || t('tutorial', 'Tutorials');
+  return t('dashboard', 'Dashboard');
+}
+
 export const Header: React.FC<HeaderProps> = ({
   onToggleMobileMenu,
   sidebarCollapsed = false,
@@ -196,28 +221,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const isSideMode = navMode !== 'top';
   const showCta = location.pathname !== '/shipments/create' && !pastDueLocked;
-
-  const getPageTitle = () => {
-    const path = location.pathname;
-    if (path.startsWith('/dashboard')) return t('dashboard');
-    if (path.startsWith('/settings/notifications') || path.startsWith('/notifications')) return t('notifications') || 'Notifications';
-    if (path.startsWith('/messages')) return t('navMessages') || 'Messages';
-    if (path.startsWith('/shipments/create')) return t('createShipment');
-    if (path.startsWith('/shipments')) return t('manageShipments');
-    if (path.startsWith('/search-trucks')) return t('satPageTitle') || t('truckAvailability') || 'Search Trucks';
-    if (path.startsWith('/address-book')) return t('addressBook');
-    if (path.startsWith('/products')) return t('products');
-    if (path.startsWith('/partners')) return t('partners');
-    if (path.startsWith('/erp-orders')) return t('erpOrders') || 'ERP Orders';
-    if (path.startsWith('/settings/trustCenter')) return t('settings.securityTrust') || 'Security & Trust';
-    if (path.startsWith('/settings')) return t('settings.title') || 'Settings';
-    if (path.startsWith('/billing')) return t('sidebar.billing') || t('billing');
-    if (path.startsWith('/subscription')) return t('sidebar.subscription') || t('navSubscription');
-    if (path.startsWith('/support')) return t('sidebar.support') || t('support');
-    if (path.startsWith('/tutorials')) return t('tutorials.pageTitle') || t('tutorial');
-    if (path.startsWith('/trust')) return t('settings.securityTrust') || 'Security & Trust';
-    return t('dashboard');
-  };
+  const pageTitle = getHeaderPageTitle(location.pathname, t);
 
   return (
     <header
@@ -289,7 +293,7 @@ export const Header: React.FC<HeaderProps> = ({
         className="mv-topbar-title"
         style={{ fontSize: 14, fontWeight: 600, color: T.t1, margin: 0 }}
       >
-        {getPageTitle()}
+        {pageTitle}
       </h1>
 
       {showTopSearch && (
