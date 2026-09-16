@@ -162,6 +162,7 @@ export const SearchTrucks: React.FC = () => {
           filterActiveCount={filterActiveCount}
           sortActive={Boolean(m.sortKey)}
           canViewBidsCount={m.canViewBidsCount}
+          canViewExactMatches={m.canViewExactMatches}
           showMobileMapBtn
           onOpenMobileMap={() => m.setMobileMapOpen(true)}
           t={m.t}

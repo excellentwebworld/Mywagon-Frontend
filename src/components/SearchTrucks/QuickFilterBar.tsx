@@ -15,17 +15,38 @@ interface QuickFilterBarProps {
   sortActive?: boolean;
   /** Hide Has Bids chip when subscription lacks View If Posted Truck Received Bids */
   canViewBidsCount?: boolean;
+  /** Hide Load Match chip when subscription lacks View Matched Trucks for Availability */
+  canViewExactMatches?: boolean;
   onOpenMobileMap?: () => void;
   showMobileMapBtn?: boolean;
   t: (key: string) => string;
 }
 
-const CHIPS: { key: QuickFilterKey; labelKey: string; premium?: boolean; requiresBidsCount?: boolean }[] = [
+export interface QuickFilterChipDef {
+  key: QuickFilterKey;
+  labelKey: string;
+  premium?: boolean;
+  requiresBidsCount?: boolean;
+  requiresExactMatches?: boolean;
+}
+
+export const QUICK_FILTER_CHIPS: QuickFilterChipDef[] = [
   { key: 'today', labelKey: 'satChipToday' },
   { key: 'soon8h', labelKey: 'satChipSoon8h' },
   { key: 'has_bids', labelKey: 'satChipHasBids', premium: true, requiresBidsCount: true },
-  { key: 'load_match', labelKey: 'satChipLoadMatch', premium: true },
+  { key: 'load_match', labelKey: 'satChipLoadMatch', premium: true, requiresExactMatches: true },
 ];
+
+export function getVisibleQuickFilterChips(
+  canViewBidsCount = false,
+  canViewExactMatches = false
+): QuickFilterChipDef[] {
+  return QUICK_FILTER_CHIPS.filter(
+    (chip) =>
+      (!chip.requiresBidsCount || canViewBidsCount) &&
+      (!chip.requiresExactMatches || canViewExactMatches)
+  );
+}
 
 export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
   visibility,
@@ -40,6 +61,7 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
   filterActiveCount = 0,
   sortActive = false,
   canViewBidsCount = false,
+  canViewExactMatches = false,
   onOpenMobileMap,
   showMobileMapBtn,
   t,
@@ -70,7 +92,7 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
       <option value="private">{t('satTabPrivate')}</option>
     </select>
 
-    {CHIPS.filter((chip) => !chip.requiresBidsCount || canViewBidsCount).map((chip) => (
+    {getVisibleQuickFilterChips(canViewBidsCount, canViewExactMatches).map((chip) => (
       <button
         key={chip.key}
         type="button"

@@ -14,6 +14,7 @@ export interface ApiListMeta {
     can_view_quotes?: boolean;
     can_view_bids_count?: boolean;
     can_view_best_bid?: boolean;
+    can_view_exact_matches?: boolean;
   };
 }
 

@@ -614,6 +614,9 @@ export function useSearchTrucks() {
   const canViewBestBid = USE_MOCK
     ? true
     : listCapabilities?.can_view_best_bid === true;
+  const canViewExactMatches = USE_MOCK
+    ? true
+    : listCapabilities?.can_view_exact_matches === true;
 
   useEffect(() => {
     if (canViewBidsCount) return;
@@ -624,6 +627,16 @@ export function useSearchTrucks() {
       return next;
     });
   }, [canViewBidsCount]);
+
+  useEffect(() => {
+    if (canViewExactMatches) return;
+    setQuickFilters((prev) => {
+      if (!prev.has('load_match')) return prev;
+      const next = new Set(prev);
+      next.delete('load_match');
+      return next;
+    });
+  }, [canViewExactMatches]);
 
   const pageItems = useMemo(() => {
     if (!USE_MOCK) return filtered;
@@ -1423,6 +1436,7 @@ export function useSearchTrucks() {
     toggleQuickFilter,
     canViewBidsCount,
     canViewBestBid,
+    canViewExactMatches,
     criteria,
     setCriteria,
     appliedCriteria,
