@@ -1,5 +1,6 @@
 import type { CreateLocationData } from '../types';
 import { validateTimeRangesList } from './timeRangeValidation';
+import { isPositiveMeasurement } from './locationFormSchema';
 
 export type CreateFieldErrors = Partial<Record<string, string>>;
 
@@ -35,7 +36,24 @@ export function validateCreateStep2(data: CreateLocationData): CreateFieldErrors
 export function validateCreateStep3(data: CreateLocationData): CreateFieldErrors {
   const errors: CreateFieldErrors = {};
   if (!String(data.dock ?? '').trim()) errors.dock = 'Dock type is required';
-  if (!String(data.loadTime ?? '').trim()) errors.loadTime = 'Estimated loading/unloading time is required';
+
+  if (!String(data.loadTime ?? '').trim()) {
+    errors.loadTime = 'Estimated loading/unloading time is required';
+  } else {
+    const loadTimeNum = parseInt(String(data.loadTime).trim(), 10);
+    if (!Number.isFinite(loadTimeNum) || loadTimeNum < 1) {
+      errors.loadTime = 'Must be at least 1 minute';
+    }
+  }
+
+  if (!isPositiveMeasurement(data.maxTruck, /m$/i)) {
+    errors.maxTruck = 'Must be greater than 0';
+  }
+
+  if (!isPositiveMeasurement(data.maxWeight, /(t|tons?|kg)$/i)) {
+    errors.maxWeight = 'Must be greater than 0';
+  }
+
   if (data.appt) {
     const timeRangeError = validateTimeRangesList(data.timeRanges);
     if (timeRangeError) errors.timeRanges = timeRangeError;

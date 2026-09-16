@@ -435,7 +435,7 @@ export const CreateLocationModal: React.FC<Props> = ({
         <label>
           {t('abEstLoadTime')} <span className="req">*</span>
         </label>
-        <input type="number" placeholder="e.g. 45" value={createData.loadTime} onChange={(e) => update({ loadTime: e.target.value })} />
+        <input type="number" min={1} placeholder="e.g. 45" value={createData.loadTime} onChange={(e) => update({ loadTime: e.target.value })} />
         <FormFieldError message={fieldErrors.loadTime} />
       </div>
 

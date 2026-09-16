@@ -7,6 +7,16 @@ import { optionalPhoneSchema } from './phoneValidation';
 
 const facilityValues = [...FACILITY_TYPES];
 
+export function isPositiveMeasurement(value: string | undefined | null, suffixRegex = /m$/i): boolean {
+  if (value === undefined || value === null) return true;
+  const str = String(value).trim();
+  if (!str) return true;
+  if (str.startsWith('-')) return false;
+  const cleaned = str.replace(suffixRegex, '').trim();
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) && n > 0;
+}
+
 function isValidCoordinate(value: any, min: number, max: number): boolean {
   const str = String(value ?? '').trim();
   if (!str) return false;
@@ -71,11 +81,13 @@ export const locationEditValidationSchema = Yup.object({
   maxTruck: Yup.string()
     .transform((v) => coerceFormString(v))
     .trim()
-    .max(20),
+    .max(20)
+    .test('positive-truck-length', 'Must be greater than 0', (v) => isPositiveMeasurement(v, /m$/i)),
   maxWeight: Yup.string()
     .transform((v) => coerceFormString(v))
     .trim()
-    .max(20),
+    .max(20)
+    .test('positive-weight', 'Must be greater than 0', (v) => isPositiveMeasurement(v, /(t|tons?|kg)$/i)),
   loadTime: Yup.string()
     .transform((v) => coerceFormString(v))
     .required('Estimated loading/unloading time is required')
