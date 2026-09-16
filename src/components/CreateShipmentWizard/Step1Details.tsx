@@ -155,8 +155,8 @@ const T = {
 };
 
 interface Step1DetailsProps {
-  onSaveDraft: () => Promise<void>;
-  onContinue: () => Promise<void>;
+  onSaveDraft: (latestStops?: any[]) => Promise<void>;
+  onContinue: (latestStops?: any[]) => Promise<void>;
   isSaving?: boolean;
   validationRequest?: number;
   lockedStopIds?: number[];
@@ -1577,11 +1577,20 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const runContinue = useCallback(async () => {
     try {
-      await onContinue();
+      // Pass stopsRef so parent save never races Formik's async setFieldValue.
+      await onContinue(stopsRef.current || []);
     } catch {
       // Error handled by parent
     }
   }, [onContinue]);
+
+  const runSaveDraft = useCallback(async () => {
+    try {
+      await onSaveDraft(stopsRef.current || []);
+    } catch {
+      // Error handled by parent
+    }
+  }, [onSaveDraft]);
 
   const handleContinue = useCallback(async () => {
     setShowAll(true);
@@ -1618,12 +1627,12 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const handleSaveDraftClick = useCallback(async () => {
     setShowAll(true);
     try {
-      await onSaveDraft();
+      await runSaveDraft();
       setLastSaved(new Date());
     } catch {
       // Error toast handled by parent
     }
-  }, [onSaveDraft, setShowAll]);
+  }, [runSaveDraft, setShowAll]);
 
   const stopConflicts = useCallback(
     (idx: number) => {

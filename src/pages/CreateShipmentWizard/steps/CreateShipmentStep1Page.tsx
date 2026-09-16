@@ -27,25 +27,27 @@ export const CreateShipmentStep1Page: React.FC = () => {
       lockedStopIds={lockedStopIds}
       isEditMode={isEditMode}
       editShipmentStatus={editShipmentStatus}
-      onSaveDraft={async () => {
+      onSaveDraft={async (latestStops) => {
         resetItineraryConfirmationRef.current?.();
         const latest = valuesRef.current;
         await saveStep1(
           {
             ...latest,
+            ...(latestStops ? { stops: latestStops } : {}),
             itineraryConfirmed: false,
             itineraryConfirmSnapshot: '',
           },
           'partial'
         );
       }}
-      onContinue={async () => {
+      onContinue={async (latestStops) => {
         resetItineraryConfirmationRef.current?.();
-        // Always save the latest Formik values (avoids stale date after rapid picker changes).
+        // Always save the latest stops (avoids stale date/time after rapid picker changes).
         const latest = valuesRef.current;
         await saveStep1(
           {
             ...latest,
+            ...(latestStops ? { stops: latestStops } : {}),
             itineraryConfirmed: false,
             itineraryConfirmSnapshot: '',
           },

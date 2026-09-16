@@ -3,6 +3,7 @@ import { MapPin, Copy, CheckCircle2, FileText, ChevronDown, ChevronUp, Loader2, 
 import type { ShipmentStop } from '../../context/AppContext';
 import { productLineVisual, formatReason, type ProductLineVisual } from '../../pages/ManageShipments/utils/listingUtils';
 import { CollapsibleCard } from './CollapsibleCard';
+import { formatDisplayDate, formatDisplayTime } from '../../utils/dateDisplay';
 
 export interface ReportablePickup {
   location_id: number;
@@ -72,11 +73,11 @@ export interface PhysicalStop {
 function formatStopSchedule(date?: string, timeStart?: string, timeEnd?: string): string {
   const parts: string[] = [];
   if (date) {
-    parts.push(date);
+    parts.push(formatDisplayDate(date) || date);
   }
 
-  const s = (timeStart || '').trim();
-  const e = (timeEnd || '').trim();
+  const s = formatDisplayTime((timeStart || '').trim()) || (timeStart || '').trim();
+  const e = formatDisplayTime((timeEnd || '').trim()) || (timeEnd || '').trim();
 
   let timeText = '';
   if (s && e && s !== e) {
