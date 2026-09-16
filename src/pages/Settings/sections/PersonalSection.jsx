@@ -79,22 +79,19 @@ export default function PersonalSection() {
   const setField = (k, v) => setDraft((prev) => ({ ...prev, [k]: v }));
 
   const saveEdit = async () => {
-    const fn = draft.first_name?.trim();
-    const ln = draft.last_name?.trim();
-    if (!fn) {
-      toast.error(t('settings.profileSection.firstNameRequired', { defaultValue: 'First name is required.' }));
+    if (!draft.first_name?.trim()) {
+      toast.error(t('settings.profileSection.firstNameRequired', { defaultValue: 'The first name field is required.' }));
       return;
     }
-    if (!ln) {
-      toast.error(t('settings.profileSection.lastNameRequired', { defaultValue: 'Last name is required.' }));
+    if (!draft.last_name?.trim()) {
+      toast.error(t('settings.profileSection.lastNameRequired', { defaultValue: 'The last name field is required.' }));
       return;
     }
-
     setSaving(true);
     try {
       const body = {
-        first_name: fn,
-        last_name: ln,
+        first_name: draft.first_name?.trim(),
+        last_name: draft.last_name?.trim(),
       };
       if (!data.profile.phone_locked) {
         body.phone = draft.phone?.trim() || null;
@@ -179,8 +176,8 @@ export default function PersonalSection() {
     module_access: [],
     has_custom_permissions: false,
   };
-  const displayFirst = profile.first_name;
-  const displayLast = profile.last_name;
+  const savedFirst = profile.first_name || '';
+  const savedLast = profile.last_name || '';
   const currentAvatar = avatarPreview || profile.avatar_url;
   const activityPreview = (data.activity || []).slice(0, ACTIVITY_PREVIEW_LIMIT);
 
@@ -245,8 +242,8 @@ export default function PersonalSection() {
                   fontWeight: 700,
                 }}
               >
-                {(displayFirst?.[0] || '').toUpperCase()}
-                {(displayLast?.[0] || '').toUpperCase()}
+                {(savedFirst?.[0] || '').toUpperCase()}
+                {(savedLast?.[0] || '').toUpperCase()}
               </div>
             )}
             <button
@@ -276,7 +273,7 @@ export default function PersonalSection() {
           </div>
           <div>
             <div className="font-bold" style={{ fontSize: 16, color: T.t1 }}>
-              {displayFirst} {displayLast}
+              {savedFirst} {savedLast}
             </div>
             <div style={{ fontSize: 12, color: T.t3 }}>{profile.email}</div>
           </div>
