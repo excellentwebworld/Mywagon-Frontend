@@ -57,8 +57,8 @@ function LaneCell({
   shipment: Shipment;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
-  const pickLabel = s.pickDt || s.date;
-  const delLabel = s.delDt;
+  const pickLabel = s.pickDt || '';
+  const delLabel = s.delDt || '';
   const at = t('laneAt');
   const origin = (s.origin || '').trim();
   const dest = (s.dest || '').trim();

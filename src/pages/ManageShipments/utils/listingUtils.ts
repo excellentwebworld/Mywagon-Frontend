@@ -1075,6 +1075,24 @@ export function groupItineraryStops(
   stops: Shipment['stops'],
   fallback?: { origin?: string; dest?: string; pickDt?: string | null; delDt?: string | null }
 ): ItineraryStopGroup[] {
+  const sanitizeDate = (d?: string | null) => {
+    if (!d) return '';
+    const trimmed = d.trim();
+    if (
+      trimmed === '0' ||
+      trimmed === '—' ||
+      trimmed === '-' ||
+      trimmed.startsWith('0000-00-00') ||
+      trimmed.startsWith('00/00/0000') ||
+      trimmed.startsWith('1970-01-01') ||
+      trimmed.startsWith('31/12/1969') ||
+      trimmed.startsWith('01/01/1970')
+    ) {
+      return '';
+    }
+    return trimmed;
+  };
+
   if (!stops || stops.length === 0) {
     return [
       {
@@ -1082,7 +1100,7 @@ export function groupItineraryStops(
         type: 'pickup',
         location: fallback?.origin || '—',
         address: '',
-        date: fallback?.pickDt || '',
+        date: sanitizeDate(fallback?.pickDt),
         timeStart: '',
         timeEnd: '',
         customers: [],
@@ -1098,7 +1116,7 @@ export function groupItineraryStops(
         type: 'delivery',
         location: fallback?.dest || '—',
         address: '',
-        date: fallback?.delDt || '',
+        date: sanitizeDate(fallback?.delDt),
         timeStart: '',
         timeEnd: '',
         customers: [],
@@ -1115,7 +1133,8 @@ export function groupItineraryStops(
   const groups: ItineraryStopGroup[] = [];
 
   stops.forEach((stop) => {
-    const key = [stop.type, stop.location, stop.date, stop.timeStart].join('|');
+    const cleanDate = sanitizeDate(stop.date);
+    const key = [stop.type, stop.location, cleanDate, stop.timeStart].join('|');
     const last = groups[groups.length - 1];
     const lines: ItineraryStopGroup['lines'] = [];
     (stop.customers || []).forEach((customer) => {
@@ -1170,9 +1189,9 @@ export function groupItineraryStops(
       type: stop.type,
       location: stop.location || '—',
       address: stop.address || '',
-      date: stop.date || '',
-      timeStart: stop.timeStart || '',
-      timeEnd: stop.timeEnd || '',
+      date: cleanDate,
+      timeStart: cleanDate ? (stop.timeStart || '') : '',
+      timeEnd: cleanDate ? (stop.timeEnd || '') : '',
       customers: [...customers],
       locationStatus: stop.locationStatus ?? '0',
       pod: stop.pod ?? '0',
@@ -1207,27 +1226,55 @@ function progressDateTimeParts(
   let dateLine = (dateOnly || '').trim() || undefined;
   let timeLine = (timeOnly || '').trim() || undefined;
 
+  if (
+    dateLine === '0' ||
+    dateLine === '—' ||
+    dateLine === '-' ||
+    dateLine?.startsWith('0000-00-00') ||
+    dateLine?.startsWith('00/00/0000') ||
+    dateLine?.startsWith('1970-01-01') ||
+    dateLine?.startsWith('31/12/1969') ||
+    dateLine?.startsWith('01/01/1970')
+  ) {
+    dateLine = undefined;
+  }
+
   if (dateLine && /^\d{4}-\d{2}-\d{2}$/.test(dateLine)) {
     const [y, m, d] = dateLine.split('-');
-    dateLine = `${d}/${m}/${y}`;
+    const yearNum = Number(y);
+    if (yearNum <= 1970) {
+      dateLine = undefined;
+    } else {
+      dateLine = `${d}/${m}/${y}`;
+    }
   }
 
   // Combined display like "15/06/2026 18:30"
   if (!dateLine && isoOrDisplay) {
     const raw = isoOrDisplay.trim();
-    const parts = raw.split(/\s*[·,]\s*|\s+/).filter(Boolean);
-    if (parts.length >= 2) {
-      dateLine = parts[0];
-      timeLine = parts.slice(1).join(' ');
-    } else if (raw) {
-      dateLine = raw;
+    if (
+      raw !== '0' &&
+      raw !== '—' &&
+      raw !== '-' &&
+      !raw.startsWith('0000-00-00') &&
+      !raw.startsWith('1970-01-01') &&
+      !raw.startsWith('31/12/1969') &&
+      !raw.startsWith('01/01/1970')
+    ) {
+      const parts = raw.split(/\s*[·,]\s*|\s+/).filter(Boolean);
+      if (parts.length >= 2) {
+        dateLine = parts[0];
+        timeLine = parts.slice(1).join(' ');
+      } else if (raw) {
+        dateLine = raw;
+      }
     }
   }
 
   return {
     dateLine,
-    timeLine,
-    sub: [dateLine, timeLine].filter(Boolean).join(' ') || undefined,
+    timeLine: dateLine ? timeLine : undefined,
+    sub: dateLine ? [dateLine, timeLine].filter(Boolean).join(' ') || undefined : undefined,
   };
 }
 

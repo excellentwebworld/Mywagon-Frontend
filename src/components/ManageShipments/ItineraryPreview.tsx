@@ -28,9 +28,34 @@ interface ItineraryPreviewProps {
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
 
+function isEpochOrZeroDate(dateStr?: string | null): boolean {
+  if (!dateStr) return true;
+  const trimmed = dateStr.trim();
+  if (
+    !trimmed ||
+    trimmed === '0' ||
+    trimmed === '—' ||
+    trimmed === '-' ||
+    trimmed.startsWith('0000-00-00') ||
+    trimmed.startsWith('00/00/0000') ||
+    trimmed.startsWith('1970-01-01') ||
+    trimmed.startsWith('31/12/1969') ||
+    trimmed.startsWith('01/01/1970')
+  ) {
+    return true;
+  }
+  const m = trimmed.match(/^(\d{4})-\d{2}-\d{2}/);
+  if (m && Number(m[1]) <= 1970) return true;
+  const dm = trimmed.match(/^\d{1,2}\/\d{1,2}\/(\d{4})/);
+  if (dm && Number(dm[1]) <= 1970) return true;
+  return false;
+}
+
 function formatWhen(date?: string, timeStart?: string): string {
+  if (isEpochOrZeroDate(date)) return '';
   const dateLabel = date ? formatDisplayDate(date.includes('/') ? toYmd(date) : date) : '';
-  return [dateLabel || date, timeStart].filter(Boolean).join(' ');
+  if (!dateLabel || isEpochOrZeroDate(dateLabel)) return '';
+  return [dateLabel, timeStart].filter(Boolean).join(' ');
 }
 
 /** Accept dd/MM/yyyy or already-ymd and normalize toward ymd for formatDisplayDate. */

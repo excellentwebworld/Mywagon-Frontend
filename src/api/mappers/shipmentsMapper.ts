@@ -120,18 +120,52 @@ function mapCustomers(item: ApiShipmentListItem): Shipment['customer'] {
 /** Combine API UTC wall-clock date+time parts into an instant string for conversion. */
 function stopUtcInstant(date?: string | null, time?: string | null): string | null {
   if (!date) return null;
+  const trimmed = date.trim();
+  if (
+    !trimmed ||
+    trimmed === '0' ||
+    trimmed === '—' ||
+    trimmed === '-' ||
+    trimmed.startsWith('0000-00-00') ||
+    trimmed.startsWith('00/00/0000') ||
+    trimmed.startsWith('1970-01-01') ||
+    trimmed.startsWith('31/12/1969') ||
+    trimmed.startsWith('01/01/1970')
+  ) {
+    return null;
+  }
   const t = (time || '00:00').trim() || '00:00';
-  return `${date.trim()} ${t.length === 5 ? `${t}:00` : t}`;
+  return `${trimmed} ${t.length === 5 ? `${t}:00` : t}`;
 }
 
 function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | null): ShipmentStop {
   const name = stop.company_name || customerName || '';
-  const fromInstant = stopUtcInstant(stop.date, stop.time_start);
-  const toInstant = stopUtcInstant(stop.date, stop.time_end || stop.time_start);
+  const rawDate = (stop.date || '').trim();
+  const isEpochOrZero =
+    !rawDate ||
+    rawDate === '0' ||
+    rawDate === '—' ||
+    rawDate === '-' ||
+    rawDate.startsWith('0000-00-00') ||
+    rawDate.startsWith('00/00/0000') ||
+    rawDate.startsWith('1970-01-01') ||
+    rawDate.startsWith('31/12/1969') ||
+    rawDate.startsWith('01/01/1970');
+  const cleanDate = isEpochOrZero ? '' : rawDate;
+  const fromInstant = cleanDate ? stopUtcInstant(cleanDate, stop.time_start) : null;
+  const toInstant = cleanDate ? stopUtcInstant(cleanDate, stop.time_end || stop.time_start) : null;
   const fromLocal = fromInstant
     ? utcToLocalParts(fromInstant)
-    : { date: stop.date || '', time: stop.time_start || '' };
+    : { date: cleanDate, time: stop.time_start || '' };
   const toLocal = toInstant ? utcToLocalParts(toInstant) : { date: '', time: stop.time_end || '' };
+
+  const finalDate =
+    fromLocal.date &&
+    !fromLocal.date.startsWith('1970-01-01') &&
+    !fromLocal.date.startsWith('31/12/1969') &&
+    !fromLocal.date.startsWith('01/01/1970')
+      ? fromLocal.date
+      : cleanDate;
 
   return {
     id: stop.id || index + 1,
@@ -140,9 +174,9 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
     address: stop.address || stop.city || '',
     lat: stop.lat != null ? Number(stop.lat) : null,
     lng: stop.lng != null ? Number(stop.lng) : null,
-    date: fromLocal.date || stop.date || '',
-    timeStart: fromLocal.time || stop.time_start || '',
-    timeEnd: toLocal.time || stop.time_end || '',
+    date: finalDate,
+    timeStart: finalDate ? (fromLocal.time || stop.time_start || '') : '',
+    timeEnd: finalDate ? (toLocal.time || stop.time_end || '') : '',
     locationStatus:
       stop.status !== null && stop.status !== undefined && String(stop.status) !== ''
         ? String(stop.status)
@@ -214,13 +248,36 @@ function scheduleLabel(iso?: string | null, fallback?: string | null): string | 
     if (formatted) return formatted;
   }
   const raw = (fallback || '').trim();
-  if (!raw) return null;
+  if (
+    !raw ||
+    raw === '0' ||
+    raw === '—' ||
+    raw === '-' ||
+    raw === '0000-00-00' ||
+    raw === '0000-00-00 00:00:00' ||
+    raw.startsWith('0000-00-00') ||
+    raw.startsWith('00/00/0000') ||
+    raw.startsWith('00-00-0000') ||
+    raw.startsWith('1970-01-01') ||
+    raw.startsWith('31/12/1969') ||
+    raw.startsWith('01/01/1970')
+  ) {
+    return null;
+  }
   // Normalize API fallbacks that already look like d/m/Y or d/m/Y H:i.
   const match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
   if (match) {
     const [, d, m, y, hh, mm] = match;
+    const yearNum = Number(y);
+    if (yearNum <= 1970) return null;
     const date = `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
     return hh != null && mm != null ? `${date} ${hh.padStart(2, '0')}:${mm}` : date;
+  }
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    const yearNum = Number(raw.slice(0, 4));
+    if (yearNum <= 1970) return null;
+    const formatted = formatUtcToDisplayDateTime(raw);
+    if (formatted) return formatted;
   }
   return raw;
 }

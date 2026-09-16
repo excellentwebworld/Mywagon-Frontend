@@ -10,15 +10,27 @@ export function getPreferredDateLocale(): string {
 
 function parseYmd(ymd: string): Date | null {
   const trimmed = (ymd || '').trim();
-  if (!trimmed) return null;
+  if (
+    !trimmed ||
+    trimmed === '0' ||
+    trimmed === '—' ||
+    trimmed === '-' ||
+    trimmed.startsWith('0000-00-00') ||
+    trimmed.startsWith('00/00/0000') ||
+    trimmed.startsWith('1970-01-01') ||
+    trimmed.startsWith('31/12/1969') ||
+    trimmed.startsWith('01/01/1970')
+  ) {
+    return null;
+  }
   const parts = trimmed.split('-');
   if (parts.length !== 3) return null;
   const y = Number(parts[0]);
   const m = Number(parts[1]);
   const d = Number(parts[2]);
-  if (!y || !m || !d) return null;
+  if (!y || !m || !d || y <= 1970) return null;
   const date = new Date(y, m - 1, d);
-  if (Number.isNaN(date.getTime())) return null;
+  if (Number.isNaN(date.getTime()) || date.getFullYear() <= 1970) return null;
   return date;
 }
 
@@ -26,12 +38,25 @@ function parseYmd(ymd: string): Date | null {
 export function formatDisplayDateFromIso(iso?: string | null): string {
   if (!iso) return '';
   const trimmed = iso.trim();
+  if (
+    !trimmed ||
+    trimmed === '0' ||
+    trimmed === '—' ||
+    trimmed === '-' ||
+    trimmed.startsWith('0000-00-00') ||
+    trimmed.startsWith('00/00/0000') ||
+    trimmed.startsWith('1970-01-01') ||
+    trimmed.startsWith('31/12/1969') ||
+    trimmed.startsWith('01/01/1970')
+  ) {
+    return '';
+  }
   const ymd = trimmed.slice(0, 10);
   if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
     return formatDisplayDate(ymd);
   }
   const d = new Date(trimmed.replace(' ', 'T'));
-  if (Number.isNaN(d.getTime())) return trimmed;
+  if (Number.isNaN(d.getTime()) || d.getFullYear() <= 1970) return '';
   const dd = String(d.getDate()).padStart(2, '0');
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const yyyy = String(d.getFullYear());
@@ -41,7 +66,7 @@ export function formatDisplayDateFromIso(iso?: string | null): string {
 /** Format YYYY-MM-DD for display as dd/MM/yyyy. */
 export function formatDisplayDate(ymd: string): string {
   const date = parseYmd(ymd);
-  if (!date) return ymd || '';
+  if (!date) return '';
   const dd = String(date.getDate()).padStart(2, '0');
   const mm = String(date.getMonth() + 1).padStart(2, '0');
   const yyyy = String(date.getFullYear());
@@ -54,13 +79,13 @@ export function formatDisplayDate(ymd: string): string {
  */
 export function formatDisplayTime(hm: string): string {
   const trimmed = (hm || '').trim();
-  if (!trimmed) return '';
+  if (!trimmed || trimmed === '0' || trimmed === '—' || trimmed === '-') return '';
   if (/^\d{1,2}:\d{2}$/.test(trimmed)) {
     const [h, m] = trimmed.split(':');
     return `${h.padStart(2, '0')}:${m}`;
   }
-  const parsed = new Date(`1970-01-01T${trimmed}`);
-  if (Number.isNaN(parsed.getTime())) return trimmed;
+  const parsed = new Date(`2000-01-01T${trimmed}`);
+  if (Number.isNaN(parsed.getTime())) return '';
   return parsed.toLocaleTimeString('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
@@ -71,9 +96,10 @@ export function formatDisplayTime(hm: string): string {
 /** Combine date + optional time for appointment labels (`dd/MM/yyyy HH:mm`). */
 export function formatDisplayDateTime(ymd?: string, hm?: string): string {
   if (!ymd) return '';
-  let label = formatDisplayDate(ymd);
-  if (hm) label += ` ${formatDisplayTime(hm)}`;
-  return label;
+  const dateLabel = formatDisplayDate(ymd);
+  if (!dateLabel) return '';
+  const timeLabel = hm ? formatDisplayTime(hm) : '';
+  return timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel;
 }
 
 /**
@@ -81,9 +107,22 @@ export function formatDisplayDateTime(ymd?: string, hm?: string): string {
  */
 export function formatIsoDisplayDateTime(iso?: string | null): string {
   if (!iso) return '';
-  const normalized = typeof iso === 'string' ? iso.trim().replace(' ', 'T') : String(iso);
+  const trimmed = typeof iso === 'string' ? iso.trim() : String(iso).trim();
+  if (
+    !trimmed ||
+    trimmed === '0' ||
+    trimmed === '—' ||
+    trimmed === '-' ||
+    trimmed.startsWith('0000-00-00') ||
+    trimmed.startsWith('1970-01-01') ||
+    trimmed.startsWith('31/12/1969') ||
+    trimmed.startsWith('01/01/1970')
+  ) {
+    return '';
+  }
+  const normalized = trimmed.replace(' ', 'T');
   const d = new Date(normalized);
-  if (Number.isNaN(d.getTime())) return '';
+  if (Number.isNaN(d.getTime()) || d.getFullYear() <= 1970) return '';
   const dd = String(d.getDate()).padStart(2, '0');
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const yyyy = String(d.getFullYear());

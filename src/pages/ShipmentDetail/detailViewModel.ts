@@ -381,12 +381,22 @@ function buildDefaultStops(shipment: Shipment): ShipmentStop[] {
     : [];
 
   if (shipment.origin) {
+    const rawPick = shipment.pickDt || '';
+    const isEpochPick =
+      rawPick === '0' ||
+      rawPick === '—' ||
+      rawPick === '-' ||
+      rawPick.startsWith('0000-00-00') ||
+      rawPick.startsWith('1970-01-01') ||
+      rawPick.startsWith('31/12/1969') ||
+      rawPick.startsWith('01/01/1970');
+
     list.push({
       id: 1,
       type: 'pickup',
       location: shipment.origin,
       address: shipment.origin,
-      date: shipment.pickDt || shipment.date || '',
+      date: isEpochPick ? '' : rawPick,
       timeStart: '',
       timeEnd: '',
       customers: defaultCustomers,
@@ -394,12 +404,22 @@ function buildDefaultStops(shipment: Shipment): ShipmentStop[] {
   }
 
   if (shipment.dest) {
+    const rawDel = shipment.delDt || '';
+    const isEpochDel =
+      rawDel === '0' ||
+      rawDel === '—' ||
+      rawDel === '-' ||
+      rawDel.startsWith('0000-00-00') ||
+      rawDel.startsWith('1970-01-01') ||
+      rawDel.startsWith('31/12/1969') ||
+      rawDel.startsWith('01/01/1970');
+
     list.push({
       id: 2,
       type: 'delivery',
       location: shipment.dest,
       address: shipment.dest,
-      date: shipment.delDt || shipment.date || '',
+      date: isEpochDel ? '' : rawDel,
       timeStart: '',
       timeEnd: '',
       pod: shipment.status === 'fullfilled' || shipment.status === 'delivered' ? '1' : '0',
@@ -413,11 +433,25 @@ function buildDefaultStops(shipment: Shipment): ShipmentStop[] {
 function formatTimestamp(ts?: string | null): { date: string; time: string } | null {
   if (!ts) return null;
   const str = String(ts).trim();
-  if (!str) return null;
+  if (
+    !str ||
+    str === '0' ||
+    str === '—' ||
+    str === '-' ||
+    str.startsWith('0000-00-00') ||
+    str.startsWith('00/00/0000') ||
+    str.startsWith('1970-01-01') ||
+    str.startsWith('31/12/1969') ||
+    str.startsWith('01/01/1970')
+  ) {
+    return null;
+  }
 
   // Case 1: DD/MM/YYYY or DD-MM-YYYY (with optional HH:mm)
   const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:[T\s]+(\d{1,2}):(\d{2})(?::\d{2})?)?/);
   if (dmyMatch) {
+    const yearNum = Number(dmyMatch[3]);
+    if (yearNum <= 1970) return null;
     const day = dmyMatch[1].padStart(2, '0');
     const month = dmyMatch[2].padStart(2, '0');
     const year = dmyMatch[3];
@@ -431,8 +465,8 @@ function formatTimestamp(ts?: string | null): { date: string; time: string } | n
 
   // Case 2: Standard ISO string or YYYY-MM-DD
   try {
-    const d = new Date(str);
-    if (!isNaN(d.getTime())) {
+    const d = new Date(str.replace(' ', 'T'));
+    if (!isNaN(d.getTime()) && d.getFullYear() > 1970) {
       const day = String(d.getDate()).padStart(2, '0');
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const year = d.getFullYear();
@@ -449,10 +483,13 @@ function formatTimestamp(ts?: string | null): { date: string; time: string } | n
 
   if (str.includes('·')) {
     const parts = str.split('·');
-    return { date: parts[0]?.trim() || str, time: parts[1]?.trim() || '' };
+    const dPart = parts[0]?.trim();
+    if (dPart && !dPart.startsWith('1970') && !dPart.startsWith('31/12/1969') && !dPart.startsWith('01/01/1970')) {
+      return { date: dPart, time: parts[1]?.trim() || '' };
+    }
   }
 
-  return { date: str, time: '' };
+  return null;
 }
 
 function buildMilestones(shipment: Shipment): MilestoneItem[] {

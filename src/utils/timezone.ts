@@ -44,11 +44,17 @@ export function parseUtcInstant(input: string | null | undefined): Date | null {
     !trimmed ||
     trimmed === 'null' ||
     trimmed === 'undefined' ||
+    trimmed === '0' ||
+    trimmed === '—' ||
+    trimmed === '-' ||
     trimmed === '0000-00-00 00:00:00' ||
     trimmed === '0000-00-00' ||
     trimmed.startsWith('0000-00-00') ||
     trimmed.startsWith('00/00/0000') ||
-    trimmed.startsWith('00-00-0000')
+    trimmed.startsWith('00-00-0000') ||
+    trimmed.startsWith('1970-01-01') ||
+    trimmed.startsWith('31/12/1969') ||
+    trimmed.startsWith('01/01/1970')
   ) {
     return null;
   }
@@ -59,12 +65,14 @@ export function parseUtcInstant(input: string | null | undefined): Date | null {
   );
   if (dmyMatch) {
     const [, d, m, y, h, min, s] = dmyMatch;
+    const yearNum = Number(y);
+    if (yearNum <= 1970) return null;
     const isoString =
       h != null && min != null
         ? `${y}-${pad2(m)}-${pad2(d)}T${pad2(h)}:${pad2(min)}:${pad2(s || '00')}Z`
         : `${y}-${pad2(m)}-${pad2(d)}T00:00:00Z`;
     const parsed = new Date(isoString);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
+    return Number.isNaN(parsed.getTime()) || parsed.getUTCFullYear() <= 1970 ? null : parsed;
   }
 
   const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(trimmed);
@@ -75,7 +83,8 @@ export function parseUtcInstant(input: string | null | undefined): Date | null {
       : `${trimmed.replace(' ', 'T')}Z`;
 
   const parsed = new Date(normalized);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  if (Number.isNaN(parsed.getTime()) || parsed.getUTCFullYear() <= 1970) return null;
+  return parsed;
 }
 
 /** @deprecated Prefer parseUtcInstant — kept for existing ERP imports. */
@@ -106,7 +115,7 @@ export function formatInTimeZone(
 /** UTC instant → dd/MM/yyyy in browser (or explicit) TZ. */
 export function formatUtcToDisplayDate(utc: string, tz: string = getBrowserTimezone()): string {
   const parsed = parseUtcInstant(utc);
-  if (!parsed) return utc || '';
+  if (!parsed) return '';
   const parts = getTzParts(parsed, tz, {
     day: '2-digit',
     month: '2-digit',
@@ -115,7 +124,7 @@ export function formatUtcToDisplayDate(utc: string, tz: string = getBrowserTimez
   const day = parts.find((p) => p.type === 'day')?.value;
   const month = parts.find((p) => p.type === 'month')?.value;
   const year = parts.find((p) => p.type === 'year')?.value;
-  if (!day || !month || !year) return utc;
+  if (!day || !month || !year) return '';
   return `${pad2(day)}/${pad2(month)}/${year}`;
 }
 
@@ -139,7 +148,7 @@ export function formatUtcToDisplayTime(utc: string, tz: string = getBrowserTimez
  */
 export function formatUtcToDisplayDateTime(utc: string, tz: string = getBrowserTimezone()): string {
   const parsed = parseUtcInstant(utc);
-  if (!parsed) return utc || '';
+  if (!parsed) return '';
   const parts = getTzParts(parsed, tz, {
     day: '2-digit',
     month: '2-digit',
@@ -153,7 +162,7 @@ export function formatUtcToDisplayDateTime(utc: string, tz: string = getBrowserT
   const year = parts.find((p) => p.type === 'year')?.value;
   const hour = parts.find((p) => p.type === 'hour')?.value;
   const minute = parts.find((p) => p.type === 'minute')?.value;
-  if (!day || !month || !year || hour == null || minute == null) return utc;
+  if (!day || !month || !year || hour == null || minute == null) return '';
   return `${pad2(day)}/${pad2(month)}/${year} ${pad2(hour)}:${pad2(minute)}`;
 }
 
@@ -257,9 +266,25 @@ export function toCalendarYmd(localDate: Date): string {
 /** Format a calendar YYYY-MM-DD for display (no TZ conversion). */
 export function formatCalendarDate(ymd: string): string {
   if (!ymd) return '—';
-  if (isDateOnly(ymd)) return formatDisplayDate(ymd);
-  const parts = utcToLocalParts(ymd);
-  return parts.date ? formatDisplayDate(parts.date) : ymd;
+  const trimmed = (ymd || '').trim();
+  if (
+    trimmed === '0' ||
+    trimmed === '—' ||
+    trimmed === '-' ||
+    trimmed.startsWith('0000-00-00') ||
+    trimmed.startsWith('1970-01-01') ||
+    trimmed.startsWith('31/12/1969') ||
+    trimmed.startsWith('01/01/1970')
+  ) {
+    return '—';
+  }
+  if (isDateOnly(trimmed)) {
+    const formatted = formatDisplayDate(trimmed);
+    return formatted || '—';
+  }
+  const parts = utcToLocalParts(trimmed);
+  const formatted = parts.date ? formatDisplayDate(parts.date) : '';
+  return formatted || '—';
 }
 
 /** Add calendar days to a YYYY-MM-DD string. */
