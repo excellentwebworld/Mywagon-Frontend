@@ -35,7 +35,13 @@ const STOP_FIELDS = ['address_id', 'date', 'time', 'date_to', 'time_to'] as cons
 const LINE_FIELDS = ['qty', 'weight', 'product_id', 'order_id', 'type'] as const;
 
 function fieldChanged(entry: ApiItineraryDiffField | undefined): boolean {
-  return entry != null && (entry.old !== undefined || entry.new !== undefined);
+  if (!entry) return false;
+  const oldVal = entry.old != null ? String(entry.old).trim() : '';
+  const newVal = entry.new != null ? String(entry.new).trim() : '';
+  if (entry.old !== undefined && entry.new !== undefined) {
+    return oldVal !== newVal;
+  }
+  return (entry.old !== undefined && oldVal !== '') || (entry.new !== undefined && newVal !== '');
 }
 
 /** Walk stops → lines in the same order as BE `wizardItineraryRows`. */
