@@ -18,3 +18,21 @@ export function mapSupportFieldValidationError(field: string, message: string): 
 
   return 'invalid';
 }
+
+export function validateSupportField(field: string, value: string): string | null {
+  const trimmed = (value || '').trim();
+  if (field === 'type' || field === 'category') {
+    return trimmed ? null : 'required';
+  }
+  if (field === 'title') {
+    if (!trimmed) return 'required';
+    if (trimmed.length > MAX_TITLE_LENGTH) return 'title_too_long';
+    return null;
+  }
+  if (field === 'description') {
+    if (!trimmed) return 'required';
+    if (trimmed.length > MAX_DESCRIPTION_LENGTH) return 'description_too_long';
+    return null;
+  }
+  return null;
+}

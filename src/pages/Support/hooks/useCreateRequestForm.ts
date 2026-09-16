@@ -7,6 +7,7 @@ import {
   MAX_DESCRIPTION_LENGTH,
   MAX_TITLE_LENGTH,
   mapSupportFieldValidationError,
+  validateSupportField,
 } from '../utils/requestValidation';
 
 const MAX_ATTACHMENTS = MAX_ATTACHMENT_COUNT;
@@ -25,12 +26,68 @@ export function useCreateRequestForm({ lang, disabled = false }: UseCreateReques
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [successTicketNumber, setSuccessTicketNumber] = useState<string | null>(null);
 
-  const [type, setType] = useState('');
-  const [category, setCategory] = useState('');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [type, setTypeState] = useState('');
+  const [category, setCategoryState] = useState('');
+  const [title, setTitleState] = useState('');
+  const [description, setDescriptionState] = useState('');
   const [attachments, setAttachments] = useState<RequestAttachmentPreview[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
+
+  const setType = useCallback((val: string) => {
+    setTypeState(val);
+    setFieldErrors((prev) => {
+      if (!prev.type) return prev;
+      const err = validateSupportField('type', val);
+      if (!err) {
+        const next = { ...prev };
+        delete next.type;
+        return next;
+      }
+      return { ...prev, type: err };
+    });
+  }, []);
+
+  const setCategory = useCallback((val: string) => {
+    setCategoryState(val);
+    setFieldErrors((prev) => {
+      if (!prev.category) return prev;
+      const err = validateSupportField('category', val);
+      if (!err) {
+        const next = { ...prev };
+        delete next.category;
+        return next;
+      }
+      return { ...prev, category: err };
+    });
+  }, []);
+
+  const setTitle = useCallback((val: string) => {
+    setTitleState(val);
+    setFieldErrors((prev) => {
+      if (!prev.title) return prev;
+      const err = validateSupportField('title', val);
+      if (!err) {
+        const next = { ...prev };
+        delete next.title;
+        return next;
+      }
+      return { ...prev, title: err };
+    });
+  }, []);
+
+  const setDescription = useCallback((val: string) => {
+    setDescriptionState(val);
+    setFieldErrors((prev) => {
+      if (!prev.description) return prev;
+      const err = validateSupportField('description', val);
+      if (!err) {
+        const next = { ...prev };
+        delete next.description;
+        return next;
+      }
+      return { ...prev, description: err };
+    });
+  }, []);
 
   useEffect(() => {
     if (disabled) {

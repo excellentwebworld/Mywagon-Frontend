@@ -501,22 +501,129 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
 
   const toggleSection = (key) => setSections((p) => ({ ...p, [key]: !p[key] }));
 
-  const addStop = () => { if (stops.length < 10) setStops((p) => [...p, null]); };
-  const removeStop = (idx) => { if (stops.length > 2) setStops((p) => p.filter((_, i) => i !== idx)); };
+  const addStop = () => {
+    if (stops.length < 10) setStops((p) => [...p, null]);
+    setErrors((prev) => {
+      if (!prev.stops) return prev;
+      const next = { ...prev };
+      delete next.stops;
+      return next;
+    });
+  };
+
+  const removeStop = (idx) => {
+    if (stops.length > 2) setStops((p) => p.filter((_, i) => i !== idx));
+    setErrors((prev) => {
+      if (!prev.stops && !prev.sameCity) return prev;
+      const next = { ...prev };
+      delete next.stops;
+      delete next.sameCity;
+      return next;
+    });
+  };
 
   const setStopAtIndex = useCallback((idx, stop) => {
     setStops((p) => p.map((s, i) => (i === idx ? stop : s)));
+    setErrors((prev) => {
+      if (!prev.stops && !prev.sameCity) return prev;
+      const next = { ...prev };
+      delete next.stops;
+      delete next.sameCity;
+      return next;
+    });
   }, []);
 
   const addPricingRow = () => {
     if (pricingRows.length >= METRICS.length) return;
     const metric = 'load_any_size';
     setPricingRows((p) => [...p, { id: uid(), metric, amount: '', metricValue: defaultMetricValue(metric) }]);
+    setErrors((prev) => {
+      if (!prev.pricingRows) return prev;
+      const next = { ...prev };
+      delete next.pricingRows;
+      return next;
+    });
   };
 
-  const removePricingRow = (rowId) => setPricingRows((p) => p.filter((r) => r.id !== rowId));
+  const removePricingRow = (rowId) => {
+    setPricingRows((p) => p.filter((r) => r.id !== rowId));
+    setErrors((prev) => {
+      const next = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        if (!k.startsWith('amount_') && !k.startsWith('metricValue_') && !k.startsWith('metric_')) {
+          next[k] = v;
+        }
+      });
+      return next;
+    });
+  };
 
-  const updatePricingRow = (rowId, patch) => setPricingRows((p) => p.map((r) => (r.id === rowId ? { ...r, ...patch } : r)));
+  const updatePricingRow = (rowId, patch) => {
+    setPricingRows((p) => p.map((r) => (r.id === rowId ? { ...r, ...patch } : r)));
+    setErrors((prev) => {
+      const idx = pricingRows.findIndex((r) => r.id === rowId);
+      if (idx === -1) return prev;
+
+      let next = null;
+      if (patch.amount !== undefined) {
+        const amountKey = `amount_${idx}`;
+        if (prev[amountKey]) {
+          next = { ...prev };
+          const amt = Number(patch.amount || 0);
+          if (amt > 0 && isPriceWithinLimit(patch.amount)) {
+            delete next[amountKey];
+          } else if (!amt || amt <= 0) {
+            next[amountKey] = 'required';
+          } else if (!isPriceWithinLimit(patch.amount)) {
+            next[amountKey] = 'tooLong';
+          }
+        }
+      }
+
+      if (patch.metric !== undefined || patch.metricValue !== undefined) {
+        const metricValKey = `metricValue_${idx}`;
+        const metricKey = `metric_${idx}`;
+        if (prev[metricValKey] || prev[metricKey]) {
+          next = next || { ...prev };
+          const row = pricingRows[idx];
+          const newMetric = patch.metric !== undefined ? patch.metric : row?.metric;
+          const newMetricVal = patch.metricValue !== undefined ? patch.metricValue : row?.metricValue;
+          if (isMetricValueValid(newMetric, newMetricVal)) {
+            delete next[metricValKey];
+            delete next[metricKey];
+          }
+        }
+      }
+
+      return next || prev;
+    });
+  };
+
+  const handleEffectiveFromChange = (val) => {
+    setEffectiveFrom(val);
+    setErrors((prev) => {
+      if (!prev.dateOrder) return prev;
+      if (!effectiveTo || !val || effectiveTo >= val) {
+        const next = { ...prev };
+        delete next.dateOrder;
+        return next;
+      }
+      return prev;
+    });
+  };
+
+  const handleEffectiveToChange = (val) => {
+    setEffectiveTo(val);
+    setErrors((prev) => {
+      if (!prev.dateOrder) return prev;
+      if (!val || !effectiveFrom || val >= effectiveFrom) {
+        const next = { ...prev };
+        delete next.dateOrder;
+        return next;
+      }
+      return prev;
+    });
+  };
 
   const updateRowMetric = (rowId, metric) => {
     updatePricingRow(rowId, { metric, metricValue: defaultMetricValue(metric) });
@@ -974,7 +1081,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                   <label style={labelStyle}>{t('priceLists.modal.effectiveFrom', 'Effective from')}</label>
                   <DatePicker
                     value={effectiveFrom}
-                    onChange={setEffectiveFrom}
+                    onChange={handleEffectiveFromChange}
                     hasError={Boolean(errors.dateOrder)}
                     direction="auto"
                   />
@@ -983,7 +1090,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
                   <label style={labelStyle}>{t('priceLists.modal.effectiveTo', 'Effective to')}</label>
                   <DatePicker
                     value={effectiveTo}
-                    onChange={setEffectiveTo}
+                    onChange={handleEffectiveToChange}
                     min={effectiveFrom || undefined}
                     hasError={Boolean(errors.dateOrder)}
                     direction="auto"
