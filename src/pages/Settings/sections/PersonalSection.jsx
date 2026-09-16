@@ -79,11 +79,22 @@ export default function PersonalSection() {
   const setField = (k, v) => setDraft((prev) => ({ ...prev, [k]: v }));
 
   const saveEdit = async () => {
+    const fn = draft.first_name?.trim();
+    const ln = draft.last_name?.trim();
+    if (!fn) {
+      toast.error(t('settings.profileSection.firstNameRequired', { defaultValue: 'First name is required.' }));
+      return;
+    }
+    if (!ln) {
+      toast.error(t('settings.profileSection.lastNameRequired', { defaultValue: 'Last name is required.' }));
+      return;
+    }
+
     setSaving(true);
     try {
       const body = {
-        first_name: draft.first_name?.trim(),
-        last_name: draft.last_name?.trim(),
+        first_name: fn,
+        last_name: ln,
       };
       if (!data.profile.phone_locked) {
         body.phone = draft.phone?.trim() || null;
@@ -168,8 +179,8 @@ export default function PersonalSection() {
     module_access: [],
     has_custom_permissions: false,
   };
-  const displayFirst = editing ? draft.first_name : profile.first_name;
-  const displayLast = editing ? draft.last_name : profile.last_name;
+  const displayFirst = profile.first_name;
+  const displayLast = profile.last_name;
   const currentAvatar = avatarPreview || profile.avatar_url;
   const activityPreview = (data.activity || []).slice(0, ACTIVITY_PREVIEW_LIMIT);
 
