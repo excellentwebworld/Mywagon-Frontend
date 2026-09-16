@@ -2626,6 +2626,8 @@
   "satFilterAvailableFrom": "Διαθέσιμα από",
   "satFilterStartDate": "Ημερομηνία έναρξης",
   "satFilterEndDate": "Ημερομηνία λήξης",
+  "satFilterPastDateError": "Η ημερομηνία δεν μπορεί να είναι στο παρελθόν",
+  "satFilterEndDateBeforeStartDate": "Η ημερομηνία λήξης δεν μπορεί να είναι πριν από την ημερομηνία έναρξης",
   "satDatePlaceholder": "Μήνας, ΗΗ, ΕΕΕΕ",
   "satFilterPickupLocation": "Τοποθεσία παραλαβής",
   "satFilterDropoffLocation": "Τοποθεσία παράδοσης",

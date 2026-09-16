@@ -5,9 +5,10 @@ import { partnersService } from '../../api';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useVehicleTypes } from '../../hooks/useVehicleTypes';
 import type { QuickFilterKey, TripFilter } from '../../pages/SearchTrucks/types';
-import { DatePicker } from '../ui/DatePicker';
+import { DatePicker, getTodayDateString } from '../ui/DatePicker';
 import { SearchPlaceSuggestions, type PlaceSuggestion } from './SearchPlaceSuggestions';
 import { usePlaceSuggestions } from './usePlaceSuggestions';
+import { validateSatFilterDates } from './satFilterValidation';
 
 export interface SatFilterDraft {
   truckTypeIds: number[];
@@ -207,6 +208,14 @@ export const SatFilterModal: React.FC<SatFilterModalProps> = ({
   if (!open) return null;
 
   const kmsLabel = t('satKms') || 'kms';
+  const todayStr = getTodayDateString();
+
+  const { startDateError, endDateError, hasErrors: hasDateErrors } = validateSatFilterDates(
+    draft.availableFromStart,
+    draft.availableFromEnd,
+    todayStr,
+    t
+  );
 
   return createPortal(
     <div
@@ -274,9 +283,20 @@ export const SatFilterModal: React.FC<SatFilterModalProps> = ({
                 </label>
                 <DatePicker
                   value={draft.availableFromStart}
-                  onChange={(v) => setDraft((p) => ({ ...p, availableFromStart: v }))}
+                  onChange={(v) =>
+                    setDraft((p) => {
+                      const next = { ...p, availableFromStart: v };
+                      if (p.availableFromEnd && v && p.availableFromEnd < v) {
+                        next.availableFromEnd = '';
+                      }
+                      return next;
+                    })
+                  }
                   placeholder={t('satDatePlaceholder') || 'Month, DD, YYYY'}
+                  min={todayStr}
+                  hasError={Boolean(startDateError)}
                 />
+                {startDateError && <p className="sat-field-error">{startDateError}</p>}
               </div>
               <div className="sat-pop-field">
                 <label className="sat-pop-label" htmlFor="sat-filter-end">
@@ -286,7 +306,10 @@ export const SatFilterModal: React.FC<SatFilterModalProps> = ({
                   value={draft.availableFromEnd}
                   onChange={(v) => setDraft((p) => ({ ...p, availableFromEnd: v }))}
                   placeholder={t('satDatePlaceholder') || 'Month, DD, YYYY'}
+                  min={draft.availableFromStart || todayStr}
+                  hasError={Boolean(endDateError)}
                 />
+                {endDateError && <p className="sat-field-error">{endDateError}</p>}
               </div>
             </div>
           </section>
@@ -500,7 +523,9 @@ export const SatFilterModal: React.FC<SatFilterModalProps> = ({
             <button
               type="button"
               className="sat-btn sat-btn-pr"
+              disabled={hasDateErrors}
               onClick={() => {
+                if (hasDateErrors) return;
                 onApply(draft);
                 onClose();
               }}

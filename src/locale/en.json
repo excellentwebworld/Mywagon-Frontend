@@ -2626,6 +2626,8 @@
   "satFilterAvailableFrom": "Available From",
   "satFilterStartDate": "Start Date",
   "satFilterEndDate": "End Date",
+  "satFilterPastDateError": "Date cannot be in the past",
+  "satFilterEndDateBeforeStartDate": "End date cannot be before start date",
   "satDatePlaceholder": "Month, DD, YYYY",
   "satFilterPickupLocation": "Pickup Location",
   "satFilterDropoffLocation": "Drop-off Location",
