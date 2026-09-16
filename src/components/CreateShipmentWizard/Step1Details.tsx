@@ -125,6 +125,7 @@ import useConflicts from "../../hooks/useConflicts";
 import { FieldValidationHint } from "./FieldValidationHint";
 import {
   focusFirstConflict,
+  formatContinueTooltip,
   getBlockersForAnchor,
   getConflictAnchor,
   getStopDoneBlockers,
@@ -371,18 +372,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   // Keep a mutable ref so rapid date/time updates don't overwrite each other
   // via stale Formik `stops` closures (Formik setFieldValue is not a functional updater).
   const stopsRef = useRef(stops);
-  // Last array we wrote via setStops — skip Formik→ref sync while Formik lags behind.
-  const lastWrittenStopsRef = useRef<any[] | null>(null);
 
   useEffect(() => {
-    if (lastWrittenStopsRef.current != null) {
-      if (stops === lastWrittenStopsRef.current) {
-        lastWrittenStopsRef.current = null;
-      } else {
-        // Formik still has an older snapshot; keep the newer local ref.
-        return;
-      }
-    }
     stopsRef.current = stops;
   }, [stops]);
 
@@ -391,7 +382,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       const current = stopsRef.current || [];
       const updated = typeof next === "function" ? next(current) : next;
       stopsRef.current = updated;
-      lastWrittenStopsRef.current = updated;
       setFieldValue("stops", updated);
     },
     [setFieldValue],
@@ -1504,9 +1494,20 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   );
 
   const conflictCount = useMemo(() => {
+    if (blockers.length > 0) return blockers.length;
     if (!showAll) return 0;
-    return blockers.length + warnings.length;
+    return warnings.length;
   }, [blockers, warnings, showAll]);
+
+  const continueTooltip = useMemo(
+    () => formatContinueTooltip(blockers, t),
+    [blockers, t],
+  );
+
+  const globalConflicts = useMemo(
+    () => (showAll ? allConflicts.filter((c) => c.stopIndex < 0) : []),
+    [allConflicts, showAll],
+  );
 
   const expandStopForValidation = useCallback(
     (stopIndex: number) => {
@@ -1638,6 +1639,30 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         <div className="wizard-validation-banner mb-4" role="alert">
           {t("createLoadOrdersLoadError") || "Could not load orders."}{" "}
           {ordersError}
+        </div>
+      )}
+
+      {globalConflicts.length > 0 && (
+        <div className="flex flex-col gap-2 mb-4">
+          {globalConflicts.map((c, i) => (
+            <div
+              key={`global-conflict-${i}`}
+              className="wizard-validation-banner"
+              role="alert"
+            >
+              <strong>
+                {c.severity === "blocker"
+                  ? t("blockerPrefix", "Action required:")
+                  : t("warningPrefix", "Warning:")}{" "}
+              </strong>
+              {translateConflict(c, t)}
+              {c.resolution && (
+                <span className="block text-xs mt-1 opacity-90">
+                  {translateResolution(c, t)}
+                </span>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
@@ -2199,14 +2224,15 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold cursor-pointer text-white border-none"
+            className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold cursor-pointer text-white border-none transition-colors"
             style={{
               background: canContinue ? T.ac : T.bf,
-              cursor: canContinue ? "pointer" : "not-allowed",
+              cursor: isSaving ? "not-allowed" : "pointer",
               fontFamily: "inherit",
             }}
-            disabled={!canContinue || isSaving}
+            disabled={isSaving}
             onClick={handleContinue}
+            title={continueTooltip}
           >
             {isSaving
               ? t("saving", "Saving...")

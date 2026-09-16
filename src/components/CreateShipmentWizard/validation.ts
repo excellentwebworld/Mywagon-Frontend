@@ -103,6 +103,28 @@ export function translateResolution(conflict: Conflict, t: TranslateFn): string 
   return translated && translated !== key ? translated : conflict.resolution;
 }
 
+export function formatContinueTooltip(
+  blockers: Conflict[],
+  t: TranslateFn
+): string | undefined {
+  if (!blockers || blockers.length === 0) return undefined;
+  if (blockers.length === 1) {
+    const singleMsg = translateConflict(blockers[0], t);
+    const prefix = t('step1FixOneIssue', { defaultValue: 'Please fix 1 issue before continuing' });
+    return `${prefix}: ${singleMsg}`;
+  }
+  const summary = blockers
+    .slice(0, 3)
+    .map((b) => translateConflict(b, t))
+    .join('; ');
+  const more = blockers.length > 3 ? ` (+${blockers.length - 3} more)` : '';
+  const prefix = t('step1FixIssues', {
+    count: blockers.length,
+    defaultValue: `Please fix ${blockers.length} issues before continuing`,
+  });
+  return `${prefix}: ${summary}${more}`;
+}
+
 export function getBlockersForAnchor(blockers: Conflict[], anchor: string): Conflict[] {
   return blockers.filter((conflict) => getConflictAnchor(conflict) === anchor);
 }
