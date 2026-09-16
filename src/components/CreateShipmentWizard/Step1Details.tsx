@@ -1504,11 +1504,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     [blockers, t],
   );
 
-  const globalConflicts = useMemo(
-    () => (showAll ? allConflicts.filter((c) => c.stopIndex < 0) : []),
-    [allConflicts, showAll],
-  );
-
   const expandStopForValidation = useCallback(
     (stopIndex: number) => {
       const stop = stops[stopIndex];
@@ -1648,30 +1643,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         <div className="wizard-validation-banner mb-4" role="alert">
           {t("createLoadOrdersLoadError") || "Could not load orders."}{" "}
           {ordersError}
-        </div>
-      )}
-
-      {globalConflicts.length > 0 && (
-        <div className="flex flex-col gap-2 mb-4">
-          {globalConflicts.map((c, i) => (
-            <div
-              key={`global-conflict-${i}`}
-              className="wizard-validation-banner"
-              role="alert"
-            >
-              <strong>
-                {c.severity === "blocker"
-                  ? t("blockerPrefix", "Action required:")
-                  : t("warningPrefix", "Warning:")}{" "}
-              </strong>
-              {translateConflict(c, t)}
-              {c.resolution && (
-                <span className="block text-xs mt-1 opacity-90">
-                  {translateResolution(c, t)}
-                </span>
-              )}
-            </div>
-          ))}
         </div>
       )}
 
@@ -2248,17 +2219,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
               : isEditMode
                 ? t("continue", "Continue")
                 : t("continue", "Continue")}
-            {conflictCount > 0 && (
-              <span
-                className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
-                style={{
-                  background: blockers.length > 0 ? "#DC2626" : "#D97706",
-                  color: "#fff",
-                }}
-              >
-                {conflictCount}
-              </span>
-            )}
             <ArrowRight size={14} />
           </button>
         </div>

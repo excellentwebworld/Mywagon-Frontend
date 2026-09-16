@@ -2433,8 +2433,23 @@
 }
 
 .wizard-field-invalid {
-  border-color: #DC2626 !important;
-  box-shadow: 0 0 0 1px #DC2626 !important;
+  border-color: #EF4444 !important;
+  box-shadow: 0 0 0 1px #EF4444 !important;
+}
+
+.wizard-field-hint {
+  animation: wizardHintFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes wizardHintFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .wizard-table-field-cell {

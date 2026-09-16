@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import type { Conflict } from '../../hooks/useConflicts';
 import { translateConflict, translateFieldConflict } from './validation';
 
@@ -18,18 +18,23 @@ export const FieldValidationHint: React.FC<FieldValidationHintProps> = ({
 }) => {
   if (!show || conflicts.length === 0) return null;
 
+  const firstConflict = conflicts[0];
+  const isWarning = firstConflict.severity === 'warning';
   const message = compact
-    ? translateFieldConflict(conflicts[0], t)
-    : translateConflict(conflicts[0], t);
+    ? translateFieldConflict(firstConflict, t)
+    : translateConflict(firstConflict, t);
 
   return (
     <div
       role="alert"
-      className="flex items-start gap-1 mt-1 text-[10px] font-semibold leading-snug"
-      style={{ color: '#DC2626' }}
+      className="wizard-field-hint flex items-center gap-1 mt-1 text-[11px] font-medium leading-tight select-none"
+      style={{
+        color: isWarning ? '#D97706' : '#DC2626',
+      }}
     >
-      <AlertTriangle size={10} className="shrink-0 mt-0.5" />
+      <AlertCircle size={12} className="shrink-0" />
       <span>{message}</span>
     </div>
   );
 };
+
