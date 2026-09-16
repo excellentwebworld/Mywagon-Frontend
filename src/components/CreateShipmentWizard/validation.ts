@@ -17,7 +17,7 @@ export function getConflictAnchor(conflict: Conflict): string {
     return `stop-${stopIndex}-date`;
   }
 
-  if (code === 'C3') {
+  if (code === 'C3' || code === 'O5') {
     return lineIndex >= 0 ? `stop-${stopIndex}-line-${lineIndex}-qty` : `stop-${stopIndex}-cargo`;
   }
 
@@ -64,6 +64,7 @@ export function sortConflictsForFocus(conflicts: Conflict[]): Conflict[] {
       O4: 30,
       C2: 31,
       C3: 32,
+      O5: 32,
       C10: 33,
       C5: 34,
       C9: 40,

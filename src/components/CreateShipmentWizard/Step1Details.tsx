@@ -2796,36 +2796,41 @@ const CargoTable: React.FC<CargoTableProps> = ({
                     data-validation-anchor={`stop-${stopIndex}-line-${li}-qty`}
                     className="wizard-table-field-cell"
                   >
-                    <input
-                      type="number"
-                      step="1"
-                      min="0"
-                      placeholder="0"
-                      style={
-                        isInvalid(`stop-${stopIndex}-line-${li}-qty`)
-                          ? {
-                              ...monoS,
-                              border: "1px solid #DC2626",
-                              boxShadow: "0 0 0 1px #DC2626",
-                            }
-                          : monoS
-                      }
-                      value={ln.qty}
-                      onChange={(e) => onSetField(ln.id, "qty", e.target.value)}
-                    />
                     {(() => {
-                      if (!ln.orderId || !ln.productId) return null;
+                      if (!ln.orderId || !ln.productId) {
+                        return (
+                          <input
+                            type="number"
+                            step="1"
+                            min="0"
+                            placeholder="0"
+                            style={
+                              isInvalid(`stop-${stopIndex}-line-${li}-qty`)
+                                ? {
+                                    ...monoS,
+                                    border: "1px solid #DC2626",
+                                    boxShadow: "0 0 0 1px #DC2626",
+                                  }
+                                : monoS
+                            }
+                            value={ln.qty}
+                            onChange={(e) => onSetField(ln.id, "qty", e.target.value)}
+                          />
+                        );
+                      }
                       const order = lookupOrderDetail(
                         orderDetailsById,
                         ln.orderId,
                         ln.orderRef,
                       );
                       const orderLine = findOrderLineForProduct(order, ln.productId);
-                      if (!orderLine || orderLine.quantity == null) return null;
-                      const orderQty = Number(orderLine.quantity) || 0;
-                      if (orderQty <= 0) return null;
+                      const orderQty =
+                        orderLine && orderLine.quantity != null
+                          ? Number(orderLine.quantity) || 0
+                          : 0;
                       const displayUnit =
-                        normalizeQtyUnit(ln.unit || orderLine.unit) || "";
+                        normalizeQtyUnit(ln.unit || orderLine?.unit) || "";
+
                       if (ln.action === "pickup") {
                         const allocated = getPickupAllocatedQty(
                           allStops,
@@ -2834,25 +2839,47 @@ const CargoTable: React.FC<CargoTableProps> = ({
                           { unit: displayUnit },
                         );
                         return (
-                          <div
-                            className="text-[9px] mt-0.5"
-                            title={`${formatQtyWithUnit(allocated, displayUnit)} / ${formatQtyWithUnit(orderQty, displayUnit)}`}
-                            style={{
-                              whiteSpace: "nowrap",
-                              color:
-                                allocated === orderQty
-                                  ? "#059669"
-                                  : allocated > orderQty
-                                    ? "#DC2626"
-                                    : T.t3,
-                            }}
-                          >
-                            {formatQtyWithUnit(allocated)} /{" "}
-                            {formatQtyWithUnit(orderQty)}
-                          </div>
+                          <>
+                            <input
+                              type="number"
+                              step="1"
+                              min="0"
+                              max={orderQty > 0 ? orderQty : undefined}
+                              placeholder="0"
+                              style={
+                                isInvalid(`stop-${stopIndex}-line-${li}-qty`)
+                                  ? {
+                                      ...monoS,
+                                      border: "1px solid #DC2626",
+                                      boxShadow: "0 0 0 1px #DC2626",
+                                    }
+                                  : monoS
+                              }
+                              value={ln.qty}
+                              onChange={(e) => onSetField(ln.id, "qty", e.target.value)}
+                            />
+                            {orderQty > 0 ? (
+                              <div
+                                className="text-[9px] mt-0.5"
+                                title={`${formatQtyWithUnit(allocated, displayUnit)} / ${formatQtyWithUnit(orderQty, displayUnit)}`}
+                                style={{
+                                  whiteSpace: "nowrap",
+                                  color:
+                                    allocated === orderQty
+                                      ? "#059669"
+                                      : allocated > orderQty
+                                        ? "#DC2626"
+                                        : T.t3,
+                                }}
+                              >
+                                {formatQtyWithUnit(allocated)} /{" "}
+                                {formatQtyWithUnit(orderQty)}
+                              </div>
+                            ) : null}
+                          </>
                         );
                       }
-                      if (ln.action !== "dropoff") return null;
+
                       const pickupQty = getPickupAllocatedQty(
                         allStops,
                         String(ln.orderId),
@@ -2867,22 +2894,44 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         { unit: displayUnit },
                       );
                       return (
-                        <div
-                          className="text-[9px] mt-0.5"
-                          title={`${formatQtyWithUnit(allocated, displayUnit)} / ${formatQtyWithUnit(availableQty, displayUnit)}`}
-                          style={{
-                            whiteSpace: "nowrap",
-                            color:
-                              allocated === availableQty
-                                ? "#059669"
-                                : allocated > availableQty
-                                  ? "#DC2626"
-                                  : T.t3,
-                          }}
-                        >
-                          {formatQtyWithUnit(allocated)} /{" "}
-                          {formatQtyWithUnit(availableQty)}
-                        </div>
+                        <>
+                          <input
+                            type="number"
+                            step="1"
+                            min="0"
+                            max={availableQty > 0 ? availableQty : undefined}
+                            placeholder="0"
+                            style={
+                              isInvalid(`stop-${stopIndex}-line-${li}-qty`)
+                                ? {
+                                    ...monoS,
+                                    border: "1px solid #DC2626",
+                                    boxShadow: "0 0 0 1px #DC2626",
+                                  }
+                                : monoS
+                            }
+                            value={ln.qty}
+                            onChange={(e) => onSetField(ln.id, "qty", e.target.value)}
+                          />
+                          {availableQty > 0 ? (
+                            <div
+                              className="text-[9px] mt-0.5"
+                              title={`${formatQtyWithUnit(allocated, displayUnit)} / ${formatQtyWithUnit(availableQty, displayUnit)}`}
+                              style={{
+                                whiteSpace: "nowrap",
+                                color:
+                                  allocated === availableQty
+                                    ? "#059669"
+                                    : allocated > availableQty
+                                      ? "#DC2626"
+                                      : T.t3,
+                              }}
+                            >
+                              {formatQtyWithUnit(allocated)} /{" "}
+                              {formatQtyWithUnit(availableQty)}
+                            </div>
+                          ) : null}
+                        </>
                       );
                     })()}
                     <FieldValidationHint

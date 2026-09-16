@@ -4,7 +4,11 @@ import {
   computeLoadBalance,
   computeOrderPickupAllocations,
   formatQtyWithUnit,
+  getDropoffAllocatedQty,
+  getPickupAllocatedQty,
+  normalizeQtyUnit,
 } from '../components/CreateShipmentWizard/itinerary/cargoUtils';
+import { findOrderLineForProduct } from './useCreateShipmentOrders';
 
 export interface Conflict {
   code: string;
@@ -15,7 +19,7 @@ export interface Conflict {
   resolution: string;
 }
 
-export default function useConflicts(stops: any[], options: any = {}) {
+export function computeConflicts(stops: any[], options: any = {}) {
   const {
     locations = [],
     loadingPoints = [],
@@ -41,22 +45,30 @@ export default function useConflicts(stops: any[], options: any = {}) {
     return key;
   };
 
-  return useMemo(() => {
-    const conflicts: Conflict[] = [];
-    const add = (
-      code: string,
-      severity: 'blocker' | 'warning' | 'info',
-      stopIdx: number,
-      lineIdx: number,
-      message: string,
-      resolution: string
-    ) => {
-      conflicts.push({ code, severity, stopIndex: stopIdx, lineIndex: lineIdx, message, resolution });
-    };
+  const conflicts: Conflict[] = [];
+  const add = (
+    code: string,
+    severity: 'blocker' | 'warning' | 'info',
+    stopIdx: number,
+    lineIdx: number,
+    message: string,
+    resolution: string
+  ) => {
+    conflicts.push({ code, severity, stopIndex: stopIdx, lineIndex: lineIdx, message, resolution });
+  };
 
     if (!stops || stops.length === 0) return empty();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    const orderDetails =
+      orderDetailsById && Object.keys(orderDetailsById).length > 0
+        ? orderDetailsById
+        : Object.fromEntries(
+            (orders || [])
+              .filter((o: any) => o?.id && o?.lines?.length)
+              .map((o: any) => [String(o.id), o])
+          );
 
     // ═══ X — STRUCTURE ═══
     if (stops.length < 2) {
@@ -207,6 +219,107 @@ export default function useConflicts(stops: any[], options: any = {}) {
         }
         if (ln.action === 'dropoff' && ln.productId && !ln.customerId && !ln.orderId) {
           add('O1', 'warning', si, li, `Stop ${si + 1}, line ${li + 1}: Dropoff of ${ln.productName || 'product'} has no customer`, 'Assign an order or customer');
+        }
+        // O5 — Cargo line quantity exceeds order limit / available quantity
+        if (ln.orderId && ln.productId && ln.qty && parseFloat(ln.qty) > 0) {
+          const rawId = String(ln.orderId);
+          const order =
+            orderDetails[rawId] ||
+            (ln.orderRef ? orderDetails[String(ln.orderRef)] : undefined) ||
+            (orders || []).find(
+              (o: any) =>
+                String(o.id) === rawId ||
+                (ln.orderRef && String(o.orderReference) === String(ln.orderRef))
+            );
+          const orderLine =
+            findOrderLineForProduct(order, String(ln.productId)) ||
+            (order?.lines || []).find(
+              (line: any) =>
+                String(
+                  line.productSkuId ??
+                    line.product_sku_id ??
+                    line.productId ??
+                    line.product_id ??
+                    ''
+                ) === String(ln.productId)
+            );
+          if (orderLine && orderLine.quantity != null) {
+            const orderQty = Number(orderLine.quantity) || 0;
+            if (orderQty > 0) {
+              const displayUnit =
+                normalizeQtyUnit(ln.unit || orderLine.unit) || '';
+              if (ln.action === 'pickup') {
+                const allocated = getPickupAllocatedQty(
+                  stops,
+                  rawId,
+                  String(ln.productId),
+                  { unit: displayUnit }
+                );
+                if (allocated > orderQty) {
+                  add(
+                    'O5',
+                    'blocker',
+                    si,
+                    li,
+                    tr(
+                      'validationConflictO5',
+                      {
+                        stop: si + 1,
+                        line: li + 1,
+                        qty: ln.qty,
+                        maxQty: orderQty,
+                        unit: displayUnit,
+                      },
+                      `Stop ${si + 1}, line ${li + 1}: Total pickup quantity (${formatQtyWithUnit(allocated, displayUnit)}) exceeds order remaining limit (${formatQtyWithUnit(orderQty, displayUnit)})`
+                    ),
+                    tr(
+                      'validationResolutionO5',
+                      { maxQty: orderQty, unit: displayUnit },
+                      `Reduce quantity to ${formatQtyWithUnit(orderQty, displayUnit)} or less`
+                    )
+                  );
+                }
+              } else if (ln.action === 'dropoff') {
+                const pickupQty = getPickupAllocatedQty(
+                  stops,
+                  rawId,
+                  String(ln.productId),
+                  { unit: displayUnit }
+                );
+                const availableQty = pickupQty > 0 ? pickupQty : orderQty;
+                const dropoffAllocated = getDropoffAllocatedQty(
+                  stops,
+                  rawId,
+                  String(ln.productId),
+                  { unit: displayUnit }
+                );
+                if (dropoffAllocated > availableQty) {
+                  add(
+                    'O5',
+                    'blocker',
+                    si,
+                    li,
+                    tr(
+                      'validationConflictO5Dropoff',
+                      {
+                        stop: si + 1,
+                        line: li + 1,
+                        qty: ln.qty,
+                        maxQty: availableQty,
+                        unit: displayUnit,
+                      },
+                      `Stop ${si + 1}, line ${li + 1}: Dropoff quantity (${formatQtyWithUnit(dropoffAllocated, displayUnit)}) exceeds available quantity (${formatQtyWithUnit(availableQty, displayUnit)})`
+                    ),
+                    tr(
+                      'validationResolutionO5',
+                      { maxQty: availableQty, unit: displayUnit },
+                      `Reduce quantity to ${formatQtyWithUnit(availableQty, displayUnit)} or less`
+                    )
+                  );
+                }
+              }
+            }
+          }
         }
       });
 
@@ -417,14 +530,6 @@ export default function useConflicts(stops: any[], options: any = {}) {
     }
 
     // C12 — Order product pickups must equal order qty + unit
-    const orderDetails =
-      orderDetailsById && Object.keys(orderDetailsById).length > 0
-        ? orderDetailsById
-        : Object.fromEntries(
-            (orders || [])
-              .filter((o: any) => o?.id && o?.lines?.length)
-              .map((o: any) => [String(o.id), o])
-          );
     computeOrderPickupAllocations(stops, orderDetails).forEach((alloc) => {
       if (alloc.unitMismatch) {
         add(
@@ -596,7 +701,25 @@ export default function useConflicts(stops: any[], options: any = {}) {
       hasBlockers: blockers.length > 0,
       total: conflicts.length,
     };
-  }, [stops, locations, loadingPoints, blackouts, products, orders, orderDetailsById, templates, rules, t]);
+}
+
+export default function useConflicts(stops: any[], options: any = {}) {
+  const {
+    locations,
+    loadingPoints,
+    blackouts,
+    products,
+    orders,
+    orderDetailsById,
+    templates,
+    rules,
+    t,
+  } = options;
+
+  return useMemo(
+    () => computeConflicts(stops, options),
+    [stops, locations, loadingPoints, blackouts, products, orders, orderDetailsById, templates, rules, t]
+  );
 }
 
 function empty() {
