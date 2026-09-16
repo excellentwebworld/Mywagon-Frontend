@@ -4,18 +4,11 @@ import { DUPLICATE_LOCATION_MESSAGE } from './locationDuplicateValidation';
 import { areTimeRangesValid } from './timeRangeValidation';
 import { coerceFormString } from './locationFormCoerce';
 import { optionalPhoneSchema } from './phoneValidation';
+import { isPositiveMeasurement } from '../../../utils/measurementValidation';
+
+export { isPositiveMeasurement };
 
 const facilityValues = [...FACILITY_TYPES];
-
-export function isPositiveMeasurement(value: string | undefined | null, suffixRegex = /m$/i): boolean {
-  if (value === undefined || value === null) return true;
-  const str = String(value).trim();
-  if (!str) return true;
-  if (str.startsWith('-')) return false;
-  const cleaned = str.replace(suffixRegex, '').trim();
-  const n = parseFloat(cleaned);
-  return Number.isFinite(n) && n > 0;
-}
 
 function isValidCoordinate(value: any, min: number, max: number): boolean {
   const str = String(value ?? '').trim();

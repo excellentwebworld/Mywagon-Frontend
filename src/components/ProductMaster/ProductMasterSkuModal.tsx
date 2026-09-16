@@ -17,13 +17,19 @@ import { productMasterService } from '../../api/services/productMasterService';
 import { mapReferenceToProductTypes } from '../../api/mappers/productMasterMapper';
 import type { ApiReferenceCategory } from '../../api/types/productMaster';
 import type { ProductType } from '../../context/AppContext';
+import { isPositiveMeasurement } from '../../utils/measurementValidation';
 import '../../styles/product-master-sku-modal.css';
 
-const skuValidationSchema = Yup.object().shape({
+export const skuValidationSchema = Yup.object().shape({
   catId: Yup.string().trim().required('Category is required'),
   typeId: Yup.string().trim().required('Please select a product type'),
   name: Yup.string().trim().required('SKU Name is required'),
   number: Yup.string().trim().required('SKU Number is required'),
+  weight: Yup.string()
+    .trim()
+    .test('positive-weight', 'Must be greater than 0', (val) =>
+      isPositiveMeasurement(val, /(kg|g|t|tons?|lbs?|oz)$/i)
+    ),
 });
 
 function fieldClass(hasError: boolean): string {
@@ -214,7 +220,13 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
                   </div>
                   <div className={fieldClass(showError('weight'))}>
                     <label>{t('weightKg')}</label>
-                    <input name="weight" value={values.weight} onChange={handleChange} onBlur={handleBlur} />
+                    <input
+                      name="weight"
+                      placeholder="e.g. 25"
+                      value={values.weight}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                    />
                     <FormFieldError message={showError('weight') ? errors.weight : undefined} />
                   </div>
                 </div>
