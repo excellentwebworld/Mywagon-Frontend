@@ -4,6 +4,7 @@ export { addressBookService } from './services/addressBookService';
 export { productMasterService } from './services/productMasterService';
 export { partnersService } from './services/partnersService';
 export { erpOrdersService } from './services/erpOrdersService';
+export { erpIntegrationService } from './services/erpIntegrationService';
 export { createShipmentService } from './services/createShipmentService';
 export { editShipmentService } from './services/editShipmentService';
 export { shipmentsService } from './services/shipmentsService';

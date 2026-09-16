@@ -63,7 +63,7 @@ const MENU: SettingsMenuGroup[] = [
     { id: 'audit', icon: Clock, labelKey: 'settings.auditLog' },
   ]},
   { group: 'settings.groupTools', items: [
-    { id: 'integrations', icon: Zap, labelKey: 'settings.integrations', comingSoon: true },
+    { id: 'integrations', icon: Zap, labelKey: 'settings.integrations' },
     { id: 'aiSettings', icon: Bot, labelKey: 'settings.aiSettings', comingSoon: true },
   ]},
   { group: 'settings.groupLegal', items: [
