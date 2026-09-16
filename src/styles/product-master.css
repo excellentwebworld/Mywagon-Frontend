@@ -321,7 +321,19 @@ input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--ac); cur
 .conflict-banner strong { color: #7C3AED; }
 
 /* ─── Types Grid ─── */
-.types-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 12px; padding: 16px; }
+.types-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  align-content: flex-start;
+  gap: 12px;
+  padding: 16px;
+}
+.types-grid .empty-state {
+  grid-column: 1 / -1;
+}
 .type-card { padding: 16px; background: var(--sf); border: 1.5px solid var(--bd); border-radius: var(--rm); cursor: pointer; transition: all .15s; position: relative; }
 .type-card:hover { border-color: var(--ac); box-shadow: var(--sm); transform: translateY(-1px); }
 .tc-cat   { font-size: 10px; color: var(--t3); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .3px; }
