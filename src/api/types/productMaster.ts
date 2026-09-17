@@ -22,6 +22,7 @@ export interface ApiProductSummary {
   total: number;
   active: number;
   inactive: number;
+  archived?: number;
   unmapped: number;
   categories: ApiProductSummaryCategory[];
 }
@@ -46,6 +47,7 @@ export interface ApiSkuListItem {
   source: string;
   sync_status: string;
   active: boolean;
+  archived?: boolean;
   updated_at?: string | null;
   shipments_30: number;
   shipments_90: number;
@@ -97,7 +99,7 @@ export interface ListSkusParams {
   search?: string;
   category_id?: string;
   type_id?: string;
-  status?: 'active' | 'inactive';
+  status?: 'active' | 'inactive' | 'archived';
   unmapped?: boolean;
   sort?: 'name' | 'number' | 'type' | 'category' | 'status' | 'updated_at';
   sort_dir?: 'asc' | 'desc';

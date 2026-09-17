@@ -63,6 +63,7 @@ type Props = Pick<
   | 'handleSelectAll'
   | 'handleToggleRowSelection'
   | 'handleBulkArchive'
+  | 'handleBulkRestore'
   | 'loading'
   | 'listLoading'
   | 'currentPage'
@@ -95,6 +96,7 @@ export const ProductList: React.FC<Props> = ({
   handleSelectAll,
   handleToggleRowSelection,
   handleBulkArchive,
+  handleBulkRestore,
   loading,
   listLoading,
   currentPage,
@@ -128,14 +130,26 @@ export const ProductList: React.FC<Props> = ({
         <div className="bulk-bar">
           <span className="bulk-ct">{selectedIds.size}</span>
           <span>{t('selected')}</span>
-          <button type="button" className="btn btn-sm btn-danger" onClick={handleBulkArchive}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '12px', height: '12px', marginRight: '2px' }}>
-              <polyline points="21 8 21 21 3 21 3 8"></polyline>
-              <rect x="1" y="3" width="22" height="5"></rect>
-              <line x1="10" y1="12" x2="14" y2="12"></line>
-            </svg>
-            {t('archive')}
-          </button>
+          {filterActive === 'archived' ? (
+            <button type="button" className="btn btn-sm btn-primary" onClick={handleBulkRestore}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '12px', height: '12px', marginRight: '4px' }}>
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                <path d="M8 16H3v5" />
+              </svg>
+              {t('unarchive') || 'Unarchive'}
+            </button>
+          ) : (
+            <button type="button" className="btn btn-sm btn-danger" onClick={handleBulkArchive}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '12px', height: '12px', marginRight: '2px' }}>
+                <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                <rect x="1" y="3" width="22" height="5"></rect>
+                <line x1="10" y1="12" x2="14" y2="12"></line>
+              </svg>
+              {t('archive')}
+            </button>
+          )}
         </div>
       )}
 
@@ -328,9 +342,13 @@ export const ProductList: React.FC<Props> = ({
                         </td>
                         <td className="ts-cell">{s.updatedAt || '—'}</td>
                         <td>
-                          <span className={s.active ? 'status-active' : 'status-inactive'}>
-                            {s.active ? t('active') : t('inactive')}
-                          </span>
+                          {s.archived || filterActive === 'archived' ? (
+                            <span className="status-archived">{t('abArchived') || t('archived') || 'Archived'}</span>
+                          ) : (
+                            <span className={s.active ? 'status-active' : 'status-inactive'}>
+                              {s.active ? t('active') : t('inactive')}
+                            </span>
+                          )}
                         </td>
                         <td>
                           <span className="type-pill">{s.hazardous ? t('yes') : t('no')}</span>

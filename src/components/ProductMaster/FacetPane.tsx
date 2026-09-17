@@ -19,6 +19,7 @@ type Props = Pick<
   | 'unmappedCount'
   | 'activeCount'
   | 'inactiveCount'
+  | 'archivedCount'
   | 'filterActive'
   | 'setFilterActive'
   | 'catName'
@@ -42,6 +43,7 @@ export const FacetPane: React.FC<Props> = ({
   unmappedCount,
   activeCount,
   inactiveCount,
+  archivedCount,
   filterActive,
   setFilterActive,
   catName,
@@ -76,7 +78,7 @@ export const FacetPane: React.FC<Props> = ({
     loadTypeDetail(type);
   };
 
-  const toggleStatusFilter = (status: 'active' | 'inactive') => {
+  const toggleStatusFilter = (status: 'active' | 'inactive' | 'archived') => {
     setFilterActive(filterActive === status ? '' : status);
     setActiveCat('all');
     setActiveType('all');
@@ -198,6 +200,20 @@ export const FacetPane: React.FC<Props> = ({
                 </svg>
                 {t('inactive')}
                 <span className="cnt">{inactiveCount}</span>
+              </div>
+              <div
+                className={`cat-node${filterActive === 'archived' ? ' act' : ''}`}
+                onClick={() => toggleStatusFilter('archived')}
+                role="button"
+                tabIndex={0}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '14px', height: '14px', color: '#F59E0B', flexShrink: 0 }}>
+                  <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                  <rect x="1" y="3" width="22" height="5"></rect>
+                  <line x1="10" y1="12" x2="14" y2="12"></line>
+                </svg>
+                {t('abArchived') || t('archived') || 'Archived'}
+                <span className="cnt">{archivedCount}</span>
               </div>
             </>
           )}

@@ -95,6 +95,18 @@ export const productMasterService = {
     return res.data?.archived_count ?? 0;
   },
 
+  async restoreSku(id: string): Promise<SKU> {
+    const res = await apiPost<ApiSkuDetail>(`/product-master/skus/${id}/restore`);
+    return mapApiSkuToSku(res.data);
+  },
+
+  async bulkRestore(ids: string[]): Promise<number> {
+    const res = await apiPost<{ unarchived_count: number }>('/product-master/skus/bulk-restore', {
+      ids: ids.map((id) => parseInt(id, 10)),
+    });
+    return res.data?.unarchived_count ?? 0;
+  },
+
   async getReferenceCategories(): Promise<ApiReferenceCategory[]> {
     const res = await apiGet<ApiReferenceCategory[]>('/product-master/reference/categories');
     return res.data ?? [];

@@ -68,6 +68,7 @@ export const ProductMaster: React.FC = () => {
           unmappedCount={pm.unmappedCount}
           activeCount={pm.activeCount}
           inactiveCount={pm.inactiveCount}
+          archivedCount={pm.archivedCount}
           filterActive={pm.filterActive}
           setFilterActive={pm.setFilterActive}
           catName={pm.catName}
@@ -94,6 +95,7 @@ export const ProductMaster: React.FC = () => {
           handleSelectAll={pm.handleSelectAll}
           handleToggleRowSelection={pm.handleToggleRowSelection}
           handleBulkArchive={pm.handleBulkArchive}
+          handleBulkRestore={pm.handleBulkRestore}
           loading={pm.loading}
           listLoading={pm.listLoading}
           currentPage={pm.currentPage}
@@ -120,6 +122,7 @@ export const ProductMaster: React.FC = () => {
           clearSelection={pm.clearSelection}
           openEditSku={pm.openEditSku}
           handleToggleActive={pm.handleToggleActive}
+          handleRestoreSku={pm.handleRestoreSku}
           loadSkuDetail={pm.loadSkuDetail}
         />
       </div>
@@ -175,6 +178,28 @@ export const ProductMaster: React.FC = () => {
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.7 }}>
               {pm.t('bulkArchiveWarning')}
+            </p>
+          </>
+        }
+      />
+
+      {/* Bulk Unarchive Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={pm.unarchiveConfirmOpen}
+        onClose={() => pm.setUnarchiveConfirmOpen(false)}
+        onConfirm={pm.confirmBulkRestore}
+        title={pm.t('unarchive') || 'Unarchive'}
+        type="primary"
+        confirmText={pm.t('unarchive') || 'Unarchive'}
+        cancelText={pm.t('cancel')}
+        confirmLoading={pm.saving}
+        message={
+          <>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
+              {pm.t('bulkUnarchiveConfirm') || 'Unarchive selected SKUs?'}
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.7 }}>
+              {pm.t('bulkUnarchiveWarning') || 'This action will restore all selected products to the active catalog.'}
             </p>
           </>
         }

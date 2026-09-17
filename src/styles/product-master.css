@@ -240,9 +240,23 @@ table.t { width: 100%; border-collapse: collapse; }
 .sync-pending  { background: var(--wr); }
 .sync-conflict { background: #7C3AED; }
 .sync-text { font-size: 11px; color: var(--t2); }
-.ts-cell { font-size: 11px; color: var(--t3); font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
 .status-active   { color: var(--ok); font-size: 11px; font-weight: 600; }
 .status-inactive { color: var(--t3); font-size: 11px; font-weight: 600; }
+.status-archived { color: #D97706; font-size: 11px; font-weight: 600; }
+.dp-archived-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 4px;
+  background: var(--warning-bg, #FFFBEB);
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+.dp-restore-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--ac); cursor: pointer; }
 
 /* ─── Pagination ─── */

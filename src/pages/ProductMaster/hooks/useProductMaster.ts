@@ -123,6 +123,7 @@ export function useProductMaster() {
   const [typeSkusLoading, setTypeSkusLoading] = useState(false);
   const [deactivateConfirmSku, setDeactivateConfirmSku] = useState<SKU | null>(null);
   const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
+  const [unarchiveConfirmOpen, setUnarchiveConfirmOpen] = useState(false);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -235,6 +236,7 @@ export function useProductMaster() {
   const totalSkusCount = summary?.total ?? 0;
   const activeCount = summary?.active ?? 0;
   const inactiveCount = summary?.inactive ?? 0;
+  const archivedCount = summary?.archived ?? 0;
   const unmappedCount = summary?.unmapped ?? 0;
   const erpSyncedCount = 0;
   const manualCount = totalSkusCount;
@@ -289,6 +291,27 @@ export function useProductMaster() {
     onError: (err) => handleApiError(err, 'Failed to archive SKUs'),
   });
 
+  const restoreSkuMutation = useMutation({
+    mutationFn: (id: string) => productMasterService.restoreSku(id),
+    onSuccess: async (sku) => {
+      showToast(`${sku.name || 'SKU'} ${t('unarchived') || 'unarchived'}`, 'success');
+      setSelectedItem(null);
+      setSelectedKind('');
+      await invalidateAll();
+    },
+    onError: (err) => handleApiError(err, 'Failed to unarchive SKU'),
+  });
+
+  const bulkRestoreMutation = useMutation({
+    mutationFn: (ids: string[]) => productMasterService.bulkRestore(ids),
+    onSuccess: async (count) => {
+      showToast(`${count} ${t('unarchived') || 'unarchived'}`, 'success');
+      setSelectedIds(new Set());
+      await invalidateAll();
+    },
+    onError: (err) => handleApiError(err, 'Failed to unarchive SKUs'),
+  });
+
   const clearSelection = useCallback(() => {
     setSelectedItem(null);
     setSelectedKind('');
@@ -333,6 +356,21 @@ export function useProductMaster() {
     await bulkArchiveMutation.mutateAsync([...selectedIds]);
     setArchiveConfirmOpen(false);
   }, [selectedIds, bulkArchiveMutation]);
+
+  const handleBulkRestore = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    setUnarchiveConfirmOpen(true);
+  }, [selectedIds]);
+
+  const confirmBulkRestore = useCallback(async () => {
+    if (selectedIds.size === 0) return;
+    await bulkRestoreMutation.mutateAsync([...selectedIds]);
+    setUnarchiveConfirmOpen(false);
+  }, [selectedIds, bulkRestoreMutation]);
+
+  const handleRestoreSku = useCallback((sku: SKU) => {
+    restoreSkuMutation.mutate(sku.id);
+  }, [restoreSkuMutation]);
 
   const handleBulkToggleActive = useCallback(() => {
     showToast(t('comingSoon'), 'info');
@@ -567,7 +605,7 @@ export function useProductMaster() {
   const listLoading = loading || listFetching;
   const skuSaving = createSkuMutation.isPending || updateSkuMutation.isPending;
   const saving =
-    skuSaving || toggleMutation.isPending || bulkArchiveMutation.isPending;
+    skuSaving || toggleMutation.isPending || bulkArchiveMutation.isPending || restoreSkuMutation.isPending || bulkRestoreMutation.isPending;
 
   useSyncGlobalLoader(saving || exporting);
 
@@ -654,11 +692,12 @@ export function useProductMaster() {
     filteredTypes,
     totalSkusCount,
     activeCount,
+    inactiveCount,
+    archivedCount,
     erpSyncedCount,
     manualCount,
     syncIssuesCount,
     unmappedCount,
-    inactiveCount,
     summary,
     getCategoryCount,
     getTypeCount,
@@ -666,12 +705,17 @@ export function useProductMaster() {
     handleToggleRowSelection,
     handleBulkToggleActive,
     handleBulkArchive,
+    handleBulkRestore,
+    confirmBulkRestore,
+    handleRestoreSku,
     deactivateConfirmSku,
     setDeactivateConfirmSku,
     confirmDeactivate,
     archiveConfirmOpen,
     setArchiveConfirmOpen,
     confirmBulkArchive,
+    unarchiveConfirmOpen,
+    setUnarchiveConfirmOpen,
     handleSaveSku,
     downloadTemplate,
     downloadCategoryIndex,

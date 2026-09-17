@@ -17,6 +17,7 @@ type Props = Pick<
   | "clearSelection"
   | "openEditSku"
   | "handleToggleActive"
+  | "handleRestoreSku"
   | "loadSkuDetail"
 >;
 
@@ -32,6 +33,7 @@ export const ProductDetailPanel: React.FC<Props> = ({
   clearSelection,
   openEditSku,
   handleToggleActive,
+  handleRestoreSku,
   loadSkuDetail,
 }) => (
   <div className={`detail-pane${selectedItem ? " open" : ""}`}>
@@ -48,6 +50,7 @@ export const ProductDetailPanel: React.FC<Props> = ({
           clearSelection={clearSelection}
           openEditSku={openEditSku}
           handleToggleActive={handleToggleActive}
+          handleRestoreSku={handleRestoreSku}
         />
       )}
       {selectedItem && selectedKind === "type" && (
@@ -73,6 +76,7 @@ function SkuDetail({
   clearSelection,
   openEditSku,
   handleToggleActive,
+  handleRestoreSku,
 }: {
   sku: SKU;
   productTypes: ProductType[];
@@ -81,6 +85,7 @@ function SkuDetail({
   clearSelection: () => void;
   openEditSku: (s: SKU) => void;
   handleToggleActive: (s: SKU) => void;
+  handleRestoreSku: (s: SKU) => void;
 }) {
   const { t } = useTranslation();
   const tp = productTypes.find((x) => x.id === s.typeId);
@@ -125,7 +130,13 @@ function SkuDetail({
               Unmapped
             </span>
           )}
-          {!s.active && <span className="src-badge src-manual">Inactive</span>}
+          {s.archived ? (
+            <span className="dp-archived-badge">
+              {t('abArchived') || t('archived') || 'Archived'}
+            </span>
+          ) : (
+            !s.active && <span className="src-badge src-manual">Inactive</span>
+          )}
         </div>
         <div className="dp-name">{s.name}</div>
         <div className="dp-sub">
@@ -155,20 +166,38 @@ function SkuDetail({
           )}
         </div>
         <div className="dp-actions">
-          <button
-            type="button"
-            className="btn btn-sm"
-            onClick={() => openEditSku(s)}
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm ${s.active ? "btn-danger" : "btn-primary"}`}
-            onClick={() => handleToggleActive(s)}
-          >
-            {s.active ? "Deactivate" : "Activate"}
-          </button>
+          {s.archived ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-primary dp-restore-btn"
+              onClick={() => handleRestoreSku(s)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '12px', height: '12px', marginRight: '4px' }}>
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                <path d="M8 16H3v5" />
+              </svg>
+              {t("unarchive") || "Unarchive"}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => openEditSku(s)}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${s.active ? "btn-danger" : "btn-primary"}`}
+                onClick={() => handleToggleActive(s)}
+              >
+                {s.active ? "Deactivate" : "Activate"}
+              </button>
+            </>
+          )}
         </div>
       </div>
 

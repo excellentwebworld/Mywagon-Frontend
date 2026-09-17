@@ -41,6 +41,7 @@ export function mapApiSkuToSku(item: ApiSkuListItem | ApiSkuDetail): SKU {
     typeId: item.type_id ?? '',
     source: item.source === 'erp' ? 'erp' : 'manual',
     active: item.active,
+    archived: Boolean(item.archived || (item as any).deleted_at),
     erp: {
       system: '',
       extId: '',
@@ -146,6 +147,7 @@ export function facetToListParams(
   if (search.trim()) params.search = search.trim();
   if (filterActive === 'active') params.status = 'active';
   if (filterActive === 'inactive') params.status = 'inactive';
+  if (filterActive === 'archived') params.status = 'archived';
   if (filterUnmapped || activeCat === 'unmapped') params.unmapped = true;
   else {
     const categoryId =

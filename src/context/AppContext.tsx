@@ -103,6 +103,7 @@ export interface SKU {
   typeId: string;
   source: 'erp' | 'manual';
   active: boolean;
+  archived?: boolean;
   erp: {
     system: string;
     extId: string;
