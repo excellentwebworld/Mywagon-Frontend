@@ -1920,3 +1920,35 @@
   gap: 24px;
   padding-bottom: 8px;
 }
+
+/* ── Unassigned transporter state ── */
+.pt-unassigned-name {
+  font-weight: 600;
+  color: var(--pt-t2);
+}
+
+.pt-empty-transporter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 16px;
+  text-align: center;
+  background: var(--pt-sa);
+  border: 1px dashed var(--pt-bd);
+  border-radius: var(--pt-rm);
+}
+
+.pt-empty-transporter-icon {
+  color: var(--pt-t3);
+  opacity: 0.65;
+}
+
+.pt-empty-transporter-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pt-t2);
+  margin: 0;
+}
+

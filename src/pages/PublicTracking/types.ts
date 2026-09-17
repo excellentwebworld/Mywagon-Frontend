@@ -44,7 +44,7 @@ export type TrackingOrderGroup = {
 
 export type TrackingTransporter = {
   kind: 'freelancer' | 'carrier' | null;
-  name: string;
+  name: string | null;
   avatar: string | null;
   rating: number | null;
   trips_count: number | null;

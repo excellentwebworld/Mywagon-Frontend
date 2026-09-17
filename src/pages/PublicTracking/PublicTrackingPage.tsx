@@ -115,6 +115,8 @@ const I18N: Record<string, { en: string; el: string }> = {
   damagedGoods: { en: 'Damaged goods', el: 'Κατεστραμμένα' },
   wrongItems: { en: 'Wrong items', el: 'Λάθος είδη' },
   quantityMismatch: { en: 'Quantity mismatch', el: 'Διαφορά ποσότητας' },
+  notAssigned: { en: 'Not assigned', el: 'Δεν έχει ανατεθεί' },
+  transporterNotAssigned: { en: 'Transporter is not assigned yet', el: 'Δεν έχει ανατεθεί μεταφορέας ακόμη' },
 };
 
 /** Visible live-driver pin (data URI) — clearer than the tiny Laravel SVG path. */
@@ -1064,13 +1066,29 @@ export const PublicTrackingPage: React.FC = () => {
   useEffect(() => {
     if (!data) return;
 
+    const shipmentStatus = (data.shipment.status || '').toLowerCase();
+    const isScheduledOrLater = [
+      'scheduled',
+      'ready',
+      'past_due',
+      'on_trip',
+      'in_progress',
+      'fullfilled',
+      'fulfilled',
+      'partially_fullfilled',
+      'partially_fulfilled',
+    ].includes(shipmentStatus);
+
+    const hasReceipt = (data.receipt.can_confirm && isScheduledOrLater) || data.receipt.already_confirmed || rcptDone;
+    const hasRating = data.rating.can_rate || data.rating.already_rated || rateDone;
+
     const sectionIds = [
       'itinerary',
       'tracking',
       'transporter',
       'order',
-      ...(data.receipt.can_confirm || data.receipt.already_confirmed || rcptDone ? ['receipt'] : []),
-      ...(data.rating.can_rate || data.rating.already_rated || rateDone ? ['rating'] : []),
+      ...(hasReceipt ? ['receipt'] : []),
+      ...(hasRating ? ['rating'] : []),
     ];
 
     const handleScroll = () => {
@@ -1089,8 +1107,6 @@ export const PublicTrackingPage: React.FC = () => {
 
       // 2. If scrolled near the bottom of the page, activate receipt or rating
       if (windowH + scrollY >= docH - 40) {
-        const hasReceipt = data.receipt.can_confirm || data.receipt.already_confirmed || rcptDone;
-        const hasRating = data.rating.can_rate || data.rating.already_rated || rateDone;
         setActiveNav((prev) => {
           if (prev === 'rating' && hasRating) return 'rating';
           if (prev === 'receipt' && hasReceipt) return 'receipt';
@@ -1142,7 +1158,7 @@ export const PublicTrackingPage: React.FC = () => {
   }, [data, rcptDone, rateDone, getStickyOffset]);
 
   const onConfirmReceipt = async () => {
-    if (!data) return;
+    if (!data || !canShowReceipt) return;
     setRcptSaving(true);
     try {
       await publicTrackingService.confirmReceipt(encryptedId, encryptedLocationIds, {
@@ -1234,11 +1250,28 @@ export const PublicTrackingPage: React.FC = () => {
   // Spec: Delayed if now is past scheduled dropoff ETA (upper bound), else On Time.
   const isOnTime = etaParsed ? Date.now() <= etaParsed.getTime() : Boolean(data.header.on_time);
   const isManualTrip = (data.shipment.started_by || '') === 'carrier';
-  const canShowReceipt = data.receipt.can_confirm || data.receipt.already_confirmed || rcptDone;
-  const canShowRating = data.rating.can_rate || data.rating.already_rated || rateDone;
-  const transporterName = data.header.transporter_name || data.transporter.name || '—';
-  const shipperName = data.header.shipper_name || '';
   const shipmentStatus = (data.shipment.status || '').toLowerCase();
+  const isScheduledOrLater = [
+    'scheduled',
+    'ready',
+    'past_due',
+    'on_trip',
+    'in_progress',
+    'fullfilled',
+    'fulfilled',
+    'partially_fullfilled',
+    'partially_fulfilled',
+  ].includes(shipmentStatus);
+  const canShowReceipt = (data.receipt.can_confirm && isScheduledOrLater) || data.receipt.already_confirmed || rcptDone;
+  const hasTransporter = Boolean(
+    (data.header.transporter_name && data.header.transporter_name.trim() !== '' && data.header.transporter_name !== '—') ||
+    (data.transporter?.name && data.transporter.name.trim() !== '' && data.transporter.name !== '—')
+  );
+  const canShowRating = hasTransporter && (data.rating.can_rate || data.rating.already_rated || rateDone);
+  const transporterName = hasTransporter
+    ? (data.header.transporter_name || data.transporter?.name)
+    : t(lang, 'notAssigned');
+  const shipperName = data.header.shipper_name || '';
   const isLiveTracking =
     Boolean(data.map.live?.enabled) ||
     shipmentStatus === 'on_trip' ||
@@ -1276,7 +1309,7 @@ export const PublicTrackingPage: React.FC = () => {
               </div>
               <div className="pt-fwd">
                 <span className="pt-fwd-badge">{kindLabel}</span>
-                <strong>{transporterName}</strong>
+                <strong className={hasTransporter ? '' : 'pt-unassigned-name'}>{transporterName}</strong>
                 {shipperName ? (
                   <>
                     <span className="pt-fwd-sep">{t(lang, 'onBehalf')}</span>
@@ -1466,14 +1499,19 @@ export const PublicTrackingPage: React.FC = () => {
                 </h3>
               </div>
               <div className="pt-card-body">
-                {(() => {
+                {!hasTransporter ? (
+                  <div className="pt-empty-transporter">
+                    <Truck size={24} className="pt-empty-transporter-icon" />
+                    <p className="pt-empty-transporter-text">{t(lang, 'transporterNotAssigned')}</p>
+                  </div>
+                ) : (() => {
                   const tr = data.transporter;
                   const isFreelancer = tr.kind === 'freelancer' || tr.rateable_type === 'driver';
                   const hasCompanyDriver = !isFreelancer && Boolean(tr.driver_name);
                   const plates = tr.plates || [];
                   const vehicleType = tr.vehicle || data.vehicle_type || '';
                   const phone = (tr.phone || '').trim();
-                  const name = tr.name || '—';
+                  const name = tr.name || t(lang, 'notAssigned');
                   const ratingVal =
                     tr.rating != null && !Number.isNaN(Number(tr.rating))
                       ? Number(tr.rating).toFixed(1)
@@ -1569,13 +1607,10 @@ export const PublicTrackingPage: React.FC = () => {
                             <div className="pt-cr-sub">{driverSubParts.join(' · ')}</div>
                             {showPlatesOnDriver ? (
                               <div className="pt-plates">
-                                {plates.map((p, idx) => (
-                                  <span className="pt-plate" key={`drv-${p}-${idx}`}>
-                                    {idx === 0
-                                      ? `${t(lang, 'vehiclePlate')}: ${p}`
-                                      : `${t(lang, 'trailerPlate')}: ${p}`}
-                                  </span>
-                                ))}
+                                <span className="pt-plate">{`${t(lang, 'vehiclePlate')}: ${plates[0]}`}</span>
+                                {plates[1] ? (
+                                  <span className="pt-plate">{`${t(lang, 'trailerPlate')}: ${plates[1]}`}</span>
+                                ) : null}
                               </div>
                             ) : null}
                           </div>
