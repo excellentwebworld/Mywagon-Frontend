@@ -242,11 +242,32 @@ export function useProductMaster() {
   const manualCount = totalSkusCount;
   const syncIssuesCount = 0;
 
+  const catName = useCallback((c: Category) => getCategoryName(c, lang), [lang]);
+
   const filteredSkus = skus;
   const filteredTypes = useMemo(() => {
-    if (activeCat === 'all') return productTypes;
-    return productTypes.filter((t) => t.catId === activeCat);
-  }, [productTypes, activeCat]);
+    let list = productTypes;
+    if (activeCat !== 'all') {
+      list = list.filter((t) => t.catId === activeCat);
+    }
+    const q = (searchQuery || debouncedSearch).trim().toLowerCase();
+    if (q) {
+      list = list.filter((t) => {
+        if (t.name && t.name.toLowerCase().includes(q)) return true;
+        const cat = categories.find((c) => c.id === t.catId);
+        if (cat) {
+          const categoryLocalized = catName(cat).toLowerCase();
+          if (categoryLocalized.includes(q)) return true;
+          if (cat.name?.en && cat.name.en.toLowerCase().includes(q)) return true;
+          if (cat.name?.el && cat.name.el.toLowerCase().includes(q)) return true;
+        }
+        if (t.defaults?.temp && t.defaults.temp.toLowerCase().includes(q)) return true;
+        if (t.defaults?.palletType && t.defaults.palletType.toLowerCase().includes(q)) return true;
+        return false;
+      });
+    }
+    return list;
+  }, [productTypes, activeCat, searchQuery, debouncedSearch, categories, catName]);
 
   const createSkuMutation = useMutation({
     mutationFn: (form: NewSkuForm) => productMasterService.createSku(form),
@@ -597,8 +618,6 @@ export function useProductMaster() {
     setSortField(field);
     setSortDir(field === 'updated_at' ? 'desc' : 'asc');
   }, [sortField]);
-
-  const catName = useCallback((c: Category) => getCategoryName(c, lang), [lang]);
 
   const loading = summaryQuery.isLoading || referenceQuery.isLoading || skusQuery.isLoading;
   const listFetching = skusQuery.isFetching || typesQuery.isFetching;

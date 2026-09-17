@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { facetToListParams, mapApiSkuToSku } from '../../api/mappers/productMasterMapper';
+import {
+  facetToListParams,
+  mapApiSkuToSku,
+  mapTypeGridToProductTypes,
+} from '../../api/mappers/productMasterMapper';
 
 describe('ProductMaster Mapper & Filter Parameters', () => {
   it('maps archived status filter correctly in facetToListParams', () => {
@@ -39,5 +43,34 @@ describe('ProductMaster Mapper & Filter Parameters', () => {
     expect(sku.id).toBe('101');
     expect(sku.name).toBe('Archived SKU Item');
     expect(sku.archived).toBe(true);
+  });
+
+  it('maps type grid items to product types correctly', () => {
+    const gridItems = [
+      {
+        category_name: 'Food & Beverages',
+        type_name: 'Dairy products',
+        sku_count: 1,
+        shipment_count: 8,
+        shipment_count_30: 0,
+        shipment_count_90: 0,
+      },
+    ];
+    const referenceCategories = [
+      {
+        id: 'CAT-01',
+        name: 'Food & Beverages',
+        name_raw: { english: 'Food & Beverages', greek: 'Τρόφιμα & Ποτά' },
+        types: [{ id: 'PT-01', name: 'Dairy products' }],
+      },
+    ];
+
+    const types = mapTypeGridToProductTypes(gridItems, referenceCategories);
+    expect(types).toHaveLength(1);
+    expect(types[0].id).toBe('PT-01');
+    expect(types[0].catId).toBe('CAT-01');
+    expect(types[0].name).toBe('Dairy products');
+    expect(types[0].skuCount).toBe(1);
+    expect(types[0].shipmentTotal).toBe(8);
   });
 });

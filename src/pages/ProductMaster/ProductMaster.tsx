@@ -189,7 +189,7 @@ export const ProductMaster: React.FC = () => {
         onClose={() => pm.setUnarchiveConfirmOpen(false)}
         onConfirm={pm.confirmBulkRestore}
         title={pm.t('unarchive') || 'Unarchive'}
-        type="primary"
+        type="info"
         confirmText={pm.t('unarchive') || 'Unarchive'}
         cancelText={pm.t('cancel')}
         confirmLoading={pm.saving}
