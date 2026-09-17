@@ -11,6 +11,11 @@ import {
   isOrderEligibleForCreateLoad,
 } from '../../CreateShipmentWizard/hooks/erpOrdersPrefill';
 import { wizardQueryKeys } from '../../CreateShipmentWizard/hooks/wizardQueryKeys';
+import {
+  masterDataKeys,
+  syncLocationDropdownCaches,
+  syncSkuDropdownCaches,
+} from '../../../api/utils/masterDataCache';
 import type {
   ErpOrder,
   ErpOrderFormState,
@@ -32,7 +37,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 
 export function useErpOrdersList() {
   const { t } = useTranslation();
-  const { showToast } = useApp();
+  const { showToast, refreshLocationsFromApi, refreshSkusFromApi } = useApp();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -138,23 +143,18 @@ export function useErpOrdersList() {
   }, [queryClient]);
 
   const refreshLocations = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['address-book', 'locations', 'erp-orders'] });
-  }, [queryClient]);
+    syncLocationDropdownCaches(queryClient, { refreshLocationsFromApi });
+  }, [queryClient, refreshLocationsFromApi]);
 
   const refreshSkus = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['product-master', 'skus', 'erp-orders'] });
-  }, [queryClient]);
+    syncSkuDropdownCaches(queryClient, { refreshSkusFromApi });
+  }, [queryClient, refreshSkusFromApi]);
 
   const prependSku = useCallback(
     (sku: SKU) => {
-      queryClient.setQueryData<SKU[]>(['product-master', 'skus', 'erp-orders'], (old) => {
-        const list = old ?? [];
-        if (list.some((s) => String(s.id) === String(sku.id))) return list;
-        return [sku, ...list];
-      });
-      void queryClient.invalidateQueries({ queryKey: ['product-master', 'skus', 'erp-orders'] });
+      syncSkuDropdownCaches(queryClient, { sku, refreshSkusFromApi });
     },
-    [queryClient]
+    [queryClient, refreshSkusFromApi]
   );
 
   const summaryQuery = useQuery({
@@ -200,21 +200,24 @@ export function useErpOrdersList() {
   });
 
   const companiesQuery = useQuery({
-    queryKey: ['erp-orders', 'customers'],
+    queryKey: masterDataKeys.erpCustomers,
     queryFn: () => erpOrdersService.listCustomers(),
     staleTime: 60_000,
+    refetchOnMount: 'always',
   });
 
   const locationsQuery = useQuery({
-    queryKey: ['address-book', 'locations', 'erp-orders'],
+    queryKey: masterDataKeys.locationsForOrders,
     queryFn: () => addressBookService.listAllLocations({}),
     staleTime: 60_000,
+    refetchOnMount: 'always',
   });
 
   const skusQuery = useQuery({
-    queryKey: ['product-master', 'skus', 'erp-orders'],
+    queryKey: masterDataKeys.skusForOrders,
     queryFn: () => productMasterService.listAllSkus({ status: 'active' }),
     staleTime: 60_000,
+    refetchOnMount: 'always',
   });
 
   useEffect(() => {
@@ -608,6 +611,9 @@ export function useErpOrdersList() {
     companies: companiesQuery.data ?? [],
     locations: locationsQuery.data ?? [],
     skus: skusQuery.data ?? [],
+    companiesLoading: companiesQuery.isLoading || (companiesQuery.isFetching && companiesQuery.data == null),
+    locationsLoading: locationsQuery.isLoading || (locationsQuery.isFetching && locationsQuery.data == null),
+    skusLoading: skusQuery.isLoading || (skusQuery.isFetching && skusQuery.data == null),
     refreshLocations,
     refreshSkus,
     prependSku,

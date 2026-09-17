@@ -6,6 +6,12 @@ import { wizardQueryKeys } from '../pages/CreateShipmentWizard/hooks/wizardQuery
 let partnersInflight: Promise<Step3Carrier[]> | null = null;
 let partnersCache: Step3Carrier[] | null = null;
 
+/** Clear sticky module cache so Create Shipment Step 3 can pick up new partners. */
+export function clearCreateShipmentPartnersCache() {
+  partnersCache = null;
+  partnersInflight = null;
+}
+
 async function loadCreateShipmentPartners(): Promise<Step3Carrier[]> {
   if (partnersCache) return partnersCache;
   if (partnersInflight) return partnersInflight;

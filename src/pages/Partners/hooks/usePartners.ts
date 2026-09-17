@@ -7,6 +7,8 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
 import { partnersService, ApiError } from '../../../api';
 import type { StoreContractLanePayload } from '../../../api/types/partners';
+import { syncPartnerDropdownCaches } from '../../../api/utils/masterDataCache';
+import { clearCreateShipmentPartnersCache } from '../../../hooks/useCreateShipmentPartners';
 import {
   inviteTypeToApi,
   kpiToFacet,
@@ -162,7 +164,7 @@ export function usePartners() {
   );
 
   const invalidatePartners = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['partners'] });
+    syncPartnerDropdownCaches(queryClient, clearCreateShipmentPartnersCache);
   }, [queryClient]);
 
   const summaryQuery = useQuery({

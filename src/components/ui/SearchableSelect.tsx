@@ -24,6 +24,10 @@ type Props = {
   hideSublabelInTrigger?: boolean;
   /** When false, hides the search field (better for short option lists). Default true. */
   searchable?: boolean;
+  /** When true, menu shows a loading state instead of "No matches". */
+  loading?: boolean;
+  loadingLabel?: string;
+  emptyLabel?: string;
 };
 
 export const SearchableSelect: React.FC<Props> = ({
@@ -42,6 +46,9 @@ export const SearchableSelect: React.FC<Props> = ({
   menuFixed = false,
   hideSublabelInTrigger = false,
   searchable = true,
+  loading = false,
+  loadingLabel = 'Loading…',
+  emptyLabel = 'No matches',
 }) => {
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -164,8 +171,12 @@ export const SearchableSelect: React.FC<Props> = ({
         </button>
       )}
       <div className="searchable-select-options">
-        {filtered.length === 0 ? (
-          <div className="searchable-select-empty">No matches</div>
+        {loading ? (
+          <div className="searchable-select-empty searchable-select-loading" aria-busy="true">
+            {loadingLabel}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="searchable-select-empty">{emptyLabel}</div>
         ) : (
           filtered.map((opt) => (
             <button
@@ -186,7 +197,7 @@ export const SearchableSelect: React.FC<Props> = ({
           ))
         )}
       </div>
-      {footerAction && (
+      {footerAction && !loading && (
         <button
           type="button"
           className="searchable-select-footer"
@@ -251,6 +262,8 @@ export const SearchableSelect: React.FC<Props> = ({
                 <small className="searchable-select-value-sub">{selected.sublabel}</small>
               ) : null}
             </>
+          ) : loading ? (
+            loadingLabel
           ) : (
             placeholder
           )}

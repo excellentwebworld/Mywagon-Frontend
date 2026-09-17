@@ -6,6 +6,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { productMasterService, ApiError } from '../../../api';
 import type { ApiImportResult } from '../../../api/types/productMaster';
 import { skuToNewSkuForm } from '../../../api/mappers/productMasterMapper';
+import { syncSkuDropdownCaches } from '../../../api/utils/masterDataCache';
 import type { Category, ProductType, SKU } from '../../../context/AppContext';
 import {
   EMPTY_NEW_SKU,
@@ -23,7 +24,7 @@ const DEFAULT_PAGE_SIZE = 12;
 
 export function useProductMaster() {
   const { lang, t } = useTranslation();
-  const { showToast } = useApp();
+  const { showToast, refreshSkusFromApi } = useApp();
   const queryClient = useQueryClient();
   const { requireSignupComplete } = useRequireSignupComplete();
 
@@ -213,9 +214,15 @@ export function useProductMaster() {
     if (err) handleApiError(err, 'Failed to load product master');
   }, [summaryQuery.error, skusQuery.error, referenceQuery.error, handleApiError]);
 
-  const invalidateAll = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['product-master'] });
-  }, [queryClient]);
+  const invalidateAll = useCallback(
+    async (createdSku?: SKU) => {
+      syncSkuDropdownCaches(queryClient, {
+        sku: createdSku,
+        refreshSkusFromApi,
+      });
+    },
+    [queryClient, refreshSkusFromApi]
+  );
 
   const categories: Category[] = useMemo(
     () => productMasterService.mapReferenceToCategories(referenceQuery.data ?? [], lang),
@@ -271,11 +278,11 @@ export function useProductMaster() {
 
   const createSkuMutation = useMutation({
     mutationFn: (form: NewSkuForm) => productMasterService.createSku(form),
-    onSuccess: async () => {
+    onSuccess: async (created) => {
       showToast(t('created'), 'success');
       setIsSkuOpen(false);
       setNewSku(EMPTY_NEW_SKU);
-      await invalidateAll();
+      await invalidateAll(created);
     },
     onError: (err) => handleApiError(err, 'Failed to create SKU'),
   });
@@ -287,7 +294,7 @@ export function useProductMaster() {
       setIsSkuOpen(false);
       setEditSkuMode(false);
       setSelectedItem(updatedSku);
-      await invalidateAll();
+      await invalidateAll(updatedSku);
     },
     onError: (err) => handleApiError(err, 'Failed to update SKU'),
   });
@@ -297,7 +304,7 @@ export function useProductMaster() {
     onSuccess: async (sku) => {
       showToast(sku.active ? t('activated') : t('deactivated'), 'success');
       setSelectedItem(sku);
-      await invalidateAll();
+      await invalidateAll(sku);
     },
     onError: (err) => handleApiError(err, 'Failed to toggle SKU'),
   });

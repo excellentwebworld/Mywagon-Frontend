@@ -411,7 +411,7 @@ export function useCreateShipmentWizard(
       });
       setFormikEpoch((n) => n + 1);
       sessionStorage.removeItem(SAT_PREFILL_KEY);
-      void refreshLocationsFromApi();
+      void refreshLocationsFromApi(true);
     } catch {
       // ignore invalid prefill
     }
@@ -487,7 +487,7 @@ export function useCreateShipmentWizard(
         });
         setFormikEpoch((n) => n + 1);
         sessionStorage.removeItem(ERP_ORDERS_PREFILL_KEY);
-        void refreshLocationsFromApi();
+        void refreshLocationsFromApi(true);
       } catch {
         if (!cancelled) {
           showToastRef.current(

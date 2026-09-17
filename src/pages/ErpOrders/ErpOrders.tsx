@@ -26,6 +26,7 @@ import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from '../../pages/
 import { applyTemplate } from '../../pages/AddressBook/utils/locationUtils';
 import { addressBookService } from '../../api';
 import type { ApiCompanyLookup } from '../../api';
+import { syncCustomerDropdownCaches } from '../../api/utils/masterDataCache';
 import { useAuth } from '../../context/AuthContext';
 import type { LocationItem } from '../../context/AppContext';
 import { EMPTY_ORDER_LINE } from './types';
@@ -223,13 +224,14 @@ export const ErpOrders: React.FC = () => {
 
       const updatedCompanies = await addressBookService.listCompanies(companyQuery.trim() || undefined);
       setApiCompanies(updatedCompanies);
+      syncCustomerDropdownCaches(queryClient);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to create company';
       showToast(message, 'error');
     } finally {
       setCompanySaving(false);
     }
-  }, [companyQuery, showToast]);
+  }, [companyQuery, queryClient, showToast]);
 
   const selectExistingDuplicate = useCallback(async (loc: LocationItem) => {
     handleLocationCreated(Number(loc.id));
@@ -361,6 +363,9 @@ export const ErpOrders: React.FC = () => {
         companies={state.companies}
         locations={state.locations}
         skus={state.skus}
+        companiesLoading={state.companiesLoading}
+        locationsLoading={state.locationsLoading}
+        skusLoading={state.skusLoading}
         onAddLocationOrigin={() => openLocationModal('origin')}
         onAddLocationDest={() => openLocationModal('dest')}
         onAddProduct={openSkuModal}

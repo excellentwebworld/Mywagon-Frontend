@@ -50,6 +50,11 @@ import { ProductMasterSkuModal } from "../ProductMaster/ProductMasterSkuModal";
 import { CreateEditOrderModal } from "../ErpOrders";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  syncCustomerDropdownCaches,
+  syncLocationDropdownCaches,
+  syncSkuDropdownCaches,
+} from "../../api/utils/masterDataCache";
+import {
   productMasterService,
   addressBookService,
   erpOrdersService,
@@ -1015,8 +1020,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           ...prev,
           company: created.name,
           companyVat: created.vat_number || "",
+          companyEntityId: created.id,
         }));
         setIsCompanyOpen(false);
+        syncCustomerDropdownCaches(queryClient);
         showToast(
           t("erpOrdersCompanyCreated") || "Company created successfully.",
           "success",
@@ -1031,7 +1038,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         setCompanySaving(false);
       }
     },
-    [showToast, t],
+    [queryClient, showToast, t],
   );
 
   const submitNewLocation = useCallback(async () => {
@@ -1097,7 +1104,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         setPCtx((p: any) => ({ ...p, locS: null }));
       }
 
-      void refreshLocationsFromApi(true);
+      void syncLocationDropdownCaches(queryClient, {
+        location: created,
+        refreshLocationsFromApi,
+      });
       setMLoc(false);
       showToast(
         t("erpOrdersLocationCreated") || "Address created successfully.",
@@ -1115,6 +1125,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   }, [
     applyLocationToStop,
     createData,
+    queryClient,
     showToast,
     t,
     pCtx,
@@ -1370,7 +1381,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           created,
           ...prev.filter((s) => String(s.id) !== String(created.id)),
         ]);
-        void refreshSkusFromApi(true);
+        syncSkuDropdownCaches(queryClient, {
+          sku: created,
+          refreshSkusFromApi,
+        });
 
         if (
           pCtx.orderFormTarget === "product" &&
@@ -1447,7 +1461,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         setSkuSaving(false);
       }
     },
-    [addOrder, fetchOrderDetail, pCtx, refreshSkusFromApi, setLF, showToast, t],
+    [addOrder, fetchOrderDetail, pCtx, queryClient, refreshSkusFromApi, setLF, showToast, t],
   );
 
   const previewLocation = useCallback(
@@ -2317,7 +2331,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         onSubmit={handleCreateOrder}
         saving={erpOrderSaving}
         companies={erpCompanies}
-        locations={locations}
+        locations={abLocs}
         skus={pmSkus}
         onAddLocationOrigin={() => {
           setPCtx((p: any) => ({ ...p, orderFormTarget: "origin" }));

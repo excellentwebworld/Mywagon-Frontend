@@ -68,7 +68,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         barcode: number.trim(),
         weight: weight ? `${weight} kg` : '',
       });
-      await refreshSkusFromApi();
+      await refreshSkusFromApi(true);
       onCreated(name.trim());
       reset();
       onClose();

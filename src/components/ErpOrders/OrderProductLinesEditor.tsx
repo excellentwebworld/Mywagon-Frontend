@@ -13,6 +13,8 @@ type Props = {
   onAddProduct?: (lineIndex: number) => void;
   /** When true, unit/weight selects include an empty "—" option (AI import wizard). */
   allowEmptySelects?: boolean;
+  /** True while SKU options are still loading from the API. */
+  skusLoading?: boolean;
 };
 
 function usedSkuIds(lines: ErpOrderLine[], excludeIndex?: number): Set<number> {
@@ -31,12 +33,13 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
   onChange,
   onAddProduct,
   allowEmptySelects = false,
+  skusLoading = false,
 }) => {
   const selectedSkuCount = useMemo(
     () => lines.filter((line) => line.productSkuId != null).length,
     [lines]
   );
-  const canAddLine = lines.length === 0 || selectedSkuCount < skus.length;
+  const canAddLine = !skusLoading && (lines.length === 0 || selectedSkuCount < skus.length);
 
   const getSkuOptionsForLine = (lineIndex: number) => {
     const line = lines[lineIndex];
@@ -113,6 +116,8 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
               });
             }}
             placeholder={t('erpOrdersSelectProduct')}
+            loading={skusLoading}
+            loadingLabel={t('loading') || 'Loading…'}
             footerAction={onAddProduct ? { label: `+ ${t('erpOrdersAddProduct')}`, onClick: () => onAddProduct(index) } : undefined}
           />
           <input

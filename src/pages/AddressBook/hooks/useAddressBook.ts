@@ -22,6 +22,10 @@ import { validateCreateAll } from '../validation/locationCreateValidation';
 import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from '../validation/locationDuplicateValidation';
 import { applyTemplate, getDefaultCreateData } from '../utils/locationUtils';
 import type { ApiCompanyEntity, ApiCompanyLookup } from '../../../api/types/addressBook';
+import {
+  syncCustomerDropdownCaches,
+  syncLocationDropdownCaches,
+} from '../../../api/utils/masterDataCache';
 const SEARCH_DEBOUNCE_MS = 250;
 
 export function useAddressBook() {
@@ -137,9 +141,15 @@ export function useAddressBook() {
     [showToast]
   );
 
-  const syncGlobalLocations = useCallback(async () => {
-    await refreshLocationsFromApi();
-  }, [refreshLocationsFromApi]);
+  const syncGlobalLocations = useCallback(
+    async (created?: LocationItem) => {
+      syncLocationDropdownCaches(queryClient, {
+        location: created,
+        refreshLocationsFromApi,
+      });
+    },
+    [queryClient, refreshLocationsFromApi]
+  );
 
   const params = useMemo(() => {
     return directoryToListParams(activeNode, debouncedSearch, sortField, sortDir, currentPage, perPage);
@@ -205,9 +215,7 @@ export function useAddressBook() {
     mutationFn: (data: CreateLocationData) => addressBookService.createLocation(data),
     onSuccess: (created) => {
       setIsCreateOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['locations'] });
-      queryClient.invalidateQueries({ queryKey: ['addressBookSummary'] });
-      syncGlobalLocations();
+      void syncGlobalLocations(created);
       setSelectedLoc(created);
       showToast(`"${created.name}" created`, 'success');
     },
@@ -221,9 +229,7 @@ export function useAddressBook() {
     onSuccess: (updated) => {
       setSelectedLoc(updated);
       setIsEditOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['locations'] });
-      queryClient.invalidateQueries({ queryKey: ['addressBookSummary'] });
-      syncGlobalLocations();
+      void syncGlobalLocations(updated);
       showToast(`"${updated.name}" updated`, 'success');
     },
     onError: (err) => {
@@ -235,9 +241,7 @@ export function useAddressBook() {
     mutationFn: (id: string) => addressBookService.deleteLocation(id),
     onSuccess: (_, id) => {
       setSelectedLoc(null);
-      queryClient.invalidateQueries({ queryKey: ['locations'] });
-      queryClient.invalidateQueries({ queryKey: ['addressBookSummary'] });
-      syncGlobalLocations();
+      void syncGlobalLocations();
       const loc = locations.find((l) => l.id === id);
       showToast(`"${loc?.name || 'Location'}" archived`);
     },
@@ -250,9 +254,7 @@ export function useAddressBook() {
     mutationFn: (id: string) => addressBookService.restoreLocation(id),
     onSuccess: (restored) => {
       setSelectedLoc(restored);
-      queryClient.invalidateQueries({ queryKey: ['locations'] });
-      queryClient.invalidateQueries({ queryKey: ['addressBookSummary'] });
-      syncGlobalLocations();
+      void syncGlobalLocations(restored);
       showToast(`"${restored.name}" restored`, 'success');
     },
     onError: (err) => {
@@ -303,9 +305,7 @@ export function useAddressBook() {
       return addressBookService.createLocation(duplicateData);
     },
     onSuccess: (created) => {
-      queryClient.invalidateQueries({ queryKey: ['locations'] });
-      queryClient.invalidateQueries({ queryKey: ['addressBookSummary'] });
-      syncGlobalLocations();
+      void syncGlobalLocations(created);
       setSelectedLoc(created);
       showToast(`Duplicated as "${created.name}"`, 'success');
     },
@@ -504,6 +504,7 @@ export function useAddressBook() {
       ]);
       setIsCompanyOpen(false);
       setCompanyData(EMPTY_COMPANY_DATA);
+      syncCustomerDropdownCaches(queryClient);
       showToast(`Company "${created.name}" created`, 'success');
     } catch (err) {
       handleApiError(err, 'Failed to create company');
@@ -511,7 +512,7 @@ export function useAddressBook() {
     } finally {
       setCompanySaving(false);
     }
-  }, [handleApiError, showToast]);
+  }, [handleApiError, queryClient, showToast]);
 
   const openEditModal = useCallback(
     async (loc: LocationItem) => {

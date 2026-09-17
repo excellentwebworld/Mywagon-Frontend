@@ -24,6 +24,9 @@ type Props = {
   companies: ApiErpOrderCustomer[];
   locations: LocationItem[];
   skus: SKU[];
+  companiesLoading?: boolean;
+  locationsLoading?: boolean;
+  skusLoading?: boolean;
   onAddLocationOrigin?: () => void;
   onAddLocationDest?: () => void;
   onAddProduct?: (lineIndex: number) => void;
@@ -69,11 +72,15 @@ export const CreateEditOrderModal: React.FC<Props> = ({
   companies,
   locations,
   skus,
+  companiesLoading = false,
+  locationsLoading = false,
+  skusLoading = false,
   onAddLocationOrigin,
   onAddLocationDest,
   onAddProduct,
 }) => {
   const todayStr = useMemo(() => getTodayDateString(), []);
+  const loadingLabel = t('loading') || 'Loading…';
 
   const companyOptions = useMemo(
     () =>
@@ -282,6 +289,8 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                     }}
                     placeholder={t('erpOrdersSelectCustomer')}
                     hasError={showError('customerName')}
+                    loading={companiesLoading}
+                    loadingLabel={loadingLabel}
                   />
                   <FormFieldError message={showError('customerName') ? errors.customerName : undefined} />
                 </div>
@@ -290,6 +299,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                   t={t}
                   lines={values.lines}
                   skus={skus}
+                  skusLoading={skusLoading}
                   onChange={(lines) => setFieldValue('lines', lines)}
                   onAddProduct={onAddProduct}
                 />
@@ -331,6 +341,8 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                       value={values.originLocationId ? String(values.originLocationId) : ''}
                       onChange={(val) => setFieldValue('originLocationId', val ? Number(val) : null)}
                       placeholder={t('erpOrdersSelectLocation')}
+                      loading={locationsLoading}
+                      loadingLabel={loadingLabel}
                       headerAction={onAddLocationOrigin ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationOrigin } : undefined}
                     />
                   </div>
@@ -341,6 +353,8 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                       value={values.destLocationId ? String(values.destLocationId) : ''}
                       onChange={(val) => setFieldValue('destLocationId', val ? Number(val) : null)}
                       placeholder={t('erpOrdersSelectLocation')}
+                      loading={locationsLoading}
+                      loadingLabel={loadingLabel}
                       headerAction={onAddLocationDest ? { label: `+ ${t('erpOrdersAddAddress')}`, onClick: onAddLocationDest } : undefined}
                     />
                   </div>

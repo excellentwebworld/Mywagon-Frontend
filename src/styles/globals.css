@@ -2118,6 +2118,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .searchable-select-option.selected { background: var(--accent-pale); color: var(--accent); }
 .searchable-select-option small { font-size: 11px; color: var(--text-tertiary); }
 .searchable-select-empty { padding: 12px; font-size: 12px; color: var(--text-tertiary); text-align: center; }
+.searchable-select-loading { font-style: italic; }
 .searchable-select-footer {
   width: 100%; padding: 10px; border: none; border-top: 1px solid var(--border); background: var(--surface-alt);
   font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; font-family: inherit;
