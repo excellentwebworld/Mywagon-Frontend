@@ -816,6 +816,7 @@ export const ShipmentDetail: React.FC = () => {
                 shipmentId={id}
                 isPrivateLoad={vm.isPrivateLoad}
                 startingPrice={vm.startingPrice}
+                isNegotiable={vm.isNegotiable}
                 partners={vm.partners}
                 expanded={sections.bids}
                 onToggle={() => toggleSection('bids')}

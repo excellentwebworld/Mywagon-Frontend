@@ -451,5 +451,35 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
     expect(onTripVm.tracking.trackingUrl).toBe(trackingUrlSample);
     expect(onTripVm.shareGroups[0]?.rows[0]?.trackingUrl).toBe(trackingUrlSample);
   });
+
+  it('correctly computes isNegotiable based on shipment flags', () => {
+    const negotiableVm = buildShipmentDetailViewModel({
+      ...baseMockShipment,
+      price_type: 'spot',
+      negotiable: true,
+    });
+    expect(negotiableVm.isNegotiable).toBe(true);
+
+    const nonNegotiableVm = buildShipmentDetailViewModel({
+      ...baseMockShipment,
+      price_type: 'spot',
+      negotiable: false,
+    });
+    expect(nonNegotiableVm.isNegotiable).toBe(false);
+
+    const isNegotiableZeroVm = buildShipmentDetailViewModel({
+      ...baseMockShipment,
+      price_type: 'spot',
+      is_negotiable: 0,
+    } as any);
+    expect(isNegotiableZeroVm.isNegotiable).toBe(false);
+
+    const contractVm = buildShipmentDetailViewModel({
+      ...baseMockShipment,
+      price_type: 'contract',
+      negotiable: true,
+    });
+    expect(contractVm.isNegotiable).toBe(false);
+  });
 });
 

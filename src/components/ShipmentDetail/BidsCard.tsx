@@ -29,6 +29,7 @@ interface BidsCardProps {
   shipmentId?: string | number;
   isPrivateLoad?: boolean;
   startingPrice?: number | string | null;
+  isNegotiable?: boolean;
   partners?: PartnerBidItem[];
   expanded?: boolean;
   onToggle?: () => void;
@@ -49,6 +50,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
   shipmentId,
   isPrivateLoad = true,
   startingPrice,
+  isNegotiable = true,
   partners = [],
   expanded = true,
   onToggle = () => {},
@@ -98,7 +100,9 @@ export const BidsCard: React.FC<BidsCardProps> = ({
       headerExtra={
         numStartingPrice != null && numStartingPrice > 0 ? (
           <div className="flex items-center gap-1.5 text-[13px] bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 px-2.5 py-1 rounded-lg">
-            <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px]">{t('startingPrice', 'Starting Price')}:</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
+              {isNegotiable ? t('startingPrice', 'Starting Price') : t('price', 'Price')}:
+            </span>
             <span className="font-bold font-mono text-purple-700 dark:text-purple-300 text-[13px]">
               € {numStartingPrice.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>

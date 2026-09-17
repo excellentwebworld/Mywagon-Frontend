@@ -296,6 +296,7 @@ export interface ShipmentDetailViewModel {
   actualRouteCoordinates?: Array<{ lat: number; lng: number }> | null;
   hasActualRoute?: boolean;
   startingPrice?: number | string | null;
+  isNegotiable: boolean;
   canRate: boolean;
   isCarrierRated: boolean;
   isDriverRated: boolean;
@@ -979,6 +980,9 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
 
   const isNegotiable =
     shipment.negotiable !== false &&
+    (shipment as any).is_negotiable !== 0 &&
+    (shipment as any).is_negotiable !== '0' &&
+    (shipment as any).is_negotiable !== false &&
     (shipment.price_type === 'spot' || (shipment.price_type as any) === 1 || shipment.price_type == null);
   const mappedOffers: PartnerBidItem[] = (shipment.offers || []).map((o) => {
     const name = o.name || 'Transporter';
@@ -1208,6 +1212,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     ),
     partners,
     startingPrice: (shipment as any).total ?? shipment.price ?? null,
+    isNegotiable,
     loadSummary: shipment.loadSummary || {
       vehicleTypes: shipment.truckTypes?.length ? shipment.truckTypes : [],
       cargoSpecs: (shipment as any).cargoSpecs?.length ? (shipment as any).cargoSpecs : (shipment as any).cargo_specs?.length ? (shipment as any).cargo_specs : [],

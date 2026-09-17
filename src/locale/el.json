@@ -1683,6 +1683,7 @@
   "addCounterNotePlaceholder": "Προσθέστε μια σημείωση για τον μεταφορέα/οδηγό...",
   "counterBidSentSuccess": "Η αντιπροσφορά στάλθηκε επιτυχώς σε",
   "counterBidSentWaiting": "Απεστάλη αντιπροσφορά · Αναμονή απάντησης",
+  "price": "Τιμή",
   "startingPrice": "Αρχική Τιμή",
   "negotiationTimelineSubtitle": "Χρονοδιάγραμμα όλων των προσφορών, αντιπροσφορών και απαντήσεων",
   "initialBidPrice": "Αρχική Προσφορά",
