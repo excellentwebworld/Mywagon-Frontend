@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { clearStoredToken } from '../../api/auth';
 import './SocialAuthButtons.css';
 
 type SocialProvider = 'google' | 'microsoft';
@@ -46,6 +47,9 @@ export const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ disabled, 
 
   const start = (provider: SocialProvider) => {
     if (disabled) return;
+    // Drop any previous incomplete social session so a new account starts fresh.
+    clearStoredToken();
+    window.dispatchEvent(new Event('shipper:force-logout'));
     window.location.assign(socialRedirectUrl(provider));
   };
 

@@ -15,6 +15,7 @@ import {
 import { clearSignupDraft } from '../Register/signupDraft';
 import { SocialAuthButtons } from '../../components/auth/SocialAuthButtons';
 import { postAuthDestination } from '../../hooks/postAuthDestination';
+import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
 import './LoginPage.css';
 
 function isTwoFactorChallenge(
@@ -55,6 +56,7 @@ export const LoginPage: React.FC = () => {
     isAuthenticated,
     isLoading,
     user,
+    logout,
   } = useAuth();
   const { lang, setLang } = useApp();
   const { t, i18n } = useTranslation();
@@ -91,7 +93,11 @@ export const LoginPage: React.FC = () => {
       params.get('message') ||
       t('socialAuth.failed', { defaultValue: 'Social sign-in failed. Please try again.' });
     setLocalError(message);
-  }, [location.search, t]);
+    // Do not bounce back to a previous incomplete social account's complete-signup.
+    if (isAuthenticated) {
+      void logout();
+    }
+  }, [location.search, t, isAuthenticated, logout]);
 
   useEffect(() => {
     if (resendSeconds <= 0) return;
@@ -100,6 +106,11 @@ export const LoginPage: React.FC = () => {
   }, [resendSeconds]);
 
   if (!isLoading && isAuthenticated) {
+    const params = new URLSearchParams(location.search);
+    // Stay on login until logout finishes after a social error.
+    if (params.get('social_error') === '1') {
+      return <MyVagonBootScreen />;
+    }
     const dest = user ? postLoginPath(user, from) : from;
     return <Navigate to={dest} replace />;
   }

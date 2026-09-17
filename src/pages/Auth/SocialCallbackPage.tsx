@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { setStoredToken } from '../../api/auth';
+import { clearStoredToken, setStoredToken } from '../../api/auth';
 import { clearInfoFormReminderSkip } from '../../components/layout/InfoFormReminderModal';
 import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -29,6 +29,8 @@ export const SocialCallbackPage: React.FC = () => {
     const maskedEmail = params.get('masked_email') || '';
 
     if (twoFactor && challengeToken && method) {
+      clearStoredToken();
+      window.dispatchEvent(new Event('shipper:force-logout'));
       setChallenge({
         challenge_token: challengeToken,
         method,
@@ -38,6 +40,8 @@ export const SocialCallbackPage: React.FC = () => {
     }
 
     if (!token) {
+      clearStoredToken();
+      window.dispatchEvent(new Event('shipper:force-logout'));
       setError(
         t('socialAuth.missingToken', {
           defaultValue: 'Social sign-in failed. Please try again.',
@@ -49,6 +53,7 @@ export const SocialCallbackPage: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
+        clearStoredToken();
         setStoredToken(token);
         await refreshUser();
         if (cancelled) return;
@@ -57,6 +62,8 @@ export const SocialCallbackPage: React.FC = () => {
         navigate(postAuthDestination(profile), { replace: true });
       } catch {
         if (!cancelled) {
+          clearStoredToken();
+          window.dispatchEvent(new Event('shipper:force-logout'));
           setError(
             t('socialAuth.sessionFailed', {
               defaultValue: 'Could not start your session. Please try again.',
@@ -120,7 +127,7 @@ export const SocialCallbackPage: React.FC = () => {
     );
   }
 
-  if (isAuthenticated && user) {
+  if (isAuthenticated && user && params.get('token')) {
     return <Navigate to={postAuthDestination(user)} replace />;
   }
 
