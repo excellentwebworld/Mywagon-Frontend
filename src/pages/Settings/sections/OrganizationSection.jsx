@@ -15,7 +15,9 @@ import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { useAuth } from '../../../context/AuthContext';
 import { needsInfoFormHardGate } from '../../../hooks/useInfoFormGate';
+import { postAuthDestination } from '../../../hooks/postAuthDestination';
 import { organizationSettingsService } from '../../../api/services/organizationSettingsService';
+import { authService } from '../../../api/auth';
 import { ContextualTutorialTrigger } from '../../../components/Tutorials';
 import { FORCE_TOUR_SESSION_KEY } from '../../../onboarding';
 import { safeSessionSet } from '../../../utils/safeStorage';
@@ -399,14 +401,18 @@ export default function OrganizationSection() {
       toast.success(t('settings.orgSection.saved'));
       await refreshUser().catch(() => {});
 
-      // After mandatory info form is completed, start the onboarding tour on dashboard.
-      if (
-        fromInfoForm &&
-        payload?.operations_meta?.is_mandatory_completed === true &&
-        user?.onboarding_completed === false
-      ) {
-        safeSessionSet(FORCE_TOUR_SESSION_KEY, '1');
-        navigate('/dashboard');
+      // After mandatory info form: next gate (KYC if pending) or dashboard/tour.
+      if (fromInfoForm && payload?.operations_meta?.is_mandatory_completed === true) {
+        try {
+          const profile = await authService.me();
+          const dest = postAuthDestination(profile);
+          if (dest === '/dashboard' && profile.onboarding_completed === false) {
+            safeSessionSet(FORCE_TOUR_SESSION_KEY, '1');
+          }
+          navigate(dest);
+        } catch {
+          navigate('/settings/compliance');
+        }
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('settings.orgSection.saveError'));

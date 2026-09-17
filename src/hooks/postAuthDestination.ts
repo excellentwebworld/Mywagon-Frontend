@@ -1,19 +1,20 @@
 import type { ShipperUser } from '../api/auth';
 import { needsCompanyInfoGate, needsKycGate } from './useKycGate';
 import { needsInfoFormHardGate } from './useInfoFormGate';
-import { isSocialShipper, needsSignupComplete } from './useSignupCompleteGate';
+import { needsSignupComplete } from './useSignupCompleteGate';
 
 /**
- * Post-login destination.
- *
- * Social only:
- *   register required fields → KYC → mandatory info form → onboarding tour
- *
- * Normal signup: unchanged (KYC / company / info-form / tour as before).
+ * Post-login destination — same sequence for normal and social signup:
+ *   complete-signup (social only) → Info Form → KYC → company info → dashboard / tour
  */
 export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'): string {
   if (needsSignupComplete(user)) {
     return '/complete-signup';
+  }
+
+  // Info Form before KYC (same for social + normal)
+  if (needsInfoFormHardGate(user)) {
+    return '/settings/organization?from=info_form';
   }
 
   if (needsKycGate(user)) {
@@ -24,10 +25,6 @@ export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'):
     return '/settings/organization?from=company_info';
   }
 
-  if (needsInfoFormHardGate(user)) {
-    return '/settings/organization?from=info_form';
-  }
-
   if (user.onboarding_completed === false) {
     return '/dashboard';
   }
@@ -36,19 +33,15 @@ export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'):
 }
 
 /**
- * Tour auto-start rules.
- * Social: only after KYC accepted + mandatory info form done.
- * Normal: whenever onboarding_completed is false and they can reach dashboard.
+ * Tour auto-start once the user can reach the dashboard
+ * (info form done + KYC accepted — enforced by route gates).
  */
 export function canStartOnboardingTour(user: ShipperUser | null | undefined): boolean {
   if (!user) return false;
   if (user.onboarding_completed !== false) return false;
-
-  if (isSocialShipper(user)) {
-    if (needsSignupComplete(user)) return false;
-    if (user.kyc_status !== 'accepted') return false;
-    if (user.info_form_mandatory_completed === false) return false;
-  }
-
+  if (needsSignupComplete(user)) return false;
+  if (needsInfoFormHardGate(user)) return false;
+  if (needsKycGate(user)) return false;
+  if (needsCompanyInfoGate(user)) return false;
   return true;
 }

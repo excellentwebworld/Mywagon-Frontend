@@ -37,17 +37,17 @@ export function useRequireSignupComplete(): {
         }),
         'info',
       );
-    } else if (needsKycGate(user)) {
-      showToast(
-        t('signupComplete.kycRequiredToast', {
-          defaultValue: 'Please upload your KYC documents to continue.',
-        }),
-        'info',
-      );
     } else if (needsInfoFormHardGate(user)) {
       showToast(
         t('signupComplete.infoFormRequiredToast', {
           defaultValue: 'Please complete the mandatory information questions to continue.',
+        }),
+        'info',
+      );
+    } else if (needsKycGate(user)) {
+      showToast(
+        t('signupComplete.kycRequiredToast', {
+          defaultValue: 'Please upload your KYC documents to continue.',
         }),
         'info',
       );

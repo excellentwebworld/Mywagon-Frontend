@@ -25,10 +25,8 @@ interface ProtectedRouteProps {
 }
 
 /**
- * Normal signup: past-due → KYC → company info → info-form (unchanged).
- *
- * Social signup only:
- *   register fields (/complete-signup) → KYC compliance → info-form → tour on dashboard.
+ * Same sequence for normal and social (after social /complete-signup):
+ *   past-due → Info Form → KYC → company info → panel
  */
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -66,16 +64,17 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/complete-signup" replace />;
   }
 
+  // Info Form before KYC (normal + social)
+  if (needsInfoFormHardGate(user) && !isInfoFormAllowedPath(location.pathname)) {
+    return <Navigate to="/settings/organization?from=info_form" replace />;
+  }
+
   if (needsKycGate(user) && !isKycGateAllowedPath(location.pathname, user)) {
     return <Navigate to="/settings/compliance" replace />;
   }
 
   if (needsCompanyInfoGate(user) && !isCompanyInfoGateAllowedPath(location.pathname)) {
     return <Navigate to="/settings/organization?from=company_info" replace />;
-  }
-
-  if (needsInfoFormHardGate(user) && !isInfoFormAllowedPath(location.pathname)) {
-    return <Navigate to="/settings/organization?from=info_form" replace />;
   }
 
   return <>{children}</>;

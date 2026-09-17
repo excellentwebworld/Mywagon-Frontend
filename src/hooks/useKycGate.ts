@@ -2,9 +2,8 @@ import type { ShipperUser } from '../api/auth';
 import { isSocialShipper } from './useSignupCompleteGate';
 
 /**
- * KYC hard-gate.
- * - Normal signup: pending / rejected only (unchanged).
- * - Social signup: also not_started (docs not uploaded yet), after register fields are done.
+ * KYC hard-gate — same statuses for normal and social after register fields are done.
+ * Social may still present as not_started until VAT/cert are submitted.
  */
 export function needsKycGate(user: ShipperUser | null | undefined): boolean {
   const status = user?.kyc_status;
@@ -22,19 +21,17 @@ export function needsCompanyInfoGate(user: ShipperUser | null | undefined): bool
 
 /**
  * Paths allowed while KYC gate is active.
- * Social: compliance + billing only.
- * Normal: compliance + organization + billing (original).
+ * Organization allowed so Info Form can be completed while KYC is pending
+ * (same for normal + social).
  */
 export function isKycGateAllowedPath(
   pathname: string,
-  user?: ShipperUser | null,
+  _user?: ShipperUser | null,
 ): boolean {
   const path = pathname.replace(/\/$/, '') || '/';
   if (path === '/billing' || path.startsWith('/billing/')) return true;
   if (path === '/settings/compliance' || path.startsWith('/settings/compliance/')) return true;
-  if (!isSocialShipper(user)) {
-    if (path === '/settings/organization' || path.startsWith('/settings/organization/')) return true;
-  }
+  if (path === '/settings/organization' || path.startsWith('/settings/organization/')) return true;
   return false;
 }
 
