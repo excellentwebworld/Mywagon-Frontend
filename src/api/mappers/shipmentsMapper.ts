@@ -579,7 +579,9 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
             a.includes('saved draft') ||
             a.includes('shipment edit updated') ||
             a.includes('shipment edit saved') ||
-            a.includes('saved edit shipment')
+            a.includes('saved edit shipment') ||
+            a.includes('shipment edit pending') ||
+            a.includes('shipment-edit-pending')
           );
         });
       const hasCancelShipment = logs.some((l) => {

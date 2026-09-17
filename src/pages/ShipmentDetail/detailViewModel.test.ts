@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildShipmentDetailViewModel, formatDelayMinutes } from './detailViewModel';
+import { mapApiDetailToShipment } from '../../api/mappers/shipmentsMapper';
 import type { Shipment } from '../../context/AppContext';
 
 const baseMockShipment: Shipment = {
@@ -480,6 +481,35 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
       negotiable: true,
     });
     expect(contractVm.isNegotiable).toBe(false);
+  });
+
+  it('filters out stale Shipment Edit Pending and intermediate draft logs while keeping Shipment Edit Applied', () => {
+    const rawDetail: any = {
+      id: 123,
+      auto_id: 'SHP-1234',
+      status: 'pending',
+      shipment_logs: [
+        { id: 1, action: 'Shipment Created', actor: 'Iris Damon', date: '17/09/2026 12:44' },
+        { id: 2, action: 'Tracking Links Updated', actor: 'Iris Damon', date: '17/09/2026 12:45' },
+        { id: 3, action: 'Shipment Edit Applied', actor: 'Iris Damon', date: '17/09/2026 12:50' },
+        { id: 4, action: 'Shipment Edit Pending', actor: 'Iris Damon', date: '17/09/2026 12:50' },
+        { id: 5, action: 'shipment-edit-pending', actor: 'Iris Damon', date: '17/09/2026 12:53' },
+        { id: 6, action: 'Shipment edit updated', actor: 'Iris Damon', date: '17/09/2026 12:53' },
+        { id: 7, action: 'Shipment Edit Applied', actor: 'Iris Damon', date: '17/09/2026 12:53' },
+      ],
+    };
+
+    const mapped = mapApiDetailToShipment(rawDetail);
+    expect(mapped.shipmentLogs).toBeDefined();
+    const actions = mapped.shipmentLogs!.map((l) => l.action);
+
+    expect(actions).toContain('Shipment Created');
+    expect(actions).toContain('Tracking Links Updated');
+    expect(actions).toContain('Shipment Edit Applied');
+    expect(actions).not.toContain('Shipment Edit Pending');
+    expect(actions).not.toContain('shipment-edit-pending');
+    expect(actions).not.toContain('Shipment edit updated');
+    expect(mapped.shipmentLogs!.length).toBe(4);
   });
 });
 

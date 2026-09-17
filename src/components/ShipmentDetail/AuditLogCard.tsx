@@ -33,6 +33,7 @@ interface AuditLogCardProps {
 
 interface UnifiedEvent {
   id: string;
+  rawId?: number;
   category: 'operations' | 'bidding';
   timestamp: number;
   date: string;
@@ -139,7 +140,9 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
         act.includes('saved draft') ||
         act.includes('shipment edit updated') ||
         act.includes('shipment edit saved') ||
-        act.includes('saved edit shipment')
+        act.includes('saved edit shipment') ||
+        act.includes('shipment edit pending') ||
+        act.includes('shipment-edit-pending')
       );
     };
 
@@ -170,7 +173,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
         return;
       }
 
-      // Hide draft step saves
+      // Hide draft step saves & intermediate edit logs
       if (isDraftAction(act)) {
         return;
       }
@@ -217,6 +220,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
 
       list.push({
         id: `op-${op.id}`,
+        rawId: typeof op.id === 'number' ? op.id : parseInt(String(op.id).replace(/\D/g, ''), 10) || 0,
         category: 'operations',
         timestamp: parseEventTimestamp(op.date || op.time),
         date: op.date || op.time || '',
@@ -234,6 +238,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
         bid.negotiations.forEach((neg) => {
           list.push({
             id: `neg-${neg.id}`,
+            rawId: typeof neg.id === 'number' ? neg.id : parseInt(String(neg.id).replace(/\D/g, ''), 10) || 0,
             category: 'bidding',
             timestamp: parseEventTimestamp(neg.date),
             date: neg.date,
@@ -247,6 +252,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
       } else {
         list.push({
           id: `bid-${bid.bidNumber}`,
+          rawId: typeof bid.bidNumber === 'number' ? bid.bidNumber : parseInt(String(bid.bidNumber).replace(/\D/g, ''), 10) || 0,
           category: 'bidding',
           timestamp: parseEventTimestamp(bid.date),
           date: bid.date,
@@ -258,8 +264,18 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
       }
     });
 
-    // Sort by most recently happened at top
-    return list.sort((a, b) => b.timestamp - a.timestamp);
+    // Sort by most recently happened at top, tie-breaking equal minute timestamps with raw ID
+    return list.sort((a, b) => {
+      if (b.timestamp !== a.timestamp) {
+        return b.timestamp - a.timestamp;
+      }
+      const idA = typeof a.rawId === 'number' ? a.rawId : 0;
+      const idB = typeof b.rawId === 'number' ? b.rawId : 0;
+      if (idA !== idB) {
+        return idB - idA;
+      }
+      return 0;
+    });
   }, [shipmentLogs, entries, bidsHistory]);
 
   const operationsEvents = useMemo(() => {
