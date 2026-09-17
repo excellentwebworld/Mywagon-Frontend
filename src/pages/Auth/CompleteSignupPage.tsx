@@ -63,10 +63,11 @@ function extractOtp(res: { otp?: number | string; data?: { otp?: number | string
  * Email is always verified from social login.
  */
 export const CompleteSignupPage: React.FC = () => {
-  const { user, isAuthenticated, isLoading, refreshUser } = useAuth();
+  const { user, isAuthenticated, isLoading, refreshUser, logout } = useAuth();
   const { lang, setLang, showToast } = useApp();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [exiting, setExiting] = useState(false);
 
   const [form, setForm] = useState<FormState>({
     first_name: '',
@@ -427,6 +428,22 @@ export const CompleteSignupPage: React.FC = () => {
     }
   };
 
+  const exitSocialSignup = useCallback(
+    async (to: '/login' | '/shipper/register') => {
+      if (exiting || submitting || phoneBusy) return;
+      setExiting(true);
+      try {
+        await logout();
+        navigate(to, { replace: true });
+      } catch {
+        navigate(to, { replace: true });
+      } finally {
+        setExiting(false);
+      }
+    },
+    [exiting, submitting, phoneBusy, logout, navigate],
+  );
+
   if (isLoading || referenceLoading) {
     return <MyVagonBootScreen />;
   }
@@ -455,6 +472,15 @@ export const CompleteSignupPage: React.FC = () => {
         {formError && (
           <p className="reg-error" role="alert" style={{ marginBottom: '0.75rem' }}>
             {formError}
+          </p>
+        )}
+
+        {user?.email && (
+          <p className="reg-hint" style={{ marginBottom: '0.75rem' }}>
+            {t('signupComplete.emailLocked', {
+              email: user.email,
+              defaultValue: `Signed in as ${user.email}`,
+            })}
           </p>
         )}
 
@@ -618,11 +644,45 @@ export const CompleteSignupPage: React.FC = () => {
           onOpenLegal={setLegalDocModal}
         />
 
-        <button type="submit" className="reg-btn-primary" disabled={submitting || phoneBusy}>
+        <button type="submit" className="reg-btn-primary" disabled={submitting || phoneBusy || exiting}>
           {submitting
             ? t('registerWorking', 'Please wait…')
             : t('signupComplete.submit', { defaultValue: 'Save & continue' })}
         </button>
+
+        <div className="reg-footer" style={{ marginTop: '1.25rem' }}>
+          <button
+            type="button"
+            className="reg-btn-verify"
+            style={{ width: '100%', marginBottom: '0.75rem' }}
+            disabled={submitting || phoneBusy || exiting}
+            onClick={() => void exitSocialSignup('/shipper/register')}
+          >
+            {exiting
+              ? t('registerWorking', 'Please wait…')
+              : t('signupComplete.exitToManualSignup', {
+                  defaultValue: 'Sign up with email instead',
+                })}
+          </button>
+          <h4>{t('registerHaveAccount', 'Have an account already?')}</h4>
+          <button
+            type="button"
+            className="reg-link-btn"
+            disabled={submitting || phoneBusy || exiting}
+            onClick={() => void exitSocialSignup('/login')}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              color: 'inherit',
+              cursor: exiting ? 'wait' : 'pointer',
+              textDecoration: 'underline',
+              font: 'inherit',
+            }}
+          >
+            {t('signupComplete.exitToLogin', { defaultValue: 'Log In' })}
+          </button>
+        </div>
       </form>
 
       <LegalModal

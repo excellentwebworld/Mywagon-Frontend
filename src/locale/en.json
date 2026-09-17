@@ -2487,7 +2487,9 @@
     "success": "Company information saved. KYC is pending review.",
     "requiredToast": "Please complete your company information to continue.",
     "kycRequiredToast": "Please upload your KYC documents to continue.",
-    "infoFormRequiredToast": "Please complete the mandatory information questions to continue."
+    "infoFormRequiredToast": "Please complete the mandatory information questions to continue.",
+    "exitToManualSignup": "Sign up with email instead",
+    "exitToLogin": "Log In"
   },
   "login": {
     "twoFactor": {
