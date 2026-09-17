@@ -26,7 +26,7 @@ import {
   TRUCK_WEIGHT_CAP_KG,
 } from './itinerary/cargoUtils';
 import { groupStopLinesByCustomer } from './itinerary/stopGrouping';
-import { formatAppointmentLabel } from './itinerary/scheduleWarnings';
+import { formatDisplayDate, formatDisplayTime } from '../../utils/dateDisplay';
 import { actionChipStyle, badgeStyle, pinColors } from './itinerary/stopColors';
 import { computeItineraryFingerprint } from './itineraryFingerprint';
 import { hasVehicleSelection } from './vehicleTypes';
@@ -344,9 +344,6 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                 const pin = pinColors(stop.hasPickup, stop.hasDropoff);
                 const isStopNew = isEditMode && !viewingCurrent && isNewStop(stop, editDiff?.old_itinerary);
                 const stopHl = showDiffHighlights ? highlights.stops[si] : undefined;
-                const scheduleChanged = Boolean(
-                  stopHl?.date || stopHl?.time || stopHl?.date_to || stopHl?.time_to
-                );
                 const locationChanged = Boolean(stopHl?.address_id);
 
                 return (
@@ -421,12 +418,39 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                               {t('newTag') || 'NEW'}
                             </span>
                           )}
-                          {formatAppointmentLabel(stop) && (
-                            <span
-                              className="text-[10px]"
-                              style={{ color: diffColor(scheduleChanged, T.t3) }}
-                            >
-                              📅 {formatAppointmentLabel(stop)}
+                          {stop.dateFrom && (
+                            <span className="text-[10px]" style={{ color: T.t3 }}>
+                              <span>📅 </span>
+                              <span style={{ color: diffColor(stopHl?.date, T.t3) }}>
+                                {formatDisplayDate(stop.dateFrom)}
+                              </span>
+                              {stop.timeFrom && stop.timeTo && stop.timeFrom !== stop.timeTo ? (
+                                <>
+                                  {' '}
+                                  <span style={{ color: diffColor(stopHl?.time, T.t3) }}>
+                                    {formatDisplayTime(stop.timeFrom)}
+                                  </span>
+                                  <span> – </span>
+                                  <span style={{ color: diffColor(stopHl?.time_to || stopHl?.time, T.t3) }}>
+                                    {formatDisplayTime(stop.timeTo)}
+                                  </span>
+                                </>
+                              ) : stop.timeFrom ? (
+                                <>
+                                  {' '}
+                                  <span style={{ color: diffColor(stopHl?.time, T.t3) }}>
+                                    {formatDisplayTime(stop.timeFrom)}
+                                  </span>
+                                </>
+                              ) : null}
+                              {stop.dateTo && stop.dateTo !== stop.dateFrom ? (
+                                <>
+                                  <span> → </span>
+                                  <span style={{ color: diffColor(stopHl?.date_to, T.t3) }}>
+                                    {formatDisplayDate(stop.dateTo)}
+                                  </span>
+                                </>
+                              ) : null}
                             </span>
                           )}
                         </div>

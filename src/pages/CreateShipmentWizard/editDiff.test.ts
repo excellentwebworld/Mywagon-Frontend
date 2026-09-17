@@ -73,7 +73,7 @@ describe('editDiff', () => {
     expect(hasAnyStopHighlight(res.stops[0])).toBe(false);
   });
 
-  it('accurately highlights changed date or time', () => {
+  it('accurately highlights changed date or time independently', () => {
     const diff = {
       '0': {
         time: { old: '14:45', new: '16:00' },
@@ -91,6 +91,23 @@ describe('editDiff', () => {
     expect(res.stops[1]?.date).toBe(true);
     expect(res.stops[1]?.time).toBeUndefined();
     expect(hasAnyStopHighlight(res.stops[1])).toBe(true);
+  });
+
+  it('keeps date unhighlighted when only shipment time is changed', () => {
+    const diff = {
+      '0': {
+        time: { old: '20:00', new: '21:30' },
+      },
+      '1': {
+        time: { old: '20:30', new: '21:40' },
+      },
+    };
+
+    const res = buildEditDiffHighlights(sampleStops, diff as any);
+    expect(res.stops[0]?.time).toBe(true);
+    expect(res.stops[0]?.date).toBeUndefined();
+    expect(res.stops[1]?.time).toBe(true);
+    expect(res.stops[1]?.date).toBeUndefined();
   });
 
   it('accurately highlights changed line fields', () => {
