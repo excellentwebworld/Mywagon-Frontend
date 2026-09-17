@@ -24,6 +24,7 @@ export interface ApiErpOrderLine {
   product_sku_id?: number | null;
   sku?: string | null;
   product_name: string;
+  product_active?: boolean;
   quantity?: number | null;
   remaining_quantity?: number | null;
   shipped_quantity?: number | null;

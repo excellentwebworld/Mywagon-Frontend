@@ -837,8 +837,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
       // Build lines sequentially so each dropoff prefill sees prior remaining.
       let workingStops = latestStops;
-      const newLines = mo.lines.map((ln) => {
-        const lineId = makeId("l");
+      const newLines = mo.lines
+        .filter((ln) => ln.productActive !== false)
+        .map((ln) => {
+          const lineId = makeId("l");
         const productId = ln.productSkuId ? String(ln.productSkuId) : "";
         const { qty, weight, unit, wtUnit } = productId
           ? computeCargoLineQtyWeight({
@@ -2316,7 +2318,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         saving={erpOrderSaving}
         companies={erpCompanies}
         locations={locations}
-        skus={skus}
+        skus={pmSkus}
         onAddLocationOrigin={() => {
           setPCtx((p: any) => ({ ...p, orderFormTarget: "origin" }));
           setCreateStep(1);

@@ -16,6 +16,7 @@ export interface ErpOrderLine {
   productSkuId: number | null;
   sku?: string;
   productName: string;
+  productActive?: boolean;
   quantity: number | null;
   /** Qty still available across prior shipments (from API). */
   remainingQuantity?: number | null;

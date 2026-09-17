@@ -213,7 +213,7 @@ export function useErpOrdersList() {
 
   const skusQuery = useQuery({
     queryKey: ['product-master', 'skus', 'erp-orders'],
-    queryFn: () => productMasterService.listAllSkus({}),
+    queryFn: () => productMasterService.listAllSkus({ status: 'active' }),
     staleTime: 60_000,
   });
 

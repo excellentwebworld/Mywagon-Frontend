@@ -42,7 +42,7 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
     const line = lines[lineIndex];
     const taken = usedSkuIds(lines, lineIndex);
     const options = skus
-      .filter((s) => !taken.has(Number(s.id)))
+      .filter((s) => s.active !== false && !taken.has(Number(s.id)))
       .map((s) => ({
         value: String(s.id),
         label: s.name,

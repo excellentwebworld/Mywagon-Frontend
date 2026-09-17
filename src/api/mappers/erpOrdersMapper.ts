@@ -34,6 +34,7 @@ export function mapApiLineToLine(line: ApiErpOrderDetail['lines'][number]): ErpO
     productSkuId: line.product_sku_id ?? null,
     sku: line.sku ?? undefined,
     productName: line.product_name,
+    productActive: line.product_active ?? true,
     quantity: line.quantity ?? null,
     remainingQuantity:
       line.remaining_quantity != null

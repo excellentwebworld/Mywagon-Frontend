@@ -119,6 +119,40 @@ describe('getProductOptionsForOrder', () => {
     expect(options[0].label).toBe('Product B');
   });
 
+  it('hides deactivated products from options', () => {
+    const order = {
+      id: 'ord-12',
+      orderReference: 'Order-12',
+      lines: [
+        {
+          id: 1,
+          productSkuId: 10,
+          productName: 'Deactivated Product',
+          productActive: false,
+          quantity: 5,
+          unit: 'Units',
+          weight: 1,
+          weightUnit: 'Kgs',
+        },
+        {
+          id: 2,
+          productSkuId: 20,
+          productName: 'Active Product',
+          productActive: true,
+          quantity: 7,
+          unit: 'Units',
+          weight: 2,
+          weightUnit: 'Kgs',
+        },
+      ],
+    } as ErpOrder;
+
+    const options = getProductOptionsForOrder(order);
+    expect(options).toHaveLength(1);
+    expect(options[0].value).toBe('20');
+    expect(options[0].label).toBe('Active Product');
+  });
+
   it('returns empty array when order has no lines', () => {
     expect(getProductOptionsForOrder(null)).toEqual([]);
     expect(getProductOptionsForOrder(undefined)).toEqual([]);

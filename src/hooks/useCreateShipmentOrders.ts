@@ -255,6 +255,9 @@ export function getProductOptionsForOrder(order: ErpOrder | null | undefined) {
   const options: { value: string; label: string; sublabel?: string; lineIndex: number }[] = [];
 
   order.lines.forEach((line, lineIndex) => {
+    // Hide deactivated products
+    if (line.productActive === false) return;
+
     const remaining =
       line.remainingQuantity != null
         ? Number(line.remainingQuantity)
