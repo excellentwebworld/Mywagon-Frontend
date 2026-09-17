@@ -467,6 +467,7 @@ export const CompleteSignupPage: React.FC = () => {
       title={t('signupComplete.title', { defaultValue: 'Complete company information' })}
       variant="shipper"
       videoSrc={signupVideos.shipper}
+      onLogoClick={() => void exitSocialSignup('/login')}
     >
       <form className="reg-form" onSubmit={(e) => void handleSubmit(e)} noValidate>
         {formError && (
@@ -650,24 +651,10 @@ export const CompleteSignupPage: React.FC = () => {
             : t('signupComplete.submit', { defaultValue: 'Save & continue' })}
         </button>
 
-        <div className="reg-footer" style={{ marginTop: '1.25rem' }}>
-          <button
-            type="button"
-            className="reg-btn-verify"
-            style={{ width: '100%', marginBottom: '0.75rem' }}
-            disabled={submitting || phoneBusy || exiting}
-            onClick={() => void exitSocialSignup('/shipper/register')}
-          >
-            {exiting
-              ? t('registerWorking', 'Please wait…')
-              : t('signupComplete.exitToManualSignup', {
-                  defaultValue: 'Sign up with email instead',
-                })}
-          </button>
+        <div className="reg-footer">
           <h4>{t('registerHaveAccount', 'Have an account already?')}</h4>
           <button
             type="button"
-            className="reg-link-btn"
             disabled={submitting || phoneBusy || exiting}
             onClick={() => void exitSocialSignup('/login')}
             style={{
@@ -680,7 +667,7 @@ export const CompleteSignupPage: React.FC = () => {
               font: 'inherit',
             }}
           >
-            {t('signupComplete.exitToLogin', { defaultValue: 'Log In' })}
+            {t('registerLogIn', 'Log In')}
           </button>
         </div>
       </form>

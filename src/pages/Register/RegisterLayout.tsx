@@ -13,6 +13,8 @@ type Props = {
   title: string;
   variant?: 'shipper' | 'carrier';
   videoSrc?: string | null;
+  /** When set, logo click runs this instead of a plain navigation (e.g. logout from complete-signup). */
+  onLogoClick?: () => void;
 };
 
 export const RegisterLayout: React.FC<Props> = ({
@@ -23,6 +25,7 @@ export const RegisterLayout: React.FC<Props> = ({
   title,
   variant = 'shipper',
   videoSrc,
+  onLogoClick,
 }) => {
   const { toast, hideToast } = useApp();
   const resolvedVideo = videoSrc || signupVideoUrl(variant);
@@ -50,7 +53,15 @@ export const RegisterLayout: React.FC<Props> = ({
                 <span className="reg-lang-slider" />
               </label>
               <div className="reg-brand">
-                <Link to="/login" className="reg-logo-link">
+                <Link
+                  to="/login"
+                  className="reg-logo-link"
+                  onClick={(e) => {
+                    if (!onLogoClick) return;
+                    e.preventDefault();
+                    onLogoClick();
+                  }}
+                >
                   <img src={fullLogo} alt="MYVAGON" />
                 </Link>
                 <p className="reg-subtitle">{subtitle}</p>
