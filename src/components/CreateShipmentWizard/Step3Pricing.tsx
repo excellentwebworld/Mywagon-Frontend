@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -677,37 +678,24 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 </div>
               </div>
 
-              {values.broadcastType === 'public' && (
+              {values.broadcastType === 'public' && publicQuota?.status === false && (
                 <div className="mt-4">
-                  {publicQuotaLoading ? (
-                    <div className="text-xs text-slate-500">{t('loading') || 'Loading...'}</div>
-                  ) : publicQuota?.status === false ? (
-                    <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs flex items-start justify-between gap-3">
-                      <span>{publicQuota.message || t('publicQuotaExceeded') || 'You have reached your Public Load limit for this billing cycle.'}</span>
-                      {publicQuota.actions?.upgrade_url && (
-                        <a
-                          href={publicQuota.actions.upgrade_url}
-                          className="font-bold underline whitespace-nowrap"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {t('publicQuotaUpgrade') || 'Upgrade plan'}
-                        </a>
-                      )}
-                    </div>
-                  ) : publicQuota && publicQuota.limit !== undefined && publicQuota.limit > 0 && publicQuota.limit < 10000 ? (
-                    <div className="bg-sky-50 text-sky-800 p-3 rounded-lg text-xs">
-                      {t('publicQuotaBanner', {
-                        used: publicQuota.used ?? 0,
-                        limit: publicQuota.limit ?? 0,
-                        remaining: publicQuota.remaining ?? 0,
-                      })}
-                    </div>
-                  ) : publicQuota?.status ? (
-                    <div className="bg-sky-50 text-sky-800 p-3 rounded-lg text-xs">
-                      {t('publicQuotaUnlimited') || 'Unlimited public loads this billing cycle.'}
-                    </div>
-                  ) : null}
+                  <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs flex items-start justify-between gap-3">
+                    <span>{publicQuota.message || t('publicQuotaExceeded') || 'You have reached your Public Load limit for this billing cycle.'}</span>
+                    {publicQuota.actions?.upgrade_url && (
+                      <Link
+                        to={
+                          publicQuota.actions.upgrade_url.startsWith('http') ||
+                          publicQuota.actions.upgrade_url.startsWith('/shipper/subscription')
+                            ? '/subscription'
+                            : publicQuota.actions.upgrade_url
+                        }
+                        className="font-bold underline whitespace-nowrap"
+                      >
+                        {t('publicQuotaUpgrade') || 'Upgrade plan'}
+                      </Link>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1185,14 +1173,17 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                       {aiPriceDenied.upgradeUrl && (
                         <>
                           {' '}
-                          <a
-                            href={aiPriceDenied.upgradeUrl}
+                          <Link
+                            to={
+                              aiPriceDenied.upgradeUrl.startsWith('http') ||
+                              aiPriceDenied.upgradeUrl.startsWith('/shipper/subscription')
+                                ? '/subscription'
+                                : aiPriceDenied.upgradeUrl
+                            }
                             className="font-bold underline"
-                            target="_blank"
-                            rel="noreferrer"
                           >
                             {t('publicQuotaUpgrade') || 'Upgrade plan'}
-                          </a>
+                          </Link>
                         </>
                       )}
                     </div>

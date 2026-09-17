@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 interface SubscriptionGateModalProps {
   open: boolean;
@@ -15,6 +16,8 @@ export const SubscriptionGateModal: React.FC<SubscriptionGateModalProps> = ({
 }) => {
   if (!open) return null;
 
+  const isInternal = upgradeUrl.startsWith('/') && !upgradeUrl.startsWith('/shipper/');
+
   return (
     <div className="sat-gate-modal" role="dialog" aria-modal="true" aria-labelledby="sat-gate-title">
       <div className="sat-gate-modal__backdrop" />
@@ -29,9 +32,15 @@ export const SubscriptionGateModal: React.FC<SubscriptionGateModalProps> = ({
           <button type="button" className="sat-btn" onClick={onRemindLater}>
             {t('satRemindLater')}
           </button>
-          <a className="sat-btn sat-btn-pr" href={upgradeUrl} target="_blank" rel="noopener noreferrer">
-            {t('satUpgradeNow')}
-          </a>
+          {isInternal ? (
+            <Link className="sat-btn sat-btn-pr" to={upgradeUrl}>
+              {t('satUpgradeNow')}
+            </Link>
+          ) : (
+            <a className="sat-btn sat-btn-pr" href={upgradeUrl} target="_blank" rel="noopener noreferrer">
+              {t('satUpgradeNow')}
+            </a>
+          )}
         </div>
       </div>
     </div>

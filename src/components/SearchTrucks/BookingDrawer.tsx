@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type {
   AvailableTruck,
   BookingDraft,
@@ -543,14 +544,20 @@ function MatchScorePremiumDialog({
             {t('close') || t('satRemindLater') || 'Close'}
           </button>
           {upgradeUrl ? (
-            <a
-              className="sat-btn sat-btn-pr"
-              href={upgradeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t('satUpgradeNow') || 'Upgrade Now'}
-            </a>
+            upgradeUrl.startsWith('/') && !upgradeUrl.startsWith('/shipper/') ? (
+              <Link className="sat-btn sat-btn-pr" to={upgradeUrl}>
+                {t('satUpgradeNow') || 'Upgrade Now'}
+              </Link>
+            ) : (
+              <a
+                className="sat-btn sat-btn-pr"
+                href={upgradeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('satUpgradeNow') || 'Upgrade Now'}
+              </a>
+            )
           ) : null}
         </div>
       </div>

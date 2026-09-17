@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { ApiError } from '../../api';
 
 export function formatDashError(
@@ -50,12 +51,22 @@ export const DashUpgradeBlock: React.FC<DashUpgradeBlockProps> = ({
   upgradeUrl = '/subscription',
   t,
   compact,
-}) => (
-  <div className={`dash-upgrade${compact ? ' dash-upgrade--compact' : ''}`}>
-    <p className="dash-upgrade-title">{t('satUpgradeTitle')}</p>
-    <p className="dash-upgrade-body">{t('satUpgradeBody')}</p>
-    <a className="dash-upgrade-link" href={upgradeUrl} target="_blank" rel="noopener noreferrer">
-      {t('satUpgradeNow')}
-    </a>
-  </div>
-);
+}) => {
+  const isInternal = upgradeUrl.startsWith('/') && !upgradeUrl.startsWith('/shipper/');
+
+  return (
+    <div className={`dash-upgrade${compact ? ' dash-upgrade--compact' : ''}`}>
+      <p className="dash-upgrade-title">{t('satUpgradeTitle')}</p>
+      <p className="dash-upgrade-body">{t('satUpgradeBody')}</p>
+      {isInternal ? (
+        <Link className="dash-upgrade-link" to={upgradeUrl}>
+          {t('satUpgradeNow')}
+        </Link>
+      ) : (
+        <a className="dash-upgrade-link" href={upgradeUrl} target="_blank" rel="noopener noreferrer">
+          {t('satUpgradeNow')}
+        </a>
+      )}
+    </div>
+  );
+};

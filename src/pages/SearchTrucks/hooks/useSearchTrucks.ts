@@ -38,13 +38,11 @@ const USE_MOCK = import.meta.env.VITE_USE_SEARCH_TRUCKS_MOCK === 'true';
 const GATE_REMIND_SESSION_KEY = 'sat_subscription_gate_dismissed';
 
 function defaultSubscriptionUpgradeUrl(): string {
-  const base =
-    (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '') ?? '';
-  return `${base}/shipper/subscription/plan`;
+  return '/subscription';
 }
 
 function resolveUpgradeUrl(fromApi?: string): string {
-  if (fromApi && fromApi.length > 0) return fromApi;
+  if (fromApi && fromApi.length > 0 && !fromApi.includes('/shipper/subscription')) return fromApi;
   return defaultSubscriptionUpgradeUrl();
 }
 
