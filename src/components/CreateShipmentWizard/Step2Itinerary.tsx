@@ -109,8 +109,11 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
 
   const displayStops = viewingCurrent ? currentStops : wizardStops;
   const highlights = useMemo(
-    () => (showDiffHighlights ? buildEditDiffHighlights(wizardStops, editDiff?.difference) : { stops: {}, lines: {} }),
-    [editDiff?.difference, showDiffHighlights, wizardStops]
+    () =>
+      showDiffHighlights
+        ? buildEditDiffHighlights(wizardStops, editDiff?.difference, editDiff?.old_itinerary)
+        : { stops: {}, lines: {} },
+    [editDiff?.difference, editDiff?.old_itinerary, showDiffHighlights, wizardStops]
   );
 
   const { enrichedStops, totals, runningWeights } = useItineraryStats(displayStops, locations);
@@ -343,7 +346,9 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                 const rw = runningWeights[si] || 0;
                 const pin = pinColors(stop.hasPickup, stop.hasDropoff);
                 const isStopNew = isEditMode && !viewingCurrent && isNewStop(stop, editDiff?.old_itinerary);
-                const stopHl = showDiffHighlights ? highlights.stops[si] : undefined;
+                // New stops use the NEW badge only — never red field highlights.
+                const stopHl =
+                  showDiffHighlights && !isStopNew ? highlights.stops[si] : undefined;
                 const locationChanged = Boolean(stopHl?.address_id);
 
                 return (
@@ -548,10 +553,13 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                               </div>
                             )}
                             {customerGroup.orders.map((orderGroup, oi) => {
-                              const orderChanged = orderGroup.lines.some((l) => {
-                                const lineIndex = (stop.lines || []).indexOf(l);
-                                return Boolean(highlights.lines[`${si}:${lineIndex}`]?.order_id);
-                              });
+                              const orderChanged =
+                                !isStopNew &&
+                                orderGroup.lines.some((l) => {
+                                  if (isNewLine(l, editDiff?.old_itinerary)) return false;
+                                  const lineIndex = (stop.lines || []).indexOf(l);
+                                  return Boolean(highlights.lines[`${si}:${lineIndex}`]?.order_id);
+                                });
                               return (
                                 <div key={oi} className="mb-2 last:mb-0">
                                   {(orderGroup.orderRef || orderGroup.orderId) && (
@@ -564,7 +572,11 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                                   )}
                                   {orderGroup.lines.map((l, li) => {
                                     const lineIndex = (stop.lines || []).indexOf(l);
-                                    const lineHl = highlights.lines[`${si}:${lineIndex}`];
+                                    const lineIsNew = isNewLine(l, editDiff?.old_itinerary);
+                                    const lineHl =
+                                      showDiffHighlights && !lineIsNew
+                                        ? highlights.lines[`${si}:${lineIndex}`]
+                                        : undefined;
                                     return (
                                       <div
                                         key={li}
@@ -585,7 +597,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                                         >
                                           {l.action === 'pickup' ? '↑' : '↓'}
                                         </span>
-                                        {isEditMode && !viewingCurrent && isNewLine(l, editDiff?.old_itinerary) && (
+                                        {isEditMode && !viewingCurrent && lineIsNew && (
                                           <span
                                             className="text-[9px] font-bold px-1.5 py-0.5 rounded"
                                             style={badgeStyle('new')}

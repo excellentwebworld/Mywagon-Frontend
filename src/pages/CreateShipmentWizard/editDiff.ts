@@ -44,6 +44,18 @@ function fieldChanged(entry: ApiItineraryDiffField | undefined): boolean {
   return (entry.old !== undefined && oldVal !== '') || (entry.new !== undefined && newVal !== '');
 }
 
+function normalizeDate(value: unknown): string {
+  const raw = value != null ? String(value).trim() : '';
+  if (!raw) return '';
+  const iso = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  return iso ? iso[1] : raw;
+}
+
+function normalizeTime(value: unknown): string {
+  const raw = value != null ? String(value).trim() : '';
+  return raw ? raw.slice(0, 5) : '';
+}
+
 /** Walk stops → lines in the same order as BE `wizardItineraryRows`. */
 export function walkWizardLineIndexes(
   stops: ApiStop[]
@@ -57,15 +69,36 @@ export function walkWizardLineIndexes(
   return out;
 }
 
+/**
+ * Build red-field highlights for Updated Load.
+ * Schedule fields (date/time) are refined against old_itinerary by shipment_location_id
+ * so time-only edits never redden the date (and vice versa). New stops get no field reds.
+ */
 export function buildEditDiffHighlights(
   stops: ApiStop[],
-  difference: ApiEditPreviewDiff['difference'] | null | undefined
+  difference: ApiEditPreviewDiff['difference'] | null | undefined,
+  oldItinerary?: ApiComparableItineraryRow[] | null
 ): EditDiffHighlights {
   const result: EditDiffHighlights = { stops: {}, lines: {} };
   if (!difference) return result;
 
+  const oldByLocId = new Map<number, ApiComparableItineraryRow>();
+  (oldItinerary || []).forEach((row) => {
+    const id = row.shipment_location_id != null ? Number(row.shipment_location_id) : 0;
+    if (id > 0) oldByLocId.set(id, row);
+  });
+
   const flat = walkWizardLineIndexes(stops);
   flat.forEach(({ stopIndex, lineIndex }, flatIndex) => {
+    const stop = stops[stopIndex];
+    const line = stop?.lines?.[lineIndex];
+    const locId = line ? resolveLineShipmentLocationId(line) : null;
+
+    // Brand-new line/stop: NEW badge only — never red field highlights.
+    if (locId == null || (oldByLocId.size > 0 && !oldByLocId.has(locId))) {
+      return;
+    }
+
     const rowDiff = difference[String(flatIndex)] ?? difference[flatIndex as unknown as string];
     if (!rowDiff) return;
 
@@ -85,7 +118,65 @@ export function buildEditDiffHighlights(
     }
   });
 
+  // Correct schedule flags against live row. Never invent date/time reds from
+  // timezone noise when the backend did not report a schedule change.
+  refineScheduleHighlights(stops, result, oldByLocId);
+
   return result;
+}
+
+function refineScheduleHighlights(
+  stops: ApiStop[],
+  result: EditDiffHighlights,
+  oldByLocId: Map<number, ApiComparableItineraryRow>
+): void {
+  if (oldByLocId.size === 0) return;
+
+  (stops || []).forEach((stop, stopIndex) => {
+    const existing = result.stops[stopIndex];
+    if (!existing) return;
+
+    const matchedOld = (stop.lines || [])
+      .map((line) => {
+        const id = resolveLineShipmentLocationId(line);
+        return id != null ? oldByLocId.get(id) : undefined;
+      })
+      .find((row): row is ApiComparableItineraryRow => Boolean(row));
+
+    if (!matchedOld) {
+      // Entirely new stop — clear any schedule/address reds that leaked in.
+      delete result.stops[stopIndex];
+      return;
+    }
+
+    const hadSchedule = Boolean(
+      existing.date || existing.time || existing.date_to || existing.time_to
+    );
+    if (!hadSchedule) {
+      // Backend did not flag schedule — do not invent reds from minor TZ skew.
+      return;
+    }
+
+    const dateChanged = normalizeDate(stop.dateFrom) !== normalizeDate(matchedOld.date);
+    const timeChanged = normalizeTime(stop.timeFrom) !== normalizeTime(matchedOld.time);
+    const dateToChanged = normalizeDate(stop.dateTo || '') !== normalizeDate(matchedOld.date_to || '');
+    const timeToChanged = normalizeTime(stop.timeTo || '') !== normalizeTime(matchedOld.time_to || '');
+
+    delete existing.date;
+    delete existing.time;
+    delete existing.date_to;
+    delete existing.time_to;
+
+    // Re-apply only fields that actually differ (moves a mis-labeled date flag onto time, etc.).
+    if (dateChanged) existing.date = true;
+    if (timeChanged) existing.time = true;
+    if (dateToChanged) existing.date_to = true;
+    if (timeToChanged) existing.time_to = true;
+
+    if (!hasAnyStopHighlight(existing) && Object.keys(existing).length === 0) {
+      delete result.stops[stopIndex];
+    }
+  });
 }
 
 function rowGroupKey(row: ApiComparableItineraryRow): string {

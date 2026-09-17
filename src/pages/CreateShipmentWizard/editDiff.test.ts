@@ -20,7 +20,8 @@ describe('editDiff', () => {
       appointmentMode: 'fixed',
       lines: [
         {
-          id: 'line-1',
+          id: 'loc-101',
+          shipmentLocationId: 101,
           productId: '1',
           productName: 'Pallets',
           action: 'pickup',
@@ -38,7 +39,8 @@ describe('editDiff', () => {
       appointmentMode: 'fixed',
       lines: [
         {
-          id: 'line-2',
+          id: 'loc-102',
+          shipmentLocationId: 102,
           productId: '1',
           productName: 'Pallets',
           action: 'dropoff',
@@ -49,12 +51,41 @@ describe('editDiff', () => {
     },
   ];
 
+  const oldItinerary = [
+    {
+      shipment_location_id: 101,
+      order_id: 'ORD-1',
+      product_id: '1',
+      address_id: '10',
+      qty: '18',
+      weight: '500',
+      date: '2026-09-20',
+      time: '14:45',
+      date_to: '',
+      time_to: '',
+      type: 'pickup',
+    },
+    {
+      shipment_location_id: 102,
+      order_id: 'ORD-1',
+      product_id: '1',
+      address_id: '20',
+      qty: '18',
+      weight: '500',
+      date: '2026-09-22',
+      time: '14:45',
+      date_to: '',
+      time_to: '',
+      type: 'dropoff',
+    },
+  ];
+
   it('produces empty highlights when difference is empty or null', () => {
-    const res1 = buildEditDiffHighlights(sampleStops, null);
+    const res1 = buildEditDiffHighlights(sampleStops, null, oldItinerary);
     expect(res1.stops).toEqual({});
     expect(res1.lines).toEqual({});
 
-    const res2 = buildEditDiffHighlights(sampleStops, {});
+    const res2 = buildEditDiffHighlights(sampleStops, {}, oldItinerary);
     expect(res2.stops).toEqual({});
     expect(res2.lines).toEqual({});
   });
@@ -68,12 +99,22 @@ describe('editDiff', () => {
       },
     };
 
-    const res = buildEditDiffHighlights(sampleStops, diff as any);
+    const res = buildEditDiffHighlights(sampleStops, diff as any, oldItinerary);
     expect(res.stops[0]).toBeUndefined();
     expect(hasAnyStopHighlight(res.stops[0])).toBe(false);
   });
 
   it('accurately highlights changed date or time independently', () => {
+    const stops: ApiStop[] = [
+      {
+        ...sampleStops[0],
+        timeFrom: '16:00',
+      },
+      {
+        ...sampleStops[1],
+        dateFrom: '2026-09-23',
+      },
+    ];
     const diff = {
       '0': {
         time: { old: '14:45', new: '16:00' },
@@ -83,7 +124,7 @@ describe('editDiff', () => {
       },
     };
 
-    const res = buildEditDiffHighlights(sampleStops, diff as any);
+    const res = buildEditDiffHighlights(stops, diff as any, oldItinerary);
     expect(res.stops[0]?.time).toBe(true);
     expect(res.stops[0]?.date).toBeUndefined();
     expect(hasAnyStopHighlight(res.stops[0])).toBe(true);
@@ -94,20 +135,150 @@ describe('editDiff', () => {
   });
 
   it('keeps date unhighlighted when only shipment time is changed', () => {
+    const stops: ApiStop[] = [
+      { ...sampleStops[0], timeFrom: '21:30' },
+      { ...sampleStops[1], timeFrom: '21:40' },
+    ];
+    // Backend may incorrectly flag date — refine must clear it.
     const diff = {
       '0': {
-        time: { old: '20:00', new: '21:30' },
+        date: { old: '2026-09-20', new: '2026-09-20' },
+        time: { old: '14:45', new: '21:30' },
       },
       '1': {
-        time: { old: '20:30', new: '21:40' },
+        date: { old: '2026-09-22', new: '2026-09-22' },
+        time: { old: '14:45', new: '21:40' },
       },
     };
 
-    const res = buildEditDiffHighlights(sampleStops, diff as any);
+    const res = buildEditDiffHighlights(stops, diff as any, oldItinerary);
     expect(res.stops[0]?.time).toBe(true);
     expect(res.stops[0]?.date).toBeUndefined();
     expect(res.stops[1]?.time).toBe(true);
     expect(res.stops[1]?.date).toBeUndefined();
+  });
+
+  it('does not invent date/time highlights when backend did not flag schedule', () => {
+    const stops: ApiStop[] = [
+      { ...sampleStops[0], timeFrom: '21:30' }, // wizard drifted vs live
+      sampleStops[1],
+    ];
+    // Only qty changed — schedule must stay unhighlighted even if wizard time differs.
+    const diff = {
+      '0': {
+        qty: { old: '18', new: '20' },
+      },
+    };
+
+    const res = buildEditDiffHighlights(stops, diff as any, oldItinerary);
+    expect(res.stops[0]?.date).toBeUndefined();
+    expect(res.stops[0]?.time).toBeUndefined();
+    expect(res.lines['0:0']?.qty).toBe(true);
+  });
+
+  it('clears false date highlight when backend flags date but values match old itinerary', () => {
+    const stops: ApiStop[] = [
+      { ...sampleStops[0], timeFrom: '21:30' },
+      sampleStops[1],
+    ];
+    const diff = {
+      '0': {
+        date: { old: '2026-09-19', new: '2026-09-20' },
+        time: { old: '14:45', new: '21:30' },
+      },
+    };
+
+    const res = buildEditDiffHighlights(stops, diff as any, oldItinerary);
+    expect(res.stops[0]?.time).toBe(true);
+    expect(res.stops[0]?.date).toBeUndefined();
+  });
+
+  it('clears schedule highlights entirely when date and time both match live', () => {
+    const diff = {
+      '0': {
+        date: { old: '2026-09-19', new: '2026-09-20' },
+        time: { old: '12:00', new: '14:45' },
+      },
+    };
+
+    // Wizard matches live — false backend flags must be cleared.
+    const res = buildEditDiffHighlights(sampleStops, diff as any, oldItinerary);
+    expect(res.stops[0]?.date).toBeUndefined();
+    expect(res.stops[0]?.time).toBeUndefined();
+  });
+
+  it('does not red-highlight newly added stops (NEW badge only)', () => {
+    const stopsWithNew: ApiStop[] = [
+      ...sampleStops,
+      {
+        id: 'stop-new-3',
+        locationId: '30',
+        locationName: 'Isquare',
+        dateFrom: '2026-09-23',
+        timeFrom: '18:00',
+        lines: [
+          {
+            id: 'line-client-uuid-999',
+            productId: '2',
+            action: 'dropoff',
+            qty: '5',
+            weight: '100',
+          },
+        ],
+      },
+    ];
+    const diff = {
+      '2': {
+        address_id: { new: '30' },
+        date: { new: '2026-09-23' },
+        time: { new: '18:00' },
+      },
+    };
+
+    const res = buildEditDiffHighlights(stopsWithNew, diff as any, oldItinerary);
+    expect(res.stops[2]).toBeUndefined();
+    expect(isNewStop(stopsWithNew[2], oldItinerary)).toBe(true);
+  });
+
+  it('does not mis-highlight existing stop when a new stop is inserted before it', () => {
+    const stopsReordered: ApiStop[] = [
+      sampleStops[0],
+      {
+        id: 'stop-new-mid',
+        locationId: '30',
+        dateFrom: '2026-09-21',
+        timeFrom: '12:00',
+        lines: [
+          {
+            id: 'line-new',
+            productId: '2',
+            action: 'dropoff',
+            qty: '1',
+            weight: '10',
+          },
+        ],
+      },
+      {
+        ...sampleStops[1],
+        timeFrom: '16:00',
+      },
+    ];
+    // Index-aligned backend would wrongly compare new vs old dropoff at index 1.
+    const diff = {
+      '1': {
+        address_id: { old: '20', new: '30' },
+        date: { old: '2026-09-22', new: '2026-09-21' },
+      },
+      '2': {
+        time: { old: '14:45', new: '16:00' },
+      },
+    };
+
+    const res = buildEditDiffHighlights(stopsReordered, diff as any, oldItinerary);
+    expect(res.stops[1]).toBeUndefined();
+    expect(res.stops[2]?.time).toBe(true);
+    expect(res.stops[2]?.date).toBeUndefined();
+    expect(res.stops[2]?.address_id).toBeUndefined();
   });
 
   it('accurately highlights changed line fields', () => {
@@ -117,7 +288,7 @@ describe('editDiff', () => {
       },
     };
 
-    const res = buildEditDiffHighlights(sampleStops, diff as any);
+    const res = buildEditDiffHighlights(sampleStops, diff as any, oldItinerary);
     expect(res.lines['0:0']?.qty).toBe(true);
     expect(res.lines['0:0']?.weight).toBeUndefined();
   });
@@ -156,35 +327,6 @@ describe('editDiff', () => {
   });
 
   it('correctly identifies newly added stops and lines vs existing DB stops', () => {
-    const oldItinerary = [
-      {
-        shipment_location_id: 101,
-        order_id: 'ORD-1',
-        product_id: '1',
-        address_id: '10',
-        qty: '18',
-        weight: '500',
-        date: '2026-09-20',
-        time: '14:45',
-        date_to: '',
-        time_to: '',
-        type: 'pickup',
-      },
-      {
-        shipment_location_id: 102,
-        order_id: 'ORD-1',
-        product_id: '1',
-        address_id: '20',
-        qty: '18',
-        weight: '500',
-        date: '2026-09-22',
-        time: '14:45',
-        date_to: '',
-        time_to: '',
-        type: 'dropoff',
-      },
-    ];
-
     const existingStop: ApiStop = {
       id: 'stop-1',
       locationId: '10',
