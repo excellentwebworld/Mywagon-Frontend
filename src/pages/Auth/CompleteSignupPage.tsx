@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import { authService, signupService, SignupApiError } from '../../api/auth';
+import { authService, signupService, SignupApiError, getStoredToken } from '../../api/auth';
 import type {
   SignupReferenceCountryCode,
   SignupReferenceDomicile,
@@ -56,6 +56,35 @@ function extractOtp(res: { otp?: number | string; data?: { otp?: number | string
   const raw = res.otp ?? res.data?.otp;
   return raw == null || raw === '' ? null : String(raw);
 }
+
+/** Recovers AuthContext after social OAuth when token exists but user is not hydrated yet. */
+const SocialSignupSessionRecovery: React.FC = () => {
+  const { refreshUser } = useAuth();
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const profile = await refreshUser();
+        if (!cancelled && !profile) {
+          setFailed(true);
+        }
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshUser]);
+
+  if (failed) {
+    return <Navigate to="/login?social_error=1" replace />;
+  }
+
+  return <MyVagonBootScreen />;
+};
 
 /**
  * Social complete-signup — same layout/fields as RegisterPage (minus password).
@@ -448,7 +477,12 @@ export const CompleteSignupPage: React.FC = () => {
     return <MyVagonBootScreen />;
   }
 
+  // Social OAuth handoff: token is in storage before AuthContext user commits.
+  // Wait for refresh instead of bouncing to /login (that was dropping complete-signup).
   if (!isAuthenticated) {
+    if (getStoredToken()) {
+      return <SocialSignupSessionRecovery />;
+    }
     return <Navigate to="/login" replace />;
   }
 

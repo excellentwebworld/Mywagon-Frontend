@@ -23,7 +23,7 @@ interface AuthContextValue {
   sendTwoFactorRecoveryEmail: (challengeToken: string) => Promise<{ masked_email?: string }>;
   verifyTwoFactorRecovery: (challengeToken: string, code: string) => Promise<{ two_factor_reset: boolean; user: ShipperUser }>;
   logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<ShipperUser | null>;
   clearLoginError: () => void;
 }
 
@@ -37,17 +37,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const userRef = React.useRef<ShipperUser | null>(null);
   userRef.current = user;
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = useCallback(async (): Promise<ShipperUser | null> => {
     const stored = getStoredToken();
     if (!stored) {
       setUser(null);
       setToken(null);
-      return;
+      return null;
     }
 
     const profile = await authService.me();
     setUser(profile);
     setToken(stored);
+    return profile;
   }, []);
 
   useEffect(() => {

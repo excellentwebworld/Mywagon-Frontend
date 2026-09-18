@@ -27,6 +27,7 @@ export const SocialCallbackPage: React.FC = () => {
   const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null);
   const [otpCode, setOtpCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [handoffDone, setHandoffDone] = useState(false);
 
   useEffect(() => {
     const token = params.get('token');
@@ -63,25 +64,29 @@ export const SocialCallbackPage: React.FC = () => {
       try {
         clearStoredToken();
         setStoredToken(token);
-        await refreshUser();
+        const profile = await refreshUser();
         if (cancelled) return;
 
-        // Prefer backend hint for brand-new social prospects (avoids me() race).
-        if (signupCompleteParam === '0') {
+        if (!profile) {
+          throw new Error('missing profile');
+        }
+
+        clearInfoFormReminderSkip(profile.id);
+
+        // Wait one frame so AuthContext user/token commit before CompleteSignup mounts.
+        await new Promise<void>((resolve) => {
+          window.requestAnimationFrame(() => resolve());
+        });
+        if (cancelled) return;
+
+        setHandoffDone(true);
+        if (signupCompleteParam === '0' || needsSignupComplete(profile)) {
           navigate('/complete-signup', { replace: true });
           return;
         }
-
-        const profile = await import('../../api/auth').then((m) => m.authService.me());
-        clearInfoFormReminderSkip(profile.id);
         navigate(postAuthDestination(profile), { replace: true });
       } catch {
         if (cancelled) return;
-        // Token is stored — incomplete social signup can still continue on complete-signup.
-        if (signupCompleteParam === '0') {
-          navigate('/complete-signup', { replace: true });
-          return;
-        }
         clearStoredToken();
         forceLogoutKeepPage();
         setError(
@@ -146,7 +151,7 @@ export const SocialCallbackPage: React.FC = () => {
     );
   }
 
-  if (isAuthenticated && user && params.get('token')) {
+  if (handoffDone && isAuthenticated && user && params.get('token')) {
     if (needsSignupComplete(user) || params.get('signup_complete') === '0') {
       return <Navigate to="/complete-signup" replace />;
     }
