@@ -66,7 +66,10 @@ function groupPhysicalMapStops(
   stops.forEach((stop, idx) => {
     const normLocation = (stop.location || '').trim().toLowerCase();
     const normAddress = (stop.address || '').trim().toLowerCase();
-    const groupKey = `${stop.type}|${normLocation}|${normAddress}`;
+    const normDate = (stop.date || '').trim().toLowerCase();
+    const normTimeStart = (stop.timeStart || '').trim().toLowerCase();
+    // Align with StopsCard / Manage Shipments: schedule is part of stop identity.
+    const groupKey = `${stop.type}|${normLocation}|${normAddress}|${normDate}|${normTimeStart}`;
     if (seen.has(groupKey)) return;
     seen.add(groupKey);
     result.push({ stop, originalIndex: idx });

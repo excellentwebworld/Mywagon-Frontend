@@ -114,11 +114,14 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
   const map = new Map<string, PhysicalStop>();
 
   stops.forEach((stop, idx) => {
-    // Group consecutive or same physical location by type + location + address
+    // Same place + type + schedule only (multi-product at one appointment).
+    // Different time windows at the same address stay separate stops.
     const normLocation = (stop.location || '').trim().toLowerCase();
     const normAddress = (stop.address || '').trim().toLowerCase();
     const normType = stop.type;
-    const groupKey = `${normType}|${normLocation}|${normAddress}`;
+    const normDate = (stop.date || '').trim().toLowerCase();
+    const normTimeStart = (stop.timeStart || '').trim().toLowerCase();
+    const groupKey = `${normType}|${normLocation}|${normAddress}|${normDate}|${normTimeStart}`;
 
     const stopLocationId = stop.id || idx + 1;
     let physical = map.get(groupKey);
