@@ -7,6 +7,14 @@ import {
   type ReactNode,
 } from 'react';
 import { resolveTheme, applyThemeToDOM, type ThemeTokens } from '../utils/themes';
+import {
+  DEFAULT_NAV_MODE,
+  NAV_MODE_CHANGED_EVENT,
+  isNavMode,
+  readNavModePreference,
+  setNavModePreference,
+  type NavMode,
+} from '../utils/navMode';
 
 export interface ThemeContextValue {
   theme: string;
@@ -24,7 +32,6 @@ export const ThemeContext = createContext<ThemeContextValue | null>(null);
 const DEFAULT_THEME = 'amethyst';
 const STORAGE_KEY_THEME = 'mv_theme';
 const STORAGE_KEY_DARK = 'mv_dark';
-const STORAGE_KEY_NAV = 'mv_nav_mode';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   // PDS-937: theme picker removed — lock brand palette to amethyst (dark/light still apply)
@@ -65,13 +72,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const [navMode, setNavModeState] = useState(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEY_NAV) || 'sidebar';
-    } catch {
-      return 'sidebar';
-    }
-  });
+  const [navMode, setNavModeState] = useState<NavMode>(() => readNavModePreference());
+
+  useEffect(() => {
+    const onNavModeChanged = (event: Event) => {
+      const detail = event instanceof CustomEvent ? event.detail : undefined;
+      if (isNavMode(detail)) {
+        setNavModeState(detail);
+      }
+    };
+    window.addEventListener(NAV_MODE_CHANGED_EVENT, onNavModeChanged);
+    return () => window.removeEventListener(NAV_MODE_CHANGED_EVENT, onNavModeChanged);
+  }, []);
 
   const T = useMemo(() => resolveTheme(theme, isDark), [theme, isDark]);
 
@@ -103,12 +115,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const toggleDark = useCallback(() => setIsDark(!isDark), [isDark, setIsDark]);
 
   const setNavMode = useCallback((v: string) => {
-    setNavModeState(v);
-    try {
-      localStorage.setItem(STORAGE_KEY_NAV, v);
-    } catch {
-      /* ignore */
-    }
+    const next: NavMode = isNavMode(v) ? v : DEFAULT_NAV_MODE;
+    setNavModePreference(next);
   }, []);
 
   const value = useMemo(

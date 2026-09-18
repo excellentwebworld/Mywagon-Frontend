@@ -25,6 +25,31 @@ import '../../../styles/tutorials.css';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_INVOICE_EMAILS = 5;
+
+/** Scroll within settings scroller only — native scrollIntoView can scroll the document and leave blank space under the form after SPA handoff from /complete-signup. */
+function scrollWithinSettings(el, { block = 'start', behavior = 'smooth', offset = 12 } = {}) {
+  if (!(el instanceof HTMLElement)) return;
+
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+
+  const scroller =
+    el.closest('.settings-content') ||
+    el.closest('.settings-layout') ||
+    el.closest('.page-body');
+  if (!(scroller instanceof HTMLElement)) return;
+
+  const elRect = el.getBoundingClientRect();
+  const scrollerRect = scroller.getBoundingClientRect();
+  let top = elRect.top - scrollerRect.top + scroller.scrollTop;
+  if (block === 'center') {
+    top -= scroller.clientHeight / 2 - elRect.height / 2;
+  } else {
+    top -= offset;
+  }
+  scroller.scrollTo({ top: Math.max(0, top), behavior });
+}
 const BLADE_QUESTION_LABELS = {
   product_types: 'What type of products do you usually ship?',
   daily_loads: 'How many loads do you ship out on daily average?',
@@ -308,9 +333,14 @@ export default function OrganizationSection() {
     if (!fromInfoForm || !data || infoFormOpenedRef.current || editingOps || opsFields.length === 0) return;
     infoFormOpenedRef.current = true;
     startOpsEdit();
-    setTimeout(() => {
-      opsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Pin window scroll immediately (SPA handoff from tall /complete-signup), then scroll only the settings pane.
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    const timer = setTimeout(() => {
+      scrollWithinSettings(opsSectionRef.current, { behavior: 'smooth', block: 'start' });
     }, 150);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- open once when gate lands
   }, [fromInfoForm, data, opsFields]);
 
@@ -389,7 +419,7 @@ export default function OrganizationSection() {
       }
       const el = document.getElementById(`ops-field-${missingMandatory.key}`);
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        scrollWithinSettings(el, { behavior: 'smooth', block: 'center' });
       }
       return;
     }

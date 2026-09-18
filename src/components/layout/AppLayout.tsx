@@ -45,7 +45,14 @@ export const AppLayout: React.FC = () => {
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
 
-      const selectors = ['.page-body', '.main-content', '.app-layout', '.tut-page'];
+      const selectors = [
+        '.page-body',
+        '.main-content',
+        '.app-layout',
+        '.tut-page',
+        '.settings-layout',
+        '.settings-content',
+      ];
       selectors.forEach((sel) => {
         const el = document.querySelector(sel);
         if (el) {
@@ -62,7 +69,7 @@ export const AppLayout: React.FC = () => {
       clearTimeout(timer);
       cancelAnimationFrame(raf);
     };
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
   const isDesktop = useMediaQuery(DESKTOP_SIDEBAR_QUERY);
   const isSidebarCollapsed = sidebarCollapsed && isDesktop;
   const { toast, hideToast } = useApp();

@@ -7,6 +7,7 @@ import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { postAuthDestination } from '../../hooks/postAuthDestination';
 import { needsSignupComplete } from '../../hooks/useSignupCompleteGate';
+import { applyVerticalNavOnLogin } from '../../utils/navMode';
 import type { TwoFactorChallenge, TwoFactorMethod } from '../../api/auth';
 
 function forceLogoutKeepPage(): void {
@@ -64,6 +65,7 @@ export const SocialCallbackPage: React.FC = () => {
       try {
         clearStoredToken();
         setStoredToken(token);
+        applyVerticalNavOnLogin();
         const profile = await refreshUser();
         if (cancelled) return;
 

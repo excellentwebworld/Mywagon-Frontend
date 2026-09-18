@@ -19,6 +19,7 @@ import { postAuthDestination } from '../../hooks/postAuthDestination';
 import { needsSignupComplete } from '../../hooks/useSignupCompleteGate';
 import { clearInfoFormReminderSkip } from '../../components/layout/InfoFormReminderModal';
 import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
+import { applyVerticalNavOnLogin } from '../../utils/navMode';
 import './LoginPage.css';
 
 function isTwoFactorChallenge(
@@ -130,6 +131,7 @@ export const LoginPage: React.FC = () => {
       try {
         clearStoredToken();
         setStoredToken(token);
+        applyVerticalNavOnLogin();
         const profile = await refreshUser();
         if (cancelled) return;
         if (!profile) {

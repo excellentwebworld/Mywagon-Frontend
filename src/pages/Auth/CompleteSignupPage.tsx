@@ -443,6 +443,10 @@ export const CompleteSignupPage: React.FC = () => {
         }),
         'success',
       );
+      // Reset document scroll before entering AppLayout — avoids blank space under Info Form after social signup.
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
       navigate(profile ? postAuthDestination(profile) : '/dashboard', { replace: true });
     } catch (err) {
       if (err instanceof SignupApiError) {

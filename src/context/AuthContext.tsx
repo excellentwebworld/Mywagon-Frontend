@@ -9,6 +9,7 @@ import {
 } from '../api/auth';
 import { cleanupLocalFcmDevice, unregisterFcmDevice } from '../hooks/useFcm';
 import { clearInfoFormReminderSkip } from '../components/layout/InfoFormReminderModal';
+import { applyVerticalNavOnLogin } from '../utils/navMode';
 
 interface AuthContextValue {
   user: ShipperUser | null;
@@ -147,6 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       // Laravel LoginController forgets info_form_reminder_shown on fresh login.
       clearInfoFormReminderSkip(result.user?.id);
+      applyVerticalNavOnLogin();
       setStoredToken(result.token);
       setToken(result.token);
       setUser(result.user);
@@ -163,6 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { token: bearerToken, user: profile } = await authService.verifyTwoFactor(challengeToken, code);
       clearInfoFormReminderSkip(profile?.id);
+      applyVerticalNavOnLogin();
       setStoredToken(bearerToken);
       setToken(bearerToken);
       setUser(profile);
@@ -188,6 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { token: bearerToken, user: profile, two_factor_reset } =
         await authService.verifyTwoFactorRecovery(challengeToken, code);
       clearInfoFormReminderSkip(profile?.id);
+      applyVerticalNavOnLogin();
       setStoredToken(bearerToken);
       setToken(bearerToken);
       setUser(profile);
