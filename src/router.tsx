@@ -7,6 +7,7 @@ import { ForgotPasswordPage } from './pages/Auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/Auth/ResetPasswordPage';
 import { PasswordChangeSuccessPage } from './pages/Auth/PasswordChangeSuccessPage';
 import { SocialCallbackPage } from './pages/Auth/SocialCallbackPage';
+import { RootRedirect } from './pages/Auth/RootRedirect';
 import { CompleteSignupPage } from './pages/Auth/CompleteSignupPage';
 import { Dashboard } from './pages/Dashboard';
 import { ManageShipments } from './pages/ManageShipments';
@@ -134,7 +135,7 @@ export const router = createBrowserRouter(
         ...legalRoutes,
         ...webViewRoutes,
         ...publicTrackingRoutes,
-        { path: '/', element: <Navigate to="/address-book" replace /> },
+        { path: '/', element: <RootRedirect fallback="/address-book" /> },
         protectedLayout,
         { path: '*', element: <Navigate to="/address-book" replace /> },
       ]
@@ -143,7 +144,7 @@ export const router = createBrowserRouter(
         ...legalRoutes,
         ...webViewRoutes,
         ...publicTrackingRoutes,
-        { path: '/', element: <Navigate to="/login" replace /> },
+        { path: '/', element: <RootRedirect fallback="/login" /> },
         { path: '/about', element: <Navigate to="/login" replace /> },
         protectedLayout,
         { path: '*', element: <Navigate to="/login" replace /> },

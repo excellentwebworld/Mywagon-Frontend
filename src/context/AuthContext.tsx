@@ -218,8 +218,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       void cleanupLocalFcmDevice().finally(() => {
         setUser(null);
         setToken(null);
-        const path = window.location.pathname || '';
+        const path = (window.location.pathname || '').replace(/\/$/, '') || '/';
         const isPublicGuestPath =
+          path === '/' ||
           path === '/login' ||
           path.startsWith('/track-shipment') ||
           path.startsWith('/shipper/track-shipment') ||
@@ -230,7 +231,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           path.startsWith('/terms-condition') ||
           path.startsWith('/privacy-policy');
         if (!isPublicGuestPath) {
-          window.location.href = '/login';
+          // Hard-nav to `/` (Amplify serves root); RootRedirect sends guests to /login.
+          window.location.href = '/';
         }
       });
     };

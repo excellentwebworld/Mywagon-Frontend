@@ -31,6 +31,32 @@ function isLocationComplete(status?: string | number | null): boolean {
   return code === '5' || code === '6' || code === '7';
 }
 
+function physicalDeliveryKey(stop: ShipmentStop): string {
+  const location = (stop.location || '').trim().toLowerCase();
+  const address = (stop.address || '').trim().toLowerCase();
+  const date = (stop.date || '').trim();
+  return `delivery|${location}|${address}|${date}`;
+}
+
+function collectOrderIds(stop: ShipmentStop): string[] {
+  const orderIds: string[] = [];
+  if ((stop as any).order_id) orderIds.push(String((stop as any).order_id));
+  if ((stop as any).orderId && !orderIds.includes(String((stop as any).orderId))) {
+    orderIds.push(String((stop as any).orderId));
+  }
+  if (stop.customers && stop.customers.length > 0) {
+    stop.customers.forEach((c) => {
+      c.orders?.forEach((o) => {
+        const oId = typeof o === 'string' ? o : o?.id;
+        if (oId && !orderIds.includes(String(oId))) {
+          orderIds.push(String(oId));
+        }
+      });
+    });
+  }
+  return orderIds;
+}
+
 export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
   open,
   stops,
@@ -62,73 +88,115 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
 
   const deliveryRows = useMemo(() => {
     if (stops && stops.length > 0) {
-      return stops
-        .filter((s) => s.type === 'delivery')
-        .map((s, idx) => {
-          const orderIds: string[] = [];
-          if ((s as any).order_id) orderIds.push(String((s as any).order_id));
-          if ((s as any).orderId && !orderIds.includes(String((s as any).orderId))) {
-            orderIds.push(String((s as any).orderId));
-          }
-          if (s.customers && s.customers.length > 0) {
-            s.customers.forEach((c) => {
-              c.orders?.forEach((o) => {
-                const oId = typeof o === 'string' ? o : o?.id;
-                if (oId && !orderIds.includes(String(oId))) {
-                  orderIds.push(String(oId));
-                }
-              });
-            });
-          }
-          const orderId = orderIds.join(', ') || '';
-          const date = s.date || '';
-          const sTime = (s.timeStart || '').trim();
-          const eTime = (s.timeEnd || '').trim();
-          const time =
-            sTime && eTime && sTime !== eTime
-              ? `${sTime} - ${eTime}`
-              : sTime || eTime || '';
-          // Prefer persisted tracking_email (may be CSV of multiple recipients).
-          // Do not fall back to a single customer profile email when tracking_email is set empty intentionally.
-          const trackingEmailRaw =
-            (s as any).tracking_email ||
-            (s as any).trackingEmail ||
-            '';
-          const initialEmail =
-            trackingEmailRaw ||
-            (s as any).email ||
-            (s.customers?.[0] as any)?.email ||
-            '';
-          const trackingUrl =
-            (s as any).tracking_url ||
-            (s as any).trackingUrl ||
-            null;
-          const locationStatus =
-            (s as any).locationStatus ??
-            (s as any).location_status ??
-            (s as any).status ??
-            null;
-          const rowComplete = isLocationComplete(locationStatus);
+      const deliveries = stops.filter((s) => s.type === 'delivery');
+      const grouped = new Map<
+        string,
+        {
+          id: string | number;
+          locationIds: Array<string | number>;
+          locationName: string;
+          address: string;
+          date: string;
+          time: string;
+          orderIds: string[];
+          defaultEmails: string[];
+          trackingUrl: string | null;
+          locationComplete: boolean;
+          rowReadOnly: boolean;
+        }
+      >();
 
-          return {
-            id: s.id || `delivery-${idx}`,
+      deliveries.forEach((s, idx) => {
+        const key = physicalDeliveryKey(s);
+        const orderIds = collectOrderIds(s);
+        const date = s.date || '';
+        const sTime = (s.timeStart || '').trim();
+        const eTime = (s.timeEnd || '').trim();
+        const time =
+          sTime && eTime && sTime !== eTime
+            ? `${sTime} - ${eTime}`
+            : sTime || eTime || '';
+        const trackingEmailRaw =
+          (s as any).tracking_email ||
+          (s as any).trackingEmail ||
+          '';
+        const initialEmail =
+          trackingEmailRaw ||
+          (s as any).email ||
+          (s.customers?.[0] as any)?.email ||
+          '';
+        const trackingUrl =
+          (s as any).tracking_url ||
+          (s as any).trackingUrl ||
+          null;
+        const locationStatus =
+          (s as any).locationStatus ??
+          (s as any).location_status ??
+          (s as any).status ??
+          null;
+        const rowComplete = isLocationComplete(locationStatus);
+        const locationId = s.id || `delivery-${idx}`;
+
+        const existing = grouped.get(key);
+        if (!existing) {
+          grouped.set(key, {
+            id: locationId,
+            locationIds: [locationId],
             locationName: s.location || '',
             address: s.address && s.address !== s.location ? s.address : '',
             date,
             time,
-            orderId: String(orderId || ''),
+            orderIds: [...orderIds],
             defaultEmails: splitEmails(initialEmail),
             trackingUrl: trackingUrl ? String(trackingUrl) : null,
             locationComplete: rowComplete,
             rowReadOnly: shipmentEmailsReadOnly || rowComplete,
-          };
+          });
+          return;
+        }
+
+        if (!existing.locationIds.includes(locationId)) {
+          existing.locationIds.push(locationId);
+        }
+        orderIds.forEach((oid) => {
+          if (!existing.orderIds.includes(oid)) existing.orderIds.push(oid);
         });
+        // Prefer a non-empty tracking email if the first product row had none.
+        if (
+          existing.defaultEmails.every((e) => !e.trim()) &&
+          String(initialEmail || '').trim()
+        ) {
+          existing.defaultEmails = splitEmails(initialEmail);
+        }
+        if (!existing.trackingUrl && trackingUrl) {
+          existing.trackingUrl = String(trackingUrl);
+        }
+        // Row is complete only when every product line at this stop is complete.
+        existing.locationComplete = existing.locationComplete && rowComplete;
+        existing.rowReadOnly =
+          shipmentEmailsReadOnly || existing.locationComplete;
+      });
+
+      return Array.from(grouped.values()).map((row) => ({
+        id: row.id,
+        locationIds: row.locationIds,
+        locationName: row.locationName,
+        address: row.address,
+        date: row.date,
+        time: row.time,
+        orderId: row.orderIds.join(', '),
+        defaultEmails: row.defaultEmails,
+        trackingUrl: row.trackingUrl,
+        locationComplete: row.locationComplete,
+        rowReadOnly: row.rowReadOnly,
+      }));
     }
 
     if (groups && groups.length > 0) {
       return groups.flatMap((g) =>
         g.rows.map((r, idx) => ({
           id: `${r.location}-${r.orderRef}-${idx}`,
+          locationIds: [`${r.location}-${r.orderRef}-${idx}`],
           locationName: r.location,
           address: '',
           date: '',
@@ -230,11 +298,14 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
   const handleSubmit = () => {
     if (!onSend) return;
     // Only submit editable rows (completed locations stay as-is on the server).
+    // Apply the same emails to every product location row at this physical dropoff.
     const editable: Record<string | number, string[]> = {};
     deliveryRows.forEach((row) => {
-      if (!row.rowReadOnly) {
-        editable[row.id] = emails[row.id] || [''];
-      }
+      if (row.rowReadOnly) return;
+      const list = emails[row.id] || [''];
+      (row.locationIds || [row.id]).forEach((locationId) => {
+        editable[locationId] = list;
+      });
     });
     onSend(editable);
   };
