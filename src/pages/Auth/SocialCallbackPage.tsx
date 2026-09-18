@@ -6,7 +6,14 @@ import { clearInfoFormReminderSkip } from '../../components/layout/InfoFormRemin
 import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { postAuthDestination } from '../../hooks/postAuthDestination';
+import { needsSignupComplete } from '../../hooks/useSignupCompleteGate';
 import type { TwoFactorChallenge, TwoFactorMethod } from '../../api/auth';
+
+function forceLogoutKeepPage(): void {
+  window.dispatchEvent(
+    new CustomEvent('shipper:force-logout', { detail: { skipRedirect: true } }),
+  );
+}
 
 /**
  * OAuth return landing: stores Sanctum token (or hands off to 2FA on /login).
@@ -27,10 +34,11 @@ export const SocialCallbackPage: React.FC = () => {
     const challengeToken = params.get('challenge_token');
     const method = params.get('method') as TwoFactorMethod | null;
     const maskedEmail = params.get('masked_email') || '';
+    const signupCompleteParam = params.get('signup_complete');
 
     if (twoFactor && challengeToken && method) {
       clearStoredToken();
-      window.dispatchEvent(new Event('shipper:force-logout'));
+      forceLogoutKeepPage();
       setChallenge({
         challenge_token: challengeToken,
         method,
@@ -41,7 +49,7 @@ export const SocialCallbackPage: React.FC = () => {
 
     if (!token) {
       clearStoredToken();
-      window.dispatchEvent(new Event('shipper:force-logout'));
+      forceLogoutKeepPage();
       setError(
         t('socialAuth.missingToken', {
           defaultValue: 'Social sign-in failed. Please try again.',
@@ -57,19 +65,30 @@ export const SocialCallbackPage: React.FC = () => {
         setStoredToken(token);
         await refreshUser();
         if (cancelled) return;
+
+        // Prefer backend hint for brand-new social prospects (avoids me() race).
+        if (signupCompleteParam === '0') {
+          navigate('/complete-signup', { replace: true });
+          return;
+        }
+
         const profile = await import('../../api/auth').then((m) => m.authService.me());
         clearInfoFormReminderSkip(profile.id);
         navigate(postAuthDestination(profile), { replace: true });
       } catch {
-        if (!cancelled) {
-          clearStoredToken();
-          window.dispatchEvent(new Event('shipper:force-logout'));
-          setError(
-            t('socialAuth.sessionFailed', {
-              defaultValue: 'Could not start your session. Please try again.',
-            }),
-          );
+        if (cancelled) return;
+        // Token is stored — incomplete social signup can still continue on complete-signup.
+        if (signupCompleteParam === '0') {
+          navigate('/complete-signup', { replace: true });
+          return;
         }
+        clearStoredToken();
+        forceLogoutKeepPage();
+        setError(
+          t('socialAuth.sessionFailed', {
+            defaultValue: 'Could not start your session. Please try again.',
+          }),
+        );
       }
     })();
 
@@ -128,6 +147,9 @@ export const SocialCallbackPage: React.FC = () => {
   }
 
   if (isAuthenticated && user && params.get('token')) {
+    if (needsSignupComplete(user) || params.get('signup_complete') === '0') {
+      return <Navigate to="/complete-signup" replace />;
+    }
     return <Navigate to={postAuthDestination(user)} replace />;
   }
 

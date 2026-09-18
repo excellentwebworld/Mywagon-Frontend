@@ -86,6 +86,15 @@ export const LoginPage: React.FC = () => {
     clearSignupDraft();
   }, []);
 
+  // OAuth returns to /login?token=… (Amplify-safe). Forward into the social callback handler.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('social_error') === '1') return;
+    if (params.get('token') || params.get('two_factor') === '1') {
+      navigate(`/auth/social/callback?${params.toString()}`, { replace: true });
+    }
+  }, [location.search, navigate]);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('social_error') !== '1') return;
@@ -109,6 +118,10 @@ export const LoginPage: React.FC = () => {
     const params = new URLSearchParams(location.search);
     // Stay on login until logout finishes after a social error.
     if (params.get('social_error') === '1') {
+      return <MyVagonBootScreen />;
+    }
+    // OAuth handoff in progress — do not bounce to dashboard while token is forwarded.
+    if (params.get('token') || params.get('two_factor') === '1') {
       return <MyVagonBootScreen />;
     }
     const dest = user ? postLoginPath(user, from) : from;
