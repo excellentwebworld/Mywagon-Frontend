@@ -109,6 +109,8 @@ export interface ApplyEditShipmentResponse {
 export interface ApiComparableItineraryRow {
   shipment_location_id?: number | null;
   order_id?: string;
+  /** Human-readable ERP order reference for display (not the DB PK). */
+  order_reference?: string;
   product_id?: string;
   address_id?: string;
   qty?: string;

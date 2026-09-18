@@ -235,7 +235,7 @@ export function oldItineraryToDisplayStops(rows: ApiComparableItineraryRow[]): A
       productId: String(row.product_id ?? ''),
       productName: '',
       orderId: String(row.order_id ?? ''),
-      orderRef: String(row.order_id ?? ''),
+      orderRef: String(row.order_reference ?? row.order_id ?? ''),
       action: typeToAction(row.type),
       qty: row.qty ?? '',
       weight: row.weight ?? '',

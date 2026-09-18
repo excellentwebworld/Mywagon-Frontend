@@ -435,10 +435,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           ...(canonicalRef ? { [canonicalRef]: detail } : {}),
         }));
 
-        // Only rewrite line orderIds when API returned a real numeric PK different
-        // from the stored reference key.
-        if (canonicalId === orderId || !/^\d+$/.test(canonicalId)) continue;
-
+        // Always sync orderId (canonical PK) + orderRef (human-readable reference).
+        // Edit can seed orderRef as the DB PK (e.g. "78"); skipping when ids already
+        // match left the ORDER ID chip showing the PK instead of order_reference.
         setStops((prev) => {
           let changed = false;
           const next = prev.map((stop: any) => ({
@@ -454,17 +453,29 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                     lineOrderRef === canonicalRef ||
                     lineOrderRef === orderId));
               if (!matches) return line;
+
+              const nextOrderId = /^\d+$/.test(canonicalId)
+                ? canonicalId
+                : lineOrderId || canonicalId;
+              const nextOrderRef =
+                canonicalRef ||
+                (lineOrderRef && lineOrderRef !== nextOrderId
+                  ? lineOrderRef
+                  : "") ||
+                lineOrderRef ||
+                orderId;
+
               if (
-                lineOrderId === canonicalId &&
-                (canonicalRef === "" || lineOrderRef === canonicalRef)
+                lineOrderId === nextOrderId &&
+                lineOrderRef === nextOrderRef
               ) {
                 return line;
               }
               changed = true;
               return {
                 ...line,
-                orderId: canonicalId,
-                orderRef: canonicalRef || lineOrderRef || orderId,
+                orderId: nextOrderId,
+                orderRef: nextOrderRef,
               };
             }),
           }));
@@ -2759,6 +2770,9 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       t={t}
                       iS={iS}
                       ordOpts={ordOpts}
+                      displayOrderRef={
+                        orderDetail?.orderReference || ln.orderRef || ln.orderId
+                      }
                       loading={ordersLoading || orderLoadingLineId === ln.id}
                       hasError={isInvalid(`stop-${stopIndex}-line-${li}-order`)}
                       onSelOrd={(v) => onSelOrd(ln.id, v)}
@@ -3306,6 +3320,8 @@ interface OrderCellProps {
   t: any;
   iS: any;
   ordOpts: any[];
+  /** Prefer human-readable order_reference over DB PK when hydrate is still catching up. */
+  displayOrderRef?: string;
   loading?: boolean;
   hasError?: boolean;
   onSelOrd: (val: string) => void;
@@ -3318,20 +3334,24 @@ const OrderCell: React.FC<OrderCellProps> = ({
   T,
   t,
   ordOpts,
+  displayOrderRef,
   loading = false,
   hasError = false,
   onSelOrd,
   onClearOrder,
   onNewOrd,
 }) => {
-  if (loading && !ln.orderRef) {
+  const chipLabel = String(
+    displayOrderRef || ln.orderRef || ln.orderId || "",
+  ).trim();
+  if (loading && !chipLabel) {
     return (
       <span className="text-[10px]" style={{ color: T.t3 }}>
         {t("loading") || "Loading..."}
       </span>
     );
   }
-  if (ln.orderRef) {
+  if (chipLabel) {
     return (
       <div className="flex items-center gap-0.5">
         <span
@@ -3343,7 +3363,7 @@ const OrderCell: React.FC<OrderCellProps> = ({
             maxWidth: 80,
           }}
         >
-          {ln.orderRef}
+          {chipLabel}
         </span>
         <button
           type="button"

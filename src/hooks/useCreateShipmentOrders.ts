@@ -4,6 +4,7 @@ import { erpOrdersService } from '../api';
 import { mapApiListItemToOrder } from '../api/mappers/erpOrdersMapper';
 import type { ErpOrder, ErpOrderLine } from '../pages/ErpOrders/types';
 import { wizardQueryKeys } from '../pages/CreateShipmentWizard/hooks/wizardQueryKeys';
+import { isOrderEligibleForCreateLoad } from '../pages/CreateShipmentWizard/hooks/erpOrdersPrefill';
 
 type StopLineLike = {
   orderId?: string;
@@ -156,17 +157,21 @@ export function useCreateShipmentOrders(options?: {
     : 'ex:none:';
 
   const ordersQuery = useQuery({
-    queryKey: [...wizardQueryKeys.unlinkedOrders, excludeShipmentId ?? null],
+    // Same list for create + edit: do NOT key/filter by excludeShipmentId.
+    // Passing exclude_shipment_id on the list re-includes fully planned orders
+    // already on this load. Detail fetch still uses exclude for remaining qty.
+    queryKey: wizardQueryKeys.unlinkedOrders,
     queryFn: async () => {
       const result = await erpOrdersService.listOrders({
         available_for_shipment: true,
-        ...(excludeShipmentId ? { exclude_shipment_id: excludeShipmentId } : {}),
         per_page: 100,
         page: 1,
         sort: 'updated_at',
         sort_dir: 'desc',
       });
-      return result.items.map(mapApiListItemToOrder);
+      return result.items
+        .map(mapApiListItemToOrder)
+        .filter(isOrderEligibleForCreateLoad);
     },
     staleTime: 30 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -224,7 +229,7 @@ export function useCreateShipmentOrders(options?: {
     (order: ErpOrder) => {
       detailCacheRef.current.set(`${detailCachePrefix}${order.id}`, order);
       queryClient.setQueryData<ErpOrder[]>(
-        [...wizardQueryKeys.unlinkedOrders, excludeShipmentId ?? null],
+        wizardQueryKeys.unlinkedOrders,
         (prev) => {
           const list = prev ?? [];
           if (list.some((o) => o.id === order.id)) {
@@ -234,7 +239,7 @@ export function useCreateShipmentOrders(options?: {
         }
       );
     },
-    [detailCachePrefix, excludeShipmentId, queryClient]
+    [detailCachePrefix, queryClient]
   );
 
   const orderOptions = orders.map((order) => ({
