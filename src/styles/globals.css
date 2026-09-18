@@ -2097,6 +2097,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm, 8px);
   box-shadow: var(--shadow-md); overflow: hidden;
+  display: flex; flex-direction: column; box-sizing: border-box;
 }
 .searchable-select-menu.open-up {
   top: auto;
@@ -2105,14 +2106,16 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .searchable-select-menu.menu-fixed {
   right: auto;
 }
-.searchable-select-search { padding: 8px; border-bottom: 1px solid var(--border); }
+.searchable-select-search { padding: 8px; border-bottom: 1px solid var(--border); flex-shrink: 0; box-sizing: border-box; }
 .searchable-select-search input {
   width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; font-family: inherit;
+  box-sizing: border-box;
 }
-.searchable-select-options { max-height: 220px; overflow-y: auto; }
+.searchable-select-options { flex: 1 1 auto; min-height: 0; max-height: 220px; overflow-y: auto; box-sizing: border-box; }
 .searchable-select-option {
   width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
   padding: 8px 10px; border: none; background: transparent; font-size: 13px; text-align: left; cursor: pointer; font-family: inherit;
+  flex-shrink: 0; box-sizing: border-box;
 }
 .searchable-select-option:hover { background: var(--surface-alt); }
 .searchable-select-option.selected { background: var(--accent-pale); color: var(--accent); }
@@ -2122,12 +2125,13 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .searchable-select-footer {
   width: 100%; padding: 10px; border: none; border-top: 1px solid var(--border); background: var(--surface-alt);
   font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; font-family: inherit;
+  flex-shrink: 0; box-sizing: border-box;
 }
 .searchable-select-footer:hover { background: var(--accent-pale); }
 .searchable-select-header-action {
   width: 100%; padding: 10px 12px; border: none; border-bottom: 1px solid var(--border); background: var(--surface-alt);
   font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; font-family: inherit;
-  text-align: left; display: block;
+  text-align: left; display: block; flex-shrink: 0; box-sizing: border-box;
 }
 .searchable-select-header-action:hover { background: var(--accent-pale); }
 .mf .searchable-select { margin-top: 0; }

@@ -2801,6 +2801,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       }
                       menuFixed={true}
                       hideSublabelInTrigger={true}
+                      minMenuWidth={240}
                     />
                     {indicators.length > 0 && (
                       <div className="flex gap-1 mt-0.5">
@@ -3340,6 +3341,7 @@ const OrderCell: React.FC<OrderCellProps> = ({
       }}
       menuFixed={true}
       hideSublabelInTrigger={true}
+      minMenuWidth={240}
     />
   );
 };

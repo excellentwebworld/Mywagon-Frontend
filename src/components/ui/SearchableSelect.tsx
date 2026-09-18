@@ -21,6 +21,8 @@ type Props = {
   headerAction?: { label: string; onClick: () => void };
   direction?: 'up' | 'down' | 'auto';
   menuFixed?: boolean;
+  menuWidth?: number | string;
+  minMenuWidth?: number;
   hideSublabelInTrigger?: boolean;
   /** When false, hides the search field (better for short option lists). Default true. */
   searchable?: boolean;
@@ -44,6 +46,8 @@ export const SearchableSelect: React.FC<Props> = ({
   headerAction,
   direction = 'auto',
   menuFixed = false,
+  menuWidth,
+  minMenuWidth,
   hideSublabelInTrigger = false,
   searchable = true,
   loading = false,
@@ -60,6 +64,7 @@ export const SearchableSelect: React.FC<Props> = ({
     anchorBottom: number;
     left: number;
     width: number;
+    maxHeight: number;
     openUp: boolean;
   } | null>(null);
 
@@ -104,24 +109,72 @@ export const SearchableSelect: React.FC<Props> = ({
     return () => window.removeEventListener('scroll', onScroll, true);
   }, [open, menuFixed]);
 
-  useLayoutEffect(() => {
-    if (!open || !menuFixed || !rootRef.current) {
-      setMenuRect(null);
-      return;
-    }
+  const updateMenuPosition = React.useCallback(() => {
+    if (!rootRef.current) return;
     const trigger = rootRef.current.querySelector('.searchable-select-trigger') as HTMLElement | null;
     if (!trigger) return;
+
     const rect = trigger.getBoundingClientRect();
-    const up =
-      direction === 'up' ? true : direction === 'down' ? false : openUp;
+    const margin = 8;
+    const spaceBelow = window.innerHeight - rect.bottom - margin;
+    const spaceAbove = rect.top - margin;
+
+    let up = false;
+    if (direction === 'up') {
+      up = true;
+    } else if (direction === 'down') {
+      up = false;
+    } else {
+      // 'auto' direction: prefer down if plenty of room (>= 240px), otherwise open in direction with more space
+      if (spaceBelow >= 240) {
+        up = false;
+      } else if (spaceAbove > spaceBelow) {
+        up = true;
+      } else {
+        up = false;
+      }
+    }
+
+    setOpenUp(up);
+
+    const availableHeight = up ? spaceAbove : spaceBelow;
+    const maxHeight = Math.max(120, Math.min(320, availableHeight - 4));
+
+    const minW = minMenuWidth ?? (rect.width < 220 ? 220 : rect.width);
+    const targetWidth =
+      typeof menuWidth === 'number'
+        ? menuWidth
+        : Math.max(rect.width, minW);
+
+    const finalWidth = Math.min(targetWidth, window.innerWidth - margin * 2);
+    const finalLeft = Math.max(margin, Math.min(rect.left, window.innerWidth - finalWidth - margin));
+
     setMenuRect({
       anchorTop: rect.top,
       anchorBottom: rect.bottom,
-      left: rect.left,
-      width: rect.width,
+      left: finalLeft,
+      width: finalWidth,
+      maxHeight,
       openUp: up,
     });
-  }, [open, menuFixed, openUp, direction]);
+  }, [direction, menuWidth, minMenuWidth]);
+
+  useLayoutEffect(() => {
+    if (!open || !menuFixed) {
+      setMenuRect(null);
+      return;
+    }
+    updateMenuPosition();
+  }, [open, menuFixed, updateMenuPosition]);
+
+  useEffect(() => {
+    if (!open || !menuFixed) return;
+    const onResize = () => {
+      updateMenuPosition();
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [open, menuFixed, updateMenuPosition]);
 
   const handleQuery = (next: string) => {
     setQuery(next);
@@ -130,16 +183,17 @@ export const SearchableSelect: React.FC<Props> = ({
 
   const handleToggle = () => {
     if (disabled) return;
-    if (!open) {
+    if (!open && !menuFixed && rootRef.current) {
+      const rect = rootRef.current.getBoundingClientRect();
+      const margin = 8;
+      const spaceBelow = window.innerHeight - rect.bottom - margin;
+      const spaceAbove = rect.top - margin;
       if (direction === 'down') {
         setOpenUp(false);
       } else if (direction === 'up') {
         setOpenUp(true);
-      } else if (rootRef.current) {
-        const rect = rootRef.current.getBoundingClientRect();
-        const spaceBelow = window.innerHeight - rect.bottom;
-        const spaceAbove = rect.top;
-        setOpenUp(spaceBelow < 280 && spaceAbove > spaceBelow);
+      } else {
+        setOpenUp(spaceBelow < 240 && spaceAbove > spaceBelow);
       }
     }
     setOpen((v) => !v);
@@ -226,6 +280,7 @@ export const SearchableSelect: React.FC<Props> = ({
               width: menuRect.width,
               top: menuRect.openUp ? undefined : menuRect.anchorBottom + 4,
               bottom: menuRect.openUp ? window.innerHeight - menuRect.anchorTop + 4 : undefined,
+              maxHeight: menuRect.maxHeight,
               zIndex: 10050,
             }}
           >
@@ -235,7 +290,13 @@ export const SearchableSelect: React.FC<Props> = ({
         )
       ) : null
     ) : (
-      <div className={`searchable-select-menu${openUp ? ' open-up' : ''}`} role="listbox">
+      <div
+        className={`searchable-select-menu${openUp ? ' open-up' : ''}`}
+        role="listbox"
+        style={{
+          maxHeight: 280,
+        }}
+      >
         {menuInner}
       </div>
     ));
