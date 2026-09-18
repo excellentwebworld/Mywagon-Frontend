@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { shipmentsService } from '../../api';
+import { shipmentsService } from '../../api'; 
 import type { Shipment } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
