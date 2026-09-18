@@ -213,11 +213,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user?.id]);
 
   useEffect(() => {
-    const onForceLogout = () => {
+    const onForceLogout = (event: Event) => {
+      const skipRedirect =
+        event instanceof CustomEvent &&
+        Boolean((event.detail as { skipRedirect?: boolean } | undefined)?.skipRedirect);
+
       clearStoredToken();
       void cleanupLocalFcmDevice().finally(() => {
         setUser(null);
         setToken(null);
+        if (skipRedirect) return;
+
         const path = (window.location.pathname || '').replace(/\/$/, '') || '/';
         const isPublicGuestPath =
           path === '/' ||

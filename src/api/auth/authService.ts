@@ -329,9 +329,15 @@ export const authService = {
   },
 
   socialRedirectUrl(provider: 'google' | 'microsoft'): string {
-    const apiBase =
+    const configured =
       (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ||
       '/api/shipper/v1';
+    const laravel = (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '');
+    const apiBase = configured.startsWith('http')
+      ? configured
+      : laravel
+        ? `${laravel}${configured.startsWith('/') ? configured : `/${configured}`}`
+        : configured;
     const returnUrl = `${window.location.origin}${import.meta.env.BASE_URL || '/'}`.replace(
       /\/$/,
       '',

@@ -12,15 +12,23 @@ type SocialAuthButtonsProps = {
 };
 
 function socialRedirectUrl(provider: SocialProvider): string {
-  const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '')
-    || '/api/shipper/v1';
-  const returnUrl = `${window.location.origin}${import.meta.env.BASE_URL || '/'}`.replace(/\/$/, '');
+  const configured =
+    (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ||
+    '/api/shipper/v1';
+  const laravel = (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '');
+  // Full-page OAuth must hit Laravel absolutely. Relative `/api/...` stays on the SPA
+  // origin (Amplify/Vite) and can be cancelled by force-logout → lands on /login.
+  const apiBase = configured.startsWith('http')
+    ? configured
+    : laravel
+      ? `${laravel}${configured.startsWith('/') ? configured : `/${configured}`}`
+      : configured;
+  const returnUrl = `${window.location.origin}${import.meta.env.BASE_URL || '/'}`.replace(
+    /\/$/,
+    '',
+  );
   const path = `${apiBase}/auth/social/${provider}/redirect`;
   const qs = new URLSearchParams({ return_url: returnUrl });
-  // Absolute when API is on another origin; relative when Vite proxies /api
-  if (path.startsWith('http')) {
-    return `${path}?${qs.toString()}`;
-  }
   return `${path}?${qs.toString()}`;
 }
 
@@ -48,8 +56,12 @@ export const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ disabled, 
   const start = (provider: SocialProvider) => {
     if (disabled) return;
     // Drop any previous incomplete social session so a new account starts fresh.
+    // skipRedirect: force-logout must NOT navigate to `/` or it cancels this OAuth assign
+    // (race: path becomes /api/... → treated as protected → href='/' → RootRedirect → /login).
     clearStoredToken();
-    window.dispatchEvent(new Event('shipper:force-logout'));
+    window.dispatchEvent(
+      new CustomEvent('shipper:force-logout', { detail: { skipRedirect: true } }),
+    );
     window.location.assign(socialRedirectUrl(provider));
   };
 
