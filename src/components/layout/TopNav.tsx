@@ -349,7 +349,7 @@ export function TopNav() {
             data-tour={item.id === 'support' ? 'support' : undefined}
             style={{
               background: active ? bgActive : 'transparent',
-              color: active ? txtActive : T.navSec,
+              color: active ? txtActive : txtBase,
               fontSize: 13,
               fontWeight: active ? 600 : 500,
             }}
@@ -362,7 +362,7 @@ export function TopNav() {
             onMouseLeave={(e) => {
               if (!active) {
                 e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = T.navSec;
+                e.currentTarget.style.color = txtBase;
               }
             }}
           >
