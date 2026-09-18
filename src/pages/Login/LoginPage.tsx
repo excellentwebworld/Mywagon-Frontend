@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useLoginParticles } from './useLoginParticles';
-import type { ShipperUser, TwoFactorChallenge } from '../../api/auth';
+import type { ShipperUser, TwoFactorChallenge, TwoFactorMethod } from '../../api/auth';
+import { clearStoredToken, setStoredToken } from '../../api/auth';
 import fullLogo from '../../assets/logo/fullLogo.svg';
 import {
   validateLoginEmail,
@@ -15,6 +16,8 @@ import {
 import { clearSignupDraft } from '../Register/signupDraft';
 import { SocialAuthButtons } from '../../components/auth/SocialAuthButtons';
 import { postAuthDestination } from '../../hooks/postAuthDestination';
+import { needsSignupComplete } from '../../hooks/useSignupCompleteGate';
+import { clearInfoFormReminderSkip } from '../../components/layout/InfoFormReminderModal';
 import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
 import './LoginPage.css';
 
@@ -51,6 +54,7 @@ export const LoginPage: React.FC = () => {
     resendTwoFactorEmail,
     sendTwoFactorRecoveryEmail,
     verifyTwoFactorRecovery,
+    refreshUser,
     loginError,
     clearLoginError,
     isAuthenticated,
@@ -75,25 +79,91 @@ export const LoginPage: React.FC = () => {
   const [resendSeconds, setResendSeconds] = useState(0);
   const [resendBusy, setResendBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [socialHandoff, setSocialHandoff] = useState(false);
+  const socialHandoffStarted = useRef(false);
 
   const from =
     (location.state as { from?: string } | null)?.from ||
     (import.meta.env.BASE_URL.replace(/\/$/, '') ? '/address-book' : '/address-book');
 
   const laravelBase = (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '') ?? '';
+  const oauthParams = new URLSearchParams(location.search);
+  const oauthToken = oauthParams.get('token');
+  const oauthTwoFactor = oauthParams.get('two_factor') === '1';
+  const hasOauthHandoff = Boolean(oauthToken || oauthTwoFactor);
 
   useEffect(() => {
     clearSignupDraft();
   }, []);
 
-  // OAuth returns to /login?token=… (Amplify-safe). Forward into the social callback handler.
+  // OAuth returns to /login?token=…&signup_complete=0 — finish session HERE (do not rely on
+  // /auth/social/callback; Amplify/deep-link timing was leaving users stuck on this URL).
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('social_error') === '1') return;
-    if (params.get('token') || params.get('two_factor') === '1') {
-      navigate(`/auth/social/callback?${params.toString()}`, { replace: true });
+
+    const twoFactor = params.get('two_factor') === '1';
+    const challengeToken = params.get('challenge_token');
+    const method = params.get('method') as TwoFactorMethod | null;
+    const maskedEmail = params.get('masked_email') || '';
+    const token = params.get('token');
+    const signupCompleteParam = params.get('signup_complete');
+
+    if (twoFactor && challengeToken && method) {
+      setChallenge({
+        challenge_token: challengeToken,
+        method,
+        masked_email: maskedEmail,
+      });
+      // Drop query so refresh does not re-enter handoff.
+      navigate('/login', { replace: true });
+      return;
     }
-  }, [location.search, navigate]);
+
+    if (!token) return;
+    if (socialHandoffStarted.current) return;
+    socialHandoffStarted.current = true;
+    setSocialHandoff(true);
+
+    let cancelled = false;
+    (async () => {
+      try {
+        clearStoredToken();
+        setStoredToken(token);
+        const profile = await refreshUser();
+        if (cancelled) return;
+        if (!profile) {
+          throw new Error('missing profile');
+        }
+        clearInfoFormReminderSkip(profile.id);
+        await new Promise<void>((resolve) => {
+          window.requestAnimationFrame(() => resolve());
+        });
+        if (cancelled) return;
+
+        const dest =
+          signupCompleteParam === '0' || needsSignupComplete(profile)
+            ? '/complete-signup'
+            : postAuthDestination(profile, from);
+        navigate(dest, { replace: true });
+      } catch {
+        if (cancelled) return;
+        socialHandoffStarted.current = false;
+        setSocialHandoff(false);
+        clearStoredToken();
+        setLocalError(
+          t('socialAuth.sessionFailed', {
+            defaultValue: 'Could not start your session. Please try again.',
+          }),
+        );
+        navigate('/login?social_error=1', { replace: true });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.search, navigate, refreshUser, t, from]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -114,14 +184,14 @@ export const LoginPage: React.FC = () => {
     return () => window.clearTimeout(id);
   }, [resendSeconds]);
 
+  if (socialHandoff || (hasOauthHandoff && !oauthTwoFactor)) {
+    return <MyVagonBootScreen />;
+  }
+
   if (!isLoading && isAuthenticated) {
     const params = new URLSearchParams(location.search);
     // Stay on login until logout finishes after a social error.
     if (params.get('social_error') === '1') {
-      return <MyVagonBootScreen />;
-    }
-    // OAuth handoff in progress — do not bounce to dashboard while token is forwarded.
-    if (params.get('token') || params.get('two_factor') === '1') {
       return <MyVagonBootScreen />;
     }
     const dest = user ? postLoginPath(user, from) : from;
