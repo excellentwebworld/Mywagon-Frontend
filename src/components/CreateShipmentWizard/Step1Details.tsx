@@ -1636,6 +1636,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     setShowAll(true);
     setValidatingStopIndex(null);
     if (blockers.length > 0) {
+      const tooltip = formatContinueTooltip(blockers, t);
+      if (tooltip) showToast(tooltip, "error");
+      // Expand load balance so global blockers (C11/C12) are visible near the banner.
+      if (blockers.some((b) => b.stopIndex < 0)) setBalExp(true);
       focusFirstConflict(blockers, expandStopForValidation);
       return;
     }
@@ -1648,7 +1652,15 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       return;
     }
     await runContinue();
-  }, [blockers, warnings, needsTransporterWarning, runContinue, expandStopForValidation]);
+  }, [
+    blockers,
+    warnings,
+    needsTransporterWarning,
+    runContinue,
+    expandStopForValidation,
+    showToast,
+    t,
+  ]);
 
   const handleProceedAnyway = useCallback(async () => {
     setConflictPopup(false);
@@ -1699,6 +1711,28 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         T={T}
         t={t}
       />
+
+      {showAll &&
+        blockers.filter((b) => b.stopIndex < 0).length > 0 && (
+          <div
+            className="wizard-validation-banner mb-4"
+            role="alert"
+            data-validation-anchor="wizard-global-blockers"
+          >
+            <div className="text-sm font-semibold mb-1">
+              {t("validationFixFieldsBelow", {
+                defaultValue: "Fix the highlighted fields below to continue.",
+              })}
+            </div>
+            <ul className="m-0 pl-4 text-xs space-y-1">
+              {blockers
+                .filter((b) => b.stopIndex < 0)
+                .map((b, i) => (
+                  <li key={`${b.code}-${i}`}>{translateConflict(b, t)}</li>
+                ))}
+            </ul>
+          </div>
+        )}
 
       {/* ═══ TIMELINE ═══ */}
       <div className="relative" style={{ paddingLeft: 18 }}>
