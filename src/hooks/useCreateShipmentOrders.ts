@@ -142,15 +142,25 @@ export function resolveOrderDetailForWizard(
   return fetched ?? null;
 }
 
-export function useCreateShipmentOrders() {
+export function useCreateShipmentOrders(options?: {
+  excludeShipmentId?: number | null;
+}) {
   const queryClient = useQueryClient();
   const detailCacheRef = useRef(new Map<string, ErpOrder>());
+  const excludeShipmentId =
+    options?.excludeShipmentId && options.excludeShipmentId > 0
+      ? options.excludeShipmentId
+      : null;
+  const detailCachePrefix = excludeShipmentId
+    ? `ex:${excludeShipmentId}:`
+    : 'ex:none:';
 
   const ordersQuery = useQuery({
-    queryKey: wizardQueryKeys.unlinkedOrders,
+    queryKey: [...wizardQueryKeys.unlinkedOrders, excludeShipmentId ?? null],
     queryFn: async () => {
       const result = await erpOrdersService.listOrders({
         available_for_shipment: true,
+        ...(excludeShipmentId ? { exclude_shipment_id: excludeShipmentId } : {}),
         per_page: 100,
         page: 1,
         sort: 'updated_at',
@@ -168,54 +178,63 @@ export function useCreateShipmentOrders() {
 
   const invalidateOrderDetail = useCallback((orderId: string) => {
     if (!orderId) return;
-    detailCacheRef.current.delete(orderId);
-  }, []);
+    detailCacheRef.current.delete(`${detailCachePrefix}${orderId}`);
+  }, [detailCachePrefix]);
 
   const fetchOrderDetail = useCallback(
     async (orderId: string, options?: { force?: boolean }): Promise<ErpOrder | null> => {
       if (!orderId) return null;
       const key = String(orderId);
+      const cacheKey = `${detailCachePrefix}${key}`;
       if (!options?.force) {
-        const cached = detailCacheRef.current.get(key);
+        const cached = detailCacheRef.current.get(cacheKey);
         if (cached?.lines?.length) return cached;
       }
 
       try {
-        const mapped = await erpOrdersService.getOrder(key);
-        detailCacheRef.current.set(String(mapped.id), mapped);
+        const mapped = await erpOrdersService.getOrder(key, {
+          excludeShipmentId,
+        });
+        const store = (alias: string) => {
+          detailCacheRef.current.set(`${detailCachePrefix}${alias}`, mapped);
+        };
+        store(String(mapped.id));
         if (mapped.orderReference) {
-          detailCacheRef.current.set(String(mapped.orderReference), mapped);
+          store(String(mapped.orderReference));
         }
         // Keep the requested key mapped even when it was a reference alias.
-        detailCacheRef.current.set(key, mapped);
+        store(key);
         return mapped;
       } catch {
         return null;
       }
     },
-    []
+    [detailCachePrefix, excludeShipmentId]
   );
 
   const getCachedOrder = useCallback((orderId: string) => {
-    return detailCacheRef.current.get(orderId) ?? null;
-  }, []);
+    return detailCacheRef.current.get(`${detailCachePrefix}${orderId}`) ?? null;
+  }, [detailCachePrefix]);
 
   const getOrderValue = useCallback((orderId: string): number | null => {
-    return detailCacheRef.current.get(orderId)?.orderValue ?? null;
-  }, []);
+    return detailCacheRef.current.get(`${detailCachePrefix}${orderId}`)?.orderValue ?? null;
+  }, [detailCachePrefix]);
 
   const addOrder = useCallback(
     (order: ErpOrder) => {
-      detailCacheRef.current.set(order.id, order);
-      queryClient.setQueryData<ErpOrder[]>(wizardQueryKeys.unlinkedOrders, (prev) => {
-        const list = prev ?? [];
-        if (list.some((o) => o.id === order.id)) {
-          return list.map((o) => (o.id === order.id ? order : o));
+      detailCacheRef.current.set(`${detailCachePrefix}${order.id}`, order);
+      queryClient.setQueryData<ErpOrder[]>(
+        [...wizardQueryKeys.unlinkedOrders, excludeShipmentId ?? null],
+        (prev) => {
+          const list = prev ?? [];
+          if (list.some((o) => o.id === order.id)) {
+            return list.map((o) => (o.id === order.id ? order : o));
+          }
+          return [order, ...list];
         }
-        return [order, ...list];
-      });
+      );
     },
-    [queryClient]
+    [detailCachePrefix, excludeShipmentId, queryClient]
   );
 
   const orderOptions = orders.map((order) => ({
@@ -248,15 +267,35 @@ export function useCreateShipmentOrders() {
   };
 }
 
-export function getProductOptionsForOrder(order: ErpOrder | null | undefined) {
+export type GetProductOptionsForOrderOptions = {
+  /**
+   * Product ids already on this wizard shipment. Keep them selectable even when
+   * API remaining_quantity is 0 (Edit Load multi-dropoff after reducing first stop).
+   */
+  includeZeroRemainingProductIds?: Iterable<string | number>;
+};
+
+export function getProductOptionsForOrder(
+  order: ErpOrder | null | undefined,
+  options?: GetProductOptionsForOrderOptions,
+) {
   if (!order?.lines?.length) return [];
 
+  const includeZero = new Set(
+    [...(options?.includeZeroRemainingProductIds ?? [])].map((id) => String(id)),
+  );
   const seen = new Set<string>();
-  const options: { value: string; label: string; sublabel?: string; lineIndex: number }[] = [];
+  const optionsOut: { value: string; label: string; sublabel?: string; lineIndex: number }[] = [];
 
   order.lines.forEach((line, lineIndex) => {
     // Hide deactivated products
     if (line.productActive === false) return;
+
+    const key = line.productSkuId
+      ? String(line.productSkuId)
+      : line.id != null
+        ? String(line.id)
+        : line.productName || line.sku || `line-${lineIndex}`;
 
     const remaining =
       line.remainingQuantity != null
@@ -264,17 +303,13 @@ export function getProductOptionsForOrder(order: ErpOrder | null | undefined) {
         : line.quantity != null
           ? Number(line.quantity)
           : null;
-    // Hide products already fully shipped on prior loads.
-    if (remaining != null && remaining <= 0) return;
+    // Hide products already fully shipped on prior loads — unless this shipment
+    // already carries them (needed for Edit multi-dropoff splits).
+    if (remaining != null && remaining <= 0 && !includeZero.has(key)) return;
 
-    const key = line.productSkuId
-      ? String(line.productSkuId)
-      : line.id != null
-        ? String(line.id)
-        : line.productName || line.sku || `line-${lineIndex}`;
     if (!key || seen.has(key)) return;
     seen.add(key);
-    options.push({
+    optionsOut.push({
       value: key,
       label: line.productName || line.sku || `Item ${lineIndex + 1}`,
       sublabel: line.sku || undefined,
@@ -282,7 +317,7 @@ export function getProductOptionsForOrder(order: ErpOrder | null | undefined) {
     });
   });
 
-  return options;
+  return optionsOut;
 }
 
 export function countUnmappedOrderLines(order: ErpOrder | null | undefined): number {
@@ -290,8 +325,11 @@ export function countUnmappedOrderLines(order: ErpOrder | null | undefined): num
   return order.lines.filter((line) => !line.productSkuId).length;
 }
 
-export function getProductOptionsForCargoLine(order: ErpOrder | null | undefined) {
-  return getProductOptionsForOrder(order);
+export function getProductOptionsForCargoLine(
+  order: ErpOrder | null | undefined,
+  options?: GetProductOptionsForOrderOptions,
+) {
+  return getProductOptionsForOrder(order, options);
 }
 
 export function findOrderLineForProduct(order: ErpOrder | null | undefined, productId: string) {

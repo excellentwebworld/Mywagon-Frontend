@@ -119,6 +119,44 @@ describe('getProductOptionsForOrder', () => {
     expect(options[0].label).toBe('Product B');
   });
 
+  it('keeps zero-remaining products selectable when already on this shipment', () => {
+    const order = {
+      id: 'ord-11',
+      orderReference: 'Order-11',
+      lines: [
+        {
+          id: 1,
+          productSkuId: 10,
+          productName: 'Product A',
+          quantity: 5,
+          remainingQuantity: 0,
+          shippedQuantity: 5,
+          unit: 'Units',
+          weight: 1,
+          weightUnit: 'Kgs',
+        },
+        {
+          id: 2,
+          productSkuId: 20,
+          productName: 'Product B',
+          quantity: 7,
+          remainingQuantity: 0,
+          shippedQuantity: 7,
+          unit: 'Units',
+          weight: 2,
+          weightUnit: 'Kgs',
+        },
+      ],
+    } as ErpOrder;
+
+    const options = getProductOptionsForOrder(order, {
+      includeZeroRemainingProductIds: ['10'],
+    });
+    expect(options).toHaveLength(1);
+    expect(options[0].value).toBe('10');
+    expect(options[0].label).toBe('Product A');
+  });
+
   it('hides deactivated products from options', () => {
     const order = {
       id: 'ord-12',

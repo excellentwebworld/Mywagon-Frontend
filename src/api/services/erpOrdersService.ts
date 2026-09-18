@@ -32,6 +32,7 @@ function exportParamsToQuery(params: Omit<ListErpOrdersParams, 'page' | 'per_pag
   if (params.high_priority) query.set('high_priority', '1');
   if (params.unlinked) query.set('unlinked', '1');
   if (params.available_for_shipment) query.set('available_for_shipment', '1');
+  if (params.exclude_shipment_id) query.set('exclude_shipment_id', String(params.exclude_shipment_id));
   if (params.sort) query.set('sort', params.sort);
   if (params.sort_dir) query.set('sort_dir', params.sort_dir);
   if (params.timezone) query.set('timezone', params.timezone);
@@ -61,6 +62,7 @@ export const erpOrdersService = {
     if (params.high_priority) query.high_priority = 1;
     if (params.unlinked) query.unlinked = 1;
     if (params.available_for_shipment) query.available_for_shipment = 1;
+    if (params.exclude_shipment_id) query.exclude_shipment_id = params.exclude_shipment_id;
     if (params.sort) query.sort = params.sort;
     if (params.sort_dir) query.sort_dir = params.sort_dir;
 
@@ -96,9 +98,17 @@ export const erpOrdersService = {
     };
   },
 
-  async getOrder(id: string): Promise<ErpOrder> {
+  async getOrder(
+    id: string,
+    options?: { excludeShipmentId?: number | null }
+  ): Promise<ErpOrder> {
+    const query: Record<string, string | number> = {};
+    if (options?.excludeShipmentId) {
+      query.exclude_shipment_id = options.excludeShipmentId;
+    }
     const res = await apiGet<ApiErpOrderDetail>(
       `/erp-orders/${encodeURIComponent(id)}`,
+      Object.keys(query).length ? query : undefined
     );
     return mapApiDetailToOrder(res.data);
   },

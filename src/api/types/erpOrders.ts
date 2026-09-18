@@ -72,6 +72,7 @@ export interface ListErpOrdersParams {
   high_priority?: boolean;
   unlinked?: boolean;
   available_for_shipment?: boolean;
+  exclude_shipment_id?: number;
   sort?: string;
   sort_dir?: 'asc' | 'desc';
   page?: number;

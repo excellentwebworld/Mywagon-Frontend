@@ -20,6 +20,7 @@ export const CreateShipmentStep1Page: React.FC = () => {
     lockedStopIds,
     isEditMode,
     editShipmentStatus,
+    shipmentId,
   } = useOutletContext<WizardOutletContext>();
 
   return (
@@ -27,6 +28,7 @@ export const CreateShipmentStep1Page: React.FC = () => {
       lockedStopIds={lockedStopIds}
       isEditMode={isEditMode}
       editShipmentStatus={editShipmentStatus}
+      excludeShipmentId={isEditMode ? shipmentId : null}
       onSaveDraft={async (latestStops) => {
         resetItineraryConfirmationRef.current?.();
         const latest = valuesRef.current;

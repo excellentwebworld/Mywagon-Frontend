@@ -471,7 +471,9 @@ export function useCreateShipmentWizard(
           return;
         }
 
-        queryClient.setQueryData<ErpOrder[]>(wizardQueryKeys.unlinkedOrders, (prev) => {
+        queryClient.setQueryData<ErpOrder[]>(
+          [...wizardQueryKeys.unlinkedOrders, null],
+          (prev) => {
           const list = prev ?? [];
           const next = [...list];
           for (const order of orders) {

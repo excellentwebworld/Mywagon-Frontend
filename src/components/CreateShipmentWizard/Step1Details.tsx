@@ -177,6 +177,8 @@ interface Step1DetailsProps {
   lockedStopIds?: number[];
   isEditMode?: boolean;
   editShipmentStatus?: string | null;
+  /** Live shipment id while editing — excludes its pickups from remaining qty. */
+  excludeShipmentId?: number | null;
 }
 
 function requiresTransporterWarning(status: string | null | undefined): boolean {
@@ -208,6 +210,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   lockedStopIds = [],
   isEditMode = false,
   editShipmentStatus = null,
+  excludeShipmentId = null,
 }) => {
   const { t } = useTranslation();
   const { values, setFieldValue } = useFormikContext<any>();
@@ -235,7 +238,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     orders: apiOrders,
     loading: ordersLoading,
     error: ordersError,
-  } = useCreateShipmentOrders();
+  } = useCreateShipmentOrders({
+    excludeShipmentId: isEditMode ? excludeShipmentId : null,
+  });
   const [orderDetailsById, setOrderDetailsById] = useState<
     Record<string, import("../../pages/ErpOrders/types").ErpOrder>
   >({});
@@ -2689,8 +2694,31 @@ const CargoTable: React.FC<CargoTableProps> = ({
                 sublabel?: string;
               }[] = [];
 
+              // Products already on this load stay selectable even when API
+              // remaining_quantity is 0 (Edit multi-dropoff after reducing qty).
+              const productsOnThisShipment = new Set<string>();
+              const orderKeys = new Set(
+                [ln.orderId, ln.orderRef, orderDetail?.id, orderDetail?.orderReference]
+                  .filter(Boolean)
+                  .map((v) => String(v)),
+              );
+              for (const s of allStops || []) {
+                for (const l of s.lines || []) {
+                  const oid = String(l.orderId || '');
+                  const oref = String(l.orderRef || '');
+                  if (
+                    l.productId &&
+                    (orderKeys.has(oid) || orderKeys.has(oref))
+                  ) {
+                    productsOnThisShipment.add(String(l.productId));
+                  }
+                }
+              }
+
               // Only products from the selected order (not the full product master).
-              getProductOptionsForCargoLine(orderDetail).forEach((opt) => {
+              getProductOptionsForCargoLine(orderDetail, {
+                includeZeroRemainingProductIds: productsOnThisShipment,
+              }).forEach((opt) => {
                 if (!seenValues.has(opt.value)) {
                   seenValues.add(opt.value);
                   productOpts.push({
