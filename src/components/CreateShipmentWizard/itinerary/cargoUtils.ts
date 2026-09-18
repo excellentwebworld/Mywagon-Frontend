@@ -534,3 +534,70 @@ export function buildCargoFlows(stops: ApiStop[]): CargoFlow[] {
 
   return Object.values(flows);
 }
+
+type MirrorableLine = {
+  id?: string;
+  action?: string;
+  orderId?: string | number | null;
+  productId?: string | number | null;
+  qty?: string | number | null;
+  mirrorOf?: string;
+};
+
+type MirrorableStop = {
+  lines?: MirrorableLine[];
+};
+
+/**
+ * Ensure each dropoff line points at a unique pickup via mirrorOf.
+ * Needed when the same order+product is split across multiple pickup/dropoff legs —
+ * without this, backend location_key fallback can link every dropoff to the last pickup.
+ */
+export function syncDropoffMirrorLinks<T extends MirrorableStop>(stops: T[]): T[] {
+  const claimedPickupIds = new Set<string>();
+
+  return stops.map((stop) => ({
+    ...stop,
+    lines: (stop.lines || []).map((line) => {
+      if (line.action !== 'dropoff') {
+        return line;
+      }
+
+      const orderId = String(line.orderId || '');
+      const productId = String(line.productId || '');
+      if (!orderId || !productId) {
+        return { ...line, mirrorOf: '' };
+      }
+
+      const preferred = String(line.mirrorOf || '');
+      const dropoffQty = parseFloat(String(line.qty ?? '')) || 0;
+      const candidates: Array<{ id: string; qty: number }> = [];
+
+      stops.forEach((s) => {
+        (s.lines || []).forEach((l) => {
+          if (l.action !== 'pickup') return;
+          if (String(l.orderId || '') !== orderId) return;
+          if (String(l.productId || '') !== productId) return;
+          const id = String(l.id || '');
+          if (!id || claimedPickupIds.has(id)) return;
+          candidates.push({
+            id,
+            qty: parseFloat(String(l.qty ?? '')) || 0,
+          });
+        });
+      });
+
+      if (candidates.length === 0) {
+        return { ...line, mirrorOf: '' };
+      }
+
+      const preferredMatch = preferred
+        ? candidates.find((c) => c.id === preferred)
+        : undefined;
+      const qtyMatch = candidates.find((c) => Math.abs(c.qty - dropoffQty) < 0.0001);
+      const chosen = preferredMatch || qtyMatch || candidates[0];
+      claimedPickupIds.add(chosen.id);
+      return { ...line, mirrorOf: chosen.id };
+    }),
+  }));
+}

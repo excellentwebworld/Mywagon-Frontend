@@ -1296,7 +1296,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
               (s.customers?.[0] as any)?.email ||
               '',
             orderRef: s.customers?.[0]?.orders?.[0]?.id || orderIds.split(',')[0]?.trim() || displayId,
-            trackingUrl: (s as any).tracking_url || (s as any).trackingUrl || (shipment as any).tracking_url || (shipment as any).trackingUrl || null,
+            trackingUrl: (s as any).tracking_url || (s as any).trackingUrl || null,
           })),
       },
     ],

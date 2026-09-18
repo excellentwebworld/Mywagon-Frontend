@@ -8,6 +8,7 @@ import type {
 import { createNewCargoLine, createNewStop } from '../../components/CreateShipmentWizard/types';
 import { computeItineraryFingerprint } from '../../components/CreateShipmentWizard/itineraryFingerprint';
 import { normalizeQtyUnit, normalizeWeightUnit } from '../../constants/cargoUnits';
+import { syncDropoffMirrorLinks } from '../../components/CreateShipmentWizard/itinerary/cargoUtils';
 import { getBrowserTimezone } from '../../utils/timezone';
 import { normalizeTime24 } from '../../components/ui/TimePicker';
 
@@ -202,7 +203,8 @@ export function formValuesToStepOnePayload(
   mode: SaveStepOnePayload['mode'],
   availabilityId?: number | null
 ): SaveStepOnePayload {
-  const stops = (values.stops || []).map((stop) => ({
+  const stopsWithMirrors = syncDropoffMirrorLinks(values.stops || []);
+  const stops = stopsWithMirrors.map((stop) => ({
     ...stop,
     timeFrom: normalizeTime24(String(stop.timeFrom || '')),
     timeTo: normalizeTime24(String(stop.timeTo || '')),

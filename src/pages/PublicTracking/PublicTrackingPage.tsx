@@ -3,8 +3,6 @@ import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { io, type Socket } from 'socket.io-client';
 import {
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   ClipboardCheck,
   Copy,
   Mail,
@@ -548,7 +546,6 @@ const ItineraryStop: React.FC<{
   lang: Lang;
   onCopy: (value?: string | null, toastMsg?: string) => void;
 }> = ({ stop, index, lang, onCopy }) => {
-  const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const isPickup = stop.type === 'pickup';
   const schedule =
@@ -557,8 +554,6 @@ const ItineraryStop: React.FC<{
     stop.schedule_label ||
     '';
   const lines = stop.lines || [];
-  const hasMultiple = lines.length > 1;
-  const visibleLines = expanded ? lines : lines.slice(0, 1);
   const addressLine = [stop.address, stop.city].filter(Boolean).join(', ');
   const copyValue = [stop.address, stop.city].filter(Boolean).join(', ');
   const supplierLabel = stop.supplier_name || '';
@@ -616,9 +611,9 @@ const ItineraryStop: React.FC<{
             </div>
           ) : null}
 
-          {/* Orders first — same order as StopsCard on shipment detail */}
+          {/* Always show every product line — same as shipment detail StopsCard cards */}
           <div className="pt-stop-orders">
-            {visibleLines.map((line, i) => (
+            {lines.map((line, i) => (
               <div className="pt-order-row" key={`${line.location_id}-${i}`}>
                 <div className="pt-order-row-main">
                   <div className="pt-order-row-line">
@@ -661,22 +656,6 @@ const ItineraryStop: React.FC<{
                 </div>
                 {stop.completed ? <StopCompletedIcon /> : null}
               </div>
-            ) : null}
-
-            {hasMultiple ? (
-              <button type="button" className="pt-more-btn" onClick={() => setExpanded((v) => !v)}>
-                {expanded ? (
-                  <>
-                    <ChevronUp size={13} />
-                    {t(lang, 'showLess')}
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown size={13} />
-                    {`+ ${t(lang, 'showMore')} (${lines.length - 1})`}
-                  </>
-                )}
-              </button>
             ) : null}
           </div>
 

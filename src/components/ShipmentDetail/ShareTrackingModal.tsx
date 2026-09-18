@@ -145,11 +145,6 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
     return [];
   }, [stops, groups, shipmentEmailsReadOnly]);
 
-  const trackingUrl = useMemo(
-    () => deliveryRows.find((r) => r.trackingUrl)?.trackingUrl || null,
-    [deliveryRows]
-  );
-
   const [emails, setEmails] = useState<Record<string | number, string[]>>({});
   const [copiedRowId, setCopiedRowId] = useState<string | number | null>(null);
 
@@ -210,7 +205,7 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
   };
 
   const handleCopyOrderLink = async (row: (typeof deliveryRows)[number]) => {
-    const url = row.trackingUrl || trackingUrl;
+    const url = row.trackingUrl;
     if (!url) {
       onToast?.(
         t('trackingLinkUnavailable', 'Tracking link is not available yet.'),
@@ -298,7 +293,7 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
                   {deliveryRows.map((row) => {
                     const emailList = emails[row.id] || [''];
-                    const rowTrackingUrl = row.trackingUrl || trackingUrl;
+                    const rowTrackingUrl = row.trackingUrl;
                     const isThisRowCopied = copiedRowId === row.id;
                     const rowReadOnly = row.rowReadOnly;
 

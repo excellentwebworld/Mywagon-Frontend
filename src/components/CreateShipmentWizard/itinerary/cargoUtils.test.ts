@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ApiStop } from '../../../api/types/createShipment';
-import { computeCargoLineQtyWeight } from './cargoUtils';
+import { computeCargoLineQtyWeight, syncDropoffMirrorLinks } from './cargoUtils';
 
 function stop(partial: Partial<ApiStop> & { id: string; lines: ApiStop['lines'] }): ApiStop {
   return {
@@ -148,5 +148,103 @@ describe('computeCargoLineQtyWeight dropoff remaining', () => {
 
     expect(result.qty).toBe('5');
     expect(result.weight).toBe('10');
+  });
+});
+
+describe('syncDropoffMirrorLinks', () => {
+  it('links split same-order products to matching pickup qty', () => {
+    const stops: ApiStop[] = [
+      stop({
+        id: 's1',
+        lines: [
+          {
+            id: 'pk-80',
+            productId: 'p1',
+            productName: 'Boats',
+            customerId: '',
+            customerName: '',
+            orderId: 'AMUL0001',
+            orderRef: 'AMUL0001',
+            orderLineId: '',
+            action: 'pickup',
+            qty: '80',
+            unit: 'Boxes',
+            weight: '6',
+            wtUnit: 'kg',
+            mirrorOf: '',
+          },
+        ],
+      }),
+      stop({
+        id: 's2',
+        lines: [
+          {
+            id: 'pk-20',
+            productId: 'p1',
+            productName: 'Boats',
+            customerId: '',
+            customerName: '',
+            orderId: 'AMUL0001',
+            orderRef: 'AMUL0001',
+            orderLineId: '',
+            action: 'pickup',
+            qty: '20',
+            unit: 'Boxes',
+            weight: '4',
+            wtUnit: 'kg',
+            mirrorOf: '',
+          },
+        ],
+      }),
+      stop({
+        id: 's3',
+        lines: [
+          {
+            id: 'dl-80',
+            productId: 'p1',
+            productName: 'Boats',
+            customerId: '',
+            customerName: '',
+            orderId: 'AMUL0001',
+            orderRef: 'AMUL0001',
+            orderLineId: '',
+            action: 'dropoff',
+            qty: '80',
+            unit: 'Boxes',
+            weight: '6',
+            wtUnit: 'kg',
+            mirrorOf: '',
+          },
+        ],
+      }),
+      stop({
+        id: 's4',
+        lines: [
+          {
+            id: 'dl-20',
+            productId: 'p1',
+            productName: 'Boats',
+            customerId: '',
+            customerName: '',
+            orderId: 'AMUL0001',
+            orderRef: 'AMUL0001',
+            orderLineId: '',
+            action: 'dropoff',
+            qty: '20',
+            unit: 'Boxes',
+            weight: '4',
+            wtUnit: 'kg',
+            mirrorOf: '',
+          },
+        ],
+      }),
+    ];
+
+    const synced = syncDropoffMirrorLinks(stops);
+    const drop80 = synced[2].lines[0];
+    const drop20 = synced[3].lines[0];
+
+    expect(drop80.mirrorOf).toBe('pk-80');
+    expect(drop20.mirrorOf).toBe('pk-20');
   });
 });
