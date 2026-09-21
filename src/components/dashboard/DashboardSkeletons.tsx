@@ -93,20 +93,8 @@ export const DashPerfSkeleton: React.FC = () => (
 );
 
 export const DashTrucksSkeleton: React.FC = () => (
-  <div aria-busy="true" aria-hidden>
-    <div className="dash-truck-counts">
-      <div className="dash-truck-count">
-        <DashBone w={40} h={22} style={{ margin: '0 auto' }} />
-        <DashBone w={56} h={10} style={{ margin: '8px auto 0' }} />
-      </div>
-      <div className="dash-truck-count">
-        <DashBone w={40} h={22} style={{ margin: '0 auto' }} />
-        <DashBone w={56} h={10} style={{ margin: '8px auto 0' }} />
-      </div>
-    </div>
-    <div className="dash-skel-truck-map">
-      <DashBone w="100%" h={160} style={{ borderRadius: 0 }} />
-    </div>
+  <div className="dash-skel-truck-map" aria-busy="true" aria-hidden style={{ height: '100%', minHeight: 280, flex: 1 }}>
+    <DashBone w="100%" h="100%" style={{ minHeight: 280, borderRadius: 0 }} />
   </div>
 );
 

@@ -80,9 +80,23 @@ export const TruckAvailabilitiesCard: React.FC<{ enabled?: boolean }> = ({ enabl
           </svg>
           <span>{t('dashTruckAvailTitle')}</span>
         </h3>
-        <span className="card-link" style={{ cursor: 'pointer' }} onClick={goSearch}>
-          {t('dashSearchTrucks')}
-        </span>
+        <div className="dash-truck-hd-actions">
+          {!error && (
+            <div className="dash-truck-header-counts">
+              <div className="dash-truck-header-count partner" title={t('dashPartnerTrucks')}>
+                <span className="dash-truck-hd-count-val">{loading ? '—' : formatCount(partnerCount)}</span>
+                <span className="dash-truck-hd-count-label">{t('dashPartnerTrucks')}</span>
+              </div>
+              <div className="dash-truck-header-count public" title={t('dashPublicTrucks')}>
+                <span className="dash-truck-hd-count-val">{loading ? '—' : formatCount(publicCount)}</span>
+                <span className="dash-truck-hd-count-label">{t('dashPublicTrucks')}</span>
+              </div>
+            </div>
+          )}
+          <span className="card-link" style={{ cursor: 'pointer' }} onClick={goSearch}>
+            {t('dashSearchTrucks')}
+          </span>
+        </div>
       </div>
       {loading ? (
         <DashTrucksSkeleton />
@@ -95,19 +109,7 @@ export const TruckAvailabilitiesCard: React.FC<{ enabled?: boolean }> = ({ enabl
           )}
         </div>
       ) : (
-        <>
-          <div className="dash-truck-counts">
-            <div className="dash-truck-count">
-              <div className="dash-truck-count-val">{formatCount(partnerCount)}</div>
-              <div className="dash-truck-count-label">{t('dashPartnerTrucks')}</div>
-            </div>
-            <div className="dash-truck-count">
-              <div className="dash-truck-count-val">{formatCount(publicCount)}</div>
-              <div className="dash-truck-count-label">{t('dashPublicTrucks')}</div>
-            </div>
-          </div>
-          <TruckMapPreview trucks={trucks} onActivate={goSearch} />
-        </>
+        <TruckMapPreview trucks={trucks} onActivate={goSearch} />
       )}
     </div>
   );

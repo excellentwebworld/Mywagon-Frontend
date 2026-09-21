@@ -1408,7 +1408,11 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .kpi-target-fill{height:100%;border-radius:2px;transition:width .3s}
 
 /* ══ SCHEDULE & LAYOUT CLASSES FROM HTML TEMPLATE ══ */
+.row-1col{display:block;margin-bottom:20px}
+.row-1col > .card{width:100%;margin-bottom:0}
 .row-2col-even{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;margin-bottom:20px;align-items:stretch}
+.row-2col-half{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:20px;align-items:stretch}
+.row-2col-half > .card{height:100%;display:flex;flex-direction:column;margin-bottom:0}
 .row-2col-board{display:grid;grid-template-columns:minmax(0,1fr) minmax(330px,360px);gap:16px;margin-bottom:20px;align-items:start}
 .row-2col-board > .card{margin-bottom:0;display:flex;flex-direction:column}
 .row-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;align-items:stretch}
@@ -1416,14 +1420,23 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 
 /* Dashboard truck availabilities shell */
 .dash-truck-card{display:flex;flex-direction:column;height:100%;min-height:100%}
+.dash-truck-hd-actions{display:flex;align-items:center;gap:16px}
+.dash-truck-header-counts{display:flex;align-items:center;gap:8px}
+.dash-truck-header-count{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;line-height:1}
+.dash-truck-header-count.partner{border-color:rgba(124,58,237,0.25);background:rgba(124,58,237,0.06)}
+.dash-truck-header-count.public{border-color:rgba(58,144,229,0.25);background:rgba(58,144,229,0.06)}
+.dash-truck-hd-count-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--text-primary)}
+.dash-truck-header-count.partner .dash-truck-hd-count-val{color:#7C3AED}
+.dash-truck-header-count.public .dash-truck-hd-count-val{color:var(--accent)}
+.dash-truck-hd-count-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--text-tertiary)}
 .dash-truck-counts{display:flex;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
 .dash-truck-count{flex:1;text-align:center;padding:8px;background:var(--surface-alt);border-radius:var(--radius-sm)}
 .dash-truck-count-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;line-height:1;color:var(--text-primary)}
 .dash-truck-count-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--text-tertiary);margin-top:4px}
-.dash-truck-map-preview{flex:1;min-height:220px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-tertiary);font-size:12px;background:linear-gradient(135deg,#f0f0f5,#e8e8f0)}
+.dash-truck-map-preview{flex:1;min-height:280px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-tertiary);font-size:12px;background:linear-gradient(135deg,#f0f0f5,#e8e8f0)}
 .dash-truck-map-preview svg{opacity:.3}
-.dash-truck-map-host{position:relative;display:flex;flex-direction:column;flex:1;width:100%;min-height:220px;height:100%;padding:0;border:0;background:var(--surface-alt);overflow:hidden;outline:none}
-.dash-truck-map-canvas{width:100%;flex:1;height:100%;min-height:220px}
+.dash-truck-map-host{position:relative;display:flex;flex-direction:column;flex:1;width:100%;min-height:280px;height:100%;padding:0;border:0;background:var(--surface-alt);overflow:hidden;outline:none}
+.dash-truck-map-canvas{width:100%;flex:1;height:100%;min-height:280px}
 .dash-truck-map-empty,.dash-truck-map-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text-tertiary);font-size:12px;background:linear-gradient(135deg,#f0f0f5,#e8e8f0);border:0;width:100%;cursor:pointer}
 
 /* Sat map marker parity */
@@ -1549,6 +1562,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 @media (max-width: 1200px) {
   .row-2col-even,
   .row-2col-board,
+  .row-2col-half,
   .row-3col {
     grid-template-columns: 1fr;
     gap: 12px;

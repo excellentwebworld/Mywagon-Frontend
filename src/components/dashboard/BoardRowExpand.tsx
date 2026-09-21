@@ -56,25 +56,43 @@ function collectVehicles(shipment: Shipment): string[] {
   const plates = (shipment.assignedDriverPlates ?? []).filter(Boolean);
   if (plates.length > 0) return plates;
 
-  const fromSummary = shipment.loadSummary?.vehicleTypes?.filter(Boolean) ?? [];
-  if (fromSummary.length > 0) return fromSummary;
+  const vehicleTypes = (shipment.loadSummary?.vehicleTypes ?? shipment.truckTypes ?? []).filter(Boolean);
+  const specs = (shipment.loadSummary?.cargoSpecs ?? []).filter(Boolean);
 
-  return (shipment.truckTypes ?? []).filter(Boolean);
+  if (vehicleTypes.length > 0 && specs.length > 0) {
+    const vtLabel = vehicleTypes.join(', ');
+    const specLabel = specs.join(', ');
+    return [`${vtLabel} (${specLabel})`];
+  }
+
+  if (vehicleTypes.length > 0) return vehicleTypes;
+  if (specs.length > 0) return specs;
+
+  return [];
 }
 
 function collectCargo(shipment: Shipment): string[] {
-  const fromSpecs = shipment.loadSummary?.cargoSpecs?.filter(Boolean) ?? [];
-  if (fromSpecs.length > 0) return Array.from(new Set(fromSpecs));
-
   const products: string[] = [];
+
   for (const stop of shipment.stops ?? []) {
     for (const c of stop.customers ?? []) {
       for (const o of c.orders ?? []) {
-        if (o.products && o.products !== '—') products.push(o.products);
+        if (o.products && o.products !== '—' && o.products !== '-') {
+          products.push(o.products.trim());
+        }
       }
     }
   }
-  return Array.from(new Set(products));
+
+  for (const c of shipment.customer ?? []) {
+    for (const o of (c.orders ?? []) as Array<string | { id?: string | number; products?: string }>) {
+      if (typeof o === 'object' && o?.products && o.products !== '—' && o.products !== '-') {
+        products.push(o.products.trim());
+      }
+    }
+  }
+
+  return Array.from(new Set(products.filter(Boolean)));
 }
 
 function parseNoteBlob(raw?: string | null): ParsedNote[] {
@@ -221,7 +239,6 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
   const canEdit = isShipmentEditable(shipment.status);
 
   const goDetails = () => navigate(`/shipments/${shipment.id}`);
-  const goTrack = () => navigate(`/shipments/${shipment.id}?focus=tracking`);
   const goEdit = () => {
     if (!canEdit) return;
     if (shipment.status === 'draft') {
@@ -404,15 +421,11 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
 
       <div className="expand-actions">
         <button type="button" className="expand-btn primary" onClick={goDetails}>
-          {t('loadDetails')}
-        </button>
-        {/* Consistent pin icon with Load Details for location/tracking actions */}
-        <button type="button" className="expand-btn" onClick={goTrack}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
             <circle cx="12" cy="10" r="3" />
           </svg>
-          {t('boardTrack', 'Track')}
+          {t('loadDetails')}
         </button>
         {canEdit && (
           <button type="button" className="expand-btn" onClick={goEdit}>

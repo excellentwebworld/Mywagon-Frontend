@@ -83,9 +83,13 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Row 4: Trucks + Notifications + Messages */}
-      <div className="row-3col">
+      {/* Row 4: Find Truck Availabilities Map (Full Row) */}
+      <div className="row-1col">
         <TruckAvailabilitiesCard enabled={secondaryReady} />
+      </div>
+
+      {/* Row 5: Notifications + Messages (50-50 Split) */}
+      <div className="row-2col-half">
         <Notifications enabled={secondaryReady} />
         <MessagesPreview enabled={secondaryReady} />
       </div>
