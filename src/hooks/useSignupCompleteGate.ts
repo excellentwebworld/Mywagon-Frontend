@@ -10,13 +10,20 @@ export function needsSignupComplete(user: ShipperUser | null | undefined): boole
   return user?.signup_complete === false;
 }
 
-/** Social prospects may browse all app pages. Kept for callers that still check path. */
-export function isSignupCompleteAllowedPath(_pathname: string): boolean {
-  return true;
+/**
+ * Paths allowed while social required company details are incomplete.
+ * Hard-lock like KYC — no other app pages until /complete-signup is finished.
+ */
+export function isSignupCompleteAllowedPath(pathname: string): boolean {
+  const path = pathname.replace(/\/$/, '') || '/';
+  if (path === '/complete-signup' || path.startsWith('/complete-signup/')) return true;
+  return false;
 }
 
-export function completeSignupPath(from?: string): string {
-  const base = '/complete-signup';
-  if (!from) return base;
-  return `${base}?from=${encodeURIComponent(from)}`;
+export function completeSignupPath(from?: string, opts?: { blocked?: boolean }): string {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (opts?.blocked) params.set('blocked', '1');
+  const qs = params.toString();
+  return qs ? `/complete-signup?${qs}` : '/complete-signup';
 }

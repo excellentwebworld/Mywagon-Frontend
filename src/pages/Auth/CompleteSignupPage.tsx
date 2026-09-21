@@ -10,6 +10,7 @@ import type {
   SignupReferenceData,
 } from '../../api/auth';
 import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
+import { SignupIncompleteAccessModal } from '../../components/auth/SignupIncompleteAccessModal';
 import { RegisterLayout } from '../Register/RegisterLayout';
 import { NameStep } from '../Register/steps/NameStep';
 import { CompanyStep } from '../Register/steps/CompanyStep';
@@ -92,16 +93,21 @@ const SocialSignupSessionRecovery: React.FC = () => {
  * Email is always verified from social login.
  */
 export const CompleteSignupPage: React.FC = () => {
-  const { user, isAuthenticated, isLoading, refreshUser } = useAuth();
+  const { user, isAuthenticated, isLoading, refreshUser, logout } = useAuth();
   const { lang, setLang, showToast } = useApp();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const fromParam = searchParams.get('from');
-  const browsePath =
-    fromParam && fromParam.startsWith('/') && !fromParam.startsWith('//') && !fromParam.startsWith('/complete-signup')
-      ? fromParam
-      : '/dashboard';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [exiting, setExiting] = useState(false);
+  const [blockedModalOpen, setBlockedModalOpen] = useState(
+    () => searchParams.get('blocked') === '1',
+  );
+
+  useEffect(() => {
+    if (searchParams.get('blocked') === '1') {
+      setBlockedModalOpen(true);
+    }
+  }, [searchParams]);
 
   const [form, setForm] = useState<FormState>({
     first_name: '',
@@ -466,10 +472,29 @@ export const CompleteSignupPage: React.FC = () => {
     }
   };
 
-  const backToApp = useCallback(() => {
-    if (submitting || phoneBusy) return;
-    navigate(browsePath);
-  }, [submitting, phoneBusy, navigate, browsePath]);
+  const exitSocialSignup = useCallback(
+    async (to: '/login' | '/shipper/register') => {
+      if (exiting || submitting || phoneBusy) return;
+      setExiting(true);
+      try {
+        await logout();
+        navigate(to, { replace: true });
+      } catch {
+        navigate(to, { replace: true });
+      } finally {
+        setExiting(false);
+      }
+    },
+    [exiting, submitting, phoneBusy, logout, navigate],
+  );
+
+  const dismissBlockedModal = useCallback(() => {
+    setBlockedModalOpen(false);
+    if (searchParams.get('blocked') !== '1') return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('blocked');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   if (isLoading || referenceLoading) {
     return <MyVagonBootScreen />;
@@ -499,8 +524,9 @@ export const CompleteSignupPage: React.FC = () => {
       title={t('signupComplete.title', { defaultValue: 'Complete company information' })}
       variant="shipper"
       videoSrc={signupVideos.shipper}
-      onLogoClick={backToApp}
+      onLogoClick={() => void exitSocialSignup('/login')}
     >
+      <SignupIncompleteAccessModal open={blockedModalOpen} onClose={dismissBlockedModal} />
       <form className="reg-form" onSubmit={(e) => void handleSubmit(e)} noValidate>
         {formError && (
           <p className="reg-error" role="alert" style={{ marginBottom: '0.75rem' }}>
@@ -677,28 +703,29 @@ export const CompleteSignupPage: React.FC = () => {
           onOpenLegal={setLegalDocModal}
         />
 
-        <button type="submit" className="reg-btn-primary" disabled={submitting || phoneBusy}>
+        <button type="submit" className="reg-btn-primary" disabled={submitting || phoneBusy || exiting}>
           {submitting
             ? t('registerWorking', 'Please wait…')
             : t('signupComplete.submit', { defaultValue: 'Save & continue' })}
         </button>
 
         <div className="reg-footer">
+          <h4>{t('registerHaveAccount', 'Have an account already?')}</h4>
           <button
             type="button"
-            disabled={submitting || phoneBusy}
-            onClick={backToApp}
+            disabled={submitting || phoneBusy || exiting}
+            onClick={() => void exitSocialSignup('/login')}
             style={{
               background: 'none',
               border: 'none',
               padding: 0,
               color: 'inherit',
-              cursor: 'pointer',
+              cursor: exiting ? 'wait' : 'pointer',
               textDecoration: 'underline',
               font: 'inherit',
             }}
           >
-            {t('signupComplete.backToApp', { defaultValue: 'Back to dashboard' })}
+            {t('registerLogIn', 'Log In')}
           </button>
         </div>
       </form>

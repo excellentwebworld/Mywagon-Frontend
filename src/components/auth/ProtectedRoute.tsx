@@ -14,7 +14,12 @@ import {
   isInfoFormAllowedPath,
   needsInfoFormHardGate,
 } from '../../hooks/useInfoFormGate';
-import { needsSignupComplete } from '../../hooks/useSignupCompleteGate';
+import {
+  completeSignupPath,
+  isSignupCompleteAllowedPath,
+  isSocialShipper,
+  needsSignupComplete,
+} from '../../hooks/useSignupCompleteGate';
 import { MyVagonBootScreen } from '../ui/MyVagonLoader';
 
 interface ProtectedRouteProps {
@@ -22,11 +27,13 @@ interface ProtectedRouteProps {
 }
 
 /**
- * Normal signup (and social after company info is saved):
- *   past-due → Info Form → KYC → company info → panel
+ * Gate sequence:
+ *   past-due → (social incomplete: complete-signup) →
+ *   social: KYC → Info Form → company info → panel
+ *   normal: Info Form → KYC → company info → panel
  *
- * Social prospects (signup_complete=false) may browse every page. Operational
- * create/mutate actions are redirected to /complete-signup separately.
+ * Incomplete social users cannot browse other pages (same style as KYC lock).
+ * Trying another URL redirects to /complete-signup?blocked=1 (modal explains why).
  */
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -59,19 +66,33 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/billing" replace />;
   }
 
-  // Social one-click prospects: browse dashboard and all pages; do not hard-lock
-  // to complete-signup / KYC / info form. Mutations are soft-gated on action.
-  const socialProspect = needsSignupComplete(user);
-
-  if (!socialProspect && needsInfoFormHardGate(user) && !isInfoFormAllowedPath(location.pathname)) {
-    return <Navigate to="/settings/organization?from=info_form" replace />;
+  // Social incomplete: hard-lock to complete-signup (profile / required details)
+  if (needsSignupComplete(user) && !isSignupCompleteAllowedPath(location.pathname)) {
+    return (
+      <Navigate
+        to={completeSignupPath(location.pathname, { blocked: true })}
+        replace
+      />
+    );
   }
 
-  if (!socialProspect && needsKycGate(user) && !isKycGateAllowedPath(location.pathname, user)) {
+  const social = isSocialShipper(user);
+
+  // Social after company details: KYC before Info Form
+  if (social && needsKycGate(user) && !isKycGateAllowedPath(location.pathname, user)) {
     return <Navigate to="/settings/compliance" replace />;
   }
 
-  if (!socialProspect && needsCompanyInfoGate(user) && !isCompanyInfoGateAllowedPath(location.pathname)) {
+  if (needsInfoFormHardGate(user) && !isInfoFormAllowedPath(location.pathname)) {
+    return <Navigate to="/settings/organization?from=info_form" replace />;
+  }
+
+  // Normal (and social after info form): KYC gate
+  if (!social && needsKycGate(user) && !isKycGateAllowedPath(location.pathname, user)) {
+    return <Navigate to="/settings/compliance" replace />;
+  }
+
+  if (needsCompanyInfoGate(user) && !isCompanyInfoGateAllowedPath(location.pathname)) {
     return <Navigate to="/settings/organization?from=company_info" replace />;
   }
 

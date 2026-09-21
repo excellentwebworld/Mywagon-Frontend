@@ -3,15 +3,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { useTranslation } from './useTranslation';
-import { isSocialShipper, needsSignupComplete, completeSignupPath } from './useSignupCompleteGate';
-import { needsKycGate } from './useKycGate';
-import { needsInfoFormHardGate } from './useInfoFormGate';
-import { postAuthDestination } from './postAuthDestination';
+import { needsSignupComplete, completeSignupPath } from './useSignupCompleteGate';
 
 /**
- * Soft-gate for operational actions (create products, addresses, partners,
- * bids, shipments). Social prospects may browse; this redirects them to
- * complete the regular signup form (company info + KYC).
+ * Soft-gate for operational actions while social required details are incomplete.
+ * Primary lock is ProtectedRoute; this catches create/mutate entry points.
+ * Normal email signup never has signup_complete=false — unaffected.
  */
 export function useRequireSignupComplete(): {
   signupIncomplete: boolean;
@@ -23,40 +20,19 @@ export function useRequireSignupComplete(): {
   const { showToast } = useApp();
   const { t } = useTranslation();
 
-  const signupIncomplete =
-    needsSignupComplete(user) ||
-    (isSocialShipper(user) && (needsKycGate(user) || needsInfoFormHardGate(user)));
+  const signupIncomplete = needsSignupComplete(user);
 
   const requireSignupComplete = useCallback((): boolean => {
     if (!user) return false;
     if (!signupIncomplete) return true;
 
-    const dest = needsSignupComplete(user)
-      ? completeSignupPath(location.pathname)
-      : postAuthDestination(user, location.pathname);
-    if (needsSignupComplete(user)) {
-      showToast(
-        t('signupComplete.requiredToast', {
-          defaultValue: 'Please complete your company information to continue.',
-        }),
-        'info',
-      );
-    } else if (needsInfoFormHardGate(user)) {
-      showToast(
-        t('signupComplete.infoFormRequiredToast', {
-          defaultValue: 'Please complete the mandatory information questions to continue.',
-        }),
-        'info',
-      );
-    } else if (needsKycGate(user)) {
-      showToast(
-        t('signupComplete.kycRequiredToast', {
-          defaultValue: 'Please upload your KYC documents to continue.',
-        }),
-        'info',
-      );
-    }
-    navigate(dest, { replace: false });
+    showToast(
+      t('signupComplete.requiredToast', {
+        defaultValue: 'Please complete your company information to continue.',
+      }),
+      'info',
+    );
+    navigate(completeSignupPath(location.pathname, { blocked: true }), { replace: false });
     return false;
   }, [user, signupIncomplete, showToast, t, navigate, location.pathname]);
 
