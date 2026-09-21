@@ -293,10 +293,17 @@ export function draftToFormValues(
     selectedCarriers: (state.selectedCarriers ?? defaults.selectedCarriers)
       .map((id) => String(id))
       .filter((id) => /^\d+$/.test(id)),
-    targetPrice:
-      state.targetPrice != null && state.targetPrice !== ''
-        ? String(state.targetPrice)
-        : defaults.targetPrice,
+    targetPrice: (() => {
+      const isNeg = state.negotiable ?? defaults.negotiable;
+      const rawPrice =
+        state.targetPrice != null && state.targetPrice !== ''
+          ? String(state.targetPrice)
+          : defaults.targetPrice;
+      if (isNeg && (rawPrice === '' || Number.isNaN(parseFloat(rawPrice)) || parseFloat(rawPrice) <= 0)) {
+        return '';
+      }
+      return rawPrice;
+    })(),
     negotiable: state.negotiable ?? defaults.negotiable,
     trackingEmails: normalizeTrackingEmails(
       state.trackingEmails ?? defaults.trackingEmails,

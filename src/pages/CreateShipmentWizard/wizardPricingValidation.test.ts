@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { wizardValidationSchema } from './CreateShipmentWizardLayout';
-import { formValuesToStepThreePayload } from '../../api/mappers/createShipmentMapper';
+import { draftToFormValues, formValuesToStepThreePayload } from '../../api/mappers/createShipmentMapper';
 
 describe('wizardValidationSchema — Target Price & Negotiable Validation', () => {
   const baseValidForm = {
@@ -156,5 +156,103 @@ describe('formValuesToStepThreePayload — Target Price & Negotiable mapping', (
 
     expect(payload.target_price).toBe(750);
     expect(payload.negotiable).toBe(false);
+  });
+});
+
+describe('draftToFormValues — Target Price & Negotiable mapping (Edit/Draft Load)', () => {
+  it('converts 0 or "0.00" targetPrice to blank when load is negotiable', () => {
+    const defaults = {
+      loadId: 'SID-NEW',
+      custRef: '',
+      coOwners: [],
+      stops: [],
+      itineraryConfirmed: false,
+      itineraryConfirmSnapshot: '',
+      routeSummary: null,
+      vehicleSpecs: {},
+      vehicleSelectionConfirmed: false,
+      broadcastType: 'private' as const,
+      selectedCarriers: [],
+      targetPrice: '',
+      negotiable: true,
+      trackingEmails: {},
+      driverNotes: '',
+      gpsRequired: false,
+      orderValue: '',
+    };
+
+    const mappedZeroStr = draftToFormValues(
+      {
+        auto_id: 'SID-10401',
+        wizard_state: {
+          negotiable: true,
+          targetPrice: '0.00',
+        },
+      },
+      defaults as any
+    );
+    expect(mappedZeroStr.targetPrice).toBe('');
+    expect(mappedZeroStr.negotiable).toBe(true);
+
+    const mappedZeroNum = draftToFormValues(
+      {
+        auto_id: 'SID-10401',
+        wizard_state: {
+          negotiable: true,
+          targetPrice: 0,
+        },
+      },
+      defaults as any
+    );
+    expect(mappedZeroNum.targetPrice).toBe('');
+    expect(mappedZeroNum.negotiable).toBe(true);
+
+    const mappedPositive = draftToFormValues(
+      {
+        auto_id: 'SID-10401',
+        wizard_state: {
+          negotiable: true,
+          targetPrice: '500.00',
+        },
+      },
+      defaults as any
+    );
+    expect(mappedPositive.targetPrice).toBe('500.00');
+    expect(mappedPositive.negotiable).toBe(true);
+  });
+
+  it('preserves targetPrice as-is when load is fixed price (non-negotiable)', () => {
+    const defaults = {
+      loadId: 'SID-NEW',
+      custRef: '',
+      coOwners: [],
+      stops: [],
+      itineraryConfirmed: false,
+      itineraryConfirmSnapshot: '',
+      routeSummary: null,
+      vehicleSpecs: {},
+      vehicleSelectionConfirmed: false,
+      broadcastType: 'private' as const,
+      selectedCarriers: [],
+      targetPrice: '',
+      negotiable: false,
+      trackingEmails: {},
+      driverNotes: '',
+      gpsRequired: false,
+      orderValue: '',
+    };
+
+    const mappedFixed = draftToFormValues(
+      {
+        auto_id: 'SID-10402',
+        wizard_state: {
+          negotiable: false,
+          targetPrice: '750',
+        },
+      },
+      defaults as any
+    );
+    expect(mappedFixed.targetPrice).toBe('750');
+    expect(mappedFixed.negotiable).toBe(false);
   });
 });

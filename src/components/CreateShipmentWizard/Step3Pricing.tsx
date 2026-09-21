@@ -99,7 +99,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   const { t, lang } = useTranslation();
   const { locations, showToast } = useApp();
   const { values, setFieldValue, isSubmitting, errors, setFieldTouched, setFieldError } = useFormikContext<any>();
-  const pricePrefilledRef = useRef(false);
+  const pricePrefilledRef = useRef(isEditMode);
   const stops = values.stops || [];
   // Match Laravel edit itinerary: negotiable + live nav disabled when status !== draft.
   const lockNegotiableAndLiveNav =
@@ -1356,6 +1356,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   setFieldValue('negotiable', nextNegotiable);
                   if (nextNegotiable) {
                     setFieldError('targetPrice', undefined);
+                    const rawVal = String(values.targetPrice ?? '').trim();
+                    if (rawVal === '' || parseFloat(rawVal) <= 0) {
+                      setFieldValue('targetPrice', '');
+                    }
                   }
                 }}
                 style={
