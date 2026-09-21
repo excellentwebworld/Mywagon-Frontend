@@ -72,6 +72,7 @@ export type TrackingLiveConfig = {
   shipper_id: number;
   driver_id: number | null;
   shipment_id: number;
+  last_position?: { lat: number; lng: number } | null;
 };
 
 export type PublicTrackingPayload = {
@@ -83,6 +84,7 @@ export type PublicTrackingPayload = {
     started_by: string | null;
     lane: string;
     shipper_id?: number;
+    tracking_required_by_shipper?: boolean;
   };
   header: {
     transporter_kind: 'freelancer' | 'carrier' | null;
@@ -117,6 +119,7 @@ export type PublicTrackingPayload = {
       show_route_toggle: boolean;
     };
     live?: TrackingLiveConfig | null;
+    last_position?: { lat: number; lng: number } | null;
   };
   transporter: TrackingTransporter;
   receipt: {
