@@ -14,10 +14,7 @@ import {
   isInfoFormAllowedPath,
   needsInfoFormHardGate,
 } from '../../hooks/useInfoFormGate';
-import {
-  isSignupCompleteAllowedPath,
-  needsSignupComplete,
-} from '../../hooks/useSignupCompleteGate';
+import { needsSignupComplete } from '../../hooks/useSignupCompleteGate';
 import { MyVagonBootScreen } from '../ui/MyVagonLoader';
 
 interface ProtectedRouteProps {
@@ -25,8 +22,11 @@ interface ProtectedRouteProps {
 }
 
 /**
- * Same sequence for normal and social (after social /complete-signup):
+ * Normal signup (and social after company info is saved):
  *   past-due → Info Form → KYC → company info → panel
+ *
+ * Social prospects (signup_complete=false) may browse every page. Operational
+ * create/mutate actions are redirected to /complete-signup separately.
  */
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -59,21 +59,19 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/billing" replace />;
   }
 
-  // Social only: must finish register required fields first
-  if (needsSignupComplete(user) && !isSignupCompleteAllowedPath(location.pathname)) {
-    return <Navigate to="/complete-signup" replace />;
-  }
+  // Social one-click prospects: browse dashboard and all pages; do not hard-lock
+  // to complete-signup / KYC / info form. Mutations are soft-gated on action.
+  const socialProspect = needsSignupComplete(user);
 
-  // Info Form before KYC (normal + social)
-  if (needsInfoFormHardGate(user) && !isInfoFormAllowedPath(location.pathname)) {
+  if (!socialProspect && needsInfoFormHardGate(user) && !isInfoFormAllowedPath(location.pathname)) {
     return <Navigate to="/settings/organization?from=info_form" replace />;
   }
 
-  if (needsKycGate(user) && !isKycGateAllowedPath(location.pathname, user)) {
+  if (!socialProspect && needsKycGate(user) && !isKycGateAllowedPath(location.pathname, user)) {
     return <Navigate to="/settings/compliance" replace />;
   }
 
-  if (needsCompanyInfoGate(user) && !isCompanyInfoGateAllowedPath(location.pathname)) {
+  if (!socialProspect && needsCompanyInfoGate(user) && !isCompanyInfoGateAllowedPath(location.pathname)) {
     return <Navigate to="/settings/organization?from=company_info" replace />;
   }
 

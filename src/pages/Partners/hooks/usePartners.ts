@@ -457,20 +457,23 @@ export function usePartners() {
   }, [inviteMutation]);
 
   const openGenericModal = useCallback((type: GenericModalType) => {
+    if (!requireSignupComplete()) return;
     setGenericModal(type);
-  }, []);
+  }, [requireSignupComplete]);
 
   const closeGenericModal = useCallback(() => setGenericModal(null), []);
 
   const saveContractLane = useCallback((values: StoreContractLanePayload) => {
+    if (!requireSignupComplete()) return;
     if (!selectedPartner) return;
     laneMutation.mutate({
       id: selectedPartner.id,
       payload: values,
     });
-  }, [selectedPartner, laneMutation]);
+  }, [selectedPartner, laneMutation, requireSignupComplete]);
 
   const executeConfirm = useCallback(() => {
+    if (!requireSignupComplete()) return;
     if (!confirmAction) return;
     const { type, partner } = confirmAction;
     if (type === 'suspend' || type === 'reactivate') toggleStatusMutation.mutate(partner.id);
@@ -480,15 +483,21 @@ export function usePartners() {
       deleteLaneMutation.mutate({ partnerId: partner.id, laneId: confirmAction.laneId });
     }
     setConfirmAction(null);
-  }, [confirmAction, toggleStatusMutation, deleteMutation, declineMutation, deleteLaneMutation]);
+  }, [confirmAction, toggleStatusMutation, deleteMutation, declineMutation, deleteLaneMutation, requireSignupComplete]);
 
   const suspendPartner = useCallback((p: Partner) => setConfirmAction({ type: 'suspend', partner: p }), []);
   const reactivatePartner = useCallback((p: Partner) => setConfirmAction({ type: 'reactivate', partner: p }), []);
   const permanentlyRemovePartner = useCallback((p: Partner) => setConfirmAction({ type: 'remove', partner: p }), []);
   const declinePartner = useCallback((p: Partner) => setConfirmAction({ type: 'decline', partner: p }), []);
   const cancelInvite = useCallback((p: Partner) => setConfirmAction({ type: 'remove', partner: p }), []);
-  const acceptPartner = useCallback((p: Partner) => acceptMutation.mutate(p.id), [acceptMutation]);
-  const togglePreferred = useCallback((p: Partner) => togglePreferredMutation.mutate(p.id), [togglePreferredMutation]);
+  const acceptPartner = useCallback((p: Partner) => {
+    if (!requireSignupComplete()) return;
+    acceptMutation.mutate(p.id);
+  }, [acceptMutation, requireSignupComplete]);
+  const togglePreferred = useCallback((p: Partner) => {
+    if (!requireSignupComplete()) return;
+    togglePreferredMutation.mutate(p.id);
+  }, [togglePreferredMutation, requireSignupComplete]);
   const saveNote = useCallback((noteText: string) => {
     if (!selectedPartner) return;
     notesMutation.mutate({ id: selectedPartner.id, notes: noteText });

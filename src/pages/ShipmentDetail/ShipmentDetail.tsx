@@ -31,6 +31,7 @@ import type { PhysicalStop } from '../../components/ShipmentDetail/StopsCard';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
 import { useShipment } from '../../hooks/useShipments';
 import { ShipmentDetailSkeleton } from '../../components/skeletons/ShipmentDetailSkeleton';
 import { buildShipmentDetailViewModel, type DetailNote, type DetailDocument, type PartnerBidItem } from './detailViewModel';
@@ -60,6 +61,7 @@ export const ShipmentDetail: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useApp();
   const { t } = useTranslation();
+  const { requireSignupComplete } = useRequireSignupComplete();
   const { shipment, loading, error, refetch } = useShipment(id);
   const [lang, setLang] = useState<'en' | 'el'>('en');
   const [activeNav, setActiveNav] = useState('stops');
@@ -671,6 +673,7 @@ export const ShipmentDetail: React.FC = () => {
           onLangChange={setLang}
           onCopyId={() => handleCopy(vm.displayId)}
           onEdit={() => {
+            if (!requireSignupComplete()) return;
             if (vm.status === 'draft') {
               navigate(`/shipments/create/step/1?id=${vm.id}`);
             } else {

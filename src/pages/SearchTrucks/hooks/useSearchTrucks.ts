@@ -975,6 +975,7 @@ export function useSearchTrucks() {
 
   const goToCreateShipment = useCallback(
     async (truck: AvailableTruck) => {
+      if (!requireSignupComplete()) return;
       setCreatingShipmentId(truck.id);
       try {
         if (USE_MOCK) {
@@ -997,7 +998,7 @@ export function useSearchTrucks() {
       }
       // Keep loading state on success until create-shipment route unmounts this page.
     },
-    [navigate, showToast, t]
+    [navigate, showToast, t, requireSignupComplete]
   );
 
   const openDrawer = useCallback(

@@ -4,15 +4,17 @@ import { needsInfoFormHardGate } from './useInfoFormGate';
 import { needsSignupComplete } from './useSignupCompleteGate';
 
 /**
- * Post-login destination — same sequence for normal and social signup:
- *   complete-signup (social only) → Info Form → KYC → company info → dashboard / tour
+ * Post-login destination.
+ * Social prospects go straight to the dashboard (browse-only until company/KYC).
+ * After company info is saved, same sequence as normal signup:
+ *   Info Form → KYC → company info → dashboard / tour
  */
 export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'): string {
   if (needsSignupComplete(user)) {
-    return '/complete-signup';
+    return '/dashboard';
   }
 
-  // Info Form before KYC (same for social + normal)
+  // Info Form before KYC (same for social + normal after signup fields)
   if (needsInfoFormHardGate(user)) {
     return '/settings/organization?from=info_form';
   }
@@ -33,13 +35,14 @@ export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'):
 }
 
 /**
- * Tour auto-start once the user can reach the dashboard
- * (info form done + KYC accepted — enforced by route gates).
+ * Tour auto-start on dashboard.
+ * Social prospects get the same step-by-step tutorial immediately.
+ * Fully signed-up users start it after info form + KYC (enforced by route gates).
  */
 export function canStartOnboardingTour(user: ShipperUser | null | undefined): boolean {
   if (!user) return false;
   if (user.onboarding_completed !== false) return false;
-  if (needsSignupComplete(user)) return false;
+  if (needsSignupComplete(user)) return true;
   if (needsInfoFormHardGate(user)) return false;
   if (needsKycGate(user)) return false;
   if (needsCompanyInfoGate(user)) return false;

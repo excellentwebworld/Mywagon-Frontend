@@ -6,7 +6,6 @@ import { clearInfoFormReminderSkip } from '../../components/layout/InfoFormRemin
 import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { postAuthDestination } from '../../hooks/postAuthDestination';
-import { needsSignupComplete } from '../../hooks/useSignupCompleteGate';
 import { applyVerticalNavOnLogin } from '../../utils/navMode';
 import type { TwoFactorChallenge, TwoFactorMethod } from '../../api/auth';
 
@@ -36,7 +35,6 @@ export const SocialCallbackPage: React.FC = () => {
     const challengeToken = params.get('challenge_token');
     const method = params.get('method') as TwoFactorMethod | null;
     const maskedEmail = params.get('masked_email') || '';
-    const signupCompleteParam = params.get('signup_complete');
 
     if (twoFactor && challengeToken && method) {
       clearStoredToken();
@@ -82,10 +80,6 @@ export const SocialCallbackPage: React.FC = () => {
         if (cancelled) return;
 
         setHandoffDone(true);
-        if (signupCompleteParam === '0' || needsSignupComplete(profile)) {
-          navigate('/complete-signup', { replace: true });
-          return;
-        }
         navigate(postAuthDestination(profile), { replace: true });
       } catch {
         if (cancelled) return;
@@ -154,9 +148,6 @@ export const SocialCallbackPage: React.FC = () => {
   }
 
   if (handoffDone && isAuthenticated && user && params.get('token')) {
-    if (needsSignupComplete(user) || params.get('signup_complete') === '0') {
-      return <Navigate to="/complete-signup" replace />;
-    }
     return <Navigate to={postAuthDestination(user)} replace />;
   }
 

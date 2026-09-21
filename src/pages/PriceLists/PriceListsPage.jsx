@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
+import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
 import { ApiError } from '../../api/client';
 import { priceListsService } from '../../api/services/priceListsService';
 import { partnersService } from '../../api';
@@ -149,6 +150,7 @@ export default function PriceListsPage() {
   const { T } = useTheme();
   const { role } = useAuth();
   const { toast } = useToast();
+  const { requireSignupComplete } = useRequireSignupComplete();
   const isGreek = i18n.language === 'el';
   const [searchParams, setSearchParams] = useSearchParams();
   const setSearchParamsRef = useRef(setSearchParams);
@@ -392,6 +394,7 @@ export default function PriceListsPage() {
 
   // ─── CRUD actions ───
   const handleAction = useCallback((action, lane) => {
+    if (!requireSignupComplete()) return;
     switch (action) {
       case 'edit':
         setEditLane(lane);
@@ -454,7 +457,7 @@ export default function PriceListsPage() {
       default:
         break;
     }
-  }, [t, toast, selectedId, persistLaneStatus]);
+  }, [t, toast, selectedId, persistLaneStatus, requireSignupComplete]);
 
   // ─── Save lane (add/edit) ───
   const handleSaveLane = useCallback(async (entry, existingId) => {
@@ -617,13 +620,13 @@ export default function PriceListsPage() {
             <Download size={14} />
             {t('priceLists.exportBtn', 'Export')}
           </button>
-          <button onClick={() => setImportOpen(true)}
+          <button onClick={() => { if (!requireSignupComplete()) return; setImportOpen(true); }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer border-none"
             style={{ background: T.sf, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12, fontWeight: 500 }}>
             <UploadIcon size={14} />
             {t('priceLists.importBtn', 'Import')}
           </button>
-          <button onClick={() => { setEditLane(null); setAddEditOpen(true); }}
+          <button onClick={() => { if (!requireSignupComplete()) return; setEditLane(null); setAddEditOpen(true); }}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg cursor-pointer border-none text-white"
             style={{ background: T.ac, fontSize: 12, fontWeight: 600 }}>
             <Plus size={14} />

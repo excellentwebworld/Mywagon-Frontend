@@ -16,7 +16,6 @@ import {
 import { clearSignupDraft } from '../Register/signupDraft';
 import { SocialAuthButtons } from '../../components/auth/SocialAuthButtons';
 import { postAuthDestination } from '../../hooks/postAuthDestination';
-import { needsSignupComplete } from '../../hooks/useSignupCompleteGate';
 import { clearInfoFormReminderSkip } from '../../components/layout/InfoFormReminderModal';
 import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
 import { applyVerticalNavOnLogin } from '../../utils/navMode';
@@ -108,7 +107,6 @@ export const LoginPage: React.FC = () => {
     const method = params.get('method') as TwoFactorMethod | null;
     const maskedEmail = params.get('masked_email') || '';
     const token = params.get('token');
-    const signupCompleteParam = params.get('signup_complete');
 
     if (twoFactor && challengeToken && method) {
       setChallenge({
@@ -143,10 +141,7 @@ export const LoginPage: React.FC = () => {
         });
         if (cancelled) return;
 
-        const dest =
-          signupCompleteParam === '0' || needsSignupComplete(profile)
-            ? '/complete-signup'
-            : postAuthDestination(profile, from);
+        const dest = postAuthDestination(profile, from);
         navigate(dest, { replace: true });
       } catch {
         if (cancelled) return;

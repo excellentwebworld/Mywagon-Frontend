@@ -25,6 +25,7 @@ import type {
   ErpOrdersFilterState,
 } from '../types';
 import { EMPTY_ORDER_FORM as EMPTY_FORM, EMPTY_ORDER_LINE } from '../types';
+import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
 import type { SKU } from '../../../context/AppContext';
 
 const DEFAULT_FILTERS: ErpOrdersFilterState = {
@@ -40,6 +41,7 @@ export function useErpOrdersList() {
   const { showToast, refreshLocationsFromApi, refreshSkusFromApi } = useApp();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { requireSignupComplete } = useRequireSignupComplete();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const setSearchParamsRef = useRef(setSearchParams);
@@ -395,6 +397,7 @@ export function useErpOrdersList() {
 
   const goToCreateLoad = useCallback(
     async (singleOrderId?: string): Promise<boolean> => {
+      if (!requireSignupComplete()) return false;
       const ids = singleOrderId ? [singleOrderId] : Array.from(selectedIds);
       if (ids.length === 0) {
         showToast(t('erpOrdersSelectAtLeastOne'), 'warning');
@@ -452,7 +455,7 @@ export function useErpOrdersList() {
       navigate('/shipments/create/step/1?erp_orders=1');
       return true;
     },
-    [selectedIds, orders, showToast, t, navigate]
+    [selectedIds, orders, showToast, t, navigate, requireSignupComplete]
   );
 
   const handleExport = useCallback(async () => {
@@ -517,12 +520,14 @@ export function useErpOrdersList() {
   }, []);
 
   const openCreateOrder = useCallback(() => {
+    if (!requireSignupComplete()) return;
     setEditingOrderId(null);
     setOrderForm({ ...EMPTY_FORM, lines: [{ ...EMPTY_ORDER_LINE }] });
     setIsFormOpen(true);
-  }, []);
+  }, [requireSignupComplete]);
 
   const openEditOrder = useCallback((order: ErpOrder) => {
+    if (!requireSignupComplete()) return;
     setEditingOrderId(order.id);
     setOrderForm({
       orderReference: order.orderReference,
@@ -539,7 +544,7 @@ export function useErpOrdersList() {
       lines: order.lines.length ? order.lines : [],
     });
     setIsFormOpen(true);
-  }, []);
+  }, [requireSignupComplete]);
 
   const closeForm = useCallback(() => {
     setIsFormOpen(false);
@@ -555,7 +560,10 @@ export function useErpOrdersList() {
     }
   }, [editingOrderId, createMutation, updateMutation]);
 
-  const openAiWizard = useCallback(() => setIsAiWizardOpen(true), []);
+  const openAiWizard = useCallback(() => {
+    if (!requireSignupComplete()) return;
+    setIsAiWizardOpen(true);
+  }, [requireSignupComplete]);
   const closeAiWizard = useCallback(() => setIsAiWizardOpen(false), []);
 
   const handleAiWizardImportSuccess = useCallback(() => {

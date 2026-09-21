@@ -7,6 +7,7 @@ import type { Shipment } from '../../../context/AppContext';
 import { useCreateShipmentPartners } from '../../../hooks/useCreateShipmentPartners';
 import { useShipmentsList } from '../../../hooks/useShipments';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
 import type { LoadsDirection } from '../../../components/ManageShipments/LoadsDirectionToggle';
 import {
   buildFilterChips,
@@ -37,6 +38,7 @@ export function useManageShipments() {
   const { showToast } = useApp();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { requireSignupComplete } = useRequireSignupComplete();
   const [searchParams, setSearchParams] = useSearchParams();
   const {
     carriersList: invitePartners,
@@ -539,6 +541,7 @@ export function useManageShipments() {
 
   const handleEdit = useCallback(
     (s: Shipment) => {
+      if (!requireSignupComplete()) return;
       if (!isShipmentEditable(s.status)) {
         handleEditBlocked();
         return;
@@ -549,7 +552,7 @@ export function useManageShipments() {
       }
       navigate(`/shipments/create/step/1?editId=${s.id}`);
     },
-    [handleEditBlocked, navigate]
+    [handleEditBlocked, navigate, requireSignupComplete]
   );
 
   const handleViewNewTab = useCallback((s: Shipment) => {
@@ -641,6 +644,7 @@ export function useManageShipments() {
 
   const handleInviteMore = useCallback(
     (s: Shipment) => {
+      if (!requireSignupComplete()) return;
       setInviteTargetId(s.id);
       setInviteTargetIds([s.id]);
       const invitedNames = new Set(
@@ -657,7 +661,7 @@ export function useManageShipments() {
       setInviteQuery('');
       setIsInviteOpen(true);
     },
-    [invitePartners]
+    [invitePartners, requireSignupComplete]
   );
 
   const closeInviteModal = useCallback(() => {
@@ -671,6 +675,7 @@ export function useManageShipments() {
 
   const handleBulkAction = useCallback(
     async (action: string) => {
+      if (!requireSignupComplete()) return;
       const ids = Array.from(selectedIds).map((id) => Number(id)).filter((n) => Number.isFinite(n));
       if (ids.length === 0) return;
 
@@ -709,7 +714,7 @@ export function useManageShipments() {
         showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
       }
     },
-    [pagination.items, refreshList, selectedIds, showToast, summaryParams, t]
+    [pagination.items, refreshList, selectedIds, showToast, summaryParams, t, requireSignupComplete]
   );
 
   const handleSendInvites = useCallback(async () => {

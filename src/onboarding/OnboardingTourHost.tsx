@@ -65,7 +65,7 @@ export const OnboardingTourHost: React.FC<OnboardingTourHostProps> = ({ expandSi
     });
   }, [expandSidebar, markComplete, t]);
 
-  // Auto-start on dashboard only on first login after KYC accepted + mandatory info form done.
+  // Auto-start on dashboard: social prospects immediately; others after info form + KYC.
   useEffect(() => {
     if (!user || !isDashboard) return;
 

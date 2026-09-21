@@ -408,9 +408,10 @@ export function useProductMaster() {
   }, []);
 
   const handleBulkArchive = useCallback(() => {
+    if (!requireSignupComplete()) return;
     if (selectedIds.size === 0) return;
     setArchiveConfirmOpen(true);
-  }, [selectedIds]);
+  }, [selectedIds, requireSignupComplete]);
 
   const confirmBulkArchive = useCallback(async () => {
     if (selectedIds.size === 0) return;
@@ -419,9 +420,10 @@ export function useProductMaster() {
   }, [selectedIds, bulkArchiveMutation]);
 
   const handleBulkRestore = useCallback(() => {
+    if (!requireSignupComplete()) return;
     if (selectedIds.size === 0) return;
     setUnarchiveConfirmOpen(true);
-  }, [selectedIds]);
+  }, [selectedIds, requireSignupComplete]);
 
   const confirmBulkRestore = useCallback(async () => {
     if (selectedIds.size === 0) return;
@@ -447,13 +449,14 @@ export function useProductMaster() {
   }, [requireSignupComplete]);
 
   const openEditSku = useCallback((sku: SKU) => {
+    if (!requireSignupComplete()) return;
     setEditSkuMode(true);
     setEditingSkuId(sku.id);
     setSelectedItem(sku);
     setSelectedKind('sku');
     setNewSku(skuToNewSkuForm(sku));
     setIsSkuOpen(true);
-  }, []);
+  }, [requireSignupComplete]);
 
   const handleSaveSku = useCallback(async (values: NewSkuForm) => {
     const data = values;
@@ -546,6 +549,7 @@ export function useProductMaster() {
   }, [handleApiError, showToast, t]);
 
   const openImportModal = useCallback(() => {
+    if (!requireSignupComplete()) return;
     setImportStep('form');
     setImportResult(null);
     setImportLogs([]);
@@ -553,7 +557,7 @@ export function useProductMaster() {
     importAbortRef.current = false;
     setIsImportOpen(true);
     setAddDropdownOpen(false);
-  }, []);
+  }, [requireSignupComplete]);
 
   const closeImportModal = useCallback(() => {
     setIsImportOpen(false);
@@ -637,9 +641,10 @@ export function useProductMaster() {
   }, [handleApiError]);
 
   const openAiWizard = useCallback(() => {
+    if (!requireSignupComplete()) return;
     setAddDropdownOpen(false);
     setIsAiWizardOpen(true);
-  }, []);
+  }, [requireSignupComplete]);
 
   const closeAiWizard = useCallback(() => {
     setIsAiWizardOpen(false);

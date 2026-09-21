@@ -11,6 +11,7 @@ import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
+import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
 import { toUpperGreek } from '../../../utils/greekUppercase';
 import PermissionGrid from './PermissionGrid';
 import { useUserMgmt } from '../../../context/UserMgmtContext';
@@ -65,6 +66,7 @@ export default function RolesTab() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
+  const { requireSignupComplete } = useRequireSignupComplete();
   const {
     users,
     roles,
@@ -163,6 +165,7 @@ export default function RolesTab() {
   };
 
   const handleCreate = async () => {
+    if (!requireSignupComplete()) return;
     const trimmed = newRoleName.trim();
     if (!trimmed) {
       setNameError(t('userMgmt.roles.nameRequired', { defaultValue: 'Role name is required.' }));

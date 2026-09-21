@@ -3,13 +3,15 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { useTranslation } from './useTranslation';
-import { isSocialShipper, needsSignupComplete } from './useSignupCompleteGate';
+import { isSocialShipper, needsSignupComplete, completeSignupPath } from './useSignupCompleteGate';
 import { needsKycGate } from './useKycGate';
 import { needsInfoFormHardGate } from './useInfoFormGate';
 import { postAuthDestination } from './postAuthDestination';
 
 /**
- * Soft-gate for account actions (social flow aware).
+ * Soft-gate for operational actions (create products, addresses, partners,
+ * bids, shipments). Social prospects may browse; this redirects them to
+ * complete the regular signup form (company info + KYC).
  */
 export function useRequireSignupComplete(): {
   signupIncomplete: boolean;
@@ -29,7 +31,9 @@ export function useRequireSignupComplete(): {
     if (!user) return false;
     if (!signupIncomplete) return true;
 
-    const dest = postAuthDestination(user, location.pathname);
+    const dest = needsSignupComplete(user)
+      ? completeSignupPath(location.pathname)
+      : postAuthDestination(user, location.pathname);
     if (needsSignupComplete(user)) {
       showToast(
         t('signupComplete.requiredToast', {

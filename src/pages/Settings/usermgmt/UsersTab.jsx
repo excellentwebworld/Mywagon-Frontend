@@ -15,6 +15,7 @@ import {
 import { createPortal } from 'react-dom';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
+import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
 import { useUserMgmt } from '../../../context/UserMgmtContext';
 import PaginationBar from '../../../components/ui/PaginationBar';
 import ConfirmDialog from '../../../components/ui/ConfirmDialog';
@@ -40,6 +41,7 @@ export default function UsersTab() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
+  const { requireSignupComplete } = useRequireSignupComplete();
   const { users, setUsers, addUser, updateUser, refresh, loading, error, roles } = useUserMgmt();
   const roleFilterOptions = roles.length ? roles : SHIPPER_ROLES;
   const rolesByKey = useMemo(() => {
@@ -126,12 +128,14 @@ export default function UsersTab() {
   };
 
   const openEdit = (u) => {
+    if (!requireSignupComplete()) return;
     setActionMenu(null);
     setModalUser(u);
     setModalOpen(true);
   };
 
   const openInvite = () => {
+    if (!requireSignupComplete()) return;
     setModalUser(null);
     setModalOpen(true);
   };

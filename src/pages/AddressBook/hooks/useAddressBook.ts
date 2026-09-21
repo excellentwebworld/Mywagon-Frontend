@@ -533,6 +533,7 @@ export function useAddressBook() {
 
   const openEditModal = useCallback(
     async (loc: LocationItem) => {
+      if (!requireSignupComplete()) return;
       setEditModalLoading(true);
       try {
         const full = await queryClient.fetchQuery({
@@ -547,14 +548,15 @@ export function useAddressBook() {
         setEditModalLoading(false);
       }
     },
-    [queryClient, handleApiError]
+    [queryClient, handleApiError, requireSignupComplete]
   );
 
   const handleArchive = useCallback(
     async (loc: LocationItem) => {
+      if (!requireSignupComplete()) return;
       setArchiveConfirmLoc(loc);
     },
-    []
+    [requireSignupComplete]
   );
 
   const confirmArchive = useCallback(async () => {
@@ -572,9 +574,10 @@ export function useAddressBook() {
 
   const goToCreateShipment = useCallback(
     (loc: LocationItem) => {
+      if (!requireSignupComplete()) return;
       navigate('/shipments/create', { state: { prefillLocationId: loc.id } });
     },
-    [navigate]
+    [navigate, requireSignupComplete]
   );
 
   const exportExcel = useCallback(async () => {

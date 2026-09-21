@@ -10,12 +10,9 @@ export function needsSignupComplete(user: ShipperUser | null | undefined): boole
   return user?.signup_complete === false;
 }
 
-/** Paths allowed while social user fills /complete-signup. */
-export function isSignupCompleteAllowedPath(pathname: string): boolean {
-  const path = pathname.replace(/\/$/, '') || '/';
-  if (path === '/complete-signup' || path.startsWith('/complete-signup/')) return true;
-  if (path === '/billing' || path.startsWith('/billing/')) return true;
-  return false;
+/** Social prospects may browse all app pages. Kept for callers that still check path. */
+export function isSignupCompleteAllowedPath(_pathname: string): boolean {
+  return true;
 }
 
 export function completeSignupPath(from?: string): string {

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -92,11 +92,16 @@ const SocialSignupSessionRecovery: React.FC = () => {
  * Email is always verified from social login.
  */
 export const CompleteSignupPage: React.FC = () => {
-  const { user, isAuthenticated, isLoading, refreshUser, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, refreshUser } = useAuth();
   const { lang, setLang, showToast } = useApp();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const [exiting, setExiting] = useState(false);
+  const [searchParams] = useSearchParams();
+  const fromParam = searchParams.get('from');
+  const browsePath =
+    fromParam && fromParam.startsWith('/') && !fromParam.startsWith('//') && !fromParam.startsWith('/complete-signup')
+      ? fromParam
+      : '/dashboard';
 
   const [form, setForm] = useState<FormState>({
     first_name: '',
@@ -461,21 +466,10 @@ export const CompleteSignupPage: React.FC = () => {
     }
   };
 
-  const exitSocialSignup = useCallback(
-    async (to: '/login' | '/shipper/register') => {
-      if (exiting || submitting || phoneBusy) return;
-      setExiting(true);
-      try {
-        await logout();
-        navigate(to, { replace: true });
-      } catch {
-        navigate(to, { replace: true });
-      } finally {
-        setExiting(false);
-      }
-    },
-    [exiting, submitting, phoneBusy, logout, navigate],
-  );
+  const backToApp = useCallback(() => {
+    if (submitting || phoneBusy) return;
+    navigate(browsePath);
+  }, [submitting, phoneBusy, navigate, browsePath]);
 
   if (isLoading || referenceLoading) {
     return <MyVagonBootScreen />;
@@ -505,7 +499,7 @@ export const CompleteSignupPage: React.FC = () => {
       title={t('signupComplete.title', { defaultValue: 'Complete company information' })}
       variant="shipper"
       videoSrc={signupVideos.shipper}
-      onLogoClick={() => void exitSocialSignup('/login')}
+      onLogoClick={backToApp}
     >
       <form className="reg-form" onSubmit={(e) => void handleSubmit(e)} noValidate>
         {formError && (
@@ -683,29 +677,28 @@ export const CompleteSignupPage: React.FC = () => {
           onOpenLegal={setLegalDocModal}
         />
 
-        <button type="submit" className="reg-btn-primary" disabled={submitting || phoneBusy || exiting}>
+        <button type="submit" className="reg-btn-primary" disabled={submitting || phoneBusy}>
           {submitting
             ? t('registerWorking', 'Please wait…')
             : t('signupComplete.submit', { defaultValue: 'Save & continue' })}
         </button>
 
         <div className="reg-footer">
-          <h4>{t('registerHaveAccount', 'Have an account already?')}</h4>
           <button
             type="button"
-            disabled={submitting || phoneBusy || exiting}
-            onClick={() => void exitSocialSignup('/login')}
+            disabled={submitting || phoneBusy}
+            onClick={backToApp}
             style={{
               background: 'none',
               border: 'none',
               padding: 0,
               color: 'inherit',
-              cursor: exiting ? 'wait' : 'pointer',
+              cursor: 'pointer',
               textDecoration: 'underline',
               font: 'inherit',
             }}
           >
-            {t('registerLogIn', 'Log In')}
+            {t('signupComplete.backToApp', { defaultValue: 'Back to dashboard' })}
           </button>
         </div>
       </form>

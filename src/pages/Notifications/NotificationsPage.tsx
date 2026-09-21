@@ -27,6 +27,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
 import { notificationService } from '../../api/services/notificationService';
 import type {
   ApiNotification,
@@ -281,6 +282,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
   const { lang, t: tHook } = useTranslation();
   const { T, isDark } = useTheme();
   const navigate = useNavigate();
+  const { requireSignupComplete } = useRequireSignupComplete();
 
   // ── State (Default 10 items per page) ───────────────────────────────────
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -522,6 +524,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
     } else if (action === 'viewDashboard') {
       target = '/dashboard';
     } else if (action === 'createShipment') {
+      if (!requireSignupComplete()) return;
       target = '/shipments/create';
     } else if (action === 'searchTrucks') {
       target = '/search-trucks';
