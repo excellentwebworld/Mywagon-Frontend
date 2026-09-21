@@ -60,6 +60,10 @@ export function usePartners() {
   const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const setSearchParamsRef = useRef(setSearchParams);
+  const searchParamsRef = useRef(searchParams);
+  setSearchParamsRef.current = setSearchParams;
+  searchParamsRef.current = searchParams;
 
   const [facetFilter, setFacetFilter] = useState<FacetFilter>(() => (searchParams.get('facet') as FacetFilter) || 'all');
   const [kpiFilter, setKpiFilter] = useState<KpiFilter>(() => (searchParams.get('kpi') as KpiFilter) || '');
@@ -76,51 +80,61 @@ export function usePartners() {
   });
   const [openSections, setOpenSections] = useState<OpenSections>(EMPTY_SECTIONS);
 
-  const currentPage = parseInt(searchParams.get('page') || '1', 10) || 1;
-  const setCurrentPage = (page: number | ((prev: number) => number)) => {
-    setSearchParams(
-      (prev) => {
-        const nextParams = new URLSearchParams(prev);
-        const nextPage = typeof page === 'function' ? page(currentPage) : page;
-        nextParams.set('page', nextPage.toString());
-        return nextParams;
-      },
-      { replace: true }
-    );
-  };
+  const [currentPage, setCurrentPage] = useState(
+    () => Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
+  );
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
+  const lastUrlSearchRef = useRef(searchParams.get('search') || '');
 
   // Synchronize state changes to URL query parameters
   useEffect(() => {
-    setSearchParams(prev => {
-      const next = new URLSearchParams(prev);
-      
-      if (facetFilter === 'all') next.delete('facet');
-      else next.set('facet', facetFilter);
-      
-      if (!kpiFilter) next.delete('kpi');
-      else next.set('kpi', kpiFilter);
+    const prev = searchParamsRef.current;
+    const next = new URLSearchParams(prev);
 
-      if (!debouncedSearch) next.delete('search');
-      else next.set('search', debouncedSearch);
+    if (facetFilter === 'all') next.delete('facet');
+    else next.set('facet', facetFilter);
 
-      return next;
-    }, { replace: true });
-  }, [facetFilter, kpiFilter, debouncedSearch, setSearchParams]);
+    if (!kpiFilter) next.delete('kpi');
+    else next.set('kpi', kpiFilter);
+
+    if (!debouncedSearch) next.delete('search');
+    else next.set('search', debouncedSearch);
+
+    if (currentPage <= 1) next.delete('page');
+    else next.set('page', String(currentPage));
+
+    const unchanged =
+      (prev.get('facet') ?? null) === (next.get('facet') ?? null) &&
+      (prev.get('kpi') ?? null) === (next.get('kpi') ?? null) &&
+      (prev.get('search') ?? null) === (next.get('search') ?? null) &&
+      (prev.get('page') ?? null) === (next.get('page') ?? null);
+    if (unchanged) return;
+
+    lastUrlSearchRef.current = debouncedSearch || '';
+    setSearchParamsRef.current(next, { replace: true });
+  }, [facetFilter, kpiFilter, debouncedSearch, currentPage]);
 
   // Synchronize URL query parameters back to state (for back/forward navigation)
   useEffect(() => {
-    setFacetFilter((searchParams.get('facet') as FacetFilter) || 'all');
-    setKpiFilter((searchParams.get('kpi') as KpiFilter) || '');
-    
+    const nextFacet = (searchParams.get('facet') as FacetFilter) || 'all';
+    setFacetFilter((prev) => (prev === nextFacet ? prev : nextFacet));
+
+    const nextKpi = (searchParams.get('kpi') as KpiFilter) || '';
+    setKpiFilter((prev) => (prev === nextKpi ? prev : nextKpi));
+
     const q = searchParams.get('search') || '';
-    setSearchQuery(q);
-    setDebouncedSearch(q);
+    if (q !== lastUrlSearchRef.current) {
+      lastUrlSearchRef.current = q;
+      setSearchQuery(q);
+      setDebouncedSearch(q);
+    }
 
     const partnerFromUrl = searchParams.get('partner_id');
-    setSelectedPartnerId(
-      partnerFromUrl && /^\d+$/.test(partnerFromUrl) ? partnerFromUrl : null
-    );
+    const nextPartnerId = partnerFromUrl && /^\d+$/.test(partnerFromUrl) ? partnerFromUrl : null;
+    setSelectedPartnerId((prev) => (prev === nextPartnerId ? prev : nextPartnerId));
+
+    const pageFromUrl = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+    setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
   }, [searchParams]);
 
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -129,19 +143,25 @@ export function usePartners() {
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipFilterPageResetRef = useRef(true);
 
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     searchDebounceRef.current = setTimeout(() => {
+      if (searchQuery === debouncedSearch) return;
       setDebouncedSearch(searchQuery);
       setCurrentPage(1);
     }, SEARCH_DEBOUNCE_MS);
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
-  }, [searchQuery]);
+  }, [searchQuery, debouncedSearch]);
 
   useEffect(() => {
+    if (skipFilterPageResetRef.current) {
+      skipFilterPageResetRef.current = false;
+      return;
+    }
     setCurrentPage(1);
   }, [facetFilter, activeFilters, perPage, kpiFilter, sortField, sortDir]);
 
@@ -482,7 +502,9 @@ export function usePartners() {
     setConfirmAction({ type: 'deleteLane', partner: selectedPartner, laneId });
   }, [selectedPartner]);
 
-  const goToPage = useCallback((page: number) => setCurrentPage(page), []);
+  const goToPage = useCallback((page: number) => {
+    setCurrentPage(Math.max(1, page));
+  }, []);
   const setPageSize = useCallback((size: number) => {
     if (PAGE_SIZE_OPTIONS.includes(size)) setPerPage(size);
   }, []);

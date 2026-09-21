@@ -45,49 +45,61 @@ export function useAddressBook() {
   const [actionLoading, setActionLoading] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const setSearchParamsRef = useRef(setSearchParams);
+  const searchParamsRef = useRef(searchParams);
+  setSearchParamsRef.current = setSearchParams;
+  searchParamsRef.current = searchParams;
 
   const [activeNode, setActiveNode] = useState(() => searchParams.get('node') || 'all');
-  const currentPage = parseInt(searchParams.get('page') || '1', 10) || 1;
-  const setCurrentPage = (page: number | ((prev: number) => number)) => {
-    setSearchParams(
-      (prev) => {
-        const nextParams = new URLSearchParams(prev);
-        const nextPage = typeof page === 'function' ? page(currentPage) : page;
-        nextParams.set('page', nextPage.toString());
-        return nextParams;
-      },
-      { replace: true }
-    );
-  };
+  const [currentPage, setCurrentPage] = useState(
+    () => Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
+  );
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '');
   const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get('search') || '');
   const [selectedLoc, setSelectedLoc] = useState<LocationItem | null>(null);
   const [sortField, setSortField] = useState<AddressBookSortField>('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc' | ''>('');
+  const lastUrlSearchRef = useRef(searchParams.get('search') || '');
 
   // Synchronize state changes to URL query parameters
   useEffect(() => {
-    setSearchParams(prev => {
-      const next = new URLSearchParams(prev);
-      
-      if (activeNode === 'all') next.delete('node');
-      else next.set('node', activeNode);
+    const prev = searchParamsRef.current;
+    const next = new URLSearchParams(prev);
 
-      if (!debouncedSearch) next.delete('search');
-      else next.set('search', debouncedSearch);
+    if (activeNode === 'all') next.delete('node');
+    else next.set('node', activeNode);
 
-      return next;
-    }, { replace: true });
-  }, [activeNode, debouncedSearch, setSearchParams]);
+    if (!debouncedSearch) next.delete('search');
+    else next.set('search', debouncedSearch);
+
+    if (currentPage <= 1) next.delete('page');
+    else next.set('page', String(currentPage));
+
+    const unchanged =
+      (prev.get('node') ?? null) === (next.get('node') ?? null) &&
+      (prev.get('search') ?? null) === (next.get('search') ?? null) &&
+      (prev.get('page') ?? null) === (next.get('page') ?? null);
+    if (unchanged) return;
+
+    lastUrlSearchRef.current = debouncedSearch || '';
+    setSearchParamsRef.current(next, { replace: true });
+  }, [activeNode, debouncedSearch, currentPage]);
 
   // Synchronize URL query parameters back to state (for back/forward navigation)
   useEffect(() => {
-    setActiveNode(searchParams.get('node') || 'all');
-    
+    const node = searchParams.get('node') || 'all';
+    setActiveNode((prev) => (prev === node ? prev : node));
+
     const q = searchParams.get('search') || '';
-    setSearchQuery(q);
-    setDebouncedSearch(q);
+    if (q !== lastUrlSearchRef.current) {
+      lastUrlSearchRef.current = q;
+      setSearchQuery(q);
+      setDebouncedSearch(q);
+    }
+
+    const pageFromUrl = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+    setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
   }, [searchParams]);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -107,22 +119,27 @@ export function useAddressBook() {
   const [archiveConfirmLoc, setArchiveConfirmLoc] = useState<LocationItem | null>(null);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipFilterPageResetRef = useRef(true);
 
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     searchDebounceRef.current = setTimeout(() => {
+      if (searchQuery === debouncedSearch) return;
       setDebouncedSearch(searchQuery);
       setCurrentPage(1);
     }, SEARCH_DEBOUNCE_MS);
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
-  }, [searchQuery]);
+  }, [searchQuery, debouncedSearch]);
 
   useEffect(() => {
+    if (skipFilterPageResetRef.current) {
+      skipFilterPageResetRef.current = false;
+      return;
+    }
     setCurrentPage(1);
   }, [activeNode, sortField, sortDir, perPage]);
-
   const handleApiError = useCallback(
     (err: unknown, fallback: string) => {
       if (err instanceof ApiError) {

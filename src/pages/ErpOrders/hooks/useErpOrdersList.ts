@@ -42,6 +42,10 @@ export function useErpOrdersList() {
   const navigate = useNavigate();
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const setSearchParamsRef = useRef(setSearchParams);
+  const searchParamsRef = useRef(searchParams);
+  setSearchParamsRef.current = setSearchParams;
+  searchParamsRef.current = searchParams;
 
   const [kpiFilter, setKpiFilter] = useState<ErpOrderKpiFilter>(() => (searchParams.get('kpi') as ErpOrderKpiFilter) || '');
   const [filters, setFilters] = useState<ErpOrdersFilterState>(() => ({
@@ -53,49 +57,57 @@ export function useErpOrdersList() {
   const [sortField, setSortField] = useState<ErpOrderSortField>('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc' | ''>('');
 
-  const currentPage = parseInt(searchParams.get('page') || '1', 10) || 1;
-  const setCurrentPage = (page: number | ((prev: number) => number)) => {
-    setSearchParams(
-      (prev) => {
-        const nextParams = new URLSearchParams(prev);
-        const nextPage = typeof page === 'function' ? page(currentPage) : page;
-        nextParams.set('page', nextPage.toString());
-        return nextParams;
-      },
-      { replace: true }
-    );
-  };
+  const [currentPage, setCurrentPage] = useState(
+    () => Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
+  );
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
+  const lastUrlSearchRef = useRef(searchParams.get('search') || '');
 
   // Synchronize state changes to URL query parameters
   useEffect(() => {
-    setSearchParams(prev => {
-      const next = new URLSearchParams(prev);
-      
-      if (!kpiFilter) next.delete('kpi');
-      else next.set('kpi', kpiFilter);
+    const prev = searchParamsRef.current;
+    const next = new URLSearchParams(prev);
 
-      if (!debouncedSearch) next.delete('search');
-      else next.set('search', debouncedSearch);
+    if (!kpiFilter) next.delete('kpi');
+    else next.set('kpi', kpiFilter);
 
-      if (!filters.highPriority) next.delete('priority');
-      else next.set('priority', 'true');
+    if (!debouncedSearch) next.delete('search');
+    else next.set('search', debouncedSearch);
 
-      return next;
-    }, { replace: true });
-  }, [kpiFilter, debouncedSearch, filters, setSearchParams]);
+    if (!filters.highPriority) next.delete('priority');
+    else next.set('priority', 'true');
+
+    if (currentPage <= 1) next.delete('page');
+    else next.set('page', String(currentPage));
+
+    const unchanged =
+      (prev.get('kpi') ?? null) === (next.get('kpi') ?? null) &&
+      (prev.get('search') ?? null) === (next.get('search') ?? null) &&
+      (prev.get('priority') ?? null) === (next.get('priority') ?? null) &&
+      (prev.get('page') ?? null) === (next.get('page') ?? null);
+    if (unchanged) return;
+
+    lastUrlSearchRef.current = debouncedSearch || '';
+    setSearchParamsRef.current(next, { replace: true });
+  }, [kpiFilter, debouncedSearch, filters.highPriority, currentPage]);
 
   // Synchronize URL query parameters back to state (for back/forward navigation)
   useEffect(() => {
-    setKpiFilter((searchParams.get('kpi') as ErpOrderKpiFilter) || '');
-    
-    const q = searchParams.get('search') || '';
-    setSearchQuery(q);
-    setDebouncedSearch(q);
+    const nextKpi = (searchParams.get('kpi') as ErpOrderKpiFilter) || '';
+    setKpiFilter((prev) => (prev === nextKpi ? prev : nextKpi));
 
-    setFilters({
-      highPriority: searchParams.get('priority') === 'true',
-    });
+    const q = searchParams.get('search') || '';
+    if (q !== lastUrlSearchRef.current) {
+      lastUrlSearchRef.current = q;
+      setSearchQuery(q);
+      setDebouncedSearch(q);
+    }
+
+    const highPriority = searchParams.get('priority') === 'true';
+    setFilters((prev) => (prev.highPriority === highPriority ? prev : { highPriority }));
+
+    const pageFromUrl = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+    setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
   }, [searchParams]);
 
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -106,21 +118,27 @@ export function useErpOrdersList() {
   const [exporting, setExporting] = useState(false);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipFilterPageResetRef = useRef(true);
 
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     searchDebounceRef.current = setTimeout(() => {
+      if (searchQuery === debouncedSearch) return;
       setDebouncedSearch(searchQuery);
       setCurrentPage(1);
     }, SEARCH_DEBOUNCE_MS);
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
-  }, [searchQuery]);
+  }, [searchQuery, debouncedSearch]);
 
   useEffect(() => {
+    if (skipFilterPageResetRef.current) {
+      skipFilterPageResetRef.current = false;
+      return;
+    }
     setCurrentPage(1);
-  }, [kpiFilter, filters, perPage]);
+  }, [kpiFilter, filters.highPriority, perPage]);
 
   const handleApiError = useCallback(
     (err: unknown, fallback: string) => {
@@ -552,7 +570,9 @@ export function useErpOrdersList() {
     }
   }, [handleApiError, t]);
 
-  const goToPage = useCallback((page: number) => setCurrentPage(page), []);
+  const goToPage = useCallback((page: number) => {
+    setCurrentPage(Math.max(1, page));
+  }, []);
   const setPageSize = useCallback((size: number) => setPerPage(size), []);
 
   const hasActiveFilters = !!(searchQuery || kpiFilter || filters.highPriority);

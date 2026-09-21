@@ -33,6 +33,10 @@ export function useProductMaster() {
   const [exporting, setExporting] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const setSearchParamsRef = useRef(setSearchParams);
+  const searchParamsRef = useRef(searchParams);
+  setSearchParamsRef.current = setSearchParams;
+  searchParamsRef.current = searchParams;
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => (searchParams.get('view') as ViewMode) || 'skus');
   const [activeCat, setActiveCat] = useState(() => searchParams.get('cat') || 'all');
@@ -49,62 +53,85 @@ export function useProductMaster() {
   const [sortField, setSortField] = useState<ProductMasterSortField>('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc' | ''>('');
 
-  const currentPage = parseInt(searchParams.get('page') || '1', 10) || 1;
-  const setCurrentPage = (page: number | ((prev: number) => number)) => {
-    setSearchParams(
-      (prev) => {
-        const nextParams = new URLSearchParams(prev);
-        const nextPage = typeof page === 'function' ? page(currentPage) : page;
-        nextParams.set('page', nextPage.toString());
-        return nextParams;
-      },
-      { replace: true }
-    );
-  };
+  const [currentPage, setCurrentPage] = useState(
+    () => Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
+  );
   const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
+  const lastUrlSearchRef = useRef(searchParams.get('search') || '');
 
   // Synchronize state changes to URL query parameters
   useEffect(() => {
-    setSearchParams(prev => {
-      const next = new URLSearchParams(prev);
-      
-      if (viewMode === 'skus') next.delete('view');
-      else next.set('view', viewMode);
-      
-      if (activeCat === 'all') next.delete('cat');
-      else next.set('cat', activeCat);
-      
-      if (activeType === 'all') next.delete('type');
-      else next.set('type', activeType);
+    const prev = searchParamsRef.current;
+    const next = new URLSearchParams(prev);
 
-      if (!filterActive) next.delete('status');
-      else next.set('status', filterActive);
+    if (viewMode === 'skus') next.delete('view');
+    else next.set('view', viewMode);
 
-      if (!filterCat) next.delete('filter_cat');
-      else next.set('filter_cat', filterCat);
+    if (activeCat === 'all') next.delete('cat');
+    else next.set('cat', activeCat);
 
-      if (!filterUnmapped) next.delete('unmapped');
-      else next.set('unmapped', 'true');
+    if (activeType === 'all') next.delete('type');
+    else next.set('type', activeType);
 
-      if (!debouncedSearch) next.delete('search');
-      else next.set('search', debouncedSearch);
+    if (!filterActive) next.delete('status');
+    else next.set('status', filterActive);
 
-      return next;
-    }, { replace: true });
-  }, [viewMode, activeCat, activeType, filterActive, filterCat, filterUnmapped, debouncedSearch, setSearchParams]);
+    if (!filterCat) next.delete('filter_cat');
+    else next.set('filter_cat', filterCat);
+
+    if (!filterUnmapped) next.delete('unmapped');
+    else next.set('unmapped', 'true');
+
+    if (!debouncedSearch) next.delete('search');
+    else next.set('search', debouncedSearch);
+
+    if (currentPage <= 1) next.delete('page');
+    else next.set('page', String(currentPage));
+
+    const unchanged =
+      (prev.get('view') ?? null) === (next.get('view') ?? null) &&
+      (prev.get('cat') ?? null) === (next.get('cat') ?? null) &&
+      (prev.get('type') ?? null) === (next.get('type') ?? null) &&
+      (prev.get('status') ?? null) === (next.get('status') ?? null) &&
+      (prev.get('filter_cat') ?? null) === (next.get('filter_cat') ?? null) &&
+      (prev.get('unmapped') ?? null) === (next.get('unmapped') ?? null) &&
+      (prev.get('search') ?? null) === (next.get('search') ?? null) &&
+      (prev.get('page') ?? null) === (next.get('page') ?? null);
+    if (unchanged) return;
+
+    lastUrlSearchRef.current = debouncedSearch || '';
+    setSearchParamsRef.current(next, { replace: true });
+  }, [viewMode, activeCat, activeType, filterActive, filterCat, filterUnmapped, debouncedSearch, currentPage]);
 
   // Synchronize URL query parameters back to state (for back/forward navigation)
   useEffect(() => {
-    setViewMode((searchParams.get('view') as ViewMode) || 'skus');
-    setActiveCat(searchParams.get('cat') || 'all');
-    setActiveType(searchParams.get('type') || 'all');
-    setFilterActive(searchParams.get('status') || '');
-    setFilterCat(searchParams.get('filter_cat') || '');
-    setFilterUnmapped(searchParams.get('unmapped') === 'true');
-    
+    const nextView = (searchParams.get('view') as ViewMode) || 'skus';
+    setViewMode((prev) => (prev === nextView ? prev : nextView));
+
+    const nextCat = searchParams.get('cat') || 'all';
+    setActiveCat((prev) => (prev === nextCat ? prev : nextCat));
+
+    const nextType = searchParams.get('type') || 'all';
+    setActiveType((prev) => (prev === nextType ? prev : nextType));
+
+    const nextStatus = searchParams.get('status') || '';
+    setFilterActive((prev) => (prev === nextStatus ? prev : nextStatus));
+
+    const nextFilterCat = searchParams.get('filter_cat') || '';
+    setFilterCat((prev) => (prev === nextFilterCat ? prev : nextFilterCat));
+
+    const nextUnmapped = searchParams.get('unmapped') === 'true';
+    setFilterUnmapped((prev) => (prev === nextUnmapped ? prev : nextUnmapped));
+
     const q = searchParams.get('search') || '';
-    setSearchQuery(q);
-    setDebouncedSearch(q);
+    if (q !== lastUrlSearchRef.current) {
+      lastUrlSearchRef.current = q;
+      setSearchQuery(q);
+      setDebouncedSearch(q);
+    }
+
+    const pageFromUrl = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+    setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
   }, [searchParams]);
 
   const [addDropdownOpen, setAddDropdownOpen] = useState(false);
@@ -127,19 +154,25 @@ export function useProductMaster() {
   const [unarchiveConfirmOpen, setUnarchiveConfirmOpen] = useState(false);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipFilterPageResetRef = useRef(true);
 
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     searchDebounceRef.current = setTimeout(() => {
+      if (searchQuery === debouncedSearch) return;
       setDebouncedSearch(searchQuery);
       setCurrentPage(1);
     }, SEARCH_DEBOUNCE_MS);
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
-  }, [searchQuery]);
+  }, [searchQuery, debouncedSearch]);
 
   useEffect(() => {
+    if (skipFilterPageResetRef.current) {
+      skipFilterPageResetRef.current = false;
+      return;
+    }
     setCurrentPage(1);
   }, [activeCat, activeType, filterActive, filterCat, filterUnmapped, sortField, sortDir, perPage]);
 

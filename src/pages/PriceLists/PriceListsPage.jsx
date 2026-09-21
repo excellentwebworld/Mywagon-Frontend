@@ -9,7 +9,7 @@
  * Row actions (duplicate, archive, reactivate, delete forever).
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, Download, Upload as UploadIcon, ClipboardList, Calculator } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -151,6 +151,10 @@ export default function PriceListsPage() {
   const { toast } = useToast();
   const isGreek = i18n.language === 'el';
   const [searchParams, setSearchParams] = useSearchParams();
+  const setSearchParamsRef = useRef(setSearchParams);
+  const searchParamsRef = useRef(searchParams);
+  setSearchParamsRef.current = setSearchParams;
+  searchParamsRef.current = searchParams;
 
   // ─── Core state ───
   const [lanes, setLanes] = useState([]);
@@ -178,6 +182,7 @@ export default function PriceListsPage() {
   });
   const [catalogLanes, setCatalogLanes] = useState([]);
   const [scopePartners, setScopePartners] = useState([]);
+  const lastUrlSearchRef = useRef(searchParams.get('search') || '');
 
   const partnerNameById = useMemo(() => {
     const map = new Map();
@@ -227,38 +232,61 @@ export default function PriceListsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get('search') || '');
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    const timer = setTimeout(() => {
+      const next = search.trim();
+      if (next === debouncedSearch) return;
+      setDebouncedSearch(next);
+      setPage(1);
+    }, 300);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, debouncedSearch]);
 
   // Keep directory filter + search + pagination in the URL
   useEffect(() => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (!activeNode || activeNode === 'all') next.delete('node');
-      else next.set('node', activeNode);
+    const prev = searchParamsRef.current;
+    const next = new URLSearchParams(prev);
 
-      const q = debouncedSearch.trim();
-      if (!q) next.delete('search');
-      else next.set('search', q);
+    if (!activeNode || activeNode === 'all') next.delete('node');
+    else next.set('node', activeNode);
 
-      if (page <= 1) next.delete('page');
-      else next.set('page', String(page));
+    const q = debouncedSearch.trim();
+    if (!q) next.delete('search');
+    else next.set('search', q);
 
-      if (!pageSize || pageSize === 10) next.delete('per_page');
-      else next.set('per_page', String(pageSize));
+    if (page <= 1) next.delete('page');
+    else next.set('page', String(page));
 
-      return next;
-    }, { replace: true });
-  }, [activeNode, debouncedSearch, page, pageSize, setSearchParams]);
+    if (!pageSize || pageSize === 10) next.delete('per_page');
+    else next.set('per_page', String(pageSize));
+
+    const unchanged =
+      (prev.get('node') ?? null) === (next.get('node') ?? null) &&
+      (prev.get('search') ?? null) === (next.get('search') ?? null) &&
+      (prev.get('page') ?? null) === (next.get('page') ?? null) &&
+      (prev.get('per_page') ?? null) === (next.get('per_page') ?? null);
+    if (unchanged) return;
+
+    lastUrlSearchRef.current = q;
+    setSearchParamsRef.current(next, { replace: true });
+  }, [activeNode, debouncedSearch, page, pageSize]);
 
   useEffect(() => {
-    setActiveNode(searchParams.get('node') || 'all');
-    setSearch(searchParams.get('search') || '');
-    setDebouncedSearch(searchParams.get('search') || '');
-    setPage(Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1));
+    const nextNode = searchParams.get('node') || 'all';
+    setActiveNode((prev) => (prev === nextNode ? prev : nextNode));
+
+    const q = searchParams.get('search') || '';
+    if (q !== lastUrlSearchRef.current) {
+      lastUrlSearchRef.current = q;
+      setSearch(q);
+      setDebouncedSearch(q);
+    }
+
+    const pageFromUrl = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+    setPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
+
     const n = parseInt(searchParams.get('per_page') || '10', 10);
-    setPageSize(Number.isFinite(n) && n > 0 ? Math.min(n, 100) : 10);
+    const nextPageSize = Number.isFinite(n) && n > 0 ? Math.min(n, 100) : 10;
+    setPageSize((prev) => (prev === nextPageSize ? prev : nextPageSize));
   }, [searchParams]);
 
   const hasActiveFilters = Boolean(debouncedSearch.trim()) || (activeNode && activeNode !== 'all');
@@ -684,8 +712,8 @@ export default function PriceListsPage() {
                 onAction={handleAction}
                 loading={lanesLoading}
                 isEmptyCatalog={(summary?.all ?? 0) === 0 && !hasActiveFilters && activeNode === 'all'}
-                page={listMeta.current_page || page}
-                pageSize={listMeta.per_page || pageSize}
+                page={page}
+                pageSize={pageSize}
                 totalCount={listMeta.total ?? 0}
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
