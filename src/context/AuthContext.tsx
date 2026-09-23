@@ -235,10 +235,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           path === '/login' ||
           path.startsWith('/track-shipment') ||
           path.startsWith('/shipper/track-shipment') ||
+          path.startsWith('/admin/shipments') ||
           path.startsWith('/webview/') ||
           path.startsWith('/shipper/register') ||
           path.startsWith('/auth/social') ||
           path.startsWith('/complete-signup') ||
+          path.startsWith('/forgot-password') ||
+          path.startsWith('/reset/') ||
+          path.startsWith('/any/reset') ||
+          path.startsWith('/password-change-success') ||
           path.startsWith('/terms-condition') ||
           path.startsWith('/privacy-policy');
         if (!isPublicGuestPath) {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { ShipmentDetail } from '../ShipmentDetail/ShipmentDetail';
 import { adminShipmentDetailService } from '../../api/services/adminShipmentDetailService';
 import type { Shipment } from '../../context/AppContext';
@@ -8,17 +8,17 @@ import fullLogo from '../../assets/logo/fullLogo.svg';
 
 /**
  * Admin Panel deep-link: read-only React shipment detail.
- * URL: /admin/shipments?sid={Crypt::encrypt(shipmentId)}
+ * URL: /admin/shipments/{shipments.id}
  */
 export const AdminShipmentDetailPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const sid = (searchParams.get('sid') || '').trim();
+  const { id } = useParams<{ id: string }>();
+  const shipmentId = (id || '').trim();
   const [shipment, setShipment] = useState<Shipment | null>(null);
-  const [loading, setLoading] = useState(Boolean(sid));
+  const [loading, setLoading] = useState(Boolean(shipmentId));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!sid) {
+    if (!shipmentId || !/^\d+$/.test(shipmentId)) {
       setShipment(null);
       setLoading(false);
       setError('Invalid admin shipment link.');
@@ -30,7 +30,7 @@ export const AdminShipmentDetailPage: React.FC = () => {
     setError(null);
 
     adminShipmentDetailService
-      .getMapped(sid)
+      .getMapped(shipmentId)
       .then((data) => {
         if (cancelled) return;
         setShipment(data);
@@ -47,7 +47,7 @@ export const AdminShipmentDetailPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [sid]);
+  }, [shipmentId]);
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">

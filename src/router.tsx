@@ -130,8 +130,7 @@ const publicTrackingRoutes = [
 
 /** Admin Panel deep-link: read-only shipment detail (no shipper auth) */
 const adminViewRoutes = [
-  { path: '/admin/shipments', element: <AdminShipmentDetailPage /> },
-  { path: '/admin/shipments/', element: <AdminShipmentDetailPage /> },
+  { path: '/admin/shipments/:id', element: <AdminShipmentDetailPage /> },
 ];
 
 export const router = createBrowserRouter(

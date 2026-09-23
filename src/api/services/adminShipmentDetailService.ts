@@ -34,12 +34,11 @@ function apiErrorMessage(err: unknown, fallback: string): string {
 }
 
 export const adminShipmentDetailService = {
-  async getMapped(sid: string): Promise<Shipment> {
+  async getMapped(shipmentId: string | number): Promise<Shipment> {
     const base = publicApiBase();
+    const id = String(shipmentId).trim();
     try {
-      const res = await axios.get<ApiEnvelope<ApiShipmentDetail>>(`${base}/admin-shipment-detail`, {
-        params: { sid },
-      });
+      const res = await axios.get<ApiEnvelope<ApiShipmentDetail>>(`${base}/admin-shipment-detail/${encodeURIComponent(id)}`);
       if (!res.data?.success || !res.data.data) {
         throw new Error(res.data?.message || 'Failed to load shipment');
       }
