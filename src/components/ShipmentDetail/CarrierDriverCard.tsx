@@ -205,12 +205,13 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
   const showDriverUserRating = Boolean(driverGivenRating != null) && isDriverRated;
 
   const canChat =
-    normalizedStatus === 'scheduled' ||
-    normalizedStatus === 'ready' ||
-    normalizedStatus === 'past_due' ||
-    normalizedStatus === 'on_trip' ||
-    normalizedStatus === 'in_progress' ||
-    ((normalizedStatus === 'fullfilled' || normalizedStatus === 'partially_fullfilled') && !isPaid);
+    Boolean(onChatCarrier || onChatDriver) &&
+    (normalizedStatus === 'scheduled' ||
+      normalizedStatus === 'ready' ||
+      normalizedStatus === 'past_due' ||
+      normalizedStatus === 'on_trip' ||
+      normalizedStatus === 'in_progress' ||
+      ((normalizedStatus === 'fullfilled' || normalizedStatus === 'partially_fullfilled') && !isPaid));
 
   const carrierPhone = (carrier?.phone || '').trim();
   const driverPhone = (driver?.phone || '').trim();
@@ -323,14 +324,10 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     )
                   )}
 
-                  {canChat && (
+                  {canChat && onChatCarrier && (
                     <button
                       type="button"
-                      onClick={() =>
-                        onChatCarrier
-                          ? onChatCarrier(carrier)
-                          : onToast(`${t('message', 'Message')} ${carrier.name}`)
-                      }
+                      onClick={() => onChatCarrier(carrier)}
                       title={t('message', 'Message')}
                       className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                     >
@@ -420,14 +417,10 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       )
                     )}
 
-                    {canChat && (
+                    {canChat && onChatCarrier && (
                       <button
                         type="button"
-                        onClick={() =>
-                          onChatCarrier
-                            ? onChatCarrier(carrier)
-                            : onToast(`${t('message', 'Message')} ${carrier.name}`)
-                        }
+                        onClick={() => onChatCarrier(carrier)}
                         title={t('message', 'Message')}
                         className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                       >
@@ -514,14 +507,10 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                   )
                 )}
 
-                {canChat && (
+                {canChat && onChatDriver && (
                   <button
                     type="button"
-                    onClick={() =>
-                      onChatDriver
-                        ? onChatDriver(driver)
-                        : onToast(`${t('message', 'Message')} ${driver.name}`)
-                    }
+                    onClick={() => onChatDriver(driver)}
                     title={t('message', 'Message')}
                     className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                   >

@@ -562,11 +562,12 @@ export const StopsCard: React.FC<StopsCardProps> = ({
 
   const normalizedStatus = (shipmentStatus || '').toLowerCase().trim();
   const canRequestPod =
-    normalizedStatus === 'fullfilled' ||
-    normalizedStatus === 'fulfilled' ||
-    normalizedStatus === 'partially_fullfilled' ||
-    normalizedStatus === 'partially_fulfilled' ||
-    normalizedStatus === 'delivered';
+    Boolean(onRequestPod) &&
+    (normalizedStatus === 'fullfilled' ||
+      normalizedStatus === 'fulfilled' ||
+      normalizedStatus === 'partially_fullfilled' ||
+      normalizedStatus === 'partially_fulfilled' ||
+      normalizedStatus === 'delivered');
 
   const isCanceled =
     normalizedStatus === 'canceled' || normalizedStatus === 'cancelled';
@@ -1004,11 +1005,8 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                           type="button"
                           disabled={requestingPodStopId === stop.id || requestingPodStopId === stop.rawStop?.id}
                           onClick={() => {
-                            if (onRequestPod) {
-                              onRequestPod(stop.rawStop);
-                            } else {
-                              onToast(t('podRequestedSent', 'Push notification sent to driver requesting POD'));
-                            }
+                            if (!onRequestPod) return;
+                            onRequestPod(stop.rawStop);
                           }}
                           className={`px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 bg-[#9B51E0] hover:bg-[#8B3FE0] active:scale-95 text-white shadow-xs transition-all focus:outline-none ${
                             requestingPodStopId === stop.id || requestingPodStopId === stop.rawStop?.id
