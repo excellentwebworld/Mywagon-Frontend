@@ -87,11 +87,12 @@ axiosInstance.interceptors.response.use(
       const redirect =
         typeof error.response?.data?.data?.redirect === 'string'
           ? error.response.data.data.redirect
-          : '/complete-signup';
+          : '/settings/personal';
       const path = window.location.pathname.replace(/\/$/, '');
       const dest = redirect.startsWith('/') ? redirect : `/${redirect}`;
-      if (!path.endsWith(dest.replace(/\/$/, '')) && !path.endsWith('/complete-signup')) {
-        window.location.assign(`${base}${dest}`);
+      const destPath = dest.split('?')[0].replace(/\/$/, '');
+      if (!path.endsWith(destPath) && !path.endsWith('/settings/personal') && !path.endsWith('/settings/organization')) {
+        window.location.assign(`${base}${dest}${dest.includes('?') ? '&' : '?'}blocked=1`);
       }
     }
     return Promise.reject(error);

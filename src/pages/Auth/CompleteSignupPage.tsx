@@ -526,7 +526,7 @@ export const CompleteSignupPage: React.FC = () => {
       videoSrc={signupVideos.shipper}
       onLogoClick={() => void exitSocialSignup('/login')}
     >
-      <SignupIncompleteAccessModal open={blockedModalOpen} onClose={dismissBlockedModal} />
+      <SignupIncompleteAccessModal open={blockedModalOpen} onOk={dismissBlockedModal} step="generic" />
       <form className="reg-form" onSubmit={(e) => void handleSubmit(e)} noValidate>
         {formError && (
           <p className="reg-error" role="alert" style={{ marginBottom: '0.75rem' }}>

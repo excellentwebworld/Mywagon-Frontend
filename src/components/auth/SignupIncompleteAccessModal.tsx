@@ -5,36 +5,58 @@ import { useTranslation } from '../../hooks/useTranslation';
 
 type Props = {
   open: boolean;
-  onClose: () => void;
+  onOk: () => void;
+  /** Which step they must complete next */
+  step?: 'phone' | 'company' | 'kyc' | 'generic';
 };
 
 /**
- * Shown when a social prospect tries to open another app page before
- * completing required company / profile details.
+ * Shown when a social prospect opens a page before finishing required profile steps.
+ * OK sends them to the related settings page.
  */
-export const SignupIncompleteAccessModal: React.FC<Props> = ({ open, onClose }) => {
+export const SignupIncompleteAccessModal: React.FC<Props> = ({
+  open,
+  onOk,
+  step = 'generic',
+}) => {
   const { t } = useTranslation();
   const { T } = useTheme();
+
+  const bodyByStep: Record<string, string> = {
+    phone: t('signupComplete.accessDeniedBodyPhone', {
+      defaultValue:
+        'Your profile is incomplete. Please add your phone number to continue.',
+    }),
+    company: t('signupComplete.accessDeniedBodyCompany', {
+      defaultValue:
+        'Your profile is incomplete. Please add your company name and address to continue.',
+    }),
+    kyc: t('signupComplete.accessDeniedBodyKyc', {
+      defaultValue:
+        'Your profile is incomplete. Please upload your KYC documents to continue.',
+    }),
+    generic: t('signupComplete.accessDeniedBody', {
+      defaultValue:
+        'Your profile is incomplete. Please complete the required details to continue.',
+    }),
+  };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={onOk}
       title={t('signupComplete.accessDeniedTitle', {
-        defaultValue: 'Complete your profile first',
+        defaultValue: 'Your profile is incomplete',
       })}
       size="sm"
     >
       <p style={{ fontSize: 14, color: T.t2, lineHeight: 1.5, margin: '0 0 1.5rem' }}>
-        {t('signupComplete.accessDeniedBody', {
-          defaultValue:
-            'You cannot access this page yet. Please fill in the required company and account details to continue. After that you will upload your KYC documents.',
-        })}
+        {bodyByStep[step] || bodyByStep.generic}
       </p>
       <div className="flex gap-3 justify-center">
         <button
           type="button"
-          onClick={onClose}
+          onClick={onOk}
           className="px-5 py-2.5 rounded-lg cursor-pointer border-none font-medium"
           style={{
             background: T.ac,
@@ -44,7 +66,7 @@ export const SignupIncompleteAccessModal: React.FC<Props> = ({ open, onClose }) 
           }}
         >
           {t('signupComplete.accessDeniedCta', {
-            defaultValue: 'Continue setup',
+            defaultValue: 'OK',
           })}
         </button>
       </div>

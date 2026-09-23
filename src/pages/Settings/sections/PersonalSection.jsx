@@ -15,7 +15,16 @@ import { useTheme } from '../../../hooks/useTheme';
 import { useAuth } from '../../../hooks/useAuth';
 import { useAuth as useShipperAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../hooks/useToast';
+import { useSearchParams } from 'react-router-dom';
 import { personalSettingsService } from '../../../api/services/personalSettingsService';
+import { signupService } from '../../../api/auth';
+import { CountryCodeSelect } from '../../Register/components/CountryCodeSelect';
+import { SignupIncompleteAccessModal } from '../../../components/auth/SignupIncompleteAccessModal';
+import {
+  needsSocialPhone,
+  needsSignupComplete,
+} from '../../../hooks/useSignupCompleteGate';
+import '../../Register/RegisterPage.css';
 import { onboardingService } from '../../../api/services/onboardingService';
 import { FORCE_TOUR_SESSION_KEY } from '../../../onboarding';
 import { safeSessionSet } from '../../../utils/safeStorage';
@@ -27,14 +36,20 @@ import '../../../styles/tutorials.css';
 const ACTIVITY_PREVIEW_LIMIT = 10;
 
 export default function PersonalSection() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { T } = useTheme();
   const { refreshUser } = useAuth();
-  const { refreshUser: refreshShipperUser } = useShipperAuth();
+  const { refreshUser: refreshShipperUser, user } = useShipperAuth();
   const { toast } = useToast();
   const fileRef = useRef(null);
   const [replayingTour, setReplayingTour] = useState(false);
+  const socialPhoneStep = needsSocialPhone(user) || needsSignupComplete(user);
+  const [blockedModalOpen, setBlockedModalOpen] = useState(
+    () => searchParams.get('blocked') === '1',
+  );
+  const [countryCodes, setCountryCodes] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -43,6 +58,25 @@ export default function PersonalSection() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [draft, setDraft] = useState({});
   const [avatarPreview, setAvatarPreview] = useState(null);
+
+  useEffect(() => {
+    if (searchParams.get('blocked') === '1') setBlockedModalOpen(true);
+  }, [searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const ref = await signupService.getReference(i18n.language);
+        if (!cancelled) setCountryCodes(ref.country_codes || []);
+      } catch {
+        if (!cancelled) setCountryCodes([{ code: '+30', label: 'Greece (+30)' }]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,23 +94,42 @@ export default function PersonalSection() {
     void load();
   }, [load]);
 
-  const startEdit = () => {
+  const startEdit = useCallback(() => {
+    if (!data?.profile) return;
     setDraft({
       first_name: data.profile.first_name ?? '',
       last_name: data.profile.last_name ?? '',
+      country_code: data.profile.country_code || user?.country_code || '+30',
       phone: data.profile.phone ?? '',
       main_use: data.profile.main_use ?? '',
     });
     setAvatarPreview(null);
     setEditing(true);
-  };
+  }, [data, user?.country_code]);
+
+  // Social incomplete: force edit so phone can be filled
+  useEffect(() => {
+    if (!data?.profile) return;
+    if (needsSocialPhone(user) || data.profile.phone_required) {
+      startEdit();
+    }
+  }, [data, user, startEdit]);
 
   const cancelEdit = () => {
+    if (needsSocialPhone(user)) return;
     setEditing(false);
     setAvatarPreview(null);
   };
 
   const setField = (k, v) => setDraft((prev) => ({ ...prev, [k]: v }));
+
+  const dismissBlockedModal = () => {
+    setBlockedModalOpen(false);
+    if (searchParams.get('blocked') !== '1') return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('blocked');
+    setSearchParams(next, { replace: true });
+  };
 
   const saveEdit = async () => {
     if (!draft.first_name?.trim()) {
@@ -87,6 +140,11 @@ export default function PersonalSection() {
       toast.error(t('settings.profileSection.lastNameRequired', { defaultValue: 'The last name field is required.' }));
       return;
     }
+    const phoneDigits = String(draft.phone || '').replace(/[^0-9]/g, '');
+    if ((needsSocialPhone(user) || data.profile.phone_required) && !phoneDigits) {
+      toast.error(t('settings.profileSection.phoneRequired', { defaultValue: 'Phone number is required.' }));
+      return;
+    }
     setSaving(true);
     try {
       const body = {
@@ -94,7 +152,8 @@ export default function PersonalSection() {
         last_name: draft.last_name?.trim(),
       };
       if (!data.profile.phone_locked) {
-        body.phone = draft.phone?.trim() || null;
+        body.phone = phoneDigits || null;
+        body.country_code = draft.country_code || '+30';
       }
       if (!data.profile.main_use_locked) {
         body.main_use = draft.main_use || null;
@@ -103,8 +162,12 @@ export default function PersonalSection() {
       setData(payload);
       setEditing(false);
       setAvatarPreview(null);
+      const profile = await refreshShipperUser?.();
       await refreshUser?.();
       toast.success(t('settings.profileSection.saved'));
+      if (profile?.signup_complete === false) {
+        navigate('/settings/organization?from=social_setup', { replace: true });
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('settings.profileSection.saveError'));
     } finally {
@@ -183,12 +246,27 @@ export default function PersonalSection() {
 
   return (
     <div className="space-y-4">
+      <SignupIncompleteAccessModal
+        open={blockedModalOpen}
+        step="phone"
+        onOk={dismissBlockedModal}
+      />
       <div className="tut-title-with-trigger" style={{ marginBottom: 4 }}>
         <h2 className="font-bold" style={{ fontSize: 18, color: T.t1, margin: 0 }}>
           {t('settings.personal')}
         </h2>
         <ContextualTutorialTrigger tutorialKey="profile" />
       </div>
+      {socialPhoneStep && needsSocialPhone(user) && (
+        <div
+          className="rounded-xl px-4 py-3"
+          style={{ background: T.al, border: `1px solid ${T.bd}`, fontSize: 13, color: T.t2 }}
+        >
+          {t('settings.profileSection.socialPhoneHint', {
+            defaultValue: 'Please add your phone number to continue setting up your account.',
+          })}
+        </div>
+      )}
       <Card
         title={t('settings.profileSection.myInfo')}
         icon={<Briefcase size={16} style={{ color: T.ac }} />}
@@ -215,10 +293,16 @@ export default function PersonalSection() {
               </button>
               <button
                 type="button"
-                disabled={saving}
+                disabled={saving || needsSocialPhone(user)}
                 onClick={cancelEdit}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
-                style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}
+                style={{
+                  background: T.sa,
+                  border: `1px solid ${T.bd}`,
+                  color: T.t2,
+                  fontSize: 12,
+                  display: needsSocialPhone(user) ? 'none' : undefined,
+                }}
               >
                 <X size={12} /> {t('common.cancel')}
               </button>
@@ -301,15 +385,54 @@ export default function PersonalSection() {
             lockMsg={t('settings.profileSection.emailLocked')}
             icon={<Lock size={12} />}
           />
-          <Field
-            label={t('settings.profileSection.phone')}
-            value={editing ? draft.phone : profile.phone}
-            onChange={(v) => setField('phone', v.replace(/[^0-9]/g, ''))}
-            editing={editing && !profile.phone_locked}
-            locked={profile.phone_locked}
-            lockMsg={t('settings.profileSection.phoneLocked')}
-            icon={profile.phone_locked ? <Lock size={12} /> : null}
-          />
+          <div>
+            <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+              {t('settings.profileSection.phone')}
+              {(needsSocialPhone(user) || profile.phone_required) && (
+                <span style={{ color: '#EF4444' }}> *</span>
+              )}
+            </label>
+            {/* Always split like signup: country-code dropdown + phone (even when locked / view mode) */}
+            <div className="flex gap-2 items-stretch">
+              <div style={{ minWidth: 88, flexShrink: 0 }}>
+                <CountryCodeSelect
+                  id="settings-personal-country-code"
+                  value={
+                    editing && !profile.phone_locked
+                      ? (draft.country_code || '+30')
+                      : (profile.country_code || user?.country_code || '+30')
+                  }
+                  options={countryCodes.length ? countryCodes : [{ code: '+30', label: 'Greece (+30)' }]}
+                  onChange={(code) => setField('country_code', code)}
+                  disabled={saving || !editing || profile.phone_locked}
+                  verified={Boolean(profile.phone_locked)}
+                />
+              </div>
+              {editing && !profile.phone_locked ? (
+                <input
+                  value={draft.phone || ''}
+                  onChange={(e) => setField('phone', e.target.value.replace(/[^0-9]/g, ''))}
+                  className="w-full px-3 py-2 rounded-lg outline-none"
+                  style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+                  placeholder={t('settings.profileSection.phonePlaceholder', { defaultValue: 'Phone number' })}
+                  inputMode="numeric"
+                />
+              ) : (
+                <div
+                  className="flex flex-1 items-center gap-2 px-3 py-2 rounded-lg min-w-0"
+                  style={{ background: T.sa, fontSize: 13, color: profile.phone_locked ? T.t3 : T.t1 }}
+                >
+                  {profile.phone_locked ? <Lock size={12} className="shrink-0" /> : null}
+                  <span className="flex-1 truncate">{profile.phone || '—'}</span>
+                  {profile.phone_locked && (
+                    <span className="shrink-0" style={{ fontSize: 10, color: T.t3 }}>
+                      {t('settings.profileSection.phoneLocked')}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
           <div className="md:col-span-2">
             <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
               {t('settings.profileSection.mainUse')}

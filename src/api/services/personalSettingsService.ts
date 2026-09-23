@@ -45,8 +45,10 @@ export type PersonalSettingsPayload = {
     first_name: string | null;
     last_name: string | null;
     email: string | null;
+    country_code?: string | null;
     phone: string | null;
     phone_locked: boolean;
+    phone_required?: boolean;
     main_use: string | null;
     main_use_locked: boolean;
     avatar_url: string | null;
@@ -70,6 +72,7 @@ export type PersonalUpdateBody = {
   first_name?: string;
   last_name?: string;
   phone?: string | null;
+  country_code?: string | null;
   main_use?: string | null;
 };
 

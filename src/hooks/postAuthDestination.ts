@@ -1,21 +1,24 @@
 import type { ShipperUser } from '../api/auth';
 import { needsCompanyInfoGate, needsKycGate } from './useKycGate';
 import { needsInfoFormHardGate } from './useInfoFormGate';
-import { isSocialShipper, needsSignupComplete } from './useSignupCompleteGate';
+import {
+  isSocialShipper,
+  needsSignupComplete,
+  socialProfileNextPath,
+} from './useSignupCompleteGate';
 
 /**
  * Post-login destination.
  *
- * Social incomplete: /complete-signup (required company profile).
- * Social after company details: KYC first, then info form, then tour.
+ * Social incomplete: settings/personal → organization → (signup_complete) → KYC.
  * Normal email signup (unchanged): Info Form → KYC → company info → dashboard / tour
  */
 export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'): string {
   if (needsSignupComplete(user)) {
-    return '/complete-signup';
+    return socialProfileNextPath(user);
   }
 
-  // Social prospects: KYC upload/review right after company details
+  // Social after company details: KYC first
   if (isSocialShipper(user) && needsKycGate(user)) {
     return '/settings/compliance';
   }
@@ -41,7 +44,6 @@ export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'):
 
 /**
  * Tour auto-start only after required signup + KYC (and info form) gates clear.
- * Incomplete social prospects never start the tour.
  */
 export function canStartOnboardingTour(user: ShipperUser | null | undefined): boolean {
   if (!user) return false;

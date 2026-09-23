@@ -15,13 +15,22 @@ import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { useAuth } from '../../../context/AuthContext';
 import { needsInfoFormHardGate } from '../../../hooks/useInfoFormGate';
+import {
+  needsSignupComplete,
+  needsSocialCompany,
+  needsSocialPhone,
+} from '../../../hooks/useSignupCompleteGate';
 import { postAuthDestination } from '../../../hooks/postAuthDestination';
 import { organizationSettingsService } from '../../../api/services/organizationSettingsService';
-import { authService } from '../../../api/auth';
+import { authService, signupService } from '../../../api/auth';
+import { GoogleMapAddressField } from '../../../components/AddressBook/GoogleMapAddressField';
+import { SignupIncompleteAccessModal } from '../../../components/auth/SignupIncompleteAccessModal';
 import { ContextualTutorialTrigger } from '../../../components/Tutorials';
 import { FORCE_TOUR_SESSION_KEY } from '../../../onboarding';
 import { safeSessionSet } from '../../../utils/safeStorage';
 import '../../../styles/tutorials.css';
+import '../../../styles/address-book.css';
+import '../../Register/RegisterPage.css';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_INVOICE_EMAILS = 5;
@@ -160,12 +169,44 @@ export default function OrganizationSection() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { refreshUser, user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const fromCompanyInfo =
     searchParams.get('from') === 'company_info' ||
     (user?.kyc_status === 'accepted' && user?.company_address_complete === false);
   const fromInfoForm =
     searchParams.get('from') === 'info_form' || needsInfoFormHardGate(user);
+  const fromSocialSetup =
+    searchParams.get('from') === 'social_setup' || needsSocialCompany(user);
+  const [blockedModalOpen, setBlockedModalOpen] = useState(
+    () => searchParams.get('blocked') === '1',
+  );
+  const [countriesDomicile, setCountriesDomicile] = useState([]);
+
+  useEffect(() => {
+    if (searchParams.get('blocked') === '1') setBlockedModalOpen(true);
+  }, [searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const ref = await signupService.getReference();
+        if (!cancelled) setCountriesDomicile(ref.countries_domicile || []);
+      } catch {
+        if (!cancelled) setCountriesDomicile([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Social: must finish phone first
+  useEffect(() => {
+    if (needsSocialPhone(user)) {
+      navigate('/settings/personal?blocked=1', { replace: true });
+    }
+  }, [user, navigate]);
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -304,6 +345,9 @@ export default function OrganizationSection() {
       billing_address: data.legal.billing_address ?? '',
       city: data.legal.city ?? '',
       postal_code: data.legal.postal_code ?? '',
+      country: data.legal.country ?? '',
+      lat: data.legal.lat ?? '',
+      lng: data.legal.lng ?? '',
       invoice_emails: [...(data.legal.invoice_emails || [])],
     });
     setEmailInput('');
@@ -311,11 +355,19 @@ export default function OrganizationSection() {
   };
 
   useEffect(() => {
-    if (!fromCompanyInfo || !data?.legal || companyInfoOpenedRef.current || editingLegal) return;
+    if ((!fromCompanyInfo && !fromSocialSetup) || !data?.legal || companyInfoOpenedRef.current || editingLegal) return;
     companyInfoOpenedRef.current = true;
     startLegalEdit();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- open once when gate lands
-  }, [fromCompanyInfo, data]);
+  }, [fromCompanyInfo, fromSocialSetup, data]);
+
+  const dismissBlockedModal = () => {
+    setBlockedModalOpen(false);
+    if (searchParams.get('blocked') !== '1') return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('blocked');
+    setSearchParams(next, { replace: true });
+  };
 
   const startOpsEdit = () => {
     const draft = {};
@@ -386,13 +438,38 @@ export default function OrganizationSection() {
   };
 
   const saveLegal = async () => {
+    if (fromSocialSetup || needsSignupComplete(user)) {
+      const required = [
+        ['legal_name', t('settings.orgSection.legal.legalName')],
+        ['billing_address', t('settings.orgSection.legal.billingAddress')],
+        ['city', t('settings.orgSection.legal.city')],
+        ['postal_code', t('settings.orgSection.legal.postalCode')],
+        ['country', t('settings.orgSection.legal.country')],
+      ];
+      for (const [key, label] of required) {
+        if (!String(legalDraft[key] || '').trim()) {
+          toast.error(t('settings.orgSection.fieldRequired', {
+            field: label,
+            defaultValue: `${label} is required.`,
+          }));
+          return;
+        }
+      }
+    }
     setSavingLegal(true);
     try {
       const payload = await organizationSettingsService.update({ legal: legalDraft });
       applyPayload(payload);
       setEditingLegal(false);
       toast.success(t('settings.orgSection.saved'));
-      await refreshUser().catch(() => {});
+      const profile = await refreshUser().catch(() => null);
+      if (profile && profile.signup_complete !== false && (fromSocialSetup || needsSignupComplete(user))) {
+        navigate('/settings/compliance', { replace: true });
+      } else if (profile?.signup_complete === false && !needsSocialPhone(profile)) {
+        // Still incomplete somehow — stay on org
+      } else if (fromSocialSetup) {
+        navigate('/settings/compliance', { replace: true });
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('settings.orgSection.saveError'));
     } finally {
@@ -506,12 +583,28 @@ export default function OrganizationSection() {
 
   return (
     <div className="space-y-4">
+      <SignupIncompleteAccessModal
+        open={blockedModalOpen}
+        step="company"
+        onOk={dismissBlockedModal}
+      />
       <div className="tut-title-with-trigger" style={{ marginBottom: 4 }}>
         <h2 className="font-bold" style={{ fontSize: 18, color: T.t1, margin: 0 }}>
           {t('settings.organization')}
         </h2>
         <ContextualTutorialTrigger tutorialKey="profile" />
       </div>
+      {fromSocialSetup && (
+        <div
+          className="rounded-xl px-4 py-3"
+          style={{ background: T.al, border: `1px solid ${T.bd}`, fontSize: 13, color: T.t2 }}
+        >
+          {t('settings.orgSection.socialCompanyHint', {
+            defaultValue:
+              'Please add your company name and address to continue. Next you will upload KYC documents.',
+          })}
+        </div>
+      )}
 
       {fromCompanyInfo && (
         <div
@@ -601,7 +694,8 @@ export default function OrganizationSection() {
         saving={savingLegal}
         onEdit={startLegalEdit}
         onSave={saveLegal}
-        onCancel={() => setEditingLegal(false)}
+        onCancel={fromSocialSetup ? undefined : () => setEditingLegal(false)}
+        hideCancel={fromSocialSetup || needsSignupComplete(user)}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <LegalField
@@ -610,6 +704,7 @@ export default function OrganizationSection() {
             onChange={(v) => setLegalDraft((p) => ({ ...p, legal_name: v }))}
             locked={isFieldLocked('legal_name', data.legal.legal_name)}
             editing={editingLegal}
+            required={fromSocialSetup || needsSignupComplete(user)}
           />
           <LegalField
             label={t('settings.orgSection.legal.tradeName')}
@@ -631,29 +726,112 @@ export default function OrganizationSection() {
             locked={isFieldLocked('registration_number', data.legal.registration_number)}
             editing={editingLegal}
           />
-          <LegalField
-            label={t('settings.orgSection.legal.billingAddress')}
-            value={editingLegal ? legalDraft.billing_address : data.legal.billing_address}
-            onChange={(v) => setLegalDraft((p) => ({ ...p, billing_address: v }))}
-            editing={editingLegal}
-          />
+          <div className="md:col-span-2">
+            <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+              {t('settings.orgSection.legal.billingAddress')}
+              {(fromSocialSetup || needsSignupComplete(user)) && (
+                <span style={{ color: '#EF4444' }}> *</span>
+              )}
+            </label>
+            {editingLegal ? (
+              <div
+                className="org-google-address"
+                style={{
+                  // Match settings inputs when address-book CSS vars differ
+                  ['--border']: T.bd,
+                  ['--surface']: T.sf,
+                  ['--text-primary']: T.t1,
+                  ['--text-tertiary']: T.t3,
+                }}
+              >
+                <GoogleMapAddressField
+                  inputId="org-billing-address"
+                  address={legalDraft.billing_address || ''}
+                  lat={legalDraft.lat || ''}
+                  lng={legalDraft.lng || ''}
+                  hideLabel
+                  hideHint={false}
+                  onAddressChange={(v) => setLegalDraft((p) => ({ ...p, billing_address: v }))}
+                  onLatLngChange={(lat, lng) => setLegalDraft((p) => ({ ...p, lat, lng }))}
+                  onCityPostalChange={(city, postalCode) => {
+                    setLegalDraft((p) => ({
+                      ...p,
+                      city: city || p.city,
+                      postal_code: postalCode || p.postal_code,
+                    }));
+                  }}
+                  onPlaceSelected={(place) => {
+                    const matchCountry =
+                      countriesDomicile.find(
+                        (c) =>
+                          String(c.value).toLowerCase() === String(place.country || '').toLowerCase() ||
+                          String(c.label).toLowerCase() === String(place.country || '').toLowerCase(),
+                      )?.value || place.country;
+                    setLegalDraft((p) => ({
+                      ...p,
+                      billing_address: place.address || place.formattedAddress || p.billing_address,
+                      city: place.city || p.city,
+                      postal_code: place.postalCode || p.postal_code,
+                      country: matchCountry || p.country,
+                      lat: place.lat || p.lat,
+                      lng: place.lng || p.lng,
+                    }));
+                  }}
+                />
+              </div>
+            ) : (
+              <div
+                className="px-3 py-2 rounded-lg"
+                style={{ background: T.sa, fontSize: 13, color: T.t1 }}
+              >
+                {data.legal.billing_address || '—'}
+              </div>
+            )}
+          </div>
           <LegalField
             label={t('settings.orgSection.legal.city')}
             value={editingLegal ? legalDraft.city : data.legal.city}
             onChange={(v) => setLegalDraft((p) => ({ ...p, city: v }))}
             editing={editingLegal}
+            required={fromSocialSetup || needsSignupComplete(user)}
           />
           <LegalField
             label={t('settings.orgSection.legal.postalCode')}
             value={editingLegal ? legalDraft.postal_code : data.legal.postal_code}
             onChange={(v) => setLegalDraft((p) => ({ ...p, postal_code: v }))}
             editing={editingLegal}
+            required={fromSocialSetup || needsSignupComplete(user)}
           />
-          <LegalField
-            label={t('settings.orgSection.legal.country')}
-            value={data.legal.country}
-            editing={false}
-          />
+          <div>
+            <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+              {t('settings.orgSection.legal.country')}
+              {(fromSocialSetup || needsSignupComplete(user)) && (
+                <span style={{ color: '#EF4444' }}> *</span>
+              )}
+            </label>
+            {editingLegal ? (
+              <select
+                value={legalDraft.country || ''}
+                onChange={(e) => setLegalDraft((p) => ({ ...p, country: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg outline-none"
+                style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+              >
+                <option value="">{t('settings.orgSection.legal.selectCountry', { defaultValue: 'Select country' })}</option>
+                {countriesDomicile.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label || c.value}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div
+                className="px-3 py-2 rounded-lg"
+                style={{ background: T.sa, fontSize: 13, color: T.t1 }}
+              >
+                {data.legal.country || '—'}
+              </div>
+            )}
+          </div>
 
           <div className="md:col-span-2">
             <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
@@ -1806,7 +1984,7 @@ function OpsField({ field, value, editing, onChange, T }) {
   );
 }
 
-function SectionCard({ title, icon, editing, saving, onEdit, onSave, onCancel, children }) {
+function SectionCard({ title, icon, editing, saving, onEdit, onSave, onCancel, hideCancel, children }) {
   const { T: theme } = useTheme();
   const { t } = useTranslation();
   return (
@@ -1836,15 +2014,17 @@ function SectionCard({ title, icon, editing, saving, onEdit, onSave, onCancel, c
             >
               <Check size={12} /> {saving ? t('common.saving', { defaultValue: 'Saving…' }) : t('common.save')}
             </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={onCancel}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
-              style={{ background: theme.sa, border: `1px solid ${theme.bd}`, color: theme.t2, fontSize: 12 }}
-            >
-              <X size={12} /> {t('common.cancel')}
-            </button>
+            {!hideCancel && onCancel ? (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={onCancel}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                style={{ background: theme.sa, border: `1px solid ${theme.bd}`, color: theme.t2, fontSize: 12 }}
+              >
+                <X size={12} /> {t('common.cancel')}
+              </button>
+            ) : null}
           </div>
         )}
       </div>
@@ -1853,7 +2033,7 @@ function SectionCard({ title, icon, editing, saving, onEdit, onSave, onCancel, c
   );
 }
 
-function LegalField({ label, value, onChange, locked, editing }) {
+function LegalField({ label, value, onChange, locked, editing, required }) {
   const { T: theme } = useTheme();
   const { t } = useTranslation();
   const hasValue = value !== null && value !== undefined && String(value).trim() !== '';
@@ -1861,7 +2041,9 @@ function LegalField({ label, value, onChange, locked, editing }) {
   return (
     <div>
       <label className="flex items-center gap-1 mb-1" style={{ fontSize: 12, fontWeight: 600, color: theme.t2 }}>
-        {label} {locked && hasValue && <Lock size={10} style={{ color: theme.t3 }} />}
+        {label}
+        {required && <span style={{ color: '#EF4444' }}>*</span>}
+        {locked && hasValue && <Lock size={10} style={{ color: theme.t3 }} />}
       </label>
       {editing && !locked ? (
         <input

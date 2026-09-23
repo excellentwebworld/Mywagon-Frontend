@@ -15,10 +15,10 @@ import {
   needsInfoFormHardGate,
 } from '../../hooks/useInfoFormGate';
 import {
-  completeSignupPath,
   isSignupCompleteAllowedPath,
   isSocialShipper,
   needsSignupComplete,
+  socialProfileNextPath,
 } from '../../hooks/useSignupCompleteGate';
 import { MyVagonBootScreen } from '../ui/MyVagonLoader';
 
@@ -26,14 +26,17 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
+function withBlockedFlag(path: string): string {
+  if (path.includes('blocked=1')) return path;
+  return path.includes('?') ? `${path}&blocked=1` : `${path}?blocked=1`;
+}
+
 /**
  * Gate sequence:
- *   past-due → (social incomplete: complete-signup) →
- *   social: KYC → Info Form → company info → panel
+ *   past-due →
+ *   social incomplete: personal → organization →
+ *   social: KYC → Info Form → panel
  *   normal: Info Form → KYC → company info → panel
- *
- * Incomplete social users cannot browse other pages (same style as KYC lock).
- * Trying another URL redirects to /complete-signup?blocked=1 (modal explains why).
  */
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -66,19 +69,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/billing" replace />;
   }
 
-  // Social incomplete: hard-lock to complete-signup (profile / required details)
-  if (needsSignupComplete(user) && !isSignupCompleteAllowedPath(location.pathname)) {
-    return (
-      <Navigate
-        to={completeSignupPath(location.pathname, { blocked: true })}
-        replace
-      />
-    );
+  // Social incomplete: hard-lock to personal / organization until company details done
+  if (needsSignupComplete(user) && !isSignupCompleteAllowedPath(location.pathname, user)) {
+    return <Navigate to={withBlockedFlag(socialProfileNextPath(user))} replace />;
   }
 
   const social = isSocialShipper(user);
 
-  // Social after company details: KYC before Info Form
   if (social && needsKycGate(user) && !isKycGateAllowedPath(location.pathname, user)) {
     return <Navigate to="/settings/compliance" replace />;
   }
@@ -87,7 +84,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/settings/organization?from=info_form" replace />;
   }
 
-  // Normal (and social after info form): KYC gate
   if (!social && needsKycGate(user) && !isKycGateAllowedPath(location.pathname, user)) {
     return <Navigate to="/settings/compliance" replace />;
   }

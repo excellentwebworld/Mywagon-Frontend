@@ -23,6 +23,8 @@ export type OrganizationSettingsPayload = {
     city: string | null;
     postal_code: string | null;
     country: string | null;
+    lat?: string | null;
+    lng?: string | null;
     invoice_emails: string[];
     kyc_status: string | null;
     kyc_locked: boolean;
@@ -55,6 +57,9 @@ export type OrganizationUpdateBody = {
     billing_address: string | null;
     city: string | null;
     postal_code: string | null;
+    country: string | null;
+    lat: string | null;
+    lng: string | null;
     invoice_emails: string[];
   }>;
   operations?: Record<string, unknown>;

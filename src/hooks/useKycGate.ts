@@ -14,7 +14,7 @@ export function needsKycGate(user: ShipperUser | null | undefined): boolean {
 
 export function needsCompanyInfoGate(user: ShipperUser | null | undefined): boolean {
   if (!user || user.kyc_status !== 'accepted') return false;
-  // Social users fill address in /complete-signup before KYC — skip this gate for them.
+  // Social users fill address in organization settings before KYC — skip company-info gate for them.
   if (isSocialShipper(user)) return false;
   return user.company_address_complete === false;
 }

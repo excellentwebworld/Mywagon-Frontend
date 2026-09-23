@@ -4,7 +4,7 @@ import * as Yup from 'yup';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import { needsSignupComplete, completeSignupPath } from '../../hooks/useSignupCompleteGate';
+import { needsSignupComplete, socialProfileNextPath } from '../../hooks/useSignupCompleteGate';
 import { useAuth } from '../../context/AuthContext';
 import { scrollToValidationAnchor } from '../../components/CreateShipmentWizard/validation';
 import { Step1DetailsSkeleton } from '../../components/skeletons/Step1DetailsSkeleton';
@@ -91,7 +91,7 @@ export const CreateShipmentWizardLayout: React.FC = () => {
   const location = useLocation();
 
   if (needsSignupComplete(user)) {
-    return <Navigate to={completeSignupPath(location.pathname)} replace />;
+    return <Navigate to={socialProfileNextPath(user)} replace />;
   }
 
   return <CreateShipmentWizardLayoutInner />;

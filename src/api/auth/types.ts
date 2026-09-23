@@ -37,13 +37,15 @@ export interface ShipperUser {
   onboarding_completed?: boolean;
   onboarding_completed_at?: string | null;
   /**
-   * False for social sign-up prospects until they submit company info on /complete-signup.
-   * When false, other app pages are blocked (redirect + access modal).
+   * False for social sign-up prospects until phone + company/address are saved
+   * via settings/personal → settings/organization.
    */
   signup_complete?: boolean;
   social_provider?: 'google' | 'microsoft' | string | null;
   country_code?: string | null;
   phone?: string | null;
+  /** Country of domicile / company country (organization settings). */
+  company_country?: string | null;
   /** True when social login supplied phone, or phone_verified_at is set. */
   phone_verified?: boolean;
 }
