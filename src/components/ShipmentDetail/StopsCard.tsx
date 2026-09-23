@@ -13,6 +13,8 @@ export interface ReportablePickup {
 
 interface StopsCardProps {
   stops: ShipmentStop[];
+  oldStops?: ShipmentStop[];
+  isUpdatedView?: boolean;
   expanded: boolean;
   onToggle: () => void;
   onCopy: (text: string) => void;
@@ -24,6 +26,181 @@ interface StopsCardProps {
   reportablePickups?: ReportablePickup[];
   onReportDelay?: (pickup: ReportablePickup) => void;
   t: (key: string, fallback?: string) => string;
+}
+
+export interface ProductDiffHighlight {
+  name?: boolean;
+  qty?: boolean;
+  weight?: boolean;
+  isNew?: boolean;
+}
+
+export interface OrderDiffHighlight {
+  orderId?: boolean;
+  customerName?: boolean;
+  isNew?: boolean;
+  products: Record<number, ProductDiffHighlight>;
+}
+
+export interface StopDiffHighlight {
+  isNew?: boolean;
+  schedule?: boolean;
+  location?: boolean;
+  address?: boolean;
+  orders: Record<number, OrderDiffHighlight>;
+}
+
+export function computeStopsDiff(
+  updatedPhysicalStops: PhysicalStop[],
+  oldPhysicalStops: PhysicalStop[]
+): Record<number, StopDiffHighlight> {
+  const highlights: Record<number, StopDiffHighlight> = {};
+
+  if (!oldPhysicalStops || oldPhysicalStops.length === 0) {
+    return highlights;
+  }
+
+  const norm = (val?: string | null) => (val ?? '').trim().toLowerCase();
+  const num = (val?: string | number | null) => {
+    const parsed = parseFloat(String(val ?? 0));
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  updatedPhysicalStops.forEach((upStop, upIdx) => {
+    // 1. Match by locationReferenceId in rawStop or locationIds
+    let matchedOldStop: PhysicalStop | undefined = oldPhysicalStops.find((oldStop) => {
+      if (upStop.rawStop?.locationReferenceId != null) {
+        return (
+          oldStop.id === upStop.rawStop.locationReferenceId ||
+          oldStop.locationIds.includes(upStop.rawStop.locationReferenceId)
+        );
+      }
+      return false;
+    });
+
+    // 2. Match by direct array index if stop types match
+    if (!matchedOldStop && upIdx < oldPhysicalStops.length && oldPhysicalStops[upIdx].type === upStop.type) {
+      matchedOldStop = oldPhysicalStops[upIdx];
+    }
+
+    // 3. Match by nth occurrence of same stop type (e.g. 1st pickup -> 1st pickup)
+    if (!matchedOldStop) {
+      const upTypeIndex = updatedPhysicalStops
+        .slice(0, upIdx + 1)
+        .filter((s) => s.type === upStop.type).length - 1;
+      const oldOfSameType = oldPhysicalStops.filter((s) => s.type === upStop.type);
+      if (upTypeIndex >= 0 && upTypeIndex < oldOfSameType.length) {
+        matchedOldStop = oldOfSameType[upTypeIndex];
+      }
+    }
+
+    if (!matchedOldStop) {
+      const orderHighlights: Record<number, OrderDiffHighlight> = {};
+      upStop.orders.forEach((ord, oIdx) => {
+        const prodHighlights: Record<number, ProductDiffHighlight> = {};
+        ord.products.forEach((_, pIdx) => {
+          prodHighlights[pIdx] = { isNew: true, name: true, qty: true, weight: true };
+        });
+        orderHighlights[oIdx] = { isNew: true, orderId: true, customerName: true, products: prodHighlights };
+      });
+      highlights[upIdx] = {
+        isNew: true,
+        schedule: true,
+        location: true,
+        address: true,
+        orders: orderHighlights,
+      };
+      return;
+    }
+
+    const oldSchedule = formatStopSchedule(matchedOldStop.date, matchedOldStop.timeStart, matchedOldStop.timeEnd);
+    const newSchedule = formatStopSchedule(upStop.date, upStop.timeStart, upStop.timeEnd);
+    const scheduleChanged =
+      oldSchedule !== newSchedule ||
+      norm(matchedOldStop.date) !== norm(upStop.date) ||
+      norm(matchedOldStop.timeStart) !== norm(upStop.timeStart) ||
+      norm(matchedOldStop.timeEnd) !== norm(upStop.timeEnd);
+
+    const locationChanged = norm(matchedOldStop.location) !== norm(upStop.location);
+    const addressChanged = norm(matchedOldStop.address) !== norm(upStop.address);
+
+    const orderHighlights: Record<number, OrderDiffHighlight> = {};
+
+    upStop.orders.forEach((upOrd, oIdx) => {
+      let matchedOldOrd: GroupedOrder | undefined = upOrd.orderId && upOrd.orderId !== '—'
+        ? matchedOldStop!.orders.find((o) => norm(o.orderId) === norm(upOrd.orderId))
+        : undefined;
+
+      if (!matchedOldOrd && oIdx < matchedOldStop!.orders.length) {
+        matchedOldOrd = matchedOldStop!.orders[oIdx];
+      }
+
+      if (!matchedOldOrd) {
+        const prodHighlights: Record<number, ProductDiffHighlight> = {};
+        upOrd.products.forEach((_, pIdx) => {
+          prodHighlights[pIdx] = { isNew: true, name: true, qty: true, weight: true };
+        });
+        orderHighlights[oIdx] = { isNew: true, orderId: true, customerName: true, products: prodHighlights };
+        return;
+      }
+
+      const orderIdChanged = norm(matchedOldOrd.orderId) !== norm(upOrd.orderId);
+      const customerNameChanged = norm(matchedOldOrd.customerName) !== norm(upOrd.customerName);
+
+      const prodHighlights: Record<number, ProductDiffHighlight> = {};
+      upOrd.products.forEach((upProd, pIdx) => {
+        let matchedOldProd: GroupedProduct | undefined = matchedOldOrd!.products[pIdx];
+        if (!matchedOldProd && upProd.name && upProd.name !== '—') {
+          matchedOldProd = matchedOldOrd!.products.find((p) => norm(p.name) === norm(upProd.name));
+        }
+
+        if (!matchedOldProd) {
+          prodHighlights[pIdx] = { isNew: true, name: true, qty: true, weight: true };
+          return;
+        }
+
+        const nameChanged = norm(matchedOldProd.name) !== norm(upProd.name);
+        const qtyChanged =
+          num(matchedOldProd.qty) !== num(upProd.qty) ||
+          norm(matchedOldProd.qtyUnit) !== norm(upProd.qtyUnit);
+        const weightChanged =
+          num(matchedOldProd.weight) !== num(upProd.weight) ||
+          norm(matchedOldProd.weightUnit) !== norm(upProd.weightUnit);
+
+        if (nameChanged || qtyChanged || weightChanged) {
+          prodHighlights[pIdx] = {
+            name: nameChanged,
+            qty: qtyChanged,
+            weight: weightChanged,
+          };
+        }
+      });
+
+      if (orderIdChanged || customerNameChanged || Object.keys(prodHighlights).length > 0) {
+        orderHighlights[oIdx] = {
+          orderId: orderIdChanged,
+          customerName: customerNameChanged,
+          products: prodHighlights,
+        };
+      }
+    });
+
+    if (
+      scheduleChanged ||
+      locationChanged ||
+      addressChanged ||
+      Object.keys(orderHighlights).length > 0
+    ) {
+      highlights[upIdx] = {
+        schedule: scheduleChanged,
+        location: locationChanged,
+        address: addressChanged,
+        orders: orderHighlights,
+      };
+    }
+  });
+
+  return highlights;
 }
 
 export interface GroupedProduct {
@@ -335,6 +512,8 @@ function resolveStopTickVisual(
 
 export const StopsCard: React.FC<StopsCardProps> = ({
   stops,
+  oldStops,
+  isUpdatedView = false,
   expanded,
   onToggle,
   onCopy,
@@ -374,6 +553,14 @@ export const StopsCard: React.FC<StopsCardProps> = ({
   const suppressCancelAsStopIssue = isCanceled && !tripHadStarted;
 
   const physicalStops = useMemo(() => groupPhysicalStops(stops), [stops]);
+  const oldPhysicalStops = useMemo(
+    () => (isUpdatedView && oldStops ? groupPhysicalStops(oldStops) : []),
+    [isUpdatedView, oldStops]
+  );
+  const diffHighlights = useMemo(() => {
+    if (!isUpdatedView || oldPhysicalStops.length === 0) return {};
+    return computeStopsDiff(physicalStops, oldPhysicalStops);
+  }, [isUpdatedView, physicalStops, oldPhysicalStops]);
 
   const toggleStopOrders = (idx: number) => {
     setExpandedStopOrders((prev) => ({ ...prev, [idx]: !prev[idx] }));
@@ -405,6 +592,8 @@ export const StopsCard: React.FC<StopsCardProps> = ({
             ? reportablePickups.find((p) => stop.locationIds.includes(p.location_id))
             : undefined;
 
+          const stopHl = isUpdatedView ? diffHighlights[idx] : undefined;
+
           return (
             <div
               key={stop.key || stop.id || idx}
@@ -426,7 +615,13 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                 <div className="flex-1 min-w-0">
                   {/* Header: Location name in bold at the top */}
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="text-[14px] font-bold text-slate-900 dark:text-white leading-tight">
+                    <div
+                      className={`text-[14px] font-bold leading-tight transition-colors ${
+                        stopHl?.location
+                          ? 'text-red-600 dark:text-red-400'
+                          : 'text-slate-900 dark:text-white'
+                      }`}
+                    >
                       {stop.location}
                     </div>
 
@@ -453,7 +648,13 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                       </span>
 
                       {formatStopSchedule(stop.date, stop.timeStart, stop.timeEnd) && (
-                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                        <span
+                          className={`text-[11px] font-semibold transition-colors ${
+                            stopHl?.schedule
+                              ? 'text-red-600 dark:text-red-400 font-bold'
+                              : 'text-slate-600 dark:text-slate-300'
+                          }`}
+                        >
                           {formatStopSchedule(stop.date, stop.timeStart, stop.timeEnd)}
                         </span>
                       )}
@@ -462,7 +663,13 @@ export const StopsCard: React.FC<StopsCardProps> = ({
 
                   {/* Address below */}
                   {stop.address && (
-                    <div className="text-[12px] mt-0.5 text-slate-500 dark:text-slate-400">
+                    <div
+                      className={`text-[12px] mt-0.5 transition-colors ${
+                        stopHl?.address
+                          ? 'text-red-600 dark:text-red-400 font-semibold'
+                          : 'text-slate-500 dark:text-slate-400'
+                      }`}
+                    >
                       {stop.address}
                     </div>
                   )}
@@ -479,6 +686,8 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                         : [];
 
                       if (visibleProducts.length === 0) return null;
+
+                      const ordHl = stopHl?.orders?.[oIdx];
 
                       const orderVisual = resolveStopTickVisual(
                         stop.type,
@@ -526,34 +735,70 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="space-y-1.5 flex-1 min-w-0">
-                              {visibleProducts.map((prod, pIdx) => (
-                                <div
-                                  key={pIdx}
-                                  className="flex items-center gap-2 flex-wrap text-[11px]"
-                                >
-                                  <span className="font-semibold font-mono text-[var(--text-primary)]">
-                                    Order: {order.orderId}
-                                  </span>
-                                  {prod.name && prod.name !== '—' && (
-                                    <>
-                                      <span className="text-[var(--text-tertiary)]">·</span>
-                                      <span className="font-medium text-[var(--text-primary)]">
-                                        {prod.name}
-                                      </span>
-                                    </>
-                                  )}
-                                  {(Boolean(prod.qty) || Boolean(prod.weight)) && (
-                                    <>
-                                      <span className="text-[var(--text-tertiary)]">·</span>
-                                      <span className="text-[var(--text-secondary)]">
-                                        {prod.qty ? `${prod.qty} ${prod.qtyUnit || 'EUR Pallets'}` : ''}
-                                        {prod.qty && prod.weight ? ' · ' : ''}
-                                        {prod.weight ? `${prod.weight} ${prod.weightUnit || 'Tonnes'}` : ''}
-                                      </span>
-                                    </>
-                                  )}
-                                </div>
-                              ))}
+                              {visibleProducts.map((prod, pIdx) => {
+                                const prodHl = ordHl?.products?.[pIdx];
+
+                                return (
+                                  <div
+                                    key={pIdx}
+                                    className="flex items-center gap-2 flex-wrap text-[11px]"
+                                  >
+                                    <span
+                                      className={`font-semibold font-mono transition-colors ${
+                                        ordHl?.orderId || ordHl?.isNew
+                                          ? 'text-red-600 dark:text-red-400'
+                                          : 'text-[var(--text-primary)]'
+                                      }`}
+                                    >
+                                      Order: {order.orderId}
+                                    </span>
+                                    {prod.name && prod.name !== '—' && (
+                                      <>
+                                        <span className="text-[var(--text-tertiary)]">·</span>
+                                        <span
+                                          className={`font-medium transition-colors ${
+                                            prodHl?.name || prodHl?.isNew || ordHl?.isNew
+                                              ? 'text-red-600 dark:text-red-400 font-semibold'
+                                              : 'text-[var(--text-primary)]'
+                                          }`}
+                                        >
+                                          {prod.name}
+                                        </span>
+                                      </>
+                                    )}
+                                    {(Boolean(prod.qty) || Boolean(prod.weight)) && (
+                                      <>
+                                        <span className="text-[var(--text-tertiary)]">·</span>
+                                        <span className="text-[var(--text-secondary)]">
+                                          {prod.qty ? (
+                                            <span
+                                              className={
+                                                prodHl?.qty || prodHl?.isNew || ordHl?.isNew
+                                                  ? 'text-red-600 dark:text-red-400 font-semibold'
+                                                  : ''
+                                              }
+                                            >
+                                              {`${prod.qty} ${prod.qtyUnit || 'EUR Pallets'}`}
+                                            </span>
+                                          ) : ''}
+                                          {prod.qty && prod.weight ? ' · ' : ''}
+                                          {prod.weight ? (
+                                            <span
+                                              className={
+                                                prodHl?.weight || prodHl?.isNew || ordHl?.isNew
+                                                  ? 'text-red-600 dark:text-red-400 font-semibold'
+                                                  : ''
+                                              }
+                                            >
+                                              {`${prod.weight} ${prod.weightUnit || 'Tonnes'}`}
+                                            </span>
+                                          ) : ''}
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
 
                             <OrderStatusIcon visual={effectiveVisual} />
@@ -568,7 +813,13 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                           )}
 
                           {order.customerName && (
-                            <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                            <div
+                              className={`mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px] font-semibold flex items-center gap-1.5 ${
+                                ordHl?.customerName || ordHl?.isNew
+                                  ? 'text-red-600 dark:text-red-400'
+                                  : 'text-emerald-600 dark:text-emerald-400'
+                              }`}
+                            >
                               <span>🏪</span>
                               <span>{order.customerName}</span>
                             </div>

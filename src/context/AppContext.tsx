@@ -166,6 +166,7 @@ export interface ShipmentStop {
   send_tracking_link?: string | null;
   tracking_url?: string | null;
   trackingUrl?: string | null;
+  locationReferenceId?: number | null;
 }
 
 export interface Shipment {

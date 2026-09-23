@@ -861,6 +861,8 @@ export const ShipmentDetail: React.FC = () => {
             {/* 2. Stops & Appointments (White Pickup, Black Dropoff, Collapsible Orders, Inline POD Request) */}
             <StopsCard
               stops={displayedStops}
+              oldStops={vm?.oldStops}
+              isUpdatedView={itineraryViewMode === 'updated' && Boolean(vm?.hasUpdatedItinerary)}
               expanded={sections.stops}
               onToggle={() => toggleSection('stops')}
               onCopy={handleCopy}

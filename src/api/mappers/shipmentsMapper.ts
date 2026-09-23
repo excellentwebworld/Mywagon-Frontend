@@ -223,6 +223,11 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
     tracking_email: (stop as any).tracking_email || null,
     send_tracking_link: (stop as any).send_tracking_link || '0',
     tracking_url: (stop as any).tracking_url || null,
+    locationReferenceId: (stop as any).location_reference_id != null
+      ? Number((stop as any).location_reference_id)
+      : (stop as any).locationReferenceId != null
+      ? Number((stop as any).locationReferenceId)
+      : null,
   } as any;
 }
 
