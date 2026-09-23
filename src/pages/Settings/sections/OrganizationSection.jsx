@@ -173,10 +173,15 @@ export default function OrganizationSection() {
   const fromCompanyInfo =
     searchParams.get('from') === 'company_info' ||
     (user?.kyc_status === 'accepted' && user?.company_address_complete === false);
-  const fromInfoForm =
-    searchParams.get('from') === 'info_form' || needsInfoFormHardGate(user);
+  // Social stepwise signup: company/address first — never treat as info-form gate.
   const fromSocialSetup =
-    searchParams.get('from') === 'social_setup' || needsSocialCompany(user);
+    searchParams.get('from') === 'social_setup' ||
+    needsSocialCompany(user) ||
+    needsSignupComplete(user);
+  const fromInfoForm =
+    !fromSocialSetup &&
+    !needsSignupComplete(user) &&
+    (searchParams.get('from') === 'info_form' || needsInfoFormHardGate(user));
   const [blockedModalOpen, setBlockedModalOpen] = useState(
     () => searchParams.get('blocked') === '1',
   );

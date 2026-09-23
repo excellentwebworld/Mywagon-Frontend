@@ -165,7 +165,8 @@ export default function PersonalSection() {
       const profile = await refreshShipperUser?.();
       await refreshUser?.();
       toast.success(t('settings.profileSection.saved'));
-      if (profile?.signup_complete === false) {
+      // Always continue social stepwise flow: personal → organization (company/address) → KYC.
+      if (profile?.signup_complete === false || needsSignupComplete(user)) {
         navigate('/settings/organization?from=social_setup', { replace: true });
       }
     } catch (e) {
