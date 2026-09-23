@@ -9,8 +9,8 @@ import { useTranslation } from 'react-i18next';
 import {
   Search, Download, X, ChevronDown, ChevronUp,
   MoreHorizontal, Edit3, ShieldCheck,
-  UserPlus, Trash2, RotateCcw, LogOut, Copy,
-  Send, XCircle, Loader2,
+  UserPlus, Trash2, RotateCcw, LogOut,
+  XCircle, Loader2,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../../../hooks/useTheme';
@@ -24,11 +24,13 @@ import {
   USER_STATUS_CONFIG, getUserInitials, getUserFullName, getUserAvatarColor,
   getInviteStatus,
 } from '../../../mocks/userMgmtData';
-import { hasCustomDirectPermissions, SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
+import { canManageShipperUsers, hasCustomDirectPermissions, SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { ApiError } from '../../../api/client';
 import { parseUtcInstant } from '../../../utils/timezone';
 import { formatIsoDisplayDateTime } from '../../../utils/dateDisplay';
+import { useAuth } from '../../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 const SORT_FIELDS = ['user', 'role', 'status', 'lastActive', 'created'];
@@ -41,8 +43,12 @@ export default function UsersTab() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user: authUser } = useAuth();
   const { requireSignupComplete } = useRequireSignupComplete();
-  const { users, setUsers, addUser, updateUser, refresh, loading, error, roles } = useUserMgmt();
+  const { users, setUsers, addUser, updateUser, refresh, loading, error, roles, seats } = useUserMgmt();
+  const canManageUsers = canManageShipperUsers(authUser);
+  const canInvite = canManageUsers && seats?.can_invite !== false;
   const roleFilterOptions = roles.length ? roles : SHIPPER_ROLES;
   const rolesByKey = useMemo(() => {
     const map = {};
@@ -128,6 +134,10 @@ export default function UsersTab() {
   };
 
   const openEdit = (u) => {
+    if (!canManageUsers) {
+      toast.error(t('userMgmt.seats.noManagePermission'));
+      return;
+    }
     if (!requireSignupComplete()) return;
     setActionMenu(null);
     setModalUser(u);
@@ -135,7 +145,16 @@ export default function UsersTab() {
   };
 
   const openInvite = () => {
+    if (!canManageUsers) {
+      toast.error(t('userMgmt.seats.noManagePermission'));
+      return;
+    }
     if (!requireSignupComplete()) return;
+    if (seats && seats.can_invite === false) {
+      toast.error(t('userMgmt.seats.atLimitHint'));
+      navigate('/subscription');
+      return;
+    }
     setModalUser(null);
     setModalOpen(true);
   };
@@ -146,6 +165,11 @@ export default function UsersTab() {
   };
 
   const handleReactivate = async (u) => {
+    if (!canManageUsers) {
+      toast.error(t('userMgmt.seats.noManagePermission'));
+      setActionMenu(null);
+      return;
+    }
     try {
       const updated = await usersSettingsService.reactivate(u.id);
       updateUser(updated);
@@ -157,6 +181,10 @@ export default function UsersTab() {
     setActionMenu(null);
   };
   const handleDeactivate = (u) => {
+    if (!canManageUsers) {
+      toast.error(t('userMgmt.seats.noManagePermission'));
+      return;
+    }
     setConfirmDialog({
       title: t('userMgmt.confirm.deactivateTitle'),
       message: t('userMgmt.confirm.deactivateMsg', { name: getUserFullName(u) }),
@@ -184,6 +212,10 @@ export default function UsersTab() {
     });
   };
   const handleCancelInvite = (u) => {
+    if (!canManageUsers) {
+      toast.error(t('userMgmt.seats.noManagePermission'));
+      return;
+    }
     setConfirmDialog({
       title: t('userMgmt.confirm.cancelInviteTitle'),
       message: t('userMgmt.confirm.cancelInviteMsg', { name: getUserFullName(u) }),
@@ -200,17 +232,11 @@ export default function UsersTab() {
     });
   };
 
-  const handleResendInvite = async (u) => {
-    try {
-      await usersSettingsService.resendInvite(u.id);
-      toast.success(t('userMgmt.toast.inviteResent', { email: u.email }));
-    } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));
-    }
-    setActionMenu(null);
-  };
-
   const handleForceSignOut = (u) => {
+    if (!canManageUsers) {
+      toast.error(t('userMgmt.seats.noManagePermission'));
+      return;
+    }
     setConfirmDialog({
       title: t('userMgmt.confirm.forceSignoutTitle'),
       message: t('userMgmt.confirm.forceSignoutMsg', {
@@ -375,11 +401,25 @@ export default function UsersTab() {
           {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
           {t('userMgmt.export')}
         </button>
-        <button type="button" onClick={openInvite}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none"
-          style={{ background: T.ac, color: '#fff', fontSize: 12, fontWeight: 600 }}>
-          <UserPlus size={14} /> {t('userMgmt.inviteUser')}
-        </button>
+        {canManageUsers && (
+          <button
+            type="button"
+            onClick={openInvite}
+            disabled={!canInvite}
+            title={!canInvite ? t('userMgmt.seats.atLimitHint') : undefined}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border-none"
+            style={{
+              background: T.ac,
+              color: '#fff',
+              fontSize: 12,
+              fontWeight: 600,
+              opacity: canInvite ? 1 : 0.55,
+              cursor: canInvite ? 'pointer' : 'not-allowed',
+            }}
+          >
+            <UserPlus size={14} /> {t('userMgmt.inviteUser')}
+          </button>
+        )}
       </div>
 
       <div className="w-full overflow-x-auto" style={{ overflowY: 'visible' }}>
@@ -423,17 +463,17 @@ export default function UsersTab() {
             {!(loading && users.length === 0) && pageData.map((u) => (
               <UserRow key={String(u.id)} user={u} T={T} t={t}
                 rolesByKey={rolesByKey}
+                canManageUsers={canManageUsers}
                 onEdit={() => openEdit(u)}
                 actionMenu={actionMenu === u.id || actionMenu === String(u.id)}
                 onActionMenuToggle={() => {
+                  if (!canManageUsers) return;
                   setActionMenu((prev) => (prev === u.id || prev === String(u.id) ? null : u.id));
                 }}
                 onReactivate={() => handleReactivate(u)}
                 onDeactivate={() => { handleDeactivate(u); setActionMenu(null); }}
                 onDelete={() => { handleDeletePermanently(u); setActionMenu(null); }}
                 onCancelInvite={() => { handleCancelInvite(u); setActionMenu(null); }}
-                onResendInvite={() => { handleResendInvite(u); }}
-                onCopyLink={() => { navigator.clipboard?.writeText(window.location.origin); toast.info(t('userMgmt.toast.linkCopied')); setActionMenu(null); }}
                 onForceSignout={() => { handleForceSignOut(u); setActionMenu(null); }}
                 relTime={relTime}
                 formatDateTime={formatDateTime}
@@ -533,10 +573,10 @@ function UsersTableSkeleton({ T, rows = 6 }) {
 }
 
 function UserRow({
-  user: u, T, t, onEdit, rolesByKey,
+  user: u, T, t, onEdit, rolesByKey, canManageUsers = true,
   actionMenu, onActionMenuToggle,
   onReactivate, onDeactivate, onDelete,
-  onCancelInvite, onResendInvite, onCopyLink, onForceSignout,
+  onCancelInvite, onForceSignout,
   relTime, formatDateTime, formatDate, actionMenuRef,
 }) {
   const role = rolesByKey?.[u.role] || { name: u.role, color: '#3B82F6' };
@@ -617,6 +657,8 @@ function UserRow({
         style={{ position: 'sticky', right: 0, background: 'inherit', zIndex: 1 }}
         onClick={(e) => e.stopPropagation()}
       >
+        {canManageUsers ? (
+          <>
         <button
           ref={btnRef}
           type="button"
@@ -656,12 +698,7 @@ function UserRow({
               </>
             )}
             {status === 'invited' && (
-              <>
-                <ActionItem icon={Send} label={t('userMgmt.actions.resendInvite')} onClick={onResendInvite} T={T} />
-                <ActionItem icon={Copy} label={t('userMgmt.actions.copyLink')} onClick={onCopyLink} T={T} />
-                <div className="my-1" style={{ borderTop: `1px solid ${T.bd}` }} />
-                <ActionItem icon={XCircle} label={t('userMgmt.actions.cancelInvite')} onClick={onCancelInvite} T={T} danger />
-              </>
+              <ActionItem icon={XCircle} label={t('userMgmt.actions.cancelInvite')} onClick={onCancelInvite} T={T} danger />
             )}
             {status === 'suspended' && (
               <>
@@ -678,6 +715,10 @@ function UserRow({
             )}
           </div>,
           document.body,
+        )}
+          </>
+        ) : (
+          <span style={{ fontSize: 11, color: T.t3 }}>—</span>
         )}
       </td>
     </tr>

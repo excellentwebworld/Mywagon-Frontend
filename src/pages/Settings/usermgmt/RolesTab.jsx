@@ -17,6 +17,8 @@ import PermissionGrid from './PermissionGrid';
 import { useUserMgmt } from '../../../context/UserMgmtContext';
 import { rolesSettingsService } from '../../../api/services/rolesSettingsService';
 import { ApiError } from '../../../api/client';
+import { useAuth } from '../../../context/AuthContext';
+import { canManageShipperUsers } from '../../../utils/shipperAccessPresets';
 
 const COLORS = ['#7C3AED', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#EC4899', '#8B5CF6'];
 
@@ -66,6 +68,8 @@ export default function RolesTab() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
+  const { user: authUser } = useAuth();
+  const canManageRoles = canManageShipperUsers(authUser);
   const { requireSignupComplete } = useRequireSignupComplete();
   const {
     users,
@@ -112,8 +116,13 @@ export default function RolesTab() {
   }, [selectedRole, users]);
 
   const startEdit = () => {
+    if (!canManageRoles) {
+      toast.error(t('userMgmt.seats.noManagePermission'));
+      return;
+    }
     if (!selectedRole) return;
     if (selectedRole.key === 'admin') return;
+    if (!requireSignupComplete()) return;
     setEditPerms(
       selectedRole.permissions === null
         ? []
@@ -333,16 +342,22 @@ export default function RolesTab() {
           })}
         </div>
 
-        <button
-          type="button"
-          onClick={() => { setShowCreate(true); setNameError(''); }}
-          className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg cursor-pointer border-none transition-all duration-150"
-          style={{ background: T.sa, border: `1px dashed ${T.bd}`, color: T.ac, fontSize: 13, fontWeight: 500 }}
-        >
-          <Plus size={14} /> {t('userMgmt.roles.createRole')}
-        </button>
+        {canManageRoles && (
+          <button
+            type="button"
+            onClick={() => {
+              if (!requireSignupComplete()) return;
+              setShowCreate(true);
+              setNameError('');
+            }}
+            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg cursor-pointer border-none transition-all duration-150"
+            style={{ background: T.sa, border: `1px dashed ${T.bd}`, color: T.ac, fontSize: 13, fontWeight: 500 }}
+          >
+            <Plus size={14} /> {t('userMgmt.roles.createRole')}
+          </button>
+        )}
 
-        {showCreate && (
+        {showCreate && canManageRoles && (
           <div className="mt-2 p-3 rounded-xl space-y-3" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: T.t1 }}>
               {t('userMgmt.roles.createRole')}
@@ -513,7 +528,7 @@ export default function RolesTab() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {!editing ? (
+                  {canManageRoles && !editing ? (
                     <>
                       <button
                         type="button"
@@ -551,7 +566,7 @@ export default function RolesTab() {
                         </button>
                       )}
                     </>
-                  ) : (
+                  ) : canManageRoles ? (
                     <>
                       <button
                         type="button"
@@ -571,7 +586,7 @@ export default function RolesTab() {
                         <X size={12} /> {t('common.cancel')}
                       </button>
                     </>
-                  )}
+                  ) : null}
                 </div>
               </div>
             )}

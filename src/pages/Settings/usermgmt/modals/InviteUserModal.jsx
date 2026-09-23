@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Send, Check } from 'lucide-react';
 import { useTheme } from '../../../../hooks/useTheme';
 import { useUserMgmt } from '../../../../context/UserMgmtContext';
@@ -30,11 +31,20 @@ function formFromUser(user) {
   };
 }
 
+function seatsFromErrorData(data) {
+  if (!data || typeof data !== 'object') return null;
+  if (data.seats && typeof data.seats === 'object') return data.seats;
+  if (typeof data.can_invite === 'boolean') return data;
+  return null;
+}
+
 export default function InviteUserModal({ open, onClose, onInvite, onSaved, user = null }) {
   const { t } = useTranslation();
   const { T } = useTheme();
+  const navigate = useNavigate();
   const { roles, seats, setSeats } = useUserMgmt();
   const isEdit = !!user;
+  const atSeatLimit = !isEdit && seats && seats.can_invite === false;
 
   const roleOptions = roles.length
     ? roles.map((r) => ({
@@ -78,7 +88,7 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
 
     if (!isEdit) {
       if (seats && seats.can_invite === false) {
-        setErrors({ email: t('userMgmt.seats.limitReached', { defaultValue: 'Seat limit reached' }) });
+        setErrors({ form: t('userMgmt.seats.limitReached') });
         return;
       }
       setSubmitting(true);
@@ -93,20 +103,22 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
         onInvite?.(created);
         setForm({ ...EMPTY_FORM });
         setErrors({});
-        if (seats) {
-          setSeats({
-            ...seats,
-            used: (seats.used || 0) + 1,
-            remaining: Math.max(0, (seats.remaining || 0) - 1),
-            can_invite: (seats.remaining || 0) - 1 > 0,
-          });
-        }
       } catch (e) {
         const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.inviteFailed', { defaultValue: 'Invite failed' });
+        if (e instanceof ApiError && e.status === 403) {
+          const seatMeta = seatsFromErrorData(e.data);
+          if (seatMeta) {
+            setSeats(seatMeta);
+            setErrors({ form: msg || t('userMgmt.seats.limitReached') });
+            return;
+          }
+          setErrors({ form: msg || t('userMgmt.seats.noManagePermission') });
+          return;
+        }
         if (e instanceof ApiError && e.fieldErrors?.email?.[0]) {
           setErrors({ email: e.fieldErrors.email[0] });
         } else {
-          setErrors({ email: msg });
+          setErrors({ form: msg });
         }
       } finally {
         setSubmitting(false);
@@ -127,15 +139,17 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
       setErrors({});
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' });
-      if (e instanceof ApiError && e.fieldErrors) {
+      if (e instanceof ApiError && e.status === 403) {
+        setErrors({ form: msg || t('userMgmt.seats.noManagePermission') });
+      } else if (e instanceof ApiError && e.fieldErrors) {
         const mapped = {};
         if (e.fieldErrors.first_name?.[0]) mapped.firstName = e.fieldErrors.first_name[0];
         if (e.fieldErrors.last_name?.[0]) mapped.lastName = e.fieldErrors.last_name[0];
         if (e.fieldErrors.phone?.[0]) mapped.phone = e.fieldErrors.phone[0];
         if (e.fieldErrors.role?.[0]) mapped.role = e.fieldErrors.role[0];
-        setErrors(Object.keys(mapped).length ? mapped : { email: msg });
+        setErrors(Object.keys(mapped).length ? mapped : { form: msg });
       } else {
-        setErrors({ email: msg });
+        setErrors({ form: msg });
       }
     } finally {
       setSubmitting(false);
@@ -155,6 +169,7 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
   const submitLabel = submitting
     ? t('common.saving', { defaultValue: isEdit ? 'Saving…' : 'Sending…' })
     : (isEdit ? t('userMgmt.invite.saveChanges') : t('userMgmt.invite.sendInvitation'));
+  const submitDisabled = submitting || atSeatLimit;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 300 }}>
@@ -172,6 +187,27 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
         </div>
 
         <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          {(errors.form || atSeatLimit) && (
+            <div
+              className="rounded-lg px-3 py-2 flex flex-col sm:flex-row sm:items-center gap-2"
+              style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12 }}
+            >
+              <span className="flex-1">
+                {errors.form || t('userMgmt.seats.atLimitHint')}
+              </span>
+              {atSeatLimit && (
+                <button
+                  type="button"
+                  onClick={() => { handleClose(); navigate('/subscription'); }}
+                  className="px-2.5 py-1 rounded-md cursor-pointer border-none shrink-0 font-semibold"
+                  style={{ background: T.ac, color: '#fff', fontSize: 11 }}
+                >
+                  {t('userMgmt.seats.upgrade')}
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <Field label={t('userMgmt.invite.firstName')} required error={errors.firstName}>
               <input value={form.firstName} onChange={(e) => set('firstName', e.target.value)}
@@ -268,9 +304,9 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitDisabled}
             className="flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
-            style={{ background: T.ac, color: '#fff', fontSize: 13, opacity: submitting ? 0.7 : 1 }}
+            style={{ background: T.ac, color: '#fff', fontSize: 13, opacity: submitDisabled ? 0.55 : 1 }}
           >
             {isEdit ? <Check size={14} /> : <Send size={14} />} {submitLabel}
           </button>

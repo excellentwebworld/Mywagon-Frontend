@@ -107,3 +107,33 @@ export const ROLES_BY_KEY: Record<string, (typeof SHIPPER_ROLES)[number]> = {};
 SHIPPER_ROLES.forEach((r) => {
   ROLES_BY_KEY[r.key] = r;
 });
+
+/** Blade `control` catalog value — required to manage other users via API. */
+export const MANAGE_USERS_PERMISSION = 'manage_permissions';
+
+/** Normalize `/auth/me` permissions to Spatie name strings. */
+export function permissionNames(
+  permissions: Array<string | { name?: string; value?: string; slug?: string | null }> | null | undefined,
+): string[] {
+  if (!permissions?.length) return [];
+  return permissions
+    .map((p) => {
+      if (typeof p === 'string') return p;
+      return p.name || p.value || p.slug || '';
+    })
+    .filter(Boolean) as string[];
+}
+
+/**
+ * Mirror UsersController::actorCanManageUsers —
+ * main account, or Spatie permission `manage_permissions` (admin pack includes it).
+ */
+export function canManageShipperUsers(user: {
+  is_sub_user?: boolean;
+  type?: string;
+  permissions?: Array<string | { name?: string; value?: string; slug?: string | null }> | null;
+} | null | undefined): boolean {
+  if (!user) return false;
+  if (user.is_sub_user !== true && user.type !== 'sub_user') return true;
+  return permissionNames(user.permissions).includes(MANAGE_USERS_PERMISSION);
+}

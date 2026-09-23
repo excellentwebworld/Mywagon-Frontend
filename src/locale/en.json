@@ -3388,7 +3388,11 @@
     "seats": {
       "used": "seats used",
       "plan": "{{plan}} Plan",
-      "upgrade": "Upgrade"
+      "upgrade": "Upgrade",
+      "currentPlan": "Current plan",
+      "limitReached": "You have reached the dispatcher user seat limit on your current plan.",
+      "atLimitHint": "Seat limit reached. Upgrade your plan to invite more users.",
+      "noManagePermission": "You do not have permission to manage users."
     },
     "drawer": {
       "userDetail": "User Detail",

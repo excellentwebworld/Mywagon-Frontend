@@ -16,23 +16,27 @@ export default function SeatBanner() {
 
   const usedSeats = seats?.used ?? 0;
   const totalSeats = seats?.total ?? 0;
+  const atLimit = seats?.can_invite === false;
   const planLabel = seats?.plan
     ? t('userMgmt.seats.plan', { plan: seats.plan })
-    : t('userMgmt.seats.currentPlan', { defaultValue: 'Current plan' });
+    : t('userMgmt.seats.currentPlan');
   const pct = totalSeats > 0 ? Math.round((usedSeats / totalSeats) * 100) : 0;
-  const barColor = pct >= 100 ? '#EF4444' : pct >= 80 ? '#F59E0B' : T.ac;
+  const barColor = pct >= 100 || atLimit ? '#EF4444' : pct >= 80 ? '#F59E0B' : T.ac;
 
   return (
     <div
       className="rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-3"
-      style={{ background: T.sa, border: `1px solid ${T.bd}` }}
+      style={{
+        background: atLimit ? '#FEF2F2' : T.sa,
+        border: `1px solid ${atLimit ? '#FECACA' : T.bd}`,
+      }}
     >
       <div className="flex items-center gap-2.5 flex-1 min-w-0">
         <div
           className="flex items-center justify-center rounded-lg shrink-0"
-          style={{ width: 36, height: 36, background: T.al }}
+          style={{ width: 36, height: 36, background: atLimit ? '#FEE2E2' : T.al }}
         >
-          <Crown size={18} style={{ color: T.ac }} />
+          <Crown size={18} style={{ color: atLimit ? '#EF4444' : T.ac }} />
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -43,8 +47,8 @@ export default function SeatBanner() {
               {t('userMgmt.seats.used')}
             </span>
           </div>
-          <div style={{ fontSize: 11, color: T.t3, marginTop: 1 }}>
-            {planLabel}
+          <div style={{ fontSize: 11, color: atLimit ? '#B91C1C' : T.t3, marginTop: 1 }}>
+            {atLimit ? t('userMgmt.seats.atLimitHint') : planLabel}
           </div>
         </div>
       </div>
@@ -56,7 +60,7 @@ export default function SeatBanner() {
         >
           <div
             className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${Math.min(pct, 100)}%`, background: barColor }}
+            style={{ width: `${Math.min(pct || (atLimit ? 100 : 0), 100)}%`, background: barColor }}
           />
         </div>
       </div>
