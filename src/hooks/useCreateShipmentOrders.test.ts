@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildOrderDetailFromStops,
+  countDeactivatedOrderLines,
   findOrderLineForProduct,
   getProductOptionsForOrder,
   resolveOrderDetailForWizard,
@@ -189,6 +190,30 @@ describe('getProductOptionsForOrder', () => {
     expect(options).toHaveLength(1);
     expect(options[0].value).toBe('20');
     expect(options[0].label).toBe('Active Product');
+    expect(countDeactivatedOrderLines(order)).toBe(1);
+  });
+
+  it('returns empty options when only deactivated products remain', () => {
+    const order = {
+      id: '103',
+      orderReference: 'ORD-8842',
+      lines: [
+        {
+          id: 146,
+          productSkuId: 12550,
+          productName: 'Industrial Steel Racking Unit',
+          productActive: false,
+          quantity: 30,
+          remainingQuantity: 30,
+          unit: 'Units',
+          weight: 1,
+          weightUnit: 'Kgs',
+        },
+      ],
+    } as ErpOrder;
+
+    expect(getProductOptionsForOrder(order)).toEqual([]);
+    expect(countDeactivatedOrderLines(order)).toBe(1);
   });
 
   it('returns empty array when order has no lines', () => {

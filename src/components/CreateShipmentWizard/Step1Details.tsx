@@ -41,6 +41,7 @@ import {
   findOrderLineForProduct,
   getProductOptionsForCargoLine,
   countUnmappedOrderLines,
+  countDeactivatedOrderLines,
   resolveOrderDetailForWizard,
 } from "../../hooks/useCreateShipmentOrders";
 import { ConfirmationModal } from "../ui/ConfirmationModal";
@@ -1156,11 +1157,15 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       }
       setOrderLoadingLineId(lid);
       try {
+        const fetched = await fetchOrderDetail(oid, { force: true });
         const detail = resolveOrderDetailForWizard(
           oid,
-          await fetchOrderDetail(oid, { force: true }),
+          fetched,
           stopsRef.current || [],
         );
+        // #region agent log
+        fetch('http://127.0.0.1:7306/ingest/eb1acc85-4c80-497a-8b5a-2ee385c90427',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7dc04c'},body:JSON.stringify({sessionId:'7dc04c',runId:'pre-fix',hypothesisId:'A,D,E',location:'Step1Details.tsx:selOrdLine',message:'order selected in cargo line',data:{sid,lid,oid,fetchedNull:!fetched,fetchedLines:fetched?.lines?.length??0,detailNull:!detail,detailId:detail?.id,detailRef:detail?.orderReference,detailHasRemaining:detail?.hasRemaining,detailLines:detail?.lines?.length??0,customerName:detail?.customerName,lineSummaries:(detail?.lines??[]).map((l)=>({id:l.id,sku:l.productSkuId,name:l.productName,active:l.productActive,qty:l.quantity,remaining:l.remainingQuantity,shipped:l.shippedQuantity}))},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         if (detail) {
           const canonicalId = String(detail.id);
           setOrderDetailsById((prev) => ({
@@ -2752,7 +2757,16 @@ const CargoTable: React.FC<CargoTableProps> = ({
                   sublabel: undefined,
                 });
               }
+              // #region agent log
+              if (ln.orderId || ln.orderRef) {
+                const ref = String(orderDetail?.orderReference || ln.orderRef || ln.orderId || '');
+                if (ref.includes('8842') || ref.includes('2432')) {
+                  fetch('http://127.0.0.1:7306/ingest/eb1acc85-4c80-497a-8b5a-2ee385c90427',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7dc04c'},body:JSON.stringify({sessionId:'7dc04c',runId:'post-fix',hypothesisId:'C',location:'Step1Details.tsx:productOpts',message:'cargo product dropdown options',data:{lineId:ln.id,orderId:ln.orderId,orderRef:ln.orderRef,lookupFound:Boolean(orderDetail),detailId:orderDetail?.id,detailRef:orderDetail?.orderReference,detailLines:orderDetail?.lines?.length??0,productOptsCount:productOpts.length,deactivatedCount:countDeactivatedOrderLines(orderDetail),productsOnThisShipment:[...productsOnThisShipment]},timestamp:Date.now()})}).catch(()=>{});
+                }
+              }
+              // #endregion
               const unmappedCount = countUnmappedOrderLines(orderDetail);
+              const deactivatedCount = countDeactivatedOrderLines(orderDetail);
               return (
                 <tr
                   key={ln.id}
@@ -2865,6 +2879,17 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       >
                         {t("createLoadUnmappedOrderLines") ||
                           `${unmappedCount} order line(s) have no mapped product SKU.`}
+                      </div>
+                    )}
+                    {deactivatedCount > 0 &&
+                      productOpts.length === 0 &&
+                      unmappedCount === 0 && (
+                      <div
+                        className="text-[10px] mt-1"
+                        style={{ color: "#D97706" }}
+                      >
+                        {t("createLoadDeactivatedOrderLines") ||
+                          `${deactivatedCount} order product(s) are deactivated. Reactivate in Product Master or use + Create Product.`}
                       </div>
                     )}
                     <FieldValidationHint

@@ -424,6 +424,7 @@
   "createLoadOrdersLoadError": "Could not load orders.",
   "createLoadOrderLoadError": "Could not load order details.",
   "createLoadUnmappedOrderLines": "Some order lines have no mapped product SKU.",
+  "createLoadDeactivatedOrderLines": "Order product(s) are deactivated. Reactivate them in Product Master, or use + Create Product.",
   "createLoadProductCreatedReselect": "Product created. Select it from the order lines.",
   "step2AiAnalysis": "AI Analysis",
   "step2AiRouteAnalysis": "AI Route Analysis",

@@ -423,6 +423,7 @@
   "createLoadOrdersLoadError": "Αποτυχία φόρτωσης παραγγελιών.",
   "createLoadOrderLoadError": "Αποτυχία φόρτωσης λεπτομερειών παραγγελίας.",
   "createLoadUnmappedOrderLines": "Ορισμένες γραμμές παραγγελίας δεν έχουν αντιστοιχισμένο SKU.",
+  "createLoadDeactivatedOrderLines": "Τα προϊόντα της παραγγελίας είναι απενεργοποιημένα. Ενεργοποιήστε τα στο Product Master ή χρησιμοποιήστε το + Create Product.",
   "createLoadProductCreatedReselect": "Το προϊόν δημιουργήθηκε. Επιλέξτε το από τις γραμμές παραγγελίας.",
   "step2AiAnalysis": "Ανάλυση AI",
   "step2AiRouteAnalysis": "Ανάλυση Δρομολογίου AI",
