@@ -647,6 +647,15 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                         {isPickup ? t('pickup', 'PICKUP') : t('dropoff', 'DROPOFF')}
                       </span>
 
+                      {/* NEW Tag for new stop (matching Step 2) */}
+                      {stopHl?.isNew && (
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider bg-[#10B981] text-white shadow-xs"
+                        >
+                          {t('newTag', 'NEW')}
+                        </span>
+                      )}
+
                       {formatStopSchedule(stop.date, stop.timeStart, stop.timeEnd) && (
                         <span
                           className={`text-[11px] font-semibold transition-colors ${
@@ -735,45 +744,53 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="space-y-1.5 flex-1 min-w-0">
+                              {/* Order level header with optional NEW tag */}
+                              <div className="flex items-center gap-2 flex-wrap text-[11px]">
+                                <span
+                                  className={`font-semibold font-mono transition-colors ${
+                                    ordHl?.orderId
+                                      ? 'text-red-600 dark:text-red-400'
+                                      : 'text-[var(--text-primary)]'
+                                  }`}
+                                >
+                                  Order: {order.orderId}
+                                </span>
+                                {ordHl?.isNew && !stopHl?.isNew && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider bg-[#10B981] text-white shadow-xs">
+                                    {t('newTag', 'NEW')}
+                                  </span>
+                                )}
+                              </div>
+
                               {visibleProducts.map((prod, pIdx) => {
                                 const prodHl = ordHl?.products?.[pIdx];
 
                                 return (
                                   <div
                                     key={pIdx}
-                                    className="flex items-center gap-2 flex-wrap text-[11px]"
+                                    className="flex items-center gap-2 flex-wrap text-[11px] pt-0.5"
                                   >
-                                    <span
-                                      className={`font-semibold font-mono transition-colors ${
-                                        ordHl?.orderId || ordHl?.isNew
-                                          ? 'text-red-600 dark:text-red-400'
-                                          : 'text-[var(--text-primary)]'
-                                      }`}
-                                    >
-                                      Order: {order.orderId}
-                                    </span>
                                     {prod.name && prod.name !== '—' && (
-                                      <>
-                                        <span className="text-[var(--text-tertiary)]">·</span>
-                                        <span
-                                          className={`font-medium transition-colors ${
-                                            prodHl?.name || prodHl?.isNew || ordHl?.isNew
-                                              ? 'text-red-600 dark:text-red-400 font-semibold'
-                                              : 'text-[var(--text-primary)]'
-                                          }`}
-                                        >
-                                          {prod.name}
-                                        </span>
-                                      </>
+                                      <span
+                                        className={`font-medium transition-colors ${
+                                          prodHl?.name
+                                            ? 'text-red-600 dark:text-red-400 font-semibold'
+                                            : 'text-[var(--text-primary)]'
+                                        }`}
+                                      >
+                                        {prod.name}
+                                      </span>
                                     )}
                                     {(Boolean(prod.qty) || Boolean(prod.weight)) && (
                                       <>
-                                        <span className="text-[var(--text-tertiary)]">·</span>
+                                        {prod.name && prod.name !== '—' && (
+                                          <span className="text-[var(--text-tertiary)]">·</span>
+                                        )}
                                         <span className="text-[var(--text-secondary)]">
                                           {prod.qty ? (
                                             <span
                                               className={
-                                                prodHl?.qty || prodHl?.isNew || ordHl?.isNew
+                                                prodHl?.qty
                                                   ? 'text-red-600 dark:text-red-400 font-semibold'
                                                   : ''
                                               }
@@ -785,7 +802,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                           {prod.weight ? (
                                             <span
                                               className={
-                                                prodHl?.weight || prodHl?.isNew || ordHl?.isNew
+                                                prodHl?.weight
                                                   ? 'text-red-600 dark:text-red-400 font-semibold'
                                                   : ''
                                               }

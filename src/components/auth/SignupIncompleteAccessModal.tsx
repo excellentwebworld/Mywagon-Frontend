@@ -1,6 +1,5 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { SocialProfileStep } from '../../hooks/useSignupCompleteGate';
@@ -79,7 +78,7 @@ export const SignupIncompleteAccessModal: React.FC<Props> = ({
       style={{ zIndex: 10050 }}
       role="presentation"
     >
-      <div className="absolute inset-0 bg-black/45" onClick={onOk} aria-hidden />
+      <div className="absolute inset-0 bg-black/45" aria-hidden />
       <div
         className="relative w-full max-w-[360px] rounded-2xl overflow-hidden shadow-2xl"
         style={{ background: '#fff', border: `1px solid ${T.bd}` }}
@@ -87,16 +86,6 @@ export const SignupIncompleteAccessModal: React.FC<Props> = ({
         aria-modal="true"
         aria-labelledby="signup-incomplete-title"
       >
-        <button
-          type="button"
-          onClick={onOk}
-          className="absolute top-3 right-3 p-1.5 rounded-lg cursor-pointer border-none z-10"
-          style={{ background: 'transparent', color: '#9CA3AF' }}
-          aria-label="Close"
-        >
-          <X size={18} />
-        </button>
-
         <div className="px-8 pt-10 pb-8 flex flex-col items-center text-center">
           <div className="mb-5">
             <ProfileKycIllustration />
