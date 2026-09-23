@@ -299,18 +299,19 @@ export const DocumentsCard: React.FC<DocumentsCardProps> = ({
       expanded={expanded}
       onToggle={onToggle}
       headerExtra={
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onUpload) onUpload();
-            else onToast(t('uploadDocument', 'Upload document'));
-          }}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 shadow-xs transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
-        >
-          <Plus size={12} />
-          <span>{t('upload', 'Upload')}</span>
-        </button>
+        onUpload ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onUpload();
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 shadow-xs transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+          >
+            <Plus size={12} />
+            <span>{t('upload', 'Upload')}</span>
+          </button>
+        ) : undefined
       }
     >
       <div>
@@ -320,7 +321,9 @@ export const DocumentsCard: React.FC<DocumentsCardProps> = ({
               <Paperclip size={18} />
             </div>
             <p className="text-[12px] m-0 text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-              {t('noDocumentsUploaded', 'No documents uploaded yet. Click Upload to attach files.')}
+              {onUpload
+                ? t('noDocumentsUploaded', 'No documents uploaded yet. Click Upload to attach files.')
+                : t('noDocuments', 'No documents uploaded yet.')}
             </p>
           </div>
         ) : (

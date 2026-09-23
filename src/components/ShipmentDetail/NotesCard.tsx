@@ -283,7 +283,7 @@ export const NotesCard: React.FC<NotesCardProps> = ({
       onToggle={onToggle}
     >
       <div>
-        {!isAdding ? (
+        {onAddNote && !isAdding ? (
           <button
             type="button"
             className="text-[12px] font-semibold mb-2.5 flex items-center gap-1 cursor-pointer text-purple-600 dark:text-purple-400 hover:underline bg-transparent border-0"
@@ -292,7 +292,7 @@ export const NotesCard: React.FC<NotesCardProps> = ({
             <Plus size={13} />
             <span>{t('addNote', '+ Add note')}</span>
           </button>
-        ) : (
+        ) : onAddNote && isAdding ? (
           <div className="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
             <textarea
               value={newNote}
@@ -342,7 +342,7 @@ export const NotesCard: React.FC<NotesCardProps> = ({
               </div>
             </div>
           </div>
-        )}
+        ) : null}
 
         {notes.length === 0 ? (
           <p className="text-[12px] text-slate-500 dark:text-slate-400">
