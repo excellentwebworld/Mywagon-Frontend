@@ -142,18 +142,31 @@ export function TopNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const pastDueLocked = usePastDueLock();
-  const { requireSignupComplete } = useRequireSignupComplete();
+  const { requireSignupComplete, signupIncomplete } = useRequireSignupComplete();
   const [hoverSection, setHoverSection] = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const isSignupBrowseAllowed = (path: string) => {
+    const p = path.replace(/\/$/, '') || '/';
+    if (p === '/dashboard') return true;
+    if (p === '/settings' || p.startsWith('/settings/')) return true;
+    if (p === '/billing' || p.startsWith('/billing/')) return true;
+    if (p === '/subscription' || p.startsWith('/subscription/')) return true;
+    return false;
+  };
+
   const go = (route?: string) => {
     if (!route) return;
-    if (route.startsWith('/shipments/create') && !requireSignupComplete()) return;
+    if (signupIncomplete && !isSignupBrowseAllowed(route)) {
+      requireSignupComplete();
+      return;
+    }
     navigate(pastDueLocked && route !== '/billing' ? '/billing' : route);
   };
 
   const activateItem = (item: NavItem) => {
     if (item.action === 'vagon-ai') {
+      if (!requireSignupComplete()) return;
       showToast(t('vagonai.title') || 'Vagon AI', 'info');
       return;
     }

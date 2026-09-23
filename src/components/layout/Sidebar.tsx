@@ -8,6 +8,16 @@ import collapsedLogo from "../../assets/logo/logo.svg";
 import { usePastDueLock } from "../../hooks/usePastDueLock";
 import { useRequireSignupComplete } from "../../hooks/useRequireSignupComplete";
 
+/** Paths incomplete social users may open without the profile modal. */
+function isSignupBrowseAllowed(path: string): boolean {
+  const p = path.replace(/\/$/, "") || "/";
+  if (p === "/dashboard") return true;
+  if (p === "/settings" || p.startsWith("/settings/")) return true;
+  if (p === "/billing" || p.startsWith("/billing/")) return true;
+  if (p === "/subscription" || p.startsWith("/subscription/")) return true;
+  return false;
+}
+
 interface SidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -26,7 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { t } = useTranslation();
   const { showToast } = useApp();
   const pastDueLocked = usePastDueLock();
-  const { requireSignupComplete } = useRequireSignupComplete();
+  const { requireSignupComplete, signupIncomplete } = useRequireSignupComplete();
 
   const [mainOpen, setMainOpen] = useState(true);
   const [masterOpen, setMasterOpen] = useState(true);
@@ -50,6 +60,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const value = t(key);
     if (!value || value === key) return fallback;
     return value;
+  };
+
+  const onFeatureNav = (e: React.MouseEvent, path: string) => {
+    if (pastDueLocked && !path.includes("/billing")) {
+      e.preventDefault();
+      navigate("/billing");
+      onCloseMobile();
+      return;
+    }
+    if (signupIncomplete && !isSignupBrowseAllowed(path)) {
+      e.preventDefault();
+      requireSignupComplete();
+      return;
+    }
+    onCloseMobile();
   };
 
   return (
@@ -122,6 +147,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 title={t("vagonai.title") || "Vagon AI"}
                 data-tour="vagon-ai"
                 onClick={() => {
+                  if (!requireSignupComplete()) return;
                   showToast(t("vagonai.title") || "Vagon AI", "info");
                   onCloseMobile();
                 }}
@@ -147,13 +173,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <Link
                 to="/shipments/create"
-                onClick={(e) => {
-                  if (!requireSignupComplete()) {
-                    e.preventDefault();
-                    return;
-                  }
-                  onCloseMobile();
-                }}
+                onClick={(e) => onFeatureNav(e, "/shipments/create")}
                 className={`ni ${isLinkActive("/shipments/create") ? "active" : ""}`}
                 title={t("createShipment")}
                 data-tour="create-shipment"
@@ -166,7 +186,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <Link
                 to="/shipments"
-                onClick={onCloseMobile}
+                onClick={(e) => onFeatureNav(e, "/shipments")}
                 className={`ni ${isLinkActive("/shipments") ? "active" : ""}`}
                 title={t("navManageShipments")}
                 data-tour="manage-shipments"
@@ -181,7 +201,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <Link
                 to="/search-trucks"
-                onClick={onCloseMobile}
+                onClick={(e) => onFeatureNav(e, "/search-trucks")}
                 className={`ni ${isLinkActive("/search-trucks") ? "active" : ""}`}
                 title={t("truckAvailability")}
               >
@@ -221,7 +241,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <>
               <Link
                 to="/address-book"
-                onClick={onCloseMobile}
+                onClick={(e) => onFeatureNav(e, "/address-book")}
                 className={`ni ${isLinkActive("/address-book") ? "active" : ""}`}
                 title={t("addressBook")}
                 data-tour="address-book"
@@ -235,7 +255,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <Link
                 to="/products"
-                onClick={onCloseMobile}
+                onClick={(e) => onFeatureNav(e, "/products")}
                 className={`ni ${isLinkActive("/products") ? "active" : ""}`}
                 title={t("prodMaster")}
                 data-tour="products"
@@ -248,7 +268,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <Link
                 to="/erp-orders"
-                onClick={onCloseMobile}
+                onClick={(e) => onFeatureNav(e, "/erp-orders")}
                 className={`ni ${isLinkActive("/erp-orders") ? "active" : ""}`}
                 title={t("navErpOrders") || "Orders"}
                 data-tour="erp-orders"
@@ -261,7 +281,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <Link
                 to="/partners"
-                onClick={onCloseMobile}
+                onClick={(e) => onFeatureNav(e, "/partners")}
                 className={`ni ${isLinkActive("/partners") ? "active" : ""}`}
                 title={t("navPartners")}
                 data-tour="partners"
@@ -277,7 +297,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <Link
                 to="/pricing"
-                onClick={onCloseMobile}
+                onClick={(e) => onFeatureNav(e, "/pricing")}
                 className={`ni ${isLinkActive("/pricing") ? "active" : ""}`}
                 title={t("priceLists.title") || "Price Lists"}
                 data-tour="price-lists"
@@ -295,7 +315,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="sb-ft">
           <Link
             to="/support"
-            onClick={onCloseMobile}
+            onClick={(e) => onFeatureNav(e, "/support")}
             className={`ni ${isLinkActive("/support") ? "active" : ""}`}
             title={t("support")}
             data-tour="support"

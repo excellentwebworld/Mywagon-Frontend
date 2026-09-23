@@ -100,6 +100,15 @@ export const Header: React.FC<HeaderProps> = ({
   const location = useLocation();
   const pastDueLocked = usePastDueLock();
 
+  const goFeature = (route: string) => {
+    if (pastDueLocked && route !== '/billing') {
+      navigate('/billing');
+      return;
+    }
+    if (!requireSignupComplete()) return;
+    navigate(route);
+  };
+
   const [searchValue, setSearchValue] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -214,6 +223,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchValue.trim()) {
+      if (!requireSignupComplete()) return;
       navigate(`/support?q=${encodeURIComponent(searchValue.trim())}`);
     }
   };
@@ -334,7 +344,10 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Vagon AI */}
       <button
         type="button"
-        onClick={() => showToast(t('vagonai.title') || 'Vagon AI', 'info')}
+        onClick={() => {
+          if (!requireSignupComplete()) return;
+          showToast(t('vagonai.title') || 'Vagon AI', 'info');
+        }}
         aria-label={t('vagonai.title') || 'Vagon AI'}
         className="mv-topbar-ai"
         style={{
@@ -357,7 +370,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Tutorials — matches Laravel shipper panel ic_youtube.png */}
       <button
         type="button"
-        onClick={() => navigate(pastDueLocked ? '/billing' : '/tutorials')}
+        onClick={() => goFeature('/tutorials')}
         aria-label={t('tutorial') || 'Tutorials'}
         title={t('tutorial') || 'Tutorials'}
         data-tour="tutorials"
@@ -678,7 +691,7 @@ export const Header: React.FC<HeaderProps> = ({
       <button
         type="button"
         className="mv-topbar-icon-btn"
-        onClick={() => navigate(pastDueLocked ? '/billing' : '/messages')}
+        onClick={() => goFeature('/messages')}
         aria-label={t('topbar.messages') || 'Messages'}
         style={{ color: T.t2, position: 'relative' }}
         onMouseEnter={(e) => {
