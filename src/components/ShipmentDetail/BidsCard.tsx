@@ -262,25 +262,28 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                         </button>
                       )}
 
-                      <button
-                        type="button"
-                        onClick={() => onViewHistory && onViewHistory(item)}
-                        title={t('biddingHistory', 'Bidding history')}
-                        className="p-1.5 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer shadow-2xs"
-                      >
-                        <History size={13} />
-                      </button>
+                      {onViewHistory && (
+                        <button
+                          type="button"
+                          onClick={() => onViewHistory(item)}
+                          title={t('biddingHistory', 'Bidding history')}
+                          className="p-1.5 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <History size={13} />
+                        </button>
+                      )}
 
-                      {/* Chat button */}
-                      <button
-                        type="button"
-                        onClick={() => onChat ? onChat(item) : undefined}
-                        title={t('chat', 'Chat')}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors shadow-2xs"
-                      >
-                        <MessageSquare size={12} />
-                        <span>{t('chat', 'Chat')}</span>
-                      </button>
+                      {onChat && (
+                        <button
+                          type="button"
+                          onClick={() => onChat(item)}
+                          title={t('chat', 'Chat')}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors shadow-2xs"
+                        >
+                          <MessageSquare size={12} />
+                          <span>{t('chat', 'Chat')}</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

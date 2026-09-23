@@ -17,7 +17,7 @@ interface CommandHeaderProps {
   onCopyId: () => void;
   onEdit?: () => void;
   onMessage?: () => void;
-  onShare: () => void;
+  onShare?: () => void;
   onPdfExport?: () => void;
   onAuditLog: () => void;
   onBidsHistory?: () => void;
@@ -27,6 +27,8 @@ interface CommandHeaderProps {
   onUploadDocument?: () => void;
   onToast: (msg: string) => void;
   t: (key: string, fallback?: string) => string;
+  /** Hide mutating actions (admin viewer) */
+  readOnly?: boolean;
 }
 
 export const CommandHeader: React.FC<CommandHeaderProps> = ({
@@ -44,6 +46,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
   onDuplicate,
   onToast,
   t,
+  readOnly = false,
 }) => {
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -111,7 +114,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
       normStatus === 'awarded');
 
   const isOnTrip = normStatus === 'on_trip' || normStatus === 'in_progress';
-  const hasMenuActions = Boolean(onDuplicate || (canCancel && onCancelShipment));
+  const hasMenuActions = !readOnly && Boolean(onDuplicate || (canCancel && onCancelShipment));
 
   return (
     <div className="mv-surface-card rounded-2xl px-5 py-4 mb-4 bg-[var(--surface)] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
@@ -191,7 +194,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
         )}
 
         <div className="flex items-center gap-1.5 flex-wrap">
-          {canEdit && (
+          {!readOnly && canEdit && (
             <button
               type="button"
               onClick={onEdit || (() => onToast(t('editShipment', 'Edit shipment')))}
@@ -202,24 +205,28 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={onMessage || (() => onToast(t('message', 'Message')))}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-semibold whitespace-nowrap bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
-          >
-            <MessageSquare size={14} />
-            <span>{t('message', 'Message')}</span>
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={onMessage || (() => onToast(t('message', 'Message')))}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-semibold whitespace-nowrap bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+            >
+              <MessageSquare size={14} />
+              <span>{t('message', 'Message')}</span>
+            </button>
+          )}
 
-          <button
-            type="button"
-            onClick={onShare}
-            title={t('shareTracking', 'Share tracking')}
-            className="flex items-center justify-center p-2 rounded-lg text-[13px] font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
-            aria-label={t('shareTracking', 'Share tracking')}
-          >
-            <Share2 size={14} />
-          </button>
+          {!readOnly && onShare && (
+            <button
+              type="button"
+              onClick={onShare}
+              title={t('shareTracking', 'Share tracking')}
+              className="flex items-center justify-center p-2 rounded-lg text-[13px] font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+              aria-label={t('shareTracking', 'Share tracking')}
+            >
+              <Share2 size={14} />
+            </button>
+          )}
 
           {hasMenuActions && (
             <div className="relative" ref={menuRef}>

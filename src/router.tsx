@@ -29,6 +29,7 @@ import { SubscriptionPage } from './pages/Subscription';
 import { WebViewSubscriptionPage } from './pages/Subscription/WebViewSubscriptionPage';
 import { WebViewBillingPage } from './pages/Billing/WebViewBillingPage';
 import { PublicTrackingPage } from './pages/PublicTracking/PublicTrackingPage';
+import { AdminShipmentDetailPage } from './pages/AdminShipmentDetail';
 
 import PriceListsPage from './pages/PriceLists/PriceListsPage';
 import { MessagesPage } from './pages/Messages';
@@ -127,6 +128,12 @@ const publicTrackingRoutes = [
   { path: '/shipper/track-shipment/*', element: <PublicTrackingPage /> },
 ];
 
+/** Admin Panel deep-link: read-only shipment detail (no shipper auth) */
+const adminViewRoutes = [
+  { path: '/admin/shipments', element: <AdminShipmentDetailPage /> },
+  { path: '/admin/shipments/', element: <AdminShipmentDetailPage /> },
+];
+
 export const router = createBrowserRouter(
   basename
     ? [
@@ -134,6 +141,7 @@ export const router = createBrowserRouter(
         ...legalRoutes,
         ...webViewRoutes,
         ...publicTrackingRoutes,
+        ...adminViewRoutes,
         { path: '/', element: <RootRedirect fallback="/address-book" /> },
         protectedLayout,
         { path: '*', element: <Navigate to="/address-book" replace /> },
@@ -143,6 +151,7 @@ export const router = createBrowserRouter(
         ...legalRoutes,
         ...webViewRoutes,
         ...publicTrackingRoutes,
+        ...adminViewRoutes,
         { path: '/', element: <RootRedirect fallback="/login" /> },
         { path: '/about', element: <Navigate to="/login" replace /> },
         protectedLayout,

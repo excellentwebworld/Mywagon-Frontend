@@ -29,6 +29,7 @@ import {
 } from '../../components/ShipmentDetail';
 import type { PhysicalStop } from '../../components/ShipmentDetail/StopsCard';
 import { useApp } from '../../context/AppContext';
+import type { Shipment } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
@@ -54,15 +55,32 @@ const DEFAULT_SECTIONS: Record<string, boolean> = {
   audit: true,
 };
 
-export const ShipmentDetail: React.FC = () => {
+type ShipmentDetailProps = {
+  /** Admin / public viewer: hide mutating actions */
+  readOnly?: boolean;
+  /** When set, skip route param fetch and use this shipment */
+  shipmentOverride?: Shipment | null;
+  overrideError?: string | null;
+};
+
+export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
+  readOnly = false,
+  shipmentOverride,
+  overrideError = null,
+}) => {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const { id: routeId } = useParams<{ id: string }>();
+  const id = readOnly ? String(shipmentOverride?.id ?? '') : routeId;
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { showToast } = useApp();
   const { t } = useTranslation();
   const { requireSignupComplete } = useRequireSignupComplete();
-  const { shipment, loading, error, refetch } = useShipment(id);
+  const fetched = useShipment(readOnly ? undefined : id);
+  const shipment = readOnly ? (shipmentOverride ?? null) : fetched.shipment;
+  const loading = readOnly ? false : fetched.loading;
+  const error = readOnly ? overrideError : fetched.error;
+  const refetch = readOnly ? () => undefined : fetched.refetch;
   const [lang, setLang] = useState<'en' | 'el'>('en');
   const [activeNav, setActiveNav] = useState('stops');
   const [sections, setSections] = useState(DEFAULT_SECTIONS);
@@ -604,13 +622,15 @@ export const ShipmentDetail: React.FC = () => {
       <div className="max-w-md mx-auto py-16 px-4 text-center">
         <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('shipmentNotFound', 'Shipment not found')}</h2>
         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{error || t('shipmentNotFoundDesc', 'The requested load details could not be found.')}</p>
-        <Link
-          to="/shipments"
-          className="mt-6 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#9B51E0] hover:opacity-90 shadow-xs"
-        >
-          <ArrowLeft size={14} />
-          <span>{t('backToShipments', 'Back to shipments')}</span>
-        </Link>
+        {!readOnly && (
+          <Link
+            to="/shipments"
+            className="mt-6 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#9B51E0] hover:opacity-90 shadow-xs"
+          >
+            <ArrowLeft size={14} />
+            <span>{t('backToShipments', 'Back to shipments')}</span>
+          </Link>
+        )}
       </div>
     );
   }
@@ -642,17 +662,19 @@ export const ShipmentDetail: React.FC = () => {
     <div className="mv-themed-page w-full min-h-screen bg-[var(--bg)] font-sans antialiased text-slate-900 dark:text-white">
       <div className="max-w-[1280px] mx-auto px-5 lg:px-7 py-4 pb-10 w-full">
         {/* Breadcrumbs */}
-        <div className="flex items-center gap-1.5 text-[12px] mb-3 text-slate-500 dark:text-slate-400">
-          <Link
-            to="/shipments"
-            className="flex items-center gap-1 font-medium text-purple-600 dark:text-purple-400 hover:underline"
-          >
-            <ArrowLeft size={12} />
-            <span>{t('manageShipments', 'Manage shipments')}</span>
-          </Link>
-          <span>›</span>
-          <span>{t('loadDetails', 'Load details')}</span>
-        </div>
+        {!readOnly && (
+          <div className="flex items-center gap-1.5 text-[12px] mb-3 text-slate-500 dark:text-slate-400">
+            <Link
+              to="/shipments"
+              className="flex items-center gap-1 font-medium text-purple-600 dark:text-purple-400 hover:underline"
+            >
+              <ArrowLeft size={12} />
+              <span>{t('manageShipments', 'Manage shipments')}</span>
+            </Link>
+            <span>›</span>
+            <span>{t('loadDetails', 'Load details')}</span>
+          </div>
+        )}
 
         {/* Status banner (Cancelled / Unfulfilled / Past Due) */}
         <StatusBanner
@@ -672,28 +694,45 @@ export const ShipmentDetail: React.FC = () => {
           lang={lang}
           onLangChange={setLang}
           onCopyId={() => handleCopy(vm.displayId)}
-          onEdit={() => {
-            if (!requireSignupComplete()) return;
-            if (vm.status === 'draft') {
-              navigate(`/shipments/create/step/1?id=${vm.id}`);
-            } else {
-              navigate(`/shipments/create/step/1?editId=${vm.id}`);
-            }
-          }}
-          onMessage={() => {
-            const driver = vm.assignedDriver;
-            const carrier = vm.carrier;
-            const partner = driver || carrier;
-            const resolvedType = driver ? 'driver' : (carrier?.userType === 'driver' ? 'driver' : 'carrier');
-            navigateToChat(partner, partner ? resolvedType : undefined);
-          }}
-          onShare={() => setIsShareOpen(true)}
+          readOnly={readOnly}
+          onEdit={
+            readOnly
+              ? undefined
+              : () => {
+                  if (!requireSignupComplete()) return;
+                  if (vm.status === 'draft') {
+                    navigate(`/shipments/create/step/1?id=${vm.id}`);
+                  } else {
+                    navigate(`/shipments/create/step/1?editId=${vm.id}`);
+                  }
+                }
+          }
+          onMessage={
+            readOnly
+              ? undefined
+              : () => {
+                  const driver = vm.assignedDriver;
+                  const carrier = vm.carrier;
+                  const partner = driver || carrier;
+                  const resolvedType = driver
+                    ? 'driver'
+                    : carrier?.userType === 'driver'
+                      ? 'driver'
+                      : 'carrier';
+                  navigateToChat(partner, partner ? resolvedType : undefined);
+                }
+          }
+          onShare={readOnly ? undefined : () => setIsShareOpen(true)}
           onAuditLog={() => setIsLogOpen(true)}
-          onBidsHistory={() => {
-            setSelectedPartnerForHistory(null);
-            setIsBidsHistoryOpen(true);
-          }}
-          onCancelShipment={() => setIsCancelOpen(true)}
+          onBidsHistory={
+            readOnly
+              ? undefined
+              : () => {
+                  setSelectedPartnerForHistory(null);
+                  setIsBidsHistoryOpen(true);
+                }
+          }
+          onCancelShipment={readOnly ? undefined : () => setIsCancelOpen(true)}
           onToast={(msg) => showToast(msg, 'info')}
           t={t}
         />
@@ -833,27 +872,39 @@ export const ShipmentDetail: React.FC = () => {
                 partners={vm.partners}
                 expanded={sections.bids}
                 onToggle={() => toggleSection('bids')}
-                onAcceptBid={handleAcceptBid}
+                onAcceptBid={readOnly ? undefined : handleAcceptBid}
                 acceptingBidId={acceptingBidId}
-                onRejectBid={handleRejectBid}
+                onRejectBid={readOnly ? undefined : handleRejectBid}
                 decliningBidId={decliningBidId}
-                onCounterBid={(bid) => setPendingCounterBid(bid)}
-                onCancelInvite={handleCancelInvite}
+                onCounterBid={readOnly ? undefined : (bid) => setPendingCounterBid(bid)}
+                onCancelInvite={readOnly ? undefined : handleCancelInvite}
                 cancellingInviteId={cancellingInviteId}
-                onViewHistory={(partner) => {
-                  setSelectedPartnerForHistory(partner);
-                  setIsBidsHistoryOpen(true);
-                }}
-                onChat={(partner) => {
-                  const resolvedType =
-                    partner.userType === 'driver' ||
-                    partner.transporterType === 'freelancer' ||
-                    partner.transporterType === 'driver'
-                      ? 'driver'
-                      : 'carrier';
-                  navigateToChat(partner, resolvedType, { shipmentScoped: true });
-                }}
-                onInviteMore={() => showToast(t('invitePartners', 'Invite partners modal opening…'), 'info')}
+                onViewHistory={
+                  readOnly
+                    ? undefined
+                    : (partner) => {
+                        setSelectedPartnerForHistory(partner);
+                        setIsBidsHistoryOpen(true);
+                      }
+                }
+                onChat={
+                  readOnly
+                    ? undefined
+                    : (partner) => {
+                        const resolvedType =
+                          partner.userType === 'driver' ||
+                          partner.transporterType === 'freelancer' ||
+                          partner.transporterType === 'driver'
+                            ? 'driver'
+                            : 'carrier';
+                        navigateToChat(partner, resolvedType, { shipmentScoped: true });
+                      }
+                }
+                onInviteMore={
+                  readOnly
+                    ? undefined
+                    : () => showToast(t('invitePartners', 'Invite partners modal opening…'), 'info')
+                }
                 t={t}
               />
             )}
@@ -873,22 +924,29 @@ export const ShipmentDetail: React.FC = () => {
               onCopy={handleCopy}
               onToast={(msg) => showToast(msg, 'info')}
               onViewPod={(stop) => setViewPodStop(stop)}
-              onRequestPod={async (stop) => {
-                if (!id) return;
-                setRequestingPodStopId(stop.id);
-                try {
-                  await shipmentsService.requestPod(id, stop.id);
-                  showToast(t('podRequestedSent', 'Push notification sent to driver requesting POD'), 'success');
-                } catch (err: any) {
-                  showToast(err?.message || t('errorRequestingPod', 'Failed to request POD'), 'error');
-                } finally {
-                  setRequestingPodStopId(null);
-                }
-              }}
+              onRequestPod={
+                readOnly
+                  ? undefined
+                  : async (stop) => {
+                      if (!id) return;
+                      setRequestingPodStopId(stop.id);
+                      try {
+                        await shipmentsService.requestPod(id, stop.id);
+                        showToast(
+                          t('podRequestedSent', 'Push notification sent to driver requesting POD'),
+                          'success'
+                        );
+                      } catch (err: any) {
+                        showToast(err?.message || t('errorRequestingPod', 'Failed to request POD'), 'error');
+                      } finally {
+                        setRequestingPodStopId(null);
+                      }
+                    }
+              }
               requestingPodStopId={requestingPodStopId}
               shipmentStatus={vm.status}
-              reportablePickups={reportablePickups}
-              onReportDelay={handleOpenDelayReport}
+              reportablePickups={readOnly ? [] : reportablePickups}
+              onReportDelay={readOnly ? undefined : handleOpenDelayReport}
               t={t}
             />
 
@@ -904,29 +962,45 @@ export const ShipmentDetail: React.FC = () => {
                 expanded={sections.carrier}
                 onToggle={() => toggleSection('carrier')}
                 onToast={(msg) => showToast(msg, 'info')}
-                onRateCarrier={(c) => {
-                  setRatingTarget({
-                    id: c.userId ?? 0,
-                    type: c.userType === 'driver' ? 'driver' : 'carrier',
-                    name: c.name,
-                  });
-                  setIsRatingOpen(true);
-                }}
-                onRateDriver={(d) => {
-                  setRatingTarget({
-                    id: d.userId ?? 0,
-                    type: 'driver',
-                    name: d.name,
-                  });
-                  setIsRatingOpen(true);
-                }}
-                onChatCarrier={(c) => {
-                  const resolvedType = c.userType === 'driver' ? 'driver' : 'carrier';
-                  navigateToChat(c, resolvedType, { shipmentScoped: true });
-                }}
-                onChatDriver={(d) => {
-                  navigateToChat(d, 'driver', { shipmentScoped: true });
-                }}
+                onRateCarrier={
+                  readOnly
+                    ? undefined
+                    : (c) => {
+                        setRatingTarget({
+                          id: c.userId ?? 0,
+                          type: c.userType === 'driver' ? 'driver' : 'carrier',
+                          name: c.name,
+                        });
+                        setIsRatingOpen(true);
+                      }
+                }
+                onRateDriver={
+                  readOnly
+                    ? undefined
+                    : (d) => {
+                        setRatingTarget({
+                          id: d.userId ?? 0,
+                          type: 'driver',
+                          name: d.name,
+                        });
+                        setIsRatingOpen(true);
+                      }
+                }
+                onChatCarrier={
+                  readOnly
+                    ? undefined
+                    : (c) => {
+                        const resolvedType = c.userType === 'driver' ? 'driver' : 'carrier';
+                        navigateToChat(c, resolvedType, { shipmentScoped: true });
+                      }
+                }
+                onChatDriver={
+                  readOnly
+                    ? undefined
+                    : (d) => {
+                        navigateToChat(d, 'driver', { shipmentScoped: true });
+                      }
+                }
                 t={t}
               />
             )}
@@ -963,7 +1037,7 @@ export const ShipmentDetail: React.FC = () => {
               hasActualRoute={vm.hasActualRoute}
               expanded={sections.tracking}
               onToggle={() => toggleSection('tracking')}
-              onShare={() => setIsShareOpen(true)}
+              onShare={readOnly ? undefined : () => setIsShareOpen(true)}
               t={t}
             />
 
@@ -980,9 +1054,9 @@ export const ShipmentDetail: React.FC = () => {
               notes={localNotes}
               expanded={sections.notes}
               onToggle={() => toggleSection('notes')}
-              onAddNote={handleAddNote}
-              onUpdateNote={handleUpdateNote}
-              onDeleteNote={handleDeleteNote}
+              onAddNote={readOnly ? undefined : handleAddNote}
+              onUpdateNote={readOnly ? undefined : handleUpdateNote}
+              onDeleteNote={readOnly ? undefined : handleDeleteNote}
               updatingNoteId={updatingNoteId}
               deletingNoteId={deletingNoteId}
               onToast={(msg) => showToast(msg, 'info')}
@@ -994,10 +1068,10 @@ export const ShipmentDetail: React.FC = () => {
               documents={localDocs}
               expanded={sections.docs}
               onToggle={() => toggleSection('docs')}
-              onUpload={() => setIsUploadDocOpen(true)}
+              onUpload={readOnly ? undefined : () => setIsUploadDocOpen(true)}
               onDownload={handleDownloadDocument}
               downloadingDocId={downloadingDocId}
-              onDelete={handleDeleteDocument}
+              onDelete={readOnly ? undefined : handleDeleteDocument}
               deletingDocId={deletingDocId}
               onToast={(msg) => showToast(msg, 'info')}
               t={t}
@@ -1018,6 +1092,25 @@ export const ShipmentDetail: React.FC = () => {
         )}
       </div>
 
+      {/* View-only modals available to admin */}
+      <ActivityLogModal
+        open={isLogOpen}
+        logs={vm.shipmentLogs}
+        entries={vm.auditEntries}
+        onClose={() => setIsLogOpen(false)}
+        t={t}
+      />
+
+      <ViewPodModal
+        open={Boolean(viewPodStop)}
+        stop={viewPodStop}
+        onClose={() => setViewPodStop(null)}
+        t={t}
+      />
+
+      {/* Mutating modals — disabled in admin read-only viewer */}
+      {!readOnly && (
+        <>
       {/* Share Tracking Modal (Laravel Panel Tracking Links Table) */}
       <ShareTrackingModal
         open={isShareOpen}
@@ -1038,15 +1131,6 @@ export const ShipmentDetail: React.FC = () => {
             showToast(err?.message || t('errorSavingTracking', 'Failed to save tracking links'), 'error');
           }
         }}
-        t={t}
-      />
-
-      {/* Shipment Logs Modal */}
-      <ActivityLogModal
-        open={isLogOpen}
-        logs={vm.shipmentLogs}
-        entries={vm.auditEntries}
-        onClose={() => setIsLogOpen(false)}
         t={t}
       />
 
@@ -1093,14 +1177,6 @@ export const ShipmentDetail: React.FC = () => {
         t={t}
       />
 
-      {/* View Proof of Delivery (POD) Modal */}
-      <ViewPodModal
-        open={Boolean(viewPodStop)}
-        stop={viewPodStop}
-        onClose={() => setViewPodStop(null)}
-        t={t}
-      />
-
       {/* Carrier / Driver Rating Modal */}
       <RatingModal
         open={isRatingOpen}
@@ -1124,6 +1200,8 @@ export const ShipmentDetail: React.FC = () => {
         onSubmit={handleSendCounterBid}
         t={t}
       />
+        </>
+      )}
     </div>
   );
 };

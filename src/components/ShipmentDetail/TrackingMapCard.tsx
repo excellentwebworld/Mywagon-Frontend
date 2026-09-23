@@ -22,7 +22,7 @@ interface TrackingMapCardProps {
   hasActualRoute?: boolean;
   expanded: boolean;
   onToggle: () => void;
-  onShare: () => void;
+  onShare?: () => void;
   t: (key: string, fallback?: string) => string;
 }
 
@@ -236,14 +236,16 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
           </div>
 
           {/* Share live tracking button */}
-          <button
-            type="button"
-            onClick={onShare}
-            className="w-full py-2 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-colors bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer shadow-2xs"
-          >
-            <Share2 size={13} />
-            <span>{t('shareLiveTracking', 'Share live tracking')}</span>
-          </button>
+          {onShare && (
+            <button
+              type="button"
+              onClick={onShare}
+              className="w-full py-2 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-colors bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer shadow-2xs"
+            >
+              <Share2 size={13} />
+              <span>{t('shareLiveTracking', 'Share live tracking')}</span>
+            </button>
+          )}
         </div>
       </CollapsibleCard>
     );

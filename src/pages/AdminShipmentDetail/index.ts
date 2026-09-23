@@ -1,0 +1,1 @@
+export { AdminShipmentDetailPage } from './AdminShipmentDetailPage';
