@@ -76,11 +76,23 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   const social = isSocialShipper(user);
 
-  if (social && needsKycGate(user) && !isKycGateAllowedPath(location.pathname, user)) {
+  // KYC only after social phone + company/address are done (signup_complete).
+  // Running KYC before that ping-pongs personal ↔ compliance and blanks the page.
+  if (
+    !needsSignupComplete(user) &&
+    social &&
+    needsKycGate(user) &&
+    !isKycGateAllowedPath(location.pathname, user)
+  ) {
     return <Navigate to="/settings/compliance" replace />;
   }
 
-  if (needsInfoFormHardGate(user) && !isInfoFormAllowedPath(location.pathname)) {
+  // Info form only after social profile steps are done (same blank-page risk).
+  if (
+    !needsSignupComplete(user) &&
+    needsInfoFormHardGate(user) &&
+    !isInfoFormAllowedPath(location.pathname)
+  ) {
     return <Navigate to="/settings/organization?from=info_form" replace />;
   }
 
@@ -88,7 +100,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/settings/compliance" replace />;
   }
 
-  if (needsCompanyInfoGate(user) && !isCompanyInfoGateAllowedPath(location.pathname)) {
+  if (
+    !needsSignupComplete(user) &&
+    needsCompanyInfoGate(user) &&
+    !isCompanyInfoGateAllowedPath(location.pathname)
+  ) {
     return <Navigate to="/settings/organization?from=company_info" replace />;
   }
 
