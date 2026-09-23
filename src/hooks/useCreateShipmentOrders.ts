@@ -209,9 +209,6 @@ export function useCreateShipmentOrders(options?: {
           mapped.lines?.length > 0 && selectableCount === 0 && unmappedCount === 0
             ? { ...mapped, hasRemaining: false }
             : mapped;
-        // #region agent log
-        fetch('http://127.0.0.1:7306/ingest/eb1acc85-4c80-497a-8b5a-2ee385c90427',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7dc04c'},body:JSON.stringify({sessionId:'7dc04c',runId:'post-fix',hypothesisId:'C,E',location:'useCreateShipmentOrders.ts:fetchOrderDetail',message:'order detail fetched',data:{requestedKey:key,excludeShipmentId,orderId:corrected?.id,orderReference:corrected?.orderReference,hasRemaining:corrected?.hasRemaining,apiHasRemaining:mapped?.hasRemaining,status:corrected?.status,linesCount:corrected?.lines?.length??0,selectableCount,unmappedCount,lines:(corrected?.lines??[]).map((l)=>({id:l.id,productSkuId:l.productSkuId,productName:l.productName,productActive:l.productActive,quantity:l.quantity,remainingQuantity:l.remainingQuantity,shippedQuantity:l.shippedQuantity}))},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         const store = (alias: string) => {
           detailCacheRef.current.set(`${detailCachePrefix}${alias}`, corrected);
         };
@@ -237,10 +234,7 @@ export function useCreateShipmentOrders(options?: {
         }
 
         return corrected;
-      } catch (err) {
-        // #region agent log
-        fetch('http://127.0.0.1:7306/ingest/eb1acc85-4c80-497a-8b5a-2ee385c90427',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7dc04c'},body:JSON.stringify({sessionId:'7dc04c',runId:'post-fix',hypothesisId:'D',location:'useCreateShipmentOrders.ts:fetchOrderDetail:catch',message:'order detail fetch failed',data:{requestedKey:key,excludeShipmentId,error:err instanceof Error ? err.message : String(err)},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
+      } catch {
         return null;
       }
     },
@@ -314,26 +308,17 @@ export function getProductOptionsForOrder(
   order: ErpOrder | null | undefined,
   options?: GetProductOptionsForOrderOptions,
 ) {
-  if (!order?.lines?.length) {
-    // #region agent log
-    fetch('http://127.0.0.1:7306/ingest/eb1acc85-4c80-497a-8b5a-2ee385c90427',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7dc04c'},body:JSON.stringify({sessionId:'7dc04c',runId:'pre-fix',hypothesisId:'A,D',location:'useCreateShipmentOrders.ts:getProductOptionsForOrder',message:'no lines on order detail',data:{hasOrder:Boolean(order),orderId:order?.id,orderReference:order?.orderReference,linesCount:order?.lines?.length??0},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-    return [];
-  }
+  if (!order?.lines?.length) return [];
 
   const includeZero = new Set(
     [...(options?.includeZeroRemainingProductIds ?? [])].map((id) => String(id)),
   );
   const seen = new Set<string>();
   const optionsOut: { value: string; label: string; sublabel?: string; lineIndex: number }[] = [];
-  const skipReasons: { lineIndex: number; reason: string; productSkuId?: number | null; remaining?: number | null; productActive?: boolean }[] = [];
 
   order.lines.forEach((line, lineIndex) => {
     // Hide deactivated products
-    if (line.productActive === false) {
-      skipReasons.push({ lineIndex, reason: 'deactivated', productSkuId: line.productSkuId, productActive: false, remaining: line.remainingQuantity ?? null });
-      return;
-    }
+    if (line.productActive === false) return;
 
     const key = line.productSkuId
       ? String(line.productSkuId)
@@ -349,15 +334,9 @@ export function getProductOptionsForOrder(
           : null;
     // Hide products already fully shipped on prior loads — unless this shipment
     // already carries them (needed for Edit multi-dropoff splits).
-    if (remaining != null && remaining <= 0 && !includeZero.has(key)) {
-      skipReasons.push({ lineIndex, reason: 'zero_remaining', productSkuId: line.productSkuId, remaining, productActive: line.productActive });
-      return;
-    }
+    if (remaining != null && remaining <= 0 && !includeZero.has(key)) return;
 
-    if (!key || seen.has(key)) {
-      skipReasons.push({ lineIndex, reason: !key ? 'empty_key' : 'duplicate', productSkuId: line.productSkuId, remaining, productActive: line.productActive });
-      return;
-    }
+    if (!key || seen.has(key)) return;
     seen.add(key);
     optionsOut.push({
       value: key,
@@ -366,10 +345,6 @@ export function getProductOptionsForOrder(
       lineIndex,
     });
   });
-
-  // #region agent log
-  fetch('http://127.0.0.1:7306/ingest/eb1acc85-4c80-497a-8b5a-2ee385c90427',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7dc04c'},body:JSON.stringify({sessionId:'7dc04c',runId:'pre-fix',hypothesisId:'B,C,E',location:'useCreateShipmentOrders.ts:getProductOptionsForOrder',message:'product options computed',data:{orderId:order.id,orderReference:order.orderReference,hasRemaining:order.hasRemaining,linesCount:order.lines.length,optionsCount:optionsOut.length,optionValues:optionsOut.map((o)=>o.value),skipReasons,includeZero:[...includeZero]},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 
   return optionsOut;
 }
