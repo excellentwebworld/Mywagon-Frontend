@@ -168,7 +168,7 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
       : cleanDate;
 
   return {
-    id: stop.id || index + 1,
+    id: Number(stop.id) || index + 1,
     type: stop.type === 'pickup' ? 'pickup' : 'delivery',
     location: stop.location || stop.city || '—',
     address: stop.address || stop.city || '',

@@ -91,10 +91,14 @@ describe('computeStopsDiff', () => {
     const diff = computeStopsDiff(updatedStops, oldStops);
 
     expect(diff[0]?.schedule).toBe(true);
+    expect(diff[0]?.date).toBe(true);
+    expect(diff[0]?.time).toBe(true);
     expect(diff[0]?.location).toBe(false);
     expect(diff[0]?.address).toBe(false);
 
     expect(diff[1]?.schedule).toBe(true);
+    expect(diff[1]?.date).toBe(true);
+    expect(diff[1]?.time).toBe(true);
     expect(diff[1]?.location).toBe(false);
     expect(diff[1]?.address).toBe(false);
   });
@@ -173,7 +177,7 @@ describe('computeStopsDiff', () => {
     expect(order0Hl?.products?.[0]?.weight).toBe(false);
   });
 
-  it('marks entirely new stops as new with all fields highlighted', () => {
+  it('marks entirely new stops with NEW only (no red field highlights, matching Step2)', () => {
     const oldStops = [
       createMockPhysicalStop({ id: 1, type: 'pickup' }),
     ];
@@ -185,8 +189,66 @@ describe('computeStopsDiff', () => {
     const diff = computeStopsDiff(updatedStops, oldStops);
     expect(diff[0]).toBeUndefined(); // First stop is identical
     expect(diff[1]?.isNew).toBe(true);
-    expect(diff[1]?.schedule).toBe(true);
-    expect(diff[1]?.location).toBe(true);
-    expect(diff[1]?.address).toBe(true);
+    expect(diff[1]?.schedule).toBeUndefined();
+    expect(diff[1]?.date).toBeUndefined();
+    expect(diff[1]?.location).toBeUndefined();
+    expect(diff[1]?.address).toBeUndefined();
+  });
+
+  it('matches updated stops to old stops when ids are strings vs numbers', () => {
+    const oldStops = [
+      createMockPhysicalStop({
+        id: '1' as unknown as number,
+        type: 'pickup',
+        location: 'Kalivia location',
+        date: '2026-09-22',
+        timeStart: '10:00',
+        timeEnd: '',
+        locationIds: ['1' as unknown as number],
+      }),
+    ];
+    const updatedStops = [
+      createMockPhysicalStop({
+        id: 101,
+        type: 'pickup',
+        location: 'Kalivia location',
+        date: '2026-09-23',
+        timeStart: '21:30',
+        timeEnd: '',
+        rawStop: { id: 101, locationReferenceId: 1 } as any,
+      }),
+    ];
+
+    const diff = computeStopsDiff(updatedStops, oldStops);
+    expect(diff[0]?.isNew).toBeUndefined();
+    expect(diff[0]?.schedule).toBe(true);
+    expect(diff[0]?.date).toBe(true);
+    expect(diff[0]?.time).toBe(true);
+    expect(diff[0]?.location).toBe(false);
+  });
+
+  it('highlights only time when date is unchanged', () => {
+    const oldStops = [
+      createMockPhysicalStop({
+        id: 1,
+        date: '2026-09-23',
+        timeStart: '10:00',
+        timeEnd: '',
+      }),
+    ];
+    const updatedStops = [
+      createMockPhysicalStop({
+        id: 101,
+        date: '2026-09-23',
+        timeStart: '21:30',
+        timeEnd: '',
+        rawStop: { id: 101, locationReferenceId: 1 } as any,
+      }),
+    ];
+
+    const diff = computeStopsDiff(updatedStops, oldStops);
+    expect(diff[0]?.date).toBe(false);
+    expect(diff[0]?.time).toBe(true);
+    expect(diff[0]?.schedule).toBe(true);
   });
 });

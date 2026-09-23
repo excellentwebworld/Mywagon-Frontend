@@ -44,10 +44,44 @@ export interface OrderDiffHighlight {
 
 export interface StopDiffHighlight {
   isNew?: boolean;
+  /** True when any schedule part changed (compat / whole-blob fallback). */
   schedule?: boolean;
+  date?: boolean;
+  time?: boolean;
+  timeEnd?: boolean;
   location?: boolean;
   address?: boolean;
   orders: Record<number, OrderDiffHighlight>;
+}
+
+/** Same red as edit-shipment Step2 Updated Load highlights. */
+export const DIFF_RED = '#DC2626';
+
+function normalizeDiffDate(value?: string | null): string {
+  const raw = (value ?? '').trim();
+  if (!raw) return '';
+  const iso = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (iso) return iso[1];
+  const dmy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (dmy) {
+    return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+  }
+  return raw.toLowerCase();
+}
+
+function normalizeDiffTime(value?: string | null): string {
+  const raw = (value ?? '').trim();
+  return raw ? raw.slice(0, 5) : '';
+}
+
+function toStopId(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function oldStopMatchesRef(oldStop: PhysicalStop, refId: number): boolean {
+  if (toStopId(oldStop.id) === refId) return true;
+  return (oldStop.locationIds || []).some((id) => toStopId(id) === refId);
 }
 
 export function computeStopsDiff(
@@ -67,16 +101,11 @@ export function computeStopsDiff(
   };
 
   updatedPhysicalStops.forEach((upStop, upIdx) => {
-    // 1. Match by locationReferenceId in rawStop or locationIds
-    let matchedOldStop: PhysicalStop | undefined = oldPhysicalStops.find((oldStop) => {
-      if (upStop.rawStop?.locationReferenceId != null) {
-        return (
-          oldStop.id === upStop.rawStop.locationReferenceId ||
-          oldStop.locationIds.includes(upStop.rawStop.locationReferenceId)
-        );
-      }
-      return false;
-    });
+    const refId = toStopId(upStop.rawStop?.locationReferenceId);
+
+    // 1. Match by locationReferenceId (coerce string/number ids — API often mixes both)
+    let matchedOldStop: PhysicalStop | undefined =
+      refId != null ? oldPhysicalStops.find((oldStop) => oldStopMatchesRef(oldStop, refId)) : undefined;
 
     // 2. Match by direct array index if stop types match
     if (!matchedOldStop && upIdx < oldPhysicalStops.length && oldPhysicalStops[upIdx].type === upStop.type) {
@@ -95,31 +124,29 @@ export function computeStopsDiff(
     }
 
     if (!matchedOldStop) {
+      // Brand-new stop: NEW badge only — same as edit Step2 (no red field paints).
       const orderHighlights: Record<number, OrderDiffHighlight> = {};
       upStop.orders.forEach((ord, oIdx) => {
         const prodHighlights: Record<number, ProductDiffHighlight> = {};
         ord.products.forEach((_, pIdx) => {
-          prodHighlights[pIdx] = { isNew: true, name: true, qty: true, weight: true };
+          prodHighlights[pIdx] = { isNew: true };
         });
-        orderHighlights[oIdx] = { isNew: true, orderId: true, customerName: true, products: prodHighlights };
+        orderHighlights[oIdx] = { isNew: true, products: prodHighlights };
       });
       highlights[upIdx] = {
         isNew: true,
-        schedule: true,
-        location: true,
-        address: true,
         orders: orderHighlights,
       };
       return;
     }
 
-    const oldSchedule = formatStopSchedule(matchedOldStop.date, matchedOldStop.timeStart, matchedOldStop.timeEnd);
-    const newSchedule = formatStopSchedule(upStop.date, upStop.timeStart, upStop.timeEnd);
-    const scheduleChanged =
-      oldSchedule !== newSchedule ||
-      norm(matchedOldStop.date) !== norm(upStop.date) ||
-      norm(matchedOldStop.timeStart) !== norm(upStop.timeStart) ||
-      norm(matchedOldStop.timeEnd) !== norm(upStop.timeEnd);
+    const dateChanged =
+      normalizeDiffDate(matchedOldStop.date) !== normalizeDiffDate(upStop.date);
+    const timeChanged =
+      normalizeDiffTime(matchedOldStop.timeStart) !== normalizeDiffTime(upStop.timeStart);
+    const timeEndChanged =
+      normalizeDiffTime(matchedOldStop.timeEnd) !== normalizeDiffTime(upStop.timeEnd);
+    const scheduleChanged = dateChanged || timeChanged || timeEndChanged;
 
     const locationChanged = norm(matchedOldStop.location) !== norm(upStop.location);
     const addressChanged = norm(matchedOldStop.address) !== norm(upStop.address);
@@ -136,11 +163,12 @@ export function computeStopsDiff(
       }
 
       if (!matchedOldOrd) {
+        // New order line on an existing stop: NEW badge only (matches Step2).
         const prodHighlights: Record<number, ProductDiffHighlight> = {};
         upOrd.products.forEach((_, pIdx) => {
-          prodHighlights[pIdx] = { isNew: true, name: true, qty: true, weight: true };
+          prodHighlights[pIdx] = { isNew: true };
         });
-        orderHighlights[oIdx] = { isNew: true, orderId: true, customerName: true, products: prodHighlights };
+        orderHighlights[oIdx] = { isNew: true, products: prodHighlights };
         return;
       }
 
@@ -155,7 +183,7 @@ export function computeStopsDiff(
         }
 
         if (!matchedOldProd) {
-          prodHighlights[pIdx] = { isNew: true, name: true, qty: true, weight: true };
+          prodHighlights[pIdx] = { isNew: true };
           return;
         }
 
@@ -193,6 +221,9 @@ export function computeStopsDiff(
     ) {
       highlights[upIdx] = {
         schedule: scheduleChanged,
+        date: dateChanged,
+        time: timeChanged,
+        timeEnd: timeEndChanged,
         location: locationChanged,
         address: addressChanged,
         orders: orderHighlights,
@@ -300,7 +331,7 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
     const normTimeStart = (stop.timeStart || '').trim().toLowerCase();
     const groupKey = `${normType}|${normLocation}|${normAddress}|${normDate}|${normTimeStart}`;
 
-    const stopLocationId = stop.id || idx + 1;
+    const stopLocationId = toStopId(stop.id) ?? idx + 1;
     let physical = map.get(groupKey);
     if (!physical) {
       physical = {
@@ -593,6 +624,27 @@ export const StopsCard: React.FC<StopsCardProps> = ({
             : undefined;
 
           const stopHl = isUpdatedView ? diffHighlights[idx] : undefined;
+          // Match edit Step2: paint changed fields with DIFF_RED (#DC2626).
+          const diffColor = (changed?: boolean) => (changed ? DIFF_RED : undefined);
+          const dateLabel = formatDisplayDate(stop.date) || stop.date || '';
+          const timeStartLabel =
+            formatDisplayTime((stop.timeStart || '').trim()) || (stop.timeStart || '').trim();
+          const timeEndLabel =
+            formatDisplayTime((stop.timeEnd || '').trim()) || (stop.timeEnd || '').trim();
+          const hasSchedule = Boolean(dateLabel || timeStartLabel || timeEndLabel);
+          // Prefer granular flags (same as edit Step2). Fall back to whole-schedule only when
+          // older highlights lack date/time split.
+          const hasGranularSchedule =
+            stopHl?.date != null || stopHl?.time != null || stopHl?.timeEnd != null;
+          const scheduleDateChanged = hasGranularSchedule
+            ? Boolean(stopHl?.date)
+            : Boolean(stopHl?.schedule);
+          const scheduleTimeChanged = hasGranularSchedule
+            ? Boolean(stopHl?.time)
+            : Boolean(stopHl?.schedule);
+          const scheduleTimeEndChanged = hasGranularSchedule
+            ? Boolean(stopHl?.timeEnd || stopHl?.time)
+            : Boolean(stopHl?.schedule);
 
           return (
             <div
@@ -616,11 +668,8 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                   {/* Header: Location name in bold at the top */}
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div
-                      className={`text-[14px] font-bold leading-tight transition-colors ${
-                        stopHl?.location
-                          ? 'text-red-600 dark:text-red-400'
-                          : 'text-slate-900 dark:text-white'
-                      }`}
+                      className="text-[14px] font-bold leading-tight transition-colors text-slate-900 dark:text-white"
+                      style={{ color: diffColor(stopHl?.location) }}
                     >
                       {stop.location}
                     </div>
@@ -656,15 +705,52 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                         </span>
                       )}
 
-                      {formatStopSchedule(stop.date, stop.timeStart, stop.timeEnd) && (
-                        <span
-                          className={`text-[11px] font-semibold transition-colors ${
-                            stopHl?.schedule
-                              ? 'text-red-600 dark:text-red-400 font-bold'
-                              : 'text-slate-600 dark:text-slate-300'
-                          }`}
-                        >
-                          {formatStopSchedule(stop.date, stop.timeStart, stop.timeEnd)}
+                      {hasSchedule && (
+                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                          {dateLabel ? (
+                            <span
+                              style={{
+                                color: diffColor(scheduleDateChanged),
+                                fontWeight: scheduleDateChanged ? 700 : undefined,
+                              }}
+                            >
+                              {dateLabel}
+                            </span>
+                          ) : null}
+                          {dateLabel && (timeStartLabel || timeEndLabel) ? (
+                            <span> · </span>
+                          ) : null}
+                          {timeStartLabel && timeEndLabel && timeStartLabel !== timeEndLabel ? (
+                            <>
+                              <span
+                                style={{
+                                  color: diffColor(scheduleTimeChanged),
+                                  fontWeight: scheduleTimeChanged ? 700 : undefined,
+                                }}
+                              >
+                                {timeStartLabel}
+                              </span>
+                              <span> – </span>
+                              <span
+                                style={{
+                                  color: diffColor(scheduleTimeEndChanged),
+                                  fontWeight: scheduleTimeEndChanged ? 700 : undefined,
+                                }}
+                              >
+                                {timeEndLabel}
+                              </span>
+                            </>
+                          ) : timeStartLabel || timeEndLabel ? (
+                            <span
+                              style={{
+                                color: diffColor(scheduleTimeChanged || scheduleTimeEndChanged),
+                                fontWeight:
+                                  scheduleTimeChanged || scheduleTimeEndChanged ? 700 : undefined,
+                              }}
+                            >
+                              {timeStartLabel || timeEndLabel}
+                            </span>
+                          ) : null}
                         </span>
                       )}
                     </div>
@@ -673,11 +759,11 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                   {/* Address below */}
                   {stop.address && (
                     <div
-                      className={`text-[12px] mt-0.5 transition-colors ${
-                        stopHl?.address
-                          ? 'text-red-600 dark:text-red-400 font-semibold'
-                          : 'text-slate-500 dark:text-slate-400'
-                      }`}
+                      className="text-[12px] mt-0.5 transition-colors text-slate-500 dark:text-slate-400"
+                      style={{
+                        color: diffColor(stopHl?.address),
+                        fontWeight: stopHl?.address ? 600 : undefined,
+                      }}
                     >
                       {stop.address}
                     </div>
@@ -747,11 +833,8 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                               {/* Order level header with optional NEW tag */}
                               <div className="flex items-center gap-2 flex-wrap text-[11px]">
                                 <span
-                                  className={`font-semibold font-mono transition-colors ${
-                                    ordHl?.orderId
-                                      ? 'text-red-600 dark:text-red-400'
-                                      : 'text-[var(--text-primary)]'
-                                  }`}
+                                  className="font-semibold font-mono transition-colors text-[var(--text-primary)]"
+                                  style={{ color: diffColor(ordHl?.orderId) }}
                                 >
                                   Order: {order.orderId}
                                 </span>
@@ -772,11 +855,11 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                   >
                                     {prod.name && prod.name !== '—' && (
                                       <span
-                                        className={`font-medium transition-colors ${
-                                          prodHl?.name
-                                            ? 'text-red-600 dark:text-red-400 font-semibold'
-                                            : 'text-[var(--text-primary)]'
-                                        }`}
+                                        className="font-medium transition-colors text-[var(--text-primary)]"
+                                        style={{
+                                          color: diffColor(prodHl?.name),
+                                          fontWeight: prodHl?.name ? 600 : undefined,
+                                        }}
                                       >
                                         {prod.name}
                                       </span>
@@ -789,11 +872,10 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                         <span className="text-[var(--text-secondary)]">
                                           {prod.qty ? (
                                             <span
-                                              className={
-                                                prodHl?.qty
-                                                  ? 'text-red-600 dark:text-red-400 font-semibold'
-                                                  : ''
-                                              }
+                                              style={{
+                                                color: diffColor(prodHl?.qty),
+                                                fontWeight: prodHl?.qty ? 600 : undefined,
+                                              }}
                                             >
                                               {`${prod.qty} ${prod.qtyUnit || 'EUR Pallets'}`}
                                             </span>
@@ -801,11 +883,10 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                           {prod.qty && prod.weight ? ' · ' : ''}
                                           {prod.weight ? (
                                             <span
-                                              className={
-                                                prodHl?.weight
-                                                  ? 'text-red-600 dark:text-red-400 font-semibold'
-                                                  : ''
-                                              }
+                                              style={{
+                                                color: diffColor(prodHl?.weight),
+                                                fontWeight: prodHl?.weight ? 600 : undefined,
+                                              }}
                                             >
                                               {`${prod.weight} ${prod.weightUnit || 'Tonnes'}`}
                                             </span>
@@ -831,11 +912,8 @@ export const StopsCard: React.FC<StopsCardProps> = ({
 
                           {order.customerName && (
                             <div
-                              className={`mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px] font-semibold flex items-center gap-1.5 ${
-                                ordHl?.customerName || ordHl?.isNew
-                                  ? 'text-red-600 dark:text-red-400'
-                                  : 'text-emerald-600 dark:text-emerald-400'
-                              }`}
+                              className="mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px] font-semibold flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400"
+                              style={{ color: diffColor(ordHl?.customerName) }}
                             >
                               <span>🏪</span>
                               <span>{order.customerName}</span>
