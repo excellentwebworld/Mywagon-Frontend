@@ -1289,7 +1289,17 @@ export const PublicTrackingPage: React.FC = () => {
     (data.header.transporter_name && data.header.transporter_name.trim() !== '' && data.header.transporter_name !== '—') ||
     (data.transporter?.name && data.transporter.name.trim() !== '' && data.transporter.name !== '—')
   );
-  const canShowRating = hasTransporter && (data.rating.can_rate || data.rating.already_rated || rateDone);
+  const isFulfilledForRating = [
+    'fullfilled',
+    'fulfilled',
+    'partially_fullfilled',
+    'partially_fulfilled',
+  ].includes(shipmentStatus);
+  // Rate transporter only after load is fulfilled — extension on the transporter card.
+  const canShowRating =
+    hasTransporter &&
+    isFulfilledForRating &&
+    (data.rating.can_rate || data.rating.already_rated || rateDone);
   const transporterName = hasTransporter
     ? (data.header.transporter_name || data.transporter?.name)
     : t(lang, 'notAssigned');
