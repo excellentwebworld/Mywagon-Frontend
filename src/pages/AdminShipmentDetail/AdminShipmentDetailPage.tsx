@@ -4,6 +4,7 @@ import { ShipmentDetail } from '../ShipmentDetail/ShipmentDetail';
 import { adminShipmentDetailService } from '../../api/services/adminShipmentDetailService';
 import type { Shipment } from '../../context/AppContext';
 import { ShipmentDetailSkeleton } from '../../components/skeletons/ShipmentDetailSkeleton';
+import { useTranslation } from '../../hooks/useTranslation';
 import fullLogo from '../../assets/logo/fullLogo.svg';
 
 /**
@@ -12,6 +13,7 @@ import fullLogo from '../../assets/logo/fullLogo.svg';
  */
 export const AdminShipmentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { t } = useTranslation();
   const shipmentId = (id || '').trim();
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(Boolean(shipmentId));
@@ -62,7 +64,7 @@ export const AdminShipmentDetailPage: React.FC = () => {
 
       {loading ? (
         <div className="max-w-[1280px] mx-auto px-5 lg:px-7 py-5">
-          <ShipmentDetailSkeleton />
+          <ShipmentDetailSkeleton t={t} />
         </div>
       ) : (
         <ShipmentDetail readOnly shipmentOverride={shipment} overrideError={error} />
