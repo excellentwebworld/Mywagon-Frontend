@@ -4,18 +4,19 @@ import { needsInfoFormHardGate } from './useInfoFormGate';
 import {
   isSocialShipper,
   needsSignupComplete,
-  socialProfileNextPath,
 } from './useSignupCompleteGate';
 
 /**
  * Post-login destination.
  *
- * Social incomplete: settings/personal → organization → (signup_complete) → KYC.
+ * Social incomplete: dashboard (browse) — features soft-gated with modal → settings.
+ * Social after company details: KYC first.
  * Normal email signup (unchanged): Info Form → KYC → company info → dashboard / tour
  */
 export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'): string {
+  // Incomplete social prospects land on dashboard; profile soft-gated on feature use.
   if (needsSignupComplete(user)) {
-    return socialProfileNextPath(user);
+    return '/dashboard';
   }
 
   // Social after company details: KYC first

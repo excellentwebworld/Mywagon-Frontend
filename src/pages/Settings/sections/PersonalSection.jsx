@@ -15,11 +15,9 @@ import { useTheme } from '../../../hooks/useTheme';
 import { useAuth } from '../../../hooks/useAuth';
 import { useAuth as useShipperAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../hooks/useToast';
-import { useSearchParams } from 'react-router-dom';
 import { personalSettingsService } from '../../../api/services/personalSettingsService';
 import { signupService } from '../../../api/auth';
 import { CountryCodeSelect } from '../../Register/components/CountryCodeSelect';
-import { SignupIncompleteAccessModal } from '../../../components/auth/SignupIncompleteAccessModal';
 import {
   needsSocialPhone,
   needsSignupComplete,
@@ -38,7 +36,6 @@ const ACTIVITY_PREVIEW_LIMIT = 10;
 export default function PersonalSection() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { T } = useTheme();
   const { refreshUser } = useAuth();
   const { refreshUser: refreshShipperUser, user } = useShipperAuth();
@@ -46,9 +43,6 @@ export default function PersonalSection() {
   const fileRef = useRef(null);
   const [replayingTour, setReplayingTour] = useState(false);
   const socialPhoneStep = needsSocialPhone(user) || needsSignupComplete(user);
-  const [blockedModalOpen, setBlockedModalOpen] = useState(
-    () => searchParams.get('blocked') === '1',
-  );
   const [countryCodes, setCountryCodes] = useState([]);
 
   const [loading, setLoading] = useState(true);
@@ -58,10 +52,6 @@ export default function PersonalSection() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [draft, setDraft] = useState({});
   const [avatarPreview, setAvatarPreview] = useState(null);
-
-  useEffect(() => {
-    if (searchParams.get('blocked') === '1') setBlockedModalOpen(true);
-  }, [searchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,14 +112,6 @@ export default function PersonalSection() {
   };
 
   const setField = (k, v) => setDraft((prev) => ({ ...prev, [k]: v }));
-
-  const dismissBlockedModal = () => {
-    setBlockedModalOpen(false);
-    if (searchParams.get('blocked') !== '1') return;
-    const next = new URLSearchParams(searchParams);
-    next.delete('blocked');
-    setSearchParams(next, { replace: true });
-  };
 
   const saveEdit = async () => {
     if (!draft.first_name?.trim()) {
@@ -247,11 +229,6 @@ export default function PersonalSection() {
 
   return (
     <div className="space-y-4">
-      <SignupIncompleteAccessModal
-        open={blockedModalOpen}
-        step="phone"
-        onOk={dismissBlockedModal}
-      />
       <div className="tut-title-with-trigger" style={{ marginBottom: 4 }}>
         <h2 className="font-bold" style={{ fontSize: 18, color: T.t1, margin: 0 }}>
           {t('settings.personal')}
@@ -264,7 +241,8 @@ export default function PersonalSection() {
           style={{ background: T.al, border: `1px solid ${T.bd}`, fontSize: 13, color: T.t2 }}
         >
           {t('settings.profileSection.socialPhoneHint', {
-            defaultValue: 'Please add your phone number to continue setting up your account.',
+            defaultValue:
+              'To start using MYVAGON, please add your phone number. This is required to verify your account.',
           })}
         </div>
       )}

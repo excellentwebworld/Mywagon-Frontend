@@ -17,6 +17,7 @@ import { RealtimeNotificationToast, type PushNotificationData } from '../notific
 import { InfoFormReminderModal } from './InfoFormReminderModal';
 import { RouterLocationSync } from './RouterLocationSync';
 import { OnboardingTourHost } from '../../onboarding';
+import { SignupIncompleteGateHost } from '../auth/SignupIncompleteGateHost';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
 
@@ -165,6 +166,7 @@ export const AppLayout: React.FC = () => {
 
       <RouterLocationSync />
       <InfoFormReminderModal />
+      <SignupIncompleteGateHost />
       <OnboardingTourHost expandSidebar={expandSidebar} />
 
       {toast.show && (

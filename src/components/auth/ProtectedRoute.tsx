@@ -15,10 +15,8 @@ import {
   needsInfoFormHardGate,
 } from '../../hooks/useInfoFormGate';
 import {
-  isSignupCompleteAllowedPath,
   isSocialShipper,
   needsSignupComplete,
-  socialProfileNextPath,
 } from '../../hooks/useSignupCompleteGate';
 import { MyVagonBootScreen } from '../ui/MyVagonLoader';
 
@@ -26,16 +24,11 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-function withBlockedFlag(path: string): string {
-  if (path.includes('blocked=1')) return path;
-  return path.includes('?') ? `${path}&blocked=1` : `${path}?blocked=1`;
-}
-
 /**
  * Gate sequence:
  *   past-due →
- *   social incomplete: personal → organization →
- *   social: KYC → Info Form → panel
+ *   social incomplete: browse panel (features soft-gated via modal) →
+ *   social after profile: KYC → Info Form → panel
  *   normal: Info Form → KYC → company info → panel
  */
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
@@ -69,17 +62,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/billing" replace />;
   }
 
-  // Social incomplete: hard-lock to personal / organization until company details done
-  if (needsSignupComplete(user) && !isSignupCompleteAllowedPath(location.pathname, user)) {
-    return <Navigate to={withBlockedFlag(socialProfileNextPath(user))} replace />;
-  }
-
+  // Incomplete social may browse; soft-gate handles feature actions.
+  // Hard gates below only apply after signup_complete.
   const social = isSocialShipper(user);
+  const signupDone = !needsSignupComplete(user);
 
-  // KYC only after social phone + company/address are done (signup_complete).
-  // Running KYC before that ping-pongs personal ↔ compliance and blanks the page.
   if (
-    !needsSignupComplete(user) &&
+    signupDone &&
     social &&
     needsKycGate(user) &&
     !isKycGateAllowedPath(location.pathname, user)
@@ -87,9 +76,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/settings/compliance" replace />;
   }
 
-  // Info form only after social profile steps are done (same blank-page risk).
   if (
-    !needsSignupComplete(user) &&
+    signupDone &&
     needsInfoFormHardGate(user) &&
     !isInfoFormAllowedPath(location.pathname)
   ) {
@@ -101,7 +89,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (
-    !needsSignupComplete(user) &&
+    signupDone &&
     needsCompanyInfoGate(user) &&
     !isCompanyInfoGateAllowedPath(location.pathname)
   ) {

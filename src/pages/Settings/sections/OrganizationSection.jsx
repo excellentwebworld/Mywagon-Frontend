@@ -24,7 +24,6 @@ import { postAuthDestination } from '../../../hooks/postAuthDestination';
 import { organizationSettingsService } from '../../../api/services/organizationSettingsService';
 import { authService, signupService } from '../../../api/auth';
 import { GoogleMapAddressField } from '../../../components/AddressBook/GoogleMapAddressField';
-import { SignupIncompleteAccessModal } from '../../../components/auth/SignupIncompleteAccessModal';
 import { ContextualTutorialTrigger } from '../../../components/Tutorials';
 import { FORCE_TOUR_SESSION_KEY } from '../../../onboarding';
 import { safeSessionSet } from '../../../utils/safeStorage';
@@ -169,7 +168,7 @@ export default function OrganizationSection() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { refreshUser, user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const fromCompanyInfo =
     searchParams.get('from') === 'company_info' ||
     (user?.kyc_status === 'accepted' && user?.company_address_complete === false);
@@ -182,14 +181,7 @@ export default function OrganizationSection() {
     !fromSocialSetup &&
     !needsSignupComplete(user) &&
     (searchParams.get('from') === 'info_form' || needsInfoFormHardGate(user));
-  const [blockedModalOpen, setBlockedModalOpen] = useState(
-    () => searchParams.get('blocked') === '1',
-  );
   const [countriesDomicile, setCountriesDomicile] = useState([]);
-
-  useEffect(() => {
-    if (searchParams.get('blocked') === '1') setBlockedModalOpen(true);
-  }, [searchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -206,10 +198,10 @@ export default function OrganizationSection() {
     };
   }, []);
 
-  // Social: must finish phone first
+  // Social: finish phone before company details
   useEffect(() => {
     if (needsSocialPhone(user)) {
-      navigate('/settings/personal?blocked=1', { replace: true });
+      navigate('/settings/personal', { replace: true });
     }
   }, [user, navigate]);
 
@@ -365,14 +357,6 @@ export default function OrganizationSection() {
     startLegalEdit();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- open once when gate lands
   }, [fromCompanyInfo, fromSocialSetup, data]);
-
-  const dismissBlockedModal = () => {
-    setBlockedModalOpen(false);
-    if (searchParams.get('blocked') !== '1') return;
-    const next = new URLSearchParams(searchParams);
-    next.delete('blocked');
-    setSearchParams(next, { replace: true });
-  };
 
   const startOpsEdit = () => {
     const draft = {};
@@ -588,11 +572,6 @@ export default function OrganizationSection() {
 
   return (
     <div className="space-y-4">
-      <SignupIncompleteAccessModal
-        open={blockedModalOpen}
-        step="company"
-        onOk={dismissBlockedModal}
-      />
       <div className="tut-title-with-trigger" style={{ marginBottom: 4 }}>
         <h2 className="font-bold" style={{ fontSize: 18, color: T.t1, margin: 0 }}>
           {t('settings.organization')}
@@ -606,7 +585,7 @@ export default function OrganizationSection() {
         >
           {t('settings.orgSection.socialCompanyHint', {
             defaultValue:
-              'Please add your company name and address to continue. Next you will upload KYC documents.',
+              'To start using MYVAGON, please add your company name and business address. Next you will upload KYC documents.',
           })}
         </div>
       )}

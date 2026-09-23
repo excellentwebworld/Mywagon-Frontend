@@ -83,17 +83,7 @@ axiosInstance.interceptors.response.use(
     }
     if (error.response?.status === 403 && error.response?.data?.code === 'signup_incomplete') {
       window.dispatchEvent(new CustomEvent('shipper:signup-incomplete'));
-      const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
-      const redirect =
-        typeof error.response?.data?.data?.redirect === 'string'
-          ? error.response.data.data.redirect
-          : '/settings/personal';
-      const path = window.location.pathname.replace(/\/$/, '');
-      const dest = redirect.startsWith('/') ? redirect : `/${redirect}`;
-      const destPath = dest.split('?')[0].replace(/\/$/, '');
-      if (!path.endsWith(destPath) && !path.endsWith('/settings/personal') && !path.endsWith('/settings/organization')) {
-        window.location.assign(`${base}${dest}${dest.includes('?') ? '&' : '?'}blocked=1`);
-      }
+      window.dispatchEvent(new CustomEvent('shipper:signup-incomplete-modal'));
     }
     return Promise.reject(error);
   }

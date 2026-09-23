@@ -23,37 +23,42 @@ export function needsSocialCompany(user: ShipperUser | null | undefined): boolea
   return !name || user?.company_address_complete === false || !country;
 }
 
+export type SocialProfileStep = 'phone' | 'company' | 'kyc' | 'generic';
+
+/** Which required profile step is next (for modal copy + redirect). */
+export function socialProfileStep(user: ShipperUser | null | undefined): SocialProfileStep {
+  if (!needsSignupComplete(user)) return 'generic';
+  if (needsSocialPhone(user)) return 'phone';
+  if (needsSocialCompany(user)) return 'company';
+  return 'kyc';
+}
+
 /**
  * Next settings page for an incomplete social prospect.
  * personal (phone) → organization (company/address) → compliance (KYC after signup_complete).
  */
 export function socialProfileNextPath(user: ShipperUser | null | undefined): string {
-  if (needsSocialPhone(user)) return '/settings/personal';
-  if (needsSocialCompany(user) || needsSignupComplete(user)) return '/settings/organization';
-  return '/settings/compliance';
+  switch (socialProfileStep(user)) {
+    case 'phone':
+      return '/settings/personal';
+    case 'company':
+      return '/settings/organization?from=social_setup';
+    case 'kyc':
+      return '/settings/compliance';
+    default:
+      return '/settings/personal';
+  }
 }
 
-/** Paths allowed while social required details are incomplete. */
+/**
+ * Soft browse: incomplete social users may open the panel.
+ * Operational actions use useRequireSignupComplete (modal → settings).
+ * Kept for any remaining hard-path callers; returns true for all paths now.
+ */
 export function isSignupCompleteAllowedPath(
-  pathname: string,
-  user?: ShipperUser | null,
+  _pathname: string,
+  _user?: ShipperUser | null,
 ): boolean {
-  const path = pathname.replace(/\/$/, '') || '/';
-  if (path === '/billing' || path.startsWith('/billing/')) return true;
-
-  if (needsSocialPhone(user)) {
-    return path === '/settings/personal' || path.startsWith('/settings/personal/');
-  }
-
-  if (needsSocialCompany(user) || needsSignupComplete(user)) {
-    return (
-      path === '/settings/organization' ||
-      path.startsWith('/settings/organization/') ||
-      path === '/settings/personal' ||
-      path.startsWith('/settings/personal/')
-    );
-  }
-
   return true;
 }
 
@@ -61,4 +66,11 @@ export function isSignupCompleteAllowedPath(
 export function completeSignupPath(_from?: string, opts?: { blocked?: boolean }): string {
   const base = '/settings/personal';
   return opts?.blocked ? `${base}?blocked=1` : base;
+}
+
+/** Custom event: open incomplete-profile modal from soft gates / API 403. */
+export const SIGNUP_INCOMPLETE_MODAL_EVENT = 'shipper:signup-incomplete-modal';
+
+export function openSignupIncompleteModal(): void {
+  window.dispatchEvent(new CustomEvent(SIGNUP_INCOMPLETE_MODAL_EVENT));
 }

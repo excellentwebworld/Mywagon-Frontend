@@ -2,17 +2,18 @@ import React from 'react';
 import Modal from '../ui/Modal';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { SocialProfileStep } from '../../hooks/useSignupCompleteGate';
 
 type Props = {
   open: boolean;
   onOk: () => void;
   /** Which step they must complete next */
-  step?: 'phone' | 'company' | 'kyc' | 'generic';
+  step?: SocialProfileStep;
 };
 
 /**
- * Shown when a social prospect opens a page before finishing required profile steps.
- * OK sends them to the related settings page.
+ * Soft-gate modal when a social prospect uses a feature before finishing
+ * required profile steps. OK sends them to the related settings page.
  */
 export const SignupIncompleteAccessModal: React.FC<Props> = ({
   open,
@@ -22,22 +23,22 @@ export const SignupIncompleteAccessModal: React.FC<Props> = ({
   const { t } = useTranslation();
   const { T } = useTheme();
 
-  const bodyByStep: Record<string, string> = {
+  const bodyByStep: Record<SocialProfileStep, string> = {
     phone: t('signupComplete.accessDeniedBodyPhone', {
       defaultValue:
-        'Your profile is incomplete. Please add your phone number to continue.',
+        'To start using MYVAGON, please add your phone number. We need it to verify your account and contact you about your shipments.',
     }),
     company: t('signupComplete.accessDeniedBodyCompany', {
       defaultValue:
-        'Your profile is incomplete. Please add your company name and address to continue.',
+        'To start using MYVAGON, please add your company name and business address. This information is required for shipping and invoicing.',
     }),
     kyc: t('signupComplete.accessDeniedBodyKyc', {
       defaultValue:
-        'Your profile is incomplete. Please upload your KYC documents to continue.',
+        'To start using MYVAGON, please submit your VAT number and government certificate so we can verify your business.',
     }),
     generic: t('signupComplete.accessDeniedBody', {
       defaultValue:
-        'Your profile is incomplete. Please complete the required details to continue.',
+        'To start using MYVAGON, please complete the required profile information for your account.',
     }),
   };
 
@@ -46,7 +47,7 @@ export const SignupIncompleteAccessModal: React.FC<Props> = ({
       open={open}
       onClose={onOk}
       title={t('signupComplete.accessDeniedTitle', {
-        defaultValue: 'Your profile is incomplete',
+        defaultValue: 'Complete your profile to continue',
       })}
       size="sm"
     >
@@ -66,7 +67,7 @@ export const SignupIncompleteAccessModal: React.FC<Props> = ({
           }}
         >
           {t('signupComplete.accessDeniedCta', {
-            defaultValue: 'OK',
+            defaultValue: 'Continue',
           })}
         </button>
       </div>
