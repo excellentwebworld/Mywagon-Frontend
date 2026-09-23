@@ -3,10 +3,12 @@ import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { io, type Socket } from 'socket.io-client';
 import {
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   ClipboardCheck,
   Copy,
   Mail,
-  Map,
+  Map as MapIcon,
   MapPin,
   Package,
   Phone,
@@ -92,6 +94,10 @@ const I18N: Record<string, { en: string; el: string }> = {
   routeMap: { en: 'Route map', el: 'Χάρτης διαδρομής' },
   showLess: { en: 'Show less', el: 'Λιγότερα' },
   showMore: { en: 'Show more', el: 'Περισσότερα' },
+  showMoreOrders: {
+    en: '+ Show {n} more order(s)/product(s)',
+    el: '+ Εμφάνιση ακόμη {n} παραγγελία(ες)/προϊόν(τα)',
+  },
   manualTitle: { en: 'Manually Executed Trip', el: 'Χειροκίνητο ταξίδι' },
   manualBody: {
     en: 'Live GPS tracking and actual route data are not available.',
@@ -549,6 +555,7 @@ const ItineraryStop: React.FC<{
   onCopy: (value?: string | null, toastMsg?: string) => void;
 }> = ({ stop, index, lang, onCopy }) => {
   const [copied, setCopied] = useState(false);
+  const [ordersExpanded, setOrdersExpanded] = useState(false);
   const isPickup = stop.type === 'pickup';
   const schedule =
     formatStopSchedule(stop.from_date, stop.to_date) ||
@@ -561,6 +568,26 @@ const ItineraryStop: React.FC<{
   const supplierLabel = stop.supplier_name || '';
   const pickupPhone = isPickup ? (stop.phone || '').trim() : '';
   const pickupEmail = isPickup ? (stop.email || '').trim() : '';
+
+  // Same as shipment detail StopsCard: one card per order_id, products listed inside.
+  const orderGroups = useMemo(() => {
+    const groups: { orderId: string; products: TrackingProductLine[] }[] = [];
+    const indexByOrder = new Map<string, number>();
+    for (const line of lines) {
+      const orderId = (line.order_id || '').trim() || '—';
+      const existing = indexByOrder.get(orderId);
+      if (existing === undefined) {
+        indexByOrder.set(orderId, groups.length);
+        groups.push({ orderId, products: [line] });
+        continue;
+      }
+      groups[existing].products.push(line);
+    }
+    return groups;
+  }, [lines]);
+
+  const totalProductCount = orderGroups.reduce((sum, g) => sum + g.products.length, 0);
+  const hasMultipleItems = totalProductCount > 1 || orderGroups.length > 1;
 
   const handleCopy = async () => {
     await onCopy(copyValue || addressLine);
@@ -613,42 +640,74 @@ const ItineraryStop: React.FC<{
             </div>
           ) : null}
 
-          {/* Always show every product line — same as shipment detail StopsCard cards */}
           <div className="pt-stop-orders">
-            {lines.map((line, i) => (
-              <div className="pt-order-row" key={`${line.location_id}-${i}`}>
-                <div className="pt-order-row-main">
-                  <div className="pt-order-row-line">
-                    {line.order_id ? <span className="oid">{t(lang, 'orderLabel')}: {line.order_id}</span> : null}
-                    {line.product_name ? (
-                      <>
-                        <span className="sep">·</span>
-                        <span className="prod">{line.product_name}</span>
-                      </>
-                    ) : null}
-                    {line.qty != null || line.weight != null ? (
-                      <>
-                        <span className="sep">·</span>
-                        <span className="qty">
-                          {line.qty != null ? `${line.qty} ${line.qty_unit || ''}`.trim() : ''}
-                          {line.qty != null && line.weight != null ? ' · ' : ''}
-                          {line.weight != null ? `${line.weight} ${line.weight_unit || ''}`.trim() : ''}
-                        </span>
-                      </>
+            {orderGroups.map((group, oIdx) => {
+              if (!ordersExpanded && oIdx > 0) return null;
+
+              const visibleProducts = ordersExpanded
+                ? group.products
+                : oIdx === 0
+                  ? group.products.slice(0, 1)
+                  : [];
+
+              if (visibleProducts.length === 0) return null;
+
+              return (
+                <div className="pt-order-row" key={`${group.orderId}-${oIdx}`}>
+                  <div className="pt-order-row-main">
+                    <div className="pt-order-row-line">
+                      <span className="oid">
+                        {t(lang, 'orderLabel')}: {group.orderId}
+                      </span>
+                    </div>
+                    {visibleProducts.map((line, pIdx) => (
+                      <div className="pt-order-row-line pt-order-product" key={`${line.location_id}-${pIdx}`}>
+                        {line.product_name ? <span className="prod">{line.product_name}</span> : null}
+                        {line.qty != null || line.weight != null ? (
+                          <>
+                            {line.product_name ? <span className="sep">·</span> : null}
+                            <span className="qty">
+                              {line.qty != null ? `${line.qty} ${line.qty_unit || ''}`.trim() : ''}
+                              {line.qty != null && line.weight != null ? ' · ' : ''}
+                              {line.weight != null ? `${line.weight} ${line.weight_unit || ''}`.trim() : ''}
+                            </span>
+                          </>
+                        ) : null}
+                      </div>
+                    ))}
+                    {supplierLabel && oIdx === 0 ? (
+                      <div className="pt-stop-supplier">
+                        <span aria-hidden="true">🏪</span>
+                        <span>{supplierLabel}</span>
+                      </div>
                     ) : null}
                   </div>
-                  {supplierLabel && i === 0 ? (
-                    <div className="pt-stop-supplier">
-                      <span aria-hidden="true">🏪</span>
-                      <span>{supplierLabel}</span>
-                    </div>
-                  ) : null}
+                  {stop.completed ? <StopCompletedIcon /> : null}
                 </div>
-                {stop.completed ? <StopCompletedIcon /> : null}
-              </div>
-            ))}
+              );
+            })}
 
-            {lines.length === 0 && supplierLabel ? (
+            {hasMultipleItems ? (
+              <button
+                type="button"
+                className="pt-more-btn"
+                onClick={() => setOrdersExpanded((v) => !v)}
+              >
+                {ordersExpanded ? (
+                  <>
+                    <ChevronUp size={13} />
+                    {t(lang, 'showLess')}
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={13} />
+                    {t(lang, 'showMoreOrders').replace('{n}', String(Math.max(totalProductCount - 1, 1)))}
+                  </>
+                )}
+              </button>
+            ) : null}
+
+            {orderGroups.length === 0 && supplierLabel ? (
               <div className="pt-order-row">
                 <div className="pt-order-row-main">
                   <div className="pt-stop-supplier" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
@@ -1420,7 +1479,7 @@ export const PublicTrackingPage: React.FC = () => {
           {(
             [
               ['itinerary', 'itinerary', <MapPin size={13} key="i" />],
-              ['tracking', 'liveTracking', <Map size={13} key="t" />],
+              ['tracking', 'liveTracking', <MapIcon size={13} key="t" />],
               ...(canShowReceipt ? [['receipt', 'confirmReceipt', <ClipboardCheck size={13} key="r" />]] : []),
               ['transporter', 'transporter', <Truck size={13} key="p" />],
               ['order', 'orderDetails', <Package size={13} key="o" />],
@@ -1467,7 +1526,7 @@ export const PublicTrackingPage: React.FC = () => {
             <div className="pt-card" id="tracking">
               <div className="pt-card-h">
                 <h3>
-                  <Map size={15} className="pt-card-icon" />
+                  <MapIcon size={15} className="pt-card-icon" />
                   {trackingTitle}
                 </h3>
               </div>

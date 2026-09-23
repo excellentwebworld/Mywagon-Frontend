@@ -893,6 +893,10 @@
   color: var(--pt-t3);
 }
 
+.pt-order-product {
+  margin-top: 2px;
+}
+
 /* Match StopsCard purple double-tick status icon */
 .pt-order-tick {
   flex-shrink: 0;
