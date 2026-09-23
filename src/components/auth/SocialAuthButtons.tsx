@@ -69,7 +69,7 @@ export const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ disabled, 
     <div className={`social-auth${compact ? ' social-auth--compact' : ''}`}>
       {!compact && (
         <div className="social-auth-divider" role="separator">
-          <span>{t('socialAuth.orContinueWith', { defaultValue: 'Or continue with' })}</span>
+          <span>{t('socialAuth.orContinueWith', { defaultValue: 'Or Signup' })}</span>
         </div>
       )}
       <div className="social-auth-buttons">

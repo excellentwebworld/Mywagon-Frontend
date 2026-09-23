@@ -2473,7 +2473,7 @@
   "loginEmailInvalid": "Παρακαλώ εισάγετε έγκυρη διεύθυνση email.",
   "loginPasswordRequired": "Παρακαλώ εισάγετε κωδικό πρόσβασης",
   "socialAuth": {
-    "orContinueWith": "Ή συνεχίστε με",
+    "orContinueWith": "Ή Εγγραφή",
     "orSignUpWithEmail": "Ή εγγραφείτε με email",
     "google": "Google",
     "microsoft": "Microsoft 365",

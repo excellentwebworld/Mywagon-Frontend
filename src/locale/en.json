@@ -2473,7 +2473,7 @@
   "loginEmailInvalid": "Please enter valid email address.",
   "loginPasswordRequired": "Please enter password",
   "socialAuth": {
-    "orContinueWith": "Or continue with",
+    "orContinueWith": "Or Signup",
     "orSignUpWithEmail": "Or sign up with email",
     "google": "Google",
     "microsoft": "Microsoft 365",
