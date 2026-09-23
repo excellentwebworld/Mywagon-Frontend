@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Sun, Moon, ChevronDown, LogOut, Settings, Users,
+  Sun, Moon, ChevronDown, LogOut, Settings, Users, ShieldCheck,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
@@ -100,7 +100,7 @@ export function ProfileDropdown() {
   };
 
   type MenuLink =
-    | { kind: 'route'; label: string; route: string; icon: 'settings' | 'subscription' | 'billing' | 'tutorials' }
+    | { kind: 'route'; label: string; route: string; icon: 'settings' | 'security' | 'subscription' | 'billing' | 'tutorials' }
     | { kind: 'referral'; label: string };
 
   const links: MenuLink[] = [
@@ -109,6 +109,12 @@ export function ProfileDropdown() {
       icon: 'settings',
       label: t('settings.title') || t('settings') || 'Settings',
       route: '/settings',
+    },
+    {
+      kind: 'route',
+      icon: 'security',
+      label: t('settings.securityTrust') || 'Security & Trust',
+      route: '/settings/trustCenter',
     },
     {
       kind: 'route',
@@ -145,6 +151,9 @@ export function ProfileDropdown() {
     }
     if (link.icon === 'settings') {
       return <Settings size={15} style={{ color: T.t2 }} />;
+    }
+    if (link.icon === 'security') {
+      return <ShieldCheck size={15} style={{ color: T.t2 }} />;
     }
     if (link.icon === 'subscription') {
       return <SubscriptionIcon color={T.t2} />;

@@ -1,6 +1,6 @@
 /**
  * Header — matches MV_Web_Panel TopBar layout:
- * [Logo?] Title | Search …… | Vagon AI | Bell | Messages | Profile | CTA | Trust
+ * [Logo?] Title | Search …… | Vagon AI | Bell | Messages | Profile | CTA
  */
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -9,7 +9,6 @@ import {
   Sparkles,
   MessageSquare,
   Plus,
-  ShieldCheck,
   Bell,
   Menu,
   Play,
@@ -729,31 +728,6 @@ export const Header: React.FC<HeaderProps> = ({
           </span>
         </button>
       )}
-
-      {/* Trust shield */}
-      <button
-        type="button"
-        onClick={() => navigate(pastDueLocked ? '/billing' : '/settings/trustCenter')}
-        aria-label={t('settings.securityTrust') || 'Security & Trust'}
-        title={t('settings.securityTrust') || 'Security & Trust'}
-        className="mv-topbar-icon-btn"
-        style={{ color: T.t2, position: 'relative' }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = T.sa;
-          e.currentTarget.style.color = T.t1;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.color = T.t2;
-        }}
-      >
-        <ShieldCheck size={18} />
-        <span
-          className="mv-topbar-dot"
-          style={{ background: '#10B981', boxShadow: '0 0 4px #10B981', top: 6, right: 6 }}
-        />
-      </button>
-
     </header>
 
   );
