@@ -34,6 +34,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
 import { useSubscriptionPermission } from '../../hooks/useSubscriptionPermission';
+import { useShipperPermission } from '../../hooks/useShipperPermission';
+import { ACTION_RBAC } from '../../utils/shipperRbacMap';
 import { useUpgradeGate } from '../../context/UpgradeGateContext';
 import { useShipment } from '../../hooks/useShipments';
 import { ShipmentDetailSkeleton } from '../../components/skeletons/ShipmentDetailSkeleton';
@@ -79,6 +81,7 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
   const { t } = useTranslation();
   const { requireSignupComplete } = useRequireSignupComplete();
   const { can, requirePermission } = useSubscriptionPermission();
+  const { canAction, requirePermission: requireRbac } = useShipperPermission();
   const { openUpgradeGate } = useUpgradeGate();
   const canViewMap = can('view_map');
   const canLiveGps = can('live_gps_shipment_tracking');
@@ -557,6 +560,14 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
 
   const handleAcceptBid = useCallback(async (bid: PartnerBidItem) => {
     if (!id) return;
+    const isInterest = String((bid as { type?: string }).type || '').toLowerCase().includes('interest');
+    if (
+      !requireRbac(
+        isInterest ? ACTION_RBAC.approveRejectInterest : ACTION_RBAC.approveRejectBid,
+      )
+    ) {
+      return;
+    }
     setAcceptingBidId(bid.id);
     try {
       await shipmentsService.acceptOffer(id, bid.id);
@@ -567,10 +578,18 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
     } finally {
       setAcceptingBidId(null);
     }
-  }, [id, refetch, showToast, t]);
+  }, [id, refetch, requireRbac, showToast, t]);
 
   const handleRejectBid = useCallback(async (bid: PartnerBidItem) => {
     if (!id) return;
+    const isInterest = String((bid as { type?: string }).type || '').toLowerCase().includes('interest');
+    if (
+      !requireRbac(
+        isInterest ? ACTION_RBAC.approveRejectInterest : ACTION_RBAC.approveRejectBid,
+      )
+    ) {
+      return;
+    }
     setDecliningBidId(bid.id);
     try {
       await shipmentsService.rejectOffer(id, bid.id);
@@ -581,7 +600,7 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
     } finally {
       setDecliningBidId(null);
     }
-  }, [id, refetch, showToast, t]);
+  }, [id, refetch, requireRbac, showToast, t]);
 
   const handleSendCounterBid = useCallback(
     async (amount: number, notes?: string) => {
@@ -704,7 +723,7 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
           onCopyId={() => handleCopy(vm.displayId)}
           readOnly={readOnly}
           onEdit={
-            readOnly
+            readOnly || !canAction('editShipment')
               ? undefined
               : () => {
                   if (!requireSignupComplete()) return;
@@ -740,7 +759,11 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
                   setIsBidsHistoryOpen(true);
                 }
           }
-          onCancelShipment={readOnly ? undefined : () => setIsCancelOpen(true)}
+          onCancelShipment={
+            readOnly || !canAction('cancelShipment')
+              ? undefined
+              : () => setIsCancelOpen(true)
+          }
           onToast={(msg) => showToast(msg, 'info')}
           t={t}
         />
@@ -880,9 +903,17 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
                 partners={vm.partners}
                 expanded={sections.bids}
                 onToggle={() => toggleSection('bids')}
-                onAcceptBid={readOnly ? undefined : handleAcceptBid}
+                onAcceptBid={
+                  readOnly || !(canAction('approveRejectBid') || canAction('approveRejectInterest'))
+                    ? undefined
+                    : handleAcceptBid
+                }
                 acceptingBidId={acceptingBidId}
-                onRejectBid={readOnly ? undefined : handleRejectBid}
+                onRejectBid={
+                  readOnly || !(canAction('approveRejectBid') || canAction('approveRejectInterest'))
+                    ? undefined
+                    : handleRejectBid
+                }
                 decliningBidId={decliningBidId}
                 onCounterBid={readOnly ? undefined : (bid) => setPendingCounterBid(bid)}
                 onCancelInvite={readOnly ? undefined : handleCancelInvite}

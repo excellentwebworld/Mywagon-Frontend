@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { Send, Check } from 'lucide-react';
 import { useTheme } from '../../../../hooks/useTheme';
 import { useUserMgmt } from '../../../../context/UserMgmtContext';
+import { useAuth } from '../../../../context/AuthContext';
 import { usersSettingsService } from '../../../../api/services/usersSettingsService';
 import { ApiError } from '../../../../api/client';
 import { SHIPPER_ROLES } from '../../../../utils/shipperAccessPresets';
@@ -43,6 +44,7 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
   const { T } = useTheme();
   const navigate = useNavigate();
   const { roles, seats, setSeats } = useUserMgmt();
+  const { user: authUser, refreshUser } = useAuth();
   const isEdit = !!user;
   const atSeatLimit = !isEdit && seats && seats.can_invite === false;
 
@@ -136,6 +138,9 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
         ...(isOwner ? {} : { role: form.role }),
       });
       onSaved?.(updated);
+      if (authUser && Number(authUser.id) === Number(user.id)) {
+        await refreshUser().catch(() => null);
+      }
       setErrors({});
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' });

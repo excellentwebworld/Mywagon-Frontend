@@ -21,8 +21,10 @@ export default function SupportPage() {
     callType,
     setCallType,
     accessLoading,
+    accessAllowed,
     upgradeUrl,
     gateModalOpen,
+    gateDismissed,
     isGated,
     toggleSection,
     scrollToSection,
@@ -40,8 +42,10 @@ export default function SupportPage() {
         callType={callType}
         setCallType={setCallType}
         accessLoading={accessLoading}
+        accessAllowed={accessAllowed}
         upgradeUrl={upgradeUrl}
         gateModalOpen={gateModalOpen}
+        gateDismissed={gateDismissed}
         isGated={isGated}
         toggleSection={toggleSection}
         scrollToSection={scrollToSection}

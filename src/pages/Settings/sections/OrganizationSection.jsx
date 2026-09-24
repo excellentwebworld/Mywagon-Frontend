@@ -14,6 +14,8 @@ import {
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { useAuth } from '../../../context/AuthContext';
+import { useShipperPermission } from '../../../hooks/useShipperPermission';
+import { ACTION_RBAC } from '../../../utils/shipperRbacMap';
 import { needsInfoFormHardGate } from '../../../hooks/useInfoFormGate';
 import {
   needsSignupComplete,
@@ -168,6 +170,8 @@ export default function OrganizationSection() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { refreshUser, user } = useAuth();
+  const { canAction, requirePermission: requireRbac } = useShipperPermission();
+  const canEditCompany = canAction('editCompanyInfo');
   const [searchParams] = useSearchParams();
   const fromCompanyInfo =
     searchParams.get('from') === 'company_info' ||
@@ -348,6 +352,7 @@ export default function OrganizationSection() {
       invoice_emails: [...(data.legal.invoice_emails || [])],
     });
     setEmailInput('');
+    if (!requireRbac(ACTION_RBAC.editCompanyInfo)) return;
     setEditingLegal(true);
   };
 
@@ -427,6 +432,7 @@ export default function OrganizationSection() {
   };
 
   const saveLegal = async () => {
+    if (!requireRbac(ACTION_RBAC.editCompanyInfo)) return;
     if (fromSocialSetup || needsSignupComplete(user)) {
       const required = [
         ['legal_name', t('settings.orgSection.legal.legalName')],
@@ -467,6 +473,7 @@ export default function OrganizationSection() {
   };
 
   const saveOps = async () => {
+    if (!requireRbac(ACTION_RBAC.editCompanyInfo)) return;
     const missingMandatory = opsFields.find(
       (field) => isMandatoryField(field) && !isOpsValueFilled(field, opsDraft[field.key])
     );
@@ -518,6 +525,7 @@ export default function OrganizationSection() {
   };
 
   const saveBrand = async () => {
+    if (!requireRbac(ACTION_RBAC.editCompanyInfo)) return;
     setSavingBrand(true);
     try {
       const payload = await organizationSettingsService.update({ branding: brandDraft });
@@ -676,7 +684,7 @@ export default function OrganizationSection() {
         icon={<Building2 size={16} style={{ color: T.ac }} />}
         editing={editingLegal}
         saving={savingLegal}
-        onEdit={startLegalEdit}
+        onEdit={canEditCompany ? startLegalEdit : undefined}
         onSave={saveLegal}
         onCancel={fromSocialSetup ? undefined : () => setEditingLegal(false)}
         hideCancel={fromSocialSetup || needsSignupComplete(user)}
@@ -902,7 +910,7 @@ export default function OrganizationSection() {
           icon={<Truck size={16} style={{ color: T.ac }} />}
           editing={editingOps}
           saving={savingOps}
-          onEdit={startOpsEdit}
+          onEdit={canEditCompany ? startOpsEdit : undefined}
           onSave={saveOps}
           onCancel={() => setEditingOps(false)}
         >
@@ -1017,7 +1025,7 @@ export default function OrganizationSection() {
         icon={<ImageIcon size={16} style={{ color: T.ac }} />}
         editing={editingBrand}
         saving={savingBrand}
-        onEdit={startBrandEdit}
+        onEdit={canEditCompany ? startBrandEdit : undefined}
         onSave={saveBrand}
         onCancel={() => setEditingBrand(false)}
       >

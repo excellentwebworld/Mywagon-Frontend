@@ -37,6 +37,8 @@ import { useCreateShipmentPartners } from '../../hooks/useCreateShipmentPartners
 import { usePublicLoadQuota } from '../../hooks/usePublicLoadQuota';
 import { usePrivateLoadQuota } from '../../hooks/usePrivateLoadQuota';
 import { useSubscriptionPermission } from '../../hooks/useSubscriptionPermission';
+import { useShipperPermission } from '../../hooks/useShipperPermission';
+import { ACTION_RBAC } from '../../utils/shipperRbacMap';
 import { useUpgradeGate } from '../../context/UpgradeGateContext';
 import { useStep3OrderDetails, EMPTY_STEP3_ORDERS } from '../../hooks/useStep3OrderDetails';
 import { useAiSuggestedPrice } from '../../hooks/useAiSuggestedPrice';
@@ -115,6 +117,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   const showTrackingEmailSection = canEditTrackingEmails;
   const { carriersList, loading: partnersLoading, error: partnersError } = useCreateShipmentPartners();
   const { can, requirePermission } = useSubscriptionPermission();
+  const {
+    canAction,
+    requirePermission: requireRbac,
+  } = useShipperPermission();
   const { openUpgradeGate } = useUpgradeGate();
   const { quota: publicQuota, loading: publicQuotaLoading } = usePublicLoadQuota(
     draftId,
@@ -468,8 +474,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   const canPublicLoads = can('public_loads');
   const canAiSuggestedPrice = can('ai_suggested_price');
   const canDraftShipment = can('draft_shipment');
+  const canPublishPrivate = canAction('publishPrivate');
+  const canPublishPublic = canAction('publishPublic');
 
   const selectBroadcastType = (type: 'private' | 'public') => {
+    const rbacKey = type === 'private' ? ACTION_RBAC.publishPrivate : ACTION_RBAC.publishPublic;
+    if (!requireRbac(rbacKey)) return;
     const slug = type === 'private' ? 'private_loads' : 'public_loads';
     if (!requirePermission(slug, {
       body:
@@ -672,7 +682,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 <div
                   className={`bcc cursor-pointer border-2 p-4 rounded-xl relative transition-all ${
                     values.broadcastType === 'private' ? 'sel' : ''
-                  } ${!canPrivateLoads ? 'opacity-60' : ''}`}
+                  } ${!canPrivateLoads || !canPublishPrivate ? 'opacity-60' : ''}`}
                   style={{
                     borderColor: values.broadcastType === 'private' ? T.ac : T.bd,
                     background: values.broadcastType === 'private' ? T.ap : 'transparent',
@@ -693,7 +703,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 <div
                   className={`bcc cursor-pointer border-2 p-4 rounded-xl relative transition-all ${
                     values.broadcastType === 'public' ? 'sel' : ''
-                  } ${!canPublicLoads ? 'opacity-60' : ''}`}
+                  } ${!canPublicLoads || !canPublishPublic ? 'opacity-60' : ''}`}
                   style={{
                     borderColor: values.broadcastType === 'public' ? T.ac : T.bd,
                     background: values.broadcastType === 'public' ? T.ap : 'transparent',
@@ -2206,6 +2216,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 });
                 return;
               }
+              const publishPerm =
+                values.broadcastType === 'public'
+                  ? ACTION_RBAC.publishPublic
+                  : ACTION_RBAC.publishPrivate;
+              if (!requireRbac(publishPerm)) return;
               onSubmit();
             }}
           >

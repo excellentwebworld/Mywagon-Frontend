@@ -14,6 +14,8 @@ import {
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { useAuth } from '../../../context/AuthContext';
+import { useShipperPermission } from '../../../hooks/useShipperPermission';
+import { ACTION_RBAC } from '../../../utils/shipperRbacMap';
 import { kycSettingsService } from '../../../api/services/kycSettingsService';
 
 const STATUS_STYLE = {
@@ -28,6 +30,7 @@ export default function KycSection({ onStatusChange }) {
   const { T } = useTheme();
   const { toast } = useToast();
   const { refreshUser } = useAuth();
+  const { canAction, requirePermission: requireRbac } = useShipperPermission();
   const fileRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
@@ -69,7 +72,7 @@ export default function KycSection({ onStatusChange }) {
   const status = data?.kyc_status || 'not_started';
   const style = STATUS_STYLE[status] || STATUS_STYLE.not_started;
   const StatusIcon = style.Icon;
-  const canEdit = Boolean(data?.can_edit);
+  const canEdit = Boolean(data?.can_edit) && canAction('editCompanyInfo');
 
   const onFileChange = (e) => {
     const next = e.target.files?.[0];
@@ -84,6 +87,7 @@ export default function KycSection({ onStatusChange }) {
   };
 
   const submit = async () => {
+    if (!requireRbac(ACTION_RBAC.editCompanyInfo)) return;
     if (!vatNumber.trim() || vatNumber.trim().length < 2) {
       toast.error(t('compliance.kyc.vatRequired'));
       return;

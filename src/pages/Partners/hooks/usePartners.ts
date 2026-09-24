@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
+import { useShipperPermission } from '../../../hooks/useShipperPermission';
+import { ACTION_RBAC } from '../../../utils/shipperRbacMap';
 import { partnersService, ApiError } from '../../../api';
 import type { StoreContractLanePayload } from '../../../api/types/partners';
 import { syncPartnerDropdownCaches } from '../../../api/utils/masterDataCache';
@@ -55,6 +57,7 @@ export function usePartners() {
   const { showToast } = useApp();
   const queryClient = useQueryClient();
   const { requireSignupComplete } = useRequireSignupComplete();
+  const { canAction, requirePermission: requireRbac } = useShipperPermission();
 
   const [error, setError] = useState<string | null>(null);
   const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
@@ -446,15 +449,17 @@ export function usePartners() {
 
   const openInviteModal = useCallback(() => {
     if (!requireSignupComplete()) return;
+    if (!requireRbac(ACTION_RBAC.invitePartner)) return;
     setInviteForm(EMPTY_INVITE);
     setIsInviteOpen(true);
-  }, [requireSignupComplete]);
+  }, [requireSignupComplete, requireRbac]);
 
   const closeInviteModal = useCallback(() => setIsInviteOpen(false), []);
 
   const sendInvite = useCallback((values: InviteFormState) => {
+    if (!requireRbac(ACTION_RBAC.invitePartner)) return;
     inviteMutation.mutate(values);
-  }, [inviteMutation]);
+  }, [inviteMutation, requireRbac]);
 
   const openGenericModal = useCallback((type: GenericModalType) => {
     if (!requireSignupComplete()) return;
@@ -476,6 +481,7 @@ export function usePartners() {
     if (!requireSignupComplete()) return;
     if (!confirmAction) return;
     const { type, partner } = confirmAction;
+    if (type === 'decline' && !requireRbac(ACTION_RBAC.acceptDeclinePartner)) return;
     if (type === 'suspend' || type === 'reactivate') toggleStatusMutation.mutate(partner.id);
     else if (type === 'remove') deleteMutation.mutate(partner.id);
     else if (type === 'decline') declineMutation.mutate(partner.id);
@@ -483,17 +489,21 @@ export function usePartners() {
       deleteLaneMutation.mutate({ partnerId: partner.id, laneId: confirmAction.laneId });
     }
     setConfirmAction(null);
-  }, [confirmAction, toggleStatusMutation, deleteMutation, declineMutation, deleteLaneMutation, requireSignupComplete]);
+  }, [confirmAction, toggleStatusMutation, deleteMutation, declineMutation, deleteLaneMutation, requireSignupComplete, requireRbac]);
 
   const suspendPartner = useCallback((p: Partner) => setConfirmAction({ type: 'suspend', partner: p }), []);
   const reactivatePartner = useCallback((p: Partner) => setConfirmAction({ type: 'reactivate', partner: p }), []);
   const permanentlyRemovePartner = useCallback((p: Partner) => setConfirmAction({ type: 'remove', partner: p }), []);
-  const declinePartner = useCallback((p: Partner) => setConfirmAction({ type: 'decline', partner: p }), []);
+  const declinePartner = useCallback((p: Partner) => {
+    if (!requireRbac(ACTION_RBAC.acceptDeclinePartner)) return;
+    setConfirmAction({ type: 'decline', partner: p });
+  }, [requireRbac]);
   const cancelInvite = useCallback((p: Partner) => setConfirmAction({ type: 'remove', partner: p }), []);
   const acceptPartner = useCallback((p: Partner) => {
     if (!requireSignupComplete()) return;
+    if (!requireRbac(ACTION_RBAC.acceptDeclinePartner)) return;
     acceptMutation.mutate(p.id);
-  }, [acceptMutation, requireSignupComplete]);
+  }, [acceptMutation, requireSignupComplete, requireRbac]);
   const togglePreferred = useCallback((p: Partner) => {
     if (!requireSignupComplete()) return;
     togglePreferredMutation.mutate(p.id);
@@ -592,6 +602,8 @@ export function usePartners() {
     openInviteModal,
     closeInviteModal,
     sendInvite,
+    canInvitePartner: canAction('invitePartner'),
+    canAcceptDeclinePartner: canAction('acceptDeclinePartner'),
     inviteLoading: inviteMutation.isPending,
     openGenericModal,
     closeGenericModal,

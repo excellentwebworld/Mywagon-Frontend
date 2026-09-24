@@ -1,4 +1,5 @@
 import React from 'react';
+import { useShipperPermission } from '../../hooks/useShipperPermission';
 
 interface BulkBarProps {
   count: number;
@@ -15,6 +16,7 @@ export const BulkBar: React.FC<BulkBarProps> = ({
   onClose,
   t,
 }) => {
+  const { canAction } = useShipperPermission();
   if (count === 0) return null;
 
   return (
@@ -22,9 +24,11 @@ export const BulkBar: React.FC<BulkBarProps> = ({
       <span className="bulk-cnt">
         {count} {t('selected')}
       </span>
-      <button type="button" className="bulk-btn" onClick={onCancel}>
-        {t('cancelSelected')}
-      </button>
+      {canAction('cancelShipment') ? (
+        <button type="button" className="bulk-btn" onClick={onCancel}>
+          {t('cancelSelected')}
+        </button>
+      ) : null}
       <button type="button" className="bulk-btn" onClick={onExport}>
         {t('exportSelected')}
       </button>

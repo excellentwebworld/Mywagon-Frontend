@@ -20,6 +20,8 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { usePastDueLock } from '../../hooks/usePastDueLock';
 import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
+import { useShipperPermission } from '../../hooks/useShipperPermission';
+import { SHIPPER_RBAC } from '../../utils/shipperRbacMap';
 import { ProfileDropdown } from './ProfileDropdown';
 import { notificationService } from '../../api/services/notificationService';
 import type { ApiNotification } from '../../api/services/notificationService';
@@ -100,6 +102,7 @@ export const Header: React.FC<HeaderProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const pastDueLocked = usePastDueLock();
+  const { canNav, requirePermission } = useShipperPermission();
 
   const goFeature = (route: string) => {
     if (pastDueLocked && route !== '/billing') {
@@ -230,7 +233,11 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const isSideMode = navMode !== 'top';
-  const showCta = location.pathname !== '/shipments/create' && !pastDueLocked;
+  const showCta =
+    location.pathname !== '/shipments/create' &&
+    !pastDueLocked &&
+    canNav('createShipment');
+  const showMessages = canNav('messages');
   const pageTitle = getHeaderPageTitle(location.pathname, t);
 
   return (
@@ -681,6 +688,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Messages */}
+      {showMessages && (
       <button
         type="button"
         className="mv-topbar-icon-btn"
@@ -701,6 +709,7 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="mv-topbar-dot" style={{ background: '#EF4444' }} />
         )}
       </button>
+      )}
 
       {/* Profile dropdown */}
       <ProfileDropdown />
@@ -711,6 +720,7 @@ export const Header: React.FC<HeaderProps> = ({
           type="button"
           onClick={() => {
             if (!requireSignupComplete()) return;
+            if (!requirePermission(SHIPPER_RBAC.newShipment)) return;
             navigate('/shipments/create');
           }}
           aria-label={t('createShipment')}

@@ -1,6 +1,8 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { RequireRbac } from './components/auth/RequireRbac';
 import { LoginPage } from './pages/Login/LoginPage';
 import { RegisterPage } from './pages/Register/RegisterPage';
 import { ForgotPasswordPage } from './pages/Auth/ForgotPasswordPage';
@@ -36,8 +38,13 @@ import { MessagesPage } from './pages/Messages';
 import { WeeklyReportsPage } from './pages/Analytics/WeeklyReports';
 
 import { LegalPage } from './pages/Legal/LegalPage';
+import { SHIPPER_RBAC } from './utils/shipperRbacMap';
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
+
+function withRbac(permission: string | string[], element: ReactNode) {
+  return <RequireRbac permission={permission}>{element}</RequireRbac>;
+}
 
 const authRoutes = [
   { path: '/login', element: <LoginPage /> },
@@ -63,14 +70,14 @@ const legalRoutes = [
 const appRoutes = [
   { path: '/dashboard', element: <Dashboard /> },
   { path: '/notifications', element: <Navigate to="/settings/notifications" replace /> },
-  { path: '/messages', element: <MessagesPage /> },
+  { path: '/messages', element: withRbac(SHIPPER_RBAC.chatWithCarrier, <MessagesPage />) },
   { path: '/chat', element: <Navigate to="/messages" replace /> },
-  { path: '/shipments', element: <ManageShipments /> },
-  { path: '/search-trucks', element: <SearchTrucks /> },
-  { path: '/shipments/:id', element: <ShipmentDetail /> },
+  { path: '/shipments', element: withRbac(SHIPPER_RBAC.viewAllShipments, <ManageShipments />) },
+  { path: '/search-trucks', element: withRbac(SHIPPER_RBAC.searchPublicTrucks, <SearchTrucks />) },
+  { path: '/shipments/:id', element: withRbac(SHIPPER_RBAC.viewAllShipments, <ShipmentDetail />) },
   {
     path: '/shipments/create',
-    element: <CreateShipmentWizardLayout />,
+    element: withRbac(SHIPPER_RBAC.newShipment, <CreateShipmentWizardLayout />),
     children: [
       { index: true, element: <Navigate to="step/1" replace /> },
       { path: 'step/1', element: <CreateShipmentStep1Page /> },
@@ -80,7 +87,13 @@ const appRoutes = [
   },
   { path: '/address-book', element: <AddressBook /> },
   { path: '/products', element: <ProductMaster /> },
-  { path: '/partners', element: <Partners /> },
+  {
+    path: '/partners',
+    element: withRbac(
+      [SHIPPER_RBAC.addNewPartner, SHIPPER_RBAC.acceptRejectPartner],
+      <Partners />,
+    ),
+  },
   { path: '/pricing', element: <PriceListsPage /> },
   { path: '/erp-orders', element: <ErpOrders /> },
   { path: '/settings', element: <Navigate to="/settings/personal" replace /> },
@@ -91,7 +104,7 @@ const appRoutes = [
   { path: '/analytics', element: <Navigate to="/analytics/weekly-reports" replace /> },
   { path: '/analytics/weekly-reports', element: <WeeklyReportsPage /> },
   { path: '/billing', element: <BillingPage /> },
-  { path: '/subscription', element: <SubscriptionPage /> },
+  { path: '/subscription', element: withRbac(SHIPPER_RBAC.manageSubscriptions, <SubscriptionPage />) },
   { path: '/support', element: <SupportPage /> },
   { path: '/tutorials', element: <TutorialsPage /> },
   { path: '/trust', element: <Navigate to="/settings/trustCenter" replace /> },

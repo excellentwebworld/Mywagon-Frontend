@@ -24,6 +24,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePastDueLock } from '../../hooks/usePastDueLock';
 import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
+import { useShipperPermission } from '../../hooks/useShipperPermission';
+import type { ShipperRbacNavKey } from '../../utils/shipperRbacMap';
 import { useApp } from '../../context/AppContext';
 
 type NavItem = {
@@ -34,6 +36,8 @@ type NavItem = {
   icon: LucideIcon;
   tag?: string;
   action?: 'vagon-ai';
+  /** Spatie nav gate; omit = always visible. */
+  rbacNav?: ShipperRbacNavKey;
 };
 
 type NavSection = {
@@ -70,6 +74,7 @@ const SECTIONS: NavSection[] = [
         fallback: 'Create Shipment',
         route: '/shipments/create',
         icon: PlusCircle,
+        rbacNav: 'createShipment',
       },
       {
         id: 'manage',
@@ -77,6 +82,7 @@ const SECTIONS: NavSection[] = [
         fallback: 'Manage Shipments',
         route: '/shipments',
         icon: ClipboardList,
+        rbacNav: 'manageShipments',
       },
       {
         id: 'search',
@@ -85,6 +91,7 @@ const SECTIONS: NavSection[] = [
         route: '/search-trucks',
         icon: Search,
         tag: 'BETA',
+        rbacNav: 'searchTrucks',
       },
     ],
   },
@@ -120,6 +127,7 @@ const SECTIONS: NavSection[] = [
         fallback: 'Partners',
         route: '/partners',
         icon: Users,
+        rbacNav: 'partners',
       },
       {
         id: 'pricing',
@@ -158,8 +166,17 @@ export function TopNav() {
   const location = useLocation();
   const pastDueLocked = usePastDueLock();
   const { requireSignupComplete, signupIncomplete } = useRequireSignupComplete();
+  const { canNav } = useShipperPermission();
   const [hoverSection, setHoverSection] = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const itemAllowed = (item: NavItem) =>
+    !item.rbacNav || canNav(item.rbacNav);
+
+  const visibleSections = SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter(itemAllowed),
+  })).filter((section) => section.items.length > 0);
 
   const isSignupBrowseAllowed = (path: string) => {
     const p = path.replace(/\/$/, '') || '/';
@@ -260,7 +277,7 @@ export function TopNav() {
         <span>{label(TOP_ITEM.labelKey, TOP_ITEM.fallback)}</span>
       </button>
 
-      {SECTIONS.map((section) => {
+      {visibleSections.map((section) => {
         const sectionActive = isSectionActive(section);
         const open = hoverSection === section.id;
         return (

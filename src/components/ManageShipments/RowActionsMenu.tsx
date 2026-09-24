@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Shipment } from '../../context/AppContext';
 import { isShipmentCancellable, isShipmentEditable } from '../../pages/ManageShipments/utils/listingUtils';
+import { useShipperPermission } from '../../hooks/useShipperPermission';
 
 interface RowActionsMenuProps {
   shipment: Shipment;
@@ -19,6 +20,7 @@ export const RowActionsMenu: React.FC<RowActionsMenuProps> = ({
   onDelete,
   t,
 }) => {
+  const { canAction } = useShipperPermission();
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -51,8 +53,8 @@ export const RowActionsMenu: React.FC<RowActionsMenuProps> = ({
     };
   }, [open]);
 
-  const editable = isShipmentEditable(shipment.status);
-  const cancellable = isShipmentCancellable(shipment.status);
+  const editable = isShipmentEditable(shipment.status) && canAction('editShipment');
+  const cancellable = isShipmentCancellable(shipment.status) && canAction('cancelShipment');
 
   return (
     <>

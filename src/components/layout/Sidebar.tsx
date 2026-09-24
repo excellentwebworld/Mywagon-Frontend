@@ -7,6 +7,7 @@ import { assetUrl } from "../../utils/assetUrl";
 import collapsedLogo from "../../assets/logo/logo.svg";
 import { usePastDueLock } from "../../hooks/usePastDueLock";
 import { useRequireSignupComplete } from "../../hooks/useRequireSignupComplete";
+import { useShipperPermission } from "../../hooks/useShipperPermission";
 
 /** Paths incomplete social users may open without the profile modal. */
 function isSignupBrowseAllowed(path: string): boolean {
@@ -38,6 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { showToast } = useApp();
   const pastDueLocked = usePastDueLock();
   const { requireSignupComplete, signupIncomplete } = useRequireSignupComplete();
+  const { canNav } = useShipperPermission();
 
   const [mainOpen, setMainOpen] = useState(true);
   const [masterOpen, setMasterOpen] = useState(true);
@@ -173,6 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span>{t("dashboard")}</span>
               </Link>
 
+              {canNav("createShipment") && (
               <Link
                 to="/shipments/create"
                 onClick={(e) => onFeatureNav(e, "/shipments/create")}
@@ -185,7 +188,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </svg>
                 <span>{t("createShipment")}</span>
               </Link>
+              )}
 
+              {canNav("manageShipments") && (
               <Link
                 to="/shipments"
                 onClick={(e) => onFeatureNav(e, "/shipments")}
@@ -200,7 +205,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </svg>
                 <span>{t("navManageShipments")}</span>
               </Link>
+              )}
 
+              {canNav("searchTrucks") && (
               <Link
                 to="/search-trucks"
                 onClick={(e) => onFeatureNav(e, "/search-trucks")}
@@ -214,6 +221,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span>{t("truckAvailability")}</span>
                 <span className="nb">BETA</span>
               </Link>
+              )}
             </>
           )}
 
@@ -281,6 +289,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span>{t("navErpOrders") || "Orders"}</span>
               </Link>
 
+              {canNav("partners") && (
               <Link
                 to="/partners"
                 onClick={(e) => onFeatureNav(e, "/partners")}
@@ -296,6 +305,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </svg>
                 <span>{t("navPartners")}</span>
               </Link>
+              )}
 
               <Link
                 to="/pricing"

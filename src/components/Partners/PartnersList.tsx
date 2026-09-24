@@ -55,6 +55,7 @@ type Props = Pick<
   | 'setPageSize'
   | 'acceptPartner'
   | 'declinePartner'
+  | 'canAcceptDeclinePartner'
 >;
 
 function getTypeClass(type: Partner['type']) {
@@ -99,6 +100,7 @@ export const PartnersList: React.FC<Props> = ({
   setPageSize,
   acceptPartner,
   declinePartner,
+  canAcceptDeclinePartner,
 }) => {
   const total = listMeta.total ?? 0;
   const lastPage = listMeta.last_page ?? 1;
@@ -180,7 +182,7 @@ export const PartnersList: React.FC<Props> = ({
                   </td>
                   <td>
                     <span className={`ptn-st ${getStatusClass(p.status)}`}>{p.statusLabel}</span>
-                    {p.canAcceptDecline && (
+                    {p.canAcceptDecline && canAcceptDeclinePartner && (
                       <div style={{ marginTop: 6, display: 'flex', gap: 4 }} onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"

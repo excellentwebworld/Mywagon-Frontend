@@ -11,6 +11,8 @@ import { ApiError, availabilitiesService, SAT_PREFILL_KEY } from '../../../api';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
+import { useShipperPermission } from '../../../hooks/useShipperPermission';
+import { ACTION_RBAC } from '../../../utils/shipperRbacMap';
 import type { SatFilterDraft } from '../../../components/SearchTrucks/SatFilterModal';
 import { resolveTripType } from '../../../components/SearchTrucks/SatFilterModal';
 import { toApiPickupDate } from '../../../api/mappers/availabilitiesMapper';
@@ -382,6 +384,7 @@ export function useSearchTrucks() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { requireSignupComplete } = useRequireSignupComplete();
+  const { requirePermission: requireRbac, canAction } = useShipperPermission();
 
   const [mockTrucks, setMockTrucks] = useState<AvailableTruck[]>(() =>
     MOCK_TRUCKS.map((x) => ({ ...x }))
@@ -976,6 +979,7 @@ export function useSearchTrucks() {
   const goToCreateShipment = useCallback(
     async (truck: AvailableTruck) => {
       if (!requireSignupComplete()) return;
+      if (!requireRbac(ACTION_RBAC.bidOnTruck)) return;
       setCreatingShipmentId(truck.id);
       try {
         if (USE_MOCK) {
@@ -998,11 +1002,12 @@ export function useSearchTrucks() {
       }
       // Keep loading state on success until create-shipment route unmounts this page.
     },
-    [navigate, showToast, t, requireSignupComplete]
+    [navigate, showToast, t, requireSignupComplete, requireRbac]
   );
 
   const openDrawer = useCallback(
     (truck: AvailableTruck, mode: DrawerMode = 'pending', occurrence?: string) => {
+      if (!requireRbac(ACTION_RBAC.bidOnTruck)) return;
       // Create-new skips the booking drawer — Create Shipment sticky bar holds context.
       if (mode === 'new') {
         void goToCreateShipment(truck);
@@ -1021,7 +1026,7 @@ export function useSearchTrucks() {
       setDrawerOpen(true);
       void loadPendingMatches(truck, { page: 1, append: false, search: '' });
     },
-    [goToCreateShipment, loadPendingMatches]
+    [goToCreateShipment, loadPendingMatches, requireRbac]
   );
 
   const closeDrawer = useCallback(() => {
@@ -1257,6 +1262,7 @@ export function useSearchTrucks() {
   const confirmBooking = useCallback(async () => {
     if (!selectedTruck) return;
     if (!requireSignupComplete()) return;
+    if (!requireRbac(ACTION_RBAC.bidOnTruck)) return;
 
     if (USE_MOCK) {
       const rootId = selectedTruck.id.replace(/-\d+$/, '');
@@ -1280,7 +1286,7 @@ export function useSearchTrucks() {
     } finally {
       setConfirming(false);
     }
-  }, [selectedTruck, placeBidMutation, closeDrawer, showToast, t, requireSignupComplete]);
+  }, [selectedTruck, placeBidMutation, closeDrawer, showToast, t, requireSignupComplete, requireRbac]);
 
   const dismissGateReminder = useCallback(() => {
     try {
@@ -1475,6 +1481,7 @@ export function useSearchTrucks() {
     closeDrawer,
     confirmBooking,
     goToCreateShipment,
+    canBidOnTruck: canAction('bidOnTruck'),
     handleExport,
     useMock: USE_MOCK,
   };

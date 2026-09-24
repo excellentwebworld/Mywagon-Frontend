@@ -68,7 +68,7 @@ export default function RolesTab() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
-  const { user: authUser } = useAuth();
+  const { user: authUser, refreshUser } = useAuth();
   const canManageRoles = canManageShipperUsers(authUser);
   const { requireSignupComplete } = useRequireSignupComplete();
   const {
@@ -165,6 +165,10 @@ export default function RolesTab() {
       }
       cancelEdit();
       toast.success(t('userMgmt.toast.roleSaved'));
+      // Sub-users may inherit the edited pack — refresh Spatie permissions.
+      if (authUser?.is_sub_user === true || authUser?.type === 'sub_user') {
+        await refreshUser().catch(() => null);
+      }
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' });
       toast.error(msg);

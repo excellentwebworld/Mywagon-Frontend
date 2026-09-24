@@ -1,6 +1,7 @@
 import React from 'react';
 import type { AvailableTruck } from '../../pages/SearchTrucks/types';
 import { formatMoney } from '../../pages/SearchTrucks/utils/money';
+import { useShipperPermission } from '../../hooks/useShipperPermission';
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -18,13 +19,19 @@ export function AvailabilityPrice({
   size?: 'sm' | 'md' | 'lg';
   t: Translate;
 }) {
-  const showQuote = truck.price != null && !truck.priceBlurred;
+  const { canAction } = useShipperPermission();
+  const rbacBlur = !canAction('viewQuotes');
+  const priceBlurred = truck.priceBlurred || rbacBlur;
+  const showQuote = truck.price != null && !priceBlurred;
   const showBest =
-    canViewBestBid && truck.bestBid != null && !Number.isNaN(Number(truck.bestBid));
+    canViewBestBid &&
+    truck.bestBid != null &&
+    !Number.isNaN(Number(truck.bestBid)) &&
+    !rbacBlur;
 
   if (!showQuote && !showBest) {
     return (
-      <span className={`sat-offer-b${truck.priceBlurred ? ' sat-price-blurred' : ''}`}>
+      <span className={`sat-offer-b${priceBlurred ? ' sat-price-blurred' : ''}`}>
         {t('satOfferBased')}
       </span>
     );

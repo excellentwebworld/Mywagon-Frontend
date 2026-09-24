@@ -12,6 +12,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePastDueLock } from '../../hooks/usePastDueLock';
+import { useShipperPermission } from '../../hooks/useShipperPermission';
 import { useApp } from '../../context/AppContext';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
@@ -54,6 +55,7 @@ export function ProfileDropdown() {
   const { T, isDark, toggleDark } = useTheme();
   const { user, logout } = useAuth();
   const pastDueLocked = usePastDueLock();
+  const { canNav } = useShipperPermission();
   const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
@@ -141,8 +143,13 @@ export function ProfileDropdown() {
   ];
 
   const visibleLinks = links.filter((link) => {
-    if (!pastDueLocked) return true;
-    return link.kind === 'route' && link.route === '/billing';
+    if (pastDueLocked) {
+      return link.kind === 'route' && link.route === '/billing';
+    }
+    if (link.kind === 'route' && link.route === '/subscription') {
+      return canNav('subscription');
+    }
+    return true;
   });
 
   const renderIcon = (link: MenuLink) => {

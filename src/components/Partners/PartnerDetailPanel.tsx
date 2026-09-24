@@ -18,6 +18,7 @@ type Props = Pick<
   | "cancelInvite"
   | "acceptPartner"
   | "declinePartner"
+  | "canAcceptDeclinePartner"
   | "togglePreferred"
   | "deleteContractLane"
   | "openGenericModal"
@@ -76,6 +77,7 @@ export const PartnerDetailPanel: React.FC<Props> = ({
   cancelInvite,
   acceptPartner,
   declinePartner,
+  canAcceptDeclinePartner,
   togglePreferred,
   deleteContractLane,
   openGenericModal,
@@ -225,7 +227,7 @@ export const PartnerDetailPanel: React.FC<Props> = ({
             )}
           </div>
 
-          {(p.canAcceptDecline || p.status === "pending") && (
+          {(p.canAcceptDecline || p.status === "pending") && canAcceptDeclinePartner && (
             <div className="ptn-awaiting-box">
               <div className="ptn-awaiting-title">
                 📥 {t("invitationReceived")}

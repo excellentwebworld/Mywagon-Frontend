@@ -21,6 +21,9 @@ import * as LucideIcons from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { LANGUAGES } from '../../constants/panel';
 import { useApp } from '../../context/AppContext';
+import { useShipperPermission } from '../../hooks/useShipperPermission';
+import { RbacAccessDenied } from '../../components/auth/RequireRbac';
+import type { ShipperRbacNavKey } from '../../utils/shipperRbacMap';
 import UserManagementSection from './UserManagementPage';
 import PersonalSection from './sections/PersonalSection';
 import OrganizationSection from './sections/OrganizationSection';
@@ -42,6 +45,8 @@ type SettingsMenuItem = {
   labelKey: string;
   comingSoon?: boolean;
   link?: string;
+  /** Spatie nav key; omit = always visible to authenticated users. */
+  rbacNav?: ShipperRbacNavKey;
 };
 
 type SettingsMenuGroup = {
@@ -58,9 +63,9 @@ const MENU: SettingsMenuGroup[] = [
     { id: 'language', icon: Globe, labelKey: 'topbar.language' },
   ]},
   { group: 'settings.groupAdmin', items: [
-    { id: 'organization', icon: Building2, labelKey: 'settings.organization' },
-    { id: 'users', icon: Users, labelKey: 'settings.usersRoles' },
-    { id: 'audit', icon: Clock, labelKey: 'settings.auditLog' },
+    { id: 'organization', icon: Building2, labelKey: 'settings.organization', rbacNav: 'organization' },
+    { id: 'users', icon: Users, labelKey: 'settings.usersRoles', rbacNav: 'users' },
+    { id: 'audit', icon: Clock, labelKey: 'settings.auditLog', rbacNav: 'users' },
   ]},
   { group: 'settings.groupTools', items: [
     { id: 'integrations', icon: Zap, labelKey: 'settings.integrations' },
@@ -68,7 +73,7 @@ const MENU: SettingsMenuGroup[] = [
   ]},
   { group: 'settings.groupLegal', items: [
     { id: 'trustCenter', icon: ShieldCheck, labelKey: 'settings.securityTrust' },
-    { id: 'compliance', icon: ClipboardList, labelKey: 'settings.complianceKyc' },
+    { id: 'compliance', icon: ClipboardList, labelKey: 'settings.complianceKyc', rbacNav: 'organization' },
     { id: 'legal', icon: FileText, labelKey: 'settings.agreements' },
   ]},
 ];
@@ -94,6 +99,7 @@ export default function Settings() {
   const { T, isDark, toggleDark, navMode, setNavMode } = useTheme();
   const { setLang } = useApp();
   const navigate = useNavigate();
+  const { canNav } = useShipperPermission();
   const { section: sectionParam } = useParams<{ section?: string; tab?: string }>();
 
   const sectionValid = isValidSection(sectionParam);
@@ -105,12 +111,35 @@ export default function Settings() {
   }, [navigate]);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const allItems = useMemo(() => MENU.flatMap((g) => g.items), []);
+
+  const visibleMenu = useMemo(
+    () =>
+      MENU.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => !item.rbacNav || canNav(item.rbacNav)),
+      })).filter((group) => group.items.length > 0),
+    [canNav],
+  );
+
+  const allItems = useMemo(() => visibleMenu.flatMap((g) => g.items), [visibleMenu]);
   const activeItem = allItems.find((i) => i.id === activeSection);
+
+  const sectionDenied =
+    sectionValid &&
+    (() => {
+      const raw = MENU.flatMap((g) => g.items).find((i) => i.id === activeSection);
+      return Boolean(raw?.rbacNav && !canNav(raw.rbacNav));
+    })();
 
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [activeSection]);
+
+  useEffect(() => {
+    if (sectionDenied) {
+      navigate(`/settings/${DEFAULT_SECTION}`, { replace: true });
+    }
+  }, [sectionDenied, navigate]);
 
   const [kycNeedsAttention, setKycNeedsAttention] = useState(false);
   const [pendingPolicyCount, setPendingPolicyCount] = useState(0);
@@ -172,7 +201,7 @@ export default function Settings() {
             className="mt-2 rounded-xl overflow-hidden shadow-lg"
             style={{ background: T.sf, border: `1px solid ${T.bd}`, maxHeight: 400, overflowY: 'auto' }}
           >
-            {MENU.map((group) => (
+            {visibleMenu.map((group) => (
               <div key={group.group}>
                 <div
                   className="px-4 pt-3 pb-1"
@@ -220,7 +249,7 @@ export default function Settings() {
 
       {/* Desktop left menu — Personal / Admin / Tools / Compliance */}
       <div className="settings-nav-desktop">
-        {MENU.map((group, gi) => (
+        {visibleMenu.map((group, gi) => (
           <div key={group.group}>
             {gi > 0 && <div className="my-2" style={{ borderTop: `1px solid ${T.bd}` }} />}
             <div
@@ -396,23 +425,24 @@ export default function Settings() {
           </div>
         )}
 
-        {activeSection === 'trustCenter' && <TrustCenterPage embedded />}
-        {activeSection === 'compliance' && (
+        {sectionDenied && <RbacAccessDenied />}
+        {!sectionDenied && activeSection === 'trustCenter' && <TrustCenterPage embedded />}
+        {!sectionDenied && activeSection === 'compliance' && (
           <KycSection
             onStatusChange={(payload: { needs_attention?: boolean }) => {
               setKycNeedsAttention(Boolean(payload?.needs_attention));
             }}
           />
         )}
-        {activeSection === 'legal' && <PoliciesSection onPendingChange={setPendingPolicyCount} />}
-        {activeSection === 'audit' && <AuditLogSection />}
-        {activeSection === 'personal' && <PersonalSection />}
-        {activeSection === 'organization' && <OrganizationSection />}
-        {activeSection === 'security' && <PersonalSecuritySection />}
-        {activeSection === 'notifications' && <NotificationsPage embedded />}
-        {activeSection === 'users' && <UserManagementSection />}
+        {!sectionDenied && activeSection === 'legal' && <PoliciesSection onPendingChange={setPendingPolicyCount} />}
+        {!sectionDenied && activeSection === 'audit' && <AuditLogSection />}
+        {!sectionDenied && activeSection === 'personal' && <PersonalSection />}
+        {!sectionDenied && activeSection === 'organization' && <OrganizationSection />}
+        {!sectionDenied && activeSection === 'security' && <PersonalSecuritySection />}
+        {!sectionDenied && activeSection === 'notifications' && <NotificationsPage embedded />}
+        {!sectionDenied && activeSection === 'users' && <UserManagementSection />}
 
-        {!BUILT.has(activeSection) && (
+        {!sectionDenied && !BUILT.has(activeSection) && (
           <div className="flex flex-col items-center justify-center py-16">
             {(() => {
               const f = MENU.flatMap((g) => g.items).find((i) => i.id === activeSection);

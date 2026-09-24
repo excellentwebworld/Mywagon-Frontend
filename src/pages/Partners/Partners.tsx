@@ -93,7 +93,10 @@ const Partners: React.FC = () => {
         </div>
       ) : null}
 
-      <PartnersHeader t={state.t} openInviteModal={openInviteGuarded} />
+      <PartnersHeader
+        t={state.t}
+        openInviteModal={state.canInvitePartner ? openInviteGuarded : undefined}
+      />
 
       <PartnersKpiStrip
         t={state.t}
@@ -143,6 +146,7 @@ const Partners: React.FC = () => {
           setPageSize={state.setPageSize}
           acceptPartner={state.acceptPartner}
           declinePartner={state.declinePartner}
+          canAcceptDeclinePartner={state.canAcceptDeclinePartner}
         />
 
         <PartnerDetailPanel
@@ -158,6 +162,7 @@ const Partners: React.FC = () => {
           cancelInvite={state.cancelInvite}
           acceptPartner={state.acceptPartner}
           declinePartner={state.declinePartner}
+          canAcceptDeclinePartner={state.canAcceptDeclinePartner}
           togglePreferred={state.togglePreferred}
           deleteContractLane={state.deleteContractLane}
           openGenericModal={state.openGenericModal}
