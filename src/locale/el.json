@@ -365,6 +365,7 @@
   "step2ConfirmItinerary": "Επιβεβαίωση Δρομολογίου",
   "step2ItineraryConfirmed": "Δρομολόγιο Επιβεβαιωμένο",
   "step2ConfirmRequired": "Παρακαλώ επιβεβαιώστε πρώτα το δρομολόγιο.",
+  "step2RouteDistanceRequired": "Η απόσταση (km) δεν φορτώθηκε από το δρομολόγιο. Επιστρέψτε στο Itinerary, περιμένετε να υπολογιστεί η απόσταση και συνεχίστε.",
   "step2SavedSuccess": "Το βήμα 2 αποθηκεύτηκε επιτυχώς.",
   "step2Back": "Πίσω",
   "step2Continue": "Συνέχεια",

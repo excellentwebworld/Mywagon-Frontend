@@ -812,12 +812,25 @@ export function useCreateShipmentWizard(
         throw new Error('Vehicle not selected');
       }
 
+      const resolvedRoute = routeSummary ?? values.routeSummary;
+      if (
+        mode === 'complete' &&
+        !(resolvedRoute && Number(resolvedRoute.totalDistKm) > 0)
+      ) {
+        showToast(
+          t('step2RouteDistanceRequired') ||
+            'Distance (km) was not fetched from the itinerary. Go back to Itinerary, wait for the route distance to load, then continue.',
+          'error'
+        );
+        throw new Error('Route distance missing');
+      }
+
       setIsSaving(true);
       try {
         const id = await ensureDraftId();
         const valuesWithRoute = {
           ...values,
-          routeSummary: routeSummary ?? values.routeSummary,
+          routeSummary: resolvedRoute ?? values.routeSummary,
         };
         const payload = formValuesToStepTwoPayload(
           {
@@ -863,6 +876,9 @@ export function useCreateShipmentWizard(
         if (err instanceof Error && err.message === 'Vehicle not selected') {
           throw err;
         }
+        if (err instanceof Error && err.message === 'Route distance missing') {
+          throw err;
+        }
         const message =
           err instanceof ApiError ? err.message : t('draftSaveFailed') || 'Failed to save draft.';
         showToast(message, 'error');
@@ -877,6 +893,14 @@ export function useCreateShipmentWizard(
   const saveStep3 = useCallback(
     async (values: WizardFormValues, mode: 'partial' | 'complete') => {
       if (mode === 'complete') {
+        if (!(values.routeSummary && Number(values.routeSummary.totalDistKm) > 0)) {
+          showToast(
+            t('step2RouteDistanceRequired') ||
+              'Distance (km) was not fetched from the itinerary. Go back to Itinerary, wait for the route distance to load, then continue.',
+            'error'
+          );
+          throw new Error('Route distance missing');
+        }
         const isNegotiable = Boolean(values.negotiable);
         const rawPrice = String(values.targetPrice ?? '').trim();
         const price = rawPrice === '' ? NaN : parseFloat(rawPrice);
@@ -927,7 +951,12 @@ export function useCreateShipmentWizard(
         );
         return draft;
       } catch (err: unknown) {
-        if (err instanceof Error && (err.message === 'Invalid price' || err.message === 'No carriers selected')) {
+        if (
+          err instanceof Error &&
+          (err.message === 'Invalid price' ||
+            err.message === 'No carriers selected' ||
+            err.message === 'Route distance missing')
+        ) {
           throw err;
         }
         const message =
@@ -943,6 +972,14 @@ export function useCreateShipmentWizard(
 
   const publishShipment = useCallback(
     async (values: WizardFormValues) => {
+      if (!(values.routeSummary && Number(values.routeSummary.totalDistKm) > 0)) {
+        showToast(
+          t('step2RouteDistanceRequired') ||
+            'Distance (km) was not fetched from the itinerary. Go back to Itinerary, wait for the route distance to load, then continue.',
+          'error'
+        );
+        throw new Error('Route distance missing');
+      }
       const isNegotiable = Boolean(values.negotiable);
       const rawPrice = String(values.targetPrice ?? '').trim();
       const price = rawPrice === '' ? NaN : parseFloat(rawPrice);
@@ -1002,7 +1039,12 @@ export function useCreateShipmentWizard(
         showToast(t('shipmentCreatedSuccess', 'Shipment created successfully!'), 'success');
         return published;
       } catch (err: unknown) {
-        if (err instanceof Error && (err.message === 'Invalid price' || err.message === 'No carriers selected')) {
+        if (
+          err instanceof Error &&
+          (err.message === 'Invalid price' ||
+            err.message === 'No carriers selected' ||
+            err.message === 'Route distance missing')
+        ) {
           throw err;
         }
         let message =

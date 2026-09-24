@@ -366,6 +366,7 @@
   "step2ConfirmItinerary": "Confirm Itinerary",
   "step2ItineraryConfirmed": "Itinerary Confirmed",
   "step2ConfirmRequired": "Please confirm the itinerary first.",
+  "step2RouteDistanceRequired": "Distance (km) was not fetched from the itinerary. Go back to Itinerary, wait for the route distance to load, then continue.",
   "step2SavedSuccess": "Step 2 saved successfully.",
   "step2Back": "Back",
   "step2Continue": "Continue",
