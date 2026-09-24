@@ -4,8 +4,6 @@ import {
   Download,
   Printer,
   Mail,
-  Calendar,
-  User,
   ArrowUpRight,
   ArrowDownRight,
   Minus,
@@ -13,7 +11,6 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { WeeklyReportItem } from '../../../../api/types/weeklyReports';
-import { assetUrl } from '../../../../utils/assetUrl';
 
 interface WeeklyReportEmailModalProps {
   report: WeeklyReportItem | null;
@@ -207,7 +204,7 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
             {/* Email Heading & Salutation */}
             <div className="wr-card-heading">
               <h2 id="wr-email-title" className="wr-card-title">
-                {t('weeklyReports.title', 'Your Weekly Logistics Report')}
+                {t('weeklyReports.emailTitle', 'Your Weekly Logistics Report')}
               </h2>
               <p className="wr-card-salutation">
                 {t('weeklyReports.hello', 'Hello {{name}},', { name: report.recipient_name || 'Shipper' })}

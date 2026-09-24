@@ -3,10 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   BarChart3,
-  Mail,
   RefreshCw,
-  Sparkles,
-  TrendingUp,
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { weeklyReportsService } from '../../../api/services/weeklyReportsService';
